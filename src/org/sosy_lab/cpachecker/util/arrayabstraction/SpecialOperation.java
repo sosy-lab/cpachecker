@@ -8,8 +8,10 @@
 
 package org.sosy_lab.cpachecker.util.arrayabstraction;
 
+import com.google.common.base.MoreObjects;
 import java.math.BigInteger;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
@@ -102,10 +104,6 @@ abstract class SpecialOperation {
       expression = pExpression;
     }
 
-    private CExpression getExpression() {
-      return expression;
-    }
-
     /** Tries to extract an assign operation from the specified CFA edge. */
     private static Optional<ExpressionAssign> forEdge(CFAEdge pEdge) {
 
@@ -147,6 +145,39 @@ abstract class SpecialOperation {
       }
 
       return Optional.empty();
+    }
+
+    private CExpression getExpression() {
+      return expression;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(getDeclaration(), expression);
+    }
+
+    @Override
+    public boolean equals(Object pObject) {
+
+      if (this == pObject) {
+        return true;
+      }
+
+      if (!(pObject instanceof ExpressionAssign)) {
+        return false;
+      }
+
+      ExpressionAssign other = (ExpressionAssign) pObject;
+      return Objects.equals(getDeclaration(), other.getDeclaration())
+          && Objects.equals(expression, other.expression);
+    }
+
+    @Override
+    public String toString() {
+      return MoreObjects.toStringHelper(this)
+          .add("declaration", getDeclaration())
+          .add("expression", expression)
+          .toString();
     }
   }
 
@@ -202,6 +233,35 @@ abstract class SpecialOperation {
      */
     public BigInteger getValue() {
       return value;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(getDeclaration(), value);
+    }
+
+    @Override
+    public boolean equals(Object pObject) {
+
+      if (this == pObject) {
+        return true;
+      }
+
+      if (!(pObject instanceof ConstantAssign)) {
+        return false;
+      }
+
+      ConstantAssign other = (ConstantAssign) pObject;
+      return Objects.equals(getDeclaration(), other.getDeclaration())
+          && Objects.equals(value, other.value);
+    }
+
+    @Override
+    public String toString() {
+      return MoreObjects.toStringHelper(this)
+          .add("declaration", getDeclaration())
+          .add("value", value)
+          .toString();
     }
   }
 
@@ -289,6 +349,35 @@ abstract class SpecialOperation {
      */
     public BigInteger getStepValue() {
       return stepValue;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(getDeclaration(), stepValue);
+    }
+
+    @Override
+    public boolean equals(Object pObject) {
+
+      if (this == pObject) {
+        return true;
+      }
+
+      if (!(pObject instanceof UpdateAssign)) {
+        return false;
+      }
+
+      UpdateAssign other = (UpdateAssign) pObject;
+      return Objects.equals(getDeclaration(), other.getDeclaration())
+          && Objects.equals(stepValue, other.stepValue);
+    }
+
+    @Override
+    public String toString() {
+      return MoreObjects.toStringHelper(this)
+          .add("declaration", getDeclaration())
+          .add("stepValue", stepValue)
+          .toString();
     }
   }
 
@@ -412,6 +501,37 @@ abstract class SpecialOperation {
      */
     public BigInteger getValue() {
       return value;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(getDeclaration(), operator, value);
+    }
+
+    @Override
+    public boolean equals(Object pObject) {
+
+      if (this == pObject) {
+        return true;
+      }
+
+      if (!(pObject instanceof ComparisonAssume)) {
+        return false;
+      }
+
+      ComparisonAssume other = (ComparisonAssume) pObject;
+      return Objects.equals(getDeclaration(), other.getDeclaration())
+          && operator == other.operator
+          && Objects.equals(value, other.value);
+    }
+
+    @Override
+    public String toString() {
+      return MoreObjects.toStringHelper(this)
+          .add("declaration", getDeclaration())
+          .add("operator", operator)
+          .add("value", value)
+          .toString();
     }
 
     /** The comparison operator (<code>&lt;</code> or <code>&gt;</code>) */
