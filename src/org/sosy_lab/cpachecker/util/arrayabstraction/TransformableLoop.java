@@ -47,7 +47,7 @@ final class TransformableLoop {
   private final CFANode loopNode;
   private final Index index;
 
-  public TransformableLoop(Loop pLoop, CFANode pLoopNode, Index pIndex) {
+  private TransformableLoop(Loop pLoop, CFANode pLoopNode, Index pIndex) {
     loop = pLoop;
     loopNode = pLoopNode;
     index = pIndex;
@@ -438,7 +438,7 @@ final class TransformableLoop {
 
     private final SpecialOperation.ComparisonAssume comparisonOperation;
 
-    public Index(
+    private Index(
         CFAEdge pInitializeEdge,
         SpecialOperation.ConstantAssign pInitializeOperation,
         CFAEdge pUpdateEdge,
