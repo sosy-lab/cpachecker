@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
@@ -27,11 +28,13 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -202,5 +205,32 @@ public final class ArrayAbstractionAlgorithm extends NestingAlgorithm {
         }
       }
     }
+
+    pStatsCollection.add(
+        new Statistics() {
+
+          @Override
+          public void printStatistics(
+              final PrintStream pOut, final Result pResult, final UnmodifiableReachedSet pReached) {
+
+            int indentation = 1;
+            put(pOut, indentation, "Array abstraction status", arrayAbstractionResult.getStatus());
+            put(
+                pOut,
+                indentation,
+                "Number of transformed arrays",
+                arrayAbstractionResult.getNumberOfTransformedArrays());
+            put(
+                pOut,
+                indentation,
+                "Number of transformed loops",
+                arrayAbstractionResult.getNumberOfTransformedLoops());
+          }
+
+          @Override
+          public String getName() {
+            return ArrayAbstractionAlgorithm.class.getSimpleName();
+          }
+        });
   }
 }
