@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.arrayabstraction.ArrayAbstractionResult.Status;
 import org.sosy_lab.cpachecker.util.dependencegraph.EdgeDefUseData;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -103,6 +104,48 @@ public class ArrayAbstraction {
     }
 
     return builder.build();
+  }
+
+  private static Optional<CExpression> createIndexStepCondition(TransformableLoop.Index pIndex) {
+
+    BigInteger updateStepValue = pIndex.getUpdateOperation().getStepValue();
+    if (!updateStepValue.equals(BigInteger.ONE)) {
+
+      CType indexType = pIndex.getVariableDeclaration().getType();
+
+      CExpression indexExpression =
+          new CIdExpression(FileLocation.DUMMY, pIndex.getVariableDeclaration());
+
+      CExpression updateStepExpression =
+          new CIntegerLiteralExpression(FileLocation.DUMMY, indexType, updateStepValue);
+
+      CExpression indexRemainderExpression =
+          new CBinaryExpression(
+              FileLocation.DUMMY,
+              indexType,
+              indexType,
+              indexExpression,
+              updateStepExpression,
+              CBinaryExpression.BinaryOperator.MODULO);
+
+      BigInteger startValue = pIndex.getInitializeOperation().getValue();
+      BigInteger remainder = startValue.remainder(updateStepValue);
+      CExpression remainderExpression =
+          new CIntegerLiteralExpression(FileLocation.DUMMY, indexType, remainder);
+
+      CExpression condition =
+          new CBinaryExpression(
+              FileLocation.DUMMY,
+              CNumericTypes.INT,
+              indexType,
+              indexRemainderExpression,
+              remainderExpression,
+              CBinaryExpression.BinaryOperator.EQUALS);
+
+      return Optional.of(condition);
+    } else {
+      return Optional.empty();
+    }
   }
 
   private static Status transformLoop(
@@ -253,6 +296,8 @@ public class ArrayAbstraction {
             loopIndexIdExpression,
             indexEndValueExpression,
             endBinaryOperator));
+
+    createIndexStepCondition(index).ifPresent(conditions::add);
 
     for (TransformableArray transformableArray : loopTransformableArrays) {
       CIdExpression transformableArrayIndexIdExpression =
