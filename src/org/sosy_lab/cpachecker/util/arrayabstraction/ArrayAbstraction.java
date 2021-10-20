@@ -15,8 +15,10 @@ import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CCfaTransformer;
@@ -202,19 +204,25 @@ public class ArrayAbstraction {
             .collect(ImmutableSet.toImmutableSet());
     MemoryLocation loopIndexMemLoc =
         MemoryLocation.forDeclaration(pLoop.getIndex().getVariableDeclaration());
+    
     EdgeDefUseData.Extractor defUseDataExtractor = EdgeDefUseData.createExtractor(true);
     for (CFAEdge edge : pLoop.getInnerLoopEdges()) {
+
+      Set<MemoryLocation> arrayMemoryLocations = new HashSet<>();
 
       // non-transformable arrays in a transformable loop make the loop non-transformable
       for (CSimpleDeclaration arrayDeclaration : ArrayAccess.findArrayOccurences(edge)) {
         if (!pTransformableArrayMap.containsKey(arrayDeclaration)) {
           return Status.FAILED;
         }
+
+        arrayMemoryLocations.add(MemoryLocation.forDeclaration(arrayDeclaration));
       }
 
       EdgeDefUseData edgeDefUseData = defUseDataExtractor.extract(edge);
       for (MemoryLocation def : edgeDefUseData.getDefs()) {
         if (!innerLoopDeclarations.contains(def)
+            && !arrayMemoryLocations.contains(def)
             && !def.equals(loopIndexMemLoc)) {
           return Status.FAILED;
         }
