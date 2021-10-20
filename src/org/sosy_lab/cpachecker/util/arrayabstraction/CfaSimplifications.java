@@ -308,12 +308,19 @@ final class CfaSimplifications {
             //   edge indexUpdate currentUpdate =>  0
             //   edge currentUpdate indexUpdate =>  0
 
-            int indexPlus = 0;
+            int indexPlus;
             if (indexDominated.contains(edge) && currentPostDominated.contains(edge)) {
               indexPlus = -1;
             } else if (indexPostDominated.contains(edge) && currentDominated.contains(edge)) {
               indexPlus = 1;
+            } else {
+              indexPlus = 0;
             }
+
+            CExpression substituteExpression;
+            if (indexPlus == 0 && updateAssign.getStepValue().equals(BigInteger.ONE)) {
+              substituteExpression = indexIdExpression;
+            } else {
 
             CIntegerLiteralExpression indexPlusExpression =
                 new CIntegerLiteralExpression(
@@ -343,14 +350,15 @@ final class CfaSimplifications {
 
             CIdExpression startValueExpression =
                 new CIdExpression(edge.getFileLocation(), declaration);
-            CBinaryExpression substituteExpression =
-                new CBinaryExpression(
-                    edge.getFileLocation(),
-                    declaration.getType(),
-                    declaration.getType(),
-                    startValueExpression,
-                    stepIndexResultExpression,
-                    BinaryOperator.PLUS);
+              substituteExpression =
+                  new CBinaryExpression(
+                      edge.getFileLocation(),
+                      declaration.getType(),
+                      declaration.getType(),
+                      startValueExpression,
+                      stepIndexResultExpression,
+                      BinaryOperator.PLUS);
+            }
 
             Map<CSimpleDeclaration, CExpression> declarationSubstitution =
                 substitution.computeIfAbsent(edge, key -> new HashMap<>());
