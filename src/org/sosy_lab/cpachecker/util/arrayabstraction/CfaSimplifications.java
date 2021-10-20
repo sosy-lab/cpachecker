@@ -39,6 +39,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.SubstitutingCAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
@@ -70,6 +72,12 @@ final class CfaSimplifications {
 
     // copy of edges to prevent concurrent modification of graph
     for (CFAEdge edge : ImmutableSet.copyOf(graph.edges())) {
+
+      // skip function summary edges here, modify them when the corresponding call edge is modified
+      // (to prevent doing the same modification twice)
+      if (edge instanceof FunctionSummaryEdge) {
+        continue;
+      }
 
       Set<ArrayAccess> remainingArrayAccesses = new HashSet<>(ArrayAccess.findArrayAccesses(edge));
 
@@ -137,6 +145,12 @@ final class CfaSimplifications {
 
               CIdExpression substituteExpression = new CIdExpression(fileLocation, declaration);
               substitution.insertSubstitute(edge, current.getExpression(), substituteExpression);
+              if (edge instanceof FunctionCallEdge) {
+                FunctionSummaryEdge summaryEdge = edge.getPredecessor().getLeavingSummaryEdge();
+                assert summaryEdge != null : "Missing summary edge for call edge";
+                substitution.insertSubstitute(
+                    summaryEdge, current.getExpression(), substituteExpression);
+              }
 
               finished.put(current, substituteExpression);
             }
