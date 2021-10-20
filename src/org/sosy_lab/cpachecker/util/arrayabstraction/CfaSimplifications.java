@@ -47,8 +47,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
@@ -217,10 +217,10 @@ final class CfaSimplifications {
    * {@code int j = 0; for (int i = 0; i < 100; i++) { print(j); j = j + 5; } }
    * </pre>
    *
-   * <p>is turned into
+   * <p>is turned into (output is a simplified depiction)
    *
    * <pre>
-   * {@code int j = 0; for (int i = 0; i < 100; i++) { print(j + (i * 5)); } }
+   * {@code int j = 0; for (int i = 0; i < 100; i++) { print(i * 5); } }
    * </pre>
    *
    * @param pConfiguration the configuration to use
@@ -237,44 +237,33 @@ final class CfaSimplifications {
 
     for (TransformableLoop loop : TransformableLoop.findTransformableLoops(pCfa)) {
 
-      // we only support loops with indices that are increased by one every loop iteration
-      // TODO: this can be further optimized if necessary
-      if (!loop.getIndex().getUpdateOperation().getStepValue().equals(BigInteger.ONE)) {
-        continue;
-      }
-
       for (CFAEdge innerLoopEdge : loop.getInnerLoopEdges()) {
-        Optional<SpecialOperation.UpdateAssign> optUpdateAssign =
+        Optional<SpecialOperation.UpdateAssign> optTargetUpdateOperation =
             SpecialOperation.UpdateAssign.forEdge(
                 innerLoopEdge, pCfa.getMachineModel(), ImmutableMap.of());
-        if (optUpdateAssign.isPresent()) {
+        if (optTargetUpdateOperation.isPresent()) {
 
-          SpecialOperation.UpdateAssign updateAssign = optUpdateAssign.orElseThrow();
-          CSimpleDeclaration declaration = updateAssign.getDeclaration();
+          SpecialOperation.UpdateAssign targetUpdateOperation =
+              optTargetUpdateOperation.orElseThrow();
+          CSimpleDeclaration targetDeclaration = targetUpdateOperation.getDeclaration();
 
           // the index cannot cannot be eliminated
-          if (declaration.equals(loop.getIndex().getVariableDeclaration())) {
+          if (targetDeclaration.equals(loop.getIndex().getVariableDeclaration())) {
             continue;
           }
 
           // we don't remember the value when leaving the loop
           // TODO: this can be further optimized if necessary
-          if (loop.hasOutgoingUses(declaration)) {
+          if (loop.hasOutgoingUses(targetDeclaration)) {
             continue;
           }
 
-          String qualifiedName = declaration.getQualifiedName();
-          if (variableClassification.getAddressedVariables().contains(qualifiedName)) {
+          String targetQualifiedName = targetDeclaration.getQualifiedName();
+          if (variableClassification.getAddressedVariables().contains(targetQualifiedName)) {
             continue;
           }
 
-          if (loop.countInnerLoopDefs(declaration) > 1) {
-            continue;
-          }
-
-          // we only support variables that are increased every loop iteration
-          // TODO: this can be further optimized if necessary
-          if (updateAssign.getStepValue().compareTo(BigInteger.ZERO) <= 0) {
+          if (loop.countInnerLoopDefs(targetDeclaration) > 1) {
             continue;
           }
 
@@ -291,14 +280,22 @@ final class CfaSimplifications {
           ImmutableSet<CFAEdge> indexPostDominated =
               loop.getPostDominatedInnerLoopEdges(updateIndexEdge);
 
-          ImmutableSet<CFAEdge> currentDominated = loop.getDominatedInnerLoopEdges(innerLoopEdge);
-          ImmutableSet<CFAEdge> currentPostDominated =
+          ImmutableSet<CFAEdge> targetDominated = loop.getDominatedInnerLoopEdges(innerLoopEdge);
+          ImmutableSet<CFAEdge> targetPostDominated =
               loop.getPostDominatedInnerLoopEdges(innerLoopEdge);
 
-          for (CFAEdge edge : Iterables.concat(currentDominated, currentPostDominated)) {
+          for (CFAEdge edge : Iterables.concat(targetDominated, targetPostDominated)) {
 
-            // formula: (j at edge) = (j before loop) + (((index at edge) + indexPlus) * (j update
-            // step))
+            // formula:
+            //   ix_initial : initial index value before entering the loop
+            //   ix_step    : index update step
+            //   ix_adjust  : index adjustment due to edge order
+            //   t_initial  : initial target value before entering the loop
+            //   t_step     : target value update step
+            //
+            //                 |     calculate loop iteration     |
+            //                 |                                  |
+            // t_initial + ( ( ( ( index - ix_initial ) / ix_step ) + ix_adjust ) * t_step )
 
             // edge permutations => indexPlus:
             //   indexUpdate currentUpdate edge =>  0
@@ -308,74 +305,124 @@ final class CfaSimplifications {
             //   edge indexUpdate currentUpdate =>  0
             //   edge currentUpdate indexUpdate =>  0
 
-            int indexPlus;
-            if (indexDominated.contains(edge) && currentPostDominated.contains(edge)) {
-              indexPlus = -1;
-            } else if (indexPostDominated.contains(edge) && currentDominated.contains(edge)) {
-              indexPlus = 1;
+            int indexAdjustValue;
+            if (indexDominated.contains(edge) && targetPostDominated.contains(edge)) {
+              indexAdjustValue = -1;
+            } else if (indexPostDominated.contains(edge) && targetDominated.contains(edge)) {
+              indexAdjustValue = 1;
             } else {
-              indexPlus = 0;
+              indexAdjustValue = 0;
             }
 
             // find constant start value for current variable (if it exists)
-            Optional<SpecialOperation.ConstantAssign> defStartOperation = Optional.empty();
-            ImmutableSet<CFAEdge> incomingDefEdges = loop.getIncomingDefs(declaration);
-            if (incomingDefEdges.size() == 1) {
-              CFAEdge defEdge = incomingDefEdges.stream().findAny().orElseThrow();
-              defStartOperation =
+            Optional<SpecialOperation.ConstantAssign> targetInitialOperation = Optional.empty();
+            ImmutableSet<CFAEdge> targetIncomingDefEdges = loop.getIncomingDefs(targetDeclaration);
+            if (targetIncomingDefEdges.size() == 1) {
+              CFAEdge targetDefEdge = targetIncomingDefEdges.stream().findAny().orElseThrow();
+              targetInitialOperation =
                   SpecialOperation.ConstantAssign.forEdge(
-                      defEdge, pCfa.getMachineModel(), ImmutableMap.of());
+                      targetDefEdge, pCfa.getMachineModel(), ImmutableMap.of());
             }
 
             CExpression substituteExpression;
-            if (indexPlus == 0
-                && updateAssign.getStepValue().equals(BigInteger.ONE)
-                && defStartOperation.isPresent()
-                && defStartOperation.orElseThrow().getValue().equals(BigInteger.ZERO)) {
+            if (indexAdjustValue == 0
+                && targetUpdateOperation.getStepValue().equals(BigInteger.ONE)
+                && targetInitialOperation.isPresent()
+                && targetInitialOperation.orElseThrow().getValue().equals(BigInteger.ZERO)
+                && loop.getIndex().getUpdateOperation().getStepValue().equals(BigInteger.ONE)
+                && loop.getIndex().getInitializeOperation().getValue().equals(BigInteger.ZERO)) {
               substituteExpression = indexIdExpression;
             } else {
 
-            CIntegerLiteralExpression indexPlusExpression =
-                new CIntegerLiteralExpression(
-                    edge.getFileLocation(), CNumericTypes.INT, BigInteger.valueOf(indexPlus));
+              FileLocation fileLocation = edge.getFileLocation();
+              TransformableLoop.Index index = loop.getIndex();
+              CType indexType = index.getVariableDeclaration().getType();
 
-            CBinaryExpression indexBinaryExpression =
-                new CBinaryExpression(
-                    edge.getFileLocation(),
-                    declaration.getType(),
-                    declaration.getType(),
-                    indexIdExpression,
-                    indexPlusExpression,
-                    BinaryOperator.PLUS);
+              // variable expressions and constant expressions
 
-            CIntegerLiteralExpression stepExpression =
-                new CIntegerLiteralExpression(
-                    edge.getFileLocation(), CNumericTypes.INT, updateAssign.getStepValue());
+              CExpression indexExpression = indexIdExpression;
 
-            CBinaryExpression stepIndexResultExpression =
-                new CBinaryExpression(
-                    edge.getFileLocation(),
-                    declaration.getType(),
-                    declaration.getType(),
-                    indexBinaryExpression,
-                    stepExpression,
-                    BinaryOperator.MULTIPLY);
+              CExpression indexInitialExpression =
+                  new CIntegerLiteralExpression(
+                      fileLocation, indexType, index.getInitializeOperation().getValue());
 
-            CIdExpression startValueExpression =
-                new CIdExpression(edge.getFileLocation(), declaration);
+              CExpression indexStepExpression =
+                  new CIntegerLiteralExpression(
+                      fileLocation, indexType, index.getUpdateOperation().getStepValue());
+
+              CExpression indexAdjustExpression =
+                  new CIntegerLiteralExpression(
+                      fileLocation, indexType, BigInteger.valueOf(indexAdjustValue));
+
+              CExpression targetInitialValue;
+              if (targetInitialOperation.isPresent()) {
+                targetInitialValue =
+                    new CIntegerLiteralExpression(
+                        fileLocation, indexType, targetInitialOperation.orElseThrow().getValue());
+              } else {
+                targetInitialValue = new CIdExpression(fileLocation, targetDeclaration);
+              }
+
+              CExpression targetStepValue =
+                  new CIntegerLiteralExpression(
+                      fileLocation, indexType, targetUpdateOperation.getStepValue());
+
+              // formula expressions
+
+              // index - ix_initial
+              CExpression subformula1 =
+                  new CBinaryExpression(
+                      fileLocation,
+                      indexType,
+                      indexType,
+                      indexExpression,
+                      indexInitialExpression,
+                      BinaryOperator.MINUS);
+
+              // ( index - ix_initial ) / ix_step
+              CExpression subformula2 =
+                  new CBinaryExpression(
+                      fileLocation,
+                      indexType,
+                      indexType,
+                      subformula1,
+                      indexStepExpression,
+                      BinaryOperator.DIVIDE);
+
+              // ( ( index - ix_initial ) / ix_step ) + ix_adjust
+              CExpression subformula3 =
+                  new CBinaryExpression(
+                      fileLocation,
+                      indexType,
+                      indexType,
+                      subformula2,
+                      indexAdjustExpression,
+                      BinaryOperator.PLUS);
+
+              // ( ( ( index - ix_initial ) / ix_step ) + ix_adjust ) * t_step
+              CExpression subformula4 =
+                  new CBinaryExpression(
+                      fileLocation,
+                      indexType,
+                      indexType,
+                      subformula3,
+                      targetStepValue,
+                      BinaryOperator.MULTIPLY);
+
+              // t_initial + ( ( ( ( index - ix_initial ) / ix_step ) + ix_adjust ) * t_step )
               substituteExpression =
                   new CBinaryExpression(
-                      edge.getFileLocation(),
-                      declaration.getType(),
-                      declaration.getType(),
-                      startValueExpression,
-                      stepIndexResultExpression,
+                      fileLocation,
+                      indexType,
+                      indexType,
+                      targetInitialValue,
+                      subformula4,
                       BinaryOperator.PLUS);
             }
 
             Map<CSimpleDeclaration, CExpression> declarationSubstitution =
                 substitution.computeIfAbsent(edge, key -> new HashMap<>());
-            declarationSubstitution.put(declaration, substituteExpression);
+            declarationSubstitution.put(targetDeclaration, substituteExpression);
           }
 
           // replace update edge with empty placeholder
