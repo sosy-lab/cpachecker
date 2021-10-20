@@ -317,8 +317,21 @@ final class CfaSimplifications {
               indexPlus = 0;
             }
 
+            // find constant start value for current variable (if it exists)
+            Optional<SpecialOperation.ConstantAssign> defStartOperation = Optional.empty();
+            ImmutableSet<CFAEdge> incomingDefEdges = loop.getIncomingDefs(declaration);
+            if (incomingDefEdges.size() == 1) {
+              CFAEdge defEdge = incomingDefEdges.stream().findAny().orElseThrow();
+              defStartOperation =
+                  SpecialOperation.ConstantAssign.forEdge(
+                      defEdge, pCfa.getMachineModel(), ImmutableMap.of());
+            }
+
             CExpression substituteExpression;
-            if (indexPlus == 0 && updateAssign.getStepValue().equals(BigInteger.ONE)) {
+            if (indexPlus == 0
+                && updateAssign.getStepValue().equals(BigInteger.ONE)
+                && defStartOperation.isPresent()
+                && defStartOperation.orElseThrow().getValue().equals(BigInteger.ZERO)) {
               substituteExpression = indexIdExpression;
             } else {
 

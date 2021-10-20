@@ -424,6 +424,10 @@ final class TransformableLoop {
     return builder.build();
   }
 
+  public ImmutableSet<CFAEdge> getIncomingDefs(CSimpleDeclaration pVariableDeclaration) {
+    return getIncomingDefs(getIncomingEdge(), pVariableDeclaration);
+  }
+
   public static final class Index {
 
     private final CFAEdge initializeEdge;
