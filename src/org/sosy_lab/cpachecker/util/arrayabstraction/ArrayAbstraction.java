@@ -10,8 +10,11 @@ package org.sosy_lab.cpachecker.util.arrayabstraction;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -151,30 +154,88 @@ public class ArrayAbstraction {
     }
   }
 
-  private static void insertTransformableArrayAssumes(
+  // Result: transformable array -> set of subscript expressions for all accesses of the array in
+  // the specified loop
+  private static ImmutableMultimap<TransformableArray, CExpression>
+      getTransformableArraySubscriptExpressions(
+          ImmutableMap<CSimpleDeclaration, TransformableArray> pTransformableArrayMap,
+          TransformableLoop pLoop) {
+
+    ImmutableMultimap.Builder<TransformableArray, CExpression> builder =
+        ImmutableSetMultimap.builder();
+
+    for (CFAEdge edge : pLoop.getInnerLoopEdges()) {
+      for (ArrayAccess arrayAccess : ArrayAccess.findArrayAccesses(edge)) {
+        Optional<TransformableArray> optTransformableArray =
+            getTransformableArray(arrayAccess, pTransformableArrayMap);
+        if (optTransformableArray.isPresent()) {
+          builder.put(optTransformableArray.orElseThrow(), arrayAccess.getSubscriptExpression());
+        }
+      }
+    }
+
+    return builder.build();
+  }
+
+  // In order to enter the loop body, the indices of the transformed arrays must fullfil certain
+  // conditions that relate the array indices to the loop index (e.g., array_index == loop_index).
+  // Assumptions (fullfil -> continue, otherwise -> abort) are inserted for these conditions.
+  // Assumptions are used to prevent analyses from skipping some loops by letting these conditions
+  // fail which can cause invalid analyses results.
+  private static ImmutableMap<TransformableArray, CExpression> insertTransformableArrayAssumes(
       MutableCfaNetwork pGraph,
+      ImmutableMap<CSimpleDeclaration, TransformableArray> pTransformableArrayMap,
       TransformableLoop pLoop,
       ImmutableSet<TransformableArray> pLoopTransformableArrays,
       CFANode pLoopBodyEntryNode) {
 
+    ImmutableMap.Builder<TransformableArray, CExpression> arrayPreciseSubscriptExpressionBuilder =
+        ImmutableMap.builder();
+
     TransformableLoop.Index index = pLoop.getIndex();
+    ImmutableMultimap<TransformableArray, CExpression> transformableArraySubscriptExpressions =
+        getTransformableArraySubscriptExpressions(pTransformableArrayMap, pLoop);
+    EdgeDefUseData.Extractor extractor = EdgeDefUseData.createExtractor(true);
 
     List<CExpression> conditions = new ArrayList<>();
     for (TransformableArray transformableArray : pLoopTransformableArrays) {
 
-      CIdExpression loopIndexIdExpression =
-          new CIdExpression(FileLocation.DUMMY, index.getVariableDeclaration());
-
       CIdExpression arrayIndexIdExpression =
           new CIdExpression(FileLocation.DUMMY, transformableArray.getIndexDeclaration());
+
+      // If the array is always accessed by the same subscript expression, we try to use it as the
+      // condition operand.
+      ImmutableCollection<CExpression> subscriptExpressions =
+          transformableArraySubscriptExpressions.get(transformableArray);
+      CExpression conditionOperand = null;
+      if (subscriptExpressions.size() == 1) {
+        CExpression subscriptExpression = subscriptExpressions.stream().findAny().orElseThrow();
+        EdgeDefUseData subscriptDefUseData = extractor.extract(subscriptExpression);
+        if (subscriptDefUseData.getUses().size() == 1
+            && subscriptDefUseData.getPointeeUses().isEmpty()
+            && subscriptDefUseData.getDefs().isEmpty()
+            && subscriptDefUseData.getPointeeDefs().isEmpty()) {
+          MemoryLocation subscriptUse =
+              subscriptDefUseData.getUses().stream().findAny().orElseThrow();
+          if (subscriptUse.equals(MemoryLocation.forDeclaration(index.getVariableDeclaration()))) {
+            conditionOperand = subscriptExpression;
+          }
+        }
+      }
+
+      if (conditionOperand == null) {
+        conditionOperand = new CIdExpression(FileLocation.DUMMY, index.getVariableDeclaration());
+      }
+
+      arrayPreciseSubscriptExpressionBuilder.put(transformableArray, conditionOperand);
 
       CExpression conditionExpression =
           new CBinaryExpression(
               FileLocation.DUMMY,
               CNumericTypes.INT,
               index.getVariableDeclaration().getType(),
-              loopIndexIdExpression,
               arrayIndexIdExpression,
+              conditionOperand,
               CBinaryExpression.BinaryOperator.EQUALS);
 
       conditions.add(conditionExpression);
@@ -190,6 +251,8 @@ public class ArrayAbstraction {
       CAssumeEdge falseEdge = createAssumeEdge(function, condition, false);
       pGraph.addEdge(pLoopBodyEntryNode, new CFATerminationNode(function), falseEdge);
     }
+
+    return arrayPreciseSubscriptExpressionBuilder.build();
   }
 
   // Is this loop even transformable?
@@ -249,17 +312,6 @@ public class ArrayAbstraction {
       return status;
     }
 
-    // transform inner loop edges
-    for (CFAEdge edge : getTransformableEdges(pGraph, pLoop)) {
-      Status edgeTransformationStatus =
-          transformEdge(pGraph, pTransformableArrayMap, pCfa, edge, Optional.of(pLoop));
-      if (edgeTransformationStatus == Status.FAILED) {
-        return Status.FAILED;
-      } else if (edgeTransformationStatus == Status.IMPRECISE) {
-        status = Status.IMPRECISE;
-      }
-    }
-
     // transform loop into branching
     CFANode loopNode = pLoop.getLoopNode();
     CFAEdge loopIncomingEdge = pLoop.getIncomingEdge();
@@ -290,7 +342,6 @@ public class ArrayAbstraction {
     pGraph.removeEdge(loopBodyLastEdge);
     pGraph.addEdge(loopBodyLastEdgeNodeU, loopOutgoingEdgeNodeV, loopBodyLastEdge);
 
-    // insert index initialization and branch conditions
     ImmutableSet<TransformableArray> loopTransformableArrays =
         getTransformableArrays(pLoop, pTransformableArrayMap);
     assert loopTransformableArrays.size() >= 1;
@@ -302,7 +353,26 @@ public class ArrayAbstraction {
     AFunctionDeclaration function = loopNode.getFunction();
     TransformableLoop.Index index = pLoop.getIndex();
 
-    insertTransformableArrayAssumes(pGraph, pLoop, loopTransformableArrays, bodyEntryNode);
+    ImmutableMap<TransformableArray, CExpression> preciseArraySubscriptExpressions =
+        insertTransformableArrayAssumes(
+            pGraph, pTransformableArrayMap, pLoop, loopTransformableArrays, bodyEntryNode);
+
+    // transform inner loop edges
+    for (CFAEdge edge : getTransformableEdges(pGraph, pLoop)) {
+      Status edgeTransformationStatus =
+          transformEdge(
+              pGraph,
+              pTransformableArrayMap,
+              pCfa,
+              edge,
+              Optional.of(pLoop),
+              Optional.of(preciseArraySubscriptExpressions));
+      if (edgeTransformationStatus == Status.FAILED) {
+        return Status.FAILED;
+      } else if (edgeTransformationStatus == Status.IMPRECISE) {
+        status = Status.IMPRECISE;
+      }
+    }
 
     CIdExpression loopIndexIdExpression =
         new CIdExpression(FileLocation.DUMMY, index.getVariableDeclaration());
@@ -484,7 +554,8 @@ public class ArrayAbstraction {
       ImmutableMap<CSimpleDeclaration, TransformableArray> pTransformableArrayMap,
       CFA pCfa,
       CFAEdge pEdge,
-      Optional<TransformableLoop> pLoop) {
+      Optional<TransformableLoop> pLoop,
+      Optional<ImmutableMap<TransformableArray, CExpression>> pPreciseArraySubscriptExpressions) {
 
     ImmutableSet<ArrayAccess> arrayAccesses = ArrayAccess.findArrayAccesses(pEdge);
 
@@ -507,22 +578,21 @@ public class ArrayAbstraction {
 
       CExpression subscriptExpression = arrayAccess.getSubscriptExpression();
 
-      // check whether access is at loop index and return Status.PRECISE if it is
-      if (subscriptExpression instanceof CIdExpression && pLoop.isPresent()) {
+      // check whether access is at a precise subscript expression
+      if (pPreciseArraySubscriptExpressions.isPresent() && pLoop.isPresent()) {
 
-        CIdExpression subscriptIdExpression = (CIdExpression) subscriptExpression;
-        CSimpleDeclaration subscriptDeclaration = subscriptIdExpression.getDeclaration();
+        CExpression preciseSubscriptExpression =
+            pPreciseArraySubscriptExpressions.orElseThrow().get(transformableArray);
 
         TransformableLoop loop = pLoop.orElseThrow();
-        CSimpleDeclaration indexDeclaration = loop.getIndex().getVariableDeclaration();
         CFAEdge updateIndexEdge = loop.getIndex().getUpdateEdge();
-
+        
         CFAEdge postDominatedEdge = pEdge;
         if (pEdge instanceof CFunctionCallEdge) {
           postDominatedEdge = ((CFunctionCallEdge) pEdge).getSummaryEdge();
         }
 
-        if (indexDeclaration.equals(subscriptDeclaration)
+        if (subscriptExpression.equals(preciseSubscriptExpression)
             && loop.getPostDominatedInnerLoopEdges(updateIndexEdge).contains(postDominatedEdge)) {
           return Status.PRECISE;
         }
@@ -703,7 +773,13 @@ public class ArrayAbstraction {
     for (CFAEdge edge : ImmutableSet.copyOf(graph.edges())) {
       if (!transformedEdges.contains(edge)) {
         Status edgeTransformationStatus =
-            transformEdge(graph, transformableArrayMap, simplifiedCfa, edge, Optional.empty());
+            transformEdge(
+                graph,
+                transformableArrayMap,
+                simplifiedCfa,
+                edge,
+                Optional.empty(),
+                Optional.empty());
         if (edgeTransformationStatus == Status.FAILED) {
           return ArrayAbstractionResult.createFailed(pCfa);
         } else if (edgeTransformationStatus == Status.IMPRECISE) {
