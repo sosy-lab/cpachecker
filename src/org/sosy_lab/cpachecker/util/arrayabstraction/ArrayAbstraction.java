@@ -190,40 +190,56 @@ public class ArrayAbstraction {
     }
   }
 
-  private static Status transformLoop(
-      MutableCfaNetwork pGraph,
+  // Is this loop even transformable?
+  private static Status loopTransformable(
       ImmutableMap<CSimpleDeclaration, TransformableArray> pTransformableArrayMap,
-      CFA pCfa,
       TransformableLoop pLoop) {
 
-    // is the loop even transformable?
     // TODO: better implementation that is not as strict and supports more kinds of imprecision
     ImmutableSet<MemoryLocation> innerLoopDeclarations =
         pLoop.getInnerLoopDeclarations().stream()
-            .map(MemoryLocation::forDeclaration)
-            .collect(ImmutableSet.toImmutableSet());
-    ImmutableSet<MemoryLocation> transformableArrayMemLocs =
-        pTransformableArrayMap.keySet().stream()
             .map(MemoryLocation::forDeclaration)
             .collect(ImmutableSet.toImmutableSet());
     MemoryLocation loopIndexMemLoc =
         MemoryLocation.forDeclaration(pLoop.getIndex().getVariableDeclaration());
     EdgeDefUseData.Extractor defUseDataExtractor = EdgeDefUseData.createExtractor(true);
     for (CFAEdge edge : pLoop.getInnerLoopEdges()) {
+
+      // non-transformable arrays in a transformable loop make the loop non-transformable
+      for (CSimpleDeclaration arrayDeclaration : ArrayAccess.findArrayOccurences(edge)) {
+        if (!pTransformableArrayMap.keySet().contains(arrayDeclaration)) {
+          return Status.FAILED;
+        }
+      }
+
       EdgeDefUseData edgeDefUseData = defUseDataExtractor.extract(edge);
       for (MemoryLocation def : edgeDefUseData.getDefs()) {
         if (!innerLoopDeclarations.contains(def)
-            && !transformableArrayMemLocs.contains(def)
             && !def.equals(loopIndexMemLoc)) {
           return Status.FAILED;
         }
       }
+
+      // any pointee def make a loop non-transformable
       if (!edgeDefUseData.getPointeeDefs().isEmpty()) {
         return Status.FAILED;
       }
     }
 
-    Status status = Status.PRECISE;
+    return Status.PRECISE;
+  }
+
+  private static Status transformLoop(
+      MutableCfaNetwork pGraph,
+      ImmutableMap<CSimpleDeclaration, TransformableArray> pTransformableArrayMap,
+      CFA pCfa,
+      TransformableLoop pLoop) {
+
+    Status status = loopTransformable(pTransformableArrayMap, pLoop);
+
+    if (status == Status.FAILED) {
+      return status;
+    }
 
     // transform inner loop edges
     for (CFAEdge edge : getTransformableEdges(pGraph, pLoop)) {

@@ -13,7 +13,9 @@ import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import org.eclipse.cdt.internal.core.dom.parser.c.CArrayType;
+import org.eclipse.cdt.internal.core.dom.parser.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
@@ -47,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
@@ -55,6 +58,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
 /**
@@ -117,6 +121,45 @@ final class ArrayAccess {
     return Optional.empty();
   }
 
+  private static void analyseAstNode(
+      CAstNode pCAstNode,
+      Consumer<CExpression> pReadingArrayAccessConsumer,
+      Consumer<CExpression> pWritingArrayAccessConsumer,
+      Consumer<CSimpleDeclaration> pArrayDeclarationConsumer) {
+
+    ArrayUsageAnalyser arrayUsageAnalyser =
+        new ArrayUsageAnalyser(
+            pReadingArrayAccessConsumer, pWritingArrayAccessConsumer, pArrayDeclarationConsumer);
+    pCAstNode.accept(arrayUsageAnalyser);
+  }
+
+  private static void analyseCfaEdge(
+      CFAEdge pEdge,
+      Consumer<CExpression> pReadingArrayAccessConsumer,
+      Consumer<CExpression> pWritingArrayAccessConsumer,
+      Consumer<CSimpleDeclaration> pArrayDeclarationConsumer) {
+
+    if (pEdge instanceof CFunctionSummaryEdge) {
+      analyseAstNode(
+          ((CFunctionSummaryEdge) pEdge).getExpression(),
+          pReadingArrayAccessConsumer,
+          pWritingArrayAccessConsumer,
+          pArrayDeclarationConsumer);
+    }
+
+    Optional<? extends AAstNode> optAstNode = pEdge.getRawAST();
+    if (optAstNode.isPresent()) {
+      AAstNode astNode = optAstNode.get();
+      if (astNode instanceof CAstNode) {
+        analyseAstNode(
+            (CAstNode) astNode,
+            pReadingArrayAccessConsumer,
+            pWritingArrayAccessConsumer,
+            pArrayDeclarationConsumer);
+      }
+    }
+  }
+
   /**
    * Returns a set of all array accesses contained in the specified AST node.
    *
@@ -128,9 +171,12 @@ final class ArrayAccess {
 
     ImmutableSet.Builder<ArrayAccess> builder = ImmutableSet.builder();
 
-    pCAstNode.accept(
-        new ArrayAccessFinder(
-            (type, expression) -> builder.add(new ArrayAccess(type, expression))));
+    Consumer<CExpression> readingArrayAccessConsumer =
+        (expression) -> builder.add(new ArrayAccess(Type.READ, expression));
+    Consumer<CExpression> writingArrayAccessConsumer =
+        (expression) -> builder.add(new ArrayAccess(Type.WRITE, expression));
+    analyseAstNode(
+        pCAstNode, readingArrayAccessConsumer, writingArrayAccessConsumer, arrayDeclaration -> {});
 
     return builder.build();
   }
@@ -144,19 +190,34 @@ final class ArrayAccess {
    */
   public static ImmutableSet<ArrayAccess> findArrayAccesses(CFAEdge pEdge) {
 
-    if (pEdge instanceof CFunctionSummaryEdge) {
-      return findArrayAccesses(((CFunctionSummaryEdge) pEdge).getExpression());
-    }
+    ImmutableSet.Builder<ArrayAccess> builder = ImmutableSet.builder();
 
-    Optional<? extends AAstNode> optAstNode = pEdge.getRawAST();
-    if (optAstNode.isPresent()) {
-      AAstNode astNode = optAstNode.get();
-      if (astNode instanceof CAstNode) {
-        return findArrayAccesses((CAstNode) astNode);
-      }
-    }
+    Consumer<CExpression> readingArrayAccessConsumer =
+        (expression) -> builder.add(new ArrayAccess(Type.READ, expression));
+    Consumer<CExpression> writingArrayAccessConsumer =
+        (expression) -> builder.add(new ArrayAccess(Type.WRITE, expression));
+    analyseCfaEdge(
+        pEdge, readingArrayAccessConsumer, writingArrayAccessConsumer, arrayDeclaration -> {});
 
-    return ImmutableSet.of();
+    return builder.build();
+  }
+
+  /**
+   * Returns a set of all array (and pointer) occurences in the specified CFA edge.
+   *
+   * @param pEdge the CFA edge to search for array occurences
+   * @return a set of all array (and pointer) occurences in the specified CFA edge
+   * @throws NullPointerException if {@code pEdge == null}
+   */
+  public static ImmutableSet<CSimpleDeclaration> findArrayOccurences(CFAEdge pEdge) {
+
+    ImmutableSet.Builder<CSimpleDeclaration> builder = ImmutableSet.builder();
+
+    Consumer<CSimpleDeclaration> arrayDeclarationConsumer =
+        (arrayDeclaration) -> builder.add(arrayDeclaration);
+    analyseCfaEdge(pEdge, arrayAccess -> {}, arrayAccess -> {}, arrayDeclarationConsumer);
+
+    return builder.build();
   }
 
   /**
@@ -255,30 +316,47 @@ final class ArrayAccess {
     READ
   }
 
-  /** AST node visitor for finding array accesses. */
-  private static final class ArrayAccessFinder implements CAstNodeVisitor<Void, NoException> {
+  /** Visitor for analyzing how arrays are used inside an AST node. */
+  private static final class ArrayUsageAnalyser implements CAstNodeVisitor<Void, NoException> {
 
-    private final BiConsumer<ArrayAccess.Type, CExpression> consumer;
-    private ArrayAccess.Type mode;
+    // for reading array access at a specific index
+    private final Consumer<CExpression> readingArrayAccessConsumer;
+    // for writing array access at a specific index
+    private final Consumer<CExpression> writingArrayAccessConsumer;
 
-    private ArrayAccessFinder(BiConsumer<ArrayAccess.Type, CExpression> pConsumer) {
-      consumer = pConsumer;
-      mode = ArrayAccess.Type.READ;
+    // for any kind of usage of an array
+    private final Consumer<CSimpleDeclaration> arrayDeclarationConsumer;
+
+    private Mode mode;
+
+    private ArrayUsageAnalyser(
+        Consumer<CExpression> pReadingArrayAccessConsumer,
+        Consumer<CExpression> pWritingArrayAccessConsumer,
+        Consumer<CSimpleDeclaration> pArrayDeclarationConsumer) {
+      readingArrayAccessConsumer = pReadingArrayAccessConsumer;
+      writingArrayAccessConsumer = pWritingArrayAccessConsumer;
+      arrayDeclarationConsumer = pArrayDeclarationConsumer;
+      mode = Mode.USE;
     }
 
     @Override
     public Void visit(CArraySubscriptExpression pIastArraySubscriptExpression) {
 
-      consumer.accept(mode, pIastArraySubscriptExpression);
+      if (mode == Mode.DEF) {
+        writingArrayAccessConsumer.accept(pIastArraySubscriptExpression);
+      } else {
+        assert mode == Mode.USE;
+        readingArrayAccessConsumer.accept(pIastArraySubscriptExpression);
+      }
 
-      ArrayAccess.Type prev = mode;
+      Mode prevMode = mode;
 
-      mode = ArrayAccess.Type.READ;
+      mode = Mode.USE;
 
       pIastArraySubscriptExpression.getArrayExpression().accept(this);
       pIastArraySubscriptExpression.getSubscriptExpression().accept(this);
 
-      mode = prev;
+      mode = prevMode;
 
       return null;
     }
@@ -412,12 +490,12 @@ final class ArrayAccess {
 
       if (pIastFieldReference.isPointerDereference()) {
 
-        ArrayAccess.Type prev = mode;
+        Mode prevMode = mode;
 
-        mode = ArrayAccess.Type.READ;
+        mode = Mode.USE;
         pIastFieldReference.getFieldOwner().accept(this);
 
-        mode = prev;
+        mode = prevMode;
 
       } else {
         pIastFieldReference.getFieldOwner().accept(this);
@@ -428,6 +506,14 @@ final class ArrayAccess {
 
     @Override
     public Void visit(CIdExpression pIastIdExpression) {
+
+      CSimpleDeclaration declaration = pIastIdExpression.getDeclaration();
+      CType type = declaration.getType();
+
+      if (type instanceof CArrayType || type instanceof CPointerType) {
+        arrayDeclarationConsumer.accept(pIastIdExpression.getDeclaration());
+      }
+
       return null;
     }
 
@@ -435,15 +521,20 @@ final class ArrayAccess {
     public Void visit(CPointerExpression pPointerExpression) {
 
       if (toArraySubscriptExpression(pPointerExpression).isPresent()) {
-        consumer.accept(mode, pPointerExpression);
+        if (mode == Mode.DEF) {
+          writingArrayAccessConsumer.accept(pPointerExpression);
+        } else {
+          assert mode == Mode.USE;
+          readingArrayAccessConsumer.accept(pPointerExpression);
+        }
       }
 
-      ArrayAccess.Type prev = mode;
+      Mode prevMode = mode;
 
-      mode = ArrayAccess.Type.READ;
+      mode = Mode.USE;
       pPointerExpression.getOperand().accept(this);
 
-      mode = prev;
+      mode = prevMode;
 
       return null;
     }
@@ -481,7 +572,7 @@ final class ArrayAccess {
 
       CInitializer initializer = pDecl.getInitializer();
       if (initializer != null) {
-        mode = ArrayAccess.Type.READ;
+        mode = Mode.USE;
         initializer.accept(this);
       }
 
@@ -512,10 +603,10 @@ final class ArrayAccess {
     @Override
     public Void visit(CExpressionAssignmentStatement pIastExpressionAssignmentStatement) {
 
-      mode = ArrayAccess.Type.WRITE;
+      mode = Mode.DEF;
       pIastExpressionAssignmentStatement.getLeftHandSide().accept(this);
 
-      mode = ArrayAccess.Type.READ;
+      mode = Mode.USE;
       pIastExpressionAssignmentStatement.getRightHandSide().accept(this);
 
       return null;
@@ -524,10 +615,10 @@ final class ArrayAccess {
     @Override
     public Void visit(CFunctionCallAssignmentStatement pIastFunctionCallAssignmentStatement) {
 
-      mode = ArrayAccess.Type.WRITE;
+      mode = Mode.DEF;
       pIastFunctionCallAssignmentStatement.getLeftHandSide().accept(this);
 
-      mode = ArrayAccess.Type.READ;
+      mode = Mode.USE;
       pIastFunctionCallAssignmentStatement.getRightHandSide().accept(this);
 
       return null;
@@ -562,6 +653,11 @@ final class ArrayAccess {
       } else {
         return null;
       }
+    }
+
+    private enum Mode {
+      USE,
+      DEF
     }
   }
 }
