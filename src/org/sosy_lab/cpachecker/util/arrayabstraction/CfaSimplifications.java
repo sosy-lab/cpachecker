@@ -19,6 +19,8 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CCfaTransformer;
@@ -30,10 +32,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.SubstitutingCAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -42,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.exceptions.NoException;
@@ -68,7 +73,7 @@ final class CfaSimplifications {
       VariableGenerator pVariableGenerator) {
 
     MutableCfaNetwork graph = MutableCfaNetwork.of(pCfa);
-    CAstNodeSubstitution substitution = new CAstNodeSubstitution();
+    Map<CFAEdge, Map<ArrayAccess, CAstNode>> substitution = new HashMap<>();
 
     // copy of edges to prevent concurrent modification of graph
     for (CFAEdge edge : ImmutableSet.copyOf(graph.edges())) {
@@ -134,22 +139,24 @@ final class CfaSimplifications {
                       declaration);
 
               for (Map.Entry<ArrayAccess, CExpression> finishedEntry : finished.entrySet()) {
-                substitution.insertSubstitute(
-                    newDeclarationEdge,
-                    finishedEntry.getKey().getExpression(),
-                    finishedEntry.getValue());
+                substitution
+                    .computeIfAbsent(newDeclarationEdge, key -> new HashMap<>())
+                    .put(finishedEntry.getKey(), finishedEntry.getValue());
               }
 
               graph.insertPredecessor(
                   new CFANode(predecessor.getFunction()), predecessor, newDeclarationEdge);
 
               CIdExpression substituteExpression = new CIdExpression(fileLocation, declaration);
-              substitution.insertSubstitute(edge, current.getExpression(), substituteExpression);
+              substitution
+                  .computeIfAbsent(edge, key -> new HashMap<>())
+                  .put(current, substituteExpression);
               if (edge instanceof FunctionCallEdge) {
                 FunctionSummaryEdge summaryEdge = edge.getPredecessor().getLeavingSummaryEdge();
                 assert summaryEdge != null : "Missing summary edge for call edge";
-                substitution.insertSubstitute(
-                    summaryEdge, current.getExpression(), substituteExpression);
+                substitution
+                    .computeIfAbsent(summaryEdge, key -> new HashMap<>())
+                    .put(current, substituteExpression);
               }
 
               finished.put(current, substituteExpression);
@@ -159,14 +166,46 @@ final class CfaSimplifications {
       }
     }
 
-    return CCfaTransformer.createCfa(
-        pConfiguration,
-        pLogger,
-        pCfa,
-        graph,
-        (edge, originalAstNode) ->
-            originalAstNode.accept(
-                new SubstitutingCAstNodeVisitor(node -> substitution.getSubstitute(edge, node))));
+    BiFunction<CFAEdge, CAstNode, CAstNode> substitutionFunction =
+        (edge, originalAstNode) -> {
+          Map<ArrayAccess, CAstNode> arrayAccessSubstitution = substitution.get(edge);
+
+          if (arrayAccessSubstitution == null) {
+            return originalAstNode;
+          }
+
+          // there should be no writing accesses, we only replace reading accesses
+          assert arrayAccessSubstitution.keySet().stream()
+              .filter(ArrayAccess::isWrite)
+              .findAny()
+              .isEmpty();
+
+          Function<Map.Entry<ArrayAccess, ?>, CAstNode> extractExpression =
+              entry -> entry.getKey().getExpression();
+          ImmutableMap<CAstNode, CAstNode> astNodeSubstitution =
+              arrayAccessSubstitution.entrySet().stream()
+                  .collect(ImmutableMap.toImmutableMap(extractExpression, Map.Entry::getValue));
+
+          // TODO: add support for more edges/statements that can contain writing array accesses
+          if (edge instanceof CStatementEdge) {
+            CStatement statement = ((CStatementEdge) edge).getStatement();
+            if (statement instanceof CExpressionAssignmentStatement) {
+              var assignStatement = (CExpressionAssignmentStatement) statement;
+              CAstNode rhs =
+                  assignStatement
+                      .getRightHandSide()
+                      .accept(new SubstitutingCAstNodeVisitor(astNodeSubstitution::get));
+              return new CExpressionAssignmentStatement(
+                  assignStatement.getFileLocation(),
+                  assignStatement.getLeftHandSide(),
+                  (CExpression) rhs);
+            }
+          }
+
+          return originalAstNode.accept(new SubstitutingCAstNodeVisitor(astNodeSubstitution::get));
+        };
+
+    return CCfaTransformer.createCfa(pConfiguration, pLogger, pCfa, graph, substitutionFunction);
   }
 
   /**
