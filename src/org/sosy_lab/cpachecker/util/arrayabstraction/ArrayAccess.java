@@ -172,9 +172,9 @@ final class ArrayAccess {
     ImmutableSet.Builder<ArrayAccess> builder = ImmutableSet.builder();
 
     Consumer<CExpression> readingArrayAccessConsumer =
-        (expression) -> builder.add(new ArrayAccess(Type.READ, expression));
+        (arrayAccessExpression) -> builder.add(new ArrayAccess(Type.READ, arrayAccessExpression));
     Consumer<CExpression> writingArrayAccessConsumer =
-        (expression) -> builder.add(new ArrayAccess(Type.WRITE, expression));
+        (arrayAccessExpression) -> builder.add(new ArrayAccess(Type.WRITE, arrayAccessExpression));
     analyseAstNode(
         pCAstNode, readingArrayAccessConsumer, writingArrayAccessConsumer, arrayDeclaration -> {});
 
@@ -193,9 +193,9 @@ final class ArrayAccess {
     ImmutableSet.Builder<ArrayAccess> builder = ImmutableSet.builder();
 
     Consumer<CExpression> readingArrayAccessConsumer =
-        (expression) -> builder.add(new ArrayAccess(Type.READ, expression));
+        (arrayAccessExpression) -> builder.add(new ArrayAccess(Type.READ, arrayAccessExpression));
     Consumer<CExpression> writingArrayAccessConsumer =
-        (expression) -> builder.add(new ArrayAccess(Type.WRITE, expression));
+        (arrayAccessExpression) -> builder.add(new ArrayAccess(Type.WRITE, arrayAccessExpression));
     analyseCfaEdge(
         pEdge, readingArrayAccessConsumer, writingArrayAccessConsumer, arrayDeclaration -> {});
 
