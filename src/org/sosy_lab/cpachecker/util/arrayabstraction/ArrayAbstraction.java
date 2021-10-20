@@ -149,6 +149,47 @@ public class ArrayAbstraction {
     }
   }
 
+  private static void insertTransformableArrayAssumes(
+      MutableCfaNetwork pGraph,
+      TransformableLoop pLoop,
+      ImmutableSet<TransformableArray> pLoopTransformableArrays,
+      CFANode pLoopBodyEntryNode) {
+
+    TransformableLoop.Index index = pLoop.getIndex();
+
+    List<CExpression> conditions = new ArrayList<>();
+    for (TransformableArray transformableArray : pLoopTransformableArrays) {
+
+      CIdExpression loopIndexIdExpression =
+          new CIdExpression(FileLocation.DUMMY, index.getVariableDeclaration());
+
+      CIdExpression arrayIndexIdExpression =
+          new CIdExpression(FileLocation.DUMMY, transformableArray.getIndexDeclaration());
+
+      CExpression conditionExpression =
+          new CBinaryExpression(
+              FileLocation.DUMMY,
+              CNumericTypes.INT,
+              index.getVariableDeclaration().getType(),
+              loopIndexIdExpression,
+              arrayIndexIdExpression,
+              CBinaryExpression.BinaryOperator.EQUALS);
+
+      conditions.add(conditionExpression);
+    }
+
+    AFunctionDeclaration function = pLoopBodyEntryNode.getFunction();
+
+    for (CExpression condition : conditions) {
+
+      CAssumeEdge enterBodyEdge = createAssumeEdge(function, condition, true);
+      pGraph.insertSuccessor(pLoopBodyEntryNode, new CFANode(function), enterBodyEdge);
+
+      CAssumeEdge falseEdge = createAssumeEdge(function, condition, false);
+      pGraph.addEdge(pLoopBodyEntryNode, new CFATerminationNode(function), falseEdge);
+    }
+  }
+
   private static Status transformLoop(
       MutableCfaNetwork pGraph,
       ImmutableMap<CSimpleDeclaration, TransformableArray> pTransformableArrayMap,
@@ -237,6 +278,8 @@ public class ArrayAbstraction {
     AFunctionDeclaration function = loopNode.getFunction();
     TransformableLoop.Index index = pLoop.getIndex();
 
+    insertTransformableArrayAssumes(pGraph, pLoop, loopTransformableArrays, bodyEntryNode);
+
     CIdExpression loopIndexIdExpression =
         new CIdExpression(FileLocation.DUMMY, index.getVariableDeclaration());
     CIdExpression anyTransformableArrayIndex =
@@ -299,19 +342,6 @@ public class ArrayAbstraction {
             endBinaryOperator));
 
     createIndexStepCondition(index).ifPresent(conditions::add);
-
-    for (TransformableArray transformableArray : loopTransformableArrays) {
-      CIdExpression transformableArrayIndexIdExpression =
-          new CIdExpression(FileLocation.DUMMY, transformableArray.getIndexDeclaration());
-      conditions.add(
-          new CBinaryExpression(
-              FileLocation.DUMMY,
-              CNumericTypes.INT,
-              index.getVariableDeclaration().getType(),
-              transformableArrayIndexIdExpression,
-              loopIndexIdExpression,
-              CBinaryExpression.BinaryOperator.EQUALS));
-    }
 
     // reverse list to make the element added to the list first the outermost condition in the CFA
     Collections.reverse(conditions);
