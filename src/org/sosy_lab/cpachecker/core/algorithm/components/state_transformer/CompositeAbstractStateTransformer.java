@@ -17,7 +17,8 @@ public class CompositeAbstractStateTransformer extends AbstractStateTransformer<
 
   private final AnyStateTransformer knownTransformations;
 
-  public CompositeAbstractStateTransformer(AnyStateTransformer pKnownTransformations) {
+  public CompositeAbstractStateTransformer(String pId, AnyStateTransformer pKnownTransformations) {
+    super(pId);
     knownTransformations = pKnownTransformations;
   }
 

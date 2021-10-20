@@ -28,9 +28,9 @@ import org.sosy_lab.cpachecker.core.algorithm.components.cut.BlockOperatorCutter
 import org.sosy_lab.cpachecker.core.algorithm.components.parallel.Message;
 import org.sosy_lab.cpachecker.core.algorithm.components.parallel.Message.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.components.parallel.Worker;
+import org.sosy_lab.cpachecker.core.algorithm.components.parallel.Worker.WorkerFactory;
 import org.sosy_lab.cpachecker.core.algorithm.components.parallel.WorkerClient;
 import org.sosy_lab.cpachecker.core.algorithm.components.parallel.WorkerSocket;
-import org.sosy_lab.cpachecker.core.algorithm.components.parallel.WorkerSocket.WorkerSocketFactory;
 import org.sosy_lab.cpachecker.core.algorithm.components.tree.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.components.tree.BlockTree;
 import org.sosy_lab.cpachecker.core.algorithm.components.util.MessageLogger;
@@ -73,9 +73,9 @@ public class ComponentAnalysis implements Algorithm {
         // empty program
         return AlgorithmStatus.SOUND_AND_PRECISE;
       }
-      WorkerSocketFactory factory = new WorkerSocketFactory();
+      WorkerFactory workerFactory = new WorkerFactory();
       BlockingQueue<Message> messages = new LinkedBlockingQueue<>();
-      WorkerSocket mainSocket = factory.makeSocket(logger, new MessageLogger("main"), messages, "main", "localhost", 8090);
+      WorkerSocket mainSocket = workerFactory.getSocketFactory().makeSocket(logger, new MessageLogger("main"), messages, "main", "localhost", 8090);
       Thread mainSocketThread = new Thread(() -> {
         try {
           mainSocket.startServer();
@@ -88,12 +88,12 @@ public class ComponentAnalysis implements Algorithm {
       int port = 8091;
       for (BlockNode node : tree.getDistinctNodes()) {
         Worker worker =
-            Worker.registerNodeAndGetWorker(node, logger, cfa, specification, configuration,
-                shutdownManager, factory, "localhost", port++);
+            workerFactory.createWorker(node, logger, cfa, specification, configuration,
+                shutdownManager,"localhost", port++);
         workers.add(worker);
       }
       for (Worker worker : workers) {
-        for (InetSocketAddress address : factory.getAddresses()) {
+        for (InetSocketAddress address : workerFactory.getSocketFactory().getAddresses()) {
           worker.addClient(
               new WorkerClient(address.getAddress().getHostAddress(), address.getPort()));
         }

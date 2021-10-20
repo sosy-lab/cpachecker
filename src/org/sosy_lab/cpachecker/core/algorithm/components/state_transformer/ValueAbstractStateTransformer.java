@@ -15,6 +15,10 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class ValueAbstractStateTransformer extends AbstractStateTransformer<ValueAnalysisState>{
 
+  public ValueAbstractStateTransformer(String pId) {
+    super(pId);
+  }
+
   @Override
   protected BooleanFormula transform(
       ValueAnalysisState state, FormulaManagerView fmgr, AnalysisDirection direction, String uniqueVariableId) {

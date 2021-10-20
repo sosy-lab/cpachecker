@@ -76,6 +76,7 @@ public abstract class WorkerAnalysis {
   protected AlgorithmStatus status;
 
   public WorkerAnalysis(
+      String pId,
       LogManager pLogger,
       BlockNode pBlock,
       CFA pCFA,
@@ -111,7 +112,8 @@ public abstract class WorkerAnalysis {
         AnalysisDirection.FORWARD);
     block = pBlock;
     logger = pLogger;
-    transformer = new AnyStateTransformer();
+
+    transformer = new AnyStateTransformer(pId);
   }
 
   public static Optional<CFANode> abstractStateToLocation(AbstractState state) {
@@ -199,19 +201,19 @@ public abstract class WorkerAnalysis {
       throws InterruptedException {
     CompositeState compositeState =
         extractCompositeStateFromAbstractState(getInitialStateFor(node));
-    PredicateAbstractState firstPredicateState =
+    PredicateAbstractState predicateState =
         extractStateFromCompositeState(PredicateAbstractState.class,
             compositeState)
             .stream().findFirst()
             .orElseThrow(() -> new AssertionError("Analysis has to contain a PredicateState"));
-    firstPredicateState = PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
+    predicateState = PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
         pathFormulaManager.makeAnd(pathFormulaManager.makeEmptyPathFormula(),
             condition),
-        firstPredicateState);
+        predicateState);
     List<AbstractState> states = new ArrayList<>();
     for (AbstractState wrappedState : compositeState.getWrappedStates()) {
       if (wrappedState instanceof PredicateAbstractState) {
-        states.add(firstPredicateState);
+        states.add(predicateState);
       } else {
         states.add(wrappedState);
       }
@@ -258,6 +260,7 @@ public abstract class WorkerAnalysis {
   public static class ForwardAnalysis extends WorkerAnalysis {
 
     public ForwardAnalysis(
+        String pId,
         LogManager pLogger,
         BlockNode pBlock,
         CFA pCFA,
@@ -265,7 +268,7 @@ public abstract class WorkerAnalysis {
         Configuration pConfiguration,
         ShutdownManager pShutdownManager)
         throws CPAException, InterruptedException, InvalidConfigurationException {
-      super(pLogger, pBlock, pCFA, pSpecification, pConfiguration, pShutdownManager);
+      super(pId, pLogger, pBlock, pCFA, pSpecification, pConfiguration, pShutdownManager);
     }
 
     @Override
@@ -299,6 +302,7 @@ public abstract class WorkerAnalysis {
   public static class BackwardAnalysis extends WorkerAnalysis {
 
     public BackwardAnalysis(
+        String pId,
         LogManager pLogger,
         BlockNode pBlock,
         CFA pCFA,
@@ -306,7 +310,7 @@ public abstract class WorkerAnalysis {
         Configuration pConfiguration,
         ShutdownManager pShutdownManager)
         throws CPAException, InterruptedException, InvalidConfigurationException {
-      super(pLogger, pBlock, pCFA, pSpecification, pConfiguration, pShutdownManager);
+      super(pId, pLogger, pBlock, pCFA, pSpecification, pConfiguration, pShutdownManager);
     }
 
     @Override

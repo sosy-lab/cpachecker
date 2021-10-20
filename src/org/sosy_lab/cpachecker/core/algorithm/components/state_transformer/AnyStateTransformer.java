@@ -19,12 +19,13 @@ public class AnyStateTransformer extends AbstractStateTransformer<AbstractState>
 
   private final Map<Class<? extends AbstractState>, AbstractStateTransformer<? extends AbstractState>> transformerMap;
 
-  public AnyStateTransformer() {
+  public AnyStateTransformer(String pId) {
+    super(pId);
     transformerMap = new HashMap<>();
-    register(new ARGAbstractStateTransformer(this));
-    register(new CompositeAbstractStateTransformer(this));
-    register(new PredicateAbstractStateTransformer());
-    register(new ValueAbstractStateTransformer());
+    register(new ARGAbstractStateTransformer(pId, this));
+    register(new CompositeAbstractStateTransformer(pId, this));
+    register(new PredicateAbstractStateTransformer(pId));
+    register(new ValueAbstractStateTransformer(pId));
   }
 
   public void register(AbstractStateTransformer<?> transformer) {

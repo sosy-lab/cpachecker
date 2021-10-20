@@ -8,12 +8,27 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.components.state_transformer;
 
+import com.google.common.base.Splitter;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
 
 public abstract class AbstractStateTransformer<T extends AbstractState> {
+
+  private int executionCounter;
+  private final String id;
+
+  public AbstractStateTransformer(String pId) {
+    id = pId;
+    executionCounter = 0;
+  }
 
   protected abstract BooleanFormula transform(T state, FormulaManagerView fmgr, AnalysisDirection direction, String uniqueVariableId);
 
@@ -25,6 +40,31 @@ public abstract class AbstractStateTransformer<T extends AbstractState> {
           + getAbstractStateClass() + " transformer");
     }
     return fmgr.uninstantiate(transform(getAbstractStateClass().cast(state), fmgr, direction, uniqueVariableId));
+  }
+
+  public final BooleanFormula uninstantiate(FormulaManagerView pFmgr, BooleanFormula pFormula, SSAMap pSSAMap, AnalysisDirection pDirection) {
+    executionCounter++;
+    Map<String, Formula> variableToFormula = pFmgr.extractVariables(pFormula);
+    Map<Formula, Formula> substitutions = new HashMap<>();
+    for (Entry<String, Formula> stringFormulaEntry : variableToFormula.entrySet()) {
+      String name = stringFormulaEntry.getKey();
+      Formula formula = stringFormulaEntry.getValue();
+      List<String> nameAndIndex = Splitter.on("@").limit(2).splitToList(name);
+      if (nameAndIndex.size() < 2 || nameAndIndex.get(1).isEmpty() || name.contains(".")) {
+        substitutions.put(formula, pFmgr.makeVariable(pFmgr.getFormulaType(formula), name));
+        continue;
+      }
+      name = nameAndIndex.get(0);
+      int index = Integer.parseInt(nameAndIndex.get(1));
+      int highestIndex = pSSAMap.getIndex(name);
+      if (index != highestIndex) {
+        substitutions.put(formula, pFmgr.makeVariable(pFmgr.getFormulaType(formula),
+            name + "." + "E" + executionCounter + id + pDirection.name() + index));
+      } else {
+        substitutions.put(formula, pFmgr.makeVariable(pFmgr.getFormulaType(formula), name));
+      }
+    }
+    return pFmgr.substitute(pFormula, substitutions);
   }
 
 }

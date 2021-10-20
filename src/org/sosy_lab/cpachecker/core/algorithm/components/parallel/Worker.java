@@ -64,30 +64,12 @@ public class Worker implements Runnable {
 
   private final Thread socketThread;
 
-  public static Worker registerNodeAndGetWorker(
-      BlockNode pNode,
-      LogManager pLogger,
-      CFA pCFA,
-      Specification pSpecification,
-      Configuration pConfiguration,
-      ShutdownManager pShutdownManager,
-      WorkerSocketFactory pFactory,
-      String pAddress,
-      int pPort)
-      throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
-    BlockingQueue<Message> sharedQueue = new LinkedBlockingQueue<>();
-    MessageLogger messageLogger = new MessageLogger(pNode.getId());
-    WorkerSocket socket = pFactory.makeSocket(pLogger, messageLogger, sharedQueue, pNode.getId(), pAddress,
-        pPort);
-    return new Worker(pNode, sharedQueue, socket, messageLogger, pLogger, pCFA, pSpecification, pConfiguration,
-        pShutdownManager);
-  }
-
   public void addClient(WorkerClient client) {
     clients.add(client);
   }
 
   private Worker(
+      String pId,
       BlockNode pBlock,
       BlockingQueue<Message> pOutputStream,
       WorkerSocket pWorkerSocket,
@@ -125,9 +107,9 @@ public class Worker implements Runnable {
     Configuration forward = Configuration.builder().copyFrom(pConfiguration).setOption("CompositeCPA.cpas",
         "cpa.block.BlockCPA,cpa.predicate.PredicateCPA").build();
 
-    forwardAnalysis = new ForwardAnalysis(pLogger, pBlock, pCFA, pSpecification, forward,
+    forwardAnalysis = new ForwardAnalysis(pId, pLogger, pBlock, pCFA, pSpecification, forward,
         pShutdownManager);
-    backwardAnalysis = new BackwardAnalysis(pLogger, pBlock, pCFA, pSpecification, backward, pShutdownManager);
+    backwardAnalysis = new BackwardAnalysis(pId, pLogger, pBlock, pCFA, pSpecification, backward, pShutdownManager);
 
     status = forwardAnalysis.getStatus();
 
@@ -326,5 +308,42 @@ public class Worker implements Runnable {
 
   public AlgorithmStatus getStatus() {
     return status;
+  }
+
+  public static class WorkerFactory {
+
+    private int workerCount;
+    private final WorkerSocketFactory socketFactory;
+
+    public WorkerFactory() {
+      socketFactory = new WorkerSocketFactory();
+    }
+
+    public Worker createWorker(
+        BlockNode pNode,
+        LogManager pLogger,
+        CFA pCFA,
+        Specification pSpecification,
+        Configuration pConfiguration,
+        ShutdownManager pShutdownManager,
+        String pAddress,
+        int pPort)
+        throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
+      workerCount++;
+      BlockingQueue<Message> sharedQueue = new LinkedBlockingQueue<>();
+      MessageLogger messageLogger = new MessageLogger(pNode.getId());
+      WorkerSocket socket = socketFactory.makeSocket(pLogger, messageLogger, sharedQueue, pNode.getId(), pAddress,
+          pPort);
+      return new Worker(pNode.getId() + "Worker" + workerCount, pNode, sharedQueue, socket, messageLogger, pLogger, pCFA, pSpecification, pConfiguration,
+          pShutdownManager);
+    }
+
+    public WorkerSocketFactory getSocketFactory() {
+      return socketFactory;
+    }
+
+    public int getWorkerCount() {
+      return workerCount;
+    }
   }
 }

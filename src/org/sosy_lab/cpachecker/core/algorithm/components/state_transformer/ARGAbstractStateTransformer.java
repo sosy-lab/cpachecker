@@ -17,7 +17,8 @@ public class ARGAbstractStateTransformer extends AbstractStateTransformer<ARGSta
 
   private final AnyStateTransformer knownTransformations;
 
-  public ARGAbstractStateTransformer(AnyStateTransformer pKnownTransformations) {
+  public ARGAbstractStateTransformer(String pId, AnyStateTransformer pKnownTransformations) {
+    super(pId);
     knownTransformations = pKnownTransformations;
   }
 
