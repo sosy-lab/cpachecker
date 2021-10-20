@@ -207,7 +207,7 @@ public class ArrayAbstraction {
 
       // non-transformable arrays in a transformable loop make the loop non-transformable
       for (CSimpleDeclaration arrayDeclaration : ArrayAccess.findArrayOccurences(edge)) {
-        if (!pTransformableArrayMap.keySet().contains(arrayDeclaration)) {
+        if (!pTransformableArrayMap.containsKey(arrayDeclaration)) {
           return Status.FAILED;
         }
       }
