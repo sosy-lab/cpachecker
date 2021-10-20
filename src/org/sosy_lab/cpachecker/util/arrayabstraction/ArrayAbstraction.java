@@ -681,7 +681,7 @@ public class ArrayAbstraction {
       Status loopTransformationStatus =
           transformLoop(graph, transformableArrayMap, simplifiedCfa, transformableLoop);
       if (loopTransformationStatus == Status.FAILED) {
-        return new ArrayAbstractionResult(Status.FAILED, pCfa);
+        return ArrayAbstractionResult.createFailed(pCfa);
       } else if (loopTransformationStatus == Status.IMPRECISE) {
         status = Status.IMPRECISE;
       }
@@ -697,7 +697,7 @@ public class ArrayAbstraction {
         Status edgeTransformationStatus =
             transformEdge(graph, transformableArrayMap, simplifiedCfa, edge, Optional.empty());
         if (edgeTransformationStatus == Status.FAILED) {
-          return new ArrayAbstractionResult(Status.FAILED, pCfa);
+          return ArrayAbstractionResult.createFailed(pCfa);
         } else if (edgeTransformationStatus == Status.IMPRECISE) {
           status = Status.IMPRECISE;
         }
@@ -734,6 +734,7 @@ public class ArrayAbstraction {
                     new SubstitutingCAstNodeVisitor(
                         node -> substitution.getSubstitute(edge, node))));
 
-    return new ArrayAbstractionResult(status, transformedCfa);
+    return new ArrayAbstractionResult(
+        status, transformedCfa, transformableArrays.size(), transformableLoops.size());
   }
 }

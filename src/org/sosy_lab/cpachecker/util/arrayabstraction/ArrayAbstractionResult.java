@@ -16,9 +16,22 @@ public final class ArrayAbstractionResult {
   private final Status status;
   private final CFA transformedCfa;
 
-  ArrayAbstractionResult(Status pStatus, CFA pTransformedCfa) {
+  private int numberOfTransformedArrays;
+  private int numberOfTransformedLoops;
+
+  ArrayAbstractionResult(
+      Status pStatus,
+      CFA pTransformedCfa,
+      int pNumberOfTransformedArrays,
+      int pNumberOfTransformedLoops) {
     status = pStatus;
     transformedCfa = pTransformedCfa;
+    numberOfTransformedArrays = pNumberOfTransformedArrays;
+    numberOfTransformedLoops = pNumberOfTransformedLoops;
+  }
+
+  static ArrayAbstractionResult createFailed(CFA pCfa) {
+    return new ArrayAbstractionResult(Status.FAILED, pCfa, 0, 0);
   }
 
   /**
@@ -40,6 +53,24 @@ public final class ArrayAbstractionResult {
    */
   public CFA getTransformedCfa() {
     return transformedCfa;
+  }
+
+  /**
+   * Returns the number of arrays that were transformed during array abstraction.
+   *
+   * @return the number of arrays that were transformed during array abstraction
+   */
+  public int getNumberOfTransformedArrays() {
+    return numberOfTransformedArrays;
+  }
+
+  /**
+   * Returns the number of loops that were transformed during array abstraction.
+   *
+   * @return the number of loops that were transformed during array abstraction
+   */
+  public int getNumberOfTransformedLoops() {
+    return numberOfTransformedLoops;
   }
 
   /**
