@@ -80,10 +80,13 @@ final class TransformableArray {
   private final CDeclarationEdge valueDeclarationEdge;
   private final CDeclarationEdge indexDeclarationEdge;
 
+  private final CExpression lengthExpression;
+
   private TransformableArray(CDeclarationEdge pArrayDeclarationEdge) {
     arrayDeclarationEdge = pArrayDeclarationEdge;
     valueDeclarationEdge = createValueDeclarationEdge(pArrayDeclarationEdge);
     indexDeclarationEdge = createIndexDeclarationEdge(pArrayDeclarationEdge);
+    lengthExpression = createLengthExpression(pArrayDeclarationEdge).orElseThrow();
   }
 
   private static CDeclarationEdge createValueDeclarationEdge(
@@ -180,6 +183,23 @@ final class TransformableArray {
     return indexDeclarationEdge.getDeclaration();
   }
 
+  public CExpression getLengthExpression() {
+    return lengthExpression;
+  }
+
+  private static Optional<CExpression> createLengthExpression(CDeclarationEdge pDeclarationEdge) {
+
+    CDeclaration declaration = pDeclarationEdge.getDeclaration();
+    if (declaration instanceof CVariableDeclaration) {
+      CType type = declaration.getType();
+      if (type instanceof CArrayType) {
+        return Optional.of(((CArrayType) type).getLength());
+      }
+    }
+
+    return Optional.empty();
+  }
+
   private static ImmutableSet<CDeclarationEdge> findArrayDeclarationEdges(CFA pCfa) {
 
     ImmutableSet.Builder<CDeclarationEdge> arrayDeclarationEdges = ImmutableSet.builder();
@@ -191,7 +211,8 @@ final class TransformableArray {
           CDeclaration declaration = declarationEdge.getDeclaration();
           if (declaration instanceof CVariableDeclaration) {
             CType type = declaration.getType();
-            if (type instanceof CArrayType || type instanceof CPointerType) {
+            if ((type instanceof CArrayType || type instanceof CPointerType)
+                && createLengthExpression(declarationEdge).isPresent()) {
               arrayDeclarationEdges.add(declarationEdge);
             }
           }

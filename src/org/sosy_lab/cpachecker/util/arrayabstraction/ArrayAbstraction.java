@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.SubstitutingCAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -543,6 +544,72 @@ public class ArrayAbstraction {
     return sndCfa;
   }
 
+  private static void transformArrayDeclarations(
+      MutableCfaNetwork pGraph, ImmutableSet<TransformableArray> pTransformableArrays) {
+
+    for (TransformableArray transformableArray : pTransformableArrays) {
+
+      CDeclarationEdge arrayDeclarationEdge = transformableArray.getArrayDeclarationEdge();
+      var arrayDeclarationEdgeEndpoints = pGraph.incidentNodes(arrayDeclarationEdge);
+      CFANode arrayDeclarationEdgeNodeV = arrayDeclarationEdgeEndpoints.nodeV();
+      pGraph.removeEdge(arrayDeclarationEdge);
+      pGraph.addEdge(
+          arrayDeclarationEdgeEndpoints,
+          createBlankEdge(arrayDeclarationEdgeNodeV.getFunction(), ""));
+
+      AFunctionDeclaration function = arrayDeclarationEdgeNodeV.getFunction();
+      pGraph.insertPredecessor(
+          new CFANode(function),
+          arrayDeclarationEdgeNodeV,
+          transformableArray.getValueDeclarationEdge());
+      pGraph.insertPredecessor(
+          new CFANode(function),
+          arrayDeclarationEdgeNodeV,
+          transformableArray.getIndexDeclarationEdge());
+
+      CType arrayIndexType = transformableArray.getIndexDeclaration().getType();
+      CIdExpression arrayIndexExpression =
+          new CIdExpression(
+              arrayDeclarationEdge.getFileLocation(), transformableArray.getIndexDeclaration());
+
+      CExpression minIndexCondition =
+          new CBinaryExpression(
+              arrayDeclarationEdge.getFileLocation(),
+              CNumericTypes.INT,
+              arrayIndexType,
+              arrayIndexExpression,
+              CIntegerLiteralExpression.ZERO,
+              CBinaryExpression.BinaryOperator.GREATER_EQUAL);
+
+      pGraph.insertSuccessor(
+          arrayDeclarationEdgeNodeV,
+          new CFANode(function),
+          createAssumeEdge(function, minIndexCondition, true));
+      pGraph.addEdge(
+          arrayDeclarationEdgeNodeV,
+          new CFATerminationNode(function),
+          createAssumeEdge(function, minIndexCondition, false));
+
+      CExpression maxIndexCondition =
+          new CBinaryExpression(
+              arrayDeclarationEdge.getFileLocation(),
+              CNumericTypes.INT,
+              arrayIndexType,
+              arrayIndexExpression,
+              transformableArray.getLengthExpression(),
+              CBinaryExpression.BinaryOperator.LESS_THAN);
+
+      pGraph.insertSuccessor(
+          arrayDeclarationEdgeNodeV,
+          new CFANode(function),
+          createAssumeEdge(function, maxIndexCondition, true));
+      pGraph.addEdge(
+          arrayDeclarationEdgeNodeV,
+          new CFATerminationNode(function),
+          createAssumeEdge(function, maxIndexCondition, false));
+    }
+  }
+
   public static ArrayAbstractionResult transformCfa(
       Configuration pConfiguration, LogManager pLogger, CFA pCfa) {
 
@@ -591,29 +658,7 @@ public class ArrayAbstraction {
       }
     }
 
-    // transform array declarations
-    for (TransformableArray transformableArray : transformableArrays) {
-
-      CDeclarationEdge arrayDeclarationEdge = transformableArray.getArrayDeclarationEdge();
-      var arrayDeclarationEdgeEndpoints = graph.incidentNodes(arrayDeclarationEdge);
-      CFANode arrayDeclarationEdgeNodeV = arrayDeclarationEdgeEndpoints.nodeV();
-      graph.removeEdge(arrayDeclarationEdge);
-      graph.addEdge(
-          arrayDeclarationEdgeEndpoints,
-          createBlankEdge(
-              arrayDeclarationEdgeNodeV.getFunction(),
-              "Abstracted: " + transformableArray.getArrayDeclaration()));
-
-      AFunctionDeclaration function = arrayDeclarationEdgeNodeV.getFunction();
-      graph.insertPredecessor(
-          new CFANode(function),
-          arrayDeclarationEdgeNodeV,
-          transformableArray.getValueDeclarationEdge());
-      graph.insertPredecessor(
-          new CFANode(function),
-          arrayDeclarationEdgeNodeV,
-          transformableArray.getIndexDeclarationEdge());
-    }
+    transformArrayDeclarations(graph, transformableArrays);
 
     // initialize array access substitution
     CAstNodeSubstitution substitution = new CAstNodeSubstitution();
