@@ -31,7 +31,8 @@ public class MutableCfaNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge
   /**
    * Returns a new {@code MutableCfaNetwork} instance representing the specified CFA.
    *
-   * <p>The returned CFA contains all nodes, regular edges, and summary edges in the specified CFA.
+   * <p>The returned {@code MutableCfaNetwork} contains all nodes, regular edges, and summary edges
+   * that occur in the specified CFA.
    *
    * <p>Modifying the returned mutable network does not change the original CFA, so calling methods
    * on the returned {@code MutableCfaNetwork} instance is safe. However, mutating existing {@code
