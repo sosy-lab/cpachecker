@@ -764,7 +764,7 @@ public class ArrayAbstraction {
     ImmutableMap<CSimpleDeclaration, TransformableArray> transformableArrayMap =
         createTransformableArrayMap(transformableArrays);
 
-    if (transformableLoops.size() == 0 || transformableArrays.size() == 0) {
+    if (transformableLoops.isEmpty() || transformableArrays.isEmpty()) {
       return ArrayAbstractionResult.createFailed(pCfa);
     }
 
