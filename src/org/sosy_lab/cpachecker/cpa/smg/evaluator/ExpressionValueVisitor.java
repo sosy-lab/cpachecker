@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
@@ -440,11 +441,15 @@ class ExpressionValueVisitor
                 CType lVarType = lVarInBinaryExp.getExpressionType().getCanonicalType();
                 BigInteger sizeOfLVal;
                 if (lVarType instanceof CPointerType) {
-                  sizeOfLVal =
-                      smgExpressionEvaluator.machineModel
-                          .getSizeofInBits(((CPointerType) lVarType).getType());
-                } else {
-                  throw new AssertionError("unhandled type for pointer comparison: " + lVarType);
+                    sizeOfLVal =
+                        smgExpressionEvaluator.machineModel.getSizeofInBits(
+                            ((CPointerType) lVarType).getType());
+                  } else if (CTypes.isArithmeticType(lVarType)) {
+                    sizeOfLVal =
+                        BigInteger.valueOf(
+                            smgExpressionEvaluator.machineModel.getSizeofCharInBits());
+                  } else {
+                    throw new AssertionError("unhandled type for pointer comparison: " + lVarType);
                 }
                 SMGExplicitValue diff = lValAddress.getOffset().subtract(rValAddress.getOffset());
                 diff = diff.divide(SMGKnownExpValue.valueOf(sizeOfLVal));
