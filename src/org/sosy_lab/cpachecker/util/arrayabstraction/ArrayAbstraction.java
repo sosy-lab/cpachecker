@@ -764,6 +764,10 @@ public class ArrayAbstraction {
     ImmutableMap<CSimpleDeclaration, TransformableArray> transformableArrayMap =
         createTransformableArrayMap(transformableArrays);
 
+    if (transformableLoops.size() == 0 || transformableArrays.size() == 0) {
+      return ArrayAbstractionResult.createFailed(pCfa);
+    }
+
     MutableCfaNetwork graph = MutableCfaNetwork.of(simplifiedCfa);
 
     Status status = Status.PRECISE;
