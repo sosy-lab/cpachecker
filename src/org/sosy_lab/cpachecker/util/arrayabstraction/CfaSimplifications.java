@@ -297,13 +297,13 @@ final class CfaSimplifications {
             //                 |                                  |
             // t_initial + ( ( ( ( index - ix_initial ) / ix_step ) + ix_adjust ) * t_step )
 
-            // edge permutations => indexPlus:
-            //   indexUpdate currentUpdate edge =>  0
-            //   indexUpdate edge currentUpdate => -1
-            //   currentUpdate indexUpdate edge =>  0
-            //   currentUpdate edge indexUpdate => +1
-            //   edge indexUpdate currentUpdate =>  0
-            //   edge currentUpdate indexUpdate =>  0
+            // edge permutations => ix_adjust:
+            //   indexUpdate targetUpdate edge =>  0
+            //   indexUpdate edge targetUpdate => -1
+            //   targetUpdate indexUpdate edge =>  0
+            //   targetUpdate edge indexUpdate => +1
+            //   edge indexUpdate targetUpdate =>  0
+            //   edge targetUpdate indexUpdate =>  0
 
             int indexAdjustValue;
             if (indexDominated.contains(edge) && targetPostDominated.contains(edge)) {
@@ -314,7 +314,7 @@ final class CfaSimplifications {
               indexAdjustValue = 0;
             }
 
-            // find constant start value for current variable (if it exists)
+            // find constant start value for target variable (if it exists)
             Optional<SpecialOperation.ConstantAssign> targetInitialOperation = Optional.empty();
             ImmutableSet<CFAEdge> targetIncomingDefEdges = loop.getIncomingDefs(targetDeclaration);
             if (targetIncomingDefEdges.size() == 1) {
@@ -425,7 +425,7 @@ final class CfaSimplifications {
             declarationSubstitution.put(targetDeclaration, substituteExpression);
           }
 
-          // replace update edge with empty placeholder
+          // replace target update edge with empty placeholder
           var endpoints = graph.incidentNodes(innerLoopEdge);
           graph.removeEdge(innerLoopEdge);
           graph.addEdge(
