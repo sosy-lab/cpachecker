@@ -75,22 +75,14 @@ public class ArrayAbstraction {
   }
 
   private static ImmutableSet<TransformableArray> getLoopTransformableArrays(
-      ImmutableMap<CSimpleDeclaration, TransformableArray> pTransformableArrayMap,
-      TransformableLoop pLoop) {
+      TransformableLoop pLoop,
+      ImmutableMap<CSimpleDeclaration, TransformableArray> pTransformableArrayMap) {
 
-    ImmutableSet.Builder<TransformableArray> builder = ImmutableSet.builder();
-
-    for (CFAEdge edge : pLoop.getInnerLoopEdges()) {
-      for (ArrayAccess arrayAccess : ArrayAccess.findArrayAccesses(edge)) {
-        Optional<TransformableArray> optTransformableArray =
-            getTransformableArray(arrayAccess, pTransformableArrayMap);
-        if (optTransformableArray.isPresent()) {
-          builder.add(optTransformableArray.orElseThrow());
-        }
-      }
-    }
-
-    return builder.build();
+    return pLoop.getInnerLoopEdges().stream()
+        .flatMap(edge -> ArrayAccess.findArrayAccesses(edge).stream())
+        .map(arrayAccess -> getTransformableArray(arrayAccess, pTransformableArrayMap))
+        .flatMap(Optional::stream)
+        .collect(ImmutableSet.toImmutableSet());
   }
 
   private static ImmutableSet<CFAEdge> getTransformableEdges(
@@ -434,7 +426,7 @@ public class ArrayAbstraction {
     pGraph.addEdge(loopBodyLastEdgeNodeU, loopOutgoingEdgeNodeV, loopBodyLastEdge);
 
     ImmutableSet<TransformableArray> loopTransformableArrays =
-        getLoopTransformableArrays(pTransformableArrayMap, pLoop);
+        getLoopTransformableArrays(pLoop, pTransformableArrayMap);
     assert loopTransformableArrays.size() >= 1;
 
     CFANode bodyEntryNode = loopBodyFirstEdgeNodeV;
@@ -514,28 +506,13 @@ public class ArrayAbstraction {
     throw new AssertionError("Unknown array expression: " + arrayExpression);
   }
 
-  private static boolean containsAnyTransformableArrayAccess(
-      TransformableLoop pLoop,
-      ImmutableMap<CSimpleDeclaration, TransformableArray> pTransformableArrayMap) {
-
-    for (CFAEdge edge : pLoop.getInnerLoopEdges()) {
-      for (ArrayAccess arrayAccess : ArrayAccess.findArrayAccesses(edge)) {
-        if (getTransformableArray(arrayAccess, pTransformableArrayMap).isPresent()) {
-          return true;
-        }
-      }
-    }
-
-    return false;
-  }
-
   private static ImmutableSet<TransformableLoop> findRelevantTransformableLoops(CFA pCfa) {
 
     ImmutableMap<CSimpleDeclaration, TransformableArray> transformableArrayMap =
         createTransformableArrayMap(TransformableArray.findTransformableArrays(pCfa));
 
     return TransformableLoop.findTransformableLoops(pCfa).stream()
-        .filter(loop -> containsAnyTransformableArrayAccess(loop, transformableArrayMap))
+        .filter(loop -> !getLoopTransformableArrays(loop, transformableArrayMap).isEmpty())
         .collect(ImmutableSet.toImmutableSet());
   }
 
