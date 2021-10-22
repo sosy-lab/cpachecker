@@ -385,12 +385,12 @@ abstract class SpecialOperation {
    * Operation for these assume edges: <code>&lt;var&gt; &#123; &lt; | &lt;= | &gt; | &gt;= &#125;
    * &lt;constant-expression&gt;</code>
    */
-  public static final class ComparisonAssume extends SpecialOperation {
+  public static final class ConstantComparison extends SpecialOperation {
 
     private final Operator operator;
     private final BigInteger value;
 
-    private ComparisonAssume(
+    private ConstantComparison(
         CSimpleDeclaration pDeclaration, Operator pOperator, BigInteger pValue) {
       super(pDeclaration);
       value = pValue;
@@ -398,19 +398,19 @@ abstract class SpecialOperation {
     }
 
     /**
-     * Tries to extract a comparison assume operation from the specified edge.
+     * Tries to extract a constant comparison operation from the specified edge.
      *
      * @param pEdge the CFA edge to extract the operation from
      * @param pMachineModel the machine model to consider during operation extraction
      * @param pVariables map from variables (specified by their declarations) to their corresponding
      *     assigned value
-     * @return If its possible to extract a comparison assume operation form the specified CFA edge,
-     *     {@code Optional.of(comparisonAssume)} is returned, where {@code comparisonAssume} is the
-     *     comparison assume operation extracted from the CFA edge. Otherwise, if its not possible
-     *     to extract this operation, {@code Optional.empty()} is returned.
+     * @return If its possible to extract a constant comparison operation form the specified CFA
+     *     edge, {@code Optional.of(comparisonAssume)} is returned, where {@code comparisonAssume}
+     *     is the constant comparison operation extracted from the CFA edge. Otherwise, if its not
+     *     possible to extract this operation, {@code Optional.empty()} is returned.
      * @throws NullPointerException if any parameter is {@code null}
      */
-    public static Optional<ComparisonAssume> forEdge(
+    public static Optional<ConstantComparison> forEdge(
         CFAEdge pEdge, MachineModel pMachineModel, Map<CSimpleDeclaration, BigInteger> pVariables) {
 
       if (pEdge instanceof CAssumeEdge) {
@@ -474,7 +474,7 @@ abstract class SpecialOperation {
               BigInteger constantValue = optConstantValue.orElseThrow();
 
               return Optional.of(
-                  new ComparisonAssume(variableDeclaration, operationOperator, constantValue));
+                  new ConstantComparison(variableDeclaration, operationOperator, constantValue));
             }
           }
         }
@@ -515,11 +515,11 @@ abstract class SpecialOperation {
         return true;
       }
 
-      if (!(pObject instanceof ComparisonAssume)) {
+      if (!(pObject instanceof ConstantComparison)) {
         return false;
       }
 
-      ComparisonAssume other = (ComparisonAssume) pObject;
+      ConstantComparison other = (ConstantComparison) pObject;
       return Objects.equals(getDeclaration(), other.getDeclaration())
           && operator == other.operator
           && Objects.equals(value, other.value);

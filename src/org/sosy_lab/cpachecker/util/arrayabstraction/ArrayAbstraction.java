@@ -341,13 +341,13 @@ public class ArrayAbstraction {
 
     if (index.isIncreasing()) {
       assert index.getComparisonOperation().getOperator()
-          == SpecialOperation.ComparisonAssume.Operator.LESS_EQUAL;
+          == SpecialOperation.ConstantComparison.Operator.LESS_EQUAL;
       startBinaryOperator = CBinaryExpression.BinaryOperator.GREATER_EQUAL;
       endBinaryOperator = CBinaryExpression.BinaryOperator.LESS_EQUAL;
     } else {
       assert index.isDecreasing();
       assert index.getComparisonOperation().getOperator()
-          == SpecialOperation.ComparisonAssume.Operator.GREATER_EQUAL;
+          == SpecialOperation.ConstantComparison.Operator.GREATER_EQUAL;
       startBinaryOperator = CBinaryExpression.BinaryOperator.LESS_EQUAL;
       endBinaryOperator = CBinaryExpression.BinaryOperator.GREATER_EQUAL;
     }

@@ -248,14 +248,14 @@ final class TransformableLoop {
     }
 
     // find loop index by looking at the loop condition
-    Optional<SpecialOperation.ComparisonAssume> optLoopCondition =
-        SpecialOperation.ComparisonAssume.forEdge(
+    Optional<SpecialOperation.ConstantComparison> optLoopCondition =
+        SpecialOperation.ConstantComparison.forEdge(
             outgoingEdge, pCfa.getMachineModel(), ImmutableMap.of());
     if (optLoopCondition.isEmpty()) {
       return Optional.empty();
     }
 
-    SpecialOperation.ComparisonAssume loopCondition = optLoopCondition.orElseThrow();
+    SpecialOperation.ConstantComparison loopCondition = optLoopCondition.orElseThrow();
     CSimpleDeclaration indexVariableDeclaration = loopCondition.getDeclaration();
     MemoryLocation indexMemoryLocation = MemoryLocation.forDeclaration(indexVariableDeclaration);
 
@@ -308,11 +308,12 @@ final class TransformableLoop {
 
     // don't transform loops with nonsensical index update step or loop condition
     if (updateIndexOperation.getStepValue().compareTo(BigInteger.ZERO) > 0) {
-      if (loopCondition.getOperator() != SpecialOperation.ComparisonAssume.Operator.LESS_EQUAL) {
+      if (loopCondition.getOperator() != SpecialOperation.ConstantComparison.Operator.LESS_EQUAL) {
         return Optional.empty();
       }
     } else if (updateIndexOperation.getStepValue().compareTo(BigInteger.ZERO) < 0) {
-      if (loopCondition.getOperator() != SpecialOperation.ComparisonAssume.Operator.GREATER_EQUAL) {
+      if (loopCondition.getOperator()
+          != SpecialOperation.ConstantComparison.Operator.GREATER_EQUAL) {
         return Optional.empty();
       }
     } else {
@@ -436,14 +437,14 @@ final class TransformableLoop {
     private final CFAEdge updateEdge;
     private final SpecialOperation.UpdateAssign updateOperation;
 
-    private final SpecialOperation.ComparisonAssume comparisonOperation;
+    private final SpecialOperation.ConstantComparison comparisonOperation;
 
     private Index(
         CFAEdge pInitializeEdge,
         SpecialOperation.ConstantAssign pInitializeOperation,
         CFAEdge pUpdateEdge,
         SpecialOperation.UpdateAssign pUpdateOperation,
-        SpecialOperation.ComparisonAssume pComparisonOperation) {
+        SpecialOperation.ConstantComparison pComparisonOperation) {
       initializeEdge = checkNotNull(pInitializeEdge);
       initializeOperation = checkNotNull(pInitializeOperation);
       updateEdge = checkNotNull(pUpdateEdge);
@@ -479,7 +480,7 @@ final class TransformableLoop {
       return updateOperation.getStepValue().compareTo(BigInteger.ZERO) < 0;
     }
 
-    public SpecialOperation.ComparisonAssume getComparisonOperation() {
+    public SpecialOperation.ConstantComparison getComparisonOperation() {
       return comparisonOperation;
     }
   }
