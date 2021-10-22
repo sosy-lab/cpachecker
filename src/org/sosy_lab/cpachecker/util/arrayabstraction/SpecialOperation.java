@@ -89,6 +89,11 @@ abstract class SpecialOperation {
       Number number = value.asNumericValue().getNumber();
       if (number instanceof BigInteger) {
         return Optional.of((BigInteger) number);
+      } else if (number instanceof Byte
+          || number instanceof Short
+          || number instanceof Integer
+          || number instanceof Long) {
+        return Optional.of(BigInteger.valueOf((long) number));
       }
     }
 
