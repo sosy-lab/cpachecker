@@ -224,6 +224,31 @@ final class TransformableArray {
         .collect(ImmutableSet.toImmutableSet());
   }
 
+  private static boolean isRelevantArrayAccessOfArray(
+      ArrayAccess pArrayAccess, CSimpleDeclaration pArrayDeclaration) {
+
+    CExpression arrayExpression = pArrayAccess.getArrayExpression();
+    CExpression subscriptExpression = pArrayAccess.getSubscriptExpression();
+
+    if (arrayExpression instanceof CIdExpression) {
+      CSimpleDeclaration arrayExpressDeclaration =
+          ((CIdExpression) arrayExpression).getDeclaration();
+      if (arrayExpressDeclaration.equals(pArrayDeclaration)) {
+        if (subscriptExpression instanceof CIntegerLiteralExpression) {
+          CIntegerLiteralExpression integerExpression =
+              (CIntegerLiteralExpression) subscriptExpression;
+          // we don't consider arrays as relevant if they are only accessed at index 0
+          // (these accesses could come from pointers that point to a single element)
+          return !integerExpression.getValue().equals(BigInteger.ZERO);
+        } else {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
   public static ImmutableSet<TransformableArray> findTransformableArrays(CFA pCfa) {
 
     Set<CDeclarationEdge> unproblematicArrayDeclarationEdges =
@@ -232,37 +257,31 @@ final class TransformableArray {
 
     for (CFANode node : pCfa.getAllNodes()) {
       for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
+
         Iterator<CDeclarationEdge> iterator = unproblematicArrayDeclarationEdges.iterator();
         while (iterator.hasNext()) {
-          CDeclarationEdge declarationEdge = iterator.next();
-          if (!declarationEdge.equals(edge)) {
-            if (ProblematicArrayUsageFinder.containsProblematicUsage(
-                edge, declarationEdge.getDeclaration())) {
-              iterator.remove();
-            }
 
-            if (relevantArrayDeclarationEdges.contains(declarationEdge)) {
-              continue;
-            }
+          CDeclarationEdge arrayDeclarationEdge = iterator.next();
+          CDeclaration declaration = arrayDeclarationEdge.getDeclaration();
 
-            for (ArrayAccess arrayAccess : ArrayAccess.findArrayAccesses(edge)) {
-              CExpression arrayExpression = arrayAccess.getArrayExpression();
-              CExpression subscriptExpression = arrayAccess.getSubscriptExpression();
-              if (arrayExpression instanceof CIdExpression) {
-                if (((CIdExpression) arrayExpression)
-                    .getDeclaration()
-                    .equals(declarationEdge.getDeclaration())) {
-                  if (subscriptExpression instanceof CIntegerLiteralExpression) {
-                    BigInteger constant =
-                        ((CIntegerLiteralExpression) subscriptExpression).getValue();
-                    if (!constant.equals(BigInteger.ZERO)) {
-                      relevantArrayDeclarationEdges.add(declarationEdge);
-                    }
-                  } else {
-                    relevantArrayDeclarationEdges.add(declarationEdge);
-                  }
-                }
-              }
+          // we skip the array declaration edge itself (it would otherwise be a problematic usage)
+          if (arrayDeclarationEdge.equals(edge)) {
+            continue;
+          }
+
+          if (ProblematicArrayUsageFinder.containsProblematicUsage(
+              edge, arrayDeclarationEdge.getDeclaration())) {
+            iterator.remove();
+          }
+
+          // is array declaration already relevant?
+          if (relevantArrayDeclarationEdges.contains(arrayDeclarationEdge)) {
+            continue;
+          }
+
+          for (ArrayAccess arrayAccess : ArrayAccess.findArrayAccesses(edge)) {
+            if (isRelevantArrayAccessOfArray(arrayAccess, declaration)) {
+              relevantArrayDeclarationEdges.add(arrayDeclarationEdge);
             }
           }
         }
