@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.arrayabstraction;
 
+import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
@@ -26,9 +27,6 @@ class CAstNodeSubstitution {
   }
 
   CAstNode getSubstitute(CFAEdge pEdge, CAstNode pOriginal) {
-
-    Map<CAstNode, CAstNode> nodeMap = substitution.get(pEdge);
-
-    return nodeMap != null ? nodeMap.get(pOriginal) : null;
+    return substitution.getOrDefault(pEdge, ImmutableMap.of()).get(pOriginal);
   }
 }
