@@ -204,18 +204,21 @@ final class TransformableArray {
 
     ImmutableSet.Builder<CDeclarationEdge> arrayDeclarationEdges = ImmutableSet.builder();
 
-    for (CFANode node : pCfa.getAllNodes()) {
-      for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
-        if (edge instanceof CDeclarationEdge) {
-          CDeclarationEdge declarationEdge = (CDeclarationEdge) edge;
-          CDeclaration declaration = declarationEdge.getDeclaration();
-          if (declaration instanceof CVariableDeclaration) {
-            CType type = declaration.getType();
-            if ((type instanceof CArrayType || type instanceof CPointerType)
-                && createLengthExpression(declarationEdge).isPresent()) {
-              arrayDeclarationEdges.add(declarationEdge);
-            }
-          }
+    Iterator<CDeclarationEdge> declarationEdgeIterator =
+        pCfa.getAllNodes().stream()
+            .flatMap(node -> CFAUtils.allLeavingEdges(node).stream())
+            .filter(edge -> edge instanceof CDeclarationEdge)
+            .map(edge -> (CDeclarationEdge) edge)
+            .iterator();
+
+    while (declarationEdgeIterator.hasNext()) {
+      CDeclarationEdge declarationEdge = declarationEdgeIterator.next();
+      CDeclaration declaration = declarationEdge.getDeclaration();
+      if (declaration instanceof CVariableDeclaration) {
+        CType type = declaration.getType();
+        if ((type instanceof CArrayType || type instanceof CPointerType)
+            && createLengthExpression(declarationEdge).isPresent()) {
+          arrayDeclarationEdges.add(declarationEdge);
         }
       }
     }
