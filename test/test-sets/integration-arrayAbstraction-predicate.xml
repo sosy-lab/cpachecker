@@ -62,6 +62,7 @@ SPDX-License-Identifier: Apache-2.0
 
   <columns>
     <column title="arrayAbstractionStatus">Array abstraction status</column>
+    <column title="arrayAbstractionTime">Time for array abstraction</column>
     <column title="transformedArrays">Number of transformed arrays</column>
     <column title="transformedLoops">Number of transformed loops</column>
   </columns>

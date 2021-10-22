@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.arrayabstraction.ArrayAbstraction;
 import org.sosy_lab.cpachecker.util.arrayabstraction.ArrayAbstractionResult;
 import org.sosy_lab.cpachecker.util.cwriter.CFAToCTranslator;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 /**
  * Algorithm for array abstraction by program transformation.
@@ -94,6 +95,8 @@ public final class ArrayAbstractionAlgorithm extends NestingAlgorithm {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path exportCTransformedCfaFile = Path.of("abstracted-arrays.c");
 
+  private final StatTimer arrayAbstractionTimer = new StatTimer("Time for array abstraction");
+
   private final ShutdownManager shutdownManager;
   private final Collection<Statistics> stats;
   private final ArrayAbstractionResult arrayAbstractionResult;
@@ -111,7 +114,13 @@ public final class ArrayAbstractionAlgorithm extends NestingAlgorithm {
     shutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
     stats = new CopyOnWriteArrayList<>();
     originalCfa = pCfa;
-    arrayAbstractionResult = ArrayAbstraction.transformCfa(globalConfig, logger, originalCfa);
+
+    arrayAbstractionTimer.start();
+    try {
+      arrayAbstractionResult = ArrayAbstraction.transformCfa(globalConfig, logger, originalCfa);
+    } finally {
+      arrayAbstractionTimer.stop();
+    }
 
     pConfiguration.inject(this);
   }
@@ -215,6 +224,7 @@ public final class ArrayAbstractionAlgorithm extends NestingAlgorithm {
 
             int indentation = 1;
             put(pOut, indentation, "Array abstraction status", arrayAbstractionResult.getStatus());
+            put(pOut, indentation, arrayAbstractionTimer);
             put(
                 pOut,
                 indentation,
