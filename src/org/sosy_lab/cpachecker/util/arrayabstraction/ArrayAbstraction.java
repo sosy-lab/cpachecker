@@ -837,6 +837,6 @@ public class ArrayAbstraction {
                         node -> substitution.getSubstitute(edge, node))));
 
     return new ArrayAbstractionResult(
-        status, transformedCfa, transformableArrays.size(), transformableLoops.size());
+        status, transformedCfa, transformableArrays, transformableLoops);
   }
 }

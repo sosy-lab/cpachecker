@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.arrayabstraction;
 
+import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.CFA;
 
 /** Contains the status of an array abstraction and its resulting transformed CFA. */
@@ -16,22 +17,22 @@ public final class ArrayAbstractionResult {
   private final Status status;
   private final CFA transformedCfa;
 
-  private int numberOfTransformedArrays;
-  private int numberOfTransformedLoops;
+  private final ImmutableSet<TransformableArray> transformedArrays;
+  private final ImmutableSet<TransformableLoop> transformedLoops;
 
   ArrayAbstractionResult(
       Status pStatus,
       CFA pTransformedCfa,
-      int pNumberOfTransformedArrays,
-      int pNumberOfTransformedLoops) {
+      ImmutableSet<TransformableArray> pTransformedArrays,
+      ImmutableSet<TransformableLoop> pTransformedLoops) {
     status = pStatus;
     transformedCfa = pTransformedCfa;
-    numberOfTransformedArrays = pNumberOfTransformedArrays;
-    numberOfTransformedLoops = pNumberOfTransformedLoops;
+    transformedArrays = pTransformedArrays;
+    transformedLoops = pTransformedLoops;
   }
 
   static ArrayAbstractionResult createFailed(CFA pCfa) {
-    return new ArrayAbstractionResult(Status.FAILED, pCfa, 0, 0);
+    return new ArrayAbstractionResult(Status.FAILED, pCfa, ImmutableSet.of(), ImmutableSet.of());
   }
 
   /**
@@ -56,21 +57,21 @@ public final class ArrayAbstractionResult {
   }
 
   /**
-   * Returns the number of arrays that were transformed during array abstraction.
+   * Returns a set of all arrays that were transformed during array abstraction.
    *
-   * @return the number of arrays that were transformed during array abstraction
+   * @return a set of all arrays that were transformed during array abstraction
    */
-  public int getNumberOfTransformedArrays() {
-    return numberOfTransformedArrays;
+  public ImmutableSet<TransformableArray> getTransformedArrays() {
+    return transformedArrays;
   }
 
   /**
-   * Returns the number of loops that were transformed during array abstraction.
+   * Returns a set of all loops that were transformed during array abstraction.
    *
-   * @return the number of loops that were transformed during array abstraction
+   * @return a set of all loops that were transformed during array abstraction
    */
-  public int getNumberOfTransformedLoops() {
-    return numberOfTransformedLoops;
+  public ImmutableSet<TransformableLoop> getTransformedLoops() {
+    return transformedLoops;
   }
 
   /**

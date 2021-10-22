@@ -219,12 +219,12 @@ public final class ArrayAbstractionAlgorithm extends NestingAlgorithm {
                 pOut,
                 indentation,
                 "Number of transformed arrays",
-                arrayAbstractionResult.getNumberOfTransformedArrays());
+                arrayAbstractionResult.getTransformedArrays().size());
             put(
                 pOut,
                 indentation,
                 "Number of transformed loops",
-                arrayAbstractionResult.getNumberOfTransformedLoops());
+                arrayAbstractionResult.getTransformedLoops().size());
           }
 
           @Override
