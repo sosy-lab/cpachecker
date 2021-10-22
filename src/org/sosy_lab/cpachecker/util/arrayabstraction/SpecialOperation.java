@@ -10,33 +10,22 @@ package org.sosy_lab.cpachecker.util.arrayabstraction;
 
 import com.google.common.base.MoreObjects;
 import java.math.BigInteger;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -44,9 +33,10 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.exceptions.NoException;
+import org.sosy_lab.cpachecker.cpa.value.ExpressionValueVisitor;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
  * Special operations make certain variable usage patterns more explicit and easier to use for the
@@ -68,8 +58,10 @@ abstract class SpecialOperation {
    * <p>Considers the specified machine model and specified variable assignments during evaluation.
    *
    * @param pExpression the expression to evaluate to an integer
-   * @param pMachineModel the machine model to consider during evaluation
-   * @param pVariables map from variables (specified by their declarations) to their assigned values
+   * @param pFunctionName current scope, used only for variable-names
+   * @param pMachineModel where to get info about types, for casting and overflows
+   * @param pLogger the logger to use
+   * @param pValueAnalysisState where to get the values for variables (identifiers)
    * @return If its possible to fully evaluate the specified expression, {@code Optional.of(value)}
    *     is returned, where {@code value} is the value the expression evaluates to. Otherwise, if
    *     its not possible to fully evaluate the expression, {@code Optional.empty()} is returned.
@@ -77,12 +69,30 @@ abstract class SpecialOperation {
    */
   public static Optional<BigInteger> eval(
       CExpression pExpression,
+      String pFunctionName,
       MachineModel pMachineModel,
-      Map<CSimpleDeclaration, BigInteger> pVariables) {
+      LogManager pLogger,
+      ValueAnalysisState pValueAnalysisState) {
 
-    ExpressionEvalVisitor visitor = new ExpressionEvalVisitor(pMachineModel, pVariables);
+    LogManagerWithoutDuplicates logger = new LogManagerWithoutDuplicates(pLogger);
+    ExpressionValueVisitor expressionEvalVisitor =
+        new ExpressionValueVisitor(pValueAnalysisState, pFunctionName, pMachineModel, logger);
 
-    return pExpression.accept(visitor);
+    Value value;
+    try {
+      value = pExpression.accept(expressionEvalVisitor);
+    } catch (UnrecognizedCodeException ex) {
+      return Optional.empty();
+    }
+
+    if (value.isExplicitlyKnown() && value.isNumericValue()) {
+      Number number = value.asNumericValue().getNumber();
+      if (number instanceof BigInteger) {
+        return Optional.of((BigInteger) number);
+      }
+    }
+
+    return Optional.empty();
   }
 
   /**
@@ -195,9 +205,10 @@ abstract class SpecialOperation {
      * Tries to extract a constant assign operation from the specified edge.
      *
      * @param pEdge the CFA edge to extract the operation from
-     * @param pMachineModel the machine model to consider during operation extraction
-     * @param pVariables map from variables (specified by their declarations) to their assigned
-     *     values
+     * @param pFunctionName current scope, used only for variable-names
+     * @param pMachineModel where to get info about types, for casting and overflows
+     * @param pLogger the logger to use
+     * @param pValueAnalysisState where to get the values for variables (identifiers)
      * @return If its possible to extract a constant assign operation form the specified CFA edge,
      *     {@code Optional.of(constantAssign)} is returned, where {@code constantAssign} is the
      *     constant assign operation extracted from the CFA edge. Otherwise, if its not possible to
@@ -205,7 +216,11 @@ abstract class SpecialOperation {
      * @throws NullPointerException if any parameter is {@code null}
      */
     public static Optional<ConstantAssign> forEdge(
-        CFAEdge pEdge, MachineModel pMachineModel, Map<CSimpleDeclaration, BigInteger> pVariables) {
+        CFAEdge pEdge,
+        String pFunctionName,
+        MachineModel pMachineModel,
+        LogManager pLogger,
+        ValueAnalysisState pValueAnalysisState) {
 
       Optional<ExpressionAssign> optExpressionAssign = ExpressionAssign.forEdge(pEdge);
 
@@ -214,7 +229,8 @@ abstract class SpecialOperation {
         ExpressionAssign expressionAssign = optExpressionAssign.orElseThrow();
         CExpression expression = expressionAssign.getExpression();
 
-        Optional<BigInteger> optConstantValue = eval(expression, pMachineModel, pVariables);
+        Optional<BigInteger> optConstantValue =
+            eval(expression, pFunctionName, pMachineModel, pLogger, pValueAnalysisState);
 
         if (optConstantValue.isPresent()) {
           CSimpleDeclaration declaration = expressionAssign.getDeclaration();
@@ -282,9 +298,10 @@ abstract class SpecialOperation {
      * Tries to extract an update assign operation from the specified edge.
      *
      * @param pEdge the CFA edge to extract the operation from
-     * @param pMachineModel the machine model to consider during operation extraction
-     * @param pVariables map from variables (specified by their declarations) to their corresponding
-     *     assigned value
+     * @param pFunctionName current scope, used only for variable-names
+     * @param pMachineModel where to get info about types, for casting and overflows
+     * @param pLogger the logger to use
+     * @param pValueAnalysisState where to get the values for variables (identifiers)
      * @return If its possible to extract an update assign operation form the specified CFA edge,
      *     {@code Optional.of(updateAssign)} is returned, where {@code updateAssign} is the update
      *     assign operation extracted from the CFA edge. Otherwise, if its not possible to extract
@@ -292,7 +309,11 @@ abstract class SpecialOperation {
      * @throws NullPointerException if any parameter is {@code null}
      */
     public static Optional<UpdateAssign> forEdge(
-        CFAEdge pEdge, MachineModel pMachineModel, Map<CSimpleDeclaration, BigInteger> pVariables) {
+        CFAEdge pEdge,
+        String pFunctionName,
+        MachineModel pMachineModel,
+        LogManager pLogger,
+        ValueAnalysisState pValueAnalysisState) {
 
       Optional<ExpressionAssign> optExpressionAssign = ExpressionAssign.forEdge(pEdge);
 
@@ -326,7 +347,8 @@ abstract class SpecialOperation {
                         CUnaryExpression.UnaryOperator.MINUS);
               }
 
-              Optional<BigInteger> optStepValue = eval(stepExpression, pMachineModel, pVariables);
+              Optional<BigInteger> optStepValue =
+                  eval(stepExpression, pFunctionName, pMachineModel, pLogger, pValueAnalysisState);
 
               if (optStepValue.isPresent()) {
                 BigInteger stepValue = optStepValue.orElseThrow();
@@ -401,9 +423,10 @@ abstract class SpecialOperation {
      * Tries to extract a constant comparison operation from the specified edge.
      *
      * @param pEdge the CFA edge to extract the operation from
-     * @param pMachineModel the machine model to consider during operation extraction
-     * @param pVariables map from variables (specified by their declarations) to their corresponding
-     *     assigned value
+     * @param pFunctionName current scope, used only for variable-names
+     * @param pMachineModel where to get info about types, for casting and overflows
+     * @param pLogger the logger to use
+     * @param pValueAnalysisState where to get the values for variables (identifiers)
      * @return If its possible to extract a constant comparison operation form the specified CFA
      *     edge, {@code Optional.of(comparisonAssume)} is returned, where {@code comparisonAssume}
      *     is the constant comparison operation extracted from the CFA edge. Otherwise, if its not
@@ -411,7 +434,11 @@ abstract class SpecialOperation {
      * @throws NullPointerException if any parameter is {@code null}
      */
     public static Optional<ConstantComparison> forEdge(
-        CFAEdge pEdge, MachineModel pMachineModel, Map<CSimpleDeclaration, BigInteger> pVariables) {
+        CFAEdge pEdge,
+        String pFunctionName,
+        MachineModel pMachineModel,
+        LogManager pLogger,
+        ValueAnalysisState pValueAnalysisState) {
 
       if (pEdge instanceof CAssumeEdge) {
 
@@ -453,7 +480,7 @@ abstract class SpecialOperation {
             }
 
             Optional<BigInteger> optConstantValue =
-                eval(valueExpression, pMachineModel, pVariables);
+                eval(valueExpression, pFunctionName, pMachineModel, pLogger, pValueAnalysisState);
 
             if (optConstantValue.isPresent()) {
 
@@ -538,191 +565,6 @@ abstract class SpecialOperation {
     public enum Operator {
       LESS_EQUAL,
       GREATER_EQUAL
-    }
-  }
-
-  /**
-   * {@link CExpressionVisitor} for expression evaluation.
-   *
-   * <p>Considers the specified machine model and specified variable assignments during evaluation.
-   */
-  private static final class ExpressionEvalVisitor
-      implements CExpressionVisitor<Optional<BigInteger>, NoException> {
-
-    private final MachineModel machineModel;
-    private final Map<CSimpleDeclaration, BigInteger> variables;
-
-    private ExpressionEvalVisitor(
-        MachineModel pMachineModel, Map<CSimpleDeclaration, BigInteger> pVariables) {
-      machineModel = pMachineModel;
-      variables = pVariables;
-    }
-
-    private Optional<BigInteger> preventInvalidValue(CType pType, BigInteger pValue) {
-
-      if (pType instanceof CSimpleType) {
-        CSimpleType simpleType = (CSimpleType) pType;
-        if (simpleType.getType().isIntegerType()) {
-
-          BigInteger minValue = machineModel.getMinimalIntegerValue(simpleType);
-          BigInteger maxValue = machineModel.getMaximalIntegerValue(simpleType);
-
-          if (pValue.compareTo(minValue) >= 0 && pValue.compareTo(maxValue) <= 0) {
-            return Optional.of(pValue);
-          }
-        }
-      }
-
-      return Optional.empty();
-    }
-
-    @Override
-    public Optional<BigInteger> visit(CArraySubscriptExpression pIastArraySubscriptExpression) {
-      return Optional.empty();
-    }
-
-    @Override
-    public Optional<BigInteger> visit(CFieldReference pIastFieldReference) {
-      return Optional.empty();
-    }
-
-    @Override
-    public Optional<BigInteger> visit(CIdExpression pIastIdExpression) {
-
-      CSimpleDeclaration declaration = pIastIdExpression.getDeclaration();
-
-      return Optional.ofNullable(variables.get(declaration));
-    }
-
-    @Override
-    public Optional<BigInteger> visit(CPointerExpression pPointerExpression) {
-      return Optional.empty();
-    }
-
-    @Override
-    public Optional<BigInteger> visit(CComplexCastExpression pComplexCastExpression) {
-      return Optional.empty();
-    }
-
-    @Override
-    public Optional<BigInteger> visit(CBinaryExpression pIastBinaryExpression) {
-
-      Optional<BigInteger> optOperand1Value = pIastBinaryExpression.getOperand1().accept(this);
-      Optional<BigInteger> optOperand2Value = pIastBinaryExpression.getOperand2().accept(this);
-
-      if (optOperand1Value.isPresent() && optOperand2Value.isPresent()) {
-
-        BigInteger operand1Value = optOperand1Value.orElseThrow();
-        BigInteger operand2Value = optOperand2Value.orElseThrow();
-        CBinaryExpression.BinaryOperator operator = pIastBinaryExpression.getOperator();
-        CType type = pIastBinaryExpression.getExpressionType();
-
-        switch (operator) {
-          case PLUS:
-            return preventInvalidValue(type, operand1Value.add(operand2Value));
-          case MINUS:
-            return preventInvalidValue(type, operand1Value.subtract(operand2Value));
-          case MULTIPLY:
-            return preventInvalidValue(type, operand1Value.multiply(operand2Value));
-          case DIVIDE:
-            return operand2Value.equals(BigInteger.ZERO)
-                ? Optional.empty()
-                : preventInvalidValue(type, operand1Value.divide(operand2Value));
-          case MODULO:
-            return operand2Value.equals(BigInteger.ZERO)
-                ? Optional.empty()
-                : preventInvalidValue(type, operand1Value.remainder(operand2Value));
-          case EQUALS:
-            return Optional.of(
-                operand1Value.equals(operand2Value) ? BigInteger.ONE : BigInteger.ZERO);
-          case NOT_EQUALS:
-            return Optional.of(
-                !operand1Value.equals(operand2Value) ? BigInteger.ONE : BigInteger.ZERO);
-          case LESS_THAN:
-            return Optional.of(
-                operand1Value.compareTo(operand2Value) < 0 ? BigInteger.ONE : BigInteger.ZERO);
-          case LESS_EQUAL:
-            return Optional.of(
-                operand1Value.compareTo(operand2Value) <= 0 ? BigInteger.ONE : BigInteger.ZERO);
-          case GREATER_THAN:
-            return Optional.of(
-                operand1Value.compareTo(operand2Value) > 0 ? BigInteger.ONE : BigInteger.ZERO);
-          case GREATER_EQUAL:
-            return Optional.of(
-                operand1Value.compareTo(operand2Value) >= 0 ? BigInteger.ONE : BigInteger.ZERO);
-          case BINARY_AND:
-            return preventInvalidValue(type, operand1Value.and(operand2Value));
-          case BINARY_OR:
-            return preventInvalidValue(type, operand1Value.or(operand2Value));
-          case BINARY_XOR:
-            return preventInvalidValue(type, operand1Value.xor(operand2Value));
-          default:
-            break;
-        }
-      }
-
-      return Optional.empty();
-    }
-
-    @Override
-    public Optional<BigInteger> visit(CCastExpression pIastCastExpression) {
-      return Optional.empty();
-    }
-
-    @Override
-    public Optional<BigInteger> visit(CCharLiteralExpression pIastCharLiteralExpression) {
-      return Optional.empty();
-    }
-
-    @Override
-    public Optional<BigInteger> visit(CFloatLiteralExpression pIastFloatLiteralExpression) {
-      return Optional.empty();
-    }
-
-    @Override
-    public Optional<BigInteger> visit(CIntegerLiteralExpression pIastIntegerLiteralExpression) {
-      return Optional.of(pIastIntegerLiteralExpression.getValue());
-    }
-
-    @Override
-    public Optional<BigInteger> visit(CStringLiteralExpression pIastStringLiteralExpression) {
-      return Optional.empty();
-    }
-
-    @Override
-    public Optional<BigInteger> visit(CTypeIdExpression pIastTypeIdExpression) {
-      return Optional.empty();
-    }
-
-    @Override
-    public Optional<BigInteger> visit(CUnaryExpression pIastUnaryExpression) {
-
-      CUnaryExpression.UnaryOperator operator = pIastUnaryExpression.getOperator();
-
-      if (operator == CUnaryExpression.UnaryOperator.MINUS) {
-
-        Optional<BigInteger> optOperandValue = pIastUnaryExpression.getOperand().accept(this);
-
-        if (optOperandValue.isPresent()) {
-
-          BigInteger operandValue = optOperandValue.orElseThrow();
-          CType type = pIastUnaryExpression.getExpressionType();
-
-          return preventInvalidValue(type, operandValue.negate());
-        }
-      }
-
-      return Optional.empty();
-    }
-
-    @Override
-    public Optional<BigInteger> visit(CImaginaryLiteralExpression PIastLiteralExpression) {
-      return Optional.empty();
-    }
-
-    @Override
-    public Optional<BigInteger> visit(CAddressOfLabelExpression pAddressOfLabelExpression) {
-      return Optional.empty();
     }
   }
 }

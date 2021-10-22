@@ -47,8 +47,10 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.util.arrayabstraction.ArrayAbstractionResult.Status;
 import org.sosy_lab.cpachecker.util.dependencegraph.EdgeDefUseData;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -390,6 +392,7 @@ public class ArrayAbstraction {
       MutableCfaNetwork pGraph,
       ImmutableMap<CSimpleDeclaration, TransformableArray> pTransformableArrayMap,
       CFA pCfa,
+      LogManager pLogger,
       TransformableLoop pLoop) {
 
     Status status = loopTransformable(pTransformableArrayMap, pLoop);
@@ -446,6 +449,7 @@ public class ArrayAbstraction {
               pGraph,
               pTransformableArrayMap,
               pCfa,
+              pLogger,
               edge,
               Optional.of(pLoop),
               Optional.of(preciseArraySubscriptExpressions));
@@ -509,12 +513,13 @@ public class ArrayAbstraction {
     throw new AssertionError("Unknown array expression: " + arrayExpression);
   }
 
-  private static ImmutableSet<TransformableLoop> findRelevantTransformableLoops(CFA pCfa) {
+  private static ImmutableSet<TransformableLoop> findRelevantTransformableLoops(
+      CFA pCfa, LogManager pLogger) {
 
     ImmutableMap<CSimpleDeclaration, TransformableArray> transformableArrayMap =
         createTransformableArrayMap(TransformableArray.findTransformableArrays(pCfa));
 
-    return TransformableLoop.findTransformableLoops(pCfa).stream()
+    return TransformableLoop.findTransformableLoops(pCfa, pLogger).stream()
         .filter(loop -> !getLoopTransformableArrays(loop, transformableArrayMap).isEmpty())
         .collect(ImmutableSet.toImmutableSet());
   }
@@ -547,6 +552,7 @@ public class ArrayAbstraction {
       MutableCfaNetwork pGraph,
       ImmutableMap<CSimpleDeclaration, TransformableArray> pTransformableArrayMap,
       CFA pCfa,
+      LogManager pLogger,
       CFAEdge pEdge,
       Optional<TransformableLoop> pLoop,
       Optional<ImmutableMap<TransformableArray, CExpression>> pPreciseArraySubscriptExpressions) {
@@ -592,8 +598,15 @@ public class ArrayAbstraction {
         }
       }
 
+      String functionName = pEdge.getSuccessor().getFunctionName();
+      MachineModel machineModel = pCfa.getMachineModel();
       Optional<BigInteger> optSubscriptValue =
-          SpecialOperation.eval(subscriptExpression, pCfa.getMachineModel(), ImmutableMap.of());
+          SpecialOperation.eval(
+              subscriptExpression,
+              functionName,
+              machineModel,
+              pLogger,
+              new ValueAnalysisState(machineModel));
 
       if (arrayAccess.isRead()) {
         if (optSubscriptValue.isPresent()) {
@@ -738,7 +751,7 @@ public class ArrayAbstraction {
     CFA simplifiedCfa = createSimplifiedCfa(pConfiguration, pLogger, pCfa);
 
     ImmutableSet<TransformableLoop> transformableLoops =
-        findRelevantTransformableLoops(simplifiedCfa);
+        findRelevantTransformableLoops(simplifiedCfa, pLogger);
     ImmutableSet<TransformableArray> transformableArrays =
         findRelevantTransformableArrays(simplifiedCfa, transformableLoops);
     ImmutableMap<CSimpleDeclaration, TransformableArray> transformableArrayMap =
@@ -755,7 +768,7 @@ public class ArrayAbstraction {
     // transform loops
     for (TransformableLoop transformableLoop : transformableLoops) {
       Status loopTransformationStatus =
-          transformLoop(graph, transformableArrayMap, simplifiedCfa, transformableLoop);
+          transformLoop(graph, transformableArrayMap, simplifiedCfa, pLogger, transformableLoop);
       if (loopTransformationStatus == Status.FAILED) {
         return ArrayAbstractionResult.createFailed(pCfa);
       } else if (loopTransformationStatus == Status.IMPRECISE) {
@@ -775,6 +788,7 @@ public class ArrayAbstraction {
                 graph,
                 transformableArrayMap,
                 simplifiedCfa,
+                pLogger,
                 edge,
                 Optional.empty(),
                 Optional.empty());

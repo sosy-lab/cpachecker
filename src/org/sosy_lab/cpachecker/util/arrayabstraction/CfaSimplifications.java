@@ -47,8 +47,10 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
@@ -234,13 +236,17 @@ final class CfaSimplifications {
     Map<CFAEdge, Map<CSimpleDeclaration, CExpression>> substitution = new HashMap<>();
 
     VariableClassification variableClassification = pCfa.getVarClassification().orElseThrow();
+    MachineModel machineModel = pCfa.getMachineModel();
+    ValueAnalysisState emptyValueAnalysisState = new ValueAnalysisState(machineModel);
 
-    for (TransformableLoop loop : TransformableLoop.findTransformableLoops(pCfa)) {
+    for (TransformableLoop loop : TransformableLoop.findTransformableLoops(pCfa, pLogger)) {
+
+      String functionName = loop.getLoopNode().getFunctionName();
 
       for (CFAEdge innerLoopEdge : loop.getInnerLoopEdges()) {
         Optional<SpecialOperation.UpdateAssign> optTargetUpdateOperation =
             SpecialOperation.UpdateAssign.forEdge(
-                innerLoopEdge, pCfa.getMachineModel(), ImmutableMap.of());
+                innerLoopEdge, functionName, machineModel, pLogger, emptyValueAnalysisState);
         if (optTargetUpdateOperation.isPresent()) {
 
           SpecialOperation.UpdateAssign targetUpdateOperation =
@@ -321,7 +327,7 @@ final class CfaSimplifications {
               CFAEdge targetDefEdge = targetIncomingDefEdges.stream().findAny().orElseThrow();
               targetInitialOperation =
                   SpecialOperation.ConstantAssign.forEdge(
-                      targetDefEdge, pCfa.getMachineModel(), ImmutableMap.of());
+                      targetDefEdge, functionName, machineModel, pLogger, emptyValueAnalysisState);
             }
 
             CExpression substituteExpression;

@@ -11,13 +11,13 @@ package org.sosy_lab.cpachecker.util.arrayabstraction;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.math.BigInteger;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -28,6 +28,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
@@ -225,7 +227,8 @@ final class TransformableLoop {
         .contains(pVariableDeclaration.getQualifiedName());
   }
 
-  private static Optional<TransformableLoop> forLoop(CFA pCfa, LoopStructure.Loop pLoop) {
+  private static Optional<TransformableLoop> forLoop(
+      CFA pCfa, LogManager pLogger, LoopStructure.Loop pLoop) {
 
     if (pLoop.getIncomingEdges().size() != 1 || pLoop.getOutgoingEdges().size() != 1) {
       return Optional.empty();
@@ -247,10 +250,14 @@ final class TransformableLoop {
       }
     }
 
+    MachineModel machineModel = pCfa.getMachineModel();
+    ValueAnalysisState emptyValueAnalysisState = new ValueAnalysisState(machineModel);
+    String functionName = loopNode.getFunctionName();
+
     // find loop index by looking at the loop condition
     Optional<SpecialOperation.ConstantComparison> optLoopCondition =
         SpecialOperation.ConstantComparison.forEdge(
-            outgoingEdge, pCfa.getMachineModel(), ImmutableMap.of());
+            outgoingEdge, functionName, machineModel, pLogger, emptyValueAnalysisState);
     if (optLoopCondition.isEmpty()) {
       return Optional.empty();
     }
@@ -274,7 +281,7 @@ final class TransformableLoop {
 
       Optional<SpecialOperation.UpdateAssign> optUpdateAssign =
           SpecialOperation.UpdateAssign.forEdge(
-              innerLoopEdge, pCfa.getMachineModel(), ImmutableMap.of());
+              innerLoopEdge, functionName, machineModel, pLogger, emptyValueAnalysisState);
       if (optUpdateAssign.isPresent()) {
         SpecialOperation.UpdateAssign updateAssign = optUpdateAssign.orElseThrow();
         if (updateIndexEdge == null
@@ -332,7 +339,7 @@ final class TransformableLoop {
     // the incoming index definition must be constant
     Optional<SpecialOperation.ConstantAssign> optIncomingIndexAssign =
         SpecialOperation.ConstantAssign.forEdge(
-            incomingIndexDefEdge, pCfa.getMachineModel(), ImmutableMap.of());
+            incomingIndexDefEdge, functionName, machineModel, pLogger, emptyValueAnalysisState);
     if (optIncomingIndexAssign.isEmpty()) {
       return Optional.empty();
     }
@@ -351,13 +358,15 @@ final class TransformableLoop {
   }
 
   /** Returns all transformable loops in the specified CFA. */
-  public static ImmutableSet<TransformableLoop> findTransformableLoops(CFA pCfa) {
+  public static ImmutableSet<TransformableLoop> findTransformableLoops(
+      CFA pCfa, LogManager pLogger) {
 
     ImmutableSet.Builder<TransformableLoop> transformableLoops = ImmutableSet.builder();
     LoopStructure loopStructure = pCfa.getLoopStructure().orElseThrow();
 
     for (LoopStructure.Loop loop : loopStructure.getAllLoops()) {
-      Optional<TransformableLoop> optTransformableLoop = TransformableLoop.forLoop(pCfa, loop);
+      Optional<TransformableLoop> optTransformableLoop =
+          TransformableLoop.forLoop(pCfa, pLogger, loop);
       if (optTransformableLoop.isPresent()) {
         transformableLoops.add(optTransformableLoop.orElseThrow());
       }
