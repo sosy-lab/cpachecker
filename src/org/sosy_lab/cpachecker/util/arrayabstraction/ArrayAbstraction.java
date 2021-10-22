@@ -514,29 +514,29 @@ public class ArrayAbstraction {
     throw new AssertionError("Unknown array expression: " + arrayExpression);
   }
 
-  private static ImmutableSet<TransformableLoop> findRelevantTransformableLoops(CFA pCfa) {
+  private static boolean containsAnyTransformableArrayAccess(
+      TransformableLoop pLoop,
+      ImmutableMap<CSimpleDeclaration, TransformableArray> pTransformableArrayMap) {
 
-    ImmutableSet<TransformableArray> transformableArrays =
-        TransformableArray.findTransformableArrays(pCfa);
-    ImmutableMap<CSimpleDeclaration, TransformableArray> transformableArrayMap =
-        createTransformableArrayMap(transformableArrays);
-
-    ImmutableSet.Builder<TransformableLoop> relevantTransformableLoopsBuilder =
-        ImmutableSet.builder();
-
-    outer:
-    for (TransformableLoop transformableLoop : TransformableLoop.findTransformableLoops(pCfa)) {
-      for (CFAEdge edge : transformableLoop.getInnerLoopEdges()) {
-        for (ArrayAccess arrayAccess : ArrayAccess.findArrayAccesses(edge)) {
-          if (getTransformableArray(arrayAccess, transformableArrayMap).isPresent()) {
-            relevantTransformableLoopsBuilder.add(transformableLoop);
-            continue outer;
-          }
+    for (CFAEdge edge : pLoop.getInnerLoopEdges()) {
+      for (ArrayAccess arrayAccess : ArrayAccess.findArrayAccesses(edge)) {
+        if (getTransformableArray(arrayAccess, pTransformableArrayMap).isPresent()) {
+          return true;
         }
       }
     }
 
-    return relevantTransformableLoopsBuilder.build();
+    return false;
+  }
+
+  private static ImmutableSet<TransformableLoop> findRelevantTransformableLoops(CFA pCfa) {
+
+    ImmutableMap<CSimpleDeclaration, TransformableArray> transformableArrayMap =
+        createTransformableArrayMap(TransformableArray.findTransformableArrays(pCfa));
+
+    return TransformableLoop.findTransformableLoops(pCfa).stream()
+        .filter(loop -> containsAnyTransformableArrayAccess(loop, transformableArrayMap))
+        .collect(ImmutableSet.toImmutableSet());
   }
 
   private static ImmutableSet<TransformableArray> findRelevantTransformableArrays(
