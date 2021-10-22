@@ -172,6 +172,13 @@ public class ArrayAbstraction {
     return builder.build();
   }
 
+  private static boolean onlySingleUseNothingElse(EdgeDefUseData pEdgeDefUseData) {
+    return pEdgeDefUseData.getUses().size() == 1
+        && pEdgeDefUseData.getPointeeUses().isEmpty()
+        && pEdgeDefUseData.getDefs().isEmpty()
+        && pEdgeDefUseData.getPointeeDefs().isEmpty();
+  }
+
   // In order to enter the loop body, the indices of the transformed arrays must fullfil certain
   // conditions that relate the array indices to the loop index (e.g., array_index == loop_index).
   // Assumptions (fullfil -> continue, otherwise -> abort) are inserted for these conditions.
@@ -206,10 +213,7 @@ public class ArrayAbstraction {
       if (subscriptExpressions.size() == 1) {
         CExpression subscriptExpression = subscriptExpressions.stream().findAny().orElseThrow();
         EdgeDefUseData subscriptDefUseData = extractor.extract(subscriptExpression);
-        if (subscriptDefUseData.getUses().size() == 1
-            && subscriptDefUseData.getPointeeUses().isEmpty()
-            && subscriptDefUseData.getDefs().isEmpty()
-            && subscriptDefUseData.getPointeeDefs().isEmpty()) {
+        if (onlySingleUseNothingElse(subscriptDefUseData)) {
           MemoryLocation subscriptUse =
               subscriptDefUseData.getUses().stream().findAny().orElseThrow();
           if (subscriptUse.equals(MemoryLocation.forDeclaration(index.getVariableDeclaration()))) {
