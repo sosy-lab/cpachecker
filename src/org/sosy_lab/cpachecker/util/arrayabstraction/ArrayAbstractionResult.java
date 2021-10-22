@@ -14,6 +14,22 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 /** Contains the status of an array abstraction and its resulting transformed CFA. */
 public final class ArrayAbstractionResult {
 
+  /**
+   * The status of an array abstraction result which contains information about its success and
+   * precision.
+   */
+  public enum Status {
+
+    /** The array abstraction succeeded and the result is precise. */
+    PRECISE,
+
+    /** The array abstraction succeeded but the result is imprecise. */
+    IMPRECISE,
+
+    /** The array abstraction didn't succeed. */
+    FAILED;
+  }
+
   private final Status status;
   private final CFA transformedCfa;
 
@@ -72,21 +88,5 @@ public final class ArrayAbstractionResult {
    */
   public ImmutableSet<TransformableLoop> getTransformedLoops() {
     return transformedLoops;
-  }
-
-  /**
-   * The status of an array abstraction result which contains information about its success and
-   * precision.
-   */
-  public enum Status {
-
-    /** The array abstraction succeeded and the result is precise. */
-    PRECISE,
-
-    /** The array abstraction succeeded but the result is imprecise. */
-    IMPRECISE,
-
-    /** The array abstraction didn't succeed. */
-    FAILED;
   }
 }
