@@ -69,6 +69,12 @@ import org.sosy_lab.cpachecker.exceptions.NoException;
  */
 final class ArrayAccess {
 
+  /** Represents the type of an array access (read/write). */
+  public enum Type {
+    WRITE,
+    READ
+  }
+
   private final ArrayAccess.Type type;
   private final CExpression expression;
 
@@ -308,12 +314,6 @@ final class ArrayAccess {
         .add("type", type)
         .add("expression", expression)
         .toString();
-  }
-
-  /** Represents the type of an array access (read/write). */
-  public enum Type {
-    WRITE,
-    READ
   }
 
   /** Visitor for analyzing how arrays are used inside an AST node. */
