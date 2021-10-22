@@ -200,30 +200,28 @@ final class TransformableArray {
     return Optional.empty();
   }
 
-  private static ImmutableSet<CDeclarationEdge> findArrayDeclarationEdges(CFA pCfa) {
+  private static boolean isArrayDeclarationEdge(CDeclarationEdge pDeclarationEdge) {
 
-    ImmutableSet.Builder<CDeclarationEdge> arrayDeclarationEdges = ImmutableSet.builder();
-
-    Iterator<CDeclarationEdge> declarationEdgeIterator =
-        pCfa.getAllNodes().stream()
-            .flatMap(node -> CFAUtils.allLeavingEdges(node).stream())
-            .filter(edge -> edge instanceof CDeclarationEdge)
-            .map(edge -> (CDeclarationEdge) edge)
-            .iterator();
-
-    while (declarationEdgeIterator.hasNext()) {
-      CDeclarationEdge declarationEdge = declarationEdgeIterator.next();
-      CDeclaration declaration = declarationEdge.getDeclaration();
-      if (declaration instanceof CVariableDeclaration) {
-        CType type = declaration.getType();
-        if ((type instanceof CArrayType || type instanceof CPointerType)
-            && createLengthExpression(declarationEdge).isPresent()) {
-          arrayDeclarationEdges.add(declarationEdge);
-        }
+    CDeclaration declaration = pDeclarationEdge.getDeclaration();
+    if (declaration instanceof CVariableDeclaration) {
+      CType type = declaration.getType();
+      if ((type instanceof CArrayType || type instanceof CPointerType)
+          && createLengthExpression(pDeclarationEdge).isPresent()) {
+        return true;
       }
     }
 
-    return arrayDeclarationEdges.build();
+    return false;
+  }
+
+  private static ImmutableSet<CDeclarationEdge> findArrayDeclarationEdges(CFA pCfa) {
+
+    return pCfa.getAllNodes().stream()
+        .flatMap(node -> CFAUtils.allLeavingEdges(node).stream())
+        .filter(edge -> edge instanceof CDeclarationEdge)
+        .map(edge -> (CDeclarationEdge) edge)
+        .filter(TransformableArray::isArrayDeclarationEdge)
+        .collect(ImmutableSet.toImmutableSet());
   }
 
   public static ImmutableSet<TransformableArray> findTransformableArrays(CFA pCfa) {
