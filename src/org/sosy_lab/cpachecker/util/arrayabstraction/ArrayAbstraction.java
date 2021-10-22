@@ -259,7 +259,6 @@ public class ArrayAbstraction {
       ImmutableMap<CSimpleDeclaration, TransformableArray> pTransformableArrayMap,
       TransformableLoop pLoop) {
 
-    // TODO: better implementation that is not as strict and supports more kinds of imprecision
     ImmutableSet<MemoryLocation> innerLoopDeclarations =
         pLoop.getInnerLoopDeclarations().stream()
             .map(MemoryLocation::forDeclaration)
