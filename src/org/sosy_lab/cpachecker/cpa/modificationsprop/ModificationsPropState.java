@@ -32,27 +32,68 @@ public final class ModificationsPropState
         Graphable {
 
   /** Bad is meant in the sense that this may not be covered by a condition. */
-  private boolean isBad;
+  private final boolean isBad;
 
-  private CFANode locationInGivenCfa;
-  private CFANode locationInOriginalCfa;
-  private ImmutableSet<String> changedVariables;
+  /** The location in the given, modified CFA. */
+  private final CFANode locationInGivenCfa;
+
+  /** The location in the original, unmodified CFA. */
+  private final CFANode locationInOriginalCfa;
+
+  /** Variables that might be modified between the programs here. */
+  private final ImmutableSet<String> changedVariables;
 
   public ModificationsPropState(
       CFANode pLocationInGivenCfa,
       CFANode pLocationInOriginalCfa,
-      ImmutableSet<String> pChangedVarsInGivenCfa) {
-    this(pLocationInGivenCfa, pLocationInOriginalCfa, pChangedVarsInGivenCfa, false);
+      ImmutableSet<String> pChangedVars,
+      ModificationsPropHelper pHelper) {
+    CFANode nodeInOriginal = pHelper.skipUntrackedOperations(pLocationInOriginalCfa);
+    // CFANode nodeInGiven = pLocationInGivenCfa;
+    ImmutableSet<String> changedVars = pChangedVars;
+
+    // skip untracked parts in original
+    nodeInOriginal = pHelper.skipUntrackedOperations(nodeInOriginal);
+
+    // rule out case 2
+    if ((!pHelper.inReachabilityProperty(nodeInOriginal))
+        // case 3
+        && pHelper.inReachabilityProperty(pLocationInGivenCfa)) {
+      CFANode nodeInOrigNew = nodeInOriginal;
+      do {
+        nodeInOriginal = nodeInOrigNew;
+        nodeInOrigNew = pHelper.skipUntrackedOperations(nodeInOriginal);
+        ImmutableTuple<CFANode, ImmutableSet<String>> tup =
+            pHelper.skipAssignment(nodeInOrigNew, changedVars);
+        nodeInOrigNew = tup.getFirst();
+        changedVars = tup.getSecond();
+      } while (nodeInOrigNew != nodeInOriginal);
+      locationInOriginalCfa = nodeInOriginal;
+      changedVariables = changedVars;
+      if (pHelper.inReachabilityProperty(nodeInOrigNew)) {
+        // Some path covers the bad location here.
+        pHelper.logCase("Taking case 3a.");
+        isBad = false;
+      } else {
+        pHelper.logCase("Taking case 3b.");
+        isBad = true;
+      }
+    } else {
+      locationInOriginalCfa = nodeInOriginal;
+      changedVariables = changedVars;
+      isBad = false;
+    }
+    locationInGivenCfa = pLocationInGivenCfa;
   }
 
   public ModificationsPropState(
       CFANode pLocationInGivenCfa,
       CFANode pLocationInOriginalCfa,
-      ImmutableSet<String> pChangedVarsInGivenCfa,
+      ImmutableSet<String> pChangedVars,
       boolean pIsBad) {
     locationInGivenCfa = pLocationInGivenCfa;
     locationInOriginalCfa = pLocationInOriginalCfa;
-    changedVariables = pChangedVarsInGivenCfa;
+    changedVariables = pChangedVars;
     isBad = pIsBad;
   }
 
@@ -167,7 +208,11 @@ public final class ModificationsPropState
   @Override
   public ModificationsPropState join(ModificationsPropState pOther)
       throws CPAException, InterruptedException {
-    // TODO: maybe only join if locations identical
+
+    // If locations differ, we should never call join. The merge operator used guarantees that.
+    assert locationInGivenCfa.equals(pOther.locationInGivenCfa);
+    assert locationInOriginalCfa.equals(pOther.locationInOriginalCfa);
+
     if (isBad || pOther.isBad) {
       return new ModificationsPropState(
           locationInGivenCfa,
@@ -195,7 +240,6 @@ public final class ModificationsPropState
     return Objects.equals(locationInOriginalCfa, pOther.locationInOriginalCfa)
         && Objects.equals(locationInGivenCfa, pOther.locationInGivenCfa)
         // if this state is bad, the other one must be bad as well
-        // TODO: think over when transition is implemented
         && (pOther.isBad || !isBad)
         // variables modifier must be a subset, else join is necessary
         // can stop if location pair is already known to be bad

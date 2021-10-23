@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
+/** Provides a set of variable names used. */
 public class VariableIdentifierVisitor extends DefaultCExpressionVisitor<Set<String>, NoException> {
 
   @Override

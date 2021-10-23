@@ -16,6 +16,7 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -31,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
-import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeH
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
+/** CPA for difference verification using property information. */
 @Options(prefix = "differential")
 public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCloseable {
 
@@ -70,7 +71,6 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
               + "be careful when variables are renamed (could be unsound)")
   private boolean ignoreDeclarations = false;
 
-  // TODO: document and implement
   @Option(secure = true, description = "perform assumption implication check")
   private boolean implicationCheck = true;
 
@@ -82,6 +82,7 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
   private final DelegateAbstractDomain<ModificationsPropState> domain;
   private final Solver solver;
   private final CtoFormulaConverter converter;
+  private final ModificationsPropHelper helper;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ModificationsPropCPA.class);
@@ -121,8 +122,8 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
 
         varDeclCollect = new CFATraversal.DeclarationCollectingCFAVisitor();
         CFATraversal.dfs().traverse(pCfa.getMainFunction(), varDeclCollect);
-        transfer =
-            new ModificationsPropTransferRelation(
+        helper =
+            new ModificationsPropHelper(
                 true,
                 implicationCheck,
                 origFunToDeclNames,
@@ -131,9 +132,9 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
                 converter,
                 logger);
       } else {
-        transfer =
-            new ModificationsPropTransferRelation(implicationCheck, solver, converter, logger);
+        helper = new ModificationsPropHelper(implicationCheck, solver, converter, logger);
       }
+      transfer = new ModificationsPropTransferRelation(helper);
 
     } catch (ParserException pE) {
       throw new InvalidConfigurationException("Parser error for originalProgram", pE);
@@ -154,18 +155,26 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
 
   @Override
   public MergeOperator getMergeOperator() {
-    return MergeSepOperator.getInstance();
+    // check equality of location tuple and merge by joining then
+    return new MergeJoinOnOperator<>(
+        getAbstractDomain(),
+        new ImmutableSet.Builder<Function<ModificationsPropState, CFANode>>()
+            .add(mps -> mps.getLocationInGivenCfa())
+            .add(mps -> mps.getLocationInOriginalCfa())
+            .build());
   }
 
   @Override
   public StopOperator getStopOperator() {
+    // merge if more abstract state exists
     return new StopSepOperator(getAbstractDomain());
   }
 
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
-    return new ModificationsPropState(node, cfaForComparison.getMainFunction(), ImmutableSet.of());
+    return new ModificationsPropState(
+        node, cfaForComparison.getMainFunction(), ImmutableSet.of(), helper);
   }
 
   // TODO: think over
