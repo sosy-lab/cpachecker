@@ -12,8 +12,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
-import java.util.stream.Collectors;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -191,7 +190,7 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
             final CFANode nodeOrig = nodeInOriginal;
             return assumptionSuccessors.stream()
                 .map(nodeGiven -> new ModificationsPropState(nodeGiven, nodeOrig, cv, helper))
-                .collect(Collectors.toUnmodifiableSet());
+                .collect(ImmutableSet.toImmutableSet());
           } else {
             // case 9
             helper.logCase("Taking case 9.");

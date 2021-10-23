@@ -57,30 +57,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
-/**
- * An implementation for immutable tuples that can be used as return value.
- *
- * @param <A> the first tuple element type
- * @param <B> the second tuple element type
- */
-class ImmutableTuple<A, B> {
-  private final A first;
-  private final B second;
-
-  public ImmutableTuple(A pFirst, B pSecond) {
-    first = pFirst;
-    second = pSecond;
-  }
-
-  public A getFirst() {
-    return first;
-  }
-
-  public B getSecond() {
-    return second;
-  }
-}
-
 /** Helper functions used that are outsourced to be accessible for transfer relation and state. */
 public class ModificationsPropHelper {
 
