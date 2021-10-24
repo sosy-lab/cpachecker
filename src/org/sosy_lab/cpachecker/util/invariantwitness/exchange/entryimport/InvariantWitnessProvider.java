@@ -90,7 +90,7 @@ public final class InvariantWitnessProvider implements AutoCloseable {
     Optional<InvariantStoreEntry> newEntry = entryProvider.getNext();
 
     while (newEntry.isPresent()) {
-      newWitnesses.addAll(parser.parseStoreEntry(newEntry.get()));
+      newWitnesses.addAll(parser.parseStoreEntry(newEntry.orElseThrow()));
       newEntry = entryProvider.getNext();
     }
 

@@ -19,10 +19,10 @@ import java.util.Objects;
 @Immutable
 public class InvariantStoreEntryTask {
   @JsonProperty("input_files")
-  private final List<String> inputFiles;
+  private final ImmutableList<String> inputFiles;
 
   @JsonProperty("input_file_hashes")
-  private final Map<String, String> inputFileHashes;
+  private final ImmutableMap<String, String> inputFileHashes;
 
   @JsonProperty("specification")
   private final String specification;
