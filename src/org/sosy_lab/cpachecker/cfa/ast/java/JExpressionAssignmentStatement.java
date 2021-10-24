@@ -14,24 +14,23 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 /**
  * This class represents the assignment expression AST node type.
  *
- *
+ * <pre>
  * Assignment:
  *   Expression = Expression
+ * </pre>
  *
- * Note that the assignment operator is always '='. All assignment expressions
- * are transformed into an assignment with '=' and a {@link JBinaryExpression}.
+ * Note that the assignment operator is always '='. All assignment expressions are transformed into
+ * an assignment with '=' and a {@link JBinaryExpression}.
  *
- * Note also, that the expressions have to be side-effect free.
- *
- *
+ * <p>Note also, that the expressions have to be side-effect free.
  */
 public final class JExpressionAssignmentStatement extends AExpressionAssignmentStatement
     implements JAssignment, JStatement {
 
   private static final long serialVersionUID = 4121782081088537434L;
 
-  public JExpressionAssignmentStatement(FileLocation pFileLocation, JLeftHandSide pLeftHandSide,
-      JExpression pRightHandSide) {
+  public JExpressionAssignmentStatement(
+      FileLocation pFileLocation, JLeftHandSide pLeftHandSide, JExpression pRightHandSide) {
     super(pFileLocation, pLeftHandSide, pRightHandSide);
   }
 

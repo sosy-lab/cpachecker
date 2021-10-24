@@ -21,7 +21,6 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Set;
 import java.util.logging.Level;
@@ -63,7 +62,6 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
-import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -87,7 +85,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
 
   @Option(secure = true, name = "file", description = "write residual program to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path residualProgram = Paths.get("residualProgram.c");
+  private Path residualProgram = Path.of("residualProgram.c");
 
   @Option(secure = true, name = "assumptionGuider",
       description = "set specification file to automaton which guides analysis along assumption produced by incomplete analysis,e.g., config/specification/AssumptionGuidingAutomaton.spc, to enable residual program from combination of program and assumption condition")
@@ -108,7 +106,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
             + "If set to 'null', no pixel graphic is exported."
   )
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path exportPixelFile = Paths.get("residProgPixel");
+  private Path exportPixelFile = Path.of("residProgPixel");
 
   @Option(
       secure = true,
@@ -175,7 +173,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
 
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet)
-      throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
+      throws CPAException, InterruptedException {
     Preconditions.checkState(checkInitialState(pReachedSet.getFirstState()),
         "CONDITION, CONDITION_PLUS_FOLD, and COMBINATION strategy require assumption automaton (condition) and assumption guiding automaton in specification");
     Preconditions.checkNotNull(cpaAlgorithm);
@@ -268,7 +266,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
       Configuration config = configBuilder.build();
 
       CoreComponentsFactory coreComponents =
-          new CoreComponentsFactory(config, logger, shutdown, new AggregatedReachedSets());
+          new CoreComponentsFactory(config, logger, shutdown, AggregatedReachedSets.empty());
 
       final Specification constrSpec =
           spec.withAdditionalSpecificationFile(
@@ -276,7 +274,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
 
       ConfigurableProgramAnalysis cpa = coreComponents.createCPA(cfa, constrSpec);
 
-      ReachedSet reached = coreComponents.createReachedSet();
+      ReachedSet reached = coreComponents.createReachedSet(cpa);
       reached.add(cpa.getInitialState(mainFunction, StateSpacePartition.getDefaultPartition()),
           cpa.getInitialPrecision(mainFunction, StateSpacePartition.getDefaultPartition()));
 

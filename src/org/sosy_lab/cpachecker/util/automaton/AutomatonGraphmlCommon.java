@@ -90,7 +90,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAdditionalInfo;
-import org.sosy_lab.cpachecker.core.specification.SpecificationProperty;
+import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
@@ -372,8 +372,8 @@ public class AutomatonGraphmlCommon {
           createDataElement(KeyDef.PRODUCER, pVerificationTaskMetaData.getProducerString()));
 
       int nSpecs = 0;
-      for (SpecificationProperty property : pVerificationTaskMetaData.getProperties()) {
-        graph.appendChild(createDataElement(KeyDef.SPECIFICATION, property.toString()));
+      for (Property property : pVerificationTaskMetaData.getProperties()) {
+        graph.appendChild(createDataElement(KeyDef.SPECIFICATION, property.toFullString(pCfa)));
         ++nSpecs;
       }
 
@@ -675,7 +675,7 @@ public class AutomatonGraphmlCommon {
     if (isMainFunctionEntry(pEdge)
         && pMainEntry.getFunctionName().equals(pEdge.getSuccessor().getFunctionName())) {
       FileLocation location = pMainEntry.getFileLocation();
-      if (!FileLocation.DUMMY.equals(location)) {
+      if (location.isRealLocation()) {
         location =
             new FileLocation(
                 location.getFileName(),
@@ -697,7 +697,7 @@ public class AutomatonGraphmlCommon {
     if (pEdge instanceof AStatementEdge) {
       AStatementEdge statementEdge = (AStatementEdge) pEdge;
       FileLocation statementLocation = statementEdge.getStatement().getFileLocation();
-      if (!FileLocation.DUMMY.equals(statementLocation)) {
+      if (statementLocation.isRealLocation()) {
         return Collections.singleton(statementLocation);
       }
     }
@@ -709,7 +709,7 @@ public class AutomatonGraphmlCommon {
         if (call instanceof AFunctionCallAssignmentStatement) {
           AFunctionCallAssignmentStatement statement = (AFunctionCallAssignmentStatement) call;
           FileLocation callLocation = statement.getRightHandSide().getFileLocation();
-          if (!FileLocation.DUMMY.equals(callLocation)) {
+          if (callLocation.isRealLocation()) {
             return Collections.singleton(callLocation);
           }
         }
@@ -721,7 +721,7 @@ public class AutomatonGraphmlCommon {
       if (isDefaultCase(assumeEdge)) {
         CFANode successorNode = assumeEdge.getSuccessor();
         FileLocation switchLocation = Iterables.getOnlyElement(CFAUtils.leavingEdges(successorNode)).getFileLocation();
-        if (!FileLocation.DUMMY.equals(switchLocation)) {
+        if (switchLocation.isRealLocation()) {
           location = switchLocation;
         } else {
           SwitchDetector switchDetector = new SwitchDetector(assumeEdge);
@@ -733,7 +733,7 @@ public class AutomatonGraphmlCommon {
         }
 
       }
-      if (!FileLocation.DUMMY.equals(location)) {
+      if (location.isRealLocation()) {
         return Collections.singleton(location);
       }
     }
@@ -822,8 +822,9 @@ public class AutomatonGraphmlCommon {
         BlankEdge edge = (BlankEdge) pEdge;
         String switchPrefix = "switch (";
         if (edge.getDescription().equals(switchPrefix + switchOperand + ")")
-            && !FileLocation.DUMMY.equals(edge.getFileLocation())
-            && assumeExpression.getFileLocation().getNodeOffset() == edge.getFileLocation().getNodeOffset() + switchPrefix.length()) {
+            && edge.getFileLocation().isRealLocation()
+            && assumeExpression.getFileLocation().getNodeOffset()
+                == edge.getFileLocation().getNodeOffset() + switchPrefix.length()) {
           switchNode = edge.getSuccessor();
           return TraversalProcess.ABORT;
         }
@@ -1021,13 +1022,13 @@ public class AutomatonGraphmlCommon {
     if (leavingEdges.size() != 2) {
       return false;
     }
-    com.google.common.base.Optional<CFAEdge> potentialTerminationValueAssumeEdge =
-        leavingEdges.firstMatch(e -> e.getSuccessor() instanceof CFATerminationNode);
+    Optional<CFAEdge> potentialTerminationValueAssumeEdge =
+        leavingEdges.firstMatch(e -> e.getSuccessor() instanceof CFATerminationNode).toJavaUtil();
     if (!potentialTerminationValueAssumeEdge.isPresent()
-        || !(potentialTerminationValueAssumeEdge.get() instanceof AssumeEdge)) {
+        || !(potentialTerminationValueAssumeEdge.orElseThrow() instanceof AssumeEdge)) {
       return false;
     }
-    AssumeEdge terminationValueAssumption = (AssumeEdge) potentialTerminationValueAssumeEdge.get();
+    AssumeEdge terminationValueAssumption = (AssumeEdge) potentialTerminationValueAssumeEdge.orElseThrow();
     AExpression terminationValueAssumeExpression = terminationValueAssumption.getExpression();
     if (!(terminationValueAssumeExpression instanceof ABinaryExpression)) {
       return false;
@@ -1049,7 +1050,7 @@ public class AutomatonGraphmlCommon {
     if (operator.equals(BinaryOperator.NOT_EQUALS)
         || operator.equals(
             org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator.NOT_EQUALS)) {
-      return flip ^ !terminationValueAssumption.getTruthAssumption();
+      return flip == terminationValueAssumption.getTruthAssumption();
     }
     if (operator.equals(BinaryOperator.EQUALS)
         || operator.equals(

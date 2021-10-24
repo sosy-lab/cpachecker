@@ -74,7 +74,8 @@ public class ARG_CMCStrategy extends AbstractStrategy {
   }
 
   @Override
-  public void constructInternalProofRepresentation(UnmodifiableReachedSet pReached)
+  public void constructInternalProofRepresentation(
+      UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException, InterruptedException {
     if (!(pReached instanceof HistoryForwardingReachedSet)) {
       throw new InvalidConfigurationException("Reached sets used by restart algorithm are not memorized. Please enable option analysis.memorizeReachedAfterRestart");
@@ -107,9 +108,10 @@ public class ARG_CMCStrategy extends AbstractStrategy {
   }
 
   @Override
-  protected void writeProofToStream(ObjectOutputStream pOut, UnmodifiableReachedSet pReached) throws IOException,
-      InvalidConfigurationException, InterruptedException {
-    constructInternalProofRepresentation(pReached);
+  protected void writeProofToStream(
+      ObjectOutputStream pOut, UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa)
+      throws IOException, InvalidConfigurationException, InterruptedException {
+    constructInternalProofRepresentation(pReached, pCpa);
     if (proofKnown) {
       HistoryForwardingReachedSet historyReached = (HistoryForwardingReachedSet) pReached;
       if (historyReached.getAllReachedSetsUsedAsDelegates().size() != historyReached.getCPAs().size()) {
@@ -141,7 +143,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
   }
 
   @SuppressWarnings("Finally") // not really better doable without switching to Closer
-  private boolean checkAndReadSequentially() {
+  private boolean checkAndReadSequentially() throws InterruptedException {
     try {
       final ReachedSetFactory factory = new ReachedSetFactory(globalConfig, logger);
       List<ARGState> incompleteStates = new ArrayList<>();
@@ -169,7 +171,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
           // check current partial ARG
           logger.log(Level.INFO, "Start checking partial ARG ", i);
           if (roots[i] == null
-              || !checkPartialARG(factory.create(), roots[i], incompleteStates, i, cpa)) {
+              || !checkPartialARG(factory.create(cpa), roots[i], incompleteStates, i, cpa)) {
             logger.log(Level.FINE, "Checking of partial ARG ", i, " failed.");
             return false;
           }
@@ -191,7 +193,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
       } catch (InvalidConfigurationException e) {
         logger.log(Level.SEVERE, "Could not set up a configuration for partial ARG checking");
         return false;
-      } catch (Exception e2) {
+      } catch (CPAException e2) {
         logger.logException(Level.SEVERE, e2, "Failure during proof reading or checking");
         return false;
       } finally {
@@ -294,8 +296,10 @@ public class ARG_CMCStrategy extends AbstractStrategy {
 
           // check current partial ARG
           logger.log(Level.INFO, "Start checking partial ARG ", i);
-          if (!checkResult.get() || roots[i] == null
-              || !checkPartialARG(factory.create(), roots[i], incompleteStates, i, cpas[i])) {
+          if (!checkResult.get()
+              || roots[i] == null
+              || !checkPartialARG(
+                  factory.create(cpas[i]), roots[i], incompleteStates, i, cpas[i])) {
             logger.log(Level.FINE, "Checking of partial ARG ", i, " failed.");
             return false;
           }

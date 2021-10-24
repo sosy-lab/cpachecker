@@ -214,7 +214,7 @@ public class InterpolationAutomatonBuilder {
     PathFormula pathFormula = predChildState.getAbstractionFormula().getBlockFormula();
     BooleanFormula translatedFormula =
         fMgrView.translateFrom(pathFormula.getFormula(), predFormulaManagerView);
-    pathFormula = pathFormula.updateFormula(translatedFormula);
+    pathFormula = pathFormula.withFormula(translatedFormula);
 
     AbstractionFormula abstractionResult =
         predicateAbstractionManager.buildAbstraction(

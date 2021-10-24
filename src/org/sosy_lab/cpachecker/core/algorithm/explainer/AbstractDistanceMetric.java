@@ -59,7 +59,8 @@ public class AbstractDistanceMetric implements DistanceMetric {
    * @param safePaths all the successful program executions found
    * @param ceStates the ARGStates of the counterexample
    * @param pathsStates the ARGStates of the successful executions
-   * @return the closest to the counterexample successful run
+   * @return the safe program path closest to the counterexample, or <code>null</code> if no safe
+   *     path exists.
    */
   private List<CFAEdge> comparePaths(
       List<CFAEdge> counterexample,
@@ -68,6 +69,9 @@ public class AbstractDistanceMetric implements DistanceMetric {
       List<ARGPath> pathsStates) {
 
     // Make sure that the safe path list is not empty
+    if (safePaths.isEmpty()) {
+      return null;
+    }
     assert !safePaths.isEmpty();
 
     List<Integer> distances = new ArrayList<>();

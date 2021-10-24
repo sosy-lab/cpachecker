@@ -51,13 +51,13 @@ import org.sosy_lab.cpachecker.core.reachedset.HistoryForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.alwaystop.AlwaysTopCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonStateARGCombiningHelper;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
-import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -68,25 +68,27 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
   private final Algorithm restartAlgorithm;
   private final LogManagerWithoutDuplicates logger;
   private final ShutdownNotifier shutdown;
-  private final Configuration config;
   private final AutomatonStateARGCombiningHelper automatonARGBuilderSupport;
 
   private final ARGCombinerStatistics stats = new ARGCombinerStatistics();
+  private final ReachedSetFactory reachedSetFactory;
 
-
-  public PartialARGsCombiner(Algorithm pAlgorithm, Configuration pConfig, LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier) {
+  public PartialARGsCombiner(
+      Algorithm pAlgorithm,
+      Configuration pConfig,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException {
     restartAlgorithm = pAlgorithm;
     logger = new LogManagerWithoutDuplicates(pLogger);
     shutdown = pShutdownNotifier;
-    config = pConfig;
 
     automatonARGBuilderSupport = new AutomatonStateARGCombiningHelper();
+    reachedSetFactory = new ReachedSetFactory(pConfig, pLogger);
   }
 
   @Override
-  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException,
-      CPAEnabledAnalysisPropertyViolationException {
+  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     checkArgument(pReachedSet instanceof ForwardingReachedSet, "PartialARGsCombiner needs ForwardingReachedSet");
 
     HistoryForwardingReachedSet reached = new HistoryForwardingReachedSet(pReachedSet);
@@ -118,7 +120,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
           return status;
         }
 
-        if (reached.hasViolatedProperties()) {
+        if (reached.wasTargetReached()) {
           logger.log(Level.INFO, "Error found, do not combine ARGs.");
           ((ForwardingReachedSet) pReachedSet).setDelegate(reached.getDelegate());
           return status;
@@ -176,13 +178,10 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     Map<String, Integer> stateToPos = initStates.getFirst();
     List<AbstractState> initialStates = initStates.getSecond();
 
-    try {
-      pReceivedReachedSet.setDelegate(new ReachedSetFactory(config, logger).create());
-    } catch (InvalidConfigurationException e) {
-      logger.log(Level.SEVERE, "Creating reached set which should contain combined ARG fails.");
-      return false;
-    }
-
+    // TODO Need to create a CPA hierarchy that reflects what abstract states will be added to the
+    // new reached set, otherwise some features won't work.
+    // cf. https://gitlab.com/sosy-lab/software/cpachecker/-/merge_requests/59#note_658864689
+    pReceivedReachedSet.setDelegate(reachedSetFactory.create(AlwaysTopCPA.INSTANCE));
     shutdown.shutdownIfNecessary();
 
     // combined root

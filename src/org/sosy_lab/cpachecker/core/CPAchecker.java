@@ -18,7 +18,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.io.Resources;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
@@ -26,7 +25,6 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -46,7 +44,6 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACheck;
@@ -59,7 +56,6 @@ import org.sosy_lab.cpachecker.cmdline.CPAMain;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -71,7 +67,6 @@ import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ResultProviderReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
-import org.sosy_lab.cpachecker.core.specification.SpecificationProperty;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -86,10 +81,10 @@ import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 @Options
 public class CPAchecker {
 
-  public static interface CPAcheckerMXBean {
-    public int getReachedSetSize();
+  public interface CPAcheckerMXBean {
+    int getReachedSetSize();
 
-    public void stop();
+    void stop();
   }
 
   private static class CPAcheckerBean extends AbstractMBean implements CPAcheckerMXBean {
@@ -122,7 +117,7 @@ public class CPAchecker {
   )
   private boolean stopAfterError = true;
 
-  public static enum InitialStatesFor {
+  public enum InitialStatesFor {
     /**
      * Function entry node of the entry function
      */
@@ -170,12 +165,14 @@ public class CPAchecker {
   private boolean partitionInitialStates = false;
 
   @Option(
-    secure = true,
-    name = "specification",
-    description =
-        "comma-separated list of files with specifications that should be checked"
-            + "\n(see config/specification/ for examples)"
-  )
+      secure = true,
+      name = "specification",
+      description =
+          "Comma-separated list of files with specifications that should be checked (cf."
+              + " config/specification/ for examples). Property files as used in SV-COMP can also"
+              + " be used here, but when these are specified inside a configuration file instead of"
+              + " on the command line, CPAchecker"
+              + " will ignore the entry function in the property file.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<Path> specificationFiles = ImmutableList.of();
 
@@ -189,13 +186,6 @@ public class CPAchecker {
   )
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<Path> backwardSpecificationFiles = ImmutableList.of();
-
-  @Option(
-    secure = true,
-    name = "analysis.algorithm.CBMC",
-    description = "use CBMC as an external tool from CPAchecker"
-  )
-  private boolean runCBMCasExternalTool = false;
 
   @Option(
     secure = true,
@@ -323,11 +313,10 @@ public class CPAchecker {
     config.inject(this);
     factory =
         new CoreComponentsFactory(
-            pConfiguration, pLogManager, shutdownNotifier, new AggregatedReachedSets());
+            pConfiguration, pLogManager, shutdownNotifier, AggregatedReachedSets.empty());
   }
 
-  public CPAcheckerResult run(
-      List<String> programDenotation, Set<SpecificationProperty> properties) {
+  public CPAcheckerResult run(List<String> programDenotation) {
     checkArgument(!programDenotation.isEmpty());
 
     logger.logf(Level.INFO, "%s (%s) started", getVersion(config), getJavaInformation());
@@ -337,7 +326,7 @@ public class CPAchecker {
     ReachedSet reached = null;
     CFA cfa = null;
     Result result = Result.NOT_YET_STARTED;
-    String violatedPropertyDescription = "";
+    String targetDescription = "";
     Specification specification = null;
 
     final ShutdownRequestListener interruptThreadOnShutdown = interruptCurrentThreadOnShutdown();
@@ -348,57 +337,50 @@ public class CPAchecker {
 
       // create reached set, cpa, algorithm
       stats.creationTime.start();
-      reached = factory.createReachedSet();
 
-      if (runCBMCasExternalTool) {
-        algorithm =
-            new ExternalCBMCAlgorithm(checkIfOneValidFile(programDenotation), config, logger);
+      cfa = parse(programDenotation, stats);
+      GlobalInfo.getInstance().storeCFA(cfa);
+      shutdownNotifier.shutdownIfNecessary();
 
+      ConfigurableProgramAnalysis cpa;
+      stats.cpaCreationTime.start();
+      try {
+        specification =
+            Specification.fromFiles(specificationFiles, cfa, config, logger, shutdownNotifier);
+        cpa = factory.createCPA(cfa, specification);
+      } finally {
+        stats.cpaCreationTime.stop();
+      }
+      stats.setCPA(cpa);
+
+      if (cpa instanceof StatisticsProvider) {
+        ((StatisticsProvider) cpa).collectStatistics(stats.getSubStatistics());
+      }
+
+      GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
+
+      algorithm = factory.createAlgorithm(cpa, cfa, specification);
+
+      if (algorithm instanceof MPVAlgorithm && !stopAfterError) {
+        // sanity check
+        throw new InvalidConfigurationException(
+            "Cannot use option 'analysis.stopAfterError' along with "
+                + "multi-property verification algorithm. "
+                + "Please use option 'mpv.findAllViolations' instead");
+      }
+
+      if (algorithm instanceof StatisticsProvider) {
+        ((StatisticsProvider) algorithm).collectStatistics(stats.getSubStatistics());
+      }
+
+      reached = factory.createReachedSet(cpa);
+      if (algorithm instanceof ImpactAlgorithm) {
+        ImpactAlgorithm mcmillan = (ImpactAlgorithm) algorithm;
+        reached.add(
+            mcmillan.getInitialState(cfa.getMainFunction()),
+            mcmillan.getInitialPrecision(cfa.getMainFunction()));
       } else {
-        cfa = parse(programDenotation, stats);
-        GlobalInfo.getInstance().storeCFA(cfa);
-        shutdownNotifier.shutdownIfNecessary();
-
-        ConfigurableProgramAnalysis cpa;
-        stats.cpaCreationTime.start();
-        try {
-          specification =
-              Specification.fromFiles(
-                  properties, specificationFiles, cfa, config, logger, shutdownNotifier);
-          cpa = factory.createCPA(cfa, specification);
-        } finally {
-          stats.cpaCreationTime.stop();
-        }
-        stats.setCPA(cpa);
-
-        if (cpa instanceof StatisticsProvider) {
-          ((StatisticsProvider) cpa).collectStatistics(stats.getSubStatistics());
-        }
-
-        GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
-
-        algorithm = factory.createAlgorithm(cpa, cfa, specification);
-
-        if (algorithm instanceof MPVAlgorithm && !stopAfterError) {
-          // sanity check
-          throw new InvalidConfigurationException(
-              "Cannot use option 'analysis.stopAfterError' along with "
-                  + "multi-property verification algorithm. "
-                  + "Please use option 'mpv.findAllViolations' instead");
-        }
-
-        if (algorithm instanceof StatisticsProvider) {
-          ((StatisticsProvider) algorithm).collectStatistics(stats.getSubStatistics());
-        }
-
-        if (algorithm instanceof ImpactAlgorithm) {
-          ImpactAlgorithm mcmillan = (ImpactAlgorithm) algorithm;
-          reached.add(
-              mcmillan.getInitialState(cfa.getMainFunction()),
-              mcmillan.getInitialPrecision(cfa.getMainFunction()));
-        } else {
-          initializeReachedSet(reached, cpa, properties, cfa.getMainFunction(), cfa);
-        }
+        initializeReachedSet(reached, cpa, cfa.getMainFunction(), cfa);
       }
 
       printConfigurationWarnings();
@@ -414,8 +396,8 @@ public class CPAchecker {
 
       if (status.wasPropertyChecked()) {
         stats.resultAnalysisTime.start();
-        if (reached.hasViolatedProperties()) {
-          violatedPropertyDescription = Joiner.on(", ").join(reached.getViolatedProperties());
+        if (reached.wasTargetReached()) {
+          targetDescription = Joiner.on(", ").join(reached.getTargetInformation());
 
           if (!status.isPrecise()) {
             result = Result.UNKNOWN;
@@ -469,25 +451,7 @@ public class CPAchecker {
       CPAs.closeIfPossible(algorithm, logger);
       shutdownNotifier.unregister(interruptThreadOnShutdown);
     }
-    return new CPAcheckerResult(result, violatedPropertyDescription, reached, cfa, stats);
-  }
-
-  private Path checkIfOneValidFile(List<String> fileDenotation)
-      throws InvalidConfigurationException {
-    if (fileDenotation.size() != 1) {
-      throw new InvalidConfigurationException(
-        "Exactly one code file has to be given.");
-    }
-
-    Path file = Paths.get(fileDenotation.get(0));
-
-    try {
-      IO.checkReadableFile(file);
-    } catch (FileNotFoundException e) {
-      throw new InvalidConfigurationException(e.getMessage());
-    }
-
-    return file;
+    return new CPAcheckerResult(result, targetDescription, reached, cfa, stats);
   }
 
   private CFA parse(List<String> fileNames, MainCPAStatistics stats)
@@ -620,7 +584,6 @@ public class CPAchecker {
   private void initializeReachedSet(
       final ReachedSet pReached,
       final ConfigurableProgramAnalysis pCpa,
-      final Set<SpecificationProperty> pProperties,
       final FunctionEntryNode pAnalysisEntryFunction,
       final CFA pCfa)
       throws InvalidConfigurationException, InterruptedException {
@@ -662,7 +625,6 @@ public class CPAchecker {
               tlp.tryGetAutomatonTargetLocations(
                   pAnalysisEntryFunction,
                   Specification.fromFiles(
-                      pProperties,
                       backwardSpecificationFiles,
                       pCfa,
                       config,

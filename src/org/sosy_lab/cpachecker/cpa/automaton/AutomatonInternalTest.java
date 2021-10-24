@@ -29,7 +29,7 @@ import java.io.IOException;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.nio.file.Paths;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -62,7 +62,7 @@ public class AutomatonInternalTest {
   private final CParser parser;
 
   private static final Path defaultSpecPath =
-      Paths.get("test/config/automata/defaultSpecification.spc");
+      Path.of("test/config/automata/defaultSpecification.spc");
   private static final CharSource defaultSpec =
       MoreFiles.asCharSource(defaultSpecPath, StandardCharsets.UTF_8);
 
@@ -467,7 +467,7 @@ public class AutomatonInternalTest {
     }
   }
 
-  private static interface Matches {
+  private interface Matches {
     StringSubject andVariable(int var);
   }
 }

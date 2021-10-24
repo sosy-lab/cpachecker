@@ -8,8 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.chc;
 
+import com.google.common.base.Function;
+import java.util.Optional;
 import java.util.logging.Level;
-
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -18,10 +19,6 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-
-import com.google.common.base.Function;
-import java.util.Optional;
-
 
 public class CHCPrecisionAdjustment implements PrecisionAdjustment {
 
@@ -55,7 +52,7 @@ public class CHCPrecisionAdjustment implements PrecisionAdjustment {
     CHCState variantAncestor = candidateState.getAncestor();
     while (variantAncestor != null) {
       if (variantAncestor.getNodeId() == candidateState.getNodeId()) {
-        logger.log(Level.FINEST, "\n * variant found: " + variantAncestor.toString());
+        logger.log(Level.FINEST, "\n * variant found: " + variantAncestor);
         return variantAncestor;
       }
       variantAncestor = variantAncestor.getAncestor();

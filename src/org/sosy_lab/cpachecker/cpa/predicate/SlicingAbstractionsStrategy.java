@@ -204,8 +204,9 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     // we only split if the state has actually changed
     ARGState newState;
     if (stateChanged
-        && (!optimizeSlicing || !mayShortcutSlicing
-            || SlicingAbstractionsUtils.calculateIncomingSegments(s).keySet().size() > 1)) {
+        && (!optimizeSlicing
+            || !mayShortcutSlicing
+            || SlicingAbstractionsUtils.calculateIncomingSegments(s).size() > 1)) {
       mayShortcutSlicing = false;
       //splitting the state:
       newState = s.forkWithReplacements(Collections.singleton(copiedPredicateState));
@@ -554,7 +555,6 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
                 segmentList,
                 startSSAMap,
                 startPts,
-                solver.getFormulaManager(),
                 pfmgr,
                 AbstractionPosition.BOTH)
             .getFormula();

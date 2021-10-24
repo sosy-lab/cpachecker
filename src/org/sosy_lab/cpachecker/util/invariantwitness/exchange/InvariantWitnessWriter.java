@@ -188,7 +188,7 @@ public final class InvariantWitnessWriter {
             producerDescription,
             taskDescription);
 
-    final String fileName = invariantWitness.getLocation().getFileName();
+    final String fileName = invariantWitness.getLocation().getFileName().toString();
     final int lineNumber = invariantWitness.getLocation().getStartingLineInOrigin();
     final int lineOffset = lineOffsetsByFile.get(fileName).get(lineNumber - 1);
     final int offsetInLine = invariantWitness.getLocation().getNodeOffset() - lineOffset;

@@ -12,6 +12,7 @@ import static com.google.common.base.Predicates.in;
 import static com.google.common.base.Verify.verify;
 import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.Iterables.concat;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocations;
 
 import com.google.common.base.Joiner;
@@ -46,7 +47,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
-import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
@@ -54,7 +54,7 @@ import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 
 public abstract class PathTranslator {
 
-  protected final static CFunctionEntryNode extractFunctionCallLocation(ARGState state) {
+  protected static CFunctionEntryNode extractFunctionCallLocation(ARGState state) {
     // We assume, that each node has one location.
     // TODO: the location is invalid for all concurrent programs,
     //       because interleaving threads are not handled.
@@ -340,15 +340,11 @@ public abstract class PathTranslator {
       boolean valid = true;
       if (!result.isEmpty()) {
         Set<AbstractState> candidateChildren =
-            FluentIterable.from(candidate.getChildren())
-                .transform(AbstractSingleWrapperState.getUnwrapFunction())
-                .toSet();
+            transformedImmutableSetCopy(candidate.getChildren(), ARGState::getWrappedState);
         for (ARGState chosen : result) {
           if (parent.getEdgesToChild(chosen).equals(parent.getEdgesToChild(candidate))) {
             Set<AbstractState> chosenChildren =
-                FluentIterable.from(chosen.getChildren())
-                    .transform(AbstractSingleWrapperState.getUnwrapFunction())
-                    .toSet();
+                transformedImmutableSetCopy(chosen.getChildren(), ARGState::getWrappedState);
             if (chosenChildren.containsAll(candidateChildren)) {
               valid = false;
               break;

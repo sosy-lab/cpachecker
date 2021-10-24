@@ -173,7 +173,7 @@ public class InterpolationAutomaton {
     private final BooleanFormula interpolant;
     private final boolean isTarget;
 
-    private final @Nullable StringExpression violatedPropertyDescription;
+    private final @Nullable StringExpression targetInformation;
 
     private Set<AutomatonBoolExpr> boolExpressions;
 
@@ -193,7 +193,7 @@ public class InterpolationAutomaton {
       stateName = pStateName;
       interpolant = checkNotNull(pInterpolant);
       isTarget = pIsTarget;
-      violatedPropertyDescription =
+      targetInformation =
           isTarget ? new StringExpression(itpAutomaton.getAutomatonName()) : null;
 
       boolExpressions = new HashSet<>();
@@ -275,8 +275,8 @@ public class InterpolationAutomaton {
     private void addEdgeToTransition(AutomatonBoolExpr pBoolExpr, String pNextItpState) {
       AutomatonTransition.Builder builder =
           new AutomatonTransition.Builder(pBoolExpr, pNextItpState);
-      if (violatedPropertyDescription != null) {
-        builder.withViolatedPropertyDescription(violatedPropertyDescription);
+      if (targetInformation != null) {
+        builder.withTargetInformation(targetInformation);
       }
       AutomatonTransition transition = builder.build();
       transitions.add(transition);

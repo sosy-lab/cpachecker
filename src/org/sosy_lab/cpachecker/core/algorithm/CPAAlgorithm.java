@@ -274,7 +274,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
           // Prec operator requested break
           return status;
         }
-      } catch (Exception e) {
+      } catch (CPAException | InterruptedException e) {
         // re-add the old state to the waitlist, there might be unhandled successors left
         // that otherwise would be forgotten (which would be unsound)
         reachedSet.reAddToWaitlist(state);

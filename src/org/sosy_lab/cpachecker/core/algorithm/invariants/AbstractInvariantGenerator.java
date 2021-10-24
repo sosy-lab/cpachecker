@@ -27,7 +27,6 @@ public abstract class AbstractInvariantGenerator implements InvariantGenerator {
   @Override
   public abstract void cancel();
 
-
   @Override
   public abstract boolean isProgramSafe();
 

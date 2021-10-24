@@ -367,7 +367,7 @@ public class CtoFormulaConverter {
    * @return the name of the expression
    */
   static String exprToVarName(AAstNode e, String function) {
-    return (function + "::" + exprToVarNameUnscoped(e)).intern().intern();
+    return (function + "::" + exprToVarNameUnscoped(e)).intern();
   }
 
   /** Produces a fresh new SSA index for an assignment and updates the SSA map. */
@@ -1000,7 +1000,11 @@ public class CtoFormulaConverter {
 
     BooleanFormula newFormula = bfmgr.and(oldFormula.getFormula(), edgeFormula);
     int newLength = oldFormula.getLength() + 1;
-    return new PathFormula(newFormula, newSsa, newPts, newLength);
+
+    @SuppressWarnings("deprecation")
+    // This is an intended use, CtoFormulaConverter just does not have access to the constructor
+    PathFormula result = PathFormula.createManually(newFormula, newSsa, newPts, newLength);
+    return result;
   }
 
   /**
@@ -1307,13 +1311,13 @@ public class CtoFormulaConverter {
       CFunctionCallExpression funcCallExp = exp.getRightHandSide();
 
       String callerFunction = ce.getSuccessor().getFunctionName();
-      final com.google.common.base.Optional<CVariableDeclaration> returnVariableDeclaration =
+      final Optional<CVariableDeclaration> returnVariableDeclaration =
           ce.getFunctionEntry().getReturnVariable();
       if (!returnVariableDeclaration.isPresent()) {
         throw new UnrecognizedCodeException("Void function used in assignment", ce, retExp);
       }
-      final CIdExpression rhs = new CIdExpression(funcCallExp.getFileLocation(),
-          returnVariableDeclaration.get());
+      final CIdExpression rhs =
+          new CIdExpression(funcCallExp.getFileLocation(), returnVariableDeclaration.orElseThrow());
 
       return makeAssignment(exp.getLeftHandSide(), rhs, ce, callerFunction, ssa, pts, constraints, errorConditions);
     } else {
@@ -1412,18 +1416,29 @@ public class CtoFormulaConverter {
     return result;
   }
 
-  protected BooleanFormula makeReturn(final com.google.common.base.Optional<CAssignment> assignment,
-      final CReturnStatementEdge edge, final String function,
-      final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
-      final Constraints constraints, final ErrorConditions errorConditions)
-          throws UnrecognizedCodeException, InterruptedException {
+  protected BooleanFormula makeReturn(
+      final Optional<CAssignment> assignment,
+      final CReturnStatementEdge edge,
+      final String function,
+      final SSAMapBuilder ssa,
+      final PointerTargetSetBuilder pts,
+      final Constraints constraints,
+      final ErrorConditions errorConditions)
+      throws UnrecognizedCodeException, InterruptedException {
     if (!assignment.isPresent()) {
       // this is a return from a void function, do nothing
       return bfmgr.makeTrue();
     } else {
 
-      return makeAssignment(assignment.get().getLeftHandSide(), assignment.get().getRightHandSide(),
-          edge, function, ssa, pts, constraints, errorConditions);
+      return makeAssignment(
+          assignment.orElseThrow().getLeftHandSide(),
+          assignment.orElseThrow().getRightHandSide(),
+          edge,
+          function,
+          ssa,
+          pts,
+          constraints,
+          errorConditions);
     }
   }
 
@@ -1801,8 +1816,8 @@ public class CtoFormulaConverter {
       result = UNSUPPORTED_FUNCTIONS.get(functionName);
     } else if (functionName.startsWith("__atomic_")) {
       result = "atomic operations";
-    } 
-    
+    }
+
     if (result != null && options.isAllowedUnsupportedFunction(functionName)) {
       logger.logfOnce(
           Level.WARNING,

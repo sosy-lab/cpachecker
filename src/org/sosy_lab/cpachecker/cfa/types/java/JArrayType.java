@@ -10,9 +10,7 @@ package org.sosy_lab.cpachecker.cfa.types.java;
 
 import org.sosy_lab.cpachecker.cfa.types.AArrayType;
 
-/**
- * Description of a Java array through its element type and number of dimensions.
- */
+/** Description of a Java array through its element type and number of dimensions. */
 public class JArrayType extends AArrayType implements JReferenceType {
 
   private static final long serialVersionUID = -120299232751433551L;
@@ -36,13 +34,13 @@ public class JArrayType extends AArrayType implements JReferenceType {
   public String toASTString(String pDeclarator) {
     StringBuilder astString = new StringBuilder(getElementType().toASTString(""));
 
-    for (int dim = 0; dim < dimension ; dim++) {
-        astString.append("[]");
+    for (int dim = 0; dim < dimension; dim++) {
+      astString.append("[]");
     }
     astString.append(" ");
     astString.append(pDeclarator);
 
-    return  astString.toString();
+    return astString.toString();
   }
 
   /**
@@ -65,27 +63,27 @@ public class JArrayType extends AArrayType implements JReferenceType {
 
   @Override
   public int hashCode() {
-      final int prime = 31;
-      int result = 7;
-      result = prime * result + Integer.hashCode(dimension);
-      result = prime * result + super.hashCode();
-      return result;
+    final int prime = 31;
+    int result = 7;
+    result = prime * result + Integer.hashCode(dimension);
+    result = prime * result + super.hashCode();
+    return result;
   }
 
   @Override
   public boolean equals(Object obj) {
-      if (this == obj) {
-          return true;
-      }
-
-      if (!(obj instanceof JArrayType) && !super.equals(obj)) {
-          return false;
-      }
-
-      JArrayType other = (JArrayType) obj;
-
-      return dimension == other.dimension;
+    if (this == obj) {
+      return true;
     }
+
+    if (!(obj instanceof JArrayType) && !super.equals(obj)) {
+      return false;
+    }
+
+    JArrayType other = (JArrayType) obj;
+
+    return dimension == other.dimension;
+  }
 
   @Override
   public String toString() {

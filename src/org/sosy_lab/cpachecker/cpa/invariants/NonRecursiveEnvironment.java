@@ -237,20 +237,12 @@ public class NonRecursiveEnvironment implements Map<MemoryLocation, NumeralFormu
     return new NonRecursiveEnvironment(pCompoundIntervalManagerFactory, PathCopyingPersistentTreeMap.<MemoryLocation, NumeralFormula<CompoundInterval>>of());
   }
 
-  @Deprecated
-  public static NonRecursiveEnvironment copyOf(NonRecursiveEnvironment pInner) {
-    return pInner;
-  }
-
   public static NonRecursiveEnvironment copyOf(
       CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
       Map<MemoryLocation, NumeralFormula<CompoundInterval>> pInner) {
     if (pInner instanceof NonRecursiveEnvironment
         && ((NonRecursiveEnvironment) pInner).compoundIntervalManagerFactory.equals(pCompoundIntervalManagerFactory)) {
       return (NonRecursiveEnvironment) pInner;
-    }
-    if (pInner instanceof PersistentSortedMap) {
-      return new NonRecursiveEnvironment(pCompoundIntervalManagerFactory, pInner);
     }
     return new NonRecursiveEnvironment(pCompoundIntervalManagerFactory, pInner);
   }
@@ -360,11 +352,6 @@ public class NonRecursiveEnvironment implements Map<MemoryLocation, NumeralFormu
     @Override
     public String toString() {
       return current.toString();
-    }
-
-    @Deprecated
-    public static Builder of(Builder pTmpEnvironment) {
-      return pTmpEnvironment;
     }
 
     public static Builder of(

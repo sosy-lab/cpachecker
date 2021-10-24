@@ -11,14 +11,13 @@ package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiab
 import static com.google.common.truth.Truth.assertThat;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
+import com.google.common.base.CharMatcher;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -28,8 +27,6 @@ import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.error_invariants.ErrorInvariantsAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.Selector;
-import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
@@ -74,7 +71,7 @@ public class TraceFormulaTest {
             .build();
 
     String test_dir = "test/programs/fault_localization/";
-    Path program = Paths.get(test_dir, name);
+    Path program = Path.of(test_dir, name);
 
     return CPATestRunner.run(config, program.toString(), logLevel);
   }
@@ -93,7 +90,7 @@ public class TraceFormulaTest {
                   if (key == LogKeys.TFPRECONDITION) {
                     entries.put(key, value);
                   } else {
-                    value = value.replace("[", "").replace("]", "");
+                    value = CharMatcher.anyOf("[]").removeFrom(value);
                     Splitter.on(", ")
                         .splitToList(value)
                         .forEach(loc -> entries.put(key, Integer.parseInt(loc)));
@@ -112,9 +109,12 @@ public class TraceFormulaTest {
           throws Exception {
 
     TestResults test = runFaultLocalization(program, algorithm, options);
-    FluentIterable<AbstractState> states = AbstractStates.getTargetStates(test.getCheckerResult().getReached());
-    CounterexampleInfo cex = states.transform(state -> ((ARGState)state).getCounterexampleInformation()).first().get().orElseThrow();
-    FaultLocalizationInfo faultInfo = (FaultLocalizationInfo) cex;
+    FaultLocalizationInfo faultInfo =
+        (FaultLocalizationInfo)
+            AbstractStates.getTargetStates(test.getCheckerResult().getReached()).stream()
+                .findFirst()
+                .flatMap(state -> ((ARGState) state).getCounterexampleInformation())
+                .orElseThrow();
 
     Multimap<LogKeys, Object> found = findFLPatterns(test.getLog(), expected.keySet());
 

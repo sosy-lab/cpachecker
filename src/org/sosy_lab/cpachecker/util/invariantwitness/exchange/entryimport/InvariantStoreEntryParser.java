@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.invariantwitness.exchange.entryimport;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
+import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.HashSet;
@@ -225,7 +226,7 @@ class InvariantStoreEntryParser {
         lineOffsetsByFile.get(entryLocation.getFileName()).get(entryLocation.getLine() - 1);
 
     return new FileLocation(
-        entryLocation.getFileName(),
+        Path.of(entryLocation.getFileName()),
         offetInFile + entryLocation.getColumn(),
         0,
         entryLocation.getLine(),

@@ -76,6 +76,9 @@ SPDX-License-Identifier: Apache-2.0
     <include>../programs/benchmarks/pthread-wmm/thin001_*.yml</include>
     <include>../programs/benchmarks/pthread-wmm/safe035_*.yml</include>
     <include>../programs/benchmarks/ldv-races/race-2*.yml</include>
+    <!-- exclude flapping timeouts -->
+    <exclude>../programs/benchmarks/pthread-wmm/rfi002_power.opt.yml</exclude>
+    <exclude>../programs/benchmarks/pthread-wmm/thin001_power.oepc.yml</exclude>
   </tasks>
 
   <tasks name="predicateAnalysis-concurrency">
@@ -87,6 +90,9 @@ SPDX-License-Identifier: Apache-2.0
     <include>../programs/benchmarks/pthread-wmm/safe036_*.yml</include>
     <include>../programs/benchmarks/ldv-races/race-3*.yml</include>
     <include>../programs/benchmarks/pthread-driver-races/char_generic*.yml</include>
+    <!-- exclude flapping timeouts -->
+    <exclude>../programs/benchmarks/pthread/stack-1.yml</exclude>
+    <exclude>../programs/benchmarks/pthread/stack_longer-1.yml</exclude>
   </tasks>
 
   <columns>

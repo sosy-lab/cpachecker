@@ -14,7 +14,6 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import java.io.PrintStream;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -90,7 +89,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
           "File to export dependence graph to. If `null`, dependence"
               + " graph will not be exported as dot.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path exportDot = Paths.get("DependenceGraph.dot");
+  private Path exportDot = Path.of("DependenceGraph.dot");
 
   @Option(
       secure = true,
@@ -453,11 +452,10 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
 
     CFunctionCallEdge callEdge = getCallEdge(pSummaryEdge);
     Optional<CVariableDeclaration> returnVariable =
-        callEdge.getSummaryEdge().getFunctionEntry().getReturnVariable().toJavaUtil();
+        callEdge.getSummaryEdge().getFunctionEntry().getReturnVariable();
 
     if (returnVariable.isPresent()) {
-      String variableName = returnVariable.orElseThrow().getQualifiedName();
-      return Optional.of(MemoryLocation.valueOf(variableName));
+      return Optional.of(MemoryLocation.forDeclaration(returnVariable.orElseThrow()));
     } else {
       return Optional.empty();
     }
@@ -587,7 +585,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
     for (int index = 0; index < Math.min(params.size(), expressions.size()); index++) {
 
       EdgeDefUseData argDefUseData = defUseExtractor.extract(expressions.get(index));
-      MemoryLocation paramMemLoc = MemoryLocation.valueOf(params.get(index).getQualifiedName());
+      MemoryLocation paramMemLoc = MemoryLocation.forDeclaration(params.get(index));
       Optional<MemoryLocation> paramVariable = Optional.of(paramMemLoc);
 
       if (argDefUseData.getUses().contains(pCause)) {
@@ -933,14 +931,14 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
       StringBuilder sb = new StringBuilder();
 
       if (pNode.getType() != NodeType.STATEMENT) {
-        
+
         sb.append(pNode.getType());
         sb.append(" of ");
 
         if (pNode.getType() == NodeType.ENTRY) {
-          sb.append(String.valueOf(pNode.getProcedure().orElse(null)));
+          sb.append(pNode.getProcedure().orElse(null));
         } else {
-          sb.append(String.valueOf(pNode.getVariable().orElse(null)));
+          sb.append(pNode.getVariable().orElse(null));
         }
 
         sb.append("\\n");

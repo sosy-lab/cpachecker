@@ -22,6 +22,7 @@ SPDX-License-Identifier: Apache-2.0
         <tasks>
             <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
             <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+            <exclude>../programs/benchmarks/nla-digbench-scaling/freire1_valuebound100.yml</exclude> <!-- flapping timeout -->
         </tasks>
     </rundefinition>
 

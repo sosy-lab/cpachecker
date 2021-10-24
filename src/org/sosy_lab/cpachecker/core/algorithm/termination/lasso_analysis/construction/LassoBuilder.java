@@ -219,7 +219,7 @@ public class LassoBuilder {
   public StemAndLoop createStemAndLoop(List<CFAEdge> stemEdges, List<CFAEdge> loopEdges)
       throws CPATransferException, InterruptedException {
     PathFormula stemPathFormula = pathFormulaManager.makeFormulaForPath(stemEdges);
-    PathFormula loopPathFormula = pathFormulaManager.makeEmptyPathFormula(stemPathFormula);
+    PathFormula loopPathFormula = pathFormulaManager.makeEmptyPathFormulaWithContextFrom(stemPathFormula);
     SSAMapBuilder loopInVars = stemPathFormula.getSsa().builder();
     for (CFAEdge edge : loopEdges) {
       loopPathFormula = pathFormulaManager.makeAnd(loopPathFormula, edge);

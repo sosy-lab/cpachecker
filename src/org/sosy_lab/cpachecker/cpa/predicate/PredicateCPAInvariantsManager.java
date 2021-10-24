@@ -588,7 +588,6 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
                   config,
                   cfa.getLoopStructure().orElseThrow(),
                   pfmgr,
-                  fmgr,
                   logger,
                   pInvariantShutdown)
               .generateLoopTransition(ssa, pts, pLocation);
@@ -857,7 +856,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
               logger);
 
       infeasiblePrefixes =
-          new PredicateBasedPrefixProvider(config, logger, solver, pfmgr, shutdownNotifier)
+          new PredicateBasedPrefixProvider(config, logger, solver, shutdownNotifier)
               .extractInfeasiblePrefixes(argPath);
     }
 
@@ -880,7 +879,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
       return true;
     }
 
-    private final List<CandidateInvariant> getLocationCandidateInvariant(InfeasiblePrefix pInput) {
+    private List<CandidateInvariant> getLocationCandidateInvariant(InfeasiblePrefix pInput) {
       List<BooleanFormula> interpolants;
       try {
         List<BooleanFormula> pathFormula = pInput.getPathFormulae();

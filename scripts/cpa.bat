@@ -8,9 +8,9 @@ REM SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 REM
 REM SPDX-License-Identifier: Apache-2.0
 
-IF [%JAVA%]==[] (
-  IF NOT [%JAVA_HOME%]==[] (
-    SET JAVA=%JAVA_HOME%\bin\java
+IF "%JAVA%"=="" (
+  IF NOT "%JAVA_HOME%"=="" (
+    SET "JAVA=%JAVA_HOME%\bin\java"
   ) ELSE (
     SET JAVA=java
   )
@@ -25,19 +25,19 @@ REM From here on you should not need to change anything
 REM ------------------------------------------------------------------------------
 
 SET SCRIPT=%~dp0
-IF [%PATH_TO_CPACHECKER%]==[] (
+IF "%PATH_TO_CPACHECKER%"=="" (
   REM normalize the PATH_TO_CPACHECKER
   for %%i in ("%SCRIPT%..\") do SET "PATH_TO_CPACHECKER=%%~fi"
 )
 
-IF NOT EXIST %PATH_TO_CPACHECKER%\bin\org\sosy_lab\cpachecker\cmdline\CPAMain.class (
-  IF NOT EXIST %PATH_TO_CPACHECKER%\cpachecker.jar (
+IF NOT EXIST "%PATH_TO_CPACHECKER%\bin\org\sosy_lab\cpachecker\cmdline\CPAMain.class" (
+  IF NOT EXIST "%PATH_TO_CPACHECKER%\cpachecker.jar" (
     ECHO Could not find CPAchecker binary, please check path to project directory.
     EXIT 1
   )
 )
 
-SET CLASSPATH=%CLASSPATH%;%PATH_TO_CPACHECKER%\bin;%PATH_TO_CPACHECKER%\cpachecker.jar;%PATH_TO_CPACHECKER%\lib\*;%PATH_TO_CPACHECKER%\lib\java\runtime\*
+SET "CLASSPATH=%CLASSPATH%;%PATH_TO_CPACHECKER%\bin;%PATH_TO_CPACHECKER%\cpachecker.jar;%PATH_TO_CPACHECKER%\lib\*;%PATH_TO_CPACHECKER%\lib\java\runtime\*"
 
 REM loop over all input parameters and parse them
 SET OPTIONS=
@@ -76,11 +76,11 @@ IF NOT [%1]==[] (
   GOTO :loop
 )
 
-IF NOT [%TMPDIR%]==[] (
+IF NOT "%TMPDIR%"=="" (
   SET "JAVA_VM_ARGUMENTS=%JAVA_VM_ARGUMENTS% -Djava.io.tmpdir^=%TMPDIR%"
-) ELSE IF NOT [%TEMP%]==[] (
+) ELSE IF NOT "%TEMP%"=="" (
   SET "JAVA_VM_ARGUMENTS=%JAVA_VM_ARGUMENTS% -Djava.io.tmpdir^=%TEMP%"
-) ELSE IF NOT [%TMP%]==[] (
+) ELSE IF NOT "%TMP%"=="" (
   SET "JAVA_VM_ARGUMENTS=%JAVA_VM_ARGUMENTS% -Djava.io.tmpdir^=%TMP%"
 )
 
@@ -117,8 +117,8 @@ REM - options specified on command-line to this script via direct token (stack/h
 REM - CPAchecker class and options
 REM Stack size is set because on some systems it is too small for recursive algorithms and very large programs.
 REM PerfDisableSharedMem avoids hsperfdata in /tmp (disable it to connect easily with VisualConsole and Co.).
-%JAVA% ^
-    -cp %CLASSPATH% ^
+"%JAVA%" ^
+    -cp "%CLASSPATH%" ^
     -XX:+PerfDisableSharedMem ^
     -Djava.awt.headless=true ^
     %JAVA_VM_ARGUMENTS% ^

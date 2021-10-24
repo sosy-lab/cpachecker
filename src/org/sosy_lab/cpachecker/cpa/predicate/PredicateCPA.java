@@ -256,7 +256,7 @@ public class PredicateCPA
         return new PredicateMergeOperator(
             logger, pathFormulaManager, statistics, mergeAbstractionStates, getPredicateManager());
       default:
-        throw new InternalError("Update list of allowed merge operators");
+        throw new AssertionError("Update list of allowed merge operators");
     }
   }
 
@@ -266,11 +266,11 @@ public class PredicateCPA
       case "SEP":
         return new PredicateStopOperator(getAbstractDomain());
       case "SEPPCC":
-        return new PredicatePCCStopOperator(pathFormulaManager, getPredicateManager());
+        return new PredicatePCCStopOperator(pathFormulaManager, getPredicateManager(), solver);
       case "SEPNAA":
         return new PredicateNeverAtAbstractionStopOperator(getAbstractDomain());
       default:
-        throw new InternalError("Update list of allowed stop operators");
+        throw new AssertionError("Update list of allowed stop operators");
     }
   }
 
@@ -370,7 +370,7 @@ public class PredicateCPA
         return getPredicateManager()
             .checkCoverage(
                 e1.getAbstractionFormula(),
-                pathFormulaManager.makeEmptyPathFormula(e1.getPathFormula()),
+                pathFormulaManager.makeEmptyPathFormulaWithContextFrom(e1.getPathFormula()),
                 e2.getAbstractionFormula());
       } catch (SolverException e) {
         throw new CPAException("Solver Failure", e);

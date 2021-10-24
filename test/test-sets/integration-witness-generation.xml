@@ -65,6 +65,7 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <exclude>../programs/benchmarks/forester-heap/*</exclude> <!-- only timeout -->
+    <exclude>../programs/benchmarks/list-ext2-properties/simple_and_skiplist_2lvl-2.yml</exclude> <!-- flapping timeout/OOM -->
   </tasks>
   <tasks name="HeapMemSafety">
     <includesfile>../programs/benchmarks/MemSafety-Heap.set</includesfile>
@@ -72,8 +73,11 @@ SPDX-License-Identifier: Apache-2.0
     <!-- exclude files where several properties are available -->
     <exclude>../programs/benchmarks/list-ext-properties/list-ext.yml</exclude>
     <exclude>../programs/benchmarks/list-ext-properties/list-ext_flag.yml</exclude>
+    <exclude>../programs/benchmarks/list-ext-properties/test-0214_1.yml</exclude> <!-- flapping timeout/OOM -->
     <exclude>../programs/benchmarks/list-ext-properties/test-0217_1.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/list-ext-properties/test-0504_1.yml</exclude> <!-- flapping timeout/OOM -->
     <exclude>../programs/benchmarks/list-ext2-properties/simple_and_skiplist_2lvl-2.yml</exclude> <!-- flapping timeout/memout -->
+    <exclude>../programs/benchmarks/list-ext3-properties/sll_of_sll_nondet_append-1.yml</exclude> <!-- flapping timeout/OOM -->
     <exclude>../programs/benchmarks/memsafety*/*</exclude> <!-- only timeout -->
     <exclude>../programs/benchmarks/ldv-memsafety/ArraysOfVariableLength.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/ldv-memsafety/ArraysOfVariableLength2.yml</exclude> <!-- flapping timeout -->
@@ -98,12 +102,15 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <exclude>../programs/benchmarks/openssl/s3_srvr.blast.1*.yml</exclude> <!-- large runtime -->
+    <exclude>../programs/benchmarks/openssl-simplified/s3_srvr_3.cil.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/ntdrivers/cdaudio.i.cil-1.yml</exclude> <!-- flapping timeout/memout -->
   </tasks>
   <tasks name="Recursive">
     <includesfile>../programs/benchmarks/ReachSafety-Recursive.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <exclude>../programs/benchmarks/recursive/recHanoi03-2.yml</exclude> <!-- flapping timeout/memout -->
+    <exclude>../programs/benchmarks/recursive-simple/fibo_2calls_25-1.yml</exclude> <!-- flapping timeout/OOM -->
+    <exclude>../programs/benchmarks/recursive-simple/fibo_25-1.yml</exclude> <!-- flapping timeout/OOM -->
     <option name="-setprop">cpa.callstack.skipVoidRecursion=false</option>
   </tasks>
 </benchmark>
