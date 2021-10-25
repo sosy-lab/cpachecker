@@ -127,7 +127,9 @@ public class VariableCollectorVisitor<X extends Exception>
 
   @Override
   public Set<AVariableDeclaration> visit(AIdExpression pExp) throws X {
-    return new HashSet<>();
+    Set<AVariableDeclaration> modifiedVariables = new HashSet<>();
+    modifiedVariables.add((AVariableDeclaration) pExp.getDeclaration());
+    return modifiedVariables;
   }
 
   @Override

@@ -8,7 +8,9 @@
 
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries;
 
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -22,6 +24,8 @@ public class GhostCFA {
   private final CFANode stopOriginalCfaNode;
   private Optional<CFAEdge> startNodesConnection;
   private Optional<CFAEdge> endNodesConnection;
+  private Set<CFAEdge> allEdges = null;
+  private Set<CFANode> allNodes = null;
 
   public GhostCFA(
       CFANode pStartGhostCfaNode,
@@ -37,6 +41,8 @@ public class GhostCFA {
     this.startOriginalCfaNode = pStartOriginalCfaNode;
     this.stopOriginalCfaNode = pStopOriginalCfaNode;
     this.strategy = pStrategy;
+    this.collectEdges();
+    this.collectNodes();
   }
 
   public void connectOriginalAndGhostCFA() {
@@ -48,8 +54,7 @@ public class GhostCFA {
               getStartOriginalCfaNode(),
               getStartGhostCfaNode(),
               "Blank");
-      getStartOriginalCfaNode().addLeavingEdge(startNodesConnectionLocal);
-      getStartGhostCfaNode().addLeavingEdge(startNodesConnectionLocal);
+      startNodesConnectionLocal.connect();
       setStartNodesConnection(Optional.of(startNodesConnectionLocal));
     }
 
@@ -58,11 +63,10 @@ public class GhostCFA {
           new BlankEdge(
               "Blank",
               FileLocation.DUMMY,
-              getStartOriginalCfaNode(),
-              getStartGhostCfaNode(),
+              getStopGhostCfaNode(),
+              getStopOriginalCfaNode(),
               "Blank");
-      getStopOriginalCfaNode().addLeavingEdge(endNodesConnectionLocal);
-      getStopGhostCfaNode().addLeavingEdge(endNodesConnectionLocal);
+      endNodesConnectionLocal.connect();
       setStartNodesConnection(Optional.of(endNodesConnectionLocal));
     }
   }
@@ -101,5 +105,57 @@ public class GhostCFA {
 
   private void setEndNodesConnection(Optional<CFAEdge> pEndNodesConnection) {
     endNodesConnection = pEndNodesConnection;
+  }
+
+  private void collectEdges() {
+    if (allEdges != null) {
+      return;
+    }
+
+    allEdges = new HashSet<>();
+    Set<CFAEdge> currentEdges = new HashSet<>();
+    currentEdges.addAll(this.getStartGhostCfaNode().getLeavingEdges());
+    Set<CFAEdge> newEdges = new HashSet<>();
+    while (!currentEdges.isEmpty()) {
+      for (CFAEdge e : currentEdges) {
+        for (CFAEdge e2 : e.getSuccessor().getLeavingEdges()) {
+          if (!allEdges.contains(e2)) {
+            allEdges.add(e2);
+            newEdges.add(e2);
+          }
+        }
+      }
+      currentEdges = newEdges;
+      newEdges.clear();
+    }
+  }
+
+  private void collectNodes() {
+    if (allNodes != null) {
+      return;
+    }
+
+    allNodes = new HashSet<>();
+    Set<CFANode> currentNodes = new HashSet<>();
+    currentNodes.add(this.getStartGhostCfaNode());
+    allNodes.addAll(currentNodes);
+    Set<CFANode> newNodes = new HashSet<>();
+    while (!currentNodes.isEmpty()) {
+      for (CFANode n : currentNodes) {
+        for (CFAEdge e : n.getLeavingEdges()) {
+          CFANode n2 = e.getSuccessor();
+          if (!allNodes.contains(n2)) {
+            allNodes.add(n2);
+            newNodes.add(n2);
+          }
+        }
+      }
+      currentNodes = newNodes;
+      newNodes = new HashSet<>();
+    }
+  }
+
+  public Set<CFANode> getAllNodes() {
+    return allNodes;
   }
 }

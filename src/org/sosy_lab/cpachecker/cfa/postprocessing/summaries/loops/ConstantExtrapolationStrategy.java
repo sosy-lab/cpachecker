@@ -23,7 +23,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -279,7 +279,8 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
                 // The loop is simply unrolled. Since because of overflows no extrapolation can be
                 // made
                 iterationsMaybe =
-                    Optional.of(this.getExpressionFactory().from(1, ExpressionType.C));
+                    Optional.of(
+                        new AExpressionsFactory(ExpressionType.C).from(1, ExpressionType.C));
               }
               break;
             case GREATER_EQUAL:
@@ -287,7 +288,7 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
                 iterationsMaybe =
                     Optional.of(
                         (AExpression)
-                            this.getExpressionFactory()
+                            new AExpressionsFactory(ExpressionType.C)
                                 .from(operand1)
                                 .arithmeticExpression(
                                     operand2, CBinaryExpression.BinaryOperator.MINUS)
@@ -300,7 +301,7 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
                 iterationsMaybe =
                     Optional.of(
                         (AExpression)
-                            this.getExpressionFactory()
+                            new AExpressionsFactory(ExpressionType.C)
                                 .from(operand1)
                                 .arithmeticExpression(
                                     operand2, CBinaryExpression.BinaryOperator.MINUS)
@@ -314,11 +315,12 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
                 iterationsMaybe =
                     Optional.of(
                         (AExpression)
-                            this.getExpressionFactory()
+                            new AExpressionsFactory(ExpressionType.C)
                                 .from(operand2)
                                 .arithmeticExpression(
                                     operand1, CBinaryExpression.BinaryOperator.MINUS)
-                                .divide(operand2variableDelta.get() - operand1variableDelta.get())
+                                .divide(operand1variableDelta.get() - operand2variableDelta.get())
+                                .add(1)
                                 .build());
               }
               break;
@@ -327,12 +329,11 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
                 iterationsMaybe =
                     Optional.of(
                         (AExpression)
-                            this.getExpressionFactory()
+                            new AExpressionsFactory(ExpressionType.C)
                                 .from(operand2)
                                 .arithmeticExpression(
                                     operand1, CBinaryExpression.BinaryOperator.MINUS)
-                                .divide(operand2variableDelta.get() - operand1variableDelta.get())
-                                .add(1)
+                                .divide(operand1variableDelta.get() - operand2variableDelta.get())
                                 .build());
               }
               break;
@@ -347,7 +348,8 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
                 // The loop is simply unrolled. Since because of overflows no extrapolation can be
                 // made
                 iterationsMaybe =
-                    Optional.of(this.getExpressionFactory().from(1, ExpressionType.C));
+                    Optional.of(
+                        new AExpressionsFactory(ExpressionType.C).from(1, ExpressionType.C));
               }
               break;
             default:
@@ -392,7 +394,8 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
             true); // TODO: this may not be the correct way to do this; Review
     loopBoundCFAEdge.connect();
 
-    CFAEdge negatedBoundCFAEdge = ((AssumeEdge) loopBoundCFAEdge).negate();
+    CFAEdge negatedBoundCFAEdge =
+        ((AssumeEdge) loopBoundCFAEdge).negate().copyWith(endUnrolledLoopNode, endNodeGhostCFA);
     negatedBoundCFAEdge.connect();
 
     CFANode nextSummaryNode = CFANode.newDummyCFANode("Inner Summary Node");
@@ -400,7 +403,7 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
     // Make Summary of Loop
 
     for (AVariableDeclaration var : pLoopStructure.getModifiedVariables()) {
-      Optional<Integer> deltaMaybe = pLoopStructure.getDelta(var.getName());
+      Optional<Integer> deltaMaybe = pLoopStructure.getDelta(var.getQualifiedName());
       if (deltaMaybe.isEmpty()) {
         return Optional.empty();
       }
@@ -411,20 +414,22 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
       // TODO: the use of a C expression should be replaced for selecting if a Java or C
       // expression should be used in this context
       AExpressionsFactory expressionFactory = new AExpressionsFactory(ExpressionType.C);
-      AExpression assignmentExpression =
-          (AExpression)
+      CExpressionAssignmentStatement assignmentExpression =
+          (CExpressionAssignmentStatement)
               expressionFactory
                   .from(pIterations)
                   .minus(1)
                   .multiply(delta)
-                  .add(var)
+                  .add(
+                      new CIdExpression(
+                          FileLocation.DUMMY, (CSimpleDeclaration) var)) // TODO Improve this
                   .assignTo(var)
                   .build();
 
       CFAEdge dummyEdge =
           new CStatementEdge(
               assignmentExpression.toString(),
-              (CStatement) assignmentExpression,
+              assignmentExpression,
               FileLocation.DUMMY,
               currentSummaryNodeCFA,
               nextSummaryNode);

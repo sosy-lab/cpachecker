@@ -19,7 +19,7 @@ public class LoopStrategyDependency implements StrategyDependencyInterface {
 
   @Override
   public boolean apply(StrategyInterface pStrategy, Integer pIteration) {
-    if (pStrategy instanceof ConstantExtrapolationStrategy && pIteration >= 0) {
+    if (pStrategy.getClass().equals(ConstantExtrapolationStrategy.class) && pIteration >= 0) {
       return true;
     } else if (pStrategy instanceof LinearExtrapolationStrategy && pIteration >= 1) {
       return true;

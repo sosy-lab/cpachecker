@@ -74,31 +74,47 @@ public class SummaryPostProcessor {
     List<GhostCFA> ghostCfaToBeAdded = new ArrayList<>();
     CFANode startNode = pCfa.getMainFunction();
     boolean fixpoint = false;
+    boolean nodesAdded = true;
     Integer iterations = 0;
     List<CFANode> currentNodes = new ArrayList<>();
     List<CFANode> newNodes = new ArrayList<>();
-    currentNodes.add(startNode);
+    Set<CFANode> visitedNodes = new HashSet<>();
     while (!fixpoint) {
       fixpoint = true;
+      ghostCfaToBeAdded = new ArrayList<>();
 
-      for (CFANode node : currentNodes) {
-        for (StrategyInterface s : strategiesClasses) {
-          if (strategyDependencies.apply(s, iterations)) {
-            Optional<GhostCFA> maybeGhostCFA = s.summarize(node);
-            if (maybeGhostCFA.isPresent()) {
-              ghostCfaToBeAdded.add(maybeGhostCFA.get());
+      currentNodes.add(startNode);
+
+      while (nodesAdded) {
+        nodesAdded = false;
+        visitedNodes.addAll(currentNodes);
+        for (CFANode node : currentNodes) {
+          for (StrategyInterface s : strategiesClasses) {
+            if (strategyDependencies.apply(s, iterations)) {
+              Optional<GhostCFA> maybeGhostCFA = s.summarize(node);
+              if (maybeGhostCFA.isPresent()) {
+                ghostCfaToBeAdded.add(maybeGhostCFA.get());
+                fixpoint = false;
+              }
             }
           }
 
+          for (int i = 0; i < node.getNumLeavingEdges(); i++) {
+            CFANode newNode = node.getLeavingEdge(i).getSuccessor();
+            if (!visitedNodes.contains(newNode) && !newNodes.contains(newNode)) {
+              newNodes.add(newNode);
+              nodesAdded = true;
+            }
+          }
         }
 
-        for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-          newNodes.add(node.getLeavingEdge(i).getSuccessor());
-        }
+        currentNodes = newNodes;
+        newNodes = new ArrayList<>();
       }
 
-      currentNodes = newNodes;
+      currentNodes = new ArrayList<>();
       newNodes = new ArrayList<>();
+      visitedNodes = new HashSet<>();
 
       if (iterations > maxIterationsSummaries) {
         fixpoint = true;

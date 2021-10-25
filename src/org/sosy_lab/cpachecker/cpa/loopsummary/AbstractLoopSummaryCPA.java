@@ -30,7 +30,7 @@ public abstract class AbstractLoopSummaryCPA extends AbstractSingleWrapperCPA {
       ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     super(pCpa);
-    pConfig.inject(this, AbstractLoopSummaryCPA.class);
+    // pConfig.inject(this, AbstractLoopSummaryCPA.class);
 
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;

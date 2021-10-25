@@ -533,7 +533,7 @@ public class CFACreator {
     // check the CFA of each function
     for (String functionName : cfa.getAllFunctionNames()) {
       assert CFACheck.check(
-          cfa.getFunctionHead(functionName), cfa.getFunctionNodes(functionName), machineModel);
+          cfa.getFunctionHead(functionName), cfa.getFunctionNodes(functionName), machineModel, cfa);
     }
     stats.checkTime.stop();
 
@@ -546,7 +546,7 @@ public class CFACreator {
     stats.checkTime.start();
     for (String functionName : cfa.getAllFunctionNames()) {
       assert CFACheck.check(
-          cfa.getFunctionHead(functionName), cfa.getFunctionNodes(functionName), machineModel);
+          cfa.getFunctionHead(functionName), cfa.getFunctionNodes(functionName), machineModel, cfa);
     }
     stats.checkTime.stop();
 
@@ -562,6 +562,22 @@ public class CFACreator {
     // (needs post-order information)
     if (useLoopStructure) {
       addLoopStructure(cfa);
+    }
+
+    // Make summaries, needs Loop Structure
+    if (useSummaries) {
+      cfa.setSummaryInformations(new SummaryInformation(cfa));
+      SummaryPostProcessor summaryPostProcessor =
+          new SummaryPostProcessor(
+              logger,
+              shutdownNotifier,
+              cfa,
+              strategies,
+              useCompilerForSummary,
+              maxUnrollingsStrategy,
+              maxIterationsSummaries,
+              strategyDependencies);
+      cfa = summaryPostProcessor.process(cfa);
     }
 
     // instrument the cfa, if any configuration regarding that is set (needs loop structure)
@@ -612,7 +628,7 @@ public class CFACreator {
 
     // check the super CFA starting at the main function
     stats.checkTime.start();
-    assert CFACheck.check(mainFunction, null, machineModel);
+    assert CFACheck.check(mainFunction, null, machineModel, cfa);
     stats.checkTime.stop();
 
     if (((exportCfaFile != null) && (exportCfa || exportCfaPerFunction))
@@ -768,20 +784,6 @@ public class CFACreator {
       insertGlobalDeclarations(cfa, globalDeclarations);
     }
 
-    if (useSummaries) {
-      cfa.setSummaryInformations(new SummaryInformation());
-      SummaryPostProcessor summaryPostProcessor =
-          new SummaryPostProcessor(
-              logger,
-              shutdownNotifier,
-              cfa,
-              strategies,
-              useCompilerForSummary,
-              maxUnrollingsStrategy,
-              maxIterationsSummaries,
-              strategyDependencies);
-      cfa = summaryPostProcessor.process(cfa);
-    }
       return cfa;
   }
 

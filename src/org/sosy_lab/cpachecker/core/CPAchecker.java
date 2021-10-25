@@ -493,7 +493,7 @@ public class CPAchecker {
         cfa = (CFA) ois.readObject();
       }
 
-      assert CFACheck.check(cfa.getMainFunction(), null, cfa.getMachineModel());
+      assert CFACheck.check(cfa.getMainFunction(), null, cfa.getMachineModel(), cfa);
     }
 
     stats.setCFA(cfa);

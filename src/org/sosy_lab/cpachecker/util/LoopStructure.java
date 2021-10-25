@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.cfa.ast.visitors.AggregateConstantsVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.visitors.VariableCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -188,8 +189,8 @@ public final class LoopStructure implements Serializable {
      * these other collectors are used.
      */
     private Set<AVariableDeclaration> collectModifiedVariables() {
-      // TODO: For code reuse consider changing the Set<String> into LiveVariables class or
-      // something similar.
+      // TODO: For code reuse consider changing the Set<AVariableDeclaration> into LiveVariables
+      // class or something similar.
       Set<AVariableDeclaration> modifiedVariablesLocal = new HashSet<>();
       for (CFAEdge e : this.getInnerLoopEdges()) {
         if (e instanceof AStatementEdge) {
@@ -358,11 +359,12 @@ public final class LoopStructure implements Serializable {
       Pair<CFANode, CFANode> startNodes =
           Pair.of(
               CFANode.newDummyCFANode("Loop Unrolling Start"), this.getLoopHeads().asList().get(0));
-      originalToNewNodes.put(startNodes.getFirst(), startNodes.getSecond());
+      originalToNewNodes.put(startNodes.getSecond(), startNodes.getFirst());
 
       CFANode firstNode = startNodes.getFirst();
       CFANode lastNode = CFANode.newDummyCFANode("Loop Unrolling End");
       List<Pair<CFANode, CFANode>> currentNodes = new ArrayList<>();
+
       currentNodes.add(startNodes);
       while (currentNodes.size() != 0) {
         Pair<CFANode, CFANode> nodePair = currentNodes.remove(0);
@@ -371,17 +373,26 @@ public final class LoopStructure implements Serializable {
         for (CFAEdge succ : originalNode.getLeavingEdges()) {
           CFANode newSuccessor;
           CFANode successor = succ.getSuccessor();
-          if (originalToNewNodes.keySet().contains(successor)
-              && getInnerLoopEdges().contains(succ)) {
-            newSuccessor = originalToNewNodes.get(successor);
-          } else if (successor == startNodes.getSecond() || !getInnerLoopEdges().contains(succ)) {
-            newSuccessor = lastNode;
-          } else {
+          if (originalToNewNodes.keySet().contains(successor)) {
+            if (firstNode == originalToNewNodes.get(successor)) {
+              newSuccessor = lastNode;
+            } else {
+              newSuccessor = originalToNewNodes.get(successor);
+            }
+            CFAEdge pNewLeavingEdge = succ.copyWith(newNode, newSuccessor);
+            pNewLeavingEdge.connect();
+          } else if (getInnerLoopEdges().contains(succ)) {
             newSuccessor = CFANode.newDummyCFANode("Loop Unrolling Inner");
             originalToNewNodes.put(successor, newSuccessor);
+            CFAEdge pNewLeavingEdge = succ.copyWith(newNode, newSuccessor);
+            pNewLeavingEdge.connect();
+            currentNodes.add(Pair.of(pNewLeavingEdge.getSuccessor(), successor));
+          } else {
+            // Should only happen when the Edges leave the Loop
+            newSuccessor = lastNode;
+            CFAEdge pNewLeavingEdge = succ.copyWith(newNode, newSuccessor);
+            pNewLeavingEdge.connect();
           }
-          CFAEdge pNewLeavingEdge = succ.copyWith(newNode, newSuccessor);
-          currentNodes.add(Pair.of(pNewLeavingEdge.getSuccessor(), successor));
         }
       }
 
@@ -454,13 +465,16 @@ public final class LoopStructure implements Serializable {
     }
 
     public Optional<Integer> getDelta(AIdExpression pExp) {
-      if (!this.loopIncDecVariables.containsKey(pExp.getName())) {
+      if (!this.loopIncDecVariables.containsKey(pExp.getDeclaration().getQualifiedName())) {
         return Optional.empty();
       } else {
-        return Optional.of(this.loopIncDecVariables.get(pExp.getName()));
+        return Optional.of(this.loopIncDecVariables.get(pExp.getDeclaration().getQualifiedName()));
       }
     }
 
+    /*
+     * @param varName: The qualified Name of the Variable Declaration
+     */
     public Optional<Integer> getDelta(String varName) {
       if (!this.loopIncDecVariables.containsKey(varName)) {
         return Optional.empty();
@@ -470,6 +484,7 @@ public final class LoopStructure implements Serializable {
     }
 
     public boolean onlyConstantVarModification() {
+      Integer assumeEdgesAmount = 0;
       for (CFAEdge e : this.getInnerLoopEdges()) {
         if (e instanceof AStatementEdge) {
           if (((AStatementEdge) e).getStatement() instanceof AExpressionAssignmentStatement) {
@@ -491,10 +506,18 @@ public final class LoopStructure implements Serializable {
               return false;
             }
           }
+        } else if (e instanceof CAssumeEdge) {
+          assumeEdgesAmount += 1;
+          if (assumeEdgesAmount > 1) {
+            return false;
+          }
+        } else if (e instanceof BlankEdge) {
+          continue;
         } else {
           return false;
         }
       }
+
       return true;
     }
 

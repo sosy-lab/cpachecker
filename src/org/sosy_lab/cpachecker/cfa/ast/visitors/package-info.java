@@ -6,8 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * Some useful visitors in order to extract information from #{@link AAstNode} or #{@link
- * AExpression}
- */
+/** Some useful visitors in order to extract information from AAstNode and AExpression */
 package org.sosy_lab.cpachecker.cfa.ast.visitors;

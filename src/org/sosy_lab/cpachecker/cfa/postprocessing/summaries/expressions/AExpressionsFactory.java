@@ -67,7 +67,7 @@ public class AExpressionsFactory {
   }
 
   public AExpressionsFactory arithmeticExpression(
-      AExpression pExpr, ABinaryExpression.ABinaryOperator pOperator) {
+      AAstNode pExpr, ABinaryExpression.ABinaryOperator pOperator) {
     if (this.expressionLanguage == ExpressionType.C) {
       // TODO: Better error handling when getting expression type if the current Expression is not
       // an expression.
@@ -105,7 +105,7 @@ public class AExpressionsFactory {
       // Program
       return null;
     }
-    return null;
+    return this;
   }
 
   public AExpressionsFactory minus(int pI) {
@@ -190,11 +190,11 @@ public class AExpressionsFactory {
     }
   }
 
-  public AExpressionsFactory add(AVariableDeclaration pVar) {
+  public AExpressionsFactory add(AAstNode pVar) {
     if (this.expressionLanguage == ExpressionType.C) {
-      return this.arithmeticExpression((AExpression) pVar, CBinaryExpression.BinaryOperator.PLUS);
+      return this.arithmeticExpression(pVar, CBinaryExpression.BinaryOperator.PLUS);
     } else if (this.expressionLanguage == ExpressionType.JAVA) {
-      return this.arithmeticExpression((AExpression) pVar, JBinaryExpression.BinaryOperator.PLUS);
+      return this.arithmeticExpression(pVar, JBinaryExpression.BinaryOperator.PLUS);
     } else {
       return null;
     }

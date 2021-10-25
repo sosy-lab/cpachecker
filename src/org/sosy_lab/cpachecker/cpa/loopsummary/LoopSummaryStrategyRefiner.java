@@ -33,7 +33,7 @@ public class LoopSummaryStrategyRefiner implements Refiner {
   private int refinementNumber;
   protected final ARGCPA argCpa;
   private SummaryInformation summaryInformation =
-      new SummaryInformation(); // SummaryInformation.getSummaryInformation();
+      new SummaryInformation(null); // SummaryInformation.getSummaryInformation();
 
   public LoopSummaryStrategyRefiner(LogManager pLogger, final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {

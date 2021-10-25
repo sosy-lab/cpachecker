@@ -45,13 +45,17 @@ public class AggregateConstantsVisitor<X extends Exception>
 
   Optional<Set<String>> knownVariables;
   private boolean linearTermsOnly;
-  AggregateConstantsVisitor<X> noVariablesVisitor =
-      new AggregateConstantsVisitor<>(Optional.empty(), linearTermsOnly);
+  AggregateConstantsVisitor<X> noVariablesVisitor;
 
   public AggregateConstantsVisitor(
       Optional<Set<String>> pKnownVariables, boolean pLinearTermsOnly) {
     knownVariables = pKnownVariables;
     linearTermsOnly = pLinearTermsOnly;
+    if (pKnownVariables.isPresent()) {
+      noVariablesVisitor = new AggregateConstantsVisitor<>(Optional.empty(), linearTermsOnly);
+    } else {
+      noVariablesVisitor = this;
+    }
   }
 
   @Override

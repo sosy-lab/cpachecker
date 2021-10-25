@@ -51,6 +51,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.BaseStrategyDependency;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyInterface;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -60,14 +62,21 @@ public class CFACheck {
 
   /**
    * Traverse the CFA and run a series of checks at each node
+   *
    * @param cfa Node to start traversal from
    * @param nodes Optional set of all nodes in the CFA (may be null)
    * @param machineModel model to get the size of types
+   * @param pCFA the CFA containing the global information
+   * @param strategyDependency the strategy dependencies that should be used to check the new CFA
    * @return true if all checks succeed
    * @throws VerifyException if not all checks succeed
    */
   public static boolean check(
-      FunctionEntryNode cfa, @Nullable Set<CFANode> nodes, MachineModel machineModel)
+      FunctionEntryNode cfa,
+      @Nullable Set<CFANode> nodes,
+      MachineModel machineModel,
+      StrategyDependencyInterface strategyDependency,
+      CFA pCFA)
       throws VerifyException {
 
     Set<CFANode> visitedNodes = new HashSet<>();
@@ -76,14 +85,28 @@ public class CFACheck {
     waitingNodeList.add(cfa);
     while (!waitingNodeList.isEmpty()) {
       CFANode node = waitingNodeList.poll();
+      if (node.getNodeNumber() == 23) {
+        int x = 0;
+        x += 1;
+      }
 
       if (visitedNodes.add(node)) {
+        if (pCFA.getSummaryInformation().isPresent()) {
+          node.lookThrough(strategyDependency, pCFA.getSummaryInformation().get());
+        }
+
         Iterables.addAll(waitingNodeList, CFAUtils.successorsOf(node));
-        Iterables.addAll(waitingNodeList, CFAUtils.predecessorsOf(node)); // just to be sure to get ALL nodes.
+        Iterables.addAll(
+            waitingNodeList, CFAUtils.predecessorsOf(node)); // just to be sure to get ALL nodes.
 
         // The actual checks
         isConsistent(node, machineModel);
         checkEdgeCount(node);
+
+        if (pCFA.getSummaryInformation().isPresent()) {
+          node.removeLens();
+        }
+
       }
     }
 
@@ -94,7 +117,24 @@ public class CFACheck {
           Iterables.transform(Sets.difference(nodes, visitedNodes), CFACheck::debugFormat),
           Iterables.transform(Sets.difference(visitedNodes, nodes), CFACheck::debugFormat));
     }
+
     return true;
+  }
+
+  /**
+   * Traverse the CFA and run a series of checks at each node
+   *
+   * @param cfa Node to start traversal from
+   * @param nodes Optional set of all nodes in the CFA (may be null)
+   * @param machineModel model to get the size of types
+   * @param pCFA the CFA containing the global information
+   * @return true if all checks succeed
+   * @throws VerifyException if not all checks succeed
+   */
+  public static boolean check(
+      FunctionEntryNode cfa, @Nullable Set<CFANode> nodes, MachineModel machineModel, CFA pCFA)
+      throws VerifyException {
+    return check(cfa, nodes, machineModel, new BaseStrategyDependency(), pCFA);
   }
 
   /**
@@ -119,11 +159,10 @@ public class CFACheck {
 
   /**
    * Verify that the number of edges and their types match.
+   *
    * @param pNode Node to be checked
    */
   private static void checkEdgeCount(CFANode pNode) {
-
-    // check entering edges
     int entering = pNode.getNumEnteringEdges();
     if (entering == 0) {
       verify(
@@ -188,8 +227,9 @@ public class CFACheck {
   }
 
   /**
-   * Check all entering and leaving edges for corresponding leaving/entering edges
-   * at predecessor/successor nodes, and that there are no duplicates
+   * Check all entering and leaving edges for corresponding leaving/entering edges at
+   * predecessor/successor nodes, and that there are no duplicates
+   *
    * @param pNode Node to be checked
    */
   private static void isConsistent(CFANode pNode, MachineModel machineModel) {
