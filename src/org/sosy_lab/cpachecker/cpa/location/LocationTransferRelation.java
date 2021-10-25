@@ -64,6 +64,7 @@ public class LocationTransferRelation implements TransferRelation {
               .toList();
       Set<StrategiesEnum> allowedStrategies =
           new HashSet<>(summaryInformation.getSummaryStrategy().filter(availableStrategies));
+      allowedStrategies.removeAll(summaryInformation.getUnallowedStrategiesForNode(node));
 
       return CFAUtils.successorsOf(node)
           .filter(n -> allowedStrategies.contains(summaryInformation.getStrategyForNode(n)))

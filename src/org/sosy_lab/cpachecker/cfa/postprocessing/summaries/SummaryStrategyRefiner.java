@@ -56,18 +56,21 @@ public class SummaryStrategyRefiner implements Refiner {
     Collection<ARGState> seen = new ArrayList<>();
     waitlist.add(lastElement);
     Optional<ARGState> optionalRefinementState = Optional.empty();
+    Optional<StrategiesEnum> optionalStrategy = Optional.empty();
     while (!waitlist.isEmpty()) {
       Iterator<ARGState> iter = waitlist.iterator();
       Collection<ARGState> newWaitlist = new ArrayList<>();
       while (iter.hasNext()) {
         ARGState currentElement = iter.next();
-        if (summaryInformation
+        if (!summaryInformation
             .getFactory()
             .buildStrategy(
                 summaryInformation.getStrategyForNode(
                     AbstractStates.extractLocation(currentElement)))
             .isPrecise()) {
           optionalRefinementState = Optional.of(currentElement);
+          optionalStrategy = Optional.of(summaryInformation.getStrategyForNode(
+              AbstractStates.extractLocation(currentElement)));
           waitlist.clear();
           newWaitlist.clear();
           break;
@@ -81,22 +84,21 @@ public class SummaryStrategyRefiner implements Refiner {
       waitlist = newWaitlist;
     }
 
-    if (optionalRefinementState.isEmpty()) {
+    if (optionalRefinementState.isEmpty() || optionalStrategy.isEmpty()) {
       return false;
     } else {
-      // TODO Update precision
-
-      /*
       ARGState refinementState = optionalRefinementState.orElseThrow();
-      LoopSummaryPrecision newPrecision =
-          (LoopSummaryPrecision) pReached.getPrecision(refinementState);
+
+      if (optionalStrategy.get() != StrategiesEnum.Base) {
+        this.summaryInformation.addUnallowedStrategiesForNode(
+            AbstractStates.extractLocation(refinementState), optionalStrategy.get());
+      }
 
       while (!refinementState.getChildren().isEmpty()) {
         reached.removeSubtree(refinementState.getChildren().iterator().next());
       }
-      */
 
-      return false;
+      return true;
     }
   }
 }

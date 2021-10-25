@@ -41,6 +41,7 @@ public class SummaryInformation {
   private Set<StrategyInterface> strategies = new HashSet<>();
   private StrategyFactory factory;
   private StrategyDependencyInterface summaryStrategy;
+  private Map<CFANode, Set<StrategiesEnum>> unallowedStrategiesForNode = new HashMap<>();
 
   public SummaryInformation(CFA pCfa, StrategyDependencyInterface pSummaryStrategy) {
     summaryStrategy = pSummaryStrategy;
@@ -120,5 +121,21 @@ public class SummaryInformation {
 
   public StrategyDependencyInterface getSummaryStrategy() {
     return summaryStrategy;
+  }
+
+  public Set<StrategiesEnum> getUnallowedStrategiesForNode(CFANode node) {
+    return this.unallowedStrategiesForNode.get(node);
+  }
+
+  public void addUnallowedStrategiesForNode(CFANode node, StrategiesEnum strategy) {
+    if (unallowedStrategiesForNode.containsKey(node)) {
+      Set<StrategiesEnum> unallowedStrategies = unallowedStrategiesForNode.get(node);
+      unallowedStrategies.add(strategy);
+      unallowedStrategiesForNode.put(node, unallowedStrategies);
+    } else {
+      Set<StrategiesEnum> unallowedStrategies = new HashSet<>();
+      unallowedStrategies.add(strategy);
+      unallowedStrategiesForNode.put(node, unallowedStrategies);
+    }
   }
 }
