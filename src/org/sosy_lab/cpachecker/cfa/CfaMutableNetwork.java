@@ -22,29 +22,29 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.graph.ForwardingMutableNetwork;
 
-public class MutableCfaNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge> {
+public class CfaMutableNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge> {
 
-  private MutableCfaNetwork(MutableNetwork<CFANode, CFAEdge> pDelegate) {
+  private CfaMutableNetwork(MutableNetwork<CFANode, CFAEdge> pDelegate) {
     super(pDelegate);
   }
 
   /**
-   * Returns a new {@code MutableCfaNetwork} instance representing the specified CFA.
+   * Returns a new {@code CfaMutableNetwork} instance representing the specified CFA.
    *
-   * <p>The returned {@code MutableCfaNetwork} contains all nodes, regular edges, and summary edges
+   * <p>The returned {@code CfaMutableNetwork} contains all nodes, regular edges, and summary edges
    * that occur in the specified CFA.
    *
    * <p>Modifying the returned mutable network does not change the original CFA, so calling methods
-   * on the returned {@code MutableCfaNetwork} instance is safe. However, mutating existing {@code
+   * on the returned {@code CfaMutableNetwork} instance is safe. However, mutating existing {@code
    * CFANode} and {@code CFAEdge} objects may change (and break) the original CFA.
    *
-   * @param pCfa the CFA to create the {@code MutableCfaNetwork} for
-   * @return the {@code MutableCfaNetwork} for the specified CFA
+   * @param pCfa the CFA to create the {@code CfaMutableNetwork} for
+   * @return the {@code CfaMutableNetwork} for the specified CFA
    * @throws IllegalArgumentException if the specified CFA contains parallel edges (i.e., edges
    *     connected to the same nodes in the same order)
    * @throws NullPointerException if {@code pCfa == null}
    */
-  public static MutableCfaNetwork of(CFA pCfa) {
+  public static CfaMutableNetwork of(CFA pCfa) {
 
     MutableNetwork<CFANode, CFAEdge> mutableNetwork =
         NetworkBuilder.directed().allowsSelfLoops(true).build();
@@ -66,7 +66,7 @@ public class MutableCfaNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge
       }
     }
 
-    return new MutableCfaNetwork(mutableNetwork);
+    return new CfaMutableNetwork(mutableNetwork);
   }
 
   /**

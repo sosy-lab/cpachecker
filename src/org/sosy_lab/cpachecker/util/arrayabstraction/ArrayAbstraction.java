@@ -26,7 +26,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CCfaTransformer;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.MutableCfaNetwork;
+import org.sosy_lab.cpachecker.cfa.CfaMutableNetwork;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -88,7 +88,7 @@ public class ArrayAbstraction {
   }
 
   private static ImmutableSet<CFAEdge> getTransformableEdges(
-      MutableCfaNetwork pGraph, TransformableLoop pLoop) {
+      CfaMutableNetwork pGraph, TransformableLoop pLoop) {
 
     ImmutableSet.Builder<CFAEdge> builder = ImmutableSet.builder();
 
@@ -187,7 +187,7 @@ public class ArrayAbstraction {
   // Assumptions are used to prevent analyses from skipping some loops by letting these conditions
   // fail which can cause invalid analyses results.
   private static ImmutableMap<TransformableArray, CExpression> insertTransformableArrayAssumes(
-      MutableCfaNetwork pGraph,
+      CfaMutableNetwork pGraph,
       ImmutableMap<CSimpleDeclaration, TransformableArray> pTransformableArrayMap,
       TransformableLoop pLoop,
       ImmutableSet<TransformableArray> pLoopTransformableArrays,
@@ -301,7 +301,7 @@ public class ArrayAbstraction {
   }
 
   private static void insertLoopConditions(
-      MutableCfaNetwork pGraph,
+      CfaMutableNetwork pGraph,
       ImmutableSet<TransformableArray> pLoopTransformableArrays,
       TransformableLoop pLoop,
       CFANode pBodyEntryNode,
@@ -389,7 +389,7 @@ public class ArrayAbstraction {
   }
 
   private static Status transformLoop(
-      MutableCfaNetwork pGraph,
+      CfaMutableNetwork pGraph,
       ImmutableMap<CSimpleDeclaration, TransformableArray> pTransformableArrayMap,
       CFA pCfa,
       LogManager pLogger,
@@ -549,7 +549,7 @@ public class ArrayAbstraction {
   }
 
   private static Status transformEdge(
-      MutableCfaNetwork pGraph,
+      CfaMutableNetwork pGraph,
       ImmutableMap<CSimpleDeclaration, TransformableArray> pTransformableArrayMap,
       CFA pCfa,
       LogManager pLogger,
@@ -676,7 +676,7 @@ public class ArrayAbstraction {
   }
 
   private static void transformArrayDeclarations(
-      MutableCfaNetwork pGraph, ImmutableSet<TransformableArray> pTransformableArrays) {
+      CfaMutableNetwork pGraph, ImmutableSet<TransformableArray> pTransformableArrays) {
 
     for (TransformableArray transformableArray : pTransformableArrays) {
 
@@ -761,7 +761,7 @@ public class ArrayAbstraction {
       return ArrayAbstractionResult.createFailed(pCfa);
     }
 
-    MutableCfaNetwork graph = MutableCfaNetwork.of(simplifiedCfa);
+    CfaMutableNetwork graph = CfaMutableNetwork.of(simplifiedCfa);
 
     Status status = Status.PRECISE;
 

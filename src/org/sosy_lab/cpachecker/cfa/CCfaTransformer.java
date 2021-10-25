@@ -71,16 +71,16 @@ public final class CCfaTransformer {
       Configuration pConfiguration,
       LogManager pLogger,
       CFA pOriginalCfa,
-      MutableCfaNetwork pMutableCfaNetwork,
+      CfaMutableNetwork pCfaMutableNetwork,
       BiFunction<CFAEdge, CAstNode, CAstNode> pAstNodeSubstitution) {
 
     checkNotNull(pConfiguration);
     checkNotNull(pLogger);
     checkNotNull(pOriginalCfa);
-    checkNotNull(pMutableCfaNetwork);
+    checkNotNull(pCfaMutableNetwork);
     checkNotNull(pAstNodeSubstitution);
 
-    CfaBuilder cfaBuilder = new CfaBuilder(pMutableCfaNetwork, pAstNodeSubstitution);
+    CfaBuilder cfaBuilder = new CfaBuilder(pCfaMutableNetwork, pAstNodeSubstitution);
 
     return cfaBuilder.createCfa(pConfiguration, pLogger, pOriginalCfa);
   }
@@ -111,14 +111,14 @@ public final class CCfaTransformer {
     checkNotNull(pCfa);
     checkNotNull(pSubstitutionFunction);
 
-    MutableCfaNetwork mutableGraph = MutableCfaNetwork.of(pCfa);
+    CfaMutableNetwork mutableGraph = CfaMutableNetwork.of(pCfa);
 
     return createCfa(pConfiguration, pLogger, pCfa, mutableGraph, pSubstitutionFunction);
   }
 
   private static final class CfaBuilder {
 
-    private final MutableCfaNetwork graph;
+    private final CfaMutableNetwork graph;
 
     private final BiFunction<CFAEdge, CAstNode, CAstNode> astNodeSubstitutionFunction;
 
@@ -126,10 +126,10 @@ public final class CCfaTransformer {
     private final Map<CFAEdge, CFAEdge> oldEdgeToNewEdge;
 
     private CfaBuilder(
-        MutableCfaNetwork pMutableCfaNetwork,
+        CfaMutableNetwork pCfaMutableNetwork,
         BiFunction<CFAEdge, CAstNode, CAstNode> pAstNodeSubstitutionFunction) {
 
-      graph = pMutableCfaNetwork;
+      graph = pCfaMutableNetwork;
 
       astNodeSubstitutionFunction = pAstNodeSubstitutionFunction;
 
