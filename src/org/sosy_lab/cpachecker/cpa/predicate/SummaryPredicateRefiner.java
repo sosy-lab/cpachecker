@@ -10,28 +10,27 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.SummaryBasedRefiner;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.SummaryStrategyRefiner;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
-import org.sosy_lab.cpachecker.cpa.loopsummary.LoopSummaryBasedRefiner;
-import org.sosy_lab.cpachecker.cpa.loopsummary.LoopSummaryCPA;
-import org.sosy_lab.cpachecker.cpa.loopsummary.LoopSummaryStrategyRefiner;
 import org.sosy_lab.cpachecker.util.CPAs;
 
-public abstract class LoopSummaryPredicateRefiner implements Refiner {
+public abstract class SummaryPredicateRefiner implements Refiner {
 
   public static Refiner create(ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
     LogManager logger;
-    if (pCpa instanceof LoopSummaryCPA) {
-      logger = ((LoopSummaryCPA) pCpa).getLogger();
-    } else {
-      logger = null;
-    }
-    PredicateCPA predicateCPA = CPAs.retrieveCPAOrFail(pCpa, PredicateCPA.class, LoopSummaryPredicateRefiner.class);
-    return new LoopSummaryBasedRefiner(
+    ARGCPA argCpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, SummaryPredicateRefiner.class);
+    PredicateCPA predicateCPA =
+        CPAs.retrieveCPAOrFail(pCpa, PredicateCPA.class, SummaryPredicateRefiner.class);
+    logger = argCpa.getLogger();
+
+    return new SummaryBasedRefiner(
         AbstractARGBasedRefiner.forARGBasedRefiner(PredicateRefiner.create0(pCpa), pCpa),
-        new LoopSummaryStrategyRefiner(logger, pCpa),
+        new SummaryStrategyRefiner(logger, pCpa, argCpa.getCfa()),
         logger,
         pCpa,
         predicateCPA.getConfiguration());

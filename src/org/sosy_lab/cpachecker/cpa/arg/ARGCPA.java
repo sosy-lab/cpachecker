@@ -100,6 +100,8 @@ public class ARGCPA extends AbstractSingleWrapperCPA
 
   private final ARGStatistics stats;
 
+  private final CFA cfa;
+
   private ARGCPA(
       ConfigurableProgramAnalysis cpa,
       Configuration config,
@@ -111,6 +113,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA
     config.inject(this);
     this.logger = logger;
     stats = new ARGStatistics(config, logger, this, pSpecification, cfa);
+    this.cfa = cfa;
   }
 
   @Override
@@ -252,5 +255,9 @@ public class ARGCPA extends AbstractSingleWrapperCPA
     return ((ConfigurableProgramAnalysisWithBAM) getWrappedCpa())
         .isCoveredByRecursiveState(
             ((ARGState) state1).getWrappedState(), ((ARGState) state2).getWrappedState());
+  }
+
+  public CFA getCfa() {
+    return cfa;
   }
 }
