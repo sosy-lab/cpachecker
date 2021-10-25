@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops;
 
 import java.util.Iterator;
-import java.util.Map;
 import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
@@ -22,10 +21,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -36,9 +32,6 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.expressions.AExpressionsFactory;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.expressions.AExpressionsFactory.ExpressionType;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.expressions.LoopVariableDeltaVisitor;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -54,192 +47,6 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
     super(pLogger, pShutdownNotifier, pStrategyDependencies, pCFA);
 
     this.strategyEnum = StrategiesEnum.LoopConstantExtrapolation;
-  }
-
-  // There was a method unrollLoopOnce which overrided the unroll loop once method in the abstract
-  // class, see it if there is some error, it was still here in commit
-  // a272d189e10d05880102c4a29450c113f9f80bee
-
-  protected Optional<GhostCFA> summaryCFA(
-      CFANode loopStartNode,
-      final Map<String, Integer> loopVariableDelta,
-      final CExpression loopBound,
-      final int boundDelta,
-      final int boundVariableDelta,
-      final Integer loopBranchIndex) {
-    int CFANodeCounter = 1;
-    CFANode startNodeGhostCFA = CFANode.newDummyCFANode("LSSTARTGHHOST");
-    CFANode endNodeGhostCFA = CFANode.newDummyCFANode("LSENDGHHOST");
-    CFANode currentEndNodeGhostCFA = CFANode.newDummyCFANode("LS2");
-    CFAEdge loopIngoingConditionEdge = loopStartNode.getLeavingEdge(loopBranchIndex);
-    CFAEdge loopIngoingConditionDummyEdgeTrue =
-        overwriteStartEndStateEdge(
-            (CAssumeEdge) loopIngoingConditionEdge, true, startNodeGhostCFA, currentEndNodeGhostCFA);
-    CFAEdge loopIngoingConditionDummyEdgeFalse =
-        overwriteStartEndStateEdge(
-            (CAssumeEdge) loopIngoingConditionEdge, false, startNodeGhostCFA, endNodeGhostCFA);
-    startNodeGhostCFA.addLeavingEdge(loopIngoingConditionDummyEdgeTrue);
-    currentEndNodeGhostCFA.addEnteringEdge(loopIngoingConditionDummyEdgeTrue);
-    startNodeGhostCFA.addLeavingEdge(loopIngoingConditionDummyEdgeFalse);
-    endNodeGhostCFA.addEnteringEdge(loopIngoingConditionDummyEdgeFalse);
-    CFANode currentStartNodeGhostCFA = currentEndNodeGhostCFA;
-    currentEndNodeGhostCFA = CFANode.newDummyCFANode("LS3");
-
-    CType calculationType = ((CBinaryExpression) loopBound).getCalculationType();
-    CType expressionType = ((CBinaryExpression) loopBound).getExpressionType();
-    // Check for Overflows by unrolling the Loop once before doing the Summary and once after doing
-    // the summary
-    CBinaryExpression loopBoundtwiceUnrollingExpression =
-        new CBinaryExpression(
-            FileLocation.DUMMY,
-            expressionType,
-            calculationType,
-            CIntegerLiteralExpression.createDummyLiteral(0, CNumericTypes.INT),
-            new CBinaryExpression(
-                FileLocation.DUMMY,
-                expressionType,
-                calculationType,
-                loopBound,
-                CIntegerLiteralExpression.createDummyLiteral(
-                    2 * ((long) boundDelta), CNumericTypes.INT),
-                BinaryOperator.MINUS),
-            BinaryOperator.LESS_THAN);
-    CFAEdge twiceLoopUnrollingConditionEdgeTrue =
-        new CAssumeEdge(
-            ((CBinaryExpression) loopBound).toString() + "- " + 2 * boundDelta + " > 0",
-            FileLocation.DUMMY,
-            currentStartNodeGhostCFA,
-            currentEndNodeGhostCFA,
-            loopBoundtwiceUnrollingExpression,
-            true);
-    currentStartNodeGhostCFA.addLeavingEdge(twiceLoopUnrollingConditionEdgeTrue);
-    currentEndNodeGhostCFA.addEnteringEdge(twiceLoopUnrollingConditionEdgeTrue);
-    CFANode loopUnrollingCurrentNode = CFANode.newDummyCFANode("LS5");
-    CFAEdge twiceLoopUnrollingConditionEdgeFalse =
-        new CAssumeEdge(
-            ((CBinaryExpression) loopBound).toString() + "- " + 2 * boundDelta + "> 0",
-            FileLocation.DUMMY,
-            currentStartNodeGhostCFA,
-            loopUnrollingCurrentNode,
-            loopBoundtwiceUnrollingExpression,
-            false);
-    currentStartNodeGhostCFA.addLeavingEdge(twiceLoopUnrollingConditionEdgeFalse);
-    loopUnrollingCurrentNode.addEnteringEdge(twiceLoopUnrollingConditionEdgeFalse);
-
-
-    // When the loopbound - 2 <= 0 we need to unroll the loop twice
-    Optional<CFANode> loopUnrollingSuccess = unrollLoopOnce(loopStartNode, loopBranchIndex, loopUnrollingCurrentNode, endNodeGhostCFA);
-    if (loopUnrollingSuccess.isEmpty()) {
-      return Optional.empty();
-    } else {
-      loopUnrollingCurrentNode =
-          loopUnrollingSuccess.orElseThrow();
-    }
-
-    loopUnrollingSuccess =
-        unrollLoopOnce(loopStartNode, loopBranchIndex, loopUnrollingCurrentNode, endNodeGhostCFA);
-    if (loopUnrollingSuccess.isEmpty()) {
-      return Optional.empty();
-    } else {
-      loopUnrollingCurrentNode = loopUnrollingSuccess.orElseThrow();
-    }
-    CFAEdge blankOutgoingEdge = new BlankEdge("Blank", FileLocation.DUMMY, loopUnrollingCurrentNode, endNodeGhostCFA, "Blank");
-    loopUnrollingCurrentNode.addLeavingEdge(blankOutgoingEdge);
-    endNodeGhostCFA.addEnteringEdge(blankOutgoingEdge);
-
-    // Unroll the loop once to check for overflows
-
-    loopUnrollingSuccess =
-        unrollLoopOnce(loopStartNode, loopBranchIndex, currentEndNodeGhostCFA, endNodeGhostCFA);
-    if (loopUnrollingSuccess.isEmpty()) {
-      return Optional.empty();
-    } else {
-      loopUnrollingCurrentNode = loopUnrollingSuccess.orElseThrow();
-    }
-    currentEndNodeGhostCFA = CFANode.newDummyCFANode("LS6");
-    currentStartNodeGhostCFA = loopUnrollingCurrentNode;
-
-    // Make Summary
-    for (Map.Entry<String, Integer> set : loopVariableDelta.entrySet()) {
-      CVariableDeclaration pc =
-          new CVariableDeclaration(
-              FileLocation.DUMMY,
-              true,
-              CStorageClass.EXTERN,
-              CNumericTypes.INT, // TODO improve this
-              set.getKey(),
-              set.getKey(),
-              set.getKey(),
-              null);
-      CExpression rightHandSide =
-          new CBinaryExpression(
-              FileLocation.DUMMY,
-              expressionType,
-              calculationType,
-              new CIdExpression(FileLocation.DUMMY, pc),
-              new CBinaryExpression(
-                  FileLocation.DUMMY,
-                  expressionType,
-                  calculationType,
-                  CIntegerLiteralExpression.createDummyLiteral(set.getValue(), CNumericTypes.INT),
-                  new CBinaryExpression(
-                      FileLocation.DUMMY,
-                      expressionType,
-                      calculationType,
-                      new CBinaryExpression(
-                          FileLocation.DUMMY,
-                          expressionType,
-                          calculationType,
-                          loopBound,
-                          CIntegerLiteralExpression.createDummyLiteral(
-                              boundVariableDelta, CNumericTypes.INT),
-                          BinaryOperator.PLUS),
-                      CIntegerLiteralExpression.createDummyLiteral(boundDelta, CNumericTypes.INT),
-                      BinaryOperator.DIVIDE),
-                  BinaryOperator.MULTIPLY),
-              BinaryOperator.PLUS);
-      CIdExpression leftHandSide = new CIdExpression(FileLocation.DUMMY, pc);
-      CExpressionAssignmentStatement cStatementEdge =
-          new CExpressionAssignmentStatement(FileLocation.DUMMY, leftHandSide, rightHandSide);
-      CFAEdge dummyEdge =
-          new CStatementEdge(
-              set.getKey() + " = " + set.getValue() + " - 2",
-              cStatementEdge,
-              FileLocation.DUMMY,
-              currentStartNodeGhostCFA,
-              currentEndNodeGhostCFA);
-      currentStartNodeGhostCFA.addLeavingEdge(dummyEdge);
-      currentEndNodeGhostCFA.addEnteringEdge(dummyEdge);
-      currentStartNodeGhostCFA = currentEndNodeGhostCFA;
-      currentEndNodeGhostCFA = CFANode.newDummyCFANode("LSI" + CFANodeCounter);
-      CFANodeCounter += 1;
-    }
-
-    loopUnrollingSuccess =
-        unrollLoopOnce(loopStartNode, loopBranchIndex, currentStartNodeGhostCFA, endNodeGhostCFA);
-
-    if (loopUnrollingSuccess.isEmpty()) {
-      return Optional.empty();
-    } else {
-
-      currentStartNodeGhostCFA = loopUnrollingSuccess.orElseThrow();
-    }
-
-    blankOutgoingEdge =
-        new BlankEdge(
-            "Blank", FileLocation.DUMMY, currentStartNodeGhostCFA, endNodeGhostCFA, "Blank");
-    currentStartNodeGhostCFA.addLeavingEdge(blankOutgoingEdge);
-    endNodeGhostCFA.addEnteringEdge(blankOutgoingEdge);
-
-    CFANode afterLoopNode = loopStartNode.getLeavingEdge(1 - loopBranchIndex).getSuccessor();
-
-    return Optional.of(
-        new GhostCFA(
-            startNodeGhostCFA,
-            endNodeGhostCFA,
-            loopStartNode,
-            afterLoopNode,
-            StrategiesEnum.LoopConstantExtrapolation));
   }
 
   /**
