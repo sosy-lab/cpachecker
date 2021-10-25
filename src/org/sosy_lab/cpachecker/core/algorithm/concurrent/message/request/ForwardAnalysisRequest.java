@@ -32,13 +32,11 @@ import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.MessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.Task;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.forward.ForwardAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ShareableBooleanFormula;
-import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.composite.BlockAwareCompositeCPA;
-import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -91,8 +89,8 @@ public class ForwardAnalysisRequest implements TaskRequest {
         new CoreComponentsFactory(
             forward, logManager, pShutdownNotifier, AggregatedReachedSets.empty());
 
-    CompositeCPA compositeCpa = (CompositeCPA) factory.createCPA(pCFA, pSpecification);
-    reached = factory.createReachedSet(compositeCpa);
+    ARGCPA argcpa = (ARGCPA) factory.createCPA(pCFA, pSpecification);
+    reached = factory.createReachedSet(argcpa);
 
     cpa =
         (BlockAwareCompositeCPA)
@@ -102,7 +100,7 @@ public class ForwardAnalysisRequest implements TaskRequest {
                 .setShutdownNotifier(pShutdownNotifier)
                 .set(pCFA, CFA.class)
                 .set(block, Block.class)
-                .set(compositeCpa, CompositeCPA.class)
+                .set(argcpa, ARGCPA.class)
                 .createInstance();
 
     algorithm = factory.createAlgorithm(cpa, pCFA, pSpecification);

@@ -40,8 +40,9 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.composite.BlockAwareARGState;
 import org.sosy_lab.cpachecker.cpa.composite.BlockAwareCompositeCPA;
-import org.sosy_lab.cpachecker.cpa.composite.BlockAwareCompositeState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -117,7 +118,7 @@ public class BackwardAnalysisFull extends Task {
     return configLoader.getConfiguration();
   }
 
-  private BlockAwareCompositeState buildEntryState() throws InterruptedException {
+  private BlockAwareARGState buildEntryState() throws InterruptedException {
     PredicateAbstractState predicateEntryState = buildPredicateEntryState();
 
     List<AbstractState> componentStates = new ArrayList<>();
@@ -137,7 +138,7 @@ public class BackwardAnalysisFull extends Task {
       componentStates.add(componentState);
     }
 
-    return BlockAwareCompositeState.create(new CompositeState(componentStates), target, BACKWARD);
+    return BlockAwareARGState.create(new ARGState(new CompositeState(componentStates), null), target, BACKWARD);
   }
 
   private PredicateAbstractState buildPredicateEntryState() throws InterruptedException {
@@ -216,7 +217,7 @@ public class BackwardAnalysisFull extends Task {
       return;
     }
 
-    BlockAwareCompositeState entryState = buildEntryState();
+    BlockAwareARGState entryState = buildEntryState();
     Precision precision = cpa.getInitialPrecision(start, getDefaultPartition());
     reached.add(entryState, precision);
 

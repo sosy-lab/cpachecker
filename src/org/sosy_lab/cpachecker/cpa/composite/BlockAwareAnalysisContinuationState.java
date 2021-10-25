@@ -8,21 +8,20 @@
 
 package org.sosy_lab.cpachecker.cpa.composite;
 
-import java.util.List;
 import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 /** Todo: Docs + Justification for this class! */
-public class BlockAwareAnalysisContinuationState extends BlockAwareCompositeState {
+public class BlockAwareAnalysisContinuationState extends BlockAwareARGState {
   BlockAwareAnalysisContinuationState(
-      List<AbstractState> elements, Block pBlock, AnalysisDirection pDirection) {
-    super(elements, pBlock, pDirection);
+      ARGState pState, Block pBlock, AnalysisDirection pDirection) {
+    super(pState, pBlock, pDirection);
   }
 
   public static BlockAwareAnalysisContinuationState create(
-      List<AbstractState> elements, Block pBlock, AnalysisDirection pDirection) {
-    return new BlockAwareAnalysisContinuationState(elements, pBlock, pDirection);
+      ARGState pState, Block pBlock, AnalysisDirection pDirection) {
+    return new BlockAwareAnalysisContinuationState(pState, pBlock, pDirection);
   }
 
   public boolean isTarget() {

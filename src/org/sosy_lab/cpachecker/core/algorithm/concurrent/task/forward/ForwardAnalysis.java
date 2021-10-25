@@ -42,9 +42,10 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
+import org.sosy_lab.cpachecker.cpa.composite.BlockAwareARGState;
 import org.sosy_lab.cpachecker.cpa.composite.BlockAwareCompositeCPA;
-import org.sosy_lab.cpachecker.cpa.composite.BlockAwareCompositeState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -145,7 +146,7 @@ public class ForwardAnalysis extends Task {
       return;
     }
 
-    BlockAwareCompositeState entryState = buildEntryState(cumPredSummary);
+    BlockAwareARGState entryState = buildEntryState(cumPredSummary);
     Precision precision = cpa.getInitialPrecision(target.getEntry(), getDefaultPartition());
     reached.add(entryState, precision);
 
@@ -217,7 +218,7 @@ public class ForwardAnalysis extends Task {
     return !solver.isUnsat(equivalence);
   }
 
-  private BlockAwareCompositeState buildEntryState(final PathFormula cumPredSummary)
+  private BlockAwareARGState buildEntryState(final PathFormula cumPredSummary)
       throws InterruptedException {
     PredicateAbstractState predicateEntryState = buildPredicateEntryState(cumPredSummary);
 
@@ -238,7 +239,7 @@ public class ForwardAnalysis extends Task {
       componentStates.add(componentState);
     }
 
-    return BlockAwareCompositeState.create(new CompositeState(componentStates), target, FORWARD);
+    return BlockAwareARGState.create(new ARGState(new CompositeState(componentStates), null), target, FORWARD);
   }
 
   private PredicateAbstractState buildPredicateEntryState(final PathFormula cumPredSummary)

@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
  */
 public abstract class AbstractSingleWrapperCPA implements ConfigurableProgramAnalysis, WrapperCPA, StatisticsProvider {
 
-  private final ConfigurableProgramAnalysis wrappedCpa;
+  protected final ConfigurableProgramAnalysis wrappedCpa;
 
   protected AbstractSingleWrapperCPA(ConfigurableProgramAnalysis pCpa) {
     Preconditions.checkNotNull(pCpa);

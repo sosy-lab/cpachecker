@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class BlockAwarePrecisionAdjustment implements PrecisionAdjustment {
@@ -47,7 +48,7 @@ public class BlockAwarePrecisionAdjustment implements PrecisionAdjustment {
       Function<AbstractState, AbstractState> stateProjection,
       AbstractState fullState)
       throws CPAException, InterruptedException {
-    assert state instanceof BlockAwareCompositeState;
+    assert state instanceof BlockAwareARGState;
 
     Optional<PrecisionAdjustmentResult> result =
         defaultAdjustment.prec(state, precision, states, stateProjection, fullState);
@@ -56,10 +57,10 @@ public class BlockAwarePrecisionAdjustment implements PrecisionAdjustment {
       PrecisionAdjustmentResult adjustment = result.get();
 
       assert adjustment.abstractState() instanceof CompositeState;
-      CompositeState adjustedState = (CompositeState) adjustment.abstractState();
+      ARGState adjustedState = (ARGState) adjustment.abstractState();
 
-      BlockAwareCompositeState newState =
-          BlockAwareCompositeState.create(adjustedState, block, direction);
+      BlockAwareARGState newState =
+          BlockAwareARGState.create(adjustedState, block, direction);
       
       Action action = CONTINUE;
       if(adjustedState.isTarget()) {

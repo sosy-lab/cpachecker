@@ -76,7 +76,7 @@ public class ConfigurationLoader {
     RequiredOptions options = new RequiredOptions();
     pConfiguration.inject(options);
 
-    if (!options.cpa.endsWith("CompositeCPA")) {
+    if (!options.cpa.endsWith("CompositeCPA") && !options.cpa.endsWith("ARGCPA")) {
       throw new InvalidConfigurationException(
           "Concurrent analysis requires cpa.composite.CompositeCPA as top-level CPA for both ForwardAnalysis and BackwardAnalysis!");
     }

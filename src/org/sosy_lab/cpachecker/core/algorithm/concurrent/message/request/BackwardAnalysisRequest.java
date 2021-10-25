@@ -34,8 +34,8 @@ import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ShareableBooleanFo
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.composite.BlockAwareCompositeCPA;
-import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -93,8 +93,8 @@ public class BackwardAnalysisRequest implements TaskRequest {
             backward, logManager, pShutdownNotifier, AggregatedReachedSets.empty());
 
     Specification emptySpec = Specification.alwaysSatisfied();
-    CompositeCPA compositeCpa = (CompositeCPA) factory.createCPA(pCFA, emptySpec);
-    reached = factory.createReachedSet(compositeCpa);
+    ARGCPA argcpa = (ARGCPA) factory.createCPA(pCFA, emptySpec);
+    reached = factory.createReachedSet(argcpa);
 
     cpa =
         (BlockAwareCompositeCPA)
@@ -104,7 +104,7 @@ public class BackwardAnalysisRequest implements TaskRequest {
                 .setShutdownNotifier(pShutdownNotifier)
                 .set(pCFA, CFA.class)
                 .set(target, Block.class)
-                .set(compositeCpa, CompositeCPA.class)
+                .set(argcpa, ARGCPA.class)
                 .createInstance();
 
     algorithm = factory.createAlgorithm(cpa, pCFA, emptySpec);

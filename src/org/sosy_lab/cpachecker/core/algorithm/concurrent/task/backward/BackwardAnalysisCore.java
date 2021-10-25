@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ErrorOrigin;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ShareableBooleanFormula;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.composite.BlockAwareAnalysisContinuationState;
 import org.sosy_lab.cpachecker.cpa.composite.BlockAwareCompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
@@ -51,7 +52,7 @@ public class BackwardAnalysisCore extends Task {
   private final FormulaManagerView fMgr;
 
   private AlgorithmStatus status = SOUND_AND_PRECISE;
-  
+
   public BackwardAnalysisCore(
       final Block pBlock,
       final ReachedSet pReachedSet,
@@ -69,7 +70,7 @@ public class BackwardAnalysisCore extends Task {
     fMgr = solver.getFormulaManager();
     target = pBlock;
     origin = pOrigin;
-    
+
     reached = pReachedSet;
     algorithm = pAlgorithm;
   }
@@ -77,14 +78,14 @@ public class BackwardAnalysisCore extends Task {
   @Override
   protected void execute() throws Exception {
     logManager.log(Level.FINE, "BackwardAnalysisFull on", target);
-    
-    AlgorithmStatus newStatus = algorithm.run(reached); 
+
+    AlgorithmStatus newStatus = algorithm.run(reached);
     status = status.update(newStatus);
 
     for (final AbstractState reachedState : reached.asCollection()) {
       processReachedState(reachedState);
     }
-    
+
     Collection<AbstractState> waiting = new ArrayList<>(reached.getWaitlist());
     reached.clear();
     for (final AbstractState waitingState : waiting) {
@@ -96,17 +97,18 @@ public class BackwardAnalysisCore extends Task {
       } else if (location.isLoopStart()) {
         assert waitingState instanceof CompositeState;
 
-        CompositeState blockAwareState = (CompositeState) waitingState;
+        ARGState blockAwareState = (ARGState) waitingState;
         BlockAwareAnalysisContinuationState newStart =
             BlockAwareAnalysisContinuationState.create(
-                blockAwareState.getWrappedStates(), target, BACKWARD);
+                blockAwareState, target, BACKWARD);
         reached.add(newStart, cpa.getInitialPrecision(location, getDefaultPartition()));
       }
     }
 
     shutdownNotifier.shutdownIfNecessary();
     if (reached.hasWaitingState()) {
-      messageFactory.sendBackwardAnalysisContinuationRequest(target, origin, reached, algorithm, cpa);
+      messageFactory.sendBackwardAnalysisContinuationRequest(target, origin, reached, algorithm,
+          cpa);
     }
 
     logManager.log(Level.FINE, "Completed BackwardAnalysis on", target);
