@@ -112,8 +112,8 @@ public class NondetBoundConstantExtrapolationStrategy extends ConstantExtrapolat
             CIntegerLiteralExpression.createDummyLiteral(0, CNumericTypes.INT),
             BinaryOperator.MINUS);
 
-    Optional<GhostCFA> superOptionalGhostCFA =
-        super.summaryCFA(loopStartNode, loopVariableDelta, loopBound, 1, -1, loopBranchIndex);
+    Optional<GhostCFA> superOptionalGhostCFA = Optional.empty();
+    // super.summaryCFA(loopStartNode, loopVariableDelta, loopBound, 1, -1, loopBranchIndex);
 
     GhostCFA superGhostCFA;
     if (superOptionalGhostCFA.isEmpty()) {

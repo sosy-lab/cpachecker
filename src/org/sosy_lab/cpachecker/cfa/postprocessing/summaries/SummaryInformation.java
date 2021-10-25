@@ -62,7 +62,6 @@ public class SummaryInformation {
     }
 
     addNodeForStrategy(ghostCFA.getStrategy(), ghostCFA.getStartGhostCfaNode());
-    addNodeForStrategy(ghostCFA.getStrategy(), ghostCFA.getStopGhostCfaNode());
   }
 
   public StrategiesEnum getStrategyForEdge(CFAEdge edge) {
