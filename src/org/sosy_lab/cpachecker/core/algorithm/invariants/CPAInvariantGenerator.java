@@ -55,6 +55,8 @@ import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.predicates.invariants.ExpressionTreeInvariantSupplier;
+import org.sosy_lab.cpachecker.util.predicates.invariants.FormulaInvariantsSupplier;
 
 /**
  * Class that encapsulates invariant generation by using the CPAAlgorithm
@@ -183,7 +185,8 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
     try {
       invariantConfig = Configuration.builder().loadFromFile(configFile).build();
     } catch (IOException e) {
-      throw new InvalidConfigurationException("could not read configuration file for invariant generation: " + e.getMessage(), e);
+      throw new InvalidConfigurationException(
+          "could not read configuration file for invariant generation: " + e.getMessage(), e);
     }
 
     reachedSetFactory = new ReachedSetFactory(invariantConfig, logger);
@@ -235,9 +238,8 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
     shutdownManager.requestShutdown("Invariant generation cancel requested.");
   }
 
-  @Override
-  public AggregatedReachedSets get() throws CPAException, InterruptedException {
-    checkState(invariantGenerationFuture != null);
+  private AggregatedReachedSets getAggregatedReachedSets()
+      throws CPAException, InterruptedException {
 
     try {
       return invariantGenerationFuture.get();
@@ -248,6 +250,18 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
       shutdownManager.getNotifier().shutdownIfNecessary();
       throw e;
     }
+  }
+
+  @Override
+  public InvariantSupplier getSupplier() throws CPAException, InterruptedException {
+
+    return new FormulaInvariantsSupplier(getAggregatedReachedSets());
+  }
+
+  @Override
+  public ExpressionTreeSupplier getExpressionTreeSupplier()
+      throws CPAException, InterruptedException {
+    return new ExpressionTreeInvariantSupplier(getAggregatedReachedSets(), cfa);
   }
 
   @Override
@@ -271,7 +285,8 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
    */
   private class InvariantGenerationTask implements Callable<AggregatedReachedSets> {
 
-    private static final String SAFE_MESSAGE = "Invariant generation with abstract interpretation proved specification to hold.";
+    private static final String SAFE_MESSAGE =
+        "Invariant generation with abstract interpretation proved specification to hold.";
     private final CFANode initialLocation;
 
     private InvariantGenerationTask(final CFANode pInitialLocation) {
@@ -284,7 +299,11 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
       try {
 
         shutdownManager.getNotifier().shutdownIfNecessary();
-        logger.log(Level.INFO, "Starting iteration", iteration, "of invariant generation with abstract interpretation.");
+        logger.log(
+            Level.INFO,
+            "Starting iteration",
+            iteration,
+            "of invariant generation with abstract interpretation.");
 
         return runInvariantGeneration(initialLocation);
 

@@ -321,6 +321,9 @@ analysis.initialStatesFor = Sets.newHashSet(InitialStatesFor.ENTRY)
 # run interprocedural analysis
 analysis.interprocedural = true
 
+# Runs an algorithm that produces and exports invariants
+analysis.invariantExport = false
+
 # the machine model, which determines the sizes of types like int
 analysis.machineModel = LINUX32
   enum:     [LINUX32, LINUX64, ARM, ARM64]
@@ -506,6 +509,9 @@ analysis.useTestCaseGeneratorAlgorithm = false
 # converts a witness to an ACSL annotated program
 analysis.useWitnessToACSLAlgorithm = false
 
+# converts a graphml witness to invariant witness
+analysis.witnessToInvariant = false
+
 # Whether to export the CFA with abstracted arrays as C source file.
 arrayAbstraction.cfa.c.export = true
 
@@ -684,7 +690,7 @@ bmc.induction = false
 
 # Strategy for generating auxiliary invariants
 bmc.invariantGenerationStrategy = REACHED_SET
-  enum:     [INDUCTION, REACHED_SET, DO_NOTHING]
+  enum:     [INDUCTION, REACHED_SET, DO_NOTHING, INVARIANT_STORE]
 
 # k-induction configuration to be used as an invariant generator for
 # k-induction (ki-ki(-ai)).
@@ -3568,6 +3574,17 @@ invariantGeneration.kInduction.invariantsAutomatonFile = no default value
 # For correctness-witness validation: Shut down if a candidate invariant is
 # found to be incorrect.
 invariantGeneration.kInduction.terminateOnCounterexample = false
+
+# The directory where the invariants are stored.
+invariantStore.export.outDir = "invariantWitnesses"
+invariantStore.import.storeDirectory = "invariantWitnesses"
+
+# Strategy for generating invariants
+invariantStore.invariantGenerationStrategy = REACHED_SET
+  enum:     [INDUCTION, REACHED_SET, DO_NOTHING, INVARIANT_STORE]
+
+# The witness from which invariants should be generated.
+invariantStore.witness = "invariantwitness.yaml"
 
 # Specify the class code path to search for java class or interface
 # definitions

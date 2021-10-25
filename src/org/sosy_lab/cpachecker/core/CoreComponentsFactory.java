@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core;
 
 import static com.google.common.base.Verify.verifyNotNull;
 
+import java.io.IOException;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
@@ -32,6 +33,7 @@ import org.sosy_lab.cpachecker.core.algorithm.CustomInstructionRequirementsExtra
 import org.sosy_lab.cpachecker.core.algorithm.ExceptionHandlingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationWithCoverage;
 import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationWithTraceFormula;
+import org.sosy_lab.cpachecker.core.algorithm.InvariantExportAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.MPIPortfolioAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.NoopAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm;
@@ -42,6 +44,7 @@ import org.sosy_lab.cpachecker.core.algorithm.RestrictedProgramDomainAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.SelectionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.TestCaseGeneratorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.UndefinedFunctionCollectorAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.WitnessToInvariantWitnessAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.WitnessToACSLAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.IMCAlgorithm;
@@ -79,6 +82,7 @@ import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.automaton.CachingTargetLocationProvider;
 
 /**
  * Factory class for the three core components of CPAchecker:
@@ -188,6 +192,18 @@ public class CoreComponentsFactory {
 
   @Option(secure = true, description = "converts a witness to an ACSL annotated program")
   private boolean useWitnessToACSLAlgorithm = false;
+
+  @Option(
+      secure = true,
+      name = "witnessToInvariant",
+      description = "converts a graphml witness to invariant witness")
+  private boolean useWitnessToInvariantAlgorithm = false;
+
+  @Option(
+      secure = true,
+      name = "invariantExport",
+      description = "Runs an algorithm that produces and exports invariants")
+  private boolean useInvariantExportAlgorithm = false;
 
   @Option(
     secure = true,
@@ -391,7 +407,7 @@ public class CoreComponentsFactory {
         && !useProofCheckAlgorithmWithStoredConfig
         && !useRestartingAlgorithm
         && !useImpactAlgorithm
-        && (useBMC || useIMC);
+        && (useBMC || useIMC || useInvariantExportAlgorithm);
   }
 
   public Algorithm createAlgorithm(
@@ -459,6 +475,25 @@ public class CoreComponentsFactory {
     } else if (useMPIProcessAlgorithm) {
       algorithm = new MPIPortfolioAlgorithm(config, logger, shutdownNotifier, specification);
 
+    } else if (useWitnessToInvariantAlgorithm) {
+      try {
+        algorithm =
+            new WitnessToInvariantWitnessAlgorithm(
+                config, logger, shutdownNotifier, cfa, specification);
+      } catch (IOException e) {
+        throw new CPAException("could not instantiate invariant witness writer", e);
+      }
+    } else if (useInvariantExportAlgorithm) {
+      algorithm =
+          new InvariantExportAlgorithm(
+              config,
+              logger,
+              shutdownManager,
+              cfa,
+              specification,
+              reachedSetFactory,
+              new CachingTargetLocationProvider(shutdownNotifier, logger, cfa),
+              aggregatedReachedSets);
     } else if (useFaultLocalizationWithDistanceMetrics) {
       algorithm = new
           Explainer(
