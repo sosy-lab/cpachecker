@@ -25,7 +25,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -385,17 +384,17 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
     CFANode currentSummaryNodeCFA = CFANode.newDummyCFANode("Start Summary Node");
 
     CFAEdge loopBoundCFAEdge =
-        new AssumeEdge(
+        new CAssumeEdge(
             "Loop Bound Assumption",
             FileLocation.DUMMY,
             endUnrolledLoopNode,
             currentSummaryNodeCFA,
-            pLoopBoundExpression,
+            (CExpression) pLoopBoundExpression,
             true); // TODO: this may not be the correct way to do this; Review
     loopBoundCFAEdge.connect();
 
-    CFAEdge negatedBoundCFAEdge =
-        ((AssumeEdge) loopBoundCFAEdge).negate().copyWith(endUnrolledLoopNode, endNodeGhostCFA);
+    CAssumeEdge negatedBoundCFAEdge =
+        ((CAssumeEdge) loopBoundCFAEdge).negate().copyWith(endUnrolledLoopNode, endNodeGhostCFA);
     negatedBoundCFAEdge.connect();
 
     CFANode nextSummaryNode = CFANode.newDummyCFANode("Inner Summary Node");

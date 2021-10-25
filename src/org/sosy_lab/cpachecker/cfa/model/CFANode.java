@@ -22,7 +22,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import org.sosy_lab.common.UniqueIdGenerator;
-import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -323,7 +322,8 @@ public class CFANode implements Comparable<CFANode>, Serializable {
   }
 
   public void connectTo(CFANode pNode) {
-    CFAEdge dummyOutgoingEdge = new DummyCFAEdge(this, pNode);
+    CFAEdge dummyOutgoingEdge =
+        new BlankEdge("Blank Edge", FileLocation.DUMMY, this, pNode, "Blank Edge");
     dummyOutgoingEdge.connect();
   }
 }

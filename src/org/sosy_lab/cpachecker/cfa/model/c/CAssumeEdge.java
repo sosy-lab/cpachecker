@@ -64,6 +64,18 @@ public class CAssumeEdge extends AssumeEdge {
     return (CExpression) expression;
   }
 
+  @Override
+  public CAssumeEdge negate() {
+    return new CAssumeEdge(
+        getRawStatement(),
+        getFileLocation(),
+        this.getPredecessor(),
+        this.getSuccessor(),
+        this.getExpression(),
+        !this.getTruthAssumption(),
+        this.isSwapped(),
+        isArtificialIntermediate());
+  }
 
   /**
    * TODO
