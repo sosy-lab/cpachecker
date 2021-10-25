@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyInterface;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
@@ -39,8 +40,10 @@ public class SummaryInformation {
   private Map<CFANode, Loop> nodeToLoopStructure = new HashMap<>();
   private Set<StrategyInterface> strategies = new HashSet<>();
   private StrategyFactory factory;
+  private StrategyDependencyInterface summaryStrategy;
 
-  public SummaryInformation(CFA pCfa) {
+  public SummaryInformation(CFA pCfa, StrategyDependencyInterface pSummaryStrategy) {
+    summaryStrategy = pSummaryStrategy;
     this.addCfaInformations(pCfa);
   }
 
@@ -113,5 +116,9 @@ public class SummaryInformation {
       return Optional.empty();
     }
     return Optional.of(loop);
+  }
+
+  public StrategyDependencyInterface getSummaryStrategy() {
+    return summaryStrategy;
   }
 }

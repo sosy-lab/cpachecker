@@ -11,8 +11,14 @@ package org.sosy_lab.cpachecker.cpa.location;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.SummaryInformation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -22,9 +28,11 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 public class LocationTransferRelation implements TransferRelation {
 
   private final LocationStateFactory factory;
+  private final CFA pCFA;
 
-  public LocationTransferRelation(LocationStateFactory pFactory) {
+  public LocationTransferRelation(LocationStateFactory pFactory, CFA pCFA) {
     factory = pFactory;
+    this.pCFA = pCFA;
   }
 
   @Override
@@ -45,6 +53,22 @@ public class LocationTransferRelation implements TransferRelation {
       Precision prec) throws CPATransferException {
 
     CFANode node = ((LocationState) element).getLocationNode();
-    return CFAUtils.successorsOf(node).transform(n -> factory.getState(n)).toList();
+
+    if (this.pCFA.getSummaryInformation().isEmpty()) {
+      return CFAUtils.successorsOf(node).transform(n -> factory.getState(n)).toList();
+    } else {
+      SummaryInformation summaryInformation =  pCFA.getSummaryInformation().get();
+      List<StrategiesEnum> availableStrategies =
+          CFAUtils.successorsOf(node)
+              .transform(n -> summaryInformation.getStrategyForNode(n))
+              .toList();
+      Set<StrategiesEnum> allowedStrategies =
+          new HashSet<>(summaryInformation.getSummaryStrategy().filter(availableStrategies));
+
+      return CFAUtils.successorsOf(node)
+          .filter(n -> allowedStrategies.contains(summaryInformation.getStrategyForNode(n)))
+          .transform(n -> factory.getState(n))
+          .toList();
+    }
   }
 }

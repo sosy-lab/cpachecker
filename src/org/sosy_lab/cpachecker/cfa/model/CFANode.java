@@ -326,5 +326,4 @@ public class CFANode implements Comparable<CFANode>, Serializable {
     CFAEdge dummyOutgoingEdge = new DummyCFAEdge(this, pNode);
     dummyOutgoingEdge.connect();
   }
-
 }

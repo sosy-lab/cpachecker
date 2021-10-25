@@ -566,7 +566,7 @@ public class CFACreator {
 
     // Make summaries, needs Loop Structure
     if (useSummaries) {
-      cfa.setSummaryInformations(new SummaryInformation(cfa));
+      cfa.setSummaryInformations(new SummaryInformation(cfa, strategyDependencies));
       SummaryPostProcessor summaryPostProcessor =
           new SummaryPostProcessor(
               logger,
