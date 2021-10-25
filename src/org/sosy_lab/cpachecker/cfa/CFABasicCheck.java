@@ -42,16 +42,21 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-public class CFACheck {
+public class CFABasicCheck extends CFACheck {
 
   /**
    * Traverse the CFA and run a series of checks at each node
@@ -80,6 +85,7 @@ public class CFACheck {
 
         // The actual checks
         isConsistent(node, machineModel);
+        checkEdgeCount(node);
       }
     }
 
@@ -87,15 +93,15 @@ public class CFACheck {
       verify(
           visitedNodes.equals(nodes),
           "\nNodes in CFA but not reachable through traversal: %s\nNodes reached that are not in CFA: %s",
-          Iterables.transform(Sets.difference(nodes, visitedNodes), CFACheck::debugFormat),
-          Iterables.transform(Sets.difference(visitedNodes, nodes), CFACheck::debugFormat));
+          Iterables.transform(Sets.difference(nodes, visitedNodes), CFABasicCheck::debugFormat),
+          Iterables.transform(Sets.difference(visitedNodes, nodes), CFABasicCheck::debugFormat));
     }
     return true;
   }
 
   /**
-   * This method returns a lazy object where {@link Object#toString} can be called.
-   * In most cases we do not need to build the String, thus we can avoid some overhead here.
+   * This method returns a lazy object where {@link Object#toString} can be called. In most cases we
+   * do not need to build the String, thus we can avoid some overhead here.
    */
   private static Object debugFormat(CFANode node) {
     return new Object() {
@@ -111,6 +117,77 @@ public class CFACheck {
         return node.getFunctionName() + ":" + node + " (" + location + ")";
       }
     };
+  }
+
+  /**
+   * Verify that the number of edges and their types match.
+   *
+   * @param pNode Node to be checked
+   */
+  private static void checkEdgeCount(CFANode pNode) {
+
+    // check entering edges
+    int entering = pNode.getNumEnteringEdges();
+    if (entering == 0) {
+      verify(
+          pNode instanceof FunctionEntryNode,
+          "Dead code: node %s has no incoming edges (successors are %s)",
+          debugFormat(pNode),
+          CFAUtils.successorsOf(pNode).transform(CFABasicCheck::debugFormat));
+    }
+
+    // check leaving edges
+    if (!(pNode instanceof FunctionExitNode)) {
+      switch (pNode.getNumLeavingEdges()) {
+        case 0:
+          verify(pNode instanceof CFATerminationNode, "Dead end at node %s", debugFormat(pNode));
+          break;
+
+        case 1:
+          CFAEdge edge = pNode.getLeavingEdge(0);
+          verify(
+              !(edge instanceof AssumeEdge),
+              "AssumeEdge does not appear in pair at node %s",
+              debugFormat(pNode));
+          verify(
+              !(edge instanceof CFunctionSummaryStatementEdge),
+              "CFunctionSummaryStatementEdge is not paired with CFunctionCallEdge at node %s",
+              debugFormat(pNode));
+          break;
+
+        case 2:
+          CFAEdge edge1 = pNode.getLeavingEdge(0);
+          CFAEdge edge2 = pNode.getLeavingEdge(1);
+          // relax this assumption for summary edges
+          if (edge1 instanceof CFunctionSummaryStatementEdge) {
+            verify(
+                edge2 instanceof CFunctionCallEdge,
+                "CFunctionSummaryStatementEdge is not paired with CFunctionCallEdge at node %s",
+                debugFormat(pNode));
+          } else if (edge2 instanceof CFunctionSummaryStatementEdge) {
+            verify(
+                edge1 instanceof CFunctionCallEdge,
+                "CFunctionSummaryStatementEdge is not paired with CFunctionCallEdge at node %s",
+                debugFormat(pNode));
+          } else {
+            verify(
+                (edge1 instanceof AssumeEdge) && (edge2 instanceof AssumeEdge),
+                "Branching without conditions at node %s",
+                debugFormat(pNode));
+
+            AssumeEdge ae1 = (AssumeEdge) edge1;
+            AssumeEdge ae2 = (AssumeEdge) edge2;
+            verify(
+                ae1.getTruthAssumption() != ae2.getTruthAssumption(),
+                "Inconsistent branching at node %s",
+                debugFormat(pNode));
+          }
+          break;
+
+        default:
+          throw new VerifyException("Too much branching at node " + debugFormat(pNode));
+      }
+    }
   }
 
   /**

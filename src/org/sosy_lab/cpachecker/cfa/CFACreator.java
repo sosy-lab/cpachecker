@@ -532,8 +532,8 @@ public class CFACreator {
 
     // check the CFA of each function
     for (String functionName : cfa.getAllFunctionNames()) {
-      assert CFACheck.check(
-          cfa.getFunctionHead(functionName), cfa.getFunctionNodes(functionName), machineModel, cfa);
+      assert CFABasicCheck.check(
+          cfa.getFunctionHead(functionName), cfa.getFunctionNodes(functionName), machineModel);
     }
     stats.checkTime.stop();
 
@@ -545,8 +545,8 @@ public class CFACreator {
     // Check CFA again after post-processings
     stats.checkTime.start();
     for (String functionName : cfa.getAllFunctionNames()) {
-      assert CFACheck.check(
-          cfa.getFunctionHead(functionName), cfa.getFunctionNodes(functionName), machineModel, cfa);
+      assert CFABasicCheck.check(
+          cfa.getFunctionHead(functionName), cfa.getFunctionNodes(functionName), machineModel);
     }
     stats.checkTime.stop();
 
@@ -628,7 +628,12 @@ public class CFACreator {
 
     // check the super CFA starting at the main function
     stats.checkTime.start();
-    assert CFACheck.check(mainFunction, null, machineModel, cfa);
+    if (this.useSummaries) {
+      assert CFASummaryCheck.check(mainFunction, null, machineModel);
+    } else {
+      assert CFABasicCheck.check(mainFunction, null, machineModel);
+    }
+
     stats.checkTime.stop();
 
     if (((exportCfaFile != null) && (exportCfa || exportCfaPerFunction))

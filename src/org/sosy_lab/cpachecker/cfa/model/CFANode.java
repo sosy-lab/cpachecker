@@ -18,21 +18,15 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.Stack;
-import java.util.stream.Collectors;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.SummaryInformation;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyInterface;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 
 public class CFANode implements Comparable<CFANode>, Serializable {
@@ -47,9 +41,6 @@ public class CFANode implements Comparable<CFANode>, Serializable {
   // edge-list is final, except for serialization
   private transient List<CFAEdge> leavingEdges = new ArrayList<>(1);
   private transient List<CFAEdge> enteringEdges = new ArrayList<>(1);
-
-  private transient Stack<List<CFAEdge>> leavingEdgesLensStack = new Stack();
-  private transient Stack<List<CFAEdge>> enteringEdgesLensStack = new Stack();
 
   // is start node of a loop?
   private boolean isLoopStart = false;
@@ -336,54 +327,4 @@ public class CFANode implements Comparable<CFANode>, Serializable {
     dummyOutgoingEdge.connect();
   }
 
-  /**
-   * Makes the node appear as if looked only through pStartegy. This behavior will continue until {
-   * {@link #removeLens() removeLens} is called
-   *
-   * @param pStrategy the strategy through which to look
-   * @param pSummaryInformation the summary information in order to get what strategies are being applied
-   */
-  public void lookThrough(StrategyDependencyInterface pStrategy, SummaryInformation pSummaryInformation) {
-    this.enteringEdgesLensStack.push(enteringEdges);
-    this.leavingEdgesLensStack.push(this.leavingEdges);
-
-    this.enteringEdges = new ArrayList<>(1);
-    this.leavingEdges = new ArrayList<>(1);
-
-    Set<StrategiesEnum> allowedStrategiesEntering =
-        new HashSet<>(
-            pStrategy.filter(
-                this.enteringEdgesLensStack
-                    .peek()
-                    .stream()
-                    .map(e -> pSummaryInformation.getStrategyForEdge(e))
-                    .collect(Collectors.toList())));
-
-    Set<StrategiesEnum> allowedStrategiesLeaving =
-        new HashSet<>(
-            pStrategy.filter(
-                this.leavingEdgesLensStack
-                    .peek()
-                    .stream()
-                    .map(e -> pSummaryInformation.getStrategyForEdge(e))
-                    .collect(Collectors.toList())));
-
-    for (CFAEdge e : this.enteringEdgesLensStack.peek()) {
-      if (allowedStrategiesEntering.contains(pSummaryInformation.getStrategyForEdge(e))) {
-        this.enteringEdges.add(e);
-      }
-    }
-
-    for (CFAEdge e : this.leavingEdgesLensStack.peek()) {
-      if (allowedStrategiesLeaving.contains(pSummaryInformation.getStrategyForEdge(e))) {
-        this.leavingEdges.add(e);
-      }
-    }
-  }
-
-  /** Removes the Lens through which this node appears to be looked through */
-  public void removeLens() {
-    this.enteringEdges = this.enteringEdgesLensStack.pop();
-    this.leavingEdges = this.leavingEdgesLensStack.pop();
-  }
 }
