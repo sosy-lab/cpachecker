@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request;
+package org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.forward;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Table;
@@ -25,38 +25,27 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
-import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.Scheduler;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.MessageFactory;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.CPACreatingRequest;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.RequestInvalidatedException;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.TaskRequest;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.Task;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.forward.ForwardAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ShareableBooleanFormula;
-import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
-import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
-import org.sosy_lab.cpachecker.cpa.composite.BlockAwareCompositeCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
 @Options(prefix = "concurrent.task.forward")
-public class ForwardAnalysisRequest implements TaskRequest {
-  private final Configuration forward;
-
+public class ForwardAnalysisRequest extends CPACreatingRequest implements TaskRequest {
+  private final Configuration taskConfiguration;
   private final Block predecessor;
   private final Block block;
-
   private final int expectedPredVersion;
   private final ShareableBooleanFormula newSummary;
-  private final ReachedSet reached;
-  private final MessageFactory messageFactory;
-  private final LogManager logManager;
-  private final ShutdownNotifier shutdownNotifier;
-  private final Algorithm algorithm;
-  private final BlockAwareCompositeCPA cpa;
 
   @SuppressWarnings("FieldMayBeFinal")
   @Option(description = "Configuration file for forward analysis during concurrent analysis.")
@@ -75,39 +64,19 @@ public class ForwardAnalysisRequest implements TaskRequest {
       final CFA pCFA,
       final MessageFactory pMessageFactory)
       throws InvalidConfigurationException, CPAException, InterruptedException {
+    super(pMessageFactory, pLogger, pShutdownNotifier);
+    
     pConfig.inject(this);
-    forward = ForwardAnalysis.getConfiguration(pLogger, configFile, pConfig);
+    taskConfiguration = ForwardAnalysis.getConfiguration(pLogger, configFile, pConfig);
+
+    prepareCPA(taskConfiguration, pCFA, pSpecification, pBlock);
     
     predecessor = pPredecessor;
     block = pBlock;
-    messageFactory = pMessageFactory;
-    logManager = pLogger;
-    shutdownNotifier = pShutdownNotifier;
     expectedPredVersion = pExpectedPredVersion;
 
-    CoreComponentsFactory factory =
-        new CoreComponentsFactory(
-            forward, logManager, pShutdownNotifier, AggregatedReachedSets.empty());
+    PredicateCPA predicateCPA = argcpa.retrieveWrappedCpa(PredicateCPA.class);
 
-    ARGCPA argcpa = (ARGCPA) factory.createCPA(pCFA, pSpecification);
-    reached = factory.createReachedSet(argcpa);
-
-    cpa =
-        (BlockAwareCompositeCPA)
-            BlockAwareCompositeCPA.factory()
-                .setConfiguration(forward)
-                .setLogger(pLogger)
-                .setShutdownNotifier(pShutdownNotifier)
-                .set(pCFA, CFA.class)
-                .set(block, Block.class)
-                .set(argcpa, ARGCPA.class)
-                .createInstance();
-
-    algorithm = factory.createAlgorithm(cpa, pCFA, pSpecification);
-
-    PredicateCPA predicateCPA = cpa.retrieveWrappedCpa(PredicateCPA.class);
-    assert predicateCPA != null;
-    
     FormulaManagerView formulaManager = predicateCPA.getSolver().getFormulaManager();
     PathFormulaManager pfMgr = predicateCPA.getPathFormulaManager();
 
@@ -115,13 +84,15 @@ public class ForwardAnalysisRequest implements TaskRequest {
         (pNewSummary == null)
         ? new ShareableBooleanFormula(formulaManager, pfMgr.makeEmptyPathFormula())
         : pNewSummary;
+    
+    assert algorithm != null && argcpa != null && reached != null;
   }
 
   /**
    * Increment version count of the block summary for {@code pBlock}.<br>
    * Used by {@link #finalize(Table, Map)}.
    *
-   * @param pBlock    The block for which to update the summary version
+   * @param pBlock The block for which to update the summary version
    * @param pVersions The global map of summary versions
    * @return The new summary version
    * @see #finalize(Table, Map)
@@ -180,7 +151,7 @@ public class ForwardAnalysisRequest implements TaskRequest {
    *
    * @return The immutable {@link ForwardAnalysis} which actually implements the {@link Task}.
    * @throws RequestInvalidatedException The {@link ForwardAnalysisRequest} has become invalidated by a
-   *                                  more recent one and the {@link ForwardAnalysis} must not execute.
+   *                                     more recent one and the {@link ForwardAnalysis} must not execute.
    * @see ForwardAnalysis
    */
   @Override
@@ -209,7 +180,7 @@ public class ForwardAnalysisRequest implements TaskRequest {
         predecessorSummaries,
         reached,
         algorithm,
-        cpa,
+        argcpa,
         messageFactory,
         logManager,
         shutdownNotifier);
@@ -222,7 +193,7 @@ public class ForwardAnalysisRequest implements TaskRequest {
    * @param predSummaries The global map of block summaries
    * @param versions      The global map of block summary versions
    * @throws RequestInvalidatedException The task for which {@link #finalize(Table, Map)} called this
-   *                                  method has been invalidated (see documentation for {@link #finalize(Table, Map)}).
+   *                                     method has been invalidated (see documentation for {@link #finalize(Table, Map)}).
    * @see #finalize(Table, Map)
    */
   private void publishPredSummary(

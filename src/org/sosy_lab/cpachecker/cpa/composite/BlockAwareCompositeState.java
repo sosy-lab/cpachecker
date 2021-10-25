@@ -12,30 +12,60 @@ import static org.sosy_lab.cpachecker.core.AnalysisDirection.BACKWARD;
 import static org.sosy_lab.cpachecker.core.AnalysisDirection.FORWARD;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
+import java.util.List;
 import java.util.Set;
+import javax.annotation.Nullable;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.SimpleTargetInformation;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
-/** Todo: Docs + Justification for inheritance instead of composition! */
-public class BlockAwareARGState extends ARGState {
+/**
+ * Todo: Docs + Justification for inheritance instead of composition!
+ */
+public class BlockAwareCompositeState extends CompositeState {
   private final Block block;
 
   private final AnalysisDirection direction;
 
-  BlockAwareARGState(
-      final ARGState pARGState, final Block pBlock, final AnalysisDirection pDirection) {
-    super(pARGState.getWrappedState(), null);
+  BlockAwareCompositeState(
+      final List<AbstractState> elements, final Block pBlock, final AnalysisDirection pDirection) {
+    super(elements);
     block = pBlock;
     direction = pDirection;
   }
 
-  public static BlockAwareARGState create(
-      final ARGState pWrappedState, final Block pBlock, final AnalysisDirection pDirection) {
-    return new BlockAwareARGState(pWrappedState, pBlock, pDirection);
+  public static BlockAwareCompositeState create(
+      final CompositeState pWrappedState,
+      final Block pBlock,
+      final AnalysisDirection pDirection) {
+    return new BlockAwareCompositeState(pWrappedState.getWrappedStates(), pBlock, pDirection);
+  }
+  
+  public static ARGState createAndWrap(
+      final List<AbstractState> pComponentCPAs,
+      final Block pBlock,
+      final AnalysisDirection pDirection) {
+    return new ARGState(new BlockAwareCompositeState(pComponentCPAs, pBlock, pDirection), null);
+  }
+
+  public static ARGState createAndWrap(
+      final CompositeState pWrappedState, final Block pBlock, final AnalysisDirection pDirection) {
+    return createAndWrap(pWrappedState, pBlock, pDirection, null);
+  }
+
+  public static ARGState createAndWrap(
+      final CompositeState pWrappedState,
+      final Block pBlock,
+      final AnalysisDirection pDirection,
+      @Nullable final ARGState pParent) {
+    BlockAwareCompositeState blockAwareState =
+        new BlockAwareCompositeState(pWrappedState.getWrappedStates(), pBlock, pDirection);
+
+    return new ARGState(blockAwareState, pParent);
   }
 
   @Override

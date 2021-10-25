@@ -29,20 +29,20 @@ import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.forward.ForwardAna
 @Options(prefix = "concurrent.task.config")
 public class ConfigurationLoader {
   @Option(secure = true, description =
-        "Check provided configurations of ForwardAnalysis and BackwardAnalysis regarding a set of " 
-      + "properties required for a successful analysis.")
+      "Check provided configurations of ForwardAnalysis and BackwardAnalysis regarding a set of "
+          + "properties required for a successful analysis.")
   private boolean verify = true;
 
   private Configuration configuration = null;
 
   public ConfigurationLoader(
-      final Configuration analysisConfiguration, 
+      final Configuration analysisConfiguration,
       final Class<? extends Task> pTask,
       final String defaultConfigurationName,
       @Nullable final Path customConfigFile,
       final LogManager pLogManager) throws InvalidConfigurationException {
     analysisConfiguration.inject(this);
-    
+
     if (customConfigFile != null) {
       try {
         configuration = Configuration.builder().loadFromFile(customConfigFile).build();
@@ -69,16 +69,16 @@ public class ConfigurationLoader {
       final Class<? extends Task> task,
       final Configuration pConfiguration)
       throws InvalidConfigurationException {
-    if(!verify) {
+    if (!verify) {
       return;
     }
-    
+
     RequiredOptions options = new RequiredOptions();
     pConfiguration.inject(options);
 
-    if (!options.cpa.endsWith("CompositeCPA") && !options.cpa.endsWith("ARGCPA")) {
+    if (!options.cpa.endsWith("ARGCPA")) {
       throw new InvalidConfigurationException(
-          "Concurrent analysis requires cpa.composite.CompositeCPA as top-level CPA for both ForwardAnalysis and BackwardAnalysis!");
+          "Concurrent analysis requires cpa.arg.ARGCPA as top-level CPA for both ForwardAnalysis and BackwardAnalysis!");
     }
 
     if (!options.cpas.contains("cpa.predicate.PredicateCPA")) {

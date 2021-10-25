@@ -21,16 +21,17 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.Scheduler;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.completion.ErrorReachedProgramEntryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.completion.TaskCompletionMessage;
-import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.BackwardAnalysisContinuationRequest;
-import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.BackwardAnalysisRequest;
-import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.ForwardAnalysisRequest;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.backward.BackwardAnalysisContinuationRequest;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.backward.BackwardAnalysisRequest;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.forward.ForwardAnalysisRequest;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.Task;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ErrorOrigin;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ShareableBooleanFormula;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
-import org.sosy_lab.cpachecker.cpa.composite.BlockAwareCompositeCPA;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 public class MessageFactory {
   private final Configuration config;
@@ -134,11 +135,11 @@ public class MessageFactory {
       final ErrorOrigin pOrigin,
       final ReachedSet pReachedSet,
       final Algorithm pAlgorithm,
-      final BlockAwareCompositeCPA pCPA)
+      final ARGCPA pCPA, final Solver pSolver)
       throws InterruptedException, InvalidConfigurationException, CPAException {
     Message message =
         new BackwardAnalysisContinuationRequest(
-            pBlock, pOrigin, pReachedSet, pAlgorithm, pCPA, this, logManager, shutdownNotifier);
+            pBlock, pOrigin, pReachedSet, pAlgorithm, pCPA, pSolver, this, logManager, shutdownNotifier);
 
     executor.sendMessage(message);
   }

@@ -15,6 +15,7 @@ import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkNon
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import static org.sosy_lab.cpachecker.util.AbstractStates.filterLocation;
+import static org.sosy_lab.cpachecker.util.AbstractStates.getTargetStates;
 import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 
 import com.google.common.collect.ImmutableList;
@@ -42,11 +43,11 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
-import org.sosy_lab.cpachecker.cpa.composite.BlockAwareARGState;
 import org.sosy_lab.cpachecker.cpa.composite.BlockAwareCompositeCPA;
-import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
+import org.sosy_lab.cpachecker.cpa.composite.BlockAwareCompositeState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -68,7 +69,7 @@ public class ForwardAnalysis extends Task {
   private final ImmutableList<PathFormula> predecessorSummaries;
   private final ReachedSet reached;
   private final Algorithm algorithm;
-  private final BlockAwareCompositeCPA cpa;
+  private final ARGCPA cpa;
   private final Solver solver;
   private final FormulaManagerView fMgr;
   private final BooleanFormulaManagerView bfMgr;
@@ -84,14 +85,13 @@ public class ForwardAnalysis extends Task {
       final Collection<ShareableBooleanFormula> pPredecessorSummaries,
       final ReachedSet pReachedSet,
       final Algorithm pAlgorithm,
-      final BlockAwareCompositeCPA pCPA,
+      final ARGCPA pCPA,
       final MessageFactory pMessageFactory,
       final LogManager pLogManager,
       final ShutdownNotifier pShutdownNotifier) {
     super(pMessageFactory, pLogManager, pShutdownNotifier);
 
     PredicateCPA predCPA = pCPA.retrieveWrappedCpa(PredicateCPA.class);
-    assert predCPA != null;
 
     solver = predCPA.getSolver();
     fMgr = solver.getFormulaManager();
@@ -146,25 +146,32 @@ public class ForwardAnalysis extends Task {
       return;
     }
 
-    BlockAwareARGState entryState = buildEntryState(cumPredSummary);
+    AbstractState entryState = buildEntryState(cumPredSummary);
     Precision precision = cpa.getInitialPrecision(target.getEntry(), getDefaultPartition());
     reached.add(entryState, precision);
 
     logManager.log(Level.FINE, "Starting ForwardAnalysis on ", target);
     do {
-      shutdownNotifier.shutdownIfNecessary();
-
+      prepareForNextAlgorithmRun();
+      
       AlgorithmStatus newStatus = algorithm.run(reached);
       status = status.update(newStatus);
-    } while (reached.hasWaitingState());
 
-    handleTargetStates();
-    propagateThroughExits();
+      handleTargetStates();
+      propagateThroughExits();
+    } while (reached.hasWaitingState());
 
     logManager.log(Level.FINE, "Completed ForwardAnalysis on ", target);
     messageFactory.sendTaskCompletionMessage(this, status);
   }
 
+  private void prepareForNextAlgorithmRun() throws InterruptedException {
+    shutdownNotifier.shutdownIfNecessary();
+    
+    final List<AbstractState> discoveredTargets = getTargetStates(reached).toList();
+    reached.removeAll(discoveredTargets);
+  }
+  
   private boolean thereIsNoRelevantChange(final PathFormula cumPredSummary)
       throws SolverException, InterruptedException {
     if (oldSummary == null || newSummary == null) {
@@ -218,12 +225,13 @@ public class ForwardAnalysis extends Task {
     return !solver.isUnsat(equivalence);
   }
 
-  private BlockAwareARGState buildEntryState(final PathFormula cumPredSummary)
+  private ARGState buildEntryState(final PathFormula cumPredSummary)
       throws InterruptedException {
     PredicateAbstractState predicateEntryState = buildPredicateEntryState(cumPredSummary);
 
-    List<AbstractState> componentStates = new ArrayList<>();
-    for (ConfigurableProgramAnalysis componentCPA : cpa.getWrappedCPAs()) {
+    List<AbstractState> componentStates = new ArrayList<>();    
+    BlockAwareCompositeCPA blockAwareCPA = (BlockAwareCompositeCPA) cpa.getWrappedCPAs().get(0); 
+    for (ConfigurableProgramAnalysis componentCPA : blockAwareCPA.getWrappedCPAs()) {
       AbstractState componentState = null;
       if (componentCPA instanceof PredicateCPA) {
         componentState = predicateEntryState;
@@ -238,8 +246,8 @@ public class ForwardAnalysis extends Task {
       }
       componentStates.add(componentState);
     }
-
-    return BlockAwareARGState.create(new ARGState(new CompositeState(componentStates), null), target, FORWARD);
+    
+    return BlockAwareCompositeState.createAndWrap(componentStates, target, FORWARD);
   }
 
   private PredicateAbstractState buildPredicateEntryState(final PathFormula cumPredSummary)
@@ -268,11 +276,14 @@ public class ForwardAnalysis extends Task {
   }
 
   private boolean targetIsError(final AbstractState state) {
-    assert state instanceof CompositeState;
-    CompositeState compositeState = (CompositeState) state;
+    assert state instanceof ARGState;
+    ARGState argState = (ARGState) state;
 
+    assert argState.getWrappedState() instanceof BlockAwareCompositeState;
+    BlockAwareCompositeState blockAwareState = (BlockAwareCompositeState) argState.getWrappedState();
+    
     boolean foundError = false;
-    for (final AbstractState componentState : compositeState.getWrappedStates()) {
+    for (final AbstractState componentState : blockAwareState.getWrappedStates()) {
       if (componentState instanceof Targetable) {
         Targetable targetableState = (Targetable) componentState;
         if (targetableState.isTarget() && targetableState instanceof AutomatonState) {

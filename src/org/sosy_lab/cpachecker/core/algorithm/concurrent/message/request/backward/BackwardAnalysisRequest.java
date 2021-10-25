@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request;
+package org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.backward;
 
 import com.google.common.collect.Table;
 import java.nio.file.Path;
@@ -23,19 +23,16 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
-import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.Scheduler;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.MessageFactory;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.CPACreatingRequest;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.RequestInvalidatedException;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.TaskRequest;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.Task;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.backward.BackwardAnalysisFull;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ErrorOrigin;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ShareableBooleanFormula;
-import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
-import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
-import org.sosy_lab.cpachecker.cpa.composite.BlockAwareCompositeCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -43,20 +40,14 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
 @Options(prefix = "concurrent.task.backward")
-public class BackwardAnalysisRequest implements TaskRequest {
-  private final Configuration backward;
+public class BackwardAnalysisRequest extends CPACreatingRequest implements TaskRequest {
+  private final Configuration taskConfiguration;
   
   private final Block target;
   private final Block source;
   private final ErrorOrigin origin;
   private final CFANode start;
   private final ShareableBooleanFormula errorCondition;
-  private final Algorithm algorithm;
-  private final ReachedSet reached;
-  private final BlockAwareCompositeCPA cpa;
-  private final MessageFactory messageFactory;
-  private final LogManager logManager;
-  private final ShutdownNotifier shutdownNotifier;
   private final FormulaManagerView fMgr;
   private final PathFormulaManager pfMgr;
   
@@ -77,39 +68,19 @@ public class BackwardAnalysisRequest implements TaskRequest {
       final CFA pCFA,
       final MessageFactory pMessageFactory)
       throws InvalidConfigurationException, CPAException, InterruptedException {
+    super(pMessageFactory, pLogger, pShutdownNotifier);
+    
     pConfig.inject(this);
-    backward = BackwardAnalysisFull.getConfiguration(pLogger, configFile, pConfig);
+    taskConfiguration = BackwardAnalysisFull.getConfiguration(pLogger, configFile, pConfig);
 
+    prepareCPA(taskConfiguration, pCFA, Specification.alwaysSatisfied(), pTarget);
+    
     target = pTarget;
     origin = pOrigin;
     start = pStart;
     source = pSource;
-    messageFactory = pMessageFactory;
-    logManager = pLogger;
-    shutdownNotifier = pShutdownNotifier;
-
-    CoreComponentsFactory factory =
-        new CoreComponentsFactory(
-            backward, logManager, pShutdownNotifier, AggregatedReachedSets.empty());
-
-    Specification emptySpec = Specification.alwaysSatisfied();
-    ARGCPA argcpa = (ARGCPA) factory.createCPA(pCFA, emptySpec);
-    reached = factory.createReachedSet(argcpa);
-
-    cpa =
-        (BlockAwareCompositeCPA)
-            BlockAwareCompositeCPA.factory()
-                .setConfiguration(backward)
-                .setLogger(pLogger)
-                .setShutdownNotifier(pShutdownNotifier)
-                .set(pCFA, CFA.class)
-                .set(target, Block.class)
-                .set(argcpa, ARGCPA.class)
-                .createInstance();
-
-    algorithm = factory.createAlgorithm(cpa, pCFA, emptySpec);
-
-    PredicateCPA predicateCPA = cpa.retrieveWrappedCpa(PredicateCPA.class);
+    
+    PredicateCPA predicateCPA = argcpa.retrieveWrappedCpa(PredicateCPA.class);
     assert predicateCPA != null;
 
     fMgr = predicateCPA.getSolver().getFormulaManager();
@@ -173,7 +144,7 @@ public class BackwardAnalysisRequest implements TaskRequest {
         blockSummary,
         reached,
         algorithm,
-        cpa,
+        argcpa,
         messageFactory,
         logManager,
         shutdownNotifier);

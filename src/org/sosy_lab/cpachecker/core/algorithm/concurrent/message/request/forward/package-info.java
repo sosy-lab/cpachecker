@@ -6,6 +6,4 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request;
-
-public class RequestInvalidatedException extends Error {}
+package org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.forward;

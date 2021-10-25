@@ -30,10 +30,9 @@ import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ErrorOrigin;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ShareableBooleanFormula;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.composite.BlockAwareAnalysisContinuationState;
-import org.sosy_lab.cpachecker.cpa.composite.BlockAwareCompositeCPA;
-import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -47,7 +46,7 @@ public class BackwardAnalysisCore extends Task {
   private final ReachedSet reached;
   private final ErrorOrigin origin;
   private final Algorithm algorithm;
-  private final BlockAwareCompositeCPA cpa;
+  private final ARGCPA argcpa;
   private final Solver solver;
   private final FormulaManagerView fMgr;
 
@@ -58,14 +57,14 @@ public class BackwardAnalysisCore extends Task {
       final ReachedSet pReachedSet,
       final ErrorOrigin pOrigin,
       final Algorithm pAlgorithm,
-      final BlockAwareCompositeCPA pCPA,
+      final ARGCPA pARGCPA,
       final Solver pSolver,
       final MessageFactory pMessageFactory,
       final LogManager pLogManager,
       final ShutdownNotifier pShutdownNotifier) {
     super(pMessageFactory, pLogManager, pShutdownNotifier);
 
-    cpa = pCPA;
+    argcpa = pARGCPA;
     solver = pSolver;
     fMgr = solver.getFormulaManager();
     target = pBlock;
@@ -77,7 +76,7 @@ public class BackwardAnalysisCore extends Task {
 
   @Override
   protected void execute() throws Exception {
-    logManager.log(Level.FINE, "BackwardAnalysisFull on", target);
+    logManager.log(Level.FINE, "BackwardAnalysisCore on", target);
 
     AlgorithmStatus newStatus = algorithm.run(reached);
     status = status.update(newStatus);
@@ -93,22 +92,20 @@ public class BackwardAnalysisCore extends Task {
       assert location != null;
 
       if (location != target.getEntry()) {
-        reached.add(waitingState, cpa.getInitialPrecision(location, getDefaultPartition()));
+        reached.add(waitingState, argcpa.getInitialPrecision(location, getDefaultPartition()));
       } else if (location.isLoopStart()) {
-        assert waitingState instanceof CompositeState;
+        assert waitingState instanceof ARGState;
 
-        ARGState blockAwareState = (ARGState) waitingState;
-        BlockAwareAnalysisContinuationState newStart =
-            BlockAwareAnalysisContinuationState.create(
-                blockAwareState, target, BACKWARD);
-        reached.add(newStart, cpa.getInitialPrecision(location, getDefaultPartition()));
+        ARGState newStart =
+            BlockAwareAnalysisContinuationState.createFromSource(waitingState, target, BACKWARD);
+        reached.add(newStart, argcpa.getInitialPrecision(location, getDefaultPartition()));
       }
     }
 
     shutdownNotifier.shutdownIfNecessary();
     if (reached.hasWaitingState()) {
       messageFactory.sendBackwardAnalysisContinuationRequest(target, origin, reached, algorithm,
-          cpa);
+          argcpa, solver);
     }
 
     logManager.log(Level.FINE, "Completed BackwardAnalysis on", target);

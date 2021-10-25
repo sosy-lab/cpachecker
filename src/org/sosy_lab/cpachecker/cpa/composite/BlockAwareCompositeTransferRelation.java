@@ -20,21 +20,19 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGTransferRelation;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-public class BlockAwareARGTransferRelation implements TransferRelation {
-  private final ARGTransferRelation transferRelation;
+public class BlockAwareCompositeTransferRelation implements TransferRelation {
+  private final CompositeTransferRelation transferRelation;
 
   private final Block block;
 
   private final AnalysisDirection direction;
 
-  BlockAwareARGTransferRelation(
+  BlockAwareCompositeTransferRelation(
       final Block pBlock,
-      final ARGTransferRelation pTransferRelation,
+      final CompositeTransferRelation pTransferRelation,
       final AnalysisDirection pDirection) {
     block = pBlock;
     transferRelation = pTransferRelation;
@@ -42,17 +40,17 @@ public class BlockAwareARGTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<BlockAwareARGState> getAbstractSuccessors(
+  public Collection<BlockAwareCompositeState> getAbstractSuccessors(
       AbstractState state, Precision precision) throws CPATransferException, InterruptedException {
-    assert state instanceof BlockAwareARGState;
+    assert state instanceof BlockAwareCompositeState;
 
-    Collection<AbstractState> successors;
+    Collection<CompositeState> successors;
 
     LocationState locState = extractStateByType(state, LocationState.class);
     successors = new ArrayList<>(2);
     if (locState == null) {
       final String message =
-          "BlockAwareARGTransferRelation requires a composite CPA with LocationCPA";
+          "BlockAwareCompositeTransferRelation requires a composite CPA with LocationCPA";
       throw new CPATransferException(message);
     }
 
@@ -65,7 +63,7 @@ public class BlockAwareARGTransferRelation implements TransferRelation {
     return successors.stream()
         .map(
             successor ->
-                new BlockAwareARGState((ARGState) successor, block, direction))
+                new BlockAwareCompositeState(successor.getWrappedStates(), block, direction))
         .collect(Collectors.toList());
   }
 
@@ -82,7 +80,7 @@ public class BlockAwareARGTransferRelation implements TransferRelation {
       AbstractState state, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
     final String message =
-        "BlockAwareARGTransferRelation does not implement getAbstractSuccessorsForEdge";
+        "BlockAwareCompositeTransferRelation does not implement getAbstractSuccessorsForEdge";
     throw new CPATransferException(message);
   }
 

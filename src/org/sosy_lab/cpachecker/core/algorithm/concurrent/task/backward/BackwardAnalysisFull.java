@@ -40,9 +40,10 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.composite.BlockAwareARGState;
 import org.sosy_lab.cpachecker.cpa.composite.BlockAwareCompositeCPA;
+import org.sosy_lab.cpachecker.cpa.composite.BlockAwareCompositeState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -65,7 +66,7 @@ public class BackwardAnalysisFull extends Task {
   private final PathFormulaManager pfMgr;
   private final ReachedSet reached;
   private final Algorithm algorithm;
-  private final BlockAwareCompositeCPA cpa;
+  private final ARGCPA argcpa;
   private final Solver solver;
   private final FormulaManagerView fMgr;
   private final AlgorithmStatus status = SOUND_AND_PRECISE;
@@ -78,15 +79,15 @@ public class BackwardAnalysisFull extends Task {
       final ShareableBooleanFormula pBlockSummary,
       final ReachedSet pReachedSet,
       final Algorithm pAlgorithm,
-      final BlockAwareCompositeCPA pCPA,
+      final ARGCPA pARGCPA,
       final MessageFactory pMessageFactory,
       final LogManager pLogManager,
       final ShutdownNotifier pShutdownNotifier) {
     super(pMessageFactory, pLogManager, pShutdownNotifier);
 
-    cpa = pCPA;
-    PredicateCPA predicateCPA = cpa.retrieveWrappedCpa(PredicateCPA.class);
-    assert predicateCPA != null;
+    argcpa = pARGCPA;
+    PredicateCPA predicateCPA = argcpa.retrieveWrappedCpa(PredicateCPA.class);
+
     pfMgr = predicateCPA.getPathFormulaManager();
     solver = predicateCPA.getSolver();
     fMgr = solver.getFormulaManager();
@@ -118,11 +119,14 @@ public class BackwardAnalysisFull extends Task {
     return configLoader.getConfiguration();
   }
 
-  private BlockAwareARGState buildEntryState() throws InterruptedException {
+  private ARGState buildEntryState() throws InterruptedException {
     PredicateAbstractState predicateEntryState = buildPredicateEntryState();
 
+    assert argcpa.getWrappedCPAs().size() == 1 && argcpa.getWrappedCPAs().get(0) instanceof BlockAwareCompositeCPA;
+    BlockAwareCompositeCPA blockAwareCPA = (BlockAwareCompositeCPA) argcpa.getWrappedCPAs().get(0);
+        
     List<AbstractState> componentStates = new ArrayList<>();
-    for (ConfigurableProgramAnalysis componentCPA : cpa.getWrappedCPAs()) {
+    for (ConfigurableProgramAnalysis componentCPA : blockAwareCPA.getWrappedCPAs()) {
       AbstractState componentState = null;
       if (componentCPA instanceof PredicateCPA) {
         componentState = predicateEntryState;
@@ -138,7 +142,7 @@ public class BackwardAnalysisFull extends Task {
       componentStates.add(componentState);
     }
 
-    return BlockAwareARGState.create(new ARGState(new CompositeState(componentStates), null), target, BACKWARD);
+    return BlockAwareCompositeState.createAndWrap(new CompositeState(componentStates), target, BACKWARD);
   }
 
   private PredicateAbstractState buildPredicateEntryState() throws InterruptedException {
@@ -151,7 +155,8 @@ public class BackwardAnalysisFull extends Task {
     AbstractState rawInitialState = null;
     while (rawInitialState == null) {
       try {
-        rawInitialState = cpa.getInitialState(start, getDefaultPartition());
+        rawInitialState =
+            ((ConfigurableProgramAnalysis) argcpa).getInitialState(start, getDefaultPartition());
       } catch (InterruptedException ignored) {
         shutdownNotifier.shutdownIfNecessary();
       }
@@ -217,12 +222,13 @@ public class BackwardAnalysisFull extends Task {
       return;
     }
 
-    BlockAwareARGState entryState = buildEntryState();
-    Precision precision = cpa.getInitialPrecision(start, getDefaultPartition());
+    ARGState entryState = buildEntryState();
+    Precision precision = argcpa.getInitialPrecision(start, getDefaultPartition());
     reached.add(entryState, precision);
 
     shutdownNotifier.shutdownIfNecessary();
-    new BackwardAnalysisCore(target, reached, origin, algorithm, cpa, solver, messageFactory,
+    new BackwardAnalysisCore(target, reached, origin, algorithm, argcpa,
+        solver, messageFactory,
         logManager,
         shutdownNotifier).run();
   }

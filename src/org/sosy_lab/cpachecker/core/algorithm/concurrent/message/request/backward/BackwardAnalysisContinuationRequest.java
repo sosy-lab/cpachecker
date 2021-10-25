@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request;
+package org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.backward;
 
 import com.google.common.collect.Table;
 import java.util.Map;
@@ -17,30 +17,34 @@ import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.MessageFactory;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.RequestInvalidatedException;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.TaskRequest;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.Task;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.backward.BackwardAnalysisCore;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ErrorOrigin;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ShareableBooleanFormula;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.composite.BlockAwareCompositeCPA;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 public class BackwardAnalysisContinuationRequest implements TaskRequest {
   final Block block;
   final ErrorOrigin origin;
   final ReachedSet reachedSet;
   final Algorithm algorithm;
-  final BlockAwareCompositeCPA cpa;
+  final ARGCPA argcpa;
+  final Solver solver;
   final MessageFactory messageFactory;
   final LogManager logManager;
   final ShutdownNotifier shutdownNotifier;
-      
+
   public BackwardAnalysisContinuationRequest(
       final Block pBlock,
       final ErrorOrigin pOrigin,
       final ReachedSet pReachedSet,
       final Algorithm pAlgorithm,
-      final BlockAwareCompositeCPA pCPA,
+      final ARGCPA pCPA,
+      final Solver pSolver,
       final MessageFactory pMessageFactory,
       final LogManager pLogManager,
       final ShutdownNotifier pShutdownNotifier
@@ -49,22 +53,22 @@ public class BackwardAnalysisContinuationRequest implements TaskRequest {
     origin = pOrigin;
     reachedSet = pReachedSet;
     algorithm = pAlgorithm;
-    cpa = pCPA;
+    argcpa = pCPA;
+    solver = pSolver;
     messageFactory = pMessageFactory;
     logManager = pLogManager;
     shutdownNotifier = pShutdownNotifier;
   }
-  
+
   @Override
   public Task process(
       Table<Block, Block, ShareableBooleanFormula> pSummaries,
       Map<Block, Integer> pSummaryVersions,
       Set<CFANode> pAlreadyPropagated) throws RequestInvalidatedException {
-    PredicateCPA predicateCPA = cpa.retrieveWrappedCpa(PredicateCPA.class);
-    assert predicateCPA != null;
-    
+
     return new BackwardAnalysisCore(
-        block, reachedSet, origin, algorithm, cpa, predicateCPA.getSolver(), messageFactory, logManager, shutdownNotifier
+        block, reachedSet, origin, algorithm, argcpa,
+        solver, messageFactory, logManager, shutdownNotifier
     );
   }
 }
