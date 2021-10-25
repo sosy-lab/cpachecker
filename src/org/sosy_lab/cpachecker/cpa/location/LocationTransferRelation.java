@@ -8,7 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.location;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -42,7 +44,26 @@ public class LocationTransferRelation implements TransferRelation {
     CFANode node = ((LocationState) element).getLocationNode();
 
     if (CFAUtils.allLeavingEdges(node).contains(cfaEdge)) {
-      return Collections.singleton(factory.getState(cfaEdge.getSuccessor()));
+      if (this.pCFA.getSummaryInformation().isEmpty()) {
+        return Collections.singleton(factory.getState(cfaEdge.getSuccessor()));
+      } else {
+        SummaryInformation summaryInformation = pCFA.getSummaryInformation().get();
+        List<StrategiesEnum> availableStrategies =
+            CFAUtils.successorsOf(cfaEdge.getPredecessor())
+                .transform(n -> summaryInformation.getStrategyForNode(n))
+                .toList();
+        Set<StrategiesEnum> allowedStrategies =
+            new HashSet<>(summaryInformation.getSummaryStrategy().filter(availableStrategies));
+        allowedStrategies.removeAll(summaryInformation.getUnallowedStrategiesForNode(node));
+
+        List<CFANode> successors = new ArrayList<>();
+        successors.add(cfaEdge.getSuccessor());
+
+        return FluentIterable.from(successors)
+            .filter(n -> allowedStrategies.contains(summaryInformation.getStrategyForNode(n)))
+            .transform(n -> factory.getState(n))
+            .toList();
+      }
     }
 
     return ImmutableSet.of();

@@ -58,6 +58,7 @@ public class SummaryInformation {
     startNodeOriginalCFAToGhostCFA.put(ghostCFA.getStartOriginalCfaNode(), ghostCFA);
     for (CFANode n : ghostCFA.getAllNodes()) {
       this.addNodeForStrategy(StrategiesEnum.Base, n);
+      this.unallowedStrategiesForNode.put(n, new HashSet<>());
     }
 
     addNodeForStrategy(ghostCFA.getStrategy(), ghostCFA.getStartGhostCfaNode());
@@ -96,6 +97,7 @@ public class SummaryInformation {
 
     for (CFANode n : pCfa.getAllNodes()) {
       this.addNodeForStrategy(StrategiesEnum.Base, n);
+      this.unallowedStrategiesForNode.put(n, new HashSet<>());
     }
   }
 
