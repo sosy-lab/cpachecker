@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -66,7 +65,7 @@ public final class InvariantWitnessWriter {
 
   @Option(secure = true, description = "The directory where the invariants are stored.")
   @FileOption(FileOption.Type.OUTPUT_DIRECTORY)
-  private Path outDir = Paths.get("invariantWitnesses");
+  private Path outDir = Path.of("invariantWitnesses");
 
   private InvariantWitnessWriter(
       Configuration pConfig,

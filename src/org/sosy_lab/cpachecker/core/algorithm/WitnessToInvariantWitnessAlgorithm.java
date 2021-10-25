@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
@@ -37,7 +36,7 @@ public class WitnessToInvariantWitnessAlgorithm implements Algorithm {
 
   @Option(secure = true, description = "The witness from which invariants should be generated.")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
-  private Path witness = Paths.get("invariantwitness.yaml");
+  private Path witness = Path.of("invariantwitness.yaml");
 
   private final Configuration config;
   private final LogManager logger;
