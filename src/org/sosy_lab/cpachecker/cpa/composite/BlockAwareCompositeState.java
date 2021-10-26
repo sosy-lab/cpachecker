@@ -84,7 +84,7 @@ public class BlockAwareCompositeState extends CompositeState {
     }
 
     boolean programExit = block.getExits().isEmpty() && location.getNumLeavingEdges() == 0;
-    if (direction == FORWARD && block.getExits().containsKey(location) || programExit) {
+    if ((direction == FORWARD && block.getExits().containsKey(location)) || programExit) {
       return true;
     }
 
