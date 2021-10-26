@@ -10,9 +10,9 @@ package org.sosy_lab.cpachecker.cpa.composite;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -64,7 +64,7 @@ public class BlockAwareCompositeTransferRelation implements TransferRelation {
         .map(
             successor ->
                 new BlockAwareCompositeState(successor.getWrappedStates(), block, direction))
-        .collect(Collectors.toList());
+        .collect(ImmutableList.toImmutableList());
   }
 
   private boolean remainsWithinBlock(final CFAEdge edge) {
