@@ -37,14 +37,14 @@ public class ConcurrentAnalysis implements Algorithm {
 
   @SuppressWarnings({"FieldCanBeLocal", "UnusedVariable"})
   private final CFA cfa;
-  
+
   @SuppressWarnings({"FieldCanBeLocal", "UnusedVariable"})
   private final Configuration config;
 
   private final Specification specification;
 
   private final ShutdownManager shutdownManager;
-  
+
   private ConcurrentAnalysis(
       final Algorithm pAlgorithm,
       final CFA pCFA,
@@ -104,7 +104,7 @@ public class ConcurrentAnalysis implements Algorithm {
 
       executor.start();
       Optional<ErrorOrigin> error = executor.waitForCompletion();
-      if(error.isPresent()) {
+      if (error.isPresent()) {
         reachedSet.addNoWaitlist(error.get().getState(), error.get().getPrecision());
       }
 
