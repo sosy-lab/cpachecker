@@ -126,9 +126,6 @@ public class BlockAwareCompositeCPA implements ConfigurableProgramAnalysis, Wrap
       checkState(wrappedCPA != null, message + "CompositeCPA");
 
       final Configuration config = getConfiguration();
-      final LogManager logger = getLogger();
-      final ShutdownNotifier shutdownNotifier = getShutdownNotifier();
-
       return new BlockAwareCompositeCPA(block, wrappedCPA, config);
     }
 
