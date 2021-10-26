@@ -19,6 +19,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
  * Todo: Docs + Justification for this class!
  */
 public class BlockAwareAnalysisContinuationState extends BlockAwareCompositeState {
+  private static final long serialVersionUID = 7387054295620217038L;
+
   BlockAwareAnalysisContinuationState(
       List<AbstractState> elements, Block pBlock, AnalysisDirection pDirection) {
     super(elements, pBlock, pDirection);

@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
  * Todo: Docs + Justification for inheritance instead of composition!
  */
 public class BlockAwareCompositeState extends CompositeState {
+  private static final long serialVersionUID = -7445431074342419279L;
   private final Block block;
 
   private final AnalysisDirection direction;
