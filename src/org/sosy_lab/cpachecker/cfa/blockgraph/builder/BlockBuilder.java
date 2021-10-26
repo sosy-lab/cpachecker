@@ -75,19 +75,17 @@ abstract class BlockBuilder {
         return true;
       }
 
-      if (!visited.contains(current)) {
-        visited.add(current);
+      if (visited.add(current)) {
         for (CFAEdge outEdge : CFAUtils.leavingEdges(current)) {
           if (outEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
             callstack.push(current);
-          } else if (outEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
-            FunctionSummaryEdge summaryEdge = ((FunctionReturnEdge) outEdge).getSummaryEdge();
-
-            if (callstack.peek() == summaryEdge.getPredecessor()) {
+            } else if (outEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
+              FunctionSummaryEdge summaryEdge = ((FunctionReturnEdge)outEdge).getSummaryEdge();
+              if (callstack.peek() == summaryEdge.getPredecessor()) {
               callstack.pop();
-            } else {
+              } else {
               continue;
-            }
+              }
           }
           waitlist.add(outEdge.getSuccessor());
         }
