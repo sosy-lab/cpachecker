@@ -15,7 +15,6 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import java.util.Set;
-import javax.annotation.Nullable;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -63,7 +62,7 @@ public class BlockAwareCompositeState extends CompositeState {
       final CompositeState pWrappedState,
       final Block pBlock,
       final AnalysisDirection pDirection,
-      @Nullable final ARGState pParent) {
+      final ARGState pParent) {
     BlockAwareCompositeState blockAwareState =
         new BlockAwareCompositeState(pWrappedState.getWrappedStates(), pBlock, pDirection);
 
