@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.blockgraph.builder;
 
-import com.google.common.base.Preconditions;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
