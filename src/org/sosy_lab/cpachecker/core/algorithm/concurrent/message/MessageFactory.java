@@ -135,8 +135,7 @@ public class MessageFactory {
       final ErrorOrigin pOrigin,
       final ReachedSet pReachedSet,
       final Algorithm pAlgorithm,
-      final ARGCPA pCPA, final Solver pSolver)
-      throws InterruptedException, InvalidConfigurationException, CPAException {
+      final ARGCPA pCPA, final Solver pSolver) {
     Message message =
         new BackwardAnalysisContinuationRequest(
             pBlock, pOrigin, pReachedSet, pAlgorithm, pCPA, pSolver, this, logManager, shutdownNotifier);

@@ -39,7 +39,7 @@ abstract public class CPACreatingRequest {
   public CPACreatingRequest(
       final MessageFactory pMessageFactory,
       final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException, CPAException, InterruptedException {
+      final ShutdownNotifier pShutdownNotifier) {
     messageFactory = pMessageFactory;
     logManager = pLogger;
     shutdownNotifier = pShutdownNotifier;

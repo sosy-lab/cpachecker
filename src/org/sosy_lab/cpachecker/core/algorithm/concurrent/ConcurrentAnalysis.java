@@ -66,8 +66,7 @@ public class ConcurrentAnalysis implements Algorithm {
       final Configuration pConfig,
       final Specification pSpecification,
       final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier)
-      throws InvalidConfigurationException {
+      final ShutdownNotifier pShutdownNotifier) {
     return new ConcurrentAnalysis(
         pAlgorithm, pCFA, pConfig, pSpecification, pLogger, pShutdownNotifier);
   }

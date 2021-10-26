@@ -127,7 +127,7 @@ public class ConfigurationLoader {
     }
   }
 
-  public Configuration getConfiguration() throws InvalidConfigurationException {
+  public Configuration getConfiguration() {
     return configuration;
   }
 
