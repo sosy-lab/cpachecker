@@ -23,7 +23,7 @@ import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ShareableBooleanFo
 public interface TaskRequest extends Message {
   /**
    * Preprocess the task before it gets scheduled. This method is invoked by the central scheduler
-   * and runs within its thread. As such, all calls to {@link #finalize(Table, Map, Table)} across
+   * and runs within its thread. As such, all calls to {@link #process(Table, Map, Set)} across
    * different tasks are executed in sequential order. Because they run in the context of the
    * scheduler thread, its crucial that this method performs as little work as possible, because
    * further scheduling of new tasks gets blocked until the method completes.

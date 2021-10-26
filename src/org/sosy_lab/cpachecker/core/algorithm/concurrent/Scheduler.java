@@ -44,12 +44,12 @@ import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ShareableBooleanFo
  * org.sosy_lab.cpachecker.core.algorithm.concurrent.task concurrent.task}.
  *
  * <p>After creating the executor using the public constructor {@link #Scheduler(int,
- * LogManager)}, user can request execution of {@link Task}s with {@link #requestJob(Task)}. In
- * particular, scheduled tasks can use this method to spawn further tasks themselves. Actual
- * execution starts as soon as {@link #start()} gets called. {@link Scheduler} shuts down as soon
- * as all requested jobs (including ones spawned by running jobs themselves) have completed. To wait
- * for this situation, the user can call {@link #waitForCompletion()}, which blocks until all jobs
- * have completed.
+ * LogManager, ShutdownManager)}, user can request execution of {@link Task}s with 
+ * {@link #sendMessage(Message)}. In particular, scheduled tasks can use this method to spawn 
+ * further tasks themselves. Actual execution starts as soon as {@link #start()} gets called. 
+ * {@link Scheduler} shuts down as soon as all requested jobs (including ones spawned by running 
+ * jobs themselves) have completed. To wait for this situation, the user can call 
+ * {@link #waitForCompletion()}, which blocks until all jobs have completed.
  *
  * <p>{@link Scheduler} can modify requested jobs before actually posting them for execution. It
  * does so if data with which a new job has been created (e.g. a block summary) has become outdated
