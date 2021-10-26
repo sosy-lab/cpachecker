@@ -58,7 +58,7 @@ public class BlockAwareAnalysisContinuationState extends BlockAwareCompositeStat
     return createAndWrap(compositeState, pBlock, pDirection, null);
   }
   
-  public boolean isTarget() {
+  @Override public boolean isTarget() {
     return false;
   }
 }

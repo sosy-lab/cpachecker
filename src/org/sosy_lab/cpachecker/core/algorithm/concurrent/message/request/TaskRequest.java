@@ -52,7 +52,7 @@ public interface TaskRequest extends Message {
       final Map<Block, Integer> pSummaryVersions,
       final Set<CFANode> pAlreadyPropagated) throws RequestInvalidatedException;
   
-  default void accept(final MessageProcessingVisitor visitor) {
+  @Override default void accept(final MessageProcessingVisitor visitor) {
     visitor.visit(this);
   }
 }

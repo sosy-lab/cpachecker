@@ -233,7 +233,7 @@ public class BackwardAnalysisFull extends Task {
         shutdownNotifier).run();
   }
 
-  public String toString() {
+  @Override public String toString() {
     return "BackwardAnalysisFull on block with entry location " + target.getEntry();
   }
 }

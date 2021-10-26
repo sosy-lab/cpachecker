@@ -317,7 +317,7 @@ public class ForwardAnalysis extends Task {
     }
   }
 
-  public String toString() {
+  @Override public String toString() {
     return "ForwardAnalysis on block with entry location " + target.getEntry();
   }
 }
