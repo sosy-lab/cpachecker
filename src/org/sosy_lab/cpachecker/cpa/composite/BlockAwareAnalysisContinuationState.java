@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.composite;
 
 import java.util.List;
-import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -30,7 +29,7 @@ public class BlockAwareAnalysisContinuationState extends BlockAwareCompositeStat
       final CompositeState pWrappedState,
       final Block pBlock,
       final AnalysisDirection pDirection,
-      @Nullable final ARGState pParent) {
+      final ARGState pParent) {
     BlockAwareAnalysisContinuationState blockAwareState =
         new BlockAwareAnalysisContinuationState(pWrappedState.getWrappedStates(), pBlock,
             pDirection); 

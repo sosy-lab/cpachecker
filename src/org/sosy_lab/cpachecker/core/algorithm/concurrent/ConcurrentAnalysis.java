@@ -105,7 +105,7 @@ public class ConcurrentAnalysis implements Algorithm {
       executor.start();
       Optional<ErrorOrigin> error = executor.waitForCompletion();
       if (error.isPresent()) {
-        reachedSet.addNoWaitlist(error.get().getState(), error.get().getPrecision());
+        reachedSet.addNoWaitlist(error.orElseThrow().getState(), error.orElseThrow().getPrecision());
       }
 
       status = status.update(executor.getStatus());

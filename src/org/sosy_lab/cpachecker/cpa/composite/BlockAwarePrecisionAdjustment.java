@@ -53,7 +53,7 @@ public class BlockAwarePrecisionAdjustment implements PrecisionAdjustment {
         defaultAdjustment.prec(state, precision, states, stateProjection, fullState);
 
     if (result.isPresent()) {
-      PrecisionAdjustmentResult adjustment = result.get();
+      PrecisionAdjustmentResult adjustment = result.orElseThrow();
 
       assert adjustment.abstractState() instanceof CompositeState;
       CompositeState adjustedState = (CompositeState) adjustment.abstractState();

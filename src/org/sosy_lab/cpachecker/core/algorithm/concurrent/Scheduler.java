@@ -12,11 +12,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus.SOUND_AND_PRECISE;
 
 import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Table;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -60,11 +60,11 @@ public final class Scheduler implements Runnable {
   private final ExecutorService executor;
   private final ShutdownManager shutdownManager;
   private final LogManager logManager;
-  private final Collection<Thread> waitingForCompletion = new LinkedList<>();
+  private final Collection<Thread> waitingForCompletion = new ArrayList<>();
   private final Thread schedulerThread = new Thread(this, Scheduler.getThreadName());
   
   private final Table<Block, Block, ShareableBooleanFormula> summaries = HashBasedTable.create();
-  private final Map<Block, Integer> summaryVersion = Maps.newHashMap();
+  private final Map<Block, Integer> summaryVersion = new HashMap<>();
   private final Set<CFANode> alreadyPropagated = new HashSet<>();
   
   private int jobCount = 0;
@@ -231,10 +231,11 @@ public final class Scheduler implements Runnable {
     public void visit(final TaskRequest pMessage) {
       try {
         Task newTask = pMessage.process(summaries, summaryVersion, alreadyPropagated);
-        executor.submit(newTask);
+        executor.execute(newTask);
         
         ++jobCount;
       } catch (final RequestInvalidatedException ignored) {
+        logManager.log(Level.INFO, "Request has been invalidated!", pMessage);
       } catch (final Exception exception) {
         logManager.log(Level.SEVERE, "Exception occurred!", exception);
       } catch (final AssertionError assertion) {

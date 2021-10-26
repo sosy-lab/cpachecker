@@ -12,6 +12,7 @@ import static org.sosy_lab.cpachecker.core.AnalysisDirection.BACKWARD;
 import static org.sosy_lab.cpachecker.core.AnalysisDirection.FORWARD;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import java.util.Set;
 import javax.annotation.Nullable;
@@ -98,9 +99,9 @@ public class BlockAwareCompositeState extends CompositeState {
     }
 
     if (location == block.getEntry()) {
-      return Set.of(SimpleTargetInformation.create("Analysis reached block entry"));
+      return ImmutableSet.of(SimpleTargetInformation.create("Analysis reached block entry"));
     } else if (block.getExits().containsKey(location)) {
-      return Set.of(SimpleTargetInformation.create("Analysis reached block exit"));
+      return ImmutableSet.of(SimpleTargetInformation.create("Analysis reached block exit"));
     }
 
     return super.getTargetInformation();

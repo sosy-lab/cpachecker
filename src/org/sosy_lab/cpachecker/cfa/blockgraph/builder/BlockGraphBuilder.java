@@ -92,7 +92,7 @@ public class BlockGraphBuilder {
 
       for(BlockBuilder successor : graph.successors(builder)) {
         Block target = successor.getBlock();
-        CFANode exit = graph.edgeValue(builder, successor).get();
+        CFANode exit = graph.edgeValue(builder, successor).orElseThrow();
 
         block.addExit(exit, target);
       }
@@ -110,7 +110,7 @@ public class BlockGraphBuilder {
     return new BlockGraph(entryBlock.getBlock(), blocks);
   }
 
-  public BlockGraph build(final CFANode start, final BlockOperator blk) throws InterruptedException {
+  public BlockGraph build(final CFANode start, final BlockOperator blk) {
     exploreDepth(start, blk);
     return compile();
   }

@@ -47,7 +47,7 @@ public class BreakOnBlockEntryPrecisionAdjustment implements PrecisionAdjustment
     CFANode location = extractLocation(state);
     if(location == blockEntry) {
       if(result.isPresent()) {
-        return Optional.of(result.get().withAction(Action.BREAK));
+        return Optional.of(result.orElseThrow().withAction(Action.BREAK));
       } else {
         return Optional.of(PrecisionAdjustmentResult.create(state, precision, Action.BREAK));
       }

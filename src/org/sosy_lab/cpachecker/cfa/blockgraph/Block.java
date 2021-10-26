@@ -48,7 +48,7 @@ public class Block {
   public BlockGraph getNestedGraph() {
     Preconditions.checkState(complete);
     Preconditions.checkState(nested.isPresent());
-    return nested.get();
+    return nested.orElseThrow();
   }
 
   public void setNestedGraph(final BlockGraph pGraph) {

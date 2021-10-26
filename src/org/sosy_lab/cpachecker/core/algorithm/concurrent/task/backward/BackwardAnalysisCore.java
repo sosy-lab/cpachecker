@@ -152,7 +152,7 @@ public class BackwardAnalysisCore extends Task {
     }
   }
 
-  public String toString() {
+  @Override public String toString() {
     return "BackwardAnalysisCore on block with entry location " + target.getEntry();
   }
 }

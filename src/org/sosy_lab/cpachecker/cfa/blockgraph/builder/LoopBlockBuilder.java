@@ -60,7 +60,7 @@ class LoopBlockBuilder extends BlockBuilder {
       for (CFAEdge out : CFAUtils.leavingEdges(node)) {
         if(node != entry) {
           if (out instanceof CFunctionSummaryStatementEdge) {
-            assert false;
+            throw new AssertionError();
           } else if (out.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
             scope.push(node);
           } else if (out.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
@@ -68,7 +68,9 @@ class LoopBlockBuilder extends BlockBuilder {
 
             if (scope.peek() == summaryEdge.getPredecessor()) {
               scope.pop();
-            } else continue;
+            } else {
+              continue;
+            }
           }
         }
 
@@ -81,21 +83,16 @@ class LoopBlockBuilder extends BlockBuilder {
       }
     }
 
-    try {
-      nested = BlockGraphBuilder.create(shutdownNotifier).build(entry, blk);
-    } catch(InterruptedException ignored) {
-      // todo: Add handling
-    }
-
+    nested = BlockGraphBuilder.create(shutdownNotifier).build(entry, blk);
     return exits;
   }
 
   @Override public Block getBlock() {
     if(result.isEmpty()) {
       result = Optional.of(new Block(entry, nodes));
-      result.get().setNestedGraph(nested);
+      result.orElseThrow().setNestedGraph(nested);
     }
 
-    return result.get();
+    return result.orElseThrow();
   }
 }

@@ -85,7 +85,9 @@ abstract class BlockBuilder {
 
             if (callstack.peek() == summaryEdge.getPredecessor()) {
               callstack.pop();
-            } else continue;
+            } else {
+              continue;
+            }
           }
           waitlist.add(outEdge.getSuccessor());
         }

@@ -13,7 +13,6 @@ package org.sosy_lab.cpachecker.cpa.composite;
 import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.cpachecker.core.AnalysisDirection.FORWARD;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -100,7 +99,7 @@ public class BlockAwareCompositeCPA implements ConfigurableProgramAnalysis, Wrap
   }
 
   @Override
-  public <T extends ConfigurableProgramAnalysis> @Nullable T retrieveWrappedCpa(Class<T> type) {
+  public <T extends ConfigurableProgramAnalysis> T retrieveWrappedCpa(Class<T> type) {
     return cpa.retrieveWrappedCpa(type);
   }
 
@@ -121,9 +120,9 @@ public class BlockAwareCompositeCPA implements ConfigurableProgramAnalysis, Wrap
     public ConfigurableProgramAnalysis createInstance()
         throws InvalidConfigurationException, CPAException {
       final String message = "Missing data to create BlockAwareCompositeCPA: ";
-      checkState(cfa != null, message + "CFA");
-      checkState(block != null, message + "Block");
-      checkState(wrappedCPA != null, message + "CompositeCPA");
+      checkState(cfa != null, message + "%s", "CFA");
+      checkState(block != null, message + "%s", "Block");
+      checkState(wrappedCPA != null, message + "%s", "CompositeCPA");
 
       final Configuration config = getConfiguration();
       return new BlockAwareCompositeCPA(block, wrappedCPA, config);

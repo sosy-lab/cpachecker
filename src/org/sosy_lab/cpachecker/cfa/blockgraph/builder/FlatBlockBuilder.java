@@ -86,7 +86,7 @@ class FlatBlockBuilder extends BlockBuilder {
 
         if(node != entry) {
           if (out instanceof CFunctionSummaryStatementEdge) {
-            assert false;
+            throw new AssertionError();
           } else if (out.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
             scope.push(node);
           } else if (out.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
@@ -126,6 +126,6 @@ class FlatBlockBuilder extends BlockBuilder {
       result = Optional.of(new Block(entry, nodes));
     }
 
-    return result.get();
+    return result.orElseThrow();
   }
 }

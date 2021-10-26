@@ -21,7 +21,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -104,7 +103,7 @@ public class BackwardAnalysisFull extends Task {
 
   public static Configuration getConfiguration(
       final LogManager pLogManager,
-      @Nullable final Path pConfigFile, final Configuration pAnalysisConfiguration)
+      final Path pConfigFile, final Configuration pAnalysisConfiguration)
       throws InvalidConfigurationException {
     if (configLoader == null) {
       synchronized (BackwardAnalysisFull.class) {

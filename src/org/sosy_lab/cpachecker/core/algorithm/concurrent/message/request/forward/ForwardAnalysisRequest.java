@@ -170,7 +170,7 @@ public class ForwardAnalysisRequest extends CPACreatingRequest implements TaskRe
 
     int expectedVersion = incrementVersion(block, pSummaryVersions);
     Collection<ShareableBooleanFormula> predecessorSummaries =
-        Maps.filterKeys(incoming, block -> predecessor != block).values();
+        Maps.filterKeys(incoming, key -> predecessor != key).values();
 
     return new ForwardAnalysis(
         block,

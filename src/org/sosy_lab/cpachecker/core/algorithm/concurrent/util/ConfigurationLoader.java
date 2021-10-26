@@ -15,7 +15,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -39,7 +38,7 @@ public class ConfigurationLoader {
       final Configuration analysisConfiguration,
       final Class<? extends Task> pTask,
       final String defaultConfigurationName,
-      @Nullable final Path customConfigFile,
+      final Path customConfigFile,
       final LogManager pLogManager) throws InvalidConfigurationException {
     analysisConfiguration.inject(this);
 

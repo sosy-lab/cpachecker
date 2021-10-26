@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.concurrent.task.forward;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.core.AnalysisDirection.FORWARD;
 import static org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus.SOUND_AND_PRECISE;
 import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDefaultPartition;
@@ -23,6 +24,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -103,9 +105,7 @@ public class ForwardAnalysis extends Task {
     newSummary = pNewSummary == null ? null : pNewSummary.getFor(fMgr, pfMgr);
     expectedVersion = pExpectedVersion;
     predecessorSummaries =
-        pPredecessorSummaries.stream()
-            .map(formula -> formula.getFor(fMgr, pfMgr))
-            .collect(ImmutableList.toImmutableList());
+        transformedImmutableListCopy(pPredecessorSummaries, formula->formula.getFor(fMgr, pfMgr));
 
     reached = pReachedSet;
     algorithm = pAlgorithm;
@@ -297,24 +297,18 @@ public class ForwardAnalysis extends Task {
 
   private void propagateThroughExits()
       throws InterruptedException, CPAException, InvalidConfigurationException {
-    for (final CFANode exit : target.getExits().keySet()) {
-      PathFormula exitFormula = pfMgr.makeEmptyPathFormula();
-
-      for (final AbstractState exitState : filterLocation(reached, exit)) {
-        final PredicateAbstractState predState =
-            extractStateByType(exitState, PredicateAbstractState.class);
-        assert predState != null;
-
-        exitFormula = pfMgr.makeOr(exitFormula, predState.getPathFormula());
-      }
-
-      Block successor = target.getExits().get(exit);
-      final ShareableBooleanFormula shareableFormula =
-          new ShareableBooleanFormula(fMgr, exitFormula);
-
-      messageFactory.sendForwardAnalysisRequest(target, expectedVersion, successor,
-          shareableFormula);
-    }
+    for (Map.Entry<CFANode, Block> entry : target.getExits().entrySet()) {
+final CFANode exit = entry.getKey();
+PathFormula exitFormula = pfMgr.makeEmptyPathFormula();
+for (final AbstractState exitState : filterLocation(reached, exit)) {
+final PredicateAbstractState predState = extractStateByType(exitState, PredicateAbstractState.class);
+assert predState != null;
+exitFormula = pfMgr.makeOr(exitFormula, predState.getPathFormula());
+}
+Block successor = entry.getValue();
+final ShareableBooleanFormula shareableFormula = new ShareableBooleanFormula(fMgr, exitFormula);
+messageFactory.sendForwardAnalysisRequest(target, expectedVersion, successor, shareableFormula);
+}
   }
 
   @Override public String toString() {
