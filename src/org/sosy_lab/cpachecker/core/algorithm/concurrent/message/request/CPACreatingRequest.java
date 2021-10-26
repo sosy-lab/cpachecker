@@ -65,8 +65,7 @@ abstract public class CPACreatingRequest {
       final Specification pSpecification,
       final CFA pCFA, final Block pBlock, final Configuration pTaskConfiguration)
       throws InvalidConfigurationException, CPAException {
-    ImmutableList<ConfigurableProgramAnalysis> wrappedCPAs
-        = ((ARGCPA) configuredCPA).getWrappedCPAs();
+    ImmutableList<ConfigurableProgramAnalysis> wrappedCPAs = configuredCPA.getWrappedCPAs();
       assert wrappedCPAs.size() == 1 && wrappedCPAs.get(0) instanceof CompositeCPA;
     CompositeCPA compositeCPA = (CompositeCPA) wrappedCPAs.get(0);
 
