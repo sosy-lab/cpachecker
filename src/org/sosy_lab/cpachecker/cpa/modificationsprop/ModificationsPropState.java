@@ -56,7 +56,7 @@ public final class ModificationsPropState
     nodeInOriginal = pHelper.skipUntrackedOperations(nodeInOriginal);
 
     // rule out case 2
-    if ((!pHelper.inReachabilityProperty(nodeInOriginal))
+    if (!pHelper.inReachabilityProperty(nodeInOriginal)
         // case 3
         && pHelper.inReachabilityProperty(pLocationInGivenCfa)) {
       CFANode nodeInOrigNew = nodeInOriginal;

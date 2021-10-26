@@ -242,7 +242,7 @@ flake8:
   needs: []
   image: python:3.8
   before_script:
-    - pip install flake8-awesome
+    - "pip install 'flake8<4' flake8-awesome"
   script:
     - flake8
   <<: *pip-cache
@@ -267,6 +267,8 @@ build-tar:
 deploy-docker:
   stage: deploy
   dependencies:
+    - build-tar
+  needs:
     - build-tar
   extends: .build-docker
   variables:

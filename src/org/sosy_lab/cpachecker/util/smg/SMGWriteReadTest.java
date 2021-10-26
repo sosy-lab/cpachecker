@@ -743,7 +743,7 @@ public class SMGWriteReadTest extends SMGTest0 {
   }
 
   // Try writing a value that goes beyond the testObjects field
-  @Test(expected = AssertionError.class)
+  @Test(expected = IllegalArgumentException.class)
   public void writeBeyondRangeTest() {
     SMGObject testObject = createRegion(BigInteger.valueOf(256));
     smg = smg.copyAndAddObject(testObject);
@@ -757,7 +757,7 @@ public class SMGWriteReadTest extends SMGTest0 {
   }
 
   // Try writing a value that goes beyond the testObjects field
-  @Test(expected = AssertionError.class)
+  @Test(expected = IllegalArgumentException.class)
   public void writeBeyondRangeTest2() {
     SMGObject testObject = createRegion(BigInteger.valueOf(256));
     smg = smg.copyAndAddObject(testObject);
@@ -766,7 +766,7 @@ public class SMGWriteReadTest extends SMGTest0 {
   }
 
   // Try writing a value that goes beyond the testObjects field
-  @Test(expected = AssertionError.class)
+  @Test(expected = IllegalArgumentException.class)
   public void writeBeyondRangeTest3() {
     SMGObject testObject = createRegion(BigInteger.valueOf(256));
     smg = smg.copyAndAddObject(testObject);
@@ -780,7 +780,7 @@ public class SMGWriteReadTest extends SMGTest0 {
   }
 
   // Try reading a value that goes beyond the testObjects field
-  @Test(expected = AssertionError.class)
+  @Test(expected = IllegalArgumentException.class)
   public void readBeyondRangeTest() {
     SMGObject testObject = createRegion(BigInteger.valueOf(256));
     smg = smg.copyAndAddObject(testObject);
@@ -790,7 +790,7 @@ public class SMGWriteReadTest extends SMGTest0 {
   }
 
   // Try reading a value that goes beyond the testObjects field
-  @Test(expected = AssertionError.class)
+  @Test(expected = IllegalArgumentException.class)
   public void readBeyondRangeTest2() {
     SMGObject testObject = createRegion(BigInteger.valueOf(256));
     smg = smg.copyAndAddObject(testObject);
@@ -800,7 +800,7 @@ public class SMGWriteReadTest extends SMGTest0 {
   }
 
   // Try reading a value that goes beyond the testObjects field
-  @Test(expected = AssertionError.class)
+  @Test(expected = IllegalArgumentException.class)
   public void readBeyondRangeTest3() {
     SMGObject testObject = createRegion(BigInteger.valueOf(256));
     smg = smg.copyAndAddObject(testObject);

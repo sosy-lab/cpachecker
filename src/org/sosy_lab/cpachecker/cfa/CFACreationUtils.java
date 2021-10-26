@@ -12,9 +12,9 @@ import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 
 /**
  * Helper class that contains some complex operations that may be useful during
@@ -99,7 +99,7 @@ public class CFACreationUtils {
     return (node.getNumEnteringEdges() > 0)
         || (node instanceof FunctionEntryNode)
         || node.isLoopStart()
-        || (node instanceof CLabelNode);
+        || (node instanceof CFALabelNode);
   }
 
   /**

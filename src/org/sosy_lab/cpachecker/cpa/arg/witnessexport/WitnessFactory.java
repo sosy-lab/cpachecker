@@ -82,12 +82,12 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -1737,12 +1737,6 @@ class WitnessFactory implements EdgeAppender {
       ExpressionTree<Object> existingTree = (prev == null) ? other : prev;
       stateInvariants.put(pStateId, existingTree);
       return existingTree;
-    } else if (prev.equals(ExpressionTrees.getTrue())) {
-      stateInvariants.put(pStateId, other);
-      return other;
-    } else if (other.equals(ExpressionTrees.getTrue())) {
-      stateInvariants.put(pStateId, prev);
-      return prev;
     }
     ExpressionTree<Object> result = simplifier.simplify(factory.or(prev, other));
     stateInvariants.put(pStateId, result);
@@ -1853,8 +1847,8 @@ class WitnessFactory implements EdgeAppender {
         }
         if (pNode.isLoopStart()) {
           boolean gotoLoop = false;
-          if (pNode instanceof CLabelNode) {
-            CLabelNode node = (CLabelNode) pNode;
+          if (pNode instanceof CFALabelNode) {
+            CFALabelNode node = (CFALabelNode) pNode;
             for (BlankEdge e : CFAUtils.enteringEdges(pNode).filter(BlankEdge.class)) {
               if (e.getDescription().equals("Goto: " + node.getLabel())) {
                 gotoLoop = true;

@@ -12,7 +12,6 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -36,14 +35,12 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
@@ -265,15 +262,12 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   @Override
   public PathFormula makeAnd(PathFormula pPathFormula, CExpression pAssumption)
       throws CPATransferException, InterruptedException {
-    CFunctionDeclaration dummyFunction =
-        new CFunctionDeclaration(
-            FileLocation.DUMMY, CFunctionType.NO_ARGS_VOID_FUNCTION, "dummy", ImmutableList.of());
     CAssumeEdge fakeEdge =
         new CAssumeEdge(
             pAssumption.toASTString(),
             FileLocation.DUMMY,
-            new CFANode(dummyFunction),
-            new CFANode(dummyFunction),
+            CFANode.newDummyCFANode(),
+            CFANode.newDummyCFANode(),
             pAssumption,
             true);
     return converter.makeAnd(pPathFormula, fakeEdge, ErrorConditions.dummyInstance(bfmgr));

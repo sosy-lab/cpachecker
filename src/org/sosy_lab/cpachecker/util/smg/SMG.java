@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.smg;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSortedMap;
@@ -401,7 +402,7 @@ public class SMG {
    */
   public SMGandValue readValue(SMGObject object, BigInteger offset, BigInteger sizeInBits) {
     // Check that our field is inside the object: offset + sizeInBits <= size(object)
-    assert (offset.add(sizeInBits).compareTo(object.getSize()) <= 0);
+    Preconditions.checkArgument(offset.add(sizeInBits).compareTo(object.getSize()) <= 0);
 
     // let v := H(o, of, t)
     // TODO: Currently getHasValueEdgeByOffsetAndSize returns any edge it finds.
@@ -452,7 +453,7 @@ public class SMG {
       SMGObject object, BigInteger offset, BigInteger sizeInBits, SMGValue value) {
     // Check that our field is inside the object: offset + sizeInBits <= size(object)
     BigInteger offsetPlusSize = offset.add(sizeInBits);
-    assert (offsetPlusSize.compareTo(object.getSize()) <= 0);
+    Preconditions.checkArgument(offsetPlusSize.compareTo(object.getSize()) <= 0);
 
     // If there exists a hasValueEdge in the specified object, with the specified field that equals
     // the specified value, simply return the original SMG
@@ -632,6 +633,27 @@ public class SMG {
                 SMGHasValueEdge::getOffset,
                 SMGHasValueEdge::getSizeInBits,
                 BigInteger::max));
+  }
+
+  /**
+   * Returns all edges overlapping a defined chunk of memory sorted by the edges' offset.
+   *
+   * @param pObject - the SMGRegion there the memory chunk is located
+   * @param pFieldOffset - the start offset of the memory chunk
+   * @param pSizeofInBits - the size of the memory chunk
+   * @return all edges with: edgeOffset <= pFieldOffset && pFieldOffset < edgeOffset + edgeSize ||
+   *         edgeOffset > pFieldOffset && edgeOffset < pSizeofInBits + pFieldOffset
+   */
+  public Collection<SMGHasValueEdge>
+      getOverlappingEdges(SMGObject pObject, BigInteger pFieldOffset, BigInteger pSizeofInBits) {
+    return getHasValueEdgesByPredicate(pObject, edge -> {
+      // edgeOffset <= pFieldOffset && pFieldOffset < edgeOffset + edgeSize
+      return (edge.getOffset().compareTo(pFieldOffset) <= 0
+          && edge.getOffset().add(edge.getSizeInBits()).compareTo(pFieldOffset) > 0)
+          // edgeOffset > pFieldOffset && edgeOffset < pSizeofInBits + pFieldOffset
+          || (edge.getOffset().compareTo(pFieldOffset) > 0
+              && edge.getOffset().compareTo(pFieldOffset.add(pSizeofInBits)) < 0);
+    }).toSortedSet(Comparator.comparing(SMGHasValueEdge::getOffset));
   }
 
   /**

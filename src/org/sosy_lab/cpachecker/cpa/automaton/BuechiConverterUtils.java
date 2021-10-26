@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CPAQuery;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.MatchCFAEdgeRegEx;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.ltl.LtlParseException;
 
 public class BuechiConverterUtils {
@@ -138,9 +139,9 @@ public class BuechiConverterUtils {
       if (!accCond.equals("Inf(0)")) {
         throw new LtlParseException(
             String.format(
-                "The only allowed acceptance-condition is %s, but instead the following was found: %s",
-                "Inf(0)",
-                accCond));
+                "The only allowed acceptance-condition is %s, but instead the following was found:"
+                    + " %s",
+                "Inf(0)", accCond));
       }
 
       ImmutableSet<String> requiredProperties =

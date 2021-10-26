@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -43,7 +44,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cpa.modificationsrcd.VariableIdentifierVisitor;
@@ -60,7 +60,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 /** Helper functions used that are outsourced to be accessible for transfer relation and state. */
 public class ModificationsPropHelper {
 
-  /** Setting for ignoration of declaration statements. */
+  /** Setting for ignoring of declaration statements. */
   private final boolean ignoreDeclarations;
   /** Setting for switching on/off the SMT implication check. */
   private final boolean implicationCheck;
@@ -372,7 +372,8 @@ public class ModificationsPropHelper {
    * @return whether the node is in the reachability property
    */
   boolean inReachabilityProperty(final CFANode node) {
-    return node instanceof CLabelNode && ((CLabelNode) node).getLabel().equalsIgnoreCase("error");
+    return node instanceof CFALabelNode
+        && ((CFALabelNode) node).getLabel().equalsIgnoreCase("error");
   }
 
   /**

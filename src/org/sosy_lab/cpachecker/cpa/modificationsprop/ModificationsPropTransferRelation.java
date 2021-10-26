@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.modificationsprop;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
@@ -188,9 +190,9 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
             helper.logCase("Taking case 8.");
             final ImmutableSet<String> cv = changedVars;
             final CFANode nodeOrig = nodeInOriginal;
-            return assumptionSuccessors.stream()
-                .map(nodeGiven -> new ModificationsPropState(nodeGiven, nodeOrig, cv, helper))
-                .collect(ImmutableSet.toImmutableSet());
+            return transformedImmutableSetCopy(
+                assumptionSuccessors,
+                nodeGiven -> new ModificationsPropState(nodeGiven, nodeOrig, cv, helper));
           } else {
             // case 9
             helper.logCase("Taking case 9.");

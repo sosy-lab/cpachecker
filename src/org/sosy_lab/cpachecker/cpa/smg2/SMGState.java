@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.smg2;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
@@ -24,8 +25,11 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGErrorInfo.Property;
+import org.sosy_lab.cpachecker.cpa.smg2.util.value.CValue;
+import org.sosy_lab.cpachecker.cpa.smg2.util.value.CValueAndSMGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.smg.join.SMGJoinSPC;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -289,6 +293,64 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
 
   public SymbolicProgramConfiguration getHeap() {
     return heap;
+  }
+
+  public Optional<SMGValue> getSMGValueForCValue(CValue cValue) {
+    return getHeap().getValue(cValue);
+  }
+
+  public SMGState copyAndAddValue(CValue pValue, SMGValue pSmgValueRep) {
+    if (getHeap().getValue(pValue).isPresent()) {
+      return this;
+    } else {
+      return of(
+          machineModel,
+          heap.copyAndPutValue(pValue, pSmgValueRep),
+          logger,
+          options);
+    }
+  }
+
+  @SuppressWarnings("unused")
+  public SMGState addElementToCurrentChain(SMGObject pVariableObject) {
+    // TODO Auto-generated method stub
+    return this;
+  }
+
+  @SuppressWarnings("unused")
+  public SMGState addElementToCurrentChain(CValueAndSMGState pResult) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  /**
+   * Determines the SMGRegion object which is pointed by a given CValue address representation.
+   * Return Null Object if there is no such existing address.
+   *
+   * @param pValue - the given CValue representation of the address.
+   * @return the SMGObject which the address points to, or SMGObject.nullInstance() if there is no
+   *         such.
+   */
+  public SMGObject getPointsToTarget(CValue pValue) {
+    Optional<SMGValue> addressOptional = getSMGValueForCValue(pValue);
+    if (addressOptional.isPresent()) {
+      Optional<SMGPointsToEdge> pointerEdgeOptional =
+          heap.getSmg().getPTEdge(addressOptional.orElseThrow());
+      if (pointerEdgeOptional.isPresent()) {
+        return pointerEdgeOptional.orElseThrow().pointsTo();
+      }
+    }
+    return SMGObject.nullInstance();
+  }
+
+  public CValueAndSMGState
+      readValue(SMGObject pObject, BigInteger pFieldOffset, BigInteger pSizeofInBits) {
+    if (!heap.isObjectValid(pObject) && !heap.isObjectExternallyAllocated(pObject)) {
+      SMGState newState = copyWithErrorInfo(heap, errorInfo.withObject(pObject)
+          .withErrorMessage(HAS_INVALID_READS));
+      return CValueAndSMGState.ofUnknown(newState);
+    }
+    return CValueAndSMGState.of(getHeap().readValue(pObject, pFieldOffset, pSizeofInBits), this);
   }
 
 }
