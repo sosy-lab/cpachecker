@@ -94,7 +94,9 @@ class FlatBlockBuilder extends BlockBuilder {
 
             if (scope.peek() == summaryEdge.getPredecessor()) {
               scope.pop();
-            } else continue;
+            } else {
+              continue;
+            }
           }
 
           if (blk.isBlockEnd(nextNode, 0)) {
