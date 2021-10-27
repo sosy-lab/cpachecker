@@ -15,7 +15,6 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -29,6 +28,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.defaults.MultiStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
@@ -95,10 +95,8 @@ public final class ArrayAbstractionAlgorithm extends NestingAlgorithm {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path exportCTransformedCfaFile = Path.of("abstracted-arrays.c");
 
-  private final StatTimer arrayAbstractionTimer = new StatTimer("Time for array abstraction");
-
   private final ShutdownManager shutdownManager;
-  private final Collection<Statistics> stats;
+  private final ArrayAbstractionAlgorithmStatistics statistics;
   private final ArrayAbstractionResult arrayAbstractionResult;
   private final CFA originalCfa;
 
@@ -112,14 +110,14 @@ public final class ArrayAbstractionAlgorithm extends NestingAlgorithm {
     super(pConfiguration, pLogger, pShutdownNotifier, pSpecification);
 
     shutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
-    stats = new CopyOnWriteArrayList<>();
+    statistics = new ArrayAbstractionAlgorithmStatistics(pLogger);
     originalCfa = pCfa;
 
-    arrayAbstractionTimer.start();
+    statistics.startTimer();
     try {
       arrayAbstractionResult = ArrayAbstraction.transformCfa(globalConfig, logger, originalCfa);
     } finally {
-      arrayAbstractionTimer.stop();
+      statistics.stopTimer();
     }
 
     pConfiguration.inject(this);
@@ -144,7 +142,7 @@ public final class ArrayAbstractionAlgorithm extends NestingAlgorithm {
               shutdownManager,
               pAggregatedReached,
               ignoreOptions,
-              stats);
+              statistics.getSubStatistics());
     } catch (IOException | InvalidConfigurationException ex) {
       logger.logUserException(Level.SEVERE, ex, "Could not create delegate algorithm");
       return AlgorithmStatus.NO_PROPERTY_CHECKED;
@@ -188,59 +186,78 @@ public final class ArrayAbstractionAlgorithm extends NestingAlgorithm {
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(statistics);
+  }
 
-    pStatsCollection.addAll(stats);
+  private final class ArrayAbstractionAlgorithmStatistics extends MultiStatistics {
 
-    if (arrayAbstractionResult.getStatus() != ArrayAbstractionResult.Status.FAILED) {
+    private final StatTimer timer = new StatTimer("Time for array abstraction");
 
-      CFA transformedCfa = arrayAbstractionResult.getTransformedCfa();
-
-      if (exportDotTransformedCfa && exportDotTransformedCfaFile != null) {
-        try (Writer writer =
-            IO.openOutputFile(exportDotTransformedCfaFile, Charset.defaultCharset())) {
-          DOTBuilder.generateDOT(writer, transformedCfa);
-        } catch (IOException ex) {
-          logger.logUserException(Level.WARNING, ex, "Could not write CFA to dot file");
-        }
-      }
-
-      if (exportCTransformedCfa && exportCTransformedCfaFile != null) {
-        try (Writer writer =
-            IO.openOutputFile(exportCTransformedCfaFile, Charset.defaultCharset())) {
-          String sourceCode = new CFAToCTranslator(globalConfig).translateCfa(transformedCfa);
-          writer.write(sourceCode);
-        } catch (IOException | CPAException | InvalidConfigurationException ex) {
-          logger.logUserException(Level.WARNING, ex, "Could not export CFA as C source file");
-        }
-      }
+    private ArrayAbstractionAlgorithmStatistics(LogManager pLogger) {
+      super(pLogger);
     }
 
-    pStatsCollection.add(
-        new Statistics() {
+    private void startTimer() {
+      timer.start();
+    }
 
-          @Override
-          public void printStatistics(
-              final PrintStream pOut, final Result pResult, final UnmodifiableReachedSet pReached) {
+    private void stopTimer() {
+      timer.stop();
+    }
 
-            int indentation = 1;
-            put(pOut, indentation, "Array abstraction status", arrayAbstractionResult.getStatus());
-            put(pOut, indentation, arrayAbstractionTimer);
-            put(
-                pOut,
-                indentation,
-                "Number of transformed arrays",
-                arrayAbstractionResult.getTransformedArrays().size());
-            put(
-                pOut,
-                indentation,
-                "Number of transformed loops",
-                arrayAbstractionResult.getTransformedLoops().size());
+    @Override
+    public String getName() {
+      return "Array Abstraction Algorithm";
+    }
+
+    @Override
+    public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
+
+      int indentation = 1;
+      put(pOut, indentation, "Array abstraction status", arrayAbstractionResult.getStatus());
+      put(pOut, indentation, timer);
+      put(
+          pOut,
+          indentation,
+          "Number of transformed arrays",
+          arrayAbstractionResult.getTransformedArrays().size());
+      put(
+          pOut,
+          indentation,
+          "Number of transformed loops",
+          arrayAbstractionResult.getTransformedLoops().size());
+
+      super.printStatistics(pOut, pResult, pReached);
+    }
+
+    @Override
+    public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
+
+      if (arrayAbstractionResult.getStatus() != ArrayAbstractionResult.Status.FAILED) {
+
+        CFA transformedCfa = arrayAbstractionResult.getTransformedCfa();
+
+        if (exportDotTransformedCfa && exportDotTransformedCfaFile != null) {
+          try (Writer writer =
+              IO.openOutputFile(exportDotTransformedCfaFile, Charset.defaultCharset())) {
+            DOTBuilder.generateDOT(writer, transformedCfa);
+          } catch (IOException ex) {
+            logger.logUserException(Level.WARNING, ex, "Could not write CFA to dot file");
           }
+        }
 
-          @Override
-          public String getName() {
-            return ArrayAbstractionAlgorithm.class.getSimpleName();
+        if (exportCTransformedCfa && exportCTransformedCfaFile != null) {
+          try (Writer writer =
+              IO.openOutputFile(exportCTransformedCfaFile, Charset.defaultCharset())) {
+            String sourceCode = new CFAToCTranslator(globalConfig).translateCfa(transformedCfa);
+            writer.write(sourceCode);
+          } catch (IOException | CPAException | InvalidConfigurationException ex) {
+            logger.logUserException(Level.WARNING, ex, "Could not export CFA as C source file");
           }
-        });
+        }
+      }
+
+      super.writeOutputFiles(pResult, pReached);
+    }
   }
 }
