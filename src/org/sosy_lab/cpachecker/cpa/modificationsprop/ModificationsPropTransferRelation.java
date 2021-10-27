@@ -10,18 +10,25 @@ package org.sosy_lab.cpachecker.cpa.modificationsprop;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.modificationsrcd.VariableIdentifierVisitor;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -87,8 +94,13 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
               final ImmutableSet<String> changedVarsInSuccessor =
                   helper.modifySetForAssignment(edgeInOriginal, changedVars);
               if (helper.variablesAreUsedInEdge(pCfaEdge, changedVars)) {
-                helper.logCase("Taking case 4a.");
-                return ImmutableSet.of(helper.makeBad(locations));
+                if (!(pCfaEdge instanceof CDeclarationEdge
+                    || pCfaEdge instanceof CFunctionCallEdge
+                    || pCfaEdge instanceof CReturnStatementEdge)) {
+                  // otherwise we will handle it later
+                  helper.logCase("Taking case 4a.");
+                  return ImmutableSet.of(helper.makeBad(locations));
+                }
               } else {
                 helper.logCase("Taking case 4b.");
                 return ImmutableSet.of(
@@ -100,8 +112,112 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
               }
             }
           }
-
-          // TODO: track function calls with modified vars?
+          if (pCfaEdge instanceof CDeclarationEdge) {
+            for (CFAEdge edgeInOriginal : CFAUtils.leavingEdges(nodeInOriginal)) {
+              if (edgeInOriginal instanceof CDeclarationEdge) {
+                final CDeclaration declOr = ((CDeclarationEdge) edgeInOriginal).getDeclaration(),
+                    declMo = ((CDeclarationEdge) pCfaEdge).getDeclaration();
+                if (declOr.getOrigName().equals(declMo.getOrigName())) {
+                  helper.logCase("Taking case 4 for different declarations or modified variables.");
+                  return ImmutableSet.of(
+                      new ModificationsPropState(
+                          pCfaEdge.getSuccessor(),
+                          edgeInOriginal.getSuccessor(),
+                          new ImmutableSet.Builder<String>()
+                              .addAll(changedVars)
+                              .add(declOr.getOrigName())
+                              .build(),
+                          helper));
+                }
+              }
+            }
+          }
+          if (pCfaEdge instanceof CReturnStatementEdge) {
+            for (CFAEdge edgeInOriginal : CFAUtils.leavingEdges(nodeInOriginal)) {
+              if (edgeInOriginal instanceof CReturnStatementEdge) {
+                final CReturnStatementEdge retOr = (CReturnStatementEdge) edgeInOriginal,
+                    retMo = (CReturnStatementEdge) pCfaEdge;
+                if (helper.sameClassAndFunction(retMo.getSuccessor(), retOr.getSuccessor())) {
+                  helper.logCase(
+                      "Taking case 4 for function returns with modified variables or different statements.");
+                  final ImmutableSet<String> returnChangedVars;
+                  if (retMo.getReturnStatement() == null
+                      || retOr.getReturnStatement() == null
+                      || retMo.getReturnStatement().equals(retOr.getReturnStatement())
+                          && Collections.disjoint(
+                              retOr
+                                  .getReturnStatement()
+                                  .asAssignment()
+                                  .orElseThrow()
+                                  .getRightHandSide()
+                                  .accept(new RHSVisitor()),
+                              changedVars)) {
+                    returnChangedVars = changedVars;
+                  } else {
+                    returnChangedVars =
+                        new ImmutableSet.Builder<String>().addAll(changedVars).build();
+                  }
+                  return ImmutableSet.of(
+                      new ModificationsPropState(
+                          pCfaEdge.getSuccessor(),
+                          edgeInOriginal.getSuccessor(),
+                          returnChangedVars,
+                          helper));
+                }
+              }
+            }
+          }
+          if (pCfaEdge instanceof CFunctionCallEdge) {
+            for (CFAEdge edgeInOriginal : CFAUtils.leavingEdges(nodeInOriginal)) {
+              if (edgeInOriginal instanceof CFunctionCallEdge) {
+                final CFunctionCallEdge callOr = (CFunctionCallEdge) edgeInOriginal,
+                    callMo = (CFunctionCallEdge) pCfaEdge;
+                final CFunctionEntryNode entryNodeOr = callOr.getSuccessor(),
+                    entryNodeMo = callMo.getSuccessor();
+                final List<String>
+                    paramsOr =
+                        entryNodeOr.getFunctionParameters().stream()
+                            .map(param -> param.getQualifiedName())
+                            .collect(ImmutableList.toImmutableList()),
+                    paramsMo =
+                        entryNodeMo.getFunctionParameters().stream()
+                            .map(param -> param.getQualifiedName())
+                            .collect(ImmutableList.toImmutableList());
+                // we require that all old parameters must be contained in new parameters
+                if (paramsMo.containsAll(paramsOr) && helper.sameClassAndFunction(entryNodeMo, entryNodeOr)) {
+                  helper.logCase("Taking case 4 for function calls with modified variables.");
+                  HashSet<String> modifiedAfterFunctionCall = new HashSet<>(changedVars);
+                  for (String param : paramsOr) {
+                    // if not equal expressions for parameter or variable in expression modified
+                    if (!callMo
+                            .getArguments()
+                            .get(paramsMo.indexOf(param))
+                            .equals(callOr.getArguments().get(paramsOr.indexOf(param)))
+                        || !Collections.disjoint(
+                            callMo
+                                .getArguments()
+                                .get(paramsMo.indexOf(param))
+                                .accept(new VariableIdentifierVisitor()),
+                            changedVars)) {
+                      modifiedAfterFunctionCall.add(param);
+                    } else {
+                      if (changedVars.contains(param)) {
+                        modifiedAfterFunctionCall.remove(param);
+                      }
+                    }
+                  }
+                  return ImmutableSet.of(
+                      new ModificationsPropState(
+                          pCfaEdge.getSuccessor(),
+                          edgeInOriginal.getSuccessor(),
+                          new ImmutableSet.Builder<String>()
+                              .addAll(modifiedAfterFunctionCall)
+                              .build(),
+                          helper));
+                }
+              }
+            }
+          }
 
           // look for assignments to same variable (cases 5/6)
           // This could be left out, but we expect to find more related statements this way.

@@ -10,11 +10,9 @@ package org.sosy_lab.cpachecker.cpa.modificationsprop;
 
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
@@ -35,10 +33,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -46,7 +41,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cpa.modificationsrcd.VariableIdentifierVisitor;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -60,52 +54,30 @@ import org.sosy_lab.java_smt.api.SolverException;
 /** Helper functions used that are outsourced to be accessible for transfer relation and state. */
 public class ModificationsPropHelper {
 
+  /** Nodes that are part of the property. */
+  private final ImmutableSet<CFANode> propNodes;
   /** Setting for ignoring of declaration statements. */
   private final boolean ignoreDeclarations;
   /** Setting for switching on/off the SMT implication check. */
   private final boolean implicationCheck;
-
-  @SuppressWarnings("unused") // will be used in the future
-  private final Map<String, Set<String>> funToVarsOrig;
-
-  @SuppressWarnings("unused") // will be used in the future
-  private final Map<String, Set<String>> funToVarsGiven;
-
   private final Solver solver;
   private final CtoFormulaConverter converter;
   /** Logging manager to log with different levels of severity. */
   private final LogManager logger;
 
   public ModificationsPropHelper(
+      final ImmutableSet<CFANode> pPropNodes,
       final boolean pIgnoreDeclarations,
       final boolean pImplicationCheck,
-      final Map<String, Set<String>> pFunToVarsOrig,
-      final Map<String, Set<String>> pFunToVarsGiven,
       final Solver pSolver,
       final CtoFormulaConverter pConverter,
       final LogManager pLogger) {
+    propNodes = pPropNodes;
     ignoreDeclarations = pIgnoreDeclarations;
     implicationCheck = pImplicationCheck;
-    funToVarsOrig = pFunToVarsOrig;
-    funToVarsGiven = pFunToVarsGiven;
     solver = pSolver;
     converter = pConverter;
     logger = pLogger;
-  }
-
-  public ModificationsPropHelper(
-      final boolean pImplicationCheck,
-      final Solver pSolver,
-      final CtoFormulaConverter pConverter,
-      final LogManager pLogger) {
-    this(
-        false,
-        pImplicationCheck,
-        ImmutableMap.of(),
-        ImmutableMap.of(),
-        pSolver,
-        pConverter,
-        pLogger);
   }
 
   /**
@@ -134,8 +106,6 @@ public class ModificationsPropHelper {
       if (isUntracked(currentEdge)
           // can omit check for summary edges here, as these are not untracked anway
           && sameClassAndFunction(currentNode, currentEdge.getSuccessor())) {
-        // if (!declarationNameAlreadyExistsInOtherCFA(true, (CDeclarationEdge) currentEdge)) {
-        // TODO: overthink handling of declarations
         currentNode = currentEdge.getSuccessor();
         if (currentNode == pNode) {
           logProblem("Found infinite sequence of untracked operations.");
@@ -161,7 +131,7 @@ public class ModificationsPropHelper {
   }
 
   /**
-   * Skips an assignment edge and gives information about the changes.
+   * Skips an assignment or declaration edge and gives information about the changes.
    *
    * @param pNode the node to start in
    * @param pVars the variables that may be different in the two programs before
@@ -170,7 +140,8 @@ public class ModificationsPropHelper {
   ImmutableTuple<CFANode, ImmutableSet<String>> skipAssignment(
       final CFANode pNode, final ImmutableSet<String> pVars) {
     if (pNode.getNumLeavingEdges() == 1
-        && pNode.getLeavingEdge(0) instanceof CStatementEdge
+        && (pNode.getLeavingEdge(0) instanceof CStatementEdge
+            || pNode.getLeavingEdge(0) instanceof CDeclarationEdge)
         && !inReachabilityProperty(pNode)) {
       CFAEdge edge = pNode.getLeavingEdge(0);
       String written = CFAEdgeUtils.getLeftHandVariable(pNode.getLeavingEdge(0));
@@ -372,8 +343,9 @@ public class ModificationsPropHelper {
    * @return whether the node is in the reachability property
    */
   boolean inReachabilityProperty(final CFANode node) {
-    return node instanceof CFALabelNode
-        && ((CFALabelNode) node).getLabel().equalsIgnoreCase("error");
+    return propNodes.contains(node);
+    /*return node instanceof CFALabelNode
+    && ((CFALabelNode) node).getLabel().equalsIgnoreCase("error");*/
   }
 
   /**
@@ -410,7 +382,7 @@ public class ModificationsPropHelper {
    * @param pNodeInOriginal the node in the original CFA
    * @return whether class and function of the nodes are equivalent
    */
-  private boolean sameClassAndFunction(final CFANode pNodeInGiven, final CFANode pNodeInOriginal) {
+  boolean sameClassAndFunction(final CFANode pNodeInGiven, final CFANode pNodeInOriginal) {
     return pNodeInGiven.getClass() == pNodeInOriginal.getClass()
         && pNodeInGiven.getFunctionName().equals(pNodeInOriginal.getFunctionName());
   }
@@ -425,8 +397,8 @@ public class ModificationsPropHelper {
   private boolean successorsMatch(final CFAEdge pEdgeInGiven, final CFAEdge pEdgeInOriginal) {
     final CFANode givenSuccessor = pEdgeInGiven.getSuccessor(),
         originalSuccessor = pEdgeInOriginal.getSuccessor();
-    if (pEdgeInGiven.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
-      nextEdge:
+    // TODO: check whether needed in our case
+    /*if (pEdgeInGiven.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
       for (CFAEdge enterBeforeCall :
           CFAUtils.enteringEdges(
               ((FunctionReturnEdge) pEdgeInGiven).getSummaryEdge().getPredecessor())) {
@@ -434,12 +406,12 @@ public class ModificationsPropHelper {
             CFAUtils.enteringEdges(
                 ((FunctionReturnEdge) pEdgeInOriginal).getSummaryEdge().getPredecessor())) {
           if (edgesMatch(enterBeforeCall, enterOriginalBeforeCAll)) {
-            continue nextEdge;
+            break;
           }
         }
         return false;
       }
-    }
+    }*/
 
     return sameClassAndFunction(givenSuccessor, originalSuccessor);
   }

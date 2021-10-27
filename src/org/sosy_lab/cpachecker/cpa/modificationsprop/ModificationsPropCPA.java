@@ -8,15 +8,22 @@
 
 package org.sosy_lab.cpachecker.cpa.modificationsprop;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+
+import com.google.common.base.Preconditions;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Map;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Function;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -30,6 +37,8 @@ import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
+import org.sosy_lab.cpachecker.core.CPABuilder;
+import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
@@ -41,8 +50,13 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
-import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
@@ -73,6 +87,15 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
 
   @Option(secure = true, description = "perform assumption implication check")
   private boolean implicationCheck = true;
+
+  @Option(
+      secure = true,
+      name = "badstateProperties",
+      description =
+          "comma-separated list of files with property specifications that should be considered "
+              + "when determining the nodes that are in the reachability property.")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private List<Path> relevantProperties = ImmutableList.of();
 
   private final Configuration config;
   private final LogManager logger;
@@ -113,27 +136,17 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
     try {
       cfaForComparison =
           cfaCreator.parseFileAndCreateCFA(ImmutableList.of(originalProgram.toString()));
-
-      if (ignoreDeclarations) {
-        CFATraversal.DeclarationCollectingCFAVisitor varDeclCollect =
-            new CFATraversal.DeclarationCollectingCFAVisitor();
-        CFATraversal.dfs().traverse(cfaForComparison.getMainFunction(), varDeclCollect);
-        Map<String, Set<String>> origFunToDeclNames = varDeclCollect.getVisitedDeclarations();
-
-        varDeclCollect = new CFATraversal.DeclarationCollectingCFAVisitor();
-        CFATraversal.dfs().traverse(pCfa.getMainFunction(), varDeclCollect);
-        helper =
-            new ModificationsPropHelper(
-                true,
-                implicationCheck,
-                origFunToDeclNames,
-                varDeclCollect.getVisitedDeclarations(),
-                solver,
-                converter,
-                logger);
-      } else {
-        helper = new ModificationsPropHelper(implicationCheck, solver, converter, logger);
-      }
+      helper =
+          new ModificationsPropHelper(
+              new ImmutableSet.Builder<CFANode>()
+                  .addAll(propertyNodes(pCfa))
+                  .addAll(propertyNodes(cfaForComparison))
+                  .build(),
+              ignoreDeclarations,
+              implicationCheck,
+              solver,
+              converter,
+              logger);
       transfer = new ModificationsPropTransferRelation(helper);
 
     } catch (ParserException pE) {
@@ -177,6 +190,11 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
         node, cfaForComparison.getMainFunction(), ImmutableSet.of(), helper);
   }
 
+  @Override
+  public void close() {
+    solver.close();
+  }
+
   // TODO: think over
   // Can only be called after machineModel and formulaManager are set
   private CtoFormulaConverter initializeCToFormulaConverter(
@@ -203,8 +221,57 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
         AnalysisDirection.FORWARD);
   }
 
-  @Override
-  public void close() {
-    solver.close();
+  private ImmutableSet<CFANode> propertyNodes(CFA cfa) {
+    if (!relevantProperties.isEmpty()) {
+      try {
+        Configuration reachPropConfig =
+            Configuration.builder()
+                .setOption("cpa", "cpa.arg.ARGCPA")
+                .setOption("ARGCPA.cpa", "cpa.composite.CompositeCPA")
+                .setOption(
+                    "CompositeCPA.cpas", "cpa.location.LocationCPA,cpa.callstack.CallstackCPA")
+                .setOption("cpa.composite.aggregateBasicBlocks", "false")
+                .setOption("cpa.callstack.skipRecursion", "true")
+                .setOption("cpa.automaton.breakOnTargetState", "-1")
+                .setOption("output.disable", "true")
+                .build();
+
+        ReachedSetFactory rsFactory = new ReachedSetFactory(reachPropConfig, logger);
+        ConfigurableProgramAnalysis cpa =
+            new CPABuilder(reachPropConfig, logger, shutdownNotifier, rsFactory)
+                .buildCPAs(
+                    cfa,
+                    Specification.fromFiles(
+                        relevantProperties, cfa, reachPropConfig, logger, shutdownNotifier),
+                    AggregatedReachedSets.empty());
+        ReachedSet reached =
+            rsFactory.createAndInitialize(
+                cpa, cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
+
+        CPAAlgorithm.create(cpa, logger, reachPropConfig, shutdownNotifier).run(reached);
+        Preconditions.checkState(!reached.hasWaitingState());
+
+        Deque<ARGState> propertyARGNodes =
+            new ArrayDeque<>(
+                FluentIterable.from(reached.asCollection())
+                    .filter(state -> ((ARGState) state).isTarget())
+                    .transform(state -> (ARGState) state)
+                    .toList());
+        Builder<CFANode> builder = new ImmutableSet.Builder<>();
+        for (ARGState argState : propertyARGNodes) {
+          if (argState.getParents().isEmpty()) {
+            // Initial node might be in property and not have a parent.
+            builder.add(cfa.getMainFunction());
+          }
+          builder.addAll(
+              transformedImmutableSetCopy(
+                  argState.getParents(), el -> el.getEdgeToChild(argState).getSuccessor()));
+        }
+        return builder.build();
+      } catch (InvalidConfigurationException | CPAException | InterruptedException e) {
+        logger.logException(Level.SEVERE, e, "Failed to determine relevant edges");
+      }
+    }
+    return ImmutableSet.of();
   }
 }

@@ -3450,6 +3450,11 @@ dependencegraph.pointerAnalysisTime = 0s
 # PointerStateComputationMethod.FLOW_INSENSITIVE
 dependencegraph.pointerStateComputationMethods = [PointerStateComputationMethod.FLOW_SENSITIVE]
 
+# comma-separated list of files with property specifications that should be
+# considered when determining the nodes that are in the reachability
+# property.
+differential.badstateProperties = []
+
 # ignore declarations when detecting modifications, be careful when variables
 # are renamed (could be unsound)
 differential.ignoreDeclarations = false
