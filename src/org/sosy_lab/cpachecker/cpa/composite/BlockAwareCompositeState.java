@@ -28,7 +28,9 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
  */
 public class BlockAwareCompositeState extends CompositeState {
   private static final long serialVersionUID = -7445431074342419279L;
-  private final Block block;
+  
+  // Todo: Make non-transient and ensure serializability for class Block.
+  private final transient Block block;
 
   private final AnalysisDirection direction;
 
