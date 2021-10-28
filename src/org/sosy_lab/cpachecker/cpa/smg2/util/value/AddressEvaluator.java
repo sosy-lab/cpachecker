@@ -8,8 +8,10 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2.util.value;
 
+import java.math.BigInteger;
 import java.util.Collection;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 
@@ -27,7 +29,7 @@ public interface AddressEvaluator {
   public Collection<CValueAndSMGState> createAddress(SMGState pState, CValue pValue);
 
   public Collection<CValueAndSMGState>
-      getAddressOfField(SMGState pInitialSmgState, CExpression pFieldReference);
+      getAddressOfField(SMGState pInitialSmgState, CFieldReference pFieldReference);
 
   public CValueAndSMGState handleUnknownDereference(SMGState pInitialSmgState);
 
@@ -36,5 +38,5 @@ public interface AddressEvaluator {
   public CValueAndSMGState
       readValue(SMGState pSmgState, SMGObject pVariableObject, CExpression pIdExpression);
 
-  public long getBitSizeof(SMGState pInitialSmgState, CExpression pUnaryOperand);
+  public BigInteger getBitSizeof(SMGState pInitialSmgState, CExpression pUnaryOperand);
 }

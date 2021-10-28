@@ -50,7 +50,7 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Google Core Libraries for Java
              Contains a lot of helpful data structures. -->
-        <dependency org="com.google.guava" name="guava" rev="31.0-jre"
+        <dependency org="com.google.guava" name="guava" rev="31.0.1-jre"
                     conf="runtime->default; contrib->sources"/>
 
         <dependency org="org.sosy_lab" name="llvm-j" rev="0.10"
@@ -102,8 +102,8 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Mockito
              Mocking framework for tests. -->
-        <dependency org="org.mockito" name="mockito-core" rev="3.12.4" conf="test->default"/>
-        <dependency org="org.mockito" name="mockito-errorprone" rev="3.12.4" conf="build->default"/>
+        <dependency org="org.mockito" name="mockito-core" rev="4.0.0" conf="test->default"/>
+        <dependency org="org.mockito" name="mockito-errorprone" rev="4.0.0" conf="build->default"/>
 
         <!-- Antlr
              Parser generator. -->
@@ -123,7 +123,7 @@ SPDX-License-Identifier: Apache-2.0
                     conf="test->default; contrib->sources"/>
 
         <!--  Guava-testlib contains many useful testing utilities -->
-        <dependency org="com.google.guava" name="guava-testlib" rev="31.0-jre"
+        <dependency org="com.google.guava" name="guava-testlib" rev="31.0.1-jre"
                     conf="test->default; contrib->sources"/>
 
         <!-- Eclipse CDT and JDT
@@ -149,7 +149,7 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- google-java-format
              A source-code formatter for Java -->
-        <dependency org="com.google.googlejavaformat" name="google-java-format" rev="1.11.0" conf="format-source->default"/>
+        <dependency org="com.google.googlejavaformat" name="google-java-format" rev="1.12.0" conf="format-source->default"/>
 
         <!-- SpotBugs -->
         <dependency org="com.github.spotbugs" name="spotbugs-ant" rev="4.4.1" conf="spotbugs->default"/>
@@ -159,13 +159,13 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Checkstyle -->
         <dependency org="com.github.sevntu-checkstyle" name="sevntu-checks" rev="1.40.0" conf="checkstyle->default"/>
-        <dependency org="com.puppycrawl.tools" name="checkstyle" rev="9.0" conf="checkstyle->default"/>
+        <dependency org="com.puppycrawl.tools" name="checkstyle" rev="9.0.1" conf="checkstyle->default"/>
 
         <!-- VerifierCloud -->
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>
 
         <!-- JavaSMT -->
-        <dependency org="org.sosy_lab" name="java-smt" rev="3.10.0" conf="runtime->runtime-without-gpl; contrib->sources">
+        <dependency org="org.sosy_lab" name="java-smt" rev="3.10.1" conf="runtime->runtime-without-gpl; contrib->sources">
         <!-- We do not ship GPLv3 licensed software like the SMT solver Yices2.
              The user has to enable such components directly.
              We provide the following configuration for this case:
@@ -175,10 +175,14 @@ SPDX-License-Identifier: Apache-2.0
           <exclude org="org.sosy_lab" module="javasmt-solver-optimathsat"/>
         </dependency>
 
+        <!-- YAML parser -->
+        <dependency org="com.fasterxml.jackson.dataformat" name="jackson-dataformat-yaml" rev="2.12.3" conf="runtime->default"/>
+
         <!-- LassoRanker
              Synthesis of ranking functions for termination analysis. -->
-        <dependency org="de.uni-freiburg.informatik.ultimate" name="lasso-ranker" rev="2021-03-22-r6b052ca16b" conf="runtime->runtime; contrib->sources"/>
+        <dependency org="de.uni-freiburg.informatik.ultimate" name="lasso-ranker" rev="2021-10-05-rf6ece58d9b" conf="runtime->runtime; contrib->sources"/>
 
+        <!-- Batik library for creating svg-images -->
         <dependency org="org.apache.xmlgraphics" name="batik-svggen" rev="1.12" conf="runtime->default; contrib->sources">
             <exclude org="org.apache.xmlgraphics" module="xmlgraphics-commons"/>
         </dependency>

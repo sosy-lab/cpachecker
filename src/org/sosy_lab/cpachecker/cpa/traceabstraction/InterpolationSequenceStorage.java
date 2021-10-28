@@ -27,10 +27,6 @@ import java.util.Set;
  */
 class InterpolationSequenceStorage {
 
-  // TODO: potentially merge/refactor functionality of this class with PredicatePrecision.
-  // For now predicates other than function predicates are ignored, although they also need to be
-  // considered eventually.
-
   private final Set<InterpolationSequence> itpSequences = new HashSet<>();
   private final SetMultimap<InterpolationSequence, InterpolationSequence> referenceMap =
       HashMultimap.create();
