@@ -182,10 +182,10 @@ public final class Scheduler implements Runnable {
     List<Runnable> aborted = executor.shutdownNow();
     assert aborted.isEmpty();
     
-    complete = true;
-    
     for (final Thread waitingThread : waitingForCompletion) {
       synchronized (waitingThread) {
+        complete = true;
+        
         waitingThread.notify();
       }
     }
