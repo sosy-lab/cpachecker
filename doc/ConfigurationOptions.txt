@@ -189,6 +189,10 @@ analysis.algorithm.CEGAR = false
 # with PredicateCPA and large-block encoding
 analysis.algorithm.IMC = false
 
+# use interpolation-sequence based model checking algorithm, works only with
+# PredicateCPA and large-block encoding
+analysis.algorithm.ISMC = false
+
 # Use MPI for running analyses in new subprocesses. The resulting reachedset
 # is the one of the first analysis returning in time. All other mpi-processes
 # will get aborted.
@@ -3557,6 +3561,21 @@ invariantGeneration.kInduction.invariantsAutomatonFile = no default value
 # For correctness-witness validation: Shut down if a candidate invariant is
 # found to be incorrect.
 invariantGeneration.kInduction.terminateOnCounterexample = false
+
+# toggle checking forward conditions
+ismc.checkForwardConditions = true
+
+# toggle deriving the interpolants from suffix formulas
+ismc.deriveInterpolantFromSuffix = true
+
+# toggle falling back if interpolation or forward-condition is disabled
+ismc.fallBack = true
+
+# toggle using interpolation to verify programs with loops
+ismc.interpolation = true
+
+# toggle removing unreachable stop states in ARG
+ismc.removeUnreachableStopStates = false
 
 # Specify the class code path to search for java class or interface
 # definitions

@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
+import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /**
@@ -206,22 +207,31 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         }
       }
 
-      // Some implemetation questions:
+      // TODO: some implemetation questions
       // - reuse solver environment or not?
       if (interpolation
           && maxLoopIterations > 1
           && !AbstractStates.getTargetStates(pReachedSet).isEmpty()) {
+        
         logger.log(Level.FINE, "Collecting BMC-partitioning formulas");
         List<BooleanFormula> partitionedFormulas = collectFormulas(pReachedSet);
+        logger.log(Level.ALL, "Partitioned formulas:", partitionedFormulas);
+
         logger.log(Level.FINE, "Extracting interpolation-sequence");
         List<BooleanFormula> itpSequence = getInterpolationSequence(partitionedFormulas);
+        logger.log(Level.ALL, "Interpolation sequence:", itpSequence);
+
         logger.log(Level.FINE, "Updating reachability vector");
         reachVector = updateReachabilityVector(reachVector, itpSequence);
+        logger.log(Level.ALL, "Updated reachability vector:", reachVector);
+
         logger.log(Level.FINE, "Checking fiexd-point");
         if (reachFixedPoint(reachVector)) {
+          logger.log(Level.INFO, "Fixed point reached");
           removeUnreachableTargetStates(pReachedSet);
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
+        logger.log(Level.FINE, "The overapproximation is unsafe, going back to BMC phase");
       }
       removeUnreachableTargetStates(pReachedSet);
     } while (adjustConditions());
@@ -229,22 +239,79 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   private List<BooleanFormula> collectFormulas(final ReachedSet pReachedSet) {
-    return new ArrayList<BooleanFormula>();
+    FluentIterable<AbstractState> targetStatesAfterLoop = getTargetStatesAfterLoop(pReachedSet);
+    List<ARGState> abstractionStates =
+          getAbstractionStatesToRoot(targetStatesAfterLoop.get(0)).toList();
+    
+    List<BooleanFormula> formulas = new ArrayList<>();
+    for (int i = 2; i < abstractionStates.size() - 1; ++i) {
+      // TR(V_k, V_k+1)
+      BooleanFormula transitionRelation = getPredicateAbstractionBlockFormula(abstractionStates.get(i)).getFormula();
+      if (i == 2) {
+        // INIT(V_0) ^ TR(V_0, V_1)
+        BooleanFormula initialCondition = getPredicateAbstractionBlockFormula(abstractionStates.get(1)).getFormula();
+        transitionRelation = bfmgr.and(initialCondition, transitionRelation);
+      }
+      formulas.add(transitionRelation);
+    }
+
+    // ~P
+    formulas.add(createDisjunctionFromStates(targetStatesAfterLoop));
+
+    return formulas;
   }
 
-  private List<BooleanFormula> getInterpolationSequence(List<BooleanFormula> pFormulas) {
-    // try-with newProverEnvironmentWithInterpolation
-    // remember to uninstantiate a given formula!!
-    return new ArrayList<BooleanFormula>();
+  private <T> List<BooleanFormula> getInterpolationSequence(List<BooleanFormula> pFormulas)
+      throws InterruptedException, SolverException {
+    // TODO: consider using the methods that generates interpolation sequence in ImpactAlgorithm
+    // should be someting like: imgr.buildCounterexampleTrace(formulas)
+    List<BooleanFormula> itpSequence = new ArrayList<>();
+    try (InterpolatingProverEnvironment<T> itpProver =
+        (InterpolatingProverEnvironment<T>) solver.newProverEnvironmentWithInterpolation()) {
+      for (int i = 1; i < pFormulas.size(); ++i) {
+        BooleanFormula booleanFormulaA = bfmgr.and(pFormulas.subList(0, i));
+        BooleanFormula booleanFormulaB = bfmgr.and(pFormulas.subList(i, pFormulas.size()));
+        
+        List<T> formulaA = new ArrayList<>();
+        List<T> formulaB = new ArrayList<>();
+        formulaA.add(itpProver.push(booleanFormulaA));
+        formulaB.add(itpProver.push(booleanFormulaB));
+
+        assert itpProver.isUnsat();
+        BooleanFormula interpolant = getInterpolantFrom(itpProver, formulaA, formulaB);
+        itpSequence.add(fmgr.uninstantiate(interpolant));  // uninstantiate the formula
+
+        itpProver.pop();
+        itpProver.pop();
+      }
+    }
+    return itpSequence;
   }
 
   private List<BooleanFormula> updateReachabilityVector(
       List<BooleanFormula> oldReachVector, List<BooleanFormula> itpSequence) {
-    return new ArrayList<BooleanFormula>();
+    List<BooleanFormula> newReachVector = new ArrayList<>();
+    assert oldReachVector.size() + 1 == itpSequence.size();
+
+    for (int i = 0; i < oldReachVector.size(); ++i) {
+      BooleanFormula image = oldReachVector.get(i);
+      BooleanFormula itp = itpSequence.get(i);
+      newReachVector.add(bfmgr.and(image, itp));
+    }
+    newReachVector.add(itpSequence.get(itpSequence.size() - 1));
+    return newReachVector;
   }
 
-  private boolean reachFixedPoint(List<BooleanFormula> reachVector) {
-    // try-with newProverEnvironment
+  private boolean reachFixedPoint(List<BooleanFormula> reachVector)
+      throws InterruptedException, SolverException {
+    BooleanFormula currentImage = reachVector.get(0);
+    for (int i = 1; i < reachVector.size(); ++i) {
+      BooleanFormula imageAtI = reachVector.get(i);
+      if (solver.implies(imageAtI, currentImage)) {
+        return true;
+      }
+      currentImage = bfmgr.or(currentImage, imageAtI);
+    }
     return false;
   }
 
@@ -330,11 +397,6 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   /** @note an exact copy from IMCAlgorithm.java */
-  private PathFormula makeFalsePathFormula() {
-    return pfmgr.makeEmptyPathFormula().withFormula(bfmgr.makeFalse());
-  }
-
-  /** @note an exact copy from IMCAlgorithm.java */
   private static FluentIterable<ARGState> getAbstractionStatesToRoot(AbstractState pTargetState) {
     return from(ARGUtils.getOnePathTo((ARGState) pTargetState).asStatesList())
         .filter(PredicateAbstractState::containsAbstractionState);
@@ -349,7 +411,7 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private static FluentIterable<AbstractState> getTargetStatesAfterLoop(
       final ReachedSet pReachedSet) {
     return AbstractStates.getTargetStates(pReachedSet)
-        .filter(IMCAlgorithm::isTargetStateAfterLoopStart);
+        .filter(ISMCAlgorithm::isTargetStateAfterLoopStart);
   }
 
   /** @note an exact copy from IMCAlgorithm.java */
