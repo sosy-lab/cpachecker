@@ -52,8 +52,11 @@ public class BlockGraphBuilder {
     pendingBlocks.put(initial, entryBlock);
 
     while(!pendingBlocks.isEmpty()) {
-      CFANode start = pendingBlocks.keySet().iterator().next();
-      BlockBuilder block = pendingBlocks.get(start);
+      Map.Entry<CFANode, BlockBuilder> pendingBlockEntry 
+          = pendingBlocks.entrySet().iterator().next();
+      
+      CFANode start = pendingBlockEntry.getKey();
+      BlockBuilder block = pendingBlockEntry.getValue();
       pendingBlocks.remove(start);
 
       Set<BlockBuilder> exits = block.explore(blk);
