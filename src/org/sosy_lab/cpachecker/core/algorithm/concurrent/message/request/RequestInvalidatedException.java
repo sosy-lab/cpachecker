@@ -8,6 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request;
 
-public class RequestInvalidatedException extends Error {
+public class RequestInvalidatedException extends Exception {
   private static final long serialVersionUID = 8925650005067917726L;
 }
