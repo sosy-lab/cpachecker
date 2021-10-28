@@ -115,7 +115,9 @@ public final class Scheduler implements Runnable {
     while (!complete) {
       try {
         synchronized (currentThread) {
-          currentThread.wait();
+          if(!complete) {
+            currentThread.wait(); 
+          }
         }
       } catch (final InterruptedException exception) {
         if (shutdownManager.getNotifier().shouldShutdown()) {
