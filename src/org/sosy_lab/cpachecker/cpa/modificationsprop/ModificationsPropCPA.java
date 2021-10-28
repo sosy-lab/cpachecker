@@ -14,7 +14,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -257,7 +256,7 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
                     .filter(state -> ((ARGState) state).isTarget())
                     .transform(state -> (ARGState) state)
                     .toList());
-        Builder<CFANode> builder = new ImmutableSet.Builder<>();
+        ImmutableSet.Builder<CFANode> builder = new ImmutableSet.Builder<>();
         for (ARGState argState : propertyARGNodes) {
           if (argState.getParents().isEmpty()) {
             // Initial node might be in property and not have a parent.

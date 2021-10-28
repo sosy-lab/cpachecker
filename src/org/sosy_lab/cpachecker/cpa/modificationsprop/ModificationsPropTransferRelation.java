@@ -8,9 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.modificationsprop;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
@@ -143,7 +143,7 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
                   final ImmutableSet<String> returnChangedVars;
                   if (retMo.getReturnStatement() == null
                       || retOr.getReturnStatement() == null
-                      || retMo.getReturnStatement().equals(retOr.getReturnStatement())
+                      || (retMo.getReturnStatement().equals(retOr.getReturnStatement())
                           && Collections.disjoint(
                               retOr
                                   .getReturnStatement()
@@ -151,7 +151,7 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
                                   .orElseThrow()
                                   .getRightHandSide()
                                   .accept(new RHSVisitor()),
-                              changedVars)) {
+                              changedVars))) {
                     returnChangedVars = changedVars;
                   } else {
                     returnChangedVars =
@@ -176,17 +176,15 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
                     entryNodeMo = callMo.getSuccessor();
                 final List<String>
                     paramsOr =
-                        entryNodeOr.getFunctionParameters().stream()
-                            .map(param -> param.getQualifiedName())
-                            .collect(ImmutableList.toImmutableList()),
+                        transformedImmutableListCopy(
+                            entryNodeOr.getFunctionParameters(), param -> param.getQualifiedName()),
                     paramsMo =
-                        entryNodeMo.getFunctionParameters().stream()
-                            .map(param -> param.getQualifiedName())
-                            .collect(ImmutableList.toImmutableList());
+                        transformedImmutableListCopy(
+                            entryNodeMo.getFunctionParameters(), param -> param.getQualifiedName());
                 // we require that all old parameters must be contained in new parameters
                 if (paramsMo.containsAll(paramsOr) && helper.sameClassAndFunction(entryNodeMo, entryNodeOr)) {
                   helper.logCase("Taking case 4 for function calls with modified variables.");
-                  HashSet<String> modifiedAfterFunctionCall = new HashSet<>(changedVars);
+                  Set<String> modifiedAfterFunctionCall = new HashSet<>(changedVars);
                   for (String param : paramsOr) {
                     // if not equal expressions for parameter or variable in expression modified
                     if (!callMo

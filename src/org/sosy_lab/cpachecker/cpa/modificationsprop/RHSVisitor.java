@@ -8,8 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.modificationsprop;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
+import java.util.HashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -22,10 +21,10 @@ public class RHSVisitor extends VariableIdentifierVisitor
 
   @Override
   public Set<String> visit(CFunctionCallExpression pIastFunctionCallExpression) throws NoException {
-    Builder<String> imsBuild = new ImmutableSet.Builder<>();
+    Set<String> resultSet = new HashSet<>();
     for (CExpression exp : pIastFunctionCallExpression.getParameterExpressions()) {
-      imsBuild.addAll(exp.accept(this));
+      resultSet.addAll(exp.accept(this));
     }
-    return imsBuild.build();
+    return resultSet;
   }
 }
