@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.IMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.pdr.PdrAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.composition.CompositionAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.ConcurrentAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.explainer.Explainer;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
@@ -347,6 +348,12 @@ public class CoreComponentsFactory {
       description = "Use fault localization with distance metrics")
   private boolean useFaultLocalizationWithDistanceMetrics = false;
 
+  @Option(
+      secure = true,
+      name = "algorithm.concurrentTaskPartitioning",
+      description = "Perform concurrent analysis with block-based task partitioning")
+  private boolean concurrentTaskPartitioning = false;
+  
   @Option(secure = true, description = "Enable converting test goals to conditions.")
   private boolean testGoalConverter;
 
@@ -596,6 +603,12 @@ public class CoreComponentsFactory {
         }
       }
 
+      if (concurrentTaskPartitioning) {
+        algorithm =
+            ConcurrentAnalysis.create(
+                algorithm, cfa, config, specification, logger, shutdownNotifier);
+      }
+      
       algorithm =
           ExceptionHandlingAlgorithm.create(
               config, algorithm, cpa, logger, shutdownNotifier, checkCounterexamples, useCEGAR);
@@ -695,7 +708,8 @@ public class CoreComponentsFactory {
         || useParallelAlgorithm
         || asConditionalVerifier
         || useFaultLocalizationWithDistanceMetrics
-        || useArrayAbstraction) {
+        || useArrayAbstraction
+        || concurrentTaskPartitioning) {
       // this algorithm needs an indirection so that it can change
       // the actual reached set instance on the fly
       if (memorizeReachedAfterRestart) {
