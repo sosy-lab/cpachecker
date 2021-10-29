@@ -82,7 +82,6 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   private final Algorithm algorithm;
 
-  private final PathFormulaManager pfmgr;
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final Solver solver;
@@ -121,7 +120,6 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     @SuppressWarnings("resource")
     PredicateCPA predCpa = CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, ISMCAlgorithm.class);
     solver = predCpa.getSolver();
-    pfmgr = predCpa.getPathFormulaManager();
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
   }
@@ -218,8 +216,12 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         logger.log(Level.ALL, "Partitioned formulas:", partitionedFormulas);
 
         logger.log(Level.FINE, "Extracting interpolation-sequence");
-        List<BooleanFormula> itpSequence = getInterpolationSequence(partitionedFormulas);
-        logger.log(Level.ALL, "Interpolation sequence:", itpSequence);
+        List<BooleanFormula> itpSequence = null;
+        try (InterpolatingProverEnvironment<?> itpProver =
+            solver.newProverEnvironmentWithInterpolation()) {
+          itpSequence = getInterpolationSequence(itpProver, partitionedFormulas);
+          logger.log(Level.ALL, "Interpolation sequence:", itpSequence);
+        }
 
         logger.log(Level.FINE, "Updating reachability vector");
         reachVector = updateReachabilityVector(reachVector, itpSequence);
@@ -261,30 +263,28 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return formulas;
   }
 
-  private <T> List<BooleanFormula> getInterpolationSequence(List<BooleanFormula> pFormulas)
+  private <T> List<BooleanFormula> getInterpolationSequence(InterpolatingProverEnvironment<T> itpProver, List<BooleanFormula> pFormulas)
       throws InterruptedException, SolverException {
     // TODO: consider using the methods that generates interpolation sequence in ImpactAlgorithm
     // should be someting like: imgr.buildCounterexampleTrace(formulas)
     List<BooleanFormula> itpSequence = new ArrayList<>();
-    try (InterpolatingProverEnvironment<T> itpProver =
-        (InterpolatingProverEnvironment<T>) solver.newProverEnvironmentWithInterpolation()) {
-      for (int i = 1; i < pFormulas.size(); ++i) {
-        BooleanFormula booleanFormulaA = bfmgr.and(pFormulas.subList(0, i));
-        BooleanFormula booleanFormulaB = bfmgr.and(pFormulas.subList(i, pFormulas.size()));
-        
-        List<T> formulaA = new ArrayList<>();
-        List<T> formulaB = new ArrayList<>();
-        formulaA.add(itpProver.push(booleanFormulaA));
-        formulaB.add(itpProver.push(booleanFormulaB));
+    for (int i = 1; i < pFormulas.size(); ++i) {
+      BooleanFormula booleanFormulaA = bfmgr.and(pFormulas.subList(0, i));
+      BooleanFormula booleanFormulaB = bfmgr.and(pFormulas.subList(i, pFormulas.size()));
+      
+      List<T> formulaA = new ArrayList<>();
+      List<T> formulaB = new ArrayList<>();
+      formulaA.add(itpProver.push(booleanFormulaA));
+      formulaB.add(itpProver.push(booleanFormulaB));
 
-        assert itpProver.isUnsat();
-        BooleanFormula interpolant = getInterpolantFrom(itpProver, formulaA, formulaB);
-        itpSequence.add(fmgr.uninstantiate(interpolant));  // uninstantiate the formula
+      assert itpProver.isUnsat();
+      BooleanFormula interpolant = getInterpolantFrom(itpProver, formulaA, formulaB);
+      itpSequence.add(fmgr.uninstantiate(interpolant));  // uninstantiate the formula
 
-        itpProver.pop();
-        itpProver.pop();
-      }
+      itpProver.pop();
+      itpProver.pop();
     }
+    
     return itpSequence;
   }
 
@@ -315,14 +315,14 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return false;
   }
 
-  /** @note an exact copy from IMCAlgorithm.java */
+  // note: an exact copy from IMCAlgorithm.java
   private void fallBackToBMC(final String pReason) {
     logger.log(Level.WARNING, pReason);
     logger.log(Level.WARNING, "Interpolation disabled: falling back to BMC");
     interpolation = false;
   }
 
-  /** @note an exact copy from IMCAlgorithm.java */
+  // note: an exact copy from IMCAlgorithm.java
   private void fallBackToBMCWithoutForwardCondition(final String pReason) {
     logger.log(Level.WARNING, pReason);
     logger.log(Level.WARNING, "Forward-condition disabled: falling back to plain BMC");
@@ -330,12 +330,12 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     checkForwardConditions = false;
   }
 
-  /** @note an exact copy from IMCAlgorithm.java */
+  // note: an exact copy from IMCAlgorithm.java
   private static boolean hasCoveredStates(final ReachedSet pReachedSet) {
     return !from(pReachedSet).transformAndConcat(e -> ((ARGState) e).getCoveredByThis()).isEmpty();
   }
 
-  /** @note an exact copy from IMCAlgorithm.java */
+  // note: an exact copy from IMCAlgorithm.java
   private static void removeUnreachableTargetStates(ReachedSet pReachedSet) {
     if (pReachedSet.wasTargetReached()) {
       TargetLocationCandidateInvariant.INSTANCE.assumeTruth(pReachedSet);
@@ -351,8 +351,8 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * also results in some wrong proofs.
    *
    * @param pReachedSet Abstract Reachability Graph
-   * @note an exact copy from IMCAlgorithm.java
    */
+  // note: an exact copy from IMCAlgorithm.java
   private boolean checkAndAdjustARG(ReachedSet pReachedSet)
       throws SolverException, InterruptedException {
     if (hasCoveredStates(pReachedSet)) {
@@ -382,7 +382,7 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return true;
   }
 
-  /** @note an exact copy from IMCAlgorithm.java */
+  // note: an exact copy from IMCAlgorithm.java
   private List<AbstractState> getUnreachableStopStates(
       final FluentIterable<AbstractState> pStopStates)
       throws SolverException, InterruptedException {
@@ -396,25 +396,25 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return unreachableStopStates;
   }
 
-  /** @note an exact copy from IMCAlgorithm.java */
+  // note: an exact copy from IMCAlgorithm.java
   private static FluentIterable<ARGState> getAbstractionStatesToRoot(AbstractState pTargetState) {
     return from(ARGUtils.getOnePathTo((ARGState) pTargetState).asStatesList())
         .filter(PredicateAbstractState::containsAbstractionState);
   }
 
-  /** @note an exact copy from IMCAlgorithm.java */
+  // note: an exact copy from IMCAlgorithm.java
   private static boolean isTargetStateAfterLoopStart(AbstractState pTargetState) {
     return getAbstractionStatesToRoot(pTargetState).size() > 2;
   }
 
-  /** @note an exact copy from IMCAlgorithm.java */
+  // note: an exact copy from IMCAlgorithm.java
   private static FluentIterable<AbstractState> getTargetStatesAfterLoop(
       final ReachedSet pReachedSet) {
     return AbstractStates.getTargetStates(pReachedSet)
         .filter(ISMCAlgorithm::isTargetStateAfterLoopStart);
   }
 
-  /** @note an exact copy from IMCAlgorithm.java */
+  // note: an exact copy from IMCAlgorithm.java
   private static PathFormula getPredicateAbstractionBlockFormula(AbstractState pState) {
     return PredicateAbstractState.getPredicateState(pState)
         .getAbstractionFormula()
@@ -429,8 +429,8 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * @param pFormulaB Formula B (suffix)
    * @return A {@code BooleanFormula} interpolant
    * @throws InterruptedException On shutdown request.
-   * @note an exact copy from IMCAlgorithm.java
    */
+  // note: an exact copy from IMCAlgorithm.java
   private <T> BooleanFormula getInterpolantFrom(
       InterpolatingProverEnvironment<T> itpProver, final List<T> pFormulaA, final List<T> pFormulaB)
       throws SolverException, InterruptedException {
@@ -451,13 +451,13 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             + " does not support this function. It should not be called.");
   }
 
-  /** @note an exact copy from IMCAlgorithm.java */
+  // note: an exact copy from IMCAlgorithm.java
   private BooleanFormula createDisjunctionFromStates(final FluentIterable<AbstractState> pStates) {
     return pStates.transform(e -> getPredicateAbstractionBlockFormula(e).getFormula()).stream()
         .collect(bfmgr.toDisjunction());
   }
 
-  /** @note an exact copy from IMCAlgorithm.java */
+  // note: an exact copy from IMCAlgorithm.java
   private BooleanFormula buildReachFormulaForStates(
       final FluentIterable<AbstractState> pGoalStates) {
     List<BooleanFormula> pathFormulas = new ArrayList<>();
@@ -478,19 +478,19 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return bfmgr.or(pathFormulas);
   }
 
-  /** @note an exact copy from IMCAlgorithm.java */
+  // note: an exact copy from IMCAlgorithm.java
   private static FluentIterable<AbstractState> getStopStates(final ReachedSet pReachedSet) {
     return from(pReachedSet)
         .filter(AbstractBMCAlgorithm::isStopState)
         .filter(AbstractBMCAlgorithm::isRelevantForReachability);
   }
 
-  /** @note an exact copy from IMCAlgorithm.java */
+  // note: an exact copy from IMCAlgorithm.java
   private BooleanFormula buildReachTargetStateFormula(final ReachedSet pReachedSet) {
     return buildReachFormulaForStates(AbstractStates.getTargetStates(pReachedSet));
   }
 
-  /** @note an exact copy from IMCAlgorithm.java */
+  // note: an exact copy from IMCAlgorithm.java
   private BooleanFormula buildBoundingAssertionFormula(final ReachedSet pReachedSet) {
     return buildReachFormulaForStates(getStopStates(pReachedSet));
   }
