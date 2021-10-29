@@ -487,7 +487,7 @@ analysis.unknownAsTrue = false
 # certain restrictions.
 analysis.unknownIfUnrestrictedProgram = false
 
-# Use array abstraction by program translation
+# Use array abstraction by program transformation.
 analysis.useArrayAbstraction = false
 
 # select an analysis from a set of analyses after unknown result
@@ -512,11 +512,17 @@ analysis.useWitnessToACSLAlgorithm = false
 # converts a graphml witness to invariant witness
 analysis.witnessToInvariant = false
 
+# Whether to export the CFA with abstracted arrays as C source file.
+arrayAbstraction.cfa.c.export = true
+
+# C source file path for CFA with abstracted arrays.
+arrayAbstraction.cfa.c.file = "abstracted-arrays.c"
+
 # Whether to export the CFA with abstracted arrays as DOT file.
-arrayAbstraction.cfa.export = true
+arrayAbstraction.cfa.dot.export = true
 
 # DOT file path for CFA with abstracted arrays.
-arrayAbstraction.cfa.file = "cfa-abstracted-arrays.dot"
+arrayAbstraction.cfa.dot.file = "cfa-abstracted-arrays.dot"
 
 # Use a second delegate analysis run to check counterexamples on the original
 # program that contains (non-abstracted) arrays.

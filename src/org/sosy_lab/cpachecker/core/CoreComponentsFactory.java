@@ -224,7 +224,7 @@ public class CoreComponentsFactory {
   @Option(
       secure = true,
       name = "useArrayAbstraction",
-      description = "Use array abstraction by program translation")
+      description = "Use array abstraction by program transformation.")
   private boolean useArrayAbstraction = false;
 
   @Option(
