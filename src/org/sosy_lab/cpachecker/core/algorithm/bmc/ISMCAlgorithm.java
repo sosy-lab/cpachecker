@@ -39,13 +39,11 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
-import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /**
@@ -164,7 +162,7 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
     logger.log(Level.FINE, "Performing interpolation-sequence based model checking");
     // nitialize the reachability vector
-    List<BooleanFormula> reachVector = new ArrayList<BooleanFormula>();
+    List<BooleanFormula> reachVector = new ArrayList<>();
     do {
       int maxLoopIterations = CPAs.retrieveCPA(cpa, LoopBoundCPA.class).getMaxLoopIterations();
       // Unroll
