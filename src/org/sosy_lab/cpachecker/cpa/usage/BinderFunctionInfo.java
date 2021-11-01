@@ -100,7 +100,7 @@ public class BinderFunctionInfo {
       IdentifierCreator creator) {
 
     AbstractIdentifier idIn = constructIdentifier(linkInfo.getFirst(), left, params, creator);
-    AbstractIdentifier idFrom = constructIdentifier(linkInfo.getFirst(), left, params, creator);
+    AbstractIdentifier idFrom = constructIdentifier(linkInfo.getSecond(), left, params, creator);
 
     if (idIn == null || idFrom == null) {
       return ImmutableSet.of();
