@@ -277,7 +277,9 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       formulaA.add(itpProver.push(booleanFormulaA));
       formulaB.add(itpProver.push(booleanFormulaB));
 
-      assert itpProver.isUnsat();
+      if (!itpProver.isUnsat()) {
+        throw new AssertionError("The formula must be UNSAT to retrieve the interpolant.");
+      }
       BooleanFormula interpolant = getInterpolantFrom(itpProver, formulaA, formulaB);
       itpSequence.add(fmgr.uninstantiate(interpolant));  // uninstantiate the formula
 
