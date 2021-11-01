@@ -211,10 +211,10 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
               ImmutableSet.of(automatonFile), cfa, lConfig, lLogger, shutdownNotifier);
       CoreComponentsFactory factory =
           new CoreComponentsFactory(
-              lConfig, lLogger, lShutdownManager.getNotifier(), new AggregatedReachedSets());
+              lConfig, lLogger, lShutdownManager.getNotifier(), AggregatedReachedSets.empty());
       ConfigurableProgramAnalysis lCpas = factory.createCPA(cfa, lSpecification);
       Algorithm lAlgorithm = factory.createAlgorithm(lCpas, cfa, lSpecification);
-      ReachedSet lReached = factory.createReachedSet();
+      ReachedSet lReached = factory.createReachedSet(lCpas);
       lReached.add(
           lCpas.getInitialState(entryNode, StateSpacePartition.getDefaultPartition()),
           lCpas.getInitialPrecision(entryNode, StateSpacePartition.getDefaultPartition()));
@@ -249,7 +249,7 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
       }
 
       // counterexample is feasible if a target state is reachable
-      return lReached.hasViolatedProperties();
+      return lReached.wasTargetReached();
 
     } catch (InvalidConfigurationException e) {
       throw new CounterexampleAnalysisFailed("Invalid configuration in counterexample-check config: " + e.getMessage(), e);

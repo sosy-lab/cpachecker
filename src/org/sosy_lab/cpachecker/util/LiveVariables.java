@@ -563,12 +563,12 @@ public class LiveVariables {
       ReachedSetFactory reachedFactory = new ReachedSetFactory(config, logger);
       ConfigurableProgramAnalysis cpa =
           new CPABuilder(config, logger, shutdownNotifier, reachedFactory)
-              .buildCPAs(cfa, Specification.alwaysSatisfied(), new AggregatedReachedSets());
+              .buildCPAs(cfa, Specification.alwaysSatisfied(), AggregatedReachedSets.empty());
       Algorithm algorithm = CPAAlgorithm.create(cpa,
                                                 logger,
                                                 config,
                                                 shutdownNotifier);
-      ReachedSet reached = reachedFactory.create();
+      ReachedSet reached = reachedFactory.create(cpa);
       return Optional.of(new AnalysisParts(cpa, algorithm, reached));
 
     } catch (InvalidConfigurationException | CPAException e) {

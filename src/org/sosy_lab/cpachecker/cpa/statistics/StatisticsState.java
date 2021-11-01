@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.statistics;
 
 import static com.google.common.base.Preconditions.checkState;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -20,7 +19,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /**
  * Represents a state along the currently analysed path within the StatisticsCPA domain.
@@ -135,21 +133,6 @@ public class StatisticsState implements AbstractStateWithLocation, Partitionable
   @Override
   public CFANode getLocationNode() {
       return locationNode;
-  }
-
-  @Override
-  public Iterable<CFANode> getLocationNodes() {
-    return Collections.singleton(locationNode);
-  }
-
-  @Override
-  public Iterable<CFAEdge> getOutgoingEdges() {
-    return CFAUtils.leavingEdges(locationNode);
-  }
-
-  @Override
-  public Iterable<CFAEdge> getIngoingEdges() {
-    return CFAUtils.enteringEdges(locationNode);
   }
 
   @Override

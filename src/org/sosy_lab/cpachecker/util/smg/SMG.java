@@ -8,11 +8,16 @@
 
 package org.sosy_lab.cpachecker.util.smg;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSortedMap;
 import java.math.BigInteger;
+import java.util.ArrayDeque;
+import java.util.Collection;
 import java.util.Comparator;
+import java.util.Deque;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Objects;
@@ -21,6 +26,7 @@ import java.util.Set;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectsAndValues;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
@@ -104,6 +110,29 @@ public class SMG {
   }
 
   /**
+   * Creates a copy of the SMG an remove the given value.
+   *
+   * @param pValue - The object to be added.
+   * @return A modified copy of the SMG.
+   */
+  public SMG copyAndRemoveValue(SMGValue pValue) {
+    return new SMG(
+        smgObjects,
+        smgValues.removeAndCopy(pValue),
+        hasValueEdges,
+        pointsToEdges,
+        sizeOfPointer);
+  }
+
+  public SMG copyAndRemoveValues(Collection<SMGValue> pUnreachableValues) {
+    SMG returnSmg = this;
+    for (SMGValue smgValue : pUnreachableValues) {
+      returnSmg = returnSmg.copyAndRemoveValue(smgValue);
+    }
+    return returnSmg;
+  }
+
+  /**
    * Creates a copy of the SMG an adds the given has value edge.
    *
    * @param edge - The edge to be added.
@@ -111,8 +140,8 @@ public class SMG {
    * @return A modified copy of the SMG.
    */
   public SMG copyAndAddHVEdge(SMGHasValueEdge edge, SMGObject source) {
-
-    if (hasValueEdges.containsKey(source) && hasValueEdges.get(source).contains(edge)) {
+    if (hasValueEdges.containsKey(source)
+        && hasValueEdges.getOrDefault(source, PersistentSet.of()).contains(edge)) {
       return this;
     }
 
@@ -186,10 +215,12 @@ public class SMG {
    * @return A modified copy of the SMG.
    */
   public SMG copyAndRemoveHVEdges(Iterable<SMGHasValueEdge> edges, SMGObject source) {
-    PersistentSet<SMGHasValueEdge> smgEdges = hasValueEdges.get(source);
+    PersistentSet<SMGHasValueEdge> smgEdges =
+        hasValueEdges.getOrDefault(source, PersistentSet.of());
     for (SMGHasValueEdge edgeToRemove : edges) {
       smgEdges = smgEdges.removeAndCopy(edgeToRemove);
     }
+
     return new SMG(
         smgObjects,
         smgValues,
@@ -265,6 +296,14 @@ public class SMG {
     PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> newHVEdges =
         hasValueEdges.removeAndCopy(pObject);
     return new SMG(newObjects, smgValues, newHVEdges, pointsToEdges, sizeOfPointer);
+  }
+
+  public SMG copyAndRemoveObjects(Collection<SMGObject> pUnreachableObjects) {
+    SMG returnSmg = this;
+    for (SMGObject smgObject : pUnreachableObjects) {
+      returnSmg = returnSmg.copyAndInvalidateObject(smgObject);
+    }
+    return returnSmg;
   }
 
   /**
@@ -353,8 +392,7 @@ public class SMG {
    * Read a value of an object in the field specified by offset and size. This returns a read
    * re-interpretation of the field, which means it returns either the symbolic value that is
    * present, 0 if the field is covered with nullified blocks or an unknown value. This is not
-   * guaranteed to be completely accurate! TODO: Do we have to check for nullified blocks even if a
-   * value is defined?
+   * guaranteed to be completely accurate!
    *
    * @param object The object from which is to be read.
    * @param offset The offset from which on the field in the object is to be read.
@@ -364,11 +402,15 @@ public class SMG {
    */
   public SMGandValue readValue(SMGObject object, BigInteger offset, BigInteger sizeInBits) {
     // Check that our field is inside the object: offset + sizeInBits <= size(object)
-    assert (offset.add(sizeInBits).compareTo(object.getSize()) <= 0);
+    Preconditions.checkArgument(offset.add(sizeInBits).compareTo(object.getSize()) <= 0);
 
     // let v := H(o, of, t)
     // TODO: Currently getHasValueEdgeByOffsetAndSize returns any edge it finds.
-    // Check if multiple edges may exists for the same offset and size!
+    // Check if multiple edges may exists for the same offset and size! -> There should never be
+    // multiple edges for the exact same offset/size
+    // TODO: We only check for the exact matches to offset + size, what if one reads
+    // a field that is completely covered by a value field? I guess this is meant this way, but we
+    // should discuss it nevertheless.
     Predicate<SMGHasValueEdge> filterByOffsetAndSize =
         o -> o.getOffset().compareTo(offset) == 0 && o.getSizeInBits().compareTo(sizeInBits) == 0;
     Optional<SMGHasValueEdge> maybeValue =
@@ -410,8 +452,8 @@ public class SMG {
   public SMG writeValue(
       SMGObject object, BigInteger offset, BigInteger sizeInBits, SMGValue value) {
     // Check that our field is inside the object: offset + sizeInBits <= size(object)
-    assert (offset.add(sizeInBits).compareTo(object.getSize()) <= 0);
     BigInteger offsetPlusSize = offset.add(sizeInBits);
+    Preconditions.checkArgument(offsetPlusSize.compareTo(object.getSize()) <= 0);
 
     // If there exists a hasValueEdge in the specified object, with the specified field that equals
     // the specified value, simply return the original SMG
@@ -433,8 +475,10 @@ public class SMG {
             object,
             n ->
                 !(n.getOffset().add(n.getSizeInBits()).compareTo(offset) <= 0
-                    || offsetPlusSize.compareTo(n.getOffset()) <= 0));
+                        || offsetPlusSize.compareTo(n.getOffset()) <= 0)
+                    && !n.hasValue().isZero());
     newSMG = newSMG.copyAndRemoveHVEdges(nonZeroOverlappingEdges, object);
+
     if (!value.isZero()) {
       // If the value is non-zero, then for each hasValueEdge with a zero value, remove the edge,
       // and reintroduce new edges not overlapping with the field.
@@ -460,6 +504,7 @@ public class SMG {
     final BigInteger offsetPlusSize = offset.add(sizeInBits);
     PersistentSet<SMGHasValueEdge> toRemoveEdgesSet = PersistentSet.of();
     PersistentSet<SMGHasValueEdge> toAddEdgesSet = PersistentSet.of();
+
 
     for (SMGHasValueEdge hvEdge : hasValueEdges.get(object)) {
       final BigInteger hvEdgeOffsetPlusSize = hvEdge.getOffset().add(hvEdge.getSizeInBits());
@@ -528,6 +573,9 @@ public class SMG {
   private boolean isCoveredByNullifiedBlocks(SMGObject object, BigInteger offset, BigInteger size) {
     NavigableMap<BigInteger, BigInteger> nullEdgesRangeMap =
         getZeroValueEdgesForObject(object, offset, size);
+    if (nullEdgesRangeMap.isEmpty()) {
+      return false;
+    }
     // We start at the first value equalling zero in the object itself. To not read potentially
     // invalid memory, the first SMGHasValueEdge has to equal the offset, while only a single offset
     // + size in the map(=HasValueEdges) has to equal the offset + size of the field to be read.
@@ -537,18 +585,18 @@ public class SMG {
       return false;
     }
     BigInteger offsetPlusSize = offset.add(size);
-    currentMax = nullEdgesRangeMap.get(currentMax);
+    currentMax = nullEdgesRangeMap.get(currentMax).add(currentMax);
     // TreeMaps keySet is ordered!
     for (Map.Entry<BigInteger, BigInteger> entry : nullEdgesRangeMap.entrySet()) {
       // The max encountered yet has to be bigger to the next key.
-      // ( > because the size begins with the offset and does not include the offset + size bit!)
-      if (currentMax.compareTo(entry.getKey()) > 0) {
+      // ( < because the size begins with the offset and does not include the offset + size bit!)
+      if (currentMax.compareTo(entry.getKey()) < 0) {
         return false;
       }
-      currentMax = currentMax.max(entry.getValue());
+      currentMax = currentMax.max(entry.getValue().add(entry.getKey()));
       // If there are no gaps,
       // the max encountered has to be == offset + size at some point.
-      if (currentMax.compareTo(offsetPlusSize) == 0) {
+      if (currentMax.compareTo(offsetPlusSize) >= 0) {
         return true;
       }
     }
@@ -568,26 +616,44 @@ public class SMG {
   private ImmutableSortedMap<BigInteger, BigInteger> getZeroValueEdgesForObject(
       SMGObject smgObject, BigInteger offset, BigInteger sizeInBits) {
     BigInteger offsetPlusSize = offset.add(sizeInBits);
-    // TODO: Re-evaluate if edges exceeding the boundries of the field have to be used!
-    // FIT-TR-2013-4 appendix B states that they have to be used as well!
-    // Old idea: Both inequalities have to hold, else one may read invalid memory outside of the
-    // object!
-    // ObjectOffset <= HasValueEdgeOffset
-    // HasValueEdgeOffset + HasValueEdgeSize <= ObjectOffset + ObjectSize
+    // FIT-TR-2013-4 appendix B states that the entered field has to be covered. It does not matter
+    // if this is done in a sinle edge, or multiple, or that the edges exceed the field entered.
+    // They must be in the objects boundries however.
     return hasValueEdges
         .get(smgObject)
         .stream()
         .filter(
             n ->
                 n.hasValue().isZero()
-                    && offset.compareTo(n.getOffset()) <= 0
-                    && offsetPlusSize.compareTo(n.getOffset().add(n.getSizeInBits())) >= 0)
+                    && offsetPlusSize.compareTo(n.getOffset()) >= 0
+                    && offset.compareTo(n.getOffset().add(n.getSizeInBits())) <= 0)
         .collect(
             ImmutableSortedMap.toImmutableSortedMap(
                 Comparator.naturalOrder(),
                 SMGHasValueEdge::getOffset,
                 SMGHasValueEdge::getSizeInBits,
                 BigInteger::max));
+  }
+
+  /**
+   * Returns all edges overlapping a defined chunk of memory sorted by the edges' offset.
+   *
+   * @param pObject - the SMGRegion there the memory chunk is located
+   * @param pFieldOffset - the start offset of the memory chunk
+   * @param pSizeofInBits - the size of the memory chunk
+   * @return all edges with: edgeOffset <= pFieldOffset && pFieldOffset < edgeOffset + edgeSize ||
+   *         edgeOffset > pFieldOffset && edgeOffset < pSizeofInBits + pFieldOffset
+   */
+  public Collection<SMGHasValueEdge>
+      getOverlappingEdges(SMGObject pObject, BigInteger pFieldOffset, BigInteger pSizeofInBits) {
+    return getHasValueEdgesByPredicate(pObject, edge -> {
+      // edgeOffset <= pFieldOffset && pFieldOffset < edgeOffset + edgeSize
+      return (edge.getOffset().compareTo(pFieldOffset) <= 0
+          && edge.getOffset().add(edge.getSizeInBits()).compareTo(pFieldOffset) > 0)
+          // edgeOffset > pFieldOffset && edgeOffset < pSizeofInBits + pFieldOffset
+          || (edge.getOffset().compareTo(pFieldOffset) > 0
+              && edge.getOffset().compareTo(pFieldOffset.add(pSizeofInBits)) < 0);
+    }).toSortedSet(Comparator.comparing(SMGHasValueEdge::getOffset));
   }
 
   /**
@@ -735,6 +801,29 @@ public class SMG {
   public BigInteger getSizeOfPointer() {
     return sizeOfPointer;
   }
+
+  public SMGObjectsAndValues collectReachableObjectsAndValues(Collection<SMGObject> pVisibleObjects) {
+    Set<SMGObject> visitedObjects = new HashSet<>();
+    Set<SMGValue> visitedValues = new HashSet<>();
+    Deque<SMGObject> workDeque = new ArrayDeque<>(pVisibleObjects);
+    while (!workDeque.isEmpty()) {
+      SMGObject object = workDeque.pop();
+      // valid object which was not yet visited
+      if (visitedObjects.add(object) && isValid(object)) {
+        for (SMGHasValueEdge outgoingEdge : getEdges(object)) {
+          SMGValue value = outgoingEdge.hasValue();
+          // pointer value which was not yet visited
+          if (visitedValues.add(value) && isPointer(value)) {
+            SMGObject pointerTarget = getPTEdge(value).orElseThrow().pointsTo();
+            workDeque.add(pointerTarget);
+          }
+        }
+      }
+    }
+
+    return new SMGObjectsAndValues(visitedObjects, visitedValues);
+  }
+
 
 
 }

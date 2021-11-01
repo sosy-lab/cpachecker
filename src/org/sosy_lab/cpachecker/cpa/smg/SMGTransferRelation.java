@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
@@ -365,8 +366,12 @@ public class SMGTransferRelation
       String varName = paramDecl.get(i).getName();
       CType cParamType = TypeUtils.getRealExpressionType(paramDecl.get(i));
 
-     // handle string argument
-     if(exp instanceof CStringLiteralExpression) {
+      // workaround for casting
+      if (exp instanceof CCastExpression) {
+        exp = ((CCastExpression) exp).getOperand();
+      }
+      // handle string argument
+      if (exp instanceof CStringLiteralExpression) {
        CStringLiteralExpression strExp = (CStringLiteralExpression) exp;
        cParamType =  strExp.transformTypeToArrayType();
         // 1. create region and save string as char array
@@ -388,7 +393,7 @@ public class SMGTransferRelation
      }
 
      // If parameter is a array, convert to pointer
-     final int size;
+     final long size;
      if (cParamType instanceof CArrayType) {
        size = machineModel.getSizeofPtrInBits();
      } else {
@@ -479,7 +484,7 @@ public class SMGTransferRelation
 
       SMGRegion newObject = values.get(i).getFirst();
       SMGValue symbolicValue = values.get(i).getSecond();
-      int typeSize = expressionEvaluator.getBitSizeof(callEdge, cParamType, newState);
+      long typeSize = expressionEvaluator.getBitSizeof(callEdge, cParamType, newState);
 
       newState.addLocalVariable(typeSize, varName, newObject);
 
@@ -926,7 +931,7 @@ public class SMGTransferRelation
      *  already processed the declaration, we do nothing.
      */
     if (newObject == null && (!isExtern || options.getAllocateExternalVariables())) {
-      int typeSize = expressionEvaluator.getBitSizeof(pEdge, cType, pState);
+      long typeSize = expressionEvaluator.getBitSizeof(pEdge, cType, pState);
 
       // Handle incomplete type of extern variables as externally allocated
       if (options.isHandleIncompleteExternalVariableAsExternalAllocation()
@@ -991,22 +996,33 @@ public class SMGTransferRelation
       CInitializer pInitializer)
       throws CPATransferException {
 
-    //string literal handling
-    if (pInitializer instanceof CInitializerExpression && ((CInitializerExpression) pInitializer).getExpression() instanceof CStringLiteralExpression){
-      return handleStringInitializer(
-          pNewState,
-          pVarDecl,
-          pEdge,
-          pNewObject,
-          pOffset,
-          pLValueType,
-          pInitializer.getFileLocation(),
-          (CStringLiteralExpression) ((CInitializerExpression) pInitializer).getExpression());
-
-    } else if (pInitializer instanceof CInitializerExpression) {
-        return assignFieldToState(pNewState, pEdge, pNewObject,
-            pOffset, pLValueType,
-            ((CInitializerExpression) pInitializer).getExpression());
+    if (pInitializer instanceof CInitializerExpression) {
+      CExpression expression = ((CInitializerExpression) pInitializer).getExpression();
+      // string literal handling
+      if (expression instanceof CStringLiteralExpression) {
+        return handleStringInitializer(
+            pNewState,
+            pVarDecl,
+            pEdge,
+            pNewObject,
+            pOffset,
+            pLValueType,
+            pInitializer.getFileLocation(),
+            (CStringLiteralExpression) expression);
+      } else if (expression instanceof CCastExpression) {
+        // handle casting on initialization like 'char *str = (char *)"string";'
+        return handleCastInitializer(
+            pNewState,
+            pVarDecl,
+            pEdge,
+            pNewObject,
+            pOffset,
+            pLValueType,
+            pInitializer.getFileLocation(),
+            (CCastExpression) expression);
+      } else {
+        return assignFieldToState(pNewState, pEdge, pNewObject, pOffset, pLValueType, expression);
+      }
     } else if (pInitializer instanceof CInitializerList) {
       CInitializerList pNewInitializer = ((CInitializerList) pInitializer);
       CType realCType = pLValueType.getCanonicalType();
@@ -1039,6 +1055,41 @@ public class SMGTransferRelation
     }
   }
 
+  private List<SMGState> handleCastInitializer(
+      SMGState pNewState,
+      CVariableDeclaration pVarDecl,
+      CFAEdge pEdge,
+      SMGObject pNewObject,
+      long pOffset,
+      CType pLValueType,
+      FileLocation pFileLocation,
+      CCastExpression pExpression)
+      throws CPATransferException {
+    CExpression expression = pExpression.getOperand();
+    if (expression instanceof CStringLiteralExpression) {
+      return handleStringInitializer(
+          pNewState,
+          pVarDecl,
+          pEdge,
+          pNewObject,
+          pOffset,
+          pLValueType,
+          pFileLocation,
+          (CStringLiteralExpression) expression);
+    } else if (expression instanceof CCastExpression) {
+      return handleCastInitializer(
+          pNewState,
+          pVarDecl,
+          pEdge,
+          pNewObject,
+          pOffset,
+          pLValueType,
+          pFileLocation,
+          (CCastExpression) expression);
+    } else {
+      return assignFieldToState(pNewState, pEdge, pNewObject, pOffset, pLValueType, expression);
+    }
+  }
   /*
    * Handle string literal expression initializer:
    * if a string initializer nested in struct type:
@@ -1067,12 +1118,11 @@ public class SMGTransferRelation
 
     // handle string initializer nested in struct type or assign string to pointer
     if (realCType instanceof CCompositeType || pLValueType instanceof CPointerType) {
-      // create a new region for string expression
-      SMGRegion region =
-          pNewState
-              .addAnonymousVariable(
-                  machineModel.getSizeofCharInBits() * (pExpression.getValue().length() + 1))
-              .orElseThrow();
+      // create a new global region for string literal expression
+      SMGObject region =
+          pNewState.addGlobalVariable(
+              machineModel.getSizeofCharInBits() * (pExpression.getContentString().length() + 1),
+              pExpression.getContentString() + "ID" + SMGCPA.getNewValue());
       CInitializerExpression initializer = new CInitializerExpression(pExpression.getFileLocation(), pExpression);
       CType cParamType = pExpression.transformTypeToArrayType();
       CVariableDeclaration decl = new CVariableDeclaration(pFileLocation, false, CStorageClass.AUTO, cParamType, region.getLabel(), region.getLabel(), region.getLabel(), initializer);
@@ -1181,7 +1231,7 @@ public class SMGTransferRelation
     if (pVarDecl.isGlobal()) {
       List<Pair<SMGState, Long>> result = new ArrayList<>();
 
-      int sizeOfType = expressionEvaluator.getBitSizeof(pEdge, pLValueType, pNewState);
+      long sizeOfType = expressionEvaluator.getBitSizeof(pEdge, pLValueType, pNewState);
 
       SMGState newState =
           expressionEvaluator.writeValue(
@@ -1274,7 +1324,7 @@ public class SMGTransferRelation
 
     CType elementType = pLValueType.getType();
 
-    int sizeOfElementType = expressionEvaluator.getBitSizeof(pEdge, elementType, pNewState);
+    long sizeOfElementType = expressionEvaluator.getBitSizeof(pEdge, elementType, pNewState);
 
     List<SMGState> newStates = new ArrayList<>(4);
     newStates.add(pNewState);
@@ -1286,7 +1336,7 @@ public class SMGTransferRelation
 
       for (SMGState newState : newStates) {
         if (!options.isGCCZeroLengthArray() || pLValueType.getLength() != null) {
-          int sizeOfType = expressionEvaluator.getBitSizeof(pEdge, pLValueType, pNewState);
+          long sizeOfType = expressionEvaluator.getBitSizeof(pEdge, pLValueType, pNewState);
           newState =
               expressionEvaluator.writeValue(
                   newState,

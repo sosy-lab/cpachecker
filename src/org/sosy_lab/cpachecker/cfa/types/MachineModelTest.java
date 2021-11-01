@@ -48,6 +48,10 @@ public class MachineModelTest {
       int offset = m * types.length;
       for (int t = 0; t < types.length; t++) {
         result[offset + t] = Arrays.copyOf(types[t], types[t].length + 1);
+        if (types[t][0] == CNumericTypes.CHAR && !machineModels[m].isDefaultCharSigned()) {
+          result[offset + t][2] = 0;
+          result[offset + t][3] = 255;
+        }
         result[offset + t][types[t].length] = machineModels[m];
       }
     }

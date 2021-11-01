@@ -24,9 +24,6 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class ScopedRefinablePrecision extends RefinablePrecision {
-
-  private static final long serialVersionUID = 1L;
-
   /**
    * the collection that determines which variables are tracked within a specific scope
    */

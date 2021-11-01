@@ -18,7 +18,7 @@ All major projects and configurations within CPAchecker should be part of this t
 To add tests for your project or configuration,
 please contact the maintainers on the developer mailing list.
 Be aware that the integration tests expect that the folder `c`
-of the [sv-benchmarks repository](https://github.com/sosy-lab/sv-benchmarks)
+of the [sv-benchmarks repository](https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks)
 is linked/copied to `../test/programs/benchmarks`.
 
 Unit Tests

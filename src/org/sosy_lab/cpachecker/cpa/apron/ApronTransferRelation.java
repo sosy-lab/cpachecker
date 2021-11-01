@@ -1014,7 +1014,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
       if (varIndex == -1) {
         return ImmutableSet.of();
       }
-      return Collections.singleton(new Texpr0DimNode(varIndex));
+      return ImmutableSet.of(new Texpr0DimNode(varIndex));
     }
 
     @Override
@@ -1066,7 +1066,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
           Scalar inf = Scalar.create();
           inf.setInfty(-1);
           Interval interval = new Interval(inf, sup);
-              return Collections.singleton(new Texpr0CstNode(interval));
+              return ImmutableSet.of(new Texpr0CstNode(interval));
             }
           case "__VERIFIER_nondet_uint":
             {
@@ -1074,12 +1074,12 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
           Scalar sup = Scalar.create();
           sup.setInfty(1);
           interval.setSup(sup);
-              return Collections.singleton(new Texpr0CstNode(interval));
+              return ImmutableSet.of(new Texpr0CstNode(interval));
             }
           case "__VERIFIER_nondet_bool":
             {
           Interval interval = new Interval(0, 1);
-              return Collections.singleton(new Texpr0CstNode(interval));
+              return ImmutableSet.of(new Texpr0CstNode(interval));
             }
         }
       }

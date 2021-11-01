@@ -128,6 +128,7 @@ public class ValueAnalysisCPA extends AbstractCPA
   private final ValueTransferOptions transferOptions;
   private final PrecAdjustmentOptions precisionAdjustmentOptions;
   private final PrecAdjustmentStatistics precisionAdjustmentStatistics;
+  private final PredicateToValuePrecisionConverter predToValPrec;
 
   private SymbolicStatistics symbolicStats;
 
@@ -140,6 +141,8 @@ public class ValueAnalysisCPA extends AbstractCPA
     this.cfa              = cfa;
 
     config.inject(this, ValueAnalysisCPA.class);
+
+    predToValPrec = new PredicateToValuePrecisionConverter(config, logger, pShutdownNotifier, cfa);
 
     precision           = initializePrecision(config, cfa);
     statistics          = new ValueAnalysisCPAStatistics(this, config);
@@ -187,8 +190,7 @@ public class ValueAnalysisCPA extends AbstractCPA
 
       initialPrecision =
           initialPrecision.withIncrement(
-              new PredicateToValuePrecisionConverter(config, logger, shutdownNotifier, cfa)
-                  .convertPredPrecToVariableTrackingPrec(initialPredicatePrecisionFile));
+              predToValPrec.convertPredPrecToVariableTrackingPrec(initialPredicatePrecisionFile));
     }
     if (initialPrecisionFile != null) {
       // create precision with empty, refinable component precision
@@ -333,6 +335,9 @@ public class ValueAnalysisCPA extends AbstractCPA
       pStatsCollection.add(symbolicStats);
     }
     pStatsCollection.add(constraintsStrengthenOperator);
+    if (predToValPrec.collectedStats()) {
+      pStatsCollection.add(predToValPrec);
+    }
     writer.collectStatistics(pStatsCollection);
   }
 

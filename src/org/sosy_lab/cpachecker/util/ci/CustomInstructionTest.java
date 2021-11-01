@@ -29,8 +29,8 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.annotations.SuppressForbidden;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
@@ -282,11 +282,11 @@ public class CustomInstructionTest {
 
     while (!queue.isEmpty()) {
       node = queue.poll();
-      if (node instanceof CLabelNode) {
-        if (((CLabelNode) node).getLabel().startsWith("start_ci")) {
+      if (node instanceof CFALabelNode) {
+        if (((CFALabelNode) node).getLabel().startsWith("start_ci")) {
           startNode = node;
         }
-        if (((CLabelNode) node).getLabel().startsWith("end_ci")) {
+        if (((CFALabelNode) node).getLabel().startsWith("end_ci")) {
           CFAUtils.allPredecessorsOf(node).copyInto(endNodes);
         }
       }

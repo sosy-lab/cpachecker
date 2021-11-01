@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.predicates.smt;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.math.BigInteger;
+import java.util.List;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BitvectorFormulaManager;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -184,5 +185,10 @@ public class BitvectorFormulaManagerView extends BaseManagerView implements Bitv
   @Override
   public IntegerFormula toIntegerFormula(BitvectorFormula pI, boolean pSigned) {
     return manager.toIntegerFormula(pI, pSigned);
+  }
+
+  @Override
+  public BooleanFormula distinct(List<BitvectorFormula> pBits) {
+    return manager.distinct(pBits);
   }
 }

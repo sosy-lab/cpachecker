@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -70,7 +71,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.exceptions.NoException;
@@ -232,12 +232,14 @@ public class AppliedCustomInstructionParser {
 
     CFANode pred;
 
-    // search for CLabelNode with label "start_ci"
+    // search for CFALabelNode with label "start_ci"
     while (!queue.isEmpty()) {
       shutdownNotifier.shutdownIfNecessary();
       pred = queue.poll();
 
-      if (pred instanceof CLabelNode && ((CLabelNode) pred).getLabel().equals("start_ci") && pred.getFunctionName().equals(functionName)) {
+      if (pred instanceof CFALabelNode
+          && ((CFALabelNode) pred).getLabel().equals("start_ci")
+          && pred.getFunctionName().equals(functionName)) {
         ciStartNode = pred;
         break;
       }
@@ -274,7 +276,7 @@ public class AppliedCustomInstructionParser {
       predOutputVars = nextNode.getSecond();
 
       // pred is endNode of CI -> store pred in Collection of endNodes
-      if (pred instanceof CLabelNode && ((CLabelNode)pred).getLabel().startsWith("end_ci_")) {
+      if (pred instanceof CFALabelNode && ((CFALabelNode) pred).getLabel().startsWith("end_ci_")) {
         CFAUtils.predecessorsOf(pred).copyInto(ciEndNodes);
         continue;
       }

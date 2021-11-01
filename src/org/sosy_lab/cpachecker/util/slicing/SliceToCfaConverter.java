@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -53,7 +54,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
@@ -179,10 +179,10 @@ final class SliceToCfaConverter {
       functionDeclaration = cloneFunctionDeclaration(functionDeclaration);
     }
 
-    if (pNode instanceof CLabelNode) {
+    if (pNode instanceof CFALabelNode) {
 
-      CLabelNode labelNode = (CLabelNode) pNode;
-      newNode = new CLabelNode(functionDeclaration, labelNode.getLabel());
+      CFALabelNode labelNode = (CFALabelNode) pNode;
+      newNode = new CFALabelNode(functionDeclaration, labelNode.getLabel());
 
     } else if (pNode instanceof CFATerminationNode) {
 

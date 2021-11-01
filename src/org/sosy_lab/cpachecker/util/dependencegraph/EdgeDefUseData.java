@@ -62,7 +62,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-final class EdgeDefUseData {
+public final class EdgeDefUseData {
 
   private final ImmutableSet<MemoryLocation> defs;
   private final ImmutableSet<MemoryLocation> uses;

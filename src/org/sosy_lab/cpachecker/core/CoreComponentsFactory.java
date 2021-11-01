@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core;
 
 import static com.google.common.base.Verify.verifyNotNull;
 
+import java.io.IOException;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
@@ -22,6 +23,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AnalysisWithRefinableEnablerCPAAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.ArrayAbstractionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.BDDCPARestrictionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm.CEGARAlgorithmFactory;
@@ -31,6 +33,7 @@ import org.sosy_lab.cpachecker.core.algorithm.CustomInstructionRequirementsExtra
 import org.sosy_lab.cpachecker.core.algorithm.ExceptionHandlingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationWithCoverage;
 import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationWithTraceFormula;
+import org.sosy_lab.cpachecker.core.algorithm.InvariantExportAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.MPIPortfolioAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.NoopAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm;
@@ -41,6 +44,8 @@ import org.sosy_lab.cpachecker.core.algorithm.RestrictedProgramDomainAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.SelectionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.TestCaseGeneratorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.UndefinedFunctionCollectorAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.WitnessToInvariantWitnessAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.WitnessToACSLAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.IMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.pdr.PdrAlgorithm;
@@ -77,6 +82,7 @@ import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.automaton.CachingTargetLocationProvider;
 
 /**
  * Factory class for the three core components of CPAchecker:
@@ -184,6 +190,21 @@ public class CoreComponentsFactory {
   )
   private boolean useParallelAlgorithm = false;
 
+  @Option(secure = true, description = "converts a witness to an ACSL annotated program")
+  private boolean useWitnessToACSLAlgorithm = false;
+
+  @Option(
+      secure = true,
+      name = "witnessToInvariant",
+      description = "converts a graphml witness to invariant witness")
+  private boolean useWitnessToInvariantAlgorithm = false;
+
+  @Option(
+      secure = true,
+      name = "invariantExport",
+      description = "Runs an algorithm that produces and exports invariants")
+  private boolean useInvariantExportAlgorithm = false;
+
   @Option(
     secure = true,
     name = "algorithm.MPI",
@@ -199,6 +220,12 @@ public class CoreComponentsFactory {
           "Use termination algorithm to prove (non-)termination. This needs the TerminationCPA as"
               + " root CPA and an automaton CPA with termination_as_reach.spc in the tree of CPAs.")
   private boolean useTerminationAlgorithm = false;
+
+  @Option(
+      secure = true,
+      name = "useArrayAbstraction",
+      description = "Use array abstraction by program transformation.")
+  private boolean useArrayAbstraction = false;
 
   @Option(
       secure = true,
@@ -380,7 +407,7 @@ public class CoreComponentsFactory {
         && !useProofCheckAlgorithmWithStoredConfig
         && !useRestartingAlgorithm
         && !useImpactAlgorithm
-        && (useBMC || useIMC);
+        && (useBMC || useIMC || useInvariantExportAlgorithm);
   }
 
   public Algorithm createAlgorithm(
@@ -442,9 +469,31 @@ public class CoreComponentsFactory {
               cfa,
               aggregatedReachedSets);
 
+    } else if (useWitnessToACSLAlgorithm) {
+      algorithm = new WitnessToACSLAlgorithm(config, logger, shutdownNotifier, cfa);
+
     } else if (useMPIProcessAlgorithm) {
       algorithm = new MPIPortfolioAlgorithm(config, logger, shutdownNotifier, specification);
 
+    } else if (useWitnessToInvariantAlgorithm) {
+      try {
+        algorithm =
+            new WitnessToInvariantWitnessAlgorithm(
+                config, logger, shutdownNotifier, cfa, specification);
+      } catch (IOException e) {
+        throw new CPAException("could not instantiate invariant witness writer", e);
+      }
+    } else if (useInvariantExportAlgorithm) {
+      algorithm =
+          new InvariantExportAlgorithm(
+              config,
+              logger,
+              shutdownManager,
+              cfa,
+              specification,
+              reachedSetFactory,
+              new CachingTargetLocationProvider(shutdownNotifier, logger, cfa),
+              aggregatedReachedSets);
     } else if (useFaultLocalizationWithDistanceMetrics) {
       algorithm = new
           Explainer(
@@ -453,6 +502,9 @@ public class CoreComponentsFactory {
           shutdownNotifier,
           specification,
           cfa);
+    } else if (useArrayAbstraction) {
+      algorithm =
+          new ArrayAbstractionAlgorithm(config, logger, shutdownNotifier, specification, cfa);
     } else {
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
 
@@ -583,7 +635,7 @@ public class CoreComponentsFactory {
       if (useResultCheckAlgorithm) {
         algorithm =
             new ResultCheckAlgorithm(
-                algorithm, cpa, cfa, config, logger, shutdownNotifier, specification);
+                algorithm, cfa, config, logger, shutdownNotifier, specification);
       }
       if (useCustomInstructionRequirementExtraction) {
         algorithm = new CustomInstructionRequirementsExtractingAlgorithm(algorithm, cpa, config, logger, shutdownNotifier, cfa);
@@ -629,15 +681,21 @@ public class CoreComponentsFactory {
     return algorithm;
   }
 
-  public ReachedSet createReachedSet() {
-    ReachedSet reached = reachedSetFactory.create();
+  /**
+   * Creates an instance of a {@link ReachedSet}.
+   *
+   * @param cpa The CPA whose abstract states will be stored in this reached set.
+   */
+  public ReachedSet createReachedSet(ConfigurableProgramAnalysis cpa) {
+    ReachedSet reached = reachedSetFactory.create(cpa);
 
     if (useCompositionAlgorithm
         || useRestartingAlgorithm
         || useHeuristicSelectionAlgorithm
         || useParallelAlgorithm
         || asConditionalVerifier
-        || useFaultLocalizationWithDistanceMetrics) {
+        || useFaultLocalizationWithDistanceMetrics
+        || useArrayAbstraction) {
       // this algorithm needs an indirection so that it can change
       // the actual reached set instance on the fly
       if (memorizeReachedAfterRestart) {
@@ -667,7 +725,8 @@ public class CoreComponentsFactory {
         || useNonTerminationWitnessValidation
         || useUndefinedFunctionCollector
         || constructProgramSlice
-        || useFaultLocalizationWithDistanceMetrics) {
+        || useFaultLocalizationWithDistanceMetrics
+        || useArrayAbstraction) {
       // hard-coded dummy CPA
       return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
     }
