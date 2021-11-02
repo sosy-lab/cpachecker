@@ -192,7 +192,10 @@ public class AssumeVisitor extends ExpressionValueVisitor {
       default:
         throw new AssertionError("Impossible case thrown");
       }
-    } else if (pOp == BinaryOperator.NOT_EQUALS) {
+    } else if (pOp == BinaryOperator.NOT_EQUALS
+        && getInitialSmgState().getHeap().isObjectValid(object1)
+        && getInitialSmgState().getHeap().isObjectValid(object2)) {
+      // We can't evaluate whether new object is not the same as freed object
       return true;
     }
     return false;
@@ -260,7 +263,11 @@ public class AssumeVisitor extends ExpressionValueVisitor {
 
     if (isPointerOp1 && isPointerOp2) {
       isTrue = comparePointer((SMGKnownAddressValue) pV1, (SMGKnownAddressValue) pV2, pOp);
-      isFalse = !isTrue;
+      isFalse =
+          comparePointer(
+              (SMGKnownAddressValue) pV1,
+              (SMGKnownAddressValue) pV2,
+              pOp.getOppositLogicalOperator());
     } else if (isPointerOp1 && !pV2.isUnknown()) {
       SMGKnownExpValue explicit2 = pNewState.getExplicit(pV2);
       if (explicit2 != null) {
@@ -270,7 +277,12 @@ public class AssumeVisitor extends ExpressionValueVisitor {
                 SMGKnownAddressValue.valueOf(
                     (SMGKnownSymbolicValue) pV2, SMGNullObject.INSTANCE, explicit2),
                 pOp);
-        isFalse = !isTrue;
+        isFalse =
+            comparePointer(
+                (SMGKnownAddressValue) pV1,
+                SMGKnownAddressValue.valueOf(
+                    (SMGKnownSymbolicValue) pV2, SMGNullObject.INSTANCE, explicit2),
+                pOp.getOppositLogicalOperator());
       }
     } else if (isPointerOp2 && !pV1.isUnknown()) {
       SMGKnownExpValue explicit1 = pNewState.getExplicit(pV1);
@@ -281,7 +293,12 @@ public class AssumeVisitor extends ExpressionValueVisitor {
                     (SMGKnownSymbolicValue) pV1, SMGNullObject.INSTANCE, explicit1),
                 (SMGKnownAddressValue) pV2,
                 pOp);
-        isFalse = !isTrue;
+        isFalse =
+            comparePointer(
+                SMGKnownAddressValue.valueOf(
+                    (SMGKnownSymbolicValue) pV1, SMGNullObject.INSTANCE, explicit1),
+                (SMGKnownAddressValue) pV2,
+                pOp.getOppositLogicalOperator());
       }
     }
 
