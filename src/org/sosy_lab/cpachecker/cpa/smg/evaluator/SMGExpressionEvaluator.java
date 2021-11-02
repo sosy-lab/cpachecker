@@ -48,14 +48,12 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGType;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGField;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
@@ -651,13 +649,8 @@ public class SMGExpressionEvaluator {
     List<SMGAddressValueAndState> result = new ArrayList<>();
     for (SMGAddressAndState addressAndState : pAddresses) {
       SMGState state = addressAndState.getSmgState();
-      //FIXME: if address is symbolic
       SMGAddress address = addressAndState.getObject();
-      if (address.isUnknown()) {
-        result.add(SMGAddressValueAndState.of(state));
-      } else {
-        result.addAll(createAddress(state, address.getObject(), address.getOffset()));
-      }
+      result.addAll(state.getPointerFromAddress(address));
     }
     return result;
   }
@@ -731,30 +724,7 @@ public class SMGExpressionEvaluator {
   List<SMGAddressValueAndState> createAddress(
       SMGState pSmgState, SMGObject pTarget, SMGExplicitValue pOffset)
       throws SMGInconsistentException {
-    if (pTarget == null || pOffset.isUnknown()) {
-      // TODO how does this even work?
-      // This code looks like it causes NullPointer and IllegalStateException.
-      return singletonList(
-          SMGAddressValueAndState.of(
-              pSmgState, new SMGEdgePointsTo(SMGKnownSymValue.of(), pTarget, pOffset.getAsLong())));
-    }
-    if (pTarget instanceof SMGRegion) {
-      SMGValue address = pSmgState.getAddress((SMGRegion) pTarget, pOffset.getAsLong());
-      if (address == null) {
-        return singletonList(
-            SMGAddressValueAndState.of(
-                pSmgState,
-                new SMGEdgePointsTo(SMGKnownSymValue.of(), pTarget, pOffset.getAsLong())));
-      }
-      return pSmgState.getPointerFromValue(address);
-    }
-    if (pTarget == SMGNullObject.INSTANCE) {
-      // TODO return NULL_POINTER instead of new object?
-      return singletonList(
-          SMGAddressValueAndState.of(
-              pSmgState, new SMGEdgePointsTo(SMGZeroValue.INSTANCE, pTarget, pOffset.getAsLong())));
-    }
-    throw new AssertionError("Abstraction " + pTarget + " was not materialised.");
+    return pSmgState.getPointerFromAddress(SMGAddress.valueOf(pTarget, pOffset));
   }
 
   /*
