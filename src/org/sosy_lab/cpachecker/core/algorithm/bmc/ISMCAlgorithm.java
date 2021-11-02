@@ -265,23 +265,28 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       throws InterruptedException, SolverException {
     // TODO: consider using the methods that generates interpolation sequence in ImpactAlgorithm
     // should be someting like: imgr.buildCounterexampleTrace(formulas)
+    
+    // push formulas
+    List<T> pushedFormulas = new ArrayList<>();
+    for (int i = 0; i < pFormulas.size(); ++i) {
+      pushedFormulas.add(itpProver.push(pFormulas.get(i)));
+    }
+    if (!itpProver.isUnsat()) {
+      throw new AssertionError("The formula must be UNSAT to retrieve the interpolant.");
+    }
+
+    // generate ITP sequence
     List<BooleanFormula> itpSequence = new ArrayList<>();
     for (int i = 1; i < pFormulas.size(); ++i) {
-      BooleanFormula booleanFormulaA = bfmgr.and(pFormulas.subList(0, i));
-      BooleanFormula booleanFormulaB = bfmgr.and(pFormulas.subList(i, pFormulas.size()));
-      
-      List<T> formulaA = new ArrayList<>();
-      List<T> formulaB = new ArrayList<>();
-      formulaA.add(itpProver.push(booleanFormulaA));
-      formulaB.add(itpProver.push(booleanFormulaB));
+      List<T> formulaA = pushedFormulas.subList(0, i);
+      List<T> formulaB = pushedFormulas.subList(i, pFormulas.size());
 
-      if (!itpProver.isUnsat()) {
-        throw new AssertionError("The formula must be UNSAT to retrieve the interpolant.");
-      }
       BooleanFormula interpolant = getInterpolantFrom(itpProver, formulaA, formulaB);
       itpSequence.add(fmgr.uninstantiate(interpolant));  // uninstantiate the formula
+    }
 
-      itpProver.pop();
+    // pop formulas
+    for (int i = 0; i < pFormulas.size(); ++i) {
       itpProver.pop();
     }
     
