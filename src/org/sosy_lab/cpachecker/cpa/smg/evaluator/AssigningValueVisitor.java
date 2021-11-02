@@ -129,17 +129,8 @@ class AssigningValueVisitor extends DefaultCExpressionVisitor<Void, CPATransferE
     }
 
     if (operand2 instanceof CLeftHandSide) {
-      BinaryOperator resultOp = op;
-
-      switch (resultOp) {
-        case EQUALS:
-        case NOT_EQUALS:
-          break;
-        default:
-          resultOp = resultOp.getOppositLogicalOperator();
-      }
-
-      deriveFurtherInformation((CLeftHandSide) operand2, operand1, resultOp);
+      deriveFurtherInformation(
+          (CLeftHandSide) operand2, operand1, op.getSwitchOperandsSidesLogicalOperator());
     }
 
     return null;
