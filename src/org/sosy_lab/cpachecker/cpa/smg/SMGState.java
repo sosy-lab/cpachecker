@@ -280,7 +280,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
    * @throws SMGInconsistentException when resulting SMGState is inconsistent
    * and the checks are enabled
    */
-  public Optional<SMGRegion> addAnonymousVariable(int pTypeSize)
+  public Optional<SMGRegion> addAnonymousVariable(long pTypeSize)
       throws SMGInconsistentException {
     if (heap.getStackFrames().isEmpty()) {
       return Optional.empty();

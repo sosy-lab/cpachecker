@@ -377,8 +377,7 @@ public class SMGTransferRelation
         // 1. create region and save string as char array
         SMGRegion stringObj =
             initialNewState
-                .addAnonymousVariable(
-                    machineModel.getSizeofPtrInBits() * (strExp.getValue().length() + 1))
+                .addAnonymousVariable(machineModel.getSizeofInBits(cParamType).longValue())
                 .orElseThrow();
        CInitializerExpression initializer =
            new CInitializerExpression(exp.getFileLocation(), exp);
