@@ -213,14 +213,19 @@ public final class ModificationsPropState
     assert locationInGivenCfa.equals(pOther.locationInGivenCfa);
     assert locationInOriginalCfa.equals(pOther.locationInOriginalCfa);
 
-    if (isBad || pOther.isBad) {
-      return new ModificationsPropState(
-          locationInGivenCfa,
-          locationInOriginalCfa,
-          // modified variables not relevant for bad location pairs
-          ImmutableSet.of(),
-          true);
+    // The first (with pBad || pOther.bad) and last case would semantically be sufficient. However,
+    // we want to reuse as many state objects as possible for efficiency.
+    if (isBad) {
+      // bad location should have empty variable set, introduced by transfer relation
+      assert changedVariables.isEmpty();
+      return this;
+    } else if (pOther.isBad() || pOther.getChangedVariables().containsAll(changedVariables)) {
+      assert !pOther.isBad || pOther.getChangedVariables().isEmpty();
+      return pOther;
+    } else if (changedVariables.containsAll(pOther.getChangedVariables())) {
+      return this;
     } else {
+      // only create new object if really necessary
       return new ModificationsPropState(
           locationInGivenCfa,
           locationInOriginalCfa,

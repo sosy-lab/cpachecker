@@ -233,6 +233,7 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
                 .setOption("cpa.callstack.skipRecursion", "true")
                 .setOption("cpa.automaton.breakOnTargetState", "-1")
                 .setOption("output.disable", "true")
+                .setOption("analysis.entryFunction", "main")
                 .build();
 
         ReachedSetFactory rsFactory = new ReachedSetFactory(reachPropConfig, logger);

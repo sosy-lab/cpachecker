@@ -79,7 +79,7 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
         // case 3 outsourced to abstract state creation
 
         if (CFAUtils.leavingEdges(nodeInGiven).contains(pCfaEdge)) {
-
+          helper.logCase(pCfaEdge.getCode());
           // prepare further cases by skipping ignored operations
           if (helper.isUntracked(pCfaEdge)) {
             helper.logCase("Skipping ignored CFA edge for given program.");
@@ -137,7 +137,7 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
               if (edgeInOriginal instanceof CReturnStatementEdge) {
                 final CReturnStatementEdge retOr = (CReturnStatementEdge) edgeInOriginal,
                     retMo = (CReturnStatementEdge) pCfaEdge;
-                if (helper.sameClassAndFunction(retMo.getSuccessor(), retOr.getSuccessor())) {
+                if (helper.sameFunction(retMo.getSuccessor(), retOr.getSuccessor())) {
                   helper.logCase(
                       "Taking case 4 for function returns with modified variables or different statements.");
                   final ImmutableSet<String> returnChangedVars;
@@ -182,7 +182,7 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
                         transformedImmutableListCopy(
                             entryNodeMo.getFunctionParameters(), param -> param.getQualifiedName());
                 // we require that all old parameters must be contained in new parameters
-                if (paramsMo.containsAll(paramsOr) && helper.sameClassAndFunction(entryNodeMo, entryNodeOr)) {
+                if (paramsMo.containsAll(paramsOr) && helper.sameFunction(entryNodeMo, entryNodeOr)) {
                   helper.logCase("Taking case 4 for function calls with modified variables.");
                   Set<String> modifiedAfterFunctionCall = new HashSet<>(changedVars);
                   for (String param : paramsOr) {

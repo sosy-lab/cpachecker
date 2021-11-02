@@ -15,6 +15,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
+import org.sosy_lab.common.MoreStrings;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -105,7 +106,7 @@ public class ModificationsPropHelper {
       CFAEdge currentEdge = currentNode.getLeavingEdge(0);
       if (isUntracked(currentEdge)
           // can omit check for summary edges here, as these are not untracked anway
-          && sameClassAndFunction(currentNode, currentEdge.getSuccessor())) {
+          && sameFunction(currentNode, currentEdge.getSuccessor())) {
         currentNode = currentEdge.getSuccessor();
         if (currentNode == pNode) {
           logProblem("Found infinite sequence of untracked operations.");
@@ -313,25 +314,41 @@ public class ModificationsPropHelper {
    * @return whether the implication holds
    */
   boolean implies(final CAssumeEdge pA, final CAssumeEdge pB) {
-    final BooleanFormula a;
-    final BooleanFormula b;
+    BooleanFormula a;
+    BooleanFormula b;
     // empty SSA overapproximates in worst case
-    SSAMapBuilder ssaMap = SSAMap.emptySSAMap().builder();
+    final SSAMapBuilder ssaMap = SSAMap.emptySSAMap().builder();
+    logger.log(
+        Level.FINEST,
+        "Checking whether",
+        MoreStrings.lazyString(() -> pA.getCode()),
+        "implies",
+        MoreStrings.lazyString(() -> pB.getCode()),
+        ".");
     try {
       a =
           converter.makePredicate(
-              pA.getExpression(), pA, pA.getPredecessor().getFunctionName(), ssaMap);
+              pA.getExpression(),
+              pA,
+              pA.getPredecessor().getFunctionName(),
+              ssaMap,
+              pA.getTruthAssumption());
       b =
           converter.makePredicate(
-              pB.getExpression(), pB, pB.getPredecessor().getFunctionName(), ssaMap);
+              pB.getExpression(),
+              pB,
+              pB.getPredecessor().getFunctionName(),
+              ssaMap,
+              pB.getTruthAssumption());
     } catch (UnrecognizedCodeException | InterruptedException e1) {
-      logger.log(Level.FINER, "Converting to predicate failed.");
+      logger.log(Level.WARNING, "Converting to predicate failed.");
       return false;
     }
     try {
-      return solver.implies(a, b);
+      final boolean result = solver.implies(a, b);
+      return result;
     } catch (SolverException | InterruptedException e) {
-      logger.log(Level.FINER, "Implication check failed.");
+      logger.log(Level.WARNING, "Implication check failed.");
       return false;
     }
   }
@@ -376,15 +393,14 @@ public class ModificationsPropHelper {
   }
 
   /**
-   * Compares class and edge of two nodes to be identical.
+   * Compares functions of two nodes to be identical.
    *
    * @param pNodeInGiven the node in the given CFA
    * @param pNodeInOriginal the node in the original CFA
    * @return whether class and function of the nodes are equivalent
    */
-  boolean sameClassAndFunction(final CFANode pNodeInGiven, final CFANode pNodeInOriginal) {
-    return pNodeInGiven.getClass() == pNodeInOriginal.getClass()
-        && pNodeInGiven.getFunctionName().equals(pNodeInOriginal.getFunctionName());
+  boolean sameFunction(final CFANode pNodeInGiven, final CFANode pNodeInOriginal) {
+    return pNodeInGiven.getFunctionName().equals(pNodeInOriginal.getFunctionName());
   }
 
   /**
@@ -413,6 +429,6 @@ public class ModificationsPropHelper {
       }
     }*/
 
-    return sameClassAndFunction(givenSuccessor, originalSuccessor);
+    return sameFunction(givenSuccessor, originalSuccessor);
   }
 }
