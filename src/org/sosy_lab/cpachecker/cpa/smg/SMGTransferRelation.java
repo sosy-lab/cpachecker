@@ -1332,27 +1332,29 @@ public class SMGTransferRelation
     List<SMGState> newStates = new ArrayList<>(4);
     newStates.add(pNewState);
 
-    // Move preinitialization of global variable because of unpredictable fields' order within
-    // CDesignatedInitializer
-    if (pVarDecl.isGlobal()) {
-      List<SMGState> result = new ArrayList<>(newStates.size());
+    // preinitialization of variable according to C99 6.7.8 21
+    // If there are fewer initializers in a brace-enclosed list than there are elements or members
+    // of an aggregate, or fewer characters in a string literal used to initialize an array of known
+    // size  than  there  are  elements  in the array, the  remainder  of  the  aggregate  shall  be
+    // initialized implicitly the same as objects that have static storage duration.
 
-      for (SMGState newState : newStates) {
-        if (!options.isGCCZeroLengthArray() || pLValueType.getLength() != null) {
-          long sizeOfType = expressionEvaluator.getBitSizeof(pEdge, pLValueType, pNewState);
-          newState =
-              expressionEvaluator.writeValue(
-                  newState,
-                  pNewObject,
-                  pOffset,
-                  TypeUtils.createTypeWithLength(Math.toIntExact(sizeOfType)),
-                  SMGZeroValue.INSTANCE,
-                  pEdge);
-        }
-        result.add(newState);
+    List<SMGState> result = new ArrayList<>(newStates.size());
+
+    for (SMGState newState : newStates) {
+      if (!options.isGCCZeroLengthArray() || pLValueType.getLength() != null) {
+        long sizeOfType = expressionEvaluator.getBitSizeof(pEdge, pLValueType, pNewState);
+        newState =
+            expressionEvaluator.writeValue(
+                newState,
+                pNewObject,
+                pOffset,
+                TypeUtils.createTypeWithLength(Math.toIntExact(sizeOfType)),
+                SMGZeroValue.INSTANCE,
+                pEdge);
       }
-      newStates = result;
+      result.add(newState);
     }
+    newStates = result;
 
     for (CInitializer initializer : pNewInitializer.getInitializers()) {
       if (initializer instanceof CDesignatedInitializer) {
@@ -1383,7 +1385,7 @@ public class SMGTransferRelation
 
       long offset = pOffset + listCounter * sizeOfElementType;
 
-      List<SMGState> result = new ArrayList<>();
+      result = new ArrayList<>(newStates.size());
 
       for (SMGState newState : newStates) {
         result.addAll(handleInitializer(newState, pVarDecl, pEdge,
