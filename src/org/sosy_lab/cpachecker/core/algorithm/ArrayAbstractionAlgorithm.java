@@ -63,10 +63,16 @@ public final class ArrayAbstractionAlgorithm extends NestingAlgorithm {
 
   @Option(
       secure = true,
+      name = "allowImprecision",
+      description = "Whether to allow imprecise array abstraction that may lead to false alarms.")
+  private boolean allowImprecision = false;
+
+  @Option(
+      secure = true,
       name = "checkCounterexamples",
       description =
           "Use a second delegate analysis run to check counterexamples on the original program that"
-              + " contains (non-abstracted) arrays.")
+              + " contains (non-abstracted) arrays for imprecise array abstractions.")
   private boolean checkCounterexamples = false;
 
   @Option(
@@ -123,6 +129,17 @@ public final class ArrayAbstractionAlgorithm extends NestingAlgorithm {
     pConfiguration.inject(this);
   }
 
+  private boolean useTransformedCfa() {
+
+    ArrayAbstractionResult.Status status = arrayAbstractionResult.getStatus();
+
+    if (status == ArrayAbstractionResult.Status.PRECISE) {
+      return true;
+    }
+
+    return allowImprecision && status == ArrayAbstractionResult.Status.IMPRECISE;
+  }
+
   private AlgorithmStatus runDelegateAnalysis(
       CFA pCfa,
       ForwardingReachedSet pForwardingReachedSet,
@@ -169,15 +186,12 @@ public final class ArrayAbstractionAlgorithm extends NestingAlgorithm {
     ForwardingReachedSet forwardingReachedSet = (ForwardingReachedSet) pReachedSet;
     AggregatedReachedSets aggregatedReached = AggregatedReachedSets.singleton(pReachedSet);
 
-    AlgorithmStatus status = AlgorithmStatus.NO_PROPERTY_CHECKED;
+    CFA cfa = useTransformedCfa() ? arrayAbstractionResult.getTransformedCfa() : originalCfa;
+    AlgorithmStatus status = runDelegateAnalysis(cfa, forwardingReachedSet, aggregatedReached);
 
-    if (arrayAbstractionResult.getStatus() == ArrayAbstractionResult.Status.PRECISE) {
-      status =
-          runDelegateAnalysis(
-              arrayAbstractionResult.getTransformedCfa(), forwardingReachedSet, aggregatedReached);
-    }
-
-    if (checkCounterexamples && forwardingReachedSet.wasTargetReached()) {
+    if (checkCounterexamples
+        && arrayAbstractionResult.getStatus() == ArrayAbstractionResult.Status.IMPRECISE
+        && forwardingReachedSet.wasTargetReached()) {
       status = runDelegateAnalysis(originalCfa, forwardingReachedSet, aggregatedReached);
     }
 

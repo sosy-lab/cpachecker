@@ -512,6 +512,9 @@ analysis.useWitnessToACSLAlgorithm = false
 # converts a graphml witness to invariant witness
 analysis.witnessToInvariant = false
 
+# Whether to allow imprecise array abstraction that may lead to false alarms.
+arrayAbstraction.allowImprecision = false
+
 # Whether to export the CFA with abstracted arrays as C source file.
 arrayAbstraction.cfa.c.export = true
 
@@ -525,7 +528,8 @@ arrayAbstraction.cfa.dot.export = true
 arrayAbstraction.cfa.dot.file = "cfa-abstracted-arrays.dot"
 
 # Use a second delegate analysis run to check counterexamples on the original
-# program that contains (non-abstracted) arrays.
+# program that contains (non-abstracted) arrays for imprecise array
+# abstractions.
 arrayAbstraction.checkCounterexamples = false
 
 # Configuration file path of the delegate analysis running on the transformed
