@@ -193,8 +193,10 @@ public class AssumeVisitor extends ExpressionValueVisitor {
         throw new AssertionError("Impossible case thrown");
       }
     } else if (pOp == BinaryOperator.NOT_EQUALS
-        && getInitialSmgState().getHeap().isObjectValid(object1)
-        && getInitialSmgState().getHeap().isObjectValid(object2)) {
+        && (getInitialSmgState().getHeap().isObjectValid(object1)
+            || SMGNullObject.INSTANCE.equals(object1))
+        && (getInitialSmgState().getHeap().isObjectValid(object2)
+            || SMGNullObject.INSTANCE.equals(object2))) {
       // We can't evaluate whether new object is not the same as freed object
       return true;
     }
