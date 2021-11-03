@@ -12,6 +12,7 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -19,12 +20,15 @@ import java.util.List;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -74,7 +78,14 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
     if (!locations.isBad()) {
 
       // rule out case 2
-      if (!helper.inReachabilityProperty(nodeInOriginal)) {
+      if (!helper.inReachabilityProperty(nodeInOriginal)
+          && helper.goalReachable(nodeInGiven, false)) {
+
+        if (!helper.goalReachable(nodeInOriginal, true)) {
+          helper.logCase(
+              "Original program cannot reach an error location anymore. Making state bad.");
+          return ImmutableSet.of(helper.makeBad(locations));
+        }
 
         // case 3 outsourced to abstract state creation
 
@@ -91,24 +102,34 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
           // case 4
           for (CFAEdge edgeInOriginal : CFAUtils.leavingEdges(nodeInOriginal)) {
             if (helper.edgesMatch(pCfaEdge, edgeInOriginal)) {
-              final ImmutableSet<String> changedVarsInSuccessor =
-                  helper.modifySetForAssignment(edgeInOriginal, changedVars);
+              final ImmutableSet<String> changedVarsInSuccessor;
+              try {
+                changedVarsInSuccessor = helper.modifySetForAssignment(edgeInOriginal, changedVars);
+              } catch (PointerAccessException e) {
+                helper.logProblem("Caution: Pointer or similar detected.");
+                return ImmutableSet.of(helper.makeBad(locations));
+              }
               if (helper.variablesAreUsedInEdge(pCfaEdge, changedVars)) {
                 if (!(pCfaEdge instanceof CDeclarationEdge
                     || pCfaEdge instanceof CFunctionCallEdge
-                    || pCfaEdge instanceof CReturnStatementEdge)) {
+                    || pCfaEdge instanceof CReturnStatementEdge
+                    || pCfaEdge instanceof CFunctionReturnEdge)) {
                   // otherwise we will handle it later
                   helper.logCase("Taking case 4a.");
                   return ImmutableSet.of(helper.makeBad(locations));
                 }
               } else {
-                helper.logCase("Taking case 4b.");
-                return ImmutableSet.of(
-                    new ModificationsPropState(
-                        pCfaEdge.getSuccessor(),
-                        edgeInOriginal.getSuccessor(),
-                        changedVarsInSuccessor,
-                        helper));
+                // For function return edges we have to be careful, as modified return values modify
+                // variables above.
+                if (!(pCfaEdge instanceof CFunctionReturnEdge)) {
+                  helper.logCase("Taking case 4b.");
+                  return ImmutableSet.of(
+                      new ModificationsPropState(
+                          pCfaEdge.getSuccessor(),
+                          edgeInOriginal.getSuccessor(),
+                          changedVarsInSuccessor,
+                          helper));
+                }
               }
             }
           }
@@ -141,27 +162,107 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
                   helper.logCase(
                       "Taking case 4 for function returns with modified variables or different statements.");
                   final ImmutableSet<String> returnChangedVars;
-                  if (retMo.getReturnStatement() == null
-                      || retOr.getReturnStatement() == null
-                      || (retMo.getReturnStatement().equals(retOr.getReturnStatement())
-                          && Collections.disjoint(
-                              retOr
-                                  .getReturnStatement()
-                                  .asAssignment()
-                                  .orElseThrow()
-                                  .getRightHandSide()
-                                  .accept(new RHSVisitor()),
-                              changedVars))) {
-                    returnChangedVars = changedVars;
-                  } else {
-                    returnChangedVars =
-                        new ImmutableSet.Builder<String>().addAll(changedVars).build();
+                  try {
+                    if (retMo.getReturnStatement() == null
+                        || retOr.getReturnStatement() == null
+                        || (retMo.getReturnStatement().equals(retOr.getReturnStatement())
+                            && Collections.disjoint(
+                                retOr
+                                    .getReturnStatement()
+                                    .asAssignment()
+                                    .orElseThrow()
+                                    .getRightHandSide()
+                                    .accept(helper.getVisitor()),
+                                changedVars))) {
+                      final Builder<String> builder = new ImmutableSet.Builder<>();
+                      final Set<String> leftVars =
+                          retMo
+                              .getReturnStatement()
+                              .asAssignment()
+                              .orElseThrow()
+                              .getLeftHandSide()
+                              .accept(helper.getVisitor());
+                      // remove return lhs, because return value is equal \o/
+                      for (String var : changedVars) {
+                        if (!leftVars.contains(var)) {
+                          builder.add(var);
+                        }
+                      }
+                      returnChangedVars = builder.build();
+                    } else {
+                      returnChangedVars =
+                          new ImmutableSet.Builder<String>()
+                              .addAll(changedVars)
+                              .addAll(
+                                  retMo
+                                      .getReturnStatement()
+                                      .asAssignment()
+                                      .orElseThrow()
+                                      .getLeftHandSide()
+                                      .accept(helper.getVisitor()))
+                              .build();
+                    }
+                    return ImmutableSet.of(
+                        new ModificationsPropState(
+                            pCfaEdge.getSuccessor(),
+                            edgeInOriginal.getSuccessor(),
+                            returnChangedVars,
+                            helper));
+
+                  } catch (PointerAccessException e) {
+                    helper.logProblem("Caution: Pointer or similar detected.");
+                    return ImmutableSet.of(helper.makeBad(locations));
+                  }
+                }
+              }
+            }
+          }
+          if (pCfaEdge instanceof CFunctionReturnEdge) {
+            for (CFAEdge edgeInOriginal : CFAUtils.leavingEdges(nodeInOriginal)) {
+              if (edgeInOriginal instanceof CFunctionReturnEdge) {
+                final CFunctionReturnEdge retOr = (CFunctionReturnEdge) edgeInOriginal,
+                    retMo = (CFunctionReturnEdge) pCfaEdge;
+                if (helper.sameFunction(retMo.getSuccessor(), retOr.getSuccessor())) {
+                  helper.logCase(
+                      "Taking case 4 for function return statement with modified variables or different statements.");
+                  final CFunctionCall summaryOr = retOr.getSummaryEdge().getExpression(),
+                      summaryMo = retOr.getSummaryEdge().getExpression();
+                  if (summaryOr instanceof CFunctionCallAssignmentStatement
+                      && summaryMo instanceof CFunctionCallAssignmentStatement) {
+                    CFunctionCallAssignmentStatement
+                        summaryOrAss = (CFunctionCallAssignmentStatement) summaryOr,
+                        summaryMoAss = (CFunctionCallAssignmentStatement) summaryMo;
+                    try {
+                      if (!Collections.disjoint(
+                          summaryOrAss.getLeftHandSide().accept(helper.getVisitor()),
+                          summaryMoAss.getLeftHandSide().accept(helper.getVisitor()))) {
+                        // TODO: this is currently more of a hack.
+                        if (changedVars.contains(
+                            retMo.getPredecessor().getFunctionName() + "::__retval__")) {
+                          return ImmutableSet.of(
+                              new ModificationsPropState(
+                                  pCfaEdge.getSuccessor(),
+                                  edgeInOriginal.getSuccessor(),
+                                  new ImmutableSet.Builder<String>()
+                                      .addAll(changedVars)
+                                      .addAll(
+                                          summaryMoAss
+                                              .getLeftHandSide()
+                                              .accept(helper.getVisitor()))
+                                      .build(),
+                                  helper));
+                        }
+                      }
+                    } catch (PointerAccessException e) {
+                      helper.logProblem("Caution: Pointer or similar detected.");
+                      return ImmutableSet.of(helper.makeBad(locations));
+                    }
                   }
                   return ImmutableSet.of(
                       new ModificationsPropState(
                           pCfaEdge.getSuccessor(),
                           edgeInOriginal.getSuccessor(),
-                          returnChangedVars,
+                          changedVars,
                           helper));
                 }
               }
@@ -182,26 +283,30 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
                         transformedImmutableListCopy(
                             entryNodeMo.getFunctionParameters(), param -> param.getQualifiedName());
                 // we require that all old parameters must be contained in new parameters
-                if (paramsMo.containsAll(paramsOr) && helper.sameFunction(entryNodeMo, entryNodeOr)) {
+                if (paramsMo.containsAll(paramsOr)
+                    && helper.sameFunction(entryNodeMo, entryNodeOr)) {
                   helper.logCase("Taking case 4 for function calls with modified variables.");
                   Set<String> modifiedAfterFunctionCall = new HashSet<>(changedVars);
                   for (String param : paramsOr) {
                     // if not equal expressions for parameter or variable in expression modified
-                    if (!callMo
-                            .getArguments()
-                            .get(paramsMo.indexOf(param))
-                            .equals(callOr.getArguments().get(paramsOr.indexOf(param)))
-                        || !Collections.disjoint(
-                            callMo
-                                .getArguments()
-                                .get(paramsMo.indexOf(param))
-                                .accept(new VariableIdentifierVisitor()),
-                            changedVars)) {
-                      modifiedAfterFunctionCall.add(param);
-                    } else {
-                      if (changedVars.contains(param)) {
+                    try {
+                      if (!callMo
+                              .getArguments()
+                              .get(paramsMo.indexOf(param))
+                              .equals(callOr.getArguments().get(paramsOr.indexOf(param)))
+                          || !Collections.disjoint(
+                              callMo
+                                  .getArguments()
+                                  .get(paramsMo.indexOf(param))
+                                  .accept(helper.getVisitor()),
+                              changedVars)) {
+                        modifiedAfterFunctionCall.add(param);
+                      } else if (changedVars.contains(param)) {
                         modifiedAfterFunctionCall.remove(param);
                       }
+                    } catch (PointerAccessException e) {
+                      helper.logProblem("Caution: Pointer or similar detected.");
+                      return ImmutableSet.of(helper.makeBad(locations));
                     }
                   }
                   return ImmutableSet.of(
@@ -270,9 +375,15 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
                   final CAssumeEdge assOrig = (CAssumeEdge) ce;
                   helper.logCase("Checking for case 7 compliance.");
                   if (helper.implies(assGiven, assOrig)) {
-                    VariableIdentifierVisitor visitor = new VariableIdentifierVisitor();
-                    final Set<String> varsInAssGiven = assGiven.getExpression().accept(visitor);
-                    final Set<String> varsInAssOrig = assOrig.getExpression().accept(visitor);
+                    final Set<String> varsInAssGiven, varsInAssOrig;
+                    try {
+                      varsInAssGiven = assGiven.getExpression().accept(helper.getVisitor());
+                      varsInAssOrig = assOrig.getExpression().accept(helper.getVisitor());
+                    } catch (PointerAccessException e) {
+                      helper.logProblem("Caution: Pointer or similar detected.");
+                      return ImmutableSet.of(helper.makeBad(locations));
+                    }
+
                     ImmutableSet<String> varsUsedInBoth =
                         new ImmutableSet.Builder<String>()
                             .addAll(varsInAssGiven)
@@ -314,7 +425,11 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
           }
         }
       }
-      helper.logCase("Taking case 2.");
+      if (helper.inReachabilityProperty(nodeInOriginal)) {
+        helper.logCase("Taking case 2.");
+      } else {
+        helper.logCase("No error location reachable. Stopping here.");
+      }
     }
 
     // if current location pair is bad or no outgoing edge

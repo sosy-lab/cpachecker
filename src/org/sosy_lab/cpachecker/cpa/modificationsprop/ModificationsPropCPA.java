@@ -19,8 +19,10 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -56,6 +58,7 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
@@ -86,6 +89,15 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
 
   @Option(secure = true, description = "perform assumption implication check")
   private boolean implicationCheck = true;
+
+  @Option(
+      secure = true,
+      description =
+          "perform preprocessing to detect states from which error locations are reachable")
+  private boolean performPreprocessing = false;
+
+  @Option(secure = true, description = "safely stop analysis on pointer accesses and similar")
+  private boolean stopOnPointers = false;
 
   @Option(
       secure = true,
@@ -135,14 +147,51 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
     try {
       cfaForComparison =
           cfaCreator.parseFileAndCreateCFA(ImmutableList.of(originalProgram.toString()));
+      final ImmutableSet<CFANode> elocs = propertyNodes(cfaForComparison);
+      final ImmutableSet<CFANode> elocs_new = propertyNodes(pCfa);
+      final Set<CFANode> elocs_reachable = new HashSet<>(elocs);
+      final Set<CFANode> elocs_new_reachable = new HashSet<>(elocs_new);
+
+      // Backward analysis adding all predecessor nodes to find all nodes that may reach an error
+      // location.
+      if (performPreprocessing) {
+        final Set<CFANode> waitlist_old = new HashSet<>(elocs_reachable);
+        while (!waitlist_old.isEmpty()) {
+          for (CFANode el : new HashSet<>(waitlist_old)) {
+            waitlist_old.remove(el);
+            elocs_reachable.add(el);
+            for (CFANode pred :
+                CFAUtils.allEnteringEdges(el).transform(edge -> edge.getPredecessor())) {
+              if (!elocs_reachable.contains(pred)) {
+                waitlist_old.add(pred);
+              }
+            }
+          }
+        }
+        final Set<CFANode> waitlist_new = new HashSet<>(elocs_new_reachable);
+        while (!waitlist_new.isEmpty()) {
+          for (CFANode el : new HashSet<>(waitlist_new)) {
+            waitlist_new.remove(el);
+            elocs_new_reachable.add(el);
+            for (CFANode pred :
+                CFAUtils.allEnteringEdges(el).transform(edge -> edge.getPredecessor())) {
+              if (!elocs_new_reachable.contains(pred)) {
+                waitlist_new.add(pred);
+              }
+            }
+          }
+        }
+      }
+
       helper =
           new ModificationsPropHelper(
-              new ImmutableSet.Builder<CFANode>()
-                  .addAll(propertyNodes(pCfa))
-                  .addAll(propertyNodes(cfaForComparison))
-                  .build(),
+              new ImmutableSet.Builder<CFANode>().addAll(elocs_new).addAll(elocs).build(),
               ignoreDeclarations,
               implicationCheck,
+              stopOnPointers,
+              performPreprocessing,
+              elocs_reachable,
+              elocs_new_reachable,
               solver,
               converter,
               logger);
@@ -194,7 +243,6 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
     solver.close();
   }
 
-  // TODO: think over
   // Can only be called after machineModel and formulaManager are set
   private CtoFormulaConverter initializeCToFormulaConverter(
       FormulaManagerView pFormulaManager,

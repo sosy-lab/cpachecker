@@ -3462,8 +3462,15 @@ differential.ignoreDeclarations = false
 # perform assumption implication check
 differential.implicationCheck = true
 
+# perform preprocessing to detect states from which error locations are
+# reachable
+differential.performPreprocessing = false
+
 # Program to check against
 differential.program = no default value
+
+# safely stop analysis on pointer accesses and similar
+differential.stopOnPointers = false
 
 # Enable to use lazy refinement in current analysis instead of restarting
 # from root after each refinement.

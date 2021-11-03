@@ -61,24 +61,57 @@ public class ModificationsPropHelper {
   private final boolean ignoreDeclarations;
   /** Setting for switching on/off the SMT implication check. */
   private final boolean implicationCheck;
+  /** Safely stop analysis on pointer accesses and similar. */
+  private final boolean performPreprocessing;
+  /** Set of nodes from which an error location is reachable in original program. */
+  private final Set<CFANode> reachElocOrig;
+  /** Set of nodes from which an error location is reachable in modified program. */
+  private final Set<CFANode> reachElocMod;
+
   private final Solver solver;
   private final CtoFormulaConverter converter;
   /** Logging manager to log with different levels of severity. */
   private final LogManager logger;
+  /** A visitor to get used variables as string set for an expression. */
+  private final VariableIdentifierVisitor visitor;
 
+  /**
+   * Creates a helper for ModificationsPropCPA.
+   *
+   * @param pPropNodes Nodes that are part of the property.
+   * @param pIgnoreDeclarations Setting for ignoring of declaration statements.
+   * @param pImplicationCheck Setting for switching on/off the SMT implication check.
+   * @param pStopOnPointers Safely stop analysis on pointer accesses and similar.
+   * @param pPerformPreprocessing Setting for switching reachability preprocessing on/off.
+   * @param pReachElocOrig Set of nodes from which an error location is reachable in original
+   *     program.
+   * @param pReachElocMod Set of nodes from which an error location is reachable in modified
+   *     program.
+   * @param pSolver A solver for implication checks on assumptions.
+   * @param pConverter A converter for forumla formats.
+   * @param pLogger Logging manager to log with different levels of severity.
+   */
   public ModificationsPropHelper(
       final ImmutableSet<CFANode> pPropNodes,
       final boolean pIgnoreDeclarations,
       final boolean pImplicationCheck,
+      final boolean pStopOnPointers,
+      final boolean pPerformPreprocessing,
+      final Set<CFANode> pReachElocOrig,
+      final Set<CFANode> pReachElocMod,
       final Solver pSolver,
       final CtoFormulaConverter pConverter,
       final LogManager pLogger) {
     propNodes = pPropNodes;
     ignoreDeclarations = pIgnoreDeclarations;
     implicationCheck = pImplicationCheck;
+    performPreprocessing = pPerformPreprocessing;
+    reachElocOrig = pReachElocOrig;
+    reachElocMod = pReachElocMod;
     solver = pSolver;
     converter = pConverter;
     logger = pLogger;
+    visitor = new VariableIdentifierVisitor(pStopOnPointers);
   }
 
   /**
@@ -171,8 +204,12 @@ public class ModificationsPropHelper {
     if (!inReachabilityProperty(pNode)) {
       for (CFAEdge ce : CFAUtils.leavingEdges(pNode)) {
         if (ce instanceof CAssumeEdge) {
-          VariableIdentifierVisitor visitor = new VariableIdentifierVisitor();
-          Set<String> usedVars = ((CAssumeEdge) ce).getExpression().accept(visitor);
+          Set<String> usedVars;
+          try {
+            usedVars = ((CAssumeEdge) ce).getExpression().accept(visitor);
+          } catch (PointerAccessException e) {
+            return ImmutableSet.of();
+          }
           if (Collections.disjoint(usedVars, pVars)) {
             reached.add(ce.getSuccessor());
           } else {
@@ -206,9 +243,10 @@ public class ModificationsPropHelper {
    * @param pEdge the edge under consideration
    * @param pVars the variables modified yet
    * @return the updated set of modified variables
+   * @throws PointerAccessException exception if pointer is contained in right hand side
    */
-  ImmutableSet<String> modifySetForAssignment(
-      final CFAEdge pEdge, final ImmutableSet<String> pVars) {
+  ImmutableSet<String> modifySetForAssignment(final CFAEdge pEdge, final ImmutableSet<String> pVars)
+      throws PointerAccessException {
 
     ImmutableSet<String> vars = pVars;
 
@@ -216,7 +254,6 @@ public class ModificationsPropHelper {
       String lhs = CFAEdgeUtils.getLeftHandVariable(pEdge);
       Set<String> rhs = new HashSet<>();
 
-      VariableIdentifierVisitor visitor = new VariableIdentifierVisitor();
       CStatement stmt = ((CStatementEdge) pEdge).getStatement();
       if (stmt instanceof CExpressionStatement) {
         rhs = ((CExpressionStatement) stmt).getExpression().accept(visitor);
@@ -260,8 +297,6 @@ public class ModificationsPropHelper {
    */
   boolean variablesAreUsedInEdge(final CFAEdge pEdge, final ImmutableSet<String> pVars) {
 
-    // visitor and its return value
-    final VariableIdentifierVisitor visitor = new VariableIdentifierVisitor();
     Set<String> usedVars = new HashSet<>();
 
     // EdgeType is..
@@ -273,7 +308,11 @@ public class ModificationsPropHelper {
       } else if (decl instanceof CVariableDeclaration) {
         CInitializer initl = ((CVariableDeclaration) decl).getInitializer();
         if (initl instanceof CInitializerExpression) {
-          usedVars = ((CInitializerExpression) initl).getExpression().accept(visitor);
+          try {
+            usedVars = ((CInitializerExpression) initl).getExpression().accept(visitor);
+          } catch (PointerAccessException e) {
+            return true;
+          }
         } else {
           return !pVars.isEmpty(); // not implemented for this initializer types, fallback
         }
@@ -282,19 +321,31 @@ public class ModificationsPropHelper {
     } else if (pEdge instanceof CReturnStatementEdge) { // ReturnStatementEdge
       CExpression exp = ((CReturnStatementEdge) pEdge).getExpression().orElse(null);
       if (exp != null) {
-        usedVars = exp.accept(visitor);
+        try {
+          usedVars = exp.accept(visitor);
+        } catch (PointerAccessException e) {
+          return true;
+        }
       } else {
         return !pVars.isEmpty(); // fallback, shouldn't happen
       }
     } else if (pEdge instanceof CAssumeEdge) { // AssumeEdge
-      usedVars = ((CAssumeEdge) pEdge).getExpression().accept(visitor);
+      try {
+        usedVars = ((CAssumeEdge) pEdge).getExpression().accept(visitor);
+      } catch (PointerAccessException e) {
+        return true;
+      }
     } else if (pEdge instanceof CStatementEdge) { // StatementEdge
       return false; // ignored as handled later
     } else if (pEdge instanceof BlankEdge) { // BlankEdge
       return false;
     } else if (pEdge instanceof CFunctionCallEdge) { // FunctionCallEdge
       for (CExpression exp : ((CFunctionCallEdge) pEdge).getArguments()) {
-        usedVars.addAll(exp.accept(visitor));
+        try {
+          usedVars.addAll(exp.accept(visitor));
+        } catch (PointerAccessException e) {
+          return true;
+        }
       }
     } else if (pEdge instanceof CFunctionSummaryEdge
         || pEdge instanceof CFunctionReturnEdge) { // CallToReturnEdge, FunctionReturnEdge
@@ -371,7 +422,7 @@ public class ModificationsPropHelper {
    * @param pNote the text to print
    */
   void logCase(final String pNote) {
-    logger.log(Level.FINEST, pNote);
+    logger.log(Level.WARNING, pNote);
   }
 
   /**
@@ -401,6 +452,34 @@ public class ModificationsPropHelper {
    */
   boolean sameFunction(final CFANode pNodeInGiven, final CFANode pNodeInOriginal) {
     return pNodeInGiven.getFunctionName().equals(pNodeInOriginal.getFunctionName());
+  }
+
+  /**
+   * Checks whether an error location is reachable from the given state.
+   *
+   * @param pNode the CFA node to be considered
+   * @param pOriginal consider original instead of modified program
+   * @return the computation result, true if analysis switched off.
+   */
+  boolean goalReachable(CFANode pNode, boolean pOriginal) {
+    if (performPreprocessing) {
+      if (pOriginal) {
+        return reachElocOrig.contains(pNode);
+      } else {
+        return reachElocMod.contains(pNode);
+      }
+    } else {
+      return true;
+    }
+  }
+
+  /**
+   * Getter for the variable identifier visitor.
+   *
+   * @return the visitor
+   */
+  VariableIdentifierVisitor getVisitor() {
+    return visitor;
   }
 
   /**
