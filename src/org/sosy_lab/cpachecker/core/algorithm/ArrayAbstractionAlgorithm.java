@@ -233,7 +233,7 @@ public final class ArrayAbstractionAlgorithm extends NestingAlgorithm {
     @Override
     public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
 
-      if (arrayAbstractionResult.getStatus() != ArrayAbstractionResult.Status.FAILED) {
+      if (arrayAbstractionResult.getStatus() != ArrayAbstractionResult.Status.UNCHANGED) {
 
         CFA transformedCfa = arrayAbstractionResult.getTransformedCfa();
 

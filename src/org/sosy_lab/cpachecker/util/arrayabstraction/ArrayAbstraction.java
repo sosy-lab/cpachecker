@@ -256,7 +256,7 @@ public class ArrayAbstraction {
     return arrayPreciseSubscriptExpressionBuilder.build();
   }
 
-  // Is this loop even transformable? Yes -> Status.PRECISE, No -> Status.FAILED
+  // Is this loop even transformable? Yes -> Status.PRECISE, No -> Status.UNCHANGED
   private static Status loopTransformable(
       ImmutableMap<CSimpleDeclaration, TransformableArray> pTransformableArrayMap,
       TransformableLoop pLoop) {
@@ -276,7 +276,7 @@ public class ArrayAbstraction {
       // non-transformable arrays in a transformable loop make the loop non-transformable
       for (CSimpleDeclaration arrayDeclaration : ArrayAccess.findArrayOccurences(edge)) {
         if (!pTransformableArrayMap.containsKey(arrayDeclaration)) {
-          return Status.FAILED;
+          return Status.UNCHANGED;
         }
 
         arrayMemoryLocations.add(MemoryLocation.forDeclaration(arrayDeclaration));
@@ -287,13 +287,13 @@ public class ArrayAbstraction {
         if (!innerLoopDeclarations.contains(def)
             && !arrayMemoryLocations.contains(def)
             && !def.equals(loopIndexMemLoc)) {
-          return Status.FAILED;
+          return Status.UNCHANGED;
         }
       }
 
       // any pointee def make a loop non-transformable
       if (!edgeDefUseData.getPointeeDefs().isEmpty()) {
-        return Status.FAILED;
+        return Status.UNCHANGED;
       }
     }
 
@@ -397,7 +397,7 @@ public class ArrayAbstraction {
 
     Status status = loopTransformable(pTransformableArrayMap, pLoop);
 
-    if (status == Status.FAILED) {
+    if (status == Status.UNCHANGED) {
       return status;
     }
 
@@ -453,8 +453,8 @@ public class ArrayAbstraction {
               edge,
               Optional.of(pLoop),
               Optional.of(preciseArraySubscriptExpressions));
-      if (edgeTransformationStatus == Status.FAILED) {
-        return Status.FAILED;
+      if (edgeTransformationStatus == Status.UNCHANGED) {
+        return Status.UNCHANGED;
       } else if (edgeTransformationStatus == Status.IMPRECISE) {
         status = Status.IMPRECISE;
       }
@@ -571,7 +571,7 @@ public class ArrayAbstraction {
       Optional<TransformableArray> optTransformableArray =
           getTransformableArray(arrayAccess, pTransformableArrayMap);
       if (optTransformableArray.isEmpty()) {
-        return pLoop.isEmpty() ? Status.PRECISE : Status.FAILED;
+        return pLoop.isEmpty() ? Status.PRECISE : Status.UNCHANGED;
       }
 
       TransformableArray transformableArray = optTransformableArray.orElseThrow();
@@ -610,11 +610,11 @@ public class ArrayAbstraction {
 
       if (arrayAccess.isRead()) {
         if (optSubscriptValue.isPresent()) {
-          // TODO: better implementation that does not return Status.FAILED
-          return Status.FAILED;
+          // TODO: better implementation that does not return Status.UNCHANGED
+          return Status.UNCHANGED;
         } else {
-          // TODO: better implementation that does not return Status.FAILED
-          return Status.FAILED;
+          // TODO: better implementation that does not return Status.UNCHANGED
+          return Status.UNCHANGED;
         }
       } else {
         assert arrayAccess.isWrite();
@@ -758,7 +758,7 @@ public class ArrayAbstraction {
         createTransformableArrayMap(transformableArrays);
 
     if (transformableLoops.isEmpty() || transformableArrays.isEmpty()) {
-      return ArrayAbstractionResult.createFailed(pCfa);
+      return ArrayAbstractionResult.createUnchanged(pCfa);
     }
 
     CfaMutableNetwork graph = CfaMutableNetwork.of(simplifiedCfa);
@@ -769,8 +769,8 @@ public class ArrayAbstraction {
     for (TransformableLoop transformableLoop : transformableLoops) {
       Status loopTransformationStatus =
           transformLoop(graph, transformableArrayMap, simplifiedCfa, pLogger, transformableLoop);
-      if (loopTransformationStatus == Status.FAILED) {
-        return ArrayAbstractionResult.createFailed(pCfa);
+      if (loopTransformationStatus == Status.UNCHANGED) {
+        return ArrayAbstractionResult.createUnchanged(pCfa);
       } else if (loopTransformationStatus == Status.IMPRECISE) {
         status = Status.IMPRECISE;
       }
@@ -792,8 +792,8 @@ public class ArrayAbstraction {
                 edge,
                 Optional.empty(),
                 Optional.empty());
-        if (edgeTransformationStatus == Status.FAILED) {
-          return ArrayAbstractionResult.createFailed(pCfa);
+        if (edgeTransformationStatus == Status.UNCHANGED) {
+          return ArrayAbstractionResult.createUnchanged(pCfa);
         } else if (edgeTransformationStatus == Status.IMPRECISE) {
           status = Status.IMPRECISE;
         }
