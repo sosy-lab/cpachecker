@@ -46,6 +46,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
 
+// TODO: factor out the utility functions of IMCAlgorithm and ISMCAlgorithm to a new class
 /**
  * This class provides an implementation of interpolation-based model checking algorithm, adapted
  * for program verification. The original algorithm was proposed in the paper "Interpolation and
@@ -238,6 +239,12 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return AlgorithmStatus.UNSOUND_AND_PRECISE;
   }
 
+  /**
+   * A helper method to collect formulas needed by ISMC algorithm. It assumes every target state
+   * after the loop has the same abstraction-state path to root.
+   *
+   * @param pReachedSet Abstract Reachability Graph
+   */
   private List<BooleanFormula> collectFormulas(final ReachedSet pReachedSet) {
     FluentIterable<AbstractState> targetStatesAfterLoop = getTargetStatesAfterLoop(pReachedSet);
     List<ARGState> abstractionStates =
@@ -261,11 +268,20 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return formulas;
   }
 
-  private <T> List<BooleanFormula> getInterpolationSequence(InterpolatingProverEnvironment<T> itpProver, List<BooleanFormula> pFormulas)
+  /**
+   * A helper method to derive an interpolation sequence.
+   *
+   * @param itpProver the prover with interpolation enabled
+   * @param pFormulas the list of formulas to derive interpolants from, the conjunction of all
+   *     formulas must be unsatisfiable
+   * @throws InterruptedException On shutdown request.
+   */
+  private <T> List<BooleanFormula> getInterpolationSequence(
+      InterpolatingProverEnvironment<T> itpProver, List<BooleanFormula> pFormulas)
       throws InterruptedException, SolverException {
     // TODO: consider using the methods that generates interpolation sequence in ImpactAlgorithm
-    // should be someting like: imgr.buildCounterexampleTrace(formulas)
-    
+    // should be something like: imgr.buildCounterexampleTrace(formulas)
+
     // push formulas
     List<T> pushedFormulas = new ArrayList<>();
     for (int i = 0; i < pFormulas.size(); ++i) {
@@ -293,6 +309,13 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return itpSequence;
   }
 
+  /**
+   * A method to update the reachabiltiy vector with newly derived interpolants
+   *
+   * @param oldReachVector the reachability vector of the previous iteration
+   * @param itpSequence the interpolation sequence derived at the current iteration
+   * @return the updated reachability vector
+   */
   private List<BooleanFormula> updateReachabilityVector(
       List<BooleanFormula> oldReachVector, List<BooleanFormula> itpSequence) {
     List<BooleanFormula> newReachVector = new ArrayList<>();
@@ -307,6 +330,14 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return newReachVector;
   }
 
+  /**
+   * A method to determine whether fixed-point has been reached.
+   *
+   * @param reachVector the reachability vector at current iteration
+   * @return {@code true} if a fixed point is reached, i.e., property is proved; {@code false} if
+   *     the current over-approximation is unsafe.
+   * @throws InterruptedException On shutdown request.
+   */
   private boolean reachFixedPoint(List<BooleanFormula> reachVector)
       throws InterruptedException, SolverException {
     BooleanFormula currentImage = reachVector.get(0);
