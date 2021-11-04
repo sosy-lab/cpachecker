@@ -213,11 +213,11 @@ public class ArrayAbstraction {
           transformableArraySubscriptExpressions.get(transformableArray);
       CExpression conditionOperand = null;
       if (subscriptExpressions.size() == 1) {
-        CExpression subscriptExpression = subscriptExpressions.stream().findAny().orElseThrow();
+        CExpression subscriptExpression = subscriptExpressions.stream().findFirst().orElseThrow();
         EdgeDefUseData subscriptDefUseData = extractor.extract(subscriptExpression);
         if (onlySingleUseNothingElse(subscriptDefUseData)) {
           MemoryLocation subscriptUse =
-              subscriptDefUseData.getUses().stream().findAny().orElseThrow();
+              subscriptDefUseData.getUses().stream().findFirst().orElseThrow();
           if (subscriptUse.equals(MemoryLocation.forDeclaration(index.getVariableDeclaration()))) {
             conditionOperand = subscriptExpression;
           }
@@ -311,7 +311,7 @@ public class ArrayAbstraction {
     TransformableLoop.Index index = pLoop.getIndex();
 
     TransformableArray anyTransformableArray =
-        pLoopTransformableArrays.stream().findAny().orElseThrow();
+        pLoopTransformableArrays.stream().findFirst().orElseThrow();
 
     CIdExpression loopIndexIdExpression =
         new CIdExpression(FileLocation.DUMMY, index.getVariableDeclaration());
@@ -563,7 +563,7 @@ public class ArrayAbstraction {
     // Prior simplification should already guarantee that.
     assert arrayAccesses.size() <= 1;
 
-    Optional<ArrayAccess> optArrayAccess = arrayAccesses.stream().findAny();
+    Optional<ArrayAccess> optArrayAccess = arrayAccesses.stream().findFirst();
     if (optArrayAccess.isPresent()) {
 
       ArrayAccess arrayAccess = optArrayAccess.orElseThrow();
