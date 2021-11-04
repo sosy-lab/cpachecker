@@ -11,7 +11,9 @@ package org.sosy_lab.cpachecker.util.arrayabstraction;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Sets;
 import java.math.BigInteger;
 import java.util.HashSet;
@@ -55,10 +57,21 @@ final class TransformableLoop {
     index = pIndex;
   }
 
+  private static int compareCfaEdges(CFAEdge fstEdge, CFAEdge sndEdge) {
+    return ComparisonChain.start()
+        .compare(fstEdge.getPredecessor(), sndEdge.getPredecessor())
+        .compare(fstEdge.getSuccessor(), sndEdge.getSuccessor())
+        .result();
+  }
+
   private static ImmutableSet<CFAEdge> allInnerLoopEdges(LoopStructure.Loop pLoop) {
 
     ImmutableSet.Builder<CFAEdge> builder = ImmutableSet.builder();
-    builder.addAll(pLoop.getInnerLoopEdges());
+    // iteration order of pLoop.getInnerLoopEdges() is nondet
+    ImmutableSet<CFAEdge> innerLoopEdges =
+        ImmutableSortedSet.copyOf(TransformableLoop::compareCfaEdges, pLoop.getInnerLoopEdges());
+
+    builder.addAll(innerLoopEdges);
 
     for (CFANode node : pLoop.getLoopNodes()) {
       FunctionSummaryEdge summaryEdge = node.getLeavingSummaryEdge();

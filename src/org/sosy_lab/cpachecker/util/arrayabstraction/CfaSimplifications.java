@@ -14,8 +14,8 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.math.BigInteger;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -86,7 +86,8 @@ final class CfaSimplifications {
         continue;
       }
 
-      Set<ArrayAccess> remainingArrayAccesses = new HashSet<>(ArrayAccess.findArrayAccesses(edge));
+      Set<ArrayAccess> remainingArrayAccesses =
+          new LinkedHashSet<>(ArrayAccess.findArrayAccesses(edge));
 
       // finished array access ---> substitute for finished array access
       Map<ArrayAccess, CExpression> finished = new HashMap<>();
