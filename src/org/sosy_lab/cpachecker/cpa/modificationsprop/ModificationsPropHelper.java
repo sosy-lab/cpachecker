@@ -136,7 +136,7 @@ public class ModificationsPropHelper {
   CFANode skipUntrackedOperations(final CFANode pNode) {
     CFANode currentNode = pNode;
     while (currentNode.getNumLeavingEdges() == 1 && !inReachabilityProperty(currentNode)) {
-      CFAEdge currentEdge = currentNode.getLeavingEdge(0);
+      final CFAEdge currentEdge = currentNode.getLeavingEdge(0);
       if (isUntracked(currentEdge)
           // can omit check for summary edges here, as these are not untracked anway
           && sameFunction(currentNode, currentEdge.getSuccessor())) {
@@ -204,7 +204,7 @@ public class ModificationsPropHelper {
     if (!inReachabilityProperty(pNode)) {
       for (CFAEdge ce : CFAUtils.leavingEdges(pNode)) {
         if (ce instanceof CAssumeEdge) {
-          Set<String> usedVars;
+          final Set<String> usedVars;
           try {
             usedVars = ((CAssumeEdge) ce).getExpression().accept(visitor);
           } catch (PointerAccessException e) {
@@ -365,8 +365,8 @@ public class ModificationsPropHelper {
    * @return whether the implication holds
    */
   boolean implies(final CAssumeEdge pA, final CAssumeEdge pB) {
-    BooleanFormula a;
-    BooleanFormula b;
+    final BooleanFormula a;
+    final BooleanFormula b;
     // empty SSA overapproximates in worst case
     final SSAMapBuilder ssaMap = SSAMap.emptySSAMap().builder();
     logger.log(

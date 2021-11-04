@@ -12,7 +12,6 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -174,7 +173,7 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
                                     .getRightHandSide()
                                     .accept(helper.getVisitor()),
                                 changedVars))) {
-                      final Builder<String> builder = new ImmutableSet.Builder<>();
+                      final ImmutableSet.Builder<String> builder = new ImmutableSet.Builder<>();
                       final Set<String> leftVars =
                           retMo
                               .getReturnStatement()

@@ -21,19 +21,21 @@ import org.sosy_lab.cpachecker.util.test.TestResults;
 
 public class ModificationsPropTest {
 
-  private final String configFile = "config/differencePropPredicateAnalysis.properties";
+  private static final String CONFIG_FILE = "config/differencePropPredicateAnalysis.properties";
+  private static final String PROGRAM_ORIGINAL = "test/programs/modified/propbased_diff_original.c";
+  private static final String PROGRAM_MODIFIED = "test/programs/modified/propbased_diff_mod.c";
+  private static final String REACH_PROPERTY = "config/specification/default.spc";
 
+  // Specification Tests
   @Test
   public void successfulCoverage() throws Exception {
     Map<String, String> prop =
         ImmutableMap.of(
-            "differential.program", "test/programs/modified/propbased_diff_original.c",
-            "differential.badstateProperties", "config/specification/sv-comp-reachability.spc",
+            "differential.program", PROGRAM_ORIGINAL,
+            "differential.badstateProperties", REACH_PROPERTY,
             "differential.performPreprocessing", "true");
 
-    TestResults results =
-        CPATestRunner.run(
-            getProperties(configFile, prop), "test/programs/modified/propbased_diff_mod.c");
+    TestResults results = CPATestRunner.run(getProperties(CONFIG_FILE, prop), PROGRAM_MODIFIED);
     results.assertIsSafe();
   }
 
