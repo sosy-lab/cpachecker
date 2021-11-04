@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.smg;
 
+import static java.util.Collections.singletonList;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Preconditions;
@@ -280,7 +282,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
    * @throws SMGInconsistentException when resulting SMGState is inconsistent
    * and the checks are enabled
    */
-  public Optional<SMGRegion> addAnonymousVariable(int pTypeSize)
+  public Optional<SMGRegion> addAnonymousVariable(long pTypeSize)
       throws SMGInconsistentException {
     if (heap.getStackFrames().isEmpty()) {
       return Optional.empty();
@@ -402,6 +404,40 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
             ? "no parent, initial state"
             : "parent [" + getPredecessorId() + "]";
     return String.format("SMGState [%d] <-- %s: %s", getId(), parent, heap);
+  }
+
+  public List<SMGAddressValueAndState> getPointerFromAddress(SMGAddress pAddress)
+      throws SMGInconsistentException {
+    if (pAddress.isUnknown()) {
+      return singletonList(SMGAddressValueAndState.of(this));
+    }
+    SMGObject target = pAddress.getObject();
+    SMGExplicitValue offset = pAddress.getOffset();
+    if (target instanceof SMGRegion) {
+      SMGValue address = getAddress((SMGRegion) target, offset.getAsLong());
+      if (address == null) {
+        return singletonList(
+            SMGAddressValueAndState.of(
+                this, new SMGEdgePointsTo(SMGKnownSymValue.of(), target, offset.getAsLong())));
+      }
+      return getPointerFromValue(address);
+    }
+    if (target == SMGNullObject.INSTANCE) {
+      // TODO return NULL_POINTER instead of new object?
+      return singletonList(
+          SMGAddressValueAndState.of(
+              this, new SMGEdgePointsTo(SMGZeroValue.INSTANCE, target, offset.getAsLong())));
+    }
+    if (target.isAbstract()) {
+      performConsistencyCheck(SMGRuntimeCheck.HALF);
+      SMGKnownSymbolicValue symbolicValue = SMGKnownSymValue.of();
+      heap.addValue(symbolicValue);
+      return handleMaterilisation(
+          new SMGEdgePointsTo(symbolicValue, target, offset.getAsLong(), SMGTargetSpecifier.FIRST),
+          ((SMGAbstractObject) target));
+    }
+
+    throw new AssertionError("Abstraction " + target + " was not materialised.");
   }
 
   /**
