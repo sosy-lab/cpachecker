@@ -38,7 +38,9 @@ public class ValueAnalysisGlobalRefiner extends ValueAnalysisRefiner {
 
   @Option(
       secure = true,
-      description = "whether to use the top-down interpolation strategy or the bottom-up interpolation strategy")
+      description =
+          "whether to use the top-down interpolation strategy or the bottom-up interpolation"
+              + " strategy")
   private boolean useTopDownInterpolationStrategy = true;
 
   public static Refiner create(final ConfigurableProgramAnalysis pCpa)
@@ -69,7 +71,7 @@ public class ValueAnalysisGlobalRefiner extends ValueAnalysisRefiner {
         strongestPostOp,
         new ValueAnalysisPrefixProvider(
             logger, cfa, config, valueAnalysisCpa.getShutdownNotifier()),
-        new PrefixSelector(cfa.getVarClassification(), cfa.getLoopStructure()),
+        new PrefixSelector(cfa.getVarClassification(), cfa.getLoopStructure(), logger),
         config,
         logger,
         valueAnalysisCpa.getShutdownNotifier(),

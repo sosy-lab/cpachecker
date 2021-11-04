@@ -16,6 +16,9 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.waitlist.AutomatonFailedMatchesWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.AutomatonMatchesWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.BlockConfiguration;
@@ -89,23 +92,21 @@ public class ReachedSetFactory {
   private boolean useReverseLoopstack = false;
 
   @Option(
-    secure = true,
-    name = "traversal.useReversePostorder",
-    description =
-        "Use an implementation of reverse postorder strategy that allows to select "
-            + "a secondary strategy that is used if there are two states with the same reverse postorder id. "
-            + "The secondary strategy is selected with 'analysis.traversal.order'."
-  )
+      secure = true,
+      name = "traversal.useReversePostorder",
+      description =
+          "Use an implementation of reverse postorder strategy that allows to select a secondary"
+              + " strategy that is used if there are two states with the same reverse postorder id."
+              + " The secondary strategy is selected with 'analysis.traversal.order'.")
   private boolean useReversePostorder = false;
 
   @Option(
-    secure = true,
-    name = "traversal.usePostorder",
-    description =
-        "Use an implementation of postorder strategy that allows to select "
-            + "a secondary strategy that is used if there are two states with the same postorder id. "
-            + "The secondary strategy is selected with 'analysis.traversal.order'."
-  )
+      secure = true,
+      name = "traversal.usePostorder",
+      description =
+          "Use an implementation of postorder strategy that allows to select a secondary strategy"
+              + " that is used if there are two states with the same postorder id. The secondary"
+              + " strategy is selected with 'analysis.traversal.order'.")
   private boolean usePostorder = false;
 
   @Option(
@@ -166,17 +167,16 @@ public class ReachedSetFactory {
   private boolean useBlocks = false;
 
   @Option(
-    secure = true,
-    name = "reachedSet",
-    description =
-        "which reached set implementation to use?"
-            + "\nNORMAL: just a simple set"
-            + "\nLOCATIONMAPPED: a different set per location "
-            + "(faster, states with different locations cannot be merged)"
-            + "\nPARTITIONED: partitioning depending on CPAs (e.g Location, Callstack etc.)"
-            + "\nPSEUDOPARTITIONED: based on PARTITIONED, uses additional info about the states' lattice "
-            + "(maybe faster for some special analyses which use merge_sep and stop_sep"
-  )
+      secure = true,
+      name = "reachedSet",
+      description =
+          "which reached set implementation to use?\n"
+              + "NORMAL: just a simple set\n"
+              + "LOCATIONMAPPED: a different set per location (faster, states with different"
+              + " locations cannot be merged)\n"
+              + "PARTITIONED: partitioning depending on CPAs (e.g Location, Callstack etc.)\n"
+              + "PSEUDOPARTITIONED: based on PARTITIONED, uses additional info about the states'"
+              + " lattice (maybe faster for some special analyses which use merge_sep and stop_sep")
   private ReachedSetType reachedSet = ReachedSetType.PARTITIONED;
 
   @Option(
@@ -212,7 +212,13 @@ public class ReachedSetFactory {
     }
   }
 
-  public ReachedSet create() {
+  /**
+   * Creates an instance of a {@link ReachedSet}.
+   *
+   * @param cpa The CPA whose abstract states will be stored in this reached set.
+   */
+  public ReachedSet create(ConfigurableProgramAnalysis cpa) {
+    checkNotNull(cpa);
     WaitlistFactory waitlistFactory = traversalMethod;
 
     if (useWeightedDepthOrder) {
@@ -269,26 +275,40 @@ public class ReachedSetFactory {
     ReachedSet reached;
     switch (reachedSet) {
     case PARTITIONED:
-        reached = new PartitionedReachedSet(waitlistFactory);
+        reached = new PartitionedReachedSet(cpa, waitlistFactory);
         break;
     case PSEUDOPARTITIONED:
-        reached = new PseudoPartitionedReachedSet(waitlistFactory);
+        reached = new PseudoPartitionedReachedSet(cpa, waitlistFactory);
         break;
     case LOCATIONMAPPED:
-        reached = new LocationMappedReachedSet(waitlistFactory);
+        reached = new LocationMappedReachedSet(cpa, waitlistFactory);
         break;
     case USAGE:
-        reached = new UsageReachedSet(waitlistFactory, usageConfig, logger);
+        reached = new UsageReachedSet(cpa, waitlistFactory, usageConfig, logger);
         break;
     case NORMAL:
     default:
-        reached = new DefaultReachedSet(waitlistFactory);
+        reached = new DefaultReachedSet(cpa, waitlistFactory);
     }
 
     if (withStatistics) {
       reached = new StatisticsReachedSet(reached);
     }
 
+    return reached;
+  }
+
+  /**
+   * Create a new reached set like in {@link #create} and add an initial abstract state from the
+   * CPA.
+   */
+  public ReachedSet createAndInitialize(
+      ConfigurableProgramAnalysis cpa, CFANode node, StateSpacePartition partition)
+      throws InterruptedException {
+    checkNotNull(node);
+    checkNotNull(partition);
+    ReachedSet reached = create(cpa);
+    reached.add(cpa.getInitialState(node, partition), cpa.getInitialPrecision(node, partition));
     return reached;
   }
 }

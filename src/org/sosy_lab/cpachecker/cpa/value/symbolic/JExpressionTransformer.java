@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JBooleanLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JClassInstanceCreation;
+import org.sosy_lab.cpachecker.cfa.ast.java.JClassLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JEnumConstantExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFloatLiteralExpression;
@@ -228,12 +229,14 @@ public class JExpressionTransformer extends ExpressionTransformer
   @Override
   public SymbolicExpression visit(JArrayCreationExpression pJBooleanLiteralExpression)
       throws UnrecognizedCodeException {
-    throw new UnsupportedOperationException("Array creations can't be transformed to ConstraintExpressions");
+    throw new UnsupportedOperationException(
+        "Array creations can't be transformed to ConstraintExpressions");
   }
 
   @Override
   public SymbolicExpression visit(JArrayInitializer pJArrayInitializer) throws UnrecognizedCodeException {
-    throw new UnsupportedOperationException("Array initializations can't be transformed to ConstraintExpressions");
+    throw new UnsupportedOperationException(
+        "Array initializations can't be transformed to ConstraintExpressions");
   }
 
   @Override
@@ -243,7 +246,8 @@ public class JExpressionTransformer extends ExpressionTransformer
 
   @Override
   public SymbolicExpression visit(JVariableRunTimeType pJThisRunTimeType) throws UnrecognizedCodeException {
-    throw new UnsupportedOperationException("A variable's runtime type can't be transformed to ConstraintExpressions");
+    throw new UnsupportedOperationException(
+        "A variable's runtime type can't be transformed to ConstraintExpressions");
   }
 
   @Override
@@ -263,6 +267,12 @@ public class JExpressionTransformer extends ExpressionTransformer
 
   @Override
   public SymbolicExpression visit(JThisExpression pThisExpression) throws UnrecognizedCodeException {
+    return null;
+  }
+
+  @Override
+  public SymbolicExpression visit(JClassLiteralExpression pJClassLiteralExpression)
+      throws UnrecognizedCodeException {
     return null;
   }
 

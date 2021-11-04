@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.llvm;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -131,19 +133,19 @@ public class LlvmTypeConverter {
     String structName = getStructName(pStructType);
     String origName = structName;
 
-    if (typeCache.containsKey(pStructType.type().hashCode())) {
+    if (typeCache.containsKey(pStructType.hashCode())) {
       return new CElaboratedType(
           false,
           false,
           ComplexTypeKind.STRUCT,
           structName,
           origName,
-          (CComplexType) typeCache.get(pStructType.type().hashCode()));
+          (CComplexType) typeCache.get(pStructType.hashCode()));
     }
 
     CCompositeType cStructType =
         new CCompositeType(isConst, isVolatile, ComplexTypeKind.STRUCT, structName, origName);
-    typeCache.put(pStructType.type().hashCode(), cStructType);
+    typeCache.put(pStructType.hashCode(), cStructType);
 
     List<TypeRef> memberTypes = pStructType.getStructElementTypes();
     List<CCompositeTypeMemberDeclaration> members = new ArrayList<>(memberTypes.size());
@@ -252,13 +254,8 @@ public class LlvmTypeConverter {
 
       case FP128:
       case PPC_FP128:
-        if (machineModel.getSizeofLongDouble() * 8 != 128) {
-          throw new AssertionError(
-              "Machine model " + machineModel.name() + " can't handle 128bit float");
-
-        } else {
-          return getSimplestCType(CBasicType.DOUBLE, isUnsigned, /* pIsLong = */ true);
-        }
+        checkState(machineModel.getSizeofFloat128() * 8 == 128);
+        return getSimplestCType(CBasicType.FLOAT128, isUnsigned);
 
       case X86_FP80:
         throw new AssertionError(

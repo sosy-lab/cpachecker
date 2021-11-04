@@ -10,9 +10,9 @@ package org.sosy_lab.cpachecker.core.algorithm.pcc;
 
 import java.io.PrintStream;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PCCStrategy;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.pcc.strategy.PCCStrategyBuilder;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
@@ -32,21 +33,27 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 @Options
 public class ProofGenerator {
 
-  @Option(secure=true,
+  @Option(
+      secure = true,
       name = "pcc.sliceProof",
-      description = "Make proof more abstract, remove some of the information not needed to prove the property.")
+      description =
+          "Make proof more abstract, remove some of the information not needed to prove the"
+              + " property.")
   private boolean slicingEnabled = false;
 
-  @Option(secure=true,
+  @Option(
+      secure = true,
       name = "pcc.proofFile",
       description = "file in which proof representation will be stored")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  protected Path file = Paths.get("arg.obj");
+  protected Path file = Path.of("arg.obj");
 
   private final PCCStrategy checkingStrategy;
 
   private final LogManager logger;
   private final Timer writingTimer = new Timer();
+
+  private final @Nullable ProofSlicer slicer;
 
   private final Statistics proofGeneratorStats =
       new Statistics() {
@@ -88,12 +95,18 @@ public class ProofGenerator {
 
     checkingStrategy =
         PCCStrategyBuilder.buildStrategy(pConfig, pLogger, pShutdownNotifier, file, null, null, null);
+    if (slicingEnabled) {
+      slicer = new ProofSlicer(pLogger);
+    } else {
+      slicer = null;
+    }
   }
 
   public void generateProof(CPAcheckerResult pResult) {
     // check result
     if (pResult.getResult() != Result.TRUE) {
-      logger.log(Level.SEVERE, "Proof cannot be generated because checked property not known to be true.");
+      logger.log(
+          Level.SEVERE, "Proof cannot be generated because checked property not known to be true.");
       return;
     }
 
@@ -107,10 +120,11 @@ public class ProofGenerator {
 
   }
 
-  private void constructAndWriteProof(UnmodifiableReachedSet pReached) {
-    if(slicingEnabled){
+  private void constructAndWriteProof(final ReachedSet pReached) {
+    UnmodifiableReachedSet reached = pReached;
+    if (slicer != null) {
       logger.log(Level.INFO, "Start slicing of proof");
-      pReached = new ProofSlicer().sliceProof(pReached);
+      reached = slicer.sliceProof(reached, pReached.getCPA());
     }
 
     // saves the proof
@@ -118,14 +132,14 @@ public class ProofGenerator {
 
     writingTimer.start();
 
-    checkingStrategy.writeProof(pReached);
+    checkingStrategy.writeProof(reached, pReached.getCPA());
 
     writingTimer.stop();
-    logger.log(Level.INFO, "Writing proof took " + writingTimer.getMaxTime().formatAs(TimeUnit.SECONDS));
-
+    logger.log(
+        Level.INFO, "Writing proof took " + writingTimer.getMaxTime().formatAs(TimeUnit.SECONDS));
   }
 
-  protected Statistics generateProofUnchecked(final UnmodifiableReachedSet pReached) {
+  protected Statistics generateProofUnchecked(final ReachedSet pReached) {
     constructAndWriteProof(pReached);
 
     return proofGeneratorStats;

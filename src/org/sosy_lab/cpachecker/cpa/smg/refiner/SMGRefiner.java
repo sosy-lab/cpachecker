@@ -78,21 +78,32 @@ public class SMGRefiner implements Refiner {
 
   @Option(secure = true, description = "export interpolation trees to this file template")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate interpolationTreeExportFile = PathTemplate.ofFormatString("interpolationTree.%d-%d.dot");
+  private PathTemplate interpolationTreeExportFile =
+      PathTemplate.ofFormatString("interpolationTree.%d-%d.dot");
 
-  @Option(secure = true, description = "export interpolant smgs for every path interpolation to this path template")
+  @Option(
+      secure = true,
+      description = "export interpolant smgs for every path interpolation to this path template")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate exportInterpolantSMGs = PathTemplate.ofFormatString("smg/interpolation-%d/%s");
+  private PathTemplate exportInterpolantSMGs =
+      PathTemplate.ofFormatString("smg/interpolation-%d/%s");
 
-  @Option(secure = true, description = "export interpolant smgs for every path interpolation to this path template")
+  @Option(
+      secure = true,
+      description = "export interpolant smgs for every path interpolation to this path template")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate exportRefinementSMGs = PathTemplate.ofFormatString("smg/refinement-%d/smg-%s");
+  private PathTemplate exportRefinementSMGs =
+      PathTemplate.ofFormatString("smg/refinement-%d/smg-%s");
 
-  @Option(secure = true, description = "when to export the interpolation tree"
-      + "\nNEVER:   never export the interpolation tree"
-      + "\nFINAL:   export the interpolation tree once after each refinement"
-      + "\nALWAYS:  export the interpolation tree once after each interpolation, i.e. multiple times per refinement",
-      values = { "NEVER", "FINAL", "ALWAYS" })
+  @Option(
+      secure = true,
+      description =
+          "when to export the interpolation tree\n"
+              + "NEVER:   never export the interpolation tree\n"
+              + "FINAL:   export the interpolation tree once after each refinement\n"
+              + "ALWAYS:  export the interpolation tree once after each interpolation, i.e."
+              + " multiple times per refinement",
+      values = {"NEVER", "FINAL", "ALWAYS"})
   private String exportInterpolationTree = "NEVER";
 
   private SMGRefiner(SMGCPA pSmgCpa, ARGCPA pArgCpa, Set<ControlAutomatonCPA> automatonCpas)
@@ -160,7 +171,7 @@ public class SMGRefiner implements Refiner {
             checkerForInterpolation);
   }
 
-  public static final SMGRefiner create(ConfigurableProgramAnalysis pCpa)
+  public static SMGRefiner create(ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException, SMGInconsistentException {
 
     ARGCPA argCpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, SMGRefiner.class);

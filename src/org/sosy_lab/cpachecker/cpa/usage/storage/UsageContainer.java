@@ -305,7 +305,9 @@ public class UsageContainer {
 
   public void removeState(final UsageState pUstate) {
     unrefinedIds.forEach((id, uset) -> uset.remove(pUstate));
-    logger.log(Level.ALL, "All unsafes related to key state " + pUstate + " were removed from reached set");
+    logger.log(
+        Level.ALL,
+        "All unsafes related to key state " + pUstate + " were removed from reached set");
   }
 
   public AbstractUsagePointSet getUsages(SingleIdentifier id) {
@@ -324,7 +326,8 @@ public class UsageContainer {
   }
 
   public void setAsRefined(SingleIdentifier id, RefinementResult result) {
-    Preconditions.checkArgument(result.isTrue(), "Result is not true, can not set the set as refined");
+    Preconditions.checkArgument(
+        result.isTrue(), "Result is not true, can not set the set as refined");
     checkArgument(
         detector.isUnsafe(getUsages(id)),
         "Refinement is successful, but the unsafe is absent for identifier %s",
@@ -350,17 +353,17 @@ public class UsageContainer {
     StatInt refinedUsages = new StatInt(StatKind.SUM, "Total amount of refined usages");
     StatCounter failedUsages = new StatCounter("Total amount of failed usages");
 
-    final int generalUnrefinedSize = unrefinedIds.keySet().size();
+    final int generalUnrefinedSize = unrefinedIds.size();
     for (UnrefinedUsagePointSet uset : unrefinedIds.values()) {
       unrefinedUsages.setNextValue(uset.size());
       topUsagePoints.setNextValue(uset.getNumberOfTopUsagePoints());
     }
 
-    final int generalRefinedSize = refinedIds.keySet().size();
+    final int generalRefinedSize = refinedIds.size();
     refinedIds.forEach(
         (id, rset) -> refinedUsages.setNextValue(rset.size()));
 
-    final int generalFailedSize = failedIds.keySet().size();
+    final int generalFailedSize = failedIds.size();
     for (RefinedUsagePointSet uset : failedIds.values()) {
       Pair<UsageInfo, UsageInfo> pair = uset.getUnsafePair();
       if (pair.getFirst().isLooped()) {

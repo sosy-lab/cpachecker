@@ -12,9 +12,10 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,14 +35,12 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
@@ -89,9 +88,9 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   @Option(
       secure = true,
       description =
-          "Which path-formula builder to use."
-              + "Depending on this setting additional terms are added to the path formulas,"
-              + "e.g. SYMBOLICLOCATIONS will add track the program counter symbolically with a special variable %pc")
+          "Which path-formula builder to use.Depending on this setting additional terms are added"
+              + " to the path formulas,e.g. SYMBOLICLOCATIONS will add track the program counter"
+              + " symbolically with a special variable %pc")
   private PathFormulaBuilderVariants pathFormulaBuilderVariant = PathFormulaBuilderVariants.DEFAULT;
 
   private enum PathFormulaBuilderVariants {
@@ -150,7 +149,9 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         try {
           fmgr.getQuantifiedFormulaManager();
         } catch (UnsupportedOperationException e) {
-          throw new InvalidConfigurationException("Cannot use quantifiers with current solver, either choose a different solver or disable quantifiers.");
+          throw new InvalidConfigurationException(
+              "Cannot use quantifiers with current solver, either choose a different solver or"
+                  + " disable quantifiers.");
         }
       }
       if (options.useArraysForHeap()) {
@@ -158,7 +159,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           fmgr.getArrayFormulaManager();
         } catch (UnsupportedOperationException e) {
           throw new InvalidConfigurationException(
-              "Cannot use arrays with current solver, either choose a different solver or disable arrays.");
+              "Cannot use arrays with current solver, either choose a different solver or disable"
+                  + " arrays.");
         }
       }
 
@@ -195,7 +197,10 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
               typeHandler,
               pDirection);
 
-      logger.log(Level.WARNING, "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist.");
+      logger.log(
+          Level.WARNING,
+          "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers"
+              + " exist.");
     }
 
     switch (pathFormulaBuilderVariant) {
@@ -255,7 +260,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       }
     }
     if (simplifyGeneratedPathFormulas) {
-      pf = pf.updateFormula(fmgr.simplify(pf.getFormula()));
+      pf = pf.withFormula(fmgr.simplify(pf.getFormula()));
     }
     return pf;
   }
@@ -263,15 +268,12 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   @Override
   public PathFormula makeAnd(PathFormula pPathFormula, CExpression pAssumption)
       throws CPATransferException, InterruptedException {
-    CFunctionDeclaration dummyFunction =
-        new CFunctionDeclaration(
-            FileLocation.DUMMY, CFunctionType.NO_ARGS_VOID_FUNCTION, "dummy", ImmutableList.of());
     CAssumeEdge fakeEdge =
         new CAssumeEdge(
             pAssumption.toASTString(),
             FileLocation.DUMMY,
-            new CFANode(dummyFunction),
-            new CFANode(dummyFunction),
+            CFANode.newDummyCFANode(),
+            CFANode.newDummyCFANode(),
             pAssumption,
             true);
     return converter.makeAnd(pPathFormula, fakeEdge, ErrorConditions.dummyInstance(bfmgr));
@@ -285,36 +287,31 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   @Override
+  public PathFormula makeConjunction(List<PathFormula> pPathFormulas) {
+    if (pPathFormulas.isEmpty()) {
+      return makeEmptyPathFormula();
+    }
+    BooleanFormula conjunction = bfmgr.and(Lists.transform(pPathFormulas, PathFormula::getFormula));
+    int lengthSum = pPathFormulas.stream().mapToInt(PathFormula::getLength).sum();
+    PathFormula last = Iterables.getLast(pPathFormulas);
+    return new PathFormula(conjunction, last.getSsa(), last.getPointerTargetSet(), lengthSum);
+  }
+
+  @Override
   public PathFormula makeEmptyPathFormula() {
-    return new PathFormula(bfmgr.makeTrue(),
-                           SSAMap.emptySSAMap(),
-                           PointerTargetSet.emptyPointerTargetSet(),
-                           0);
+    return new PathFormula(
+        bfmgr.makeTrue(), SSAMap.emptySSAMap(), PointerTargetSet.emptyPointerTargetSet(), 0);
   }
 
   @Override
-  public PathFormula makeEmptyPathFormula(PathFormula oldFormula) {
-    return new PathFormula(bfmgr.makeTrue(),
-                           oldFormula.getSsa(),
-                           oldFormula.getPointerTargetSet(),
-                           0);
+  public PathFormula makeEmptyPathFormulaWithContextFrom(PathFormula oldFormula) {
+    return new PathFormula(
+        bfmgr.makeTrue(), oldFormula.getSsa(), oldFormula.getPointerTargetSet(), 0);
   }
 
   @Override
-  @Deprecated
-  public PathFormula makeNewPathFormula(PathFormula oldFormula, SSAMap m) {
-    return new PathFormula(oldFormula.getFormula(),
-                           m,
-                           oldFormula.getPointerTargetSet(),
-                           oldFormula.getLength());
-  }
-
-  @Override
-  public PathFormula makeNewPathFormula(PathFormula oldFormula, SSAMap m, PointerTargetSet pPts) {
-    return new PathFormula(oldFormula.getFormula(),
-        m,
-        pPts,
-        oldFormula.getLength());
+  public PathFormula makeEmptyPathFormulaWithContext(SSAMap pSsaMap, PointerTargetSet pPts) {
+    return new PathFormula(bfmgr.makeTrue(), pSsaMap, pPts, 0);
   }
 
   @Override
@@ -353,7 +350,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
     PathFormula out = new PathFormula(newFormula, newSSA.build(), newPTS, newLength);
     if (simplifyGeneratedPathFormulas) {
-      out = out.updateFormula(fmgr.simplify(out.getFormula()));
+      out = out.withFormula(fmgr.simplify(out.getFormula()));
     }
     return out;
   }
@@ -443,7 +440,11 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
             // We expect this situation of one of the children is a target state created by PredicateCPA.
             continue;
           } else {
-            logger.log(Level.WARNING, "ARG branching with more than two outgoing edges at ARG node " + pathElement.getStateId() + ".");
+            logger.log(
+                Level.WARNING,
+                "ARG branching with more than two outgoing edges at ARG node "
+                    + pathElement.getStateId()
+                    + ".");
             return bfmgr.makeTrue();
           }
         }
@@ -455,7 +456,9 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
             // We expect this situation of one of the children is a target state created by PredicateCPA.
             continue;
           } else {
-            logger.log(Level.WARNING, "ARG branching without AssumeEdge at ARG node " + pathElement.getStateId() + ".");
+            logger.log(
+                Level.WARNING,
+                "ARG branching without AssumeEdge at ARG node " + pathElement.getStateId() + ".");
             return bfmgr.makeTrue();
           }
         }
@@ -473,7 +476,9 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           }
         }
         if (positiveEdge == null || negativeEdge == null) {
-          logger.log(Level.WARNING, "Ambiguous ARG branching at ARG node " + pathElement.getStateId() + ".");
+          logger.log(
+              Level.WARNING,
+              "Ambiguous ARG branching at ARG node " + pathElement.getStateId() + ".");
           return bfmgr.makeTrue();
         }
 
@@ -488,12 +493,13 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           // it is used without PredicateCPA as well.
           PredicateAbstractState pe = AbstractStates.extractStateByType(pathElement, PredicateAbstractState.class);
           if (pe == null) {
-            logger.log(Level.WARNING, "Cannot find precise error path information without PredicateCPA");
+            logger.log(
+                Level.WARNING, "Cannot find precise error path information without PredicateCPA");
             return bfmgr.makeTrue();
           } else {
             pf = pe.getPathFormula();
           }
-          pf = this.makeEmptyPathFormula(pf); // reset everything except SSAMap
+          pf = this.makeEmptyPathFormulaWithContextFrom(pf); // reset everything except SSAMap
           pf = this.makeAnd(pf, positiveEdge);        // conjunct with edge
         }
         BooleanFormula equiv = bfmgr.equivalence(pred, pf.getFormula());

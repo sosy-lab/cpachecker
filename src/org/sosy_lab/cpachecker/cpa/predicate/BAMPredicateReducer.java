@@ -20,7 +20,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -74,7 +76,9 @@ public class BAMPredicateReducer
   @Option(description = "Enable/disable precision reduction at the BAM block entry", secure = true)
   private boolean usePrecisionReduction = true;
 
-  @Option(description = "Enable/disable abstraction reduction at the BAM block entry", secure = true)
+  @Option(
+      description = "Enable/disable abstraction reduction at the BAM block entry",
+      secure = true)
   private boolean useAbstractionReduction = true;
 
   public BAMPredicateReducer(BAMPredicateCPA cpa, Configuration pConfig)
@@ -275,7 +279,7 @@ public class BAMPredicateReducer
     PointerTargetSet newPts = pmgr.mergePts(rootPts, reducedPts, ssaBuilder);
     ssa = ssaBuilder.build();
 
-    pathFormula = pmgr.makeNewPathFormula(pathFormula, ssa, newPts);
+    pathFormula = pathFormula.withContext(ssa, newPts);
 
     return PredicateAbstractState.mkAbstractionState(
         pathFormula, abstractionFormula.copyOf(), reducedState.getAbstractionLocationsOnPath());
@@ -302,7 +306,8 @@ public class BAMPredicateReducer
     if (usePrecisionReduction) {
 
       assert pPrecision.getLocationInstancePredicates().isEmpty()
-          : "TODO: need to handle location-instance-specific predicates in ReducedPredicatePrecision";
+          : "TODO: need to handle location-instance-specific predicates in"
+                + " ReducedPredicatePrecision";
       /* LocationInstancePredicates is useless, because a block can be visited
        * several times along a error path and the index would always start from 0 again.
        * Thus we ignore LocationInstancePredicates and hope nobody is using them.
@@ -386,8 +391,9 @@ public class BAMPredicateReducer
     //pathFormula.getSSa() might not contain index for the newly added variables in predicates; while the actual index is not really important at this point,
     //there still should be at least _some_ index for each variable of the abstraction formula.
     SSAMap newSSA = copyMissingIndizes(rootState.getPathFormula().getSsa(), oldSSA);
-    @SuppressWarnings("deprecation") // TODO: seems buggy because it ignores PointerTargetSet
-    PathFormula newPathFormula = pmgr.makeNewPathFormula(pmgr.makeEmptyPathFormula(), newSSA);
+    // FIXME: seems buggy because it completely forgets the PointerTargetSet!
+    PathFormula newPathFormula =
+        pmgr.makeEmptyPathFormulaWithContext(newSSA, PointerTargetSet.emptyPointerTargetSet());
     Region removedPredicates =
         splitAbstractionForReduction(rootAbstraction.asRegion(), pReducedContext).getSecond();
     Region expandedAbstraction = rmgr.makeAnd(reducedAbstraction.asRegion(), removedPredicates);
@@ -431,7 +437,8 @@ public class BAMPredicateReducer
       if (var.startsWith(calledFunction + "::")
               && var.endsWith(PARAM_VARIABLE_NAME)) {
         int newIndex = entrySsaWithRet.getIndex(var);
-        assert entrySsaWithRet.containsVariable(var) : "param for function is not used in functioncall";
+        assert entrySsaWithRet.containsVariable(var)
+            : "param for function is not used in functioncall";
         entrySsaWithRetBuilder.setIndex(var, type, newIndex);
         setFreshValueBasis(summSsa, var, newIndex);
 
@@ -458,9 +465,12 @@ public class BAMPredicateReducer
     final SSAMap newEntrySsaWithRet = entrySsaWithRetBuilder.build();
     final SSAMap newSummSsa = summSsa.build();
 
+    // TODO: This code updates only the SSAMaps of both path formulas, but not the PointerTargetSet!
+    // This is likely buggy.
+
     // function-call needs have new retvars-indices.
-    PathFormula functionCallWithSSA = new PathFormula(functionCall.getFormula(), newEntrySsaWithRet,
-            functionCall.getPointerTargetSet(), functionCall.getLength());
+    PathFormula functionCallWithSSA =
+        functionCall.withContext(newEntrySsaWithRet, functionCall.getPointerTargetSet());
 
     // concat function-call with function-summary,
     // function-summary will be instantiated with indices for params and retvars.
@@ -469,8 +479,8 @@ public class BAMPredicateReducer
 
     // after function-execution we have to re-use the previous indices (fromouter scope),
     // thus lets change the SSAmap.
-    PathFormula executedFunctionWithSSA = new PathFormula(executedFunction.getFormula(), newSummSsa,
-            executedFunction.getPointerTargetSet(), executedFunction.getLength());
+    PathFormula executedFunctionWithSSA =
+        executedFunction.withContext(newSummSsa, executedFunction.getPointerTargetSet());
 
     // everything is prepared, so build a new AbstractionState.
     // we do this as 'future abstraction', because we do not have enough information
@@ -533,7 +543,8 @@ public class BAMPredicateReducer
       // Depending on the scope of vars, set either only the lastUsedIndex or the default index.
       // var was used and maybe overridden inside the block
       final CType type = expandedSSA.getType(var);
-      if (var.contains("::") && !isReturnVar(var, functionExitNode)) { // var is scoped -> not global
+      if (var.contains("::")
+          && !isReturnVar(var, functionExitNode)) { // var is scoped -> not global
 
         if (!rootSSA.containsVariable(var)) {
 
@@ -577,14 +588,16 @@ public class BAMPredicateReducer
    * Warning: do not use out of order!
    */
   private static void setFreshValueBasis(SSAMapBuilder ssa, String name, int idx) {
-    Preconditions.checkArgument(idx > 0, "Indices need to be positive for this SSAMap implementation:", name, idx);
+    Preconditions.checkArgument(
+        idx > 0, "Indices need to be positive for this SSAMap implementation:", name, idx);
     int oldIdx = ssa.getIndex(name);
-    Preconditions.checkArgument(idx >= oldIdx, "SSAMap updates need to be strictly monotone:", name, idx, "vs", oldIdx);
+    Preconditions.checkArgument(
+        idx >= oldIdx, "SSAMap updates need to be strictly monotone:", name, idx, "vs", oldIdx);
 
     if (idx > oldIdx) {
-      FreshValueProvider bamfvp = new FreshValueProvider();
-      bamfvp.put(name, idx);
-      ssa.mergeFreshValueProviderWith(bamfvp);
+      PersistentSortedMap<String, Integer> newMapping =
+          PathCopyingPersistentTreeMap.<String, Integer>of().putAndCopy(name, idx);
+      ssa.mergeFreshValueProviderWith(new FreshValueProvider(newMapping));
     }
   }
 

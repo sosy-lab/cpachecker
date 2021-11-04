@@ -52,9 +52,13 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
   private final BAMDataManager data;
   private final BAMPCCManager bamPccManager;
 
-  @Option(name = "handleRecursiveProcedures", secure = true,
-      description = "BAM allows to analyse recursive procedures. This strongly depends on the underlying CPA. "
-          + "The current support includes only ValueAnalysis and PredicateAnalysis (with tree interpolation enabled).")
+  @Option(
+      name = "handleRecursiveProcedures",
+      secure = true,
+      description =
+          "BAM allows to analyse recursive procedures. This strongly depends on the underlying CPA."
+              + " The current support includes only ValueAnalysis and PredicateAnalysis (with tree"
+              + " interpolation enabled).")
   private boolean handleRecursiveProcedures = false;
 
   @Option(
@@ -92,7 +96,7 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
     } else {
       cache = new BAMCacheImpl(config, getReducer(), logger);
     }
-    data = new BAMDataManagerImpl(cache, pReachedSetFactory, pLogger);
+    data = new BAMDataManagerImpl(this, cache, pReachedSetFactory, pLogger);
 
     bamPccManager = new BAMPCCManager(
         wrappedProofChecker,
@@ -158,13 +162,15 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
   @Override
   public boolean areAbstractSuccessors(AbstractState pState, CFAEdge pCfaEdge,
       Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
-    Preconditions.checkNotNull(wrappedProofChecker, "Wrapped CPA has to implement ProofChecker interface");
+    Preconditions.checkNotNull(
+        wrappedProofChecker, "Wrapped CPA has to implement ProofChecker interface");
     return bamPccManager.areAbstractSuccessors(pState, pCfaEdge, pSuccessors);
   }
 
   @Override
   public boolean isCoveredBy(AbstractState pState, AbstractState pOtherState) throws CPAException, InterruptedException {
-    Preconditions.checkNotNull(wrappedProofChecker, "Wrapped CPA has to implement ProofChecker interface");
+    Preconditions.checkNotNull(
+        wrappedProofChecker, "Wrapped CPA has to implement ProofChecker interface");
     return wrappedProofChecker.isCoveredBy(pState, pOtherState);
   }
 

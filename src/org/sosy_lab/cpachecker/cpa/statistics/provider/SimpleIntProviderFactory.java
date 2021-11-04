@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
  */
 public class SimpleIntProviderFactory {
 
-  public static interface Counter<T> {
+  public interface Counter<T> {
     int count(T e);
   }
   /**
@@ -117,7 +117,7 @@ public class SimpleIntProviderFactory {
       CReturnStatementEdge returnEdge = (CReturnStatementEdge) pEdge;
 
       if (returnEdge.getExpression().isPresent()) {
-        count += countExpressions(returnEdge.getExpression().get(), counter);
+          count += countExpressions(returnEdge.getExpression().orElseThrow(), counter);
       }
       break;
 
@@ -179,21 +179,22 @@ public class SimpleIntProviderFactory {
     return new SimpleIntProvider(edgeCountProvider, option, 0);
   }
 
+  private static final SimpleIntProviderImplementation gotoCountProvider =
+      new SimpleIntProviderImplementation() {
+        @Override
+        public String getPropertyName() {
+          return "gotoCount";
+        }
 
-  private static final SimpleIntProviderImplementation gotoCountProvider = new SimpleIntProviderImplementation() {
-    @Override
-    public String getPropertyName() {
-      return "gotoCount";
-    }
-
-    @Override
-    public int calculateNext(int pCurrent, CFAEdge edge) {
-      if (edge.getEdgeType() == CFAEdgeType.BlankEdge && edge.getDescription().startsWith("Goto: ")) {
-        return pCurrent + 1;
-      }
-      return pCurrent;
-    }
-  };
+        @Override
+        public int calculateNext(int pCurrent, CFAEdge edge) {
+          if (edge.getEdgeType() == CFAEdgeType.BlankEdge
+              && edge.getDescription().startsWith("Goto: ")) {
+            return pCurrent + 1;
+          }
+          return pCurrent;
+        }
+      };
 
   public static SimpleIntProvider getGotoCountProvider(MergeOption option) {
     return new SimpleIntProvider(gotoCountProvider, option, 0);

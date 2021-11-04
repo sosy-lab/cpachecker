@@ -127,11 +127,11 @@ public class ControlAutomatonCPA
   private boolean mergeOnTop  = false;
 
   @Option(
-    secure = true,
-    name = "prec.topOnFinalSelfLoopingState",
-    description =
-        "An implicit precision: consider states with a self-loop and no other outgoing edges as TOP."
-  )
+      secure = true,
+      name = "prec.topOnFinalSelfLoopingState",
+      description =
+          "An implicit precision: consider states with a self-loop and no other outgoing edges as"
+              + " TOP.")
   private boolean topOnFinalSelfLoopingState = false;
 
   private final Automaton automaton;
@@ -161,7 +161,8 @@ public class ControlAutomatonCPA
       this.automaton = pAutomaton;
 
     } else if (inputFile == null) {
-      throw new InvalidConfigurationException("Explicitly specified automaton CPA needs option cpa.automaton.inputFile!");
+      throw new InvalidConfigurationException(
+          "Explicitly specified automaton CPA needs option cpa.automaton.inputFile!");
 
     } else {
       this.automaton = constructAutomataFromFile(pConfig, inputFile);
@@ -214,7 +215,8 @@ public class ControlAutomatonCPA
             shutdownNotifier);
 
     if (lst.isEmpty()) {
-      throw new InvalidConfigurationException("Could not find automata in the file " + inputFile.toAbsolutePath());
+      throw new InvalidConfigurationException(
+          "Could not find automata in the file " + inputFile.toAbsolutePath());
     } else if (lst.size() > 1) {
       throw new InvalidConfigurationException("Found " + lst.size()
           + " automata in the File " + inputFile.toAbsolutePath()
@@ -244,7 +246,7 @@ public class ControlAutomatonCPA
 
   public AutomatonState buildInitStateForAutomaton(Automaton pAutomaton) {
     AutomatonInternalState initState = pAutomaton.getInitialState();
-    AutomatonSafetyProperty safetyProp = null;
+    AutomatonTargetInformation safetyProp = null;
     if (initState.isTarget()) {
       for (AutomatonTransition t : initState.getTransitions()) {
         if (t.getFollowState().isTarget()) {
@@ -254,9 +256,9 @@ public class ControlAutomatonCPA
                   .collect(MoreCollectors.toOptional());
           safetyProp =
               assumptionOpt.isPresent()
-                  ? new AutomatonSafetyProperty(
+                  ? new AutomatonTargetInformation(
                       pAutomaton, t, assumptionOpt.orElseThrow().toASTString())
-                  : new AutomatonSafetyProperty(pAutomaton, t);
+                  : new AutomatonTargetInformation(pAutomaton, t);
           break;
         }
       }

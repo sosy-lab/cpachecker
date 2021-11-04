@@ -69,7 +69,8 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
   protected SignState handleReturnStatementEdge(CReturnStatementEdge pCfaEdge)
       throws CPATransferException {
 
-    CExpression expression = pCfaEdge.getExpression().or(CIntegerLiteralExpression.ZERO); // 0 is the default in C
+    CExpression expression =
+        pCfaEdge.getExpression().orElse(CIntegerLiteralExpression.ZERO); // 0 is the default in C
     String assignedVar = getScopedVariableNameForNonGlobalVariable(FUNC_RET_VAR, functionName);
     return handleAssignmentToVariable(state, assignedVar, expression, pCfaEdge);
   }
@@ -91,7 +92,8 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
       mapBuilder.put(scopedVarId, ((CRightHandSide)exp).accept(new SignCExpressionVisitor(pCfaEdge, state, this)));
     }
     ImmutableMap<String, SIGN> argumentMap = mapBuilder.build();
-    logger.log(Level.FINE, "Entering function " + pCalledFunctionName + " with arguments " + argumentMap);
+    logger.log(
+        Level.FINE, "Entering function " + pCalledFunctionName + " with arguments " + argumentMap);
     return state.enterFunction(argumentMap);
   }
 
@@ -103,11 +105,19 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     if (pSummaryExpr instanceof AFunctionCallAssignmentStatement) {
       AFunctionCallAssignmentStatement assignStmt = (AFunctionCallAssignmentStatement) pSummaryExpr;
       AExpression leftSide = assignStmt.getLeftHandSide();
-      if (!(leftSide instanceof AIdExpression)) { throw new UnrecognizedCodeException("Unsupported code found",
-          pCfaEdge); }
+      if (!(leftSide instanceof AIdExpression)) {
+        throw new UnrecognizedCodeException("Unsupported code found", pCfaEdge);
+      }
       String returnVarName = getScopedVariableNameForNonGlobalVariable(FUNC_RET_VAR, functionName);
       String assignedVarName = getScopedVariableName(leftSide, pCallerFunctionName);
-      logger.log(Level.FINE, "Leave function " + functionName + " with return assignment: " + assignedVarName + " = " + state.getSignForVariable(returnVarName));
+      logger.log(
+          Level.FINE,
+          "Leave function "
+              + functionName
+              + " with return assignment: "
+              + assignedVarName
+              + " = "
+              + state.getSignForVariable(returnVarName));
       SignState result = state
               .leaveFunction(functionName)
               .assignSignToVariable(assignedVarName, state.getSignForVariable(returnVarName));
@@ -138,7 +148,9 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
       return Optional.empty(); // No refinement possible, since no strongest identifier was found
     }
     CExpression strongestId = optStrongestId.orElseThrow();
-    logger.log(Level.FINER, "Filtered strongest identifier " + strongestId + " from assume expression" + pAssumeExp);
+    logger.log(
+        Level.FINER,
+        "Filtered strongest identifier " + strongestId + " from assume expression" + pAssumeExp);
     CExpression refinementExpression = getRefinementExpression(strongestId, pAssumeExp);
     BinaryOperator resultOp = truthAssumption ? pAssumeExp.getOperator() : pAssumeExp.getOperator().getOppositLogicalOperator();
     SIGN resultSign;

@@ -54,13 +54,12 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvider {
 
   @Option(
-    secure = true,
-    description =
-        "configuration for the verification of the residual program which is constructed from another verifier's condition"
-  )
+      secure = true,
+      description =
+          "configuration for the verification of the residual program which is constructed from"
+              + " another verifier's condition")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private @Nullable Path verifierConfig;
-
 
   @Option(secure = true, description = "configuration of the residual program generator")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
@@ -136,7 +135,7 @@ public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvid
         shutdown.shutdownIfNecessary();
 
         CoreComponentsFactory coreComponents =
-            new CoreComponentsFactory(config, logger, shutdown, new AggregatedReachedSets());
+            new CoreComponentsFactory(config, logger, shutdown, AggregatedReachedSets.empty());
 
         logger.log(Level.FINE, "Build configurable program analysis");
         ConfigurableProgramAnalysis cpa;
@@ -160,7 +159,7 @@ public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvid
             cpa.getInitialState(pEntryNode, StateSpacePartition.getDefaultPartition());
         Precision initialPrecision =
             cpa.getInitialPrecision(pEntryNode, StateSpacePartition.getDefaultPartition());
-        ReachedSet reachedSet = coreComponents.createReachedSet();
+        ReachedSet reachedSet = coreComponents.createReachedSet(cpa);
         reachedSet.add(initialState, initialPrecision);
         shutdown.shutdownIfNecessary();
 
@@ -217,7 +216,7 @@ public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvid
         shutdown.shutdownIfNecessary();
 
         CoreComponentsFactory coreComponents =
-            new CoreComponentsFactory(config, logger, shutdown, new AggregatedReachedSets());
+            new CoreComponentsFactory(config, logger, shutdown, AggregatedReachedSets.empty());
 
         logger.log(Level.FINE, "Build configurable program analysis");
         ConfigurableProgramAnalysis cpa;
@@ -236,7 +235,7 @@ public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvid
         Precision initialPrecision =
             cpa.getInitialPrecision(
                 cfaResidProg.getMainFunction(), StateSpacePartition.getDefaultPartition());
-        ReachedSet reachedSet = coreComponents.createReachedSet();
+        ReachedSet reachedSet = coreComponents.createReachedSet(cpa);
         reachedSet.add(initialState, initialPrecision);
         reached.setDelegate(reachedSet);
         shutdown.shutdownIfNecessary();

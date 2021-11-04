@@ -8,36 +8,37 @@
 
 package org.sosy_lab.cpachecker.util.faultlocalization.ranking;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.base.Splitter;
 import com.google.common.collect.Iterables;
-import java.util.ArrayList;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultExplanation;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 public class NoContextExplanation implements FaultExplanation {
 
   /**
-   * This method relies on singleton sets otherwise an error is thrown.
-   * Make a suggestion for a bug fix based on the EdgeType.
+   * This method relies on singleton sets otherwise an error is thrown. Make a suggestion for a bug
+   * fix based on the EdgeType.
+   *
    * @param subset set of FaultLocalizationOutputs.
    * @return explanation of what might be a fix
-   * @see org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo#possibleFixFor(Fault) 
+   * @see
+   *     org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo#possibleFixFor(FaultContribution)
    */
   @Override
   public String explanationFor(Fault subset) {
     checkArgument(subset.size() == 1, "NoContextExplanation requires exactly one edge in Fault");
-    FaultContribution faultContribution = new ArrayList<>(subset).get(0);
+    FaultContribution faultContribution = subset.iterator().next();
     CFAEdge pEdge = faultContribution.correspondingEdge();
     String description = pEdge.getDescription();
     switch (pEdge.getEdgeType()) {
       case AssumeEdge:
       {
-        String[] ops = {"<", ">", "<=", "!=", "==", ">="};
+          String[] ops = {"<=", "!=", "==", ">=", "<", ">"};
         String op = "";
         for (String o : ops) {
           if (description.contains(o)) {
@@ -45,11 +46,12 @@ public class NoContextExplanation implements FaultExplanation {
             break;
           }
         }
-        return "Try to replace \""
-            + op
-            + "\" in \""
-            + description
-            + "\" with another boolean operator (<, >, <=, !=, ==, >=).";
+          return "Try to replace \""
+              + op
+              + "\" in \""
+              + description
+              + "\" with another boolean operator (<, >, <=, !=, ==, >=). This line may be prone to"
+              + " off-by-one errors!";
       }
       case StatementEdge:
       {
@@ -69,7 +71,9 @@ public class NoContextExplanation implements FaultExplanation {
       }
       case FunctionCallEdge:
       {
-        return "The function call \"" + description + "\" may have unwanted side effects or a wrong return value.";
+          return "The function call \""
+              + description
+              + "\" may have unwanted side effects or a wrong return value.";
       }
       case FunctionReturnEdge:
       {

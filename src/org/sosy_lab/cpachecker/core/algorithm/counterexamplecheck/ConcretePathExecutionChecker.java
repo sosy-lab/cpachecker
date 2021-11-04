@@ -14,7 +14,6 @@ import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -54,10 +53,13 @@ import org.sosy_lab.cpachecker.util.cwriter.PathToConcreteProgramTranslator;
 @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
 public class ConcretePathExecutionChecker implements CounterexampleChecker, Statistics {
 
-  @Option(secure = false, description = "Path to the compiler. Can be absolute or"
-                            + " only the name of the program if it is in the PATH")
+  @Option(
+      secure = false,
+      description =
+          "Path to the compiler. Can be absolute or"
+              + " only the name of the program if it is in the PATH")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
-  private Path pathToCompiler = Paths.get("/usr/bin/gcc");
+  private Path pathToCompiler = Path.of("/usr/bin/gcc");
 
   @Option(secure=true, description = "The file in which the generated C code is saved.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -76,7 +78,8 @@ public class ConcretePathExecutionChecker implements CounterexampleChecker, Stat
   public ConcretePathExecutionChecker(Configuration config, LogManager logger, CFA cfa)
       throws InvalidConfigurationException {
     if (cfa.getLanguage() != Language.C) {
-      throw new UnsupportedOperationException("Concrete execution checker can only be used with C.");
+      throw new UnsupportedOperationException(
+          "Concrete execution checker can only be used with C.");
     }
 
     config.inject(this);
@@ -98,7 +101,8 @@ public class ConcretePathExecutionChecker implements CounterexampleChecker, Stat
         return checkCounterexample(pRootState, pErrorState, pErrorPathStates, tempFile.toPath());
 
       } catch (IOException e) {
-        throw new CounterexampleAnalysisFailed("Could not create temporary file " + e.getMessage(), e);
+        throw new CounterexampleAnalysisFailed(
+            "Could not create temporary file " + e.getMessage(), e);
       }
     }
   }
@@ -122,8 +126,11 @@ public class ConcretePathExecutionChecker implements CounterexampleChecker, Stat
       for (String str : exec.getErrorOutput()) {
         errorOut.append(str);
       }
-      throw new CounterexampleAnalysisFailed("Could not compile the concrete error path. The compiler finished with exitCode "
-                                             + exitCode + "\n The output was: \n" + errorOut.toString());
+      throw new CounterexampleAnalysisFailed(
+          "Could not compile the concrete error path. The compiler finished with exitCode "
+              + exitCode
+              + "\n The output was: \n"
+              + errorOut);
     }
   }
 
@@ -135,14 +142,18 @@ public class ConcretePathExecutionChecker implements CounterexampleChecker, Stat
 
     switch (exitCode) {
       case 0: // Verification successful (Path is infeasible)
-        logger.log(Level.FINER, "Concrete path program was executed, the error location was infeasible.");
+        logger.log(
+            Level.FINER, "Concrete path program was executed, the error location was infeasible.");
         return false;
       case 1: // Verification failed (Path is feasible)
-        logger.log(Level.FINER, "Concrete path program was executed, the error location was reached.");
+        logger.log(
+            Level.FINER, "Concrete path program was executed, the error location was reached.");
         return true;
       default:
-        // as only 0 and 1 should occur as exit codes this is probably a bug with the code generation
-        throw new CounterexampleAnalysisFailed("Executing the concrete path program lead to invalid exitcode: " + exitCode);
+        // as only 0 and 1 should occur as exit codes this is probably a bug with the code
+        // generation
+        throw new CounterexampleAnalysisFailed(
+            "Executing the concrete path program lead to invalid exitcode: " + exitCode);
     }
   }
 
@@ -159,7 +170,8 @@ public class ConcretePathExecutionChecker implements CounterexampleChecker, Stat
     try (Writer w = IO.openOutputFile(cFile, Charset.defaultCharset())) {
       pathProgram.appendTo(w);
     } catch (IOException e) {
-      throw new CounterexampleAnalysisFailed("Could not write path program to file " + e.getMessage(), e);
+      throw new CounterexampleAnalysisFailed(
+          "Could not write path program to file " + e.getMessage(), e);
     }
 
     String absFile = cFile.toAbsolutePath().toString();
@@ -174,7 +186,8 @@ public class ConcretePathExecutionChecker implements CounterexampleChecker, Stat
       throw new CounterexampleAnalysisFailed(e.getMessage(), e);
 
     } catch (TimeoutException e) {
-      throw new CounterexampleAnalysisFailed("Execution of concrete counterexample path program took too long.");
+      throw new CounterexampleAnalysisFailed(
+          "Execution of concrete counterexample path program took too long.");
 
     } finally {
       timer.stop();

@@ -8,10 +8,12 @@
 
 package org.sosy_lab.cpachecker.cpa.predicate.counterexamples;
 
+import com.google.common.collect.Lists;
+import com.google.errorprone.annotations.ForOverride;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Level;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -28,10 +30,6 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
-import java.util.Optional;
-import com.google.common.collect.Lists;
-import com.google.errorprone.annotations.ForOverride;
 
 /**
  * An abstract {@link CounterexampleFilter} implementation
@@ -81,7 +79,7 @@ abstract class AbstractNegatedPathCounterexampleFilter<T> extends AbstractSetBas
       for (CFAEdge edge : prefix) {
         pf = pfmgr.makeAnd(pf, edge);
         formulas.add(pf.getFormula());
-        pf = pfmgr.makeEmptyPathFormula(pf);
+        pf = pfmgr.makeEmptyPathFormulaWithContextFrom(pf);
       }
       pf = pfmgr.makeAnd(pf, CFAUtils.getComplimentaryAssumeEdge(lastAssumeEdge));
       formulas.add(pf.getFormula());

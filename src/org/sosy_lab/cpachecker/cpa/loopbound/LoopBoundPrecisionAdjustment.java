@@ -32,12 +32,21 @@ public class LoopBoundPrecisionAdjustment implements PrecisionAdjustment {
   + "works only if assumption storage CPA is enabled, because otherwise it would be unsound")
   private int maxLoopIterations = 0;
 
-  @Option(secure=true, description="threshold for adjusting the threshold for unrolling loops of the program (0 is infinite).\n"
-  + "only relevant in combination with a non-static maximum loop iteration adjuster.")
+  @Option(
+      secure = true,
+      description =
+          "threshold for adjusting the threshold for unrolling loops of the program (0 is"
+              + " infinite).\n"
+              + "only relevant in combination with a non-static maximum loop iteration adjuster.")
   private int maxLoopIterationsUpperBound = 0;
 
-  @Option(secure=true, description="this option controls how the maxLoopIterations condition is adjusted when a condition adjustment is invoked.")
-  private MaxLoopIterationAdjusters maxLoopIterationAdjusterFactory = MaxLoopIterationAdjusters.STATIC;
+  @Option(
+      secure = true,
+      description =
+          "this option controls how the maxLoopIterations condition is adjusted when a condition"
+              + " adjustment is invoked.")
+  private MaxLoopIterationAdjusters maxLoopIterationAdjusterFactory =
+      MaxLoopIterationAdjusters.STATIC;
 
   @Option(secure=true,
       description="Number of loop iterations before the loop counter is"
@@ -49,7 +58,9 @@ public class LoopBoundPrecisionAdjustment implements PrecisionAdjustment {
   public LoopBoundPrecisionAdjustment(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
     pConfig.inject(this);
     if (maxLoopIterations < 0) {
-      throw new InvalidConfigurationException("cpa.loopbound.maxLoopIterations must be a non-negative value, but is set to " + maxLoopIterations);
+      throw new InvalidConfigurationException(
+          "cpa.loopbound.maxLoopIterations must be a non-negative value, but is set to "
+              + maxLoopIterations);
     }
     logger = pLogger;
   }
@@ -78,7 +89,10 @@ public class LoopBoundPrecisionAdjustment implements PrecisionAdjustment {
 
   @Override
   public String toString() {
-    return "k = " + maxLoopIterations + ", adjustment strategy = " + maxLoopIterationAdjusterFactory;
+    return "k = "
+        + maxLoopIterations
+        + ", adjustment strategy = "
+        + maxLoopIterationAdjusterFactory;
   }
 
   @Override
@@ -101,7 +115,7 @@ public class LoopBoundPrecisionAdjustment implements PrecisionAdjustment {
     return Optional.of(result);
   }
 
-  private static interface MaxLoopIterationAdjuster {
+  private interface MaxLoopIterationAdjuster {
 
     int adjust(int currentValue);
 
@@ -109,14 +123,13 @@ public class LoopBoundPrecisionAdjustment implements PrecisionAdjustment {
 
   }
 
-  private static interface MaxLoopIterationAdjusterFactory {
+  private interface MaxLoopIterationAdjusterFactory {
 
     MaxLoopIterationAdjuster getMaxLoopIterationAdjuster(LoopBoundPrecisionAdjustment pPrecisionAdjustment);
 
   }
 
-  private static enum MaxLoopIterationAdjusters implements MaxLoopIterationAdjusterFactory {
-
+  private enum MaxLoopIterationAdjusters implements MaxLoopIterationAdjusterFactory {
     STATIC {
 
       @Override
@@ -147,8 +160,7 @@ public class LoopBoundPrecisionAdjustment implements PrecisionAdjustment {
 
   }
 
-  private static enum StaticLoopIterationAdjuster implements MaxLoopIterationAdjuster {
-
+  private enum StaticLoopIterationAdjuster implements MaxLoopIterationAdjuster {
     INSTANCE;
 
     @Override

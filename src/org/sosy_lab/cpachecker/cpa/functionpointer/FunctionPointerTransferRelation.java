@@ -8,11 +8,11 @@
 
 package org.sosy_lab.cpachecker.cpa.functionpointer;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -66,14 +66,27 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 @Options(prefix="cpa.functionpointer")
 class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
 
-  @Option(secure=true, description="whether function pointers with invalid targets (e.g., 0) should be tracked in order to find calls to such pointers")
+  @Option(
+      secure = true,
+      description =
+          "whether function pointers with invalid targets (e.g., 0) should be tracked in order to"
+              + " find calls to such pointers")
   private boolean trackInvalidFunctionPointers = false;
+
   private final FunctionPointerTarget invalidFunctionPointerTarget;
 
-  @Option(secure=true, description="When an invalid function pointer is called, do not assume all functions as possible targets and instead call no function.")
+  @Option(
+      secure = true,
+      description =
+          "When an invalid function pointer is called, do not assume all functions as possible"
+              + " targets and instead call no function.")
   private boolean ignoreInvalidFunctionPointerCalls = false;
 
-  @Option(secure=true, description="When an unknown function pointer is called, do not assume all functions as possible targets and instead call no function (this is unsound).")
+  @Option(
+      secure = true,
+      description =
+          "When an unknown function pointer is called, do not assume all functions as possible"
+              + " targets and instead call no function (this is unsound).")
   private boolean ignoreUnknownFunctionPointerCalls = false;
 
   private final LogManagerWithoutDuplicates logger;
@@ -408,7 +421,7 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
       throws UnrecognizedCodeException {
 
     if (returnStatement.isPresent()) {
-      handleAssignment(pNewState, returnStatement.get(), pCfaEdge);
+      handleAssignment(pNewState, returnStatement.orElseThrow(), pCfaEdge);
     }
   }
 
@@ -425,7 +438,8 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
       if (varName != null) {
         Optional<CVariableDeclaration> returnValue = pFunctionReturnEdge.getFunctionEntry().getReturnVariable();
         if (returnValue.isPresent()) {
-          FunctionPointerTarget target = pNewState.getTarget(returnValue.get().getQualifiedName());
+          FunctionPointerTarget target =
+              pNewState.getTarget(returnValue.orElseThrow().getQualifiedName());
           pNewState.setTarget(varName, target);
         } else {
           pNewState.setTarget(varName, UnknownTarget.getInstance());

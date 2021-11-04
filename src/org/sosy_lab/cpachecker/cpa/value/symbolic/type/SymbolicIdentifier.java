@@ -163,7 +163,9 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
     public String convertToStringEncoding(SymbolicIdentifier pIdentifier) {
       Optional<MemoryLocation> representedLocation = pIdentifier.getRepresentedLocation();
       assert representedLocation.isPresent();
-      return representedLocation.orElseThrow().getAsSimpleString() + "#" + pIdentifier.getId();
+      return representedLocation.orElseThrow().getExtendedQualifiedName()
+          + "#"
+          + pIdentifier.getId();
     }
 
     /**
@@ -194,7 +196,7 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
       }
       final long id = Long.parseLong(identifierIdOnly);
 
-      return new SymbolicIdentifier(id, MemoryLocation.valueOf(memLocName));
+      return new SymbolicIdentifier(id, MemoryLocation.parseExtendedQualifiedName(memLocName));
     }
 
     /**

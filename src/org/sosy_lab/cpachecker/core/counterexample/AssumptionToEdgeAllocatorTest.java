@@ -132,7 +132,8 @@ public class AssumptionToEdgeAllocatorTest {
     Memory memory = new Memory(MEMORYNAME, values);
     allocatedMemory.put(MEMORYNAME, memory);
 
-    return new ConcreteState(variables, allocatedMemory, variableAddressMap, memoryName);
+    return new ConcreteState(
+        variables, allocatedMemory, variableAddressMap, memoryName, machineModel);
   }
 
   private Address makeConcreteAddress(int pValue) {
@@ -199,7 +200,8 @@ public class AssumptionToEdgeAllocatorTest {
     Memory memory = new Memory(MEMORYNAME, values);
     allocatedMemory.put(MEMORYNAME, memory);
 
-    return new ConcreteState(variables, allocatedMemory, variableAddressMap, memoryName);
+    return new ConcreteState(
+        variables, allocatedMemory, variableAddressMap, memoryName, machineModel);
   }
 
   private ConcreteState createEmptyState() {
@@ -208,7 +210,8 @@ public class AssumptionToEdgeAllocatorTest {
     Map<LeftHandSide, Object> pVariables = ImmutableMap.of();
     Map<String, Memory> pAllocatedMemory = ImmutableMap.of();
     Map<LeftHandSide, Address> pVariableAddressMap = ImmutableMap.of();
-    return new ConcreteState(pVariables, pAllocatedMemory, pVariableAddressMap, memoryName);
+    return new ConcreteState(
+        pVariables, pAllocatedMemory, pVariableAddressMap, memoryName, machineModel);
   }
 
   @Test

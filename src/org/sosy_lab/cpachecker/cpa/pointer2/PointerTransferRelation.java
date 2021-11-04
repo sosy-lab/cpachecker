@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.pointer2;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
@@ -284,16 +286,17 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
     if (!returnVariable.isPresent()) {
       return pState;
     }
-    return handleAssignment(pState, returnVariable.orElseThrow(), pCfaEdge.getExpression().get());
+    return handleAssignment(
+        pState, returnVariable.orElseThrow(), pCfaEdge.getExpression().orElseThrow());
   }
 
   private Optional<MemoryLocation> getFunctionReturnVariable(FunctionEntryNode pFunctionEntryNode) {
-    com.google.common.base.Optional<? extends AVariableDeclaration> returnVariable =
+    Optional<? extends AVariableDeclaration> returnVariable =
         pFunctionEntryNode.getReturnVariable();
     if (!returnVariable.isPresent()) {
       return Optional.empty();
     } else {
-      return Optional.of(MemoryLocation.valueOf(returnVariable.get().getQualifiedName()));
+      return Optional.of(MemoryLocation.forDeclaration(returnVariable.get()));
     }
   }
 
@@ -342,9 +345,10 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
       type = ((CType) type).getCanonicalType();
     }
     if (isStructOrUnion(type)) {
-      return MemoryLocation.valueOf(type.toString()); // TODO find a better way to handle this
+      return MemoryLocation.parseExtendedQualifiedName(
+          type.toString()); // TODO find a better way to handle this
     }
-    return MemoryLocation.valueOf(name);
+    return MemoryLocation.parseExtendedQualifiedName(name);
   }
 
   private static boolean isStructOrUnion(Type pType) {
@@ -530,7 +534,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
     String infix = ".";
     String suffix = pFieldName;
     // TODO use offsets instead
-    return MemoryLocation.valueOf(prefix + infix + suffix);
+    return MemoryLocation.parseExtendedQualifiedName(prefix + infix + suffix);
   }
 
   private static LocationSet asLocations(
@@ -588,13 +592,14 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
             final MemoryLocation location;
             if (isStructOrUnion(type)) {
               location =
-                  MemoryLocation.valueOf(type.toString()); // TODO find a better way to handle this
+                  MemoryLocation.parseExtendedQualifiedName(
+                      type.toString()); // TODO find a better way to handle this
             } else {
               CSimpleDeclaration declaration = pIastIdExpression.getDeclaration();
               if (declaration != null) {
-                location = MemoryLocation.valueOf(declaration.getQualifiedName());
+                location = MemoryLocation.forDeclaration(declaration);
               } else {
-                location = MemoryLocation.valueOf(pIastIdExpression.getName());
+                location = MemoryLocation.forIdentifier(pIastIdExpression.getName());
               }
             }
             return visit(location);
@@ -702,7 +707,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
               return toLocationSet(
                   FluentIterable.from(toNormalSet(pState, result)).filter(Predicates.notNull()));
             }
-            return visit(MemoryLocation.valueOf(declaration.getQualifiedName()));
+            return visit(MemoryLocation.forDeclaration(declaration));
           }
 
           @Override
@@ -808,10 +813,6 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private static <T> Optional<T> find(Iterable<? super T> pIterable, Class<T> pClass) {
-    Object result = Iterables.find(pIterable, Predicates.instanceOf(pClass), null);
-    if (result == null) {
-      return Optional.empty();
-    }
-    return Optional.of(pClass.cast(result));
+    return from(pIterable).filter(pClass).first().toJavaUtil();
   }
 }

@@ -71,12 +71,15 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
 
   // statistics
   protected final StatCounter totalInterpolations   = new StatCounter("Number of interpolations");
-  protected final StatInt totalInterpolationQueries = new StatInt(StatKind.SUM, "Number of interpolation queries");
-  protected final StatInt sizeOfInterpolant         = new StatInt(StatKind.AVG, "Size of interpolant");
+  protected final StatInt totalInterpolationQueries =
+      new StatInt(StatKind.SUM, "Number of interpolation queries");
+  protected final StatInt sizeOfInterpolant = new StatInt(StatKind.AVG, "Size of interpolant");
   protected final StatTimer timerInterpolation      = new StatTimer("Time for interpolation");
-  private final StatInt totalPrefixes               = new StatInt(StatKind.SUM, "Number of sliced prefixes");
-  private final StatTimer prefixExtractionTime      = new StatTimer("Extracting infeasible sliced prefixes");
-  private final StatTimer prefixSelectionTime       = new StatTimer("Selecting infeasible sliced prefixes");
+  private final StatInt totalPrefixes = new StatInt(StatKind.SUM, "Number of sliced prefixes");
+  private final StatTimer prefixExtractionTime =
+      new StatTimer("Extracting infeasible sliced prefixes");
+  private final StatTimer prefixSelectionTime =
+      new StatTimer("Selecting infeasible sliced prefixes");
 
   private final CFA cfa;
   private final LogManager logger;
@@ -109,7 +112,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
     interpolantManager = pInterpolantManager;
 
     prefixProvider = pPrefixProvider;
-    selector = new PrefixSelector(pCfa.getVarClassification(), pCfa.getLoopStructure());
+    selector = new PrefixSelector(pCfa.getVarClassification(), pCfa.getLoopStructure(), pLogger);
   }
 
   @Override

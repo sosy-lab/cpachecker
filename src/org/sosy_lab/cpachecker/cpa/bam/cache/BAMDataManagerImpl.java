@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.bam.AbstractBAMCPA;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCache.BAMCacheEntry;
 
 /**
@@ -54,6 +55,8 @@ public class BAMDataManagerImpl implements BAMDataManager {
    * invocation.
    * */
   private final BAMCache bamCache;
+
+  private final AbstractBAMCPA bamCpa;
 
   private final ReachedSetFactory reachedSetFactory;
 
@@ -91,9 +94,11 @@ public class BAMDataManagerImpl implements BAMDataManager {
   private final Set<CFANode> uncachedBlockEntries = new HashSet<>();
 
   public BAMDataManagerImpl(
+      AbstractBAMCPA pBamCpa,
       BAMCache pArgCache,
       ReachedSetFactory pReachedSetFactory,
       LogManager pLogger) {
+    bamCpa = pBamCpa;
     bamCache = pArgCache;
     reachedSetFactory = pReachedSetFactory;
     logger = pLogger;
@@ -122,7 +127,7 @@ public class BAMDataManagerImpl implements BAMDataManager {
   @Override
   public BAMCacheEntry createAndRegisterNewReachedSet(
       AbstractState initialState, Precision initialPrecision, Block context) {
-    final ReachedSet reached = reachedSetFactory.create();
+    final ReachedSet reached = reachedSetFactory.create(bamCpa);
     reached.add(initialState, initialPrecision);
     return bamCache.put(initialState, initialPrecision, context, reached);
   }
@@ -208,7 +213,8 @@ public class BAMDataManagerImpl implements BAMDataManager {
       // This happens, when the reducer changes, e.g., BAMPredicateRefiner.refineRelevantPredicates.
       logger.logf(
           Level.ALL,
-          "New root state %s with exit state %s overrides old reachedset %s with new reachedset %s.",
+          "New root state %s with exit state %s overrides old reachedset %s with new reachedset"
+              + " %s.",
           initialState,
           exitState,
           oldReachedSet.getFirstState(),

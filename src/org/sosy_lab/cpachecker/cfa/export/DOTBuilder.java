@@ -41,7 +41,7 @@ public final class DOTBuilder {
   // After this many characters the node shape changes to box.
   private static final int NODE_SHAPE_CHANGE_CHAR_LIMIT = 10;
 
-  private static final String formatNode(CFANode node) {
+  private static String formatNode(CFANode node) {
     return "N" + node.getNodeNumber() + "\\n" + node.getReversePostorderId();
   }
 
@@ -170,10 +170,9 @@ public final class DOTBuilder {
   }
 
   public static String escapeGraphvizLabel(String input, String newlineReplacement) {
-    //the first call to replaceAll replaces \" with \ " to prevent a bug in dotty.
-    //future updates of dotty may make this obsolete.
-    return input.replaceAll("\\Q\\\"\\E", "\\ \"")
-        .replaceAll("\\\"", "\\\\\\\"")
-        .replaceAll("\n", newlineReplacement);
+    // The first call to replace replaces \" with \ " to prevent a bug in dotty.
+    // Future updates of dotty may make this obsolete.
+    // The next call escapes " with \".
+    return input.replace("\\\"", "\\ \"").replace("\"", "\\\"").replace("\n", newlineReplacement);
   }
 }

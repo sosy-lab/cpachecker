@@ -73,10 +73,12 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
   }
 
   @Override
-  public void constructInternalProofRepresentation(UnmodifiableReachedSet pReached)
+  public void constructInternalProofRepresentation(
+      UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException, InterruptedException {
     throw new InvalidConfigurationException(
-        "Interleaved proof reading and checking strategies do not  support internal PCC with result check algorithm");
+        "Interleaved proof reading and checking strategies do not  support internal PCC with result"
+            + " check algorithm");
   }
 
   @Override
@@ -142,8 +144,10 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
 
           // check if all external nodes are checked in different partition
           if (!checker.checkCoverageOfExternalsAndInitialState()) {
-            logger.log(Level.SEVERE,
-                "Elements which should be checked in different partition are not checked or initial state not covered");
+            logger.log(
+                Level.SEVERE,
+                "Elements which should be checked in different partition are not checked or initial"
+                    + " state not covered");
             return false;
           }
 
@@ -178,10 +182,14 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
   }
 
   @Override
-  protected void writeProofToStream(ObjectOutputStream pOut, UnmodifiableReachedSet pReached) throws IOException,
-      InvalidConfigurationException, InterruptedException {
-    if (!(pReached instanceof HistoryForwardingReachedSet)) { throw new InvalidConfigurationException(
-        "Reached sets used by restart algorithm are not memorized. Please enable option analysis.memorizeReachedAfterRestart"); }
+  protected void writeProofToStream(
+      ObjectOutputStream pOut, UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa)
+      throws IOException, InvalidConfigurationException, InterruptedException {
+    if (!(pReached instanceof HistoryForwardingReachedSet)) {
+      throw new InvalidConfigurationException(
+          "Reached sets used by restart algorithm are not memorized. Please enable option"
+              + " analysis.memorizeReachedAfterRestart");
+    }
 
     List<ReachedSet> partialReachedSets =
         ((HistoryForwardingReachedSet) pReached).getAllReachedSetsUsedAsDelegates();
@@ -216,7 +224,7 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
 
         ioHelper = new CMCPartitioningIOHelper(config, logger, shutdown,
             automatonWriter.getAllAncestorsFor(unexplored), unexplored, (ARGState) reached.getFirstState());
-        ioHelper.writeProof(pOut, reached);
+        ioHelper.writeProof(pOut, reached, pCpa);
      }
     } catch (ClassCastException e) {
       logger.logDebugException(e);
@@ -274,8 +282,10 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
           // create config for reading and save for later checking
           cpa = cpaBuilder.buildPartialCPA(i, factory);
           if (!(cpa instanceof PropertyCheckerCPA)) {
-            logger.log(Level.SEVERE,
-                    "Conflicting configuration: Partial proofs must be checked with CPA based strategy but toplevel CPA is not a PropertyCheckerCPA as needed");
+            logger.log(
+                Level.SEVERE,
+                "Conflicting configuration: Partial proofs must be checked with CPA based strategy"
+                    + " but toplevel CPA is not a PropertyCheckerCPA as needed");
             abortPreparation();
             break;
           }

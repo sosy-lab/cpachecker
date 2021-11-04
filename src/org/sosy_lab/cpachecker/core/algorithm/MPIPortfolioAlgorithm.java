@@ -15,6 +15,7 @@ import static com.google.common.base.Verify.verify;
 import static com.google.common.base.Verify.verifyNotNull;
 import static java.util.function.Predicate.not;
 
+import com.google.common.base.CharMatcher;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
@@ -29,7 +30,6 @@ import java.io.StringWriter;
 import java.net.InetAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -62,7 +62,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
-import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 @Options(prefix = "mpiAlgorithm")
@@ -151,7 +150,8 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
       if (!isNullOrEmpty(numNodesEnv)) {
         logger.logf(
             Level.INFO,
-            "Env variable 'AWS_BATCH_JOB_NUM_NODES' found with value '%s'. Continuing using this value.",
+            "Env variable 'AWS_BATCH_JOB_NUM_NODES' found with value '%s'. Continuing using this"
+                + " value.",
             numNodesEnv);
         try {
           numberProcesses *= Integer.parseInt(numNodesEnv);
@@ -290,13 +290,14 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
       throws InvalidConfigurationException {
     Optional<Path> pathOpt =
         Stream.of(System.getenv("PATH").split(Pattern.quote(File.pathSeparator)))
-            .map(Paths::get)
+            .map(Path::of)
             .filter(path -> Files.exists(path.resolve(pRequiredBin)))
             .findFirst();
     if (pathOpt.isEmpty()) {
       throw new InvalidConfigurationException(
           pRequiredBin
-              + " is required for performing the portfolio-analysis, but could not find it in PATH");
+              + " is required for performing the portfolio-analysis, but could not find it in"
+              + " PATH");
     }
 
     return pathOpt.orElseThrow().resolve(pRequiredBin);
@@ -308,8 +309,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Override
-  public AlgorithmStatus run(ReachedSet pReachedSet)
-      throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
+  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
 
     List<String> cmdList = new ArrayList<>();
     cmdList.add(binaries.get(MPI_BIN).toString());
@@ -462,14 +462,14 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
           // targetstate is returned to reflect that in the main analysis
           pReachedSet.clear();
           pReachedSet.add(
-              DummyTargetState.withSingleProperty(result.getViolatedPropertyDescription()),
+              DummyTargetState.withSimpleTargetInformation(result.getTargetDescription()),
               SingletonPrecision.getInstance());
         }
 
         logger.log(Level.INFO, "Executed the following command for the successful subanalysis:");
         String formattedCmdline =
             FluentIterable.from(successfulAnalysis.getCmdLine())
-                .transform(x -> x.replaceAll("\\s", ""))
+                .transform(CharMatcher.whitespace()::removeFrom)
                 .join(Joiner.on(" "));
         logger.log(Level.INFO, formattedCmdline);
 
@@ -513,7 +513,6 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
     private final Path configPath;
     private final Path outputPath;
     private final Path logfileName;
-    private final Path specPath;
 
     private final Configuration config;
     private final ImmutableList<String> cmdLine;
@@ -529,7 +528,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
       configPath = configFiles.get(subanalysis_index);
       outputPath = Path.of(OUTPUT_DIR, SUBANALYSIS_DIR + subanalysis_index);
       logfileName = Path.of(SUBANALYSIS_DIR + subanalysis_index + ".log");
-      specPath = Iterables.getOnlyElement(specification.getSpecFiles());
+      String specPath = Joiner.on(", ").join(specification.getFiles());
 
       /*
        * Hack to setup the desired config options for the child CPAchecker processes. The idea is to
@@ -551,7 +550,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
               .clearOption("mpiAlgorithm.disableMCAOptions")
               .setOption("limits.time.cpu", pSubanalysesTimelimit)
               .setOption("output.path", checkNotNull(outputPath.toString()))
-              .setOption("specification", checkNotNull(specPath.toString()))
+              .setOption("specification", specPath)
               .build();
 
       // Bring the command-line into a format which is executable by a python-script

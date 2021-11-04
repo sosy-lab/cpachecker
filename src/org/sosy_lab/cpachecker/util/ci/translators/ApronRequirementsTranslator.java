@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-
 public class ApronRequirementsTranslator extends CartesianRequirementsTranslator<ApronState> {
 
   private Pair<ApronState, Collection<String>> stateToRequiredVars;
@@ -101,11 +100,11 @@ public class ApronRequirementsTranslator extends CartesianRequirementsTranslator
         + pRequirement.getRealVariableToIndexMap().size());
 
     for (MemoryLocation mem : pRequirement.getIntegerVariableToIndexMap()) {
-      result.add(mem.getAsSimpleString());
+      result.add(mem.getExtendedQualifiedName());
     }
 
     for (MemoryLocation mem : pRequirement.getRealVariableToIndexMap()) {
-      result.add(mem.getAsSimpleString());
+      result.add(mem.getExtendedQualifiedName());
     }
 
     return result;

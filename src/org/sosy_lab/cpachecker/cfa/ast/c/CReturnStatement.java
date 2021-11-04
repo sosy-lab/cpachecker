@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 

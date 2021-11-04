@@ -16,7 +16,6 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -28,7 +27,6 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
-
 
 public class RedundantRequirementsRemover {
 
@@ -81,9 +79,9 @@ public class RedundantRequirementsRemover {
     private V[][] getAbstractValuesForSignature(final ARGState start,
         final Collection<ARGState> ends, final List<String> inputVarsAndConsts) throws CPAException {
       V[][] result = emptyMatrixOfSize(1 + ends.size());
-      List<V[]> intermediate = new ArrayList<>(ends.size());
 
       result[0] = getAbstractValues(extractState(start), inputVarsAndConsts);
+      int i = 1;
 
       CFANode loc = null;
       for (ARGState end : ends) {
@@ -93,14 +91,11 @@ public class RedundantRequirementsRemover {
           if (!loc.equals(AbstractStates.extractLocation(end))) { throw new CPAException(""); }
         }
 
-        intermediate.add(getAbstractValues(extractState(end), inputVarsAndConsts));
+        result[i] = getAbstractValues(extractState(end), inputVarsAndConsts);
+        i++;
       }
 
-      Collections.sort(intermediate, sortHelper);
-
-      for (int i = 0, j = 1; i < intermediate.size(); i++, j++) {
-        result[j] = intermediate.get(i);
-      }
+      Arrays.sort(result, 1, ends.size() + 1, sortHelper);
 
       return result;
     }
@@ -150,7 +145,7 @@ public class RedundantRequirementsRemover {
                   .getSecond(), inputOutputSignatures.get(i).getFirst()), requirements.get(i)));
         }
         // sort according to signature values
-        Collections.sort(sortList, new SortingHelper());
+        sortList.sort(new SortingHelper());
 
         List<Pair<ARGState, Collection<ARGState>>> reducedReq =
             new ArrayList<>(sortList.size());
@@ -172,7 +167,12 @@ public class RedundantRequirementsRemover {
       }
     }
 
-    @SuppressFBWarnings(value="SE_INNER_CLASS", justification="Cannot make class static as suggested because require generic type parameters of outer class. Removing interface Serializable is also no option because it introduces another warning suggesting to implement Serializable interface.")
+    @SuppressFBWarnings(
+        value = "SE_INNER_CLASS",
+        justification =
+            "Cannot make class static as suggested because require generic type parameters of outer"
+                + " class. Removing interface Serializable is also no option because it introduces"
+                + " another warning suggesting to implement Serializable interface.")
     private class SortingArrayHelper implements Comparator<V[]>, Serializable {
 
       private static final long serialVersionUID = 3970718511743910013L;
@@ -192,10 +192,14 @@ public class RedundantRequirementsRemover {
 
     }
 
-
-    @SuppressFBWarnings(value="SE_INNER_CLASS", justification="Cannot make class static as suggested because require generic type parameters of outer class. Removing interface Serializable is also no option because it introduces another warning suggesting to implement Serializable interface.")
-    private class SortingHelper implements
-        Comparator<Pair<V[][], Pair<ARGState, Collection<ARGState>>>>, Serializable {
+    @SuppressFBWarnings(
+        value = "SE_INNER_CLASS",
+        justification =
+            "Cannot make class static as suggested because require generic type parameters of outer"
+                + " class. Removing interface Serializable is also no option because it introduces"
+                + " another warning suggesting to implement Serializable interface.")
+    private class SortingHelper
+        implements Comparator<Pair<V[][], Pair<ARGState, Collection<ARGState>>>>, Serializable {
 
       private static final long serialVersionUID = 3894486288294859800L;
 

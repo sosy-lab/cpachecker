@@ -38,6 +38,10 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
@@ -45,7 +49,10 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -69,8 +76,10 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       secure=true)
   private boolean useClonedFunctions = true;
 
-  @Option(description="allow assignments of a new thread to the same left-hand-side as an existing thread.",
-      secure=true)
+  @Option(
+      description =
+          "allow assignments of a new thread to the same left-hand-side as an existing thread.",
+      secure = true)
   private boolean allowMultipleLHS = false;
 
   @Option(description="the maximal number of parallel threads, -1 for infinite. "
@@ -79,8 +88,11 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       secure=true)
   private int maxNumberOfThreads = 5;
 
-  @Option(description="atomic locks are used to simulate atomic statements, as described in the rules of SV-Comp.",
-      secure=true)
+  @Option(
+      description =
+          "atomic locks are used to simulate atomic statements, as described in the rules of"
+              + " SV-Comp.",
+      secure = true)
   private boolean useAtomicLocks = true;
 
   @Option(description="local access locks are used to avoid expensive interleaving, "
@@ -89,10 +101,10 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   private boolean useLocalAccessLocks = true;
 
   @Option(
-    description =
-        "in case of witness validation we need to check all possible function calls of cloned CFAs.",
-    secure = true
-  )
+      description =
+          "in case of witness validation we need to check all possible function calls of cloned"
+              + " CFAs.",
+      secure = true)
   private boolean useAllPossibleClones = false;
 
   public static final String THREAD_START = "pthread_create";
@@ -216,7 +228,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
           final String functionName = ((AIdExpression)functionNameExp).getName();
           switch(functionName) {
           case THREAD_START:
-            return startNewThread(threadingState, statement, results);
+                  return startNewThread(threadingState, statement, results, cfaEdge);
           case THREAD_MUTEX_LOCK:
             return addLock(threadingState, activeThread, extractLockId(statement), results);
           case THREAD_MUTEX_UNLOCK:
@@ -371,8 +383,11 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   }
 
   private Collection<ThreadingState> startNewThread(
-      final ThreadingState threadingState, final AStatement statement,
-      final Collection<ThreadingState> results) throws UnrecognizedCodeException, InterruptedException {
+      final ThreadingState threadingState,
+      final AStatement statement,
+      final Collection<ThreadingState> results,
+      final CFAEdge cfaEdge)
+      throws UnrecognizedCodeException, InterruptedException {
 
     // first check for some possible errors and unsupported parts
     List<? extends AExpression> params = ((AFunctionCall)statement).getFunctionCallExpression().getParameterExpressions();
@@ -390,10 +405,14 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     if (!(expr2 instanceof CIdExpression)) {
       throw new UnrecognizedCodeException("unsupported thread function call", expr2);
     }
+    if (!(params.get(3) instanceof CExpression)) {
+      throw new UnrecognizedCodeException("unsupported thread function argument", params.get(3));
+    }
 
     // now create the thread
     CIdExpression id = (CIdExpression) expr0;
-    String functionName = ((CIdExpression) expr2).getName();
+    CIdExpression function = (CIdExpression) expr2;
+    CExpression threadArg = (CExpression) params.get(3);
 
     if (useAllPossibleClones) {
       // for witness validation we need to produce all possible successors,
@@ -402,7 +421,8 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       Set<Integer> usedNumbers = threadingState.getThreadNums();
       for (int i = ThreadingState.MIN_THREAD_NUM; i < maxNumberOfThreads; i++) {
         if (!usedNumbers.contains(i)) {
-          newResults.addAll(createThreadWithNumber(threadingState, id, functionName, i, results));
+          newResults.addAll(
+              createThreadWithNumber(threadingState, id, cfaEdge, function, threadArg, i, results));
         }
       }
       return newResults;
@@ -410,17 +430,22 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     } else {
       // a default reachability analysis can determine the thread-number on its own.
       int newThreadNum = threadingState.getSmallestMissingThreadNum();
-      return createThreadWithNumber(threadingState, id, functionName, newThreadNum, results);
+      return createThreadWithNumber(
+          threadingState, id, cfaEdge, function, threadArg, newThreadNum, results);
     }
   }
 
   private Collection<ThreadingState> createThreadWithNumber(
       final ThreadingState threadingState,
-      CIdExpression id,
-      String functionName,
-      int newThreadNum,
+      final CIdExpression id,
+      final CFAEdge cfaEdge,
+      final CIdExpression function,
+      final CExpression threadArg,
+      final int newThreadNum,
       final Collection<ThreadingState> results)
       throws UnrecognizedCodeException, InterruptedException {
+
+    String functionName = function.getName();
     if (useClonedFunctions) {
       functionName = CFACloner.getFunctionName(functionName, newThreadNum);
     }
@@ -432,22 +457,71 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     for (ThreadingState ts : results) {
       ThreadingState newThreadingState = addNewThread(ts, threadId, newThreadNum, functionName);
       if (null != newThreadingState) {
-        newResults.add(newThreadingState);
+        // create a function call for the thread creation
+        CFunctionCallEdge functionCall =
+            createThreadEntryFunctionCall(
+                cfaEdge, function.getExpressionType(), functionName, threadArg);
+        newResults.add(newThreadingState.withEntryFunction(functionCall));
       }
     }
     return newResults;
   }
 
   /**
+   * Create a functioncall expression for the thread creation.
+   *
+   * <p>For `pthread_create(t, ?, foo, arg)` with we return `foo(arg)`.
+   *
+   * @param cfaEdge where pthread_create was called
+   * @param type return-type of the called function
+   * @param functionName the (maybe indexed) name of the called function
+   * @param arg the argument given to the called function
+   */
+  private CFunctionCallEdge createThreadEntryFunctionCall(
+      final CFAEdge cfaEdge, final CType type, final String functionName, final CExpression arg) {
+    CFunctionEntryNode functioncallNode =
+        (CFunctionEntryNode)
+            Preconditions.checkNotNull(
+                cfa.getFunctionHead(functionName),
+                "Function '"
+                    + functionName
+                    + "' was not found. Please enable cloning for the CFA!");
+    CFunctionDeclaration functionDeclaration =
+        (CFunctionDeclaration) functioncallNode.getFunction();
+    CIdExpression functionId =
+        new CIdExpression(cfaEdge.getFileLocation(), type, functionName, functionDeclaration);
+    CFunctionCallExpression functionCallExpr =
+        new CFunctionCallExpression(
+            cfaEdge.getFileLocation(),
+            type,
+            functionId,
+            ImmutableList.of(arg),
+            functionDeclaration);
+    CFunctionCall functionCall =
+        new CFunctionCallStatement(cfaEdge.getFileLocation(), functionCallExpr);
+    CFunctionCallEdge edge =
+        new CFunctionCallEdge(
+            functionCallExpr.toASTString(),
+            cfaEdge.getFileLocation(),
+            cfaEdge.getSuccessor(),
+            functioncallNode,
+            functionCall,
+            null);
+    return edge;
+  }
+
+  /**
    * returns a new state with a new thread added to the given state.
+   *
    * @param threadingState the previous state where to add the new thread
    * @param threadId a unique identifier for the new thread
    * @param newThreadNum a unique number for the new thread
    * @param functionName the main-function of the new thread
-   * @return a threadingState with the new thread,
-   *         or {@code null} if the new thread cannot be created.
+   * @return a threadingState with the new thread, or {@code null} if the new thread cannot be
+   *     created.
    */
-  @Nullable ThreadingState addNewThread(
+  @Nullable
+  ThreadingState addNewThread(
       ThreadingState threadingState, String threadId, int newThreadNum, String functionName)
       throws InterruptedException {
     CFANode functioncallNode =
@@ -473,7 +547,8 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   /** returns the threadId if possible, else the next indexed threadId. */
   private String getNewThreadId(final ThreadingState threadingState, final String threadId) throws UnrecognizedCodeException {
     if (!allowMultipleLHS && threadingState.getThreadIds().contains(threadId)) {
-      throw new UnrecognizedCodeException("multiple thread assignments to same LHS not supported: " + threadId, null, null);
+      throw new UnrecognizedCodeException(
+          "multiple thread assignments to same LHS not supported: " + threadId, null, null);
     }
     String newThreadId = threadId;
     int index = 0;
@@ -621,8 +696,8 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       }
     }
 
-    // delete activeThread, cf. JavaDoc of activeThread
-    return Optionals.asSet(results.map(ts -> ts.withActiveThread(null)));
+    // delete temporary information from the state, cf. JavaDoc of the called methods
+    return Optionals.asSet(results.map(ts -> ts.withActiveThread(null).withEntryFunction(null)));
   }
 
   private @Nullable ThreadingState handleWitnessAutomaton(

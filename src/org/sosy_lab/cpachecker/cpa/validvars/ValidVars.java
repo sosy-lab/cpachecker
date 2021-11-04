@@ -50,7 +50,9 @@ public class ValidVars implements Serializable {
 
   public ValidVars mergeWith(ValidVars pOther) throws CPAException{
     if (!pOther.localValidVars.keySet().containsAll(localValidVars.keySet())) {
-      throw new CPAException("Require Callstack CPA to separate different function calls and Location CPA to separate different locations.");
+      throw new CPAException(
+          "Require Callstack CPA to separate different function calls and Location CPA to separate"
+              + " different locations.");
     }
 
     boolean changed = false;
@@ -176,7 +178,7 @@ public class ValidVars implements Serializable {
         builder.put(functionName, entry.getValue());
       } else {
         if (entry.getValue() > 1) {
-          builder.put(functionName, (byte) (entry.getValue().byteValue() - 1));
+          builder.put(functionName, (byte) (entry.getValue() - 1));
         }
       }
     }
@@ -190,7 +192,7 @@ public class ValidVars implements Serializable {
       if (!functionName.equals(pFunctionName)) {
         builder.put(functionName, entry.getValue());
       } else {
-        builder.put(functionName, (byte) (entry.getValue().byteValue() + 1));
+        builder.put(functionName, (byte) (entry.getValue() + 1));
       }
     }
     if (!numFunctionCalled.containsKey(pFunctionName)) {

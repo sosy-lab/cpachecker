@@ -195,7 +195,7 @@ public class BlockWaitlist implements Waitlist {
     int i=0;
     ldvPattern = new Pattern[len];
     for (String p : config.getBlockFunctionPatterns()) {
-      ldvPattern[i] = Pattern.compile(p.replaceAll("%", ".*"));
+      ldvPattern[i] = Pattern.compile(p.replace("%", ".*"));
       i++;
     }
   }
@@ -292,10 +292,7 @@ public class BlockWaitlist implements Waitlist {
 
     //search block in inactive blocks
     block = inactiveBlocksMap.get(key);
-    if(block != null) {
-      return block;
-    }
-    return null;
+    return block;
   }
 
   @Override
@@ -352,7 +349,9 @@ public class BlockWaitlist implements Waitlist {
       return false;
     }
     size--;
-    logger.log(Level.FINE, "Remove[" + block.name + "] resources=" + block.countResources + ", size=" + size);
+    logger.log(
+        Level.FINE,
+        "Remove[" + block.name + "] resources=" + block.countResources + ", size=" + size);
     return true;
   }
 
@@ -364,7 +363,8 @@ public class BlockWaitlist implements Waitlist {
     while(e!=null && e.getValue().isEmpty()) {
       activeBlocksMap.pollLastEntry();
       if (config.shouldSaveBlockResources() && e.getValue().countResources != 0) {
-        logger.log(Level.INFO, "Save block=" + e.getKey() + ", resources=" + e.getValue().countResources);
+        logger.log(
+            Level.INFO, "Save block=" + e.getKey() + ", resources=" + e.getValue().countResources);
         savedBlocksMap.put(e.getKey(),e.getValue());
       }
       e = activeBlocksMap.lastEntry();
@@ -372,13 +372,24 @@ public class BlockWaitlist implements Waitlist {
 
     if(unknownIfHasInactive && isEmptyMap()) {
       logger.log(Level.FINE, "active blocks=" + activeBlocksMap.keySet());
-      throw new RuntimeException("Waitlist of size=" + size + " contains only inactive blocks " + inactiveBlocksMap.keySet());
+      throw new RuntimeException(
+          "Waitlist of size="
+              + size
+              + " contains only inactive blocks "
+              + inactiveBlocksMap.keySet());
     }
     assert !isEmpty();
     Entry<BKey, Block> highestEntry = activeBlocksMap.lastEntry();
     AbstractState state = highestEntry.getValue().popState();
     size--;
-    logger.log(Level.FINE, "Pop" + highestEntry.getKey() + " resources=" + highestEntry.getValue().countResources + ", size=" + size);
+    logger.log(
+        Level.FINE,
+        "Pop"
+            + highestEntry.getKey()
+            + " resources="
+            + highestEntry.getValue().countResources
+            + ", size="
+            + size);
 
     return state;
   }

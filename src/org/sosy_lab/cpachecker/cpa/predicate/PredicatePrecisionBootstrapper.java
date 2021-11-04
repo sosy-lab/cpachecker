@@ -48,12 +48,18 @@ import org.sosy_lab.cpachecker.util.statistics.KeyValueStatistics;
 @Options(prefix="cpa.predicate")
 public class PredicatePrecisionBootstrapper implements StatisticsProvider {
 
-  @Option(secure=true, name="abstraction.initialPredicates",
-      description="get an initial map of predicates from a list of files (see source doc/examples/predmap.txt for an example)")
+  @Option(
+      secure = true,
+      name = "abstraction.initialPredicates",
+      description =
+          "get an initial map of predicates from a list of files (see source"
+              + " doc/examples/predmap.txt for an example)")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<Path> predicatesFiles = ImmutableList.of();
 
-  @Option(secure=true, description="always check satisfiability at end of block, even if precision is empty")
+  @Option(
+      secure = true,
+      description = "always check satisfiability at end of block, even if precision is empty")
   private boolean checkBlockFeasibility = false;
 
   @Options(prefix = "cpa.predicate.abstraction.initialPredicates")
@@ -67,13 +73,15 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     @Option(
         secure = true,
         description =
-            "Apply location- and function-specific predicates globally (to all locations in the program)")
+            "Apply location- and function-specific predicates globally (to all locations in the"
+                + " program)")
     private boolean applyGlobally = false;
 
     @Option(
         secure = true,
         description =
-            "when reading predicates from file, convert them from Integer- to BV-theory or reverse.")
+            "when reading predicates from file, convert them from Integer- to BV-theory or"
+                + " reverse.")
     private PrecisionConverter encodePredicates = PrecisionConverter.DISABLE;
 
     @Option(secure = true, description = "initial predicates are added as atomic predicates")
@@ -219,9 +227,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
         // add predicates according to the scope
         // location scope is chosen if neither function or global scope is specified or both are
         // specified which would be a conflict here
-        boolean applyLocally =
-            (!options.applyFunctionWide && !options.applyGlobally)
-                || (options.applyFunctionWide && options.applyGlobally);
+        boolean applyLocally = options.applyFunctionWide == options.applyGlobally;
         if (applyLocally) {
           result = result.addLocalPredicates(localPredicates.entries());
         } else if (options.applyFunctionWide) {
@@ -243,8 +249,10 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     PredicatePrecision result = internalPrepareInitialPredicates();
 
     statistics.addKeyValueStatistic("Init. global predicates", result.getGlobalPredicates().size());
-    statistics.addKeyValueStatistic("Init. location predicates", result.getLocalPredicates().size());
-    statistics.addKeyValueStatistic("Init. function predicates", result.getFunctionPredicates().size());
+    statistics.addKeyValueStatistic(
+        "Init. location predicates", result.getLocalPredicates().size());
+    statistics.addKeyValueStatistic(
+        "Init. function predicates", result.getFunctionPredicates().size());
 
     return result;
   }

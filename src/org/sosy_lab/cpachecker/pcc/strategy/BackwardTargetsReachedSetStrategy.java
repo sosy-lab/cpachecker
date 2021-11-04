@@ -26,6 +26,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.AlgorithmWithPropertyCheck;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -42,7 +43,9 @@ public class BackwardTargetsReachedSetStrategy extends SequentialReadStrategy im
   private final @Nullable AlgorithmWithPropertyCheck algorithm;
   private AbstractState[] backwardTargets;
 
-  @Option(secure = true, description = "Enable to store ARG states instead of abstract states wrapped by ARG state")
+  @Option(
+      secure = true,
+      description = "Enable to store ARG states instead of abstract states wrapped by ARG state")
   private boolean certificateStatesAsARGStates = false;
 
   public BackwardTargetsReachedSetStrategy(
@@ -62,7 +65,8 @@ public class BackwardTargetsReachedSetStrategy extends SequentialReadStrategy im
   }
 
   @Override
-  public void constructInternalProofRepresentation(final UnmodifiableReachedSet pReached)
+  public void constructInternalProofRepresentation(
+      final UnmodifiableReachedSet pReached, final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
     try {
       backwardTargets = detectBackwardTargets((ARGState) pReached.getFirstState(), pReached.size());
@@ -135,8 +139,10 @@ public class BackwardTargetsReachedSetStrategy extends SequentialReadStrategy im
   }
 
   @Override
-  protected Object getProofToWrite(final UnmodifiableReachedSet pReached) throws InvalidConfigurationException {
-    constructInternalProofRepresentation(pReached);
+  protected Object getProofToWrite(
+      final UnmodifiableReachedSet pReached, final ConfigurableProgramAnalysis pCpa)
+      throws InvalidConfigurationException {
+    constructInternalProofRepresentation(pReached, pCpa);
     return backwardTargets;
   }
 

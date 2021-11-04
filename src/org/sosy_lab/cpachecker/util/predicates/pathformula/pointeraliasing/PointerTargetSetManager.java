@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Predicates.in;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
@@ -52,11 +51,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMapMerger.MergeResult;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.RealPointerTargetSetBuilder;
-import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
-import org.sosy_lab.java_smt.api.ArrayFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
@@ -114,11 +110,9 @@ class PointerTargetSetManager {
   private final FormulaEncodingWithPointerAliasingOptions options;
   private final FormulaManagerView formulaManager;
   private final BooleanFormulaManagerView bfmgr;
-  private final @Nullable ArrayFormulaManagerView afmgr;
-  private final FunctionFormulaManagerView ffmgr;
   private final TypeHandlerWithPointerAliasing typeHandler;
   private final MemoryRegionManager regionMgr;
-
+  private final SMTHeap heap;
   /**
    * Creates a new PointerTargetSetManager.
    *
@@ -138,11 +132,19 @@ class PointerTargetSetManager {
     options = pOptions;
     formulaManager = pFormulaManager;
     bfmgr = formulaManager.getBooleanFormulaManager();
-    afmgr = options.useArraysForHeap() ? formulaManager.getArrayFormulaManager() : null;
-    ffmgr = formulaManager.getFunctionFormulaManager();
     typeHandler = pTypeHandler;
     shutdownNotifier = pShutdownNotifier;
     regionMgr = pRegionMgr;
+
+    if (pOptions.useByteArrayForHeap()) {
+      heap =
+          new SMTHeapWithByteArray(
+              pFormulaManager, pTypeHandler.getPointerType(), pConv.machineModel);
+    } else if (pOptions.useArraysForHeap()) {
+      heap = new SMTHeapWithArrays(pFormulaManager, pTypeHandler.getPointerType());
+    } else {
+      heap = new SMTHeapWithUninterpretedFunctionCalls(pFormulaManager);
+    }
   }
 
   /**
@@ -158,15 +160,7 @@ class PointerTargetSetManager {
       final FormulaType<V> targetType,
       final int ssaIndex,
       final I address) {
-    final FormulaType<I> addressType = formulaManager.getFormulaType(address);
-    checkArgument(typeHandler.getPointerType().equals(addressType));
-    if (options.useArraysForHeap()) {
-      final ArrayFormula<I, V> arrayFormula =
-          afmgr.makeArray(targetName, ssaIndex, addressType, targetType);
-      return afmgr.select(arrayFormula, address);
-    } else {
-      return ffmgr.declareAndCallUninterpretedFunction(targetName, ssaIndex, targetType, address);
-    }
+    return heap.makePointerDereference(targetName, targetType, ssaIndex, address);
   }
 
   /**
@@ -180,14 +174,7 @@ class PointerTargetSetManager {
       final String targetName,
       final FormulaType<E> targetType,
       final I address) {
-    final FormulaType<I> addressType = formulaManager.getFormulaType(address);
-    checkArgument(typeHandler.getPointerType().equals(addressType));
-    if (options.useArraysForHeap()) {
-      final ArrayFormula<I, E> arrayFormula = afmgr.makeArray(targetName, addressType, targetType);
-      return afmgr.select(arrayFormula, address);
-    } else {
-      return ffmgr.declareAndCallUF(targetName, targetType, address);
-    }
+    return heap.makePointerDereference(targetName, targetType, address);
   }
 
   /**
@@ -207,29 +194,7 @@ class PointerTargetSetManager {
       final int newIndex,
       final I address,
       final E value) {
-    FormulaType<E> targetType = formulaManager.getFormulaType(value);
-    checkArgument(pTargetType.equals(targetType));
-    FormulaType<I> addressType = formulaManager.getFormulaType(address);
-    checkArgument(typeHandler.getPointerType().equals(addressType));
-    if (options.useArraysForHeap()) {
-      final ArrayFormula<I, E> oldFormula =
-          afmgr.makeArray(
-              targetName,
-              oldIndex,
-              addressType,
-              targetType);
-      final ArrayFormula<I, E> arrayFormula =
-          afmgr.makeArray(
-              targetName,
-              newIndex,
-              addressType,
-              targetType);
-      return formulaManager.makeEqual(arrayFormula, afmgr.store(oldFormula, address, value));
-    } else {
-      final Formula lhs =
-          ffmgr.declareAndCallUninterpretedFunction(targetName, newIndex, targetType, address);
-      return formulaManager.assignment(lhs, value);
-    }
+    return heap.makePointerAssignment(targetName, pTargetType, oldIndex, newIndex, address, value);
   }
 
   /**
@@ -545,7 +510,8 @@ class PointerTargetSetManager {
       }
     } else if (cType instanceof CCompositeType) {
       final CCompositeType compositeType = (CCompositeType) cType;
-      assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
+      assert compositeType.getKind() != ComplexTypeKind.ENUM
+          : "Enums are not composite: " + compositeType;
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
         final OptionalLong offset = typeHandler.getOffset(compositeType, memberDeclaration);
         if (!offset.isPresent()) {

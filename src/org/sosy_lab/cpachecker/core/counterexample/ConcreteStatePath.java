@@ -47,7 +47,7 @@ public final class ConcreteStatePath implements Iterable<ConcreteStatePathNode> 
   }
 
   @Override
-  public final Iterator<ConcreteStatePathNode> iterator() {
+  public Iterator<ConcreteStatePathNode> iterator() {
     return list.iterator();
   }
 
@@ -68,7 +68,7 @@ public final class ConcreteStatePath implements Iterable<ConcreteStatePathNode> 
 
   @Override
   public String toString() {
-    return "ConcreteStatePath:" + list.toString();
+    return "ConcreteStatePath:" + list;
   }
 
   public static abstract class ConcreteStatePathNode {

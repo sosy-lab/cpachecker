@@ -93,19 +93,26 @@ public class RedundancyRemoverTest {
 
   @Test
   public void testGetAbstractValueIntervalState() {
-    // IntervalAnalysisState intervalState = new IntervalAnalysisState().addInterval("x", new Interval(-1L,4L), 0);
+    // IntervalAnalysisState intervalState = new IntervalAnalysisState().addInterval("x", new
+    // Interval(-1L,4L), 0);
     // varOrConst 1 -> Interval [1,1]
     // varOrConst x -> Interval [-1,4]
     // varOrConst y -> unbound interval
 
-    IntervalAnalysisState intervalState1 = new IntervalAnalysisState().addInterval("1", new Interval(1L, 1L), 0);
-    //IntervalAnalysisState intervalState2 = new IntervalAnalysisState().addInterval("x", new Interval(-1L, 4L), 0);
-    IntervalAnalysisState intervalState3 = new IntervalAnalysisState().addInterval("y", Interval.UNBOUND, 0);
+    IntervalAnalysisState intervalState1 =
+        new IntervalAnalysisState().addInterval("1", new Interval(1L, 1L), 0);
+    // IntervalAnalysisState intervalState2 = new IntervalAnalysisState().addInterval("x", new
+    // Interval(-1L, 4L), 0);
+    IntervalAnalysisState intervalState3 =
+        new IntervalAnalysisState().addInterval("y", Interval.UNBOUND, 0);
 
     RedundantRequirementsRemoverIntervalStateImplementation intervalStateImpl = new RedundantRequirementsRemoverIntervalStateImplementation();
-    Truth.assertThat(intervalStateImpl.getAbstractValue(intervalState1, "1")).isEqualTo(new Interval(1L, 1L));
-//    Truth.assertThat(intervalStateImpl.getAbstractValue(intervalState2, "x")).isEqualTo(new Interval(-1L, 4L)); // TODO
-    Truth.assertThat(intervalStateImpl.getAbstractValue(intervalState3, "y")).isEqualTo(Interval.UNBOUND);
+    Truth.assertThat(intervalStateImpl.getAbstractValue(intervalState1, "1"))
+        .isEqualTo(new Interval(1L, 1L));
+    //    Truth.assertThat(intervalStateImpl.getAbstractValue(intervalState2, "x")).isEqualTo(new
+    // Interval(-1L, 4L)); // TODO
+    Truth.assertThat(intervalStateImpl.getAbstractValue(intervalState3, "y"))
+        .isEqualTo(Interval.UNBOUND);
   }
 
   @Test
@@ -316,17 +323,17 @@ public class RedundancyRemoverTest {
 
     ValueAnalysisState valState1 = new ValueAnalysisState(machineModel);
     NumericValue val1 = new NumericValue(1L);
-    valState1.assignConstant(MemoryLocation.valueOf("1"), val1, CNumericTypes.INT);
+    valState1.assignConstant(MemoryLocation.forIdentifier("1"), val1, CNumericTypes.INT);
     //    Truth.assertThat(valueImpl.getAbstractValue(valState1, "1")).isEqualTo(val1); // TODO
 
     ValueAnalysisState valState2 = new ValueAnalysisState(machineModel);
     NumericValue val2 = new NumericValue(7L);
-    valState2.assignConstant(MemoryLocation.valueOf("x"), val2, CNumericTypes.INT);
+    valState2.assignConstant(MemoryLocation.forIdentifier("x"), val2, CNumericTypes.INT);
     Truth.assertThat(valueImpl.getAbstractValue(valState2, "x")).isEqualTo(val2);
 
     ValueAnalysisState valState3 = new ValueAnalysisState(machineModel);
     Value val3 = Value.UnknownValue.getInstance();
-    valState3.assignConstant(MemoryLocation.valueOf("y"), val3, CNumericTypes.INT);
+    valState3.assignConstant(MemoryLocation.forIdentifier("y"), val3, CNumericTypes.INT);
     Truth.assertThat(valueImpl.getAbstractValue(valState3, "y")).isEqualTo(val3);
   }
 

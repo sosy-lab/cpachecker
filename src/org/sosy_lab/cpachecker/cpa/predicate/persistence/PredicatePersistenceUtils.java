@@ -27,7 +27,11 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class PredicatePersistenceUtils {
 
-  public static enum PredicateDumpFormat {PLAIN, SMTLIB2}
+  public enum PredicateDumpFormat {
+    PLAIN,
+    SMTLIB2
+  }
+
   public static final Splitter LINE_SPLITTER = Splitter.on('\n').omitEmptyStrings();
   public static final Joiner LINE_JOINER = Joiner.on('\n');
 
@@ -66,7 +70,8 @@ public class PredicatePersistenceUtils {
       declarations = LINE_SPLITTER.splitToList(declarationsString);
     }
 
-    assert formulaString.startsWith("(assert ") && formulaString.endsWith(")") : "Unexpected formula format: " + formulaString;
+    assert formulaString.startsWith("(assert ") && formulaString.endsWith(")")
+        : "Unexpected formula format: " + formulaString;
 
     return Pair.of(formulaString, declarations);
   }
@@ -109,7 +114,8 @@ public class PredicatePersistenceUtils {
         functionDefinitionsBuffer.append('\n');
 
       } else {
-        throw new PredicateParsingFailedException(currentLine + " is not a valid SMTLIB2 definition", sourceIdentifier, lineNo);
+        throw new PredicateParsingFailedException(
+            currentLine + " is not a valid SMTLIB2 definition", sourceIdentifier, lineNo);
       }
     }
 

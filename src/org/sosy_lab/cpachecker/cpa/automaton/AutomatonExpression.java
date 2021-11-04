@@ -29,19 +29,23 @@ interface AutomatonExpression<T> {
     @Override
     public ResultValue<String> eval(AutomatonExpressionArguments pArgs) {
       // replace $rawstatement
-      String str = toPrint.replaceAll("\\$[rR]aw[Ss]tatement", pArgs.getCfaEdge().getRawStatement());
+      String str =
+          toPrint.replaceAll("\\$[rR]aw[Ss]tatement", pArgs.getCfaEdge().getRawStatement());
       // replace $line
       str = str.replaceAll("\\$[Ll]ine", String.valueOf(pArgs.getCfaEdge().getLineNumber()));
       // replace $location
       str = str.replaceAll("\\$[Ll]ocation", pArgs.getCfaEdge().getFileLocation().toString());
       // replace $file
-      str = str.replaceAll("\\$[Ff]ile", pArgs.getCfaEdge().getFileLocation().getFileName());
+      str =
+          str.replaceAll(
+              "\\$[Ff]ile", pArgs.getCfaEdge().getFileLocation().getFileName().toString());
       // replace $states
       str = str.replaceAll("\\$[Ss]tates", pArgs.getAbstractStates().toString());
       // replace Transition Variables and AutomatonVariables
       str = pArgs.replaceVariables(str);
       if (str == null) {
-        return new ResultValue<>("Failure in Variable Replacement in String \"" + toPrint + "\"","ActionExpr.Print");
+        return new ResultValue<>(
+            "Failure in Variable Replacement in String \"" + toPrint + "\"", "ActionExpr.Print");
       } else {
         return new ResultValue<>(str);
       }
@@ -80,7 +84,8 @@ interface AutomatonExpression<T> {
       // replace transition variables
       String modifiedQueryString = pArgs.replaceVariables(queryString);
       if (modifiedQueryString == null) {
-        return new ResultValue<>("Failed to modify queryString \"" + queryString + "\"", "AutomatonBoolExpr.CPAQuery");
+        return new ResultValue<>(
+            "Failed to modify queryString \"" + queryString + "\"", "AutomatonBoolExpr.CPAQuery");
       }
 
       for (AbstractState ae : pArgs.getAbstractStates()) {
@@ -94,13 +99,18 @@ interface AutomatonExpression<T> {
               pArgs.getLogger().logException(Level.WARNING, e,
                   "Automaton encountered an Exception during Query of the "
                   + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getDescription());
-              return new ResultValue<>("Automaton encountered an Exception during Query of the "
-                  + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getDescription(), "AutomatonExpression.CPAQuery");
+              return new ResultValue<>(
+                  "Automaton encountered an Exception during Query of the "
+                      + cpaName
+                      + " CPA on Edge "
+                      + pArgs.getCfaEdge().getDescription(),
+                  "AutomatonExpression.CPAQuery");
             }
           }
         }
       }
-      return new ResultValue<>("No State of CPA \"" + cpaName + "\" was found!", "AutomatonExpression.CPAQuery");
+      return new ResultValue<>(
+          "No State of CPA \"" + cpaName + "\" was found!", "AutomatonExpression.CPAQuery");
     }
 
     @Override

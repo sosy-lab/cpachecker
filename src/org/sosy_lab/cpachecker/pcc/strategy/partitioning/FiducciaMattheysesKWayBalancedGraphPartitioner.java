@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.pcc.strategy.partitioning;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -49,12 +48,12 @@ public class FiducciaMattheysesKWayBalancedGraphPartitioner
   private GlobalPartitioningHeuristics globalHeuristic =
       GlobalPartitioningHeuristics.BEST_IMPROVEMENT_FIRST;
 
-
   @Option(
       secure = true,
-      description = "[FM-k-way] Local optimization criterion to be minimized druing Fiduccia/Mattheyses refinment")
+      description =
+          "[FM-k-way] Local optimization criterion to be minimized druing Fiduccia/Mattheyses"
+              + " refinment")
   private OptimizationCriteria optimizationCriterion = OptimizationCriteria.NODECUT;
-
 
   public FiducciaMattheysesKWayBalancedGraphPartitioner(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
@@ -106,12 +105,7 @@ public class FiducciaMattheysesKWayBalancedGraphPartitioner
  * @param partitions the partitioning to be cleaned up.
  */
   private void removeEmptyPartitions(List<Set<Integer>> partitions) {
-    for (Iterator<Set<Integer>> iter = partitions.listIterator(); iter.hasNext();) {
-      Set<Integer> partition = iter.next();
-      if (partition != null && partition.isEmpty()) {
-        iter.remove();
-      }
-    }
+    partitions.removeIf(partition -> partition != null && partition.isEmpty());
   }
 
   @Override

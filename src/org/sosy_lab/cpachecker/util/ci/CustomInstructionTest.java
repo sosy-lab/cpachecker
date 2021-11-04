@@ -29,8 +29,8 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.annotations.SuppressForbidden;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
@@ -80,10 +80,8 @@ public class CustomInstructionTest {
       endNodes.add(edge.getPredecessor());
     }
 
-    List<String> input = new ArrayList<>();
-    input.add("a");
-    List<String> output = new ArrayList<>();
-    output.add("b");
+    ImmutableList<String> input = ImmutableList.of("a");
+    ImmutableList<String> output = ImmutableList.of("b");
     ci = new CustomInstruction(startNode, endNodes, input, output, ShutdownNotifier.createDummy());
 
     cis = new HashMap<>();
@@ -165,7 +163,8 @@ public class CustomInstructionTest {
     }
     // test if input parameter does not contain location state
     try {
-      cia.getAppliedCustomInstructionFor(new ARGState(new CallstackState(null, "main", startNode), null));
+      cia.getAppliedCustomInstructionFor(
+          new ARGState(new CallstackState(null, "main", startNode), null));
       assert_().fail();
     } catch (CPAException e) {
     }
@@ -178,22 +177,16 @@ public class CustomInstructionTest {
             null, null, ImmutableList.of(), ImmutableList.of(), ShutdownNotifier.createDummy());
     Truth.assertThat(ci.getSignature()).isEqualTo("() -> ()");
 
-    List<String> inputVars = new ArrayList<>();
-    inputVars.add("var");
-    List<String> outputVars = new ArrayList<>();
-    outputVars.add("var0");
+    ImmutableList<String> inputVars = ImmutableList.of("var");
+    ImmutableList<String> outputVars = ImmutableList.of("var0");
     ci = new CustomInstruction(null, null, inputVars, outputVars, ShutdownNotifier.createDummy());
     Truth.assertThat(ci.getSignature()).isEqualTo("(var) -> (var0@1)");
 
-    inputVars = new ArrayList<>();
-    inputVars.add("f::var1");
-    inputVars.add("var2");
-    outputVars = new ArrayList<>();
-    outputVars.add("var3");
-    outputVars.add("f::var4");
-    outputVars.add("var5");
+    inputVars = ImmutableList.of("f::var1", "var2");
+    outputVars = ImmutableList.of("var3", "f::var4", "var5");
     ci = new CustomInstruction(null, null, inputVars, outputVars, ShutdownNotifier.createDummy());
-    Truth.assertThat(ci.getSignature()).isEqualTo("(|f::var1|, var2) -> (var3@1, |f::var4@1|, var5@1)");
+    Truth.assertThat(ci.getSignature())
+        .isEqualTo("(|f::var1|, var2) -> (var3@1, |f::var4@1|, var5@1)");
   }
 
   @Test
@@ -205,8 +198,7 @@ public class CustomInstructionTest {
     Truth.assertThat(pair.getFirst()).isEmpty();
     Truth.assertThat(pair.getSecond()).isEqualTo("(define-fun ci() Bool true)");
 
-    List<String> inputVars = new ArrayList<>();
-    inputVars.add("var");
+    ImmutableList<String> inputVars = ImmutableList.of("var");
     ci =
         new CustomInstruction(
             null, null, inputVars, ImmutableList.of(), ShutdownNotifier.createDummy());
@@ -215,8 +207,7 @@ public class CustomInstructionTest {
     Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun var () Int)");
     Truth.assertThat(pair.getSecond()).isEqualTo("(define-fun ci() Bool(= var 0))");
 
-    List<String> outputVars = new ArrayList<>();
-    outputVars.add("var1");
+    ImmutableList<String> outputVars = ImmutableList.of("var1");
     ci =
         new CustomInstruction(
             null, null, ImmutableList.of(), outputVars, ShutdownNotifier.createDummy());
@@ -225,24 +216,18 @@ public class CustomInstructionTest {
     Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun var1@1 () Int)");
     Truth.assertThat(pair.getSecond()).isEqualTo("(define-fun ci() Bool (= var1@1 0))");
 
-    inputVars = new ArrayList<>();
-    inputVars.add("var1");
-    outputVars = new ArrayList<>();
-    outputVars.add("var2");
+    inputVars = ImmutableList.of("var1");
+    outputVars = ImmutableList.of("var2");
     ci = new CustomInstruction(null, null, inputVars, outputVars, ShutdownNotifier.createDummy());
     pair = ci.getFakeSMTDescription();
     Truth.assertThat(pair.getFirst()).hasSize(2);
     Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun var1 () Int)");
     Truth.assertThat(pair.getFirst().get(1)).isEqualTo("(declare-fun var2@1 () Int)");
-    Truth.assertThat(pair.getSecond()).isEqualTo("(define-fun ci() Bool(and (= var1 0) (= var2@1 0)))");
+    Truth.assertThat(pair.getSecond())
+        .isEqualTo("(define-fun ci() Bool(and (= var1 0) (= var2@1 0)))");
 
-    inputVars = new ArrayList<>();
-    inputVars.add("var");
-    inputVars.add("f::var1");
-    inputVars.add("var2");
-    outputVars = new ArrayList<>();
-    outputVars.add("var3");
-    outputVars.add("f::var4");
+    inputVars = ImmutableList.of("var", "f::var1", "var2");
+    outputVars = ImmutableList.of("var3", "f::var4");
     ci = new CustomInstruction(null, null, inputVars, outputVars, ShutdownNotifier.createDummy());
     pair = ci.getFakeSMTDescription();
     Truth.assertThat(pair.getFirst()).hasSize(5);
@@ -251,7 +236,10 @@ public class CustomInstructionTest {
     Truth.assertThat(pair.getFirst().get(2)).isEqualTo("(declare-fun var2 () Int)");
     Truth.assertThat(pair.getFirst().get(3)).isEqualTo("(declare-fun var3@1 () Int)");
     Truth.assertThat(pair.getFirst().get(4)).isEqualTo("(declare-fun |f::var4@1| () Int)");
-    Truth.assertThat(pair.getSecond()).isEqualTo("(define-fun ci() Bool(and (= var 0)(and (= |f::var1| 0)(and (= var2 0)(and (= var3@1 0) (= |f::var4@1| 0))))))");
+    Truth.assertThat(pair.getSecond())
+        .isEqualTo(
+            "(define-fun ci() Bool(and (= var 0)(and (= |f::var1| 0)(and (= var2 0)(and (= var3@1"
+                + " 0) (= |f::var4@1| 0))))))");
   }
 
   @Test
@@ -300,11 +288,11 @@ public class CustomInstructionTest {
 
     while (!queue.isEmpty()) {
       node = queue.poll();
-      if (node instanceof CLabelNode) {
-        if (((CLabelNode) node).getLabel().startsWith("start_ci")) {
+      if (node instanceof CFALabelNode) {
+        if (((CFALabelNode) node).getLabel().startsWith("start_ci")) {
           startNode = node;
         }
-        if (((CLabelNode) node).getLabel().startsWith("end_ci")) {
+        if (((CFALabelNode) node).getLabel().startsWith("end_ci")) {
           CFAUtils.allPredecessorsOf(node).copyInto(endNodes);
         }
       }
@@ -326,12 +314,8 @@ public class CustomInstructionTest {
     Truth.assertThat(startNode).isNotNull();
     Truth.assertThat(endNodes).hasSize(1);
 
-    List<String> input = new ArrayList<>();
-    input.add("main::y");
-    input.add("main::z");
-    List<String> output = new ArrayList<>();
-    output.add("main::x");
-    output.add("main::z");
+    ImmutableList<String> input = ImmutableList.of("main::y", "main::z");
+    ImmutableList<String> output = ImmutableList.of("main::x", "main::z");
     ci = new CustomInstruction(startNode, endNodes, input, output, ShutdownNotifier.createDummy());
 
     aci = ci.inspectAppliedCustomInstruction(aciStartNode);
@@ -349,7 +333,10 @@ public class CustomInstructionTest {
     Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun |main::b| () Int)");
     Truth.assertThat(pair.getFirst().get(1)).isEqualTo("(declare-fun |main::a@1| () Int)");
     Truth.assertThat(pair.getFirst().get(2)).isEqualTo("(declare-fun |main::b@1| () Int)");
-    Truth.assertThat(pair.getSecond()).isEqualTo("(define-fun ci() Bool(and (= 7 0)(and (= |main::b| 0)(and (= |main::a@1| 0) (= |main::b@1| 0)))))");
+    Truth.assertThat(pair.getSecond())
+        .isEqualTo(
+            "(define-fun ci() Bool(and (= 7 0)(and (= |main::b| 0)(and (= |main::a@1| 0) (="
+                + " |main::b@1| 0)))))");
 
     SSAMap ssaMap = aci.getIndicesForReturnVars();
     List<String> variables = new ArrayList<>();

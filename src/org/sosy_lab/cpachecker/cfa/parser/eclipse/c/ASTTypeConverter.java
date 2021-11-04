@@ -139,7 +139,8 @@ class ASTTypeConverter {
         kind = ComplexTypeKind.UNION;
       break;
       default:
-        throw new CFAGenerationRuntimeException("Unknown key " + ct.getKey() + " for composite type " + t);
+          throw new CFAGenerationRuntimeException(
+              "Unknown key " + ct.getKey() + " for composite type " + t);
       }
       String name = ct.getName();
       String qualifiedName = kind.toASTString() + " " + name;
@@ -279,7 +280,7 @@ class ASTTypeConverter {
             c.isSigned(), c.isUnsigned(), c.isComplex(), c.isImaginary(), c.isLongLong());
 
       } else {
-        throw new CFAGenerationRuntimeException("Unknown type " + t.toString());
+      throw new CFAGenerationRuntimeException("Unknown type " + t);
       }
   }
 

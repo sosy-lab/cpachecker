@@ -10,6 +10,8 @@ package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Multimap;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -17,11 +19,17 @@ import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAdditionalInfo;
+import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.automaton.VerificationTaskMetaData;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTreeFactory;
@@ -92,5 +100,36 @@ public class ExtendedWitnessFactory extends WitnessFactory {
   @Override
   protected boolean isEmptyTransitionPossible(CFAEdgeWithAdditionalInfo pAdditionalInfo) {
     return pAdditionalInfo == null || pAdditionalInfo.getInfos().isEmpty();
+  }
+
+  @Override
+  protected Collection<TransitionCondition> extractTransitionForStates(
+      String pFrom,
+      String pTo,
+      CFAEdge pEdge,
+      Collection<ARGState> pFromStates,
+      Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
+      CFAEdgeWithAdditionalInfo pAdditionalInfo,
+      TransitionCondition pTransitionCondition,
+      boolean pGoesToSink,
+      boolean pIsDefaultCase) {
+    TransitionCondition result = pTransitionCondition;
+    if (pEdge instanceof CDeclarationEdge) {
+      CDeclarationEdge declEdge = (CDeclarationEdge) pEdge;
+      CDeclaration decl = declEdge.getDeclaration();
+      if (decl instanceof CVariableDeclaration || decl instanceof CFunctionDeclaration) {
+        result = result.putAndCopy(KeyDef.DECL, "true");
+      }
+    }
+    return super.extractTransitionForStates(
+        pFrom,
+        pTo,
+        pEdge,
+        pFromStates,
+        pValueMap,
+        pAdditionalInfo,
+        result,
+        pGoesToSink,
+        pIsDefaultCase);
   }
 }

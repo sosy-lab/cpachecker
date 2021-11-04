@@ -17,6 +17,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -31,23 +32,32 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public interface PCCStrategy {
 
   /**
-   * Constructs the proof/certificate from the given save overapproximation. Subsequently writes the certificate to disk, etc.
+   * Constructs the proof/certificate from the given save overapproximation. Subsequently writes the
+   * certificate to disk, etc.
    *
    * @param pReached - save overapproximation of state space
    */
-  void writeProof(UnmodifiableReachedSet pReached);
+  void writeProof(UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa);
 
   /**
-   * Constructs the proof/certificate from the given save overapproximation and saves it in its internal data structures.
-   * Thus, certificate checking can immediately follow analysis, e.g. to check correctness of analysis result.
+   * Constructs the proof/certificate from the given save overapproximation and saves it in its
+   * internal data structures. Thus, certificate checking can immediately follow analysis, e.g. to
+   * check correctness of analysis result.
    *
    * @param pReached - save overapproximation of state space
-   * @throws InvalidConfigurationException <ul>
-   * <li>if format of abstract state does not match expectation of PCC strategy, configuration of PCC strategy</li>
-   * <li>if class does not support direct checking of analysis result</li></ul>
-   * @throws InterruptedException if construction took longer than remaining time available for CPAchecker execution
+   * @throws InvalidConfigurationException
+   *     <ul>
+   *       <li>if format of abstract state does not match expectation of PCC strategy, configuration
+   *           of PCC strategy
+   *       <li>if class does not support direct checking of analysis result
+   *     </ul>
+   *
+   * @throws InterruptedException if construction took longer than remaining time available for
+   *     CPAchecker execution
    */
-  void constructInternalProofRepresentation(UnmodifiableReachedSet pReached) throws InvalidConfigurationException, InterruptedException;
+  void constructInternalProofRepresentation(
+      UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa)
+      throws InvalidConfigurationException, InterruptedException;
 
   /**
    * Reads the certificate from disk, stream, etc. and stores it internally.

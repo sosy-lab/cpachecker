@@ -34,6 +34,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -73,9 +74,10 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
   }
 
   @Override
-  public void constructInternalProofRepresentation(final UnmodifiableReachedSet pReached)
+  public void constructInternalProofRepresentation(
+      final UnmodifiableReachedSet pReached, final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException, InterruptedException {
-    ioHelper.constructInternalProofRepresentation(pReached);
+    ioHelper.constructInternalProofRepresentation(pReached, pCpa);
   }
 
   @Override
@@ -105,15 +107,22 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
 
       if (!checkResult.get()) { return false; }
 
-      logger.log(Level.INFO, "Add initial state to elements for which it will be checked if they are covered by partition nodes of certificate.");
+      logger.log(
+          Level.INFO,
+          "Add initial state to elements for which it will be checked if they are covered by"
+              + " partition nodes of certificate.");
       inOtherPartition.add(initialState);
 
-      logger.log(Level.INFO,
-              "Check if initial state and all nodes which should be contained in different partition are covered by certificate (partition node).");
+      logger.log(
+          Level.INFO,
+          "Check if initial state and all nodes which should be contained in different partition"
+              + " are covered by certificate (partition node).");
       if (!PartitioningUtils.areElementsCoveredByPartitionElement(inOtherPartition, partitionNodes, cpa.getStopOperator(),
           initPrec)) {
-        logger.log(Level.SEVERE,
-            "Initial state or a state which should be in other partition is not covered by certificate.");
+        logger.log(
+            Level.SEVERE,
+            "Initial state or a state which should be in other partition is not covered by"
+                + " certificate.");
         return false;
       }
 
@@ -135,9 +144,12 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
   }
 
   @Override
-  protected void writeProofToStream(final ObjectOutputStream pOut, final UnmodifiableReachedSet pReached)
+  protected void writeProofToStream(
+      final ObjectOutputStream pOut,
+      final UnmodifiableReachedSet pReached,
+      final ConfigurableProgramAnalysis pCpa)
       throws IOException, InvalidConfigurationException, InterruptedException {
-    ioHelper.constructInternalProofRepresentation(pReached);
+    ioHelper.constructInternalProofRepresentation(pReached, pCpa);
 
     // write metadata
     ioHelper.writeMetadata(pOut, pReached.size(), ioHelper.getNumPartitions());

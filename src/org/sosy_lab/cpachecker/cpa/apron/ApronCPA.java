@@ -65,12 +65,20 @@ public final class ApronCPA
     return AutomaticCPAFactory.forType(ApronCPA.class);
   }
 
-  @Option(secure=true, name="initialPrecisionType", toUppercase=true, values={"STATIC_FULL", "REFINEABLE_EMPTY"},
-      description="this option determines which initial precision should be used")
+  @Option(
+      secure = true,
+      name = "initialPrecisionType",
+      toUppercase = true,
+      values = {"STATIC_FULL", "REFINEABLE_EMPTY"},
+      description = "this option determines which initial precision should be used")
   private String precisionType = "STATIC_FULL";
 
-  @Option(secure=true, name="splitDisequalities",
-      description="split disequalities considering integer operands into two states or use disequality provided by apron library ")
+  @Option(
+      secure = true,
+      name = "splitDisequalities",
+      description =
+          "split disequalities considering integer operands into two states or use disequality"
+              + " provided by apron library ")
   private boolean splitDisequalities = true;
 
   @Option(secure=true, name="domain", toUppercase=true,
@@ -222,7 +230,8 @@ public final class ApronCPA
     try (Writer writer = IO.openOutputFile(precisionFile, Charset.defaultCharset())) {
       consolidatedPrecision.serialize(writer);
     } catch (IOException e) {
-      getLogger().logUserException(Level.WARNING, e, "Could not write apron-analysis precision to file");
+      getLogger()
+          .logUserException(Level.WARNING, e, "Could not write apron-analysis precision to file");
     }
   }
 
@@ -233,7 +242,8 @@ public final class ApronCPA
     try {
       contents = Files.readAllLines(initialPrecisionFile, Charset.defaultCharset());
     } catch (IOException e) {
-      logger.logUserException(Level.WARNING, e, "Could not read precision from file named " + initialPrecisionFile);
+      logger.logUserException(
+          Level.WARNING, e, "Could not read precision from file named " + initialPrecisionFile);
       return mapping;
     }
 
@@ -253,7 +263,7 @@ public final class ApronCPA
         }
 
       } else {
-        mapping.put(location, MemoryLocation.valueOf(currentLine));
+        mapping.put(location, MemoryLocation.parseExtendedQualifiedName(currentLine));
       }
     }
 

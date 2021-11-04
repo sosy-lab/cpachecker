@@ -22,6 +22,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PropertyChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -54,7 +55,8 @@ public abstract class AbstractARGStrategy extends SequentialReadStrategy {
   }
 
   @Override
-  public void constructInternalProofRepresentation(UnmodifiableReachedSet pReached) {
+  public void constructInternalProofRepresentation(
+      UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa) {
     if (correctReachedSetFormatForProof(pReached)) {
       root = (ARGState) pReached.getFirstState();
       stats.increaseProofSize(1);
@@ -64,7 +66,8 @@ public abstract class AbstractARGStrategy extends SequentialReadStrategy {
   private boolean correctReachedSetFormatForProof(UnmodifiableReachedSet pReached) {
     if (!(pReached.getFirstState() instanceof ARGState)
         || (extractLocation(pReached.getFirstState()) == null)) {
-      logger.log(Level.SEVERE, "Proof cannot be generated because checked property not known to be true.");
+      logger.log(
+          Level.SEVERE, "Proof cannot be generated because checked property not known to be true.");
       return false;
     }
     return true;
@@ -162,7 +165,11 @@ public abstract class AbstractARGStrategy extends SequentialReadStrategy {
       stats.getTransferTimer().stop();
       if(pIncompleteStates != null) {
         pIncompleteStates.add(pPredecessor);
-        logger.log(Level.FINER, "State", pPredecessor, "is explored incompletely, will be recorded in the assumption automaton.");
+        logger.log(
+            Level.FINER,
+            "State",
+            pPredecessor,
+            "is explored incompletely, will be recorded in the assumption automaton.");
         return true;
       }
       logger.log(Level.WARNING, "State", pPredecessor, "has other successors than", successors);
@@ -175,8 +182,9 @@ public abstract class AbstractARGStrategy extends SequentialReadStrategy {
   }
 
   @Override
-  protected Object getProofToWrite(UnmodifiableReachedSet pReached) {
-    constructInternalProofRepresentation(pReached);
+  protected Object getProofToWrite(
+      UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa) {
+    constructInternalProofRepresentation(pReached, pCpa);
     return root;
   }
 

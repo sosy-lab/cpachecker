@@ -46,7 +46,7 @@ public class BDDPointerVectorCExpressionVisitor extends BDDVectorCExpressionVisi
     if (explicitSet != null && explicitSet.getSize() == 1) {
       MemoryLocation memLoc = Iterables.getOnlyElement(explicitSet);
       return predMgr.createPredicate(
-          memLoc.getAsSimpleString(),
+          memLoc.getExtendedQualifiedName(),
           e.getExpressionType(),
           location,
           getSize(e.getExpressionType()),

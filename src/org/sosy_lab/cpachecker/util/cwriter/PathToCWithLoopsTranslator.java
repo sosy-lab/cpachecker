@@ -212,7 +212,7 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
   }
 
   /** Processes an edge of the CFA and will write code to the output function body. */
-  private final void processEdge0(
+  private void processEdge0(
       ARGState childElement, CFAEdge edge, Deque<FunctionBody> functionStack) {
     FunctionBody currentFunction = functionStack.peek();
 
@@ -576,11 +576,8 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
    */
   private void handleIfOutLabels(StringBuilder wholeLoopString, CFANode predecessor) {
     if (!ifOutLabelEnd.isEmpty() && ifOutLabelEnd.peek().containsKey(predecessor)) {
-      if (ifThenHandled.contains(predecessor)) {
-          wholeLoopString.append(ifOutLabelEnd.pop().get(predecessor) )
-                         .append(": ;\n");
-      } else {
-        ifThenHandled.add(predecessor);
+      if (!ifThenHandled.add(predecessor)) {
+        wholeLoopString.append(ifOutLabelEnd.pop().get(predecessor)).append(": ;\n");
       }
     }
   }
@@ -706,7 +703,9 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
       CAssumeEdge lAssumeEdge = (CAssumeEdge) edge;
       if (suffix.isEmpty()) {
         if (currentFunctionName.equals("int main_0()")) {
-          return "if(! (" + lAssumeEdge.getCode() + ")) { return 0; }\n"; // we do only want to see the relevant path
+              return "if(! ("
+                  + lAssumeEdge.getCode()
+                  + ")) { return 0; }\n"; // we do only want to see the relevant path
         } else {
           return ""; // we cannot just use exit(0) as the invariant generators does
                      // cannot cope with non-returning functions
@@ -797,7 +796,8 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
       }
 
       // we did not find the loop although we should have
-      throw new AssertionError("We did not find a merging point although there should be one, this is a BUG!");
+      throw new AssertionError(
+          "We did not find a merging point although there should be one, this is a BUG!");
 
     } else {
       return bottom;

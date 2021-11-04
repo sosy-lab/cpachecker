@@ -28,6 +28,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -90,13 +91,19 @@ import org.sosy_lab.java_smt.api.SolverException;
 public class PredicateStaticRefiner extends StaticRefiner
     implements ARGBasedRefiner, StatisticsProvider {
 
-  @Option(secure=true, description="Apply mined predicates on the corresponding scope. false = add them to the global precision.")
+  @Option(
+      secure = true,
+      description =
+          "Apply mined predicates on the corresponding scope. false = add them to the global"
+              + " precision.")
   private boolean applyScoped = true;
 
   @Option(secure=true, description="Add all assumptions along a error trace to the precision.")
   private boolean addAllErrorTraceAssumes = false;
 
-  @Option(secure=true, description="Add all assumptions from the control flow automaton to the precision.")
+  @Option(
+      secure = true,
+      description = "Add all assumptions from the control flow automaton to the precision.")
   private boolean addAllControlFlowAssumes = false;
 
   @Option(secure=true, description="Add all assumptions along the error trace to the precision.")
@@ -111,9 +118,11 @@ public class PredicateStaticRefiner extends StaticRefiner
 
   private final StatTimer totalTime = new StatTimer("Total time for static refinement");
   private final StatTimer satCheckTime = new StatTimer("Time for path feasibility check");
-  private final StatTimer predicateExtractionTime = new StatTimer("Time for predicate extraction from CFA");
+  private final StatTimer predicateExtractionTime =
+      new StatTimer("Time for predicate extraction from CFA");
   private final StatTimer argUpdateTime = new StatTimer("Time for ARG update");
-  private final StatInt foundPredicates = new StatInt(StatKind.SUM, "Number of predicates found statically");
+  private final StatInt foundPredicates =
+      new StatInt(StatKind.SUM, "Number of predicates found statically");
 
   private final ShutdownNotifier shutdownNotifier;
 
@@ -415,11 +424,11 @@ public class PredicateStaticRefiner extends StaticRefiner
     // Predicates that should be tracked globally
     Collection<AbstractionPredicate> globalPredicates = new ArrayList<>();
 
-    // Determine the ERROR location of the path (last node)
-    CFANode targetLocation = AbstractStates.extractLocation(targetState);
+    // Determine the ERROR location of the path (last node, or set of nodes if multiple threads)
+    Iterable<CFANode> targetLocations = AbstractStates.extractLocations(targetState);
 
     // Determine the assume edges that should be considered for predicate extraction
-    Set<AssumeEdge> assumeEdges = new HashSet<>();
+    Set<AssumeEdge> assumeEdges = new LinkedHashSet<>();
 
     Multimap<String, AStatementEdge> directlyAffectingStatements =
         buildDirectlyAffectingStatements();
@@ -432,7 +441,8 @@ public class PredicateStaticRefiner extends StaticRefiner
             getAssumeEdgesAlongPath(pReached, targetState, directlyAffectingStatements));
       }
       if (addAssumesByBoundedBackscan) {
-        assumeEdges.addAll(getTargetLocationAssumes(ImmutableList.of(targetLocation)).values());
+        assumeEdges.addAll(
+            getTargetLocationAssumes(ImmutableList.copyOf(targetLocations)).values());
       }
     }
 
@@ -512,12 +522,15 @@ public class PredicateStaticRefiner extends StaticRefiner
         }
       }
     } catch (InterruptedException e) {
-      logger.logUserException(Level.WARNING, e, "Interrupted, could not write assume predicates to file!");
+      logger.logUserException(
+          Level.WARNING, e, "Interrupted, could not write assume predicates to file!");
       Thread.currentThread().interrupt();
     } catch (IOException e) {
-      logger.logUserException(Level.WARNING, e, "IO exception! Could not write assume predicates to file!");
+      logger.logUserException(
+          Level.WARNING, e, "IO exception! Could not write assume predicates to file!");
     } catch (CPATransferException e) {
-      logger.logUserException(Level.WARNING, e, "Transfer exception! Could not write assume predicates to file!");
+      logger.logUserException(
+          Level.WARNING, e, "Transfer exception! Could not write assume predicates to file!");
     }
   }
 

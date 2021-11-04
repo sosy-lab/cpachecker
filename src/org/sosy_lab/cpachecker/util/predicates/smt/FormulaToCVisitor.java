@@ -299,7 +299,10 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
         return Boolean.FALSE;
       }
     } else {
-      throw new AssertionError("Function call without arguments " + pFunctionDeclaration.getName());
+      throw new AssertionError(
+          String.format(
+              "Function call '%s' with unexpected number of arguments: %s",
+              pFunctionDeclaration.getName(), pArgs));
     }
     builder.append(" )");
 

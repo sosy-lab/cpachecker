@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.toPercent;
 
+import com.google.common.base.Equivalence;
 import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.List;
@@ -39,16 +40,19 @@ import org.sosy_lab.java_smt.api.Model.ValueAssignment;
  */
 public class CachingPathFormulaManager implements PathFormulaManager {
 
+  @SuppressWarnings("deprecation")
   public final ThreadSafeTimerContainer pathFormulaComputationTimer =
       new ThreadSafeTimerContainer(null);
+
   public LongAdder pathFormulaCacheHits = new LongAdder();
 
   public final PathFormulaManager delegate;
 
-  private final Map<Pair<CFAEdge, PathFormula>, Pair<PathFormula, ErrorConditions>> andFormulaWithConditionsCache
-            = new HashMap<>();
-  private final Map<Pair<CFAEdge, PathFormula>, PathFormula> andFormulaCache
-            = new HashMap<>();
+  private final Map<
+          Pair<Equivalence.Wrapper<CFAEdge>, PathFormula>, Pair<PathFormula, ErrorConditions>>
+      andFormulaWithConditionsCache = new HashMap<>();
+  private final Map<Pair<Equivalence.Wrapper<CFAEdge>, PathFormula>, PathFormula> andFormulaCache =
+      new HashMap<>();
 
   private final Map<Pair<PathFormula, PathFormula>, PathFormula> orFormulaCache
             = new HashMap<>();
@@ -63,10 +67,20 @@ public class CachingPathFormulaManager implements PathFormulaManager {
     emptyFormula = delegate.makeEmptyPathFormula();
   }
 
-  @Override
-  public Pair<PathFormula, ErrorConditions> makeAndWithErrorConditions(PathFormula pOldFormula, CFAEdge pEdge) throws CPATransferException, InterruptedException {
+  /**
+   * Returns a cache key for the specified path formula and edge. Uses {@link Equivalence#identity}
+   * as an equivalence wrapper for the edge.
+   */
+  private Pair<Equivalence.Wrapper<CFAEdge>, PathFormula> createFormulaCacheKey(
+      PathFormula pOldFormula, CFAEdge pEdge) {
+    return Pair.of(Equivalence.identity().wrap(pEdge), pOldFormula);
+  }
 
-    final Pair<CFAEdge, PathFormula> formulaCacheKey = Pair.of(pEdge, pOldFormula);
+  @Override
+  public Pair<PathFormula, ErrorConditions> makeAndWithErrorConditions(
+      PathFormula pOldFormula, CFAEdge pEdge) throws CPATransferException, InterruptedException {
+    final Pair<Equivalence.Wrapper<CFAEdge>, PathFormula> formulaCacheKey =
+        createFormulaCacheKey(pOldFormula, pEdge);
     Pair<PathFormula, ErrorConditions> result = andFormulaWithConditionsCache.get(formulaCacheKey);
     if (result == null) {
       TimerWrapper t = pathFormulaComputationTimer.getNewTimer();
@@ -84,7 +98,8 @@ public class CachingPathFormulaManager implements PathFormulaManager {
 
   @Override
   public PathFormula makeAnd(PathFormula pOldFormula, CFAEdge pEdge) throws CPATransferException, InterruptedException {
-    final Pair<CFAEdge, PathFormula> formulaCacheKey = Pair.of(pEdge, pOldFormula);
+    final Pair<Equivalence.Wrapper<CFAEdge>, PathFormula> formulaCacheKey =
+        createFormulaCacheKey(pOldFormula, pEdge);
     PathFormula result = andFormulaCache.get(formulaCacheKey);
     if (result == null) {
       TimerWrapper t = pathFormulaComputationTimer.getNewTimer();
@@ -122,20 +137,30 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
+  public PathFormula makeConjunction(List<PathFormula> pPathFormulas) {
+    return delegate.makeConjunction(pPathFormulas);
+  }
+
+  @Override
   public PathFormula makeEmptyPathFormula() {
     return emptyFormula;
   }
 
   @Override
-  public PathFormula makeEmptyPathFormula(PathFormula pOldFormula) {
+  public PathFormula makeEmptyPathFormulaWithContextFrom(PathFormula pOldFormula) {
     PathFormula result = emptyFormulaCache.get(pOldFormula);
     if (result == null) {
-      result = delegate.makeEmptyPathFormula(pOldFormula);
+      result = delegate.makeEmptyPathFormulaWithContextFrom(pOldFormula);
       emptyFormulaCache.put(pOldFormula, result);
     } else {
       pathFormulaCacheHits.increment();
     }
     return result;
+  }
+
+  @Override
+  public PathFormula makeEmptyPathFormulaWithContext(SSAMap pSsaMap, PointerTargetSet pPts) {
+    return delegate.makeEmptyPathFormulaWithContext(pSsaMap, pPts);
   }
 
   @Override
@@ -162,12 +187,6 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   public PathFormula makeAnd(PathFormula pPathFormula, CExpression pAssumption)
       throws CPATransferException, InterruptedException {
     return delegate.makeAnd(pPathFormula, pAssumption);
-  }
-
-  @Override
-  @Deprecated
-  public PathFormula makeNewPathFormula(PathFormula pOldFormula, SSAMap pM) {
-    return delegate.makeNewPathFormula(pOldFormula, pM);
   }
 
   @Override
@@ -237,11 +256,6 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   @Override
   public BooleanFormula addBitwiseAxiomsIfNeeded(final BooleanFormula pMainFormula, final BooleanFormula pExtractionFormula) {
     return delegate.addBitwiseAxiomsIfNeeded(pMainFormula, pExtractionFormula);
-  }
-
-  @Override
-  public PathFormula makeNewPathFormula(PathFormula pOldFormula, SSAMap pM, PointerTargetSet pPts) {
-    return delegate.makeNewPathFormula(pOldFormula, pM, pPts);
   }
 
   @Override

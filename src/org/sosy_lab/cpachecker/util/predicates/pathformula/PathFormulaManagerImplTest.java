@@ -90,10 +90,13 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
 
   @Before
   public void setup() throws Exception {
-    Configuration configBackwards = Configuration.builder()
-        .copyFrom(config)
-        .setOption("cpa.predicate.handlePointerAliasing", "false") // not yet supported by the backwards analysis
-        .build();
+    Configuration configBackwards =
+        Configuration.builder()
+            .copyFrom(config)
+            .setOption(
+                "cpa.predicate.handlePointerAliasing",
+                "false") // not yet supported by the backwards analysis
+            .build();
 
     pfmgrFwd =
         new PathFormulaManagerImpl(
@@ -129,10 +132,7 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
         new CFunctionDeclaration(FileLocation.DUMMY, functionType, fName, ImmutableList.of());
     FunctionEntryNode entryNode =
         new CFunctionEntryNode(
-            FileLocation.DUMMY,
-            fdef,
-            new FunctionExitNode(fdef),
-            com.google.common.base.Optional.absent());
+            FileLocation.DUMMY, fdef, new FunctionExitNode(fdef), Optional.empty());
 
     // Edge 1: "x' = x + 1".
     // Edge 2: "x <= 10"
@@ -244,9 +244,8 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
 
     int customIdx = 1337;
     SSAMap ssaMap = SSAMap.emptySSAMap().withDefault(customIdx);
-    PathFormula empty = pfmgrFwd.makeEmptyPathFormula();
     PathFormula emptyWithCustomSSA =
-        pfmgrFwd.makeNewPathFormula(empty, ssaMap, empty.getPointerTargetSet());
+        pfmgrFwd.makeEmptyPathFormulaWithContext(ssaMap, PointerTargetSet.emptyPointerTargetSet());
     PathFormula p = pfmgrFwd.makeAnd(emptyWithCustomSSA, a_to_b);
 
     // The SSA index should be incremented by one (= DEFAULT_INCREMENT) by the edge "x := x + 1".
@@ -314,8 +313,7 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
   private PathFormula makePathFormulaWithCustomIndex(
       PathFormulaManager pPfmgr, String pVar, CType pType, int pIndex) {
     SSAMap ssaMap = SSAMap.emptySSAMap().builder().setIndex(pVar, pType, pIndex).build();
-    PathFormula empty = pPfmgr.makeEmptyPathFormula();
-    return pPfmgr.makeNewPathFormula(empty, ssaMap, empty.getPointerTargetSet());
+    return pPfmgr.makeEmptyPathFormulaWithContext(ssaMap, PointerTargetSet.emptyPointerTargetSet());
   }
 
   @Test

@@ -15,6 +15,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
@@ -87,6 +89,8 @@ public class PrefixSelector {
 
   private static class ScorerFactory {
 
+    private final LogManagerWithoutDuplicates logger;
+
     private final Optional<VariableClassification> classification;
     private final Optional<LoopStructure> loopStructure;
 
@@ -94,10 +98,13 @@ public class PrefixSelector {
     // and if we instantiate it every time, we get the same sequence of random numbers.
     private final Scorer randomScorer = new RandomScorer();
 
-    public ScorerFactory(final Optional<VariableClassification> pClassification,
-        final Optional<LoopStructure> pLoopStructure) {
+    public ScorerFactory(
+        final Optional<VariableClassification> pClassification,
+        final Optional<LoopStructure> pLoopStructure,
+        final LogManager pLogger) {
       classification = pClassification;
       loopStructure = pLoopStructure;
+      logger = new LogManagerWithoutDuplicates(pLogger);
     }
 
     public Scorer createScorer(PrefixPreference pPreference) {
@@ -107,13 +114,13 @@ public class PrefixSelector {
         case LENGTH_MAX:
           return new LengthScorer().invert();
         case DOMAIN_MIN:
-          return new DomainScorer(classification, loopStructure);
+          return new DomainScorer(classification, loopStructure, logger);
         case DOMAIN_MAX:
-          return new DomainScorer(classification, loopStructure).invert();
+          return new DomainScorer(classification, loopStructure, logger).invert();
         case LOOPS_MIN:
-          return new LoopScorer(classification, loopStructure);
+          return new LoopScorer(classification, loopStructure, logger);
         case LOOPS_MAX:
-          return new LoopScorer(classification, loopStructure).invert();
+          return new LoopScorer(classification, loopStructure, logger).invert();
         case WIDTH_MIN:
           return new WidthScorer();
         case WIDTH_MAX:
@@ -136,13 +143,14 @@ public class PrefixSelector {
         // illegal arguments
         case NONE:
         default:
-          throw new IllegalArgumentException("Illegal prefix preference " + pPreference + " given!");
+          throw new IllegalArgumentException(
+              "Illegal prefix preference " + pPreference + " given!");
       }
     }
   }
 
   private interface Scorer {
-    static final int DEFAULT_SCORE = Integer.MAX_VALUE;
+    int DEFAULT_SCORE = Integer.MAX_VALUE;
 
     int computeScore(final InfeasiblePrefix pPrefix);
 
@@ -167,32 +175,41 @@ public class PrefixSelector {
 
   private static class DomainScorer implements Scorer {
 
+    private final LogManagerWithoutDuplicates logger;
     private final Optional<VariableClassification> classification;
     private final Optional<LoopStructure> loopStructure;
 
-    public DomainScorer(final Optional<VariableClassification> pClassification,
-        final Optional<LoopStructure> pLoopStructure) {
+    public DomainScorer(
+        final Optional<VariableClassification> pClassification,
+        final Optional<LoopStructure> pLoopStructure,
+        final LogManagerWithoutDuplicates pLogger) {
       classification = pClassification;
       loopStructure = pLoopStructure;
+      logger = pLogger;
     }
 
     @Override
     public int computeScore(final InfeasiblePrefix pPrefix) {
       return classification
           .orElseThrow()
-          .obtainDomainTypeScoreForVariables(pPrefix.extractSetOfIdentifiers(), loopStructure);
+          .obtainDomainTypeScoreForVariables(
+              pPrefix.extractSetOfIdentifiers(), loopStructure, logger);
     }
   }
 
   private static class LoopScorer implements Scorer {
 
+    private final LogManagerWithoutDuplicates logger;
     private final Optional<VariableClassification> classification;
     private final Optional<LoopStructure> loopStructure;
 
-    public LoopScorer(final Optional<VariableClassification> pClassification,
-        final Optional<LoopStructure> pLoopStructure) {
+    public LoopScorer(
+        final Optional<VariableClassification> pClassification,
+        final Optional<LoopStructure> pLoopStructure,
+        final LogManagerWithoutDuplicates pLogger) {
       classification = pClassification;
       loopStructure = pLoopStructure;
+      logger = pLogger;
     }
 
     @Override
@@ -200,7 +217,8 @@ public class PrefixSelector {
       int score =
           classification
               .orElseThrow()
-              .obtainDomainTypeScoreForVariables(pPrefix.extractSetOfIdentifiers(), loopStructure);
+              .obtainDomainTypeScoreForVariables(
+                  pPrefix.extractSetOfIdentifiers(), loopStructure, logger);
 
       // TODO next line looks like a bug. The score is either MAX_INT or ZERO afterwards.
       if (score != DEFAULT_SCORE) {
@@ -283,9 +301,11 @@ public class PrefixSelector {
     }
   }
 
-  public PrefixSelector(Optional<VariableClassification> pClassification,
-                             Optional<LoopStructure> pLoopStructure) {
-    factory = new ScorerFactory(pClassification, pLoopStructure);
+  public PrefixSelector(
+      Optional<VariableClassification> pClassification,
+      Optional<LoopStructure> pLoopStructure,
+      LogManager pLogger) {
+    factory = new ScorerFactory(pClassification, pLoopStructure, pLogger);
     classification  = pClassification;
   }
 }

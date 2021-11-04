@@ -26,15 +26,18 @@ import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
 
 /**
- * Maps a variable name to its latest "SSA index", that should be used when
- * referring to that variable.
+ * Maps a variable name to its latest "SSA index", that should be used when referring to that
+ * variable.
  */
-public class SSAMap implements Serializable {
+@javax.annotation.concurrent.Immutable // cannot prove deep immutability because of CType
+public final class SSAMap implements Serializable {
 
   private static final long serialVersionUID = 7618801653203679876L;
 
@@ -115,12 +118,19 @@ public class SSAMap implements Serializable {
 
     @SuppressWarnings("CheckReturnValue")
     public SSAMapBuilder setIndex(String name, CType type, int idx) {
-      Preconditions.checkArgument(idx > 0, "Indices need to be positive for this SSAMap implementation:", name, type, idx);
+      Preconditions.checkArgument(
+          idx > 0, "Indices need to be positive for this SSAMap implementation:", name, type, idx);
       int oldIdx = getIndex(name);
-      Preconditions.checkArgument(idx >= oldIdx, "SSAMap updates need to be strictly monotone:", name, type, idx);
+      Preconditions.checkArgument(
+          idx >= oldIdx, "SSAMap updates need to be strictly monotone:", name, type, idx);
 
       type = type.getCanonicalType();
       assert !(type instanceof CFunctionType) : "Variable " + name + " has function type " + type;
+      if (TypeHandlerWithPointerAliasing.isByteArrayAccessName(name)) {
+        // Type needs to be overwritten
+        type = CNumericTypes.CHAR;
+      }
+
       CType oldType = varTypes.get(name);
       if (oldType != null) {
         TYPE_CONFLICT_CHECKER.resolveConflict(name, oldType, type);

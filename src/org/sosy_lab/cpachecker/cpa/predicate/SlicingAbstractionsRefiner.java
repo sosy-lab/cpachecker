@@ -8,10 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import static com.google.common.collect.FluentIterable.from;
-
-import com.google.common.base.Optional;
 import java.util.Collection;
+import java.util.Optional;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -53,7 +51,8 @@ public class SlicingAbstractionsRefiner implements Refiner, StatisticsProvider {
     PredicateCPA predicateCpa = CPAs.retrieveCPA(pCpa, PredicateCPA.class);
     ARGCPA argCpa = CPAs.retrieveCPA(pCpa,ARGCPA.class);
     if (predicateCpa == null) {
-      throw new InvalidConfigurationException(SlicingAbstractionsRefiner.class.getSimpleName() + " needs a PredicateCPA");
+      throw new InvalidConfigurationException(
+          SlicingAbstractionsRefiner.class.getSimpleName() + " needs a PredicateCPA");
     }
 
     RefinementStrategy strategy =
@@ -67,11 +66,12 @@ public class SlicingAbstractionsRefiner implements Refiner, StatisticsProvider {
   @Override
   public boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
     CounterexampleInfo counterexample = null;
-    Optional<AbstractState> optionalTargetState;
+
     while (true) {
-      optionalTargetState = from(pReached).firstMatch(AbstractStates::isTargetState);
+      Optional<AbstractState> optionalTargetState =
+          pReached.stream().filter(AbstractStates::isTargetState).findFirst();
       if (optionalTargetState.isPresent()) {
-        AbstractState targetState = optionalTargetState.get();
+        AbstractState targetState = optionalTargetState.orElseThrow();
         ARGPath errorPath = ARGUtils.getShortestPathTo((ARGState) targetState);
         ARGReachedSet reached = new ARGReachedSet(pReached, argCpa);
         counterexample = refiner.performRefinementForPath(reached, errorPath);

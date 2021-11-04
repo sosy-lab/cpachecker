@@ -36,6 +36,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PCCStrategy;
@@ -85,8 +86,12 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
   }
 
   @Override
-  @SuppressFBWarnings(value="OS_OPEN_STREAM", justification="Do not close stream o because it wraps stream zos/fos which need to remain open and would be closed if o.close() is called.")
-  public void writeProof(UnmodifiableReachedSet pReached) {
+  @SuppressFBWarnings(
+      value = "OS_OPEN_STREAM",
+      justification =
+          "Do not close stream o because it wraps stream zos/fos which need to remain open and"
+              + " would be closed if o.close() is called.")
+  public void writeProof(UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa) {
 
     Path dir = proofFile.getParent();
 
@@ -102,9 +107,10 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
         ZipEntry ze = new ZipEntry(PROOF_ZIPENTRY_NAME);
         zos.putNextEntry(ze);
         ObjectOutputStream o = new ObjectOutputStream(zos);
-        //TODO might also want to write used configuration to the file so that proof checker does not need to get it as an argument
-        //write ARG
-        writeProofToStream(o, pReached);
+        // TODO might also want to write used configuration to the file so that proof checker does
+        // not need to get it as an argument
+        // write ARG
+        writeProofToStream(o, pReached, pCpa);
         o.flush();
         zos.closeEntry();
 
@@ -128,21 +134,27 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
           try {
             writeConfiguration(o);
           } catch (ValidationConfigurationConstructionFailed eIC) {
-            logger.log(Level.WARNING, "Construction of validation configuration failed. Validation configuration is empty.");
+            logger.logUserException(
+                Level.WARNING,
+                eIC,
+                "Construction of validation configuration failed. Validation configuration is"
+                    + " empty.");
           }
 
           o.flush();
           zos.closeEntry();
         }
       } catch (NotSerializableException eS) {
-        logger.log(Level.SEVERE, "Proof cannot be written. Class " + eS.getMessage()
-            + " does not implement Serializable interface");
+        logger.logUserException(
+            Level.SEVERE,
+            eS,
+            "Proof cannot be written. Class does not implement Serializable interface");
       } catch (InvalidConfigurationException e) {
-        logger.log(Level.SEVERE, "Proof cannot be constructed due to conflicting configuration.",
-            e.getMessage());
+        logger.logUserException(
+            Level.SEVERE, e, "Proof cannot be constructed due to conflicting configuration.");
       } catch (InterruptedException e) {
-        logger.log(Level.SEVERE,
-            "Proof cannot be written due to time out during proof construction");
+        logger.logUserException(
+            Level.SEVERE, e, "Proof cannot be written due to time out during proof construction");
       }
     } catch (IOException e) {
       throw new RuntimeException(e);
@@ -151,9 +163,9 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
     logger.log(Level.INFO, proofInfo.getInfoAsString());
   }
 
-  protected abstract void writeProofToStream(ObjectOutputStream out, UnmodifiableReachedSet reached)
+  protected abstract void writeProofToStream(
+      ObjectOutputStream out, UnmodifiableReachedSet reached, ConfigurableProgramAnalysis pCpa)
       throws IOException, InvalidConfigurationException, InterruptedException;
-
 
   @Override
   public void readProof() throws IOException, ClassNotFoundException, InvalidConfigurationException {

@@ -34,6 +34,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PropertyChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -73,7 +74,8 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
   }
 
   @Override
-  public void constructInternalProofRepresentation(UnmodifiableReachedSet pReached) {
+  public void constructInternalProofRepresentation(
+      UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa) {
     if (correctReachedSetFormatForProof(pReached)) {
       args = orderBAMBlockStartStates((ARGState) pReached.getFirstState());
       args[args.length - 1] = (ARGState) pReached.getFirstState();
@@ -264,15 +266,17 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
   private boolean correctReachedSetFormatForProof(UnmodifiableReachedSet pReached) {
     if (!(pReached.getFirstState() instanceof ARGState)
         || (extractLocation(pReached.getFirstState()) == null)) {
-      logger.log(Level.SEVERE, "Proof cannot be generated because checked property not known to be true.");
+      logger.log(
+          Level.SEVERE, "Proof cannot be generated because checked property not known to be true.");
       return false;
     }
     return true;
   }
 
   @Override
-  protected Object getProofToWrite(UnmodifiableReachedSet pReached) {
-    constructInternalProofRepresentation(pReached);
+  protected Object getProofToWrite(
+      UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa) {
+    constructInternalProofRepresentation(pReached, pCpa);
     return args;
   }
 
@@ -376,9 +380,7 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
     ARGState[] result = new ARGState[pMap.size() + 1];
 
     int nextPos = 0, size = 0;
-    List<Integer> deleteEdges = new ArrayList<>();
     List<BAMARGBlockStartState> consider = new ArrayList<>(pMap.keySet());
-    BitSet set;
 
     while (!consider.isEmpty()) {
       if (size == consider.size()) {
@@ -386,7 +388,7 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
         return new ARGState[1];
       }
       size = consider.size();
-      deleteEdges.clear();
+      List<Integer> deleteEdges = new ArrayList<>();
 
       for (int i = consider.size() - 1; i >= 0; i--) {
         if (pMap.get(consider.get(i)).getSecond().cardinality() == 0) {
@@ -397,9 +399,9 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
       }
 
       for (int i = consider.size() - 1; i >= 0; i--) {
-        set = pMap.get(consider.get(i)).getSecond();
-        for (int j = 0; j < deleteEdges.size(); j++) {
-          set.clear(deleteEdges.get(j));
+        BitSet set = pMap.get(consider.get(i)).getSecond();
+        for (int deleteEdge : deleteEdges) {
+          set.clear(deleteEdge);
         }
       }
     }

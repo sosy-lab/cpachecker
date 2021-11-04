@@ -197,7 +197,8 @@ public final class DOTBuilder2 {
           StringBuilder label = comboNodesLabels.get(firstNode);
           // Initialize the list of nodes and the label if necessary
           if (combinedNodes == null) {
-            assert label == null : "label and combinedNodes should always be initialized and changed together";
+            assert label == null
+                : "label and combinedNodes should always be initialized and changed together";
             combinedNodes = new LinkedHashSet<>();
             comboNodes.put(firstNode, combinedNodes);
             label = new StringBuilder();
@@ -280,7 +281,8 @@ public final class DOTBuilder2 {
         int from = edge.getPredecessor().getNodeNumber();
         Integer virtFuncCallNodeId = virtFuncCallEdges.get(from).get(0);
 
-        String ret = virtFuncCallNodeId + " [shape=\"component\" label=\"" + calledFunction + "\"]\n";
+        String ret =
+            virtFuncCallNodeId + " [shape=\"component\" label=\"" + calledFunction + "\"]\n";
         ret += String.format("%d -> %d [label=\"%s\" fontname=\"Courier New\"]%n",
             from,
             virtFuncCallNodeId,
@@ -304,7 +306,9 @@ public final class DOTBuilder2 {
       StringBuilder sb = new StringBuilder();
       int firstNo = first.getPredecessor().getNodeNumber();
       sb.append(firstNo);
-      sb.append(" [style=\"filled,bold\" penwidth=\"1\" fillcolor=\"white\" fontname=\"Courier New\" shape=\"Mrecord\" label=");
+      sb.append(
+          " [style=\"filled,bold\" penwidth=\"1\" fillcolor=\"white\" fontname=\"Courier New\""
+              + " shape=\"Mrecord\" label=");
 
       if (combo.size() > 20) {
         // edge too long, dotty won't be able to handle it
@@ -325,10 +329,12 @@ public final class DOTBuilder2 {
           sb.append("<tr><td align=\"right\">");
           sb.append("" + edge.getPredecessor().getNodeNumber());
           sb.append("</td><td align=\"left\">");
-          sb.append(HtmlEscapers.htmlEscaper().escape(getEdgeText(edge))
-                            .replaceAll("\\|", "&#124;")
-                            .replaceAll("\\{", "&#123;")
-                            .replaceAll("\\}", "&#125;"));
+          sb.append(
+              HtmlEscapers.htmlEscaper()
+                  .escape(getEdgeText(edge))
+                  .replace("|", "&#124;")
+                  .replace("{", "&#123;")
+                  .replace("}", "&#125;"));
           sb.append("</td></tr>");
         }
         sb.append("</table>>");

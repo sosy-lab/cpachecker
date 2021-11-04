@@ -19,8 +19,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
  */
 public class SimpleWaitlist extends AbstractWaitlist<Deque<AbstractState>> {
 
-  private static final long serialVersionUID = 1L;
-
   private final TraversalMethod traversal;
 
   protected SimpleWaitlist(TraversalMethod pTraversal) {

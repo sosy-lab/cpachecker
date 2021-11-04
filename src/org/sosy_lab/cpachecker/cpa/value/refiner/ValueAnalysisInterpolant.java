@@ -90,7 +90,8 @@ public final class ValueAnalysisInterpolant
     PersistentMap<MemoryLocation, ValueAndType> newAssignment = assignment;
     for (Entry<MemoryLocation, ValueAndType> entry : other.assignment.entrySet()) {
       if (newAssignment.containsKey(entry.getKey())) {
-        assert (entry.getValue().equals(other.assignment.get(entry.getKey()))) : "interpolants mismatch in " + entry.getKey();
+        assert (entry.getValue().equals(other.assignment.get(entry.getKey())))
+            : "interpolants mismatch in " + entry.getKey();
       }
       newAssignment = newAssignment.putAndCopy(entry.getKey(), entry.getValue());
 
@@ -189,7 +190,8 @@ public final class ValueAnalysisInterpolant
         verify(
             valueState.getValueFor(itp.getKey()).asNumericValue().longValue()
                 == itp.getValue().getValue().asNumericValue().longValue(),
-            "state and interpolant do not match in value for variable %s [state = %s != %s = itp] for state %s",
+            "state and interpolant do not match in value for variable %s [state = %s != %s = itp]"
+                + " for state %s",
             itp.getKey(),
             valueState.getValueFor(itp.getKey()),
             itp.getValue(),
@@ -217,7 +219,7 @@ public final class ValueAnalysisInterpolant
 
     PersistentMap<MemoryLocation, ValueAndType> weakenedAssignments = assignment;
     for (MemoryLocation current : assignment.keySet()) {
-      if (!toRetain.contains(current.getAsSimpleString())) {
+      if (!toRetain.contains(current.getExtendedQualifiedName())) {
         weakenedAssignments = weakenedAssignments.removeAndCopy(current);
       }
     }

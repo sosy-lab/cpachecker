@@ -241,7 +241,7 @@ public abstract class SMGPrecision implements Precision {
 
     @Override
     public String toString() {
-      return "Static precision " + getAbstractionOptions().toString();
+      return "Static precision " + getAbstractionOptions();
     }
 
     @Override
@@ -296,8 +296,13 @@ public abstract class SMGPrecision implements Precision {
 
     @Override
     public String toString() {
-      return "SMGPrecisionAbstractionOptions [heapAbstraction=" + heapAbstraction
-          + ", fieldAbstraction=" + fieldAbstraction + ", stackAbstraction=" + stackAbstraction + "]";
+      return "SMGPrecisionAbstractionOptions [heapAbstraction="
+          + heapAbstraction
+          + ", fieldAbstraction="
+          + fieldAbstraction
+          + ", stackAbstraction="
+          + stackAbstraction
+          + "]";
     }
   }
 }

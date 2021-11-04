@@ -21,7 +21,6 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Set;
 import java.util.logging.Level;
@@ -63,7 +62,6 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
-import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -87,28 +85,34 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
 
   @Option(secure = true, name = "file", description = "write residual program to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path residualProgram = Paths.get("residualProgram.c");
+  private Path residualProgram = Path.of("residualProgram.c");
 
-  @Option(secure = true, name = "assumptionGuider",
-      description = "set specification file to automaton which guides analysis along assumption produced by incomplete analysis,e.g., config/specification/AssumptionGuidingAutomaton.spc, to enable residual program from combination of program and assumption condition")
+  @Option(
+      secure = true,
+      name = "assumptionGuider",
+      description =
+          "set specification file to automaton which guides analysis along assumption produced by"
+              + " incomplete analysis,e.g., config/specification/AssumptionGuidingAutomaton.spc, to"
+              + " enable residual program from combination of program and assumption condition")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private @Nullable Path conditionSpec = null;
 
-  @Option(secure = true, name = "assumptionFile", description = "set path to file which contains the condition")
+  @Option(
+      secure = true,
+      name = "assumptionFile",
+      description = "set path to file which contains the condition")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private @Nullable Path condition = null;
 
   @Option(
-    secure = true,
-    name = "cfa.pixelGraphicFile",
-    description =
-        "Export CFA of residual program as pixel graphic to the given file name. The suffix is added"
-            + " corresponding"
-            + " to the value of option pixelgraphic.export.format"
-            + "If set to 'null', no pixel graphic is exported."
-  )
+      secure = true,
+      name = "cfa.pixelGraphicFile",
+      description =
+          "Export CFA of residual program as pixel graphic to the given file name. The suffix is"
+              + " added corresponding to the value of option pixelgraphic.export.formatIf set to"
+              + " 'null', no pixel graphic is exported.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path exportPixelFile = Paths.get("residProgPixel");
+  private Path exportPixelFile = Path.of("residProgPixel");
 
   @Option(
       secure = true,
@@ -146,7 +150,8 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
     if(pInnerAlgorithm instanceof CPAAlgorithm) {
       cpaAlgorithm = (CPAAlgorithm) pInnerAlgorithm;
     } else {
-      throw new InvalidConfigurationException("For residual program generation, only the CPAAlgorithm is required.");
+      throw new InvalidConfigurationException(
+          "For residual program generation, only the CPAAlgorithm is required.");
     }
 
     checkCPAConfiguration(pCpa);
@@ -174,10 +179,11 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
   }
 
   @Override
-  public AlgorithmStatus run(ReachedSet pReachedSet)
-      throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
-    Preconditions.checkState(checkInitialState(pReachedSet.getFirstState()),
-        "CONDITION, CONDITION_PLUS_FOLD, and COMBINATION strategy require assumption automaton (condition) and assumption guiding automaton in specification");
+  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
+    Preconditions.checkState(
+        checkInitialState(pReachedSet.getFirstState()),
+        "CONDITION, CONDITION_PLUS_FOLD, and COMBINATION strategy require assumption automaton"
+            + " (condition) and assumption guiding automaton in specification");
     Preconditions.checkNotNull(cpaAlgorithm);
 
     logger.log(Level.INFO, "Start construction of residual program.");
@@ -226,26 +232,36 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
       throw new CPAException("Failed to write residual program.");
     }
 
-    logger.log(Level.INFO, "Finished construction of residual program. ",
-        "If the selected strategy is SLICING or COMBINATION, please continue with the slicing tool (Frama-C)");
+    logger.log(
+        Level.INFO,
+        "Finished construction of residual program. ",
+        "If the selected strategy is SLICING or COMBINATION, please continue with the slicing tool"
+            + " (Frama-C)");
 
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 
   protected Set<ARGState> getAllTargetStates(final ReachedSet pReachedSet) {
-    logger.log(Level.INFO, "All target states in residual program are relevant and will be considered in slicing.");
+    logger.log(
+        Level.INFO,
+        "All target states in residual program are relevant and will be considered in slicing.");
     return Sets.newHashSet(
         Iterables.filter(Iterables.filter(pReachedSet, ARGState.class), state -> state.isTarget()));
   }
 
   private Set<ARGState> getAllTargetStatesNotFullyExplored(final ReachedSet pNodesOfInlinedProg) {
-    logger.log(Level.INFO, "Identify all target states in original program which are not fully explored according to condition and are relevant for slicing.");
+    logger.log(
+        Level.INFO,
+        "Identify all target states in original program which are not fully explored according to"
+            + " condition and are relevant for slicing.");
     Multimap<CFANode, CallstackStateEqualsWrapper> unexploredTargetStates =
         getUnexploredTargetStates(
             AbstractStates.extractLocation(pNodesOfInlinedProg.getFirstState()));
     if (unexploredTargetStates == null) {
-      logger.log(Level.WARNING,
-          "Failed to identify target locations in program which have not been explored completely. ",
+      logger.log(
+          Level.WARNING,
+          "Failed to identify target locations in program which have not been explored completely."
+              + " ",
           "Assume that all target locations are unexplored.");
       return getAllTargetStates(pNodesOfInlinedProg);
     }
@@ -257,7 +273,8 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
 
   private @Nullable Multimap<CFANode, CallstackStateEqualsWrapper> getUnexploredTargetStates(
       final CFANode mainFunction) {
-    Preconditions.checkState(condition != null, "Please set option residualprogram.assumptionFile.");
+    Preconditions.checkState(
+        condition != null, "Please set option residualprogram.assumptionFile.");
     try {
       ConfigurationBuilder configBuilder = Configuration.builder();
       configBuilder.setOption("cpa", "cpa.arg.ARGCPA");
@@ -268,7 +285,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
       Configuration config = configBuilder.build();
 
       CoreComponentsFactory coreComponents =
-          new CoreComponentsFactory(config, logger, shutdown, new AggregatedReachedSets());
+          new CoreComponentsFactory(config, logger, shutdown, AggregatedReachedSets.empty());
 
       final Specification constrSpec =
           spec.withAdditionalSpecificationFile(
@@ -276,7 +293,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
 
       ConfigurableProgramAnalysis cpa = coreComponents.createCPA(cfa, constrSpec);
 
-      ReachedSet reached = coreComponents.createReachedSet();
+      ReachedSet reached = coreComponents.createReachedSet(cpa);
       reached.add(cpa.getInitialState(mainFunction, StateSpacePartition.getDefaultPartition()),
           cpa.getInitialPrecision(mainFunction, StateSpacePartition.getDefaultPartition()));
 
@@ -377,7 +394,9 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
     if (constructionStrategy == ResidualGenStrategy.SLICING) {
       if (conditionSpec == null || condition == null) {
         throw new InvalidConfigurationException(
-          "When selection SLICING strategy, also the options residualprogram.assumptionGuider and residualprogram.assumptionFile must be set."); }
+            "When selection SLICING strategy, also the options residualprogram.assumptionGuider and"
+                + " residualprogram.assumptionFile must be set.");
+      }
     }
   }
 
@@ -498,6 +517,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
                         "analysis.entryFunction",
                         AbstractStates.extractLocation(root).getFunctionName())
                     .setOption("parser.usePreprocessor", "true")
+                    .setOption("parser.useClang", "true")
                     .setOption("analysis.useLoopStructure", "false")
                     .build(),
                 logger,

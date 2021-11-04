@@ -235,7 +235,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     checkArgument(oldIndex > 0 && newIndex > oldIndex);
 
     if (TypeHandlerWithPointerAliasing.isPointerAccessSymbol(symbolName)) {
-      if(!options.useMemoryRegions()) {
+      if (!options.useMemoryRegions()) {
         assert symbolName.equals(typeHandler.getPointerAccessNameForType(symbolType));
       } else {
         //TODO: find a better assertion for the memory regions case
@@ -468,7 +468,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
     if (baseType instanceof CCompositeType) {
       final CCompositeType compositeType = (CCompositeType) baseType;
-      assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
+      assert compositeType.getKind() != ComplexTypeKind.ENUM
+          : "Enums are not composite: " + compositeType;
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
         final OptionalLong offset = typeHandler.getOffset(compositeType, memberDeclaration);
         if (!offset.isPresent()) {
@@ -532,8 +533,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
           //TODO someone has to check if length must be fixed to string size here if yes replace with stringExp.tranformTypeToArrayType
           lhsArrayType = new CArrayType(false, false, ((CPointerType) lhsType).getType(), null);
         } else {
-          throw new UnrecognizedCodeException(
-              "Assigning string literal to " + lhsType.toString(), assignment);
+          throw new UnrecognizedCodeException("Assigning string literal to " + lhsType, assignment);
         }
 
         List<CCharLiteralExpression> chars = ((CStringLiteralExpression) rhs).expandStringLiteral(lhsArrayType);
@@ -714,7 +714,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    */
   @Override
   protected BooleanFormula makeReturn(
-      final com.google.common.base.Optional<CAssignment> assignment,
+      final Optional<CAssignment> assignment,
       final CReturnStatementEdge returnEdge,
       final String function,
       final SSAMapBuilder ssa,
@@ -726,7 +726,9 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
     if (assignment.isPresent()) {
       final CVariableDeclaration returnVariableDeclaraton =
-          ((CFunctionEntryNode) returnEdge.getSuccessor().getEntryNode()).getReturnVariable().get();
+          ((CFunctionEntryNode) returnEdge.getSuccessor().getEntryNode())
+              .getReturnVariable()
+              .orElseThrow();
 
       declareSharedBase(
           returnVariableDeclaraton,
@@ -1237,9 +1239,9 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
     if (!ssa.build().equals(pContextSSA)) {
       throw new IllegalArgumentException(
-          "we cannot apply the SSAMap changes to the point where the"
-              + " information would be needed. Possible problems: uninitialized variables could be"
-              + " in more formulas which get conjuncted and then we get unsatisfiable formulas as a result.\n"
+          "we cannot apply the SSAMap changes to the point where the information would be needed."
+              + " Possible problems: uninitialized variables could be in more formulas which get"
+              + " conjuncted and then we get unsatisfiable formulas as a result.\n"
               + " difference in SSA variables: "
               + Sets.difference(ssa.allVariables(), pContextSSA.allVariables()));
     }

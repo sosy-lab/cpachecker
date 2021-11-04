@@ -229,7 +229,10 @@ logger.log(Level.FINEST, "apron state: isEqual");
         placesRemoved[i] = index;
         newTypeMap1.remove(realToIndexMap.get(index - amountInts));
       }
-      logger.log(Level.FINEST, "apron state: removeDimensionCopy: " + new Dimchange(amountInts, amountReals, placesRemoved));
+      logger.log(
+          Level.FINEST,
+          "apron state: removeDimensionCopy: "
+              + new Dimchange(amountInts, amountReals, placesRemoved));
       Abstract0 newApronState1 = apronState.removeDimensionsCopy(apronManager.getManager(),
                                                                  new Dimchange(amountInts, amountReals, placesRemoved));
       newState1 =  new ApronState(newApronState1, apronManager, newIntMap1, newRealMap1, newTypeMap1, isLoopHead, logger);
@@ -257,7 +260,10 @@ logger.log(Level.FINEST, "apron state: isEqual");
         placesRemoved[i] = index;
         newTypeMap2.remove(oldState.realToIndexMap.get(index - amountInts));
       }
-      logger.log(Level.FINEST, "apron state: removeDimensionCopy: " + new Dimchange(amountInts, amountReals, placesRemoved));
+      logger.log(
+          Level.FINEST,
+          "apron state: removeDimensionCopy: "
+              + new Dimchange(amountInts, amountReals, placesRemoved));
       Abstract0 newApronState2 =  oldState.apronState.removeDimensionsCopy(oldState.apronManager.getManager(),
                                                                            new Dimchange(amountInts, amountReals, placesRemoved));
       newState2 = new ApronState(newApronState2, oldState.apronManager, newIntMap2, newRealMap2, newTypeMap2, isLoopHead, logger);
@@ -493,7 +499,7 @@ logger.log(Level.FINEST, "apron state: isEqual");
     List<MemoryLocation> keysToRemove = new ArrayList<>();
     int intsRemoved = 0;
     for (MemoryLocation var : integerToIndexMap) {
-      if (var.getAsSimpleString().startsWith(varPrefix)) {
+      if (var.getExtendedQualifiedName().startsWith(varPrefix)) {
         keysToRemove.add(var);
         intsRemoved++;
       }
@@ -501,7 +507,7 @@ logger.log(Level.FINEST, "apron state: isEqual");
 
     int realsRemoved = 0;
     for (MemoryLocation var : realToIndexMap) {
-      if (var.getAsSimpleString().startsWith(varPrefix)) {
+      if (var.getExtendedQualifiedName().startsWith(varPrefix)) {
         keysToRemove.add(var);
         realsRemoved++;
       }
@@ -515,7 +521,10 @@ logger.log(Level.FINEST, "apron state: isEqual");
     for (int i = 0;  i < placesToRemove.length; i++) {
       placesToRemove[i] = getVariableIndexFor(keysToRemove.get(i));
     }
-    logger.log(Level.FINEST, "apron state: removeDimensionCopy: " + new Dimchange(intsRemoved, realsRemoved, placesToRemove));
+    logger.log(
+        Level.FINEST,
+        "apron state: removeDimensionCopy: "
+            + new Dimchange(intsRemoved, realsRemoved, placesToRemove));
     ApronState newState =
         new ApronState(
             apronState.removeDimensionsCopy(
@@ -665,9 +674,12 @@ logger.log(Level.FINEST, "apron state: isEqual");
 
       // TODO fix size, machinemodel needed?
       if (isInt(pNode.dim)) {
-        return bitFmgr.makeVariable(32, integerToIndexMap.get(pNode.dim).getAsSimpleString());
+        return bitFmgr.makeVariable(
+            32, integerToIndexMap.get(pNode.dim).getExtendedQualifiedName());
       } else {
-        return bitFmgr.makeVariable(32, realToIndexMap.get(pNode.dim - integerToIndexMap.size()).getAsSimpleString());
+        return bitFmgr.makeVariable(
+            32,
+            realToIndexMap.get(pNode.dim - integerToIndexMap.size()).getExtendedQualifiedName());
       }
     }
 

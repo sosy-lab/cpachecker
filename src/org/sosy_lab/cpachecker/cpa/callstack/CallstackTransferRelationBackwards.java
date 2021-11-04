@@ -101,7 +101,10 @@ public class CallstackTransferRelationBackwards extends CallstackTransferRelatio
 
             return ImmutableSet.of();
           } else {
-            logger.log(Level.INFO, "Recursion detected, aborting. To ignore recursion, add -skipRecursion to the command line.");
+              logger.log(
+                  Level.INFO,
+                  "Recursion detected, aborting. To ignore recursion, add -skipRecursion to the"
+                      + " command line.");
               throw new UnsupportedCodeException("recursion", pEdge);
           }
 
@@ -125,10 +128,10 @@ public class CallstackTransferRelationBackwards extends CallstackTransferRelatio
 
         CallstackState nextStackState = e.getPreviousState();
         if (nextStackState == null) {
-          // BACKWARDS: The analysis might start somewhere in the call tree (and we might have not predecessor state)
-          result = Collections.singleton(
-              new CallstackState(null, nextAnalysisFunction, nextAnalysisLoc)
-          );
+            // BACKWARDS: The analysis might start somewhere in the call tree (and we might have not
+            // predecessor state)
+            result =
+                ImmutableSet.of(new CallstackState(null, nextAnalysisFunction, nextAnalysisLoc));
 
           // This if clause is needed to check if the correct FunctionCallEdge is taken.
           // Consider a method which is called from different other methods, then

@@ -116,7 +116,8 @@ public class ARGToDotWriter {
 
     ARGToDotWriter toDotWriter = new ARGToDotWriter(sb);
     for (ARGState rootState : rootStates) {
-      toDotWriter.enterSubgraph("cluster_" + rootState.getStateId(), "reachedset_" + rootState.getStateId());
+      toDotWriter.enterSubgraph(
+          "cluster_" + rootState.getStateId(), "reachedset_" + rootState.getStateId());
       toDotWriter.writeSubgraph(rootState,
               successorFunction,
               displayedElements,
@@ -221,7 +222,7 @@ public class ARGToDotWriter {
         builder.append(": \\l");
 
         for (CFAEdge edge : edges) {
-          builder.append(edge.getDescription().replaceAll("\n", " ").replace('"', '\''));
+          builder.append(edge.getDescription().replace('\n', ' ').replace('"', '\''));
           builder.append("\\l");
         }
 

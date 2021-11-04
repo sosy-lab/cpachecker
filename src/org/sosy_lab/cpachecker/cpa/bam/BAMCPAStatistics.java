@@ -13,7 +13,6 @@ import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -38,6 +37,7 @@ import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer;
 
 /** Prints some BAM related statistics */
 @Options(prefix = "cpa.bam")
+@SuppressWarnings("deprecation")
 class BAMCPAStatistics implements Statistics {
 
   // stats about refinement
@@ -78,7 +78,7 @@ class BAMCPAStatistics implements Statistics {
 
   @Option(secure = true, description = "file for exporting detailed statistics about blocks")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path blockStatisticsFile = Paths.get("block_statistics.txt");
+  private Path blockStatisticsFile = Path.of("block_statistics.txt");
 
   private final LogManager logger;
   private final AbstractBAMCPA cpa;
@@ -185,7 +185,8 @@ class BAMCPAStatistics implements Statistics {
     if (blockStatisticsFile != null) {
       try (Writer w = IO.openOutputFile(blockStatisticsFile, Charset.defaultCharset())) {
         w.write(
-            "start; end; #locations; #variables; sumtime; maxtime; avgtime; #intervals; variables;");
+            "start; end; #locations; #variables; sumtime; maxtime; avgtime; #intervals;"
+                + " variables;");
         w.write("\n");
         for (Entry<Block, Timer> entry : timeForBlock.entrySet()) {
           Block block = entry.getKey();

@@ -58,7 +58,6 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackTransferRelation;
-import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InfeasibleCounterexampleException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
@@ -75,7 +74,7 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
 
   private final Collection<Statistics> stats = new ArrayList<>();
 
-  private static final boolean isStop(AbstractState e) {
+  private static boolean isStop(AbstractState e) {
     AssumptionStorageState ass = AbstractStates.extractStateByType(e, AssumptionStorageState.class);
     return ass != null && ass.isStop();
   }
@@ -94,8 +93,7 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
   }
 
   @Override
-  public AlgorithmStatus run(ReachedSet pReachedSet)
-      throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
+  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     Preconditions.checkArgument(pReachedSet.getFirstState() instanceof ARGState,
         "Top most abstract state must be an ARG state");
     Preconditions.checkArgument(AbstractStates.extractLocation(pReachedSet.getFirstState()) != null,
@@ -117,7 +115,9 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
       return status;
     }
 
-    logger.log(Level.INFO, "Analysis incomplete, some states could not be explored. Generate residual program.");
+    logger.log(
+        Level.INFO,
+        "Analysis incomplete, some states could not be explored. Generate residual program.");
     ARGState argRoot = (ARGState) pReachedSet.getFirstState();
 
     CFANode mainFunction = AbstractStates.extractLocation(argRoot);
@@ -321,7 +321,7 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
       Configuration config = configBuilder.build();
 
       CoreComponentsFactory coreComponents =
-          new CoreComponentsFactory(config, logger, shutdown, new AggregatedReachedSets());
+          new CoreComponentsFactory(config, logger, shutdown, AggregatedReachedSets.empty());
 
       Specification spec = getSpecification();
       if (usesParallelCompositionOfProgramAndCondition()) {
@@ -336,7 +336,7 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
       }
       ConfigurableProgramAnalysis cpa = coreComponents.createCPA(cfa, spec);
 
-      ReachedSet reached = coreComponents.createReachedSet();
+      ReachedSet reached = coreComponents.createReachedSet(cpa);
       reached.add(cpa.getInitialState(mainFunction, StateSpacePartition.getDefaultPartition()),
           cpa.getInitialPrecision(mainFunction, StateSpacePartition.getDefaultPartition()));
 
@@ -368,9 +368,11 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
     if (usesParallelCompositionOfProgramAndCondition()) {
       if (getAssumptionGuider() == null) {
         throw new InvalidConfigurationException(
-          "For current strategy " + getStrategy().toString() +
-          ", the control automaton guiding the exploration based on the condition is needed. " +
-          "Please set the option residualprogram.assumptionGuider."); }
+            "For current strategy "
+                + getStrategy()
+                + ", the control automaton guiding the exploration based on the condition is"
+                + " needed. Please set the option residualprogram.assumptionGuider.");
+      }
     }
   }
 

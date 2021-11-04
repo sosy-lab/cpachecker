@@ -43,8 +43,10 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.value.refiner.UnsoundRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.util.CPAs;
 
-public class CEGARAlgorithm implements Algorithm, StatisticsProvider, ReachedSetUpdater {
+public class CEGARAlgorithm
+    implements Algorithm, StatisticsProvider, ReachedSetUpdater, AutoCloseable {
 
   private static class CEGARStatistics implements Statistics {
 
@@ -77,13 +79,21 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider, ReachedSet
         out.println("Number of failed refinements:         " + countFailedRefinements);
         out.println("Max. size of reached set before ref.: " + maxReachedSizeBeforeRefinement);
         out.println("Max. size of reached set after ref.:  " + maxReachedSizeAfterRefinement);
-        out.println("Avg. size of reached set before ref.: " + div(totalReachedSizeBeforeRefinement, countRefinements));
-        out.println("Avg. size of reached set after ref.:  " + div(totalReachedSizeAfterRefinement, countSuccessfulRefinements));
+        out.println(
+            "Avg. size of reached set before ref.: "
+                + div(totalReachedSizeBeforeRefinement, countRefinements));
+        out.println(
+            "Avg. size of reached set after ref.:  "
+                + div(totalReachedSizeAfterRefinement, countSuccessfulRefinements));
         out.println("");
         out.println("Total time for CEGAR algorithm:   " + totalTimer);
         out.println("Time for refinements:             " + refinementTimer);
-        out.println("Average time for refinement:      " + refinementTimer.getAvgTime().formatAs(TimeUnit.SECONDS));
-        out.println("Max time for refinement:          " + refinementTimer.getMaxTime().formatAs(TimeUnit.SECONDS));
+        out.println(
+            "Average time for refinement:      "
+                + refinementTimer.getAvgTime().formatAs(TimeUnit.SECONDS));
+        out.println(
+            "Max time for refinement:          "
+                + refinementTimer.getMaxTime().formatAs(TimeUnit.SECONDS));
       }
     }
   }
@@ -136,11 +146,11 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider, ReachedSet
     private Refiner.Factory refinerFactory;
 
     @Option(
-      secure = true,
-      name = "globalRefinement",
-      description =
-          "Whether to do refinement immediately after finding an error state, or globally after the ARG has been unrolled completely."
-    )
+        secure = true,
+        name = "globalRefinement",
+        description =
+            "Whether to do refinement immediately after finding an error state, or globally after"
+                + " the ARG has been unrolled completely.")
     private boolean globalRefinement = false;
 
     /*
@@ -230,7 +240,11 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider, ReachedSet
         notifyReachedSetUpdateListeners(reached);
 
         if (stats.countRefinements == maxRefinementNum) {
-          logger.log(Level.WARNING, "Aborting analysis because maximum number of refinements " + maxRefinementNum + " used");
+          logger.log(
+              Level.WARNING,
+              "Aborting analysis because maximum number of refinements "
+                  + maxRefinementNum
+                  + " used");
           status = status.withPrecise(false);
           break;
         }
@@ -266,7 +280,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider, ReachedSet
   private boolean refinementNecessary(ReachedSet reached, AbstractState previousLastState) {
     if (globalRefinement) {
       // check other states
-      return reached.hasViolatedProperties();
+      return reached.wasTargetReached();
 
     } else {
       // Check only last state, but only if it is different from the last iteration.
@@ -342,6 +356,11 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider, ReachedSet
     for (ReachedSetUpdateListener rsul : reachedSetUpdateListeners) {
       rsul.updated(pReachedSet);
     }
+  }
+
+  @Override
+  public void close() {
+    CPAs.closeIfPossible(mRefiner, logger);
   }
 
 }

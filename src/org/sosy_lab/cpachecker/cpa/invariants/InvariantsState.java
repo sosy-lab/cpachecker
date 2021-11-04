@@ -143,9 +143,9 @@ public class InvariantsState implements AbstractState,
 
   private final boolean overapproximatesUnsupportedFeature;
 
-  private final Set<BooleanFormula<CompoundInterval>> assumptions;
+  private final ImmutableSet<BooleanFormula<CompoundInterval>> assumptions;
 
-  private Set<BooleanFormula<CompoundInterval>> environmentAsAssumptions;
+  private ImmutableSet<BooleanFormula<CompoundInterval>> environmentAsAssumptions;
 
   private volatile int hash = 0;
 
@@ -308,13 +308,17 @@ public class InvariantsState implements AbstractState,
     FormulaEvaluationVisitor<CompoundInterval> fev = getFormulaResolver();
     CompoundInterval value = pSubscript.accept(fev, this.environment);
     if (value.isSingleton()) { // Exact subscript value is known
-      return assignInternal(MemoryLocation.valueOf(pArray.getAsSimpleString() + "[" + value.getValue() + "]"), pValue);
+      return assignInternal(
+          MemoryLocation.parseExtendedQualifiedName(
+              pArray.getExtendedQualifiedName() + "[" + value.getValue() + "]"),
+          pValue);
     } else { // Multiple subscript values are possible: All possible subscript targets are now unknown
       InvariantsState result = overapproximateUnsupportedFeature();
       for (MemoryLocation memoryLocation : this.environment.keySet()) {
-        String prefix = pArray.getAsSimpleString() + "[";
-        if (memoryLocation.getAsSimpleString().startsWith(prefix)) {
-          String subscriptValueStr = memoryLocation.getAsSimpleString().replace(prefix, "").replaceAll("].*", "");
+        String prefix = pArray.getExtendedQualifiedName() + "[";
+        if (memoryLocation.getExtendedQualifiedName().startsWith(prefix)) {
+          String subscriptValueStr =
+              memoryLocation.getExtendedQualifiedName().replace(prefix, "").replaceAll("].*", "");
           if (subscriptValueStr.equals("*") || value.contains(new BigInteger(subscriptValueStr))) {
             result =
                 result.assignInternal(
@@ -349,30 +353,41 @@ public class InvariantsState implements AbstractState,
         tools.compoundIntervalFormulaManager.cast(typeInfo, pValue);
     for (MemoryLocation memoryLocation : this.environment.keySet()) {
       TypeInfo varTypeInfo = BitVectorInfo.from(machineModel, getType(memoryLocation));
-      if (memoryLocation.getAsSimpleString().startsWith(pMemoryLocation.getAsSimpleString() + "->")
-          || memoryLocation.getAsSimpleString().startsWith(pMemoryLocation.getAsSimpleString() + ".")) {
+      if (memoryLocation
+              .getExtendedQualifiedName()
+              .startsWith(pMemoryLocation.getExtendedQualifiedName() + "->")
+          || memoryLocation
+              .getExtendedQualifiedName()
+              .startsWith(pMemoryLocation.getExtendedQualifiedName() + ".")) {
         result = result.assign(memoryLocation, allPossibleValuesFormula(varTypeInfo));
       }
     }
     if (value instanceof Variable<?>) {
       MemoryLocation valueMemoryLocation = ((Variable<?>) value).getMemoryLocation();
-      if (valueMemoryLocation.getAsSimpleString().startsWith(pMemoryLocation.getAsSimpleString() + "->")
-          || valueMemoryLocation.getAsSimpleString().startsWith(pMemoryLocation.getAsSimpleString() + ".")) {
+      if (valueMemoryLocation
+              .getExtendedQualifiedName()
+              .startsWith(pMemoryLocation.getExtendedQualifiedName() + "->")
+          || valueMemoryLocation
+              .getExtendedQualifiedName()
+              .startsWith(pMemoryLocation.getExtendedQualifiedName() + ".")) {
         return assign(pMemoryLocation, allPossibleValuesFormula(typeInfo));
       }
-      String pointerDerefPrefix = valueMemoryLocation.getAsSimpleString() + "->";
-      String nonPointerDerefPrefix = valueMemoryLocation.getAsSimpleString() + ".";
+      String pointerDerefPrefix = valueMemoryLocation.getExtendedQualifiedName() + "->";
+      String nonPointerDerefPrefix = valueMemoryLocation.getExtendedQualifiedName() + ".";
       for (Map.Entry<MemoryLocation, NumeralFormula<CompoundInterval>> entry : this.environment.entrySet()) {
         final String suffix;
-        if (entry.getKey().getAsSimpleString().startsWith(pointerDerefPrefix)) {
-          suffix = entry.getKey().getAsSimpleString().substring(pointerDerefPrefix.length());
-        } else if (entry.getKey().getAsSimpleString().startsWith(nonPointerDerefPrefix)) {
-          suffix = entry.getKey().getAsSimpleString().substring(nonPointerDerefPrefix.length());
+        if (entry.getKey().getExtendedQualifiedName().startsWith(pointerDerefPrefix)) {
+          suffix = entry.getKey().getExtendedQualifiedName().substring(pointerDerefPrefix.length());
+        } else if (entry.getKey().getExtendedQualifiedName().startsWith(nonPointerDerefPrefix)) {
+          suffix =
+              entry.getKey().getExtendedQualifiedName().substring(nonPointerDerefPrefix.length());
         } else {
           suffix = null;
         }
         if (suffix != null) {
-          MemoryLocation memoryLocation = MemoryLocation.valueOf(pMemoryLocation.getAsSimpleString() + "->" + suffix);
+          MemoryLocation memoryLocation =
+              MemoryLocation.parseExtendedQualifiedName(
+                  pMemoryLocation.getExtendedQualifiedName() + "->" + suffix);
           NumeralFormula<CompoundInterval> previous = this.environment.get(memoryLocation);
           if (previous != null) {
             result =
@@ -796,11 +811,11 @@ public class InvariantsState implements AbstractState,
    *
    * @return the environment as a set equations of the variables with their values.
    */
-  public Set<BooleanFormula<CompoundInterval>> getEnvironmentAsAssumptions() {
+  public ImmutableSet<BooleanFormula<CompoundInterval>> getEnvironmentAsAssumptions() {
     if (this.environmentAsAssumptions == null) {
       environmentAsAssumptions = getEnvironmentAsAssumptions0();
     }
-    return Collections.unmodifiableSet(environmentAsAssumptions);
+    return environmentAsAssumptions;
   }
 
   /**
@@ -852,12 +867,13 @@ public class InvariantsState implements AbstractState,
     return assumptionsIntervals;
   }
 
-  private Set<BooleanFormula<CompoundInterval>> getEnvironmentAsAssumptions0() {
+  private ImmutableSet<BooleanFormula<CompoundInterval>> getEnvironmentAsAssumptions0() {
     CompoundIntervalFormulaManager compoundIntervalFormulaManager =
         new CompoundIntervalFormulaManager(tools.compoundIntervalManagerFactory);
 
-    Set<BooleanFormula<CompoundInterval>> environmentalAssumptions =
-        new LinkedHashSet<>(assumptions);
+    ImmutableSet.Builder<BooleanFormula<CompoundInterval>> environmentalAssumptions =
+        ImmutableSet.builderWithExpectedSize(assumptions.size());
+    environmentalAssumptions.addAll(assumptions);
 
     List<NumeralFormula<CompoundInterval>> atomic = new ArrayList<>(1);
     Deque<NumeralFormula<CompoundInterval>> toCheck = new ArrayDeque<>(1);
@@ -906,7 +922,7 @@ public class InvariantsState implements AbstractState,
         environmentalAssumptions.add(assumption);
       }
     }
-    return environmentalAssumptions;
+    return environmentalAssumptions.build();
   }
 
   /**
@@ -1055,15 +1071,10 @@ public class InvariantsState implements AbstractState,
       FormulaManagerView pManager) {
     final ToBitvectorFormulaVisitor toBooleanFormulaVisitor =
         new ToBitvectorFormulaVisitor(pManager, getFormulaResolver());
-    final Set<org.sosy_lab.java_smt.api.BooleanFormula> approximations = new LinkedHashSet<>();
-    for (BooleanFormula<CompoundInterval> approximation : getApproximationFormulas()) {
-      org.sosy_lab.java_smt.api.BooleanFormula approximationFormula =
-          approximation.accept(toBooleanFormulaVisitor, getEnvironment());
-      if (approximationFormula != null) {
-        approximations.add(approximationFormula);
-      }
-    }
-    return pManager.getBooleanFormulaManager().and(approximations);
+    return getApproximationFormulas().stream()
+        .map(approximation -> approximation.accept(toBooleanFormulaVisitor, getEnvironment()))
+        .filter(f -> f != null)
+        .collect(pManager.getBooleanFormulaManager().toConjunction());
   }
 
   @Override
@@ -1691,15 +1702,16 @@ public class InvariantsState implements AbstractState,
   }
 
   public Set<MemoryLocation> getVariables() {
-    ImmutableSet.Builder<MemoryLocation> result = ImmutableSet.builder();
-    result.addAll(environment.keySet());
-    result.addAll(
-        from(environment.values()).transformAndConcat(value -> value.accept(COLLECT_VARS_VISITOR)));
-    return result.build();
+    return ImmutableSet.<MemoryLocation>builder()
+        .addAll(environment.keySet())
+        .addAll(
+            from(environment.values())
+                .transformAndConcat(value -> value.accept(COLLECT_VARS_VISITOR)))
+        .build();
   }
 
   private Set<Variable<CompoundInterval>> getVariables(final Predicate<MemoryLocation> pMemoryLocationPredicate) {
-    final Set<Variable<CompoundInterval>> result = new HashSet<>();
+    final Set<Variable<CompoundInterval>> result = new LinkedHashSet<>();
     Predicate<NumeralFormula<CompoundInterval>> pCondition = new Predicate<>() {
 
       @Override

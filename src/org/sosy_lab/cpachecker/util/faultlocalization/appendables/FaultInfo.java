@@ -8,8 +8,10 @@
 
 package org.sosy_lab.cpachecker.util.faultlocalization.appendables;
 
+import java.util.Comparator;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
+import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 import org.sosy_lab.cpachecker.util.faultlocalization.ranking.NoContextExplanation;
 
 public abstract class FaultInfo implements Comparable<FaultInfo>{
@@ -19,8 +21,6 @@ public abstract class FaultInfo implements Comparable<FaultInfo>{
     REASON(0),
     /** Provides a possible fix */
     FIX(1),
-    /** Hints and explanations for the user */
-    HINT(2),
     /** Information provided by the rankings */
     RANK_INFO(3);
 
@@ -32,36 +32,34 @@ public abstract class FaultInfo implements Comparable<FaultInfo>{
 
   protected double score;
   protected String description;
-  private InfoType type;
+  private final InfoType type;
 
   protected FaultInfo(InfoType pType) {
     type = pType;
   }
 
   /**
-   * Returns a possible fix for pSet. It may be a guess.
-   * The set has to have size 1 because NoContextExplanation is designed to explain singletons only.
-   * @param pSet the singleton set to calculate the explanation for
+   * Returns a possible fix for pSet. It may be a guess. The set has to have size 1 because
+   * NoContextExplanation is designed to explain singletons only.
+   *
+   * @param pFaultContribution find an explanation for this fault contribution
    * @return Explanation for pSet
    */
-  public static FaultInfo possibleFixFor(Fault pSet){
-    return new PotentialFix(InfoType.FIX, new NoContextExplanation().explanationFor(pSet));
+  public static FaultInfo possibleFixFor(FaultContribution pFaultContribution) {
+    return new PotentialFix(
+        InfoType.FIX, new NoContextExplanation().explanationFor(new Fault(pFaultContribution)));
   }
 
-  public static FaultInfo fix(String pDescription){
+  public static PotentialFix fix(String pDescription) {
     return new PotentialFix(InfoType.FIX, pDescription);
   }
 
-  public static FaultInfo rankInfo(String pDescription, double pLikelihood){
+  public static RankInfo rankInfo(String pDescription, double pLikelihood) {
     return new RankInfo(InfoType.RANK_INFO, pDescription, pLikelihood);
   }
 
-  public static FaultInfo justify(String pDescription){
+  public static FaultReason justify(String pDescription) {
     return new FaultReason(InfoType.REASON, pDescription);
-  }
-
-  public static FaultInfo hint(String pDescription){
-    return new Hint(InfoType.HINT, pDescription);
   }
 
   public double getScore(){
@@ -78,16 +76,15 @@ public abstract class FaultInfo implements Comparable<FaultInfo>{
 
   /**
    * Sort by InfoType then by score.
+   *
    * @param info FaultInfo for comparison
    * @return Is this object smaller equal or greater than info
    */
   @Override
-  public int compareTo(FaultInfo info){
-    if(type.equals(info.type)){
-      return Double.compare(info.score, score);
-    } else {
-      return type.reportRank - info.type.reportRank;
-    }
+  public int compareTo(FaultInfo info) {
+    return Comparator.<FaultInfo>comparingInt(i -> i.type.reportRank)
+        .thenComparingDouble(i -> i.score)
+        .compare(this, info);
   }
 
   @Override

@@ -58,16 +58,18 @@ public class TranslatorTest {
 
     constantsMap =
         constantsMap.putAndCopy(
-            MemoryLocation.valueOf("var1"), new ValueAndType(new NumericValue(3), null));
+            MemoryLocation.forIdentifier("var1"), new ValueAndType(new NumericValue(3), null));
     constantsMap =
         constantsMap.putAndCopy(
-            MemoryLocation.valueOf("var3"), new ValueAndType(NullValue.getInstance(), null));
+            MemoryLocation.forIdentifier("var3"), new ValueAndType(NullValue.getInstance(), null));
     constantsMap =
         constantsMap.putAndCopy(
-            MemoryLocation.valueOf("fun::var1"), new ValueAndType(new NumericValue(1.5), null));
+            MemoryLocation.forLocalVariable("fun", "var1"),
+            new ValueAndType(new NumericValue(1.5), null));
     constantsMap =
         constantsMap.putAndCopy(
-            MemoryLocation.valueOf("fun::varC"), new ValueAndType(new NumericValue(-5), null));
+            MemoryLocation.forLocalVariable("fun", "varC"),
+            new ValueAndType(new NumericValue(-5), null));
 
     Truth.assertThat(constantsMap).hasSize(4);
 
@@ -82,7 +84,8 @@ public class TranslatorTest {
 
     // Test of method getListOfIndependentRequirements()
     List<String> listOfIndependentRequirements = vReqTransTest.getListOfIndependentRequirements(vStateTest, ssaTest, null);
-    Truth.assertThat(listOfIndependentRequirements).containsExactly("(= var1@1 3)", "(= |fun::varC| -5)");
+    Truth.assertThat(listOfIndependentRequirements)
+        .containsExactly("(= var1@1 3)", "(= |fun::varC| -5)");
 
     listOfIndependentRequirements =
         vReqTransTest.getListOfIndependentRequirements(vStateTest, ssaTest, ImmutableList.of());
@@ -207,7 +210,10 @@ public class TranslatorTest {
 
     convertedToFormula = iReqTransTest.convertToFormula(iStateTest, ssaTest, null);
     Truth.assertThat(convertedToFormula.getFirst()).containsExactlyElementsIn(content);
-    s = "(define-fun req () Bool (and (and (>= |fun::var1| 0) (<= |fun::var1| 10))(and (>= |fun::varB@1| 8)(and (and (>= |fun::varC| -15) (<= |fun::varC| -3))(and (<= var1@1 5)(and (>= var2 -7)(<= var3@1 -2)))))))";
+    s =
+        "(define-fun req () Bool (and (and (>= |fun::var1| 0) (<= |fun::var1| 10))(and (>="
+            + " |fun::varB@1| 8)(and (and (>= |fun::varC| -15) (<= |fun::varC| -3))(and (<= var1@1"
+            + " 5)(and (>= var2 -7)(<= var3@1 -2)))))))";
     Truth.assertThat(convertedToFormula.getSecond()).isEqualTo(s);
 
     convertedToFormula = iReqTransTest.convertToFormula(iStateTest, ssaTest, requiredVars);

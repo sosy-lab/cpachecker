@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
@@ -50,8 +51,14 @@ import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGVa
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -66,7 +73,13 @@ class ExpressionValueVisitor
     implements CRightHandSideVisitor<List<? extends SMGValueAndState>, CPATransferException> {
 
   final SMGExpressionEvaluator smgExpressionEvaluator;
+
+  /**
+   * The edge should never be used to retrieve any information. It should only be used for logging
+   * and debugging, because we do not know the context of the caller.
+   */
   final CFAEdge cfaEdge;
+
   private final SMGState initialSmgState;
 
   public ExpressionValueVisitor(SMGExpressionEvaluator pSmgExpressionEvaluator, CFAEdge pEdge, SMGState pSmgState) {
@@ -115,10 +128,14 @@ class ExpressionValueVisitor
 
     BigInteger value = exp.getValue();
 
-    boolean isZero = value.equals(BigInteger.ZERO);
+    SMGKnownSymbolicValue symbolicOfExplicit =
+        getInitialSmgState().getSymbolicOfExplicit(SMGKnownExpValue.valueOf(value));
+    if (symbolicOfExplicit == null) {
+      symbolicOfExplicit = SMGKnownSymValue.of();
+      getInitialSmgState().putExplicit(symbolicOfExplicit, SMGKnownExpValue.valueOf(value));
+    }
 
-    SMGSymbolicValue val = (isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE);
-    return singletonList(SMGValueAndState.of(getInitialSmgState(), val));
+    return singletonList(SMGValueAndState.of(getInitialSmgState(), symbolicOfExplicit));
   }
 
   @Override
@@ -234,17 +251,16 @@ class ExpressionValueVisitor
 
         for (SMGValueAndState valueAndState : valueAndStates) {
 
-        SMGSymbolicValue value = valueAndState.getObject();
+          SMGValue value = valueAndState.getObject();
 
-          SMGSymbolicValue val =
-              value.equals(SMGZeroValue.INSTANCE) ? value : SMGUnknownValue.INSTANCE;
+          SMGValue val = value.equals(SMGZeroValue.INSTANCE) ? value : SMGUnknownValue.INSTANCE;
         result.add(SMGValueAndState.of(valueAndState.getSmgState(), val));
       }
 
         return result.build();
 
     case SIZEOF:
-        int size =
+        long size =
             smgExpressionEvaluator.getBitSizeof(
                 cfaEdge,
                 TypeUtils.getRealExpressionType(unaryOperand),
@@ -310,7 +326,7 @@ class ExpressionValueVisitor
 
     for (SMGValueAndState lValAndState : lValAndStates) {
 
-      SMGSymbolicValue lVal = lValAndState.getObject();
+      SMGValue lVal = lValAndState.getObject();
       SMGState newState = lValAndState.getSmgState();
 
       List<? extends SMGValueAndState> rValAndStates =
@@ -318,7 +334,7 @@ class ExpressionValueVisitor
 
       for (SMGValueAndState rValAndState : rValAndStates) {
 
-        SMGSymbolicValue rVal = rValAndState.getObject();
+        SMGValue rVal = rValAndState.getObject();
         newState = rValAndState.getSmgState();
 
         if (rVal.equals(SMGUnknownValue.INSTANCE)
@@ -327,7 +343,8 @@ class ExpressionValueVisitor
           continue;
         }
 
-        result.addAll(evaluateBinaryExpression(lVal, rVal, binaryOperator, newState));
+        result.addAll(
+            evaluateBinaryExpression(lVal, rVal, lVarInBinaryExp, binaryOperator, newState));
       }
     }
 
@@ -335,8 +352,9 @@ class ExpressionValueVisitor
   }
 
   private List<? extends SMGValueAndState> evaluateBinaryExpression(
-      SMGSymbolicValue lVal,
-      SMGSymbolicValue rVal,
+      SMGValue lVal,
+      SMGValue rVal,
+      CExpression lVarInBinaryExp,
       BinaryOperator binaryOperator,
       SMGState newState)
       throws SMGInconsistentException {
@@ -370,6 +388,36 @@ class ExpressionValueVisitor
               return singletonList(SMGValueAndState.of(newState, val));
 
           case MINUS:
+              if (lVal instanceof SMGKnownAddressValue && rVal instanceof SMGKnownAddressValue) {
+                SMGKnownAddressValue lValAddress = (SMGKnownAddressValue) lVal;
+                SMGKnownAddressValue rValAddress = (SMGKnownAddressValue) rVal;
+                if (lValAddress.getObject().equals(rValAddress.getObject())) {
+                  CType lVarType = lVarInBinaryExp.getExpressionType().getCanonicalType();
+                  final CType type;
+                  if (lVarType instanceof CPointerType) {
+                    // normal pointer type
+                    type = ((CPointerType) lVarType).getType();
+                  } else if (lVarType instanceof CSimpleType) {
+                    // pointers can also be casted as "long int" (32bit) or "long long int" (64bit).
+                    // Lets assume, that invalid combinations like "int" for 64bit do not appear.
+                    type = lVarType;
+                  } else {
+                    throw new AssertionError(
+                        String.format(
+                            "unhandled type '%s' for pointer comparison using '%s'.",
+                            lVarType, lVarInBinaryExp));
+                  }
+                  BigInteger sizeOfLVal = smgExpressionEvaluator.machineModel.getSizeofInBits(type);
+                  SMGExplicitValue diff = lValAddress.getOffset().subtract(rValAddress.getOffset());
+                  diff = diff.divide(SMGKnownExpValue.valueOf(sizeOfLVal));
+                  return singletonList(SMGValueAndState.of(newState, diff));
+                }
+              }
+              // else
+              isZero = lVal.equals(rVal);
+              val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
+              return singletonList(SMGValueAndState.of(newState, val));
+
           case MODULO:
               isZero = lVal.equals(rVal);
               val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
@@ -412,7 +460,7 @@ class ExpressionValueVisitor
 
           for (SMGValueAndState assumptionValueAndState : assumptionValueAndStates) {
           newState = assumptionValueAndState.getSmgState();
-          SMGSymbolicValue assumptionVal = assumptionValueAndState.getObject();
+            SMGValue assumptionVal = assumptionValueAndState.getObject();
 
             if (assumptionVal.isZero()) {
               SMGValueAndState resultValueAndState =
@@ -435,7 +483,22 @@ class ExpressionValueVisitor
   public List<? extends SMGValueAndState> visit(CCastExpression cast) throws CPATransferException {
     // For different types we need different visitors,
     // TODO doesn't calculate type reinterpretations
-    return smgExpressionEvaluator.evaluateExpressionValue(getInitialSmgState(), getCfaEdge(), cast.getOperand());
+    List<? extends SMGValueAndState> smgValueAndStates =
+        smgExpressionEvaluator.evaluateExpressionValue(
+            getInitialSmgState(), getCfaEdge(), cast.getOperand());
+    CType expressionType = cast.getCastType();
+    if (!SMGExpressionEvaluator.isAddressType(expressionType)
+        && SMGExpressionEvaluator.isAddressType(
+            TypeUtils.getRealExpressionType(cast.getOperand()))) {
+      List<SMGValueAndState> castedValueAndStates = new ArrayList<>(smgValueAndStates.size());
+      for (SMGValueAndState valueAndState : smgValueAndStates) {
+        if (valueAndState instanceof SMGAddressValueAndState) {
+          castedValueAndStates.add(valueAndState);
+        }
+      }
+      return castedValueAndStates;
+    }
+    return smgValueAndStates;
   }
 
   private List<? extends SMGValueAndState> dereferenceArray(CExpression exp, CType derefType)

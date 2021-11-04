@@ -18,7 +18,6 @@ import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -155,7 +154,7 @@ parser code {:
       throws InvalidConfigurationException {
     final ComplexSymbolFactory sf = new ComplexSymbolFactory();
     final Scanner scanner =
-        new AutomatonScanner(reader, pInputFile.orElse(Paths.get("")), pLogger, sf);
+        new AutomatonScanner(reader, pInputFile.orElse(Path.of("")), pLogger, sf);
 
     final AutomatonParser automatonParser;
     switch (pLanguage) {
@@ -186,7 +185,7 @@ parser code {:
 
 terminal EXCLAMATION, AND, OR, ARROW, SEMICOLON, COMMA, COLON, OPEN_BRACKETS,
     CLOSE_BRACKETS, AUTOMATON,OBSERVER, CONTROL, END, LOCAL, INITIAL, STATE,
-    ERROR, STOP, EXIT, ENTRY, BREAK, ASSERT, ASSUME, MATCH, LABEL, CHECK, EVAL,
+    ERROR, STOP, EXIT, ENTRY, FUNCTIONCALL, BREAK, ASSERT, ASSUME, MATCH, LABEL, CHECK, EVAL,
     MODIFY, DO, PRINT, PRINTONCE, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS,
     MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR, USEALL, USEFIRST,
     TARGET, IS_TARGET_STATE, COVERS_LINES, OPEN_ANGLE_BRACKETS, CLOSE_ANGLE_BRACKETS ;
@@ -297,14 +296,14 @@ Transition   ::= Bool:trigger  ARROW Assertions:ass Assume:a Actions:acts GOTO I
                   	.withAssertions(ass)
                   	.withAssumptions(a)
                   	.withActions(acts)
-                  	.withViolatedPropertyDescription(new AutomatonExpression.StringExpression(""))
+                  	.withTargetInformation(new AutomatonExpression.StringExpression(""))
                   	.build(); :}
                | Bool:trigger  ARROW Assertions:ass Assume:a Actions:acts ERROR OPEN_BRACKETS STRING_LITERAL:property CLOSE_BRACKETS SEMICOLON
               {: RESULT = new AutomatonTransition.Builder(trigger, AutomatonInternalState.ERROR)
                   	.withAssertions(ass)
                   	.withAssumptions(a)
                   	.withActions(acts)
-                  	.withViolatedPropertyDescription(new AutomatonExpression.StringExpression(property.toString()))
+                  	.withTargetInformation(new AutomatonExpression.StringExpression(property.toString()))
                   	.build(); :}
                | Bool:trigger  ARROW Assertions:ass Assume:a Actions:acts STOP SEMICOLON
               {: RESULT = new AutomatonTransition.Builder(trigger, AutomatonInternalState.BOTTOM)
@@ -396,6 +395,8 @@ Bool      ::= TRUE  {: RESULT = AutomatonBoolExpr.TRUE; :}
               {: RESULT = AutomatonBoolExpr.MatchProgramExit.INSTANCE; :}
             | MATCH ENTRY
               {: RESULT = AutomatonBoolExpr.MatchProgramEntry.INSTANCE; :}
+            | MATCH FUNCTIONCALL STRING_LITERAL:functionname
+              {: RESULT = new AutomatonBoolExpr.MatchFunctionCall(functionname.toString()); :}
 /*next statement is deprecated*/ 
             | CHECK OPEN_BRACKETS IDENTIFIER:cpa OPEN_BRACKETS STRING_LITERAL:query CLOSE_BRACKETS CLOSE_BRACKETS
               {: RESULT = new AutomatonBoolExpr.CPAQuery(cpa.toString(), query.toString()); :}

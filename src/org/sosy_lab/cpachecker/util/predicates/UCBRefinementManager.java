@@ -17,7 +17,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -112,7 +111,8 @@ public class UCBRefinementManager {
         if (solver.isUnsat(bfmgr.and(stateFormula, wpre))) {
           logger.log(
               Level.FINEST,
-              "Abstract state is disjoint with the weakest precondition. Found spurious error trace suffix.");
+              "Abstract state is disjoint with the weakest precondition. Found spurious error trace"
+                  + " suffix.");
 
           return wpres;
         }
@@ -233,10 +233,11 @@ public class UCBRefinementManager {
       conjs.addAll(ucbConj);
 
       try {
-        List<BooleanFormula> unsatCore = solver.unsatCore(conjs);
-        unsatCore = unsatCore.stream().filter(uc -> ucbConj.contains(uc)).collect(Collectors.toList());
-
-        BooleanFormula ucf = fmgr.uninstantiate(bfmgr.and(unsatCore));
+        BooleanFormula ucf =
+            fmgr.uninstantiate(
+                solver.unsatCore(conjs).stream()
+                    .filter(uc -> ucbConj.contains(uc))
+                    .collect(bfmgr.toConjunction()));
 
         // Avoid (not true|false) predicates as the refinement strategy
         // does not recognize them as trivial (and does not skip)

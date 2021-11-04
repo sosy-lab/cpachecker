@@ -26,7 +26,6 @@ import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
@@ -75,6 +74,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
+import org.sosy_lab.java_smt.api.SolverException;
 
 @Options
 class MainCPAStatistics implements Statistics {
@@ -86,15 +86,13 @@ class MainCPAStatistics implements Statistics {
       description="print reached set to text file")
   private boolean exportReachedSet = false;
 
-  @Option(secure=true, name="reachedSet.file",
-      description="print reached set to text file")
+  @Option(secure = true, name = "reachedSet.file", description = "print reached set to text file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path reachedSetFile = Paths.get("reached.txt");
+  private Path reachedSetFile = Path.of("reached.txt");
 
-  @Option(secure=true, name="reachedSet.dot",
-      description="print reached set to graph file")
+  @Option(secure = true, name = "reachedSet.dot", description = "print reached set to graph file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path reachedSetGraphDumpPath = Paths.get("reached.dot");
+  private Path reachedSetGraphDumpPath = Path.of("reached.dot");
 
   @Option(secure=true, name="statistics.memory",
     description="track memory usage of JVM during runtime")
@@ -125,7 +123,7 @@ class MainCPAStatistics implements Statistics {
 
   @Option(secure = true, name = "coverage.file", description = "print coverage info to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path outputCoverageFile = Paths.get("coverage.info");
+  private Path outputCoverageFile = Path.of("coverage.info");
 
   private final LogManager logger;
   private final Collection<Statistics> subStats;
@@ -168,7 +166,9 @@ class MainCPAStatistics implements Statistics {
       programCpuTime = ProcessCpuTime.read();
     } catch (JMException e) {
       logger.logDebugException(e, "Querying cpu time failed");
-      logger.log(Level.WARNING, "Your Java VM does not support measuring the cpu time, some statistics will be missing.");
+      logger.log(
+          Level.WARNING,
+          "Your Java VM does not support measuring the cpu time, some statistics will be missing.");
       programCpuTime = -1;
     }
     /*
@@ -302,6 +302,11 @@ class MainCPAStatistics implements Statistics {
               Level.WARNING,
               pE,
               "Interrupted while generating the invariant as an output program");
+        } catch (SolverException e) {
+          logger.logUserException(
+              Level.WARNING,
+              e,
+              "Encountered solver problem while generating the invariant as an output program");
         }
       }
     }
@@ -466,12 +471,27 @@ class MainCPAStatistics implements Statistics {
 
     if (!locations.isEmpty()) {
       int locs = locations.size();
-      out.println("  Number of reached locations:   " + locs + " (" + StatisticsUtils.toPercent(locs, cfa.getAllNodes().size()) + ")");
+      out.println(
+          "  Number of reached locations:   "
+              + locs
+              + " ("
+              + StatisticsUtils.toPercent(locs, cfa.getAllNodes().size())
+              + ")");
       out.println("    Avg states per location:     " + reachedSize / locs);
-      out.println("    Max states per location:     " + mostFrequentLocationCount + " (at node " + mostFrequentLocation + ")");
+      out.println(
+          "    Max states per location:     "
+              + mostFrequentLocationCount
+              + " (at node "
+              + mostFrequentLocation
+              + ")");
 
       long functions = locations.stream().map(CFANode::getFunctionName).distinct().count();
-      out.println("  Number of reached functions:   " + functions + " (" + StatisticsUtils.toPercent(functions, cfa.getNumberOfFunctions()) + ")");
+      out.println(
+          "  Number of reached functions:   "
+              + functions
+              + " ("
+              + StatisticsUtils.toPercent(functions, cfa.getNumberOfFunctions())
+              + ")");
     }
 
     if (reached instanceof PartitionedReachedSet) {
@@ -525,12 +545,16 @@ class MainCPAStatistics implements Statistics {
       StatisticsUtils.writeOutputFiles(cfaCreatorStatistics, logger, result, reached);
     }
     out.println("Time for Analysis:            " + analysisTime);
-    out.println("CPU time for analysis:        " + TimeSpan.ofNanos(analysisCpuTime).formatAs(TimeUnit.SECONDS));
+    out.println(
+        "CPU time for analysis:        "
+            + TimeSpan.ofNanos(analysisCpuTime).formatAs(TimeUnit.SECONDS));
     if (resultAnalysisTime.getNumberOfIntervals() > 0) {
       out.println("Time for analyzing result:    " + resultAnalysisTime);
     }
     out.println("Total time for CPAchecker:    " + programTime);
-    out.println("Total CPU time for CPAchecker:" + TimeSpan.ofNanos(programCpuTime).formatAs(TimeUnit.SECONDS));
+    out.println(
+        "Total CPU time for CPAchecker:"
+            + TimeSpan.ofNanos(programCpuTime).formatAs(TimeUnit.SECONDS));
     out.println("Time for statistics:          " + statisticsTime);
   }
 

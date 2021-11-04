@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWra
 public abstract class ARGSubtreeRemover {
 
   protected final BlockPartitioning partitioning;
+  protected final AbstractBAMCPA bamCpa;
   protected final BAMDataManager data;
   protected final Reducer wrappedReducer;
   protected final BAMCache bamCache;
@@ -43,6 +44,7 @@ public abstract class ARGSubtreeRemover {
 
   protected ARGSubtreeRemover(AbstractBAMCPA bamCpa, TimerWrapper pRemoveCachedSubtreeTimer) {
     partitioning = bamCpa.getBlockPartitioning();
+    this.bamCpa = bamCpa;
     data = bamCpa.getData();
     wrappedReducer = bamCpa.getReducer();
     bamCache = bamCpa.getData().getCache();
@@ -90,7 +92,8 @@ public abstract class ARGSubtreeRemover {
 
       if (data.hasInitialState(state)) {
         assert partitioning.isCallNode(extractLocation(state))
-            : "the mapping of initial state to reached-set should only exist for block-start-locations";
+            : "the mapping of initial state to reached-set should only exist for"
+                  + " block-start-locations";
         // we start a new sub-reached-set, add state as start-state of a (possibly) open block.
         // if we are at lastState, we do not want to enter the block
         openCallStates.push((BackwardARGState) bamState);
@@ -117,7 +120,8 @@ public abstract class ARGSubtreeRemover {
       ARGState tmp = state;
       while (data.hasExpandedState(tmp) && !bamCutState.equals(bamState)) {
         assert partitioning.isReturnNode(extractLocation(tmp))
-            : "the mapping of expanded to reduced state should only exist for block-return-locations";
+            : "the mapping of expanded to reduced state should only exist for"
+                  + " block-return-locations";
         // we are leaving a block, remove the start-state from the stack.
         tmp = (ARGState) data.getReducedStateForExpandedState(tmp);
         openCallStates.removeLast();
@@ -134,7 +138,8 @@ public abstract class ARGSubtreeRemover {
 
       if (data.hasInitialState(state)) {
         assert partitioning.isCallNode(extractLocation(state))
-            : "the mapping of initial state to reached-set should only exist for block-start-locations";
+            : "the mapping of initial state to reached-set should only exist for"
+                  + " block-start-locations";
         // we start a new sub-reached-set, add state as start-state of a (possibly) open block.
         // if we are at lastState, we do not want to enter the block
         openCallStates.addLast(bamState);

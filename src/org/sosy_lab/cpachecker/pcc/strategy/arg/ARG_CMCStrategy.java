@@ -74,10 +74,13 @@ public class ARG_CMCStrategy extends AbstractStrategy {
   }
 
   @Override
-  public void constructInternalProofRepresentation(UnmodifiableReachedSet pReached)
+  public void constructInternalProofRepresentation(
+      UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException, InterruptedException {
     if (!(pReached instanceof HistoryForwardingReachedSet)) {
-      throw new InvalidConfigurationException("Reached sets used by restart algorithm are not memorized. Please enable option analysis.memorizeReachedAfterRestart");
+      throw new InvalidConfigurationException(
+          "Reached sets used by restart algorithm are not memorized. Please enable option"
+              + " analysis.memorizeReachedAfterRestart");
     }
 
     Collection<ReachedSet> partialReachedSets =
@@ -93,7 +96,9 @@ public class ARG_CMCStrategy extends AbstractStrategy {
     for (ReachedSet partialReached : partialReachedSets) {
       if (!(partialReached.getFirstState() instanceof ARGState)
           || (extractLocation(partialReached.getFirstState()) == null)) {
-        logger.log(Level.SEVERE, "Proof cannot be generated because checked property not known to be true.");
+        logger.log(
+            Level.SEVERE,
+            "Proof cannot be generated because checked property not known to be true.");
         roots = null;
         proofKnown = false;
         return;
@@ -107,14 +112,17 @@ public class ARG_CMCStrategy extends AbstractStrategy {
   }
 
   @Override
-  protected void writeProofToStream(ObjectOutputStream pOut, UnmodifiableReachedSet pReached) throws IOException,
-      InvalidConfigurationException, InterruptedException {
-    constructInternalProofRepresentation(pReached);
+  protected void writeProofToStream(
+      ObjectOutputStream pOut, UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa)
+      throws IOException, InvalidConfigurationException, InterruptedException {
+    constructInternalProofRepresentation(pReached, pCpa);
     if (proofKnown) {
       HistoryForwardingReachedSet historyReached = (HistoryForwardingReachedSet) pReached;
       if (historyReached.getAllReachedSetsUsedAsDelegates().size() != historyReached.getCPAs().size()) {
-        logger.log(Level.SEVERE,
-                "Proof cannot be generated, inconsistency in number of analyses, contradicting number of CPAs and reached sets.");
+        logger.log(
+            Level.SEVERE,
+            "Proof cannot be generated, inconsistency in number of analyses, contradicting number"
+                + " of CPAs and reached sets.");
       }
       // proof construction succeeded
       pOut.writeInt(roots.length);
@@ -141,7 +149,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
   }
 
   @SuppressWarnings("Finally") // not really better doable without switching to Closer
-  private boolean checkAndReadSequentially() {
+  private boolean checkAndReadSequentially() throws InterruptedException {
     try {
       final ReachedSetFactory factory = new ReachedSetFactory(globalConfig, logger);
       List<ARGState> incompleteStates = new ArrayList<>();
@@ -169,7 +177,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
           // check current partial ARG
           logger.log(Level.INFO, "Start checking partial ARG ", i);
           if (roots[i] == null
-              || !checkPartialARG(factory.create(), roots[i], incompleteStates, i, cpa)) {
+              || !checkPartialARG(factory.create(cpa), roots[i], incompleteStates, i, cpa)) {
             logger.log(Level.FINE, "Checking of partial ARG ", i, " failed.");
             return false;
           }
@@ -177,8 +185,10 @@ public class ARG_CMCStrategy extends AbstractStrategy {
 
           if (i + 1 != roots.length) {
             // write automaton for next partial ARG
-            logger.log(Level.FINE,
-                    "Write down report of non-checked states which is provided to next partial ARG check. Report is given by assumption automaton.");
+            logger.log(
+                Level.FINE,
+                "Write down report of non-checked states which is provided to next partial ARG"
+                    + " check. Report is given by assumption automaton.");
             automatonWriter.writeAutomaton(roots[i], incompleteStates);
             shutdown.shutdownIfNecessary();
           }
@@ -191,7 +201,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
       } catch (InvalidConfigurationException e) {
         logger.log(Level.SEVERE, "Could not set up a configuration for partial ARG checking");
         return false;
-      } catch (Exception e2) {
+      } catch (CPAException e2) {
         logger.logException(Level.SEVERE, e2, "Failure during proof reading or checking");
         return false;
       } finally {
@@ -294,8 +304,10 @@ public class ARG_CMCStrategy extends AbstractStrategy {
 
           // check current partial ARG
           logger.log(Level.INFO, "Start checking partial ARG ", i);
-          if (!checkResult.get() || roots[i] == null
-              || !checkPartialARG(factory.create(), roots[i], incompleteStates, i, cpas[i])) {
+          if (!checkResult.get()
+              || roots[i] == null
+              || !checkPartialARG(
+                  factory.create(cpas[i]), roots[i], incompleteStates, i, cpas[i])) {
             logger.log(Level.FINE, "Checking of partial ARG ", i, " failed.");
             return false;
           }
@@ -303,8 +315,10 @@ public class ARG_CMCStrategy extends AbstractStrategy {
 
           if (i + 1 != roots.length) {
             // write automaton for next partial ARG
-            logger.log(Level.FINE,
-                    "Write down report of non-checked states which is provided to next partial ARG check. Report is given by assumption automaton.");
+            logger.log(
+                Level.FINE,
+                "Write down report of non-checked states which is provided to next partial ARG"
+                    + " check. Report is given by assumption automaton.");
             automatonWriter.writeAutomaton(roots[i], incompleteStates);
             shutdown.shutdownIfNecessary();
           }
@@ -342,10 +356,13 @@ public class ARG_CMCStrategy extends AbstractStrategy {
 
     AbstractARGStrategy partialProofChecker;
     logger.log(Level.FINEST, "Build checking instance");
-    // require ARG_CPA strategy because the other ARG based strategy does not take strengthening into account
+    // require ARG_CPA strategy because the other ARG based strategy does not take strengthening
+    // into account
     // strengthening is required for assumption guiding CPA
-    Preconditions.checkState(cpa instanceof PropertyCheckerCPA,
-            "Conflicting configuration: Partial ARGs must be checked with CPA based strategy but toplevel CPA is not a PropertyCheckerCPA as needed");
+    Preconditions.checkState(
+        cpa instanceof PropertyCheckerCPA,
+        "Conflicting configuration: Partial ARGs must be checked with CPA based strategy but"
+            + " toplevel CPA is not a PropertyCheckerCPA as needed");
     partialProofChecker = new ARG_CPAStrategy(globalConfig, logger, shutdown, proofFile, (PropertyCheckerCPA) cpa);
 
     logger.log(Level.FINER, "Start checking algorithm for partial ARG ", iterationNumber);

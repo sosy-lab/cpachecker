@@ -116,7 +116,7 @@ class AutomatonExpressionArguments {
 
   AAstNode getTransitionVariable(int key) {
     // this is the variable adressed with $<key> in the automaton definition
-    return this.transitionVariables.get(Integer.valueOf(key));
+    return this.transitionVariables.get(key);
   }
 
   void putTransitionVariable(int key, AAstNode value) {
@@ -143,13 +143,19 @@ class AutomatonExpressionArguments {
         AAstNode var = this.getTransitionVariable(varKey);
         if (var == null) {
           // this variable has not been set.
-          this.getLogger().log(Level.WARNING, "could not replace the transition variable $" + varKey + " (not found).");
+          this.getLogger()
+              .log(
+                  Level.WARNING,
+                  "could not replace the transition variable $" + varKey + " (not found).");
           return null;
         } else {
           result.append(var.toASTString());
         }
       } catch (NumberFormatException e) {
-        this.getLogger().log(Level.WARNING, "could not parse the int in " + matcher.group() + " , leaving it untouched");
+        this.getLogger()
+            .log(
+                Level.WARNING,
+                "could not parse the int in " + matcher.group() + " , leaving it untouched");
         result.append(matcher.group());
       }
     }
@@ -164,7 +170,10 @@ class AutomatonExpressionArguments {
       AutomatonVariable variable = this.getAutomatonVariables().get(varName);
       if (variable == null) {
         // this variable has not been set.
-        this.getLogger().log(Level.WARNING, "could not replace the Automaton variable reference " + varName + " (not found).");
+        this.getLogger()
+            .log(
+                Level.WARNING,
+                "could not replace the Automaton variable reference " + varName + " (not found).");
         return null;
       } else {
         result.append(variable.getValue());

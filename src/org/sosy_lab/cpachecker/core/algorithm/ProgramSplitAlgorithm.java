@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.splitter.SplitInfoState;
 import org.sosy_lab.cpachecker.cpa.splitter.SplitterCPA;
-import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -94,7 +93,7 @@ public class ProgramSplitAlgorithm implements Algorithm, StatisticsProvider, Sta
 
   @Override
   public AlgorithmStatus run(final ReachedSet pReachedSet)
-      throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
+      throws CPAException, InterruptedException {
     Preconditions.checkArgument(
         pReachedSet.getFirstState() instanceof ARGState,
         "ProgramSplitAlgorithm requires ARG state as top level state.");
@@ -111,7 +110,8 @@ public class ProgramSplitAlgorithm implements Algorithm, StatisticsProvider, Sta
     if (pReachedSet.hasWaitingState()) {
       logger.log(
           Level.WARNING,
-          "The computation of the program splitting is not complete. The result remains a proper splitting, but may not be the expected one.");
+          "The computation of the program splitting is not complete. The result remains a proper"
+              + " splitting, but may not be the expected one.");
     }
 
     shutdownNotifier.shutdownIfNecessary();
@@ -200,7 +200,8 @@ public class ProgramSplitAlgorithm implements Algorithm, StatisticsProvider, Sta
     } catch (IOException e) {
       logger.log(
           Level.SEVERE,
-          "Failed to write a condition reflecting a part of program split. Abort writting conditions describing program splitting.",
+          "Failed to write a condition reflecting a part of program split. Abort writting"
+              + " conditions describing program splitting.",
           e);
     }
   }

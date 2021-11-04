@@ -12,23 +12,24 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
+import org.sosy_lab.cpachecker.cfa.types.java.JReferenceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 /**
- * This class represents an expression unique to the java cfa.
- * It evaluates to true, if the run time type of the expression is the same
- * as the type Definition. Otherwise, it evaluates to false.
- *
+ * This class represents an expression unique to the java cfa. It evaluates to true, if the run time
+ * type of the expression is the same as the type Definition. Otherwise, it evaluates to false.
  */
 public final class JRunTimeTypeEqualsType extends AbstractExpression implements JExpression {
 
   private static final long serialVersionUID = -2513620435920744071L;
   private final JRunTimeTypeExpression runTimeTypeExpression;
-  private final JClassOrInterfaceType typeDef;
+  private final JReferenceType typeDef;
 
-  public JRunTimeTypeEqualsType(FileLocation pFileLocation,
-      JRunTimeTypeExpression pRunTimeTypeExpression, JClassOrInterfaceType pTypeDef) {
+  public JRunTimeTypeEqualsType(
+      FileLocation pFileLocation,
+      JRunTimeTypeExpression pRunTimeTypeExpression,
+      JReferenceType pTypeDef) {
     super(pFileLocation, JSimpleType.getBoolean());
 
     runTimeTypeExpression = pRunTimeTypeExpression;
@@ -55,15 +56,21 @@ public final class JRunTimeTypeEqualsType extends AbstractExpression implements 
 
   @Override
   public String toASTString() {
+    String name;
+    if (getTypeDef() instanceof JClassOrInterfaceType) {
+      name = ((JClassOrInterfaceType) getTypeDef()).getName();
+    } else {
+      name = ((JSimpleType) getTypeDef()).getType().toASTString();
+    }
     StringBuilder astString = new StringBuilder("(");
     astString.append(getRunTimeTypeExpression().toASTString());
     astString.append("_equals(");
-    astString.append(getTypeDef().getName()); // FIXME _class missing? I.e. var_getClass()_equals(typeDef_class)?
+    astString.append(name); // FIXME _class missing? I.e. var_getClass()_equals(typeDef_class)?
     astString.append("))");
     return astString.toString();
   }
 
-  public JClassOrInterfaceType getTypeDef() {
+  public JReferenceType getTypeDef() {
     return typeDef;
   }
 
@@ -87,15 +94,13 @@ public final class JRunTimeTypeEqualsType extends AbstractExpression implements 
       return true;
     }
 
-    if (!(obj instanceof JRunTimeTypeEqualsType)
-        || !super.equals(obj)) {
+    if (!(obj instanceof JRunTimeTypeEqualsType) || !super.equals(obj)) {
       return false;
     }
 
     JRunTimeTypeEqualsType other = (JRunTimeTypeEqualsType) obj;
 
     return Objects.equals(other.runTimeTypeExpression, runTimeTypeExpression)
-            && Objects.equals(other.typeDef, typeDef);
+        && Objects.equals(other.typeDef, typeDef);
   }
-
 }

@@ -88,22 +88,30 @@ public abstract class ITPStrategy {
 
     // Check (A)
     if (!solver.implies(formulas.get(0), interpolants.get(0))) {
-      throw new SolverException("First interpolant is not implied by first formula");
+      throw new SolverException(
+          String.format(
+              "First interpolant '%s' is not implied by first formula '%s'.",
+              interpolants.get(0), formulas.get(0)));
     }
 
     // Check (B).
     for (int i = 1; i <= (n - 1); i++) {
       BooleanFormula conjunct = bfmgr.and(interpolants.get(i - 1), formulas.get(i));
       if (!solver.implies(conjunct, interpolants.get(i))) {
-        throw new SolverException("Interpolant " + interpolants.get(i) +
-            " is not implied by previous part of the path");
+        throw new SolverException(
+            String.format(
+                "Interpolant '%s' at index %d is not implied by previous part of the path",
+                interpolants.get(i), i));
       }
     }
 
     // Check (C).
     BooleanFormula conjunct = bfmgr.and(interpolants.get(n - 1), formulas.get(n));
     if (!solver.implies(conjunct, bfmgr.makeFalse())) {
-      throw new SolverException("Last interpolant fails to prove infeasibility of the path");
+      throw new SolverException(
+          String.format(
+              "Last interpolant '%s' fails to prove infeasibility of the remaining path '%s'.",
+              interpolants.get(n - 1), formulas.get(n)));
     }
 
     // Furthermore, check if the interpolants contains only the allowed variables
@@ -129,11 +137,12 @@ public abstract class ITPStrategy {
       Set<String> allowedVariables = Sets.intersection(variablesInA, variablesInB).immutableCopy();
       Set<String> variablesInInterpolant = fmgr.extractVariableNames(interpolants.get(i));
 
-      variablesInInterpolant.removeAll(allowedVariables);
-
-      if (!variablesInInterpolant.isEmpty()) {
-        throw new SolverException("Interpolant " + interpolants.get(i) +
-          " contains forbidden variable(s) " + variablesInInterpolant);
+      if (!allowedVariables.containsAll(variablesInInterpolant)) {
+        throw new SolverException(
+            "Interpolant "
+                + interpolants.get(i)
+                + " contains forbidden variable(s) "
+                + Sets.difference(variablesInInterpolant, allowedVariables));
       }
     }
   }

@@ -51,13 +51,13 @@ import org.sosy_lab.cpachecker.core.reachedset.HistoryForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.alwaystop.AlwaysTopCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonStateARGCombiningHelper;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
-import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -68,26 +68,30 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
   private final Algorithm restartAlgorithm;
   private final LogManagerWithoutDuplicates logger;
   private final ShutdownNotifier shutdown;
-  private final Configuration config;
   private final AutomatonStateARGCombiningHelper automatonARGBuilderSupport;
 
   private final ARGCombinerStatistics stats = new ARGCombinerStatistics();
+  private final ReachedSetFactory reachedSetFactory;
 
-
-  public PartialARGsCombiner(Algorithm pAlgorithm, Configuration pConfig, LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier) {
+  public PartialARGsCombiner(
+      Algorithm pAlgorithm,
+      Configuration pConfig,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException {
     restartAlgorithm = pAlgorithm;
     logger = new LogManagerWithoutDuplicates(pLogger);
     shutdown = pShutdownNotifier;
-    config = pConfig;
 
     automatonARGBuilderSupport = new AutomatonStateARGCombiningHelper();
+    reachedSetFactory = new ReachedSetFactory(pConfig, pLogger);
   }
 
   @Override
-  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException,
-      CPAEnabledAnalysisPropertyViolationException {
-    checkArgument(pReachedSet instanceof ForwardingReachedSet, "PartialARGsCombiner needs ForwardingReachedSet");
+  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
+    checkArgument(
+        pReachedSet instanceof ForwardingReachedSet,
+        "PartialARGsCombiner needs ForwardingReachedSet");
 
     HistoryForwardingReachedSet reached = new HistoryForwardingReachedSet(pReachedSet);
 
@@ -118,7 +122,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
           return status;
         }
 
-        if (reached.hasViolatedProperties()) {
+        if (reached.wasTargetReached()) {
           logger.log(Level.INFO, "Error found, do not combine ARGs.");
           ((ForwardingReachedSet) pReachedSet).setDelegate(reached.getDelegate());
           return status;
@@ -176,13 +180,10 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     Map<String, Integer> stateToPos = initStates.getFirst();
     List<AbstractState> initialStates = initStates.getSecond();
 
-    try {
-      pReceivedReachedSet.setDelegate(new ReachedSetFactory(config, logger).create());
-    } catch (InvalidConfigurationException e) {
-      logger.log(Level.SEVERE, "Creating reached set which should contain combined ARG fails.");
-      return false;
-    }
-
+    // TODO Need to create a CPA hierarchy that reflects what abstract states will be added to the
+    // new reached set, otherwise some features won't work.
+    // cf. https://gitlab.com/sosy-lab/software/cpachecker/-/merge_requests/59#note_658864689
+    pReceivedReachedSet.setDelegate(reachedSetFactory.create(AlwaysTopCPA.INSTANCE));
     shutdown.shutdownIfNecessary();
 
     // combined root
@@ -310,8 +311,12 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
 
         if (stateToPos.containsKey(name)) {
           if (!initialState.get(stateToPos.get(name)).equals(innerWrapped)) {
-            logger.log(Level.WARNING, "Abstract state ", innerWrapped.getClass(),
-                    " is used by multiple configurations, but cannot check that always start in the same initial state as it is assumed");
+            logger.log(
+                Level.WARNING,
+                "Abstract state ",
+                innerWrapped.getClass(),
+                " is used by multiple configurations, but cannot check that always start in the"
+                    + " same initial state as it is assumed");
           }
         } else {
           assert (initialState.size() == nextId);
@@ -362,9 +367,12 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
 
         stateToPos.put(name, nextId);
         if (!automatonARGBuilderSupport.registerAutomaton((AutomatonState) innerWrapped)) {
-          logger.log(Level.SEVERE, "Property specification, given by automata specification, is ambigous.");
+          logger.log(
+              Level.SEVERE,
+              "Property specification, given by automata specification, is ambigous.");
           throw new CPAException(
-              "Ambigious property specification,  automata specification contains automata with same name or same state names");
+              "Ambigious property specification,  automata specification contains automata with"
+                  + " same name or same state names");
         }
         initialState.add(automatonARGBuilderSupport.replaceStateByStateInAutomatonOfSameInstance((AutomatonState) innerWrapped));
         nextId++;
@@ -475,9 +483,11 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
         shutdown.shutdownIfNecessary();
 
         if (!pStateToPos.containsKey(getName(innerWrapped))) {
-          Preconditions.checkState(innerWrapped instanceof AutomatonState
-              || innerWrapped instanceof AssumptionStorageState,
-                  "Found state which is not considered in combined composite state and which is not due to the use of an assumption automaton");
+          Preconditions.checkState(
+              innerWrapped instanceof AutomatonState
+                  || innerWrapped instanceof AssumptionStorageState,
+              "Found state which is not considered in combined composite state and which is not due"
+                  + " to the use of an assumption automaton");
           continue;
         }
         index = pStateToPos.get(getName(innerWrapped));
@@ -489,8 +499,10 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
             result.set(index, innerWrapped);
           }
         } else {
-            logger.logOnce(Level.WARNING,
-                    "Cannot identify the inner state which is more precise, use the earliest found. Combination may be unsound.");
+          logger.logOnce(
+              Level.WARNING,
+              "Cannot identify the inner state which is more precise, use the earliest found."
+                  + " Combination may be unsound.");
           }
         }
       }

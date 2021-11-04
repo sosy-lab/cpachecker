@@ -124,7 +124,7 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
         MemoryLocation leftMemLoc = getMemoryLocation(lVarInBinaryExp);
 
         if (options.isOptimizeBooleanVariables()
-            && (booleans.contains(leftMemLoc.getAsSimpleString())
+            && (booleans.contains(leftMemLoc.getExtendedQualifiedName())
                 || options.isInitAssumptionVars())) {
           assignableState.assignConstant(
               leftMemLoc, new NumericValue(1L), pE.getOperand1().getExpressionType());
@@ -134,7 +134,8 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
           && (assumingUnknownToBeZero(rightValue, leftValue) && isAssignable(rVarInBinaryExp))) {
         MemoryLocation rightMemLoc = getMemoryLocation(rVarInBinaryExp);
 
-        if (booleans.contains(rightMemLoc.getAsSimpleString()) || options.isInitAssumptionVars()) {
+        if (booleans.contains(rightMemLoc.getExtendedQualifiedName())
+            || options.isInitAssumptionVars()) {
           assignableState.assignConstant(
               rightMemLoc, new NumericValue(1L), pE.getOperand2().getExpressionType());
         }
@@ -244,7 +245,8 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
     if (declaration != null) {
       assignableState.assignConstant(declaration.getQualifiedName(), pValue);
     } else {
-      MemoryLocation memLoc = MemoryLocation.valueOf(getFunctionName(), pIdExpression.getName());
+      MemoryLocation memLoc =
+          MemoryLocation.forLocalVariable(getFunctionName(), pIdExpression.getName());
       assignableState.assignConstant(memLoc, pValue, pIdExpression.getExpressionType());
     }
   }

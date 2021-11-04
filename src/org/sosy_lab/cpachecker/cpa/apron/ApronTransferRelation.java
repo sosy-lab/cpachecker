@@ -489,8 +489,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
     default:
       throw new AssertionError("unhandled binary operator" + pBinaryOperator);
     }
-    if ((truthAssumption && result)
-        || (!truthAssumption && !result)) {
+    if (truthAssumption == result) {
       return Collections.singleton(state);
     } else {
       return ImmutableSet.of();
@@ -569,8 +568,9 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
     if (functionEntryNode.getReturnVariable().isPresent()) {
       possibleStates.add(
           state.declareVariable(
-              MemoryLocation.valueOf(
-                  calledFunctionName, functionEntryNode.getReturnVariable().get().getName()),
+              MemoryLocation.forLocalVariable(
+                  calledFunctionName,
+                  functionEntryNode.getReturnVariable().orElseThrow().getName()),
               getCorrespondingOctStateType(
                   cfaEdge.getSuccessor().getFunctionDefinition().getType().getReturnType())));
     } else {
@@ -585,7 +585,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
       }
 
       MemoryLocation formalParamName =
-          MemoryLocation.valueOf(calledFunctionName, paramNames.get(i));
+          MemoryLocation.forLocalVariable(calledFunctionName, paramNames.get(i));
 
       if (!precision.isTracking(formalParamName, parameters.get(i).getType(), functionEntryNode)) {
         continue;
@@ -637,8 +637,9 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
       }
 
       MemoryLocation returnVarName =
-          MemoryLocation.valueOf(
-              calledFunctionName, fnkCall.getFunctionEntry().getReturnVariable().get().getName());
+          MemoryLocation.forLocalVariable(
+              calledFunctionName,
+              fnkCall.getFunctionEntry().getReturnVariable().orElseThrow().getName());
 
       Texpr0Node right = new Texpr0DimNode(state.getVariableIndexFor(returnVarName));
 
@@ -668,12 +669,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
       // make the fullyqualifiedname
 
       // get the variable name in the declarator
-      MemoryLocation variableName;
-      if (decl.isGlobal()) {
-        variableName = MemoryLocation.valueOf(decl.getName());
-      } else {
-        variableName = MemoryLocation.valueOf(functionName, decl.getName());
-      }
+      MemoryLocation variableName = MemoryLocation.forDeclaration(decl);
 
       if (!precision.isTracking(variableName, declaration.getType(), cfaEdge.getSuccessor())) {
         return Collections.singleton(state);
@@ -730,7 +726,8 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
     } else if (cfaEdge.getDeclaration() instanceof CTypeDeclaration
         || cfaEdge.getDeclaration() instanceof CFunctionDeclaration) { return Collections.singleton(state); }
 
-    throw new AssertionError(cfaEdge.getDeclaration() + " (" + cfaEdge.getDeclaration().getClass() + ")");
+    throw new AssertionError(
+        cfaEdge.getDeclaration() + " (" + cfaEdge.getDeclaration().getClass() + ")");
   }
 
   @Override
@@ -758,7 +755,8 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
       // ignore them here
       if (!isHandleableVariable(left)
           || !precision.isTracking(variableName, left.getExpressionType(), cfaEdge.getSuccessor())) {
-        assert !state.existsVariable(variableName) : "variablename '" + variableName + "' is in map although it can not be handled";
+        assert !state.existsVariable(variableName)
+            : "variablename '" + variableName + "' is in map although it can not be handled";
         return Collections.singleton(state);
       } else {
         Set<Texpr0Node> coeffsList = right.accept(new CApronExpressionVisitor());
@@ -805,9 +803,9 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
     }
 
     if (!isGlobal(left)) {
-      return MemoryLocation.valueOf(pFunctionName, variableName);
+      return MemoryLocation.forLocalVariable(pFunctionName, variableName);
     } else {
-      return MemoryLocation.valueOf(variableName);
+      return MemoryLocation.forIdentifier(variableName);
     }
   }
 
@@ -825,9 +823,9 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
     }
 
     MemoryLocation tempVarName =
-        MemoryLocation.valueOf(
+        MemoryLocation.forLocalVariable(
             cfaEdge.getPredecessor().getFunctionName(),
-            ((CIdExpression) cfaEdge.asAssignment().get().getLeftHandSide()).getName());
+            ((CIdExpression) cfaEdge.asAssignment().orElseThrow().getLeftHandSide()).getName());
 
     // main function has no __cpa_temp_result_var as the result of the main function
     // is not important for us, we skip here
@@ -836,7 +834,8 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
     }
 
     Set<ApronState> possibleStates = new HashSet<>();
-    Set<Texpr0Node> coeffsList = cfaEdge.getExpression().get().accept(new CApronExpressionVisitor());
+    Set<Texpr0Node> coeffsList =
+        cfaEdge.getExpression().orElseThrow().accept(new CApronExpressionVisitor());
 
     if (coeffsList.isEmpty()) {
       return Collections.singleton(state);
@@ -1017,7 +1016,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
       if (varIndex == -1) {
         return ImmutableSet.of();
       }
-      return Collections.singleton(new Texpr0DimNode(varIndex));
+      return ImmutableSet.of(new Texpr0DimNode(varIndex));
     }
 
     @Override
@@ -1069,7 +1068,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
           Scalar inf = Scalar.create();
           inf.setInfty(-1);
           Interval interval = new Interval(inf, sup);
-              return Collections.singleton(new Texpr0CstNode(interval));
+              return ImmutableSet.of(new Texpr0CstNode(interval));
             }
           case "__VERIFIER_nondet_uint":
             {
@@ -1077,12 +1076,12 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
           Scalar sup = Scalar.create();
           sup.setInfty(1);
           interval.setSup(sup);
-              return Collections.singleton(new Texpr0CstNode(interval));
+              return ImmutableSet.of(new Texpr0CstNode(interval));
             }
           case "__VERIFIER_nondet_bool":
             {
           Interval interval = new Interval(0, 1);
-              return Collections.singleton(new Texpr0CstNode(interval));
+              return ImmutableSet.of(new Texpr0CstNode(interval));
             }
         }
       }

@@ -9,29 +9,33 @@
 package org.sosy_lab.cpachecker.util.faultlocalization;
 
 import com.google.common.collect.ForwardingSet;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 
 /**
- * A Fault is a set of FaultContributions.
- * The set has to be obtained by a fault localizing algorithm.
- * FaultReasons can be appended to a Fault to explain why this set of FaultContributions caused an error.
- * The score of a Fault is used to rank the Faults. The higher the score the higher the rank.
+ * A Fault is a set of FaultContributions. The set has to be obtained by a fault localizing
+ * algorithm. FaultReasons can be appended to a Fault to explain why this set of FaultContributions
+ * caused an error. The score of a Fault is used to rank the Faults. The higher the score the higher
+ * the rank.
  */
-public class Fault extends ForwardingSet<FaultContribution> {
+public class Fault extends ForwardingSet<FaultContribution> implements Comparable<Fault> {
 
-  private ImmutableSet<FaultContribution> errorSet;
+  private Set<FaultContribution> errorSet;
   private List<FaultInfo> infos;
+  private int intendedIndex;
 
   /**
    * The recommended way is to calculate the score based on the likelihoods of the appended reasons.
+   * However, the implementation can be arbitrary.
+   *
+   * @see FaultRankingUtils#assignScoreTo(Fault)
    */
   private double score;
 
@@ -44,7 +48,7 @@ public class Fault extends ForwardingSet<FaultContribution> {
   }
 
   public Fault(){
-    this(ImmutableSet.of(), 0);
+    this(new HashSet<>(), 0);
   }
 
   /**
@@ -60,7 +64,7 @@ public class Fault extends ForwardingSet<FaultContribution> {
   }
 
   public Fault(Collection<FaultContribution> pContribs, double pScore) {
-    errorSet = ImmutableSet.copyOf(pContribs);
+    errorSet = new HashSet<>(pContribs);
     infos = new ArrayList<>();
     score = pScore;
   }
@@ -94,12 +98,10 @@ public class Fault extends ForwardingSet<FaultContribution> {
 
   @Override
   public String toString(){
-    List<FaultInfo> copy = new ArrayList<>(infos);
-    Collections.sort(copy);
+    List<FaultInfo> copy = ImmutableList.sortedCopyOf(infos);
 
-    StringBuilder out = new StringBuilder("Error suspected on line(s): "
-        + listDistinctLinesAndJoin()
-        + ". (Score: " + (int)(getScore()*100) + ")\n");
+    StringBuilder out =
+        new StringBuilder("Error suspected on line(s): " + listDistinctLinesAndJoin() + ".\n");
     for (FaultInfo faultInfo : copy) {
       switch(faultInfo.getType()){
         case RANK_INFO:
@@ -107,9 +109,6 @@ public class Fault extends ForwardingSet<FaultContribution> {
           break;
         case REASON:
           out.append(" ".repeat(5));
-          break;
-        case HINT:
-          out.append(" ".repeat(7));
           break;
         case FIX:
           out.append(" ".repeat(8));
@@ -121,55 +120,65 @@ public class Fault extends ForwardingSet<FaultContribution> {
   }
 
   private String listDistinctLinesAndJoin(){
-    return errorSet
-        .stream()
-        .mapToInt(l -> l.correspondingEdge().getFileLocation().getStartingLineInOrigin())
-        .sorted()
-        .distinct()
-        .mapToObj(l -> (Integer)l + "")
-        .collect(Collectors.collectingAndThen(Collectors.toList(), list -> {
-          int lastIndex = list.size() - 1;
-          if (lastIndex < 1) {
-            return String.join("", list);
-          }
-          if (lastIndex == 1) {
-            return String.join(" and ", list);
-          }
-          return String.join(" and ",
-              String.join(", ", list.subList(0, lastIndex)),
-              list.get(lastIndex));
-        }))
-        + " (Score: " + (int)(score*100) + ")";
+    List<String> lines =
+        errorSet.stream()
+            .mapToInt(l -> l.correspondingEdge().getFileLocation().getStartingLineInOrigin())
+            .sorted()
+            .distinct()
+            .mapToObj(String::valueOf)
+            .collect(ImmutableList.toImmutableList());
+
+    String result;
+    if (lines.size() <= 2) {
+      result = String.join(" and ", lines);
+    } else {
+      int lastIndex = lines.size() - 1;
+      result = String.join(", ", lines.subList(0, lastIndex) + " and " + lines.get(lastIndex));
+    }
+    return result + " (Score: " + (int) (score * 100) + ")";
+  }
+
+  /**
+   * Set an intended index. Call sortIntended on FaultLocalizationInfo to sort ascending by intended
+   * index
+   *
+   * @param pIntendedIndex the intended place in the final list for this fault
+   */
+  public void setIntendedIndex(int pIntendedIndex) {
+    intendedIndex = pIntendedIndex;
+  }
+
+  public int getIntendedIndex() {
+    return intendedIndex;
   }
 
   @Override
   public boolean equals(Object q){
-    if(q instanceof Fault){
-      Fault comp = (Fault)q;
-      if(comp.size() == size() && comp.infos.size() == infos.size()){
-        for (FaultContribution faultContribution : comp) {
-          if(!contains(faultContribution)){
-            return false;
-          }
-        }
-
-        return true;
-      }
+    if (!(q instanceof Fault)) {
+      return false;
     }
-    return false;
+
+    Fault comp = (Fault) q;
+    return errorSet.equals(comp.errorSet) && infos.equals(comp.infos);
   }
 
   @Override
   public int hashCode(){
-    int result = 4;
-    for(FaultContribution contribution: this){
-      result = Objects.hash(contribution, result);
-    }
-    return result;
+    return Objects.hash(errorSet, infos);
   }
 
   @Override
   protected Set<FaultContribution> delegate() {
     return errorSet;
+  }
+
+  @Override
+  public int compareTo(Fault o) {
+    // higher score means higher rank
+    return Double.compare(o.score, score);
+  }
+
+  public void replaceErrorSet(Set<FaultContribution> pContributions) {
+    errorSet = pContributions;
   }
 }

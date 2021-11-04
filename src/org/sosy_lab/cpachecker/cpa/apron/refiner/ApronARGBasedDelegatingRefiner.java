@@ -74,11 +74,12 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
    */
   private int previousErrorPathID = -1;
 
-  @Option(secure=true, description="Timelimit for the backup feasibility check with the apron analysis."
-      + "(use seconds or specify a unit; 0 for infinite)")
-  @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
-                  defaultUserUnit=TimeUnit.SECONDS,
-                  min=0)
+  @Option(
+      secure = true,
+      description =
+          "Timelimit for the backup feasibility check with the apron analysis."
+              + "(use seconds or specify a unit; 0 for infinite)")
+  @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = 0)
   private TimeSpan timeForApronFeasibilityCheck = TimeSpan.ofNanos(0);
 
   // statistics
@@ -213,7 +214,11 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
                           apronPrecision.withIncrement(increment),
                           VariableTrackingPrecision.isMatchingCPAClass(ApronCPA.class));
 
-    logger.log(Level.INFO, "Refinement successful, precision incremented, following variables are now tracked additionally:\n" + new TreeSet<>(increment.values()));
+    logger.log(
+        Level.INFO,
+        "Refinement successful, precision incremented, following variables are now tracked"
+            + " additionally:\n"
+            + new TreeSet<>(increment.values()));
 
     return true;
   }
@@ -253,8 +258,12 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
 
   @Override
   public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
-    out.println("  number of value analysis refinements:                " + numberOfValueAnalysisRefinements);
-    out.println("  number of successful valueAnalysis refinements:      " + numberOfSuccessfulValueAnalysisRefinements);
+    out.println(
+        "  number of value analysis refinements:                "
+            + numberOfValueAnalysisRefinements);
+    out.println(
+        "  number of successful valueAnalysis refinements:      "
+            + numberOfSuccessfulValueAnalysisRefinements);
   }
 
   /**
@@ -268,10 +277,9 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
     return valueAnalysisChecker.isFeasible(path);
   }
 
-  /**
-   * Creates a new OctagonAnalysisPathChecker, which checks the given path at full precision.
-   */
-  private OctagonAnalysisFeasibilityChecker createApronFeasibilityChecker(ARGPath path) throws CPAException, ApronException {
+  /** Creates a new OctagonAnalysisPathChecker, which checks the given path at full precision. */
+  private OctagonAnalysisFeasibilityChecker createApronFeasibilityChecker(ARGPath path)
+      throws CPAException, ApronException, InterruptedException {
     try {
       OctagonAnalysisFeasibilityChecker checker;
 
@@ -307,7 +315,7 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
       }
 
       return checker;
-    } catch (InterruptedException | InvalidConfigurationException e) {
+    } catch (InvalidConfigurationException e) {
       throw new CPAException("counterexample-check failed: ", e);
     }
   }
