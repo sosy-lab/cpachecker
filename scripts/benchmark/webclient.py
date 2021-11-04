@@ -426,18 +426,8 @@ class WebInterface:
         self._hash_code_cache = {}
         self._group_id = str(random.randint(0, 1000000))  # noqa: S311
         self._read_hash_code_cache()
-        self._revision = self._request_tool_revision(revision)
+        self._resolved_tool_revision(revision)
         self._tool_name = self._request_tool_name()
-
-        if re.match("^.*:[0-9]*$", revision) and revision != self._revision:
-            logging.warning(
-                "Using %s version %s, which is different than the requested version %s!",
-                self._tool_name,
-                self._revision,
-                revision,
-            )
-        else:
-            logging.info("Using %s version %s.", self._tool_name, self._revision)
 
         if HAS_SSECLIENT:
             self._result_downloader = SseResultDownloader(self, result_poll_interval)
@@ -489,10 +479,12 @@ class WebInterface:
                 e.strerror,
             )
 
-    def _request_tool_revision(self, revision):
+    def _resolved_tool_revision(self, revision):
+
         path = "tool/version_string?revision=" + revision
+
         (resolved_svn_revision, _) = self._request("GET", path)
-        return resolved_svn_revision.decode("UTF-8")
+        self._revision = resolved_svn_revision.decode("UTF-8")
 
     def _request_tool_name(self):
         path = "tool/name"
@@ -801,24 +793,6 @@ class WebInterface:
                     ("option", "limits.time.cpu=" + str(rlimits["softtimelimit"]) + "s")
                 )
 
-            task_options = getattr(run, "task_options", None)
-            if isinstance(task_options, dict) and task_options.get("language") == "C":
-                data_model = task_options.get("data_model")
-                if data_model:
-                    data_model_option = {"ILP32": "Linux32", "LP64": "Linux64"}.get(
-                        data_model
-                    )
-                    if data_model_option:
-                        params.append(
-                            ("option", "analysis.machineModel=" + data_model_option)
-                        )
-                    else:
-                        raise WebClientError(
-                            "Unsupported data_model '{}' defined for task '{}'".format(
-                                data_model, run.identifier
-                            )
-                        )
-
         if run.options:
             i = iter(run.options)
             disableAssertions = False
@@ -863,8 +837,6 @@ class WebInterface:
                     elif option == "-cbmc":
                         params.append(("option", "analysis.checkCounterexamples=true"))
                         params.append(("option", "counterexample.checker=CBMC"))
-                    elif option == "-clang":
-                        params.append(("option", "parser.useClang=true"))
                     elif option == "-preprocess":
                         params.append(("option", "parser.usePreprocessor=true"))
                     elif option == "-generateReport":
@@ -931,7 +903,7 @@ class WebInterface:
         norm_path = os.path.normpath(path)
         if ".." in norm_path or os.path.isabs(norm_path):
             norm_path = os.path.basename(norm_path)
-        return norm_path.replace("\\", "/")
+        return norm_path
 
     def flush_runs(self):
         """

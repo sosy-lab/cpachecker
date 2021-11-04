@@ -34,7 +34,7 @@ public class SMGOptionalObject extends SMGObject implements SMGAbstractObject {
     return true;
   }
 
-  public SMGOptionalObject(long pSize, int pLevel) {
+  public SMGOptionalObject(int pSize, int pLevel) {
     super(pSize, "1/0", pLevel, SMGObjectKind.OPTIONAL);
   }
 

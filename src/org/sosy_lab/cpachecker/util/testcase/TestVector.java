@@ -18,6 +18,8 @@ import com.google.common.collect.Ordering;
 import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PersistentLinkedList;
+import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
@@ -36,17 +38,20 @@ public class TestVector {
   private final PersistentSortedMap<ComparableVariableDeclaration, InitializerTestValue>
       inputVariableValues;
 
-  private final ImmutableList<TestValue> inputValues;
+  private final PersistentList<TestValue> inputValues;
 
   private TestVector() {
-    this(PathCopyingPersistentTreeMap.of(), PathCopyingPersistentTreeMap.of(), ImmutableList.of());
+    this(
+        PathCopyingPersistentTreeMap.of(),
+        PathCopyingPersistentTreeMap.of(),
+        PersistentLinkedList.of());
   }
 
   private TestVector(
       PersistentSortedMap<ComparableFunctionDeclaration, ImmutableList<ExpressionTestValue>>
           pInputFunctionValues,
       PersistentSortedMap<ComparableVariableDeclaration, InitializerTestValue> pInputVariableValues,
-      ImmutableList<TestValue> pInputsInOrder) {
+      PersistentList<TestValue> pInputsInOrder) {
     inputFunctionValues = pInputFunctionValues;
     inputVariableValues = pInputVariableValues;
     inputValues = pInputsInOrder;
@@ -54,13 +59,6 @@ public class TestVector {
 
   public TestVector addInputValue(AFunctionDeclaration pFunction, AExpression pValue) {
     return addInputValue(pFunction, ExpressionTestValue.of(pValue));
-  }
-
-  private ImmutableList<TestValue> getExtendedValues(final TestValue pValue) {
-    return ImmutableList.<TestValue>builderWithExpectedSize(inputValues.size() + 1)
-        .addAll(inputValues)
-        .add(pValue)
-        .build();
   }
 
   public TestVector addInputValue(AFunctionDeclaration pFunction, ExpressionTestValue pValue) {
@@ -77,13 +75,13 @@ public class TestVector {
     return new TestVector(
         inputFunctionValues.putAndCopy(function, newValues),
         inputVariableValues,
-        getExtendedValues(pValue));
+        inputValues.with(pValue));
   }
 
   public List<TestValue> getTestInputsInOrder() {
     checkState(
         inputValues.size()
-            == inputVariableValues.size()
+            == inputVariableValues.values().size()
                 + inputFunctionValues.values().stream()
                     .map(l -> l.size())
                     .reduce(0, (x, y) -> x + y));
@@ -105,7 +103,7 @@ public class TestVector {
     return new TestVector(
         inputFunctionValues,
         inputVariableValues.putAndCopy(variable, pValue),
-        getExtendedValues(pValue));
+        inputValues.with(pValue));
   }
 
   public Iterable<AFunctionDeclaration> getInputFunctions() {
@@ -160,7 +158,7 @@ public class TestVector {
 
   @Override
   public String toString() {
-    return inputFunctionValues.toString() + inputVariableValues;
+    return inputFunctionValues.toString() + inputVariableValues.toString();
   }
 
   public static TestVector newTestVector() {

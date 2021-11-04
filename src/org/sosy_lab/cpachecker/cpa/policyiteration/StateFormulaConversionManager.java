@@ -30,6 +30,8 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -109,7 +111,7 @@ public class StateFormulaConversionManager {
           + "formula manager", pE);
     }
 
-    PathFormula inputPath = getPathFormula(abstractState, attachExtraInvariant);
+    PathFormula inputPath = getPathFormula(abstractState, fmgrv, attachExtraInvariant);
     if (!fmgrv.getBooleanFormulaManager().isTrue(inputPath.getFormula())) {
       constraints.add(inputPath.getFormula());
     }
@@ -155,7 +157,9 @@ public class StateFormulaConversionManager {
   PolicyIntermediateState abstractStateToIntermediate(
       PolicyAbstractedState abstractState, boolean attachExtraInvariant) {
     CFANode node = abstractState.getNode();
-    PathFormula generatingFormula = getPathFormula(abstractState, attachExtraInvariant);
+    PathFormula generatingFormula = getPathFormula(abstractState,
+        fmgr, attachExtraInvariant
+    );
 
     return PolicyIntermediateState.of(node, generatingFormula, abstractState);
   }
@@ -168,14 +172,17 @@ public class StateFormulaConversionManager {
    */
   PathFormula getPathFormula(
       PolicyAbstractedState abstractState,
+      FormulaManagerView pFormulaManager,
       boolean attachExtraInvariant) {
-    PathFormula result =
-        pfmgr.makeEmptyPathFormulaWithContext(
-            abstractState.getSSA(), abstractState.getPointerTargetSet());
+    BooleanFormula extraPredicate;
     if (attachExtraInvariant) {
-      result = pfmgr.makeAnd(result, abstractState.getExtraInvariant());
+      extraPredicate =
+          pFormulaManager.instantiate(abstractState.getExtraInvariant(), abstractState.getSSA());
+    } else {
+      extraPredicate = pFormulaManager.getBooleanFormulaManager().makeTrue();
     }
-    return result;
+    return new PathFormula(extraPredicate, abstractState.getSSA(),
+        abstractState.getPointerTargetSet(), 1);
   }
 
   public String toDOTLabel(Map<Template, PolicyBound> pAbstraction) {
@@ -183,7 +190,10 @@ public class StateFormulaConversionManager {
       return dotWriter.toDOTLabel(pAbstraction);
     }
 
-    PathFormula inputPath = pfmgr.makeEmptyPathFormula();
+    PathFormula inputPath = new PathFormula(
+        bfmgr.makeTrue(), SSAMap.emptySSAMap(), PointerTargetSet
+        .emptyPointerTargetSet(), 0
+    );
 
     Map<Template, BooleanFormula> templatesToConstraints =
         ImmutableMap.copyOf(

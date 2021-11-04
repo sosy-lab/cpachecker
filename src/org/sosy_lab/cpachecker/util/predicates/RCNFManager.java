@@ -14,6 +14,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import com.google.common.math.LongMath;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -241,39 +242,39 @@ public class RCNFManager implements StatisticsProvider {
   }
 
   private Iterable<BooleanFormula> expandClause(final BooleanFormula input) {
-    return bfmgr.visit(
-        input,
-        new DefaultBooleanFormulaVisitor<Iterable<BooleanFormula>>() {
-          @Override
-          protected Iterable<BooleanFormula> visitDefault() {
-            return ImmutableList.of(input);
+    return bfmgr.visit(input, new DefaultBooleanFormulaVisitor<Iterable<BooleanFormula>>() {
+      @Override
+      protected Iterable<BooleanFormula> visitDefault() {
+        return ImmutableList.of(input);
+      }
+
+      @Override
+      public Iterable<BooleanFormula> visitOr(List<BooleanFormula> operands) {
+        long sizeAfterExpansion = 1;
+
+        List<Set<BooleanFormula>> asConjunctions = new ArrayList<>();
+        for (BooleanFormula op : operands) {
+          Set<BooleanFormula> out = bfmgr.toConjunctionArgs(op, true);
+          try {
+            sizeAfterExpansion = LongMath.checkedMultiply(
+                sizeAfterExpansion, out.size()
+            );
+          } catch (ArithmeticException ex) {
+            sizeAfterExpansion = expansionResultSizeLimit + 1L;
+            break;
           }
+          asConjunctions.add(out);
+        }
 
-          @Override
-          public Iterable<BooleanFormula> visitOr(List<BooleanFormula> operands) {
-            long sizeAfterExpansion = 1;
-
-            List<Set<BooleanFormula>> asConjunctions = new ArrayList<>();
-            for (BooleanFormula op : operands) {
-              Set<BooleanFormula> out = bfmgr.toConjunctionArgs(op, true);
-              try {
-                sizeAfterExpansion = Math.multiplyExact(sizeAfterExpansion, out.size());
-              } catch (ArithmeticException ex) {
-                sizeAfterExpansion = expansionResultSizeLimit + 1L;
-                break;
-              }
-              asConjunctions.add(out);
-            }
-
-            if (sizeAfterExpansion <= expansionResultSizeLimit) {
-              // Perform recursive expansion.
-              Set<List<BooleanFormula>> product = Sets.cartesianProduct(asConjunctions);
-              return from(product).transform(bfmgr::or);
-            } else {
-              return ImmutableList.of(bfmgr.or(operands));
-            }
-          }
-        });
+        if (sizeAfterExpansion <= expansionResultSizeLimit) {
+          // Perform recursive expansion.
+          Set<List<BooleanFormula>> product = Sets.cartesianProduct(asConjunctions);
+          return from(product).transform(bfmgr::or);
+        } else {
+          return ImmutableList.of(bfmgr.or(operands));
+        }
+      }
+    });
   }
 
   private ImmutableSet<BooleanFormula> convert(BooleanFormula input) {

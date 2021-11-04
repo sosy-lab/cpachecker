@@ -189,9 +189,9 @@ public class ConstraintManager {
      * by their corresponding unprimed version
      */
     for (Map.Entry<String, Term> me : varSolMap.entrySet()) {
-      newConstraint =
-          newConstraint.replace(
-              me.getValue().toString(), ConstraintManager.primedVarToVar(me.getKey()));
+      newConstraint = newConstraint.replaceAll(
+        me.getValue().toString(),
+        ConstraintManager.primedVarToVar(me.getKey()));
       nres.addVar(var2CVar(ConstraintManager.primedVarToVar(me.getKey())),
         new Variable(primedVarToVar(me.getKey())));
     }
@@ -350,8 +350,7 @@ public class ConstraintManager {
         String varName = "FRET_" + fretEdge.getPredecessor().getFunctionName();
         Term lhs = CVar2PrologPrimedVar(op1.toString());
         Term rhs = CVar2PrologVar(varName);
-        Constraint ac =
-            new Constraint(Lists.newArrayList(new Compound("=:=", new Term[] {lhs, rhs})));
+        Constraint ac = new Constraint(Lists.newArrayList(new Compound("=:=", new Term[]{lhs, rhs})));
 
         ac.addVar(op1.toString(), lhs);
 
@@ -555,8 +554,7 @@ public class ConstraintManager {
           for (Pair<Term, List<Term>> aexpTerm : aexpTerms) {
             List<Term> aexpTermVars = new ArrayList<>(aexpTerm.getSecond());
             aexpTermVars.add(paramVariable);
-            Term paramAexpTerm =
-                new Compound("=:=", new Term[] {paramVariable, aexpTerm.getFirst()});
+            Term paramAexpTerm = new Compound("=:=", new Term[] {paramVariable, aexpTerm.getFirst()});
             paramAexpTerms.add(Pair.of(Util.termArrayToList(new Term[] {paramAexpTerm}), aexpTermVars));
           }
           return paramAexpTerms.build();
@@ -570,11 +568,9 @@ public class ConstraintManager {
           for (Pair<Term, List<Term>> aexpTerm : aexpTerms) {
             List<Term> aexpTermVars = new ArrayList<>(aexpTerm.getSecond());
             aexpTermVars.add(paramVariable);
-            Term paramAexpTerm =
-                new Compound("=:=", new Term[] {paramVariable, Util.textToTerm("rdiv(1,1)")});
+            Term paramAexpTerm = new Compound("=:=", new Term[] {paramVariable, Util.textToTerm("rdiv(1,1)")});
             paramAexpTerms.add(Pair.of(Util.termArrayToList(new Term[] {paramAexpTerm, aexpTerm.getFirst()}), aexpTermVars));
-            paramAexpTerm =
-                new Compound("=:=", new Term[] {paramVariable, Util.textToTerm("rdiv(0,1)")});
+            paramAexpTerm = new Compound("=:=", new Term[] {paramVariable, Util.textToTerm("rdiv(0,1)")});
             for (Pair<Term, List<Term>> negAexpTerm : getNegatedConstraintList(aexpTerm)) {
               paramAexpTerms.add(Pair.of(Util.termArrayToList(new Term[] {paramAexpTerm, negAexpTerm.getFirst()}), aexpTermVars));
             }

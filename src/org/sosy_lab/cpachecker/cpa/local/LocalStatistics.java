@@ -9,12 +9,14 @@
 package org.sosy_lab.cpachecker.cpa.local;
 
 import com.google.common.io.MoreFiles;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.logging.Level;
@@ -35,7 +37,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 public class LocalStatistics implements Statistics {
   @Option(description = "A path to a precision output", name = "path", secure = true)
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path outputFileName = Path.of("localsave");
+  private Path outputFileName = Paths.get("localsave");
 
   private final LogManager logger;
 
@@ -58,7 +60,7 @@ public class LocalStatistics implements Statistics {
       MoreFiles.createParentDirectories(outputFileName);
       try (Writer writer = Files.newBufferedWriter(outputFileName, Charset.defaultCharset())) {
         logger.log(Level.FINE, "Write precision to " + outputFileName);
-        for (AbstractState state : pReached) {
+        for (AbstractState state : pReached.asCollection()) {
           CFANode node = AbstractStates.extractLocation(state);
           LocalState lState = AbstractStates.extractStateByType(state, LocalState.class);
           if (!reachedStatistics.containsKey(node)) {
@@ -73,8 +75,13 @@ public class LocalStatistics implements Statistics {
           writer.append(entry.getValue().toLog() + "\n");
         }
       }
+    } catch (FileNotFoundException e) {
+      logger.log(
+          Level.SEVERE,
+          "Cannot open file " + outputFileName + " for output result of shared analysis");
+      return;
     } catch (IOException e) {
-      logger.logUserException(Level.WARNING, e, "Could not write LOCALCPA precision");
+      logger.log(Level.SEVERE, e.getMessage());
       return;
     }
   }

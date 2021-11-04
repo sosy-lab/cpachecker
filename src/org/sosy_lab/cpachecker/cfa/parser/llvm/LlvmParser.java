@@ -11,11 +11,11 @@ package org.sosy_lab.cpachecker.cfa.parser.llvm;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import org.sosy_lab.common.NativeLibraries;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
@@ -46,17 +46,7 @@ public class LlvmParser implements Parser {
   }
 
   @Override
-  public ParseResult parseFiles(final List<String> pFilenames)
-      throws ParserException, InterruptedException, InvalidConfigurationException {
-
-    if (pFilenames.size() > 1) {
-      throw new InvalidConfigurationException(
-          "Multiple program files not supported when using LLVM frontend.");
-    }
-    return parseFile(pFilenames.get(0));
-  }
-
-  protected ParseResult parseFile(final String pFilename) throws LLVMParserException {
+  public ParseResult parseFile(final String pFilename) throws ParserException {
     addLlvmLookupDirs();
     try (Context llvmContext = Context.create();
         Module llvmModule = Module.parseIR(pFilename, llvmContext)) {
@@ -81,9 +71,9 @@ public class LlvmParser implements Parser {
         LlvmParser.class.getProtectionDomain().getCodeSource().getLocation().getPath();
     String decodedBasePath = URLDecoder.decode(encodedBasePath, StandardCharsets.UTF_8);
 
-    Path cpacheckerDir = Path.of(decodedBasePath).getParent();
+    Path cpacheckerDir = Paths.get(decodedBasePath).getParent();
     if (cpacheckerDir != null) {
-      Path runtimeLibDir = Path.of(cpacheckerDir.toString(), "lib", "java", "runtime");
+      Path runtimeLibDir = Paths.get(cpacheckerDir.toString(), "lib", "java", "runtime");
       libDirs.add(runtimeLibDir);
     } else {
       logger.logf(
@@ -104,8 +94,7 @@ public class LlvmParser implements Parser {
 
   @Override
   public ParseResult parseString(final String pFilename, final String pCode) {
-    // TODO
-    throw new UnsupportedOperationException();
+    return null;
   }
 
   @Override

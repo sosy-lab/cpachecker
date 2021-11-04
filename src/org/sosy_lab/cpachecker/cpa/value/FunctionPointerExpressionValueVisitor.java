@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.FunctionValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.cpachecker.util.states.PointerToMemoryLocation;
 
 class FunctionPointerExpressionValueVisitor extends ExpressionValueVisitor {
 
@@ -84,7 +85,7 @@ public MemoryLocation evaluateMemLocForArraySlot(
      CType expType = pIastFieldReference.getExpressionType();
      if (expType instanceof CPointerType) {
        if (((CPointerType) expType).getType() instanceof CFunctionType) {
-          return MemoryLocation.forIdentifier(pIastFieldReference.getFieldName());
+         return PointerToMemoryLocation.valueOf(pIastFieldReference.getFieldName());
        }
      }
 

@@ -175,10 +175,12 @@ public class AlgorithmContext {
 
     } catch (InvalidConfigurationException e) {
       pLogger.logUserException(
-          Level.WARNING, e, "Configuration file " + configFile + " is invalid");
+          Level.WARNING,
+          e,
+          "Configuration file " + configFile.toString() + " is invalid");
 
     } catch (IOException e) {
-      String message = "Failed to read " + configFile + ".";
+      String message = "Failed to read " + configFile.toString() + ".";
       if (pShutdownNotifier.shouldShutdown() && e instanceof ClosedByInterruptException) {
         pLogger.log(Level.WARNING, message);
       } else {

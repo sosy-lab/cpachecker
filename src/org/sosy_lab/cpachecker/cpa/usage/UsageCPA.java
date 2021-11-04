@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.usage;
 
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collection;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -60,7 +61,7 @@ public class UsageCPA extends AbstractSingleWrapperCPA
 
   @Option(description = "A path to precision", name = "precision.path", secure = true)
   @FileOption(Type.OUTPUT_FILE)
-  private Path outputFileName = Path.of("localsave");
+  private Path outputFileName = Paths.get("localsave");
 
   private UsageCPA(
       ConfigurableProgramAnalysis pCpa, CFA pCfa, LogManager pLogger, Configuration pConfig)

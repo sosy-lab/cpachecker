@@ -17,6 +17,7 @@ import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -38,21 +39,18 @@ public class PathPairIterator extends
   private final Set<List<Integer>> refinedStates = new HashSet<>();
   private final BAMCPA bamCpa;
   private BAMMultipleCEXSubgraphComputer subgraphComputer;
-  private final IdentityHashMap<UsageInfo, BAMSubgraphIterator> targetToPathIterator;
+  private final Map<UsageInfo, BAMSubgraphIterator> targetToPathIterator;
 
   //Statistics
   private StatTimer computingPath = new StatTimer("Time for path computing");
   private StatTimer additionTimerCheck = new StatTimer("Time for addition checks");
   private StatCounter numberOfPathCalculated = new StatCounter("Number of path calculated");
   private StatCounter numberOfPathFinished = new StatCounter("Number of new path calculated");
-  private StatCounter numberOfRepeatedConstructedPaths =
-      new StatCounter("Number of repeated path computed");
-  // private int numberOfrepeatedPaths = 0;
+  private StatCounter numberOfRepeatedConstructedPaths = new StatCounter("Number of repeated path computed");
+  //private int numberOfrepeatedPaths = 0;
 
-  private IdentityHashMap<UsageInfo, List<ExtendedARGPath>> computedPathsForUsage =
-      new IdentityHashMap<>();
-  private IdentityHashMap<UsageInfo, Iterator<ExtendedARGPath>> currentIterators =
-      new IdentityHashMap<>();
+  private Map<UsageInfo, List<ExtendedARGPath>> computedPathsForUsage = new IdentityHashMap<>();
+  private Map<UsageInfo, Iterator<ExtendedARGPath>> currentIterators = new IdentityHashMap<>();
 
   private final Function<ARGState, Integer> idExtractor;
 
@@ -147,10 +145,8 @@ public class PathPairIterator extends
         //Need to clean first path
         firstPath = null;
       } else {
-        // The second one must be
-        Preconditions.checkArgument(
-            secondExtendedPath.isUnreachable(),
-            "Either the first path, or the second one must be unreachable here");
+        //The second one must be
+        Preconditions.checkArgument(secondExtendedPath.isUnreachable(), "Either the first path, or the second one must be unreachable here");
         handleAffectedStates(affectedStates);
       }
     } else {
@@ -194,6 +190,7 @@ public class PathPairIterator extends
       refinedStates.clear();
       targetToPathIterator.clear();
       firstPath = null;
+      refinedStates.clear();
       subgraphComputer = null;
     } else if (callerClass.equals(PointIterator.class)) {
       currentIterators.clear();

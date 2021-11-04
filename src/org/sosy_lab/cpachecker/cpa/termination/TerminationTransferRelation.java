@@ -140,7 +140,10 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
     } else if (terminationInformation.isLoopHead(location)) {
       statesAtCurrentLocation = insertRankingRelation(terminationState, pPrecision, location);
       targetStatesAtCurrentLocation =
-          from(statesAtCurrentLocation).filter(AbstractStates::isTargetState).toList();
+          statesAtCurrentLocation
+              .stream()
+              .filter(AbstractStates::isTargetState)
+              .collect(Collectors.toList());
       statesAtCurrentLocation.removeAll(targetStatesAtCurrentLocation);
 
     } else {

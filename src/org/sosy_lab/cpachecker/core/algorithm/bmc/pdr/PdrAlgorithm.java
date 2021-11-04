@@ -270,7 +270,9 @@ public class PdrAlgorithm implements Algorithm {
     // Successfully proven invariants are removed from the set.
     final CandidateGenerator candidateGenerator = getCandidateInvariants();
     if (!candidateGenerator.produceMoreCandidates()) {
-      rawBmcReachedSet.clearWaitlist();
+      for (AbstractState state : ImmutableList.copyOf(rawBmcReachedSet.getWaitlist())) {
+        rawBmcReachedSet.removeOnlyFromWaitlist(state);
+      }
       return AlgorithmStatus.SOUND_AND_PRECISE;
     }
 
@@ -952,7 +954,7 @@ public class PdrAlgorithm implements Algorithm {
   }
 
   private PartialTransitionRelation createPartialTransitionRelation(CFANode predecessorLocation) {
-    return createPartialTransitionRelation(predecessorLocation, reachedSetFactory.create(cpa));
+    return createPartialTransitionRelation(predecessorLocation, reachedSetFactory.create());
   }
 
   private PartialTransitionRelation createPartialTransitionRelation(
@@ -1007,8 +1009,7 @@ public class PdrAlgorithm implements Algorithm {
     if (abstractionState.isPresent()) {
       logger.log(
           Level.WARNING,
-          "PDR algorithm and its derivatives do not work with PredicateCPA abstractions. Could not"
-              + " check for satisfiability.");
+          "PDR algorithm and its derivatives do not work with PredicateCPA abstractions. Could not check for satisfiability.");
       return false;
     }
     return true;
@@ -1180,8 +1181,7 @@ public class PdrAlgorithm implements Algorithm {
           // should not occur
           logger.log(
               Level.WARNING,
-              "Could not create error path information because of inconsistent branching"
-                  + " information!");
+              "Could not create error path information because of inconsistent branching information!");
           return;
         }
 
@@ -1267,10 +1267,10 @@ public class PdrAlgorithm implements Algorithm {
   protected static class BasicPdrOptions {
 
     @Option(
-        secure = true,
-        description =
-            "Maximum number of accepted spurious transitions within a proof-obligation trace before"
-                + " a consecution abstraction failure triggers a refinement.")
+      secure = true,
+      description =
+          "Maximum number of accepted spurious transitions within a proof-obligation trace before a consecution abstraction failure triggers a refinement."
+    )
     private int spuriousTransitionCountThreshold = 0;
 
     @Option(

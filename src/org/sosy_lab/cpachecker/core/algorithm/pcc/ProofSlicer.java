@@ -61,7 +61,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -75,18 +74,9 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class ProofSlicer {
-
-  private final ReachedSetFactory reachedSetFactory;
-
   private int numNotCovered;
 
-  public ProofSlicer(LogManager pLogger) throws InvalidConfigurationException {
-    // TODO: Really always a standard reached set instead of user-specified configuration?
-    reachedSetFactory = new ReachedSetFactory(Configuration.defaultConfiguration(), pLogger);
-  }
-
-  public UnmodifiableReachedSet sliceProof(
-      final UnmodifiableReachedSet pReached, final ConfigurableProgramAnalysis pCpa) {
+  public UnmodifiableReachedSet sliceProof(final UnmodifiableReachedSet pReached) {
     AbstractState first = pReached.getFirstState();
     if (first instanceof ARGState
         && AbstractStates.extractLocation(first) != null
@@ -100,7 +90,8 @@ public class ProofSlicer {
       computeRelevantVariablesPerState((ARGState) first, varMap);
 
       assert (numNotCovered == pReached.size());
-      return buildSlicedARG(varMap, pReached, pCpa);
+      return buildSlicedARG(varMap, pReached);
+
     }
 
     return pReached;
@@ -269,7 +260,7 @@ public class ProofSlicer {
           addAllExceptVar(varName, succVars, updatedVars);
 
           if (retStm.getExpression().isPresent()) {
-            CFAUtils.getVariableNamesOfExpression(retStm.getExpression().orElseThrow())
+            CFAUtils.getVariableNamesOfExpression(retStm.getExpression().get())
                 .copyInto(updatedVars);
           }
         } else {
@@ -308,8 +299,7 @@ public class ProofSlicer {
           addAllExceptVar(varName, succVars, updatedVars);
           if (!funRet.getFunctionEntry().getReturnVariable().isPresent()) { throw new AssertionError(
               "No return variable provided for non-void function."); }
-          updatedVars.add(
-              funRet.getFunctionEntry().getReturnVariable().orElseThrow().getQualifiedName());
+          updatedVars.add(funRet.getFunctionEntry().getReturnVariable().get().getQualifiedName());
         } else {
           updatedVars.addAll(succVars);
         }
@@ -336,8 +326,7 @@ public class ProofSlicer {
 
   private Collection<? extends String> getInitializerVars(CInitializer pInitializer) {
     if (pInitializer instanceof CDesignatedInitializer) {
-      throw new AssertionError(
-          "CDesignatedInitializer unsupported in slicing"); // currently not supported
+      throw new AssertionError("CDesignatedInitializer unsupported in slicing"); // currently not supported
     } else if (pInitializer instanceof CInitializerExpression) {
       return CFAUtils.getVariableNamesOfExpression(
               ((CInitializerExpression) pInitializer).getExpression())
@@ -429,9 +418,7 @@ public class ProofSlicer {
   }
 
   private UnmodifiableReachedSet buildSlicedARG(
-      final Map<ARGState, Set<String>> pVarMap,
-      final UnmodifiableReachedSet pReached,
-      final ConfigurableProgramAnalysis pCpa) {
+      final Map<ARGState, Set<String>> pVarMap, final UnmodifiableReachedSet pReached) {
     Map<ARGState, ARGState> oldToSliced = Maps.newHashMapWithExpectedSize(pVarMap.size());
     ARGState root = (ARGState) pReached.getFirstState();
     assert (pVarMap.containsKey(root));
@@ -449,14 +436,22 @@ public class ProofSlicer {
       }
     }
 
-    ReachedSet returnReached = reachedSetFactory.create(pCpa);
-    // add root
-    returnReached.add(oldToSliced.get(root), pReached.getPrecision(root));
-    // add remaining elements
-    for (Entry<ARGState, ARGState> entry : oldToSliced.entrySet()) {
-      if (Objects.equals(entry.getKey(), root) && !entry.getKey().isCovered()) {
-        returnReached.add(entry.getValue(), pReached.getPrecision(entry.getKey()));
+    ReachedSet returnReached;
+    try {
+      returnReached =
+          new ReachedSetFactory(
+                  Configuration.defaultConfiguration(), LogManager.createNullLogManager())
+              .create();
+      // add root
+      returnReached.add(oldToSliced.get(root), pReached.getPrecision(root));
+      // add remaining elements
+      for (Entry<ARGState, ARGState> entry : oldToSliced.entrySet()) {
+        if (Objects.equals(entry.getKey(), root) && !entry.getKey().isCovered()) {
+          returnReached.add(entry.getValue(), pReached.getPrecision(entry.getKey()));
+        }
       }
+    } catch (InvalidConfigurationException e) {
+      return pReached;
     }
     return returnReached;
   }

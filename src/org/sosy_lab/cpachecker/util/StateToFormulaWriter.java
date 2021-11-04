@@ -70,19 +70,13 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 @Options(prefix="statesToFormulas")
 public class StateToFormulaWriter implements StatisticsProvider {
 
-  @Option(
-      secure = true,
-      description =
-          "export abstract states as formula, e.g. for re-using them as PredicatePrecision.")
+  @Option(secure=true, description="export abstract states as formula, e.g. for re-using them as PredicatePrecision.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path exportFile = null; // default is null to disable unwanted output of big files
 
-  @Option(
-      secure = true,
-      description =
-          "instead of writing the exact state-representation as a single formula, write its atoms"
-              + " as a list of formulas. Therefore we ignore operators for conjunction and"
-              + " disjunction.")
+  @Option(secure=true,
+      description="instead of writing the exact state-representation as a single formula, "
+      + "write its atoms as a list of formulas. Therefore we ignore operators for conjunction and disjunction.")
   private FormulaSplitter splitFormulas = FormulaSplitter.LOCATION;
 
   @Option(secure=true,
@@ -285,6 +279,6 @@ public class StateToFormulaWriter implements StatisticsProvider {
   }
 
   private static String toKey(CFANode pCfaNode) {
-    return pCfaNode.getFunctionName() + " " + pCfaNode;
+    return pCfaNode.getFunctionName() + " " + pCfaNode.toString();
   }
 }

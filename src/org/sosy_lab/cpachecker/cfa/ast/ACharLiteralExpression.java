@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.ast;
 
-import com.google.errorprone.annotations.InlineMe;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 /**
@@ -29,10 +28,9 @@ public abstract class ACharLiteralExpression extends ALiteralExpression {
     return character;
   }
 
-  @InlineMe(replacement = "this.getCharacter()")
   @Override
   @Deprecated // call getCharacter()
-  public final Character getValue() {
+  public Character getValue() {
     return getCharacter();
   }
 

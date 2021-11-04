@@ -13,19 +13,16 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableMap;
-import java.nio.file.Path;
+import com.google.common.base.Optional;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.logging.Level;
 import org.eclipse.jdt.core.dom.AnonymousClassDeclaration;
 import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.sosy_lab.common.log.LogManager;
@@ -46,8 +43,9 @@ import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 /**
- * Provides a symbol table that maps variable and methods to their declaration (if a name is visible
- * in the current scope). Additionally, it tracks classes that still need to be parsed.
+ * Provides a symbol table that maps variable and methods to their declaration
+ * (if a name is visible in the current scope).
+ * Additionally, it tracks classes that still need to be parsed.
  */
 class Scope {
 
@@ -59,9 +57,6 @@ class Scope {
   // symbolic table for  Variables and other Declarations
   private final ArrayDeque<Map<String, JSimpleDeclaration>> varsStack = new ArrayDeque<>();
   private final ArrayDeque<Map<String, JSimpleDeclaration>> varsList = new ArrayDeque<>();
-  private final Deque<Map<String, JSimpleDeclaration>> varsStackWitNewNames = new ArrayDeque<>();
-  private final ArrayDeque<Map<String, JSimpleDeclaration>> varsListWithNewNames =
-      new ArrayDeque<>();
 
   // Stores all found methods and constructors
   private Map<String, JMethodDeclaration> methods;
@@ -79,25 +74,25 @@ class Scope {
   // fully Qualified main Class (not the ast name, but the real name with . instead of _)
   private final String fullyQualifiedMainClassName;
 
-  // Track and deliver Classes that need to be parsed
+  //Track and deliver Classes that need to be parsed
   private final Queue<String> classesToBeParsed = new ConcurrentLinkedQueue<>();
-  private final Queue<AnonymousClassDeclaration> localClassesToBeParsed =
-      new ConcurrentLinkedQueue<>();
+  private final Queue<AnonymousClassDeclaration> localClassesToBeParsed
+      = new ConcurrentLinkedQueue<>();
 
   private final Set<String> registeredClasses = new HashSet<>();
 
   private final LogManager logger;
 
-  /**
-   * Creates the Scope. It stores Information about the program as well as creating symbolic tables
-   * to solve declarations.
-   *
-   * @param pFullyQualifiedMainClassName Name of the main Class of program. *
-   * @param pTypeHierarchy Type Hierarchy of program created by {@link TypeHierachyCreator}
-   * @param pLogger a logger
-   */
-  public Scope(
-      String pFullyQualifiedMainClassName, TypeHierarchy pTypeHierarchy, LogManager pLogger) {
+/**
+ * Creates the Scope. It stores Information about the program as well
+ * as creating symbolic tables to solve declarations.
+ *
+ * @param pFullyQualifiedMainClassName Name of the main Class of program. *
+ * @param pTypeHierarchy Type Hierarchy of program created by {@link TypeHierachyCreator}
+ * @param pLogger a logger
+ */
+  public Scope(String pFullyQualifiedMainClassName, TypeHierarchy pTypeHierarchy,
+      LogManager pLogger) {
 
     fullyQualifiedMainClassName = pFullyQualifiedMainClassName;
     enterProgramScope();
@@ -114,12 +109,11 @@ class Scope {
   private void enterProgramScope() {
     varsStack.addLast(new HashMap<>());
     varsList.addLast(varsStack.getLast());
-    varsStackWitNewNames.addLast(new HashMap<>());
-    varsListWithNewNames.addLast(varsStackWitNewNames.getLast());
   }
 
   /**
-   * Returns true, iff Scope is not within a Class or method. In all other cases, returns false.
+   * Returns true, iff Scope is not within a Class or method.
+   * In all other cases, returns false.
    *
    * @return true, iff Scope is not within method or Class.
    */
@@ -128,8 +122,8 @@ class Scope {
   }
 
   /**
-   * Returns true, if Scope is in the top-Level class and not within a method. In all other cases
-   * false.
+   * Returns true, if Scope is in the top-Level class
+   * and not within a method. In all other cases false.
    *
    * @return true, iff Scope is within top-level class.
    */
@@ -138,13 +132,14 @@ class Scope {
   }
 
   /**
-   * Is Called to indicate that a Visitor using this Scope enters a method in iterating the JDT AST:
+   * Is Called to indicate that a Visitor using this Scope
+   * enters a method in iterating the JDT AST:
    *
    * @param methodDef indicates method the Visitor enters.
    */
   public void enterMethod(JMethodDeclaration methodDef) {
     currentMethodName = methodDef.getOrigName();
-    returnVariable = Optional.ofNullable(createFunctionReturnVariable(methodDef));
+    returnVariable = Optional.fromNullable(createFunctionReturnVariable(methodDef));
 
     enterBlock();
   }
@@ -158,14 +153,8 @@ class Scope {
       return null;
     }
 
-    return new JVariableDeclaration(
-        fileLocation,
-        returnType,
-        RETURN_VAR_NAME,
-        RETURN_VAR_NAME,
-        qualifiedReturnVarName,
-        null,
-        false);
+    return new JVariableDeclaration(fileLocation, returnType, RETURN_VAR_NAME,
+        RETURN_VAR_NAME, qualifiedReturnVarName, null, false);
   }
 
   public Optional<JVariableDeclaration> getReturnVariable() {
@@ -177,6 +166,7 @@ class Scope {
    * Returns a fully qualified name for the given variable using the current scope information.
    *
    * @param pVariableName the simple name to create a fully qualified name of.
+   *
    * @return the fully qualified name for the given variable name, based on the current scope
    */
   public String createQualifiedName(String pVariableName) {
@@ -193,10 +183,11 @@ class Scope {
   }
 
   /**
-   * Is Called to indicate that a Visitor using this Scope enters a class in iterating the JDT AST:
-   *
-   * @param enteredClassType indicates the class the Visitor enters.
-   */
+  * Is Called to indicate that a Visitor using this Scope
+  * enters a class in iterating the JDT AST:
+  *
+  * @param enteredClassType indicates the class the Visitor enters.
+  */
   public void enterClass(JClassOrInterfaceType enteredClassType) {
     if (!typeHierarchy.containsType(enteredClassType)) {
       throw new CFAGenerationRuntimeException(
@@ -207,20 +198,22 @@ class Scope {
   }
 
   /**
-   * Indicates that the visitor using this scope leaves current class while traversing the JDT AST.
+   * Indicates that the visitor using this scope
+   * leaves current class while traversing the JDT AST.
    */
   public void leaveClass() {
 
     if (classStack.isEmpty()) {
-      throw new CFAGenerationRuntimeException(
-          "Could not find enclosing class of nested class " + classStack.peek());
+      throw new CFAGenerationRuntimeException("Could not find enclosing class of nested class "
+        + classStack.peek());
     }
 
     classStack.pop();
   }
 
   /**
-   * Indicates that the Visitor using this scope leaves current Method while traversing the JDT AST.
+   * Indicates that the Visitor using this scope
+   * leaves current Method while traversing the JDT AST.
    */
   public void leaveMethod() {
     checkState(!isTopClassScope());
@@ -229,55 +222,56 @@ class Scope {
     while (varsList.size() > varsStack.size()) {
       varsList.removeLast();
     }
-    while (varsListWithNewNames.size() > varsStackWitNewNames.size()) {
-      varsListWithNewNames.removeLast();
-    }
 
     currentMethodName = null;
   }
 
-  /** Indicates that the Visitor using this scope enters a Block while traversing the JDT AST. */
+  /**
+   * Indicates that the Visitor using this scope
+   * enters a Block while traversing the JDT AST.
+   */
   public void enterBlock() {
     varsStack.addLast(new HashMap<>());
     varsList.addLast(varsStack.getLast());
-    varsStackWitNewNames.addLast(new HashMap<>());
-    varsListWithNewNames.addLast(varsStackWitNewNames.getLast());
-  }
-
-  /** Indicates that the Visitor using this scope leaves a Block while traversing the JDT AST. */
-  public void leaveBlock() {
-    checkState(varsStack.size() > 2);
-    varsStack.removeLast();
-    varsStackWitNewNames.removeLast();
   }
 
   /**
-   * Checks if the name given in the parameters has already a declaration to which it is linked.
+   * Indicates that the Visitor using this scope
+   * leaves a Block while traversing the JDT AST.
+   */
+  public void leaveBlock() {
+    checkState(varsStack.size() > 2);
+    varsStack.removeLast();
+  }
+
+  /**
+   * Checks if the name given in the parameters has already
+   * a declaration to which it is linked.
    *
    * @param name Given name to be checked.
-   * @param origName If the name has another Identification, it can also be given with this
-   *     parameter.
+   * @param origName If the name has another Identification, it can also be given
+   * with this parameter.
    * @return Returns true, if the name is already in use, else false.
    */
   public boolean variableNameInUse(String name, String origName) {
     checkNotNull(name);
-    checkNotNull(origName);
+      checkNotNull(origName);
 
-    Iterator<Map<String, JSimpleDeclaration>> it = varsListWithNewNames.descendingIterator();
-    while (it.hasNext()) {
-      Map<String, JSimpleDeclaration> vars = it.next();
+      Iterator<Map<String, JSimpleDeclaration>> it = varsList.descendingIterator();
+      while (it.hasNext()) {
+        Map<String, JSimpleDeclaration> vars = it.next();
 
-      JSimpleDeclaration binding = vars.get(name);
-      if (binding != null && binding.getName().equals(name)) {
-        return true;
+        JSimpleDeclaration binding = vars.get(origName);
+        if (binding != null && binding.getName().equals(name)) {
+          return true;
+        }
+        binding = vars.get(name);
+        if (binding != null && binding.getName().equals(name)) {
+          return true;
+        }
       }
-      binding = vars.get(name);
-      if (binding != null && binding.getName().equals(name)) {
-        return true;
-      }
+      return false;
     }
-    return false;
-  }
 
   /**
    * Returns the variable declaration with the name given as parameter.
@@ -298,7 +292,11 @@ class Scope {
       }
     }
 
-    return fields.getOrDefault(name, null);
+    if (fields.containsKey(name)) {
+      return fields.get(name);
+    } else {
+      return null;
+    }
   }
 
   /**
@@ -312,7 +310,8 @@ class Scope {
   }
 
   /**
-   * Checks if the method declaration with the name given as parameter is already in use.
+   * Checks if the method declaration with the name given as parameter
+   * is already in use.
    *
    * @param name name of the method.
    * @return true, if found, else false.
@@ -329,29 +328,25 @@ class Scope {
             + "a name in the standard namespace: %s",
         declaration);
 
-    checkArgument(
-        !(declaration instanceof JFieldDeclaration),
+    checkArgument(!(declaration instanceof JFieldDeclaration),
         "Can't register a field declaration, it has to be updated within the type Hierarchy");
 
     String name = declaration.getOrigName();
     assert name != null;
 
     Map<String, JSimpleDeclaration> vars = varsStack.getLast();
-    Map<String, JSimpleDeclaration> varsWithNewNames = varsStackWitNewNames.getLast();
 
     if (isProgramScope()) {
-      throw new CFAGenerationRuntimeException(
-          "Could not find Class for Declaration " + declaration.getName(), declaration);
+      throw new CFAGenerationRuntimeException("Could not find Class for Declaration " + declaration.getName() , declaration);
     }
 
     // multiple declarations of the same variable are disallowed
-    if (vars.containsKey(declaration.getName())) {
-      throw new CFAGenerationRuntimeException(
-          "Variable " + name + " already declared", declaration);
+    // unless i
+    if (vars.containsKey(name)) {
+      throw new CFAGenerationRuntimeException("Variable " + name + " already declared", declaration);
     }
 
     vars.put(name, declaration);
-    varsWithNewNames.put(declaration.getName(), declaration);
   }
 
   public String getCurrentMethodName() {
@@ -385,17 +380,8 @@ class Scope {
       }
     }
 
-    // Sub Classes need to be parsed for dynamic Binding
+    //Sub Classes need to be parsed for dynamic Binding
     JClassOrInterfaceType type = typeHierarchy.getType(className);
-
-    // TODO Check if there is a way to be more precise
-    if (type == null) {
-      logger.log(Level.WARNING, "Could not resolve type of ", className);
-      type =
-          classBinding.isInterface()
-              ? JInterfaceType.createUnresolvableType()
-              : JClassType.createUnresolvableType();
-    }
 
     toBeAdded.addAll(type.getAllSubTypesOfType());
 
@@ -414,8 +400,7 @@ class Scope {
     ITypeBinding nextClass = classBinding;
 
     for (ITypeBinding declaringClass = nextClass.getDeclaringClass();
-        declaringClass != null;
-        declaringClass = nextClass.getDeclaringClass()) {
+        declaringClass != null; declaringClass = nextClass.getDeclaringClass()) {
       nextClass = declaringClass;
     }
 
@@ -465,30 +450,34 @@ class Scope {
     return result;
   }
 
-  public Map<String, JFieldDeclaration> getNonStaticFieldDeclarationOfClass(
-      JClassOrInterfaceType pType) {
+  public Map<String, JFieldDeclaration> getNonStaticFieldDeclarationOfClass(JClassOrInterfaceType pType) {
+
+    Map<String, JFieldDeclaration> result = new HashMap<>();
 
     if (typeHierarchy.isExternType(pType)) {
-      return ImmutableMap.of();
+      return result;
     }
 
     Set<JFieldDeclaration> fieldDecls = getFieldDeclarations(pType);
 
     for (JFieldDeclaration declaration : fieldDecls) {
       if (!declaration.isStatic()) {
-        return ImmutableMap.of(declaration.getName(), declaration);
+        result.put(declaration.getName(), declaration);
       }
     }
-
-    return ImmutableMap.of();
+    return result;
   }
 
-  public Path getFileOfCurrentType() {
-    return typeHierarchy.getFileOfType(classStack.peek());
+  public String getFileOfCurrentType() {
+    if (typeHierarchy.containsType(classStack.peek())) {
+      return typeHierarchy.getFileOfType(classStack.peek());
+    } else {
+      return "";
+    }
   }
 
   public boolean containsInterfaceType(String typeName) {
-    return typeHierarchy.containsInterfaceType(typeName);
+    return  typeHierarchy.containsInterfaceType(typeName);
   }
 
   public JInterfaceType getInterfaceType(String typeName) {
@@ -532,39 +521,26 @@ class Scope {
     methods = typeHierarchy.getMethodDeclarations();
     fields = typeHierarchy.getFieldDeclarations();
 
-    String pDeclarationName =
-        NameConverter.convertClassOrInterfaceToFullName(pDeclaration.resolveBinding());
+    String pDeclarationName
+        = NameConverter.convertClassOrInterfaceToFullName(pDeclaration.resolveBinding());
 
     localClassesToBeParsed.add(pDeclaration);
     return checkNotNull(typeHierarchy.getClassType(pDeclarationName));
   }
 
   public JMethodDeclaration createExternMethodDeclaration(
-      JMethodType pConvertMethodType,
-      String pName,
-      String pSimpleName,
-      VisibilityModifier pPublic,
-      boolean pFinal,
-      boolean pAbstract,
-      boolean pStatic,
-      boolean pNative,
-      boolean pSynchronized,
-      boolean pStrictFp,
-      JClassOrInterfaceType pDeclaringClassType) {
+      JMethodType pConvertMethodType, String pName, String pSimpleName,
+      VisibilityModifier pPublic, boolean pFinal,
+      boolean pAbstract, boolean pStatic,
+      boolean pNative, boolean pSynchronized,
+      boolean pStrictFp, JClassOrInterfaceType pDeclaringClassType) {
 
     JMethodDeclaration decl =
         JMethodDeclaration.createExternMethodDeclaration(
-            pConvertMethodType,
-            pName,
-            pSimpleName,
-            pPublic,
-            pFinal,
-            pAbstract,
-            pStatic,
-            pNative,
-            pSynchronized,
-            pStrictFp,
-            pDeclaringClassType);
+            pConvertMethodType, pName, pSimpleName,
+            pPublic, pFinal, pAbstract,
+            pStatic, pNative, pSynchronized,
+            pStrictFp, pDeclaringClassType);
 
     checkArgument(!methods.containsKey(decl.getName()));
 
@@ -575,20 +551,13 @@ class Scope {
 
   public JConstructorDeclaration createExternConstructorDeclaration(
       JConstructorType pConvertConstructorType,
-      String pName,
-      String pSimpleName,
-      VisibilityModifier pVisibility,
-      boolean pStrictFp,
-      JClassType pDeclaringClassType) {
+      String pName, String pSimpleName, VisibilityModifier pVisibility,
+      boolean pStrictFp, JClassType pDeclaringClassType) {
 
     JConstructorDeclaration decl =
         JConstructorDeclaration.createExternConstructorDeclaration(
-            pConvertConstructorType,
-            pName,
-            pSimpleName,
-            pVisibility,
-            pStrictFp,
-            pDeclaringClassType);
+            pConvertConstructorType, pName, pSimpleName,
+            pVisibility, pStrictFp, pDeclaringClassType);
 
     checkArgument(!methods.containsKey(decl.getName()));
 
@@ -606,19 +575,14 @@ class Scope {
     return fields.get(pFieldName);
   }
 
-  public JFieldDeclaration createExternFieldDeclaration(
-      JType pType,
-      String pName,
-      String pSimpleName,
-      boolean pIsFinal,
-      boolean pIsStatic,
-      VisibilityModifier pVisibility,
-      boolean pIsVolatile,
-      boolean pIsTransient) {
+  public JFieldDeclaration createExternFieldDeclaration(JType pType, String pName,
+      String pSimpleName, boolean pIsFinal, boolean pIsStatic,
+      VisibilityModifier pVisibility, boolean pIsVolatile, boolean pIsTransient) {
 
     JFieldDeclaration decl =
         JFieldDeclaration.createExternFieldDeclaration(
-            pType, pName, pSimpleName, pIsFinal, pIsStatic, pIsTransient, pIsVolatile, pVisibility);
+            pType, pName, pSimpleName, pIsFinal, pIsStatic,
+            pIsTransient, pIsVolatile, pVisibility);
 
     checkArgument(!fields.containsKey(decl.getName()));
 

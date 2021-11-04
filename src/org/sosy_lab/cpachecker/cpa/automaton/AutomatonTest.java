@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableMap;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
 import java.util.logging.Level;
 import org.junit.Test;
@@ -38,7 +39,7 @@ public class AutomatonTest {
             "specification", "test/config/automata/tmpSpecification.spc",
             "analysis.stopAfterError", "FALSE");
 
-    Path tmpSpc = Path.of("test/config/automata/tmpSpecification.spc");
+    Path tmpSpc = Paths.get("test/config/automata/tmpSpecification.spc");
     String content =
         "#include UninitializedVariablesTestAutomaton.txt \n" + "#include tmpSpecification.spc \n";
     IO.writeFile(tmpSpc, StandardCharsets.US_ASCII, content);
@@ -127,8 +128,7 @@ public class AutomatonTest {
     Map<String, String> prop =
         ImmutableMap.of(
             "CompositeCPA.cpas",
-                "cpa.location.LocationCPA, cpa.value.ValueAnalysisCPA,"
-                    + " cpa.automaton.ControlAutomatonCPA",
+                "cpa.location.LocationCPA, cpa.value.ValueAnalysisCPA, cpa.automaton.ControlAutomatonCPA",
             "log.consoleLevel", "INFO",
             "cpa.value.threshold", "10");
 
@@ -143,8 +143,7 @@ public class AutomatonTest {
     Map<String, String> prop =
         ImmutableMap.of(
             "CompositeCPA.cpas",
-                "cpa.location.LocationCPA, cpa.value.ValueAnalysisCPA,"
-                    + " cpa.automaton.ControlAutomatonCPA",
+                "cpa.location.LocationCPA, cpa.value.ValueAnalysisCPA, cpa.automaton.ControlAutomatonCPA",
             "cpa.automaton.inputFile", "test/config/automata/modifyingAutomaton.txt",
             "cpa.value.threshold", "10");
 
@@ -159,8 +158,7 @@ public class AutomatonTest {
     Map<String, String> prop =
         ImmutableMap.of(
             "CompositeCPA.cpas",
-                "cpa.location.LocationCPA, cpa.value.ValueAnalysisCPA,"
-                    + " cpa.automaton.ObserverAutomatonCPA",
+                "cpa.location.LocationCPA, cpa.value.ValueAnalysisCPA, cpa.automaton.ObserverAutomatonCPA",
             "cpa.automaton.inputFile", "test/config/automata/modifyingAutomaton.txt",
             "cpa.value.threshold", "10");
 
@@ -189,8 +187,7 @@ public class AutomatonTest {
     Map<String, String> prop =
         ImmutableMap.of(
             "CompositeCPA.cpas",
-                "cpa.location.LocationCPA, cpa.automaton.ObserverAutomatonCPA,"
-                    + " cpa.uninitvars.UninitializedVariablesCPA",
+                "cpa.location.LocationCPA, cpa.automaton.ObserverAutomatonCPA, cpa.uninitvars.UninitializedVariablesCPA",
             "cpa.automaton.inputFile",
                 "test/config/automata/UninitializedVariablesTestAutomaton.txt",
             "cpa.automaton.dotExportFile", OUTPUT_FILE,
@@ -229,9 +226,7 @@ public class AutomatonTest {
     Map<String, String> prop =
         ImmutableMap.of(
             "CompositeCPA.cpas",
-            "cpa.location.LocationCPA, cpa.callstack.CallstackCPA,"
-                + " cpa.functionpointer.FunctionPointerCPA, cpa.value.ValueAnalysisCPA,"
-                + " cpa.predicate.PredicateCPA, cpa.automaton.ObserverAutomatonCPA",
+            "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.functionpointer.FunctionPointerCPA, cpa.value.ValueAnalysisCPA, cpa.predicate.PredicateCPA, cpa.automaton.ObserverAutomatonCPA",
             "cpa.automaton.inputFile",
             "test/config/automata/set_variable.spc",
             "cpa.automaton.dotExportFile",
@@ -246,9 +241,7 @@ public class AutomatonTest {
     Map<String, String> prop =
         ImmutableMap.of(
             "CompositeCPA.cpas",
-            "cpa.location.LocationCPA, cpa.callstack.CallstackCPA,"
-                + " cpa.functionpointer.FunctionPointerCPA, cpa.value.ValueAnalysisCPA,"
-                + " cpa.predicate.PredicateCPA, cpa.automaton.ObserverAutomatonCPA",
+            "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.functionpointer.FunctionPointerCPA, cpa.value.ValueAnalysisCPA, cpa.predicate.PredicateCPA, cpa.automaton.ObserverAutomatonCPA",
             "cpa.automaton.inputFile",
             "test/config/automata/set_variable.spc",
             "cpa.automaton.dotExportFile",
@@ -263,8 +256,7 @@ public class AutomatonTest {
     Map<String, String> prop =
         ImmutableMap.of(
             "CompositeCPA.cpas",
-                "cpa.location.LocationCPA, cpa.automaton.ObserverAutomatonCPA,"
-                    + " cpa.value.ValueAnalysisCPA",
+                "cpa.location.LocationCPA, cpa.automaton.ObserverAutomatonCPA, cpa.value.ValueAnalysisCPA",
             "cpa.automaton.inputFile",
                 "test/config/automata/ExplicitAnalysisObservingAutomaton.txt",
             "cpa.value.threshold", "2000");
@@ -297,8 +289,7 @@ public class AutomatonTest {
     Map<String, String> prop =
         ImmutableMap.of(
             "CompositeCPA.cpas",
-                "cpa.location.LocationCPA, cpa.automaton.ObserverAutomatonCPA automatonA,"
-                    + " cpa.automaton.ObserverAutomatonCPA automatonB, cpa.value.ValueAnalysisCPA",
+                "cpa.location.LocationCPA, cpa.automaton.ObserverAutomatonCPA automatonA, cpa.automaton.ObserverAutomatonCPA automatonB, cpa.value.ValueAnalysisCPA",
             "automatonA.cpa.automaton.inputFile", "test/config/automata/InteractionAutomatonA.txt",
             "automatonB.cpa.automaton.inputFile", "test/config/automata/InteractionAutomatonB.txt",
             "cpa.value.threshold", "2000");

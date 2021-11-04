@@ -13,6 +13,8 @@ import static org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner.SEPARA
 import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.THREAD_START;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
@@ -184,14 +186,13 @@ public class FunctionCallDumper {
         // the normal case of functioncall, both functions have their complete CFA
         final FunctionSummaryEdge function = (FunctionSummaryEdge) pEdge;
         final String functionName = function.getPredecessor().getFunctionName();
-            final AFunctionDeclaration calledFunctionDecl =
+            final Optional<FunctionCallEdge> calledFunction =
                 CFAUtils.leavingEdges(function.getPredecessor())
                     .filter(FunctionCallEdge.class)
-                    .first()
-                    .toJavaUtil()
-                    .orElseThrow(() -> new IllegalStateException("internal function without body"))
-                    .getSuccessor()
-                    .getFunctionDefinition();
+                    .first();
+            Preconditions.checkState(calledFunction.isPresent(), "internal function without body");
+            AFunctionDeclaration calledFunctionDecl =
+                calledFunction.get().getSuccessor().getFunctionDefinition();
             functionCalls.put(functionName, calledFunctionDecl.getName());
             originalNames.put(calledFunctionDecl.getName(), calledFunctionDecl.getOrigName());
             break;

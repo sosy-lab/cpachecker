@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs.object.test;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Iterables;
 import com.google.common.truth.Truth;
 import java.util.Collection;
@@ -34,7 +35,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObjectKind;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
-import org.sosy_lab.cpachecker.cpa.smg.util.PersistentBiMap;
 
 @RunWith(Parameterized.class)
 public class SMGListsWithValuesTest {
@@ -74,10 +74,10 @@ public class SMGListsWithValuesTest {
             new SMGOptions(Configuration.defaultConfiguration()),
             smg,
             0,
-            PersistentBiMap.of());
+            HashBiMap.create());
 
     final int intSize = 8 * MACHINE_MODEL_FOR_TESTING.getSizeofInt();
-    final int ptrSize = MACHINE_MODEL_FOR_TESTING.getSizeofPtrInBits();
+    final int ptrSize = 8 * MACHINE_MODEL_FOR_TESTING.getSizeofPtr();
 
     final int hfo = 0;
     final int nfo = 0;

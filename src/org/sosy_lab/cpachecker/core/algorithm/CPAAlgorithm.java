@@ -143,12 +143,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       out.println("Number of times stopped:         " + countStop);
       out.println("Number of times breaked:         " + countBreak);
       out.println();
-      out.println(
-          "Total time for CPA algorithm:     "
-              + totalTimer
-              + " (Max: "
-              + totalTimer.getMaxTime().formatAs(TimeUnit.SECONDS)
-              + ")");
+      out.println("Total time for CPA algorithm:     " + totalTimer + " (Max: " + totalTimer.getMaxTime().formatAs(TimeUnit.SECONDS) + ")");
       out.println("  Time for choose from waitlist:  " + chooseTimer);
       if (forcedCoveringTimer.getNumberOfIntervals() > 0) {
         out.println("  Time for forced covering:       " + forcedCoveringTimer);
@@ -279,7 +274,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
           // Prec operator requested break
           return status;
         }
-      } catch (CPAException | InterruptedException e) {
+      } catch (Exception e) {
         // re-add the old state to the waitlist, there might be unhandled successors left
         // that otherwise would be forgotten (which would be unsound)
         reachedSet.reAddToWaitlist(state);

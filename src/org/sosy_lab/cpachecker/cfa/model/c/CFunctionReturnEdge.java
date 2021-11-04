@@ -13,7 +13,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 
-public class CFunctionReturnEdge extends FunctionReturnEdge implements CCfaEdge {
+public class CFunctionReturnEdge extends FunctionReturnEdge {
+
 
   private static final long serialVersionUID = 1988341560860570426L;
 
@@ -33,10 +34,5 @@ public class CFunctionReturnEdge extends FunctionReturnEdge implements CCfaEdge 
   @Override
   public CFunctionEntryNode getFunctionEntry() {
     return (CFunctionEntryNode)super.getFunctionEntry();
-  }
-
-  @Override
-  public <R, X extends Exception> R accept(CCfaEdgeVisitor<R, X> pVisitor) throws X {
-    return pVisitor.visit(this);
   }
 }

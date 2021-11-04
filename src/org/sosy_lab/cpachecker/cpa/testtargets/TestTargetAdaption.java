@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.testtargets;
 
 import java.util.HashSet;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -18,22 +17,22 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 public enum TestTargetAdaption {
   NONE {
     @Override
-    public Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> pTargets, final CFA pCfa) {
-      return pTargets;
+    public Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> targets) {
+      return targets;
     }
   },
   COVERED_NEXT_EDGE {
     @Override
-    public Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> pTargets, final CFA pCfa) {
+    public Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> targets) {
       // currently only simple heuristic
       Set<CFAEdge> newGoals;
-      newGoals = new HashSet<>(pTargets);
+      newGoals = new HashSet<>(targets);
       boolean allSuccessorsGoals;
-      for (CFAEdge target : pTargets) {
+      for (CFAEdge target : targets) {
         if (target.getSuccessor().getNumEnteringEdges() == 1) {
           allSuccessorsGoals = true;
           for (CFAEdge leaving : CFAUtils.leavingEdges(target.getSuccessor())) {
-            if (!pTargets.contains(leaving)) {
+            if (!targets.contains(leaving)) {
               allSuccessorsGoals = false;
               break;
             }
@@ -43,60 +42,16 @@ public enum TestTargetAdaption {
           }
         }
       }
-
       return newGoals;
     }
   },
-  BASIC_ESSENTIAL_EDGE {
-    @Override
-    public Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> pTargets, final CFA pCfa) {
-      // basic heuristic that follows paths with forced predecessor/successors and removes
-      // unnecessary test targets
-      return new TestTargetMinimizerBasicEssential().reduceTargets(pTargets);
-    }
-  },
-  ESSENTIAL_EDGE_ORIGINAL {
-    @Override
-    public Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> pTargets, final CFA pCfa) {
-      // advanced heuristic that minimizes the control flow graph to eliminate as many test targets
-      // as possible
-      return new TestTargetMinimizerEssential().reduceTargets(pTargets, pCfa, true);
-    }
-  },
-  ESSENTIAL_EDGE {
-    @Override
-    public Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> pTargets, final CFA pCfa) {
-      // advanced heuristic that minimizes the control flow graph to eliminate as many test targets
-      // as possible
-      return new TestTargetMinimizerEssential().reduceTargets(pTargets, pCfa, false);
-    }
-  },
-  PORTFOLIO {
-    @Override
-    public Set<CFAEdge> adaptTestTargets(Set<CFAEdge> pTargets, CFA pCfa) {
-      Set<CFAEdge> finalResult, returnResult;
-      finalResult = COVERED_NEXT_EDGE.adaptTestTargets(pTargets, pCfa);
-      returnResult = ESSENTIAL_EDGE_ORIGINAL.adaptTestTargets(pTargets, pCfa); // TODO select best
-      finalResult = finalResult.size() > returnResult.size() ? returnResult : finalResult;
-      returnResult = SPANNING_SET.adaptTestTargets(pTargets, pCfa);
-      finalResult = finalResult.size() > returnResult.size() ? returnResult : finalResult;
-      return finalResult;
-    }
-  },
-  SPANNING_SET { // SUPERBLOCK approach would nearly be identical
-    @Override
-    public Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> pTargets, final CFA pCfa) {
-      return new TestTargetReductionSpanningSet().reduceTargets(pTargets, pCfa);
-    }
-  },
-
   TESTCOMP {
     @Override
-    public Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> targets, final CFA pCfa) {
+    public Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> targets) {
       // currently only simple heuristic
       Set<CFAEdge> newGoals;
       if (targets.size() < 1000) {
-        newGoals = COVERED_NEXT_EDGE.adaptTestTargets(targets, pCfa);
+        newGoals = COVERED_NEXT_EDGE.adaptTestTargets(targets);
       } else {
         newGoals = new HashSet<>();
         for (CFAEdge target : targets) {
@@ -115,5 +70,5 @@ public enum TestTargetAdaption {
     }
   };
 
-  public abstract Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> targets, final CFA pCfa);
+  public abstract Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> targets);
 }

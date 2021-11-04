@@ -127,18 +127,16 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
                 pred.getFunctionName(), "to", calledFunction);
             return ImmutableSet.of();
           } else {
-              // recursion is unsupported
-              logger.log(
-                  Level.INFO,
-                  "Recursion detected, aborting. To ignore recursion, add -skipRecursion to the"
-                      + " command line.");
+            // recursion is unsupported
+            logger.log(Level.INFO, "Recursion detected, aborting. To ignore recursion, add -skipRecursion to the command line.");
             throw new UnsupportedCodeException("recursion", pEdge);
           }
         } else {
-            // regular function call:
-            //    add the called function to the current stack
+          // regular function call:
+          //    add the called function to the current stack
 
-            return ImmutableSet.of(new CallstackState(e, calledFunction, callerNode));
+          return Collections.singleton(
+              new CallstackState(e, calledFunction, callerNode));
         }
       }
 
@@ -151,8 +149,7 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
           assert calledFunction.equals(e.getCurrentFunction())
                   || isWildcardState(e, AnalysisDirection.FORWARD)
               : String.format(
-                  "not in scope of called function \"%s\" when leaving function \"%s\" in state"
-                      + " \"%s\"",
+                  "not in scope of called function \"%s\" when leaving function \"%s\" in state \"%s\"",
                   calledFunction, e.getCurrentFunction(), e);
 
           if (isWildcardState(e, AnalysisDirection.FORWARD)) {
@@ -172,8 +169,7 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
             assert callerFunction.equals(returnElement.getCurrentFunction())
                     || isWildcardState(returnElement, AnalysisDirection.FORWARD)
                 : String.format(
-                    "calling function \"%s\" not available after function return into function"
-                        + " scope \"%s\" in state \"%s\"",
+                    "calling function \"%s\" not available after function return into function scope \"%s\" in state \"%s\"",
                     callerFunction, returnElement.getCurrentFunction(), returnElement);
           }
 
@@ -269,9 +265,7 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
 
   protected boolean hasFunctionPointerRecursion(final CallstackState element,
       final FunctionCallEdge pCallEdge) {
-    if (pCallEdge
-        .getRawStatement()
-        .startsWith("pointer call(")) { // Hack, see CFunctionPointerResolver
+    if (pCallEdge.getRawStatement().startsWith("pointer call(")) { // Hack, see CFunctionPointerResolver
       return true;
     }
 
@@ -346,8 +340,7 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
         return (FunctionCallEdge)edge;
       }
     }
-    throw new AssertionError(
-        "Missing function call edge for function call summary edge after node " + predNode);
+    throw new AssertionError("Missing function call edge for function call summary edge after node " + predNode);
   }
 
   public void enableRecursiveContext() {

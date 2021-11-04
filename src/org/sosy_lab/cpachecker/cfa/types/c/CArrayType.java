@@ -95,9 +95,7 @@ public final class CArrayType extends AArrayType implements CType {
   public String toString() {
     return (isConst() ? "const " : "")
         + (isVolatile() ? "volatile " : "")
-        + "("
-        + getType()
-        + (")[" + (length != null ? length.toASTString() : "") + "]");
+        + "("+ getType().toString() + (")[" + (length != null ? length.toASTString() : "") + "]");
   }
 
   @Override

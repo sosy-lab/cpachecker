@@ -30,6 +30,8 @@ import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
 import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix.RawInfeasiblePrefix;
@@ -55,29 +57,28 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
 
   private final Solver solver;
 
+  private final PathFormulaManager pathFormulaManager;
+
   /**
    * This method acts as the constructor of the class.
    *
    * @param pSolver the solver to use
    */
-  public PredicateBasedPrefixProvider(
-      Configuration config,
+  public PredicateBasedPrefixProvider(Configuration config,
       LogManager pLogger,
       Solver pSolver,
+      PathFormulaManager pPathFormulaManager,
       ShutdownNotifier pShutdownNotifier) {
     try {
       config.inject(this);
     } catch (InvalidConfigurationException e) {
-      pLogger.log(
-          Level.INFO,
-          "Invalid configuration given to "
-              + getClass().getSimpleName()
-              + ". Using defaults instead.");
+      pLogger.log(Level.INFO, "Invalid configuration given to " + getClass().getSimpleName() + ". Using defaults instead.");
     }
 
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
     solver = pSolver;
+    pathFormulaManager = pPathFormulaManager;
   }
 
   public static PredicateBasedPrefixProvider create(ConfigurableProgramAnalysis pCpa)
@@ -88,6 +89,7 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
         predicateCpa.getConfiguration(),
         predicateCpa.getLogger(),
         predicateCpa.getSolver(),
+        predicateCpa.getPathFormulaManager(),
         predicateCpa.getShutdownNotifier());
   }
 
@@ -128,6 +130,7 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
     List<T> terms = new ArrayList<>(blockFormulas.size());
 
     List<BooleanFormula> pathFormula = new ArrayList<>();
+    PathFormula formula = pathFormulaManager.makeEmptyPathFormula();
 
     int currentBlockIndex = 0;
 
@@ -151,7 +154,8 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
         pathFormula.add(currentBlockFormula);
 
         try {
-          T term = prover.push(currentBlockFormula);
+          formula = pathFormulaManager.makeAnd(makeEmpty(formula), currentBlockFormula);
+          T term = prover.push(formula.getFormula());
           terms.add(term);
 
           if (checkUnsat(pPath, iterator.getOutgoingEdge()) && prover.isUnsat()) {
@@ -186,7 +190,8 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
 
             // replace respective term by tautology
             terms.remove(terms.size() - 1);
-            terms.add(prover.push(makeTrue()));
+            formula = pathFormulaManager.makeAnd(makeEmpty(formula), makeTrue());
+            terms.add(prover.push(formula.getFormula()));
 
             // replace failing block formula by tautology, too
             pathFormula.remove(pathFormula.size() - 1);
@@ -263,6 +268,10 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
 
   private boolean isAbstractionState(ARGState pCurrentState) {
     return PredicateAbstractState.getPredicateState(pCurrentState).isAbstractionState();
+  }
+
+  private PathFormula makeEmpty(PathFormula formula) {
+    return pathFormulaManager.makeEmptyPathFormula(formula);
   }
 
   private BooleanFormula makeTrue() {

@@ -524,6 +524,7 @@ def transitiveReductionCheck(nodes):
 if __name__ == "__main__":
     args = parseArgs()
 
+    global logLevel
     logLevel = int(args.logLevel)
 
     nodes = getNodes(args.dir)

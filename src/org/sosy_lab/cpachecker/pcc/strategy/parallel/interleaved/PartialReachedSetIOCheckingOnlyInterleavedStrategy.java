@@ -32,7 +32,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PartitioningCheckingHelper;
@@ -47,6 +46,7 @@ import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningIOHelper;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
+
 
 public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends AbstractStrategy {
 
@@ -69,12 +69,10 @@ public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends Abstract
   }
 
   @Override
-  public void constructInternalProofRepresentation(
-      UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa)
+  public void constructInternalProofRepresentation(UnmodifiableReachedSet pReached)
       throws InvalidConfigurationException, InterruptedException {
     throw new InvalidConfigurationException(
-        "Interleaved proof reading and checking strategies do not  support internal PCC with result"
-            + " check algorithm");
+        "Interleaved proof reading and checking strategies do not  support internal PCC with result check algorithm");
   }
 
   @Override
@@ -126,22 +124,15 @@ public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends Abstract
       checker.addPartitionElements(partitionNodes);
       checker.addElementsCheckedInOtherPartitions(inOtherPartition);
 
-      logger.log(
-          Level.INFO,
-          "Add initial state to elements for which it will be checked if they are covered by"
-              + " partition nodes of certificate.");
+      logger.log(Level.INFO, "Add initial state to elements for which it will be checked if they are covered by partition nodes of certificate.");
       inOtherPartition.add(initialState);
 
-      logger.log(
-          Level.INFO,
-          "Check if initial state and all nodes which should be contained in different partition"
-              + " are covered by certificate (partition node).");
+      logger.log(Level.INFO,
+              "Check if initial state and all nodes which should be contained in different partition are covered by certificate (partition node).");
       if (!PartitioningUtils.areElementsCoveredByPartitionElement(inOtherPartition, partitionNodes, cpa.getStopOperator(),
           initPrec)) {
-        logger.log(
-            Level.SEVERE,
-            "Initial state or a state which should be in other partition is not covered by"
-                + " certificate.");
+        logger.log(Level.SEVERE,
+            "Initial state or a state which should be in other partition is not covered by certificate.");
         return false;
       }
 
@@ -163,13 +154,10 @@ public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends Abstract
   }
 
   @Override
-  protected void writeProofToStream(
-      final ObjectOutputStream pOut,
-      final UnmodifiableReachedSet pReached,
-      final ConfigurableProgramAnalysis pCpa)
+  protected void writeProofToStream(final ObjectOutputStream pOut, final UnmodifiableReachedSet pReached)
       throws IOException, InvalidConfigurationException, InterruptedException {
     Pair<PartialReachedSetDirectedGraph, List<Set<Integer>>> partitioning =
-        ioHelper.computePartialReachedSetAndPartition(pReached, pCpa);
+        ioHelper.computePartialReachedSetAndPartition(pReached);
 
     ioHelper.setProofInfoCollector(proofInfo);
 

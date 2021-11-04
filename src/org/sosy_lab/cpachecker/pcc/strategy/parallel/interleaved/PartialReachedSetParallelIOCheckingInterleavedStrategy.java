@@ -34,7 +34,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -50,13 +49,9 @@ import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningUtils;
 @Options(prefix = "pcc.interleaved")
 public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends AbstractStrategy {
 
-  @Option(
-      secure = true,
+  @Option(secure=true,
       name = "useReadCores",
-      description =
-          "The number of cores used exclusively for proof reading. Must be less than pcc.useCores"
-              + " and may not be negative. Value 0 means that the cores used for reading and"
-              + " checking are shared")
+      description = "The number of cores used exclusively for proof reading. Must be less than pcc.useCores and may not be negative. Value 0 means that the cores used for reading and checking are shared")
   private int numReadThreads = 0;
 
   private int nextPartition;
@@ -84,12 +79,10 @@ public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends Abst
   }
 
   @Override
-  public void constructInternalProofRepresentation(
-      final UnmodifiableReachedSet pReached, final ConfigurableProgramAnalysis pCpa)
+  public void constructInternalProofRepresentation(final UnmodifiableReachedSet pReached)
       throws InvalidConfigurationException {
     throw new InvalidConfigurationException(
-        "Interleaved proof reading and checking strategies do not  support internal PCC with result"
-            + " check algorithm");
+        "Interleaved proof reading and checking strategies do not  support internal PCC with result check algorithm");
   }
 
   @Override
@@ -126,22 +119,15 @@ public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends Abst
 
       if (!checkResult.get()) { return false; }
 
-      logger.log(
-          Level.INFO,
-          "Add initial state to elements for which it will be checked if they are covered by"
-              + " partition nodes of certificate.");
+      logger.log(Level.INFO, "Add initial state to elements for which it will be checked if they are covered by partition nodes of certificate.");
       inOtherPartition.add(initialState);
 
-      logger.log(
-          Level.INFO,
-          "Check if initial state and all nodes which should be contained in different partition"
-              + " are covered by certificate (partition node).");
+      logger.log(Level.INFO,
+              "Check if initial state and all nodes which should be contained in different partition are covered by certificate (partition node).");
       if (!PartitioningUtils.areElementsCoveredByPartitionElement(inOtherPartition, partitionNodes, cpa.getStopOperator(),
           initPrec)) {
-        logger.log(
-            Level.SEVERE,
-            "Initial state or a state which should be in other partition is not covered by"
-                + " certificate.");
+        logger.log(Level.SEVERE,
+            "Initial state or a state which should be in other partition is not covered by certificate.");
         return false;
       }
 
@@ -193,12 +179,9 @@ public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends Abst
   }
 
   @Override
-  protected void writeProofToStream(
-      final ObjectOutputStream pOut,
-      final UnmodifiableReachedSet pReached,
-      final ConfigurableProgramAnalysis pCpa)
+  protected void writeProofToStream(final ObjectOutputStream pOut, final UnmodifiableReachedSet pReached)
       throws IOException, InvalidConfigurationException, InterruptedException {
-    ioHelper.constructInternalProofRepresentation(pReached, pCpa);
+    ioHelper.constructInternalProofRepresentation(pReached);
 
     // write meta data
     ioHelper.writeMetadata(pOut, pReached.size(), ioHelper.getNumPartitions());

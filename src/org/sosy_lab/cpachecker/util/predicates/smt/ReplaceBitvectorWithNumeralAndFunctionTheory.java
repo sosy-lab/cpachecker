@@ -14,8 +14,6 @@ import static org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.Bit
 import static org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.BitwiseXorUfName;
 import static org.sosy_lab.java_smt.api.FormulaType.getBitvectorTypeWithSize;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -41,9 +39,8 @@ import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.java_smt.api.NumeralFormulaManager;
 import org.sosy_lab.java_smt.api.UFManager;
 
-@Options(prefix = "cpa.predicate")
-class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> extends BaseManagerView
-    implements BitvectorFormulaManager {
+class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
+  extends BaseManagerView implements BitvectorFormulaManager {
 
   private final BooleanFormulaManager booleanFormulaManager;
   private final NumeralFormulaManager<? super T, T> numericFormulaManager;
@@ -56,25 +53,29 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
   private final FunctionDeclaration<T> rightShiftUfDecl;
   private final FunctionDeclaration<T> moduloUfDecl;
   private final FormulaType<T> formulaType;
+  private final ReplaceBitvectorEncodingOptions options;
 
-  @Option(
-      secure = true,
-      description =
-          "Allows to ignore Concat and Extract Calls when Bitvector theory was replaced with"
-              + " Integer or Rational.")
-  private boolean ignoreExtractConcat = true;
+  @Options(prefix="cpa.predicate")
+  static class ReplaceBitvectorEncodingOptions {
+
+    ReplaceBitvectorEncodingOptions(Configuration config) throws InvalidConfigurationException {
+      config.inject(this);
+    }
+
+    @Option(secure=true, description="Allows to ignore Concat and Extract Calls when Bitvector theory was replaced with Integer or Rational.")
+    private boolean ignoreExtractConcat = true;
+  }
 
   ReplaceBitvectorWithNumeralAndFunctionTheory(
       FormulaWrappingHandler pWrappingHandler,
       BooleanFormulaManager pBooleanFormulaManager,
       NumeralFormulaManager<? super T, T> rawNumericFormulaManager,
       UFManager rawFunctionManager,
-      Configuration pConfig)
-      throws InvalidConfigurationException {
+      final ReplaceBitvectorEncodingOptions pOptions) {
     super(pWrappingHandler);
-    pConfig.inject(this);
     booleanFormulaManager = pBooleanFormulaManager;
     numericFormulaManager = rawNumericFormulaManager;
+    this.options = pOptions;
     this.functionManager = rawFunctionManager;
 
     formulaType = numericFormulaManager.getFormulaType();
@@ -321,7 +322,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
     int firstLength = getLength(pFirst);
     int secoundLength = getLength(pSecound);
     FormulaType<BitvectorFormula> returnType = getBitvectorTypeWithSize(firstLength + secoundLength);
-    if (ignoreExtractConcat) {
+    if (options.ignoreExtractConcat) {
       return wrap(returnType, unwrap(pSecound));
     }
     FunctionDeclaration<T> concatUfDecl = getConcatDecl(firstLength, secoundLength);
@@ -331,7 +332,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
   @Override
   public BitvectorFormula extract(BitvectorFormula pFirst, int pMsb, int pLsb, boolean signed) {
     FormulaType<BitvectorFormula> returnType = getBitvectorTypeWithSize(pMsb + 1 - pLsb);
-    if (ignoreExtractConcat) {
+    if (options.ignoreExtractConcat) {
       return wrap(returnType, unwrap(pFirst));
     }
     FunctionDeclaration<T> extractUfDecl = getExtractDecl(pMsb, pLsb);
@@ -341,7 +342,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
   @Override
   public BitvectorFormula extend(BitvectorFormula pNumber, int pExtensionBits, boolean pSigned) {
     FormulaType<BitvectorFormula> returnType = getBitvectorTypeWithSize(getLength(pNumber) + pExtensionBits);
-    if (ignoreExtractConcat) {
+    if (options.ignoreExtractConcat) {
       return wrap(returnType, unwrap(pNumber));
     }
     FunctionDeclaration<T> extendUfDecl = getUFDecl("extend", pExtensionBits, pSigned);
@@ -385,19 +386,5 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
     } else {
       return numericFormulaManager.floor(unwrapped);
     }
-  }
-
-  @Override
-  public BooleanFormula distinct(List<BitvectorFormula> pBits) {
-    if (pBits.isEmpty()) {
-      return booleanFormulaManager.makeTrue();
-    }
-    int bitsize = getLength(pBits.get(0));
-    pBits.forEach(
-        bit -> {
-          Preconditions.checkArgument(
-              bitsize == getLength(bit), "Expect operators to have the same size");
-        });
-    return numericFormulaManager.distinct(Lists.transform(pBits, this::unwrap));
   }
 }

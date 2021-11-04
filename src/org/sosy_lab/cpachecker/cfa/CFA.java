@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 public interface CFA {
@@ -49,6 +50,8 @@ public interface CFA {
   Optional<VariableClassification> getVarClassification();
 
   Optional<LiveVariables> getLiveVariables();
+
+  Optional<DependenceGraph> getDependenceGraph();
 
   Language getLanguage();
 

@@ -22,7 +22,7 @@ public class GlobalGraphPartitionerHeuristicFactory {
 
   private GlobalGraphPartitionerHeuristicFactory() {}
 
-  public enum GlobalPartitioningHeuristics {
+  public static enum GlobalPartitioningHeuristics {
     RANDOM,
     DFS,
     BFS,

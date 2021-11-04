@@ -58,15 +58,12 @@ public class ValueAnalysisConcreteErrorPathAllocator
 
   private static final String MEMORY_NAME = "Value_Analysis_Heap";
 
-  private final MachineModel machineModel;
-
   public ValueAnalysisConcreteErrorPathAllocator(
       Configuration pConfig, LogManager pLogger, MachineModel pMachineModel)
       throws InvalidConfigurationException {
     super(
         ValueAnalysisState.class,
         AssumptionToEdgeAllocator.create(pConfig, pLogger, pMachineModel));
-    machineModel = pMachineModel;
   }
 
   @Override
@@ -118,8 +115,7 @@ public class ValueAnalysisConcreteErrorPathAllocator
                     ImmutableMap.of(),
                     allocateAddresses(valueState, variableAddresses),
                     variableAddresses,
-                    exp -> MEMORY_NAME,
-                    machineModel)));
+                    exp -> MEMORY_NAME)));
       }
     }
 
@@ -132,7 +128,7 @@ public class ValueAnalysisConcreteErrorPathAllocator
 
     // We know only values for LeftHandSides that have not yet been assigned.
     if (allValuesForLeftHandSideKnown(innerEdge, alreadyAssigned)) {
-      state = createConcreteState(pValueState, machineModel);
+      state = createConcreteState(pValueState);
     } else {
       state = ConcreteState.empty();
     }
@@ -150,8 +146,7 @@ public class ValueAnalysisConcreteErrorPathAllocator
     return state;
   }
 
-  public static ConcreteState createConcreteState(
-      ValueAnalysisState pValueState, MachineModel pMachineModel) {
+  public static ConcreteState createConcreteState(ValueAnalysisState pValueState) {
     Map<LeftHandSide, Address> variableAddresses =
         generateVariableAddresses(Collections.singleton(pValueState));
     // We assign every variable to the heap, thats why the variable map is empty.
@@ -159,8 +154,7 @@ public class ValueAnalysisConcreteErrorPathAllocator
         ImmutableMap.of(),
         allocateAddresses(pValueState, variableAddresses),
         variableAddresses,
-        exp -> MEMORY_NAME,
-        pMachineModel);
+        exp -> MEMORY_NAME);
   }
 
   private boolean allValuesForLeftHandSideKnown(

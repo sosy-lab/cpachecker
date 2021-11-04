@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.slicing;
 
 import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.Classes;
@@ -33,12 +34,11 @@ public class ReducerExtractor extends AllTargetsExtractor {
       secure = true,
       name = "conditionFiles",
       description =
-          "path to condition files plus additional assumption guiding automaton when condition"
-              + " itself is in propriertary format and not in witness format")
+          "path to condition files plus additional assumption guiding automaton when condition itself is in propriertary format and not in witness format")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private Set<Path> conditionFiles =
       ImmutableSet.of(
-          Path.of("output/AssumptionAutomaton.txt"),
+          Paths.get("output/AssumptionAutomaton.txt"),
           Classes.getCodeLocation(ReducerExtractor.class)
               .resolveSibling("config/specification/AssumptionGuidingAutomaton.spc"));
 
@@ -64,8 +64,7 @@ public class ReducerExtractor extends AllTargetsExtractor {
       logger.logException(
           Level.WARNING,
           e,
-          "Failed to build composite specification of condition and property specification."
-              + " Continue with property specification only.");
+          "Failed to build composite specification of condition and property specification. Continue with property specification only.");
       compositeSpec = pError;
     }
     return super.getSlicingCriteria(pCfa, compositeSpec, shutdownNotifier, logger);

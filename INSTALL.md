@@ -16,11 +16,10 @@ For information on how to run CPAchecker, see [`README.md`](README.md).
 Install CPAchecker -- Binary
 ----------------------------
 
-1. Install a Java Runtime Environment which is at least Java 11 compatible.
-   One Linux we recommend to install a package from your distribution
-   (Ubuntu: `sudo apt install openjdk-11-jre`),
-   on other platforms you can for example get one from
-   [AdoptOpenJDK](https://adoptopenjdk.net/releases.html?variant=openjdk11&jvmVariant=hotspot).
+1. Install a Java Runtime Environment which is at least Java 11 compatible
+   (e.g., Oracle JRE, OpenJDK).
+   Cf. http://java.oracle.com/ or install a package from your distribution.
+   (Ubuntu: `sudo apt-get install openjdk-11-jre`)
    If you have multiple JVMs installed, consider making this the default JVM,
    otherwise you will need to specify the JVM when running CPAchecker.
    (Ubuntu: `sudo update-alternatives --config java`)

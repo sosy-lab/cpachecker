@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import org.sosy_lab.common.configuration.Configuration;
@@ -17,6 +19,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtils.AbstractionPosition;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
@@ -46,9 +49,11 @@ public class SlicingAbstractionsBlockFormulaStrategy extends BlockFormulaStrateg
   @Override
   BlockFormulas getFormulasForPath(final ARGState pRoot, final List<ARGState> pPath)
       throws CPATransferException, InterruptedException {
-    return BlockFormulas.createFromPathFormulas(
-        SlicingAbstractionsUtils.getFormulasForPath(
-            pfmgr, solver, pRoot, pPath, includePartialInvariants));
+    return new BlockFormulas(
+        transformedImmutableListCopy(
+            SlicingAbstractionsUtils.getFormulasForPath(
+                pfmgr, solver, pRoot, pPath, includePartialInvariants),
+            PathFormula::getFormula));
   }
 
 }

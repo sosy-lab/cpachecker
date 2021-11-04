@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -39,8 +40,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -82,7 +83,6 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   private final Algorithm algorithm;
 
-  private final PathFormulaManager pfmgr;
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final Solver solver;
@@ -121,7 +121,6 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     @SuppressWarnings("resource")
     PredicateCPA predCpa = CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, IMCAlgorithm.class);
     solver = predCpa.getSolver();
-    pfmgr = predCpa.getPathFormulaManager();
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
   }
@@ -148,7 +147,9 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private AlgorithmStatus interpolationModelChecking(final ReachedSet pReachedSet)
       throws CPAException, SolverException, InterruptedException {
     if (getTargetLocations().isEmpty()) {
-      pReachedSet.clearWaitlist();
+      for (AbstractState state : ImmutableList.copyOf(pReachedSet.getWaitlist())) {
+        pReachedSet.removeOnlyFromWaitlist(state);
+      }
       return AlgorithmStatus.SOUND_AND_PRECISE;
     }
 
@@ -243,7 +244,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   private static void removeUnreachableTargetStates(ReachedSet pReachedSet) {
-    if (pReachedSet.wasTargetReached()) {
+    if (pReachedSet.hasViolatedProperties()) {
       TargetLocationCandidateInvariant.INSTANCE.assumeTruth(pReachedSet);
     }
   }
@@ -326,7 +327,11 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   private PathFormula makeFalsePathFormula() {
-    return pfmgr.makeEmptyPathFormula().withFormula(bfmgr.makeFalse());
+    return new PathFormula(
+        bfmgr.makeFalse(),
+        SSAMap.emptySSAMap(),
+        PointerTargetSet.emptyPointerTargetSet(),
+        0);
   }
 
   private PathFormula buildPrefixFormula(final List<ARGState> pAbstractionStates) {

@@ -106,13 +106,9 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
   private Constructor<?extends AbstractState> locConstructor = null;
   private final TransferRelation enablerTransfer;
 
-  @Option(
-      secure = true,
-      description =
-          "Enable to use lazy refinement in current analysis instead of restarting from root after"
-              + " each refinement.")
+  @Option(secure = true,
+      description = "Enable to use lazy refinement in current analysis instead of restarting from root after each refinement.")
   private boolean allowLazyRefinement = false;
-
   @Option(secure = true, description = "Which CPA is used as enabler in the current analysis.")
   private Enabler enablerCPA = Enabler.PREDICATE;
 
@@ -165,8 +161,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
             .setEnablerStateClass(enablerCPA.stateClass);
       }
     } catch (ClassCastException e) {
-      throw new InvalidConfigurationException(
-          "Option cpa.composite.inCPAEnabledAnalysis must be enabled.");
+      throw new InvalidConfigurationException("Option cpa.composite.inCPAEnabledAnalysis must be enabled.");
     }
 
     enablerTransfer = CPAs.retrieveCPA(cpa, enablerCPA.cpaClass).getTransferRelation();
@@ -196,7 +191,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
     if (!allowLazyRefinement) {
       restartFromScratchAfterRefinement(pReachedSet);
     } else {
-      if (pReachedSet.wasTargetReached()) {
+      if (pReachedSet.hasViolatedProperties()) {
         throw new RefinementFailedException(Reason.InterpolationFailed, null);
       }
     }
@@ -209,8 +204,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
       status = algorithm.run(pReachedSet);
     } catch (CPAEnabledAnalysisPropertyViolationException e) {
       if(e.getFailureCause()==null){
-        throw new CPAException(
-            "Error state not known to analysis with enabler CPA. Cannot continue analysis.");
+        throw new CPAException("Error state not known to analysis with enabler CPA. Cannot continue analysis.");
       }
       Precision precision =  pReachedSet.getPrecision(((ARGState)e.getFailureCause()).getParents().iterator().next());
       if (e.getFailureCause() != null
@@ -273,9 +267,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
           }
         }
       } catch (ClassCastException e2) {
-        throw new CPAException(
-            "Analysis with enabler CPA requires that the error condition is specified as a"
-                + " CExpression (statement) in the specification (automata).");
+        throw new CPAException("Analysis with enabler CPA requires that the error condition is specified as a CExpression (statement) in the specification (automata).");
       }
 
       if(fakeEdgesFromLastRun.isEmpty()){
@@ -290,9 +282,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
           locConstructor = LocationState.class.getDeclaredConstructor(CFANode.class, boolean.class);
           locConstructor.setAccessible(true);
         } catch (NoSuchMethodException | SecurityException e1) {
-          throw new CPAException(
-              "Cannot prepare for refinement because cannot get constructor for location states.",
-              e1);
+          throw new CPAException("Cannot prepare for refinement because cannot get constructor for location states.", e1);
         }
       }
 
@@ -312,8 +302,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
                 wrappedStates.add(locConstructor.newInstance(assumeEdge.getSuccessor(),true));
               } catch (InstantiationException | IllegalAccessException | IllegalArgumentException
                   | InvocationTargetException e1) {
-                throw new CPAException(
-                    "Cannot prepare for refinement, cannot build necessary fake states.", e1);
+                throw new CPAException("Cannot prepare for refinement, cannot build necessary fake states.", e1);
               }
             } else {
               wrappedStates.add(state);
@@ -416,7 +405,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
       // if last edge on faked path, build abstraction which is needed for refinement, set to true, we do not know better
       if (pLastEdge) {
         AbstractionFormula abf = pam.makeTrueAbstractionFormula(pf);
-          pf = pfm.makeEmptyPathFormulaWithContextFrom(pf);
+        pf = pfm.makeEmptyPathFormula(pf);
 
         PersistentMap<CFANode, Integer> abstractionLocations = predFakeState.getAbstractionLocationsOnPath();
         Integer newLocInstance =
@@ -438,10 +427,8 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
       Collection<? extends AbstractState> nextFakeStateResult = enablerTransfer
               .getAbstractSuccessorsForEdge(pFakeEnablerState, SingletonPrecision.getInstance(), pAssumeEdge);
       if (nextFakeStateResult == null || nextFakeStateResult.isEmpty()) {
-          logger.log(
-              Level.INFO,
-              "Adding error explaining condition makes path infeasible, enabler knows of"
-                  + " infeasibility of error, but still try to exclude path");
+        logger.log(Level.INFO,
+                "Adding error explaining condition makes path infeasible, enabler knows of infeasibility of error, but still try to exclude path");
         return pFakeEnablerState;
       }
       // use first element as one possible reason for failure path

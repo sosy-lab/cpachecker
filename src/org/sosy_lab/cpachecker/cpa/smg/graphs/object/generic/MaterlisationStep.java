@@ -388,11 +388,7 @@ public class MaterlisationStep {
 
   @Override
   public String toString() {
-    return targetAdressTemplateOfPointer.toString()
-        + pointerTemplate
-        + fieldTemplateContainingPointer
-        + fieldTemplateContainingPointerTemplate
-        + fieldTemplateContainingValue;
+    return targetAdressTemplateOfPointer.toString() + pointerTemplate.toString() + fieldTemplateContainingPointer.toString() + fieldTemplateContainingPointerTemplate.toString() + fieldTemplateContainingValue.toString();
   }
 
   public boolean abstractInterfaceContains(SMGValue abstractValue) {

@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.value.type;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.io.Serializable;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
@@ -17,14 +15,14 @@ public final class FunctionValue implements Value, Serializable {
 
   private static final long serialVersionUID = -3829943575180448170L;
 
-  private final String str;
+  private String str;
 
   /**
    * Creates a new <code>FunctionValue</code>.
    * @param pString the value of the function
    */
   public FunctionValue(String pString) {
-    str = checkNotNull(pString);
+    str = pString;
   }
 
   @Override
@@ -68,7 +66,10 @@ public final class FunctionValue implements Value, Serializable {
 
   @Override
   public int hashCode() {
-    return str.hashCode();
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((str == null) ? 0 : str.hashCode());
+    return result;
   }
 
   @Override
@@ -86,7 +87,14 @@ public final class FunctionValue implements Value, Serializable {
       return false;
     }
     FunctionValue other = (FunctionValue) obj;
-    return str.equals(other.str);
+    if (str == null) {
+      if (other.str != null) {
+        return false;
+      }
+    } else if (!str.equals(other.str)) {
+      return false;
+    }
+    return true;
   }
 
   public String getString() {

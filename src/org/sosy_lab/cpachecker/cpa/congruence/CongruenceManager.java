@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.util.templates.TemplateToFormulaConversionManager
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BitvectorFormulaManager;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -72,6 +73,7 @@ public class CongruenceManager implements
   private final CongruenceStatistics statistics;
   private final PathFormulaManager pfmgr;
   private final TemplatePrecision precision;
+  private final BooleanFormulaManager bfmgr;
   private final Configuration configuration;
   private final CFA cfa;
   private final LogManager logManager;
@@ -95,6 +97,7 @@ public class CongruenceManager implements
     configuration = config;
     solver = pSolver;
     fmgr = pFormulaManager;
+    bfmgr = fmgr.getBooleanFormulaManager();
     statistics = pStatistics;
     bvfmgr = fmgr.getBitvectorFormulaManager();
     pfmgr = pPathFormulaManager;
@@ -209,11 +212,12 @@ public class CongruenceManager implements
   }
 
   public BooleanFormula toFormula(CongruenceState state) {
-    return toFormula(
-        pfmgr,
-        fmgr,
-        state,
-        pfmgr.makeEmptyPathFormulaWithContext(state.getSSAMap(), state.getPointerTargetSet()));
+    return toFormula(pfmgr, fmgr, state, new PathFormula(
+        bfmgr.makeTrue(),
+        state.getSSAMap(),
+        state.getPointerTargetSet(),
+        1
+    ));
   }
 
   public BooleanFormula toFormulaUninstantiated(
@@ -237,8 +241,11 @@ public class CongruenceManager implements
             pfmgrv,
             pFormulaManager,
             state,
-            pfmgrv.makeEmptyPathFormulaWithContext(
-                state.getSSAMap(), state.getPointerTargetSet())));
+            new PathFormula(
+                pFormulaManager.getBooleanFormulaManager().makeTrue(),
+                state.getSSAMap(),
+                state.getPointerTargetSet(),
+                1)));
   }
 
   public BooleanFormula toFormula(

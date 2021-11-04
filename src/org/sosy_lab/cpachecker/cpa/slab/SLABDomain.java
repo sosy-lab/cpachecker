@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.slab;
 
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -35,7 +36,8 @@ public class SLABDomain implements AbstractDomain {
         && state2.getParents().containsAll(state1.getParents());
   }
 
-  protected boolean wrappedSubsumption(SLARGState pState1, SLARGState pState2)
+  protected boolean wrappedSubsumption(
+      AbstractSingleWrapperState pState1, AbstractSingleWrapperState pState2)
       throws CPAException, InterruptedException {
     return wrappedDomain.isLessOrEqual(pState1.getWrappedState(), pState2.getWrappedState());
   }

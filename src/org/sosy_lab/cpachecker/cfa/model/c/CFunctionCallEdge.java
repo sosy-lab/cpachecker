@@ -8,16 +8,18 @@
 
 package org.sosy_lab.cpachecker.cfa.model.c;
 
+import com.google.common.base.Optional;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 
-public class CFunctionCallEdge extends FunctionCallEdge implements CCfaEdge {
+public class CFunctionCallEdge extends FunctionCallEdge {
+
+
 
   private static final long serialVersionUID = -3203684033841624723L;
 
@@ -39,19 +41,10 @@ public class CFunctionCallEdge extends FunctionCallEdge implements CCfaEdge {
     return (CFunctionSummaryEdge) summaryEdge;
   }
 
-  @Override
-  public CFunctionCall getFunctionCall() {
-    return (CFunctionCall) functionCall;
-  }
-
-  @Override
-  public CFunctionCallExpression getFunctionCallExpression() {
-    return getFunctionCall().getFunctionCallExpression();
-  }
-
+  @SuppressWarnings("unchecked")
   @Override
   public List<CExpression> getArguments() {
-    return getFunctionCallExpression().getParameterExpressions();
+    return (List<CExpression>) functionCall.getFunctionCallExpression().getParameterExpressions();
   }
 
   @Override
@@ -60,13 +53,13 @@ public class CFunctionCallEdge extends FunctionCallEdge implements CCfaEdge {
   }
 
   @Override
-  public CFunctionEntryNode getSuccessor() {
-    // the constructor enforces that the successor is always a FunctionEntryNode
-    return (CFunctionEntryNode)super.getSuccessor();
+  public Optional<CFunctionCall> getRawAST() {
+    return Optional.of((CFunctionCall)functionCall);
   }
 
   @Override
-  public <R, X extends Exception> R accept(CCfaEdgeVisitor<R, X> pVisitor) throws X {
-    return pVisitor.visit(this);
+  public CFunctionEntryNode getSuccessor() {
+    // the constructor enforces that the successor is always a FunctionEntryNode
+    return (CFunctionEntryNode)super.getSuccessor();
   }
 }

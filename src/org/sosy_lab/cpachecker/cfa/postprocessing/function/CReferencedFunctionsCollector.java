@@ -78,7 +78,7 @@ class CReferencedFunctionsCollector {
     case ReturnStatementEdge:
       CReturnStatementEdge returnEdge = (CReturnStatementEdge)edge;
       if (returnEdge.getExpression().isPresent()) {
-          returnEdge.getExpression().orElseThrow().accept(collector);
+        returnEdge.getExpression().get().accept(collector);
       }
       break;
     case StatementEdge:

@@ -101,7 +101,7 @@ class FrameSet implements AutoCloseable {
     return frameProvers.get(pFrameIndex);
   }
 
-  public ImmutableSet<CandidateInvariant> getInvariants(int pFrameIndex) {
+  public Set<CandidateInvariant> getInvariants(int pFrameIndex) {
     if (pFrameIndex < 0) {
       throw new IndexOutOfBoundsException("Illegal frame index: " + pFrameIndex);
     }
@@ -111,7 +111,7 @@ class FrameSet implements AutoCloseable {
     return IntStream.rangeClosed(pFrameIndex, getFrontierIndex())
         .mapToObj(frames::get)
         .flatMap(Collection::stream)
-        .collect(ImmutableSet.toImmutableSet());
+        .collect(Collectors.toSet());
   }
 
   public void addFrameClause(int pFrameIndex, CandidateInvariant pClause) {

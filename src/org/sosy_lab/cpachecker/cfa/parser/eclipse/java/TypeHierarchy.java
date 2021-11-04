@@ -15,7 +15,6 @@ import static com.google.common.base.Preconditions.checkState;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
-import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -40,11 +39,11 @@ final class TypeHierarchy {
   /*
    * Maps the filename of the file to the type, which it was created from.
    */
-  private Map<JClassOrInterfaceType, Path> fileOfTypes;
+  private Map<JClassOrInterfaceType, String> fileOfTypes;
 
   private Map<JClassOrInterfaceType, Set<JMethodDeclaration>> methodDeclarationsOfType;
 
-  private Map<JClassOrInterfaceType, ImmutableSet<JFieldDeclaration>> fieldDeclarationsOfType;
+  private Map<JClassOrInterfaceType, Set<JFieldDeclaration>> fieldDeclarationsOfType;
 
   /*
    * This class stores the same type information in mutable Maps.
@@ -74,7 +73,7 @@ final class TypeHierarchy {
     return typeSet;
   }
 
-  public Map<JClassOrInterfaceType, Path> getFileOfTypes() {
+  public Map<JClassOrInterfaceType, String> getFileOfTypes() {
     return fileOfTypes;
   }
 
@@ -116,8 +115,8 @@ final class TypeHierarchy {
     return fieldDeclarationsOfType.get(type);
   }
 
-  public static TypeHierarchy createTypeHierachy(LogManager pLogger, List<JavaFileAST> pJavaProgram)
-      throws JParserException {
+  public static TypeHierarchy createTypeHierachy
+      (LogManager pLogger, List<JavaFileAST> pJavaProgram) throws JParserException {
 
     TypeHierachyCreator creator = new TypeHierachyCreator(pLogger, new THTypeTable());
 
@@ -140,7 +139,7 @@ final class TypeHierarchy {
   }
 
   @Nullable
-  public Path getFileOfType(JClassOrInterfaceType pType) {
+  public String getFileOfType(JClassOrInterfaceType pType) {
     return fileOfTypes.get(pType);
   }
 
@@ -156,7 +155,7 @@ final class TypeHierarchy {
 
   public JInterfaceType getInterfaceType(String pTypeName) {
 
-    JClassOrInterfaceType type = types.get(pTypeName);
+    JClassOrInterfaceType type =  types.get(pTypeName);
 
     checkState((type instanceof JInterfaceType), "Interface Type does not exist");
 
@@ -171,7 +170,7 @@ final class TypeHierarchy {
 
   public JClassType getClassType(String pTypeName) {
 
-    JClassOrInterfaceType type = types.get(pTypeName);
+    JClassOrInterfaceType type =  types.get(pTypeName);
 
     checkState((type instanceof JClassType), "Interface Type does not exist");
 
@@ -181,31 +180,12 @@ final class TypeHierarchy {
   void updateTypeHierarchy(ITypeBinding classOrInterfaceBinding) {
 
     checkNotNull(classOrInterfaceBinding);
-    checkArgument(
-        classOrInterfaceBinding.isClass()
-            || classOrInterfaceBinding.isEnum()
-            || classOrInterfaceBinding.isInterface());
+    checkArgument(classOrInterfaceBinding.isClass() || classOrInterfaceBinding.isEnum()
+        || classOrInterfaceBinding.isInterface());
 
     THTypeConverter converter = new THTypeConverter(typeTable);
 
     converter.convertClassOrInterfaceType(classOrInterfaceBinding);
-
-    updateFromTypeTable(typeTable);
-  }
-
-  void updateTypeHierarchy(JClassType pJClassType) {
-
-    if (typeTable.containsType(pJClassType.getName())) {
-      return;
-    }
-    typeTable.registerType(pJClassType);
-
-    JClassType superClass = pJClassType.getParentClass();
-
-    while (superClass != null && !typeTable.containsType(superClass.getName())) {
-      typeTable.registerType(superClass);
-      superClass = superClass.getParentClass();
-    }
 
     updateFromTypeTable(typeTable);
   }
@@ -219,8 +199,8 @@ final class TypeHierarchy {
     typeTable = pTypeTable;
   }
 
-  void updateTypeHierarchy(
-      AnonymousClassDeclaration pDeclaration, Path pFileName, LogManager pLogger) {
+  void updateTypeHierarchy(AnonymousClassDeclaration pDeclaration, String pFileName,
+      LogManager pLogger) {
 
     // this hierarchyCreator has to be initialized after fileOfTypes was updated,
     // so we don't overwrite this update below
@@ -234,13 +214,13 @@ final class TypeHierarchy {
   static class THTypeTable {
 
     private final Map<String, JClassOrInterfaceType> types = new HashMap<>();
-    private final Map<JClassOrInterfaceType, Path> typeOfFiles = new HashMap<>();
+    private final Map<JClassOrInterfaceType, String> typeOfFiles = new HashMap<>();
 
-    private final Map<JClassOrInterfaceType, Set<JMethodDeclaration>> methodDeclarationsOfType =
-        new HashMap<>();
+    private final Map<JClassOrInterfaceType, Set<JMethodDeclaration>>
+                                                    methodDeclarationsOfType = new HashMap<>();
 
-    private final Map<JClassOrInterfaceType, ImmutableSet<JFieldDeclaration>>
-        fieldDeclarationsOfType = new HashMap<>();
+    private final Map<JClassOrInterfaceType, Set<JFieldDeclaration>> fieldDeclarationsOfType
+                                                                                = new HashMap<>();
 
     private THTypeTable() {
       // Create the Object Type.
@@ -252,14 +232,14 @@ final class TypeHierarchy {
       return ImmutableMap.copyOf(types);
     }
 
-    public Map<JClassOrInterfaceType, Path> getTypeOfFiles() {
+    public Map<JClassOrInterfaceType, String> getTypeOfFiles() {
       return new HashMap<>(typeOfFiles);
     }
 
     public void registerType(JClassOrInterfaceType pType) {
       types.put(pType.getName(), pType);
       methodDeclarationsOfType.put(pType, new HashSet<>());
-      fieldDeclarationsOfType.put(pType, ImmutableSet.of());
+      fieldDeclarationsOfType.put(pType, new HashSet<>());
     }
 
     /**
@@ -280,22 +260,14 @@ final class TypeHierarchy {
      *
      * @param pDecl the method declaration to be registered.
      */
-    public void registerFieldDeclaration(
-        JFieldDeclaration pDecl, JClassOrInterfaceType declaringClass) {
+    public void registerFieldDeclaration(JFieldDeclaration pDecl, JClassOrInterfaceType declaringClass) {
 
       checkArgument(fieldDeclarationsOfType.containsKey(declaringClass));
       checkArgument(!fieldDeclarationsOfType.get(declaringClass).contains(pDecl));
-      ImmutableSet<JFieldDeclaration> jFieldDeclarations =
-          fieldDeclarationsOfType.get(declaringClass);
-      jFieldDeclarations =
-          new ImmutableSet.Builder<JFieldDeclaration>()
-              .addAll(jFieldDeclarations)
-              .add(pDecl)
-              .build();
-      fieldDeclarationsOfType.put(declaringClass, jFieldDeclarations);
+      fieldDeclarationsOfType.get(declaringClass).add(pDecl);
     }
 
-    public void registerFileNameOfType(JClassOrInterfaceType type, Path fileName) {
+    public void registerFileNameOfType(JClassOrInterfaceType type, String fileName) {
       typeOfFiles.put(type, fileName);
     }
 
@@ -308,22 +280,20 @@ final class TypeHierarchy {
     }
 
     public Map<JClassOrInterfaceType, Set<JMethodDeclaration>> getMethodDeclarationsOfType() {
-      return ImmutableMap.copyOf(
-          Maps.transformValues(methodDeclarationsOfType, ImmutableSet::copyOf));
+      return ImmutableMap.copyOf(Maps.transformValues(methodDeclarationsOfType, ImmutableSet::copyOf));
     }
 
-    public Map<JClassOrInterfaceType, ImmutableSet<JFieldDeclaration>>
-        getFieldDeclarationsOfType() {
-      return ImmutableMap.copyOf(
-          Maps.transformValues(fieldDeclarationsOfType, ImmutableSet::copyOf));
+    public Map<JClassOrInterfaceType, Set<JFieldDeclaration>> getFieldDeclarationsOfType() {
+      return ImmutableMap.copyOf(Maps.transformValues(fieldDeclarationsOfType, ImmutableSet::copyOf));
     }
 
-    public void registerFieldDeclaration(
-        Set<JFieldDeclaration> pDecl, JClassOrInterfaceType pDeclaringClass) {
+    public void registerFieldDeclaration(Set<JFieldDeclaration> pDecl,
+        JClassOrInterfaceType pDeclaringClass) {
 
       for (JFieldDeclaration decl : pDecl) {
         registerFieldDeclaration(decl, pDeclaringClass);
       }
     }
+
   }
 }

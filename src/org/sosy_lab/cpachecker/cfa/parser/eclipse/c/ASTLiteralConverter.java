@@ -265,9 +265,6 @@ class ASTLiteralConverter {
     if (pRawValue.startsWith("0x") || pRawValue.startsWith("0X")) {
       return ConstantType.HEXADECIMAL;
 
-    } else if (pRawValue.startsWith("0b") || pRawValue.startsWith("0B")) {
-      return ConstantType.BINARY;
-
     } else if (pRawValue.startsWith("0")) {
       return ConstantType.OCTAL;
 
@@ -280,11 +277,6 @@ class ASTLiteralConverter {
     BigInteger result;
     try {
       switch (type) {
-        case BINARY:
-          // remove "0b" from the string
-          s = s.substring(2);
-          result = new BigInteger(s, 2);
-          break;
         case OCTAL:
           result = new BigInteger(s, 8);
           break;
@@ -440,13 +432,11 @@ class ASTLiteralConverter {
     assert actualCandidateBitSize > 0 && numberOfBits > actualCandidateBitSize;
     throw new CFAGenerationRuntimeException(
         String.format(
-            "Integer value is too large to be represented by the highest possible type (unsigned"
-                + " long long int): %s.",
+            "Integer value is too large to be represented by the highest possible type (unsigned long long int): %s.",
             pExp));
   }
 
   private enum ConstantType {
-    BINARY,
     OCTAL,
     DECIMAL,
     HEXADECIMAL;

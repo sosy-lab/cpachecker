@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.bdd;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -213,9 +212,7 @@ class BDDReducer extends GenericReducer<BDDState, Precision> {
     Region[] oldVariable = predmgr.createPredicateWithoutPrecisionCheck(oldName, bitsize);
     Region[] newVariable = predmgr.createPredicateWithoutPrecisionCheck(newName, bitsize);
     return new BDDState(
-        manager,
-        bvmgr,
-        manager.replace(state.getRegion(), Arrays.asList(oldVariable), Arrays.asList(newVariable)));
+        manager, bvmgr, manager.replace(state.getRegion(), oldVariable, newVariable));
   }
 
   @Override

@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
@@ -49,29 +50,18 @@ public class BlockedCFAReducer implements BlockComputer {
   @Option(secure=true, description="Do at most n summarizations on a node.")
   private int reductionThreshold = 100;
 
-  @Option(
-      secure = true,
-      description = "Allow reduction of loop heads; calculate abstractions always at loop heads?")
+  @Option(secure=true, description="Allow reduction of loop heads; calculate abstractions always at loop heads?")
   private boolean allowReduceLoopHeads = false;
 
-  @Option(
-      secure = true,
-      description =
-          "Allow reduction of function entries; calculate abstractions always at function entries?")
+  @Option(secure=true, description="Allow reduction of function entries; calculate abstractions always at function entries?")
   private boolean allowReduceFunctionEntries = true;
 
-  @Option(
-      secure = true,
-      description =
-          "Allow reduction of function exits; calculate abstractions always at function exits?")
+  @Option(secure=true, description="Allow reduction of function exits; calculate abstractions always at function exits?")
   private boolean allowReduceFunctionExits = true;
 
-  @Option(
-      secure = true,
-      name = "reducedCfaFile",
-      description = "write the reduced cfa to the specified file.")
+  @Option(secure=true, name="reducedCfaFile", description="write the reduced cfa to the specified file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path reducedCfaFile = Path.of("ReducedCfa.rsf");
+  private Path reducedCfaFile = Paths.get("ReducedCfa.rsf");
 
   private int functionCallSeq = 0;
   private final Deque<FunctionEntryNode> inliningStack;

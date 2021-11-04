@@ -14,7 +14,9 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
-/** This class represents the float number literal AST node type. */
+/**
+ * This class represents the float number literal AST node type.
+ */
 public final class JFloatLiteralExpression extends AFloatLiteralExpression
     implements JLiteralExpression {
 
@@ -26,7 +28,7 @@ public final class JFloatLiteralExpression extends AFloatLiteralExpression
 
   @Override
   public JType getExpressionType() {
-    return (JType) super.getExpressionType();
+      return (JType) super.getExpressionType();
   }
 
   @Override

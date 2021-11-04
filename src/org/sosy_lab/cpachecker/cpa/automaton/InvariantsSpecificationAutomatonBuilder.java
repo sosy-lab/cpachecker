@@ -160,7 +160,7 @@ public enum InvariantsSpecificationAutomatonBuilder {
       return new AutomatonTransition.Builder(
               createQueryLocationString(pLocation), AutomatonInternalState.ERROR)
           .withAssumptions(pAssumptions)
-          .withTargetInformation(new StringExpression("Invariant not valid"))
+          .withViolatedPropertyDescription(new StringExpression("Invariant not valid"))
           .build();
     }
 
@@ -300,7 +300,7 @@ public enum InvariantsSpecificationAutomatonBuilder {
       return new AutomatonTransition.Builder(
               createQueryLocationString(pSuccessor), createStateName(pSuccessor))
           .withAssumptions(pAssumptions)
-          .withTargetInformation(new StringExpression("Invariant not valid"))
+          .withViolatedPropertyDescription(new StringExpression("Invariant not valid"))
           .build();
     }
 

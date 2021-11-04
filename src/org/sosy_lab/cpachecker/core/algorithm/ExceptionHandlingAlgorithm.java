@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
+import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InfeasibleCounterexampleException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
@@ -47,12 +48,13 @@ public class ExceptionHandlingAlgorithm
   @Options
   private static class ExceptionHandlingOptions {
     @Option(
-        name = "counterexample.removeInfeasibleErrors",
-        description =
-            "If continueAfterInfeasibleError is true, attempt to remove the whole path of the"
-                + " infeasible counterexample before continuing. Setting this to false may prevent"
-                + " a lot of similar infeasible counterexamples to get discovered, but is unsound",
-        secure = true)
+      name = "counterexample.removeInfeasibleErrors",
+      description =
+          "If continueAfterInfeasibleError is true, "
+              + "attempt to remove the whole path of the infeasible counterexample before continuing. "
+              + "Setting this to false may prevent a lot of similar infeasible counterexamples to get discovered, but is unsound",
+      secure = true
+    )
     private boolean removeInfeasibleErrors = false;
 
     @Option(
@@ -74,11 +76,11 @@ public class ExceptionHandlingAlgorithm
     private boolean continueAfterInfeasibleError = true;
 
     @Option(
-        secure = true,
-        name = "cegar.continueAfterFailedRefinement",
-        description =
-            "continue analysis after a failed refinement (e.g. due to interpolation) other paths"
-                + " may still contain errors that could be found")
+      secure = true,
+      name = "cegar.continueAfterFailedRefinement",
+      description = "continue analysis after a failed refinement (e.g. due to interpolation) other paths"
+          + " may still contain errors that could be found"
+    )
     private boolean continueAfterFailedRefinement = false;
 
     @Option(
@@ -132,7 +134,8 @@ public class ExceptionHandlingAlgorithm
   }
 
   @Override
-  public AlgorithmStatus run(ReachedSet reached) throws CPAException, InterruptedException {
+  public AlgorithmStatus run(ReachedSet reached)
+      throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
     AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
 
     while (reached.hasWaitingState()) {
@@ -227,15 +230,10 @@ public class ExceptionHandlingAlgorithm
       sound &= handleInfeasibleCounterexample(reached, ARGUtils.getAllStatesOnPathsTo(lastState));
 
     } else if (sound) {
-      logger.log(
-          Level.WARNING,
-          "Infeasible counterexample found, but could not remove it from the ARG. Therefore, we"
-              + " cannot prove safety.");
+      logger.log(Level.WARNING, "Infeasible counterexample found, but could not remove it from the ARG. Therefore, we cannot prove safety.");
       sound = false;
     } else {
-      logger.log(
-          Level.INFO,
-          "Another infeasible counterexample found which could not be removed from the ARG.");
+      logger.log(Level.INFO, "Another infeasible counterexample found which could not be removed from the ARG.");
     }
 
     if (options.removeInfeasibleErrorState) {
@@ -273,10 +271,7 @@ public class ExceptionHandlingAlgorithm
         // so this is a loop.
         // Don't add the state, because otherwise the loop would
         // get unrolled endlessly.
-        logger.log(
-            Level.WARNING,
-            "Infeasible counterexample found, but could not remove it from the ARG due to loops in"
-                + " the counterexample path. Therefore, we cannot prove safety.");
+        logger.log(Level.WARNING, "Infeasible counterexample found, but could not remove it from the ARG due to loops in the counterexample path. Therefore, we cannot prove safety.");
         sound = false;
         continue;
       }
@@ -287,10 +282,7 @@ public class ExceptionHandlingAlgorithm
           // we may not re-add this parent, because otherwise
           // the error-path will be re-discovered again
           // but not adding the parent is unsound
-          logger.log(
-              Level.WARNING,
-              "Infeasible counterexample found, but could not remove it from the ARG. Therefore, we"
-                  + " cannot prove safety.");
+          logger.log(Level.WARNING, "Infeasible counterexample found, but could not remove it from the ARG. Therefore, we cannot prove safety.");
           sound = false;
 
         } else {
@@ -307,8 +299,9 @@ public class ExceptionHandlingAlgorithm
   private boolean isTransitiveChildOf(ARGState potentialChild, ARGState potentialParent) {
 
     Set<ARGState> seen = new HashSet<>();
-    Deque<ARGState> waitlist = new ArrayDeque<>(potentialChild.getParents()); // use BFS
+    Deque<ARGState> waitlist = new ArrayDeque<>(); // use BFS
 
+    waitlist.addAll(potentialChild.getParents());
     while (!waitlist.isEmpty()) {
       ARGState current = waitlist.pollFirst();
 

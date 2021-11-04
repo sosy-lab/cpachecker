@@ -42,7 +42,7 @@ public class EdgeFormulaNegation extends SingleLocationFormulaInvariant
   public BooleanFormula getFormula(
       FormulaManagerView pFMGR, PathFormulaManager pPFMGR, PathFormula pContext)
       throws CPATransferException, InterruptedException {
-    PathFormula clearContext = pPFMGR.makeEmptyPathFormulaWithContextFrom(pContext);
+    PathFormula clearContext = pPFMGR.makeEmptyPathFormula(pContext);
     PathFormula invariantPathFormula = pPFMGR.makeAnd(clearContext, edge);
     return pFMGR.getBooleanFormulaManager().not(pFMGR.uninstantiate(invariantPathFormula.getFormula()));
   }

@@ -22,7 +22,6 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdge;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter.SMGEdgeHasValueFilterByObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsToFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
@@ -50,8 +49,9 @@ public class SMG implements UnmodifiableSMG {
   private NeqRelation neq = new NeqRelation();
   private PersistentMultimap<SMGObject, SMGObject> possibleEquals;
 
-  private final SMGPredicateRelation pathPredicate = new SMGPredicateRelation();
-  private SMGPredicateRelation errorPredicate = new SMGPredicateRelation();
+  private final PredRelation pathPredicate = new PredRelation();
+  private PredRelation errorPredicate = new PredRelation();
+
 
   private final MachineModel machine_model;
 
@@ -162,7 +162,7 @@ public class SMG implements UnmodifiableSMG {
     neq = neq.removeValueAndCopy(pValue);
     pathPredicate.removeValue(pValue);
     errorPredicate.removeValue(pValue);
-    assert !hv_edges.filter(SMGEdgeHasValueFilter.valueFilter(pValue)).iterator().hasNext();
+    assert hv_edges.filter(SMGEdgeHasValueFilter.valueFilter(pValue)).isEmpty();
   }
   /**
    * Remove pObj from the SMG. This method does not remove
@@ -253,7 +253,7 @@ public class SMG implements UnmodifiableSMG {
    *
    * @param pEdgesSet Has-Value edges set to add
    */
-  public void addHasValueEdges(Iterable<SMGEdgeHasValue> pEdgesSet) {
+  public void addHasValueEdges(SMGHasValueEdges pEdgesSet) {
     // TODO: add values check
     hv_edges = hv_edges.addEdgesForObject(pEdgesSet);
   }
@@ -324,17 +324,17 @@ public class SMG implements UnmodifiableSMG {
   }
 
   @Override
-  public SMGPredicateRelation getPathPredicateRelation() {
+  public PredRelation getPathPredicateRelation() {
     return pathPredicate;
   }
 
   @Override
-  public SMGPredicateRelation getErrorPredicateRelation() {
+  public PredRelation getErrorPredicateRelation() {
     return errorPredicate;
   }
 
   public void resetErrorRelation() {
-    errorPredicate = new SMGPredicateRelation();
+    errorPredicate = new PredRelation();
   }
 
   /* ********************************************* */
@@ -389,12 +389,7 @@ public class SMG implements UnmodifiableSMG {
    * @return A set of Has-Value edges for which the criteria in p hold
    */
   @Override
-  public final Iterable<SMGEdgeHasValue> getHVEdges(SMGEdgeHasValueFilter pFilter) {
-    return pFilter.filter(hv_edges);
-  }
-
-  @Override
-  public final SMGHasValueEdges getHVEdges(SMGEdgeHasValueFilterByObject pFilter) {
+  public final SMGHasValueEdges getHVEdges(SMGEdgeHasValueFilter pFilter) {
     return pFilter.filter(hv_edges);
   }
 
@@ -575,7 +570,7 @@ public class SMG implements UnmodifiableSMG {
       pt_edges = pt_edges.removeAndCopy(pt_edge);
       // Workaround for removed object
       if (pt_edges.containsEdgeWithValue(fresh) && !fresh.isZero()) {
-        assert !getHVEdges(SMGEdgeHasValueFilter.valueFilter(fresh)).iterator().hasNext();
+        assert getHVEdges(SMGEdgeHasValueFilter.valueFilter(fresh)).isEmpty();
         pt_edges = pt_edges.removeEdgeWithValueAndCopy(fresh);
       }
       Preconditions.checkArgument(
@@ -634,6 +629,6 @@ public class SMG implements UnmodifiableSMG {
   }
 
   public boolean arePossibleEquals(SMGObject pObject1, SMGObject pObject2) {
-    return possibleEquals.containsEntry(pObject1, pObject2);
+    return possibleEquals.contains(pObject1, pObject2);
   }
 }

@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.invariants;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
@@ -73,7 +74,13 @@ class InvariantsMergeOperator implements MergeOperator {
   }
 
   private static InvariantsState reduceToGivenVariables(final InvariantsState pState, final Iterable<? extends MemoryLocation> pVariables) {
-    return pState.clearAll(pMemoryLocation -> !Iterables.contains(pVariables, pMemoryLocation));
+    return pState.clearAll(new Predicate<MemoryLocation>() {
+
+      @Override
+      public boolean apply(MemoryLocation pMemoryLocation) {
+        return !Iterables.contains(pVariables, pMemoryLocation);
+      }
+    });
   }
 
   private static boolean environmentsEqualWithRespectToInterestingVariables(InvariantsState pState1, InvariantsState pState2, InvariantsPrecision pPrecision) {

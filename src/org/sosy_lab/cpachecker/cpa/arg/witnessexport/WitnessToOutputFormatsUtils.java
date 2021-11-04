@@ -142,10 +142,13 @@ public class WitnessToOutputFormatsUtils {
             edge.getSource() + "->" + edge.getTarget(),
             edgeMap);
 
-        if (nodes.add(edge.getTarget())) {
+        if (!nodes.contains(edge.getTarget())) {
+          nodes.add(edge.getTarget());
           if (!ExpressionTrees.getFalse().equals(tree)) {
           waitlist.push(edge.getTarget());
           }
+        } else {
+          continue;
         }
       }
     }

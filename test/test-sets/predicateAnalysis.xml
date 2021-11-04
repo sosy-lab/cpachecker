@@ -30,6 +30,7 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64-ReachSafety.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
 
+    <option name="-64"/>
   </tasks>
   <tasks name="ECA">
     <includesfile>../programs/benchmarks/ReachSafety-ECA.set</includesfile>

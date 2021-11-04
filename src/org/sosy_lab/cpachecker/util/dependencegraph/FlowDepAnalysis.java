@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.util.dependencegraph;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Multimap;
@@ -46,15 +45,13 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
   private final FunctionEntryNode entryNode;
   private final List<CFAEdge> globalEdges;
 
-  private final EdgeDefUseData.Extractor defUseExtractor;
   private final GlobalPointerState pointerState;
   private final ForeignDefUseData foreignDefUseData;
-  private final ImmutableMultimap<String, CFAEdge> complexTypeDeclarationEdges;
+  private final Map<String, CFAEdge> declarationEdges;
 
   private final DependenceConsumer dependenceConsumer;
 
-  private final Multimap<CFAEdge, ReachDefAnalysis.Def<MemoryLocation, CFAEdge>> flowDeps;
-  private final Multimap<CFAEdge, ReachDefAnalysis.Def<MemoryLocation, CFAEdge>> declDeps;
+  private final Multimap<CFAEdge, ReachDefAnalysis.Def<MemoryLocation, CFAEdge>> dependences;
   private final Multimap<CFAEdge, MemoryLocation> maybeDefs;
 
   FlowDepAnalysis(
@@ -62,10 +59,9 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
       Dominance.DomFrontiers<CFANode> pDomFrontiers,
       FunctionEntryNode pEntryNode,
       List<CFAEdge> pGlobalEdges,
-      EdgeDefUseData.Extractor pDefUseExtractor,
       GlobalPointerState pPointerState,
       ForeignDefUseData pForeignDefUseData,
-      ImmutableMultimap<String, CFAEdge> pComplexTypeDeclarationEdges,
+      Map<String, CFAEdge> pDeclarationEdges,
       DependenceConsumer pDependenceConsumer) {
 
     super(SingleFunctionGraph.INSTANCE, pDomTree, pDomFrontiers);
@@ -73,15 +69,13 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
     entryNode = pEntryNode;
     globalEdges = pGlobalEdges;
 
-    defUseExtractor = pDefUseExtractor;
     pointerState = pPointerState;
     foreignDefUseData = pForeignDefUseData;
-    complexTypeDeclarationEdges = pComplexTypeDeclarationEdges;
+    declarationEdges = pDeclarationEdges;
 
     dependenceConsumer = pDependenceConsumer;
 
-    flowDeps = ArrayListMultimap.create();
-    declDeps = ArrayListMultimap.create();
+    dependences = ArrayListMultimap.create();
     maybeDefs = HashMultimap.create();
   }
 
@@ -104,7 +98,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
     defs.addAll(foreignDefUseData.getForeignUses(function));
 
     for (AParameterDeclaration parameter : function.getParameters()) {
-      defs.add(MemoryLocation.forDeclaration(parameter));
+      defs.add(MemoryLocation.valueOf(parameter.getQualifiedName()));
     }
 
     return defs;
@@ -116,7 +110,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
 
     AFunctionDeclaration function = pSummaryEdge.getFunctionEntry().getFunction();
     CFunctionCallEdge callEdge = getFunctionCallEdge(pSummaryEdge);
-    EdgeDefUseData edgeDefUseData = defUseExtractor.extract(callEdge);
+    EdgeDefUseData edgeDefUseData = EdgeDefUseData.extract(callEdge);
 
     defs.addAll(edgeDefUseData.getDefs());
     defs.addAll(foreignDefUseData.getForeignDefs(function));
@@ -143,7 +137,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
 
     AFunctionDeclaration function = pSummaryEdge.getFunctionEntry().getFunction();
     CFunctionCallEdge callEdge = getFunctionCallEdge(pSummaryEdge);
-    EdgeDefUseData edgeDefUseData = defUseExtractor.extract(callEdge);
+    EdgeDefUseData edgeDefUseData = EdgeDefUseData.extract(callEdge);
 
     uses.addAll(edgeDefUseData.getUses());
     uses.addAll(foreignDefUseData.getForeignUses(function));
@@ -161,7 +155,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
   private Set<MemoryLocation> getOtherEdgeDefs(CFAEdge pEdge) {
 
     Set<MemoryLocation> defs = new HashSet<>();
-    EdgeDefUseData edgeDefUseData = defUseExtractor.extract(pEdge);
+    EdgeDefUseData edgeDefUseData = EdgeDefUseData.extract(pEdge);
 
     defs.addAll(edgeDefUseData.getDefs());
 
@@ -182,7 +176,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
   private Set<MemoryLocation> getOtherEdgeUses(CFAEdge pEdge) {
 
     Set<MemoryLocation> uses = new HashSet<>();
-    EdgeDefUseData edgeDefUseData = defUseExtractor.extract(pEdge);
+    EdgeDefUseData edgeDefUseData = EdgeDefUseData.extract(pEdge);
 
     uses.addAll(edgeDefUseData.getUses());
 
@@ -233,7 +227,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
 
         CFAEdge edge = optEdge.orElseThrow();
         if (!maybeDefs.get(edge).contains(pVariable)
-            && !defUseExtractor.extract(edge).hasPartialDefs()) {
+            && !EdgeDefUseData.extract(edge).hasPartialDefs()) {
           break;
         }
 
@@ -249,7 +243,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
   protected void insertCombiners(Dominance.DomFrontiers<CFANode> pDomFrontiers) {
 
     for (AParameterDeclaration declaration : entryNode.getFunctionParameters()) {
-      MemoryLocation variable = MemoryLocation.forDeclaration(declaration);
+      MemoryLocation variable = MemoryLocation.valueOf(declaration.getQualifiedName());
       insertCombiner(entryNode, variable);
     }
 
@@ -274,8 +268,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
     super.traverseDomTree(pDomTraversable);
   }
 
-  private void handleDependence(
-      CFAEdge pEdge, Def<MemoryLocation, CFAEdge> pDef, boolean pIsDeclaration) {
+  private void handleDependence(CFAEdge pEdge, Def<MemoryLocation, CFAEdge> pDef) {
 
     MemoryLocation variable = pDef.getVariable();
     Set<ReachDefAnalysis.Def<MemoryLocation, CFAEdge>> defs = new HashSet<>();
@@ -285,7 +278,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
 
       Optional<CFAEdge> optDefEdge = def.getEdge();
       if (optDefEdge.isPresent()) {
-        dependenceConsumer.accept(optDefEdge.orElseThrow(), pEdge, variable, pIsDeclaration);
+        dependenceConsumer.accept(optDefEdge.orElseThrow(), pEdge, variable);
       }
     }
   }
@@ -295,13 +288,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
 
     super.run();
 
-    for (Map.Entry<CFAEdge, Def<MemoryLocation, CFAEdge>> entry : flowDeps.entries()) {
-      handleDependence(entry.getKey(), entry.getValue(), false);
-    }
-
-    for (Map.Entry<CFAEdge, Def<MemoryLocation, CFAEdge>> entry : declDeps.entries()) {
-      handleDependence(entry.getKey(), entry.getValue(), true);
-    }
+    dependences.forEach(this::handleDependence);
 
     addFunctionUseDependences();
     addReturnValueDependences();
@@ -329,7 +316,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
       for (MemoryLocation defVar : foreignDefUseData.getForeignDefs(pNode.getFunction())) {
         for (ReachDefAnalysis.Def<MemoryLocation, CFAEdge> def : getReachDefs(defVar)) {
           for (CFAEdge returnEdge : CFAUtils.leavingEdges(pNode)) {
-            flowDeps.put(returnEdge, def);
+            dependences.put(returnEdge, def);
           }
         }
       }
@@ -343,14 +330,14 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
       for (ReachDefAnalysis.Def<MemoryLocation, CFAEdge> def : getReachDefs(useVar)) {
         assert def != null
             : String.format("Variable is missing definition: %s @ %s", useVar, pEdge);
-        flowDeps.put(pEdge, def);
+        dependences.put(pEdge, def);
       }
     }
 
     for (MemoryLocation defVar : getEdgeDefs(pEdge)) {
       ReachDefAnalysis.Def<MemoryLocation, CFAEdge> declaration = getDeclaration(defVar);
       if (declaration != null) {
-        declDeps.put(pEdge, declaration);
+        dependences.put(pEdge, declaration);
       }
     }
 
@@ -364,13 +351,11 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
 
       if (!declaration.isGlobal() && type instanceof CComplexType) {
         CComplexType complexType = (CComplexType) type;
-        for (CFAEdge typeDeclarationEdge :
-            complexTypeDeclarationEdges.get(complexType.getQualifiedName())) {
+        CFAEdge typeDeclarationEdge = declarationEdges.get(complexType.getQualifiedName());
+
+        if (typeDeclarationEdge != null) {
           dependenceConsumer.accept(
-              typeDeclarationEdge,
-              pEdge,
-              MemoryLocation.parseExtendedQualifiedName(complexType.getQualifiedName()),
-              true);
+              typeDeclarationEdge, pEdge, MemoryLocation.valueOf(complexType.getQualifiedName()));
         }
       }
     }
@@ -384,7 +369,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
       CFAEdge summaryEdge = callEdge.getPredecessor().getLeavingSummaryEdge();
       assert summaryEdge != null : "Missing summary edge for call edge: " + callEdge;
       for (MemoryLocation parameter : getEdgeDefs(callEdge)) {
-        dependenceConsumer.accept(summaryEdge, callEdge, parameter, false);
+        dependenceConsumer.accept(summaryEdge, callEdge, parameter);
       }
     }
   }
@@ -398,36 +383,37 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
       assert summaryEdge != null : "Missing summary edge for return edge: " + returnEdge;
 
       for (MemoryLocation defVar : foreignDefUseData.getForeignDefs(function)) {
-        dependenceConsumer.accept(returnEdge, summaryEdge, defVar, false);
+        dependenceConsumer.accept(returnEdge, summaryEdge, defVar);
       }
     }
   }
 
   private void addReturnValueDependences() {
 
-    Optional<? extends AVariableDeclaration> optRetVar = entryNode.getReturnVariable();
+    Optional<? extends AVariableDeclaration> optRetVar = entryNode.getReturnVariable().toJavaUtil();
 
     if (optRetVar.isPresent()) {
 
-      MemoryLocation returnVar = MemoryLocation.forDeclaration(optRetVar.get());
+      MemoryLocation returnVar = MemoryLocation.valueOf(optRetVar.get().getQualifiedName());
 
       for (CFAEdge defEdge : CFAUtils.allEnteringEdges(entryNode.getExitNode())) {
         for (CFAEdge returnEdge : CFAUtils.allLeavingEdges(entryNode.getExitNode())) {
-          dependenceConsumer.accept(defEdge, returnEdge, returnVar, false);
+          dependenceConsumer.accept(defEdge, returnEdge, returnVar);
         }
       }
 
       for (CFAEdge returnEdge : CFAUtils.allLeavingEdges(entryNode.getExitNode())) {
         CFAEdge summaryEdge = returnEdge.getSuccessor().getEnteringSummaryEdge();
         assert summaryEdge != null : "Missing summary edge for return edge: " + returnEdge;
-        dependenceConsumer.accept(returnEdge, summaryEdge, returnVar, false);
+        dependenceConsumer.accept(returnEdge, summaryEdge, returnVar);
       }
     }
   }
 
   @FunctionalInterface
   public interface DependenceConsumer {
-    void accept(CFAEdge pDefEdge, CFAEdge pUseEdge, MemoryLocation pCause, boolean pIsDeclaration);
+
+    void accept(CFAEdge pDefEdge, CFAEdge pUseEdge, MemoryLocation pCause);
   }
 
   private static final class SingleFunctionGraph

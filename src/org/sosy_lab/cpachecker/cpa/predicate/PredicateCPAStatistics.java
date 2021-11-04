@@ -21,6 +21,7 @@ import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.IdentityHashMap;
@@ -63,12 +64,10 @@ class PredicateCPAStatistics implements Statistics {
           name="predmap.export")
   private boolean exportPredmap = true;
 
-  @Option(
-      secure = true,
-      description = "file for exporting final predicate map",
-      name = "predmap.file")
+  @Option(secure=true, description="file for exporting final predicate map",
+          name="predmap.file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path predmapFile = Path.of("predmap.txt");
+  private Path predmapFile = Paths.get("predmap.txt");
 
   @Option(secure=true, description="export final loop invariants",
           name="invariants.export")
@@ -78,30 +77,23 @@ class PredicateCPAStatistics implements Statistics {
       name="invariants.exportAsPrecision")
   private boolean exportInvariantsAsPrecision = true;
 
-  @Option(
-      secure = true,
-      description = "file for exporting final loop invariants",
-      name = "invariants.file")
+  @Option(secure=true, description="file for exporting final loop invariants",
+          name="invariants.file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path invariantsFile = Path.of("invariants.txt");
+  private Path invariantsFile = Paths.get("invariants.txt");
 
-  @Option(
-      secure = true,
-      description = "file for precision that consists of invariants.",
-      name = "invariants.precisionFile")
+  @Option(secure=true, description="file for precision that consists of invariants.",
+          name="invariants.precisionFile")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path invariantPrecisionsFile = Path.of("invariantPrecs.txt");
+  private Path invariantPrecisionsFile = Paths.get("invariantPrecs.txt");
 
   @Option(description="Export one abstraction formula for each abstraction state into a file?",
       name="abstractions.export")
   private boolean abstractionsExport = true;
-
-  @Option(
-      secure = true,
-      description = "file that consists of one abstraction formula for each abstraction state",
-      name = "abstractions.file")
+  @Option(secure=true, description="file that consists of one abstraction formula for each abstraction state",
+      name="abstractions.file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path abstractionsFile = Path.of("abstractions.txt");
+  private Path abstractionsFile = Paths.get("abstractions.txt");
 
   private final LogManager logger;
 
@@ -251,51 +243,20 @@ class PredicateCPAStatistics implements Statistics {
     PredicateAbstractionStatistics as = abstractionStats;
 
     int numAbstractions = statistics.numAbstractions.getUpdateCount();
-    out.println(
-        "Number of abstractions:            "
-            + numAbstractions
-            + " ("
-            + toPercent(numAbstractions, statistics.postTimer.getNumberOfIntervals())
-            + " of all post computations)");
+    out.println("Number of abstractions:            " + numAbstractions + " (" + toPercent(numAbstractions, statistics.postTimer.getNumberOfIntervals()) + " of all post computations)");
     if (numAbstractions > 0) {
       out.println("  Times abstraction was reused:    " + as.numAbstractionReuses);
-      out.println(
-          "  Because of function entry/exit:  "
-              + valueWithPercentage(blk.numBlkFunctions.getValue(), numAbstractions));
-      out.println(
-          "  Because of loop head:            "
-              + valueWithPercentage(blk.numBlkLoops.getValue(), numAbstractions));
-      out.println(
-          "  Because of join nodes:           "
-              + valueWithPercentage(blk.numBlkJoins.getValue(), numAbstractions));
-      out.println(
-          "  Because of threshold:            "
-              + valueWithPercentage(blk.numBlkThreshold.getValue(), numAbstractions));
-      out.println(
-          "  Because of target state:         "
-              + valueWithPercentage(
-                  statistics.numTargetAbstractions.getUpdateCount(), numAbstractions));
-      out.println(
-          "  Times precision was empty:       "
-              + valueWithPercentage(as.numSymbolicAbstractions, as.numCallsAbstraction));
-      out.println(
-          "  Times precision was {false}:     "
-              + valueWithPercentage(as.numSatCheckAbstractions, as.numCallsAbstraction));
-      out.println(
-          "  Times result was cached:         "
-              + valueWithPercentage(as.numCallsAbstractionCached, as.numCallsAbstraction));
-      out.println(
-          "  Times cartesian abs was used:    "
-              + valueWithPercentage(
-                  as.cartesianAbstractionTime.getNumberOfIntervals(), as.numCallsAbstraction));
-      out.println(
-          "  Times boolean abs was used:      "
-              + valueWithPercentage(
-                  as.booleanAbstractionTime.getNumberOfIntervals(), as.numCallsAbstraction));
-      out.println(
-          "  Times result was 'false':        "
-              + valueWithPercentage(
-                  statistics.numAbstractionsFalse.getUpdateCount(), numAbstractions));
+      out.println("  Because of function entry/exit:  " + valueWithPercentage(blk.numBlkFunctions.getValue(), numAbstractions));
+      out.println("  Because of loop head:            " + valueWithPercentage(blk.numBlkLoops.getValue(), numAbstractions));
+      out.println("  Because of join nodes:           " + valueWithPercentage(blk.numBlkJoins.getValue(), numAbstractions));
+      out.println("  Because of threshold:            " + valueWithPercentage(blk.numBlkThreshold.getValue(), numAbstractions));
+      out.println("  Because of target state:         " + valueWithPercentage(statistics.numTargetAbstractions.getUpdateCount(), numAbstractions));
+      out.println("  Times precision was empty:       " + valueWithPercentage(as.numSymbolicAbstractions, as.numCallsAbstraction));
+      out.println("  Times precision was {false}:     " + valueWithPercentage(as.numSatCheckAbstractions, as.numCallsAbstraction));
+      out.println("  Times result was cached:         " + valueWithPercentage(as.numCallsAbstractionCached, as.numCallsAbstraction));
+      out.println("  Times cartesian abs was used:    " + valueWithPercentage(as.cartesianAbstractionTime.getNumberOfIntervals(), as.numCallsAbstraction));
+      out.println("  Times boolean abs was used:      " + valueWithPercentage(as.booleanAbstractionTime.getNumberOfIntervals(), as.numCallsAbstraction));
+      out.println("  Times result was 'false':        " + valueWithPercentage(statistics.numAbstractionsFalse.getUpdateCount(), numAbstractions));
       if (as.inductivePredicatesTime.getNumberOfIntervals() > 0) {
         out.println(
             "  Times inductive cache was used:  "
@@ -304,40 +265,17 @@ class PredicateCPAStatistics implements Statistics {
     }
 
     if (statistics.satCheckTimer.getNumberOfIntervals() > 0) {
-      out.println(
-          "Number of satisfiability checks:   " + statistics.satCheckTimer.getNumberOfIntervals());
-      out.println(
-          "  Times result was 'false':        "
-              + statistics.numSatChecksFalse
-              + " ("
-              + toPercent(
-                  statistics.numSatChecksFalse.getUpdateCount(),
-                  statistics.satCheckTimer.getNumberOfIntervals())
-              + ")");
+      out.println("Number of satisfiability checks:   " + statistics.satCheckTimer.getNumberOfIntervals());
+      out.println("  Times result was 'false':        " + statistics.numSatChecksFalse + " (" + toPercent(statistics.numSatChecksFalse.getUpdateCount(), statistics.satCheckTimer.getNumberOfIntervals()) + ")");
     }
-    out.println(
-        "Number of strengthen sat checks:   "
-            + statistics.strengthenCheckTimer.getNumberOfIntervals());
+    out.println("Number of strengthen sat checks:   " + statistics.strengthenCheckTimer.getNumberOfIntervals());
     if (statistics.strengthenCheckTimer.getNumberOfIntervals() > 0) {
-      out.println(
-          "  Times result was 'false':        "
-              + statistics.numStrengthenChecksFalse
-              + " ("
-              + toPercent(
-                  statistics.numStrengthenChecksFalse.getUpdateCount(),
-                  statistics.strengthenCheckTimer.getNumberOfIntervals())
-              + ")");
+      out.println("  Times result was 'false':        " + statistics.numStrengthenChecksFalse + " (" + toPercent(statistics.numStrengthenChecksFalse.getUpdateCount(), statistics.strengthenCheckTimer.getNumberOfIntervals()) + ")");
     }
-    out.println(
-        "Number of coverage checks:         "
-            + statistics.coverageCheckTimer.getNumberOfIntervals());
-    out.println(
-        "  BDD entailment checks:           "
-            + statistics.bddCoverageCheckTimer.getNumberOfIntervals());
+    out.println("Number of coverage checks:         " + statistics.coverageCheckTimer.getNumberOfIntervals());
+    out.println("  BDD entailment checks:           " + statistics.bddCoverageCheckTimer.getNumberOfIntervals());
     if (statistics.symbolicCoverageCheckTimer.getNumberOfIntervals() > 0) {
-      out.println(
-          "  Symbolic coverage check:         "
-              + statistics.symbolicCoverageCheckTimer.getNumberOfIntervals());
+      out.println("  Symbolic coverage check:         " + statistics.symbolicCoverageCheckTimer.getNumberOfIntervals());
     }
     out.println("Number of SMT sat checks:          " + solver.satChecks);
     out.println("  trivial:                         " + solver.trivialSatChecks);
@@ -355,16 +293,10 @@ class PredicateCPAStatistics implements Statistics {
       int numRealAbstractions = as.numCallsAbstraction.get() - as.numSymbolicAbstractions.get() - as.numCallsAbstractionCached.get();
       out.println("Total predicates per abstraction:         " + as.numTotalPredicates);
       out.println("Max number of predicates per abstraction: " + as.maxPredicates);
-      out.println(
-          "Avg number of predicates per abstraction: "
-              + div(as.numTotalPredicates.get(), numRealAbstractions));
-      out.println(
-          "Number of irrelevant predicates:          "
-              + valueWithPercentage(as.numIrrelevantPredicates, as.numTotalPredicates));
+      out.println("Avg number of predicates per abstraction: " + div(as.numTotalPredicates.get(), numRealAbstractions));
+      out.println("Number of irrelevant predicates:          " + valueWithPercentage(as.numIrrelevantPredicates, as.numTotalPredicates));
       if (as.trivialPredicatesTime.getNumberOfIntervals() > 0) {
-        out.println(
-            "Number of trivially used predicates:      "
-                + valueWithPercentage(as.numTrivialPredicates, as.numTotalPredicates));
+        out.println("Number of trivially used predicates:      " + valueWithPercentage(as.numTrivialPredicates, as.numTotalPredicates));
       }
       if (as.inductivePredicatesTime.getNumberOfIntervals() > 0) {
         out.println(
@@ -372,22 +304,14 @@ class PredicateCPAStatistics implements Statistics {
                 + valueWithPercentage(as.numInductivePredicates, as.numTotalPredicates));
       }
       if (as.cartesianAbstractionTime.getNumberOfIntervals() > 0) {
-        out.println(
-            "Number of preds cached for cartesian abs: "
-                + valueWithPercentage(as.numCartesianAbsPredicatesCached, as.numTotalPredicates));
-        out.println(
-            "Number of preds solved by cartesian abs:  "
-                + valueWithPercentage(as.numCartesianAbsPredicates, as.numTotalPredicates));
+        out.println("Number of preds cached for cartesian abs: " + valueWithPercentage(as.numCartesianAbsPredicatesCached, as.numTotalPredicates));
+        out.println("Number of preds solved by cartesian abs:  " + valueWithPercentage(as.numCartesianAbsPredicates, as.numTotalPredicates));
       }
       if (as.booleanAbstractionTime.getNumberOfIntervals() > 0) {
-        out.println(
-            "Number of preds handled by boolean abs:   "
-                + valueWithPercentage(as.numBooleanAbsPredicates, as.numTotalPredicates));
+        out.println("Number of preds handled by boolean abs:   " + valueWithPercentage(as.numBooleanAbsPredicates, as.numTotalPredicates));
         out.println("  Total number of models for allsat:      " + as.allSatCount);
         out.println("  Max number of models for allsat:        " + as.maxAllSatCount);
-        out.println(
-            "  Avg number of models for allsat:        "
-                + div(as.allSatCount, as.booleanAbstractionTime.getNumberOfIntervals()));
+        out.println("  Avg number of models for allsat:        " + div(as.allSatCount, as.booleanAbstractionTime.getNumberOfIntervals()));
       }
     }
     out.println();
@@ -403,14 +327,7 @@ class PredicateCPAStatistics implements Statistics {
     }
     put(out, 0, statistics.totalPrecTime);
     if (numAbstractions > 0) {
-      out.println(
-          "  Time for abstraction:              "
-              + statistics.computingAbstractionTime
-              + " (Max: "
-              + statistics.computingAbstractionTime.getMaxTime().formatAs(SECONDS)
-              + ", Count: "
-              + statistics.computingAbstractionTime.getNumberOfIntervals()
-              + ")");
+      out.println("  Time for abstraction:              " + statistics.computingAbstractionTime + " (Max: " + statistics.computingAbstractionTime.getMaxTime().formatAs(SECONDS) + ", Count: " + statistics.computingAbstractionTime.getNumberOfIntervals() + ")");
       if (as.trivialPredicatesTime.getNumberOfIntervals() > 0) {
         out.println("    Relevant predicate analysis:     " + as.trivialPredicatesTime);
       }
@@ -427,12 +344,7 @@ class PredicateCPAStatistics implements Statistics {
         out.println("    Abstraction reuse:              " + as.abstractionReuseTime);
         out.println("    Abstraction reuse implication:  " + as.abstractionReuseImplicationTime);
       }
-      out.println(
-          "    Solving time:                    "
-              + as.abstractionSolveTime
-              + " (Max: "
-              + as.abstractionSolveTime.getMaxTime().formatAs(SECONDS)
-              + ")");
+      out.println("    Solving time:                    " + as.abstractionSolveTime + " (Max: " + as.abstractionSolveTime.getMaxTime().formatAs(SECONDS) + ")");
       out.println(
           "    Model enumeration time:          "
               + as.abstractionModelEnumTime.getSumTime().formatAs(SECONDS));
@@ -466,12 +378,7 @@ class PredicateCPAStatistics implements Statistics {
 
     if (statistics.abstractionCheckTimer.getNumberOfIntervals() > 0) {
       put(out, 0, statistics.abstractionCheckTimer);
-      out.println(
-          "Time for unsat checks:             "
-              + statistics.satCheckTimer
-              + " (Calls: "
-              + statistics.satCheckTimer.getNumberOfIntervals()
-              + ")");
+      out.println("Time for unsat checks:             " + statistics.satCheckTimer + " (Calls: " + statistics.satCheckTimer.getNumberOfIntervals() + ")");
     }
     out.println();
     pfmgr.printStatistics(out);

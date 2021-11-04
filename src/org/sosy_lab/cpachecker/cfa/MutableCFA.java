@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 public class MutableCFA implements CFA {
@@ -142,7 +143,9 @@ public class MutableCFA implements CFA {
     return Optional.empty();
   }
 
-  public ImmutableCFA makeImmutableCFA(Optional<VariableClassification> pVarClassification) {
+  public ImmutableCFA makeImmutableCFA(
+      Optional<VariableClassification> pVarClassification,
+      Optional<DependenceGraph> pDependenceGraph) {
     return new ImmutableCFA(
         machineModel,
         functions,
@@ -151,6 +154,7 @@ public class MutableCFA implements CFA {
         loopStructure,
         pVarClassification,
         liveVariables,
+        pDependenceGraph,
         fileNames,
         language);
   }
@@ -167,6 +171,11 @@ public class MutableCFA implements CFA {
 
   public void setLiveVariables(LiveVariables pLiveVariables) {
     liveVariables = Optional.of(pLiveVariables);
+  }
+
+  @Override
+  public Optional<DependenceGraph> getDependenceGraph() {
+    return Optional.empty();
   }
 
   @Override

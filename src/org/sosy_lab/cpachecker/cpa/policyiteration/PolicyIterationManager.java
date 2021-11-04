@@ -140,15 +140,15 @@ public class PolicyIterationManager {
   @Option(secure=true, description="Generate new templates using polyhedra convex hull")
   private boolean generateTemplatesUsingConvexHull = false;
 
+  @Option(secure=true, description="Use caching optimization solver")
+  private boolean useCachingOptSolver = false;
+
   @Option(secure=true, description="Compute abstraction for larger templates "
       + "using decomposition")
   private boolean computeAbstractionByDecomposition = false;
 
-  @Option(
-      secure = true,
-      description =
-          "Number of value determination steps allowed before widening is run."
-              + " Value of '-1' runs value determination until convergence.")
+  @Option(secure=true, description="Number of value determination steps allowed before widening is run."
+      + " Value of '-1' runs value determination until convergence.")
   private int wideningThreshold = -1;
 
   @Option(secure=true, description="Algorithm for converting a formula to a "
@@ -841,7 +841,7 @@ public class PolicyIterationManager {
 
     final Map<Template, PolicyBound> abstraction = new HashMap<>();
 
-    try (OptimizationProverEnvironment optEnvironment = solver.newOptEnvironment()) {
+    try (OptimizationProverEnvironment optEnvironment = newOptProver()) {
 
       optEnvironment.push();
       optEnvironment.addConstraint(startConstraints);
@@ -964,6 +964,14 @@ public class PolicyIterationManager {
         pSibling);
   }
 
+  private OptimizationProverEnvironment newOptProver() {
+    if (useCachingOptSolver) {
+      return solver.newCachedOptEnvironment();
+    } else {
+      return solver.newOptEnvironment();
+    }
+  }
+
   private PolicyBound updatePolicyBoundDependencies(
       PolicyBound bound, Formula objective
   ) throws SolverException, InterruptedException {
@@ -1076,13 +1084,12 @@ public class PolicyIterationManager {
     }
     BooleanFormula policy = bfmgr.and(policies);
 
-    return Pair.of(
-        BOUND_COMPUTED,
-        PolicyBound.of(
-            firstBound.getFormula().withFormula(policy),
-            combinedBound,
-            firstBound.getPredecessor(),
-            allDependencies));
+    return Pair.of(BOUND_COMPUTED, PolicyBound.of(
+        firstBound.getFormula().updateFormula(policy),
+        combinedBound,
+        firstBound.getPredecessor(),
+        allDependencies
+    ));
   }
 
   /**
@@ -1173,7 +1180,8 @@ public class PolicyIterationManager {
 
       // Context for converting the template to formula, used for determining
       // used SSA map and PointerTargetSet.
-      PathFormula contextFormula = stateFormulaConversionManager.getPathFormula(backpointer, false);
+      PathFormula contextFormula =
+          stateFormulaConversionManager.getPathFormula(backpointer, fmgr, false);
       for (Entry<Template, PolicyBound> entry : backpointer) {
         Template t = entry.getKey();
         Set<String> fVars = extractFunctionNames(
@@ -1186,7 +1194,8 @@ public class PolicyIterationManager {
     }
 
     return PolicyBound.of(
-        inputPathFormula.withFormula(policyFormula), bound, backpointer, dependencies);
+        inputPathFormula.updateFormula(policyFormula), bound, backpointer,
+        dependencies);
   }
 
   /**

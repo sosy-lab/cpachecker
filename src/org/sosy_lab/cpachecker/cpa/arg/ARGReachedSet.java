@@ -27,6 +27,7 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.NavigableSet;
 import java.util.Set;
 import java.util.TreeSet;
@@ -218,7 +219,7 @@ public class ARGReachedSet {
    * Safely remove a part of the ARG which has been proved as completely unreachable. This method
    * takes care of the coverage relationships of the removed nodes, re-adding covered nodes to the
    * waitlist if necessary.
-   *
+   * 
    * @param rootOfInfeasiblePart The root of the subtree to remove.
    */
   public void removeInfeasiblePartofARG(ARGState rootOfInfeasiblePart) {
@@ -281,7 +282,7 @@ public class ARGReachedSet {
    */
   public void updatePrecisionGlobally(Precision pNewPrecision,
       Predicate<? super Precision> pPrecisionType) {
-    IdentityHashMap<Precision, Precision> precisionUpdateCache = new IdentityHashMap<>();
+    Map<Precision, Precision> precisionUpdateCache = new IdentityHashMap<>();
 
     mReached.forEach(
         (s, oldPrecision) -> {
@@ -521,11 +522,26 @@ public class ARGReachedSet {
   }
 
   /**
+   * This method should only be used with great caution! It removes all pending
+   * states from the waitlist, and therefore effectively prevents the analysis
+   * from continuing.
+   *
+   * Depending on the states contained in the reached set this can lead to unsound
+   * behaviour (e.g. no state in waitlist anymore, but an existing error was not found)
+   */
+  public void clearWaitlist() {
+    while (mReached.hasWaitingState()) {
+      mReached.popFromWaitlist();
+    }
+  }
+
+  /**
    * This method adds a state to the reached after splitting, but removes it from the waitlist.
    * The precision is taken from the original state. Only call this method if you are sure that
    * the state does not represent unreached concrete states, otherwise it will be unsound.
    */
   public void addForkedState(ARGState forkedState, ARGState originalState) {
-    mReached.addNoWaitlist(forkedState, mReached.getPrecision(originalState));
+    mReached.add(forkedState, mReached.getPrecision(originalState));
+    mReached.removeOnlyFromWaitlist(forkedState);
   }
 }

@@ -8,9 +8,6 @@
 
 package org.sosy_lab.cpachecker.util;
 
-import static com.google.common.collect.FluentIterable.from;
-
-import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
@@ -77,26 +74,7 @@ public class OverflowAssumptionManager {
     return assumption;
   }
 
-  public CExpression getConjunctionOfMultiplicationAssumptions(
-      CExpression operand1, CExpression operand2, CSimpleType type, boolean negate)
-      throws UnrecognizedCodeException {
-    Set<CExpression> assumptions =
-        addMultiplicationAssumptions(operand1, operand2, getLowerBound(type), getUpperBound(type));
-    CExpression result = from(assumptions).get(0);
-    for (CExpression assumption : from(assumptions).skip(1)) {
-      result =
-          cBinaryExpressionBuilder.buildBinaryExpression(
-              assumption, result, BinaryOperator.BINARY_AND);
-    }
-    if (negate) {
-      result =
-          cBinaryExpressionBuilder.buildBinaryExpression(
-              result, CIntegerLiteralExpression.ZERO, BinaryOperator.EQUALS);
-    }
-    return result;
-  }
-
-  public CExpression getResultOfOperation(
+  public CExpression getResultOfAdditiveOperation(
       CExpression operand1, CExpression operand2, BinaryOperator operator)
       throws UnrecognizedCodeException {
     return cBinaryExpressionBuilder.buildBinaryExpression(operand1, operand2, operator);
@@ -191,15 +169,16 @@ public class OverflowAssumptionManager {
    *     of the expression
    * @param pUpperLimit the {@link CLiteralExpression} representing the overflow bound for the type
    *     of the expression
+   * @param result the set to which the generated assumptions are added
    */
-  public Set<CExpression> addMultiplicationAssumptions(
+  public void addMultiplicationAssumptions(
       CExpression operand1,
       CExpression operand2,
       CLiteralExpression pLowerLimit,
-      CLiteralExpression pUpperLimit)
+      CLiteralExpression pUpperLimit,
+      Set<CExpression> result)
       throws UnrecognizedCodeException {
 
-    ImmutableSet.Builder<CExpression> result = ImmutableSet.builder();
     for (boolean operand1isFirstOperand : new boolean[] {false, true}) {
       CExpression firstOperand = operand1isFirstOperand ? operand1 : operand2;
       CExpression secondOperand = operand1isFirstOperand ? operand2 : operand1;
@@ -242,8 +221,6 @@ public class OverflowAssumptionManager {
         result.add(assumption);
       }
     }
-
-    return result.build();
   }
 
   /**

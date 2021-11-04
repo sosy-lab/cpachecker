@@ -105,7 +105,7 @@ public class Constraint {
   }
 
   public static boolean isFalse(String cr) {
-    if (cr.equals("'.'(false, [])")) {
+    if (cr.toString().equals("'.'(false, [])")) {
       return true;
     } else {
       return false;

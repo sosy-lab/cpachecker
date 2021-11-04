@@ -72,7 +72,9 @@ public final class UsagePrecision implements WrapperPrecision, AdjustablePrecisi
 
   @Override
   public String toString() {
-    return "Size = " + localStatistics.size() + ";" + wrappedPrecision;
+    String s = "Size = " + localStatistics.size() + ";";
+    s += wrappedPrecision.toString();
+    return s;
   }
 
   public int getTotalRecords() {

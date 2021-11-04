@@ -8,18 +8,19 @@
 
 package org.sosy_lab.cpachecker.cpa.flowdep;
 
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -133,8 +134,12 @@ class FlowDependenceTransferRelation
       MemoryLocation varName = e.getKey();
       Set<DefinitionPoint> points = e.getValue();
 
-      FluentIterable<ProgramDefinitionPoint> defPoints =
-          FluentIterable.from(points).filter(ProgramDefinitionPoint.class);
+      Collection<ProgramDefinitionPoint> defPoints =
+          points
+              .stream()
+              .filter(x -> x instanceof ProgramDefinitionPoint)
+              .map(p -> (ProgramDefinitionPoint) p)
+              .collect(Collectors.toList());
 
       normalized.putAll(varName, defPoints);
     }
@@ -161,7 +166,7 @@ class FlowDependenceTransferRelation
       // If the declaration contains an initializer, create the corresponding flow dependences
       // for its variable uses
       CExpression initializerExp = ((CInitializerExpression) maybeInitializer).getExpression();
-      MemoryLocation def = MemoryLocation.forDeclaration(pDecl);
+      MemoryLocation def = MemoryLocation.valueOf(pDecl.getQualifiedName());
       return handleOperation(
           pCfaEdge,
           Optional.of(def),
@@ -227,10 +232,10 @@ class FlowDependenceTransferRelation
       ReachingDefState pReachDefState,
       PointerState pPointerState)
       throws CPATransferException {
-    Optional<CAssignment> asAssignment = pCfaEdge.asAssignment();
+    com.google.common.base.Optional<CAssignment> asAssignment = pCfaEdge.asAssignment();
 
     if (asAssignment.isPresent()) {
-      CAssignment returnAssignment = asAssignment.orElseThrow();
+      CAssignment returnAssignment = asAssignment.get();
       CRightHandSide rhs = returnAssignment.getRightHandSide();
       Set<MemoryLocation> defs = getDef(returnAssignment.getLeftHandSide(), pPointerState);
 
@@ -277,7 +282,7 @@ class FlowDependenceTransferRelation
       if (pVarClassification.isPresent()) {
         Set<String> addressedVars = pVarClassification.orElseThrow().getAddressedVariables();
         for (String v : addressedVars) {
-          MemoryLocation m = MemoryLocation.fromQualifiedName(v);
+          MemoryLocation m = MemoryLocation.valueOf(v);
           pointees.add(m);
         }
       } else {
@@ -318,7 +323,7 @@ class FlowDependenceTransferRelation
     for (int i = 0; i < pArguments.size(); i++) {
       MemoryLocation def;
       if (i < params.size()) {
-        def = MemoryLocation.forDeclaration(params.get(i));
+        def = MemoryLocation.valueOf(params.get(i).getQualifiedName());
       } else {
         assert pFunctionCallEdge.getSuccessor().getFunctionDefinition().getType().takesVarArgs();
         // TODO support var args
@@ -490,7 +495,7 @@ class FlowDependenceTransferRelation
                 handleOperation(
                     pReturnEdge,
                     Optional.ofNullable(def),
-                    ImmutableSet.of(MemoryLocation.forDeclaration(inParam)),
+                    ImmutableSet.of(MemoryLocation.valueOf(inParam.getQualifiedName())),
                     nextState,
                     pReachDefState);
           }
@@ -499,14 +504,14 @@ class FlowDependenceTransferRelation
               handleOperation(
                   pReturnEdge,
                   Optional.empty(),
-                  ImmutableSet.of(MemoryLocation.forDeclaration(inParam)),
+                  ImmutableSet.of(MemoryLocation.valueOf(inParam.getQualifiedName())),
                   nextState,
                   pReachDefState);
         }
       }
     }
 
-    Optional<CVariableDeclaration> maybeReturnVar =
+    com.google.common.base.Optional<CVariableDeclaration> maybeReturnVar =
         summaryEdge.getFunctionEntry().getReturnVariable();
     if (maybeReturnVar.isPresent()) {
       Set<MemoryLocation> possibleDefs = null;
@@ -521,7 +526,7 @@ class FlowDependenceTransferRelation
               handleOperation(
                   pReturnEdge,
                   Optional.ofNullable(def),
-                  ImmutableSet.of(MemoryLocation.forDeclaration(maybeReturnVar.orElseThrow())),
+                  ImmutableSet.of(MemoryLocation.valueOf(maybeReturnVar.get().getQualifiedName())),
                   nextState,
                   pReachDefState);
         }
@@ -530,7 +535,7 @@ class FlowDependenceTransferRelation
             handleOperation(
                 pReturnEdge,
                 Optional.empty(),
-                ImmutableSet.of(MemoryLocation.forDeclaration(maybeReturnVar.orElseThrow())),
+                ImmutableSet.of(MemoryLocation.valueOf(maybeReturnVar.get().getQualifiedName())),
                 nextState,
                 pReachDefState);
       }
@@ -668,7 +673,7 @@ class FlowDependenceTransferRelation
     public Set<MemoryLocation> visit(CIdExpression pExp) throws CPATransferException {
       CSimpleDeclaration idDeclaration = pExp.getDeclaration();
       if (idDeclaration instanceof CVariableDeclaration || idDeclaration instanceof CParameterDeclaration) {
-        return ImmutableSet.of(MemoryLocation.forDeclaration(idDeclaration));
+        return Collections.singleton(MemoryLocation.valueOf(idDeclaration.getQualifiedName()));
       } else {
         return ImmutableSet.of();
       }
@@ -809,10 +814,10 @@ class FlowDependenceTransferRelation
 
     @Override
     public Set<MemoryLocation> visit(CReturnStatement pNode) throws CPATransferException {
-      Optional<CExpression> ret = pNode.getReturnValue();
+      com.google.common.base.Optional<CExpression> ret = pNode.getReturnValue();
 
       if (ret.isPresent()) {
-        return ret.orElseThrow().accept(this);
+        return ret.get().accept(this);
       } else {
         return ImmutableSet.of();
       }

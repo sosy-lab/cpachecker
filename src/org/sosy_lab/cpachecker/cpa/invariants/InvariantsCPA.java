@@ -69,8 +69,10 @@ import org.sosy_lab.cpachecker.core.interfaces.conditions.ReachedSetAdjustingCPA
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.BooleanFormula;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.CollectVarsVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CompoundIntervalFormulaManager;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.NumeralFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.AcceptAllVariableSelection;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.AcceptSpecifiedVariableSelection;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.VariableSelection;
@@ -88,6 +90,11 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
  */
 public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdjustingCPA, StatisticsProvider {
 
+  /**
+   * A formula visitor for collecting the variables contained in a formula.
+   */
+  private static final CollectVarsVisitor<CompoundInterval> COLLECT_VARS_VISITOR = new CollectVarsVisitor<>();
+
   @Options(prefix="cpa.invariants")
   public static class InvariantsOptions {
 
@@ -95,47 +102,28 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
         description="which merge operator to use for InvariantCPA")
     private String merge = "PRECISIONDEPENDENT";
 
-    @Option(
-        secure = true,
-        description =
-            "determine target locations in advance and analyse paths to the target locations only.")
+    @Option(secure=true, description="determine target locations in advance and analyse paths to the target locations only.")
     private boolean analyzeTargetPathsOnly = true;
 
-    @Option(
-        secure = true,
-        description =
-            "determine variables relevant to the decision whether or not a target path assume edge"
-                + " is taken and limit the analyis to those variables.")
+    @Option(secure=true, description="determine variables relevant to the decision whether or not a target path assume edge is taken and limit the analyis to those variables.")
     private boolean analyzeRelevantVariablesOnly = true;
 
-    @Option(
-        secure = true,
-        description =
-            "the maximum number of variables to consider as interesting. -1 one disables the limit,"
-                + " but this is not recommended. 0 means that no variables are considered to be"
-                + " interesting.")
+    @Option(secure=true, description="the maximum number of variables to consider as interesting. -1 one disables the limit, but this is not recommended. 0 means that no variables are considered to be interesting.")
     private volatile int interestingVariableLimit = 2;
 
     @Option(
-        secure = true,
-        description =
-            "the maximum number of adjustments of the interestingVariableLimit. -1 one disables the"
-                + " limit")
+      secure = true,
+      description =
+          "the maximum number of adjustments of the interestingVariableLimit. -1 one disables the limit"
+    )
     @IntegerOption(min = -1)
     private volatile int maxInterestingVariableAdjustments = -1;
 
-    @Option(
-        secure = true,
-        description = "the maximum tree depth of a formula recorded in the environment.")
+    @Option(secure=true, description="the maximum tree depth of a formula recorded in the environment.")
     private volatile int maximumFormulaDepth = 4;
 
-    @Option(
-        secure = true,
-        description =
-            "controls whether to use abstract evaluation always, never, or depending on entering"
-                + " edges.")
-    private AbstractionStrategyFactories abstractionStateFactory =
-        AbstractionStrategyFactories.ENTERING_EDGES;
+    @Option(secure=true, description="controls whether to use abstract evaluation always, never, or depending on entering edges.")
+    private AbstractionStrategyFactories abstractionStateFactory = AbstractionStrategyFactories.ENTERING_EDGES;
 
     @Option(
         secure = true,
@@ -149,22 +137,13 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     private ConditionAdjusterFactories conditionAdjusterFactory =
         ConditionAdjusterFactories.COMPOUND;
 
-    @Option(
-        secure = true,
-        description =
-            "include type information for variables, such as x >= MIN_INT && x <= MAX_INT")
+    @Option(secure=true, description="include type information for variables, such as x >= MIN_INT && x <= MAX_INT")
     private boolean includeTypeInformation = true;
 
-    @Option(
-        secure = true,
-        description =
-            "enables the over-approximation of unsupported features instead of failing fast; this"
-                + " is imprecise")
+    @Option(secure=true, description="enables the over-approximation of unsupported features instead of failing fast; this is imprecise")
     private boolean allowOverapproximationOfUnsupportedFeatures = true;
 
-    @Option(
-        secure = true,
-        description = "use pointer-alias information in strengthening, if available.")
+    @Option(secure=true, description="use pointer-alias information in strengthening, if available.")
     private boolean usePointerAliasStrengthening = true;
 
     @Option(secure = true, description = "use modulo-2 template during widening if applicable.")
@@ -335,15 +314,14 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
     // Collect relevant edges and guess that information might be interesting
     Set<CFAEdge> relevantEdges = new LinkedHashSet<>();
+    Set<NumeralFormula<CompoundInterval>> interestingPredicates = new LinkedHashSet<>();
     Set<MemoryLocation> interestingVariables;
     synchronized (this.currentInterestingVariables) {
       interestingVariables = new LinkedHashSet<>(this.currentInterestingVariables);
     }
 
     if (interestingVariableLimit > 0 && !determineTargetLocations) {
-      logManager.log(
-          Level.WARNING,
-          "Target states were not determined. Guessing interesting information is arbitrary.");
+      logManager.log(Level.WARNING, "Target states were not determined. Guessing interesting information is arbitrary.");
     }
 
     // Iterate backwards from all relevant locations to find the relevant edges
@@ -380,6 +358,17 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
       variableSelection = new AcceptSpecifiedVariableSelection<>(relevantVariables);
     } else {
       variableSelection = new AcceptAllVariableSelection<>();
+    }
+
+    // Remove predicates from the collection of interesting predicates that are already covered by the set of interesting variables
+    Iterator<NumeralFormula<CompoundInterval>> interestingPredicateIterator = interestingPredicates.iterator();
+    while (interestingPredicateIterator.hasNext()) {
+      NumeralFormula<CompoundInterval> interestingPredicate = interestingPredicateIterator.next();
+      List<MemoryLocation> containedUninterestingVariables = new ArrayList<>(interestingPredicate.accept(COLLECT_VARS_VISITOR));
+      containedUninterestingVariables.removeAll(interestingVariables);
+      if (containedUninterestingVariables.size() <= 1) {
+        interestingPredicateIterator.remove();
+      }
     }
 
     relevantVariableLimitReached = interestingVariableLimit < 0 || interestingVariableLimit > interestingVariables.size();
@@ -612,7 +601,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     }
   }
 
-  public interface ConditionAdjuster {
+  public static interface ConditionAdjuster {
 
     boolean adjustConditions();
 
@@ -622,7 +611,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
   }
 
-  private interface ValueIncreasingAdjuster extends ConditionAdjuster {
+  private static interface ValueIncreasingAdjuster extends ConditionAdjuster {
 
     int getInc();
 
@@ -817,10 +806,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
       synchronized (cpa) {
         cpa.options.interestingVariableLimit += inc;
       }
-      cpa.logManager.log(
-          Level.INFO,
-          "Adjusting interestingVariableLimit to",
-          cpa.options.interestingVariableLimit);
+      cpa.logManager.log(Level.INFO, "Adjusting interestingVariableLimit to", cpa.options.interestingVariableLimit);
       return true;
     }
 
@@ -855,8 +841,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
       synchronized (cpa) {
         cpa.options.maximumFormulaDepth += inc;
       }
-      cpa.logManager.log(
-          Level.INFO, "Adjusting maximum formula depth to", cpa.options.maximumFormulaDepth);
+      cpa.logManager.log(Level.INFO, "Adjusting maximum formula depth to", cpa.options.maximumFormulaDepth);
       return true;
     }
 
@@ -889,8 +874,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
       } else {
         return false;
       }
-      cpa.logManager.log(
-          Level.INFO, "Adjusting abstraction strategy to", cpa.options.abstractionStateFactory);
+      cpa.logManager.log(Level.INFO, "Adjusting abstraction strategy to", cpa.options.abstractionStateFactory);
       return true;
     }
 

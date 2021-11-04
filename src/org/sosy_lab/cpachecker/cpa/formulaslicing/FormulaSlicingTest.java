@@ -12,7 +12,7 @@ package org.sosy_lab.cpachecker.cpa.formulaslicing;
 import static com.google.common.truth.TruthJUnit.assume;
 
 import com.google.common.collect.ImmutableMap;
-import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -80,8 +80,7 @@ public class FormulaSlicingTest {
   }
 
   @Ignore(
-      "With the SYNTACTIC weakening strategy, the analysis is not precise enough and raises a false"
-          + " alarm for this task.")
+      "With the SYNTACTIC weakening strategy, the analysis is not precise enough and raises a false alarm for this task.")
   @Test
   public void slicing_nested_true_assert() throws Exception {
     check("slicing_nested-1.c", ExpectedVerdict.TRUE);
@@ -101,7 +100,7 @@ public class FormulaSlicingTest {
 
   private void check(String filename, ExpectedVerdict pExpected, Map<String, String> extra)
       throws Exception {
-    String fullPath = Path.of(TEST_DIR_PATH, filename).toString();
+    String fullPath = Paths.get(TEST_DIR_PATH, filename).toString();
 
     TestResults results = CPATestRunner.run(getProperties(extra), fullPath);
     if (pExpected == ExpectedVerdict.TRUE) {

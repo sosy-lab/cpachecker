@@ -12,6 +12,7 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cpa.invariants.TypeInfo;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
+
 public class Variable<ConstantType> extends AbstractFormula<ConstantType> implements NumeralFormula<ConstantType> {
 
   private final MemoryLocation memoryLocation;
@@ -27,7 +28,7 @@ public class Variable<ConstantType> extends AbstractFormula<ConstantType> implem
 
   @Override
   public String toString() {
-    return getMemoryLocation().getExtendedQualifiedName();
+    return getMemoryLocation().getAsSimpleString();
   }
 
   @Override

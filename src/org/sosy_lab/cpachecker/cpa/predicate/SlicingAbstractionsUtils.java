@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 
 import com.google.common.collect.FluentIterable;
@@ -30,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -148,7 +148,7 @@ public class SlicingAbstractionsUtils {
    */
   public static ImmutableMap<ARGState, PersistentList<ARGState>> calculateOutgoingSegments(
       ARGState originState) {
-    // checkArgument(isAbstractionState(originState));
+    checkArgument(isAbstractionState(originState));
 
     // Used data structures:
     final Collection<ARGState> outgoingStates = originState.getChildren();
@@ -263,7 +263,7 @@ public class SlicingAbstractionsUtils {
     return getPredicateState(pState).isAbstractionState() || !pState.wasExpanded();
   }
 
-  public enum AbstractionPosition {
+  public static enum AbstractionPosition {
     START,
     END;
 
@@ -303,14 +303,14 @@ public class SlicingAbstractionsUtils {
     if (segmentList == null) {
       segmentList = ImmutableList.of();
     }
-    return buildPathFormula(start, stop, segmentList, pSSAMap, pPts, pPfmgr, withInvariants);
+    return buildPathFormula(start, stop, segmentList, pSSAMap, pPts, pFmgr, pPfmgr, withInvariants);
   }
 
   /**
    * For better scaling, call this method instead of {@link
    * SlicingAbstractionsUtils#buildPathFormula(ARGState, ARGState, List, SSAMap, PointerTargetSet,
-   * PathFormulaManager, ImmutableSet)} if you already have calculated the segmentList (states
-   * between start and stop state).
+   * FormulaManagerView, PathFormulaManager, ImmutableSet)} if you already have calculated the
+   * segmentList (states between start and stop state).
    */
   public static PathFormula buildPathFormula(
       ARGState start,
@@ -318,6 +318,7 @@ public class SlicingAbstractionsUtils {
       List<ARGState> segmentList,
       SSAMap pSSAMap,
       PointerTargetSet pPts,
+      FormulaManagerView pFmgr,
       PathFormulaManager pPfmgr,
       ImmutableSet<AbstractionPosition> withInvariants)
       throws CPATransferException, InterruptedException {
@@ -329,15 +330,16 @@ public class SlicingAbstractionsUtils {
     // start with either an empty PathFormula or the abstraction state of start
     // (depending on what the caller specified)
     if (withInvariants.contains(AbstractionPosition.START)) {
-      startFormula = invariantPathFormulaFromState(start, pSSAMap, pPts, pPfmgr);
+      startFormula = invariantPathFormulaFromState(start, pSSAMap, pPts, pFmgr);
     } else {
-      startFormula = pPfmgr.makeEmptyPathFormulaWithContext(pSSAMap, pPts);
+      startFormula =
+          emptyPathFormulaWithSSAMap(pFmgr.getBooleanFormulaManager().makeTrue(), pSSAMap, pPts);
     }
 
     // Add assumptions if any:
     AbstractStateWithAssumptions other =
         AbstractStates.extractStateByType(stop, AbstractStateWithAssumptions.class);
-    if (other != null && !(other instanceof DCAState)) {
+    if (other != null) {
       if (stop.isTarget() && other instanceof OverflowState) {
         other = ((OverflowState) other).getParent();
       }
@@ -420,9 +422,15 @@ public class SlicingAbstractionsUtils {
   }
 
   private static PathFormula invariantPathFormulaFromState(
-      ARGState state, SSAMap pSSAMap, PointerTargetSet pPts, PathFormulaManager pfmgr) {
+      ARGState state, SSAMap pSSAMap, PointerTargetSet pPts, FormulaManagerView fmgr) {
     BooleanFormula initFormula = getPredicateState(state).getAbstractionFormula().asFormula();
-    return pfmgr.makeAnd(pfmgr.makeEmptyPathFormulaWithContext(pSSAMap, pPts), initFormula);
+    BooleanFormula instatiatedInitFormula = fmgr.instantiate(initFormula, pSSAMap);
+    return emptyPathFormulaWithSSAMap(instatiatedInitFormula, pSSAMap, pPts);
+  }
+
+  private static PathFormula emptyPathFormulaWithSSAMap(BooleanFormula formula, SSAMap pSSAMap, PointerTargetSet pPts) {
+    PathFormula resultPathFormula = new PathFormula(formula, pSSAMap, pPts, 0);
+    return resultPathFormula;
   }
 
   /**
@@ -649,8 +657,13 @@ public class SlicingAbstractionsUtils {
       path = ARGUtils.getOnePathTo(errorState);
     }
 
-    final ImmutableList<ARGState> abstractionStatesOnErrorPath =
-        from(path.asStatesList()).filter(x -> isAbstractionState(x)).toList();
+    final List<ARGState> abstractionStatesOnErrorPath;
+    abstractionStatesOnErrorPath =
+        path.asStatesList()
+            .asList()
+            .stream()
+            .filter(x -> isAbstractionState(x))
+            .collect(Collectors.toList());
 
     final Set<ARGState> statesOnErrorPath = new HashSet<>(abstractionStatesOnErrorPath);
 

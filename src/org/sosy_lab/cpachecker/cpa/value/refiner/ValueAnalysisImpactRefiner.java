@@ -23,6 +23,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
@@ -196,8 +197,7 @@ public class ValueAnalysisImpactRefiner extends AbstractARGBasedRefiner implemen
     @Override
     protected void refineUsingInterpolants(
         final ARGReachedSet pReached,
-        InterpolationTree<ValueAnalysisState, ValueAnalysisInterpolant> pInterpolationTree)
-        throws InterruptedException {
+        InterpolationTree<ValueAnalysisState, ValueAnalysisInterpolant> pInterpolationTree) {
 
       timeStrengthen.start();
       Set<ARGState> strengthenedStates = strengthenStates(pInterpolationTree);
@@ -211,7 +211,7 @@ public class ValueAnalysisImpactRefiner extends AbstractARGBasedRefiner implemen
       }
       timeCoverage.stop();
 
-      CFANode dummyCfaNode = CFANode.newDummyCFANode();
+      CFANode dummyCfaNode = new CFANode(CFunctionDeclaration.DUMMY);
       VariableTrackingPrecision previsousPrecision = null;
       SetMultimap<CFANode, MemoryLocation> previousIncrement = null;
       timePrecision.start();
@@ -290,8 +290,9 @@ public class ValueAnalysisImpactRefiner extends AbstractARGBasedRefiner implemen
     }
 
     private void tryToCoverArg(
-        Set<ARGState> strengthenedStates, ARGReachedSet reached, ARGState pTargetState)
-        throws InterruptedException {
+        Set<ARGState> strengthenedStates,
+        ARGReachedSet reached,
+        ARGState pTargetState) {
       ARGState coverageRoot = null;
 
       ARGPath errorPath = ARGUtils.getOnePathTo(pTargetState);
@@ -307,8 +308,8 @@ public class ValueAnalysisImpactRefiner extends AbstractARGBasedRefiner implemen
               coverageRoot = state;
               break;
             }
-          } catch (CPAException e) {
-            throw new AssertionError(e); // TODO
+          } catch (CPAException | InterruptedException e) {
+            throw new Error(); // TODO
           }
         }
       }

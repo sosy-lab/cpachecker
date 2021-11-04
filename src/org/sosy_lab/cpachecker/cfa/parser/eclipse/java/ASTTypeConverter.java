@@ -8,10 +8,12 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
-import com.google.common.base.Preconditions;
 import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JInterfaceType;
+
+import com.google.common.base.Preconditions;
+
 
 class ASTTypeConverter extends TypeConverter {
 
@@ -21,50 +23,50 @@ class ASTTypeConverter extends TypeConverter {
     scope = pScope;
   }
 
-  /**
-   * Searches for a type within the Type Hierarchy. If found, returns it.
-   *
-   * @param t binding representing the sought after type.
-   * @return Returns a type within the TypeHierachie or a Unspecified Type.
-   */
-  @Override
-  public JInterfaceType convertInterfaceType(ITypeBinding t) {
+    /**
+     *  Searches for a type within the Type Hierarchy.
+     *  If found, returns it.
+     *
+     * @param t binding representing the sought after type.
+     * @return  Returns a type within the TypeHierachie or a Unspecified Type.
+     */
+    @Override
+    public JInterfaceType convertInterfaceType(ITypeBinding t) {
 
-    if (t.isClass()) {
-      return JInterfaceType.createUnresolvableType();
+      if (t.isClass()) {
+        return JInterfaceType.createUnresolvableType();
+      }
+
+      Preconditions.checkArgument(t.isInterface());
+
+      String typeName = NameConverter.convertClassOrInterfaceToFullName(t);
+
+      if (scope.containsInterfaceType(typeName)) {
+        return scope.getInterfaceType(typeName);
+      } else {
+        return scope.createNewInterfaceType(t);
+      }
     }
 
-    Preconditions.checkArgument(t.isInterface());
+    /**
+     * Converts a Class Type by its Binding.
+     * This Method searches in the parsed Type Hierarchy for
+     * the type, which is represented by the  given binding.
+     *
+     * @param t type Binding which represents the sought after type
+     * @return The Class Type which is represented by t.
+     */
+    @Override
+    public JClassType convertClassType(ITypeBinding t) {
 
-    String typeName = NameConverter.convertClassOrInterfaceToFullName(t);
+      Preconditions.checkArgument(t.isClass() || t.isEnum());
 
-    if (scope.containsInterfaceType(typeName)) {
-      return scope.getInterfaceType(typeName);
-    } else {
-      return scope.createNewInterfaceType(t);
+      String typeName = NameConverter.convertClassOrInterfaceToFullName(t);
+
+      if (scope.containsClassType(typeName)) {
+        return scope.getClassType(typeName);
+      } else {
+        return scope.createNewClassType(t);
+      }
     }
-  }
-
-  /**
-   * Converts a Class Type by its Binding. This Method searches in the parsed Type Hierarchy for the
-   * type, which is represented by the given binding.
-   *
-   * @param t type Binding which represents the sought after type
-   * @return The Class Type which is represented by t.
-   */
-  @Override
-  public JClassType convertClassType(ITypeBinding t) {
-
-    Preconditions.checkArgument(t.isClass() || t.isEnum());
-
-    String typeName = NameConverter.convertClassOrInterfaceToFullName(t);
-
-    if (scope.containsClassType(typeName)) {
-      return scope.getClassType(typeName);
-    } else if (scope.containsClassType("java.lang." + typeName)) {
-      return scope.getClassType("java.lang." + typeName);
-    } else {
-      return scope.createNewClassType(t);
-    }
-  }
 }

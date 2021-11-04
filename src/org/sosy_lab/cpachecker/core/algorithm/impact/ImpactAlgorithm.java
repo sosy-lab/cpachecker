@@ -311,7 +311,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
       for (Vertex w1 : path) {
         pf = pfmgr.makeAnd(pf, w1.getIncomingEdge());
         formulas.add(pf.getFormula());
-        pf = pfmgr.makeEmptyPathFormulaWithContextFrom(pf); // reset formula, keep SSAMap
+        pf = pfmgr.makeEmptyPathFormula(pf); // reset formula, keep SSAMap
       }
 
       formulas.add(bfmgr.not(fmgr.instantiate(w.getStateFormula(), pf.getSsa().withDefault(1))));
@@ -480,7 +480,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     for (Vertex w : path) {
       pf = pfmgr.makeAnd(pf, w.getIncomingEdge());
       pathFormulas.add(pf.getFormula());
-      pf = pfmgr.makeEmptyPathFormulaWithContextFrom(pf); // reset formula, keep SSAMap
+      pf = pfmgr.makeEmptyPathFormula(pf); // reset formula, keep SSAMap
     }
   }
 

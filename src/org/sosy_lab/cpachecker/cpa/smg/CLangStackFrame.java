@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.smg;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -99,11 +98,11 @@ public final class CLangStackFrame {
   /** Return string representation of the stack frame */
   @Override
   public String toString() {
-    Iterable<SMGRegion> values = stack_variables.values();
-    if (returnValueObject != null) {
-      values = Iterables.concat(values, ImmutableSet.of(returnValueObject));
-    }
-    return String.format("%s=[%s]", stack_function.getName(), Joiner.on(", ").join(values));
+    return String.format(
+        "%s=[%s%s]",
+        stack_function.getName(),
+        Joiner.on(", ").join(stack_variables.values()),
+        returnValueObject == null ? "" : (", " + returnValueObject));
   }
 
   public CLangStackFrame removeVariable(String pName) {

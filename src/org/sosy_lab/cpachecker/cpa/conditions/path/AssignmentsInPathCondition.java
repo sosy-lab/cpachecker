@@ -47,19 +47,13 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
    */
   private static final int DISABLED = -1;
 
-  @Option(
-      secure = true,
-      description =
-          "sets the threshold for assignments (-1 for infinite), and it is upto, e.g.,"
-              + " ValueAnalysisPrecisionAdjustment to act accordingly to this threshold value.")
-  @IntegerOption(min = -1)
+  @Option(secure=true, description="sets the threshold for assignments (-1 for infinite), and it is upto, e.g.,"
+      + " ValueAnalysisPrecisionAdjustment to act accordingly to this threshold value.")
+  @IntegerOption(min=-1)
   private int threshold = DISABLED;
 
-  @Option(
-      secure = true,
-      description =
-          "determines if there should be one single assignment state per state, one per path"
-              + " segment between assume edges, or a global one for the whole program.")
+  @Option(secure=true, description="determines if there should be one single assignment state per state,"
+      + " one per path segment between assume edges, or a global one for the whole program.")
   private Scope scope = Scope.STATE;
 
   /**
@@ -232,8 +226,10 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     return new AssignementsInPathConditionReducer();
   }
 
-  /** the enumeration defining the different scopes for which to track individual thresholds */
-  private enum Scope {
+  /**
+   * the enumeration defining the different scopes for which to track individual thresholds
+   */
+  private static enum Scope {
     STATE,
     PATH,
     PROGRAM

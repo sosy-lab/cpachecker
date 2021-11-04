@@ -47,8 +47,7 @@ final class ForeignDefUseData {
     return foreignUses.get(pFunction);
   }
 
-  public static ForeignDefUseData extract(
-      CFA pCfa, EdgeDefUseData.Extractor pDefUseExtractor, GlobalPointerState pPointerState) {
+  public static ForeignDefUseData extract(CFA pCfa, GlobalPointerState pPointerState) {
 
     List<CFAEdge> edges = new ArrayList<>();
     for (CFANode node : pCfa.getAllNodes()) {
@@ -68,7 +67,7 @@ final class ForeignDefUseData {
     Map<AFunctionDeclaration, Set<MemoryLocation>> foreignDefs = new HashMap<>();
     Map<AFunctionDeclaration, Set<MemoryLocation>> foreignUses = new HashMap<>();
 
-    collectDirectForeign(foreignDefs, foreignUses, edges, pDefUseExtractor, pPointerState);
+    collectDirectForeign(foreignDefs, foreignUses, edges, pPointerState);
     collectIndirectForeign(foreignDefs, foreignUses, calledFunctions);
 
     return new ForeignDefUseData(createImmutable(foreignDefs), createImmutable(foreignUses));
@@ -115,13 +114,12 @@ final class ForeignDefUseData {
       Map<AFunctionDeclaration, Set<MemoryLocation>> pForeignDefs,
       Map<AFunctionDeclaration, Set<MemoryLocation>> pForeignUses,
       List<CFAEdge> pEdges,
-      EdgeDefUseData.Extractor pDefUseExtractor,
       GlobalPointerState pPointerState) {
 
     for (CFAEdge edge : pEdges) {
 
       AFunctionDeclaration function = edge.getPredecessor().getFunction();
-      EdgeDefUseData defUseData = pDefUseExtractor.extract(edge);
+      EdgeDefUseData defUseData = EdgeDefUseData.extract(edge);
 
       Set<MemoryLocation> foreignDefs =
           pForeignDefs.computeIfAbsent(function, key -> new HashSet<>());

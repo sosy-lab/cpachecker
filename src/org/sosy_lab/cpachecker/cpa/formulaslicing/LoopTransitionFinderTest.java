@@ -72,7 +72,7 @@ public class LoopTransitionFinderTest {
     CFANode loopHead = cfa.getAllLoopHeads().orElseThrow().iterator().next();
     LoopTransitionFinder loopTransitionFinder =
         new LoopTransitionFinder(
-            config, cfa.getLoopStructure().orElseThrow(), pfmgr, logger, notifier);
+            config, cfa.getLoopStructure().orElseThrow(), pfmgr, fmgr, logger, notifier);
 
     PathFormula loopTransition = loopTransitionFinder.generateLoopTransition(
         SSAMap.emptySSAMap(), PointerTargetSet.emptyPointerTargetSet(), loopHead);
@@ -92,7 +92,7 @@ public class LoopTransitionFinderTest {
     CFANode loopHead = cfa.getAllLoopHeads().orElseThrow().iterator().next();
     LoopTransitionFinder loopTransitionFinder =
         new LoopTransitionFinder(
-            config, cfa.getLoopStructure().orElseThrow(), pfmgr, logger, notifier);
+            config, cfa.getLoopStructure().orElseThrow(), pfmgr, fmgr, logger, notifier);
     PathFormula summary = loopTransitionFinder.generateLoopTransition(
         SSAMap.emptySSAMap(), PointerTargetSet.emptyPointerTargetSet(), loopHead);
 
@@ -122,7 +122,7 @@ public class LoopTransitionFinderTest {
     CFANode loopHead = cfa.getAllLoopHeads().orElseThrow().iterator().next();
     LoopTransitionFinder loopTransitionFinder =
         new LoopTransitionFinder(
-            config, cfa.getLoopStructure().orElseThrow(), pfmgr, logger, notifier);
+            config, cfa.getLoopStructure().orElseThrow(), pfmgr, fmgr, logger, notifier);
     PathFormula summary = loopTransitionFinder.generateLoopTransition(
         SSAMap.emptySSAMap(), PointerTargetSet.emptyPointerTargetSet(), loopHead);
 
@@ -133,7 +133,8 @@ public class LoopTransitionFinderTest {
 
   private PathFormula fromLine(String line) throws Exception {
     return TestDataTools.toPathFormula(
-        TestDataTools.toSingleFunctionCFA(creator, line), SSAMap.emptySSAMap(), pfmgr, true);
+        TestDataTools.toSingleFunctionCFA(creator, line),
+        SSAMap.emptySSAMap(), fmgr, pfmgr, true);
   }
 
   private void assertEquivalent(BooleanFormula output, BooleanFormula expected)

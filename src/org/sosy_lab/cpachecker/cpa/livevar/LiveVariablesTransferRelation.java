@@ -169,7 +169,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
   public LiveVariablesState getInitialState(CFANode pNode) {
     if (pNode instanceof FunctionExitNode) {
       FunctionExitNode eNode = (FunctionExitNode) pNode;
-      Optional<? extends AVariableDeclaration> returnVarName =
+      com.google.common.base.Optional<? extends AVariableDeclaration> returnVarName =
           eNode.getEntryNode().getReturnVariable();
 
       // e.g. a function void foo();
@@ -191,10 +191,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
       }
 
     } else {
-      logger.log(
-          Level.FINEST,
-          "No FunctionExitNode given, thus creating initial state without having the return"
-              + " variable.");
+      logger.log(Level.FINEST, "No FunctionExitNode given, thus creating initial state without having the return variable.");
       return LiveVariablesState.empty(noVars, this);
     }
   }
@@ -205,7 +202,8 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
 
       if (node instanceof FunctionEntryNode) {
         FunctionEntryNode entryNode = (FunctionEntryNode) node;
-        Optional<? extends AVariableDeclaration> returnVarName = entryNode.getReturnVariable();
+        com.google.common.base.Optional<? extends AVariableDeclaration> returnVarName =
+            entryNode.getReturnVariable();
         if (returnVarName.isPresent()) {
           allDecls.add(LIVE_DECL_EQUIVALENCE.wrap(returnVarName.get()));
         }

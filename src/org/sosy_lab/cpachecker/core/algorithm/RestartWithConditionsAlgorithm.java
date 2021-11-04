@@ -56,8 +56,7 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
     }
     cpa = (ARGCPA)pCpa;
     if (cpa.retrieveWrappedCpa(AssumptionStorageCPA.class) == null) {
-      throw new InvalidConfigurationException(
-          "AssumptionStorageCPA needed for RestartWithConditionsAlgorithm");
+      throw new InvalidConfigurationException("AssumptionStorageCPA needed for RestartWithConditionsAlgorithm");
     }
 
     conditionCPAs = CPAs.asIterable(cpa).filter(AdjustableConditionCPA.class).toList();
@@ -73,7 +72,7 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
       // run the inner algorithm to fill the reached set
       status = status.update(innerAlgorithm.run(pReached));
 
-      if (pReached.wasTargetReached() && status.isPrecise()) {
+      if (pReached.hasViolatedProperties() && status.isPrecise()) {
         return status;
       }
 

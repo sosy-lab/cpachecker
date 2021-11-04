@@ -16,6 +16,10 @@ import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.logging.Level;
@@ -151,11 +155,9 @@ public class CustomInstructionApplications {
     @Option(
         secure = true,
         name = "ciSignature",
-        description =
-            "Signature for custom instruction, describes names and order of input and output"
-                + " variables of a custom instruction")
+        description = "Signature for custom instruction, describes names and order of input and output variables of a custom instruction")
     @FileOption(FileOption.Type.OUTPUT_FILE)
-    protected Path ciSpec = Path.of("ci_spec.txt");
+    protected Path ciSpec = Paths.get("ci_spec.txt");
 
     protected final LogManager logger;
     protected final ShutdownNotifier shutdownNotifier;
@@ -199,11 +201,12 @@ public class CustomInstructionApplications {
   private static class CustomInstructionApplicationsFromFile extends CustomInstructionApplicationBuilder{
 
     @Option(
-        secure = true,
-        name = "definitionFile",
-        description = "File specifying start locations of custom instruction applications")
+      secure = true,
+      name = "definitionFile",
+      description = "File specifying start locations of custom instruction applications"
+    )
     @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
-    private Path appliedCustomInstructionsDefinition = Path.of("ci_def.txt");
+    private Path appliedCustomInstructionsDefinition = Paths.get("ci_def.txt");
 
     public CustomInstructionApplicationsFromFile(Configuration pConfig, final CFA pCfa,
         LogManager pLogger, ShutdownNotifier pSdNotifier) throws InvalidConfigurationException {
@@ -214,8 +217,7 @@ public class CustomInstructionApplications {
       try {
         IO.checkReadableFile(appliedCustomInstructionsDefinition);
       } catch (FileNotFoundException e) {
-        throw new InvalidConfigurationException(
-            "Definition file for custom instruction application does not exist", e);
+        throw new InvalidConfigurationException("Definition file for custom instruction application does not exist", e);
       }
     }
 
@@ -241,11 +243,12 @@ public class CustomInstructionApplications {
     private String ciFunction;
 
     @Option(
-        secure = true,
-        name = "definitionFile",
-        description = "File specifying start locations of custom instruction applications")
+      secure = true,
+      name = "definitionFile",
+      description = "File specifying start locations of custom instruction applications"
+    )
     @FileOption(FileOption.Type.OUTPUT_FILE)
-    private Path appliedCustomInstructionsDefinition = Path.of("ci_def.txt");
+    private Path appliedCustomInstructionsDefinition = Paths.get("ci_def.txt");
 
     public CustomInstructionApplicationsAutomatic(
         Configuration pConfig, final CFA pCfa, LogManager pLogger, ShutdownNotifier pSdNotifier)
@@ -285,28 +288,20 @@ public class CustomInstructionApplications {
   @Options(prefix="custominstructions")
   private static class CustomInstructionsForBinaryOperator extends CustomInstructionApplicationBuilder {
 
-    @Option(
-        secure = true,
-        description =
-            "Specify simple custom instruction by specifying the binary operator op. All simple cis"
-                + " are of the form r = x op y. Leave empty (default) if you specify a more complex"
-                + " custom instruction within code.")
+    @Option(secure = true,
+        description = "Specify simple custom instruction by specifying the binary operator op. All simple cis are of the form r = x op y. Leave empty (default) if you specify a more complex custom instruction within code.")
     private BinaryOperator binaryOperatorForSimpleCustomInstruction = BinaryOperator.PLUS;
 
-    @Option(
-        secure = true,
-        name = "definitionFile",
-        description = "File to dump start location of identified custom instruction applications")
+    @Option(secure=true, name="definitionFile", description = "File to dump start location of identified custom instruction applications")
     @FileOption(FileOption.Type.OUTPUT_FILE)
-    private Path foundCustomInstructionsDefinition = Path.of("ci_def.txt");
+    private Path foundCustomInstructionsDefinition = Paths.get("ci_def.txt");
 
     public CustomInstructionsForBinaryOperator(Configuration pConfig, LogManager pLogger,
         ShutdownNotifier pSdNotifier, CFA pCfa) throws InvalidConfigurationException {
       super(pConfig, pLogger, pSdNotifier, pCfa);
       pConfig.inject(this);
 
-      logger.log(
-          Level.FINE, "Using a simple custom instruction. Find out the applications ourselves");
+      logger.log(Level.FINE, "Using a simple custom instruction. Find out the applications ourselves");
     }
 
     private CustomInstructionApplications findSimpleCustomInstructionApplications()
@@ -332,20 +327,15 @@ public class CustomInstructionApplications {
               FileLocation.DUMMY, CFunctionType.NO_ARGS_VOID_FUNCTION, "ci", ImmutableList.of());
       CFANode start = new CFANode(ciDef);
       CFANode end = new CFANode(ciDef);
-      CFAEdge ciEdge =
-          new CStatementEdge(
-              "r=x" + binaryOperatorForSimpleCustomInstruction + "y;",
-              stmt,
-              FileLocation.DUMMY,
-              start,
-              end);
+      CFAEdge ciEdge = new CStatementEdge("r=x" + binaryOperatorForSimpleCustomInstruction + "y;", stmt, FileLocation.DUMMY, start, end);
       start.addLeavingEdge(ciEdge);
       end.addEnteringEdge(ciEdge);
       // build custom instruction
-      ImmutableList<String> input = ImmutableList.of("x", "y");
-      CustomInstruction ci =
-          new CustomInstruction(
-              start, ImmutableSet.of(end), input, ImmutableList.of("r"), shutdownNotifier);
+      List<String> input = new ArrayList<>(2);
+      input.add("x");
+      input.add("y");
+      CustomInstruction ci = new CustomInstruction(start, Collections.singleton(end),
+          input, ImmutableList.of("r"), shutdownNotifier);
 
       // find applied custom instructions in program
       try (Writer aciDef =
@@ -376,8 +366,8 @@ public class CustomInstructionApplications {
         br.write(ciString.substring(ciString.indexOf("a")-1,ciString.length()-1) + ";");
       }
 
-      return new AppliedCustomInstructionParser(shutdownNotifier, logger, cfa)
-          .parse(ci, foundCustomInstructionsDefinition);
+      return new AppliedCustomInstructionParser(shutdownNotifier, logger, cfa).
+          parse(ci, foundCustomInstructionsDefinition);
     }
 
     @Override

@@ -13,7 +13,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
@@ -32,6 +31,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiPredicate;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.configuration.Configuration;
@@ -44,12 +44,11 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
-import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.specification.Property;
+import org.sosy_lab.cpachecker.core.specification.SpecificationProperty;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.util.BiPredicates;
@@ -72,10 +71,7 @@ public class TestCaseExporter {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate testHarnessFile = null;
 
-  @Option(
-      secure = true,
-      name = "values",
-      description = "export test values to file (line separated)")
+  @Option(secure = true, name = "values", description = "export test values to file (line separated)")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate testValueFile = null;
 
@@ -102,16 +98,6 @@ public class TestCaseExporter {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path testCaseZip = null;
 
-  @Option(
-      secure = true,
-      description = "Only convert literal value and do not add suffix, e.g., for unsigned, etc.")
-  private boolean plainLiteralValue = false;
-
-  @Option(
-      secure = true,
-      description = "Do not output values for variables that are not initialized when declared")
-  private boolean excludeInitialization = false;
-
   private static int testsWritten = 0;
 
   private final CFA cfa;
@@ -137,7 +123,9 @@ public class TestCaseExporter {
     return Joiner.on("\n").join(pValues);
   }
 
-  public void writeTestCaseFiles(final CounterexampleInfo pCex, Optional<Property> pSpec) {
+  public void writeTestCaseFiles(
+      final CounterexampleInfo pCex,
+      Optional<SpecificationProperty> pSpec) {
     // TODO check if this and openZipFS(), closeZipFS() are thread-safe
     if (areTestsEnabled()) {
       ARGPath targetPath = pCex.getTargetPath();
@@ -181,7 +169,7 @@ public class TestCaseExporter {
       final ARGPath pTargetPath,
       final CounterexampleInfo pCexInfo,
       final FormatType type,
-      final Optional<Property> pSpec) {
+      final Optional<SpecificationProperty> pSpec) {
     final ARGState rootState = pTargetPath.getFirstState();
     final Predicate<? super ARGState> relevantStates = Predicates.in(pTargetPath.getStateSet());
     final BiPredicate<ARGState, ARGState> relevantEdges =
@@ -312,16 +300,14 @@ public class TestCaseExporter {
       Files.createDirectories(parent);
     }
 
-    return FileSystems.newFileSystem(URI.create("jar:" + testCaseZip.toUri()), env, null);
+    return
+        FileSystems.newFileSystem(URI.create("jar:" + testCaseZip.toUri().toString()), env, null);
   }
 
   private String unpack(final AAstNode pInputValue) {
     if (pInputValue instanceof CCastExpression) {
       return unpack(((CCastExpression) pInputValue).getOperand());
     } else {
-      if (plainLiteralValue && pInputValue instanceof ALiteralExpression) {
-        return String.valueOf(((ALiteralExpression) pInputValue).getValue());
-      }
       return pInputValue.toASTString();
     }
   }
@@ -342,9 +328,8 @@ public class TestCaseExporter {
 
       List<String> inputs =
           vector.getTestInputsInOrder().stream()
-              .filter(v -> !excludeInitialization || (v instanceof ExpressionTestValue))
               .map(v -> unpack(v.getValue()))
-              .collect(ImmutableList.toImmutableList());
+              .collect(Collectors.toList());
 
       return Optional.of(formatter.convertToOutput(inputs));
     } else {

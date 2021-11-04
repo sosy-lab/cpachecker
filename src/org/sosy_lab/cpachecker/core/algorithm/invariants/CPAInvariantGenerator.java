@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
@@ -183,15 +184,14 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
     try {
       invariantConfig = Configuration.builder().loadFromFile(configFile).build();
     } catch (IOException e) {
-      throw new InvalidConfigurationException(
-          "could not read configuration file for invariant generation: " + e.getMessage(), e);
+      throw new InvalidConfigurationException("could not read configuration file for invariant generation: " + e.getMessage(), e);
     }
 
     reachedSetFactory = new ReachedSetFactory(invariantConfig, logger);
     cfa = pCFA;
     cpa =
         new CPABuilder(invariantConfig, logger, shutdownManager.getNotifier(), reachedSetFactory)
-            .buildCPAs(cfa, pSpecification, pAdditionalAutomata, AggregatedReachedSets.empty());
+            .buildCPAs(cfa, pSpecification, pAdditionalAutomata, new AggregatedReachedSets());
     algorithm = CPAAlgorithm.create(cpa, logger, invariantConfig, shutdownManager.getNotifier());
   }
 
@@ -272,8 +272,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
    */
   private class InvariantGenerationTask implements Callable<AggregatedReachedSets> {
 
-    private static final String SAFE_MESSAGE =
-        "Invariant generation with abstract interpretation proved specification to hold.";
+    private static final String SAFE_MESSAGE = "Invariant generation with abstract interpretation proved specification to hold.";
     private final CFANode initialLocation;
 
     private InvariantGenerationTask(final CFANode pInitialLocation) {
@@ -286,11 +285,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
       try {
 
         shutdownManager.getNotifier().shutdownIfNecessary();
-        logger.log(
-            Level.INFO,
-            "Starting iteration",
-            iteration,
-            "of invariant generation with abstract interpretation.");
+        logger.log(Level.INFO, "Starting iteration", iteration, "of invariant generation with abstract interpretation.");
 
         return runInvariantGeneration(initialLocation);
 
@@ -302,18 +297,18 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
     private AggregatedReachedSets runInvariantGeneration(CFANode pInitialLocation)
         throws CPAException, InterruptedException {
 
-      ReachedSet taskReached =
-          reachedSetFactory.createAndInitialize(
-              cpa, pInitialLocation, StateSpacePartition.getDefaultPartition());
+      ReachedSet taskReached = reachedSetFactory.create();
+      taskReached.add(cpa.getInitialState(pInitialLocation, StateSpacePartition.getDefaultPartition()),
+          cpa.getInitialPrecision(pInitialLocation, StateSpacePartition.getDefaultPartition()));
 
       while (taskReached.hasWaitingState()) {
         if (!algorithm.run(taskReached).isSound()) {
           // ignore unsound invariant and abort
-          return AggregatedReachedSets.empty();
+          return new AggregatedReachedSets();
         }
       }
 
-      if (!taskReached.wasTargetReached()
+      if (!taskReached.hasViolatedProperties()
           && !from(taskReached).anyMatch(CPAInvariantGenerator::hasAssumption)) {
         // program is safe (waitlist is empty, algorithm was sound, no target states present)
         logger.log(Level.INFO, SAFE_MESSAGE);
@@ -325,11 +320,11 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
 
       checkState(!taskReached.hasWaitingState());
       checkState(!taskReached.isEmpty());
-      return AggregatedReachedSets.singleton(taskReached);
+      return new AggregatedReachedSets(Collections.singleton(taskReached));
     }
   }
 
-  private static boolean hasAssumption(AbstractState state) {
+  private static final boolean hasAssumption(AbstractState state) {
     AssumptionStorageState assumption =
         AbstractStates.extractStateByType(state, AssumptionStorageState.class);
     return assumption != null && !assumption.isStopFormulaTrue() && !assumption.isAssumptionTrue();

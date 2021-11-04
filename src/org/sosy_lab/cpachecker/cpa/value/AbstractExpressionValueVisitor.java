@@ -104,7 +104,6 @@ import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
-import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
 
 /**
  * This Visitor implements an evaluation strategy
@@ -233,12 +232,7 @@ public abstract class AbstractExpressionValueVisitor
     }
 
     if (!lVal.isNumericValue() || !rVal.isNumericValue()) {
-      logger.logf(
-          Level.FINE,
-          "Parameters to binary operation '%s %s %s' are no numeric values.",
-          lVal,
-          binaryOperator,
-          rVal);
+      logger.logf(Level.FINE, "Parameters to binary operation '%s %s %s' are no numeric values.", lVal, binaryOperator, rVal);
       return Value.UnknownValue.getInstance();
     }
 
@@ -328,8 +322,7 @@ public abstract class AbstractExpressionValueVisitor
       return new NumericValue(val1.equals(val2) ? 0 : 1);
 
     default:
-        throw new AssertionError(
-            "Operation " + binaryOperator + " is not supported for function values");
+      throw new AssertionError("Operation " + binaryOperator + " is not supported for function values");
     }
   }
 
@@ -621,8 +614,7 @@ public abstract class AbstractExpressionValueVisitor
     // At this point we're only handling values of simple types.
     final CSimpleType type = getArithmeticType(calculationType);
     if (type == null) {
-      logger.logf(
-          Level.FINE, "unsupported type %s for result of binary operation %s", calculationType, op);
+      logger.logf(Level.FINE, "unsupported type %s for result of binary operation %s", calculationType, op);
       return Value.UnknownValue.getInstance();
     }
 
@@ -661,8 +653,7 @@ public abstract class AbstractExpressionValueVisitor
         return new NumericValue(result);
       }
       default: {
-            logger.logf(
-                Level.FINE, "unsupported type for result of binary operation %s", type.toString());
+        logger.logf(Level.FINE, "unsupported type for result of binary operation %s", type.toString());
         return Value.UnknownValue.getInstance();
       }
     }
@@ -695,8 +686,7 @@ public abstract class AbstractExpressionValueVisitor
     // At this point we're only handling values of simple types.
     final CSimpleType type = getArithmeticType(calculationType);
     if (type == null) {
-      logger.logf(
-          Level.FINE, "unsupported type %s for result of binary operation %s", calculationType, op);
+      logger.logf(Level.FINE, "unsupported type %s for result of binary operation %s", calculationType, op);
       return Value.UnknownValue.getInstance();
     }
 
@@ -747,11 +737,7 @@ public abstract class AbstractExpressionValueVisitor
         break;
       }
       default: {
-          logger.logf(
-              Level.FINE,
-              "unsupported type %s for result of binary operation %s",
-              type.toString(),
-              op);
+        logger.logf(Level.FINE, "unsupported type %s for result of binary operation %s", type.toString(), op);
         return Value.UnknownValue.getInstance();
       }
     }
@@ -818,10 +804,7 @@ public abstract class AbstractExpressionValueVisitor
           parameterValues.add(newValue);
         }
 
-        if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(calledFunctionName)) {
-          return BuiltinOverflowFunctions.evaluateFunctionCall(
-              pIastFunctionCallExpression, this, machineModel, logger);
-        } else if (BuiltinFloatFunctions.matchesAbsolute(calledFunctionName)) {
+        if (BuiltinFloatFunctions.matchesAbsolute(calledFunctionName)) {
           assert parameterValues.size() == 1;
 
           final CType parameterType = parameterExpressions.get(0).getExpressionType();
@@ -1935,9 +1918,9 @@ public abstract class AbstractExpressionValueVisitor
         break;
 
       default:
-              throw new AssertionError(
-                  "Unsupported binary operation " + pBinaryOperator + " on floating point values");
-          }
+        throw new AssertionError("Unsupported binary operation " + pBinaryOperator.toString()
+            + " on floating point values");
+      }
 
       // return 1 if expression holds, 0 otherwise
       return BooleanValue.valueOf(result);
@@ -2104,15 +2087,15 @@ public abstract class AbstractExpressionValueVisitor
 
   @Override
   public Value visit(JArraySubscriptExpression pJArraySubscriptExpression) {
-    Value subscriptValue = pJArraySubscriptExpression.getSubscriptExpression().accept(this);
+    NumericValue subscriptValue = (NumericValue) pJArraySubscriptExpression.getSubscriptExpression().accept(this);
     JExpression arrayExpression = pJArraySubscriptExpression.getArrayExpression();
     Value idValue = arrayExpression.accept(this);
 
-    if (!idValue.isUnknown() && subscriptValue.isNumericValue()) {
+    if (!idValue.isUnknown()) {
       ArrayValue innerMostArray = (ArrayValue) arrayExpression.accept(this);
-      assert ((NumericValue) subscriptValue).longValue() >= 0
-          && ((NumericValue) subscriptValue).longValue() <= Integer.MAX_VALUE;
-      return innerMostArray.getValueAt((int) ((NumericValue) subscriptValue).longValue());
+
+      assert subscriptValue.longValue() >= 0 && subscriptValue.longValue() <= Integer.MAX_VALUE;
+      return innerMostArray.getValueAt((int) subscriptValue.longValue());
 
     } else {
       return Value.UnknownValue.getInstance();
@@ -2293,6 +2276,21 @@ public abstract class AbstractExpressionValueVisitor
    * @param pTargetType the type of the left side of an assignment
    * @return if evaluation successful, then value, else null
    */
+  public Value evaluate(final CExpression pExp, final CType pTargetType)
+      throws UnrecognizedCodeException {
+    return castCValue(pExp.accept(this), pTargetType, machineModel, logger,
+        pExp.getFileLocation());
+  }
+
+  /**
+   * This method returns the value of an expression, reduced to match the type.
+   * This method handles overflows and casts.
+   * If necessary warnings for the user are printed.
+   *
+   * @param pExp expression to evaluate
+   * @param pTargetType the type of the left side of an assignment
+   * @return if evaluation successful, then value, else null
+   */
   public Value evaluate(final CRightHandSide pExp, final CType pTargetType)
       throws UnrecognizedCodeException {
     return castCValue(pExp.accept(this), pTargetType, machineModel, logger,
@@ -2339,8 +2337,7 @@ public abstract class AbstractExpressionValueVisitor
 
     // For now can only cast numeric value's
     if (!value.isNumericValue()) {
-      logger.logf(
-          Level.FINE, "Can not cast C value %s to %s", value.toString(), targetType.toString());
+      logger.logf(Level.FINE, "Can not cast C value %s to %s", value.toString(), targetType.toString());
       return value;
     }
     NumericValue numericValue = (NumericValue) value;
@@ -2557,8 +2554,7 @@ public abstract class AbstractExpressionValueVisitor
 
     // Other than symbolic values, we can only cast numeric values, for now.
     if (!value.isNumericValue()) {
-      logger.logf(
-          Level.FINE, "Can not cast Java value %s to %s", value.toString(), targetType.toString());
+      logger.logf(Level.FINE, "Can not cast Java value %s to %s", value.toString(), targetType.toString());
       return value;
     }
 

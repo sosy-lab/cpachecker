@@ -32,7 +32,7 @@ public class ValueRequirementsTranslator extends CartesianRequirementsTranslator
   protected List<String> getVarsInRequirements(final ValueAnalysisState pRequirement) {
     List<String> list = new ArrayList<>(pRequirement.getConstants().size());
     for (MemoryLocation memLoc : pRequirement.getTrackedMemoryLocations()) {
-      list.add(memLoc.getExtendedQualifiedName());
+      list.add(memLoc.getAsSimpleString());
     }
     return list;
   }
@@ -58,10 +58,10 @@ public class ValueRequirementsTranslator extends CartesianRequirementsTranslator
                 + memLoc
                 + " is not an Integer.");
       } else {
-        if (pRequiredVars == null || pRequiredVars.contains(memLoc.getExtendedQualifiedName())) {
+        if (pRequiredVars == null || pRequiredVars.contains(memLoc.getAsSimpleString())) {
           list.add(
               "(= "
-                  + getVarWithIndex(memLoc.getExtendedQualifiedName(), pIndices)
+                  + getVarWithIndex(memLoc.getAsSimpleString(), pIndices)
                   + " "
                   + integerValue.asNumericValue().getNumber()
                   + ")");

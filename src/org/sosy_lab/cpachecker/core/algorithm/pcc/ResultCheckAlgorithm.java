@@ -67,10 +67,7 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
       pOut.println("Time for Result Check:      " + checkTimer);
 
       if (checkTimer.getNumberOfIntervals() > 0) {
-        pOut.println(
-            "Speed up checking:        "
-                + ((float) analysisTimer.getSumTime().asNanos())
-                    / checkTimer.getSumTime().asNanos());
+         pOut.println("Speed up checking:        " + ((float) analysisTimer.getSumTime().asNanos()) / checkTimer.getSumTime().asNanos());
       }
 
       if(proofGenStats != null) {
@@ -113,18 +110,14 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
   private final Configuration config;
   private final ShutdownNotifier shutdownNotifier;
   private final Algorithm analysisAlgorithm;
+  private final ConfigurableProgramAnalysis cpa;
   private final CFA analyzedProgram;
   private final Specification specification;
   private final ResultCheckStatistics stats;
-
-  @Option(
-      secure = true,
+  @Option(secure=true,
       name = "pcc.resultcheck.writeProof",
-      description =
-          "Enable to write proof and read it again for validation instead of using the in memory"
-              + " solution")
+      description = "Enable to write proof and read it again for validation instead of using the in memory solution")
   private boolean writeProof = false;
-
   @Option(secure=true,
       name = "pcc.resultcheck.checkerConfig",
       description = "Configuration for proof checking if differs from analysis configuration")
@@ -133,6 +126,7 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
 
   public ResultCheckAlgorithm(
       Algorithm pAlgorithm,
+      ConfigurableProgramAnalysis pCpa,
       CFA pCfa,
       Configuration pConfig,
       LogManager pLogger,
@@ -142,6 +136,7 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
     pConfig.inject(this);
     analysisAlgorithm = pAlgorithm;
     analyzedProgram = pCfa;
+    cpa = pCpa;
     logger = pLogger;
     config = pConfig;
     shutdownNotifier = pShutdownNotifier;
@@ -212,6 +207,7 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
     stats.checkTimer.start();
     ProofCheckAlgorithm checker =
         new ProofCheckAlgorithm(
+            cpa,
             config,
             logger,
             shutdownNotifier,
@@ -219,14 +215,14 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
             analyzedProgram,
             specification);
     stats.checkingStatsProvider = checker;
-    return checker.run(initializeReachedSetForChecking(config, pVerificationResult.getCPA()));
+    return checker.run(initializeReachedSetForChecking(config, cpa));
   }
 
   private ReachedSet initializeReachedSetForChecking(Configuration pConfig,
       ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException, IllegalArgumentException, InterruptedException {
     CoreComponentsFactory factory =
-        new CoreComponentsFactory(pConfig, logger, shutdownNotifier, AggregatedReachedSets.empty());
-    ReachedSet reached = factory.createReachedSet(pCpa);
+        new CoreComponentsFactory(pConfig, logger, shutdownNotifier, new AggregatedReachedSets());
+   ReachedSet reached = factory.createReachedSet();
 
    reached.add(pCpa.getInitialState(analyzedProgram.getMainFunction(),
             StateSpacePartition.getDefaultPartition()),
@@ -242,14 +238,14 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
     stats.proofGenStats = proofGen.generateProofUnchecked(pVerificationResult);
 
     Configuration checkConfig = config;
-    ConfigurableProgramAnalysis checkerCPA = pVerificationResult.getCPA();
+    ConfigurableProgramAnalysis checkerCPA = cpa;
     if(checkerConfig != null) {
       try {
         checkConfig = Configuration.builder().copyFrom(config).loadFromFile(checkerConfig).build();
         ReachedSetFactory factory = new ReachedSetFactory(checkConfig, logger);
         checkerCPA =
             new CPABuilder(checkConfig, logger, shutdownNotifier, factory)
-                .buildCPAs(analyzedProgram, specification, AggregatedReachedSets.empty());
+                .buildCPAs(analyzedProgram, specification, new AggregatedReachedSets());
 
       } catch (IOException e) {
         logger.log(Level.SEVERE,"Cannot read proof checking configuration.");

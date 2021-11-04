@@ -58,9 +58,7 @@ class AutomatonASTComparator {
    * The JOKER_EXPR must be a valid C-Identifier. It will be used to recognize the jokers in the generated AST.
    */
   static final String JOKER_EXPR = "CPAchecker_AutomatonAnalysis_JokerExpression_Wildcard";
-
-  private static final String NUMBERED_JOKER_EXPR =
-      "CPAchecker_AutomatonAnalysis_JokerExpression_Num";
+  private static final String NUMBERED_JOKER_EXPR = "CPAchecker_AutomatonAnalysis_JokerExpression_Num";
   private static final Pattern JOKER_PATTERN = Pattern.compile("\\$(\\d+|\\?)");
 
   static ASTMatcher generatePatternAST(String pPattern, CParser parser, Scope scope)
@@ -96,22 +94,25 @@ class AutomatonASTComparator {
     return result.toString();
   }
 
-  /** The interface for a pre-compiled AST pattern. */
-  interface ASTMatcher {
+  /**
+   * The interface for a pre-compiled AST pattern.
+   */
+  static interface ASTMatcher {
 
     boolean matches(CAstNode pSource, AutomatonExpressionArguments pArgs);
   }
 
-  private interface CheckedASTMatcher<T extends CAstNode> {
+  private static interface CheckedASTMatcher<T extends CAstNode> {
 
     boolean matches(T pSource, AutomatonExpressionArguments pArg);
   }
 
   /** The visitor that generates a pre-compiled ASTMatcher from a pattern AST. */
-  private enum ASTMatcherGenerator
+  private static enum ASTMatcherGenerator
       implements
           CRightHandSideVisitor<ASTMatcher, NoException>,
           CStatementVisitor<ASTMatcher, NoException> {
+
     INSTANCE;
 
     @Override
@@ -392,7 +393,7 @@ class AutomatonASTComparator {
 
   // several concrete implementations of ASTMatcher
 
-  private enum JokerMatcher implements ASTMatcher {
+  private static enum JokerMatcher implements ASTMatcher {
     INSTANCE;
 
     @Override

@@ -56,7 +56,7 @@ public class CMCPartitioningIOHelper extends PartitioningIOHelper{
     this(pConfig, pLogger, pShutdownNotifier, ImmutableSet.of(), ImmutableSet.of(), null);
   }
 
-  public int @Nullable [][] getEdgesForPartition(final int pIndex) {
+  public @Nullable  int[][] getEdgesForPartition(final int pIndex) {
     if (0 <= pIndex && pIndex < getNumPartitions() && pIndex < savedSuccessors.size()) {
       return savedSuccessors.get(pIndex);
     }
@@ -75,7 +75,7 @@ public class CMCPartitioningIOHelper extends PartitioningIOHelper{
     int nodeIndex;
     ARGState node;
 
-    int[] empty = {};
+    int[] empty = new int[0];
 
     for (int i = 0; i < savedSuccessors.size(); i++) {
       partition = getPartition(i);
@@ -117,7 +117,7 @@ public class CMCPartitioningIOHelper extends PartitioningIOHelper{
     int[][] successorLinks = new int[pPartition.size()][];
 
     int count = 0;
-    int[] empty = {};
+    int[] empty = new int[0];
     ARGState node;
     List<Integer> successors;
     for (Integer partitionNode : pPartition) {

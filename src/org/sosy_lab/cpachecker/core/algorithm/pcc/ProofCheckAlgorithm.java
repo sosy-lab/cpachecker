@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -57,8 +58,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
       out.println("Proof Checking statistics");
       out.println("-------------------------------------");
       out.println("Total time for proof check algorithm:     " + totalTimer);
-      out.println(
-          "  Time for reading in proof (not complete time in interleaved modes):  " + readTimer);
+      out.println("  Time for reading in proof (not complete time in interleaved modes):  " + readTimer);
     }
   }
 
@@ -67,12 +67,11 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
 
   protected final PCCStrategy checkingStrategy;
 
-  @Option(
-      secure = true,
+  @Option(secure=true,
       name = "proof",
       description = "file in which proof representation needed for proof checking is stored")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  protected Path proofFile = Path.of("arg.obj");
+  protected Path proofFile = Paths.get("arg.obj");
 
   public ProofCheckAlgorithm(
       ConfigurableProgramAnalysis cpa,
@@ -109,6 +108,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   protected ProofCheckAlgorithm(
+      ConfigurableProgramAnalysis cpa,
       Configuration pConfig,
       LogManager logger,
       ShutdownNotifier pShutdownNotifier,
@@ -119,7 +119,6 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
 
     pConfig.inject(this, ProofCheckAlgorithm.class);
 
-    ConfigurableProgramAnalysis cpa = pReachedSet.getCPA();
     checkingStrategy =
         PCCStrategyBuilder.buildStrategy(
             pConfig, logger, pShutdownNotifier, proofFile, cpa, pCfa, specification);
@@ -130,7 +129,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
         "Parameter pReachedSet may not be null and may not have any states in its waitlist.");
 
     stats.totalTimer.start();
-    checkingStrategy.constructInternalProofRepresentation(pReachedSet, cpa);
+    checkingStrategy.constructInternalProofRepresentation(pReachedSet);
     stats.totalTimer.stop();
   }
 

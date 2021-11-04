@@ -431,6 +431,8 @@ public class LassoAnalysis {
       logger.logUserException(
           Level.WARNING, e, "Could not check (non)-termination of lasso (" + pLoop + ").");
       return LassoAnalysisResult.unknown();
+      //    logger.logException(WARNING, e, e.getMessage());
+      //    throw new CPATransferException(e.getMessage(), e);
     } catch (ToolchainCanceledException e) {
       throw new InterruptedException(e.getMessage());
     }

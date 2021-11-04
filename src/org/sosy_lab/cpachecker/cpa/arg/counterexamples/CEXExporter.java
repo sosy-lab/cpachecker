@@ -82,10 +82,10 @@ public class CEXExporter {
       secure = true,
       name = "filters",
       description =
-          "Filter for irrelevant counterexamples to reduce the number of similar counterexamples"
-              + " reported. Only relevant with analysis.stopAfterError=false and"
-              + " counterexample.export.exportImmediately=true. Put the weakest and cheapest filter"
-              + " first, e.g., PathEqualityCounterexampleFilter.")
+          "Filter for irrelevant counterexamples to reduce the number of similar counterexamples reported."
+              + " Only relevant with analysis.stopAfterError=false and counterexample.export.exportImmediately=true."
+              + " Put the weakest and cheapest filter first, e.g., PathEqualityCounterexampleFilter."
+  )
   @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.cpa.arg.counterexamples")
   private List<CounterexampleFilter.Factory> cexFilterClasses =
       ImmutableList.of(PathEqualityCounterexampleFilter::new);
@@ -232,9 +232,7 @@ public class CEXExporter {
       if (options.getSourceFile() != null) {
         switch(codeStyle) {
           case CONCRETE_EXECUTION:
-            logger.log(
-                Level.WARNING,
-                "Cannot export imprecise counterexample to C code for concrete execution.");
+            logger.log(Level.WARNING, "Cannot export imprecise counterexample to C code for concrete execution.");
             break;
           case CBMC:
             // "translatePaths" does not work if the ARG branches without assume edge
@@ -255,7 +253,7 @@ public class CEXExporter {
     }
 
     writeErrorPathFile(
-        options.getDotFile(),
+        options.getGraphFile(),
         uniqueId,
         (Appender)
             pAppendable ->
@@ -280,49 +278,39 @@ public class CEXExporter {
       }
     }
 
-    try {
-      final Witness witness =
-          witnessExporter.generateErrorWitness(
-              rootState, Predicates.in(pathElements), isTargetPathEdge, counterexample);
+    final Witness witness =
+        witnessExporter.generateErrorWitness(
+            rootState, Predicates.in(pathElements), isTargetPathEdge, counterexample);
 
-      writeErrorPathFile(
-          options.getWitnessFile(),
-          uniqueId,
-          (Appender)
-              pApp -> {
-                WitnessToOutputFormatsUtils.writeToGraphMl(witness, pApp);
-              },
-          compressWitness);
+    writeErrorPathFile(
+        options.getWitnessFile(),
+        uniqueId,
+        (Appender)
+            pApp -> {
+              WitnessToOutputFormatsUtils.writeToGraphMl(witness, pApp);
+            },
+        compressWitness);
 
-      writeErrorPathFile(
-          options.getWitnessDotFile(),
-          uniqueId,
-          (Appender)
-              pApp -> {
-                WitnessToOutputFormatsUtils.writeToDot(witness, pApp);
-              },
-          compressWitness);
-    } catch (InterruptedException e) {
-      logger.logUserException(Level.WARNING, e, "Could not export witness due to interruption");
-    }
+    writeErrorPathFile(
+        options.getWitnessDotFile(),
+        uniqueId,
+        (Appender)
+            pApp -> {
+              WitnessToOutputFormatsUtils.writeToDot(witness, pApp);
+            },
+        compressWitness);
 
-    if (options.getExtendedWitnessFile() != null) {
-      try {
-        Witness extWitness =
-            extendedWitnessExporter.generateErrorWitness(
-                rootState, Predicates.in(pathElements), isTargetPathEdge, counterexample);
-        writeErrorPathFile(
-            options.getExtendedWitnessFile(),
-            uniqueId,
-            (Appender)
-                pAppendable -> {
-                  WitnessToOutputFormatsUtils.writeToGraphMl(extWitness, pAppendable);
-                },
-            compressWitness);
-      } catch (InterruptedException e) {
-        logger.logUserException(Level.WARNING, e, "Could not export witness due to interruption");
-      }
-    }
+    writeErrorPathFile(
+        options.getExtendedWitnessFile(),
+        uniqueId,
+        (Appender)
+            pAppendable -> {
+              Witness extWitness =
+                  extendedWitnessExporter.generateErrorWitness(
+                      rootState, Predicates.in(pathElements), isTargetPathEdge, counterexample);
+              WitnessToOutputFormatsUtils.writeToGraphMl(extWitness, pAppendable);
+            },
+        compressWitness);
 
     writeErrorPathFile(
         options.getTestHarnessFile(),

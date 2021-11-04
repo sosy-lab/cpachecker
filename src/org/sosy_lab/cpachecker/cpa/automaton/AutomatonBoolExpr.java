@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
@@ -19,7 +20,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.logging.Level;
@@ -39,13 +39,13 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcher;
@@ -65,13 +65,14 @@ import org.sosy_lab.cpachecker.util.coverage.CoverageData;
  * <code>eval()</code> is called. The Expression can be evaluated multiple times.
  */
 interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
-  ResultValue<Boolean> CONST_TRUE = new ResultValue<>(Boolean.TRUE);
-  ResultValue<Boolean> CONST_FALSE = new ResultValue<>(Boolean.FALSE);
+  static final ResultValue<Boolean> CONST_TRUE = new ResultValue<>(Boolean.TRUE);
+  static final ResultValue<Boolean> CONST_FALSE = new ResultValue<>(Boolean.FALSE);
 
   @Override
-  ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) throws CPATransferException;
+  abstract ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs)
+      throws CPATransferException;
 
-  enum MatchProgramExit implements AutomatonBoolExpr {
+  static enum MatchProgramExit implements AutomatonBoolExpr {
     INSTANCE;
 
     @Override
@@ -129,7 +130,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
-  enum MatchProgramEntry implements AutomatonBoolExpr {
+  static enum MatchProgramEntry implements AutomatonBoolExpr {
     INSTANCE;
 
     @Override
@@ -148,7 +149,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
-  enum MatchLoopStart implements AutomatonBoolExpr {
+  static enum MatchLoopStart implements AutomatonBoolExpr {
     INSTANCE;
 
     @Override
@@ -353,7 +354,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
           if (functionCallExpression.getFunctionNameExpression() instanceof AIdExpression) {
             AIdExpression idExpression =
                 (AIdExpression) functionCallExpression.getFunctionNameExpression();
-            if (idExpression.getDeclaration().getOrigName().equals(functionName)) {
+            if (idExpression.getName().equals(functionName)) {
               return CONST_TRUE;
             }
           }
@@ -390,9 +391,10 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFAEdge edge = pArgs.getCfaEdge();
+      String functionNameFromEdge = edge.getSuccessor().getFunctionName();
 
       // check cases like direct function calls and main-entry.
-      if (edge.getSuccessor().getFunction().getOrigName().equals(functionName)) {
+      if (functionNameFromEdge.equals(functionName)) {
         if (edge instanceof FunctionCallEdge || AutomatonGraphmlCommon.isMainFunctionEntry(edge)) {
           return CONST_TRUE;
         }
@@ -403,7 +405,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public String toString() {
-      return "MATCH FUNCTIONCALL \"" + functionName + "\"";
+      return "MATCH FUNCTION CALL \"" + functionName + "\"";
     }
 
     @Override
@@ -498,19 +500,19 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       CFAEdge edge = pArgs.getCfaEdge();
       if (edge instanceof FunctionReturnEdge) {
         FunctionReturnEdge returnEdge = (FunctionReturnEdge) edge;
-        if (returnEdge.getPredecessor().getFunction().getOrigName().equals(functionName)) {
+        if (returnEdge.getPredecessor().getFunctionName().equals(functionName)) {
           return CONST_TRUE;
         }
       } else if (edge instanceof AReturnStatementEdge) {
         AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) edge;
-        if (returnStatementEdge.getSuccessor().getFunction().getOrigName().equals(functionName)) {
+        if (returnStatementEdge.getSuccessor().getFunctionName().equals(functionName)) {
           return CONST_TRUE;
         }
       } else if (edge instanceof BlankEdge) {
         CFANode succ = edge.getSuccessor();
         if (succ instanceof FunctionExitNode
             && succ.getNumLeavingEdges() == 0
-            && succ.getFunction().getOrigName().equals(functionName)) {
+            && succ.getFunctionName().equals(functionName)) {
           assert "default return".equals(edge.getDescription());
           return CONST_TRUE;
         }
@@ -550,8 +552,8 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFANode successorNode = pArgs.getCfaEdge().getSuccessor();
-      if (successorNode instanceof CFALabelNode
-          && label.equals(((CFALabelNode) successorNode).getLabel())) {
+      if (successorNode instanceof CLabelNode
+          && label.equals(((CLabelNode) successorNode).getLabel())) {
           return CONST_TRUE;
         } else {
           return CONST_FALSE;
@@ -589,8 +591,8 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFANode successorNode = pArgs.getCfaEdge().getSuccessor();
-      if (successorNode instanceof CFALabelNode) {
-        String label = ((CFALabelNode) successorNode).getLabel();
+      if (successorNode instanceof CLabelNode) {
+        String label = ((CLabelNode) successorNode).getLabel();
         if (pattern.matcher(label).matches()) {
           return CONST_TRUE;
         } else {
@@ -636,7 +638,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs)
         throws UnrecognizedCFAEdgeException {
-      Optional<?> ast = Optional.empty();
+      Optional<?> ast = Optional.absent();
       CFAEdge edge = pArgs.getCfaEdge();
       if (edge.getEdgeType().equals(CFAEdgeType.FunctionCallEdge)) {
         // Ignore this edge, FunctionReturnEdge will be taken instead.
@@ -776,7 +778,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
-  enum MatchJavaAssert implements AutomatonBoolExpr {
+  static enum MatchJavaAssert implements AutomatonBoolExpr {
     INSTANCE;
 
     @Override
@@ -795,7 +797,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
-  enum MatchAssumeEdge implements AutomatonBoolExpr {
+  static enum MatchAssumeEdge implements AutomatonBoolExpr {
     INSTANCE;
 
     @Override
@@ -991,7 +993,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
-  enum MatchSplitDeclaration implements AutomatonBoolExpr {
+  static enum MatchSplitDeclaration implements AutomatonBoolExpr {
     INSTANCE;
 
     @Override
@@ -1075,9 +1077,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
         // replace transition variables
         String modifiedQueryString = pArgs.replaceVariables(queryString);
         if (modifiedQueryString == null) {
-          return new ResultValue<>(
-              "Failed to modify queryString \"" + queryString + "\"",
-              "AutomatonBoolExpr.ALLCPAQuery");
+          return new ResultValue<>("Failed to modify queryString \"" + queryString + "\"", "AutomatonBoolExpr.ALLCPAQuery");
         }
         int exceptionFreeCallCount = 0;
         for (AbstractState ae : pArgs.getAbstractStates()) {
@@ -1087,13 +1087,12 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
             try {
               Object result = aqe.evaluateProperty(modifiedQueryString);
               if (result instanceof Boolean) {
-                if ((Boolean) result) {
+                if (((Boolean) result).booleanValue()) {
                   pArgs
                       .getLogger()
                       .log(
                           Level.FINER,
-                          "CPA-Check succeeded: ModifiedCheckString: \"%s\" CPAElement: (%s)"
-                              + " \"%s\"",
+                          "CPA-Check succeeded: ModifiedCheckString: \"%s\" CPAElement: (%s) \"%s\"",
                           modifiedQueryString,
                           aqe.getCPAName(),
                           aqe);
@@ -1163,7 +1162,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
             try {
               Object result = aqe.evaluateProperty(modifiedQueryString);
               if (result instanceof Boolean) {
-                if ((Boolean) result) {
+                if (((Boolean) result).booleanValue()) {
                   if (logger.wouldBeLogged(Level.FINER)) {
                     String message = "CPA-Check succeeded: ModifiedCheckString: \"" +
                     modifiedQueryString + "\" CPAElement: (" + aqe.getCPAName() + ") \"" +
@@ -1220,7 +1219,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
-  enum CheckAllCpasForTargetState implements AutomatonBoolExpr {
+  static enum CheckAllCpasForTargetState implements AutomatonBoolExpr {
     INSTANCE;
 
     @Override
@@ -1245,7 +1244,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
   }
 
   /** Constant for true. */
-  AutomatonBoolExpr TRUE =
+  static final AutomatonBoolExpr TRUE =
       new AutomatonBoolExpr() {
         @Override
         public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
@@ -1259,7 +1258,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       };
 
   /** Constant for false. */
-  AutomatonBoolExpr FALSE =
+  static final AutomatonBoolExpr FALSE =
       new AutomatonBoolExpr() {
         @Override
         public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
@@ -1362,20 +1361,20 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       ResultValue<Boolean> resA = a.eval(pArgs);
       if (resA.canNotEvaluate()) {
         ResultValue<Boolean> resB = b.eval(pArgs);
-        if (!resB.canNotEvaluate() && resB.getValue()) {
+        if (!resB.canNotEvaluate() && resB.getValue().equals(Boolean.TRUE)) {
           return resB;
         } else {
           return resA;
         }
       } else {
-        if (resA.getValue()) {
+        if (resA.getValue().equals(Boolean.TRUE)) {
           return resA;
         } else {
           ResultValue<Boolean> resB = b.eval(pArgs);
           if (resB.canNotEvaluate()) {
             return resB;
           }
-          if (resB.getValue()) {
+          if (resB.getValue().equals(Boolean.TRUE)) {
             return resB;
           } else {
             return resA;
@@ -1403,20 +1402,20 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       ResultValue<Boolean> resA = a.eval(pArgs);
       if (resA.canNotEvaluate()) {
         ResultValue<Boolean> resB = b.eval(pArgs);
-        if (!resB.canNotEvaluate() && !resB.getValue()) {
+        if (!resB.canNotEvaluate() && resB.getValue().equals(Boolean.FALSE)) {
           return resB;
         } else {
           return resA;
         }
       } else {
-        if (!resA.getValue()) {
+        if (resA.getValue().equals(Boolean.FALSE)) {
           return resA;
         } else {
           ResultValue<Boolean> resB = b.eval(pArgs);
           if (resB.canNotEvaluate()) {
             return resB;
           }
-          if (!resB.getValue()) {
+          if (resB.getValue().equals(Boolean.FALSE)) {
             return resB;
           } else {
             return resA;
@@ -1445,7 +1444,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       if (resA.canNotEvaluate()) {
         return resA;
       }
-      if (resA.getValue()) {
+      if (resA.getValue().equals(Boolean.TRUE)) {
         return CONST_FALSE;
       } else {
         return CONST_TRUE;

@@ -84,9 +84,7 @@ public class CFADeclarationMover {
       // this will be done in the end
       CFANode tmpNode = new CFANode(function);
       cfa.addNode(tmpNode);
-      CFAEdge declEndEdge =
-          new BlankEdge(
-              "End of Declarations", FileLocation.DUMMY, actNode, tmpNode, "End of Declarations");
+      CFAEdge declEndEdge = new BlankEdge("End of Declarations", FileLocation.DUMMY, actNode, tmpNode, "End of Declarations");
       tmpNode.addEnteringEdge(declEndEdge);
 
       // move former second function edge to node after declEndEdge and set
@@ -164,7 +162,7 @@ public class CFADeclarationMover {
         edge =
             new CReturnStatementEdge(
                 edge.getRawStatement(),
-                ((CReturnStatementEdge) edge).getReturnStatement(),
+                ((CReturnStatementEdge) edge).getRawAST().orNull(),
                 edge.getFileLocation(),
                 pred,
                 (FunctionExitNode) edge.getSuccessor());
@@ -213,20 +211,12 @@ public class CFADeclarationMover {
 
       // this is a struct or array initialisation with either values or designators
     } else if (init != null) {
-      logger.log(
-          Level.WARNING,
-          "Moving declaration to function start does not work correctly for initializer lists and"
-              + " designated initializers for arrays or structs, do not use the CFADeclarationMover"
-              + " if you are able to handle such expressions.");
+      logger.log(Level.WARNING, "Moving declaration to function start does not work correctly for initializer lists and "
+          + "designated initializers for arrays or structs, do not use the CFADeclarationMover if you are able to handle such"
+          + " expressions.");
       actPred.removeLeavingEdge(edge);
       actSucc.removeEnteringEdge(edge);
-      BlankEdge midEdge =
-          new BlankEdge(
-              edge.getRawStatement(),
-              edge.getFileLocation(),
-              actPred,
-              actSucc,
-              "Declaration was moved to function start");
+      BlankEdge midEdge = new BlankEdge(edge.getRawStatement(), edge.getFileLocation(), actPred, actSucc, "Declaration was moved to function start");
       actPred.addLeavingEdge(midEdge);
       actSucc.addEnteringEdge(midEdge);
 
@@ -235,13 +225,7 @@ public class CFADeclarationMover {
     } else {
       actPred.removeLeavingEdge(edge);
       actSucc.removeEnteringEdge(edge);
-      BlankEdge midEdge =
-          new BlankEdge(
-              edge.getRawStatement(),
-              edge.getFileLocation(),
-              actPred,
-              actSucc,
-              "Declaration was moved to function start");
+      BlankEdge midEdge = new BlankEdge(edge.getRawStatement(), edge.getFileLocation(), actPred, actSucc, "Declaration was moved to function start");
       actPred.addLeavingEdge(midEdge);
       actSucc.addEnteringEdge(midEdge);
     }

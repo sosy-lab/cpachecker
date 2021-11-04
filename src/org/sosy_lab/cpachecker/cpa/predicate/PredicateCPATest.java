@@ -79,16 +79,14 @@ public class PredicateCPATest {
             .setUrls(((URLClassLoader) myClassLoader).getURLs())
             .setDirectLoadClasses(PREDICATECPA_CLASSES)
             .build()) {
-      Class<?> cpaClass =
-          cl.loadClass(PredicateCPATest.class.getPackage().getName() + ".PredicateCPA");
-      Invokable<?, CPAFactory> factoryMethod =
-          Invokable.from(cpaClass.getDeclaredMethod("factory")).returning(CPAFactory.class);
+      Class<?> cpaClass = cl.loadClass(PredicateCPATest.class.getPackage().getName() + ".PredicateCPA");
+      Invokable<?, CPAFactory> factoryMethod = Invokable.from(cpaClass.getDeclaredMethod("factory")).returning(CPAFactory.class);
       CPAFactory factory = factoryMethod.invoke(null);
 
       factory.setConfiguration(config);
       factory.setLogger(logger);
       factory.setShutdownNotifier(ShutdownNotifier.createDummy());
-      factory.set(AggregatedReachedSets.empty(), AggregatedReachedSets.class);
+      factory.set(new AggregatedReachedSets(), AggregatedReachedSets.class);
       factory.set(TestDataTools.makeCFA(config, "void main() { }"), CFA.class);
       factory.set(new ReachedSetFactory(config, logger), ReachedSetFactory.class);
       factory.set(Specification.alwaysSatisfied(), Specification.class);

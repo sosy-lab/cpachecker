@@ -13,18 +13,17 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.Serializable;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
@@ -55,10 +54,11 @@ public class DCAState implements AbstractQueryableState, Targetable, Graphable, 
   }
 
   @Override
-  public @NonNull Set<TargetInformation> getTargetInformation() throws IllegalStateException {
+  public @NonNull Set<Property> getViolatedProperties() throws IllegalStateException {
     checkArgument(isTarget());
-    return productStates.stream()
-        .flatMap(x -> x.getTargetInformation().stream())
+    return productStates
+        .stream()
+        .flatMap(x -> x.getViolatedProperties().stream())
         .collect(ImmutableSet.toImmutableSet());
   }
 
@@ -86,7 +86,11 @@ public class DCAState implements AbstractQueryableState, Targetable, Graphable, 
 
   @Override
   public int hashCode() {
-    return Objects.hash(buechiState, compositeStates);
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((buechiState == null) ? 0 : buechiState.hashCode());
+    result = prime * result + ((compositeStates == null) ? 0 : compositeStates.hashCode());
+    return result;
   }
 
   @Override
@@ -98,8 +102,21 @@ public class DCAState implements AbstractQueryableState, Targetable, Graphable, 
       return false;
     }
     DCAState other = (DCAState) obj;
-    return Objects.equals(buechiState, other.buechiState)
-        && Objects.equals(compositeStates, other.compositeStates);
+    if (buechiState == null) {
+      if (other.buechiState != null) {
+        return false;
+      }
+    } else if (!buechiState.equals(other.buechiState)) {
+      return false;
+    }
+    if (compositeStates == null) {
+      if (other.compositeStates != null) {
+        return false;
+      }
+    } else if (!compositeStates.equals(other.compositeStates)) {
+      return false;
+    }
+    return true;
   }
 
   @Override
@@ -108,10 +125,7 @@ public class DCAState implements AbstractQueryableState, Targetable, Graphable, 
       return "_empty_state_";
     }
 
-    return FluentIterable.from(productStates)
-        .transform(AutomatonState::toString)
-        .filter(x -> !x.contains("init_state"))
-        .join(Joiner.on("; "));
+    return Joiner.on("; ").join(Collections2.transform(productStates, AutomatonState::toString));
   }
 
   @Override
@@ -120,10 +134,7 @@ public class DCAState implements AbstractQueryableState, Targetable, Graphable, 
       return "_empty_state_";
     }
 
-    return FluentIterable.from(productStates)
-        .transform(AutomatonState::toDOTLabel)
-        .filter(x -> !x.contains("init_state"))
-        .join(Joiner.on("\n"));
+    return Joiner.on("\n").join(Collections2.transform(productStates, AutomatonState::toDOTLabel));
   }
 
   @Override

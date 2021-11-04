@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast;
 
-import java.util.Optional;
+import com.google.common.base.Optional;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 
 /**

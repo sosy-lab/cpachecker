@@ -12,7 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocations;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -90,8 +90,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
   @Option(secure=true, name="precision.sharing",
       description="Where to apply the found predicates to?")
   private PredicateSharing predicateSharing = PredicateSharing.LOCATION;
-
-  private enum PredicateSharing {
+  private static enum PredicateSharing {
     GLOBAL,            // at all locations
     SCOPE,             // at all locations in the scope of the variable
     FUNCTION,          // at all locations in the respective function
@@ -116,12 +115,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
   // advantages. We do not want to use ALL by default because this would disable lazy abstraction.
   private PredicateBasisStrategy predicateBasisStrategy = PredicateBasisStrategy.SUBGRAPH;
 
-  private enum PredicateBasisStrategy {
-    ALL,
-    SUBGRAPH,
-    TARGET,
-    CUTPOINT
-  }
+  private static enum PredicateBasisStrategy {ALL, SUBGRAPH, TARGET, CUTPOINT}
 
   @Option(secure=true, name="refinement.restartAfterRefinements",
       description="Do a complete restart (clearing the reached set) "
@@ -143,13 +137,10 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
       description="After each refinement, dump the newly found predicates.")
   private boolean dumpPredicates = false;
 
-  @Option(
-      secure = true,
-      name = "refinement.dumpPredicatesFile",
-      description = "File name for the predicates dumped after refinements.")
+  @Option(secure=true, name="refinement.dumpPredicatesFile",
+      description="File name for the predicates dumped after refinements.")
   @FileOption(Type.OUTPUT_FILE)
-  private PathTemplate dumpPredicatesFile =
-      PathTemplate.ofFormatString("refinement%04d-predicates.prec");
+  private PathTemplate dumpPredicatesFile = PathTemplate.ofFormatString("refinement%04d-predicates.prec");
 
   private int refinementCount = 0; // this is modulo restartAfterRefinements
 
@@ -163,10 +154,8 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
   private final PredicateMapWriter precisionWriter;
 
   // statistics
-  private StatCounter numberOfRefinementsWithStrategy2 =
-      new StatCounter("Number of refs with location-based cutoff");
-  private StatInt irrelevantPredsInItp =
-      new StatInt(StatKind.SUM, "Number of irrelevant preds in interpolants");
+  private StatCounter numberOfRefinementsWithStrategy2 = new StatCounter("Number of refs with location-based cutoff");
+  private StatInt irrelevantPredsInItp = new StatInt(StatKind.SUM, "Number of irrelevant preds in interpolants");
 
   private StatTimer predicateCreation = new StatTimer(StatKind.SUM, "Predicate creation");
   private StatTimer precisionUpdate = new StatTimer(StatKind.SUM, "Precision update");
@@ -266,10 +255,10 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
     PathFormula blockFormula = predicateState.getAbstractionFormula().getBlockFormula();
 
     Collection<AbstractionPredicate> localPreds = convertInterpolant(pInterpolant, blockFormula);
-    for (CFANode loc : AbstractStates.extractLocations(interpolationPoint)) {
-      int locInstance = predicateState.getAbstractionLocationsOnPath().get(loc);
-      newPredicates.putAll(new LocationInstance(loc, locInstance), localPreds);
-    }
+    CFANode loc = AbstractStates.extractLocation(interpolationPoint);
+    int locInstance = predicateState.getAbstractionLocationsOnPath().get(loc);
+
+    newPredicates.putAll(new LocationInstance(loc, locInstance), localPreds);
     predicateCreation.stop();
 
     return false;
@@ -277,12 +266,12 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
 
   /**
    * Get the predicates out of an interpolant.
-   *
    * @param pInterpolant The interpolant formula.
    * @return A set of predicates.
    */
-  private Collection<AbstractionPredicate> convertInterpolant(
-      final BooleanFormula pInterpolant, PathFormula blockFormula) throws InterruptedException {
+  private final Collection<AbstractionPredicate> convertInterpolant(
+      final BooleanFormula pInterpolant, PathFormula blockFormula)
+      throws InterruptedException {
 
     BooleanFormula interpolant = pInterpolant;
 
@@ -325,11 +314,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
     } else {
       preds = ImmutableList.of(predAbsMgr.getPredicateFor(interpolant));
     }
-    assert !preds.isEmpty()
-        : "Interpolant without relevant predicates: "
-            + pInterpolant
-            + "; simplified to "
-            + interpolant;
+    assert !preds.isEmpty() : "Interpolant without relevant predicates: " + pInterpolant + "; simplified to " + interpolant;
 
     logger.log(Level.FINEST, "Got predicates", preds);
 
@@ -386,20 +371,15 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
     argUpdate.stop();
   }
 
-  private Pair<PredicatePrecision, ARGState> computeNewPrecision(
-      ARGState pUnreachableState,
-      List<ARGState> pAffectedStates,
-      ARGReachedSet pReached,
-      boolean pRepeatedCounterexample)
+  private final Pair<PredicatePrecision, ARGState> computeNewPrecision(ARGState pUnreachableState,
+      List<ARGState> pAffectedStates, ARGReachedSet pReached, boolean pRepeatedCounterexample)
       throws RefinementFailedException {
 
     { // Add predicate "false" to unreachable location
-      // or add "false" to each location of the combination of locations
-      for (CFANode loc : extractLocations(pUnreachableState)) {
-        int locInstance =
-            getPredicateState(pUnreachableState).getAbstractionLocationsOnPath().get(loc);
-        newPredicates.put(new LocationInstance(loc, locInstance), predAbsMgr.makeFalsePredicate());
-      }
+      CFANode loc = extractLocation(pUnreachableState);
+      int locInstance = getPredicateState(pUnreachableState)
+                                       .getAbstractionLocationsOnPath().get(loc);
+      newPredicates.put(new LocationInstance(loc, locInstance), predAbsMgr.makeFalsePredicate());
       pAffectedStates.add(pUnreachableState);
     }
 
@@ -454,11 +434,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
       assert root.getChildren().size() == 1 : "ARG root should have exactly one child";
       refinementRoot = Iterables.getLast(root.getChildren());
 
-      logger.log(
-          Level.FINEST,
-          "Restarting analysis after",
-          refinementCount,
-          "refinements by clearing the ARG.");
+      logger.log(Level.FINEST, "Restarting analysis after",refinementCount,"refinements by clearing the ARG.");
       refinementCount = 0;
 
     } else {
@@ -582,12 +558,8 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
 
       CFANode firstInterpolationPointLocation = AbstractStates.extractLocation(firstInterpolationPoint);
 
-      logger.log(
-          Level.FINEST,
-          "Found spurious counterexample,",
-          "trying strategy 2: remove everything below node",
-          firstInterpolationPointLocation,
-          "from ARG.");
+      logger.log(Level.FINEST, "Found spurious counterexample,",
+          "trying strategy 2: remove everything below node", firstInterpolationPointLocation, "from ARG.");
 
       // find top-most element in path with location == firstInterpolationPointLocation,
       // this is not necessary equal to firstInterpolationPoint

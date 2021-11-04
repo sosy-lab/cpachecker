@@ -46,11 +46,7 @@ public class BDDPointerBooleanExpressionVisitor extends BDDBooleanExpressionVisi
       MemoryLocation memLoc = Iterables.getOnlyElement(explicitSet);
       final Region[] result =
           predMgr.createPredicate(
-              memLoc.getExtendedQualifiedName(),
-              e.getExpressionType(),
-              location,
-              BOOLEAN_SIZE,
-              precision);
+              memLoc.getAsSimpleString(), e.getExpressionType(), location, BOOLEAN_SIZE, precision);
       if (result == null) {
         return null;
       } else {

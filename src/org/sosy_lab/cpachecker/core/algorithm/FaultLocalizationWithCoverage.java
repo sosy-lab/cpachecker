@@ -11,10 +11,8 @@ package org.sosy_lab.cpachecker.core.algorithm;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
@@ -52,7 +50,7 @@ import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo.Info
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-@Options(prefix = "faultLocalization.by_coverage")
+@Options(prefix = "faultLocalization")
 public class FaultLocalizationWithCoverage implements Algorithm, StatisticsProvider, Statistics {
   private enum AlgorithmType {
     TARANTULA,
@@ -86,20 +84,11 @@ public class FaultLocalizationWithCoverage implements Algorithm, StatisticsProvi
 
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
-    AlgorithmStatus status = algorithm.run(reachedSet);
     totalTime.start();
+    AlgorithmStatus status;
     try {
-      List<CounterexampleInfo> counterExamples = getCounterexampleInfos(reachedSet).toList();
-
-      if (counterExamples.isEmpty()) {
-        logger.log(
-            Level.INFO,
-            "No counterexamples found in computed reached set"
-                + " - stopping fault localization early."
-                + " If CPAchecker found a property violation,"
-                + " consider analysis.alwaysStoreCounterexamples=true");
-        return status;
-      }
+      status = algorithm.run(reachedSet);
+      FluentIterable<CounterexampleInfo> counterExamples = getCounterexampleInfos(reachedSet);
 
       SafeCase safeCase = new SafeCase(reachedSet);
       FailedCase failedCase = new FailedCase(reachedSet);
@@ -150,18 +139,14 @@ public class FaultLocalizationWithCoverage implements Algorithm, StatisticsProvi
     ImmutableSet<CFAEdge> fullPath = ImmutableSet.copyOf(counterexample.getTargetPath().getFullPath());
     return pFaults.stream()
         .filter(f -> f.stream().anyMatch(e -> fullPath.contains(e.correspondingEdge())))
-        // cf.
-        // https://gitlab.com/sosy-lab/software/cpachecker/-/commit/50e6fd55278032c0eb7365c3923aed3942bbeaf4#note_486588922
-        // Better code would be not relying on mutability or better encapsulation in
-        // FaultLocalizationInfo.
-        .collect(Collectors.toCollection(ArrayList::new));
+        .collect(Collectors.toList());
   }
 
   private List<Fault> sortingByScoreReversed(List<Fault> faults) {
     return faults.stream()
         .filter(f -> f.getScore() != 0)
         .sorted(Comparator.comparing((Fault f) -> f.getScore()).reversed())
-        .collect(ImmutableList.toImmutableList());
+        .collect(Collectors.toList());
   }
 
   private SuspiciousnessMeasure createSuspiciousnessMeasure(AlgorithmType pAlgorithmType) {

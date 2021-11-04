@@ -35,12 +35,12 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 public class LockCPA extends AbstractCPA
     implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider {
 
-  public enum LockAnalysisMode {
+  public static enum LockAnalysisMode {
     RACE,
     DEADLOCK
   }
 
-  public enum StopMode {
+  public static enum StopMode {
     DEFAULT,
     EMPTYLOCKSET
   }

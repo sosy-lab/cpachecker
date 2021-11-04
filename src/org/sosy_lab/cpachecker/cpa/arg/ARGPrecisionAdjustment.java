@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.Objects;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -68,11 +69,9 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
       if (elementHasSiblings(element)) {
         removeUnreachedSiblingsFromARG(element, pElements);
       }
-      // strengthening of PredicateCPA already proved if path is infeasible and removed infeasible
-      // element
+      // strengthening of PredicateCPA already proved if path is infeasible and removed infeasible element
       // thus path is feasible here
-      throw new CPAEnabledAnalysisPropertyViolationException(
-          "Property violated during successor computation", element, false);
+      throw new CPAEnabledAnalysisPropertyViolationException("Property violated during successor computation", element, false);
     }
 
     AbstractState oldElement = element.getWrappedState();
@@ -82,8 +81,11 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
             oldElement,
             oldPrecision,
             pElements,
-            Functions.compose((state) -> ((ARGState) state).getWrappedState(), projection),
-            fullState);
+            Functions.compose(
+                AbstractSingleWrapperState.getUnwrapFunction(),
+                projection),
+            fullState
+        );
 
     if (!optionalUnwrappedResult.isPresent()) {
       element.removeFromARG();

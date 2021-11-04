@@ -45,28 +45,16 @@ public class MonitorTransferRelation extends SingleEdgeTransferRelation {
   long maxTotalTimeForPath = 0;
   final Timer totalTimeOfTransfer = new Timer();
 
-  @Option(
-      secure = true,
-      name = "limit",
-      description =
-          "time limit for a single post computation (use milliseconds or specify a unit; 0 for"
-              + " infinite)")
-  @TimeSpanOption(
-      codeUnit = TimeUnit.MILLISECONDS,
-      defaultUserUnit = TimeUnit.MILLISECONDS,
-      min = 0)
+  @Option(secure=true, name="limit", description="time limit for a single post computation (use milliseconds or specify a unit; 0 for infinite)")
+  @TimeSpanOption(codeUnit=TimeUnit.MILLISECONDS,
+      defaultUserUnit=TimeUnit.MILLISECONDS,
+      min=0)
   private long timeLimit = 0; // given in milliseconds
 
-  @Option(
-      secure = true,
-      name = "pathcomputationlimit",
-      description =
-          "time limit for all computations on a path in milliseconds (use milliseconds or specify a"
-              + " unit; 0 for infinite)")
-  @TimeSpanOption(
-      codeUnit = TimeUnit.MILLISECONDS,
-      defaultUserUnit = TimeUnit.MILLISECONDS,
-      min = 0)
+  @Option(secure=true, name="pathcomputationlimit", description="time limit for all computations on a path in milliseconds (use milliseconds or specify a unit; 0 for infinite)")
+  @TimeSpanOption(codeUnit=TimeUnit.MILLISECONDS,
+      defaultUserUnit=TimeUnit.MILLISECONDS,
+      min=0)
   private long timeLimitForPath = 0;
 
   private final TransferRelation transferRelation;
@@ -268,8 +256,8 @@ public class MonitorTransferRelation extends SingleEdgeTransferRelation {
     return wrappedSuccessors.build();
   }
 
-  private interface TransferCallable extends Callable<Collection<? extends AbstractState>> {
+  private static interface TransferCallable extends Callable<Collection<? extends AbstractState>> {
     @Override
-    Collection<? extends AbstractState> call() throws CPATransferException, InterruptedException;
+    public Collection<? extends AbstractState> call() throws CPATransferException, InterruptedException;
   }
 }

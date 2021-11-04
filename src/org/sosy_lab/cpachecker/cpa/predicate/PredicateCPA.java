@@ -78,10 +78,7 @@ public class PredicateCPA
   @Option(secure=true, name="blk.useCache", description="use caching of path formulas")
   private boolean useCache = true;
 
-  @Option(
-      secure = true,
-      name = "enableBlockreducer",
-      description = "Enable the possibility to precompute explicit abstraction locations.")
+  @Option(secure=true, name="enableBlockreducer", description="Enable the possibility to precompute explicit abstraction locations.")
   private boolean enableBlockreducer = false;
 
   @Option(secure=true, name="merge", values={"SEP", "ABE"}, toUppercase=true,
@@ -89,22 +86,19 @@ public class PredicateCPA
   private String mergeType = "ABE";
 
   @Option(
-      secure = true,
-      name = "merge.mergeAbstractionStatesWithSamePredecessor",
-      description =
-          "merge two abstraction states if their preceeding abstraction states are the same")
+    secure = true,
+    name = "merge.mergeAbstractionStatesWithSamePredecessor",
+    description = "merge two abstraction states if their preceeding abstraction states are the same")
   private boolean mergeAbstractionStates = false;
 
   @Option(
-      secure = true,
-      name = "stop",
-      values = {"SEP", "SEPPCC", "SEPNAA"},
-      toUppercase = true,
-      description =
-          "which stop operator to use for predicate cpa (usually SEP should be used in analysis)."
-              + " SEPNAA works the same as SEP, except that it Never stops At Abstraction states."
-              + " SEPNAA is used in bmc-IMC.properties for config bmc-incremental-ABEl to keep"
-              + " exploring covered states.")
+    secure = true,
+    name = "stop",
+    values = {"SEP", "SEPPCC", "SEPNAA"},
+    toUppercase = true,
+    description = "which stop operator to use for predicate cpa (usually SEP should be used in analysis). "
+        + "SEPNAA works the same as SEP, except that it Never stops At Abstraction states. "
+        + "SEPNAA is used in bmc-IMC.properties for config bmc-incremental-ABEl to keep exploring covered states.")
   private String stopType = "SEP";
 
   @Option(secure=true, description="Direction of the analysis?")
@@ -262,7 +256,7 @@ public class PredicateCPA
         return new PredicateMergeOperator(
             logger, pathFormulaManager, statistics, mergeAbstractionStates, getPredicateManager());
       default:
-        throw new AssertionError("Update list of allowed merge operators");
+        throw new InternalError("Update list of allowed merge operators");
     }
   }
 
@@ -272,11 +266,11 @@ public class PredicateCPA
       case "SEP":
         return new PredicateStopOperator(getAbstractDomain());
       case "SEPPCC":
-        return new PredicatePCCStopOperator(pathFormulaManager, getPredicateManager(), solver);
+        return new PredicatePCCStopOperator(pathFormulaManager, getPredicateManager());
       case "SEPNAA":
         return new PredicateNeverAtAbstractionStopOperator(getAbstractDomain());
       default:
-        throw new AssertionError("Update list of allowed stop operators");
+        throw new InternalError("Update list of allowed stop operators");
     }
   }
 
@@ -376,7 +370,7 @@ public class PredicateCPA
         return getPredicateManager()
             .checkCoverage(
                 e1.getAbstractionFormula(),
-                pathFormulaManager.makeEmptyPathFormulaWithContextFrom(e1.getPathFormula()),
+                pathFormulaManager.makeEmptyPathFormula(e1.getPathFormula()),
                 e2.getAbstractionFormula());
       } catch (SolverException e) {
         throw new CPAException("Solver Failure", e);

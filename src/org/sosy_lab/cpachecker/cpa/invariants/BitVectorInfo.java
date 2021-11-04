@@ -124,7 +124,7 @@ public class BitVectorInfo implements TypeInfo {
         if (!(cType instanceof CProblemType) && !cType.isIncomplete()) {
           size = pMachineModel.getSizeofInBits(cType).intValueExact();
         } else {
-          size = pMachineModel.getSizeofPtrInBits();
+          size = pMachineModel.getSizeofPtr() * pMachineModel.getSizeofCharInBits();
         }
       }
       assert size >= 0;
@@ -159,6 +159,7 @@ public class BitVectorInfo implements TypeInfo {
           return FloatingPointTypeInfo.FLOAT;
         case DOUBLE:
           return FloatingPointTypeInfo.DOUBLE;
+      case NULL:
       case UNSPECIFIED:
       case VOID:
       default:
@@ -204,6 +205,7 @@ public class BitVectorInfo implements TypeInfo {
         return true;
       case FLOAT:
       case DOUBLE:
+      case NULL:
       case UNSPECIFIED:
       case VOID:
       default:

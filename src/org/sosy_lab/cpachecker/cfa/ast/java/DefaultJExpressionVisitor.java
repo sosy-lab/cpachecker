@@ -8,8 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-public abstract class DefaultJExpressionVisitor<R, X extends Exception>
-    implements JExpressionVisitor<R, X> {
+public abstract class DefaultJExpressionVisitor<R, X extends Exception> implements JExpressionVisitor<R, X> {
 
   protected abstract R visitDefault(JExpression e);
 
@@ -22,6 +21,7 @@ public abstract class DefaultJExpressionVisitor<R, X extends Exception>
   public R visit(JThisExpression e) throws X {
     return visitDefault(e);
   }
+
 
   @Override
   public R visit(JCastExpression e) throws X {
@@ -103,8 +103,4 @@ public abstract class DefaultJExpressionVisitor<R, X extends Exception>
     return visitDefault(e);
   }
 
-  @Override
-  public R visit(JClassLiteralExpression e) throws X {
-    return visitDefault(e);
-  }
 }

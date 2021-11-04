@@ -313,9 +313,8 @@ public class ValueDeterminationManager {
   ) {
     PathFormula policyFormula = bound.getFormula();
 
-    PathFormula startPathFormula =
-        stateFormulaConversionManager.getPathFormula(
-            bound.getPredecessor(), attachExtraInvariantDuringValueDetermination);
+    PathFormula startPathFormula = stateFormulaConversionManager.getPathFormula(
+        bound.getPredecessor(), fmgr, attachExtraInvariantDuringValueDetermination);
 
     Formula policyOutTemplate = addPrefix(
         templateToFormulaConversionManager.toFormula(pfmgr, fmgr, template, policyFormula),

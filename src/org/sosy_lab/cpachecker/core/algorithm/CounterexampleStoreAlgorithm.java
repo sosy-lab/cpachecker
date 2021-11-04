@@ -59,7 +59,7 @@ public final class CounterexampleStoreAlgorithm implements Algorithm, Statistics
 
     AlgorithmStatus status = algorithm.run(pReachedSet);
 
-    if (pReachedSet.wasTargetReached()) {
+    if (pReachedSet.hasViolatedProperties()) {
       Map<ARGState, CounterexampleInfo> cexs = getAllCounterexamples(pReachedSet);
 
       for (Map.Entry<ARGState, CounterexampleInfo> e : cexs.entrySet()) {

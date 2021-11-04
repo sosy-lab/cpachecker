@@ -25,7 +25,10 @@ public class StructureIdentifier extends SingleIdentifier {
 
   @Override
   public String toString() {
-    return Identifiers.getCharsOf(dereference) + "((" + owner + ")." + name + ")";
+    String info = Identifiers.getCharsOf(dereference);
+    info += "((" + owner + ").";
+    info += name + ")";
+    return info;
   }
 
   @Override

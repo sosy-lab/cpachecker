@@ -9,13 +9,14 @@
 package org.sosy_lab.cpachecker.cpa.usage;
 
 import com.google.common.collect.ImmutableSet;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.ObjectOutputStream;
 import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.defaults.SimpleTargetInformation;
+import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UnsafeDetector;
@@ -23,10 +24,13 @@ import org.sosy_lab.cpachecker.cpa.usage.storage.UsageConfiguration;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UsageContainer;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
+@SuppressFBWarnings(justification = "No support for serialization", value = "SE_BAD_FIELD")
 public class UsageReachedSet extends PartitionedReachedSet {
 
-  private static final ImmutableSet<TargetInformation> RACE_PROPERTY =
-      SimpleTargetInformation.singleton("Race condition");
+  private static final long serialVersionUID = 1L;
+
+  private static final ImmutableSet<Property> RACE_PROPERTY =
+      NamedProperty.singleton("Race condition");
 
   private final UsageConfiguration config;
   private final LogManager logger;
@@ -35,11 +39,8 @@ public class UsageReachedSet extends PartitionedReachedSet {
   private UsageContainer container = null;
 
   public UsageReachedSet(
-      ConfigurableProgramAnalysis pCpa,
-      WaitlistFactory waitlistFactory,
-      UsageConfiguration pConfig,
-      LogManager pLogger) {
-    super(pCpa, waitlistFactory);
+      WaitlistFactory waitlistFactory, UsageConfiguration pConfig, LogManager pLogger) {
+    super(waitlistFactory);
     config = pConfig;
     logger = pLogger;
     unsafeDetector = new UnsafeDetector(pConfig);
@@ -71,13 +72,13 @@ public class UsageReachedSet extends PartitionedReachedSet {
   }
 
   @Override
-  public boolean wasTargetReached() {
+  public boolean hasViolatedProperties() {
     return getUsageContainer().getTotalUnsafeSize() > 0;
   }
 
   @Override
-  public Set<TargetInformation> getTargetInformation() {
-    if (wasTargetReached()) {
+  public Set<Property> getViolatedProperties() {
+    if (hasViolatedProperties()) {
       return RACE_PROPERTY;
     } else {
       return ImmutableSet.of();
@@ -92,5 +93,9 @@ public class UsageReachedSet extends PartitionedReachedSet {
     UsageState lastState = UsageState.get(getLastState());
     container.initContainerIfNecessary(lastState.getFunctionContainer());
     return container;
+  }
+
+  private void writeObject(@SuppressWarnings("unused") ObjectOutputStream stream) {
+    throw new UnsupportedOperationException("cannot serialize Logger");
   }
 }

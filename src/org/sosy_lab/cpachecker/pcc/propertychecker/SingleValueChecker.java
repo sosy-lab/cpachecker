@@ -9,8 +9,8 @@
 package org.sosy_lab.cpachecker.pcc.propertychecker;
 
 import java.math.BigInteger;
-import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
@@ -30,7 +30,7 @@ public class SingleValueChecker extends PerElementPropertyChecker {
 
   public SingleValueChecker(final String varWithSingleValue, final String varValue,
       final String labelForLocationWithSingleValue) {
-    varValRep = MemoryLocation.parseExtendedQualifiedName(varWithSingleValue);
+    varValRep = MemoryLocation.valueOf(varWithSingleValue);
     labelLocVarVal = labelForLocationWithSingleValue;
     varValBigInt = new NumericValue(new BigInteger(varValue));
     varValLong = new NumericValue(Long.parseLong(varValue));
@@ -40,7 +40,7 @@ public class SingleValueChecker extends PerElementPropertyChecker {
   public boolean satisfiesProperty(final AbstractState pElemToCheck) throws UnsupportedOperationException {
     // check if value correctly specified at location
     CFANode node = AbstractStates.extractLocation(pElemToCheck);
-    if (node instanceof CFALabelNode && ((CFALabelNode) node).getLabel().equals(labelLocVarVal)) {
+    if (node instanceof CLabelNode && ((CLabelNode) node).getLabel().equals(labelLocVarVal)) {
       Value value =
           AbstractStates.extractStateByType(pElemToCheck, ValueAnalysisState.class)
               .getValueAndTypeFor(varValRep)

@@ -23,17 +23,19 @@ import org.sosy_lab.cpachecker.cfa.types.java.JMethodType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 /**
+ *
  * This class represents the method declaration AST node type.
  *
- * <pre>{@code
- * MethodDeclaration:
+ *  MethodDeclaration:
  *   [ Javadoc ] { ExtendedModifier }
  *                 [ < TypeParameter { , TypeParameter } > ]
  *       ( Type | void ) Identifier (
  *       [ FormalParameter
  *                    { , FormalParameter } ] ) {[ ] }
  *       [ throws TypeName { , TypeName } ] ( Block | ; )
- * }</pre>
+ *
+ *
+ *
  */
 public class JMethodDeclaration extends AFunctionDeclaration implements JDeclaration {
 
@@ -68,20 +70,13 @@ public class JMethodDeclaration extends AFunctionDeclaration implements JDeclara
           false,
           JClassType.createUnresolvableType());
 
-  public JMethodDeclaration(
-      FileLocation pFileLocation,
-      JMethodType pType,
-      String pName,
-      String pSimpleName,
-      List<JParameterDeclaration> pParameterDeclarations,
-      VisibilityModifier pVisibility,
-      final boolean pIsFinal,
-      final boolean pIsAbstract,
-      final boolean pIsStatic,
-      final boolean pIsNative,
-      final boolean pIsSynchronized,
-      final boolean pIsStrictfp,
-      JClassOrInterfaceType pDeclaringClass) {
+
+  public JMethodDeclaration(FileLocation pFileLocation, JMethodType pType, String pName,
+      String pSimpleName, List<JParameterDeclaration> pParameterDeclarations,
+      VisibilityModifier pVisibility, final boolean pIsFinal,
+      final boolean pIsAbstract, final boolean pIsStatic,
+      final boolean pIsNative, final boolean pIsSynchronized,
+      final boolean pIsStrictfp, JClassOrInterfaceType pDeclaringClass) {
     super(pFileLocation, pType, pName, pName, pParameterDeclarations);
 
     visibility = pVisibility;
@@ -96,15 +91,10 @@ public class JMethodDeclaration extends AFunctionDeclaration implements JDeclara
 
     checkNotNull(pSimpleName);
     checkNotNull(pVisibility);
-    checkArgument(
-        (isAbstract()
-                && !isStatic()
-                && !isNative()
-                && !isFinal()
-                && !isSynchronized()
-                && !isStrictfp())
-            || !isAbstract(),
-        "Abstract Method may only have one Modifier , either public or protected");
+    checkArgument((isAbstract() && !isStatic() && !isNative()
+        && !isFinal() && !isSynchronized() && !isStrictfp())
+        || !isAbstract()
+        , "Abstract Method may only have one Modifier , either public or protected");
   }
 
   @Override
@@ -126,7 +116,7 @@ public class JMethodDeclaration extends AFunctionDeclaration implements JDeclara
   @Override
   public String toASTString() {
     String name = Strings.nullToEmpty(getName());
-    StringBuilder modifier = new StringBuilder();
+    StringBuilder modifier = new StringBuilder() ;
 
     modifier.append(getVisibility().getModifierString() + " ");
 
@@ -152,29 +142,36 @@ public class JMethodDeclaration extends AFunctionDeclaration implements JDeclara
     return modifier + getType().toASTString(name) + ";";
   }
 
+
   public boolean isFinal() {
     return isFinal;
   }
+
 
   public boolean isAbstract() {
     return isAbstract;
   }
 
+
   public boolean isStatic() {
     return isStatic;
   }
+
 
   public boolean isNative() {
     return isNative;
   }
 
+
   public boolean isSynchronized() {
     return isSynchronized;
   }
 
+
   public boolean isStrictfp() {
     return isStrictfp;
   }
+
 
   public VisibilityModifier getVisibility() {
     return visibility;
@@ -211,20 +208,21 @@ public class JMethodDeclaration extends AFunctionDeclaration implements JDeclara
       return true;
     }
 
-    if (!(obj instanceof JMethodDeclaration) || !super.equals(obj)) {
+    if (!(obj instanceof JMethodDeclaration)
+        || !super.equals(obj)) {
       return false;
     }
 
     JMethodDeclaration other = (JMethodDeclaration) obj;
 
     return Objects.equals(other.declaringClass, declaringClass)
-        && other.isAbstract == isAbstract
-        && other.isFinal == isFinal
-        && other.isNative == isNative
-        && other.isStatic == isStatic
-        && other.isStrictfp == isStrictfp
-        && other.isSynchronized == isSynchronized
-        && Objects.equals(other.visibility, visibility);
+            && other.isAbstract == isAbstract
+            && other.isFinal == isFinal
+            && other.isNative == isNative
+            && other.isStatic == isStatic
+            && other.isStrictfp == isStrictfp
+            && other.isSynchronized == isSynchronized
+            && Objects.equals(other.visibility, visibility);
   }
 
   public static JMethodDeclaration createUnresolvedMethodDeclaration() {
@@ -232,16 +230,10 @@ public class JMethodDeclaration extends AFunctionDeclaration implements JDeclara
   }
 
   public static JMethodDeclaration createExternMethodDeclaration(
-      JMethodType pMethodType,
-      String pName,
-      String pSimpleName,
-      VisibilityModifier pPublic,
-      boolean pFinal,
-      boolean pAbstract,
-      boolean pStatic,
-      boolean pNative,
-      boolean pSynchronized,
-      boolean pStrictFp,
+      JMethodType pMethodType, String pName, String pSimpleName,
+      VisibilityModifier pPublic, boolean pFinal,
+      boolean pAbstract, boolean pStatic, boolean pNative,
+      boolean pSynchronized, boolean pStrictFp,
       JClassOrInterfaceType pDeclaringClassType) {
 
     List<JType> parameterTypes = pMethodType.getParameters();
@@ -254,25 +246,14 @@ public class JMethodDeclaration extends AFunctionDeclaration implements JDeclara
     for (JType parameterType : parameterTypes) {
       final String parameterName = "parameter" + i;
       parameters.add(
-          new JParameterDeclaration(
-              externFileLoc, parameterType, parameterName, pName + "::" + parameterName, false));
+          new JParameterDeclaration(externFileLoc, parameterType, parameterName,
+              pName + "::" + parameterName, false));
       i++;
     }
 
-    return new JMethodDeclaration(
-        externFileLoc,
-        pMethodType,
-        pName,
-        pSimpleName,
-        parameters,
-        pPublic,
-        pFinal,
-        pAbstract,
-        pStatic,
-        pNative,
-        pSynchronized,
-        pStrictFp,
-        pDeclaringClassType);
+    return new JMethodDeclaration(externFileLoc, pMethodType,
+        pName, pSimpleName, parameters, pPublic, pFinal, pAbstract, pStatic,
+        pNative, pSynchronized, pStrictFp, pDeclaringClassType);
   }
 
   public String getSimpleName() {

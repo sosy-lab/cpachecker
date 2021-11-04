@@ -85,12 +85,14 @@ public abstract class SymbolicExpression implements SymbolicValue {
 
   @Override
   public NumericValue asNumericValue() {
-    return null;
+    throw new UnsupportedOperationException(
+        "Symbolic expressions can't be expressed as numeric values");
   }
 
   @Override
   public Long asLong(CType type) {
-    return null;
+    throw new UnsupportedOperationException(
+        "Symbolic expressions can't be expressed as numeric values");
   }
 
   @Override

@@ -13,7 +13,7 @@ import com.google.common.base.Preconditions;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
 public class TestDataTools {
 
@@ -103,14 +104,18 @@ public class TestDataTools {
   public static PathFormula toPathFormula(
       CFA cfa,
       SSAMap initialSSA,
+      FormulaManagerView fmgr,
       PathFormulaManager pfmgr,
       boolean ignoreDeclarations
       ) throws Exception {
     Map<CFANode, PathFormula> mapping = new HashMap<>(cfa.getAllNodes().size());
     CFANode start = cfa.getMainFunction();
 
-    PathFormula initial =
-        pfmgr.makeEmptyPathFormulaWithContext(initialSSA, PointerTargetSet.emptyPointerTargetSet());
+    PathFormula initial = new PathFormula(
+        fmgr.getBooleanFormulaManager().makeTrue(), initialSSA,
+        PointerTargetSet.emptyPointerTargetSet(),
+        0
+    );
 
     mapping.put(start, initial);
     Deque<CFANode> queue = new ArrayDeque<>();
@@ -141,13 +146,16 @@ public class TestDataTools {
           out = n;
         } else {
           out = pfmgr.makeOr(old, n);
+          out = out.updateFormula(fmgr.simplify(out.getFormula()));
         }
         mapping.put(toNode, out);
         queue.add(toNode);
       }
     }
 
-    return mapping.get(cfa.getMainFunction().getExitNode());
+    PathFormula out = mapping.get(cfa.getMainFunction().getExitNode());
+    out = out.updateFormula(fmgr.simplify(out.getFormula()));
+    return out;
   }
 
   /** Convert a given string to a {@link CFA}, assuming it is a body of a single function. */
@@ -200,6 +208,6 @@ public class TestDataTools {
    *  temporary folder. If the described file does not exist, it will <b>not</b> be created.
    */
   private static File getTempFile(TemporaryFolder pTempFolder, String pFileName) {
-    return Path.of(pTempFolder.getRoot().toString(), pFileName).toFile();
+    return Paths.get(pTempFolder.getRoot().toString(), pFileName).toFile();
   }
 }

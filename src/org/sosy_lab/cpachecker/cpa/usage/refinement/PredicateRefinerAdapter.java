@@ -70,15 +70,13 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
     super(wrapper);
 
     if (!(pCpa instanceof WrapperCPA)) {
-      throw new InvalidConfigurationException(
-          BAMPredicateRefiner.class.getSimpleName() + " could not find the PredicateCPA");
+      throw new InvalidConfigurationException(BAMPredicateRefiner.class.getSimpleName() + " could not find the PredicateCPA");
     }
 
     @SuppressWarnings("resource")
     BAMPredicateCPA predicateCpa = ((WrapperCPA) pCpa).retrieveWrappedCpa(BAMPredicateCPA.class);
     if (predicateCpa == null) {
-      throw new InvalidConfigurationException(
-          BAMPredicateRefiner.class.getSimpleName() + " needs an BAMPredicateCPA");
+      throw new InvalidConfigurationException(BAMPredicateRefiner.class.getSimpleName() + " needs an BAMPredicateCPA");
     }
 
     logger = pLogger;
@@ -175,9 +173,9 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
       }
 
     } catch (IllegalStateException e) {
-      // msat_solver return -1 <=> unknown
-      // consider its as true;
-      logger.logUserException(Level.WARNING, e, "Solver exception");
+      //msat_solver return -1 <=> unknown
+      //consider its as true;
+      logger.log(Level.WARNING, "Solver exception: " + e.getMessage());
       solverFailures.inc();
       result = RefinementResult.createUnknown();
     }

@@ -274,7 +274,7 @@ public class CounterexampleInfo extends AbstractAppender {
       }
       elem.put("source", edge.getPredecessor().getNodeNumber());
       elem.put("target", edge.getSuccessor().getNodeNumber());
-      elem.put("desc", edge.getDescription().replace('\n', ' '));
+      elem.put("desc", edge.getDescription().replaceAll("\n", " "));
       elem.put("line", edge.getFileLocation().getStartingLineInOrigin());
       elem.put("file", edge.getFileLocation().getFileName());
 

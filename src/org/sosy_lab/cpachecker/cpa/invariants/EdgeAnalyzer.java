@@ -8,13 +8,13 @@
 
 package org.sosy_lab.cpachecker.cpa.invariants;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -96,7 +96,7 @@ class EdgeAnalyzer {
       ADeclaration declaration = declarationEdge.getDeclaration();
       if (declaration instanceof CVariableDeclaration) {
         CVariableDeclaration variableDeclaration = (CVariableDeclaration) declaration;
-            MemoryLocation declaredVariable = MemoryLocation.forDeclaration(variableDeclaration);
+        MemoryLocation declaredVariable = MemoryLocation.valueOf(variableDeclaration.getQualifiedName());
         CType type = variableDeclaration.getType();
         CInitializer initializer = variableDeclaration.getInitializer();
         if (initializer == null) {

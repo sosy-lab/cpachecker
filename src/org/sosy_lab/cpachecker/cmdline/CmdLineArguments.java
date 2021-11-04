@@ -19,6 +19,7 @@ import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -106,9 +107,6 @@ class CmdLineArguments {
           new PropertyAddingCmdLineArgument("-preprocess")
               .settingProperty("parser.usePreprocessor", "true")
               .withDescription("execute a preprocessor before starting the analysis"),
-          new PropertyAddingCmdLineArgument("-clang")
-              .settingProperty("parser.useClang", "true")
-              .withDescription("use clang together with llvm frontend"),
           new PropertyAddingCmdLineArgument("-secureMode")
               .settingProperty(SECURE_MODE_OPTION, "true")
               .withDescription("allow to use only secure options"),
@@ -169,8 +167,7 @@ class CmdLineArguments {
               .settingProperty("coverage.enabled", "false")
               .settingProperty("statistics.memory", "false")
               .withDescription(
-                  "disable assertions and optional features such as output files for improved"
-                      + " performance"),
+                  "disable assertions and optional features such as output files for improved performance"),
           new CmdLineArgument1("-setprop") {
 
             @Override
@@ -256,7 +253,7 @@ class CmdLineArguments {
       }
       if (foundMatchingArg) {
         // nothing left to do
-      } else if (arg.startsWith("-") && Files.notExists(Path.of(arg))) {
+      } else if (arg.startsWith("-") && Files.notExists(Paths.get(arg))) {
         String argName = arg.substring(1); // remove "-"
         if (DEFAULT_CONFIG_FILES_PATTERN.matcher(argName).matches()) {
           @Nullable Path configFile = resolveConfigFile(argName);
@@ -300,7 +297,7 @@ class CmdLineArguments {
 
       // replace "predicateAnalysis" with config/predicateAnalysis.properties etc.
       if (DEFAULT_CONFIG_FILES_PATTERN.matcher(newValue).matches()
-          && Files.notExists(Path.of(newValue))) {
+          && Files.notExists(Paths.get(newValue))) {
         @Nullable Path configFile = resolveConfigFile(newValue);
 
         if (configFile != null) {
@@ -338,8 +335,7 @@ class CmdLineArguments {
     out.println("You can also specify any of the configuration files in the directory config/");
     out.println("with -CONFIG_FILE, e.g., -default for config/default.properties.");
     out.println();
-    out.println(
-        "More information on how to configure CPAchecker can be found in 'doc/Configuration.md'.");
+    out.println("More information on how to configure CPAchecker can be found in 'doc/Configuration.md'.");
   }
 
   static void putIfNotExistent(
@@ -409,7 +405,7 @@ class CmdLineArguments {
   private static @Nullable Path findFile(final String template, final String name) {
     final String fileName = String.format(template, name);
 
-    Path file = Path.of(fileName);
+    Path file = Paths.get(fileName);
 
     // look in current directory first
     if (Files.exists(file)) {

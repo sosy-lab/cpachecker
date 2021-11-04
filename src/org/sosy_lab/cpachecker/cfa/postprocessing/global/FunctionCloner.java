@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.postprocessing.global;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -15,7 +16,6 @@ import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
@@ -56,7 +56,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -65,6 +64,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
@@ -99,13 +99,12 @@ import org.sosy_lab.cpachecker.util.Pair;
 class FunctionCloner implements CFAVisitor {
 
   private static final String ONLY_C_SUPPORTED = "only C supported";
-  private static final String SUPERGRAPH_BUILD_TOO_EARLY =
-      "functions should be cloned before building the supergraph";
+  private static final String SUPERGRAPH_BUILD_TOO_EARLY = "functions should be cloned before building the supergraph";
 
   // local caches
   private final Map<CFANode, CFANode> nodeCache = new HashMap<>(); // values will be used as CFANodes-Set for building new CFAs
-  private final IdentityHashMap<AAstNode, AAstNode> astCache = new IdentityHashMap<>();
-  private final IdentityHashMap<Type, Type> typeCache = new IdentityHashMap<>();
+  private final Map<AAstNode, AAstNode> astCache = new IdentityHashMap<>();
+  private final Map<Type, Type> typeCache = new IdentityHashMap<>();
   private final CExpressionCloner expCloner = new CExpressionCloner();
   private final CTypeCloner typeCloner = new CTypeCloner();
 
@@ -222,13 +221,8 @@ class FunctionCloner implements CFAVisitor {
         assert end instanceof FunctionExitNode
             : "Expected FunctionExitNode: " + end + ", " + end.getClass();
         if (edge instanceof CReturnStatementEdge) {
-            newEdge =
-                new CReturnStatementEdge(
-                    rawStatement,
-                    cloneAst(((CReturnStatementEdge) edge).getReturnStatement()),
-                    loc,
-                    start,
-                    (FunctionExitNode) end);
+          newEdge = new CReturnStatementEdge(rawStatement, cloneAst(((CReturnStatementEdge) edge).getRawAST().get()),
+                  loc, start, (FunctionExitNode) end);
         } else {
           throw new AssertionError(ONLY_C_SUPPORTED);
         }
@@ -290,8 +284,8 @@ class FunctionCloner implements CFAVisitor {
 
     // clone correct type of node
     final CFANode newNode;
-    if (node instanceof CFALabelNode) {
-      newNode = new CFALabelNode(cloneAst(node.getFunction()), ((CFALabelNode) node).getLabel());
+    if (node instanceof CLabelNode) {
+      newNode = new CLabelNode(cloneAst(node.getFunction()), ((CLabelNode) node).getLabel());
 
     } else if (node instanceof CFATerminationNode) {
       newNode = new CFATerminationNode(cloneAst(node.getFunction()));
@@ -309,7 +303,7 @@ class FunctionCloner implements CFAVisitor {
       final FunctionExitNode newExitNode = cloneNode(exitNode, isExitNodeReachable);
       Optional<CVariableDeclaration> returnVariable = n.getReturnVariable();
       if (returnVariable.isPresent()) {
-        returnVariable = Optional.of(cloneAst(returnVariable.orElseThrow()));
+        returnVariable = Optional.of(cloneAst(returnVariable.get()));
       }
       final CFunctionEntryNode entryNode =
           new CFunctionEntryNode(
@@ -321,8 +315,7 @@ class FunctionCloner implements CFAVisitor {
       newNode = entryNode;
 
     } else {
-      assert node.getClass() == CFANode.class
-          : "unhandled subclass for CFANode: " + node.getClass();
+      assert node.getClass() == CFANode.class : "unhandled subclass for CFANode: " + node.getClass();
       newNode = new CFANode(cloneAst(node.getFunction()));
     }
 
@@ -466,11 +459,11 @@ class FunctionCloner implements CFAVisitor {
     } else if (ast instanceof CReturnStatement) {
       Optional<CExpression> returnExp = ((CReturnStatement) ast).getReturnValue();
       if (returnExp.isPresent()) {
-        returnExp = Optional.of(cloneAst(returnExp.orElseThrow()));
+        returnExp = Optional.of(cloneAst(returnExp.get()));
       }
       Optional<CAssignment> returnAssignment = ((CReturnStatement) ast).asAssignment();
       if (returnAssignment.isPresent()) {
-        returnAssignment = Optional.of(cloneAst(returnAssignment.orElseThrow()));
+        returnAssignment = Optional.of(cloneAst(returnAssignment.get()));
       }
       return new CReturnStatement(loc, returnExp, returnAssignment);
 

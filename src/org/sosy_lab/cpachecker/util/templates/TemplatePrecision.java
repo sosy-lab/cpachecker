@@ -34,6 +34,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.Configuration;
@@ -456,7 +457,7 @@ public class TemplatePrecision implements Precision {
       case ReturnStatementEdge:
         CReturnStatementEdge e = (CReturnStatementEdge) edge;
         if (e.getExpression().isPresent()) {
-          return expressionToTemplate(e.getExpression().orElseThrow());
+          return expressionToTemplate(e.getExpression().get());
         }
         break;
       case FunctionCallEdge:
@@ -587,12 +588,10 @@ public class TemplatePrecision implements Precision {
     Map<String, ASimpleDeclaration> map =
         Maps.uniqueIndex(liveVars.getAllLiveVariables(), ASimpleDeclaration::getQualifiedName);
 
-    List<ASimpleDeclaration> out =
-        usedVars.stream()
-            .filter(v -> map.containsKey(v))
-            .map(v -> map.get(v))
-            .collect(ImmutableList.toImmutableList());
-
+    List<ASimpleDeclaration> out = usedVars.stream()
+        .filter(v -> map.containsKey(v))
+        .map(v -> map.get(v))
+        .collect(Collectors.toList());
     boolean returned = varsInInterpolant.putAll(pNode, out);
     logger.log(Level.FINE, "Generated vars", out);
     logger.log(Level.FINE, "Got input", usedVars);

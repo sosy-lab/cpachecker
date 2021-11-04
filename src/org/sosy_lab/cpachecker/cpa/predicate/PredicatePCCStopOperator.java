@@ -9,29 +9,27 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import java.util.Collection;
+
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class PredicatePCCStopOperator implements StopOperator {
 
   private final PredicateAbstractionManager paMgr;
   private final PathFormulaManager pMgr;
-  private final Solver solver;
 
   private final AbstractionFormula trueAbs;
 
   public PredicatePCCStopOperator(
-      PathFormulaManager pPfmgr, PredicateAbstractionManager pPredAbsManager, Solver pSolver) {
+      PathFormulaManager pPfmgr, PredicateAbstractionManager pPredAbsManager) {
     paMgr = pPredAbsManager;
     pMgr = pPfmgr;
-    solver = pSolver;
 
     trueAbs = paMgr.makeTrueAbstractionFormula(null);
   }
@@ -69,10 +67,9 @@ public class PredicatePCCStopOperator implements StopOperator {
 
     } else {
       if (e1.getAbstractionFormula() == e2.getAbstractionFormula()) {
-        BooleanFormula implicationTest =
-            pMgr.buildImplicationTestAsUnsat(e1.getPathFormula(), e2.getPathFormula());
-        return solver.isUnsat(
-            solver.getFormulaManager().makeAnd(trueAbs.asInstantiatedFormula(), implicationTest));
+        PathFormula pF = e1.getPathFormula();
+        return paMgr.unsat(trueAbs, new PathFormula(pMgr.buildImplicationTestAsUnsat(pF, e2.getPathFormula()),
+            pF.getSsa(), pF.getPointerTargetSet(), pF.getLength()));
       }
       return false;
     }

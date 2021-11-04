@@ -14,6 +14,7 @@ import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -70,7 +71,7 @@ public class UndefinedFunctionCollectorAlgorithm
 
   @Option(secure = true, description = "export undefined functions as C file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path stubsFile = Path.of("stubs.c");
+  private Path stubsFile = Paths.get("stubs.c");
 
   @Option(secure = true, description = "Set of functions that should be ignored")
   private Set<String> allowedFunctions =
@@ -133,7 +134,9 @@ public class UndefinedFunctionCollectorAlgorithm
   public AlgorithmStatus run(ReachedSet pReachedSet) throws InterruptedException {
     collectUndefinedFunctions();
 
-    return AlgorithmStatus.NO_PROPERTY_CHECKED;
+    // clear reached set and therefore waitlist to prevent further warnings:
+    pReachedSet.clear();
+    return AlgorithmStatus.SOUND_AND_PRECISE;
   }
 
   private void collectUndefinedFunctions() throws InterruptedException {
@@ -233,24 +236,24 @@ public class UndefinedFunctionCollectorAlgorithm
   }
 
   private String getSignature(String name, IAFunctionType type) {
-    StringBuilder res = new StringBuilder().append(name).append("(");
+    String res = name + "(";
     int i = 0;
     for (Type pt : type.getParameters()) {
       if (i == 0) {
-        res.append(pt.toASTString("arg" + i));
+        res += pt.toASTString("arg" + i);
       } else {
-        res.append(", ").append(pt.toASTString("arg" + i));
+        res += ", " + pt.toASTString("arg" + i);
       }
       i++;
     }
     if (type.takesVarArgs()) {
       if (i != 0) {
-        res.append(", ");
+        res += ", ";
       }
-      res.append("...");
+      res += "...";
     }
-    res.append(")");
-    return type.getReturnType().toASTString(res.toString());
+    res += ")";
+    return type.getReturnType().toASTString(res);
   }
 
   private boolean printType(String indent, StringBuilder prepend, StringBuilder buf, CType rt) {
@@ -278,7 +281,15 @@ public class UndefinedFunctionCollectorAlgorithm
       buf.append(indent + "// Composite type\n");
       prepend.append(odmFunctionDecl);
       // We can not use rt.toASTString(), as it produces full definition with all fields
-      buf.append(indent + rt + " *tmp" + " = (" + rt + "*)" + externAllocFunction + "();\n");
+      buf.append(
+          indent
+              + rt.toString()
+              + " *tmp"
+              + " = ("
+              + rt.toString()
+              + "*)"
+              + externAllocFunction
+              + "();\n");
       prepend.append(ASSUME_FUNCTION_DECL);
       buf.append(indent + ASSUME_FUNCTION_NAME + "(tmp != 0);\n");
       buf.append(indent + "return *tmp;\n");

@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.smg;
 
+import com.google.common.collect.BiMap;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -18,15 +19,15 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGPredicateRelation;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.PredRelation;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
-import org.sosy_lab.cpachecker.cpa.smg.util.PersistentBiMap;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -46,8 +47,7 @@ public interface UnmodifiableSMGState extends LatticeAbstractState<UnmodifiableS
    * Returns mutable instance of subclass, with the given SMG and ExplicitValues. Changes to the
    * returned instance are independent of this immutable instance and do not change it.
    */
-  SMGState copyWith(
-      CLangSMG pSmg, PersistentBiMap<SMGKnownSymbolicValue, SMGKnownExpValue> pValues);
+  SMGState copyWith(CLangSMG pSmg, BiMap<SMGKnownSymbolicValue, SMGKnownExpValue> pValues);
 
   /**
    * Returns mutable instance of subclass, with the flag for blockEnd. Changes to the returned
@@ -151,19 +151,19 @@ public interface UnmodifiableSMGState extends LatticeAbstractState<UnmodifiableS
 
   boolean isTrackPredicatesEnabled();
 
-  SMGPredicateRelation getPathPredicateRelation();
+  PredRelation getPathPredicateRelation();
 
-  SMGPredicateRelation getErrorPredicateRelation();
+  PredRelation getErrorPredicateRelation();
 
-  boolean isExplicit(SMGValue value);
+  boolean isExplicit(SMGKnownSymbolicValue value);
 
-  SMGKnownExpValue getExplicit(SMGValue pKey);
+  SMGExplicitValue getExplicit(SMGKnownSymbolicValue pKey);
 
   boolean hasMemoryErrors();
 
   boolean hasMemoryLeaks();
 
-  boolean areNonEqual(SMGValue pValue1, SMGValue pValue2);
+  boolean areNonEqual(SMGSymbolicValue pValue1, SMGSymbolicValue pValue2);
 
   SMGObject getObjectForFunction(CFunctionDeclaration pDeclaration);
 

@@ -98,10 +98,10 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
         break;
 
       case ReturnStatementEdge:
-        // this is the return-statement of a function
-        // set a local variable tracking the return statement's initialization status
+        //this is the return-statement of a function
+        //set a local variable tracking the return statement's initialization status
         if (isExpressionUninitialized(
-            successor, ((CReturnStatementEdge) cfaEdge).getExpression().orElse(null), cfaEdge)) {
+            successor, ((CReturnStatementEdge) cfaEdge).getExpression().orNull(), cfaEdge)) {
           setUninitialized(successor, "CPAchecker_UninitVars_FunctionReturn");
         } else {
           setInitialized(successor, "CPAchecker_UninitVars_FunctionReturn");
@@ -515,8 +515,7 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
       String name = member.getName();
       //for a field that is itself a struct, repeat the whole process
       if (isStructType(t)) {
-        handleStructDeclaration(
-            element, (CCompositeType) t, recursiveVarName + "." + name, isGlobalDeclaration);
+        handleStructDeclaration(element, (CCompositeType)t, recursiveVarName + "." + name, isGlobalDeclaration);
       } else {
         //set non structure fields uninitialized, since they have only just been declared
         if (isGlobalDeclaration) {

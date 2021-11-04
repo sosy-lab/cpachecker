@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManag
 import org.sosy_lab.cpachecker.util.predicates.weakening.WeakeningOptions;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
-import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix="cinvariants")
 public class CExpressionInvariantExporter {
@@ -79,7 +78,7 @@ public class CExpressionInvariantExporter {
    * {@code __VERIFIER_assume()} calls, intermixed with the program source code.
    */
   public void exportInvariant(CFA pCfa, UnmodifiableReachedSet pReachedSet)
-      throws IOException, InterruptedException, SolverException {
+      throws IOException, InterruptedException {
 
     for (Path program : pCfa.getFileNames()) {
       // Grab only the last component of the program filename.
@@ -96,9 +95,9 @@ public class CExpressionInvariantExporter {
 
   private void writeProgramWithInvariants(
       Appendable out, Path filename, UnmodifiableReachedSet pReachedSet)
-      throws IOException, InterruptedException, SolverException {
+      throws IOException, InterruptedException {
 
-    Map<Integer, BooleanFormula> reporting = getInvariantsForFile(pReachedSet, filename);
+    Map<Integer, BooleanFormula> reporting = getInvariantsForFile(pReachedSet, filename.toString());
 
     int lineNo = 0;
     String line;
@@ -115,8 +114,8 @@ public class CExpressionInvariantExporter {
     }
   }
 
-  private Optional<String> getInvariantForLine(int lineNo, Map<Integer, BooleanFormula> reporting)
-      throws InterruptedException, SolverException {
+  private Optional<String> getInvariantForLine(
+      int lineNo, Map<Integer, BooleanFormula> reporting) throws InterruptedException{
     BooleanFormula formula = reporting.get(lineNo);
     if (formula == null) {
       return Optional.empty();
@@ -129,7 +128,7 @@ public class CExpressionInvariantExporter {
 
   /** Return mapping from line numbers to states associated with the given line. */
   private Map<Integer, BooleanFormula> getInvariantsForFile(
-      UnmodifiableReachedSet pReachedSet, Path filename) {
+      UnmodifiableReachedSet pReachedSet, String filename) {
 
     // One formula per reported state.
     Multimap<Integer, BooleanFormula> byState = HashMultimap.create();
@@ -155,7 +154,7 @@ public class CExpressionInvariantExporter {
   }
 
   private BooleanFormula simplifyInvariant(BooleanFormula pInvariant)
-      throws InterruptedException, SolverException {
+      throws InterruptedException {
     return inductiveWeakeningManager.removeRedundancies(pInvariant);
   }
 }

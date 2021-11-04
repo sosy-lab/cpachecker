@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 @Options(prefix="cpa.usage")
 public class RefinementBlockFactory {
 
-  public enum RefinementBlockTypes {
+  public static enum RefinementBlockTypes {
     IdentifierIterator(currentInnerBlockType.SingleIdentifier),
     PointIterator(currentInnerBlockType.UsageInfoSet),
     UsageIterator(currentInnerBlockType.UsageInfo),
@@ -43,12 +43,12 @@ public class RefinementBlockFactory {
 
     public final currentInnerBlockType innerType;
 
-    RefinementBlockTypes(currentInnerBlockType type) {
+    private RefinementBlockTypes(currentInnerBlockType type) {
       innerType = type;
     }
   }
 
-  private enum currentInnerBlockType {
+  private static enum currentInnerBlockType {
     ExtendedARGPath,
     UsageInfoSet,
     SingleIdentifier,
@@ -64,7 +64,7 @@ public class RefinementBlockFactory {
       secure = true)
   List<RefinementBlockTypes> RefinementChain;
 
-  public enum PathEquation {
+  public static enum PathEquation {
     ARGStateId,
     CFANodeId;
   }
@@ -149,20 +149,17 @@ public class RefinementBlockFactory {
             break;
 
           default:
-            throw new InvalidConfigurationException(
-                "The type " + RefinementChain.get(i) + " is not supported");
+            throw new InvalidConfigurationException("The type " + RefinementChain.get(i) + " is not supported");
         }
       } else {
-        throw new InvalidConfigurationException(
-            currentType + " can not precede the " + currentBlock.getClass().getSimpleName());
+        throw new InvalidConfigurationException(currentType + " can not precede the " + currentBlock.getClass().getSimpleName());
       }
     }
     if (currentBlockType == currentInnerBlockType.ReachedSet) {
       assert currentBlock instanceof Refiner;
       return (Refiner) currentBlock;
     } else {
-      throw new InvalidConfigurationException(
-          "The first block is not take a reached set as parameter");
+      throw new InvalidConfigurationException("The first block is not take a reached set as parameter");
     }
   }
 }

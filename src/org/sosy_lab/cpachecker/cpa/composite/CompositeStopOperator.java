@@ -123,4 +123,8 @@ class CompositeStopOperator implements StopOperator, ForcedCoveringStopOperator 
 
     return true;
   }
+
+  ImmutableList<StopOperator> getStopOperators() {
+    return stopOperators;
+  }
 }

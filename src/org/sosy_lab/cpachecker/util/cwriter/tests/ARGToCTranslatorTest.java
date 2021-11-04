@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collection;
 import org.junit.experimental.runners.Enclosed;
 import org.junit.runner.RunWith;
@@ -61,7 +62,7 @@ public final class ARGToCTranslatorTest {
               .build());
 
       filePrefix = "residual";
-      program = Path.of(TEST_DIR_PATH, pProgram);
+      program = Paths.get(TEST_DIR_PATH, pProgram);
       hasGotoDecProblem = pHasGotoDecProblem;
       generationPropfile = "inline-errorlabel.properties";
     }
@@ -146,7 +147,7 @@ public final class ARGToCTranslatorTest {
         throws InvalidConfigurationException {
       ConfigurationBuilder config = super.getGenerationConfig(propfile);
       if (spec != null) {
-        String specPath = Path.of(TEST_DIR_PATH, spec).toString();
+        String specPath = Paths.get(TEST_DIR_PATH, spec).toString();
         config.setOption("specification", specPath);
       }
       return config;
@@ -195,7 +196,7 @@ public final class ARGToCTranslatorTest {
         throws InvalidConfigurationException, IOException {
       super(pTestLabel, pProgram, pVerdict, false);
 
-      conditionAutomaton = Path.of(TEST_DIR_PATH, pConditionAutomaton);
+      conditionAutomaton = Paths.get(TEST_DIR_PATH, pConditionAutomaton);
       generationPropfile = CONFIG_FILE;
     }
 

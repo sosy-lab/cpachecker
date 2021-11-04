@@ -103,7 +103,8 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, NoExcepti
       for (CType oldType : t.getParameters()) {
         final CType type = oldType.accept(CachingCanonizingCTypeVisitor.this);
         if (type != oldType && parameterTypes == null) {
-          parameterTypes = new ArrayList<>(t.getParameters().subList(0, i));
+          parameterTypes = new ArrayList<>();
+          parameterTypes.addAll(t.getParameters().subList(0, i));
         }
         if (parameterTypes != null) {
           parameterTypes.add(type);

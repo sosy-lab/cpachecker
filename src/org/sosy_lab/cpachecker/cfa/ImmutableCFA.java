@@ -21,6 +21,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.SetMultimap;
 import java.io.Serializable;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 /**
@@ -49,6 +51,7 @@ class ImmutableCFA implements CFA, Serializable {
   private final @Nullable LoopStructure loopStructure;
   private final @Nullable VariableClassification varClassification;
   private final @Nullable LiveVariables liveVariables;
+  private final @Nullable DependenceGraph dependenceGraph;
   private final Language language;
 
   /* fileNames are final, except for serialization. */
@@ -62,6 +65,7 @@ class ImmutableCFA implements CFA, Serializable {
       Optional<LoopStructure> pLoopStructure,
       Optional<VariableClassification> pVarClassification,
       Optional<LiveVariables> pLiveVariables,
+      Optional<DependenceGraph> pDependenceGraph,
       List<Path> pFileNames,
       Language pLanguage) {
 
@@ -72,6 +76,7 @@ class ImmutableCFA implements CFA, Serializable {
     loopStructure = pLoopStructure.orElse(null);
     varClassification = pVarClassification.orElse(null);
     liveVariables = pLiveVariables.orElse(null);
+    dependenceGraph = pDependenceGraph.orElse(null);
     fileNames = ImmutableList.copyOf(pFileNames);
     language = pLanguage;
 
@@ -86,6 +91,7 @@ class ImmutableCFA implements CFA, Serializable {
     loopStructure = null;
     varClassification = null;
     liveVariables = null;
+    dependenceGraph = null;
     fileNames = ImmutableList.of();
     language = pLanguage;
   }
@@ -163,6 +169,11 @@ class ImmutableCFA implements CFA, Serializable {
   }
 
   @Override
+  public Optional<DependenceGraph> getDependenceGraph() {
+    return Optional.ofNullable(dependenceGraph);
+  }
+
+  @Override
   public Language getLanguage() {
     return language;
   }
@@ -212,6 +223,6 @@ class ImmutableCFA implements CFA, Serializable {
       edge.getPredecessor().addLeavingEdge(edge);
     }
 
-    fileNames = ImmutableList.copyOf(Lists.transform((List<String>) s.readObject(), Path::of));
+    fileNames = ImmutableList.copyOf(Lists.transform((List<String>) s.readObject(), Paths::get));
   }
 }

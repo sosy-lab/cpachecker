@@ -134,5 +134,6 @@ SPDX-License-Identifier: Apache-2.0
   <tasks name="SoftwareSystems-DeviceDriversLinux64-ReachSafety">
     <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64-ReachSafety.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+	<option name="-64"/>
   </tasks>
 </benchmark>

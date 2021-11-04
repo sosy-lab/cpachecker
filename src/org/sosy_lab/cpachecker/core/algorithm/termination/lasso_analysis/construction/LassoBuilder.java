@@ -219,8 +219,7 @@ public class LassoBuilder {
   public StemAndLoop createStemAndLoop(List<CFAEdge> stemEdges, List<CFAEdge> loopEdges)
       throws CPATransferException, InterruptedException {
     PathFormula stemPathFormula = pathFormulaManager.makeFormulaForPath(stemEdges);
-    PathFormula loopPathFormula =
-        pathFormulaManager.makeEmptyPathFormulaWithContextFrom(stemPathFormula);
+    PathFormula loopPathFormula = pathFormulaManager.makeEmptyPathFormula(stemPathFormula);
     SSAMapBuilder loopInVars = stemPathFormula.getSsa().builder();
     for (CFAEdge edge : loopEdges) {
       loopPathFormula = pathFormulaManager.makeAnd(loopPathFormula, edge);
@@ -394,14 +393,14 @@ public class LassoBuilder {
           term instanceof ApplicationTerm,
           "Variable 'term' is expected to be an instance of ApplicationTerm");
 
-      TermVariable termVar =
-          env.variable(((ApplicationTerm) term).getFunction().getName(), term.getSort());
-
       Formula uninstantiatedVariable = fmgrView.uninstantiate(variable);
       Set<String> variableNames = fmgrView.extractVariableNames(uninstantiatedVariable);
       String variableName = Iterables.getOnlyElement(variableNames);
 
       if (pRelevantVariables.get(variableName) != null) {
+
+        TermVariable termVar =
+            env.variable(((ApplicationTerm) term).getFunction().getName(), term.getSort());
 
         rankVars.put(
             new RankVar(
@@ -420,6 +419,10 @@ public class LassoBuilder {
 
         Formula uninstantiatedOriginalFormula = fmgrView.uninstantiate(originalFormula);
         Term originalTerm = fmgr.extractInfo(uninstantiatedOriginalFormula);
+
+        TermVariable termVar =
+            env.variable(
+                ((ApplicationTerm) originalTerm).getFunction().getName(), originalTerm.getSort());
 
         rankVars.put(new RankVar(originalTerm.toString(), true, originalTerm), termVar);
 

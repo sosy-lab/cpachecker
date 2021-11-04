@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.statistics;
 
-import com.google.errorprone.annotations.InlineMe;
 import java.util.IntSummaryStatistics;
 import java.util.concurrent.atomic.LongAccumulator;
 import java.util.concurrent.atomic.LongAdder;
@@ -46,10 +45,9 @@ public class StatInt extends AbstractStatValue implements IntConsumer {
     minValue.accumulate(pOther.getMinValue());
   }
 
-  @InlineMe(replacement = "this.setNextValue(pValue)")
   @Override
   @Deprecated
-  public final void accept(int pValue) {
+  public void accept(int pValue) {
     setNextValue(pValue);
   }
 
@@ -115,14 +113,6 @@ public class StatInt extends AbstractStatValue implements IntConsumer {
         return String.format(
             "%8d (sum: %d, min: %d, max: %d, avg: %.2f)",
             getValueCount(), getValueSum(), getMinValue(), getMaxValue(), getAverage());
-      case MIN:
-        return String.format(
-            "%8d (sum: %d, count: %d, max: %d, avg: %.2f)",
-            getMinValue(), getValueSum(), getValueCount(), getMaxValue(), getAverage());
-      case MAX:
-        return String.format(
-            "%8d (sum: %d, count: %d, min: %d, avg: %.2f)",
-            getMaxValue(), getValueSum(), getValueCount(), getMinValue(), getAverage());
     }
     throw new AssertionError();
   }

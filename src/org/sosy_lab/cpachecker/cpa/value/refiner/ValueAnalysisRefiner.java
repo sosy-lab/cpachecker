@@ -78,11 +78,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 public class ValueAnalysisRefiner
     extends GenericRefiner<ValueAnalysisState, ValueAnalysisInterpolant> {
 
-  @Option(
-      secure = true,
-      description = "whether or not to do lazy-abstraction",
-      name = "restart",
-      toUppercase = true)
+  @Option(secure = true, description = "whether or not to do lazy-abstraction", name = "restart", toUppercase = true)
   private RestartStrategy restartStrategy = RestartStrategy.PIVOT;
 
   @Option(
@@ -91,12 +87,14 @@ public class ValueAnalysisRefiner
   private boolean avoidSimilarRepeatedRefinement = false;
 
   @Option(
-      secure = true, // name="refinement.basisStrategy",
-      description =
-          "Which base precision should be used for a new precision? ALL: During refinement, collect"
-              + " precisions from the complete ARG. SUBGRAPH: During refinement, keep precision"
-              + " from all removed parts (subgraph) of the ARG. CUTPOINT: Only the cut-point's"
-              + " precision is kept. TARGET: Only the target state's precision is kept.")
+    secure = true, // name="refinement.basisStrategy",
+    description =
+        "Which base precision should be used for a new precision? "
+            + "ALL: During refinement, collect precisions from the complete ARG. "
+            + "SUBGRAPH: During refinement, keep precision from all removed parts (subgraph) of the ARG. "
+            + "CUTPOINT: Only the cut-point's precision is kept. "
+            + "TARGET: Only the target state's precision is kept."
+  )
   /* see also: {@link PredicateAbstractionRefinementStrategy} */
   /* There are usually more tracked variables at the target location that at the cut-point.
    * 05/2017: An evaluation on sv-benchmark files for ALL, SUBGRAPH, TARGET, and CUTPOINT showed:
@@ -109,7 +107,7 @@ public class ValueAnalysisRefiner
    */
   private BasisStrategy basisStrategy = BasisStrategy.SUBGRAPH;
 
-  private enum BasisStrategy {
+  private static enum BasisStrategy {
     ALL,
     SUBGRAPH,
     TARGET,
@@ -129,8 +127,7 @@ public class ValueAnalysisRefiner
 
   // Statistics
   private final StatCounter rootRelocations = new StatCounter("Number of root relocations");
-  private final StatCounter repeatedRefinements =
-      new StatCounter("Number of similar, repeated refinements");
+  private final StatCounter repeatedRefinements = new StatCounter("Number of similar, repeated refinements");
 
   public static Refiner create(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {

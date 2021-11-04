@@ -79,7 +79,7 @@ class AutomatonTransition {
   /** The actions are applied after the assertion are checked successfully. */
   private final ImmutableList<AutomatonAction> actions;
 
-  private final StringExpression targetInformation;
+  private final StringExpression violatedPropertyDescription;
 
   /**
    * When the parser instances this class it can not assign a followstate because
@@ -98,7 +98,7 @@ class AutomatonTransition {
     private String followStateName;
     private @Nullable AutomatonInternalState followState;
     private ExpressionTree<AExpression> candidateInvariants;
-    private @Nullable StringExpression targetInformation;
+    private @Nullable StringExpression violatedPropertyDescription;
 
     Builder(AutomatonBoolExpr pTrigger, String pFollowStateName) {
       trigger = pTrigger;
@@ -139,8 +139,8 @@ class AutomatonTransition {
       return this;
     }
 
-    Builder withTargetInformation(StringExpression pTargetInformation) {
-      this.targetInformation = pTargetInformation;
+    Builder withViolatedPropertyDescription(StringExpression pViolatedPropertyDescription) {
+      this.violatedPropertyDescription = pViolatedPropertyDescription;
       return this;
     }
 
@@ -153,7 +153,7 @@ class AutomatonTransition {
           actions,
           followStateName,
           followState,
-          targetInformation);
+          violatedPropertyDescription);
     }
   }
 
@@ -166,7 +166,7 @@ class AutomatonTransition {
         b.actions,
         b.followStateName,
         b.followState,
-        b.targetInformation);
+        b.violatedPropertyDescription);
   }
 
   private AutomatonTransition(
@@ -177,7 +177,7 @@ class AutomatonTransition {
       List<AutomatonAction> pActions,
       String pFollowStateName,
       AutomatonInternalState pFollowState,
-      StringExpression pTargetInformation) {
+      StringExpression pViolatedPropertyDescription) {
 
     this.trigger = checkNotNull(pTrigger);
 
@@ -192,7 +192,7 @@ class AutomatonTransition {
     this.actions = ImmutableList.copyOf(pActions);
     this.followStateName = checkNotNull(pFollowStateName);
     this.followState = pFollowState;
-    this.targetInformation = pTargetInformation;
+    this.violatedPropertyDescription = pViolatedPropertyDescription;
 
     if (pAssertions.isEmpty()) {
       this.assertion = AutomatonBoolExpr.TRUE;
@@ -214,7 +214,7 @@ class AutomatonTransition {
   @Override
   public int hashCode() {
     return Objects.hash(
-        actions, assertion, assumptions, followStateName, trigger, targetInformation);
+        actions, assertion, assumptions, followStateName, trigger, violatedPropertyDescription);
   }
 
   @Override
@@ -233,7 +233,7 @@ class AutomatonTransition {
         && Objects.equals(assumptions, other.assumptions)
         && Objects.equals(followStateName, other.followStateName)
         && Objects.equals(trigger, other.trigger)
-        && Objects.equals(targetInformation, other.targetInformation);
+        && Objects.equals(violatedPropertyDescription, other.violatedPropertyDescription);
   }
 
   /**
@@ -244,8 +244,7 @@ class AutomatonTransition {
       followState = pAllStates.get(followStateName);
 
       if (followState == null) {
-        throw new InvalidAutomatonException(
-            "No Follow-State with name " + followStateName + " found.");
+        throw new InvalidAutomatonException("No Follow-State with name " + followStateName + " found.");
       }
     }
   }
@@ -273,9 +272,7 @@ class AutomatonTransition {
     for (AutomatonAction action : actions) {
       ResultValue<?> res = action.eval(pArgs);
       if (res.canNotEvaluate()) {
-        pArgs
-            .getLogger()
-            .log(Level.SEVERE, res.getFailureMessage() + " in " + res.getFailureOrigin());
+        pArgs.getLogger().log(Level.SEVERE, res.getFailureMessage() + " in " + res.getFailureOrigin());
       }
     }
     if (!isNullOrEmpty(pArgs.getLogMessage())) {
@@ -311,14 +308,14 @@ class AutomatonTransition {
     return trigger;
   }
 
-  public String getTargetInformation(AutomatonExpressionArguments pArgs) {
-    if (targetInformation == null) {
+  public String getViolatedPropertyDescription(AutomatonExpressionArguments pArgs) {
+    if (violatedPropertyDescription == null) {
       if (getFollowState().isTarget()) {
           return getFollowState().getName();
       }
       return null;
     }
-    return targetInformation.eval(pArgs).getValue();
+    return violatedPropertyDescription.eval(pArgs).getValue();
   }
 
   @Override

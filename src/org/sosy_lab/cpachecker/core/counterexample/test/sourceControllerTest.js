@@ -7,45 +7,46 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-describe("ReportController", () => {
-  let $rootScope;
-  let $scope;
-
-  beforeEach(() => {
-    angular.mock.module("report");
-
-    angular.mock.inject(($injector) => {
-      $rootScope = $injector.get("$rootScope");
-      $scope = $rootScope.$new();
-      $injector.get("$controller")("SourceController", {
+describe("ReportController", function () {
+    var $rootScope,
         $scope,
-      });
-    });
-    jasmine.getFixtures().fixturesPath = "base/";
-    jasmine.getFixtures().load("testReport.html");
-  });
+        controller;
 
-  describe("sourceFiles initialization", () => {
-    it("Should be defined", () => {
-      expect($scope.sourceFiles).not.toBeUndefined();
-    });
-  });
+    beforeEach(function () {
+        module('report');
 
-  describe("selectedSourceFile initialization", () => {
-    it("Should be defined", () => {
-      expect($scope.selectedSourceFile).not.toBeUndefined();
-    });
-  });
+        inject(function ($injector) {
+            $rootScope = $injector.get('$rootScope');
+            $scope = $rootScope.$new();
+            controller = $injector.get('$controller')("SourceController", {
+                $scope: $scope
+            });
+        })
+        jasmine.getFixtures().fixturesPath = 'base/';
+        jasmine.getFixtures().load('testReport.html');
+    })
 
-  describe("setSourceFile action handler", () => {
-    it("Should be defined", () => {
-      expect($scope.setSourceFile).not.toBeUndefined();
-    });
-  });
+    describe("sourceFiles initialization", function () {
+        it("Should be defined", function () {
+            expect($scope.sourceFiles).not.toBeUndefined();
+        })
+    })
 
-  describe("sourceFileIsSet action handler", () => {
-    it("Should be defined", () => {
-      expect($scope.sourceFileIsSet).not.toBeUndefined();
-    });
-  });
+    describe("selectedSourceFile initialization", function () {
+        it("Should be defined", function () {
+            expect($scope.selectedSourceFile).not.toBeUndefined();
+        })
+    })
+
+    describe("setSourceFile action handler", function () {
+        it("Should be defined", function () {
+            expect($scope.setSourceFile).not.toBeUndefined();
+        })
+    })
+
+    describe("sourceFileIsSet action handler", function () {
+        it("Should be defined", function () {
+            expect($scope.sourceFileIsSet).not.toBeUndefined();
+        })
+    })
 });

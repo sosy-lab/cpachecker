@@ -14,6 +14,7 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -48,7 +49,7 @@ public abstract class ErrorTracePrinter {
 
   @Option(name = "falseUnsafesOutput", description = "path to write results", secure = true)
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path outputFalseUnsafes = Path.of("FalseUnsafes");
+  private Path outputFalseUnsafes = Paths.get("FalseUnsafes");
 
   @Option(
     name = "filterMissedFiles",
@@ -95,10 +96,10 @@ public abstract class ErrorTracePrinter {
       return false;
     }
     FileLocation loc = e.getFileLocation();
-    if (loc == null || !loc.isRealLocation()) {
+    if (loc == null || loc.equals(FileLocation.DUMMY)) {
       return false;
     }
-    if (filterMissedFiles && !Files.exists(loc.getFileName())) {
+    if (filterMissedFiles && !Files.exists(Paths.get(loc.getFileName()))) {
       return false;
     }
     return true;
@@ -123,7 +124,7 @@ public abstract class ErrorTracePrinter {
   }
 
   protected String createUniqueName(SingleIdentifier id) {
-    return id.getType().toASTString("_" + id).replace(" ", "_");
+    return id.getType().toASTString("_" + id.toString()).replace(" ", "_");
   }
 
   public void printErrorTraces(UnmodifiableReachedSet reached) {
@@ -177,7 +178,7 @@ public abstract class ErrorTracePrinter {
             writer.append(createUniqueName(id) + "\n");
           }
         } catch (IOException e) {
-          logger.logUserException(Level.WARNING, e, "Could not write error trace");
+          logger.log(Level.SEVERE, e.getMessage());
         }
       }
     }

@@ -32,7 +32,7 @@ class SourceLocationMatcher {
         return true;
       }
       String fileName = this.originFileName.orElseThrow();
-      String fileLocationFileName = pFileLocation.getFileName().toString();
+      String fileLocationFileName = pFileLocation.getFileName();
       fileName = getBaseName(fileName);
       fileLocationFileName = getBaseName(fileLocationFileName);
       return fileName.equals(fileLocationFileName);

@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.smg;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import java.math.BigInteger;
@@ -36,11 +37,12 @@ import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.SingleConcr
 import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
 import org.sosy_lab.cpachecker.core.counterexample.LeftHandSide;
 import org.sosy_lab.cpachecker.core.counterexample.Memory;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ConcreteErrorPathAllocator;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -167,11 +169,13 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
 
   private Map<Address, Object> createHeapValues(SMGState pSMGState, SMGObjectAddressMap pAdresses) {
 
+    SMGHasValueEdges symbolicValues = pSMGState.getHeap().getHVEdges();
+
     Map<Address, Object> result = new HashMap<>();
 
-    for (SMGEdgeHasValue hvEdge : pSMGState.getHeap().getHVEdges()) {
+    for (SMGEdgeHasValue hvEdge : ImmutableSet.copyOf(symbolicValues)) {
 
-      SMGValue symbolicValue = hvEdge.getValue();
+      SMGKnownSymbolicValue symbolicValue = (SMGKnownSymbolicValue) hvEdge.getValue();
       BigInteger value = null;
 
       if (symbolicValue.isZero()) {

@@ -39,15 +39,8 @@ public class StatementWriter implements StatementVisitor<IOException>, Closeable
     if (pConfig.doIncludeHeader() || pConfig.getTargetStrategy() == TargetTreatment.ASSERTFALSE) {
       sb.append("#include <assert.h>\n");
     }
-    switch (pConfig.getTargetStrategy()) {
-      case VERIFIERERROR:
-        sb.append("extern void reach_error();\n");
-        break;
-      case REACHASMEMSAFETY:
-        sb.append("#include <stdlib.h>\n");
-        break;
-      default:
-        // no action needed
+    if (pConfig.getTargetStrategy() == TargetTreatment.VERIFIERERROR) {
+      sb.append("extern void __VERIFIER_error();\n");
     }
     sb.append("extern void __VERIFIER_assume();\n");
     sb.append("extern _Bool __VERIFIER_nondet_bool();\n");

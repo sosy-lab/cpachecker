@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.util.ci;
 
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.BufferedReader;
@@ -20,10 +20,12 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
-import java.util.Optional;
+import java.util.List;
 import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
@@ -61,7 +63,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -71,18 +72,20 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 public class AppliedCustomInstructionParser {
 
   private final ShutdownNotifier shutdownNotifier;
   private final LogManager logger;
   private final CFA cfa;
-  private final ImmutableMap<Integer, CFANode> numberToCFANode;
   private final GlobalVarCheckVisitor visitor = new GlobalVarCheckVisitor();
 
   public AppliedCustomInstructionParser(final ShutdownNotifier pShutdownNotifier, final LogManager pLogger,
@@ -90,12 +93,6 @@ public class AppliedCustomInstructionParser {
     shutdownNotifier = pShutdownNotifier;
     logger = pLogger;
     cfa = pCfa;
-
-    ImmutableMap.Builder<Integer, CFANode> nodeNumberToNode0 = ImmutableMap.builder();
-    for (CFANode node : cfa.getAllNodes()) {
-      nodeNumberToNode0.put(node.getNodeNumber(), node);
-    }
-    numberToCFANode = nodeNumberToNode0.build();
   }
 
   /**
@@ -113,8 +110,7 @@ public class AppliedCustomInstructionParser {
     try (BufferedReader br = Files.newBufferedReader(file)) {
       String line = br.readLine();
       if(line == null) {
-        throw new AppliedCustomInstructionParsingFailedException(
-            "Empty specification. Missing at least function name for custom instruction.");
+        throw new AppliedCustomInstructionParsingFailedException("Empty specification. Missing at least function name for custom instruction.");
       }
 
       ci = readCustomInstruction(line);
@@ -142,6 +138,7 @@ public class AppliedCustomInstructionParser {
     }
   }
 
+
   public CustomInstructionApplications parse(final CustomInstruction pCi, final Path file)
       throws AppliedCustomInstructionParsingFailedException, IOException, InterruptedException {
     try (BufferedReader br = Files.newBufferedReader(file)) {
@@ -152,6 +149,7 @@ public class AppliedCustomInstructionParser {
   private CustomInstructionApplications parseACIs(final BufferedReader br, final CustomInstruction ci)
       throws AppliedCustomInstructionParsingFailedException, IOException, InterruptedException {
     ImmutableMap.Builder<CFANode, AppliedCustomInstruction> map = new ImmutableMap.Builder<>();
+    CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo().orElseThrow();
 
     CFANode startNode;
     AppliedCustomInstruction aci;
@@ -163,7 +161,7 @@ public class AppliedCustomInstructionParser {
       if (line.isEmpty()) {
         continue;
       }
-      startNode = getCFANode(line);
+      startNode = getCFANode(line, cfaInfo);
       if (startNode == null) {
         continue;
       }
@@ -172,8 +170,8 @@ public class AppliedCustomInstructionParser {
       try {
         aci = ci.inspectAppliedCustomInstruction(startNode);
       } catch (InterruptedException ex) {
-        throw new AppliedCustomInstructionParsingFailedException(
-            "Parsing failed because of ShutdownNotifier: " + ex.getMessage());
+        throw new AppliedCustomInstructionParsingFailedException("Parsing failed because of ShutdownNotifier: "
+            + ex.getMessage());
       }
 
       map.put(startNode, aci);
@@ -184,15 +182,14 @@ public class AppliedCustomInstructionParser {
 
   /**
    * Creates a new CFANode with respect to the given parameters
-   *
    * @param pNodeID String
+   * @param cfaInfo CFAInfo
    * @return a new CFANode with respect to the given parameters
    * @throws AppliedCustomInstructionParsingFailedException if the node can't be created
    */
-  protected CFANode getCFANode(final String pNodeID)
-      throws AppliedCustomInstructionParsingFailedException {
+  protected CFANode getCFANode (final String pNodeID, final CFAInfo cfaInfo) throws AppliedCustomInstructionParsingFailedException{
     try{
-      return numberToCFANode.get(Integer.parseInt(pNodeID));
+      return cfaInfo.getNodeByNodeNumber(Integer.parseInt(pNodeID));
     } catch (NumberFormatException ex) {
       throw new AppliedCustomInstructionParsingFailedException
         ("It is not possible to parse " + pNodeID + " to an integer!", ex);
@@ -201,15 +198,13 @@ public class AppliedCustomInstructionParser {
 
   /**
    * Creates a ImmutableSet out of the given String[].
-   *
    * @param pNodes String[]
    * @return Immutable Set of CFANodes out of the String[]
    */
-  protected ImmutableSet<CFANode> getCFANodes(final String[] pNodes)
-      throws AppliedCustomInstructionParsingFailedException {
+  protected ImmutableSet<CFANode> getCFANodes (final String[] pNodes, final CFAInfo cfaInfo) throws AppliedCustomInstructionParsingFailedException {
     ImmutableSet.Builder<CFANode> builder = new ImmutableSet.Builder<>();
     for (String pNode : pNodes) {
-      builder.add(getCFANode(pNode));
+      builder.add(getCFANode(pNode, cfaInfo));
     }
     return builder.build();
   }
@@ -233,14 +228,12 @@ public class AppliedCustomInstructionParser {
 
     CFANode pred;
 
-    // search for CFALabelNode with label "start_ci"
+    // search for CLabelNode with label "start_ci"
     while (!queue.isEmpty()) {
       shutdownNotifier.shutdownIfNecessary();
       pred = queue.poll();
 
-      if (pred instanceof CFALabelNode
-          && ((CFALabelNode) pred).getLabel().equals("start_ci")
-          && pred.getFunctionName().equals(functionName)) {
+      if (pred instanceof CLabelNode && ((CLabelNode) pred).getLabel().equals("start_ci") && pred.getFunctionName().equals(functionName)) {
         ciStartNode = pred;
         break;
       }
@@ -255,8 +248,7 @@ public class AppliedCustomInstructionParser {
     }
 
     if (ciStartNode == null) {
-      throw new AppliedCustomInstructionParsingFailedException(
-          "Missing label for start of custom instruction");
+      throw new AppliedCustomInstructionParsingFailedException("Missing label for start of custom instruction");
     }
 
     Queue<Pair<CFANode, Set<String>>> pairQueue = new ArrayDeque<>();
@@ -278,7 +270,7 @@ public class AppliedCustomInstructionParser {
       predOutputVars = nextNode.getSecond();
 
       // pred is endNode of CI -> store pred in Collection of endNodes
-      if (pred instanceof CFALabelNode && ((CFALabelNode) pred).getLabel().startsWith("end_ci_")) {
+      if (pred instanceof CLabelNode && ((CLabelNode)pred).getLabel().startsWith("end_ci_")) {
         CFAUtils.predecessorsOf(pred).copyInto(ciEndNodes);
         continue;
       }
@@ -314,19 +306,20 @@ public class AppliedCustomInstructionParser {
     }
 
     if (usesMultiEdges) {
-      logger.log(
-          Level.WARNING,
-          "Multi edges used in custom instruction. Results may be unreliable. Disable option"
-              + " cfa.useMultiEdges to get reliable results.");
+      logger.log(Level.WARNING, "Multi edges used in custom instruction. Results may be unreliable. Disable option cfa.useMultiEdges to get reliable results.");
     }
 
     if (ciEndNodes.isEmpty()) {
-      throw new AppliedCustomInstructionParsingFailedException(
-          "Missing label for end of custom instruction");
+      throw new AppliedCustomInstructionParsingFailedException("Missing label for end of custom instruction");
     }
 
-    ImmutableList<String> outputVariablesAsList = ImmutableList.sortedCopyOf(outputVariables);
-    ImmutableList<String> inputVariablesAsList = ImmutableList.sortedCopyOf(inputVariables);
+    List<String> outputVariablesAsList = new ArrayList<>(outputVariables);
+
+    Collections.sort(outputVariablesAsList);
+
+    List<String> inputVariablesAsList = new ArrayList<>(inputVariables);
+
+    Collections.sort(inputVariablesAsList);
 
     return new CustomInstruction(ciStartNode, ciEndNodes, inputVariablesAsList, outputVariablesAsList, shutdownNotifier);
   }
@@ -381,7 +374,7 @@ public class AppliedCustomInstructionParser {
     else if (pLeavingEdge instanceof CReturnStatementEdge) {
       Optional<CExpression> edgeExp = ((CReturnStatementEdge) pLeavingEdge).getExpression();
       if (edgeExp.isPresent()) {
-        return CFAUtils.getVariableNamesOfExpression(edgeExp.orElseThrow()).toSet();
+        return CFAUtils.getVariableNamesOfExpression(edgeExp.get()).toSet();
       }
     }
 
@@ -498,9 +491,8 @@ public class AppliedCustomInstructionParser {
       }
       break;
     case ReturnStatementEdge:
-        if (((CReturnStatementEdge) pLeave).getExpression().isPresent()) {
-          return ((CReturnStatementEdge) pLeave).getExpression().orElseThrow().accept(visitor);
-        }
+      if (((CReturnStatementEdge) pLeave).getExpression().isPresent()) { return ((CReturnStatementEdge) pLeave)
+          .getExpression().get().accept(visitor); }
       break;
     case FunctionCallEdge:
       for (CExpression exp : ((CFunctionCallEdge) pLeave).getArguments()) {

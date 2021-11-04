@@ -9,10 +9,11 @@
 package org.sosy_lab.cpachecker.util.statistics;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
@@ -37,7 +38,9 @@ public class StatisticsSeries<T> {
   }
 
   Collection<DataObject<T>> getSeries() {
-    return ImmutableList.sortedCopyOf(series);
+    List<DataObject<T>> result = new ArrayList<>(series);
+    result.sort(null);
+    return result;
   }
 
   long getStartTime() {

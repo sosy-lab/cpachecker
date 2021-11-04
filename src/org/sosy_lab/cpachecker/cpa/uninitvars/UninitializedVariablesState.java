@@ -29,11 +29,7 @@ public class UninitializedVariablesState implements AbstractQueryableState, Seri
 
   private final Collection<Triple<Integer, String, String>> warnings;
 
-  enum ElementProperty {
-    UNINITIALIZED_RETURN_VALUE,
-    UNINITIALIZED_VARIABLE_USED
-  }
-
+  static enum ElementProperty {UNINITIALIZED_RETURN_VALUE, UNINITIALIZED_VARIABLE_USED}
   private Set<ElementProperty> properties = EnumSet.noneOf(ElementProperty.class); // emptySet
 
   public UninitializedVariablesState(String entryFunction) {
@@ -186,12 +182,7 @@ public class UninitializedVariablesState implements AbstractQueryableState, Seri
        prop = ElementProperty.valueOf(pProperty);
     } catch (IllegalArgumentException e) {
       // thrown if the Enum does not contain the property
-      throw new InvalidQueryException(
-          "The Query \""
-              + pProperty
-              + "\" is not defined for this CPA (\""
-              + this.getCPAName()
-              + "\"");
+      throw new InvalidQueryException("The Query \"" + pProperty + "\" is not defined for this CPA (\""+ this.getCPAName() + "\"");
     }
     return this.properties.contains(prop);
   }

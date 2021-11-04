@@ -130,14 +130,13 @@ public class LiveVariables {
                     min=0)
     private TimeSpan overallLivenessCheckTime = TimeSpan.ofNanos(0);
 
-    @Option(
-        secure = true,
-        description =
-            "Timelimit for collecting the liveness information with one approach, (p.e. if global"
-                + " analysis is selected and fails in the specified timelimit the function wise"
-                + " approach will have the same time-limit afterwards to compute the live"
-                + " variables).(use seconds or specify a unit; 0 for infinite)")
-    @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = 0)
+    @Option(secure=true, description="Timelimit for collecting the liveness information with one approach,"
+        + " (p.e. if global analysis is selected and fails in the specified timelimit the function wise approach"
+        + " will have the same time-limit afterwards to compute the live variables)."
+        + "(use seconds or specify a unit; 0 for infinite)")
+    @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
+                    defaultUserUnit=TimeUnit.SECONDS,
+                    min=0)
     private TimeSpan partwiseLivenessCheckTime = TimeSpan.ofSeconds(20);
 
     public LiveVariablesConfiguration(Configuration config) throws InvalidConfigurationException {
@@ -244,12 +243,10 @@ public class LiveVariables {
         TreeMultimap.create(Comparator.naturalOrder(), declarationOrdering);
     sortedLiveVariables.putAll(pLiveVariables);
     liveVariables = ImmutableSetMultimap.copyOf(sortedLiveVariables);
-    assert pLiveVariables.size() == liveVariables.size()
-        : "ASimpleDeclarations with identical qualified names";
+    assert pLiveVariables.size() == liveVariables.size() : "ASimpleDeclarations with identical qualified names";
 
     globalVariables = ImmutableSortedSet.copyOf(declarationOrdering, pGlobalVariables);
-    assert pGlobalVariables.size() == globalVariables.size()
-        : "Global ASimpleDeclarations with identical qualified names";
+    assert pGlobalVariables.size() == globalVariables.size() : "Global ASimpleDeclarations with identical qualified names";
 
     variableClassification = pVariableClassification;
     evaluationStrategy = pEvaluationStrategy;
@@ -338,7 +335,7 @@ public class LiveVariables {
     }
 
     // we need a cfa with variableClassification, thus we create one now
-    CFA cfa = pCFA.makeImmutableCFA(variableClassification);
+    CFA cfa = pCFA.makeImmutableCFA(variableClassification, Optional.empty());
 
     // create configuration object, so that we know which analysis strategy should
     // be chosen later on
@@ -436,9 +433,7 @@ public class LiveVariables {
     // an absent optional, but before we try the function-wise analysis if we
     // did not yet use it
     if (liveVariables == null && config.evaluationStrategy != EvaluationStrategy.FUNCTION_WISE) {
-      logger.log(
-          Level.INFO,
-          "Global live variables collection failed, fallback to function-wise analysis.");
+      logger.log(Level.INFO, "Global live variables collection failed, fallback to function-wise analysis.");
       config.evaluationStrategy = EvaluationStrategy.FUNCTION_WISE;
       return create0(
           variableClassification,
@@ -568,12 +563,12 @@ public class LiveVariables {
       ReachedSetFactory reachedFactory = new ReachedSetFactory(config, logger);
       ConfigurableProgramAnalysis cpa =
           new CPABuilder(config, logger, shutdownNotifier, reachedFactory)
-              .buildCPAs(cfa, Specification.alwaysSatisfied(), AggregatedReachedSets.empty());
+              .buildCPAs(cfa, Specification.alwaysSatisfied(), new AggregatedReachedSets());
       Algorithm algorithm = CPAAlgorithm.create(cpa,
                                                 logger,
                                                 config,
                                                 shutdownNotifier);
-      ReachedSet reached = reachedFactory.create(cpa);
+      ReachedSet reached = reachedFactory.create();
       return Optional.of(new AnalysisParts(cpa, algorithm, reached));
 
     } catch (InvalidConfigurationException | CPAException e) {

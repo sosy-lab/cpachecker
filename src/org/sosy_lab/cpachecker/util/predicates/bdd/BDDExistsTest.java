@@ -53,6 +53,8 @@ public class BDDExistsTest {
     complete = nrm.makeAnd(complete, r0);
 
     Region reduced = nrm.makeExists(complete, r1, r2);
-    assertWithMessage(nrm.dumpRegion(reduced).toString()).that(reduced).isEqualTo(r0);
+    assertWithMessage(new StringBuilder().append(nrm.dumpRegion(reduced)).toString())
+        .that(reduced)
+        .isEqualTo(r0);
   }
 }

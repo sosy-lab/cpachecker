@@ -33,8 +33,7 @@ public class ExtendedWitnessExporter extends WitnessExporter {
       final ARGState pRootState,
       final Predicate<? super ARGState> pIsRelevantState,
       final BiPredicate<ARGState, ARGState> pIsRelevantEdge,
-      CounterexampleInfo pCounterExample)
-      throws InterruptedException {
+      CounterexampleInfo pCounterExample) {
 
     String defaultFileName = getInitialFileName(pRootState);
     WitnessFactory writer =

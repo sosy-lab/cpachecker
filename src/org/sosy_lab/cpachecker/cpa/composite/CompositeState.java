@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.PseudoPartitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.cpa.arg.Splitable;
@@ -58,12 +59,12 @@ public class CompositeState
   }
 
   @Override
-  public Set<TargetInformation> getTargetInformation() throws IllegalStateException {
+  public Set<Property> getViolatedProperties() throws IllegalStateException {
     checkState(isTarget());
-    ImmutableSet.Builder<TargetInformation> properties = ImmutableSet.builder();
+    ImmutableSet.Builder<Property> properties = ImmutableSet.builder();
     for (AbstractState element : states) {
       if ((element instanceof Targetable) && ((Targetable)element).isTarget()) {
-        properties.addAll(((Targetable) element).getTargetInformation());
+        properties.addAll(((Targetable)element).getViolatedProperties());
       }
     }
     return properties.build();
@@ -184,7 +185,9 @@ public class CompositeState
     return pseudoHashCode;
   }
 
-  private static final class CompositePartitionKey {
+  private static final class CompositePartitionKey implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     private final Object[] keys;
 
@@ -218,7 +221,9 @@ public class CompositeState
 
   @SuppressWarnings("rawtypes")
   private static final class CompositePseudoPartitionKey
-      implements Comparable<CompositePseudoPartitionKey> {
+      implements Comparable<CompositePseudoPartitionKey>, Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     private final Comparable<?>[] keys;
 

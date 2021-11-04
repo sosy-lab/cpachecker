@@ -49,6 +49,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -57,7 +58,6 @@ import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -78,7 +78,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.specification.Property;
-import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
+import org.sosy_lab.cpachecker.core.specification.Property.CommonPropertyType;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonIntVariable;
 import org.sosy_lab.cpachecker.cpa.automaton.CParserUtils.ParserTools;
@@ -138,9 +138,7 @@ public class AutomatonGraphmlParser {
 
   public static final String WITNESS_AUTOMATON_NAME = "WitnessAutomaton";
 
-  @Option(
-      secure = true,
-      description = "Consider assumptions that are provided with the path automaton?")
+  @Option(secure=true, description="Consider assumptions that are provided with the path automaton?")
   private boolean considerAssumptions = true;
 
   @Option(
@@ -149,10 +147,7 @@ public class AutomatonGraphmlParser {
   )
   private boolean stopNotBreakAtSinkStates = true;
 
-  @Option(
-      secure = true,
-      description =
-          "Match the line numbers within the origin (mapping done by preprocessor line markers).")
+  @Option(secure=true, description="Match the line numbers within the origin (mapping done by preprocessor line markers).")
   private boolean matchOriginLine = true;
 
   @Option(secure=true, description="Match the character offset within the file.")
@@ -162,17 +157,17 @@ public class AutomatonGraphmlParser {
   private boolean matchAssumeCase = true;
 
   @Option(
-      secure = true,
-      description =
-          "Check that the value of the programhash field of the witness matches the SHA-256 hash"
-              + " value computed for the source code.")
+    secure = true,
+    description =
+        "Check that the value of the programhash field of the witness matches the SHA-256 hash value computed for the source code."
+  )
   private boolean checkProgramHash = true;
 
   @Option(
-      secure = true,
-      description =
-          "Enforce strict validity checks regarding the witness format, such as checking for the"
-              + " presence of required fields.")
+    secure = true,
+    description =
+        "Enforce strict validity checks regarding the witness format, such as checking for the presence of required fields."
+  )
   private boolean strictChecking = true;
 
   @Option(
@@ -201,27 +196,24 @@ public class AutomatonGraphmlParser {
       secure = true,
       name = "optimizeInvariantsSpecificationAutomaton",
       description =
-          "remove assumptions from transitions in the ISA where they are not strictly"
-              + " neccessary.This option is intended to be used with an ISA (c.f. option"
-              + " witness.invariantsSpecificationAutomaton)")
+          "remove assumptions from transitions in the ISA where they are not strictly neccessary."
+              + "This option is intended to be used with an ISA (c.f. option witness.invariantsSpecificationAutomaton)")
   private boolean optimizeISA = true;
 
   @Option(
       secure = true,
       name = "checkInvariantViolations",
       description =
-          "remove assumptions from transitions in the ISA where they are not strictly"
-              + " neccessary.This option is intended to be used with an ISA (c.f. option"
-              + " witness.invariantsSpecificationAutomaton)")
+          "remove assumptions from transitions in the ISA where they are not strictly neccessary."
+              + "This option is intended to be used with an ISA (c.f. option witness.invariantsSpecificationAutomaton)")
   private boolean checkInvariantViolations = true;
 
   @Option(
       secure = true,
       name = "useInvariantsAsAssumptions",
       description =
-          "remove assumptions from transitions in the ISA where they are not strictly"
-              + " neccessary.This option is intended to be used with an ISA (c.f. option"
-              + " witness.invariantsSpecificationAutomaton)")
+          "remove assumptions from transitions in the ISA where they are not strictly neccessary."
+              + "This option is intended to be used with an ISA (c.f. option witness.invariantsSpecificationAutomaton)")
   private boolean useInvariantsAsAssumptions = true;
 
   private Scope scope;
@@ -329,8 +321,7 @@ public class AutomatonGraphmlParser {
       } catch (IOException e) {
         // logger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
       }
-      Path automatonFile =
-          automatonDumpFile.resolveSibling(automatonDumpFile.getFileName() + ".spc");
+      Path automatonFile = automatonDumpFile.resolveSibling(automatonDumpFile.getFileName() + ".spc");
       try (Writer w = IO.openOutputFile(automatonFile, Charset.defaultCharset())) {
         w.write(automaton.toString());
       } catch (IOException e) {
@@ -507,9 +498,7 @@ public class AutomatonGraphmlParser {
     // Check that there are no invariants in a violation witness
     if (!ExpressionTrees.getTrue().equals(candidateInvariants)
         && pGraphMLParserState.getWitnessType() == WitnessType.VIOLATION_WITNESS
-        && !pGraphMLParserState
-            .getSpecificationTypes()
-            .contains(CommonVerificationProperty.TERMINATION)) {
+        && !pGraphMLParserState.getSpecificationTypes().contains(CommonPropertyType.TERMINATION)) {
       throw new WitnessParseException(
           "Invariants are not allowed for violation witnesses.");
     }
@@ -877,7 +866,7 @@ public class AutomatonGraphmlParser {
   }
 
   private Optional<String> getFunction(
-      @SuppressWarnings("unused") AutomatonGraphmlParserState pGraphmlParserState,
+      AutomatonGraphmlParserState pGraphmlParserState,
       GraphMLThread pThread,
       Optional<String> pFunctionName)
       throws WitnessParseException {
@@ -885,8 +874,10 @@ public class AutomatonGraphmlParser {
         || !cfa.getAllFunctionNames().contains(pFunctionName.orElseThrow())) {
       return pFunctionName;
     }
-    if (pFunctionName.isPresent()) {
-      return pFunctionName;
+    Optional<String> functionName =
+        pGraphmlParserState.getFunctionForThread(pThread, pFunctionName.orElseThrow());
+    if (functionName.isPresent()) {
+      return functionName;
     }
     throw new WitnessParseException(
         String.format(
@@ -1160,10 +1151,13 @@ public class AutomatonGraphmlParser {
         GraphMLDocumentData.getDataOnNode(pTransition, KeyDef.ENTERLOOPHEAD);
     if (!loopHeadFlags.isEmpty()) {
       Set<Boolean> loopHeadFlagValues =
-          Collections3.transformedImmutableSetCopy(loopHeadFlags, Boolean::parseBoolean);
+          loopHeadFlags.stream().map(Boolean::parseBoolean).collect(Collectors.toSet());
       if (loopHeadFlagValues.size() > 1) {
         throw new WitnessParseException(
-            "Conflicting values for the flag " + KeyDef.ENTERLOOPHEAD + ": " + loopHeadFlags);
+            "Conflicting values for the flag "
+                + KeyDef.ENTERLOOPHEAD
+                + ": "
+                + loopHeadFlags.toString());
       }
       if (loopHeadFlagValues.iterator().next()) {
         return true;
@@ -1339,11 +1333,7 @@ public class AutomatonGraphmlParser {
    */
   private static Optional<GraphMLTransition.GraphMLThread> getThread(
       Node pTransition, NumericIdProvider pNumericIdProvider) throws WitnessParseException {
-    return parseThreadId(
-        pTransition,
-        pNumericIdProvider,
-        KeyDef.THREADID,
-        "At most one threadId tag must be provided for each transition.");
+    return parseThreadId(pTransition, pNumericIdProvider, KeyDef.THREADID, "At most one threadId tag must be provided for each transition.");
   }
 
   /**
@@ -1574,7 +1564,7 @@ public class AutomatonGraphmlParser {
   private Set<Property> getSpecAsProperties(final Node pAutomaton) {
     Set<String> specText = GraphMLDocumentData.getDataOnNode(pAutomaton, KeyDef.SPECIFICATION);
     if (specText.isEmpty()) {
-      return ImmutableSet.of(CommonVerificationProperty.REACHABILITY);
+      return ImmutableSet.of(CommonPropertyType.REACHABILITY);
     } else {
       ImmutableSet.Builder<Property> properties =
           ImmutableSet.builderWithExpectedSize(specText.size());
@@ -1601,13 +1591,13 @@ public class AutomatonGraphmlParser {
       prop = pProperty;
     }
 
-    for (CommonVerificationProperty propType : CommonVerificationProperty.values()) {
+    for (CommonPropertyType propType : CommonPropertyType.values()) {
       if (propType.toString().equals(prop)) {
         return propType;
       }
     }
 
-    return CommonVerificationProperty.valueOf(prop.trim());
+    return CommonPropertyType.valueOf(prop.trim());
   }
 
   private static String transitionToString(Node pTransition) {
@@ -1681,12 +1671,10 @@ public class AutomatonGraphmlParser {
           messageBuilder.append("The value <");
           messageBuilder.append(invalidHashes.iterator().next());
           messageBuilder.append(
-              "> given as hash value of the program source code is not a valid SHA-256 hash value"
-                  + " for any program.");
+              "> given as hash value of the program source code is not a valid SHA-256 hash value for any program.");
         } else {
           messageBuilder.append(
-              "None of the following values given as hash values of the program source code is a"
-                  + " valid SHA-256 hash value for any program: ");
+              "None of the following values given as hash values of the program source code is a valid SHA-256 hash value for any program: ");
           for (String invalidHash : invalidHashes) {
             messageBuilder.append("<");
             messageBuilder.append(invalidHash);
@@ -1806,7 +1794,7 @@ public class AutomatonGraphmlParser {
             .withCandidateInvariants(pCandidateInvariants)
             .withActions(pActions);
     if (pLeadsToViolationNode) {
-      return new TargetInformationCopyingAutomatonTransition(builder);
+      return new ViolationCopyingAutomatonTransition(builder);
     }
     return builder.build();
   }
@@ -1824,18 +1812,19 @@ public class AutomatonGraphmlParser {
                 .withAssertions(pAssertions)
                 .withActions(pActions);
     if (pLeadsToViolationNode) {
-      return new TargetInformationCopyingAutomatonTransition(builder);
+      return new ViolationCopyingAutomatonTransition(builder);
     }
     return builder.build();
   }
 
   private static AutomatonTransition createAutomatonInvariantErrorTransition(
       AutomatonBoolExpr pTriggers, List<AExpression> pAssumptions) {
+    StringExpression violatedPropertyDesc = new StringExpression("Invariant not valid");
     AutomatonInternalState followErrorState = AutomatonInternalState.ERROR;
 
     return new AutomatonTransition.Builder(pTriggers, followErrorState)
         .withAssumptions(pAssumptions)
-        .withTargetInformation(new StringExpression("Invariant not valid"))
+        .withViolatedPropertyDescription(violatedPropertyDesc)
         .build();
   }
 
@@ -1944,36 +1933,41 @@ public class AutomatonGraphmlParser {
     return result;
   }
 
-  private static class TargetInformationCopyingAutomatonTransition extends AutomatonTransition {
+  private static class ViolationCopyingAutomatonTransition extends AutomatonTransition {
 
-    private TargetInformationCopyingAutomatonTransition(Builder pBuilder) {
+    private ViolationCopyingAutomatonTransition(Builder pBuilder) {
       super(pBuilder);
     }
 
     @Override
-    public String getTargetInformation(AutomatonExpressionArguments pArgs) {
-      String own = getFollowState().isTarget() ? super.getTargetInformation(pArgs) : null;
-      Set<String> targetInformationDescriptions = new LinkedHashSet<>();
+    public String getViolatedPropertyDescription(AutomatonExpressionArguments pArgs) {
+      String own = getFollowState().isTarget() ? super.getViolatedPropertyDescription(pArgs) : null;
+      Set<String> violatedPropertyDescriptions = new LinkedHashSet<>();
 
       if (!Strings.isNullOrEmpty(own)) {
-        targetInformationDescriptions.add(own);
+        violatedPropertyDescriptions.add(own);
       }
 
       for (AutomatonState other : FluentIterable.from(pArgs.getAbstractStates()).filter(AutomatonState.class)) {
         if (other != pArgs.getState() && other.getInternalState().isTarget()) {
-          other
-              .getOptionalTargetInformation()
-              .map(Object::toString)
-              .filter(s -> !s.isEmpty())
-              .ifPresent(targetInformationDescriptions::add);
+          String violatedPropDesc = "";
+
+          Optional<AutomatonSafetyProperty> violatedProperty = other.getOptionalViolatedPropertyDescription();
+          if (violatedProperty.isPresent()) {
+            violatedPropDesc = violatedProperty.orElseThrow().toString();
+          }
+
+          if (!violatedPropDesc.isEmpty()) {
+            violatedPropertyDescriptions.add(violatedPropDesc);
+          }
         }
       }
 
-      if (targetInformationDescriptions.isEmpty() && own == null) {
+      if (violatedPropertyDescriptions.isEmpty() && own == null) {
         return null;
       }
 
-      return Joiner.on(',').join(targetInformationDescriptions);
+      return Joiner.on(',').join(violatedPropertyDescriptions);
     }
 
   }
@@ -2107,8 +2101,7 @@ public class AutomatonGraphmlParser {
       saxParser = SAXParserFactory.newInstance().newSAXParser();
     } catch (ParserConfigurationException | SAXException e) {
       throw new AssertionError(
-          "SAX parser configured incorrectly. Could not determine whether or not the file describes"
-              + " a witness automaton.",
+          "SAX parser configured incorrectly. Could not determine whether or not the file describes a witness automaton.",
           e);
     }
     DefaultHandler defaultHandler = new DefaultHandler();
@@ -2231,7 +2224,7 @@ public class AutomatonGraphmlParser {
   private static String getMessage(Throwable pException) {
     String message = pException.getMessage();
     if (message == null) {
-      message = "Exception occurred, but details are unknown: " + pException;
+      message = "Exception occurred, but details are unknown: " + pException.toString();
     }
     if (pException instanceof IOException) {
       return String.format("Error while accessing witness file: %s!", message);
@@ -2239,7 +2232,7 @@ public class AutomatonGraphmlParser {
     return message;
   }
 
-  private interface InputHandler<T, E extends Throwable> {
+  private static interface InputHandler<T, E extends Throwable> {
 
     T handleInput(InputStream pInputStream) throws E, IOException, InterruptedException;
   }

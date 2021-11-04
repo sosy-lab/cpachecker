@@ -23,16 +23,20 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
+import com.google.common.io.CharStreams;
 import com.google.common.reflect.ClassPath;
 import com.google.common.reflect.ClassPath.ResourceInfo;
 import com.google.common.testing.TestLogHandler;
 import com.google.common.truth.Expect;
 import java.io.IOException;
+import java.io.Reader;
+import java.io.Writer;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
+import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Objects;
@@ -61,6 +65,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.ConsoleLogFormatter;
 import org.sosy_lab.common.log.LogManager;
@@ -78,22 +83,18 @@ public class ConfigurationFileChecks {
 
   private static final Pattern INDICATES_MISSING_FILES =
       Pattern.compile(
-          ".*File .* does not exist.*|.*Witness file is missing in specification.*|.*Configuration"
-              + " requires exactly one specification automaton, but none were given.*|.*Could not"
-              + " read precision from file.*|.*The SMT solver MATHSAT5 is not available on this"
-              + " machine because of missing libraries \\(no optimathsat5j in"
-              + " java\\.library\\.path.*",
+          ".*File .* does not exist.*|.*Witness file is missing in specification.*|.*Could not read precision from file.*"
+              + "|.*The SMT solver MATHSAT5 is not available on this machine because of missing libraries \\(no optimathsat5j in java\\.library\\.path.*",
           Pattern.DOTALL);
 
   private static final Pattern ALLOWED_WARNINGS =
       Pattern.compile(
-          "The following configuration options were specified but are not used:.*|MathSAT5 is"
-              + " available for research and evaluation purposes only.*|Using unsound approximation"
-              + " of (ints with (unbounded integers|rationals))?( and )?(floats with (unbounded"
-              + " integers|rationals))? for encoding program semantics.|Handling of pointer"
-              + " aliasing is disabled, analysis is unsound if aliased pointers exist.|Finding"
-              + " target locations was interrupted.*|.*One of the parallel analyses has finished"
-              + " successfully, cancelling all other runs.*",
+          "The following configuration options were specified but are not used:.*"
+              + "|MathSAT5 is available for research and evaluation purposes only.*"
+              + "|Using unsound approximation of (ints with (unbounded integers|rationals))?( and )?(floats with (unbounded integers|rationals))? for encoding program semantics."
+              + "|Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist."
+              + "|Finding target locations was interrupted.*"
+              + "|.*One of the parallel analyses has finished successfully, cancelling all other runs.*",
           Pattern.DOTALL);
 
   private static final Pattern PARALLEL_ALGORITHM_ALLOWED_WARNINGS_AFTER_SUCCESS =
@@ -103,14 +104,12 @@ public class ConfigurationFileChecks {
 
   private static final Pattern MPI_PORTFOLIO_ALGORITHM_ALLOWED_WARNINGS_FOR_MISSING_LIBS =
       Pattern.compile(
-          "Invalid configuration (mpiexec is required for performing the portfolio-analysis, but"
-              + " could not find it in PATH)",
+          "Invalid configuration (mpiexec is required for performing the portfolio-analysis, but could not find it in PATH)",
           Pattern.DOTALL);
 
   private static final Pattern UNMAINTAINED_CPA_WARNING =
       Pattern.compile(
-          "Using ConfigurableProgramAnalysis .*, which is unmaintained and may not work"
-              + " correctly\\.");
+          "Using ConfigurableProgramAnalysis .*, which is unmaintained and may not work correctly\\.");
 
   private static final ImmutableSet<String> UNUSED_OPTIONS =
       ImmutableSet.of(
@@ -131,11 +130,8 @@ public class ConfigurationFileChecks {
           "overflow.config",
           "termination.config",
           "termination.violation.witness",
-          // handled by WitnessOptions when path to witness is specified with -witness
           "witness.validation.violation.config",
-          "witness.validation.correctness.acsl",
           "witness.validation.correctness.config",
-          "witness.validation.correctness.isa",
           "pcc.proofgen.doPCC",
           "pcc.strategy",
           "pcc.cmc.configFiles",
@@ -209,9 +205,7 @@ public class ConfigurationFileChecks {
     private TimeSpan cpuTimeRequired = TimeSpan.ofNanos(-1);
   }
 
-  private static final Path CONFIG_DIR = Path.of("config");
-  private static final Path SPEC_DIR = CONFIG_DIR.resolve("specification");
-  private static final Path OUTPUT_DIR = Path.of("output");
+  private static final Path CONFIG_DIR = Paths.get("config");
 
   @Parameters(name = "{0}")
   public static Object[] getConfigFiles() throws IOException {
@@ -222,10 +216,11 @@ public class ConfigurationFileChecks {
             .filter(resource -> resource.getResourceName().endsWith(".properties"))
             .filter(resource -> resource.getResourceName().contains("cpachecker"))
             .map(ResourceInfo::url);
-    try (Stream<Path> configFiles =
-        Files.walk(CONFIG_DIR)
-            .filter(path -> path.getFileName().toString().endsWith(".properties"))
-            .sorted()) {
+    try (@SuppressWarnings("StreamResourceLeak") // https://github.com/google/error-prone/issues/893
+        Stream<Path> configFiles =
+            Files.walk(CONFIG_DIR)
+                .filter(path -> path.getFileName().toString().endsWith(".properties"))
+                .sorted()) {
       return Stream.concat(configResources, configFiles).toArray();
     }
   }
@@ -251,7 +246,7 @@ public class ConfigurationFileChecks {
     if (pConfigFile instanceof Path) {
       configFile = (Path) pConfigFile;
     } else if (pConfigFile instanceof URL) {
-      configFile = Path.of(((URL) pConfigFile).toURI());
+      configFile = Paths.get(((URL) pConfigFile).toURI());
     } else {
       throw new AssertionError("Unexpected config file " + pConfigFile);
     }
@@ -288,7 +283,6 @@ public class ConfigurationFileChecks {
     checkOption(config, "java.sourcepath");
     checkOption(config, "java.version");
     checkOption(config, "parser.usePreprocessor");
-    checkOption(config, "parser.useClang");
 
     if (!configFile.toString().contains("ldv")) {
       // LDV configs are specific to their use case, so these options are allowed
@@ -324,8 +318,7 @@ public class ConfigurationFileChecks {
     if (config.hasProperty(option)) {
       expect
           .withMessage(
-              "Configuration has value for option %s with value '%s', which should usually not be"
-                  + " present in config files",
+              "Configuration has value for option %s with value '%s', which should usually not be present in config files",
               option, config.getProperty(option))
           .fail();
     }
@@ -336,7 +329,7 @@ public class ConfigurationFileChecks {
       return false;
     }
     Path basePath = CONFIG_DIR.relativize((Path) configFile);
-    return basePath.getName(0).equals(Path.of("unmaintained"));
+    return basePath.getName(0).equals(Paths.get("unmaintained"));
   }
 
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
@@ -344,30 +337,46 @@ public class ConfigurationFileChecks {
   @BeforeClass
   public static void createDummyInputFiles() throws IOException {
     // Create files that some analyses expect as input files.
-    Files.createDirectories(OUTPUT_DIR);
-    Files.copy(
-        Path.of("test/config/automata/AssumptionAutomaton.spc"),
-        OUTPUT_DIR.resolve("AssumptionAutomaton.txt"),
-        StandardCopyOption.REPLACE_EXISTING);
+    copyFile("test/config/automata/AssumptionAutomaton.spc", "output/AssumptionAutomaton.txt");
   }
 
   @Before
   public void createDummyInputAutomatonFiles() throws IOException {
     // Create files that some analyses expect as input files.
-    tempFolder.newFile("Goals.txt");
-    Path tmpSpecDir = tempFolder.newFolder(SPEC_DIR.toString()).toPath();
 
-    for (String file :
-        ImmutableList.of(
-            "AssumptionGuidingAutomaton.spc",
-            "modifications-present.spc",
-            "TargetState.spc",
-            "test-comp-terminatingfunctions.spc")) {
-      Files.copy(SPEC_DIR.resolve(file), tmpSpecDir.resolve(file));
+    copyFile(
+        "config/specification/AssumptionGuidingAutomaton.spc",
+        tempFolder.newFolder("config").getAbsolutePath(),
+        "specification/AssumptionGuidingAutomaton.spc");
+    copyFile(
+        "test/config/automata/AssumptionAutomaton.spc",
+        tempFolder.newFolder("output").getAbsolutePath(),
+        "AssumptionAutomaton.txt");
+    copyFile(
+        "config/specification/modifications-present.spc",
+        tempFolder.getRoot().getAbsolutePath(),
+        "config/specification/modifications-present.spc");
+    copyFile(
+        "config/specification/TargetState.spc",
+        tempFolder.getRoot().getAbsolutePath(),
+        "config/specification/TargetState.spc");
+    copyFile(
+        "config/specification/test-comp-terminatingfunctions.spc",
+        tempFolder.getRoot().getAbsolutePath(),
+        "config/specification/test-comp-terminatingfunctions.spc");
+  }
+
+  /**
+   * @param from name of the input file
+   * @param to name of the output file
+   * @param toMore optional further names for the output file, will be concatenated to the name of
+   *     the output file.
+   */
+  private static void copyFile(String from, String to, String... toMore) throws IOException {
+    try (Reader r = Files.newBufferedReader(Paths.get(from));
+        Writer w = IO.openOutputFile(Paths.get(to, toMore), StandardCharsets.UTF_8)) {
+      CharStreams.copy(r, w);
     }
-    Files.copy(
-        Path.of("test/config/automata/AssumptionAutomaton.spc"),
-        tempFolder.newFolder(OUTPUT_DIR.toString()).toPath().resolve("AssumptionAutomaton.txt"));
   }
 
   @Test
@@ -391,7 +400,6 @@ public class ConfigurationFileChecks {
     final boolean isSvcompConfig = basePath.toString().contains("svcomp");
     final boolean isTestGenerationConfig = basePath.toString().contains("testCaseGeneration");
     final boolean isDifferentialConfig = basePath.toString().contains("differentialAutomaton");
-    final boolean isConditionalTesting = basePath.toString().contains("conditional-testing");
 
     if (options.language == Language.JAVA) {
       assertThat(spec).endsWith("specification/JavaAssertion.spc");
@@ -438,8 +446,6 @@ public class ConfigurationFileChecks {
       if (!Strings.isNullOrEmpty(spec)) {
         assertThat(spec).endsWith("specification/modifications-present.spc");
       }
-    } else if (isConditionalTesting) {
-      assertThat(spec).endsWith("specification/StopAtLeaves.spc");
     } else if (spec != null) {
       // TODO should we somehow restrict which configs may specify "no specification"?
       assertThat(spec).endsWith("specification/default.spc");
@@ -453,10 +459,7 @@ public class ConfigurationFileChecks {
       assume()
           .that((Iterable<?>) configFile)
           .containsNoneOf(
-              Path.of("includes"),
-              Path.of("pcc"),
-              Path.of("witnessValidation.properties"),
-              Path.of("wacsl.properties"));
+              Paths.get("includes"), Paths.get("pcc"), Paths.get("witnessValidation.properties"));
     }
 
     final OptionsWithSpecialHandlingInTest options = new OptionsWithSpecialHandlingInTest();
@@ -486,7 +489,7 @@ public class ConfigurationFileChecks {
 
     CPAcheckerResult result;
     try {
-      result = cpachecker.run(ImmutableList.of(createEmptyProgram(isJava)));
+      result = cpachecker.run(ImmutableList.of(createEmptyProgram(isJava)), ImmutableSet.of());
     } catch (IllegalArgumentException e) {
       if (isJava) {
         assume().withMessage("Java frontend has a bug and cannot be run twice").fail();

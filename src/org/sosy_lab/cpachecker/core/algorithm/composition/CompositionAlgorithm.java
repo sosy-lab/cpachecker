@@ -14,6 +14,7 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
+import com.google.common.base.Strings;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -26,6 +27,7 @@ import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -49,6 +51,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
@@ -113,7 +116,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
       String text =
           "Statistics for " + noOfRuns + ". execution of composition algorithm";
       pOut.println(text);
-      pOut.println("=".repeat(text.length()));
+      pOut.println(Strings.repeat("=", text.length()));
 
       printSubStatistics(pOut, pResult, pReached);
       pOut.println();
@@ -125,6 +128,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
       pOut.println("Number of algorithms provided:    " + configFiles.size());
       pOut.println("Number of composite analysis runs:        " + noOfRuns);
       pOut.println("Total time: " + totalTimer);
+      pOut.println("Times per algorithm: ");
 
       printSubStatistics(pOut, pResult, pReached);
     }
@@ -160,17 +164,18 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Option(
-      secure = true,
-      required = true,
-      description =
-          "list of files with configurations to use, which are optionally suffixed according to one"
-              + " of the followig schemes:either ::MODE or ::MODE_LIMIT, where MODE and LIMIT are"
-              + " place holders.MODE may take one of the following values continue (i.e., continue"
-              + " analysis with same CPA and reached set), reuse-precision (i.e., reuse the"
-              + " aggregation of the precisions from the previous analysis run), noreuse (i.e.,"
-              + " start from scratch).LIMIT is a positive integer number specifying the time limit"
-              + " of the analysis in each round.If no (correct) limit is given a default limit is"
-              + " used.")
+    secure = true,
+    required = true,
+    description =
+        "list of files with configurations to use, which are optionally suffixed "
+            + "according to one of the followig schemes:"
+            + "either ::MODE or ::MODE_LIMIT, where MODE and LIMIT are place holders."
+            + "MODE may take one of the following values continue (i.e., continue analysis with same CPA and reached set), "
+            + "reuse-precision (i.e., reuse the aggregation of the precisions from the previous analysis run), "
+            + "noreuse (i.e., start from scratch)."
+            + "LIMIT is a positive integer number specifying the time limit of the analysis in each round."
+            + "If no (correct) limit is given a default limit is used."
+  )
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<AnnotatedValue<Path>> configFiles;
 
@@ -212,11 +217,12 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
   private boolean isPropertyChecked = true;
 
   @Option(
-      secure = true,
-      name = "condition.file",
-      description = "where to store initial condition, when generated")
+    secure = true,
+    name = "condition.file",
+    description = "where to store initial condition, when generated"
+  )
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path initialCondition = Path.of("AssumptionAutomaton.txt");
+  private Path initialCondition = Paths.get("AssumptionAutomaton.txt");
 
   private AlgorithmCompositionStrategy selectionStrategy; // TODO initialize, set up
 
@@ -285,8 +291,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
         "CompositionAlgorithm needs ForwardingReachedSet");
     checkArgument(
         pReached.size() <= 1,
-        "CompositionAlgorithm does not support being called several times with the same reached"
-            + " set");
+        "CompositionAlgorithm does not support being called several times with the same reached set");
     checkArgument(!pReached.isEmpty(), "CompositionAlgorithm needs non-empty reached set");
 
     stats.totalTimer.start();
@@ -361,8 +366,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
           if (status.wasPropertyChecked() != isPropertyChecked) {
             logger.logf(
                 Level.WARNING,
-                "Component algorithm and composition algorithm do not agree on property checking"
-                    + " (%b, %b).",
+                "Component algorithm and composition algorithm do not agree on property checking (%b, %b).",
                 status.wasPropertyChecked(),
                 isPropertyChecked);
           }
@@ -382,8 +386,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
           } else if (currentContext.getReachedSet().hasWaitingState()) {
             logger.logf(
                 Level.FINE,
-                "Analysis %s in run %d terminated but did not finish: There are still states to be"
-                    + " processed.",
+                "Analysis %s in run %d terminated but did not finish: There are still states to be processed.",
                 currentContext.configToString(),
                 stats.noOfRuns);
 
@@ -530,7 +533,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
 
     ConfigurableProgramAnalysis cpa = null;
     try {
-      AggregatedReachedSets aggregateReached = AggregatedReachedSets.empty();
+      AggregatedReachedSets aggregateReached = new AggregatedReachedSets();
       CoreComponentsFactory localCoreComponents =
           new CoreComponentsFactory(
               pCurrentContext.getConfig(),
@@ -666,7 +669,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
           aggregatePrecisionsForReuse(previousReachedSets, initialPrecision, pFMgr, pConfig);
     }
 
-    ReachedSet reached = pFactory.createReachedSet(pCpa);
+    ReachedSet reached = pFactory.createReachedSet();
     reached.add(initialState, initialPrecision);
     return reached;
   }
@@ -785,11 +788,11 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     predicates.addAll(pPredPrec.getLocalPredicates().values());
 
     SetMultimap<CFANode, MemoryLocation> trackedVariables = HashMultimap.create();
-    CFANode dummyNode = CFANode.newDummyCFANode();
+    CFANode dummyNode = new CFANode(CFunctionDeclaration.DUMMY);
 
     for (AbstractionPredicate pred : predicates) {
-      for (String var : pFMgr.extractVariables(pred.getSymbolicAtom()).keySet()) {
-        trackedVariables.put(dummyNode, MemoryLocation.parseExtendedQualifiedName(var));
+      for (String var : pFMgr.extractVariables(pred.getSymbolicVariable()).keySet()) {
+          trackedVariables.put(dummyNode, MemoryLocation.valueOf(var));
       }
     }
 

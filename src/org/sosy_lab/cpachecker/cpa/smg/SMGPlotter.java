@@ -8,8 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import com.google.common.base.CharMatcher;
 import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
-import org.sosy_lab.cpachecker.cpa.smg.util.PersistentBiMap;
 
 public final class SMGPlotter {
   private static final class SMGObjectNode {
@@ -83,15 +82,7 @@ public final class SMGPlotter {
     }
 
     private String defaultDefinition(String pColor, String pShape, String pStyle, SMGObject pObject) {
-      return "color="
-          + pColor
-          + ", shape="
-          + pShape
-          + ", style="
-          + pStyle
-          + ", label =\""
-          + pObject
-          + "\"";
+      return "color=" + pColor + ", shape=" + pShape + ", style=" + pStyle + ", label =\"" + pObject + "\"";
     }
 
     @Override
@@ -141,7 +132,7 @@ public final class SMGPlotter {
   public static void debuggingPlot(
       UnmodifiableCLangSMG pSmg,
       String pId,
-      PersistentBiMap<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues)
+      Map<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues)
       throws IOException {
     PathTemplate exportSMGFilePattern = PathTemplate.ofFormatString("smg-debug-%s.dot");
     pId = pId.replace("\"", "");
@@ -161,19 +152,19 @@ public final class SMGPlotter {
   public SMGPlotter() {} /* utility class */
 
   static public String convertToValidDot(String original) {
-    return CharMatcher.anyOf("[]:").replaceFrom(original, "_");
+    return original.replaceAll("[:]", "_");
   }
 
   public String smgAsDot(
       UnmodifiableCLangSMG smg,
       String name,
       String location,
-      PersistentBiMap<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues) {
+      Map<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues) {
     StringBuilder sb = new StringBuilder();
 
     sb.append("digraph gr_").append(name.replace('-', '_')).append("{\n");
     offset += 2;
-    sb.append(newLineWithOffset("label = \"" + location.replace("\"", "\\\"") + "\";"));
+    sb.append(newLineWithOffset("label = \"Location: " + location.replace("\"", "\\\"") + "\";"));
     sb.append(newLineWithOffset("rankdir=LR;"));
 
     addStackSubgraph(smg, sb);
@@ -202,7 +193,7 @@ public final class SMGPlotter {
       if (!value.isZero()) {
         for (SMGValue neqValue : smg.getNeqsForValue(value)) {
           if (! processed.contains(neqValue)) {
-            sb.append(newLineWithOffset(neqRelationAsDot(value, neqValue, explicitValues)));
+            sb.append(newLineWithOffset(neqRelationAsDot(value, neqValue)));
           }
         }
         processed.add(value);
@@ -268,18 +259,10 @@ public final class SMGPlotter {
   }
 
   private void addStackItemSubgraph(CLangStackFrame pStackFrame, StringBuilder pSb, int pIndex) {
-    pSb.append(
-        newLineWithOffset(
-            "subgraph cluster_stack_" + pStackFrame.getFunctionDeclaration().getName() + " {"));
+    pSb.append(newLineWithOffset("subgraph cluster_stack_" + pStackFrame.getFunctionDeclaration().getName() + "{"));
     offset += 2;
     pSb.append(newLineWithOffset("fontcolor=blue;"));
-    pSb.append(
-        newLineWithOffset(
-            "label=\"#"
-                + pIndex
-                + ": "
-                + pStackFrame.getFunctionDeclaration().toASTString()
-                + "\";"));
+    pSb.append(newLineWithOffset("label=\"#" + pIndex + ": " + pStackFrame.getFunctionDeclaration().toASTString() + "\";"));
 
     Map<String, SMGRegion> to_print = new LinkedHashMap<>(pStackFrame.getVariables());
 
@@ -307,8 +290,8 @@ public final class SMGPlotter {
       objectIndex.put(obj, new SMGObjectNode("struct" + structId + ":item_" + key));
     }
     return String.format(
-        "struct%s [shape=record, height=%.2f, label=\"%s\"];%n",
-        structId, .5 * nodes.size(), Joiner.on(" | ").join(nodes));
+        "struct%s [shape=record, height=%d, label=\"%s\"];%n",
+        structId, nodes.size(), Joiner.on(" | ").join(nodes));
   }
 
   private void addGlobalObjectSubgraph(UnmodifiableCLangSMG pSmg, StringBuilder pSb) {
@@ -339,41 +322,33 @@ public final class SMGPlotter {
   }
 
   private static String smgValueAsDot(
-      SMGValue value, PersistentBiMap<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues) {
-    String label = "#" + value.asDotId();
-    String color = "red";
-    if (value instanceof SMGKnownExpValue) {
-      label = value.toString();
-      color = "green";
-    } else if (explicitValues.containsKey(value)) {
-      label += " : " + explicitValues.get(value).getAsLong();
-      color = "black";
-    } else if (value instanceof SMGKnownAddressValue) {
-      label += "\\n" + ((SMGKnownAddressValue) value).getObject();
-      color = "blue";
+      SMGValue value, Map<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues) {
+    String explicitValue = "";
+    if (explicitValues.containsKey(value)) {
+      explicitValue = " : " + explicitValues.get(value).getAsLong();
     }
-    return String.format("value_%s[color=%s label=\"%s\"];", value.asDotId(), color, label);
+    String prefix = "value_" + value.asDotId() + "[label=\"#" + value.asDotId() + explicitValue;
+    if (value instanceof SMGKnownAddressValue) {
+      SMGKnownAddressValue kav = (SMGKnownAddressValue) value;
+      return prefix + "\\n" + kav.getObject() + "\"];";
+    } else {
+      return prefix + "\"];";
+    }
   }
 
-  private static String neqRelationAsDot(
-      SMGValue v1,
-      SMGValue v2,
-      PersistentBiMap<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues) {
-    String toNodeStr, toNode;
+  private static String neqRelationAsDot(SMGValue v1, SMGValue v2) {
+    String targetNode;
+    String returnString = "";
     if (v2.isZero()) {
-      final String newLabel = newNullLabel();
-      toNode = newLabel;
-      toNodeStr = newLabel + "[shape=plaintext, label=\"NULL\", fontcolor=\"red\"];";
+      targetNode = newNullLabel();
+      returnString = targetNode + "[shape=plaintext, label=\"NULL\", fontcolor=\"red\"];\n";
     } else {
-      toNodeStr = smgValueAsDot(v2, explicitValues);
-      toNode = "value_" + v2.asDotId();
+      targetNode = "value_" + v2.asDotId();
     }
-    return String.format(
-        "%s%n  value_%s -> %s [color=\"red\", fontcolor=\"red\", label=\"neq\"];",
-        toNodeStr, v1.asDotId(), toNode);
+    return returnString + "value_" + v1.asDotId() + " -> " + targetNode + "[color=\"red\", fontcolor=\"red\", label=\"neq\"]";
   }
 
   private String newLineWithOffset(String pLine) {
-    return " ".repeat(offset) + pLine + "\n";
+    return  Strings.repeat(" ", offset) + pLine + "\n";
   }
 }

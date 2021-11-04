@@ -44,7 +44,7 @@ public final class CoverageData {
     assert pLoc.getStartingLineNumber()
         != 0; // Cannot produce coverage info for dummy file location
 
-    String file = pLoc.getFileName().toString();
+    String file = pLoc.getFileName();
     FileCoverageInformation fileInfos = pTargets.get(file);
 
     if (fileInfos == null) {

@@ -19,6 +19,7 @@ import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
@@ -86,16 +87,13 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   )
   private boolean exportLocationAssumptions = true;
 
-  @Option(secure = true, name = "file", description = "write collected assumptions to file")
+  @Option(secure=true, name="file", description="write collected assumptions to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path assumptionsFile = Path.of("assumptions.txt");
+  private Path assumptionsFile = Paths.get("assumptions.txt");
 
-  @Option(
-      secure = true,
-      name = "automatonFile",
-      description = "write collected assumptions as automaton to file")
+  @Option(secure=true, name="automatonFile", description="write collected assumptions as automaton to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path assumptionAutomatonFile = Path.of("AssumptionAutomaton.txt");
+  private Path assumptionAutomatonFile = Paths.get("AssumptionAutomaton.txt");
 
   @Option(
       secure = true,
@@ -108,7 +106,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       name = "dotFile",
       description = "write collected assumptions as automaton to dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path assumptionAutomatonDotFile = Path.of("AssumptionAutomaton.dot");
+  private Path assumptionAutomatonDotFile = Paths.get("AssumptionAutomaton.dot");
 
   @Option(
     secure = true,
@@ -116,26 +114,14 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   )
   private boolean compressAutomaton = false;
 
-  @Option(
-      secure = true,
-      description =
-          "Add a threshold to the automaton, after so many branches on a path the automaton will be"
-              + " ignored (0 to disable)")
-  @IntegerOption(min = 0)
+  @Option(secure=true, description="Add a threshold to the automaton, after so many branches on a path the automaton will be ignored (0 to disable)")
+  @IntegerOption(min=0)
   private int automatonBranchingThreshold = 0;
 
-  @Option(
-      secure = true,
-      description =
-          "If it is enabled, automaton does not add assumption which is considered to continue path"
-              + " with corresponding this edge.")
+  @Option(secure=true, description="If it is enabled, automaton does not add assumption which is considered to continue path with corresponding this edge.")
   private boolean automatonIgnoreAssumptions = false;
 
-  @Option(
-      secure = true,
-      description =
-          "If it is enabled, check if a state that should lead to false state indeed has"
-              + " successors.")
+  @Option(secure=true, description="If it is enabled, check if a state that should lead to false state indeed has successors.")
   private boolean removeNonExploredWithoutSuccessors = false;
 
   private final LogManager logger;
@@ -359,8 +345,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
             shutdownNotifier);
 
     if (lst.isEmpty()) {
-      throw new InvalidConfigurationException(
-          "Could not find automata in the file " + assumptionAutomatonFile.toAbsolutePath());
+      throw new InvalidConfigurationException("Could not find automata in the file " + assumptionAutomatonFile.toAbsolutePath());
     } else if (lst.size() > 1) {
       throw new InvalidConfigurationException("Found " + lst.size()
           + " automata in the File " + assumptionAutomatonFile.toAbsolutePath()

@@ -39,7 +39,7 @@ public class AutomatonInternalState {
           "_predefinedState_ERROR",
           Collections.singletonList(
               new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, BOTTOM)
-                  .withTargetInformation(new StringExpression(""))
+                  .withViolatedPropertyDescription(new StringExpression(""))
                   .build()),
           true,
           false,

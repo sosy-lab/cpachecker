@@ -39,6 +39,7 @@ SPDX-License-Identifier: Apache-2.0
   <tasks name="DeviceDrivers">
     <includesfile>../../../svcomp15/DeviceDriversLinux64.set</includesfile>
     <option name="-setprop">cpa.value.symbolic.handlePointers=false</option>
+    <option name="-64"/>
   </tasks>
   <tasks name="HeapManipulation">
     <includesfile>../../../svcomp15/HeapReach.set</includesfile>

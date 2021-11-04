@@ -14,6 +14,7 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
@@ -45,7 +46,7 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
 
   @Option(name = "output", description = "path to write results", secure = true)
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path outputStatFileName = Path.of("unsafe_rawdata");
+  private Path outputStatFileName = Paths.get("unsafe_rawdata");
 
   @Option(
     description = "use single file for output or dump every error trace to its own file",
@@ -69,11 +70,12 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
   protected void init() {
     try {
       globalWriter =
-          Files.newBufferedWriter(Path.of(outputStatFileName.toString()), Charset.defaultCharset());
+          Files.newBufferedWriter(
+              Paths.get(outputStatFileName.toString()), Charset.defaultCharset());
       logger.log(Level.FINE, "Print statistics about unsafe cases");
       printCountStatistics(globalWriter, container.getUnsafeIterator());
     } catch (IOException e) {
-      logger.logUserException(Level.WARNING, e, "I/O error during init actions");
+      logger.log(Level.SEVERE, "Exception during init actions: " + e.getMessage());
     }
   }
 
@@ -82,7 +84,7 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
     try {
       globalWriter.close();
     } catch (IOException e) {
-      logger.logUserException(Level.WARNING, e, "I/O error during finish actions");
+      logger.log(Level.SEVERE, "Exception during finish actions: " + e.getMessage());
     }
   }
 
@@ -104,7 +106,7 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
       } else if (id instanceof LocalVariableIdentifier) {
         writer.append("##" + ((LocalVariableIdentifier) id).getFunction() + "\n");
       } else {
-        logger.log(Level.WARNING, "What is it? " + id);
+        logger.log(Level.WARNING, "What is it? " + id.toString());
       }
       writer.append(id.getDereference() + "\n");
       writer.append(id.getType().toASTString(id.getName()) + "\n");
@@ -123,7 +125,7 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
         writer.close();
       }
     } catch (IOException e) {
-      logger.logfUserException(Level.WARNING, e, "I/O error while printing unsafe %s", id);
+      logger.log(Level.SEVERE, "Exception while printing unsafe " + id + ": " + e.getMessage());
     }
   }
 

@@ -14,6 +14,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.OptionalInt;
@@ -51,14 +52,12 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 @Options(prefix = "cpa.predicate")
 public class PredicateProvider {
 
-  @Option(
-      secure = true,
-      description = "try to reuse old abstractions from file during strengthening")
+  @Option(secure = true, description = "try to reuse old abstractions from file during strengthening")
   private boolean strengthenWithReusedAbstractions = false;
 
   @Option(description = "file that consists of old abstractions, to be used during strengthening")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private Path strengthenWithReusedAbstractionsFile = Path.of("abstractions.txt");
+  private Path strengthenWithReusedAbstractionsFile = Paths.get("abstractions.txt");
 
   private final CFA cfa;
   private final LogManager logger;

@@ -19,7 +19,6 @@ import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWra
 
 class TimedReducer implements Reducer {
 
-  @SuppressWarnings("deprecation")
   static class ReducerStatistics {
     final ThreadSafeTimerContainer reduceTime =
         new ThreadSafeTimerContainer("Time for reducing abstract states");

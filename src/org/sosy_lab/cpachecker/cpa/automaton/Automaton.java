@@ -18,6 +18,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.regex.Matcher;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -48,15 +49,13 @@ public class Automaton {
     Map<String, AutomatonInternalState> statesMap = Maps.newHashMapWithExpectedSize(pStates.size());
     for (AutomatonInternalState s : pStates) {
       if (statesMap.put(s.getName(), s) != null) {
-        throw new InvalidAutomatonException(
-            "State " + s.getName() + " exists twice in automaton " + pName);
+        throw new InvalidAutomatonException("State " + s.getName() + " exists twice in automaton " + pName);
       }
     }
 
     initState = statesMap.get(pInitialStateName);
     if (initState == null) {
-      throw new InvalidAutomatonException(
-          "Inital state " + pInitialStateName + " not found in automaton " + pName);
+      throw new InvalidAutomatonException("Inital state " + pInitialStateName + " not found in automaton " + pName);
     }
 
     // set the FollowStates of all Transitions
@@ -118,16 +117,11 @@ public class Automaton {
   private static String formatState(AutomatonInternalState s, String color) {
     String name = s.getName().replace("_predefinedState_", "");
     String shape = s.isTarget() ? "doublecircle" : "circle";
-    return String.format(
-        "%d [shape=\"" + shape + "\" color=\"%s\" label=\"%s\"]\n", s.getStateId(), color, name);
+    return String.format("%d [shape=\"" + shape + "\" color=\"%s\" label=\"%s\"]\n", s.getStateId(), color, name);
   }
 
   private static String formatTransition(AutomatonInternalState sourceState, AutomatonTransition t) {
-    return String.format(
-        "%d -> %d [label=\"%s\"]\n",
-        sourceState.getStateId(),
-        t.getFollowState().getStateId(),
-        t.toString().replace("\"", "\\\""));
+    return String.format("%d -> %d [label=\"%s\"]\n", sourceState.getStateId(), t.getFollowState().getStateId(), t.toString().replaceAll("\"", Matcher.quoteReplacement("\\\"")));
   }
 
 

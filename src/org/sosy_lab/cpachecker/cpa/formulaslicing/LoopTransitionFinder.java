@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 
@@ -102,6 +103,7 @@ public class LoopTransitionFinder implements StatisticsProvider {
    private TimeSpan timeForLoopGeneration = TimeSpan.ofSeconds(0);
 
   private final PathFormulaManager pfmgr;
+  private final FormulaManagerView fmgr;
   private final LogManager logger;
   private final LoopStructure loopStructure;
   private final Stats statistics;
@@ -113,6 +115,7 @@ public class LoopTransitionFinder implements StatisticsProvider {
       Configuration config,
       LoopStructure pLoopStructure,
       PathFormulaManager pPathFormulaManager,
+      FormulaManagerView pFormulaManager,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
@@ -120,6 +123,7 @@ public class LoopTransitionFinder implements StatisticsProvider {
     config.inject(this);
     statistics = new Stats();
     pfmgr = pPathFormulaManager;
+    fmgr = pFormulaManager;
     logger = pLogger;
     loopStructure = pLoopStructure;
 
@@ -319,7 +323,9 @@ public class LoopTransitionFinder implements StatisticsProvider {
       LBEcache.put(loopHead, out);
     }
 
-    PathFormula empty = pfmgr.makeEmptyPathFormulaWithContext(start, pts);
+    PathFormula empty = new PathFormula(
+        fmgr.getBooleanFormulaManager().makeTrue(),
+        start, pts, 0);
     EdgeWrapper outEdge;
     if (out.size() == 1) {
       outEdge = out.values().iterator().next();

@@ -80,13 +80,12 @@ public class AssignmentToPathAllocator {
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
 
   private final MemoryName memoryName;
-  private final MachineModel machineModel;
 
   public AssignmentToPathAllocator(Configuration pConfig, ShutdownNotifier pShutdownNotifier, LogManager pLogger, MachineModel pMachineModel) throws InvalidConfigurationException {
     this.shutdownNotifier = pShutdownNotifier;
     this.assumptionToEdgeAllocator =
         AssumptionToEdgeAllocator.create(pConfig, pLogger, pMachineModel);
-    machineModel = pMachineModel;
+
     TypeHandlerWithPointerAliasing typeHandler =
         new TypeHandlerWithPointerAliasing(
             pLogger, pMachineModel, new FormulaEncodingWithPointerAliasingOptions(pConfig));
@@ -151,8 +150,7 @@ public class AssignmentToPathAllocator {
               Maps.transformEntries(memory, (name, heap) -> new Memory(name, heap)));
 
       ConcreteState concreteState =
-          new ConcreteState(
-              variables, allocatedMemory, addressOfVariables, memoryName, evaluator, machineModel);
+          new ConcreteState(variables, allocatedMemory, addressOfVariables, memoryName, evaluator);
 
       final SingleConcreteState singleConcreteState;
       if (isInsideMultiEdge) {
@@ -360,8 +358,7 @@ public class AssignmentToPathAllocator {
     List<String> references = ImmutableList.copyOf(Splitter.on('$').split(pTermName));
     String nameAndFunctionAsString = references.get(NAME_AND_FUNCTION);
 
-    List<String> nameAndFunction =
-        ImmutableList.copyOf(Splitter.on("::").split(nameAndFunctionAsString));
+    List<String> nameAndFunction = ImmutableList.copyOf(Splitter.on("::").split(nameAndFunctionAsString));
 
     String name;
     String function = null;

@@ -18,16 +18,12 @@ import java.io.Serializable;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.UniqueIdGenerator;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
-import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaToCVisitor;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
 /**
  * Instances of this class should hold a state formula (the result of an
@@ -50,8 +46,6 @@ public class AbstractionFormula implements Serializable {
   private transient final BooleanFormula formula;
   private final BooleanFormula instantiatedFormula;
 
-  private static final String FUNCTION_DELIMITER = "::";
-
   /**
    * The formula of the block directly before this abstraction.
    * (This formula was used to create this abstraction).
@@ -60,6 +54,7 @@ public class AbstractionFormula implements Serializable {
 
   private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
   private final transient int id = idGenerator.getFreshId();
+  private final transient BooleanFormulaManager mgr;
   private final transient FormulaManagerView fMgr;
   private final transient ImmutableSet<Integer> idsOfStoredAbstractionReused;
 
@@ -69,6 +64,7 @@ public class AbstractionFormula implements Serializable {
       BooleanFormula pInstantiatedFormula, PathFormula pBlockFormula,
       Set<Integer> pIdOfStoredAbstractionReused) {
     this.fMgr = checkNotNull(mgr);
+    this.mgr = checkNotNull(mgr.getBooleanFormulaManager());
     this.region = checkNotNull(pRegion);
     this.formula = checkNotNull(pFormula);
     this.instantiatedFormula = checkNotNull(pInstantiatedFormula);
@@ -92,11 +88,11 @@ public class AbstractionFormula implements Serializable {
   }
 
   public boolean isTrue() {
-    return fMgr.getBooleanFormulaManager().isTrue(formula);
+    return mgr.isTrue(formula);
   }
 
   public boolean isFalse() {
-    return fMgr.getBooleanFormulaManager().isFalse(formula);
+    return mgr.isFalse(formula);
   }
 
   public @Nullable Region asRegion() {
@@ -111,35 +107,7 @@ public class AbstractionFormula implements Serializable {
   }
 
   public BooleanFormula asFormulaFromOtherSolver(FormulaManagerView pMgr) {
-    if (pMgr == fMgr) {
-      return formula;
-    }
     return pMgr.translateFrom(formula, fMgr);
-  }
-
-  public ExpressionTree<Object> asExpressionTree(CFANode pLocation) throws InterruptedException {
-    BooleanFormula inv = formula;
-    // filter out variables that are not global and
-    // not local in the current function
-    String prefix = pLocation.getFunctionName() + FUNCTION_DELIMITER;
-    inv =
-        fMgr.filterLiterals(
-            inv,
-            e -> {
-              for (String name : fMgr.extractVariableNames(e)) {
-                if (name.contains(FUNCTION_DELIMITER) && !name.startsWith(prefix)) {
-                  return false;
-                }
-              }
-              return true;
-            });
-
-    FormulaToCVisitor v = new FormulaToCVisitor(fMgr);
-    boolean isValid = fMgr.visit(inv, v);
-    if (isValid) {
-      return LeafExpression.of(v.getString());
-    }
-    return ExpressionTrees.getTrue(); // no new invariant
   }
 
   /**

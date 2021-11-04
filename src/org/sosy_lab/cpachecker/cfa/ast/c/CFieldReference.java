@@ -162,9 +162,9 @@ public final class CFieldReference extends AbstractExpression implements CLeftHa
 
     CFieldReference other = (CFieldReference) obj;
 
-    return other.isPointerDereference == isPointerDereference
-        && Objects.equals(other.name, name)
-        && Objects.equals(other.owner, owner);
+    return Objects.equals(other.isPointerDereference, isPointerDereference)
+            && Objects.equals(other.name, name)
+            && Objects.equals(other.owner, owner);
   }
 
 }

@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
@@ -40,7 +41,7 @@ public class AssumptionAutomatonGenerator {
 
   @Option(secure = true, name = "file", description = "write collected assumptions to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path assumptionsFile = Path.of("AssumptionAutomaton.txt");
+  private Path assumptionsFile = Paths.get("AssumptionAutomaton.txt");
 
   public AssumptionAutomatonGenerator(final Configuration config, final LogManager pLogger)
       throws InvalidConfigurationException {
@@ -78,8 +79,7 @@ public class AssumptionAutomatonGenerator {
       AssumptionCollectorAlgorithm.writeAutomaton(w, root, getAllAncestorsFor(incompleteNodes),
           new HashSet<AbstractState>(incompleteNodes), 0, true);
     } catch (IOException e) {
-      logger.log(
-          Level.SEVERE, "Could not write assumption automaton for next partial ARG checking");
+      logger.log(Level.SEVERE, "Could not write assumption automaton for next partial ARG checking");
       throw new CPAException("Assumption automaton writing failed", e);
     }
   }

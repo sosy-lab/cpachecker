@@ -90,7 +90,7 @@ public final class OverflowState
   @Override
   public String toDOTLabel() {
     if (hasOverflow()) {
-      return "Assumptions:\n" + getReadableAssumptions(this).replace(", ", "\n");
+      return "Assumptions:\n" + getReadableAssumptions(this).replaceAll(", ", "\n");
     }
     return "";
   }

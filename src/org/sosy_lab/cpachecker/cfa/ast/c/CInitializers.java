@@ -209,8 +209,7 @@ public final class CInitializers {
         // so we build the stacks if necessary.
         findFirstSubobjectWithType(initType, currentSubobjects, nextSubobjects, loc, edge);
 
-        assert currentSubobjects.peek() instanceof CLeftHandSide
-            : "Object hast to be a LeftHandSide";
+        assert currentSubobjects.peek() instanceof CLeftHandSide : "Object hast to be a LeftHandSide";
         final CLeftHandSide currentSubobject = (CLeftHandSide) currentSubobjects.pop();
 
         // Do a regular assignment
@@ -433,17 +432,12 @@ public final class CInitializers {
           throws UnrecognizedCodeException {
 
     Iterator<CFieldReference> fields =
-        from(structType.getMembers())
-            .filter(
-                field ->
-                    !(field.getName().contains("__anon_type_member")
-                        && (!isAggregateType(field.getType())
-                            && (field.getType() instanceof CElaboratedType)
-                            && !((CElaboratedType) field.getType())
-                                .getKind()
-                                .equals(ComplexTypeKind.UNION))))
+        from(structType.getMembers()).filter(
+            field -> !(field.getName().contains("__anon_type_member") && (!isAggregateType(field.getType())
+                && (field.getType() instanceof CElaboratedType)
+                && !((CElaboratedType) field.getType()).getKind().equals(ComplexTypeKind.UNION))))
             .transform(
-                field ->
+                field  ->
                     new CFieldReference(
                         loc, field.getType(), field.getName(), currentSubobject, false))
             .iterator();
@@ -519,10 +513,7 @@ public final class CInitializers {
       // fixed-size array
       BigInteger size = ((CIntegerLiteralExpression)arrayType.getLength()).getValue();
       if (!BigInteger.valueOf(size.longValue()).equals(size)) {
-        throw new UnrecognizedCodeException(
-            "Size of type " + arrayType + " is too large to initialize explicitly",
-            edge,
-            designator);
+        throw new UnrecognizedCodeException("Size of type " + arrayType + " is too large to initialize explicitly", edge, designator);
       }
       // TODO use DiscreteDomain.bigintegers() when it's available.
 
@@ -534,10 +525,7 @@ public final class CInitializers {
       arrayIndices = Range.atLeast(startIndex);
 
     } else {
-      throw new UnrecognizedCodeException(
-          "Cannot initialize arrays with variable modified type like " + arrayType,
-          edge,
-          designator);
+      throw new UnrecognizedCodeException("Cannot initialize arrays with variable modified type like " + arrayType, edge, designator);
     }
 
     if (arrayIndices.isEmpty()) {
@@ -553,7 +541,7 @@ public final class CInitializers {
                 pInput -> {
                   CExpression index =
                       new CIntegerLiteralExpression(
-                          loc, CNumericTypes.INT, BigInteger.valueOf(pInput));
+                          loc, CNumericTypes.INT, BigInteger.valueOf(pInput.longValue()));
 
                   return new CArraySubscriptExpression(loc, elementType, currentSubobject, index);
                 })

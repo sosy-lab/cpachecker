@@ -203,7 +203,10 @@ public class MemoryStatistics implements Runnable {
 
         } catch (RuntimeErrorException e) {
           throw ManagementUtils.handleRuntimeErrorException(e);
-        } catch (JMException | ClassCastException e) {
+        } catch (JMException e) {
+          logger.logDebugException(e, "Querying memory size failed");
+          osMbean = null;
+        } catch (ClassCastException e) {
           logger.logDebugException(e, "Querying memory size failed");
           osMbean = null;
         }
@@ -241,55 +244,19 @@ public class MemoryStatistics implements Runnable {
               errorCount));
     }
 
-    out.println(
-        "Used heap memory:             "
-            + formatMem(maxHeap)
-            + " max; "
-            + formatMem(sumHeap / count)
-            + " avg; "
-            + formatMem(heapPeak)
-            + " peak");
-    out.println(
-        "Used non-heap memory:         "
-            + formatMem(maxNonHeap)
-            + " max; "
-            + formatMem(sumNonHeap / count)
-            + " avg; "
-            + formatMem(nonHeapPeak)
-            + " peak");
+    out.println("Used heap memory:             " + formatMem(maxHeap) + " max; " + formatMem(sumHeap/count) + " avg; " + formatMem(heapPeak) + " peak");
+    out.println("Used non-heap memory:         " + formatMem(maxNonHeap) + " max; " + formatMem(sumNonHeap/count) + " avg; " + formatMem(nonHeapPeak) + " peak");
 
     for (int i = 0; i < pools.length; i++) {
       String name = Strings.padEnd("Used in " + pools[i].getName() + " pool:", 30, ' ');
-      out.println(
-          name
-              + formatMem(maxHeapAllocatedPerPool[i])
-              + " max; "
-              + formatMem(sumHeapAllocatedPerPool[i] / count)
-              + " avg; "
-              + formatMem(pools[i].getPeakUsage().getUsed())
-              + " peak");
+      out.println(name + formatMem(maxHeapAllocatedPerPool[i]) + " max; " + formatMem(sumHeapAllocatedPerPool[i]/count) + " avg; " + formatMem(pools[i].getPeakUsage().getUsed()) + " peak");
     }
 
-    out.println(
-        "Allocated heap memory:        "
-            + formatMem(maxHeapAllocated)
-            + " max; "
-            + formatMem(sumHeapAllocated / count)
-            + " avg");
-    out.println(
-        "Allocated non-heap memory:    "
-            + formatMem(maxNonHeapAllocated)
-            + " max; "
-            + formatMem(sumNonHeapAllocated / count)
-            + " avg");
+    out.println("Allocated heap memory:        " + formatMem(maxHeapAllocated) + " max; " + formatMem(sumHeapAllocated/count) + " avg");
+    out.println("Allocated non-heap memory:    " + formatMem(maxNonHeapAllocated) + " max; " + formatMem(sumNonHeapAllocated/count) + " avg");
 
     if (osMbean != null) {
-      out.println(
-          "Total process virtual memory: "
-              + formatMem(maxProcess)
-              + " max; "
-              + formatMem(sumProcess / count)
-              + " avg");
+      out.println("Total process virtual memory: " + formatMem(maxProcess) + " max; " + formatMem(sumProcess/count) + " avg");
     }
   }
 
@@ -308,12 +275,7 @@ public class MemoryStatistics implements Runnable {
       gcCount += gcBean.getCollectionCount();
       gcNames.add(gcBean.getName());
     }
-    out.println(
-        "Time for Garbage Collector:   "
-            + TimeSpan.ofMillis(gcTime).formatAs(TimeUnit.SECONDS)
-            + " (in "
-            + gcCount
-            + " runs)");
+    out.println("Time for Garbage Collector:   " + TimeSpan.ofMillis(gcTime).formatAs(TimeUnit.SECONDS) + " (in " + gcCount + " runs)");
     out.println("Garbage Collector(s) used:    " + Joiner.on(", ").join(gcNames));
   }
 

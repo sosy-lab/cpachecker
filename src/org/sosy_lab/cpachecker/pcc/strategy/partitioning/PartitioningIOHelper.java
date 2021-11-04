@@ -28,7 +28,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.BalancedGraphPartitioner;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PartialReachedConstructionAlgorithm;
@@ -44,24 +43,13 @@ import org.sosy_lab.cpachecker.util.Pair;
 @Options(prefix = "pcc.partitioning")
 public class PartitioningIOHelper {
 
-  @Option(
-      secure = true,
-      description =
-          "If enabled uses the number of nodes saved in certificate to compute partition number"
-              + " otherwise the number of states explored during analysis")
+  @Option(secure=true, description = "If enabled uses the number of nodes saved in certificate to compute partition number otherwise the number of states explored during analysis")
   private boolean useGraphSizeToComputePartitionNumber = false;
-
-  @Option(
-      secure = true,
-      description =
-          "Specifies the maximum size of the partition. This size is used to compute the number of"
-              + " partitions if a proof (reached set) should be written. Default value 0 means"
-              + " always a single partition.")
+  @Option(secure=true,
+      description = "Specifies the maximum size of the partition. This size is used to compute the number of partitions if a proof (reached set) should be written. Default value 0 means always a single partition.")
   private int maxNumElemsPerPartition = 0;
 
-  @Option(
-      secure = true,
-      description = "Heuristic for computing partitioning of proof (partial reached set).")
+  @Option(secure=true, description = "Heuristic for computing partitioning of proof (partial reached set).")
   private PartitioningHeuristics partitioningStrategy = PartitioningHeuristics.RANDOM;
 
   private final LogManager logger;
@@ -102,10 +90,9 @@ public class PartitioningIOHelper {
     return null;
   }
 
-  public void constructInternalProofRepresentation(
-      final UnmodifiableReachedSet pReached, final ConfigurableProgramAnalysis pCpa)
+  public void constructInternalProofRepresentation(final UnmodifiableReachedSet pReached)
       throws InvalidConfigurationException, InterruptedException {
-    saveInternalProof(pReached.size(), computePartialReachedSetAndPartition(pReached, pCpa));
+    saveInternalProof(pReached.size(), computePartialReachedSetAndPartition(pReached));
   }
 
   protected void saveInternalProof(final int size,
@@ -122,12 +109,9 @@ public class PartitioningIOHelper {
     }
   }
 
-  public Pair<PartialReachedSetDirectedGraph, List<Set<Integer>>>
-      computePartialReachedSetAndPartition(
-          final UnmodifiableReachedSet pReached, final ConfigurableProgramAnalysis pCpa)
-          throws InvalidConfigurationException, InterruptedException {
-    AbstractState[] partialCertificate =
-        partialConstructor.computePartialReachedSet(pReached, pCpa);
+  public Pair<PartialReachedSetDirectedGraph, List<Set<Integer>>> computePartialReachedSetAndPartition(
+      final UnmodifiableReachedSet pReached) throws InvalidConfigurationException, InterruptedException {
+    AbstractState[] partialCertificate = partialConstructor.computePartialReachedSet(pReached);
     ARGState[] argNodes = new ARGState[partialCertificate.length];
     for (int i = 0; i < partialCertificate.length; i++) {
       argNodes[i] = (ARGState) partialCertificate[i];
@@ -223,13 +207,10 @@ public class PartitioningIOHelper {
     pOut.writeObject(pAdjacentNodesOutside);
   }
 
-  public void writeProof(
-      final ObjectOutputStream pOut,
-      final UnmodifiableReachedSet pReached,
-      final ConfigurableProgramAnalysis pCpa)
+  public void writeProof(final ObjectOutputStream pOut, final UnmodifiableReachedSet pReached)
       throws InvalidConfigurationException, IOException, InterruptedException {
     Pair<PartialReachedSetDirectedGraph, List<Set<Integer>>> partitionDescription =
-        computePartialReachedSetAndPartition(pReached, pCpa);
+        computePartialReachedSetAndPartition(pReached);
 
     writeMetadata(pOut, pReached.size(), partitionDescription.getSecond().size());
     for (Set<Integer> partition : partitionDescription.getSecond()) {
@@ -274,8 +255,7 @@ public class PartitioningIOHelper {
       }
 
       if(currentGraphStatistics!= null) {
-        pOut.println(
-            "\nStatistics for partial reached set directed graph used in proof construction");
+        pOut.println("\nStatistics for partial reached set directed graph used in proof construction");
         currentGraphStatistics.printStatistics(pOut, pResult, pReached);
       }
     }

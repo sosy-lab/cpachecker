@@ -12,6 +12,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collection;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.ClassOption;
@@ -52,7 +53,7 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
 
   @Option(secure = true, description = "export blocks")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path exportBlocksPath = Path.of("block_cfa.dot");
+  private Path exportBlocksPath = Paths.get("block_cfa.dot");
 
   @Option(secure = true,
       description = "This flag determines which precisions should be updated during refinement. "

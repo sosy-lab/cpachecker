@@ -10,9 +10,9 @@ package org.sosy_lab.cpachecker.util.predicates.regions;
 
 import com.google.common.primitives.ImmutableIntArray;
 import java.io.PrintStream;
-import java.util.List;
 import java.util.function.Function;
 import org.sosy_lab.cpachecker.util.Triple;
+import org.sosy_lab.cpachecker.util.predicates.PredicateOrderingStrategy;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -22,16 +22,6 @@ import org.sosy_lab.java_smt.api.SolverException;
  * and manipulating {@link Region}s.
  */
 public interface RegionManager extends RegionCreator {
-
-  enum VariableOrderingStrategy {
-    RANDOM,
-    SIFT,
-    SIFTITE,
-    WIN2,
-    WIN2ITE,
-    WIN3,
-    WIN3ITE;
-  }
 
   /**
    * checks whether the data region represented by f1
@@ -91,17 +81,16 @@ public interface RegionManager extends RegionCreator {
    *
    * @param strategy the reorder strategy that should be applied.
    */
-  void reorder(VariableOrderingStrategy strategy);
+  void reorder(PredicateOrderingStrategy strategy);
 
   /**
    * Replace predicates in the region with a new predicates.
    *
-   * <p>Corresponds to '\exists old : (region && old==new)'.
+   * Corresponds to '\exists old : (region && old==new)'.
    *
-   * <p>We assume that the predicates only consist of plain predicates, nothing more complex. We
-   * will only use the root variable of the predicate.
-   *
-   * @throws IllegalArgumentException if the lists do not have the same length
+   * We assume that the predicates only consist of plain predicates,
+   * nothing more complex. We will only use the root variable of the predicate.
+   * We also assume identical lengths of the old and new predicates.
    */
-  Region replace(Region region, List<Region> oldPredicates, List<Region> newPredicates);
+  Region replace(Region region, Region[] oldPredicates, Region[] newPredicates);
 }

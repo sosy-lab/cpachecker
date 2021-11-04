@@ -87,6 +87,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
+import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -367,7 +368,7 @@ public class CtoFormulaConverter {
    * @return the name of the expression
    */
   static String exprToVarName(AAstNode e, String function) {
-    return (function + "::" + exprToVarNameUnscoped(e)).intern();
+    return (function + "::" + exprToVarNameUnscoped(e)).intern().intern();
   }
 
   /** Produces a fresh new SSA index for an assignment and updates the SSA map. */
@@ -524,9 +525,9 @@ public class CtoFormulaConverter {
 
     checkArgument(
         ssa.build().equals(pContextSSA),
-        "we cannot apply the SSAMap changes to the point where the information would be needed"
-            + " possible problems: uninitialized variables could be in more formulas which get"
-            + " conjuncted and then we get unsatisfiable formulas as a result");
+        "we cannot apply the SSAMap changes to the point where the"
+            + " information would be needed possible problems: uninitialized variables could be"
+            + " in more formulas which get conjuncted and then we get unsatisfiable formulas as a result");
 
     return formula;
   }
@@ -890,8 +891,7 @@ public class CtoFormulaConverter {
           + " needs theory conversion between " + fromType + " and " + toType);
     }
 
-    assert fmgr.getFormulaType(ret).equals(toType)
-        : "types do not match: " + fmgr.getFormulaType(ret) + " vs " + toType;
+    assert fmgr.getFormulaType(ret).equals(toType) : "types do not match: " + fmgr.getFormulaType(ret) + " vs " + toType;
     return ret;
   }
 
@@ -1001,11 +1001,7 @@ public class CtoFormulaConverter {
 
     BooleanFormula newFormula = bfmgr.and(oldFormula.getFormula(), edgeFormula);
     int newLength = oldFormula.getLength() + 1;
-
-    @SuppressWarnings("deprecation")
-    // This is an intended use, CtoFormulaConverter just does not have access to the constructor
-    PathFormula result = PathFormula.createManually(newFormula, newSsa, newPts, newLength);
-    return result;
+    return new PathFormula(newFormula, newSsa, newPts, newLength);
   }
 
   /**
@@ -1312,13 +1308,13 @@ public class CtoFormulaConverter {
       CFunctionCallExpression funcCallExp = exp.getRightHandSide();
 
       String callerFunction = ce.getSuccessor().getFunctionName();
-      final Optional<CVariableDeclaration> returnVariableDeclaration =
+      final com.google.common.base.Optional<CVariableDeclaration> returnVariableDeclaration =
           ce.getFunctionEntry().getReturnVariable();
       if (!returnVariableDeclaration.isPresent()) {
         throw new UnrecognizedCodeException("Void function used in assignment", ce, retExp);
       }
-      final CIdExpression rhs =
-          new CIdExpression(funcCallExp.getFileLocation(), returnVariableDeclaration.orElseThrow());
+      final CIdExpression rhs = new CIdExpression(funcCallExp.getFileLocation(),
+          returnVariableDeclaration.get());
 
       return makeAssignment(exp.getLeftHandSide(), rhs, ce, callerFunction, ssa, pts, constraints, errorConditions);
     } else {
@@ -1343,10 +1339,7 @@ public class CtoFormulaConverter {
         CFunctionType funcPtrType = (CFunctionType) ((CPointerType) expressionType).getType().getCanonicalType();
         retType = funcPtrType.getReturnType();
       } else {
-        throw new UnrecognizedCodeException(
-            "Cannot handle function pointer call with unknown type " + expressionType,
-            edge,
-            funcCallExp);
+        throw new UnrecognizedCodeException("Cannot handle function pointer call with unknown type " + expressionType, edge, funcCallExp);
       }
       assert retType != null;
     } else {
@@ -1420,29 +1413,18 @@ public class CtoFormulaConverter {
     return result;
   }
 
-  protected BooleanFormula makeReturn(
-      final Optional<CAssignment> assignment,
-      final CReturnStatementEdge edge,
-      final String function,
-      final SSAMapBuilder ssa,
-      final PointerTargetSetBuilder pts,
-      final Constraints constraints,
-      final ErrorConditions errorConditions)
-      throws UnrecognizedCodeException, InterruptedException {
+  protected BooleanFormula makeReturn(final com.google.common.base.Optional<CAssignment> assignment,
+      final CReturnStatementEdge edge, final String function,
+      final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
+      final Constraints constraints, final ErrorConditions errorConditions)
+          throws UnrecognizedCodeException, InterruptedException {
     if (!assignment.isPresent()) {
       // this is a return from a void function, do nothing
       return bfmgr.makeTrue();
     } else {
 
-      return makeAssignment(
-          assignment.orElseThrow().getLeftHandSide(),
-          assignment.orElseThrow().getRightHandSide(),
-          edge,
-          function,
-          ssa,
-          pts,
-          constraints,
-          errorConditions);
+      return makeAssignment(assignment.get().getLeftHandSide(), assignment.get().getRightHandSide(),
+          edge, function, ssa, pts, constraints, errorConditions);
     }
   }
 
@@ -1704,8 +1686,7 @@ public class CtoFormulaConverter {
 
     int size = efmgr.getLength((BitvectorFormula) pLVar);
     assert size > msb_Lsb.getFirst() : "pLVar is too small";
-    assert 0 <= msb_Lsb.getSecond() && msb_Lsb.getFirst() >= msb_Lsb.getSecond()
-        : "msb_Lsb is invalid";
+    assert 0 <= msb_Lsb.getSecond() && msb_Lsb.getFirst() >= msb_Lsb.getSecond() : "msb_Lsb is invalid";
 
     // create a list with three formulas:
     // - prefix of struct (before the field)
@@ -1802,11 +1783,7 @@ public class CtoFormulaConverter {
       boolean makeFresh) {
 
     if (makeFresh) {
-      logger.logOnce(
-          Level.WARNING,
-          "Program contains array, or pointer (multiple level of indirection), or field (enable"
-              + " handleFieldAccess and handleFieldAliasing) access; analysis is imprecise in case"
-              + " of aliasing.");
+      logger.logOnce(Level.WARNING, "Program contains array, or pointer (multiple level of indirection), or field (enable handleFieldAccess and handleFieldAliasing) access; analysis is imprecise in case of aliasing.");
     }
     logger.logfOnce(Level.FINEST, "%s: Unhandled expression treated as free variable: %s",
         exp.getFileLocation(), exp.toASTString());
@@ -1825,6 +1802,8 @@ public class CtoFormulaConverter {
       result = UNSUPPORTED_FUNCTIONS.get(functionName);
     } else if (functionName.startsWith("__atomic_")) {
       result = "atomic operations";
+    } else if (BuiltinOverflowFunctions.isUnsupportedBuiltinOverflowFunction(functionName)) {
+      result = "builtin functions for arithmetic with overflow handling";
     }
 
     if (result != null && options.isAllowedUnsupportedFunction(functionName)) {

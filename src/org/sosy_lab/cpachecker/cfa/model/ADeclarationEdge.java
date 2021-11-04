@@ -8,10 +8,10 @@
 
 package org.sosy_lab.cpachecker.cfa.model;
 
-import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
-import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import com.google.common.base.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
+
 
 public class ADeclarationEdge extends AbstractCFAEdge {
 
@@ -35,7 +35,7 @@ public class ADeclarationEdge extends AbstractCFAEdge {
   }
 
   @Override
-  public Optional<AAstNode> getRawAST() {
+  public Optional<? extends ADeclaration> getRawAST() {
     return Optional.of(declaration);
   }
 

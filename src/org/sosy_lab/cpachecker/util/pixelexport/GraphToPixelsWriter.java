@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
@@ -250,7 +251,7 @@ public abstract class GraphToPixelsWriter<Node> {
     Graphics2D g = canvasHandler.createCanvas(finalWidth, finalHeight);
     drawContent(g, finalWidth, finalHeight, structure);
 
-    Path fullOutputFile = Path.of(pOutputFile + "." + imageFormat);
+    Path fullOutputFile = Paths.get(pOutputFile + "." + imageFormat);
     canvasHandler.writeToFile(fullOutputFile);
   }
 
@@ -285,8 +286,7 @@ public abstract class GraphToPixelsWriter<Node> {
       try (FileImageOutputStream out = new FileImageOutputStream(pOutputFile.toFile())) {
         boolean success = ImageIO.write(bufferedImage, imageFormat, out);
         if (!success) {
-          throw new InvalidConfigurationException(
-              "ImageIO can't handle given format: " + imageFormat);
+          throw new InvalidConfigurationException("ImageIO can't handle given format: " + imageFormat);
         }
       }
       bufferedImage = null;

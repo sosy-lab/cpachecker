@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -45,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -169,7 +169,7 @@ public class CFAToCTranslator {
     }
   }
 
-  private Statement createLabel(CFALabelNode pNode) {
+  private Statement createLabel(CLabelNode pNode) {
     Statement s = new Label(pNode.getLabel());
     createdStatements.put(pNode, s);
     return s;
@@ -214,23 +214,21 @@ public class CFAToCTranslator {
   }
 
   private NodeAndBlock getNextElement(Deque<NodeAndBlock> pWaitlist) {
+
     final NodeAndBlock lastElement = pWaitlist.peekLast();
+    boolean skipElement;
     NodeAndBlock current;
     do {
-      current = pWaitlist.pollFirst();
-      if (current == lastElement) {
-        return current;
-      }
-      boolean allPredecessorsHandled =
-          getPredecessorNodes(current.getNode()).stream()
-              .anyMatch(n -> !createdStatements.containsKey(n));
-      if (allPredecessorsHandled) {
-        return current;
-      }
-      // if not used, re-schedule node at the end
-      pWaitlist.offer(current);
-    } while (current != lastElement);
-    return current; // if no other fits, use last element
+      current = pWaitlist.poll();
+
+      CFANode currentNode = current.getNode();
+      skipElement =
+          current != lastElement
+              && getPredecessorNodes(currentNode).stream()
+                  .anyMatch(n -> !createdStatements.containsKey(n));
+    } while (skipElement);
+
+    return current;
   }
 
   private Statement createGoto(CFANode pCurrentNode, CFANode pTarget) {
@@ -247,8 +245,8 @@ public class CFAToCTranslator {
       return ImmutableList.of();
     }
 
-    if (pNode instanceof CFALabelNode) {
-      pBlock.addStatement(createLabel((CFALabelNode) pNode));
+    if (pNode instanceof CLabelNode) {
+      pBlock.addStatement(createLabel((CLabelNode) pNode));
     }
 
     Collection<Pair<CFAEdge, CompoundStatement>> outgoingEdges =
@@ -418,8 +416,6 @@ public class CFAToCTranslator {
   }
 
   private void pushToWaitlist(Deque<NodeAndBlock> pWaitlist, NodeAndBlock pNodeAndBlock) {
-    // Make sure that join nodes are always handled soon-ishly by pushing them to the waitlist;
-    // to keep the structure of the generated program as shallow as possible.
     if (hasMoreThanOneElement(getPredecessorNodes(pNodeAndBlock.getNode()))) {
       assert getPredecessorNodes(pNodeAndBlock.getNode()).stream()
           .allMatch(createdStatements::containsKey);

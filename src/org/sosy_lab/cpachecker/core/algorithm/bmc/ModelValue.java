@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import java.util.Objects;
+import java.util.function.Supplier;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
@@ -16,15 +17,15 @@ public class ModelValue {
 
   private final String variableName;
 
-  /** FormulaManager where the formula belongs to and was created with. */
-  private final FormulaManagerView fmgr;
+  private final Supplier<String> textualRepresentation;
 
-  private final BooleanFormula formula;
+  private final String formula;
 
-  public ModelValue(String pVariableName, BooleanFormula pFormula, FormulaManagerView pFmgr) {
+  public ModelValue(
+      String pVariableName, String pFormula, Supplier<String> pTextualRepresentation) {
     variableName = Objects.requireNonNull(pVariableName);
     formula = Objects.requireNonNull(pFormula);
-    fmgr = Objects.requireNonNull(pFmgr);
+    textualRepresentation = Objects.requireNonNull(pTextualRepresentation);
   }
 
   public String getVariableName() {
@@ -33,7 +34,7 @@ public class ModelValue {
 
   @Override
   public String toString() {
-    return formula.toString();
+    return textualRepresentation.get();
   }
 
   @Override
@@ -43,9 +44,7 @@ public class ModelValue {
     }
     if (pOther instanceof ModelValue) {
       ModelValue other = (ModelValue) pOther;
-      return variableName.equals(other.variableName)
-          && formula.equals(other.formula)
-          && fmgr.equals(other.fmgr);
+      return variableName.equals(other.variableName) && formula.equals(other.formula);
     }
     return false;
   }
@@ -56,6 +55,6 @@ public class ModelValue {
   }
 
   public BooleanFormula toAssignment(FormulaManagerView pFMGR) {
-    return pFMGR.translateFrom(formula, fmgr);
+    return pFMGR.parse(formula);
   }
 }

@@ -55,7 +55,7 @@ public abstract class ConditionFolder {
   }
 
   private interface MergeUpdateFunction {
-    void updateAfterMerging(ARGState merged, ARGState mergedInto);
+    public void updateAfterMerging(ARGState merged, ARGState mergedInto);
   }
 
   private static class LoopInfo {
@@ -157,10 +157,10 @@ public abstract class ConditionFolder {
   private static class FolderOptions {
 
     @Option(
-        secure = true,
-        description =
-            "Define kind of folder to use when combining condition with folding approach in"
-                + " residual program generation")
+      secure = true,
+      description =
+          "Define kind of folder to use when combining condition with folding approach in residual program generation"
+    )
     private FOLDER_TYPE folderType = FOLDER_TYPE.CFA;
   }
 

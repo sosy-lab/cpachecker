@@ -170,7 +170,7 @@ final class FormulaWrappingHandler {
     return type;
   }
 
-  List<FormulaType<?>> unwrapType(List<? extends FormulaType<?>> pTypes) {
+  final List<FormulaType<?>> unwrapType(List<? extends FormulaType<?>> pTypes) {
     return Lists.transform(pTypes, pInput -> unwrapType(pInput));
   }
 }

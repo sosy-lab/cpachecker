@@ -12,7 +12,5 @@ package org.sosy_lab.cpachecker.util.statistics;
 public enum StatKind {
   SUM,
   COUNT,
-  AVG,
-  MIN,
-  MAX
+  AVG
 }

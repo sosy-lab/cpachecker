@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.util.coverage;
 import com.google.common.collect.Multiset;
 import java.io.IOException;
 import java.io.Writer;
-import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
 import org.sosy_lab.cpachecker.util.coverage.FileCoverageInformation.FunctionInfo;
 
@@ -34,7 +34,7 @@ public class CoverageReportGcov {
 
       //Convert ./test.c -> /full/path/test.c
       w.append(TEXTNAME + "\n");
-      w.append(SOURCEFILE + Path.of(sourcefile).toAbsolutePath() + "\n");
+      w.append(SOURCEFILE + Paths.get(sourcefile).toAbsolutePath() + "\n");
 
       for (FunctionInfo info : fileInfos.allFunctions) {
         w.append(FUNCTION + info.firstLine + "," + info.name + "\n");

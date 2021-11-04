@@ -50,7 +50,7 @@ public class GenericAbstraction extends SMGObject implements SMGAbstractObject {
   }
 
   public GenericAbstraction(
-      long pSize,
+      int pSize,
       String pLabel,
       Map<SMGValue, List<MaterlisationStep>> pMaterlisationStepMap,
       Map<SMGValue, SMGValue> pAbstractToConcretePointerMap,
@@ -138,7 +138,6 @@ public class GenericAbstraction extends SMGObject implements SMGAbstractObject {
 
   @Override
   public boolean isAbstract() {
-    throw new UnsupportedOperationException(
-        "GenericAbstraction does not know if it is abstract?"); // TODO why not?
+    throw new UnsupportedOperationException("GenericAbstraction does not know if it is abstract?"); // TODO why not?
   }
 }

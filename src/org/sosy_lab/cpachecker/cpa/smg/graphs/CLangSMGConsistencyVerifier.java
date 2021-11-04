@@ -276,9 +276,9 @@ public class CLangSMGConsistencyVerifier {
             pLogger.log(
                 Level.SEVERE,
                 "CLangSMG inconsistent: pointer ["
-                    + ptEdge
+                    + ptEdge.toString()
                     + "] is stored with wrong size by hvEdge "
-                    + hvEdge);
+                    + hvEdge.toString());
             return false;
           }
         }

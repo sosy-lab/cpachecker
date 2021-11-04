@@ -85,7 +85,9 @@ public class BAMARGStatistics extends ARGStatistics {
 
     final UnmodifiableReachedSet bamReachedSetView =
         createReachedSetViewWithoutExceptions(pReached, frontierStates, pResult);
-    if (bamReachedSetView != null) {
+    if (bamReachedSetView == null) {
+      return;
+    } else {
       super.printStatistics(pOut, pResult, bamReachedSetView);
     }
   }
@@ -111,7 +113,9 @@ public class BAMARGStatistics extends ARGStatistics {
 
     final UnmodifiableReachedSet bamReachedSetView =
         createReachedSetViewWithoutExceptions(pReached, frontierStates, pResult);
-    if (bamReachedSetView != null) {
+    if (bamReachedSetView == null) {
+      return;
+    } else {
       super.writeOutputFiles(pResult, bamReachedSetView);
     }
   }
@@ -129,11 +133,15 @@ public class BAMARGStatistics extends ARGStatistics {
       return createReachedSetViewWithFallback(pReached, frontierStates, pResult);
 
     } catch (MissingBlockException e) {
-      logger.logUserException(Level.WARNING, e, ERROR_PREFIX);
+      logger.log(
+          Level.INFO,
+          ERROR_PREFIX,
+          String.format(
+              "(%s)", logger.wouldBeLogged(Level.FINE) ? e.getMessage() : "missing block"));
       return null; // invalid ARG, ignore output.
 
     } catch (InterruptedException e) {
-      logger.logUserException(Level.WARNING, e, "could not compute full reached set graph");
+      logger.log(Level.WARNING, "could not compute full reached set graph:", e);
       return null; // invalid ARG, ignore output
     }
   }
@@ -159,8 +167,7 @@ public class BAMARGStatistics extends ARGStatistics {
       if (pResult.equals(Result.FALSE) && !targetStates.isEmpty()) {
         // fallback: if there is a missing block and we have a target state,
         // maybe at least a direct counterexample path can be exported
-        logger.logUserException(
-            Level.WARNING, e, ERROR_PREFIX + ", falling back to counterexample traces");
+        logger.log(Level.INFO, ERROR_PREFIX, "(fallback to counterexample traces)");
         return createReachedSetView(pReached, targetStates);
       }
 
@@ -191,7 +198,6 @@ public class BAMARGStatistics extends ARGStatistics {
         cexSubgraphComputer.computeCounterexampleSubgraph(frontierStates, pMainReachedSet);
 
     ARGPath path = ARGUtils.getRandomPath(rootAndTargetsOfSubgraph.getFirst());
-    @SuppressWarnings("deprecation")
     TimerWrapper dummyTimer = new ThreadSafeTimerContainer("dummy").getNewTimer();
     BAMReachedSet bamReachedSet = new BAMReachedSet(bamCpa, pMainReachedSet, path, dummyTimer);
     UnmodifiableReachedSet bamReachedSetView = bamReachedSet.asReachedSet();
@@ -238,10 +244,10 @@ public class BAMARGStatistics extends ARGStatistics {
     ARGState argState = (ARGState) pReached.getLastState();
     if (argState != null && argState.isTarget()) {
       Optional<CounterexampleInfo> cex = argState.getCounterexampleInformation();
-      Optional<BackwardARGState> matchingState =
-          targets.stream().filter(t -> Objects.equals(t.getARGState(), argState)).findFirst();
+      com.google.common.base.Optional<BackwardARGState> matchingState =
+          from(targets).firstMatch(t -> Objects.equals(t.getARGState(), argState));
       if (cex.isPresent() && matchingState.isPresent()) {
-        matchingState.orElseThrow().addCounterexampleInformation(cex.orElseThrow());
+        matchingState.get().addCounterexampleInformation(cex.orElseThrow());
       }
     }
   }

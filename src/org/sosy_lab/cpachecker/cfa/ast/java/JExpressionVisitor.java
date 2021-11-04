@@ -8,8 +8,10 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+
 /**
  * Interface for the visitor pattern. Typically used to evaluate expressions.
+ *
  *
  * @param <R> the return type of an evaluation.
  * @param <X> the exception thrown, if there are errors while evaluating an expression.
@@ -48,5 +50,4 @@ public interface JExpressionVisitor<R, X extends Exception> extends JLeftHandSid
 
   R visit(JThisExpression pThisExpression) throws X;
 
-  R visit(JClassLiteralExpression pJClassLiteralExpression) throws X;
 }

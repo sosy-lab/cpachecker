@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.ci.redundancyremover.RedundantRequirementsRemover.RedundantRequirementsRemoverImplementation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
+
 public class RedundantRequirementsValueAnalysisStateImplementation extends
     RedundantRequirementsRemoverImplementation<ValueAnalysisState, Value> {
 
@@ -34,8 +35,7 @@ public class RedundantRequirementsValueAnalysisStateImplementation extends
     // 1 if p01 unknown value
     // otherwise p01.doubleValues()-pO2.doubleValues()
     if (pO1 == null || pO2 == null) {
-      throw new NullPointerException(
-          "At least one of the arguments " + pO1 + " or " + pO2 + " is null.");
+      throw new NullPointerException("At least one of the arguments " + pO1 + " or " + pO2 + " is null.");
     } else if (pO1 instanceof ArrayValue || pO2 instanceof ArrayValue ||
         pO1 instanceof BooleanValue || pO2 instanceof BooleanValue ||
         pO1 instanceof EnumConstantValue || pO2 instanceof EnumConstantValue ||
@@ -74,7 +74,7 @@ public class RedundantRequirementsValueAnalysisStateImplementation extends
       constant = Integer.parseInt(pVarOrConst);
       return new NumericValue(constant);
     } catch (NumberFormatException e) {
-      MemoryLocation memLoc = MemoryLocation.parseExtendedQualifiedName(pVarOrConst);
+      MemoryLocation memLoc = MemoryLocation.valueOf(pVarOrConst);
       if (pAbstractState.contains(memLoc)) {
         return pAbstractState.getValueFor(memLoc);
       }

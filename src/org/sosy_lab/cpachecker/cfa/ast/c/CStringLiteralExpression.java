@@ -133,8 +133,7 @@ public final class CStringLiteralExpression extends AStringLiteralExpression imp
     } else if (getExpressionType() instanceof CPointerType) {
       return new CArrayType(false, false, ((CPointerType) getExpressionType() ).getType(), length);
     } else {
-      throw new UnrecognizedCodeException(
-          "Assigning string literal to " + getExpressionType(), this);
+      throw new UnrecognizedCodeException("Assigning string literal to " + getExpressionType().toString(), this);
     }
   }
 

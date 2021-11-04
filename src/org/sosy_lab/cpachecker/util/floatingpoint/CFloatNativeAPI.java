@@ -42,7 +42,7 @@ public class CFloatNativeAPI {
 
     private final int ordinal;
 
-    CNativeType(final int pOrdinal) {
+    private CNativeType(final int pOrdinal) {
       ordinal = pOrdinal;
     }
 

@@ -69,8 +69,7 @@ public class PartialCPABuilder {
       }
       singleConfigBuilder.loadFromFile(configFiles.get(iterationNumber));
     } catch (IOException e) {
-      throw new InvalidConfigurationException(
-          "Cannot read configuration for current partial ARG checking.");
+      throw new InvalidConfigurationException("Cannot read configuration for current partial ARG checking.");
     }
     Configuration singleConfig = singleConfigBuilder.build();
 
@@ -78,7 +77,7 @@ public class PartialCPABuilder {
     logger.log(Level.FINEST, "Create CPA instance");
 
     return new CPABuilder(singleConfig, logger, shutdown, pFactory)
-        .buildCPAs(cfa, specification, AggregatedReachedSets.empty());
+        .buildCPAs(cfa, specification, new AggregatedReachedSets());
  }
 
 

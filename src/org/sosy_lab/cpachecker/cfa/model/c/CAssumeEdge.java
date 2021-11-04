@@ -8,13 +8,14 @@
 
 package org.sosy_lab.cpachecker.cfa.model.c;
 
+import com.google.common.base.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
-public class CAssumeEdge extends AssumeEdge implements CCfaEdge {
+public class CAssumeEdge extends AssumeEdge {
 
   private static final long serialVersionUID = -3330760789129113642L;
 
@@ -63,8 +64,15 @@ public class CAssumeEdge extends AssumeEdge implements CCfaEdge {
     return (CExpression) expression;
   }
 
+
+  /**
+   * TODO
+   * Warning: for instances with {@link #getTruthAssumption()} == false, the
+   * return value of this method does not represent exactly the return value
+   * of {@link #getRawStatement()} (it misses the outer negation of the expression).
+   */
   @Override
-  public <R, X extends Exception> R accept(CCfaEdgeVisitor<R, X> pVisitor) throws X {
-    return pVisitor.visit(this);
+  public Optional<CExpression> getRawAST() {
+    return Optional.of((CExpression)expression);
   }
 }

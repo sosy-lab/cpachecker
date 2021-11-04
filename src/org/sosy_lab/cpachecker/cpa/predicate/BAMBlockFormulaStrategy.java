@@ -113,6 +113,7 @@ public final class BAMBlockFormulaStrategy extends BlockFormulaStrategy {
           prevCallState = callStacks.get(callState);
           parentFormula =
               rebuildStateAfterFunctionCall(
+                  pfmgr,
                   parentFormula,
                   finishedFormulas.get(callState),
                   (FunctionExitNode) extractLocation(parentElement));
@@ -126,7 +127,7 @@ public final class BAMBlockFormulaStrategy extends BlockFormulaStrategy {
         for (CFAEdge edge : edges) {
           currentFormula = pfmgr.makeAnd(currentFormula, edge);
           if (edge.getEdgeType() == CFAEdgeType.AssumeEdge) {
-            PathFormula f = pfmgr.makeEmptyPathFormulaWithContextFrom(parentFormula);
+            PathFormula f = pfmgr.makeEmptyPathFormula(parentFormula);
             f = pfmgr.makeAnd(f, edge);
             Pair<ARGState, CFAEdge> key = Pair.of(parentElement, edge);
             branchingFormulas.put(key, f);
@@ -167,7 +168,7 @@ public final class BAMBlockFormulaStrategy extends BlockFormulaStrategy {
             pfmgr.addBitwiseAxiomsIfNeeded(
                 currentFormula.getFormula(), currentFormula.getFormula());
         abstractionFormulas.add(bFormula);
-        currentFormula = pfmgr.makeEmptyPathFormulaWithContextFrom(currentFormula);
+        currentFormula = pfmgr.makeEmptyPathFormula(currentFormula);
 
       } else {
         // merge the formulas
@@ -201,14 +202,15 @@ public final class BAMBlockFormulaStrategy extends BlockFormulaStrategy {
   }
 
   /* rebuild indices from outer scope */
+  @SuppressWarnings("deprecation") // TODO: seems buggy because it ignores PointerTargetSet
   public static PathFormula rebuildStateAfterFunctionCall(
+      final PathFormulaManager pPfmgr,
       final PathFormula parentFormula,
       final PathFormula rootFormula,
       final FunctionExitNode functionExitNode) {
     final SSAMap newSSA =
         BAMPredicateReducer.updateIndices(
             rootFormula.getSsa(), parentFormula.getSsa(), functionExitNode);
-    // TODO: seems buggy because it ignores PointerTargetSet
-    return parentFormula.withContext(newSSA, parentFormula.getPointerTargetSet());
+    return pPfmgr.makeNewPathFormula(parentFormula, newSSA);
   }
 }

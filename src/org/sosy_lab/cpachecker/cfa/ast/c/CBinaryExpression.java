@@ -141,26 +141,6 @@ public class CBinaryExpression extends ABinaryExpression implements CExpression 
       }
     }
 
-    public BinaryOperator getSwitchOperandsSidesLogicalOperator() {
-      assert isLogicalOperator();
-      switch (this) {
-        case LESS_EQUAL:
-          return GREATER_EQUAL;
-        case LESS_THAN:
-          return GREATER_THAN;
-        case GREATER_EQUAL:
-          return LESS_EQUAL;
-        case GREATER_THAN:
-          return LESS_THAN;
-        case EQUALS:
-          return EQUALS;
-        case NOT_EQUALS:
-          return NOT_EQUALS;
-        default:
-          return this;
-      }
-    }
-
     public BinaryOperator getOppositLogicalOperator() {
       assert isLogicalOperator();
       switch (this) {

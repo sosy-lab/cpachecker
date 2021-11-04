@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.cpa.bam.BAMTransferRelation;
 import org.sosy_lab.cpachecker.cpa.bam.MissingBlockAbstractionState;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCache.BAMCacheEntry;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManager;
+import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -229,7 +230,7 @@ class ReachedSetExecutor {
    * ReachedSet to ReachedSetExecutor that guarantees single-threaded access to each ReachedSet.
    */
   private void apply(Collection<AbstractState> pStatesToBeAdded)
-      throws InterruptedException, CPAException {
+      throws InterruptedException, CPAEnabledAnalysisPropertyViolationException, CPAException {
     logger.logf(
         level,
         "%s :: starting, target=%s, statesToBeAdded=%s",

@@ -8,9 +8,10 @@
 
 package org.sosy_lab.cpachecker.util.predicates;
 
-import com.google.common.base.Preconditions;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+
+import com.google.common.base.Preconditions;
 
 /**
  * A generic representation of a predicate
@@ -20,12 +21,15 @@ public class AbstractionPredicate {
   private final Region abstractVariable;
   private final BooleanFormula symbolicVariable;
   private final BooleanFormula symbolicAtom;
+  private final int variableNumber;
 
-  AbstractionPredicate(
-      Region pAbstractVariable, BooleanFormula pSymbolicVariable, BooleanFormula pSymbolicAtom) {
+  AbstractionPredicate(Region pAbstractVariable,
+      BooleanFormula pSymbolicVariable, BooleanFormula pSymbolicAtom,
+      int variableNumber) {
     abstractVariable = Preconditions.checkNotNull(pAbstractVariable);
     symbolicVariable = Preconditions.checkNotNull(pSymbolicVariable);
     symbolicAtom = Preconditions.checkNotNull(pSymbolicAtom);
+    this.variableNumber = variableNumber;
   }
 
   /**
@@ -65,5 +69,9 @@ public class AbstractionPredicate {
   @Override
   public String toString() {
     return abstractVariable + " <-> " + symbolicVariable + " <-> " + symbolicAtom;
+  }
+
+  public int getVariableNumber() {
+    return variableNumber;
   }
 }

@@ -16,14 +16,13 @@ import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
  * This expression represents an array.length expression.
  *
  * <p>Example:
- *
- * <pre>
+ *  <pre>
  *    int[] a;
  *    int b = a.length;
  *  </pre>
+ * </p>
  */
-public abstract class JArrayLengthExpression extends AbstractExpression
-    implements JExpression, JAstNode, JRightHandSide {
+public abstract class JArrayLengthExpression extends AbstractExpression implements JExpression, JAstNode, JRightHandSide {
 
   private static final long serialVersionUID = 7278006181009822118L;
 
@@ -59,8 +58,7 @@ public abstract class JArrayLengthExpression extends AbstractExpression
     private static final long serialVersionUID = 7488687702133599086L;
     private final JArraySubscriptExpression qualifier;
 
-    public JSubArrayLengthExpression(
-        FileLocation pFileLocation, JArraySubscriptExpression pQualifier) {
+    public JSubArrayLengthExpression(FileLocation pFileLocation, JArraySubscriptExpression pQualifier) {
       super(pFileLocation);
       qualifier = pQualifier;
     }

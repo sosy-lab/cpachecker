@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.test;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.Map;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
@@ -53,7 +54,8 @@ public class CPATestRunner {
 
     ShutdownManager shutdownManager = ShutdownManager.create();
     CPAchecker cpaChecker = new CPAchecker(config, logger, shutdownManager);
-    CPAcheckerResult results = cpaChecker.run(ImmutableList.of(pSourceCodeFilePath));
+    CPAcheckerResult results =
+        cpaChecker.run(ImmutableList.of(pSourceCodeFilePath), ImmutableSet.of());
     logger.flush();
     return new TestResults(stringLogHandler.getLog(), results);
   }

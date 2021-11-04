@@ -53,10 +53,11 @@ public class Parsers {
     private boolean showDeadCode = true;
 
     @Option(
-        secure = true,
-        description =
-            "simplify pointer expressions like s->f to (*s).f with this option the cfa is"
-                + " simplified until at maximum one pointer is allowed for left- and rightHandSide")
+      secure = true,
+      description =
+          "simplify pointer expressions like s->f to (*s).f with this option "
+              + "the cfa is simplified until at maximum one pointer is allowed for left- and rightHandSide"
+    )
     private boolean simplifyPointerExpressions = false;
 
     @Option(secure = true, description = "simplify simple const expressions like 1+2")
@@ -82,15 +83,11 @@ public class Parsers {
   private Parsers() { }
 
   private static final Pattern OUR_CLASSES =
-      Pattern.compile(
-          "^(org\\.eclipse|org\\.sosy_lab\\.cpachecker\\.cfa\\.parser\\.(eclipse\\..*|llvm)\\.*)\\..*");
+      Pattern.compile("^(org\\.eclipse|org\\.sosy_lab\\.cpachecker\\.cfa\\.parser\\.(eclipse\\..*|llvm)\\.*)\\..*");
 
-  private static final String C_PARSER_CLASS =
-      "org.sosy_lab.cpachecker.cfa.parser.eclipse.c.EclipseCParser";
-  private static final String JAVA_PARSER_CLASS =
-      "org.sosy_lab.cpachecker.cfa.parser.eclipse.java.EclipseJavaParser";
-  private static final String LLVM_PARSER_CLASS =
-      "org.sosy_lab.cpachecker.cfa.parser.llvm.LlvmParser";
+  private static final String C_PARSER_CLASS    = "org.sosy_lab.cpachecker.cfa.parser.eclipse.c.EclipseCParser";
+  private static final String JAVA_PARSER_CLASS = "org.sosy_lab.cpachecker.cfa.parser.eclipse.java.EclipseJavaParser";
+  private static final String LLVM_PARSER_CLASS = "org.sosy_lab.cpachecker.cfa.parser.llvm.LlvmParser";
 
   private static WeakReference<ClassLoader> loadedClassLoader = new WeakReference<>(null);
 
@@ -154,8 +151,7 @@ public class Parsers {
     }
   }
 
-  public static Parser getJavaParser(LogManager logger, Configuration config, String entryMethod)
-      throws InvalidConfigurationException {
+  public static Parser getJavaParser(LogManager logger, Configuration config) throws InvalidConfigurationException {
 
     try {
       Constructor<? extends Parser> parserConstructor = loadedJavaParser.get();
@@ -164,19 +160,17 @@ public class Parsers {
         ClassLoader classLoader = getClassLoader(logger);
 
         @SuppressWarnings("unchecked")
-        Class<? extends Parser> parserClass =
-            (Class<? extends Parser>) classLoader.loadClass(JAVA_PARSER_CLASS);
-        parserConstructor =
-            parserClass.getConstructor(LogManager.class, Configuration.class, String.class);
+        Class<? extends CParser> parserClass = (Class<? extends CParser>) classLoader.loadClass(JAVA_PARSER_CLASS);
+        parserConstructor = parserClass.getConstructor(LogManager.class, Configuration.class);
         parserConstructor.setAccessible(true);
         loadedJavaParser = new WeakReference<>(parserConstructor);
       }
 
       try {
-        return parserConstructor.newInstance(logger, config, entryMethod);
+        return parserConstructor.newInstance(logger, config);
       } catch (InvocationTargetException e) {
         if (e.getCause() instanceof InvalidConfigurationException) {
-          throw (InvalidConfigurationException) e.getCause();
+          throw (InvalidConfigurationException)e.getCause();
         }
         throw e;
       }

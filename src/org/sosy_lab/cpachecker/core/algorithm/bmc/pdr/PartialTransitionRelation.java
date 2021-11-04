@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
@@ -26,9 +25,8 @@ import java.util.OptionalInt;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
-import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -77,8 +75,8 @@ class PartialTransitionRelation implements Comparable<PartialTransitionRelation>
 
   private final PathFormulaManager pmgr;
 
-  private @Nullable ImmutableSet<AbstractState> currentEndStates = null;
-  private @Nullable ImmutableMap<String, Formula> currentVariables = null;
+  private @Nullable Set<AbstractState> currentEndStates = null;
+  private @Nullable Map<String, Formula> currentVariables = null;
 
   private int lastK = -1;
 
@@ -126,7 +124,7 @@ class PartialTransitionRelation implements Comparable<PartialTransitionRelation>
     return startLocation;
   }
 
-  public ImmutableSet<AbstractState> getEndStates() {
+  public Set<AbstractState> getEndStates() {
     int desiredK = getDesiredK();
     if (currentEndStates != null && lastK == desiredK) {
       return currentEndStates;
@@ -236,7 +234,7 @@ class PartialTransitionRelation implements Comparable<PartialTransitionRelation>
     return BMCHelper.filterIterationsBetween(pStates, min, max, startLocations);
   }
 
-  public ImmutableMap<String, Formula> getVariables() {
+  public Map<String, Formula> getVariables() {
     int desiredK = getDesiredK();
     if (currentVariables != null && lastK == desiredK) {
       return currentVariables;
@@ -248,12 +246,15 @@ class PartialTransitionRelation implements Comparable<PartialTransitionRelation>
             AbstractStates.filterLocations(reachedSet.getReachedSet(), relevantLocations),
             desiredK);
     currentVariables =
-        AbstractStates.projectToType(relevantStates, PredicateAbstractState.class).stream()
+        AbstractStates.projectToType(relevantStates, PredicateAbstractState.class)
+            .stream()
             .map(PartialTransitionRelation::getPathFormula)
             .flatMap(
                 pathFormula -> {
                   SSAMap ssaMap = pathFormula.getSsa();
-                  return ssaMap.allVariables().stream()
+                  return ssaMap
+                      .allVariables()
+                      .stream()
                       .filter(name -> !name.startsWith("*"))
                       .map(
                           name -> {
@@ -266,7 +267,7 @@ class PartialTransitionRelation implements Comparable<PartialTransitionRelation>
                 })
             .distinct()
             .collect(
-                ImmutableMap.toImmutableMap(
+                Collectors.toMap(
                     f -> fmgr.extractVariableNames(f).iterator().next(), Function.identity()));
     lastK = desiredK;
     return currentVariables;
@@ -365,7 +366,7 @@ class PartialTransitionRelation implements Comparable<PartialTransitionRelation>
     PathFormula pathFormula = getPathFormula(pState);
     SSAMap ssaMap =
         pathFormula.getSsa().withDefault(pDefaultIndex); // Use index 2 for successor locations
-    pathFormula = pathFormula.withContext(ssaMap, pathFormula.getPointerTargetSet());
+    pathFormula = pmgr.makeNewPathFormula(pathFormula, ssaMap, pathFormula.getPointerTargetSet());
     BooleanFormula uninstantiatedFormula = pCandidateInvariant.getFormula(fmgr, pmgr, pathFormula);
     return fmgr.instantiate(uninstantiatedFormula, ssaMap);
   }
@@ -375,7 +376,7 @@ class PartialTransitionRelation implements Comparable<PartialTransitionRelation>
   }
 
   public BooleanFormula getFormula() {
-    ImmutableSet<AbstractState> endStates = getEndStates();
+    Set<AbstractState> endStates = getEndStates();
     ReachedSet reached = reachedSet.getReachedSet();
     if (reached.isEmpty() || endStates.isEmpty()) {
       return bfmgr.makeFalse();
@@ -396,9 +397,9 @@ class PartialTransitionRelation implements Comparable<PartialTransitionRelation>
     Multimap<String, Integer> inputs =
         extractInputs(
             filterIterationsUpTo(getReachedSet().getReachedSet(), getDesiredK() + 1), types);
-    ImmutableMap<String, Formula> variables = getVariables();
+    Map<String, Formula> variables = getVariables();
 
-    PersistentMap<String, ModelValue> model = PathCopyingPersistentTreeMap.of();
+    ImmutableMap.Builder<String, ModelValue> modelBuilder = ImmutableMap.builder();
 
     for (ValueAssignment valueAssignment : pModelAssignments) {
       if (!valueAssignment.isFunction()) {
@@ -414,10 +415,14 @@ class PartialTransitionRelation implements Comparable<PartialTransitionRelation>
                 || (variables.containsKey(actualName)
                     && !inputs.get(actualName).contains(index.orElseThrow())))) {
           BooleanFormula assignment = fmgr.uninstantiate(valueAssignment.getAssignmentAsFormula());
-          model = model.putAndCopy(actualName, new ModelValue(actualName, assignment, fmgr));
+          ModelValue modelValue =
+              new ModelValue(
+                  actualName, fmgr.dumpFormula(assignment).toString(), assignment::toString);
+          modelBuilder.put(actualName, modelValue);
         }
       }
     }
+    Map<String, ModelValue> model = modelBuilder.build();
     CounterexampleToInductivity cti = new CounterexampleToInductivity(startLocation, model);
 
     return new CtiWithInputs(

@@ -69,8 +69,7 @@ public class InfeasiblePrefix {
     List<Set<String>> simpleInterpolantSequence = new ArrayList<>();
     for (ValueAnalysisInterpolant itp : pInterpolantSequence) {
       simpleInterpolantSequence.add(
-          transformedImmutableSetCopy(
-              itp.getMemoryLocations(), MemoryLocation::getExtendedQualifiedName));
+          transformedImmutableSetCopy(itp.getMemoryLocations(), MemoryLocation::getAsSimpleString));
     }
 
     return new InfeasiblePrefix(pInfeasiblePrefix, simpleInterpolantSequence);
@@ -105,8 +104,7 @@ public class InfeasiblePrefix {
     }
 
     // for the value analysis, this must never be reached
-    throw new AssertionError(
-        "There must be at least one non-trivial interpolant along the prefix.");
+    throw new AssertionError("There must be at least one non-trivial interpolant along the prefix.");
   }
 
   public ARGPath getPath() {

@@ -35,9 +35,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGOptions.SMGExportLevel;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableSMG;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter.SMGEdgeHasValueFilterByObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsToFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
@@ -53,7 +51,7 @@ public final class SMGUtils {
 
   public static SMGHasValueEdges getFieldsOfObject(
       SMGObject pSmgObject, UnmodifiableSMG pInputSMG) {
-    SMGEdgeHasValueFilterByObject edgeFilter = SMGEdgeHasValueFilter.objectFilter(pSmgObject);
+    SMGEdgeHasValueFilter edgeFilter = SMGEdgeHasValueFilter.objectFilter(pSmgObject);
     return pInputSMG.getHVEdges(edgeFilter);
   }
 
@@ -63,8 +61,7 @@ public final class SMGUtils {
     return pInputSMG.getPtEdges(objectFilter);
   }
 
-  public static Iterable<SMGEdgeHasValue> getFieldsofThisValue(
-      SMGValue value, UnmodifiableSMG pInputSMG) {
+  public static SMGHasValueEdges getFieldsofThisValue(SMGValue value, UnmodifiableSMG pInputSMG) {
     SMGEdgeHasValueFilter valueFilter = SMGEdgeHasValueFilter.valueFilter(value);
     return pInputSMG.getHVEdges(valueFilter);
   }

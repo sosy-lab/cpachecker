@@ -169,6 +169,7 @@ SPDX-License-Identifier: Apache-2.0
             <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
         </tasks>
         <option name="-heap">16000m</option>
+        <option name="-64"/>
     </rundefinition>
 
     <rundefinition name="device-drivers-value">
@@ -179,6 +180,7 @@ SPDX-License-Identifier: Apache-2.0
             <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
         </tasks>
         <option name="-heap">16000m</option>
+        <option name="-64"/>
     </rundefinition>
 
     <rundefinition name="lpi-productlines-value">
