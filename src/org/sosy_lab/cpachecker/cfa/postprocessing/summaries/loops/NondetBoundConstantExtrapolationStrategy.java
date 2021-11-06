@@ -114,6 +114,7 @@ public class NondetBoundConstantExtrapolationStrategy extends ConstantExtrapolat
 
     Optional<GhostCFA> superOptionalGhostCFA = Optional.empty();
     // super.summaryCFA(loopStartNode, loopVariableDelta, loopBound, 1, -1, loopBranchIndex);
+    super.summarizeLoop(leftHandSide, loopBound, null, startNode);
 
     GhostCFA superGhostCFA;
     if (superOptionalGhostCFA.isEmpty()) {

@@ -169,14 +169,14 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
     }
   }
 
-  private Optional<GhostCFA> summarizeLoop(
+  protected Optional<GhostCFA> summarizeLoop(
       AExpression pIterations,
       AExpression pLoopBoundExpression,
       Loop pLoopStructure,
       CFANode pBeforeWhile) {
 
-    CFANode startNodeGhostCFA = CFANode.newDummyCFANode("STARTGHOST");
-    CFANode endNodeGhostCFA = CFANode.newDummyCFANode("ENDGHHOST");
+    CFANode startNodeGhostCFA = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
+    CFANode endNodeGhostCFA = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
 
     Optional<Pair<CFANode, CFANode>> unrolledLoopNodesMaybe = pLoopStructure.unrollOutermostLoop();
     if (unrolledLoopNodesMaybe.isEmpty()) {
@@ -188,7 +188,7 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
 
     startNodeGhostCFA.connectTo(startUnrolledLoopNode);
 
-    CFANode currentSummaryNodeCFA = CFANode.newDummyCFANode("Start Summary Node");
+    CFANode currentSummaryNodeCFA = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
 
     CFAEdge loopBoundCFAEdge =
         new CAssumeEdge(
@@ -204,7 +204,7 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
         ((CAssumeEdge) loopBoundCFAEdge).negate().copyWith(endUnrolledLoopNode, endNodeGhostCFA);
     negatedBoundCFAEdge.connect();
 
-    CFANode nextSummaryNode = CFANode.newDummyCFANode("Inner Summary Node");
+    CFANode nextSummaryNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
 
     // Make Summary of Loop
 
@@ -242,7 +242,7 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
       dummyEdge.connect();
 
       currentSummaryNodeCFA = nextSummaryNode;
-      nextSummaryNode = CFANode.newDummyCFANode("Inner Summary Node");
+      nextSummaryNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
     }
 
     // Unroll Loop Once again

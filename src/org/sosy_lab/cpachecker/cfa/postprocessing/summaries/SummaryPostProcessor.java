@@ -123,6 +123,9 @@ public class SummaryPostProcessor {
       iterations += 1;
       for (GhostCFA gCFA : ghostCfaToBeAdded) {
         gCFA.connectOriginalAndGhostCFA();
+        for (CFANode n : gCFA.getAllNodes()) {
+          pCfa.addNode(startNode.getFunctionName(), n);
+        }
         summaryInformation.addGhostCFA(gCFA);
       }
     }

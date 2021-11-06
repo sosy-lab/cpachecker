@@ -148,12 +148,15 @@ public final class DOTBuilder2 {
       String funcname = predecessor.getFunctionName();
 
       // check if it qualifies for a comboEdge
-      if (    predecessor.isLoopStart()
+      if (predecessor.isLoopStart()
           || (predecessor.getNumEnteringEdges() != 1)
           || (predecessor.getNumLeavingEdges() != 1)
-          || (currentComboEdge != null && !predecessor.equals(currentComboEdge.get(currentComboEdge.size()-1).getSuccessor()))
+          || (currentComboEdge != null
+              && !predecessor.equals(
+                  currentComboEdge.get(currentComboEdge.size() - 1).getSuccessor()))
           || (edge.getEdgeType() == CFAEdgeType.CallToReturnEdge)
-          || (edge.getEdgeType() == CFAEdgeType.AssumeEdge)) {
+          || (edge.getEdgeType() == CFAEdgeType.AssumeEdge)
+          || (edge.getEdgeType() == CFAEdgeType.BlankEdge)) {
         // no, it does not
 
         edges.put(funcname, edge);

@@ -355,14 +355,14 @@ public final class LoopStructure implements Serializable {
       }
 
       Map<CFANode, CFANode> originalToNewNodes = new HashMap<>();
+      String functionName = this.getLoopHeads().asList().get(0).getFunctionName();
 
       Pair<CFANode, CFANode> startNodes =
-          Pair.of(
-              CFANode.newDummyCFANode("Loop Unrolling Start"), this.getLoopHeads().asList().get(0));
+          Pair.of(CFANode.newDummyCFANode(functionName), this.getLoopHeads().asList().get(0));
       originalToNewNodes.put(startNodes.getSecond(), startNodes.getFirst());
 
       CFANode firstNode = startNodes.getFirst();
-      CFANode lastNode = CFANode.newDummyCFANode("Loop Unrolling End");
+      CFANode lastNode = CFANode.newDummyCFANode(functionName);
       List<Pair<CFANode, CFANode>> currentNodes = new ArrayList<>();
 
       currentNodes.add(startNodes);
@@ -382,7 +382,7 @@ public final class LoopStructure implements Serializable {
             CFAEdge pNewLeavingEdge = succ.copyWith(newNode, newSuccessor);
             pNewLeavingEdge.connect();
           } else if (getInnerLoopEdges().contains(succ)) {
-            newSuccessor = CFANode.newDummyCFANode("Loop Unrolling Inner");
+            newSuccessor = CFANode.newDummyCFANode(functionName);
             originalToNewNodes.put(successor, newSuccessor);
             CFAEdge pNewLeavingEdge = succ.copyWith(newNode, newSuccessor);
             pNewLeavingEdge.connect();

@@ -63,6 +63,15 @@ public class MutableCFA implements CFA {
     allNodes.put(pNode.getFunctionName(), pNode);
   }
 
+  /*
+   * Should only be used to add new Nodes to the CFA which
+   * are dummy nodes but actually correspond to another function
+   */
+  public void addNode(String functionName, CFANode pNode) {
+    assert functions.containsKey(functionName);
+    allNodes.put(functionName, pNode);
+  }
+
   public void clear() {
     functions.clear();
     allNodes.clear();
