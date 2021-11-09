@@ -44,10 +44,11 @@ import org.sosy_lab.cpachecker.core.algorithm.RestrictedProgramDomainAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.SelectionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.TestCaseGeneratorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.UndefinedFunctionCollectorAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.WitnessToInvariantWitnessAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.WitnessToACSLAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.WitnessToInvariantWitnessAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.IMCAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.ISMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.pdr.PdrAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.composition.CompositionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
@@ -155,6 +156,13 @@ public class CoreComponentsFactory {
     description = "use McMillan's interpolation-based model checking algorithm, "
         + "works only with PredicateCPA and large-block encoding")
   private boolean useIMC = false;
+
+  @Option(
+    secure = true,
+    name = "algorithm.ISMC",
+    description = "use interpolation-sequence based model checking algorithm, "
+        + "works only with PredicateCPA and large-block encoding")
+  private boolean useISMC = false;
 
   @Option(secure=true, name="algorithm.impact",
       description="Use McMillan's Impact algorithm for lazy interpolation")
@@ -407,7 +415,7 @@ public class CoreComponentsFactory {
         && !useProofCheckAlgorithmWithStoredConfig
         && !useRestartingAlgorithm
         && !useImpactAlgorithm
-        && (useBMC || useIMC || useInvariantExportAlgorithm);
+        && (useBMC || useIMC || useISMC || useInvariantExportAlgorithm);
   }
 
   public Algorithm createAlgorithm(
@@ -573,6 +581,21 @@ public class CoreComponentsFactory {
         verifyNotNull(shutdownManager);
         algorithm =
             new IMCAlgorithm(
+                algorithm,
+                cpa,
+                config,
+                logger,
+                reachedSetFactory,
+                shutdownManager,
+                cfa,
+                specification,
+                aggregatedReachedSets);
+      }
+
+      if (useISMC) {
+        verifyNotNull(shutdownManager);
+        algorithm =
+            new ISMCAlgorithm(
                 algorithm,
                 cpa,
                 config,
