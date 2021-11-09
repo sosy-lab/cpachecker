@@ -4373,6 +4373,13 @@ testcase.generate.parallel = false
 # display all test targets and non-covered test targets in statistics
 testcase.inStats = false
 
+# how many mutated test cases should be additionally generated (disabled if
+# <= 0)
+testcase.mutants = 0
+
+# Random seed for test case mutation
+testcase.mutationSeed = 0
+
 # Only convert literal value and do not add suffix, e.g., for unsigned, etc.
 testcase.plainLiteralValue = false
 
