@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.java.JClassLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -37,6 +38,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -92,11 +94,11 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
     final MemoryLocation memLoc;
 
     if (varName.getDeclaration() != null) {
-      memLoc = MemoryLocation.valueOf(varName.getDeclaration().getQualifiedName());
+      memLoc = MemoryLocation.forDeclaration(varName.getDeclaration());
     } else if (!ForwardingTransferRelation.isGlobal(varName)) {
-      memLoc = MemoryLocation.valueOf(getFunctionName(), varName.getName());
+      memLoc = MemoryLocation.forLocalVariable(getFunctionName(), varName.getName());
     } else {
-      memLoc = MemoryLocation.valueOf(varName.getName());
+      memLoc = MemoryLocation.forIdentifier(varName.getName());
     }
 
     if (readableState.contains(memLoc)) {
@@ -256,6 +258,11 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
     return locationEvaluator.getArraySlotLocationFromArrayStart(pArrayStartLocation, pSlotNumber, pArrayType);
   }
 
+  @Override
+  public Value visit(JClassLiteralExpression pJClassLiteralExpression) throws NoException {
+    return UnknownValue.getInstance();
+  }
+
   protected static class MemoryLocationEvaluator
       extends DefaultCExpressionVisitor<MemoryLocation, UnrecognizedCodeException> {
 
@@ -266,7 +273,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
     }
 
     @Override
-    protected MemoryLocation visitDefault(CExpression pExp) throws UnrecognizedCodeException {
+    protected MemoryLocation visitDefault(CExpression pExp) {
       return null;
     }
 
@@ -305,17 +312,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
       long subscriptOffset = subscriptValue.asNumericValue().longValue() * typeSize;
 
-      if (arrayLoc.isOnFunctionStack()) {
-
-        return MemoryLocation.valueOf(
-            arrayLoc.getFunctionName(),
-            arrayLoc.getIdentifier(),
-            (arrayLoc.isReference() ? arrayLoc.getOffset() : 0) + subscriptOffset);
-      } else {
-
-        return MemoryLocation.valueOf(arrayLoc.getIdentifier(),
-            subscriptOffset);
-      }
+      return arrayLoc.withAddedOffset(subscriptOffset);
     }
 
     @Override
@@ -351,19 +348,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
         return null;
       }
 
-      long baseOffset = pStartLocation.isReference() ? pStartLocation.getOffset() : 0;
-
-      if (pStartLocation.isOnFunctionStack()) {
-
-        return MemoryLocation.valueOf(
-            pStartLocation.getFunctionName(),
-            pStartLocation.getIdentifier(),
-            baseOffset + offset.orElseThrow());
-      } else {
-
-        return MemoryLocation.valueOf(
-            pStartLocation.getIdentifier(), baseOffset + offset.orElseThrow());
-      }
+      return pStartLocation.withAddedOffset(offset.orElseThrow());
     }
 
     private OptionalLong getFieldOffsetInBits(CType ownerType, String fieldName)
@@ -409,32 +394,23 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
       long typeSize = evv.getMachineModel().getSizeof(pArrayType.getType()).longValueExact();
       long offset = typeSize * pSlotNumber;
-      long baseOffset = pArrayStartLocation.isReference() ? pArrayStartLocation.getOffset() : 0;
 
-      if (pArrayStartLocation.isOnFunctionStack()) {
-
-        return MemoryLocation.valueOf(
-            pArrayStartLocation.getFunctionName(),
-            pArrayStartLocation.getIdentifier(),
-            baseOffset + offset);
-      } else {
-        return MemoryLocation.valueOf(pArrayStartLocation.getIdentifier(), baseOffset + offset);
-      }
+      return pArrayStartLocation.withAddedOffset(offset);
     }
 
     @Override
     public MemoryLocation visit(CIdExpression idExp) throws UnrecognizedCodeException {
 
       if (idExp.getDeclaration() != null) {
-        return MemoryLocation.valueOf(idExp.getDeclaration().getQualifiedName());
+        return MemoryLocation.forDeclaration(idExp.getDeclaration());
       }
 
       boolean isGlobal = ForwardingTransferRelation.isGlobal(idExp);
 
       if (isGlobal) {
-        return MemoryLocation.valueOf(idExp.getName());
+        return MemoryLocation.forIdentifier(idExp.getName());
       } else {
-        return MemoryLocation.valueOf(evv.getFunctionName(), idExp.getName());
+        return MemoryLocation.forLocalVariable(evv.getFunctionName(), idExp.getName());
       }
     }
 

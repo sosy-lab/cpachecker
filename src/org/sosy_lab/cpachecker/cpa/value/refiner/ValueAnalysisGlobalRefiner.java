@@ -69,7 +69,7 @@ public class ValueAnalysisGlobalRefiner extends ValueAnalysisRefiner {
         strongestPostOp,
         new ValueAnalysisPrefixProvider(
             logger, cfa, config, valueAnalysisCpa.getShutdownNotifier()),
-        new PrefixSelector(cfa.getVarClassification(), cfa.getLoopStructure()),
+        new PrefixSelector(cfa.getVarClassification(), cfa.getLoopStructure(), logger),
         config,
         logger,
         valueAnalysisCpa.getShutdownNotifier(),

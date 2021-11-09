@@ -335,7 +335,7 @@ public class LiveVariables {
     }
 
     // we need a cfa with variableClassification, thus we create one now
-    CFA cfa = pCFA.makeImmutableCFA(variableClassification, Optional.empty());
+    CFA cfa = pCFA.makeImmutableCFA(variableClassification);
 
     // create configuration object, so that we know which analysis strategy should
     // be chosen later on
@@ -563,12 +563,12 @@ public class LiveVariables {
       ReachedSetFactory reachedFactory = new ReachedSetFactory(config, logger);
       ConfigurableProgramAnalysis cpa =
           new CPABuilder(config, logger, shutdownNotifier, reachedFactory)
-              .buildCPAs(cfa, Specification.alwaysSatisfied(), new AggregatedReachedSets());
+              .buildCPAs(cfa, Specification.alwaysSatisfied(), AggregatedReachedSets.empty());
       Algorithm algorithm = CPAAlgorithm.create(cpa,
                                                 logger,
                                                 config,
                                                 shutdownNotifier);
-      ReachedSet reached = reachedFactory.create();
+      ReachedSet reached = reachedFactory.create(cpa);
       return Optional.of(new AnalysisParts(cpa, algorithm, reached));
 
     } catch (InvalidConfigurationException | CPAException e) {

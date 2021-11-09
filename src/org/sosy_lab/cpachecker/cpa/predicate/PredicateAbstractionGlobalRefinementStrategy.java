@@ -233,7 +233,7 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
     return false;
   }
 
-  private final PredicatePrecision computeNewPrecision() {
+  private PredicatePrecision computeNewPrecision() {
     // get previous precision
     UnmodifiableReachedSet unmodifiableReached = reached.asReachedSet();
 
@@ -262,11 +262,11 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
 
   /**
    * Get the predicates out of an interpolant.
+   *
    * @param pInterpolant The interpolant formula.
    * @return A set of predicates.
    */
-  private final Collection<AbstractionPredicate> convertInterpolant(
-      final BooleanFormula pInterpolant) {
+  private Collection<AbstractionPredicate> convertInterpolant(final BooleanFormula pInterpolant) {
 
     BooleanFormula interpolant = pInterpolant;
 

@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.model.java;
 
-import com.google.common.base.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JStatement;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
@@ -16,24 +15,20 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public class JStatementEdge extends AStatementEdge {
 
-
   private static final long serialVersionUID = -785179844865167134L;
 
-  public JStatementEdge(String pRawStatement, JStatement pStatement,
-      FileLocation pFileLocation, CFANode pPredecessor, CFANode pSuccessor) {
+  public JStatementEdge(
+      String pRawStatement,
+      JStatement pStatement,
+      FileLocation pFileLocation,
+      CFANode pPredecessor,
+      CFANode pSuccessor) {
 
     super(pRawStatement, pStatement, pFileLocation, pPredecessor, pSuccessor);
   }
 
-
-
   @Override
   public JStatement getStatement() {
     return (JStatement) statement;
-  }
-
-  @Override
-  public Optional<JStatement> getRawAST() {
-    return Optional.of((JStatement)statement);
   }
 }

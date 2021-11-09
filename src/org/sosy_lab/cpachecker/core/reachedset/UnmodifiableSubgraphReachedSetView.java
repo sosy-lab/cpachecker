@@ -16,6 +16,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.function.BiConsumer;
+import java.util.stream.Stream;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -54,6 +55,11 @@ public class UnmodifiableSubgraphReachedSetView implements UnmodifiableReachedSe
   @Override
   public Iterator<AbstractState> iterator() {
     return asCollection().iterator();
+  }
+
+  @Override
+  public Stream<AbstractState> stream() {
+    return asCollection().stream();
   }
 
   @Override

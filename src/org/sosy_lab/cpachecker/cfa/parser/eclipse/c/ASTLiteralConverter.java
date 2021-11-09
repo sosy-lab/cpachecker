@@ -265,6 +265,9 @@ class ASTLiteralConverter {
     if (pRawValue.startsWith("0x") || pRawValue.startsWith("0X")) {
       return ConstantType.HEXADECIMAL;
 
+    } else if (pRawValue.startsWith("0b") || pRawValue.startsWith("0B")) {
+      return ConstantType.BINARY;
+
     } else if (pRawValue.startsWith("0")) {
       return ConstantType.OCTAL;
 
@@ -277,6 +280,11 @@ class ASTLiteralConverter {
     BigInteger result;
     try {
       switch (type) {
+        case BINARY:
+          // remove "0b" from the string
+          s = s.substring(2);
+          result = new BigInteger(s, 2);
+          break;
         case OCTAL:
           result = new BigInteger(s, 8);
           break;
@@ -437,6 +445,7 @@ class ASTLiteralConverter {
   }
 
   private enum ConstantType {
+    BINARY,
     OCTAL,
     DECIMAL,
     HEXADECIMAL;

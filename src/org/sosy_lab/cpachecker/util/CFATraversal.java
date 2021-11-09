@@ -191,7 +191,6 @@ public class CFATraversal {
         }
       }
     }
-    return;
   }
 
   /**

@@ -9,33 +9,31 @@
 package org.sosy_lab.cpachecker.util.slicing;
 
 import com.google.common.collect.ImmutableCollection;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import java.util.Collection;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-public class Slice {
+public interface Slice {
 
-  private final CFA cfa;
-  private final ImmutableSet<CFAEdge> relevantEdges;
-  private final ImmutableCollection<CFAEdge> criteria;
+  CFA getOriginalCfa();
 
-  Slice(final CFA pCfa, final Collection<CFAEdge> pRelevantEdges, Collection<CFAEdge> pCriteria) {
-    cfa = pCfa;
-    relevantEdges = ImmutableSet.copyOf(pRelevantEdges);
-    criteria = ImmutableList.copyOf(pCriteria);
-  }
+  ImmutableCollection<CFAEdge> getUsedCriteria();
 
-  public ImmutableSet<CFAEdge> getRelevantEdges() {
-    return relevantEdges;
-  }
+  ImmutableSet<CFAEdge> getRelevantEdges();
 
-  public ImmutableCollection<CFAEdge> getUsedCriteria() {
-    return criteria;
-  }
-
-  public CFA getOriginalCfa() {
-    return cfa;
-  }
+  /**
+   * Returns whether the definition of {@code pMemoryLocation} at {@code pEdge} is relevant for this
+   * slice.
+   *
+   * <p>If the definition is relevant or the relevancy of the definition unknown, true is returned.
+   * Otherwise, if this definition is not relevant, false is returned. It's possible that for every
+   * possible combination of {@code pEdge} and {@code pMemoryLocation}, true is returned.
+   *
+   * @param pEdge the {@link CFAEdge} that defines {@code pMemoryLocation}.
+   * @param pMemoryLocation the defined {@link MemoryLocation}.
+   * @return true if the definition of {@code pMemoryLocation} at {@code pEdge} is relevant for the
+   *     slice or if the relevancy is unknown; otherwise, false is returned.
+   */
+  boolean isRelevantDef(CFAEdge pEdge, MemoryLocation pMemoryLocation);
 }

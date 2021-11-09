@@ -30,7 +30,6 @@ SPDX-License-Identifier: Apache-2.0
     <include>../programs/benchmarks/pthread-wmm/mix034_*opt.yml</include>
     <include>../programs/benchmarks/pthread-wmm/mix041_*opt.yml</include>
     <include>../programs/benchmarks/pthread-wmm/mix048_*opt.yml</include>
-    <include>../programs/benchmarks/pthread-wmm/mix054_*opt.yml</include>
     <include>../programs/benchmarks/pthread-wmm/podwr*opt.yml</include>
     <include>../programs/benchmarks/pthread-wmm/rfi000_*opt.yml</include>
     <include>../programs/benchmarks/pthread-wmm/rfi001_*opt.yml</include>
@@ -38,7 +37,6 @@ SPDX-License-Identifier: Apache-2.0
     <include>../programs/benchmarks/pthread-wmm/safe007_*opt.yml</include>
     <include>../programs/benchmarks/pthread-wmm/safe010_*opt.yml</include>
     <include>../programs/benchmarks/pthread-wmm/safe028_*opt.yml</include>
-    <include>../programs/benchmarks/pthread-wmm/safe036_*opt.yml</include>
   </tasks>
 
   <tasks name="value-concurrency-Refinement">
@@ -52,13 +50,11 @@ SPDX-License-Identifier: Apache-2.0
     <include>../programs/benchmarks/pthread-wmm/mix034_*oepc.yml</include>
     <include>../programs/benchmarks/pthread-wmm/mix041_*oepc.yml</include>
     <include>../programs/benchmarks/pthread-wmm/mix048_*oepc.yml</include>
-    <include>../programs/benchmarks/pthread-wmm/mix054_*oepc.yml</include>
     <include>../programs/benchmarks/pthread-wmm/podwr*oepc.yml</include>
     <include>../programs/benchmarks/pthread-wmm/rfi000_*oepc.yml</include>
     <include>../programs/benchmarks/pthread-wmm/rfi001_*oepc.yml</include>
     <include>../programs/benchmarks/pthread-wmm/safe006_*oepc.yml</include>
     <include>../programs/benchmarks/pthread-wmm/safe010_*oepc.yml</include>
-    <include>../programs/benchmarks/pthread-wmm/safe036_*oepc.yml</include>
   </tasks>
 
   <tasks name="bdd-concurrency">
@@ -68,7 +64,35 @@ SPDX-License-Identifier: Apache-2.0
     <include>../programs/benchmarks/pthread-wmm/rfi010_*.yml</include>
     <include>../programs/benchmarks/pthread-wmm/safe014_*.yml</include>
     <include>../programs/benchmarks/pthread-wmm/thin000_*.yml</include>
-    <include>../programs/benchmarks/ldv-races/**.yml</include>
+    <include>../programs/benchmarks/ldv-races/race-1*.yml</include>
+    <include>../programs/benchmarks/ldv-races/race-4*.yml</include>
+  </tasks>
+
+  <tasks name="bmc-concurrency">
+    <option name="-bmc-concurrency"/>
+
+    <include>../programs/benchmarks/pthread-wmm/mix054_*.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/rfi002_*.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/thin001_*.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/safe035_*.yml</include>
+    <include>../programs/benchmarks/ldv-races/race-2*.yml</include>
+    <!-- exclude flapping timeouts -->
+    <exclude>../programs/benchmarks/pthread-wmm/rfi002_power.opt.yml</exclude>
+    <exclude>../programs/benchmarks/pthread-wmm/thin001_power.oepc.yml</exclude>
+  </tasks>
+
+  <tasks name="predicateAnalysis-concurrency">
+    <option name="-predicateAnalysis-concurrency"/>
+
+    <include>../programs/benchmarks/pthread/stack-*.yml</include>
+    <include>../programs/benchmarks/pthread/stack_longer-*.yml</include>
+    <include>../programs/benchmarks/pthread-divine/ring*.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/safe036_*.yml</include>
+    <include>../programs/benchmarks/ldv-races/race-3*.yml</include>
+    <include>../programs/benchmarks/pthread-driver-races/char_generic*.yml</include>
+    <!-- exclude flapping timeouts -->
+    <exclude>../programs/benchmarks/pthread/stack-1.yml</exclude>
+    <exclude>../programs/benchmarks/pthread/stack_longer-1.yml</exclude>
   </tasks>
 
   <columns>

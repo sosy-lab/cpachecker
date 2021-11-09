@@ -195,7 +195,7 @@ public class BlockWaitlist implements Waitlist {
     int i=0;
     ldvPattern = new Pattern[len];
     for (String p : config.getBlockFunctionPatterns()) {
-      ldvPattern[i] = Pattern.compile(p.replaceAll("%", ".*"));
+      ldvPattern[i] = Pattern.compile(p.replace("%", ".*"));
       i++;
     }
   }
@@ -292,10 +292,7 @@ public class BlockWaitlist implements Waitlist {
 
     //search block in inactive blocks
     block = inactiveBlocksMap.get(key);
-    if(block != null) {
-      return block;
-    }
-    return null;
+    return block;
   }
 
   @Override

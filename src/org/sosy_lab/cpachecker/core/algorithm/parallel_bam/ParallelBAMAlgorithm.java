@@ -17,7 +17,6 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -83,7 +82,7 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
 
   @Option(description = "export number of running RSE instances as CSV", secure = true)
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path runningRSESeriesFile = Paths.get("RSESeries.csv");
+  private Path runningRSESeriesFile = Path.of("RSESeries.csv");
 
   private final ParallelBAMStatistics stats = new ParallelBAMStatistics();
   private final LogManager logger;
@@ -258,9 +257,10 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
                   }
                 }
 
-              } catch (RejectedExecutionException | ExecutionException e) {
-                errors.add(e);
-              } catch (InterruptedException | TimeoutException e) {
+              } catch (RejectedExecutionException
+                  | ExecutionException
+                  | InterruptedException
+                  | TimeoutException e) {
                 errors.add(e);
               }
               logger.log(Level.ALL, "finishing", rse, job.isCompletedExceptionally());
@@ -316,6 +316,7 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
     pStatsCollection.add(stats);
   }
 
+  @SuppressWarnings("deprecation")
   class ParallelBAMStatistics implements Statistics {
     final StatTimer wallTime = new StatTimer("Time for execution of algorithm");
     final ThreadSafeTimerContainer threadTime =

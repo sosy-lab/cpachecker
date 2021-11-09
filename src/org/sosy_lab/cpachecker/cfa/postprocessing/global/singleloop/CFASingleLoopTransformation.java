@@ -14,7 +14,6 @@ import static com.google.common.base.Predicates.instanceOf;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.FluentIterable;
@@ -42,6 +41,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.TreeMap;
@@ -71,6 +71,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
@@ -85,7 +86,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodEntryNode;
@@ -764,7 +764,7 @@ public class CFASingleLoopTransformation {
             FileLocation.DUMMY,
             artificialFunctionDeclaration,
             artificialFunctionExitNode,
-            Optional.absent());
+            Optional.empty());
     Set<CFANode> nodes = getAllNodes(pStartNode);
     for (CFANode node : nodes) {
       for (CFAEdge leavingEdge : CFAUtils.allLeavingEdges(node).toList()) {
@@ -1193,9 +1193,9 @@ public class CFASingleLoopTransformation {
 
     String functionName = pNode.getFunctionName();
 
-    if (pNode instanceof CLabelNode) {
+    if (pNode instanceof CFALabelNode) {
 
-      result = new CLabelNode(functionName, ((CLabelNode) pNode).getLabel());
+      result = new CFALabelNode(functionName, ((CFALabelNode) pNode).getLabel());
 
     } else if (pNode instanceof CFunctionEntryNode) {
 
@@ -1325,8 +1325,15 @@ public class CFASingleLoopTransformation {
               getOrCreateNewFromOld(oldSummaryEdge.getSuccessor(), pNewToOldMapping),
               pNewToOldMapping);
       addToNodes(functionSummaryEdge);
-      Optional<CFunctionCall> cFunctionCall = functionCallEdge.getRawAST();
-      return new CFunctionCallEdge(rawStatement, fileLocation, pNewPredecessor, (CFunctionEntryNode) pNewSuccessor, cFunctionCall.orNull(), functionSummaryEdge);
+          Optional<CFunctionCall> cFunctionCall =
+              Optional.ofNullable(functionCallEdge.getFunctionCall());
+          return new CFunctionCallEdge(
+              rawStatement,
+              fileLocation,
+              pNewPredecessor,
+              (CFunctionEntryNode) pNewSuccessor,
+              cFunctionCall.orElse(null),
+              functionSummaryEdge);
     }
     case FunctionReturnEdge:
       if (!(pNewPredecessor instanceof FunctionExitNode)) {
@@ -1351,8 +1358,14 @@ public class CFASingleLoopTransformation {
         throw new IllegalArgumentException("The successor of a return statement edge must be a function exit node.");
       }
       CReturnStatementEdge returnStatementEdge = (CReturnStatementEdge) pEdge;
-      Optional<CReturnStatement> cReturnStatement = returnStatementEdge.getRawAST();
-      return new CReturnStatementEdge(rawStatement, cReturnStatement.orNull(), fileLocation, pNewPredecessor, (FunctionExitNode) pNewSuccessor);
+        Optional<CReturnStatement> cReturnStatement =
+            Optional.ofNullable(returnStatementEdge.getReturnStatement());
+        return new CReturnStatementEdge(
+            rawStatement,
+            cReturnStatement.orElse(null),
+            fileLocation,
+            pNewPredecessor,
+            (FunctionExitNode) pNewSuccessor);
     case StatementEdge:
       CStatementEdge statementEdge = (CStatementEdge) pEdge;
       if (statementEdge instanceof CFunctionSummaryStatementEdge) {

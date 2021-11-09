@@ -189,9 +189,9 @@ public class ConstraintManager {
      * by their corresponding unprimed version
      */
     for (Map.Entry<String, Term> me : varSolMap.entrySet()) {
-      newConstraint = newConstraint.replaceAll(
-        me.getValue().toString(),
-        ConstraintManager.primedVarToVar(me.getKey()));
+      newConstraint =
+          newConstraint.replace(
+              me.getValue().toString(), ConstraintManager.primedVarToVar(me.getKey()));
       nres.addVar(var2CVar(ConstraintManager.primedVarToVar(me.getKey())),
         new Variable(primedVarToVar(me.getKey())));
     }

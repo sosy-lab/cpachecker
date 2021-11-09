@@ -14,7 +14,6 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -34,7 +33,7 @@ public class TestTargetState
 
     private final boolean isConsideredTarget;
 
-    private Status(final boolean isTarget) {
+    Status(final boolean isTarget) {
       this.isConsideredTarget = isTarget;
     }
   }
@@ -51,7 +50,7 @@ public class TestTargetState
   }
 
   @Override
-  public @NonNull Set<Property> getViolatedProperties() throws IllegalStateException {
+  public @NonNull Set<TargetInformation> getTargetInformation() throws IllegalStateException {
     return ImmutableSet.of();
   }
 

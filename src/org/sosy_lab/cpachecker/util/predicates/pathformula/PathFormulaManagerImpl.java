@@ -12,9 +12,10 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,14 +35,12 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
@@ -255,7 +254,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       }
     }
     if (simplifyGeneratedPathFormulas) {
-      pf = pf.updateFormula(fmgr.simplify(pf.getFormula()));
+      pf = pf.withFormula(fmgr.simplify(pf.getFormula()));
     }
     return pf;
   }
@@ -263,15 +262,12 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   @Override
   public PathFormula makeAnd(PathFormula pPathFormula, CExpression pAssumption)
       throws CPATransferException, InterruptedException {
-    CFunctionDeclaration dummyFunction =
-        new CFunctionDeclaration(
-            FileLocation.DUMMY, CFunctionType.NO_ARGS_VOID_FUNCTION, "dummy", ImmutableList.of());
     CAssumeEdge fakeEdge =
         new CAssumeEdge(
             pAssumption.toASTString(),
             FileLocation.DUMMY,
-            new CFANode(dummyFunction),
-            new CFANode(dummyFunction),
+            CFANode.newDummyCFANode(),
+            CFANode.newDummyCFANode(),
             pAssumption,
             true);
     return converter.makeAnd(pPathFormula, fakeEdge, ErrorConditions.dummyInstance(bfmgr));
@@ -285,6 +281,17 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   @Override
+  public PathFormula makeConjunction(List<PathFormula> pPathFormulas) {
+    if (pPathFormulas.isEmpty()) {
+      return makeEmptyPathFormula();
+    }
+    BooleanFormula conjunction = bfmgr.and(Lists.transform(pPathFormulas, PathFormula::getFormula));
+    int lengthSum = pPathFormulas.stream().mapToInt(PathFormula::getLength).sum();
+    PathFormula last = Iterables.getLast(pPathFormulas);
+    return new PathFormula(conjunction, last.getSsa(), last.getPointerTargetSet(), lengthSum);
+  }
+
+  @Override
   public PathFormula makeEmptyPathFormula() {
     return new PathFormula(bfmgr.makeTrue(),
                            SSAMap.emptySSAMap(),
@@ -293,28 +300,14 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   @Override
-  public PathFormula makeEmptyPathFormula(PathFormula oldFormula) {
-    return new PathFormula(bfmgr.makeTrue(),
-                           oldFormula.getSsa(),
-                           oldFormula.getPointerTargetSet(),
-                           0);
+  public PathFormula makeEmptyPathFormulaWithContextFrom(PathFormula oldFormula) {
+    return new PathFormula(
+        bfmgr.makeTrue(), oldFormula.getSsa(), oldFormula.getPointerTargetSet(), 0);
   }
 
   @Override
-  @Deprecated
-  public PathFormula makeNewPathFormula(PathFormula oldFormula, SSAMap m) {
-    return new PathFormula(oldFormula.getFormula(),
-                           m,
-                           oldFormula.getPointerTargetSet(),
-                           oldFormula.getLength());
-  }
-
-  @Override
-  public PathFormula makeNewPathFormula(PathFormula oldFormula, SSAMap m, PointerTargetSet pPts) {
-    return new PathFormula(oldFormula.getFormula(),
-        m,
-        pPts,
-        oldFormula.getLength());
+  public PathFormula makeEmptyPathFormulaWithContext(SSAMap pSsaMap, PointerTargetSet pPts) {
+    return new PathFormula(bfmgr.makeTrue(), pSsaMap, pPts, 0);
   }
 
   @Override
@@ -353,7 +346,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
     PathFormula out = new PathFormula(newFormula, newSSA.build(), newPTS, newLength);
     if (simplifyGeneratedPathFormulas) {
-      out = out.updateFormula(fmgr.simplify(out.getFormula()));
+      out = out.withFormula(fmgr.simplify(out.getFormula()));
     }
     return out;
   }
@@ -493,7 +486,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           } else {
             pf = pe.getPathFormula();
           }
-          pf = this.makeEmptyPathFormula(pf); // reset everything except SSAMap
+          pf = this.makeEmptyPathFormulaWithContextFrom(pf); // reset everything except SSAMap
           pf = this.makeAnd(pf, positiveEdge);        // conjunct with edge
         }
         BooleanFormula equiv = bfmgr.equivalence(pred, pf.getFormula());

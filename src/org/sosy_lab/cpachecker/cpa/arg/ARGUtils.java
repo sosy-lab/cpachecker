@@ -49,7 +49,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
@@ -134,11 +133,7 @@ public class ARGUtils {
     while (!waitlist.isEmpty()) {
       ARGState current = waitlist.pop();
       List<ARGState> children =
-          current
-              .getChildren()
-              .stream()
-              .filter(Predicates.in(pRelevantStates))
-              .collect(Collectors.toList());
+          from(current.getChildren()).filter(Predicates.in(pRelevantStates)).toList();
       if (children.size() > 2) {
         return true;
       } else if (children.size() == 2) {
@@ -405,13 +400,13 @@ public class ARGUtils {
     return new ARGPath(states);
   }
 
-  private static final boolean isRelevantLocation(CFANode pInput) {
+  private static boolean isRelevantLocation(CFANode pInput) {
     return pInput.isLoopStart()
         || pInput instanceof FunctionEntryNode
         || pInput instanceof FunctionExitNode;
   }
 
-  private static final boolean containsRelevantLocation(Iterable<CFANode> nodes) {
+  private static boolean containsRelevantLocation(Iterable<CFANode> nodes) {
     return Iterables.any(nodes, ARGUtils::isRelevantLocation);
   }
 
@@ -515,8 +510,9 @@ public class ARGUtils {
         ARGState trueChild = null;
         ARGState falseChild = null;
 
-        CFANode loc = AbstractStates.extractLocation(currentElement);
-        if (!leavingEdges(loc).allMatch(Predicates.instanceOf(AssumeEdge.class))) {
+          Iterable<CFANode> locs = AbstractStates.extractLocations(currentElement);
+          if (Iterables.any(
+              locs, loc -> !leavingEdges(loc).allMatch(Predicates.instanceOf(AssumeEdge.class)))) {
           throw new IllegalArgumentException("ARG branches where there is no AssumeEdge!");
         }
 

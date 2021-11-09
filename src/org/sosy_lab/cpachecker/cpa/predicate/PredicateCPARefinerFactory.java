@@ -51,9 +51,6 @@ public class PredicateCPARefinerFactory {
   )
   private boolean performInitialStaticRefinement = false;
 
-  @Option(secure = true, description = "recompute block formula from ARG path edges")
-  private boolean recomputeBlockFormulas = false;
-
   private final PredicateCPA predicateCpa;
 
   private @Nullable BlockFormulaStrategy blockFormulaStrategy = null;
@@ -126,9 +123,9 @@ public class PredicateCPARefinerFactory {
     PredicateCPAInvariantsManager invariantsManager = predicateCpa.getInvariantsManager();
 
     PrefixProvider prefixProvider =
-        new PredicateBasedPrefixProvider(
-            config, logger, solver, predicateCpa.getPathFormulaManager(), shutdownNotifier);
-    PrefixSelector prefixSelector = new PrefixSelector(variableClassification, loopStructure);
+        new PredicateBasedPrefixProvider(config, logger, solver, shutdownNotifier);
+    PrefixSelector prefixSelector =
+        new PrefixSelector(variableClassification, loopStructure, logger);
 
     InterpolationManager interpolationManager =
         new InterpolationManager(
@@ -150,8 +147,6 @@ public class PredicateCPARefinerFactory {
         bfs = new BlockFormulaSlicer(pfmgr);
       } else if (graphBlockFormulaStrategy) {
         bfs = new SlicingAbstractionsBlockFormulaStrategy(solver, config, pfmgr);
-      } else if (recomputeBlockFormulas) {
-        bfs = new RecomputeBlockFormulaStrategy(pfmgr);
       } else {
         bfs = new BlockFormulaStrategy();
       }

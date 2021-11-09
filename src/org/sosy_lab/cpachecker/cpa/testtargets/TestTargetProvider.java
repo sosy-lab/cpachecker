@@ -16,15 +16,23 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
+
+
 public class TestTargetProvider implements Statistics {
+
 
   private static TestTargetProvider instance = null;
 
@@ -32,21 +40,33 @@ public class TestTargetProvider implements Statistics {
   private final TestTargetType type;
   private final ImmutableSet<CFAEdge> initialTestTargets;
   private final Set<CFAEdge> uncoveredTargets;
+  private int numNonOptimizedTargets = -1;
   private boolean printTargets = false;
   private boolean runParallel;
   private TestTargetAdaption optimization;
+  private Timer optimizationTimer = new Timer();
 
   private TestTargetProvider(
       final CFA pCfa,
       final boolean pRunParallel,
       final TestTargetType pType,
+      final String pTargetFun,
       final TestTargetAdaption pGoalAdaption) {
     cfa = pCfa;
     runParallel = pRunParallel;
     type = pType;
     optimization = pGoalAdaption;
 
-    Set<CFAEdge> targets = extractEdgesByCriterion(type.getEdgeCriterion(), pGoalAdaption);
+    Predicate<CFAEdge> edgeCriterion;
+    switch (type) {
+      case FUN_CALL:
+        edgeCriterion = type.getEdgeCriterion(pTargetFun);
+        break;
+      default:
+        edgeCriterion = type.getEdgeCriterion();
+    }
+
+    Set<CFAEdge> targets = extractEdgesByCriterion(edgeCriterion, pGoalAdaption, pCfa);
 
     if (runParallel) {
       uncoveredTargets = Collections.synchronizedSet(targets);
@@ -57,12 +77,24 @@ public class TestTargetProvider implements Statistics {
   }
 
   private Set<CFAEdge> extractEdgesByCriterion(
-      final Predicate<CFAEdge> criterion, final TestTargetAdaption pAdaption) {
+      final Predicate<CFAEdge> criterion,
+      final TestTargetAdaption pAdaption,
+      final CFA pCfa) {
     Set<CFAEdge> edges = new HashSet<>();
     for (CFANode node : cfa.getAllNodes()) {
       edges.addAll(CFAUtils.allLeavingEdges(node).filter(criterion).toSet());
     }
-    edges = pAdaption.adaptTestTargets(edges);
+
+
+    numNonOptimizedTargets = edges.size();
+
+    optimizationTimer.start();
+    try {
+      edges = pAdaption.adaptTestTargets(edges, pCfa);
+
+    } finally {
+      optimizationTimer.stopIfRunning();
+    }
     return edges;
   }
 
@@ -84,12 +116,13 @@ public class TestTargetProvider implements Statistics {
       final CFA pCfa,
       final boolean pRunParallel,
       final TestTargetType pType,
+      final String pTargetFun,
       TestTargetAdaption pTargetOptimization) {
     if (instance == null
         || pCfa != instance.cfa
         || instance.type != pType
         || instance.optimization != pTargetOptimization) {
-      instance = new TestTargetProvider(pCfa, pRunParallel, pType, pTargetOptimization);
+      instance = new TestTargetProvider(pCfa, pRunParallel, pType, pTargetFun, pTargetOptimization);
     }
     Preconditions.checkState(instance.runParallel || !pRunParallel);
     return instance.uncoveredTargets;
@@ -109,6 +142,21 @@ public class TestTargetProvider implements Statistics {
     return instance;
   }
 
+  public static boolean isTerminatingFunctionCall(final CFAEdge pEdge) {
+    if (pEdge instanceof CStatementEdge
+        && ((CStatementEdge) pEdge).getStatement() instanceof CFunctionCall) {
+      String funName = "";
+      CExpression funExpr =
+          ((CFunctionCall) ((CStatementEdge) pEdge).getStatement())
+              .getFunctionCallExpression()
+              .getFunctionNameExpression();
+      if (funExpr instanceof CIdExpression) {
+        funName = ((CIdExpression) funExpr).getName();
+      }
+      return funName.equals("abort") || funName.equals("exit") || funName.equals("__assert_fail");
+    }
+    return false;
+  }
 
   @Override
   public @Nullable String getName() {
@@ -121,9 +169,13 @@ public class TestTargetProvider implements Statistics {
     double testTargetCoverage =
         initialTestTargets.isEmpty() ? 0 : (double) numCovered / initialTestTargets.size();
     pOut.printf("Test target coverage: %.2f%%%n", testTargetCoverage * 100);
+    if (numNonOptimizedTargets >= 0) {
+      pOut.println("Number of total test targets before optimization: " + numNonOptimizedTargets);
+    }
     pOut.println("Number of total test targets: " + initialTestTargets.size());
     pOut.println("Number of covered test targets: " + numCovered);
     pOut.println("Number of uncovered test targets: " + uncoveredTargets.size());
+    pOut.println("Total time for test goal reduction:     " + optimizationTimer);
 
     if (printTargets) {
     pOut.println("Initial test targets: ");

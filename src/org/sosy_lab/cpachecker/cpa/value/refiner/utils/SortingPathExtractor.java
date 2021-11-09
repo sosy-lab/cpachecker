@@ -9,9 +9,9 @@
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Maps;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.sosy_lab.common.configuration.Configuration;
@@ -62,27 +62,31 @@ public class SortingPathExtractor extends PathExtractor {
   }
 
   /**
-   * This method returns an unsorted, non-empty collection of target states
-   * found during the analysis.
+   * This method returns an unsorted, non-empty collection of target states found during the
+   * analysis.
    *
    * @param pReached the set of reached states
    * @return the target states
    */
   @Override
-  public Collection<ARGState> getTargetStates(final ARGReachedSet pReached) throws RefinementFailedException {
+  public Collection<ARGState> getTargetStates(final ARGReachedSet pReached)
+      throws RefinementFailedException, InterruptedException {
     final Collection<ARGState> targetStates = super.getTargetStates(pReached);
-    final Map<ARGState, Integer> targetsWithScores = Maps.toMap(targetStates, this::getScore);
+    final Map<ARGState, Integer> targetsWithScores = new HashMap<>();
+    for (ARGState targetState : targetStates) {
+      targetsWithScores.put(targetState, getScore(targetState));
+    }
     // sort keys by their values
     return ImmutableList.sortedCopyOf(Comparator.comparing(targetsWithScores::get), targetStates);
   }
 
-  private int getScore(ARGState target) {
+  private int getScore(ARGState target) throws InterruptedException {
     ARGPath path = ARGUtils.getOnePathTo(target);
     if (itpSortedTargets) {
       List<InfeasiblePrefix> prefixes;
       try {
         prefixes = prefixProvider.extractInfeasiblePrefixes(path);
-      } catch (CPAException | InterruptedException e) {
+      } catch (CPAException e) {
         throw new AssertionError(e);
       }
       return prefixSelector.obtainScoreForPrefixes(prefixes, PrefixPreference.DOMAIN_MIN);

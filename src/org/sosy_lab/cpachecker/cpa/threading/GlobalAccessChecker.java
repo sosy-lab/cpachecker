@@ -8,10 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.threading;
 
-import com.google.common.base.Optional;
 import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
@@ -63,7 +62,7 @@ import org.sosy_lab.cpachecker.exceptions.NoException;
 public class GlobalAccessChecker {
 
   /** cache elements, edges and their content never change. */
-  private final Map<AAstNode, Boolean> astCache = new IdentityHashMap<>();
+  private final IdentityHashMap<AAstNode, Boolean> astCache = new IdentityHashMap<>();
 
   /** check, whether the edge might have a write- or read-access to
    * global variables or shared memory, i.e. whether the edge might
@@ -79,11 +78,10 @@ public class GlobalAccessChecker {
     case DeclarationEdge:
       return hasGlobalAccess(((CDeclarationEdge)edge).getDeclaration());
     case ReturnStatementEdge:
-      return ((CReturnStatementEdge) edge).getExpression().isPresent()
-          && hasGlobalAccess(((CReturnStatementEdge) edge).getExpression().get());
+        return ((CReturnStatementEdge) edge).getExpression().isPresent()
+            && hasGlobalAccess(((CReturnStatementEdge) edge).getExpression().orElseThrow());
     case FunctionCallEdge:
-      return ((CFunctionCallEdge) edge).getRawAST().isPresent()
-          && hasGlobalAccess(((CFunctionCallEdge) edge).getRawAST().get());
+        return hasGlobalAccess(((CFunctionCallEdge) edge).getFunctionCall());
     case FunctionReturnEdge:
       return hasGlobalAccess(((FunctionReturnEdge) edge).getSummaryEdge().getExpression());
     default:
@@ -188,8 +186,8 @@ public class GlobalAccessChecker {
     } else if (ast instanceof CReturnStatement) {
       Optional<CExpression> returnExp = ((CReturnStatement) ast).getReturnValue();
       Optional<CAssignment> returnAssignment = ((CReturnStatement) ast).asAssignment();
-      return (returnExp.isPresent() && hasGlobalAccess(returnExp.get()))
-          || (returnAssignment.isPresent() && hasGlobalAccess(returnAssignment.get()));
+      return (returnExp.isPresent() && hasGlobalAccess(returnExp.orElseThrow()))
+          || (returnAssignment.isPresent() && hasGlobalAccess(returnAssignment.orElseThrow()));
 
     } else if (ast instanceof CDesignator) {
 

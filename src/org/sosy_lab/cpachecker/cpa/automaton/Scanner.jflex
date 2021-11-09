@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -55,7 +54,7 @@ import org.sosy_lab.common.log.LogManager;
     assert pYytext.startsWith("#include ");
     String fileName = pYytext.replaceFirst("#include ", "").trim();
 
-    Path file = Paths.get(fileName);
+    Path file = Path.of(fileName);
     Path currentFile = filesStack.peek();
     file = currentFile.resolveSibling(file);
 
@@ -156,6 +155,7 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
 <YYINITIAL> "BREAK"             { return symbol("BREAK", AutomatonSym.BREAK); }
 <YYINITIAL> "EXIT"              { return symbol("EXIT", AutomatonSym.EXIT); }
 <YYINITIAL> "ENTRY"             { return symbol("ENTRY", AutomatonSym.ENTRY); }
+<YYINITIAL> "FUNCTIONCALL"      { return symbol("FUNCTIONCALL", AutomatonSym.FUNCTIONCALL); }
 <YYINITIAL> "ASSUME"            { return symbol("ASSUME", AutomatonSym.ASSUME); }
 <YYINITIAL> "ASSERT"            { return symbol("ASSERT", AutomatonSym.ASSERT); }
 <YYINITIAL> "MATCH"             { return symbol("MATCH", AutomatonSym.MATCH); }

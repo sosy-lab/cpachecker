@@ -21,7 +21,7 @@ import time
 from subprocess import check_output
 
 
-class FoundBugException(Exception):
+class FoundBugError(Exception):
     pass
 
 
@@ -518,7 +518,7 @@ class FixPointOnCoveredLines(ComputeCoverage):
                     "Found an assertion violation. Inspect counterexamples "
                     "before collecting a coverage measure."
                 )
-                raise FoundBugException()
+                raise FoundBugError()
             for spec in specs_generated:
                 yield spec
                 # we might be ignoring already produced counterexamples
@@ -562,7 +562,6 @@ class GenerateFirstThenCollect(ComputeCoverage):
     def get_coverage(self, cex_spec_file, instance, aa_file, heap_size, logger):
         create_temp_dir(temp_dir)
         specs = [aa_file, cex_spec_file]
-        lines_covered = set()
         command = self.cpachecker_command(
             temp_dir=temp_dir,
             specs=specs,
@@ -575,7 +574,6 @@ class GenerateFirstThenCollect(ComputeCoverage):
         try:
             run_command(command, logger)
             lines_covered = get_covered_lines(temp_dir)
-            get_lines_to_cover(temp_dir)
         finally:
             shutil.rmtree(temp_dir)
         return lines_covered
@@ -623,7 +621,7 @@ class GenerateFirstThenCollect(ComputeCoverage):
                 "Found an assertion violation. Inspect counterexamples "
                 "before collecting a coverage measure."
             )
-            raise FoundBugException()
+            raise FoundBugError()
         return gen_specs_from_dir(self.output_dir)
 
 

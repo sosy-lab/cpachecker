@@ -8,10 +8,10 @@
 
 package org.sosy_lab.cpachecker.cfa.model.java;
 
-import com.google.common.base.Optional;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodOrConstructorInvocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -19,16 +19,17 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 
 public class JMethodCallEdge extends FunctionCallEdge {
 
-
-
   private static final long serialVersionUID = -4905542776822697507L;
 
-  public JMethodCallEdge(String pRawStatement,
-      FileLocation pFileLocation, CFANode pPredecessor, JMethodEntryNode pSuccessor,
-      JMethodOrConstructorInvocation pFunctionCall, JMethodSummaryEdge pSummaryEdge) {
+  public JMethodCallEdge(
+      String pRawStatement,
+      FileLocation pFileLocation,
+      CFANode pPredecessor,
+      JMethodEntryNode pSuccessor,
+      JMethodOrConstructorInvocation pFunctionCall,
+      JMethodSummaryEdge pSummaryEdge) {
 
     super(pRawStatement, pFileLocation, pPredecessor, pSuccessor, pFunctionCall, pSummaryEdge);
-
   }
 
   @Override
@@ -41,10 +42,19 @@ public class JMethodCallEdge extends FunctionCallEdge {
     return (JMethodSummaryEdge) summaryEdge;
   }
 
-  @SuppressWarnings("unchecked")
+  @Override
+  public JMethodOrConstructorInvocation getFunctionCall() {
+    return (JMethodOrConstructorInvocation) functionCall;
+  }
+
+  @Override
+  public JMethodInvocationExpression getFunctionCallExpression() {
+    return getFunctionCall().getFunctionCallExpression();
+  }
+
   @Override
   public List<JExpression> getArguments() {
-    return (List<JExpression>) functionCall.getFunctionCallExpression().getParameterExpressions();
+    return getFunctionCallExpression().getParameterExpressions();
   }
 
   @Override
@@ -53,13 +63,8 @@ public class JMethodCallEdge extends FunctionCallEdge {
   }
 
   @Override
-  public Optional<JMethodOrConstructorInvocation> getRawAST() {
-    return Optional.of((JMethodOrConstructorInvocation)functionCall);
-  }
-
-  @Override
   public JMethodEntryNode getSuccessor() {
     // the constructor enforces that the successor is always a FunctionEntryNode
-    return (JMethodEntryNode)super.getSuccessor();
+    return (JMethodEntryNode) super.getSuccessor();
   }
 }

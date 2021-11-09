@@ -13,8 +13,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.util.Collection;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -26,15 +24,12 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithDummyLocation;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 @javax.annotation.concurrent.Immutable // cannot prove deep immutability
 public class TerminationState extends AbstractSingleWrapperState
     implements AbstractStateWithDummyLocation, FormulaReportingState, Graphable {
-
-  private static final long serialVersionUID = 4L;
 
   /**
    * The location where the loop of the lasso was entered
@@ -46,7 +41,7 @@ public class TerminationState extends AbstractSingleWrapperState
 
   private final Collection<CFAEdge> enteringEdges;
 
-  @Nullable private final Set<Property> violatedProperties;
+  @Nullable private final Set<TargetInformation> targetInformation;
 
   @Nullable private final RankingRelation unsatisfiedRankingRelation;
 
@@ -55,14 +50,14 @@ public class TerminationState extends AbstractSingleWrapperState
       @Nullable CFANode pHondaLocation,
       boolean pDummyLocation,
       Collection<CFAEdge> pEnteringEdges,
-      @Nullable Set<Property> pviolatedProperties,
+      @Nullable Set<TargetInformation> pTargetInformation,
       @Nullable RankingRelation pUnsatisfiedRankingRelation) {
     super(checkNotNull(pWrappedState));
     Preconditions.checkArgument(pDummyLocation || pEnteringEdges.isEmpty());
     hondaLocation = pHondaLocation;
     dummyLocation = pDummyLocation;
     enteringEdges = checkNotNull(pEnteringEdges);
-    violatedProperties = pviolatedProperties;
+    targetInformation = pTargetInformation;
     unsatisfiedRankingRelation = pUnsatisfiedRankingRelation;
   }
 
@@ -120,17 +115,16 @@ public class TerminationState extends AbstractSingleWrapperState
   }
 
   /**
-   * Creates a new {@link TerminationState} with the given violated properties.
+   * Creates a new {@link TerminationState} with the given target information.
    *
-   * @param pViolatedProperties
-   *         the edges entering the location represented by the created state
+   * @param pTargetInformation the edges entering the location represented by the created state
    * @return the created {@link TerminationState}
    */
-  public TerminationState withViolatedProperties(Set<Property> pViolatedProperties) {
-    Preconditions.checkNotNull(pViolatedProperties);
-    Preconditions.checkArgument(!pViolatedProperties.isEmpty());
+  public TerminationState withTargetInformation(Set<TargetInformation> pTargetInformation) {
+    Preconditions.checkNotNull(pTargetInformation);
+    Preconditions.checkArgument(!pTargetInformation.isEmpty());
     return new TerminationState(
-        getWrappedState(), hondaLocation, dummyLocation, enteringEdges, pViolatedProperties, null);
+        getWrappedState(), hondaLocation, dummyLocation, enteringEdges, pTargetInformation, null);
   }
 
   /**
@@ -148,7 +142,7 @@ public class TerminationState extends AbstractSingleWrapperState
         hondaLocation,
         dummyLocation,
         enteringEdges,
-        violatedProperties,
+        targetInformation,
         pUnsatisfiedRankingRelation);
   }
 
@@ -187,15 +181,15 @@ public class TerminationState extends AbstractSingleWrapperState
 
   @Override
   public boolean isTarget() {
-    return violatedProperties != null || super.isTarget();
+    return targetInformation != null || super.isTarget();
   }
 
   @Override
-  public Set<Property> getViolatedProperties() throws IllegalStateException {
-    if (violatedProperties != null) {
-      return violatedProperties;
+  public Set<TargetInformation> getTargetInformation() throws IllegalStateException {
+    if (targetInformation != null) {
+      return targetInformation;
     } else {
-      return super.getViolatedProperties();
+      return super.getTargetInformation();
     }
   }
 
@@ -238,27 +232,5 @@ public class TerminationState extends AbstractSingleWrapperState
     sb.append(getWrappedState());
 
     return sb.toString();
-  }
-
-  /**
-   * Throws {@link UnsupportedOperationException}.
-   *
-   * @param out unused
-   */
-  @SuppressWarnings("UnusedVariable") // parameter is required by API
-  private void writeObject(ObjectOutputStream out) {
-    throw new UnsupportedOperationException(
-        TerminationState.class.getSimpleName() + "does not support serialization.");
-  }
-
-  /**
-   * Throws {@link UnsupportedOperationException}.
-   *
-   * @param in unused
-   */
-  @SuppressWarnings("UnusedVariable") // parameter is required by API
-  private void readObject(ObjectInputStream in) {
-    throw new UnsupportedOperationException(
-        TerminationState.class.getSimpleName() + "does not support serialization.");
   }
 }

@@ -11,10 +11,7 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-/**
- * This class represents initializer expressions in variable and field declarations.
- *
- */
+/** This class represents initializer expressions in variable and field declarations. */
 public final class JInitializerExpression extends AInitializerExpression implements JInitializer {
 
   private static final long serialVersionUID = 7168455809394583220L;
