@@ -28,14 +28,36 @@ SPDX-License-Identifier: Apache-2.0
   <rundefinition name="ismc">
     <option name="-bmc-interpolationSequence"/>
   </rundefinition>
+
+  <rundefinition name="ismc-SLT">
+    <option name="-bmc-interpolationSequence-SLT"/>
+  </rundefinition>
+
+  <rundefinition name="ismc-SLT-remove-unreach-stop">
+    <option name="-bmc-interpolationSequence-SLT"/>
+    <option name="-setprop">ismc.removeUnreachableStopStates=true</option>
+  </rundefinition>
   
-  <!--<rundefinition name="imc-no-fallback">
+  <!--   
+  <rundefinition name="imc-no-fallback">
     <option name="-bmc-interpolation"/>
     <option name="-setprop">imc.fallBack=false</option>
   </rundefinition>-->
 
-  <!--<rundefinition name="imc">
+  <!--
+  <rundefinition name="imc">
     <option name="-bmc-interpolation"/>
+  </rundefinition>-->
+
+  <!--
+  <rundefinition name="imc-SLT">
+    <option name="-bmc-interpolation-SLT"/>
+  </rundefinition>-->
+
+  <!--
+  <rundefinition name="imc-SLT-remove-unreach-stop">
+    <option name="-bmc-interpolation-SLT"/>
+    <option name="-setprop">imc.removeUnreachableStopStates=true</option>
   </rundefinition>-->
 
   <!--
