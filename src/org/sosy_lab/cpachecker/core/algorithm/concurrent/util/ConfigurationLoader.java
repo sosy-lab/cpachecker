@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.Task;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.backward.BackwardAnalysisFull;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.forward.ForwardAnalysis;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 
 @Options(prefix = "concurrent.task.config")
 public class ConfigurationLoader {
@@ -132,25 +133,26 @@ public class ConfigurationLoader {
 
   @Options
   private static class RequiredOptions {
-    @Option(name = "cpa", description = "duplicate for verification")
-    public String cpa;
+    @Option(name = "cpa", description = "CPA to use (see doc/Configuration.md for more documentation on this)")
+    public String cpa = CompositeCPA.class.getCanonicalName();
 
-    @Option(name = "CompositeCPA.cpas", description = "duplicate for verification")
+    @Option(name = "CompositeCPA.cpas", description = "Component CPAs for the composite analysis")
     public List<String> cpas;
 
-    @Option(name = "cpa.predicate.direction", description = "duplicate for verification")
+    @Option(name = "cpa.predicate.direction", description = "Direction of the analysis?")
     public AnalysisDirection direction = FORWARD;
 
-    @Option(name = "cpa.predicate.handlePointerAliasing", description = "duplicate for verification")
+    @Option(name = "cpa.predicate.handlePointerAliasing",
+        description = "Handle aliasing of pointers. This adds disjunctions to the formulas, so be careful when using cartesian abstraction.")
     public boolean handlePointerAliasing = true;
 
-    @Option(name = "cpa.predicate.blk.alwaysAtFunctions", description = "duplicate for verification")
+    @Option(name = "cpa.predicate.blk.alwaysAtFunctions", description = "force abstractions at each function calls/returns, regardless of threshold")
     public boolean alwaysAtFunctions = true;
 
-    @Option(name = "cpa.predicate.blk.alwaysAtLoops", description = "duplicate for verification")
+    @Option(name = "cpa.predicate.blk.alwaysAtLoops", description = "force abstractions at loop heads, regardless of threshold")
     public boolean alwaysAtLoops = true;
 
-    @Option(name = "cpa.predicate.blk.alwaysAtTarget", description = "duplicate for verification")
+    @Option(name = "cpa.predicate.blk.alwaysAtTarget", description = "abstraction always at target location")
     public boolean alwaysAtTarget = true;
   }
 }

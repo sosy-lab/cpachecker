@@ -9,7 +9,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-# Possible log levels in descending order
+# Possible log levels in descending order 
 # (lower levels include higher ones):
 # OFF:      no logs published
 # SEVERE:   error messages
@@ -59,7 +59,7 @@ rootDirectory = "."
 #
 # SPDX-License-Identifier: Apache-2.0
 
-# Further options for Boolector in addition to the default options. Format:
+# Further options for Boolector in addition to the default options. Format: 
 # "Optionname=value" with ’,’ to seperate options. Optionname and value can
 # be found in BtorOption or Boolector C Api.Example:
 # "BTOR_OPT_MODEL_GEN=2,BTOR_OPT_INCREMENTAL=1".
@@ -154,6 +154,17 @@ solver.z3.requireProofs = false
 
 # Whether to use PhantomReferences for discarding Z3 AST
 solver.z3.usePhantomReferences = false
+
+# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2007-2021 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
+# SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# Component CPAs for the composite analysis
+CompositeCPA.cpas = no default value
 
 # Refiner that SlicingDelegatingRefiner should delegate to
 SlicingDelegatingRefiner.refiner = no default value
@@ -554,7 +565,7 @@ assumptions.file = "assumptions.txt"
 # has successors.
 assumptions.removeNonExploredWithoutSuccessors = false
 
-# comma-separated list of files with specifications that should be used
+# comma-separated list of files with specifications that should be used 
 # in a backwards analysis; used if the analysis starts at the target states!
 # (see config/specification/ for examples)
 backwardSpecification = []
@@ -941,7 +952,7 @@ counterexample.ambigiousARG = false
 
 # Which model checker to use for verifying counterexamples as a second check.
 # Currently CBMC or CPAchecker with a different config or the concrete
-# execution
+# execution 
 # checker can be used.
 counterexample.checker = CBMC
   enum:     [CBMC, CPACHECKER, CONCRETE_EXECUTION]
@@ -1154,7 +1165,7 @@ cpa.apron.precisionFile = no default value
 cpa.apron.refiner.timeForApronFeasibilityCheck = 0ns
 
 # split disequalities considering integer operands into two states or use
-# disequality provided by apron library
+# disequality provided by apron library 
 cpa.apron.splitDisequalities = true
 
 # translate final ARG into this C file
@@ -2396,7 +2407,7 @@ cpa.predicate.refinement.maxPrefixLength = 1024
 # (ignored if 0)
 cpa.predicate.refinement.maxRefinementSize = 0
 
-# sets the level of the pathformulas to use for abstraction.
+# sets the level of the pathformulas to use for abstraction. 
 #   EDGE : Based on Pathformulas of every edge in ARGPath
 #   BLOCK: Based on Pathformulas at Abstractionstates
 cpa.predicate.refinement.newtonrefinement.abstractionLevel = EDGE
@@ -3178,7 +3189,7 @@ cpa.value.allowedUnsupportedFunctions = {}
 cpa.value.assignEqualityAssumptions = true
 
 # Fixed set of values for function calls to VERIFIER_nondet_*. Does only
-# work, if ignoreFunctionValueExceptRandom is enabled
+# work, if ignoreFunctionValueExceptRandom is enabled 
 cpa.value.functionValuesForRandom = no default value
 
 # Track or not function pointer values
@@ -3187,7 +3198,7 @@ cpa.value.ignoreFunctionValue = true
 # If 'ignoreFunctionValue' is set to true, this option allows to provide a
 # fixed set of values in the TestComp format. It is used for function-calls
 # to calls of VERIFIER_nondet_*. The file is provided via the option
-# functionValuesForRandom
+# functionValuesForRandom 
 cpa.value.ignoreFunctionValueExceptRandom = false
 
 # if there is an assumption like (x!=0), this option sets unknown
@@ -3827,7 +3838,7 @@ pcc.arg.checkPropertyPerElement = false
 # Enable to store ARG states instead of abstract states wrapped by ARG state
 pcc.backwardtargets.certificateStatesAsARGStates = false
 
-# List of files with configurations to use.
+# List of files with configurations to use. 
 pcc.cmc.configFiles = no default value
 
 # write collected assumptions to file
@@ -4344,10 +4355,10 @@ termination.resultFile = "terminationAnalysisResult.txt"
 # imprecise
 termination.useCexImpreciseHeuristic = false
 
-# Export termination counterexample to file as GraphML automaton
+# Export termination counterexample to file as GraphML automaton 
 termination.violation.witness = "nontermination_witness.graphml"
 
-# Export termination counterexample to file as dot/graphviz automaton
+# Export termination counterexample to file as dot/graphviz automaton 
 termination.violation.witness.dot = "nontermination_witness.dot"
 
 # Only genenerate for __VERIFIER_nondet calls
@@ -4420,7 +4431,7 @@ traceformula.altpre = false
 # this option, e.g., main::x,doStuff::y
 traceformula.disable = []
 
-# The alternative precondition consists of all initial variable assignments
+# The alternative precondition consists of all initial variable assignments 
 # and a failing variable assignment for all nondet variables. By default only
 #  variables in the main function are part of the precondition. Overwrite the
 # default by adding functions to this option, e.g., "main,doStuff"
