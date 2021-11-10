@@ -12,7 +12,6 @@ import static java.lang.Math.max;
 import static org.sosy_lab.cpachecker.core.AnalysisDirection.BACKWARD;
 import static org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus.SOUND_AND_PRECISE;
 import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDefaultPartition;
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import static org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.makeName;
 
 import java.nio.file.Path;
