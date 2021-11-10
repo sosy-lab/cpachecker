@@ -62,7 +62,7 @@ public class BlockAwarePrecisionAdjustment implements PrecisionAdjustment {
           BlockAwareCompositeState.create(adjustedState, block, direction);
 
       Action action = CONTINUE;
-      if (adjustedState.isTarget()) {
+      if (newState.isTarget()) {
         action = BREAK;
       }
       return Optional.of(adjustment.withAbstractState(newState).withAction(action));
