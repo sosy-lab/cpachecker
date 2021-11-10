@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -146,8 +147,13 @@ public class BackwardAnalysisFull extends Task {
 
   private PredicateAbstractState buildPredicateEntryState() throws InterruptedException {
     PredicateAbstractState rawPredicateState = getRawPredicateEntryState();
-    return PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
-        errorCondition, rawPredicateState);
+    
+    PredicateCPA predicateCPA = argcpa.retrieveWrappedCpa(PredicateCPA.class);
+    
+    return PredicateAbstractState.mkAbstractionState(
+        errorCondition,
+        predicateCPA.getPredicateManager().makeTrueAbstractionFormula(errorCondition),
+        PathCopyingPersistentTreeMap.of());
   }
 
   private PredicateAbstractState getRawPredicateEntryState() throws InterruptedException {
