@@ -145,33 +145,13 @@ public class BackwardAnalysisFull extends Task {
     return BlockAwareCompositeState.createAndWrap(new CompositeState(componentStates), target, BACKWARD);
   }
 
-  private PredicateAbstractState buildPredicateEntryState() throws InterruptedException {
-    PredicateAbstractState rawPredicateState = getRawPredicateEntryState();
-    
+  private PredicateAbstractState buildPredicateEntryState() {
     PredicateCPA predicateCPA = argcpa.retrieveWrappedCpa(PredicateCPA.class);
     
     return PredicateAbstractState.mkAbstractionState(
         errorCondition,
         predicateCPA.getPredicateManager().makeTrueAbstractionFormula(errorCondition),
         PathCopyingPersistentTreeMap.of());
-  }
-
-  private PredicateAbstractState getRawPredicateEntryState() throws InterruptedException {
-    AbstractState rawInitialState = null;
-    while (rawInitialState == null) {
-      try {
-        rawInitialState =
-            ((ConfigurableProgramAnalysis) argcpa).getInitialState(start, getDefaultPartition());
-      } catch (InterruptedException ignored) {
-        shutdownNotifier.shutdownIfNecessary();
-      }
-    }
-
-    PredicateAbstractState rawPredicateState =
-        extractStateByType(rawInitialState, PredicateAbstractState.class);
-    assert rawPredicateState != null;
-
-    return rawPredicateState;
   }
 
   /**
