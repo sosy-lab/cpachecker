@@ -24,6 +24,7 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.algorithm.components.parallel.Message.MessageConverter;
 import org.sosy_lab.cpachecker.core.algorithm.components.parallel.Message.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.components.util.MessageLogger;
 import org.sosy_lab.cpachecker.core.algorithm.components.util.MessageLogger.Action;
@@ -36,6 +37,7 @@ public class WorkerSocket {
   private final LogManager logger;
   private final String workerId;
   private final MessageLogger messageLogger;
+  private final MessageConverter converter;
 
   private static final int BUFFER_SIZE = 1024;
 
@@ -50,6 +52,7 @@ public class WorkerSocket {
     logger = pLogger;
     workerId = pWorkerId;
     messageLogger = pActionLogger;
+    converter = new MessageConverter();
   }
 
   // create server channel
@@ -137,7 +140,7 @@ public class WorkerSocket {
       numRead = channel.read(buffer);
     } while(true);
 
-    Message received = Message.decode(builder.toString());
+    Message received = converter.jsonToMessage(builder.toString());
     messageLogger.log(Action.RECEIVE, received);
     sharedQueue.add(received);
     logger.log(Level.INFO, "Socket received message: " + received);

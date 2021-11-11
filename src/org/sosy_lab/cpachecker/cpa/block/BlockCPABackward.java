@@ -51,8 +51,8 @@ public class BlockCPABackward extends AbstractCPA {
     return factory.getState(node);
   }
 
-  public static BlockCPA create(CFA pCFA, Configuration pConfig)
+  public static BlockCPABackward create(CFA pCFA, Configuration pConfig)
       throws InvalidConfigurationException {
-    return new BlockCPA(new BlockStateFactory(pCFA, AnalysisDirection.BACKWARD, pConfig));
+    return new BlockCPABackward(new BlockStateFactory(pCFA, AnalysisDirection.BACKWARD, pConfig));
   }
 }

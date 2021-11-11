@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Triple;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -80,6 +81,7 @@ public abstract class WorkerAnalysis {
       LogManager pLogger,
       BlockNode pBlock,
       CFA pCFA,
+      AnalysisDirection pDirection,
       Specification pSpecification,
       Configuration pConfiguration,
       ShutdownManager pShutdownManager)
@@ -109,14 +111,14 @@ public abstract class WorkerAnalysis {
         pLogger,
         pShutdownManager.getNotifier(),
         pCFA,
-        AnalysisDirection.FORWARD);
+        pDirection);
     block = pBlock;
     logger = pLogger;
 
     transformer = new AnyStateTransformer(pId);
   }
 
-  public static Optional<CFANode> abstractStateToLocation(AbstractState state) {
+  public Optional<CFANode> abstractStateToLocation(AbstractState state) {
     if (state instanceof LocationState) {
       return Optional.of(((LocationState) state).getLocationNode());
     }
@@ -142,11 +144,14 @@ public abstract class WorkerAnalysis {
       CFANode targetNode,
       AnalysisDirection direction) {
     Map<AbstractState, BooleanFormula> formulas = new HashMap<>();
-    for (AbstractState abstractState : pReachedSet.getReached(targetNode)) {
-      BooleanFormula formula =
-          transformer.safeTransform(abstractState, fmgr, direction, block.getId());
-      if (!fmgr.getBooleanFormulaManager().isTrue(formula)) {
-        formulas.put(abstractState, formula);
+    for (AbstractState abstractState : pReachedSet) {
+      Optional<CFANode> optionalLocation = abstractStateToLocation(abstractState);
+      if (optionalLocation.isPresent() && optionalLocation.orElseThrow().equals(targetNode)) {
+        BooleanFormula formula =
+            transformer.safeTransform(abstractState, fmgr, direction, block.getId());
+        if (!fmgr.getBooleanFormulaManager().isTrue(formula)) {
+          formulas.put(abstractState, formula);
+        }
       }
     }
     return formulas;
@@ -197,7 +202,7 @@ public abstract class WorkerAnalysis {
         "Expected analysis " + pTarget + " is not part of the composite cpa " + pCPA);
   }
 
-  protected ARGState getStartState(BooleanFormula condition, CFANode node)
+  protected ARGState getStartState(PathFormula condition, CFANode node)
       throws InterruptedException {
     CompositeState compositeState =
         extractCompositeStateFromAbstractState(getInitialStateFor(node));
@@ -207,8 +212,7 @@ public abstract class WorkerAnalysis {
             .stream().findFirst()
             .orElseThrow(() -> new AssertionError("Analysis has to contain a PredicateState"));
     predicateState = PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
-        pathFormulaManager.makeAnd(pathFormulaManager.makeEmptyPathFormula(),
-            condition),
+        condition,
         predicateState);
     List<AbstractState> states = new ArrayList<>();
     for (AbstractState wrappedState : compositeState.getWrappedStates()) {
@@ -254,8 +258,8 @@ public abstract class WorkerAnalysis {
     return status;
   }
 
-  public abstract Message analyze(BooleanFormula condition, CFANode node)
-      throws CPAException, InterruptedException;
+  public abstract Message analyze(PathFormula condition, CFANode node)
+      throws CPAException, InterruptedException, SolverException;
 
   public static class ForwardAnalysis extends WorkerAnalysis {
 
@@ -268,11 +272,11 @@ public abstract class WorkerAnalysis {
         Configuration pConfiguration,
         ShutdownManager pShutdownManager)
         throws CPAException, InterruptedException, InvalidConfigurationException {
-      super(pId, pLogger, pBlock, pCFA, pSpecification, pConfiguration, pShutdownManager);
+      super(pId, pLogger, pBlock, pCFA, AnalysisDirection.FORWARD, pSpecification, pConfiguration, pShutdownManager);
     }
 
     @Override
-    public Message analyze(BooleanFormula condition, CFANode node)
+    public Message analyze(PathFormula condition, CFANode node)
         throws CPAException, InterruptedException {
       reachedSet.clear();
       reachedSet.add(getStartState(condition, node), emptyPrecision);
@@ -280,7 +284,7 @@ public abstract class WorkerAnalysis {
       Optional<ARGState> targetState = from(reachedSet).filter(AbstractStates::isTargetState)
           .filter(ARGState.class).first().toJavaUtil();
       if (targetState.isPresent()) {
-        java.util.Optional<CFANode> targetNode =
+        Optional<CFANode> targetNode =
             abstractStateToLocation(targetState.get());
         if (targetNode.isEmpty()) {
           throw new AssertionError(
@@ -310,12 +314,12 @@ public abstract class WorkerAnalysis {
         Configuration pConfiguration,
         ShutdownManager pShutdownManager)
         throws CPAException, InterruptedException, InvalidConfigurationException {
-      super(pId, pLogger, pBlock, pCFA, pSpecification, pConfiguration, pShutdownManager);
+      super(pId, pLogger, pBlock, pCFA, AnalysisDirection.BACKWARD, pSpecification, pConfiguration, pShutdownManager);
     }
 
     @Override
-    public Message analyze(BooleanFormula condition, CFANode node)
-        throws CPAException, InterruptedException {
+    public Message analyze(PathFormula condition, CFANode node)
+        throws CPAException, InterruptedException, SolverException {
       reachedSet.clear();
       reachedSet.add(getStartState(condition, node), emptyPrecision);
       status = algorithm.run(reachedSet);
@@ -324,7 +328,7 @@ public abstract class WorkerAnalysis {
           AnalysisDirection.BACKWARD);
       BooleanFormula result = formulas.isEmpty() ? bmgr.makeTrue() : bmgr.or(formulas.values());
       // by definition: if the post-condition reaches the root element, the specification is violated
-      if (block.getPredecessors().isEmpty()) {
+      if (block.getPredecessors().isEmpty() && !solver.isUnsat(result)) {
         return Message.newFinishMessage(block.getId(), block.getStartNode().getNodeNumber(),
             Result.FALSE);
       }

@@ -92,7 +92,7 @@ public abstract class BlockTransferRelation implements TransferRelation {
     @Override
     public Collection<BlockState> getAbstractSuccessors(AbstractState element, Precision prec) throws CPATransferException {
       checkNotNull(nodes, "init method must be called before starting the analysis (nodes == null)");
-      CFANode node = ((LocationState) element).getLocationNode();
+      CFANode node = ((BlockState) element).getLocationNode();
       return CFAUtils.successorsOf(node).filter(n -> nodes.contains(n)).transform(n -> factory.getState(n)).toList();
     }
   }
@@ -113,7 +113,8 @@ public abstract class BlockTransferRelation implements TransferRelation {
     public Collection<BlockState> getAbstractSuccessorsForEdge(
         AbstractState element, Precision prec, CFAEdge cfaEdge) {
       checkNotNull(edges, "init method must be called before starting the analysis (edges == null)");
-      CFANode node = ((LocationState) element).getLocationNode();
+
+      CFANode node = ((BlockState) element).getLocationNode();
 
       if (Sets.intersection(ImmutableSet.copyOf(CFAUtils.allEnteringEdges(node)), edges).contains(cfaEdge)) {
         return Collections.singleton(factory.getState(cfaEdge.getPredecessor()));
@@ -125,7 +126,7 @@ public abstract class BlockTransferRelation implements TransferRelation {
     @Override
     public Collection<BlockState> getAbstractSuccessors(AbstractState element, Precision prec) throws CPATransferException {
       checkNotNull(nodes, "init method must be called before starting the analysis (nodes == null)");
-      CFANode node = ((LocationState) element).getLocationNode();
+      CFANode node = ((BlockState) element).getLocationNode();
       return CFAUtils.predecessorsOf(node).filter(n -> nodes.contains(n)).transform(n -> factory.getState(n)).toList();
     }
   }

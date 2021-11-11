@@ -16,6 +16,7 @@ import java.util.Map.Entry;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
@@ -39,16 +40,18 @@ public abstract class AbstractStateTransformer<T extends AbstractState> {
       throw new AssertionError("Cannot transform member of class " + state.getClass() + " in a "
           + getAbstractStateClass() + " transformer");
     }
-    return fmgr.uninstantiate(transform(getAbstractStateClass().cast(state), fmgr, direction, uniqueVariableId));
+    return transform(getAbstractStateClass().cast(state), fmgr, direction, uniqueVariableId);
   }
 
   public final BooleanFormula uninstantiate(FormulaManagerView pFmgr, BooleanFormula pFormula, SSAMap pSSAMap, AnalysisDirection pDirection) {
     executionCounter++;
     Map<String, Formula> variableToFormula = pFmgr.extractVariables(pFormula);
     Map<Formula, Formula> substitutions = new HashMap<>();
+    SSAMapBuilder builder = SSAMap.emptySSAMap().builder();
     for (Entry<String, Formula> stringFormulaEntry : variableToFormula.entrySet()) {
       String name = stringFormulaEntry.getKey();
       Formula formula = stringFormulaEntry.getValue();
+
       List<String> nameAndIndex = Splitter.on("@").limit(2).splitToList(name);
       if (nameAndIndex.size() < 2 || nameAndIndex.get(1).isEmpty() || name.contains(".")) {
         substitutions.put(formula, pFmgr.makeVariable(pFmgr.getFormulaType(formula), name));
@@ -59,12 +62,13 @@ public abstract class AbstractStateTransformer<T extends AbstractState> {
       int highestIndex = pSSAMap.getIndex(name);
       if (index != highestIndex) {
         substitutions.put(formula, pFmgr.makeVariable(pFmgr.getFormulaType(formula),
-            name + "." + "E" + executionCounter + id + pDirection.name() + index));
+            name + "." + id + "E" + executionCounter + pDirection.name().charAt(0) + index));
       } else {
         substitutions.put(formula, pFmgr.makeVariable(pFmgr.getFormulaType(formula), name));
+        builder = builder.setIndex(name, pSSAMap.getType(name), 1);
       }
     }
-    return pFmgr.substitute(pFormula, substitutions);
+    return pFmgr.instantiate(pFmgr.uninstantiate(pFmgr.substitute(pFormula, substitutions)), builder.build());
   }
 
 }

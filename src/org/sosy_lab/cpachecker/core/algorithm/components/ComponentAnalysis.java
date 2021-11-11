@@ -100,9 +100,15 @@ public class ComponentAnalysis implements Algorithm {
         new Thread(worker).start();
       }
 
-      // TODO: correct formulas, sat check, termination, false as pathFormulas??
+      Set<WorkerClient> mainClients = new HashSet<>();
+      for (InetSocketAddress address : workerFactory.getSocketFactory().getAddresses()) {
+        mainClients.add(
+            new WorkerClient(address.getAddress().getHostAddress(), address.getPort()));
+      }
+
       WorkerClient mainClient = new WorkerClient("localhost", 8090);
       Set<Message> finished = new HashSet<>();
+      Set<String> stale = new HashSet<>();
       Result result;
       while (true) {
         Message m = messages.take();
@@ -113,6 +119,15 @@ public class ComponentAnalysis implements Algorithm {
             mainClient.broadcast(Message.newFinishMessage("main", 0, result));
             break;
           }
+        } else if (m.getType() == MessageType.STALE) {
+          stale.add(m.getUniqueBlockId());
+          if (stale.size() == workers.size()) {
+            for (WorkerClient client : mainClients) {
+              client.broadcast(Message.newFinishMessage("", 0, Result.TRUE));
+            }
+          }
+        } else {
+          stale.remove(m.getUniqueBlockId());
         }
       }
       mainClient.close();
@@ -124,8 +139,11 @@ public class ComponentAnalysis implements Algorithm {
       states.addAll(cState.getWrappedStates());
       states.add(DummyTargetState.withoutProperty());
       logger.log(Level.INFO, "Block analysis finished.");
-      if (result.equals(Result.FALSE)) {
+      if (result == Result.FALSE) {
         reachedSet.add(new ARGState(new CompositeState(states), null), initialPrecision);
+      }
+      if (result == Result.TRUE) {
+        reachedSet.clear();
       }
       return workers.stream().map(Worker::getStatus).reduce(AlgorithmStatus::update).orElseThrow();
     } catch (InvalidConfigurationException | IOException pE) {

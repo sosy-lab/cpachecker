@@ -31,7 +31,8 @@ public class Message {
   public enum MessageType {
     PRECONDITION,
     POSTCONDITION,
-    FINISHED
+    FINISHED,
+    STALE
   }
 
   private final int targetNodeNumber;
@@ -112,12 +113,10 @@ public class Message {
     return new Message(MessageType.FINISHED, pUniqueBlockId, pTargetNodeNumber, pResult.name());
   }
 
-  public String toJSON() throws JsonProcessingException {
-    return MessageConverter.getInstance().messageToJson(this);
-  }
-
-  public static Message decode(String s) throws JsonProcessingException {
-    return MessageConverter.getInstance().jsonToMessage(s);
+  public static Message newStaleMessage(
+      String pUniqueBlockId,
+      boolean pIsStale) {
+    return new Message(MessageType.STALE, pUniqueBlockId, 0, Boolean.toString(pIsStale));
   }
 
   @Override
@@ -125,32 +124,11 @@ public class Message {
     return Objects.hash(targetNodeNumber, uniqueBlockId, type, payload);
   }
 
-  static class MessageSerializer extends StdSerializer<Message> {
-
-    private MessageSerializer(Class<Message> t) {
-      super(t);
-    }
-
-    @Override
-    public void serialize(
-        Message pMessage, JsonGenerator pJsonGenerator, SerializerProvider pSerializerProvider)
-        throws IOException {
-        pJsonGenerator.writeStartObject();
-        pJsonGenerator.writeStringField("uniqueBlockId", pMessage.getUniqueBlockId());
-        pJsonGenerator.writeNumberField("targetNodeNumber", pMessage.getTargetNodeNumber());
-        pJsonGenerator.writeStringField("type", pMessage.getType().name());
-        pJsonGenerator.writeStringField("payload", pMessage.getPayload());
-        pJsonGenerator.writeEndObject();
-    }
-  }
-
-  static class MessageConverter {
-
-    private static final MessageConverter instance = new MessageConverter();
+  public static class MessageConverter {
 
     private final ObjectMapper mapper;
 
-    private MessageConverter() {
+    public MessageConverter() {
       mapper = new ObjectMapper();
       SimpleModule serializer =
           new SimpleModule("MessageSerializer", new Version(1, 0, 0, null, null, null));
@@ -158,7 +136,7 @@ public class Message {
       mapper.registerModule(serializer);
 
       SimpleModule deserializer =
-          new SimpleModule("CustomCarDeserializer", new Version(1, 0, 0, null, null, null));
+          new SimpleModule("MessageDeserializer", new Version(1, 0, 0, null, null, null));
       deserializer.addDeserializer(Message.class, new MessageDeserializer(Message.class));
       mapper.registerModule(deserializer);
     }
@@ -171,12 +149,9 @@ public class Message {
       return mapper.readValue(pJSON, Message.class);
     }
 
-    public static MessageConverter getInstance() {
-      return instance;
-    }
   }
 
-  static class MessageDeserializer extends StdDeserializer<Message> {
+  private static class MessageDeserializer extends StdDeserializer<Message> {
 
     public MessageDeserializer(Class<Message> vc) {
       super(vc);
@@ -193,6 +168,25 @@ public class Message {
       MessageType type = MessageType.valueOf(node.get("type").asText());
       String payload = node.get("payload").asText();
       return new Message(type, uniqueBlockId, nodeNumber, payload);
+    }
+  }
+
+  private static class MessageSerializer extends StdSerializer<Message> {
+
+    private MessageSerializer(Class<Message> t) {
+      super(t);
+    }
+
+    @Override
+    public void serialize(
+        Message pMessage, JsonGenerator pJsonGenerator, SerializerProvider pSerializerProvider)
+        throws IOException {
+      pJsonGenerator.writeStartObject();
+      pJsonGenerator.writeStringField("uniqueBlockId", pMessage.getUniqueBlockId());
+      pJsonGenerator.writeNumberField("targetNodeNumber", pMessage.getTargetNodeNumber());
+      pJsonGenerator.writeStringField("type", pMessage.getType().name());
+      pJsonGenerator.writeStringField("payload", pMessage.getPayload());
+      pJsonGenerator.writeEndObject();
     }
   }
 

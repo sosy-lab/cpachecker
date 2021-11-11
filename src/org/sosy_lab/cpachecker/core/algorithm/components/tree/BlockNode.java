@@ -15,7 +15,10 @@ import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class BlockNode {
 
@@ -27,6 +30,7 @@ public class BlockNode {
   private final Set<BlockNode> successors;
 
   private final String id;
+  private final String code;
 
   /**
    * Represents a sub graph of the CFA beginning at <code>pStartNode</code> and ending at <code>
@@ -38,6 +42,7 @@ public class BlockNode {
    *     last node.
    */
   private BlockNode(
+      @NonNull String pId,
       @NonNull CFANode pStartNode,
       @NonNull CFANode pLastNode,
       @NonNull Set<CFANode> pNodesInBlock) {
@@ -59,15 +64,29 @@ public class BlockNode {
     successors = new HashSet<>();
 
     nodesInBlock = new LinkedHashSet<>(pNodesInBlock);
-    id = generateUniqueId(startNode, lastNode, nodesInBlock);
+    id = pId;
+
+    code = computeCode(pNodesInBlock);
   }
 
-  private static String generateUniqueId(CFANode pStartNode, CFANode pEndNode, Set<CFANode> pNodesInBlock) {
-    StringBuilder id = new StringBuilder("N" + pStartNode.getNodeNumber());
-    for(CFANode n: pNodesInBlock) {
-      id.append("N").append(n.getNodeNumber());
+  private String computeCode(Set<CFANode> pNodes) {
+    StringBuilder codeLines = new StringBuilder();
+    for (CFANode node : pNodes) {
+      for (CFAEdge leavingEdge : CFAUtils.leavingEdges(node)) {
+        if (pNodes.contains(leavingEdge.getSuccessor())) {
+          if (leavingEdge.getCode().isBlank()) {
+            continue;
+          }
+          if (leavingEdge.getEdgeType().equals(CFAEdgeType.AssumeEdge)) {
+            codeLines.append("[").append(leavingEdge.getCode()).append("]");
+          } else {
+            codeLines.append(leavingEdge.getCode());
+          }
+          break;
+        }
+      }
     }
-    return id.append("N").append(pEndNode.getNodeNumber()).toString();
+    return codeLines.toString();
   }
 
   private void linkSuccessor(BlockNode node) {
@@ -124,8 +143,8 @@ public class BlockNode {
         + startNode
         + ", lastNode="
         + lastNode
-        + ", nodesInBlock="
-        + nodesInBlock
+        + ", code="
+        + code
         + '}';
   }
 
@@ -135,8 +154,10 @@ public class BlockNode {
 
   public static class BlockNodeFactory {
 
+    private int blockCount;
+
     public BlockNode makeBlock(CFANode pStartNode, CFANode pEndNode, Set<CFANode> pNodesInBlock) {
-      return new BlockNode(pStartNode, pEndNode, pNodesInBlock);
+      return new BlockNode("B" + blockCount++, pStartNode, pEndNode, pNodesInBlock);
     }
 
     public void linkSuccessor(BlockNode pNode, BlockNode pNodeSuccessor) {
