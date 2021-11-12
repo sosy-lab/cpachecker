@@ -226,14 +226,15 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   private void fallBackToBMC(final String pReason) {
-    logger.log(Level.WARNING, pReason);
-    logger.log(Level.WARNING, "Interpolation disabled: falling back to BMC");
+    logger.log(
+        Level.WARNING, "Interpolation disabled because of " + pReason + ", falling back to BMC");
     interpolation = false;
   }
 
   private void fallBackToBMCWithoutForwardCondition(final String pReason) {
-    logger.log(Level.WARNING, pReason);
-    logger.log(Level.WARNING, "Forward-condition disabled: falling back to plain BMC");
+    logger.log(
+        Level.WARNING,
+        "Forward-condition disabled because of " + pReason + ", falling back to plain BMC");
     interpolation = false;
     checkForwardConditions = false;
   }
