@@ -48,14 +48,16 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 // TODO: factor out the utility functions of IMCAlgorithm and ISMCAlgorithm to a new class
 /**
- * This class provides an implementation of interpolation-based model checking algorithm, adapted
- * for program verification. The original algorithm was proposed in the paper "Interpolation and
- * SAT-based Model Checking" from K. L. McMillan. The algorithm consists of two phases: BMC phase
- * and interpolation phase. In the BMC phase, it unrolls the CFA and collects the path formula to
- * target states. If the path formula is UNSAT, it enters the interpolation phase, and computes
- * interpolants which are overapproximations of k-step reachable states. If the union of
- * interpolants grows to an inductive set of states, the property is proved. Otherwise, it returns
- * back to the BMC phase and keeps unrolling the CFA.
+ * This class provides an implementation of interpolation-seqence based model checking algorithm,
+ * adapted for program verification. The original algorithm was proposed in the paper
+ * "Interpolation-sequence based model checking" by Yakir Vizel and Orna Grumberg. The algorithm
+ * consists of two phases: BMC phase and interpolation phase. In the BMC phase, it unrolls the CFA
+ * and collects the path formula to target states. If the path formula is UNSAT, it enters the
+ * interpolation phase, and computes the overapproximation of reachable states at each unrolling
+ * step in the form of interpolation-sequence . The overapproximation is then conjoined with the
+ * ones obtained in the previous interpolation phases and forms a reachability vector. If the
+ * reachability vector reaches a fixedpoint, i.e. the overapproximated state set becomes inductive,
+ * the property is proved. Otherwise, it returns back to the BMC phase and keeps unrolling the CFA.
  */
 @Options(prefix = "ismc")
 public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
@@ -355,15 +357,16 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   // note: an exact copy from IMCAlgorithm.java
   private void fallBackToBMC(final String pReason) {
-    logger.log(Level.WARNING, pReason);
-    logger.log(Level.WARNING, "Interpolation disabled: falling back to BMC");
+    logger.log(
+        Level.WARNING, "Interpolation disabled because of " + pReason + ", falling back to BMC");
     interpolation = false;
   }
 
   // note: an exact copy from IMCAlgorithm.java
   private void fallBackToBMCWithoutForwardCondition(final String pReason) {
-    logger.log(Level.WARNING, pReason);
-    logger.log(Level.WARNING, "Forward-condition disabled: falling back to plain BMC");
+    logger.log(
+        Level.WARNING,
+        "Forward-condition disabled because of " + pReason + ", falling back to plain BMC");
     interpolation = false;
     checkForwardConditions = false;
   }
