@@ -209,7 +209,7 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       if (interpolation
           && maxLoopIterations > 1
           && !AbstractStates.getTargetStates(pReachedSet).isEmpty()) {
-        
+
         logger.log(Level.FINE, "Collecting BMC-partitioning formulas");
         List<BooleanFormula> partitionedFormulas = collectFormulas(pReachedSet);
         logger.log(Level.ALL, "Partitioned formulas:", partitionedFormulas);
@@ -248,15 +248,17 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private List<BooleanFormula> collectFormulas(final ReachedSet pReachedSet) {
     FluentIterable<AbstractState> targetStatesAfterLoop = getTargetStatesAfterLoop(pReachedSet);
     List<ARGState> abstractionStates =
-          getAbstractionStatesToRoot(targetStatesAfterLoop.get(0)).toList();
-    
+        getAbstractionStatesToRoot(targetStatesAfterLoop.get(0)).toList();
+
     List<BooleanFormula> formulas = new ArrayList<>();
     for (int i = 2; i < abstractionStates.size() - 1; ++i) {
       // TR(V_k, V_k+1)
-      BooleanFormula transitionRelation = getPredicateAbstractionBlockFormula(abstractionStates.get(i)).getFormula();
+      BooleanFormula transitionRelation =
+          getPredicateAbstractionBlockFormula(abstractionStates.get(i)).getFormula();
       if (i == 2) {
         // INIT(V_0) ^ TR(V_0, V_1)
-        BooleanFormula initialCondition = getPredicateAbstractionBlockFormula(abstractionStates.get(1)).getFormula();
+        BooleanFormula initialCondition =
+            getPredicateAbstractionBlockFormula(abstractionStates.get(1)).getFormula();
         transitionRelation = bfmgr.and(initialCondition, transitionRelation);
       }
       formulas.add(transitionRelation);
@@ -298,14 +300,14 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       List<T> formulaB = pushedFormulas.subList(i, pFormulas.size());
 
       BooleanFormula interpolant = getInterpolantFrom(itpProver, formulaA, formulaB);
-      itpSequence.add(fmgr.uninstantiate(interpolant));  // uninstantiate the formula
+      itpSequence.add(fmgr.uninstantiate(interpolant)); // uninstantiate the formula
     }
 
     // pop formulas
     for (int i = 0; i < pFormulas.size(); ++i) {
       itpProver.pop();
     }
-    
+
     return itpSequence;
   }
 
