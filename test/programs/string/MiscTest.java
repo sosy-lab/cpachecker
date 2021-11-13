@@ -13,6 +13,5 @@ public class MiscTest {
     String c = b + a;
     assert a.length() == 5;
     assert c.equals(b + a);
-    return;
-  }
+    }
 }

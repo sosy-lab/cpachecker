@@ -22,6 +22,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.string.domains.AbstractStringDomain;
+import org.sosy_lab.cpachecker.cpa.string.domains.DomainType;
 
 
 @Options(prefix = "cpa.string")
@@ -116,6 +117,23 @@ public class StringOptions {
     return domainList;
   }
 
+  public boolean containsDomain(DomainType type) {
+    for (AbstractStringDomain<?> domain : domains) {
+      if (domain.getType().equals(type)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  public AbstractStringDomain<?> getDomain(DomainType type) {
+    for (AbstractStringDomain<?> domain : domains) {
+      if (domain.getType().equals(type)) {
+        return domain;
+      }
+    }
+    return null;
+  }
   public ImmutableList<AbstractStringDomain<?>> getDomains() {
     return domains;
   }

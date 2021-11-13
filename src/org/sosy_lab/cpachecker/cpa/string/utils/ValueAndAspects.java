@@ -8,8 +8,11 @@
 
 package org.sosy_lab.cpachecker.cpa.string.utils;
 
+import com.google.common.collect.ImmutableList.Builder;
 import java.util.List;
+import org.sosy_lab.cpachecker.cpa.string.domains.AbstractStringDomain;
 import org.sosy_lab.cpachecker.cpa.string.domains.DomainType;
+import org.sosy_lab.cpachecker.cpa.string.utils.Aspect.UnknownAspect;
 
 public class ValueAndAspects {
 
@@ -30,10 +33,37 @@ public class ValueAndAspects {
     return aspects.size();
   }
 
-  public List<Aspect<?>> getAspects() {
-    return aspects;
+  public ValueAndAspects updateOneAspect(Aspect<?> as) {
+    Aspect<?> temp = getAspectOfDomain(as.getDomain());
+    if (temp instanceof UnknownAspect) {
+      Builder<Aspect<?>> builder = new Builder<>();
+      aspects = builder.addAll(aspects).add(as).build();
+
+    } else {
+      if (!temp.getValue().equals(as.getValue())) {
+        Builder<Aspect<?>> builder = new Builder<>();
+        for (Aspect<?> a : aspects) {
+          if (!a.equals(temp)) {
+            builder.add(a);
+          } else {
+            builder.add(as);
+          }
+        }
+        aspects = builder.build();
+      }
+    }
+    return this;
   }
 
+  public Aspect<?> getAspectOfDomain(AbstractStringDomain<?> domain) {
+    DomainType type = domain.getType();
+    for (Aspect<?> a : aspects) {
+      if (a.getDomainType().equals(type)) {
+        return a;
+      }
+    }
+    return UnknownAspect.getInstance();
+  }
   public boolean isLessOrEqual(ValueAndAspects pOther) {
     List<Aspect<?>> otherList = pOther.aspects;
     if (aspects.size() < otherList.size()) {

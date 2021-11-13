@@ -16,6 +16,7 @@ public class MethodStrRet {
     String iron = "man";
     String he = Foo(iron);
     iron = Foo("captain");
+    assert iron.equals("captain");
   }
 
 }

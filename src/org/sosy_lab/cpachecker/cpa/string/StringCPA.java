@@ -14,6 +14,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -49,13 +50,15 @@ public class StringCPA extends AbstractCPA {
   private final StringTransferRelation transfer;
   private StringOptions options;
   private final LogManager logger;
+  private final CFA cfa;
 
-  private StringCPA(Configuration pConfig, LogManager pLogger)
+  private StringCPA(Configuration pConfig, LogManager pLogger, CFA pCfa)
       throws InvalidConfigurationException {
     super(
         DelegateAbstractDomain.<StringState>getInstance(),
         // new StringTransferRelation(pLogger)
         null);
+    this.cfa = pCfa;
     this.config = pConfig;
     this.logger = pLogger;
     options = new StringOptions(pConfig, logger);
@@ -71,7 +74,7 @@ public class StringCPA extends AbstractCPA {
 
   @Override
   public StringTransferRelation getTransferRelation() {
-    return new StringTransferRelation(logger, options);
+    return new StringTransferRelation(logger, options, cfa.getMachineModel());
   }
 
   @Override

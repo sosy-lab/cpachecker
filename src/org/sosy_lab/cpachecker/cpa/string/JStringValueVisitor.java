@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JNullLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JReferencedMethodInvocationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeEqualsType;
 import org.sosy_lab.cpachecker.cfa.ast.java.JStringLiteralExpression;
@@ -38,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cpa.string.domains.AbstractStringDomain;
+import org.sosy_lab.cpachecker.cpa.string.domains.DomainType;
 import org.sosy_lab.cpachecker.cpa.string.domains.StringSetDomain;
 import org.sosy_lab.cpachecker.cpa.string.utils.Aspect;
 import org.sosy_lab.cpachecker.cpa.string.utils.Aspect.UnknownAspect;
@@ -60,6 +62,12 @@ public class JStringValueVisitor
   @Override
   public ValueAndAspects visit(JMethodInvocationExpression pE)
       throws NoException {
+    if (pE instanceof JReferencedMethodInvocationExpression
+        && pE.getDeclaration().getOrigName().contains("String_length")
+        && options.containsDomain(DomainType.LENGTH)) {
+      JReferencedMethodInvocationExpression jrmie = (JReferencedMethodInvocationExpression) pE;
+    }
+
     return null;
   }
 
@@ -92,7 +100,8 @@ public class JStringValueVisitor
   public ValueAndAspects visit(JCharLiteralExpression pE)
       throws NoException {
     // return new ValueAndAspects(String.valueOf(pE.getCharacter()));
-    return new ValueAndAspects(ImmutableList.of(UnknownAspect.getInstance()));
+    // return new ValueAndAspects(ImmutableList.of(UnknownAspect.getInstance()));
+    return null;
   }
 
   @Override
@@ -126,7 +135,10 @@ public class JStringValueVisitor
         for (int i = 0; i < domains.size(); i++) {
           AbstractStringDomain<?> a = domains.get(i);
           builder
-              .add(a.combineAspectsForStringConcat(vaa1.getAspects().get(i), vaa2.getAspects().get(i)));
+              .add(
+                  a.combineAspectsForStringConcat(
+                      vaa1.getAspectOfDomain(a),
+                      vaa2.getAspectOfDomain(a)));
         }
         return new ValueAndAspects(builder.build());
       } else {
@@ -145,25 +157,29 @@ public class JStringValueVisitor
   @Override
   public ValueAndAspects visit(JIntegerLiteralExpression pJIntegerLiteralExpression)
       throws NoException {
-    return new ValueAndAspects(ImmutableList.of(UnknownAspect.getInstance()));
+    // return new ValueAndAspects(ImmutableList.of(UnknownAspect.getInstance()));
+    return null;
   }
 
   @Override
   public ValueAndAspects visit(JBooleanLiteralExpression pJBooleanLiteralExpression)
       throws NoException {
-    return new ValueAndAspects(ImmutableList.of(UnknownAspect.getInstance()));
+    // return new ValueAndAspects(ImmutableList.of(UnknownAspect.getInstance()));
+    return null;
   }
 
   @Override
   public ValueAndAspects visit(JFloatLiteralExpression pJFloatLiteralExpression)
       throws NoException {
-    return new ValueAndAspects(ImmutableList.of(UnknownAspect.getInstance()));
+    // return new ValueAndAspects(ImmutableList.of(UnknownAspect.getInstance()));
+    return null;
   }
 
   @Override
   public ValueAndAspects visit(JArrayCreationExpression pJArrayCreationExpression)
       throws NoException {
-    return new ValueAndAspects(ImmutableList.of(UnknownAspect.getInstance()));
+    // return new ValueAndAspects(ImmutableList.of(UnknownAspect.getInstance()));
+    return null;
   }
 
   @Override
@@ -175,7 +191,8 @@ public class JStringValueVisitor
   @Override
   public ValueAndAspects visit(JArrayLengthExpression pJArrayLengthExpression)
       throws NoException {
-    return new ValueAndAspects(ImmutableList.of(UnknownAspect.getInstance()));
+    // return new ValueAndAspects(ImmutableList.of(UnknownAspect.getInstance()));
+    return null;
   }
 
   @Override
@@ -193,13 +210,15 @@ public class JStringValueVisitor
   @Override
   public ValueAndAspects visit(JNullLiteralExpression pJNullLiteralExpression)
       throws NoException {
-    return new ValueAndAspects(ImmutableList.of(UnknownAspect.getInstance()));
+    // return new ValueAndAspects(ImmutableList.of(UnknownAspect.getInstance()));
+    return null;
   }
 
   @Override
   public ValueAndAspects visit(JEnumConstantExpression pJEnumConstantExpression)
       throws NoException {
-    return new ValueAndAspects(ImmutableList.of(UnknownAspect.getInstance()));
+    // return new ValueAndAspects(ImmutableList.of(UnknownAspect.getInstance()));
+    return null;
   }
 
   @Override
@@ -210,13 +229,15 @@ public class JStringValueVisitor
 
   @Override
   public ValueAndAspects visit(JThisExpression pThisExpression) throws NoException {
-    return new ValueAndAspects(ImmutableList.of(UnknownAspect.getInstance()));
+    // return new ValueAndAspects(ImmutableList.of(UnknownAspect.getInstance()));
+    return null;
   }
 
   @Override
   public ValueAndAspects visit(JClassLiteralExpression pJClassLiteralExpression)
       throws NoException {
-    return new ValueAndAspects(ImmutableList.of(UnknownAspect.getInstance()));
+    // return new ValueAndAspects(ImmutableList.of(UnknownAspect.getInstance()));
+    return null;
   }
 
 }

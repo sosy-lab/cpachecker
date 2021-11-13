@@ -12,7 +12,6 @@ public class PrefixSuffix {
     String suff = "prefix";
     assert pref.substring(0, 3).equals("suf");
     assert suff.substring(4, 6).equals("fix");
-    return;
+    
   }
-
 }
