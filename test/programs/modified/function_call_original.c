@@ -14,11 +14,24 @@ int add_one(int i) {
     return j;
 }
 
+void loop(int a) {
+	// b is gone now
+	int q;
+	for(int i; i<1000000; i++) {
+		q = a*i;
+	}
+}
+
+int check(int val) {
+	return val > 0;
+}
+
 void main() {
     int i = __VERIFIER_nondet_int();
     i = add_one(i);
+    loop(add_one(i));
     i = 5;
-    if (i == 1) {
+    if (check(i)) {
 ERROR:
         __VERIFIER_error();
     }

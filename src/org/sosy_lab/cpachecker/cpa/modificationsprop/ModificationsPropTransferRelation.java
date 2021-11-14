@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.modificationsprop;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
@@ -89,7 +88,7 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
         // case 3 outsourced to abstract state creation
 
         if (CFAUtils.leavingEdges(nodeInGiven).contains(pCfaEdge)) {
-          helper.logCase(pCfaEdge.getCode());
+          // helper.logCase(pCfaEdge.getCode());
           // prepare further cases by skipping ignored operations
           if (helper.isUntracked(pCfaEdge)) {
             helper.logCase("Skipping ignored CFA edge for given program.");
@@ -218,12 +217,20 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
           }
           if (pCfaEdge instanceof CFunctionReturnEdge) {
             for (CFAEdge edgeInOriginal : CFAUtils.leavingEdges(nodeInOriginal)) {
+              edgeInOriginal =
+                  CFAUtils.leavingEdges(nodeInOriginal)
+                      .get(
+                          CFAUtils.leavingEdges(nodeInGiven)
+                              .toList()
+                              .indexOf(pCfaEdge)); // TODO: very much of a hack!!! If no better way,
+              // delete for
               if (edgeInOriginal instanceof CFunctionReturnEdge) {
                 final CFunctionReturnEdge retOr = (CFunctionReturnEdge) edgeInOriginal,
                     retMo = (CFunctionReturnEdge) pCfaEdge;
                 if (helper.sameFunction(retMo.getSuccessor(), retOr.getSuccessor())) {
                   helper.logCase(
                       "Taking case 4 for function return statement with modified variables or different statements.");
+
                   final CFunctionCall summaryOr = retOr.getSummaryEdge().getExpression(),
                       summaryMo = retOr.getSummaryEdge().getExpression();
                   if (summaryOr instanceof CFunctionCallAssignmentStatement
@@ -232,30 +239,39 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
                         summaryOrAss = (CFunctionCallAssignmentStatement) summaryOr,
                         summaryMoAss = (CFunctionCallAssignmentStatement) summaryMo;
                     try {
-                      if (!Collections.disjoint(
-                          summaryOrAss.getLeftHandSide().accept(helper.getVisitor()),
-                          summaryMoAss.getLeftHandSide().accept(helper.getVisitor()))) {
-                        // TODO: this is currently more of a hack.
-                        if (changedVars.contains(
-                            retMo.getPredecessor().getFunctionName() + "::__retval__")) {
-                          return ImmutableSet.of(
-                              new ModificationsPropState(
-                                  pCfaEdge.getSuccessor(),
-                                  edgeInOriginal.getSuccessor(),
-                                  new ImmutableSet.Builder<String>()
-                                      .addAll(changedVars)
-                                      .addAll(
-                                          summaryMoAss
-                                              .getLeftHandSide()
-                                              .accept(helper.getVisitor()))
-                                      .build(),
-                                  helper));
-                        }
+                      // add variables as modified if LHS or RHS not equal or return value modified
+                      if (!summaryOrAss.getLeftHandSide().equals(summaryMoAss.getLeftHandSide())
+                          // TODO: this is currently more of a hack for __retval__.
+                          || changedVars.contains(
+                              retMo.getPredecessor().getFunctionName() + "::__retval__")
+                          || !summaryOrAss
+                              .getRightHandSide()
+                              .equals(summaryMoAss.getRightHandSide())) {
+                        return ImmutableSet.of(
+                            new ModificationsPropState(
+                                pCfaEdge.getSuccessor(),
+                                edgeInOriginal.getSuccessor(),
+                                new ImmutableSet.Builder<String>()
+                                    .addAll(changedVars)
+                                    .addAll(
+                                        summaryMoAss.getLeftHandSide().accept(helper.getVisitor()))
+                                    .addAll(
+                                        summaryOrAss.getLeftHandSide().accept(helper.getVisitor()))
+                                    .build(),
+                                helper));
                       }
                     } catch (PointerAccessException e) {
                       helper.logProblem("Caution: Pointer or similar detected.");
                       return ImmutableSet.of(helper.makeBad(locations));
                     }
+                  }
+                  if (summaryOr instanceof CFunctionCallAssignmentStatement
+                      ^ summaryMo instanceof CFunctionCallAssignmentStatement) {
+                    // Exactly one is an assignment. This can happen, but we do not expect to find
+                    // a similar structure anymore.
+                    helper.logCase(
+                        "Assignment and non-assignment with call of same function. Stopping here.");
+                    return ImmutableSet.of(helper.makeBad(locations));
                   }
                   return ImmutableSet.of(
                       new ModificationsPropState(
@@ -325,9 +341,9 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
           // This could be left out, but we expect to find more related statements this way.
           ImmutableTuple<CFANode, ImmutableSet<String>>
               givenTup = helper.skipAssignment(nodeInGiven, changedVars),
-              originalTup = helper.skipAssignment(nodeInGiven, changedVars);
+              originalTup = helper.skipAssignment(nodeInOriginal, changedVars);
           if (!(givenTup.getFirst().equals(nodeInGiven)
-              || originalTup.getFirst().equals(nodeInGiven))) {
+              || originalTup.getFirst().equals(nodeInOriginal))) {
             if (CFAEdgeUtils.getLeftHandVariable(nodeInGiven.getLeavingEdge(0))
                 .equals(CFAEdgeUtils.getLeftHandVariable(nodeInOriginal.getLeavingEdge(0)))) {
               helper.logCase("Combining cases 5 and 6 for same variable.");
@@ -408,15 +424,11 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
           }
 
           // case 8
-          ImmutableSet<CFANode> assumptionSuccessors =
-              helper.skipAssumption(nodeInGiven, changedVars);
-          if (!assumptionSuccessors.isEmpty()) {
+          if (pCfaEdge instanceof CAssumeEdge) {
             helper.logCase("Taking case 8.");
-            final ImmutableSet<String> cv = changedVars;
-            final CFANode nodeOrig = nodeInOriginal;
-            return transformedImmutableSetCopy(
-                assumptionSuccessors,
-                nodeGiven -> new ModificationsPropState(nodeGiven, nodeOrig, cv, helper));
+            return ImmutableSet.of(
+                new ModificationsPropState(
+                    pCfaEdge.getSuccessor(), nodeInOriginal, changedVars, helper));
           } else {
             // case 9
             helper.logCase("Taking case 9.");

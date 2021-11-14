@@ -13,7 +13,7 @@ int main() {
     int i = __VERIFIER_nondet_int();
     int v = i;
 
-    while (i < 10) {
+    while (i < 10 || v > 0) {
         v = v * 2;
 
         if (v == i) {

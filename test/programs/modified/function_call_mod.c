@@ -13,11 +13,23 @@ int add_one(int i) {
     return i + 1;
 }
 
+int check(int val) {
+	return val > 0;
+}
+
+void loop(int a, int b) {
+	int q;
+	for(int i; i<1000000; i++) {
+		q = a*i + b;
+	}
+}
+
 void main() {
     int i = __VERIFIER_nondet_int();
     i = add_one(i);
+    loop(add_one(i), 5);
     i = 5;
-    if (i == 1) {
+    if (check(i)) {
 ERROR:
         __VERIFIER_error();
     }

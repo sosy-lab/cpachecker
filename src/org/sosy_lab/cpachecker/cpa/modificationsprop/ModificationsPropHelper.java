@@ -44,7 +44,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
@@ -190,35 +189,6 @@ public class ModificationsPropHelper {
       }
     }
     return new ImmutableTuple<>(pNode, pVars);
-  }
-
-  /**
-   * Skips outgoing assume statements.
-   *
-   * @param pNode the node to start in
-   * @param pVars the variables that may be different in the two programs before
-   * @return the nodes reached by outgoing assume statements, empty if any assumption is not covered
-   */
-  ImmutableSet<CFANode> skipAssumption(final CFANode pNode, final ImmutableSet<String> pVars) {
-    Set<CFANode> reached = new HashSet<>();
-    if (!inReachabilityProperty(pNode)) {
-      for (CFAEdge ce : CFAUtils.leavingEdges(pNode)) {
-        if (ce instanceof CAssumeEdge) {
-          final Set<String> usedVars;
-          try {
-            usedVars = ((CAssumeEdge) ce).getExpression().accept(visitor);
-          } catch (PointerAccessException e) {
-            return ImmutableSet.of();
-          }
-          if (Collections.disjoint(usedVars, pVars)) {
-            reached.add(ce.getSuccessor());
-          } else {
-            return ImmutableSet.of();
-          }
-        }
-      }
-    }
-    return ImmutableSet.copyOf(reached);
   }
 
   /**
@@ -422,7 +392,7 @@ public class ModificationsPropHelper {
    * @param pNote the text to print
    */
   void logCase(final String pNote) {
-    logger.log(Level.WARNING, pNote);
+    logger.log(Level.FINEST, pNote);
   }
 
   /**

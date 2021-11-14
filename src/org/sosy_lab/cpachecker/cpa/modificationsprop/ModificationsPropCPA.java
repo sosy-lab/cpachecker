@@ -149,39 +149,13 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
           cfaCreator.parseFileAndCreateCFA(ImmutableList.of(originalProgram.toString()));
       final ImmutableSet<CFANode> elocs = propertyNodes(cfaForComparison);
       final ImmutableSet<CFANode> elocs_new = propertyNodes(pCfa);
-      final Set<CFANode> elocs_reachable = new HashSet<>(elocs);
-      final Set<CFANode> elocs_new_reachable = new HashSet<>(elocs_new);
 
       // Backward analysis adding all predecessor nodes to find all nodes that may reach an error
       // location.
-      if (performPreprocessing) {
-        final Set<CFANode> waitlist_old = new HashSet<>(elocs_reachable);
-        while (!waitlist_old.isEmpty()) {
-          for (CFANode el : new HashSet<>(waitlist_old)) {
-            waitlist_old.remove(el);
-            elocs_reachable.add(el);
-            for (CFANode pred :
-                CFAUtils.allEnteringEdges(el).transform(edge -> edge.getPredecessor())) {
-              if (!elocs_reachable.contains(pred)) {
-                waitlist_old.add(pred);
-              }
-            }
-          }
-        }
-        final Set<CFANode> waitlist_new = new HashSet<>(elocs_new_reachable);
-        while (!waitlist_new.isEmpty()) {
-          for (CFANode el : new HashSet<>(waitlist_new)) {
-            waitlist_new.remove(el);
-            elocs_new_reachable.add(el);
-            for (CFANode pred :
-                CFAUtils.allEnteringEdges(el).transform(edge -> edge.getPredecessor())) {
-              if (!elocs_new_reachable.contains(pred)) {
-                waitlist_new.add(pred);
-              }
-            }
-          }
-        }
-      }
+      Set<CFANode> elocs_reachable =
+          performPreprocessing ? explore(elocs, this::getPredecessors) : ImmutableSet.of();
+      Set<CFANode> elocs_new_reachable =
+          performPreprocessing ? explore(elocs_new, this::getPredecessors) : ImmutableSet.of();
 
       helper =
           new ModificationsPropHelper(
@@ -321,5 +295,40 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
       }
     }
     return ImmutableSet.of();
+  }
+
+  /**
+   * Get all previous nodes in CFA for a given CFANode. Includes summary edge successors by using
+   * allEnteringEdges as opposed to enteringEdges.
+   *
+   * @param node the node to consider
+   * @return the predecessor nodes in the CFA
+   */
+  private FluentIterable<CFANode> getPredecessors(CFANode node) {
+    return CFAUtils.allEnteringEdges(node).transform(edge -> edge.getPredecessor());
+  }
+
+  /**
+   * Performs an exploration by a starting element and a function to a following set
+   *
+   * @param <A> the element type to explore on
+   * @param startset the initial set of elements
+   * @param explorer the function mapping an element to a set of successors
+   * @return the set of reached states including the initial elements
+   */
+  private <A> Set<A> explore(Set<A> startset, Function<A, Iterable<A>> explorer) {
+    final Set<A> waitlist = new HashSet<>(startset), result = new HashSet<>(startset);
+    while (!waitlist.isEmpty()) {
+      for (A el : new HashSet<>(waitlist)) {
+        waitlist.remove(el);
+        result.add(el);
+        for (A pred : explorer.apply(el)) {
+          if (!result.contains(pred)) {
+            waitlist.add(pred);
+          }
+        }
+      }
+    }
+    return new ImmutableSet.Builder<A>().addAll(result).build();
   }
 }
