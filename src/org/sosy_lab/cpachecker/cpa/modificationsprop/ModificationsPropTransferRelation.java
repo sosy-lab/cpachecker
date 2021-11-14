@@ -216,13 +216,13 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
             }
           }
           if (pCfaEdge instanceof CFunctionReturnEdge) {
-            for (CFAEdge edgeInOriginal : CFAUtils.leavingEdges(nodeInOriginal)) {
-              edgeInOriginal =
-                  CFAUtils.leavingEdges(nodeInOriginal)
-                      .get(
-                          CFAUtils.leavingEdges(nodeInGiven)
-                              .toList()
-                              .indexOf(pCfaEdge)); // TODO: very much of a hack!!! If no better way,
+            // for (CFAEdge edgeInOriginal : CFAUtils.leavingEdges(nodeInOriginal)) {
+            final CFAEdge edgeInOriginal =
+                CFAUtils.leavingEdges(nodeInOriginal)
+                    .get(
+                        CFAUtils.leavingEdges(nodeInGiven)
+                            .toList()
+                            .indexOf(pCfaEdge)); // TODO: very much of a hack!!! If no better way,
               // delete for
               if (edgeInOriginal instanceof CFunctionReturnEdge) {
                 final CFunctionReturnEdge retOr = (CFunctionReturnEdge) edgeInOriginal,
@@ -281,7 +281,7 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
                           helper));
                 }
               }
-            }
+            // }
           }
           if (pCfaEdge instanceof CFunctionCallEdge) {
             for (CFAEdge edgeInOriginal : CFAUtils.leavingEdges(nodeInOriginal)) {

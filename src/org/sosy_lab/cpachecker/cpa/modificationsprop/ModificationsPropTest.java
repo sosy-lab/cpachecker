@@ -48,7 +48,8 @@ public class ModificationsPropTest {
             PROP_ORIGINAL_PROGRAM, OLD_UNSEC,
             PROP_REACH_PROPERTY, REACH_PROPERTY,
             PROP_PREPROCESSING, TRUE,
-            PROP_SPEC, REACH_PROPERTY);
+            PROP_SPEC, REACH_PROPERTY,
+            PROP_DECLARATION_IGNORE, FALSE);
 
     TestResults results = CPATestRunner.run(getProperties(CONFIG_FILE, prop), OLD_SEC);
     results.assertIsSafe();
@@ -58,7 +59,8 @@ public class ModificationsPropTest {
             PROP_ORIGINAL_PROGRAM, OLD_SEC,
             PROP_REACH_PROPERTY, REACH_PROPERTY,
             PROP_PREPROCESSING, TRUE,
-            PROP_SPEC, REACH_PROPERTY);
+            PROP_SPEC, REACH_PROPERTY,
+            PROP_DECLARATION_IGNORE, FALSE);
 
     results = CPATestRunner.run(getProperties(CONFIG_FILE, prop), OLD_UNSEC);
     results.assertIsUnsafe();
@@ -72,7 +74,8 @@ public class ModificationsPropTest {
             PROP_ORIGINAL_PROGRAM, PROGRAM_ORIGINAL,
             PROP_REACH_PROPERTY, REACH_PROPERTY,
             PROP_PREPROCESSING, FALSE,
-            PROP_SPEC, REACH_PROPERTY);
+            PROP_SPEC, REACH_PROPERTY,
+            PROP_DECLARATION_IGNORE, FALSE);
 
     final TestResults results =
         CPATestRunner.run(getProperties(CONFIG_FILE, prop), PROGRAM_MODIFIED);
@@ -98,7 +101,8 @@ public class ModificationsPropTest {
             PROP_ORIGINAL_PROGRAM, FCTCALL_ORIGINAL,
             PROP_REACH_PROPERTY, REACH_PROPERTY,
             PROP_PREPROCESSING, TRUE,
-            PROP_SPEC, REACH_PROPERTY);
+            PROP_SPEC, REACH_PROPERTY,
+            PROP_DECLARATION_IGNORE, FALSE);
 
     results = CPATestRunner.run(getProperties(CONFIG_FILE, prop), FCTCALL_MODIFIED);
     results.assertIsUnsafe();
@@ -112,7 +116,8 @@ public class ModificationsPropTest {
             PROP_ORIGINAL_PROGRAM, PROGRAM_MODIFIED,
             PROP_REACH_PROPERTY, REACH_PROPERTY,
             PROP_PREPROCESSING, TRUE,
-            PROP_SPEC, REACH_PROPERTY);
+            PROP_SPEC, REACH_PROPERTY,
+            PROP_DECLARATION_IGNORE, FALSE);
 
     final TestResults results =
         CPATestRunner.run(getProperties(CONFIG_FILE, prop), PROGRAM_ORIGINAL);

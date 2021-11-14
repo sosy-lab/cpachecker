@@ -125,7 +125,10 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
   // originalProgram != null checked through REQUIRED_INPUT_FILE annotation
   @SuppressFBWarnings("NP")
   public ModificationsPropCPA(
-      CFA pCfa, Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
+      final CFA pCfa,
+      final Configuration pConfig,
+      final LogManager pLogger,
+      final ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     pConfig.inject(this);
 
@@ -152,10 +155,11 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
 
       // Backward analysis adding all predecessor nodes to find all nodes that may reach an error
       // location.
-      Set<CFANode> elocs_reachable =
-          performPreprocessing ? explore(elocs, this::getPredecessors) : ImmutableSet.of();
-      Set<CFANode> elocs_new_reachable =
-          performPreprocessing ? explore(elocs_new, this::getPredecessors) : ImmutableSet.of();
+      final Set<CFANode>
+          elocs_reachable =
+              performPreprocessing ? explore(elocs, this::getPredecessors) : ImmutableSet.of(),
+          elocs_new_reachable =
+              performPreprocessing ? explore(elocs_new, this::getPredecessors) : ImmutableSet.of();
 
       helper =
           new ModificationsPropHelper(
@@ -172,7 +176,7 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
       transfer = new ModificationsPropTransferRelation(helper);
 
     } catch (ParserException pE) {
-      throw new InvalidConfigurationException("Parser error for originalProgram", pE);
+      throw new InvalidConfigurationException("Parser error for original program.", pE);
     } catch (InterruptedException | IOException pE) {
       throw new AssertionError(pE);
     }
@@ -304,7 +308,7 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
    * @param node the node to consider
    * @return the predecessor nodes in the CFA
    */
-  private FluentIterable<CFANode> getPredecessors(CFANode node) {
+  private FluentIterable<CFANode> getPredecessors(final CFANode node) {
     return CFAUtils.allEnteringEdges(node).transform(edge -> edge.getPredecessor());
   }
 
@@ -316,7 +320,7 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
    * @param explorer the function mapping an element to a set of successors
    * @return the set of reached states including the initial elements
    */
-  private <A> Set<A> explore(Set<A> startset, Function<A, Iterable<A>> explorer) {
+  private <A> Set<A> explore(final Set<A> startset, final Function<A, Iterable<A>> explorer) {
     final Set<A> waitlist = new HashSet<>(startset), result = new HashSet<>(startset);
     while (!waitlist.isEmpty()) {
       for (A el : new HashSet<>(waitlist)) {

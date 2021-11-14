@@ -44,10 +44,10 @@ public final class ModificationsPropState
   private final ImmutableSet<String> changedVariables;
 
   public ModificationsPropState(
-      CFANode pLocationInGivenCfa,
-      CFANode pLocationInOriginalCfa,
-      ImmutableSet<String> pChangedVars,
-      ModificationsPropHelper pHelper) {
+      final CFANode pLocationInGivenCfa,
+      final CFANode pLocationInOriginalCfa,
+      final ImmutableSet<String> pChangedVars,
+      final ModificationsPropHelper pHelper) {
     CFANode nodeInOriginal = pHelper.skipUntrackedOperations(pLocationInOriginalCfa);
     // CFANode nodeInGiven = pLocationInGivenCfa;
     ImmutableSet<String> changedVars = pChangedVars;
@@ -87,10 +87,10 @@ public final class ModificationsPropState
   }
 
   public ModificationsPropState(
-      CFANode pLocationInGivenCfa,
-      CFANode pLocationInOriginalCfa,
-      ImmutableSet<String> pChangedVars,
-      boolean pIsBad) {
+      final CFANode pLocationInGivenCfa,
+      final CFANode pLocationInOriginalCfa,
+      final ImmutableSet<String> pChangedVars,
+      final boolean pIsBad) {
     locationInGivenCfa = pLocationInGivenCfa;
     locationInOriginalCfa = pLocationInOriginalCfa;
     changedVariables = pChangedVars;
