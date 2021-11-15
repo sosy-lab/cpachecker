@@ -21,19 +21,17 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  *
  * @param <D> The Abstract State subclass used when using this merge operator. Make sure that merge
  *     is not called for non-D-elements.
- * @param <E> The class of objects to be compared. Required for type inference but not of functional
- *     relevance.
  */
-public class MergeJoinOnOperator<D extends AbstractState, E> implements MergeOperator {
+public class MergeJoinOnOperator<D extends AbstractState> implements MergeOperator {
   final AbstractDomain domain;
-  final ImmutableSet<Function<D, E>> mergeDomainGetters;
+  final ImmutableSet<Function<D, Object>> mergeDomainGetters;
 
   /**
    * Creates a merge-join operator, based on the given join operator. Merges if function results are
    * equal only.
    */
   public MergeJoinOnOperator(
-      AbstractDomain pDomain, ImmutableSet<Function<D, E>> pMergeDomainGetters) {
+      AbstractDomain pDomain, ImmutableSet<Function<D, Object>> pMergeDomainGetters) {
     mergeDomainGetters = pMergeDomainGetters;
     domain = pDomain;
   }

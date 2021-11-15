@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.modificationsprop;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
+import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -121,7 +122,11 @@ public class ModificationsPropHelper {
    */
   ModificationsPropState makeBad(final ModificationsPropState pState) {
     return new ModificationsPropState(
-        pState.getLocationInGivenCfa(), pState.getLocationInOriginalCfa(), ImmutableSet.of(), true);
+        pState.getLocationInGivenCfa(),
+        pState.getLocationInOriginalCfa(),
+        ImmutableSet.of(),
+        new ArrayDeque<CFANode>(),
+        true);
   }
 
   /**

@@ -197,9 +197,10 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
     // check equality of location tuple and merge by joining then
     return new MergeJoinOnOperator<>(
         getAbstractDomain(),
-        new ImmutableSet.Builder<Function<ModificationsPropState, CFANode>>()
+        new ImmutableSet.Builder<Function<ModificationsPropState, Object>>()
             .add(mps -> mps.getLocationInGivenCfa())
             .add(mps -> mps.getLocationInOriginalCfa())
+            .add(mps -> mps.getOriginalStack())
             .build());
   }
 
@@ -213,7 +214,11 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
     return new ModificationsPropState(
-        node, cfaForComparison.getMainFunction(), ImmutableSet.of(), helper);
+        node,
+        cfaForComparison.getMainFunction(),
+        ImmutableSet.of(),
+        new ArrayDeque<CFANode>(),
+        helper);
   }
 
   @Override

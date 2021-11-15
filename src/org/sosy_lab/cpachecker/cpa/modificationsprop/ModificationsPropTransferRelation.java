@@ -11,17 +11,21 @@ package org.sosy_lab.cpachecker.cpa.modificationsprop;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.collect.ImmutableSet;
+import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -72,6 +76,7 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
     final CFANode nodeInGiven = locations.getLocationInGivenCfa();
     final CFANode nodeInOriginal = locations.getLocationInOriginalCfa();
     final ImmutableSet<String> changedVars = locations.getChangedVariables();
+    final ArrayDeque<CFANode> stack = locations.getOriginalStack();
 
     if (!locations.isBad()) {
 
@@ -94,7 +99,7 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
             helper.logCase("Skipping ignored CFA edge for given program.");
             return ImmutableSet.of(
                 new ModificationsPropState(
-                    pCfaEdge.getSuccessor(), nodeInOriginal, changedVars, helper));
+                    pCfaEdge.getSuccessor(), nodeInOriginal, changedVars, stack, helper));
           }
 
           // case 4
@@ -118,14 +123,16 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
                 }
               } else {
                 // For function return edges we have to be careful, as modified return values modify
-                // variables above.
-                if (!(pCfaEdge instanceof CFunctionReturnEdge)) {
+                // variables above. For function calls, stack has to be updated.
+                if (!(pCfaEdge instanceof CFunctionReturnEdge
+                    || pCfaEdge instanceof CFunctionCallEdge)) {
                   helper.logCase("Taking case 4b.");
                   return ImmutableSet.of(
                       new ModificationsPropState(
                           pCfaEdge.getSuccessor(),
                           edgeInOriginal.getSuccessor(),
                           changedVarsInSuccessor,
+                          stack,
                           helper));
                 }
               }
@@ -146,6 +153,7 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
                               .addAll(changedVars)
                               .add(declOr.getOrigName())
                               .build(),
+                          stack,
                           helper));
                 }
               }
@@ -205,6 +213,7 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
                             pCfaEdge.getSuccessor(),
                             edgeInOriginal.getSuccessor(),
                             returnChangedVars,
+                            stack,
                             helper));
 
                   } catch (PointerAccessException e) {
@@ -216,72 +225,81 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
             }
           }
           if (pCfaEdge instanceof CFunctionReturnEdge) {
-            // for (CFAEdge edgeInOriginal : CFAUtils.leavingEdges(nodeInOriginal)) {
-            final CFAEdge edgeInOriginal =
-                CFAUtils.leavingEdges(nodeInOriginal)
-                    .get(
-                        CFAUtils.leavingEdges(nodeInGiven)
-                            .toList()
-                            .indexOf(pCfaEdge)); // TODO: very much of a hack!!! If no better way,
-              // delete for
-              if (edgeInOriginal instanceof CFunctionReturnEdge) {
-                final CFunctionReturnEdge retOr = (CFunctionReturnEdge) edgeInOriginal,
-                    retMo = (CFunctionReturnEdge) pCfaEdge;
-                if (helper.sameFunction(retMo.getSuccessor(), retOr.getSuccessor())) {
-                  helper.logCase(
-                      "Taking case 4 for function return statement with modified variables or different statements.");
+            final ArrayDeque<CFANode> stackminus = stack.clone();
+            // Pop summary edge goal to compare to function return edge goal.
+            final CFANode summaryGoal = stackminus.poll();
+            if (summaryGoal != null) {
+              for (CFAEdge edgeInOriginal : CFAUtils.leavingEdges(nodeInOriginal)) {
+                if (edgeInOriginal instanceof CFunctionReturnEdge
+                    && edgeInOriginal.getSuccessor().equals(summaryGoal)) {
+                  final CFunctionReturnEdge retOr = (CFunctionReturnEdge) edgeInOriginal,
+                      retMo = (CFunctionReturnEdge) pCfaEdge;
+                  if (helper.sameFunction(retMo.getSuccessor(), retOr.getSuccessor())) {
+                    helper.logCase(
+                        "Taking case 4 for function return statement with modified variables or different statements.");
 
-                  final CFunctionCall summaryOr = retOr.getSummaryEdge().getExpression(),
-                      summaryMo = retOr.getSummaryEdge().getExpression();
-                  if (summaryOr instanceof CFunctionCallAssignmentStatement
-                      && summaryMo instanceof CFunctionCallAssignmentStatement) {
-                    CFunctionCallAssignmentStatement
-                        summaryOrAss = (CFunctionCallAssignmentStatement) summaryOr,
-                        summaryMoAss = (CFunctionCallAssignmentStatement) summaryMo;
-                    try {
-                      // add variables as modified if LHS or RHS not equal or return value modified
-                      if (!summaryOrAss.getLeftHandSide().equals(summaryMoAss.getLeftHandSide())
-                          // TODO: this is currently more of a hack for __retval__.
-                          || changedVars.contains(
-                              retMo.getPredecessor().getFunctionName() + "::__retval__")
-                          || !summaryOrAss
-                              .getRightHandSide()
-                              .equals(summaryMoAss.getRightHandSide())) {
-                        return ImmutableSet.of(
-                            new ModificationsPropState(
-                                pCfaEdge.getSuccessor(),
-                                edgeInOriginal.getSuccessor(),
-                                new ImmutableSet.Builder<String>()
-                                    .addAll(changedVars)
-                                    .addAll(
-                                        summaryMoAss.getLeftHandSide().accept(helper.getVisitor()))
-                                    .addAll(
-                                        summaryOrAss.getLeftHandSide().accept(helper.getVisitor()))
-                                    .build(),
-                                helper));
+                    final CFunctionCall summaryOr = retOr.getSummaryEdge().getExpression(),
+                        summaryMo = retOr.getSummaryEdge().getExpression();
+                    if (summaryOr instanceof CFunctionCallAssignmentStatement
+                        && summaryMo instanceof CFunctionCallAssignmentStatement) {
+                      CFunctionCallAssignmentStatement
+                          summaryOrAss = (CFunctionCallAssignmentStatement) summaryOr,
+                          summaryMoAss = (CFunctionCallAssignmentStatement) summaryMo;
+                      try {
+                        final Optional<CVariableDeclaration> retVarDecl =
+                            retMo.getFunctionEntry().getReturnVariable();
+                        // add variables as modified if LHS or RHS not equal or return value
+                        // modified
+                        if (!summaryOrAss.getLeftHandSide().equals(summaryMoAss.getLeftHandSide())
+                            || (retVarDecl.isPresent()
+                                && changedVars.contains(retVarDecl.get().getQualifiedName()))
+                            || !summaryOrAss
+                                .getRightHandSide()
+                                .equals(summaryMoAss.getRightHandSide())) {
+                          return ImmutableSet.of(
+                              new ModificationsPropState(
+                                  pCfaEdge.getSuccessor(),
+                                  edgeInOriginal.getSuccessor(),
+                                  new ImmutableSet.Builder<String>()
+                                      .addAll(changedVars)
+                                      .addAll(
+                                          summaryMoAss
+                                              .getLeftHandSide()
+                                              .accept(helper.getVisitor()))
+                                      .addAll(
+                                          summaryOrAss
+                                              .getLeftHandSide()
+                                              .accept(helper.getVisitor()))
+                                      .build(),
+                                  stackminus,
+                                  helper));
+                        }
+                      } catch (PointerAccessException e) {
+                        helper.logProblem("Caution: Pointer or similar detected.");
+                        return ImmutableSet.of(helper.makeBad(locations));
                       }
-                    } catch (PointerAccessException e) {
-                      helper.logProblem("Caution: Pointer or similar detected.");
+                    }
+                    if (summaryOr instanceof CFunctionCallAssignmentStatement
+                        ^ summaryMo instanceof CFunctionCallAssignmentStatement) {
+                      // Exactly one is an assignment. This can happen, but we do not expect to find
+                      // a similar structure anymore.
+                      helper.logCase(
+                          "Assignment and non-assignment with call of same function. Stopping here.");
                       return ImmutableSet.of(helper.makeBad(locations));
                     }
+                    return ImmutableSet.of(
+                        new ModificationsPropState(
+                            pCfaEdge.getSuccessor(),
+                            edgeInOriginal.getSuccessor(),
+                            changedVars,
+                            stackminus,
+                            helper));
                   }
-                  if (summaryOr instanceof CFunctionCallAssignmentStatement
-                      ^ summaryMo instanceof CFunctionCallAssignmentStatement) {
-                    // Exactly one is an assignment. This can happen, but we do not expect to find
-                    // a similar structure anymore.
-                    helper.logCase(
-                        "Assignment and non-assignment with call of same function. Stopping here.");
-                    return ImmutableSet.of(helper.makeBad(locations));
-                  }
-                  return ImmutableSet.of(
-                      new ModificationsPropState(
-                          pCfaEdge.getSuccessor(),
-                          edgeInOriginal.getSuccessor(),
-                          changedVars,
-                          helper));
                 }
               }
-            // }
+            } else {
+              helper.logProblem("Stack is empty. Something went wrong.");
+            }
           }
           if (pCfaEdge instanceof CFunctionCallEdge) {
             for (CFAEdge edgeInOriginal : CFAUtils.leavingEdges(nodeInOriginal)) {
@@ -324,6 +342,17 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
                       return ImmutableSet.of(helper.makeBad(locations));
                     }
                   }
+                  final ArrayDeque<CFANode> stackplus = stack.clone();
+                  final FunctionSummaryEdge summaryEdge = nodeInOriginal.getLeavingSummaryEdge();
+                  if (summaryEdge != null) {
+                    // Add summary edge goal to queue in order to take correct function return edge.
+                    // On ArrayDeque we always have space left, so no false check needed here.
+                    stackplus.offer(nodeInOriginal.getLeavingSummaryEdge().getSuccessor());
+                  } else {
+                    helper.logProblem(
+                        "Function call without summary edge found. This is not critical yet, but might indicate a problem.");
+                  }
+                  // nodeInOriginal.getLeavingSummaryEdge().getSuccessor();
                   return ImmutableSet.of(
                       new ModificationsPropState(
                           pCfaEdge.getSuccessor(),
@@ -331,6 +360,7 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
                           new ImmutableSet.Builder<String>()
                               .addAll(modifiedAfterFunctionCall)
                               .build(),
+                          stackplus,
                           helper));
                 }
               }
@@ -350,7 +380,11 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
               // modified variable sets do not differ
               return ImmutableSet.of(
                   new ModificationsPropState(
-                      givenTup.getFirst(), originalTup.getFirst(), givenTup.getSecond(), helper));
+                      givenTup.getFirst(),
+                      originalTup.getFirst(),
+                      givenTup.getSecond(),
+                      stack,
+                      helper));
             }
           }
 
@@ -361,7 +395,7 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
             helper.logCase("Taking case 5.");
             return ImmutableSet.of(
                 new ModificationsPropState(
-                    tup.getFirst(), nodeInOriginal, tup.getSecond(), helper));
+                    tup.getFirst(), nodeInOriginal, tup.getSecond(), stack, helper));
           }
 
           // case 6
@@ -375,7 +409,8 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
               return ImmutableSet.of(helper.makeBad(locations));
             } else {
               return getAbstractSuccessorsForEdge(
-                  new ModificationsPropState(nodeInGiven, tup.getFirst(), tup.getSecond(), helper),
+                  new ModificationsPropState(
+                      nodeInGiven, tup.getFirst(), tup.getSecond(), stack, helper),
                   pPrecision,
                   pCfaEdge);
             }
@@ -411,6 +446,7 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
                               assGiven.getSuccessor(),
                               assOrig.getSuccessor(),
                               changedVars,
+                              stack,
                               helper));
                     } else {
                       helper.logCase("Taking case 7b.");
@@ -428,7 +464,7 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
             helper.logCase("Taking case 8.");
             return ImmutableSet.of(
                 new ModificationsPropState(
-                    pCfaEdge.getSuccessor(), nodeInOriginal, changedVars, helper));
+                    pCfaEdge.getSuccessor(), nodeInOriginal, changedVars, stack, helper));
           } else {
             // case 9
             helper.logCase("Taking case 9.");

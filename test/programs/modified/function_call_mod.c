@@ -19,7 +19,7 @@ int check(int val) {
 
 void loop(int a, int b) {
 	int q;
-	for(int i; i<1000000; i++) {
+	for(int i; i<=999999; i++) {
 		q = a*i + b;
 	}
 }

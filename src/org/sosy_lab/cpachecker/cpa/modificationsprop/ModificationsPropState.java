@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.modificationsprop;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
+import java.util.ArrayDeque;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -43,10 +44,14 @@ public final class ModificationsPropState
   /** Variables that might be modified between the programs here. */
   private final ImmutableSet<String> changedVariables;
 
+  /** Queue to track function return edges to take. */
+  private final ArrayDeque<CFANode> originalStack;
+
   public ModificationsPropState(
       final CFANode pLocationInGivenCfa,
       final CFANode pLocationInOriginalCfa,
       final ImmutableSet<String> pChangedVars,
+      final ArrayDeque<CFANode> pStack,
       final ModificationsPropHelper pHelper) {
     CFANode nodeInOriginal = pHelper.skipUntrackedOperations(pLocationInOriginalCfa);
     // CFANode nodeInGiven = pLocationInGivenCfa;
@@ -84,17 +89,20 @@ public final class ModificationsPropState
       isBad = false;
     }
     locationInGivenCfa = pLocationInGivenCfa;
+    originalStack = pStack;
   }
 
   public ModificationsPropState(
       final CFANode pLocationInGivenCfa,
       final CFANode pLocationInOriginalCfa,
       final ImmutableSet<String> pChangedVars,
+      final ArrayDeque<CFANode> pStack,
       final boolean pIsBad) {
     locationInGivenCfa = pLocationInGivenCfa;
     locationInOriginalCfa = pLocationInOriginalCfa;
     changedVariables = pChangedVars;
     isBad = pIsBad;
+    originalStack = pStack;
   }
 
   public CFANode getLocationInOriginalCfa() {
@@ -107,6 +115,10 @@ public final class ModificationsPropState
 
   public ImmutableSet<String> getChangedVariables() {
     return changedVariables;
+  }
+
+  public ArrayDeque<CFANode> getOriginalStack() {
+    return originalStack;
   }
 
   public boolean isBad() {
@@ -212,6 +224,7 @@ public final class ModificationsPropState
     // If locations differ, we should never call join. The merge operator used guarantees that.
     assert locationInGivenCfa.equals(pOther.locationInGivenCfa);
     assert locationInOriginalCfa.equals(pOther.locationInOriginalCfa);
+    assert originalStack.equals(pOther.originalStack);
 
     // The first (with pBad || pOther.bad) and last case would semantically be sufficient. However,
     // we want to reuse as many state objects as possible for efficiency.
@@ -234,6 +247,7 @@ public final class ModificationsPropState
               .addAll(changedVariables)
               .addAll(pOther.changedVariables)
               .build(),
+          originalStack,
           false);
     }
   }
@@ -244,6 +258,7 @@ public final class ModificationsPropState
     // location pair must be identical
     return Objects.equals(locationInOriginalCfa, pOther.locationInOriginalCfa)
         && Objects.equals(locationInGivenCfa, pOther.locationInGivenCfa)
+        && Objects.equals(originalStack, pOther.originalStack)
         // if this state is bad, the other one must be bad as well
         && (pOther.isBad || !isBad)
         // variables modifier must be a subset, else join is necessary
