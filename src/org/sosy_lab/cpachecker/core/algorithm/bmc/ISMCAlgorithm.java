@@ -48,14 +48,16 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 // TODO: factor out the utility functions of IMCAlgorithm and ISMCAlgorithm to a new class
 /**
- * This class provides an implementation of interpolation-based model checking algorithm, adapted
- * for program verification. The original algorithm was proposed in the paper "Interpolation and
- * SAT-based Model Checking" from K. L. McMillan. The algorithm consists of two phases: BMC phase
- * and interpolation phase. In the BMC phase, it unrolls the CFA and collects the path formula to
- * target states. If the path formula is UNSAT, it enters the interpolation phase, and computes
- * interpolants which are overapproximations of k-step reachable states. If the union of
- * interpolants grows to an inductive set of states, the property is proved. Otherwise, it returns
- * back to the BMC phase and keeps unrolling the CFA.
+ * This class provides an implementation of interpolation-seqence based model checking algorithm,
+ * adapted for program verification. The original algorithm was proposed in the paper
+ * "Interpolation-sequence based model checking" by Yakir Vizel and Orna Grumberg. The algorithm
+ * consists of two phases: BMC phase and interpolation phase. In the BMC phase, it unrolls the CFA
+ * and collects the path formula to target states. If the path formula is UNSAT, it enters the
+ * interpolation phase, and computes the overapproximation of reachable states at each unrolling
+ * step in the form of interpolation-sequence . The overapproximation is then conjoined with the
+ * ones obtained in the previous interpolation phases and forms a reachability vector. If the
+ * reachability vector reaches a fixedpoint, i.e. the overapproximated state set becomes inductive,
+ * the property is proved. Otherwise, it returns back to the BMC phase and keeps unrolling the CFA.
  */
 @Options(prefix = "ismc")
 public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
@@ -209,7 +211,7 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       if (interpolation
           && maxLoopIterations > 1
           && !AbstractStates.getTargetStates(pReachedSet).isEmpty()) {
-        
+
         logger.log(Level.FINE, "Collecting BMC-partitioning formulas");
         List<BooleanFormula> partitionedFormulas = collectFormulas(pReachedSet);
         logger.log(Level.ALL, "Partitioned formulas:", partitionedFormulas);
@@ -248,15 +250,17 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private List<BooleanFormula> collectFormulas(final ReachedSet pReachedSet) {
     FluentIterable<AbstractState> targetStatesAfterLoop = getTargetStatesAfterLoop(pReachedSet);
     List<ARGState> abstractionStates =
-          getAbstractionStatesToRoot(targetStatesAfterLoop.get(0)).toList();
-    
+        getAbstractionStatesToRoot(targetStatesAfterLoop.get(0)).toList();
+
     List<BooleanFormula> formulas = new ArrayList<>();
     for (int i = 2; i < abstractionStates.size() - 1; ++i) {
       // TR(V_k, V_k+1)
-      BooleanFormula transitionRelation = getPredicateAbstractionBlockFormula(abstractionStates.get(i)).getFormula();
+      BooleanFormula transitionRelation =
+          getPredicateAbstractionBlockFormula(abstractionStates.get(i)).getFormula();
       if (i == 2) {
         // INIT(V_0) ^ TR(V_0, V_1)
-        BooleanFormula initialCondition = getPredicateAbstractionBlockFormula(abstractionStates.get(1)).getFormula();
+        BooleanFormula initialCondition =
+            getPredicateAbstractionBlockFormula(abstractionStates.get(1)).getFormula();
         transitionRelation = bfmgr.and(initialCondition, transitionRelation);
       }
       formulas.add(transitionRelation);
@@ -298,14 +302,14 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       List<T> formulaB = pushedFormulas.subList(i, pFormulas.size());
 
       BooleanFormula interpolant = getInterpolantFrom(itpProver, formulaA, formulaB);
-      itpSequence.add(fmgr.uninstantiate(interpolant));  // uninstantiate the formula
+      itpSequence.add(fmgr.uninstantiate(interpolant)); // uninstantiate the formula
     }
 
     // pop formulas
     for (int i = 0; i < pFormulas.size(); ++i) {
       itpProver.pop();
     }
-    
+
     return itpSequence;
   }
 
@@ -353,15 +357,16 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   // note: an exact copy from IMCAlgorithm.java
   private void fallBackToBMC(final String pReason) {
-    logger.log(Level.WARNING, pReason);
-    logger.log(Level.WARNING, "Interpolation disabled: falling back to BMC");
+    logger.log(
+        Level.WARNING, "Interpolation disabled because of " + pReason + ", falling back to BMC");
     interpolation = false;
   }
 
   // note: an exact copy from IMCAlgorithm.java
   private void fallBackToBMCWithoutForwardCondition(final String pReason) {
-    logger.log(Level.WARNING, pReason);
-    logger.log(Level.WARNING, "Forward-condition disabled: falling back to plain BMC");
+    logger.log(
+        Level.WARNING,
+        "Forward-condition disabled because of " + pReason + ", falling back to plain BMC");
     interpolation = false;
     checkForwardConditions = false;
   }
