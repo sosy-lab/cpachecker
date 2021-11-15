@@ -44,10 +44,11 @@ import org.sosy_lab.cpachecker.core.algorithm.RestrictedProgramDomainAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.SelectionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.TestCaseGeneratorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.UndefinedFunctionCollectorAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.WitnessToInvariantWitnessAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.WitnessToACSLAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.WitnessToInvariantWitnessAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.IMCAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.ISMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.pdr.PdrAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.composition.CompositionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
@@ -84,13 +85,9 @@ import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.automaton.CachingTargetLocationProvider;
 
-/**
- * Factory class for the three core components of CPAchecker:
- * algorithm, cpa and reached set.
- */
-@Options(prefix="analysis")
+/** Factory class for the three core components of CPAchecker: algorithm, cpa and reached set. */
+@Options(prefix = "analysis")
 public class CoreComponentsFactory {
-
 
   @Option(
       secure = true,
@@ -98,20 +95,25 @@ public class CoreComponentsFactory {
       description = "stop CPAchecker after startup (internal option, not intended for users)")
   private boolean disableAnalysis = false;
 
-  @Option(secure=true, description="use assumption collecting algorithm")
+  @Option(secure = true, description = "use assumption collecting algorithm")
   private boolean collectAssumptions = false;
 
-  @Option(secure=true, name="algorithm.conditionAdjustment",
-      description="use adjustable conditions algorithm")
+  @Option(
+      secure = true,
+      name = "algorithm.conditionAdjustment",
+      description = "use adjustable conditions algorithm")
   private boolean useAdjustableConditions = false;
 
   @Option(secure = true, name = "algorithm.pdr", description = "use PDR algorithm")
   private boolean usePDR = false;
 
-  @Option(secure=true, name="algorithm.CEGAR",
-      description = "use CEGAR algorithm for lazy counter-example guided analysis"
-        + "\nYou need to specify a refiner with the cegar.refiner option."
-        + "\nCurrently all refiner require the use of the ARGCPA.")
+  @Option(
+      secure = true,
+      name = "algorithm.CEGAR",
+      description =
+          "use CEGAR algorithm for lazy counter-example guided analysis"
+              + "\nYou need to specify a refiner with the cegar.refiner option."
+              + "\nCurrently all refiner require the use of the ARGCPA.")
   private boolean useCEGAR = false;
 
   @Option(
@@ -144,50 +146,66 @@ public class CoreComponentsFactory {
   @Option(secure = true, description = "Construct the program slice for the given configuration.")
   private boolean constructProgramSlice = false;
 
-  @Option(secure=true, name="algorithm.BMC",
-      description="use a BMC like algorithm that checks for satisfiability "
-        + "after the analysis has finished, works only with PredicateCPA")
+  @Option(
+      secure = true,
+      name = "algorithm.BMC",
+      description =
+          "use a BMC like algorithm that checks for satisfiability "
+              + "after the analysis has finished, works only with PredicateCPA")
   private boolean useBMC = false;
 
   @Option(
-    secure = true,
-    name = "algorithm.IMC",
-    description = "use McMillan's interpolation-based model checking algorithm, "
-        + "works only with PredicateCPA and large-block encoding")
+      secure = true,
+      name = "algorithm.IMC",
+      description =
+          "use McMillan's interpolation-based model checking algorithm, "
+              + "works only with PredicateCPA and large-block encoding")
   private boolean useIMC = false;
 
-  @Option(secure=true, name="algorithm.impact",
-      description="Use McMillan's Impact algorithm for lazy interpolation")
+  @Option(
+      secure = true,
+      name = "algorithm.ISMC",
+      description =
+          "use interpolation-sequence based model checking algorithm, "
+              + "works only with PredicateCPA and large-block encoding")
+  private boolean useISMC = false;
+
+  @Option(
+      secure = true,
+      name = "algorithm.impact",
+      description = "Use McMillan's Impact algorithm for lazy interpolation")
   private boolean useImpactAlgorithm = false;
 
   @Option(
-    secure = true,
-    name = "useCompositionAnalysis",
-    description = "select an analysis from a set of analyses after unknown result")
+      secure = true,
+      name = "useCompositionAnalysis",
+      description = "select an analysis from a set of analyses after unknown result")
   private boolean useCompositionAlgorithm = false;
 
-  @Option(secure = true, name = "useTestCaseGeneratorAlgorithm",
+  @Option(
+      secure = true,
+      name = "useTestCaseGeneratorAlgorithm",
       description = "generate test cases for covered test targets")
-    private boolean useTestCaseGeneratorAlgorithm = false;
+  private boolean useTestCaseGeneratorAlgorithm = false;
 
-  @Option(secure=true, name="restartAfterUnknown",
-      description="restart the analysis using a different configuration after unknown result")
+  @Option(
+      secure = true,
+      name = "restartAfterUnknown",
+      description = "restart the analysis using a different configuration after unknown result")
   private boolean useRestartingAlgorithm = false;
 
   @Option(
-    secure = true,
-    name = "selectAnalysisHeuristically",
-    description = "Use heuristics to select the analysis"
-  )
+      secure = true,
+      name = "selectAnalysisHeuristically",
+      description = "Use heuristics to select the analysis")
   private boolean useHeuristicSelectionAlgorithm = false;
 
   @Option(
-    secure = true,
-    name = "useParallelAnalyses",
-    description =
-        "Use analyses parallely. The resulting reachedset is the one of the first"
-            + " analysis finishing in time. All other analyses are terminated."
-  )
+      secure = true,
+      name = "useParallelAnalyses",
+      description =
+          "Use analyses parallely. The resulting reachedset is the one of the first"
+              + " analysis finishing in time. All other analyses are terminated.")
   private boolean useParallelAlgorithm = false;
 
   @Option(secure = true, description = "converts a witness to an ACSL annotated program")
@@ -206,11 +224,12 @@ public class CoreComponentsFactory {
   private boolean useInvariantExportAlgorithm = false;
 
   @Option(
-    secure = true,
-    name = "algorithm.MPI",
-    description = "Use MPI for running analyses in new subprocesses. The resulting reachedset "
-        + "is the one of the first analysis returning in time. All other mpi-processes will "
-        + "get aborted.")
+      secure = true,
+      name = "algorithm.MPI",
+      description =
+          "Use MPI for running analyses in new subprocesses. The resulting reachedset "
+              + "is the one of the first analysis returning in time. All other mpi-processes will "
+              + "get aborted.")
   private boolean useMPIProcessAlgorithm = false;
 
   @Option(
@@ -230,16 +249,16 @@ public class CoreComponentsFactory {
   @Option(
       secure = true,
       name = "alwaysStoreCounterexamples",
-      description = "If not already done by the analysis,"
-          + " store a found counterexample in the ARG for later re-use. Does nothing"
-          + " if no ARGCPA is used")
+      description =
+          "If not already done by the analysis,"
+              + " store a found counterexample in the ARG for later re-use. Does nothing"
+              + " if no ARGCPA is used")
   private boolean forceCexStore = false;
 
   @Option(
-    secure = true,
-    name = "split.program",
-    description = "Split program in subprograms which can be analyzed separately afterwards"
-  )
+      secure = true,
+      name = "split.program",
+      description = "Split program in subprograms which can be analyzed separately afterwards")
   private boolean splitProgram = false;
 
   @Option(
@@ -248,23 +267,34 @@ public class CoreComponentsFactory {
           "memorize previously used (incomplete) reached sets after a restart of the analysis")
   private boolean memorizeReachedAfterRestart = false;
 
-  @Option(secure=true, name="algorithm.analysisWithEnabler",
-      description="use a analysis which proves if the program satisfies a specified property"
-          + " with the help of an enabler CPA to separate differnt program paths")
+  @Option(
+      secure = true,
+      name = "algorithm.analysisWithEnabler",
+      description =
+          "use a analysis which proves if the program satisfies a specified property"
+              + " with the help of an enabler CPA to separate differnt program paths")
   private boolean useAnalysisWithEnablerCPAAlgorithm = false;
 
-  @Option(secure=true, name="algorithm.proofCheck",
-      description="use a proof check algorithm to validate a previously generated proof")
+  @Option(
+      secure = true,
+      name = "algorithm.proofCheck",
+      description = "use a proof check algorithm to validate a previously generated proof")
   private boolean useProofCheckAlgorithm = false;
 
-  @Option(secure=true, name="algorithm.proofCheckReadConfig",
-      description="use a proof check algorithm to validate a previously generated proof"
-          + "and read the configuration for checking from the proof")
+  @Option(
+      secure = true,
+      name = "algorithm.proofCheckReadConfig",
+      description =
+          "use a proof check algorithm to validate a previously generated proof"
+              + "and read the configuration for checking from the proof")
   private boolean useProofCheckAlgorithmWithStoredConfig = false;
 
-  @Option(secure=true, name="algorithm.proofCheckAndGetHWRequirements",
-      description="use a proof check algorithm to validate a previously generated proof"
-      + "and extract requirements on a (reconfigurable) HW from the proof")
+  @Option(
+      secure = true,
+      name = "algorithm.proofCheckAndGetHWRequirements",
+      description =
+          "use a proof check algorithm to validate a previously generated proof"
+              + "and extract requirements on a (reconfigurable) HW from the proof")
   private boolean useProofCheckAndExtractCIRequirementsAlgorithm = false;
 
   @Option(
@@ -283,16 +313,17 @@ public class CoreComponentsFactory {
               + " ConfigurableProgramAnalysisWithPropertyChecker")
   private boolean usePropertyCheckingAlgorithm = false;
 
-  @Option(secure=true, name="checkProof",
+  @Option(
+      secure = true,
+      name = "checkProof",
       description = "do analysis and then check analysis result")
   private boolean useResultCheckAlgorithm = false;
 
   @Option(
-    secure = true,
-    name = "algorithm.nonterminationWitnessCheck",
-    description =
-        "use nontermination witness validator to check a violation witness for termination"
-  )
+      secure = true,
+      name = "algorithm.nonterminationWitnessCheck",
+      description =
+          "use nontermination witness validator to check a violation witness for termination")
   private boolean useNonTerminationWitnessValidation = false;
 
   @Option(
@@ -360,7 +391,6 @@ public class CoreComponentsFactory {
   private final AggregatedReachedSets aggregatedReachedSets;
   private final @Nullable AggregatedReachedSetManager aggregatedReachedSetManager;
 
-
   public CoreComponentsFactory(
       Configuration pConfig,
       LogManager pLogger,
@@ -395,7 +425,6 @@ public class CoreComponentsFactory {
     if (checkCounterexamplesWithBDDCPARestriction) {
       checkCounterexamples = true;
     }
-
   }
 
   private boolean analysisNeedsShutdownManager() {
@@ -407,7 +436,7 @@ public class CoreComponentsFactory {
         && !useProofCheckAlgorithmWithStoredConfig
         && !useRestartingAlgorithm
         && !useImpactAlgorithm
-        && (useBMC || useIMC || useInvariantExportAlgorithm);
+        && (useBMC || useIMC || useISMC || useInvariantExportAlgorithm);
   }
 
   public Algorithm createAlgorithm(
@@ -429,10 +458,11 @@ public class CoreComponentsFactory {
       algorithm =
           new NonTerminationWitnessValidator(
               cfa, config, logger, shutdownNotifier, specification.getSpecificationAutomata());
-    } else if(useProofCheckAlgorithmWithStoredConfig) {
+    } else if (useProofCheckAlgorithmWithStoredConfig) {
       logger.log(Level.INFO, "Using Proof Check Algorithm");
       algorithm =
-          new ConfigReadingProofCheckAlgorithm(config, logger, shutdownNotifier, cfa, specification);
+          new ConfigReadingProofCheckAlgorithm(
+              config, logger, shutdownNotifier, cfa, specification);
     } else if (useProofCheckAlgorithm || useProofCheckWithARGCMCStrategy) {
       logger.log(Level.INFO, "Using Proof Check Algorithm");
       algorithm =
@@ -441,11 +471,12 @@ public class CoreComponentsFactory {
     } else if (useProofCheckAndExtractCIRequirementsAlgorithm) {
       logger.log(Level.INFO, "Using Proof Check Algorithm");
       algorithm =
-          new ProofCheckAndExtractCIRequirementsAlgorithm(cpa, config, logger, shutdownNotifier,
-              cfa, specification);
+          new ProofCheckAndExtractCIRequirementsAlgorithm(
+              cpa, config, logger, shutdownNotifier, cfa, specification);
     } else if (asConditionalVerifier) {
       logger.log(Level.INFO, "Using Conditional Verifier");
-      algorithm = new ConditionalVerifierAlgorithm(config, logger, shutdownNotifier, specification, cfa);
+      algorithm =
+          new ConditionalVerifierAlgorithm(config, logger, shutdownNotifier, specification, cfa);
     } else if (useHeuristicSelectionAlgorithm) {
       logger.log(Level.INFO, "Using heuristics to select analysis");
       algorithm = new SelectionAlgorithm(cfa, shutdownNotifier, config, specification, logger);
@@ -462,12 +493,7 @@ public class CoreComponentsFactory {
     } else if (useParallelAlgorithm) {
       algorithm =
           new ParallelAlgorithm(
-              config,
-              logger,
-              shutdownNotifier,
-              specification,
-              cfa,
-              aggregatedReachedSets);
+              config, logger, shutdownNotifier, specification, cfa, aggregatedReachedSets);
 
     } else if (useWitnessToACSLAlgorithm) {
       algorithm = new WitnessToACSLAlgorithm(config, logger, shutdownNotifier, cfa);
@@ -495,27 +521,23 @@ public class CoreComponentsFactory {
               new CachingTargetLocationProvider(shutdownNotifier, logger, cfa),
               aggregatedReachedSets);
     } else if (useFaultLocalizationWithDistanceMetrics) {
-      algorithm = new
-          Explainer(
-          config,
-          logger,
-          shutdownNotifier,
-          specification,
-          cfa);
+      algorithm = new Explainer(config, logger, shutdownNotifier, specification, cfa);
     } else if (useArrayAbstraction) {
       algorithm =
           new ArrayAbstractionAlgorithm(config, logger, shutdownNotifier, specification, cfa);
     } else {
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
 
-      if(testGoalConverter) {
-        algorithm = new TestGoalToConditionConverterAlgorithm(config, logger, shutdownNotifier,
-            cfa, algorithm, cpa);
+      if (testGoalConverter) {
+        algorithm =
+            new TestGoalToConditionConverterAlgorithm(
+                config, logger, shutdownNotifier, cfa, algorithm, cpa);
       }
 
       if (constructResidualProgram) {
-        algorithm = new ResidualProgramConstructionAlgorithm(cfa, config, logger, shutdownNotifier,
-            specification, cpa, algorithm);
+        algorithm =
+            new ResidualProgramConstructionAlgorithm(
+                cfa, config, logger, shutdownNotifier, specification, cpa, algorithm);
       }
 
       if (constructProgramSlice) {
@@ -531,7 +553,9 @@ public class CoreComponentsFactory {
       }
 
       if (useAnalysisWithEnablerCPAAlgorithm) {
-        algorithm = new AnalysisWithRefinableEnablerCPAAlgorithm(algorithm, cpa, cfa, logger, config, shutdownNotifier);
+        algorithm =
+            new AnalysisWithRefinableEnablerCPAAlgorithm(
+                algorithm, cpa, cfa, logger, config, shutdownNotifier);
       }
 
       if (useCEGAR) {
@@ -573,6 +597,21 @@ public class CoreComponentsFactory {
         verifyNotNull(shutdownManager);
         algorithm =
             new IMCAlgorithm(
+                algorithm,
+                cpa,
+                config,
+                logger,
+                reachedSetFactory,
+                shutdownManager,
+                cfa,
+                specification,
+                aggregatedReachedSets);
+      }
+
+      if (useISMC) {
+        verifyNotNull(shutdownManager);
+        algorithm =
+            new ISMCAlgorithm(
                 algorithm,
                 cpa,
                 config,
@@ -628,8 +667,7 @@ public class CoreComponentsFactory {
           throw new InvalidConfigurationException(
               "Property checking algorithm requires CPAWithPropertyChecker as Top CPA");
         }
-        algorithm =
-            new AlgorithmWithPropertyCheck(algorithm, logger, (PropertyCheckerCPA) cpa);
+        algorithm = new AlgorithmWithPropertyCheck(algorithm, logger, (PropertyCheckerCPA) cpa);
       }
 
       if (useResultCheckAlgorithm) {
@@ -638,11 +676,15 @@ public class CoreComponentsFactory {
                 algorithm, cfa, config, logger, shutdownNotifier, specification);
       }
       if (useCustomInstructionRequirementExtraction) {
-        algorithm = new CustomInstructionRequirementsExtractingAlgorithm(algorithm, cpa, config, logger, shutdownNotifier, cfa);
+        algorithm =
+            new CustomInstructionRequirementsExtractingAlgorithm(
+                algorithm, cpa, config, logger, shutdownNotifier, cfa);
       }
 
       if (unexploredPathsAsProgram) {
-        algorithm = new ResidualProgramConstructionAfterAnalysisAlgorithm(cfa, algorithm, config, logger, shutdownNotifier, specification);
+        algorithm =
+            new ResidualProgramConstructionAfterAnalysisAlgorithm(
+                cfa, algorithm, config, logger, shutdownNotifier, specification);
       }
 
       if (unknownIfUnrestrictedProgram) {
@@ -663,7 +705,8 @@ public class CoreComponentsFactory {
       }
 
       if (cpa instanceof ARGCPA && forceCexStore) {
-        algorithm = new CounterexampleStoreAlgorithm(algorithm, cpa, config, logger, cfa.getMachineModel());
+        algorithm =
+            new CounterexampleStoreAlgorithm(algorithm, cpa, config, logger, cfa.getMachineModel());
       }
 
       if (useMPV) {
@@ -673,8 +716,9 @@ public class CoreComponentsFactory {
       if (useFaultLocalizationWithCoverage) {
         algorithm = new FaultLocalizationWithCoverage(algorithm, shutdownNotifier, logger, config);
       }
-      if(useFaultLocalizationWithTraceFormulas) {
-        algorithm = new FaultLocalizationWithTraceFormula(algorithm, config, logger, cfa, shutdownNotifier);
+      if (useFaultLocalizationWithTraceFormulas) {
+        algorithm =
+            new FaultLocalizationWithTraceFormula(algorithm, config, logger, cfa, shutdownNotifier);
       }
     }
 

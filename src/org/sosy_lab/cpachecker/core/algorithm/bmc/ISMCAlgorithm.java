@@ -39,8 +39,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -48,18 +46,21 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
 
+// TODO: factor out the utility functions of IMCAlgorithm and ISMCAlgorithm to a new class
 /**
- * This class provides an implementation of interpolation-based model checking algorithm, adapted
- * for program verification. The original algorithm was proposed in the paper "Interpolation and
- * SAT-based Model Checking" from K. L. McMillan. The algorithm consists of two phases: BMC phase
- * and interpolation phase. In the BMC phase, it unrolls the CFA and collects the path formula to
- * target states. If the path formula is UNSAT, it enters the interpolation phase, and computes
- * interpolants which are overapproximations of k-step reachable states. If the union of
- * interpolants grows to an inductive set of states, the property is proved. Otherwise, it returns
- * back to the BMC phase and keeps unrolling the CFA.
+ * This class provides an implementation of interpolation-seqence based model checking algorithm,
+ * adapted for program verification. The original algorithm was proposed in the paper
+ * "Interpolation-sequence based model checking" by Yakir Vizel and Orna Grumberg. The algorithm
+ * consists of two phases: BMC phase and interpolation phase. In the BMC phase, it unrolls the CFA
+ * and collects the path formula to target states. If the path formula is UNSAT, it enters the
+ * interpolation phase, and computes the overapproximation of reachable states at each unrolling
+ * step in the form of interpolation-sequence . The overapproximation is then conjoined with the
+ * ones obtained in the previous interpolation phases and forms a reachability vector. If the
+ * reachability vector reaches a fixedpoint, i.e. the overapproximated state set becomes inductive,
+ * the property is proved. Otherwise, it returns back to the BMC phase and keeps unrolling the CFA.
  */
-@Options(prefix = "imc")
-public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
+@Options(prefix = "ismc")
+public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   @Option(secure = true, description = "toggle checking forward conditions")
   private boolean checkForwardConditions = true;
@@ -82,14 +83,13 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   private final Algorithm algorithm;
 
-  private final PathFormulaManager pfmgr;
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final Solver solver;
 
   private final CFA cfa;
 
-  public IMCAlgorithm(
+  public ISMCAlgorithm(
       Algorithm pAlgorithm,
       ConfigurableProgramAnalysis pCPA,
       Configuration pConfig,
@@ -119,9 +119,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     algorithm = pAlgorithm;
 
     @SuppressWarnings("resource")
-    PredicateCPA predCpa = CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, IMCAlgorithm.class);
+    PredicateCPA predCpa = CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, ISMCAlgorithm.class);
     solver = predCpa.getSolver();
-    pfmgr = predCpa.getPathFormulaManager();
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
   }
@@ -130,7 +129,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   public AlgorithmStatus run(final ReachedSet pReachedSet)
       throws CPAException, InterruptedException {
     try {
-      return interpolationModelChecking(pReachedSet);
+      return runISMC(pReachedSet);
     } catch (SolverException e) {
       throw new CPAException("Solver Failure " + e.getMessage(), e);
     } finally {
@@ -139,13 +138,13 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   /**
-   * The main method for interpolation-based model checking.
+   * The main method for interpolation-sequence based model checking.
    *
    * @param pReachedSet Abstract Reachability Graph (ARG)
    * @return {@code AlgorithmStatus.UNSOUND_AND_PRECISE} if an error location is reached, i.e.,
    *     unsafe; {@code AlgorithmStatus.SOUND_AND_PRECISE} if a fixed point is derived, i.e., safe.
    */
-  private AlgorithmStatus interpolationModelChecking(final ReachedSet pReachedSet)
+  private AlgorithmStatus runISMC(final ReachedSet pReachedSet)
       throws CPAException, SolverException, InterruptedException {
     if (getTargetLocations().isEmpty()) {
       pReachedSet.clearWaitlist();
@@ -164,7 +163,9 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
     }
 
-    logger.log(Level.FINE, "Performing interpolation-based model checking");
+    logger.log(Level.FINE, "Performing interpolation-sequence based model checking");
+    // nitialize the reachability vector
+    List<BooleanFormula> reachVector = new ArrayList<>();
     do {
       int maxLoopIterations = CPAs.retrieveCPA(cpa, LoopBoundCPA.class).getMaxLoopIterations();
       // Unroll
@@ -204,33 +205,164 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
       }
-      // Interpolation
+
+      // TODO: some implemetation questions
+      // - reuse solver environment or not?
       if (interpolation
           && maxLoopIterations > 1
           && !AbstractStates.getTargetStates(pReachedSet).isEmpty()) {
-        logger.log(Level.FINE, "Collecting prefix, loop, and suffix formulas");
-        PartitionedFormulas formulas = collectFormulas(pReachedSet);
-        formulas.printCollectedFormulas(logger);
-        logger.log(Level.FINE, "Computing fixed points by interpolation");
+
+        logger.log(Level.FINE, "Collecting BMC-partitioning formulas");
+        List<BooleanFormula> partitionedFormulas = collectFormulas(pReachedSet);
+        logger.log(Level.ALL, "Partitioned formulas:", partitionedFormulas);
+
+        logger.log(Level.FINE, "Extracting interpolation-sequence");
+        List<BooleanFormula> itpSequence = null;
         try (InterpolatingProverEnvironment<?> itpProver =
             solver.newProverEnvironmentWithInterpolation()) {
-          if (reachFixedPointByInterpolation(itpProver, formulas)) {
-            removeUnreachableTargetStates(pReachedSet);
-            return AlgorithmStatus.SOUND_AND_PRECISE;
-          }
+          itpSequence = getInterpolationSequence(itpProver, partitionedFormulas);
+          logger.log(Level.ALL, "Interpolation sequence:", itpSequence);
         }
+
+        logger.log(Level.FINE, "Updating reachability vector");
+        reachVector = updateReachabilityVector(reachVector, itpSequence);
+        logger.log(Level.ALL, "Updated reachability vector:", reachVector);
+
+        logger.log(Level.FINE, "Checking fiexd-point");
+        if (reachFixedPoint(reachVector)) {
+          logger.log(Level.INFO, "Fixed point reached");
+          removeUnreachableTargetStates(pReachedSet);
+          return AlgorithmStatus.SOUND_AND_PRECISE;
+        }
+        logger.log(Level.FINE, "The overapproximation is unsafe, going back to BMC phase");
       }
       removeUnreachableTargetStates(pReachedSet);
     } while (adjustConditions());
     return AlgorithmStatus.UNSOUND_AND_PRECISE;
   }
 
+  /**
+   * A helper method to collect formulas needed by ISMC algorithm. It assumes every target state
+   * after the loop has the same abstraction-state path to root.
+   *
+   * @param pReachedSet Abstract Reachability Graph
+   */
+  private List<BooleanFormula> collectFormulas(final ReachedSet pReachedSet) {
+    FluentIterable<AbstractState> targetStatesAfterLoop = getTargetStatesAfterLoop(pReachedSet);
+    List<ARGState> abstractionStates =
+        getAbstractionStatesToRoot(targetStatesAfterLoop.get(0)).toList();
+
+    List<BooleanFormula> formulas = new ArrayList<>();
+    for (int i = 2; i < abstractionStates.size() - 1; ++i) {
+      // TR(V_k, V_k+1)
+      BooleanFormula transitionRelation =
+          getPredicateAbstractionBlockFormula(abstractionStates.get(i)).getFormula();
+      if (i == 2) {
+        // INIT(V_0) ^ TR(V_0, V_1)
+        BooleanFormula initialCondition =
+            getPredicateAbstractionBlockFormula(abstractionStates.get(1)).getFormula();
+        transitionRelation = bfmgr.and(initialCondition, transitionRelation);
+      }
+      formulas.add(transitionRelation);
+    }
+
+    // ~P
+    formulas.add(createDisjunctionFromStates(targetStatesAfterLoop));
+
+    return formulas;
+  }
+
+  /**
+   * A helper method to derive an interpolation sequence.
+   *
+   * @param itpProver the prover with interpolation enabled
+   * @param pFormulas the list of formulas to derive interpolants from, the conjunction of all
+   *     formulas must be unsatisfiable
+   * @throws InterruptedException On shutdown request.
+   */
+  private <T> List<BooleanFormula> getInterpolationSequence(
+      InterpolatingProverEnvironment<T> itpProver, List<BooleanFormula> pFormulas)
+      throws InterruptedException, SolverException {
+    // TODO: consider using the methods that generates interpolation sequence in ImpactAlgorithm
+    // should be something like: imgr.buildCounterexampleTrace(formulas)
+
+    // push formulas
+    List<T> pushedFormulas = new ArrayList<>();
+    for (int i = 0; i < pFormulas.size(); ++i) {
+      pushedFormulas.add(itpProver.push(pFormulas.get(i)));
+    }
+    if (!itpProver.isUnsat()) {
+      throw new AssertionError("The formula must be UNSAT to retrieve the interpolant.");
+    }
+
+    // generate ITP sequence
+    List<BooleanFormula> itpSequence = new ArrayList<>();
+    for (int i = 1; i < pFormulas.size(); ++i) {
+      List<T> formulaA = pushedFormulas.subList(0, i);
+      List<T> formulaB = pushedFormulas.subList(i, pFormulas.size());
+
+      BooleanFormula interpolant = getInterpolantFrom(itpProver, formulaA, formulaB);
+      itpSequence.add(fmgr.uninstantiate(interpolant)); // uninstantiate the formula
+    }
+
+    // pop formulas
+    for (int i = 0; i < pFormulas.size(); ++i) {
+      itpProver.pop();
+    }
+
+    return itpSequence;
+  }
+
+  /**
+   * A method to update the reachabiltiy vector with newly derived interpolants
+   *
+   * @param oldReachVector the reachability vector of the previous iteration
+   * @param itpSequence the interpolation sequence derived at the current iteration
+   * @return the updated reachability vector
+   */
+  private List<BooleanFormula> updateReachabilityVector(
+      List<BooleanFormula> oldReachVector, List<BooleanFormula> itpSequence) {
+    List<BooleanFormula> newReachVector = new ArrayList<>();
+    assert oldReachVector.size() + 1 == itpSequence.size();
+
+    for (int i = 0; i < oldReachVector.size(); ++i) {
+      BooleanFormula image = oldReachVector.get(i);
+      BooleanFormula itp = itpSequence.get(i);
+      newReachVector.add(bfmgr.and(image, itp));
+    }
+    newReachVector.add(itpSequence.get(itpSequence.size() - 1));
+    return newReachVector;
+  }
+
+  /**
+   * A method to determine whether fixed-point has been reached.
+   *
+   * @param reachVector the reachability vector at current iteration
+   * @return {@code true} if a fixed point is reached, i.e., property is proved; {@code false} if
+   *     the current over-approximation is unsafe.
+   * @throws InterruptedException On shutdown request.
+   */
+  private boolean reachFixedPoint(List<BooleanFormula> reachVector)
+      throws InterruptedException, SolverException {
+    BooleanFormula currentImage = reachVector.get(0);
+    for (int i = 1; i < reachVector.size(); ++i) {
+      BooleanFormula imageAtI = reachVector.get(i);
+      if (solver.implies(imageAtI, currentImage)) {
+        return true;
+      }
+      currentImage = bfmgr.or(currentImage, imageAtI);
+    }
+    return false;
+  }
+
+  // note: an exact copy from IMCAlgorithm.java
   private void fallBackToBMC(final String pReason) {
     logger.log(
         Level.WARNING, "Interpolation disabled because of " + pReason + ", falling back to BMC");
     interpolation = false;
   }
 
+  // note: an exact copy from IMCAlgorithm.java
   private void fallBackToBMCWithoutForwardCondition(final String pReason) {
     logger.log(
         Level.WARNING,
@@ -239,10 +371,12 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     checkForwardConditions = false;
   }
 
+  // note: an exact copy from IMCAlgorithm.java
   private static boolean hasCoveredStates(final ReachedSet pReachedSet) {
     return !from(pReachedSet).transformAndConcat(e -> ((ARGState) e).getCoveredByThis()).isEmpty();
   }
 
+  // note: an exact copy from IMCAlgorithm.java
   private static void removeUnreachableTargetStates(ReachedSet pReachedSet) {
     if (pReachedSet.wasTargetReached()) {
       TargetLocationCandidateInvariant.INSTANCE.assumeTruth(pReachedSet);
@@ -259,6 +393,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    *
    * @param pReachedSet Abstract Reachability Graph
    */
+  // note: an exact copy from IMCAlgorithm.java
   private boolean checkAndAdjustARG(ReachedSet pReachedSet)
       throws SolverException, InterruptedException {
     if (hasCoveredStates(pReachedSet)) {
@@ -288,6 +423,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return true;
   }
 
+  // note: an exact copy from IMCAlgorithm.java
   private List<AbstractState> getUnreachableStopStates(
       final FluentIterable<AbstractState> pStopStates)
       throws SolverException, InterruptedException {
@@ -301,71 +437,25 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return unreachableStopStates;
   }
 
-  /**
-   * A helper method to collect formulas needed by IMC algorithm. It assumes every target state
-   * after the loop has the same abstraction-state path to root.
-   *
-   * @param pReachedSet Abstract Reachability Graph
-   */
-  private PartitionedFormulas collectFormulas(final ReachedSet pReachedSet) {
-    PathFormula prefixFormula = makeFalsePathFormula();
-    BooleanFormula loopFormula = bfmgr.makeTrue();
-    BooleanFormula tailFormula = bfmgr.makeTrue();
-    FluentIterable<AbstractState> targetStatesAfterLoop = getTargetStatesAfterLoop(pReachedSet);
-    if (!targetStatesAfterLoop.isEmpty()) {
-      // Initialize prefix, loop, and tail using the first target state after the loop
-      List<ARGState> abstractionStates =
-          getAbstractionStatesToRoot(targetStatesAfterLoop.get(0)).toList();
-      prefixFormula = buildPrefixFormula(abstractionStates);
-      loopFormula = buildLoopFormula(abstractionStates);
-      tailFormula = buildTailFormula(abstractionStates);
-    }
-    return new PartitionedFormulas(
-        prefixFormula,
-        loopFormula,
-        bfmgr.and(tailFormula, createDisjunctionFromStates(targetStatesAfterLoop)));
-  }
-
-  private PathFormula makeFalsePathFormula() {
-    return pfmgr.makeEmptyPathFormula().withFormula(bfmgr.makeFalse());
-  }
-
-  private PathFormula buildPrefixFormula(final List<ARGState> pAbstractionStates) {
-    return getPredicateAbstractionBlockFormula(pAbstractionStates.get(1));
-  }
-
-  private BooleanFormula buildLoopFormula(final List<ARGState> pAbstractionStates) {
-    return pAbstractionStates.size() > 3
-        ? getPredicateAbstractionBlockFormula(pAbstractionStates.get(2)).getFormula()
-        : bfmgr.makeTrue();
-  }
-
-  private BooleanFormula buildTailFormula(final List<ARGState> pAbstractionStates) {
-    List<BooleanFormula> blockFormulas = new ArrayList<>();
-    if (pAbstractionStates.size() > 4) {
-      for (int i = 3; i < pAbstractionStates.size() - 1; ++i) {
-        blockFormulas.add(
-            getPredicateAbstractionBlockFormula(pAbstractionStates.get(i)).getFormula());
-      }
-    }
-    return bfmgr.and(blockFormulas);
-  }
-
+  // note: an exact copy from IMCAlgorithm.java
   private static FluentIterable<ARGState> getAbstractionStatesToRoot(AbstractState pTargetState) {
     return from(ARGUtils.getOnePathTo((ARGState) pTargetState).asStatesList())
         .filter(PredicateAbstractState::containsAbstractionState);
   }
 
+  // note: an exact copy from IMCAlgorithm.java
   private static boolean isTargetStateAfterLoopStart(AbstractState pTargetState) {
     return getAbstractionStatesToRoot(pTargetState).size() > 2;
   }
 
+  // note: an exact copy from IMCAlgorithm.java
   private static FluentIterable<AbstractState> getTargetStatesAfterLoop(
       final ReachedSet pReachedSet) {
     return AbstractStates.getTargetStates(pReachedSet)
-        .filter(IMCAlgorithm::isTargetStateAfterLoopStart);
+        .filter(ISMCAlgorithm::isTargetStateAfterLoopStart);
   }
 
+  // note: an exact copy from IMCAlgorithm.java
   private static PathFormula getPredicateAbstractionBlockFormula(AbstractState pState) {
     return PredicateAbstractState.getPredicateState(pState)
         .getAbstractionFormula()
@@ -381,6 +471,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * @return A {@code BooleanFormula} interpolant
    * @throws InterruptedException On shutdown request.
    */
+  // note: an exact copy from IMCAlgorithm.java
   private <T> BooleanFormula getInterpolantFrom(
       InterpolatingProverEnvironment<T> itpProver, final List<T> pFormulaA, final List<T> pFormulaB)
       throws SolverException, InterruptedException {
@@ -393,86 +484,21 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
   }
 
-  /**
-   * The method to iteratively compute fixed points by interpolation.
-   *
-   * @param itpProver the prover with interpolation enabled
-   * @return {@code true} if a fixed point is reached, i.e., property is proved; {@code false} if
-   *     the current over-approximation is unsafe.
-   * @throws InterruptedException On shutdown request.
-   */
-  private <T> boolean reachFixedPointByInterpolation(
-      InterpolatingProverEnvironment<T> itpProver, final PartitionedFormulas formulas)
-      throws InterruptedException, SolverException {
-    BooleanFormula prefixBooleanFormula = formulas.prefixFormula.getFormula();
-    SSAMap prefixSsaMap = formulas.prefixFormula.getSsa();
-    logger.log(Level.ALL, "The SSA map is", prefixSsaMap);
-    BooleanFormula currentImage = bfmgr.makeFalse();
-    currentImage = bfmgr.or(currentImage, prefixBooleanFormula);
-
-    List<T> formulaA = new ArrayList<>();
-    List<T> formulaB = new ArrayList<>();
-    formulaB.add(itpProver.push(formulas.suffixFormula));
-    formulaA.add(itpProver.push(formulas.loopFormula));
-    formulaA.add(itpProver.push(prefixBooleanFormula));
-
-    while (itpProver.isUnsat()) {
-      logger.log(Level.ALL, "The current image is", currentImage);
-      BooleanFormula interpolant = getInterpolantFrom(itpProver, formulaA, formulaB);
-      logger.log(Level.ALL, "The interpolant is", interpolant);
-      interpolant = fmgr.instantiate(fmgr.uninstantiate(interpolant), prefixSsaMap);
-      logger.log(Level.ALL, "After changing SSA", interpolant);
-      if (solver.implies(interpolant, currentImage)) {
-        logger.log(Level.INFO, "The current image reaches a fixed point");
-        return true;
-      }
-      currentImage = bfmgr.or(currentImage, interpolant);
-      itpProver.pop();
-      formulaA.remove(formulaA.size() - 1);
-      formulaA.add(itpProver.push(interpolant));
-    }
-    logger.log(Level.FINE, "The overapproximation is unsafe, going back to BMC phase");
-    return false;
-  }
-
   @Override
   protected CandidateGenerator getCandidateInvariants() {
     throw new AssertionError(
-        "Class IMCAlgorithm does not support this function. It should not be called.");
+        "Class "
+            + getClass().getSimpleName()
+            + " does not support this function. It should not be called.");
   }
 
-  /**
-   * This class wraps three formulas used in interpolation in order to avoid long parameter lists.
-   * These formulas are: prefixFormula (from root to the first LH), loopFormula (from the first LH
-   * to the second LH), and suffixFormula (from the second LH to targets). Note that prefixFormula
-   * is a {@link PathFormula} as we need its {@link SSAMap} to update the SSA indices of derived
-   * interpolants.
-   */
-  private static class PartitionedFormulas {
-
-    private final PathFormula prefixFormula;
-    private final BooleanFormula loopFormula;
-    private final BooleanFormula suffixFormula;
-
-    public void printCollectedFormulas(LogManager pLogger) {
-      pLogger.log(Level.ALL, "Prefix:", prefixFormula.getFormula());
-      pLogger.log(Level.ALL, "Loop:", loopFormula);
-      pLogger.log(Level.ALL, "Suffix:", suffixFormula);
-    }
-
-    public PartitionedFormulas(
-        PathFormula pPrefixFormula, BooleanFormula pLoopFormula, BooleanFormula pSuffixFormula) {
-      prefixFormula = pPrefixFormula;
-      loopFormula = pLoopFormula;
-      suffixFormula = pSuffixFormula;
-    }
-  }
-
+  // note: an exact copy from IMCAlgorithm.java
   private BooleanFormula createDisjunctionFromStates(final FluentIterable<AbstractState> pStates) {
     return pStates.transform(e -> getPredicateAbstractionBlockFormula(e).getFormula()).stream()
         .collect(bfmgr.toDisjunction());
   }
 
+  // note: an exact copy from IMCAlgorithm.java
   private BooleanFormula buildReachFormulaForStates(
       final FluentIterable<AbstractState> pGoalStates) {
     List<BooleanFormula> pathFormulas = new ArrayList<>();
@@ -493,16 +519,19 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return bfmgr.or(pathFormulas);
   }
 
+  // note: an exact copy from IMCAlgorithm.java
   private static FluentIterable<AbstractState> getStopStates(final ReachedSet pReachedSet) {
     return from(pReachedSet)
         .filter(AbstractBMCAlgorithm::isStopState)
         .filter(AbstractBMCAlgorithm::isRelevantForReachability);
   }
 
+  // note: an exact copy from IMCAlgorithm.java
   private BooleanFormula buildReachTargetStateFormula(final ReachedSet pReachedSet) {
     return buildReachFormulaForStates(AbstractStates.getTargetStates(pReachedSet));
   }
 
+  // note: an exact copy from IMCAlgorithm.java
   private BooleanFormula buildBoundingAssertionFormula(final ReachedSet pReachedSet) {
     return buildReachFormulaForStates(getStopStates(pReachedSet));
   }
