@@ -252,7 +252,8 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
                         // modified
                         if (!summaryOrAss.getLeftHandSide().equals(summaryMoAss.getLeftHandSide())
                             || (retVarDecl.isPresent()
-                                && changedVars.contains(retVarDecl.get().getQualifiedName()))
+                                && changedVars.contains(
+                                    retVarDecl.orElseThrow().getQualifiedName()))
                             || !summaryOrAss
                                 .getRightHandSide()
                                 .equals(summaryMoAss.getRightHandSide())) {
