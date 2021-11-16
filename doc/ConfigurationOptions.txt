@@ -325,6 +325,9 @@ analysis.initialStatesFor = Sets.newHashSet(InitialStatesFor.ENTRY)
 # run interprocedural analysis
 analysis.interprocedural = true
 
+# Runs an algorithm that produces and exports invariants
+analysis.invariantExport = false
+
 # the machine model, which determines the sizes of types like int
 analysis.machineModel = LINUX32
   enum:     [LINUX32, LINUX64, ARM, ARM64]
@@ -488,7 +491,7 @@ analysis.unknownAsTrue = false
 # certain restrictions.
 analysis.unknownIfUnrestrictedProgram = false
 
-# Use array abstraction by program translation
+# Use array abstraction by program transformation.
 analysis.useArrayAbstraction = false
 
 # select an analysis from a set of analyses after unknown result
@@ -510,14 +513,27 @@ analysis.useTestCaseGeneratorAlgorithm = false
 # converts a witness to an ACSL annotated program
 analysis.useWitnessToACSLAlgorithm = false
 
+# converts a graphml witness to invariant witness
+analysis.witnessToInvariant = false
+
+# Whether to allow imprecise array abstraction that may lead to false alarms.
+arrayAbstraction.allowImprecision = false
+
+# Whether to export the CFA with abstracted arrays as C source file.
+arrayAbstraction.cfa.c.export = true
+
+# C source file path for CFA with abstracted arrays.
+arrayAbstraction.cfa.c.file = "abstracted-arrays.c"
+
 # Whether to export the CFA with abstracted arrays as DOT file.
-arrayAbstraction.cfa.export = true
+arrayAbstraction.cfa.dot.export = true
 
 # DOT file path for CFA with abstracted arrays.
-arrayAbstraction.cfa.file = "cfa-abstracted-arrays.dot"
+arrayAbstraction.cfa.dot.file = "cfa-abstracted-arrays.dot"
 
 # Use a second delegate analysis run to check counterexamples on the original
-# program that contains (non-abstracted) arrays.
+# program that contains (non-abstracted) arrays for imprecise array
+# abstractions.
 arrayAbstraction.checkCounterexamples = false
 
 # Configuration file path of the delegate analysis running on the transformed
@@ -682,7 +698,7 @@ bmc.induction = false
 
 # Strategy for generating auxiliary invariants
 bmc.invariantGenerationStrategy = REACHED_SET
-  enum:     [INDUCTION, REACHED_SET, DO_NOTHING]
+  enum:     [INDUCTION, REACHED_SET, DO_NOTHING, INVARIANT_STORE]
 
 # k-induction configuration to be used as an invariant generator for
 # k-induction (ki-ki(-ai)).
@@ -3023,6 +3039,11 @@ cpa.threading.useClonedFunctions = true
 # only reads and writes its own variables.
 cpa.threading.useLocalAccessLocks = true
 
+# The max amount of refinements for the trace abstraction algorithm. Setting
+# it to 0 leads to an analysis of the ARG without executing any refinements.
+# This is used for debugging purposes.
+cpa.traceabstraction.refinementStrategy.maxRefinementIterations = -1
+
 # which merge operator to use for UninitializedVariablesCPA?
 cpa.uninitvars.merge = "sep"
   allowed values: [sep, join]
@@ -3561,6 +3582,17 @@ invariantGeneration.kInduction.invariantsAutomatonFile = no default value
 # For correctness-witness validation: Shut down if a candidate invariant is
 # found to be incorrect.
 invariantGeneration.kInduction.terminateOnCounterexample = false
+
+# The directory where the invariants are stored.
+invariantStore.export.outDir = "invariantWitnesses"
+invariantStore.import.storeDirectory = "invariantWitnesses"
+
+# Strategy for generating invariants
+invariantStore.invariantGenerationStrategy = REACHED_SET
+  enum:     [INDUCTION, REACHED_SET, DO_NOTHING, INVARIANT_STORE]
+
+# The witness from which invariants should be generated.
+invariantStore.witness = "invariantwitness.yaml"
 
 # toggle checking forward conditions
 ismc.checkForwardConditions = true
@@ -4359,6 +4391,13 @@ testcase.generate.parallel = false
 
 # display all test targets and non-covered test targets in statistics
 testcase.inStats = false
+
+# how many mutated test cases should be additionally generated (disabled if
+# <= 0)
+testcase.mutants = 0
+
+# Random seed for test case mutation
+testcase.mutationSeed = 0
 
 # Only convert literal value and do not add suffix, e.g., for unsigned, etc.
 testcase.plainLiteralValue = false
