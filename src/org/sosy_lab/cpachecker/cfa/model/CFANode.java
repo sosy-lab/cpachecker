@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 
 public class CFANode implements Comparable<CFANode>, Serializable {
@@ -296,7 +297,13 @@ public class CFANode implements Comparable<CFANode>, Serializable {
     if (outOfScopeVariables == null) { // lazy
       outOfScopeVariables = new LinkedHashSet<>();
     }
-    outOfScopeVariables.addAll(pOutOfScopeVariables);
+    outOfScopeVariables.addAll(
+        pOutOfScopeVariables.stream()
+            .filter(
+                decl ->
+                    !(decl instanceof CVariableDeclaration)
+                        || !((CVariableDeclaration) decl).isGlobal())
+            .collect(ImmutableSet.toImmutableSet()));
   }
 
   /**
