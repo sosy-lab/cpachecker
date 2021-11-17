@@ -117,7 +117,7 @@ public class RandomTestGeneratorAlgorithm implements Algorithm, StatisticsProvid
         for (int j = 0; j < testLength; j++) {
           shutdownNotifier.shutdownIfNecessary();
           if (randomInt.hasNext()) {
-            inputs.add(String.valueOf((randomInt.nextInt())));
+            inputs.add(String.valueOf(randomInt.nextInt()));
           } else {
             break genTests;
           }
