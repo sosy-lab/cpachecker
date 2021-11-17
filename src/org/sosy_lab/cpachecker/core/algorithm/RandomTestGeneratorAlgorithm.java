@@ -143,9 +143,7 @@ public class RandomTestGeneratorAlgorithm implements Algorithm, StatisticsProvid
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
     StatisticsWriter statWriter = StatisticsWriter.writingStatisticsTo(pOut);
-        statWriter
-            .put(testCaseLengths)
-            .put("Generated random tests", numExportedTestCases)
+    statWriter.put(testCaseLengths).put("Generated random tests", numExportedTestCases);
   }
 
   @Override
