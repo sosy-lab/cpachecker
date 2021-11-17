@@ -3571,6 +3571,9 @@ ismc.deriveInterpolantFromSuffix = true
 # toggle falling back if interpolation or forward-condition is disabled
 ismc.fallBack = true
 
+# toggle Impact-like covering for the fixed-point check
+ismc.impactLikeCovering = false
+
 # toggle using interpolation to verify programs with loops
 ismc.interpolation = true
 

@@ -79,6 +79,9 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   @Option(secure = true, description = "toggle removing unreachable stop states in ARG")
   private boolean removeUnreachableStopStates = false;
 
+  @Option(secure = true, description = "toggle Impact-like covering for the fixed-point check")
+  private boolean impactLikeCovering = false;
+
   private final ConfigurableProgramAnalysis cpa;
 
   private final Algorithm algorithm;
@@ -344,13 +347,23 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    */
   private boolean reachFixedPoint(List<BooleanFormula> reachVector)
       throws InterruptedException, SolverException {
-    BooleanFormula currentImage = reachVector.get(0);
-    for (int i = 1; i < reachVector.size(); ++i) {
-      BooleanFormula imageAtI = reachVector.get(i);
-      if (solver.implies(imageAtI, currentImage)) {
-        return true;
+    if (impactLikeCovering) {
+      BooleanFormula lastImage = reachVector.get(reachVector.size() - 1);
+      for (int i = 0; i < reachVector.size() - 1; ++i) {
+        BooleanFormula imageAtI = reachVector.get(i);
+        if (solver.implies(lastImage, imageAtI)) {
+          return true;
+        }
       }
-      currentImage = bfmgr.or(currentImage, imageAtI);
+    } else {
+      BooleanFormula currentImage = reachVector.get(0);
+      for (int i = 1; i < reachVector.size(); ++i) {
+        BooleanFormula imageAtI = reachVector.get(i);
+        if (solver.implies(imageAtI, currentImage)) {
+          return true;
+        }
+        currentImage = bfmgr.or(currentImage, imageAtI);
+      }
     }
     return false;
   }
