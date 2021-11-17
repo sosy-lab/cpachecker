@@ -4399,8 +4399,11 @@ testcase.inStats = false
 # <= 0)
 testcase.mutants = 0
 
-# Random seed for test case mutation
+# Random seed for mutation of test cases
 testcase.mutationSeed = 0
+
+# Number of random test cases that should be generated
+testcase.numRandomTests = 1
 
 # Only convert literal value and do not add suffix, e.g., for unsigned, etc.
 testcase.plainLiteralValue = false
@@ -4408,6 +4411,18 @@ testcase.plainLiteralValue = false
 # defines how progress is computed
 testcase.progress = RELATIVE_TOTAL
   enum:     [ABSOLUTE, RELATIVE_TOTAL]
+
+# Maximum value randomly generated
+testcase.random.max = 20
+
+# Number of random test cases that should be generated
+testcase.random.maxLength = 20
+
+# Minimum value randomly generated
+testcase.random.min = 0
+
+# Random seed for random test-case generation
+testcase.randomInputSeed = 0
 
 # when generating tests covering error call stop as soon as generated one
 # test case and report false (only possible in combination with error call
