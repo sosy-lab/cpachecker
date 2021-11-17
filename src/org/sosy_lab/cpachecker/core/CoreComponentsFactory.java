@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.core.algorithm.MPIPortfolioAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.NoopAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ProgramSplitAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.RandomTestGeneratorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestrictedProgramDomainAlgorithm;
@@ -181,6 +182,12 @@ public class CoreComponentsFactory {
       name = "useCompositionAnalysis",
       description = "select an analysis from a set of analyses after unknown result")
   private boolean useCompositionAlgorithm = false;
+
+  @Option(
+      secure = true,
+      name = "useRandomTestCaseGeneratorAlgorithm",
+      description = "generate random test cases")
+  private boolean useRandomTestCaseGeneratorAlgorithm = false;
 
   @Option(
       secure = true,
@@ -525,6 +532,9 @@ public class CoreComponentsFactory {
     } else if (useArrayAbstraction) {
       algorithm =
           new ArrayAbstractionAlgorithm(config, logger, shutdownNotifier, specification, cfa);
+    } else if (useRandomTestCaseGeneratorAlgorithm) {
+      algorithm =
+          new RandomTestGeneratorAlgorithm(config, logger, shutdownNotifier, cfa, specification);
     } else {
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
 
