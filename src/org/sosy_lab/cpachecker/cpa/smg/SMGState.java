@@ -1962,6 +1962,10 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     return options.trackPredicates();
   }
 
+  boolean isTrackErrorPredicatesEnabled() {
+    return options.trackErrorPredicates();
+  }
+
   public void addPredicateRelation(
       SMGValue pV1,
       SMGType pSMGType1,
@@ -2007,7 +2011,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       SMGType pSymbolicSMGType,
       SMGExplicitValue pExplicitValue,
       CFAEdge pEdge) {
-    if (isTrackPredicatesEnabled()) {
+    if (isTrackErrorPredicatesEnabled()) {
       logger.log(Level.FINER, "Add Error Predicate: SymValue  ",
           pSymbolicValue, " ; ExplValue", " ",
           pExplicitValue, "; on edge: ", pEdge);
