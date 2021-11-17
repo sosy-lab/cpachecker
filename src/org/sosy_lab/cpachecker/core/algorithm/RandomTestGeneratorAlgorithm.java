@@ -97,7 +97,7 @@ public class RandomTestGeneratorAlgorithm implements Algorithm, StatisticsProvid
   @Override
   public AlgorithmStatus run(final ReachedSet pReachedSet)
       throws CPAException, InterruptedException {
-    logger.log(Level.INFO, "Start generating ", numRandomTests, " random tests");
+    logger.log(Level.INFO, "Start generating", numRandomTests, "random tests");
 
     TestCaseExporter exporter;
     try {
