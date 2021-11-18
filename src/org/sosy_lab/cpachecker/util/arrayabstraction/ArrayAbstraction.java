@@ -300,6 +300,14 @@ public class ArrayAbstraction {
     return Status.PRECISE;
   }
 
+  private static boolean containsNonIdExpression(
+      ImmutableMap<TransformableArray, CExpression> pPreciseArraySubscriptExpressions) {
+    return pPreciseArraySubscriptExpressions.values().stream()
+        .filter(expression -> !(expression instanceof CIdExpression))
+        .findAny()
+        .isPresent();
+  }
+
   private static void insertLoopConditions(
       CfaMutableNetwork pGraph,
       ImmutableSet<TransformableArray> pLoopTransformableArrays,
@@ -441,6 +449,11 @@ public class ArrayAbstraction {
     ImmutableMap<TransformableArray, CExpression> preciseArraySubscriptExpressions =
         insertTransformableArrayAssumes(
             pGraph, pTransformableArrayMap, pLoop, loopTransformableArrays, bodyEntryNode);
+
+    if (preciseArraySubscriptExpressions.size() > 1
+        || containsNonIdExpression(preciseArraySubscriptExpressions)) {
+      status = Status.IMPRECISE;
+    }
 
     // transform inner loop edges
     for (CFAEdge edge : getTransformableEdges(pGraph, pLoop)) {
