@@ -508,6 +508,11 @@ final class ArrayAccess {
     public Void visit(CIdExpression pIastIdExpression) {
 
       CSimpleDeclaration declaration = pIastIdExpression.getDeclaration();
+
+      if (declaration == null) {
+        return null;
+      }
+
       CType type = declaration.getType();
 
       if (type instanceof CArrayType || type instanceof CPointerType) {
