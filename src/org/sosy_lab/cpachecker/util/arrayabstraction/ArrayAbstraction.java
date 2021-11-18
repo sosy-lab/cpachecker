@@ -510,7 +510,8 @@ public class ArrayAbstraction {
       return Optional.ofNullable(transformableArray);
     }
 
-    throw new AssertionError("Unknown array expression: " + arrayExpression);
+    // the array expression of a transformable array is always a CIdExpression
+    return Optional.empty();
   }
 
   private static ImmutableSet<TransformableLoop> findRelevantTransformableLoops(
