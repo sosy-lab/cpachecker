@@ -193,7 +193,7 @@ final class TransformableArray {
     if (declaration instanceof CVariableDeclaration) {
       CType type = declaration.getType();
       if (type instanceof CArrayType) {
-        return Optional.of(((CArrayType) type).getLength());
+        return Optional.ofNullable(((CArrayType) type).getLength());
       }
     }
 
