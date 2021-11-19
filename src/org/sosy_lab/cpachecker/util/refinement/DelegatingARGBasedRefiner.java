@@ -88,18 +88,12 @@ public final class DelegatingARGBasedRefiner implements ARGBasedRefiner, Statist
       } catch (RefinementFailedException e) {
         // ignore and try the next refiner
         if (i == refiners.size() - 1) {
-          logger.logf(
-              Level.WARNING,
-              "refinement %d of %d reported repeated counterexample",
-              i + 1,
-              refiners.size());
-          // Do not use any counterexample:
-          // If we have a repeated counterexample at this step,
-          // the current refinement already deemed the counterexample infeasible before,
-          // but the previous refinements were not precise enough to also deem the counterexample
-          // infeasible.
-          // So if we continue with one of their results, we will always be imprecise.
-          cex = null;
+          // If the last refinement fails, report the failed refinement to the outside.
+          // We could also report a previous counterexample from a previous refinement step to the
+          // outside.
+          // But refinement almost exclusively fails for spurious counterexamples, so the chance
+          // would be high that we report an imprecise, actually infeasible counterexample then.
+          throw e;
         } else {
           logger.logf(
               Level.FINE,
