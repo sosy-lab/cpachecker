@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.termination;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Comparator.comparingInt;
 import static java.util.logging.Level.FINE;
+import static java.util.logging.Level.INFO;
 import static java.util.logging.Level.WARNING;
 import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDefaultPartition;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
@@ -53,6 +54,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -94,6 +96,7 @@ import org.sosy_lab.cpachecker.cpa.termination.TerminationCPA;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
@@ -134,10 +137,10 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   private int maxRepeatedRankingFunctionsPerLoop = 10;
 
   @Option(
-    secure = true,
-    description =
-        "consider counterexamples for loops for which only pointer variables are relevant or which check that pointer is unequal to null pointer to be imprecise"
-  )
+      secure = true,
+      description =
+          "consider counterexamples for loops for which only pointer variables are relevant or"
+              + " which check that pointer is unequal to null pointer to be imprecise")
   private boolean useCexImpreciseHeuristic = false;
 
   @Option(secure = true, description = "enable to also analyze whether recursive calls terminate")
@@ -299,6 +302,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     }
 
     Result result = Result.TRUE;
+    Optional<ARGState> targetStateWithCounterExample = Optional.empty();
     while (pReachedSet.hasWaitingState() && result != Result.FALSE) {
       shutdownNotifier.shutdownIfNecessary();
       statistics.safetyAnalysisStarted(pLoop);
@@ -309,7 +313,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
       boolean targetReached =
           pReachedSet.asCollection().stream().anyMatch(AbstractStates::isTargetState);
-      Optional<ARGState> targetStateWithCounterExample =
+      targetStateWithCounterExample =
           pReachedSet.stream()
               .filter(AbstractStates::isTargetState)
               .map(s -> AbstractStates.extractStateByType(s, ARGState.class))
@@ -385,7 +389,9 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     }
 
     if (useCexImpreciseHeuristic && result == Result.FALSE) {
-      if (allRelevantVarsArePointers(relevantVariables)) {
+      if (allRelevantVarsArePointers(relevantVariables)
+          || doesImpreciseOperationOccur(targetStateWithCounterExample)) {
+        logger.logf(INFO, "Counterexample to termination found, but deemed imprecise");
         return Result.UNKNOWN;
       } else {
         for (CFAEdge edge : pLoop.getOutgoingEdges()) {
@@ -398,6 +404,33 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     }
 
     return result;
+  }
+
+  private boolean doesImpreciseOperationOccur(Optional<ARGState> pTargetStateWithCounterExample) {
+    if (!pTargetStateWithCounterExample.isPresent()) {
+      return false;
+    }
+    CounterexampleInfo cex =
+        pTargetStateWithCounterExample.get().getCounterexampleInformation().get();
+
+    List<CFAEdge> edgesOnCex = cex.getTargetPath().getInnerEdges();
+    for (CFAEdge edge : edgesOnCex) {
+      CRightHandSide expression = CFAEdgeUtils.getRightHandSide(edge);
+      if (!(expression instanceof CBinaryExpression)) {
+        // can not contain bitprecise operation
+        continue;
+      }
+      BinaryOperator operator = ((CBinaryExpression) expression).getOperator();
+      switch (operator) {
+        case BINARY_AND:
+        case BINARY_XOR:
+        case BINARY_OR:
+          return true;
+        default:
+          return false;
+      }
+    }
+    return false;
   }
 
   private boolean allRelevantVarsArePointers(final Set<CVariableDeclaration> pRelevantVariables) {
