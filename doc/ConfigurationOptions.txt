@@ -3549,6 +3549,9 @@ heuristicSelection.preAnalysisAlgorithmConfig = no default value
 # Configuration for programs containing recursion.
 heuristicSelection.recursionConfig = no default value
 
+# Configuration for programs with a single loop.
+heuristicSelection.singleLoopConfig = no default value
+
 # toggle checking forward conditions
 imc.checkForwardConditions = true
 
