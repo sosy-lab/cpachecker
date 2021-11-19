@@ -411,7 +411,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
       return false;
     }
     CounterexampleInfo cex =
-        pTargetStateWithCounterExample.get().getCounterexampleInformation().get();
+        pTargetStateWithCounterExample.get().getCounterexampleInformation().orElseThrow();
 
     List<CFAEdge> edgesOnCex = cex.getTargetPath().getInnerEdges();
     for (CFAEdge edge : edgesOnCex) {
