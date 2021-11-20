@@ -407,7 +407,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   }
 
   private boolean doesImpreciseOperationOccur(Optional<ARGState> pTargetStateWithCounterExample) {
-    if (!pTargetStateWithCounterExample.isPresent()) {
+    if (pTargetStateWithCounterExample.isEmpty()) {
       return false;
     }
     CounterexampleInfo cex =
