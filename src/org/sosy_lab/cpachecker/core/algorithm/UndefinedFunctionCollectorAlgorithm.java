@@ -233,24 +233,24 @@ public class UndefinedFunctionCollectorAlgorithm
   }
 
   private String getSignature(String name, IAFunctionType type) {
-    String res = name + "(";
+    StringBuilder res = new StringBuilder().append(name).append("(");
     int i = 0;
     for (Type pt : type.getParameters()) {
       if (i == 0) {
-        res += pt.toASTString("arg" + i);
+        res.append(pt.toASTString("arg" + i));
       } else {
-        res += ", " + pt.toASTString("arg" + i);
+        res.append(", ").append(pt.toASTString("arg" + i));
       }
       i++;
     }
     if (type.takesVarArgs()) {
       if (i != 0) {
-        res += ", ";
+        res.append(", ");
       }
-      res += "...";
+      res.append("...");
     }
-    res += ")";
-    return type.getReturnType().toASTString(res);
+    res.append(")");
+    return type.getReturnType().toASTString(res.toString());
   }
 
   private boolean printType(String indent, StringBuilder prepend, StringBuilder buf, CType rt) {

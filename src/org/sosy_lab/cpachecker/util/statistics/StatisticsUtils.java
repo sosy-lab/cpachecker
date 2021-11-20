@@ -38,7 +38,7 @@ public class StatisticsUtils {
 
   public static void write(PrintStream target, int indentLevel, int outputNameColWidth,
       String name, Object value) {
-    String indentation = Strings.repeat("  ", indentLevel);
+    String indentation = "  ".repeat(indentLevel);
     target.println(String.format("%-" + outputNameColWidth + "s %s",
                                  indentation + name + ":", value));
   }
@@ -63,7 +63,7 @@ public class StatisticsUtils {
     if (!Strings.isNullOrEmpty(pStatistics.getName())) {
       pOut.println();
       pOut.println(name);
-      pOut.println(Strings.repeat("-", name.length()));
+      pOut.println("-".repeat(name.length()));
     }
 
     final Timer timer = new Timer();

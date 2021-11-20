@@ -25,7 +25,7 @@ public class ToCodeVisitor<LeafType> extends CachingVisitor<LeafType, String, No
     this.leafExpressionToCodeFunction = pLeafExpressionToCodeFunction;
   }
 
-  private final Function<ExpressionTree<LeafType>, String> toParenthesizedCodeFunction() {
+  private Function<ExpressionTree<LeafType>, String> toParenthesizedCodeFunction() {
     return new Function<>() {
 
       @Override
@@ -83,9 +83,7 @@ public class ToCodeVisitor<LeafType> extends CachingVisitor<LeafType, String, No
     if (pLeafExpression.assumeTruth()) {
       return expressionCode;
     }
-    if (!expressionCode.startsWith("(") || !expressionCode.endsWith(")")) {
-      expressionCode = wrapInParentheses(expressionCode);
-    }
+    expressionCode = wrapInParentheses(expressionCode);
     return "!" + expressionCode;
   }
 

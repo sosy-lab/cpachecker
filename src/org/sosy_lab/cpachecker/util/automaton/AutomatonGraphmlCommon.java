@@ -90,7 +90,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAdditionalInfo;
-import org.sosy_lab.cpachecker.core.specification.SpecificationProperty;
+import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
@@ -372,8 +372,8 @@ public class AutomatonGraphmlCommon {
           createDataElement(KeyDef.PRODUCER, pVerificationTaskMetaData.getProducerString()));
 
       int nSpecs = 0;
-      for (SpecificationProperty property : pVerificationTaskMetaData.getProperties()) {
-        graph.appendChild(createDataElement(KeyDef.SPECIFICATION, property.toString()));
+      for (Property property : pVerificationTaskMetaData.getProperties()) {
+        graph.appendChild(createDataElement(KeyDef.SPECIFICATION, property.toFullString(pCfa)));
         ++nSpecs;
       }
 
@@ -1022,13 +1022,13 @@ public class AutomatonGraphmlCommon {
     if (leavingEdges.size() != 2) {
       return false;
     }
-    com.google.common.base.Optional<CFAEdge> potentialTerminationValueAssumeEdge =
-        leavingEdges.firstMatch(e -> e.getSuccessor() instanceof CFATerminationNode);
+    Optional<CFAEdge> potentialTerminationValueAssumeEdge =
+        leavingEdges.firstMatch(e -> e.getSuccessor() instanceof CFATerminationNode).toJavaUtil();
     if (!potentialTerminationValueAssumeEdge.isPresent()
-        || !(potentialTerminationValueAssumeEdge.get() instanceof AssumeEdge)) {
+        || !(potentialTerminationValueAssumeEdge.orElseThrow() instanceof AssumeEdge)) {
       return false;
     }
-    AssumeEdge terminationValueAssumption = (AssumeEdge) potentialTerminationValueAssumeEdge.get();
+    AssumeEdge terminationValueAssumption = (AssumeEdge) potentialTerminationValueAssumeEdge.orElseThrow();
     AExpression terminationValueAssumeExpression = terminationValueAssumption.getExpression();
     if (!(terminationValueAssumeExpression instanceof ABinaryExpression)) {
       return false;
@@ -1050,7 +1050,7 @@ public class AutomatonGraphmlCommon {
     if (operator.equals(BinaryOperator.NOT_EQUALS)
         || operator.equals(
             org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator.NOT_EQUALS)) {
-      return flip ^ !terminationValueAssumption.getTruthAssumption();
+      return flip == terminationValueAssumption.getTruthAssumption();
     }
     if (operator.equals(BinaryOperator.EQUALS)
         || operator.equals(

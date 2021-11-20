@@ -32,6 +32,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PartitioningCheckingHelper;
@@ -46,7 +47,6 @@ import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningIOHelper;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
-
 
 public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends AbstractStrategy {
 
@@ -69,7 +69,8 @@ public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends Abstract
   }
 
   @Override
-  public void constructInternalProofRepresentation(UnmodifiableReachedSet pReached)
+  public void constructInternalProofRepresentation(
+      UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException, InterruptedException {
     throw new InvalidConfigurationException(
         "Interleaved proof reading and checking strategies do not  support internal PCC with result check algorithm");
@@ -154,10 +155,13 @@ public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends Abstract
   }
 
   @Override
-  protected void writeProofToStream(final ObjectOutputStream pOut, final UnmodifiableReachedSet pReached)
+  protected void writeProofToStream(
+      final ObjectOutputStream pOut,
+      final UnmodifiableReachedSet pReached,
+      final ConfigurableProgramAnalysis pCpa)
       throws IOException, InvalidConfigurationException, InterruptedException {
     Pair<PartialReachedSetDirectedGraph, List<Set<Integer>>> partitioning =
-        ioHelper.computePartialReachedSetAndPartition(pReached);
+        ioHelper.computePartialReachedSetAndPartition(pReached, pCpa);
 
     ioHelper.setProofInfoCollector(proofInfo);
 

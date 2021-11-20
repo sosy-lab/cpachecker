@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.reachingdef;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -20,6 +19,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -84,7 +84,7 @@ public class ReachingDefUtils {
 
       Optional<? extends AVariableDeclaration> retVar = currentFunction.getReturnVariable();
       if (retVar.isPresent()) {
-        localVariables.add(MemoryLocation.valueOf(retVar.get().getQualifiedName()));
+        localVariables.add(MemoryLocation.forDeclaration(retVar.get()));
       }
 
       while (!currentWaitlist.isEmpty()) {
@@ -127,9 +127,9 @@ public class ReachingDefUtils {
       final List<MemoryLocation> localVariables) {
     if (out.getDeclaration() instanceof CVariableDeclaration) {
       if (out.getDeclaration().isGlobal()) {
-        globalVariables.add(MemoryLocation.valueOf(out.getDeclaration().getQualifiedName()));
+        globalVariables.add(MemoryLocation.forDeclaration(out.getDeclaration()));
       } else {
-        localVariables.add(MemoryLocation.valueOf(out.getDeclaration().getQualifiedName()));
+        localVariables.add(MemoryLocation.forDeclaration(out.getDeclaration()));
       }
     }
   }
@@ -142,7 +142,7 @@ public class ReachingDefUtils {
 
     } else if (pExp instanceof CIdExpression) {
       return Collections.singleton(
-          MemoryLocation.valueOf(((CIdExpression) pExp).getDeclaration().getQualifiedName()));
+          MemoryLocation.forDeclaration(((CIdExpression) pExp).getDeclaration()));
 
     } else if (pExp instanceof CFieldReference) {
       if (((CFieldReference) pExp).isPointerDereference()) {
@@ -245,7 +245,7 @@ public class ReachingDefUtils {
 
     @Override
     public MemoryLocation visit(CIdExpression pIastIdExpression) {
-      return MemoryLocation.valueOf(pIastIdExpression.getDeclaration().getQualifiedName());
+      return MemoryLocation.forDeclaration(pIastIdExpression.getDeclaration());
     }
 
     @Override

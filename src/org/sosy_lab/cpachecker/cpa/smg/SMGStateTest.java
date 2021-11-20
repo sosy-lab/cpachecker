@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.smg;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -34,6 +33,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter.SMGEdgeHasValueFilterByObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsToFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentBiMap;
 
 public class SMGStateTest {
   static private final  LogManager logger = LogManager.createTestLogManager();
@@ -141,8 +142,13 @@ public class SMGStateTest {
     smg1.setValidity(l4, true);
     smg1.setValidity(l5, true);
 
-    SMGState smg1State = new SMGState(
-        logger, new SMGOptions(Configuration.defaultConfiguration()), smg1, 0, HashBiMap.create());
+    SMGState smg1State =
+        new SMGState(
+            logger,
+            new SMGOptions(Configuration.defaultConfiguration()),
+            smg1,
+            0,
+            PersistentBiMap.of());
 
     SMGObject head = smg1State.addGlobalVariable(64, "head");
     smg1State.addPointsToEdge(head, 0, value5);
@@ -252,8 +258,13 @@ public class SMGStateTest {
    heap.setValidity(l4, true);
    heap.setValidity(l5, true);
 
-    SMGState smg1State = new SMGState(logger, new SMGOptions(
-        Configuration.defaultConfiguration()), heap, 0, HashBiMap.create());
+    SMGState smg1State =
+        new SMGState(
+            logger,
+            new SMGOptions(Configuration.defaultConfiguration()),
+            heap,
+            0,
+            PersistentBiMap.of());
 
     smg1State.addStackFrame(CLangSMGTest.DUMMY_FUNCTION);
     SMGObject head = smg1State.addGlobalVariable(64, "head");
@@ -315,7 +326,7 @@ public class SMGStateTest {
     heap.addHasValueEdge(nextField);
 
     SMGOptions options = new SMGOptions(Configuration.defaultConfiguration());
-    SMGState smg1State = new SMGState(logger, options, heap, 0, HashBiMap.create());
+    SMGState smg1State = new SMGState(logger, options, heap, 0, PersistentBiMap.of());
 
     smg1State.addStackFrame(CLangSMGTest.DUMMY_FUNCTION);
     SMGObject head = smg1State.addGlobalVariable(model32.getSizeofPtrInBits(), "head");
@@ -390,7 +401,7 @@ public class SMGStateTest {
     heap.addHasValueEdge(initialDataField);
 
     SMGOptions options = new SMGOptions(Configuration.defaultConfiguration());
-    SMGState smg1State = new SMGState(logger, options, heap, 0, HashBiMap.create());
+    SMGState smg1State = new SMGState(logger, options, heap, 0, PersistentBiMap.of());
 
     smg1State.addStackFrame(CLangSMGTest.DUMMY_FUNCTION);
     SMGObject head = smg1State.addGlobalVariable(model32.getSizeofPtrInBits(), "head");
@@ -542,7 +553,7 @@ public class SMGStateTest {
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     // Check the object values and assert it has only the written 16b value
-    SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(pt.getObject());
+    SMGEdgeHasValueFilterByObject filter = SMGEdgeHasValueFilter.objectFilter(pt.getObject());
 
     SMGHasValueEdges values_for_obj = state.getHVEdges(filter);
     assertThat(values_for_obj).hasSize(1);
@@ -628,7 +639,7 @@ public class SMGStateTest {
         SMGEdgeHasValueFilter.objectFilter(pt.getObject())
             .filterHavingValue(SMGZeroValue.INSTANCE)
             .filterWithoutSize();
-    SMGHasValueEdges nulls_for_value = state.getHVEdges(nullFilter);
+    Iterable<SMGEdgeHasValue> nulls_for_value = state.getHVEdges(nullFilter);
     assertThat(nulls_for_value).hasSize(2);
 
     assertThat(state.getHVEdges(nullFilter.filterAtOffset(0))).hasSize(1);

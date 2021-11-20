@@ -96,7 +96,7 @@ public class SMGExpressionEvaluator {
    * @param pExpression The expression, which evaluates to the value with the given type.
    * @return The size of the given type in bits.
    */
-  public int getBitSizeof(CFAEdge pEdge, CType pType, SMGState pState, CExpression pExpression)
+  public long getBitSizeof(CFAEdge pEdge, CType pType, SMGState pState, CExpression pExpression)
       throws UnrecognizedCodeException {
     return getBitSizeof(pEdge, pType, pState, Optional.of(pExpression));
   }
@@ -118,12 +118,12 @@ public class SMGExpressionEvaluator {
    * @param pState The state that contains the current variable values.
    * @return The size of the given type in bits.
    */
-  public int getBitSizeof(CFAEdge pEdge, CType pType, SMGState pState)
+  public long getBitSizeof(CFAEdge pEdge, CType pType, SMGState pState)
       throws UnrecognizedCodeException {
     return getBitSizeof(pEdge, pType, pState, Optional.empty());
   }
 
-  private int getBitSizeof(
+  private long getBitSizeof(
       CFAEdge edge, CType pType, SMGState pState, Optional<CExpression> pExpression)
       throws UnrecognizedCodeException {
 
@@ -137,7 +137,7 @@ public class SMGExpressionEvaluator {
       return pType
           .accept(v)
           .multiply(BigInteger.valueOf(machineModel.getSizeofCharInBits()))
-          .intValueExact();
+          .longValueExact();
     } catch (IllegalArgumentException e) {
       logger.logDebugException(e);
       throw new UnrecognizedCodeException("Could not resolve type.", edge);
@@ -313,8 +313,8 @@ public class SMGExpressionEvaluator {
         result.add(deriveExplicitValueFromSymbolicValue(symbolicValueAndState));
       }
     } else {
-      long longValue = value.asNumericValue().longValue();
-      result.add(SMGExplicitValueAndState.of(newState, SMGKnownExpValue.valueOf(longValue)));
+      BigInteger bigInteger = value.asNumericValue().bigInteger();
+      result.add(SMGExplicitValueAndState.of(newState, SMGKnownExpValue.valueOf(bigInteger)));
     }
 
     for (SMGState additionalState : visitor.getSmgStatesToBeProccessed()) {
@@ -554,9 +554,9 @@ public class SMGExpressionEvaluator {
               newState = subscriptValueAndState.getSmgState();
               if (!value.isUnknown()
                   && !newState.getHeap().isObjectExternallyAllocated(arrayAddress.getObject())) {
-                int arrayBitSize = arrayAddress.getObject().getSize();
-                int typeBitSize = getBitSizeof(cfaEdge, exp.getExpressionType(), newState, exp);
-                int maxIndex = arrayBitSize / typeBitSize;
+                long arrayBitSize = arrayAddress.getObject().getSize();
+                long typeBitSize = getBitSizeof(cfaEdge, exp.getExpressionType(), newState, exp);
+                long maxIndex = arrayBitSize / typeBitSize;
                 CType subscriptType = subscriptExpression.getExpressionType();
                 SMGType subscriptSMGType =
                     SMGType.constructSMGType(subscriptType, newState, cfaEdge, this);
@@ -662,7 +662,7 @@ public class SMGExpressionEvaluator {
       return singletonList(SMGAddressValueAndState.of(smgState, pAddressValue));
     }
 
-    SMGKnownExpValue explicit = smgState.getExplicit((SMGKnownSymbolicValue) pAddressValue);
+    SMGKnownExpValue explicit = smgState.getExplicit(pAddressValue);
     if (explicit != null && !explicit.isUnknown()) {
       return singletonList(
           SMGAddressValueAndState.of(

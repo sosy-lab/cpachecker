@@ -17,7 +17,6 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -69,24 +68,27 @@ import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.LassoAn
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.LassoAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.RankingRelation;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
+import org.sosy_lab.cpachecker.core.defaults.SimpleTargetInformation;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets.AggregatedReachedSetManager;
+import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.core.waitlist.AlwaysEmptyWaitlist;
+import org.sosy_lab.cpachecker.cpa.alwaystop.AlwaysTopCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPathBuilder;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
-import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationCPA;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationState;
@@ -98,6 +100,8 @@ import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
  * Algorithm that uses a safety-analysis to prove (non-)termination.
@@ -105,8 +109,8 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 @Options(prefix = "termination")
 public class TerminationAlgorithm implements Algorithm, AutoCloseable, StatisticsProvider {
 
-  private static final ImmutableSet<Property> TERMINATION_PROPERTY =
-      NamedProperty.singleton("termination");
+  private static final ImmutableSet<TargetInformation> TERMINATION_PROPERTY =
+      SimpleTargetInformation.singleton("termination");
 
   private enum ResetReachedSetStrategy {
     REMOVE_TARGET_STATE,
@@ -306,9 +310,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
       boolean targetReached =
           pReachedSet.asCollection().stream().anyMatch(AbstractStates::isTargetState);
       Optional<ARGState> targetStateWithCounterExample =
-          pReachedSet
-              .asCollection()
-              .stream()
+          pReachedSet.stream()
               .filter(AbstractStates::isTargetState)
               .map(s -> AbstractStates.extractStateByType(s, ARGState.class))
               .filter(s -> s.getCounterexampleInformation().isPresent())
@@ -427,17 +429,52 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
   private void addInvariantsToAggregatedReachedSet(
       ARGState loopHeadState, RankingRelation rankingRelation) {
-    ReachedSet dummy = reachedSetFactory.create();
-    AbstractStateWithLocation locationState =
-        extractStateByType(loopHeadState, AbstractStateWithLocation.class);
-    rankingRelation
-        .getSupportingInvariants()
-        .stream()
-        .map(s -> ImmutableList.of(locationState, s))
-        .map(CompositeState::new)
-        .forEach(s -> dummy.add(s, SingletonPrecision.getInstance()));
+    // Create dummy reached set as holder for invariants. We do not use the reached-set factory
+    // from configuration because that could require features that our dummy states do not support.
+    // We use LocationMappedReachedSet because that seems useful to callers.
+    // Using AlwaysTopCPA as dummy is ok as long as UnmodifiableReachedSet does not have getCPA(),
+    // because the AggregatedReachedSet only exposes reached sets as UnmodifiableReachedSet,
+    // so no other code will be able to call dummy.getCPA().
+    ReachedSet dummy =
+        new LocationMappedReachedSet(AlwaysTopCPA.INSTANCE, AlwaysEmptyWaitlist.factory());
+    CFANode location = AbstractStates.extractLocation(loopHeadState);
+    FormulaManagerView fmgr = rankingRelation.getFormulaManager();
+
+    rankingRelation.getSupportingInvariants().stream()
+        .map(invariant -> new TerminationInvariantSupplierState(location, invariant, fmgr))
+        .forEach(s -> dummy.addNoWaitlist(s, SingletonPrecision.getInstance()));
 
     aggregatedReachedSetManager.addReachedSet(dummy);
+  }
+
+  private static class TerminationInvariantSupplierState
+      implements AbstractStateWithLocation, FormulaReportingState {
+
+    private final CFANode location;
+    private final FormulaManagerView fmgr;
+    private final BooleanFormula invariant;
+
+    public TerminationInvariantSupplierState(
+        CFANode pLocation, BooleanFormula pInvariant, FormulaManagerView pFmgr) {
+      location = checkNotNull(pLocation);
+      invariant = checkNotNull(pInvariant);
+      fmgr = checkNotNull(pFmgr);
+    }
+
+    @Override
+    public BooleanFormula getFormulaApproximation(FormulaManagerView pManager) {
+      return pManager.translateFrom(invariant, fmgr);
+    }
+
+    @Override
+    public CFANode getLocationNode() {
+      return location;
+    }
+
+    @Override
+    public String toString() {
+      return TerminationInvariantSupplierState.class.getSimpleName() + "[" + invariant + "]";
+    }
   }
 
   private Set<CVariableDeclaration> getRelevantVariables(Loop pLoop) {
@@ -446,8 +483,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
       ImmutableSet.Builder<CVariableDeclaration> relVarBuilder = ImmutableSet.builder();
       relVarBuilder.addAll(globalDeclaration);
       for (CFANode entryNode :
-          FluentIterable.from(pLoop.getLoopNodes())
-              .filter(Predicates.instanceOf(FunctionEntryNode.class))) {
+          FluentIterable.from(pLoop.getLoopNodes()).filter(FunctionEntryNode.class)) {
         relVarBuilder.addAll(localDeclarations.get(entryNode.getFunctionName()));
       }
       return relVarBuilder.build();
@@ -476,8 +512,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     loopHead.replaceInARGWith(newTargetState);
 
     // Remove dummy target state from reached set and replace loop head with new target state
-    pReachedSet.add(newTargetState, pReachedSet.getPrecision(loopHead));
-    pReachedSet.removeOnlyFromWaitlist(newTargetState);
+    pReachedSet.addNoWaitlist(newTargetState, pReachedSet.getPrecision(loopHead));
     pReachedSet.remove(pTargetState);
     pReachedSet.remove(loopHead);
 
@@ -489,7 +524,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   private ARGState createNonTerminationState(AbstractState loopHead) {
     TerminationState terminationState = extractStateByType(loopHead, TerminationState.class);
     AbstractState newTerminationState =
-        terminationState.withViolatedProperties(TERMINATION_PROPERTY);
+        terminationState.withTargetInformation(TERMINATION_PROPERTY);
     ARGState newTargetState = new ARGState(newTerminationState, null);
     return newTargetState;
   }
@@ -551,7 +586,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     // the safety analysis will fail if the program is recursive
     try {
       terminationInformation.reset();
-      ReachedSet reachedSet = reachedSetFactory.create();
+      ReachedSet reachedSet = reachedSetFactory.create(safetyCPA);
       resetReachedSet(reachedSet, initialLocation);
       return safetyAlgorithm.run(reachedSet);
     } finally {

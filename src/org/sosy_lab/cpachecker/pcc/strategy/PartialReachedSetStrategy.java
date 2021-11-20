@@ -22,6 +22,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PartialReachedConstructionAlgorithm;
@@ -60,16 +61,19 @@ public class PartialReachedSetStrategy extends ReachedSetStrategy {
   }
 
   @Override
-  public void constructInternalProofRepresentation(final UnmodifiableReachedSet pReached)
+  public void constructInternalProofRepresentation(
+      final UnmodifiableReachedSet pReached, final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
     savedReachedSetSize = pReached.size();
-    reachedSet = certificateConstructor.computePartialReachedSet(pReached);
+    reachedSet = certificateConstructor.computePartialReachedSet(pReached, pCpa);
     orderReachedSetByLocation(reachedSet);
   }
 
   @Override
-  protected Object getProofToWrite(UnmodifiableReachedSet pReached) throws InvalidConfigurationException {
-    constructInternalProofRepresentation(pReached);
+  protected Object getProofToWrite(
+      UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa)
+      throws InvalidConfigurationException {
+    constructInternalProofRepresentation(pReached, pCpa);
     return Pair.of(pReached.size(), reachedSet);
   }
 

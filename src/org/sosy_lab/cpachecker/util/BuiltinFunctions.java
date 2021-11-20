@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util;
 
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -57,7 +58,8 @@ public class BuiltinFunctions {
     }
 
     if(BuiltinOverflowFunctions.isBuiltinOverflowFunction(pFunctionName)) {
-      return BuiltinOverflowFunctions.getType(pFunctionName);
+      return Objects.requireNonNullElse(
+          BuiltinOverflowFunctions.getType(pFunctionName).orElse(null), UNSPECIFIED_TYPE);
     }
 
     if (isPopcountFunction(pFunctionName)) {

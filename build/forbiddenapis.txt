@@ -15,6 +15,7 @@
 
 com.google.common.base.Objects @ use java.util.Objects instead
 com.google.common.io.Files#createTempDir() @ Uses inappropriate permissions, cf. JavaDoc
+java.lang.InternalError @ This refers to JVM-internal errors, throw AssertionError instead
 java.nio.file.Paths @ use Path.of() instead (can be applied automatically with Refaster)
 
 @defaultMessage CPAchecker should be deterministic, use Random with constant seed
@@ -105,9 +106,11 @@ java.util.Map#ofEntries(java.util.Map$Entry[])
 java.util.stream.Collectors#toUnmodifiableMap(java.util.function.Function, java.util.function.Function)
 java.util.stream.Collectors#toUnmodifiableMap(java.util.function.Function, java.util.function.Function, java.util.function.BinaryOperator)
 
+@defaultMessage use Guava's ImmutableMap, but ensure that the values are not null
+java.util.Collections#singletonMap(java.lang.Object, java.lang.Object)
+
 @defaultMessage use Guava's ImmutableList.toImmutableList() and similar, but ensure that no value is null
 java.util.stream.Collectors#toList()
 java.util.stream.Collectors#toSet()
 java.util.stream.Collectors#toMap(java.util.function.Function, java.util.function.Function)
 java.util.stream.Collectors#toMap(java.util.function.Function, java.util.function.Function, java.util.function.BinaryOperator)
-java.util.stream.Collectors#toMap(java.util.function.Function, java.util.function.Function, java.util.function.BinaryOperator, java.util.function.Supplier)

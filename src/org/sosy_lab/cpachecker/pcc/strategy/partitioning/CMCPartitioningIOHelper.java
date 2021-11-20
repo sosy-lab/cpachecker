@@ -75,7 +75,7 @@ public class CMCPartitioningIOHelper extends PartitioningIOHelper{
     int nodeIndex;
     ARGState node;
 
-    int[] empty = new int[0];
+    int[] empty = {};
 
     for (int i = 0; i < savedSuccessors.size(); i++) {
       partition = getPartition(i);
@@ -117,7 +117,7 @@ public class CMCPartitioningIOHelper extends PartitioningIOHelper{
     int[][] successorLinks = new int[pPartition.size()][];
 
     int count = 0;
-    int[] empty = new int[0];
+    int[] empty = {};
     ARGState node;
     List<Integer> successors;
     for (Integer partitionNode : pPartition) {

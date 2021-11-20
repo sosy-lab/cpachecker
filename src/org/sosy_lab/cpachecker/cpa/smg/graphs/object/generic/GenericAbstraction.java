@@ -50,7 +50,7 @@ public class GenericAbstraction extends SMGObject implements SMGAbstractObject {
   }
 
   public GenericAbstraction(
-      int pSize,
+      long pSize,
       String pLabel,
       Map<SMGValue, List<MaterlisationStep>> pMaterlisationStepMap,
       Map<SMGValue, SMGValue> pAbstractToConcretePointerMap,
