@@ -75,6 +75,6 @@ class OrNode implements FormulaNode {
 
   @Override
   public String toString() {
-    return "(" + left + " v " + right + ")";
+    return "(" + left + " || " + right + ")";
   }
 }

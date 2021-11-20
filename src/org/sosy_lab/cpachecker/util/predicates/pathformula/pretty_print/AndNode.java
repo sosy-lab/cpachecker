@@ -35,7 +35,7 @@ class AndNode implements FormulaNode {
 
   @Override
   public String toString() {
-    return left + " ∧ " + right;
+    return left + " & " + right;
   }
 
   @Override

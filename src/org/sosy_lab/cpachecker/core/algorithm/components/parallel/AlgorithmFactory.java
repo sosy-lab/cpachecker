@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.components.parallel;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -28,6 +29,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
@@ -60,7 +62,7 @@ public class AlgorithmFactory {
     CoreComponentsFactory coreComponents =
         new CoreComponentsFactory(
             singleConfig, singleLogger, singleShutdownManager.getNotifier(),
-            new AggregatedReachedSets());
+            AggregatedReachedSets.empty());
 
     ConfigurableProgramAnalysis cpa = coreComponents.createCPA(cfa, specification);
     ARGCPA argcpa = (ARGCPA) cpa;
@@ -111,7 +113,7 @@ public class AlgorithmFactory {
     Precision initialPrecision =
         cpa.getInitialPrecision(mainFunction, StateSpacePartition.getDefaultPartition());
 
-    ReachedSet reached = pFactory.createReachedSet();
+    ReachedSet reached = pFactory.createReachedSet(cpa);
     reached.add(initialState, initialPrecision);
     return reached;
   }

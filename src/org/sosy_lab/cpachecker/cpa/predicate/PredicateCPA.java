@@ -67,6 +67,8 @@ import org.sosy_lab.java_smt.api.SolverException;
 public class PredicateCPA
     implements ConfigurableProgramAnalysis, StatisticsProvider, ProofChecker, AutoCloseable {
 
+  private final PredicatePrecisionAdjustment predicatePrecisionAdjustment;
+
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(PredicateCPA.class).withOptions(BlockOperator.class);
   }
@@ -227,6 +229,17 @@ public class PredicateCPA
             abstractionManager,
             abstractionStats,
             statistics);
+
+    predicatePrecisionAdjustment = new PredicatePrecisionAdjustment(
+        logger,
+        config,
+        formulaManager,
+        pathFormulaManager,
+        blk,
+        getPredicateManager(),
+        invariantsManager,
+        predicateProvider,
+        statistics);
   }
 
   @Override
@@ -325,15 +338,8 @@ public class PredicateCPA
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return new PredicatePrecisionAdjustment(
-        logger,
-        formulaManager,
-        pathFormulaManager,
-        blk,
-        getPredicateManager(),
-        invariantsManager,
-        predicateProvider,
-        statistics);
+    //TODO config übergeben
+    return predicatePrecisionAdjustment;
   }
 
   @Override

@@ -148,6 +148,10 @@ public class BlockNode {
         + '}';
   }
 
+  public String getCode() {
+    return code;
+  }
+
   public String getId() {
     return id;
   }

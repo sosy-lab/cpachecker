@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.components;
 
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -75,7 +77,7 @@ public class ComponentAnalysis implements Algorithm {
       }
       WorkerFactory workerFactory = new WorkerFactory();
       BlockingQueue<Message> messages = new LinkedBlockingQueue<>();
-      WorkerSocket mainSocket = workerFactory.getSocketFactory().makeSocket(logger, new MessageLogger("main"), messages, "main", "localhost", 8090);
+      WorkerSocket mainSocket = workerFactory.getSocketFactory().makeSocket(logger, messages, "main", "localhost", 8090);
       Thread mainSocketThread = new Thread(() -> {
         try {
           mainSocket.startServer();
@@ -107,20 +109,24 @@ public class ComponentAnalysis implements Algorithm {
       }
 
       WorkerClient mainClient = new WorkerClient("localhost", 8090);
-      Set<Message> finished = new HashSet<>();
+      Set<String> ids = workers.stream().map(w -> w.getBlockId()).collect(
+          ImmutableSet.toImmutableSet());
+      Set<String> finished = new HashSet<>();
       Set<String> stale = new HashSet<>();
       Result result;
       while (true) {
         Message m = messages.take();
         if (m.getType() == MessageType.FINISHED) {
           result = Result.valueOf(m.getPayload());
-          finished.add(m);
+          finished.add(m.getUniqueBlockId());
+          logger.log(Level.INFO, "Unfinished workers: ", Sets.difference(ids, finished));
           if (finished.size() == workers.size()) {
             mainClient.broadcast(Message.newFinishMessage("main", 0, result));
             break;
           }
         } else if (m.getType() == MessageType.STALE) {
           stale.add(m.getUniqueBlockId());
+          logger.log(Level.INFO, "Active workers: ", Sets.difference(ids, stale));
           if (stale.size() == workers.size()) {
             for (WorkerClient client : mainClients) {
               client.broadcast(Message.newFinishMessage("", 0, Result.TRUE));
@@ -137,7 +143,7 @@ public class ComponentAnalysis implements Algorithm {
       Precision initialPrecision = reachedSet.getPrecision(state);
       List<AbstractState> states = new ArrayList<>();
       states.addAll(cState.getWrappedStates());
-      states.add(DummyTargetState.withoutProperty());
+      states.add(DummyTargetState.withoutTargetInformation());
       logger.log(Level.INFO, "Block analysis finished.");
       if (result == Result.FALSE) {
         reachedSet.add(new ARGState(new CompositeState(states), null), initialPrecision);

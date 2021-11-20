@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.ImmutableSet;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -32,6 +33,8 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.components.state_transformer.AnyStateTransformer;
 import org.sosy_lab.cpachecker.core.algorithm.components.tree.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.components.util.MessageLogger;
+import org.sosy_lab.cpachecker.core.algorithm.components.util.MessageLogger.Action;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -51,6 +54,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pretty_print.BooleanFormulaParser;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -73,6 +77,7 @@ public abstract class WorkerAnalysis {
 
   protected final BlockNode block;
   protected final LogManager logger;
+  protected final MessageLogger actionLogger;
 
   protected AlgorithmStatus status;
 
@@ -85,7 +90,7 @@ public abstract class WorkerAnalysis {
       Specification pSpecification,
       Configuration pConfiguration,
       ShutdownManager pShutdownManager)
-      throws CPAException, InterruptedException, InvalidConfigurationException {
+      throws CPAException, InterruptedException, InvalidConfigurationException, IOException {
     Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> parts =
         AlgorithmFactory.createAlgorithm(pLogger, pSpecification, pCFA, pConfiguration,
             pShutdownManager,
@@ -116,6 +121,7 @@ public abstract class WorkerAnalysis {
     logger = pLogger;
 
     transformer = new AnyStateTransformer(pId);
+    actionLogger = new MessageLogger(block, logger);
   }
 
   public Optional<CFANode> abstractStateToLocation(AbstractState state) {
@@ -271,7 +277,7 @@ public abstract class WorkerAnalysis {
         Specification pSpecification,
         Configuration pConfiguration,
         ShutdownManager pShutdownManager)
-        throws CPAException, InterruptedException, InvalidConfigurationException {
+        throws CPAException, InterruptedException, InvalidConfigurationException, IOException {
       super(pId, pLogger, pBlock, pCFA, AnalysisDirection.FORWARD, pSpecification, pConfiguration, pShutdownManager);
     }
 
@@ -297,6 +303,7 @@ public abstract class WorkerAnalysis {
           formulas = transformReachedSet(reachedSet, block.getLastNode(),
           AnalysisDirection.FORWARD);
       BooleanFormula result = formulas.isEmpty() ? bmgr.makeTrue() : bmgr.or(formulas.values());
+      actionLogger.log(Action.FORWARD, BooleanFormulaParser.parse(condition.getFormula()).toString(), BooleanFormulaParser.parse(result).toString());
       return Message.newPreconditionMessage(block.getId(), block.getLastNode().getNodeNumber(),
           result,
           fmgr);
@@ -313,7 +320,7 @@ public abstract class WorkerAnalysis {
         Specification pSpecification,
         Configuration pConfiguration,
         ShutdownManager pShutdownManager)
-        throws CPAException, InterruptedException, InvalidConfigurationException {
+        throws CPAException, InterruptedException, InvalidConfigurationException, IOException {
       super(pId, pLogger, pBlock, pCFA, AnalysisDirection.BACKWARD, pSpecification, pConfiguration, pShutdownManager);
     }
 
@@ -332,6 +339,7 @@ public abstract class WorkerAnalysis {
         return Message.newFinishMessage(block.getId(), block.getStartNode().getNodeNumber(),
             Result.FALSE);
       }
+      actionLogger.log(Action.BACKWARD, BooleanFormulaParser.parse(condition.getFormula()).toString(), BooleanFormulaParser.parse(result).toString());
       return Message.newPostconditionMessage(block.getId(), block.getStartNode().getNodeNumber(),
           result, fmgr);
     }

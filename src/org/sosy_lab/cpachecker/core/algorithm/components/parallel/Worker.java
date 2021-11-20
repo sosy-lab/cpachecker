@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.components.parallel;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -36,8 +35,6 @@ import org.sosy_lab.cpachecker.core.algorithm.components.parallel.WorkerAnalysis
 import org.sosy_lab.cpachecker.core.algorithm.components.parallel.WorkerAnalysis.ForwardAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.components.parallel.WorkerSocket.WorkerSocketFactory;
 import org.sosy_lab.cpachecker.core.algorithm.components.tree.BlockNode;
-import org.sosy_lab.cpachecker.core.algorithm.components.util.MessageLogger;
-import org.sosy_lab.cpachecker.core.algorithm.components.util.MessageLogger.Action;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -73,8 +70,6 @@ public class Worker implements Runnable {
   private Optional<Message> lastPostConditionMessage;
   private Optional<Message> lastMessage;
 
-  private final MessageLogger messageLogger;
-
   private final Thread socketThread;
 
   public void addClient(WorkerClient client) {
@@ -86,7 +81,6 @@ public class Worker implements Runnable {
       BlockNode pBlock,
       BlockingQueue<Message> pOutputStream,
       WorkerSocket pWorkerSocket,
-      MessageLogger pMessageLogger,
       LogManager pLogger,
       CFA pCFA,
       Specification pSpecification,
@@ -96,7 +90,6 @@ public class Worker implements Runnable {
     block = pBlock;
     read = pOutputStream;
     logger = pLogger;
-    messageLogger = pMessageLogger;
     finished = false;
 
     clients = new ArrayList<>();
@@ -115,6 +108,7 @@ public class Worker implements Runnable {
             "cpa.location.LocationCPABackwards, cpa.block.BlockCPABackward, cpa.callstack.CallstackCPA, cpa.functionpointer.FunctionPointerCPA, cpa.predicate.PredicateCPA")
         .setOption("backwardSpecification", "config/specification/MainEntry.spc")
         .setOption("specification", "config/specification/MainEntry.spc")
+        .setOption("cpa.predicate.abstractAtTargetState", "false")
         .build();
 
     /*Configuration backwardConfiguration = Configuration.builder()
@@ -126,7 +120,7 @@ public class Worker implements Runnable {
         .setOption("specification", "config/specification/MainEntry.spc")
         .build();*/
 
-    Specification backwardSpecification = Specification.fromFiles(ImmutableSet.of(), ImmutableSet.of(Path.of("config/specification/MainEntry.spc")), pCFA, backwardConfiguration, logger, pShutdownManager.getNotifier());
+    Specification backwardSpecification = Specification.fromFiles(ImmutableSet.of(Path.of("config/specification/MainEntry.spc")), pCFA, backwardConfiguration, logger, pShutdownManager.getNotifier());
 
     Configuration forwardConfiguration = Configuration.builder().copyFrom(pConfiguration).setOption("CompositeCPA.cpas",
         "cpa.location.LocationCPA, cpa.block.BlockCPA, cpa.predicate.PredicateCPA").build();
@@ -195,7 +189,6 @@ public class Worker implements Runnable {
         broadcast(Message.newStaleMessage(block.getId(), true));
       }
       Message m = read.take();
-      messageLogger.log(Action.TAKE, m);
       processMessage(m);
     }
   }
@@ -223,7 +216,6 @@ public class Worker implements Runnable {
   private void processFinishMessage(Message message) throws IOException {
     Preconditions.checkArgument(message.getType() == MessageType.FINISHED,
         "can only process messages with type %s", MessageType.FINISHED);
-    messageLogger.log(Action.FINISH, message);
     finished = true;
     broadcast(Message.newFinishMessage(block.getId(), message.getTargetNodeNumber(),
         Result.valueOf(message.getPayload())));
@@ -239,24 +231,17 @@ public class Worker implements Runnable {
     Optional<CFANode> optionalCFANode = block.getNodesInBlock().stream()
         .filter(node -> node.getNodeNumber() == message.getTargetNodeNumber()).findAny();
     if (optionalCFANode.isEmpty()) {
-      messageLogger.log(Action.DUMP, message);
       return;
     }
     CFANode node = optionalCFANode.orElseThrow();
     if (node.equals(block.getStartNode())) {
-      messageLogger.log(Action.FORWARD, message);
       preConditionUpdates.put(message.getUniqueBlockId(), message);
       Message toSend = forwardAnalysis(node);
       if (lastPreConditionMessage.isEmpty() || !toSend.equals(
           lastPreConditionMessage.orElseThrow())) {
-        messageLogger.log(Action.BROADCAST, toSend);
         broadcast(toSend);
-      } else {
-        messageLogger.log(Action.ALREADY_ENQUEUED, toSend);
       }
       lastPreConditionMessage = Optional.of(toSend);
-    } else {
-      messageLogger.log(Action.DUMP, message);
     }
   }
 
@@ -267,7 +252,6 @@ public class Worker implements Runnable {
     Optional<CFANode> optionalCFANode = block.getNodesInBlock().stream()
         .filter(node -> node.getNodeNumber() == message.getTargetNodeNumber()).findAny();
     if (optionalCFANode.isEmpty()) {
-      messageLogger.log(Action.DUMP, message);
       return;
     }
     CFANode node = optionalCFANode.orElseThrow();
@@ -276,19 +260,13 @@ public class Worker implements Runnable {
       if (lastPreConditionMessage.isPresent() && backwardAnalysis.cantContinue(lastPreConditionMessage.orElseThrow().getPayload(), message.getPayload())) {
         return;
       }
-      messageLogger.log(Action.BACKWARD, message);
       postConditionUpdates.put(message.getUniqueBlockId(), message);
       Message toSend = backwardAnalysis(node);
       if (lastPostConditionMessage.isEmpty() || !toSend.equals(
           lastPostConditionMessage.orElseThrow())) {
-        messageLogger.log(Action.BROADCAST, toSend);
         broadcast(toSend);
-      } else {
-        messageLogger.log(Action.ALREADY_ENQUEUED, toSend);
       }
       lastPostConditionMessage = Optional.of(toSend);
-    } else {
-      messageLogger.log(Action.DUMP, message);
     }
   }
 
@@ -348,6 +326,10 @@ public class Worker implements Runnable {
     }
   }
 
+  public String getBlockId() {
+    return block.getId();
+  }
+
   public void shutdownCommunication() throws IOException {
     for (WorkerClient client : clients) {
       client.close();
@@ -385,10 +367,8 @@ public class Worker implements Runnable {
         throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
       workerCount++;
       BlockingQueue<Message> sharedQueue = new LinkedBlockingQueue<>();
-      MessageLogger messageLogger = new MessageLogger(pNode.getId());
-      WorkerSocket socket = socketFactory.makeSocket(pLogger, messageLogger, sharedQueue, pNode.getId(), pAddress,
-          pPort);
-      return new Worker(pNode.getId() + "W" + workerCount, pNode, sharedQueue, socket, messageLogger, pLogger, pCFA, pSpecification, pConfiguration,
+      WorkerSocket socket = socketFactory.makeSocket(pLogger, sharedQueue, pNode.getId(), pAddress, pPort);
+      return new Worker(pNode.getId() + "W" + workerCount, pNode, sharedQueue, socket, pLogger, pCFA, pSpecification, pConfiguration,
           pShutdownManager);
     }
 

@@ -18,16 +18,14 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class BlockState implements AbstractStateWithLocation, AbstractQueryableState, Partitionable,
                                    Serializable {
 
   protected final CFANode node;
-
-  private static final Set<Property> violatedProperty = ImmutableSet.of(new BlockStartReachedProperty());
 
   public BlockState(CFANode pNode) {
     node = pNode;
@@ -71,10 +69,12 @@ public class BlockState implements AbstractStateWithLocation, AbstractQueryableS
   static class BackwardsBlockState extends BlockState implements Targetable {
 
     private final CFANode blockStartNode;
+    private final Set<TargetInformation> targetInformation;
 
     public BackwardsBlockState(final CFANode pLocationNode, final CFANode pStartNode) {
       super(pLocationNode);
       blockStartNode = pStartNode;
+      targetInformation = ImmutableSet.of(new BlockStartReachedTargetInformation(blockStartNode));
     }
 
     @Override
@@ -83,8 +83,8 @@ public class BlockState implements AbstractStateWithLocation, AbstractQueryableS
     }
 
     @Override
-    public @NonNull Set<Property> getViolatedProperties() throws IllegalStateException {
-      return violatedProperty;
+    public @NonNull Set<TargetInformation> getTargetInformation() throws IllegalStateException {
+      return targetInformation;
     }
 
   }
