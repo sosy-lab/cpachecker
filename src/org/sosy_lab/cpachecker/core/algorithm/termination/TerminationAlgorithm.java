@@ -55,8 +55,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -416,19 +419,41 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     List<CFAEdge> edgesOnCex = cex.getTargetPath().getFullPath();
     for (CFAEdge edge : edgesOnCex) {
       CRightHandSide expression = CFAEdgeUtils.getRightHandSide(edge);
-      if (!(expression instanceof CBinaryExpression)) {
-        // can not contain bitprecise operation
-        continue;
+      if (expression != null && containsBinaryOperation(expression)) {
+        return true;
       }
-      BinaryOperator operator = ((CBinaryExpression) expression).getOperator();
+      if (edge.getEdgeType().equals(CFAEdgeType.AssumeEdge)) {
+        if (containsBinaryOperation(((CAssumeEdge) edge).getExpression())) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  private boolean containsBinaryOperation(CRightHandSide expression) {
+    if (expression instanceof CBinaryExpression) {
+      CBinaryExpression binaryExp = (CBinaryExpression) expression;
+      BinaryOperator operator = binaryExp.getOperator();
       switch (operator) {
         case BINARY_AND:
         case BINARY_XOR:
         case BINARY_OR:
           return true;
         default:
-          continue;
+          // nothing to do
       }
+      return containsBinaryOperation(binaryExp.getOperand1())
+          || containsBinaryOperation(binaryExp.getOperand2());
+    }
+    if (expression instanceof CUnaryExpression) {
+      CUnaryExpression unaryExp = (CUnaryExpression) expression;
+      UnaryOperator operator = unaryExp.getOperator();
+      // nothing to do
+      if (operator.equals(UnaryOperator.TILDE)) {
+        return true;
+      }
+      return containsBinaryOperation(unaryExp.getOperand());
     }
     return false;
   }
