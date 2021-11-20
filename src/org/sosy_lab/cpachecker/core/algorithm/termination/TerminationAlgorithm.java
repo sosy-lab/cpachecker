@@ -305,7 +305,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     }
 
     Result result = Result.TRUE;
-    Optional<ARGState> targetStateWithCounterExample = Optional.empty();
+    Optional<CounterexampleInfo> foundCounterexample = Optional.empty();
     while (pReachedSet.hasWaitingState() && result != Result.FALSE) {
       shutdownNotifier.shutdownIfNecessary();
       statistics.safetyAnalysisStarted(pLoop);
@@ -316,7 +316,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
       boolean targetReached =
           pReachedSet.asCollection().stream().anyMatch(AbstractStates::isTargetState);
-      targetStateWithCounterExample =
+      Optional<ARGState> targetStateWithCounterExample =
           pReachedSet.stream()
               .filter(AbstractStates::isTargetState)
               .map(s -> AbstractStates.extractStateByType(s, ARGState.class))
@@ -339,6 +339,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
         if (lassoAnalysisResult.hasNonTerminationArgument()) {
           removeIntermediateStates(pReachedSet, targetState);
           result = Result.FALSE;
+          foundCounterexample = Optional.of(counterexample);
 
           statistics.setNonterminatingLoop(pLoop);
 
@@ -393,7 +394,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
     if (useCexImpreciseHeuristic && result == Result.FALSE) {
       if (allRelevantVarsArePointers(relevantVariables)
-          || doesImpreciseOperationOccur(targetStateWithCounterExample)) {
+          || doesImpreciseOperationOccur(foundCounterexample)) {
         logger.logf(INFO, "Counterexample to termination found, but deemed imprecise");
         return Result.UNKNOWN;
       } else {
@@ -409,12 +410,11 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     return result;
   }
 
-  private boolean doesImpreciseOperationOccur(Optional<ARGState> pTargetStateWithCounterExample) {
-    if (pTargetStateWithCounterExample.isEmpty()) {
+  private boolean doesImpreciseOperationOccur(Optional<CounterexampleInfo> pCounterexampleInfo) {
+    if (pCounterexampleInfo.isEmpty()) {
       return false;
     }
-    CounterexampleInfo cex =
-        pTargetStateWithCounterExample.orElseThrow().getCounterexampleInformation().orElseThrow();
+    CounterexampleInfo cex = pCounterexampleInfo.orElseThrow();
 
     List<CFAEdge> edgesOnCex = cex.getTargetPath().getFullPath();
     for (CFAEdge edge : edgesOnCex) {
