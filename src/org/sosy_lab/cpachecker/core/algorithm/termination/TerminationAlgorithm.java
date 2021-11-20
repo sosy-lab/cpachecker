@@ -427,7 +427,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
         case BINARY_OR:
           return true;
         default:
-          return false;
+          continue;
       }
     }
     return false;
