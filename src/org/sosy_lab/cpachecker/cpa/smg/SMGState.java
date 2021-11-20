@@ -228,16 +228,15 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   /**
    * Makes SMGState create a new object and put it into the global namespace
    *
-   * Keeps consistency: yes
+   * <p>Keeps consistency: yes
    *
    * @param pTypeSize Size of the type of the new global variable
    * @param pVarName Name of the global variable
    * @return Newly created object
-   *
-   * @throws SMGInconsistentException when resulting SMGState is inconsistent
-   * and the checks are enabled
+   * @throws SMGInconsistentException when resulting SMGState is inconsistent and the checks are
+   *     enabled
    */
-  public SMGObject addGlobalVariable(long pTypeSize, String pVarName)
+  public SMGRegion addGlobalVariable(long pTypeSize, String pVarName)
       throws SMGInconsistentException {
     SMGRegion new_object = new SMGRegion(pTypeSize, pVarName);
 
