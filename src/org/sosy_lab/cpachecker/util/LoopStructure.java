@@ -45,22 +45,15 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression.ABinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.visitors.AggregateConstantsVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.visitors.VariableCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -476,6 +469,7 @@ public final class LoopStructure implements Serializable {
      * @param varName: The qualified Name of the Variable Declaration
      */
     public Optional<Integer> getDelta(String varName) {
+      this.computeSets();
       if (!this.loopIncDecVariables.containsKey(varName)) {
         return Optional.empty();
       } else {
@@ -484,36 +478,9 @@ public final class LoopStructure implements Serializable {
     }
 
     public boolean onlyConstantVarModification() {
-      Integer assumeEdgesAmount = 0;
-      for (CFAEdge e : this.getInnerLoopEdges()) {
-        if (e instanceof AStatementEdge) {
-          if (((AStatementEdge) e).getStatement() instanceof AExpressionAssignmentStatement) {
-            AExpressionAssignmentStatement aStatement =
-                ((AExpressionAssignmentStatement) ((AStatementEdge) e).getStatement());
-            if (aStatement.getLeftHandSide() instanceof AIdExpression) {
-              Set<String> varSet = new HashSet<>();
-              varSet.add(((AIdExpression) aStatement.getLeftHandSide()).getName());
-              AggregateConstantsVisitor<Exception> visitor =
-                  new AggregateConstantsVisitor<>(Optional.of(varSet), true);
-              try {
-                if (aStatement.getRightHandSide().accept_(visitor).isEmpty()) {
-                  return false;
-                }
-              } catch (Exception e1) {
-                return false;
-              }
-            } else {
-              return false;
-            }
-          }
-        } else if (e instanceof CAssumeEdge) {
-          assumeEdgesAmount += 1;
-          if (assumeEdgesAmount > 1) {
-            return false;
-          }
-        } else if (e instanceof BlankEdge) {
-          continue;
-        } else {
+      this.computeSets();
+      for (AVariableDeclaration var : this.modifiedVariables) {
+        if (!this.loopIncDecVariables.keySet().contains(var.getQualifiedName())) {
           return false;
         }
       }
@@ -522,20 +489,19 @@ public final class LoopStructure implements Serializable {
     }
 
     public Set<AVariableDeclaration> getModifiedVariables() {
+      this.computeSets();
       return modifiedVariables;
     }
 
     public Set<String> getModifiedVariablesNames() {
+      this.computeSets();
       Set<String> modifiedVarsNames = new HashSet<>();
       for (AVariableDeclaration var : this.getModifiedVariables()) {
-        modifiedVarsNames.add(var.getName());
+        modifiedVarsNames.add(var.getQualifiedName());
       }
       return modifiedVarsNames;
     }
   }
-
-  private static AggregateConstantsVisitor<Exception> integerValueComputationVisitor =
-      new AggregateConstantsVisitor<>(Optional.empty(), true);
 
   private final ImmutableListMultimap<String, Loop> loops;
 
@@ -645,12 +611,31 @@ public final class LoopStructure implements Serializable {
     if (e instanceof AStatementEdge) {
       AStatementEdge stmtEdge = (AStatementEdge) e;
       if (stmtEdge.getStatement() instanceof AAssignment) {
-        AAssignment assign = (AAssignment) stmtEdge.getStatement();
+        AExpressionAssignmentStatement assign =
+            (AExpressionAssignmentStatement) stmtEdge.getStatement();
 
         if (assign.getLeftHandSide() instanceof AIdExpression) {
           AIdExpression assignementToId = (AIdExpression) assign.getLeftHandSide();
           String assignToVar = assignementToId.getDeclaration().getQualifiedName();
 
+          Set<String> varSet = new HashSet<>();
+          varSet.add(assignToVar);
+
+          AggregateConstantsVisitor<Exception> visitor =
+              new AggregateConstantsVisitor<>(Optional.of(varSet), true);
+          Optional<Integer> valueOptional;
+          try {
+            valueOptional = assign.getRightHandSide().accept_(visitor);
+          } catch (Exception e1) {
+            return Optional.empty();
+          }
+          if (valueOptional.isPresent()) {
+            return Optional.of(Pair.of(assignToVar, valueOptional.get()));
+          } else {
+            return Optional.empty();
+          }
+
+          /*
           if (assign.getRightHandSide() instanceof CBinaryExpression) {
             ABinaryExpression binExpr = (ABinaryExpression) assign.getRightHandSide();
             ABinaryOperator op = binExpr.getOperator();
@@ -683,12 +668,12 @@ public final class LoopStructure implements Serializable {
                   }
 
                   if (assignToVar.equals(operandVar) && valueOptional.isPresent()) {
-                    return Optional.of(Pair.of(assignToVar, valueOptional.get()));
+
                   }
                 }
               }
             }
-          }
+          }*/
         }
       }
     }

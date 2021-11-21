@@ -47,6 +47,9 @@ public class AggregateConstantsVisitor<X extends Exception>
   private boolean linearTermsOnly;
   AggregateConstantsVisitor<X> noVariablesVisitor;
 
+  /*
+   * The Set of Known variables must contain the qualified names of the variables
+   */
   public AggregateConstantsVisitor(
       Optional<Set<String>> pKnownVariables, boolean pLinearTermsOnly) {
     knownVariables = pKnownVariables;
@@ -137,7 +140,7 @@ public class AggregateConstantsVisitor<X extends Exception>
   public Optional<Integer> visit(AIdExpression pExp) throws X {
     if (this.knownVariables.isEmpty()) {
       return Optional.empty();
-    } else if (this.knownVariables.get().contains(pExp.getName())) {
+    } else if (this.knownVariables.get().contains(pExp.getDeclaration().getQualifiedName())) {
       return Optional.of(0);
     } else {
       return Optional.empty();
