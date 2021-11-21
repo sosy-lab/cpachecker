@@ -48,7 +48,13 @@ public class ForwardAnalysisRequest extends CPACreatingRequest implements TaskRe
   private final ShareableBooleanFormula newSummary;
 
   @SuppressWarnings("FieldMayBeFinal")
-  @Option(description = "Configuration file for forward analysis during concurrent analysis.")
+  @Option(description 
+      = "Optional configuration file for backward analysis during concurrent analysis."
+      + "Relative paths get interpreted starting from the location of the configuration"
+      + "file which sets this value, i.e. usually"
+      + "concurrent-task-partitioning.properties in config/includes/."
+      + "If no value is set, the analysis uses the file predicateBackward.properties in"
+      + "the package core.algorithm.concurrent.task.backward.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path configFile = null;
 

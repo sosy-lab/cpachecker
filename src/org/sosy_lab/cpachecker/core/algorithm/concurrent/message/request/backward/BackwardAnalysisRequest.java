@@ -52,7 +52,13 @@ public class BackwardAnalysisRequest extends CPACreatingRequest implements TaskR
   private final PathFormulaManager pfMgr;
   
   @SuppressWarnings("FieldMayBeFinal")
-  @Option(description = "Configuration file for backward analysis during concurrent analysis.")
+  @Option(description 
+      = "Optional configuration file for forward analysis during concurrent analysis."
+      + "Relative paths get interpreted starting from the location of the configuration"
+      + "file which sets this value, i.e. usually"
+      + "concurrent-task-partitioning.properties in config/includes/."
+      + "If no value is set, the analysis uses the file predicateForward.properties in"
+      + "the package core.algorithm.concurrent.task.forward.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path configFile = null;
 
