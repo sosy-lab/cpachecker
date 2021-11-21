@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.automatic_program_repair;
 
 import com.google.common.collect.Sets;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -21,6 +22,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -39,10 +41,8 @@ public class ExpressionMutator {
     Stream<CExpression> manualMutations = Stream.empty();
 
     final Set<CExpression> expressions = ExpressionCollector.collectExpressions(cfa);
-    final Map<CType, Set<CExpression>> expressionsSortedByType =
-        groupExpressionsByType(expressions);
-    final Map<CBasicType, Set<CExpression>> expressionsSortedByBasicType =
-        groupExpressionsByBasicType(expressions);
+    final Stream<CExpression> assignableExpressions =
+        calcAssignableExpressions(originalExpression, expressions);
 
     if (originalExpression instanceof CBinaryExpression) {
       manualMutations = calcMutationsFor((CBinaryExpression) originalExpression, cfa);
@@ -50,42 +50,76 @@ public class ExpressionMutator {
       manualMutations = calcMutationsFor((CUnaryExpression) originalExpression, cfa);
     } else if (originalExpression instanceof CIntegerLiteralExpression) {
       manualMutations = calcMutationsFor((CIntegerLiteralExpression) originalExpression);
-    }
-
-    final CType type = originalExpression.getExpressionType();
-    Set<CExpression> sameTypeExpressionsSet;
-
-    if (type instanceof CSimpleType) {
-      sameTypeExpressionsSet = expressionsSortedByBasicType.get(((CSimpleType) type).getType());
-    } else {
-      sameTypeExpressionsSet = expressionsSortedByType.get(type);
+    } else if (originalExpression instanceof CFloatLiteralExpression) {
+      manualMutations = calcMutationsFor((CFloatLiteralExpression) originalExpression);
     }
 
     return Stream.concat(
         manualMutations,
-        sameTypeExpressionsSet.stream()
-            .filter((CExpression expression) -> !originalExpression.equals(expression)));
+        assignableExpressions.filter(
+            (CExpression expression) ->
+                !originalExpression.toASTString().equals(expression.toASTString())));
+  }
+
+  private static Stream<CExpression> calcAssignableExpressions(
+      CExpression originalExpression, Set<CExpression> expressions) {
+    CType type = originalExpression.getExpressionType();
+    return expressions.stream()
+        .filter((CExpression expression) -> type.canBeAssignedFrom(expression.getExpressionType()));
   }
 
   private static Stream<CExpression> calcMutationsFor(
       CIntegerLiteralExpression originalIntegerExpression) {
     return Stream.of(
-        new CIntegerLiteralExpression(
-            originalIntegerExpression.getFileLocation(),
-            originalIntegerExpression.getExpressionType(),
+        buildNewInteger(
+            originalIntegerExpression,
             originalIntegerExpression.getValue().add(BigInteger.valueOf(1))),
-        new CIntegerLiteralExpression(
-            originalIntegerExpression.getFileLocation(),
-            originalIntegerExpression.getExpressionType(),
+        buildNewInteger(
+            originalIntegerExpression,
             originalIntegerExpression.getValue().add(BigInteger.valueOf(2))),
-        new CIntegerLiteralExpression(
-            originalIntegerExpression.getFileLocation(),
-            originalIntegerExpression.getExpressionType(),
+        buildNewInteger(
+            originalIntegerExpression,
             originalIntegerExpression.getValue().subtract(BigInteger.valueOf(1))),
-        new CIntegerLiteralExpression(
-            originalIntegerExpression.getFileLocation(),
-            originalIntegerExpression.getExpressionType(),
-            originalIntegerExpression.getValue().subtract(BigInteger.valueOf(2))));
+        buildNewInteger(
+            originalIntegerExpression,
+            originalIntegerExpression.getValue().subtract(BigInteger.valueOf(2))),
+        buildNewInteger(
+            originalIntegerExpression,
+            originalIntegerExpression.getValue().multiply(BigInteger.valueOf(-1))));
+  }
+
+  private static CIntegerLiteralExpression buildNewInteger(
+      CIntegerLiteralExpression originalIntegerExpression, BigInteger newValue) {
+    return new CIntegerLiteralExpression(
+        originalIntegerExpression.getFileLocation(),
+        originalIntegerExpression.getExpressionType(),
+        newValue);
+  }
+
+  private static Stream<CExpression> calcMutationsFor(
+      CFloatLiteralExpression originalFloatExpression) {
+    return Stream.of(
+        buildNewFloat(
+            originalFloatExpression, originalFloatExpression.getValue().add(BigDecimal.valueOf(1))),
+        buildNewFloat(
+            originalFloatExpression, originalFloatExpression.getValue().add(BigDecimal.valueOf(2))),
+        buildNewFloat(
+            originalFloatExpression,
+            originalFloatExpression.getValue().subtract(BigDecimal.valueOf(1))),
+        buildNewFloat(
+            originalFloatExpression,
+            originalFloatExpression.getValue().subtract(BigDecimal.valueOf(2))),
+        buildNewFloat(
+            originalFloatExpression,
+            originalFloatExpression.getValue().multiply(BigDecimal.valueOf(-1))));
+  }
+
+  private static CFloatLiteralExpression buildNewFloat(
+      CFloatLiteralExpression originalIntegerExpression, BigDecimal newValue) {
+    return new CFloatLiteralExpression(
+        originalIntegerExpression.getFileLocation(),
+        originalIntegerExpression.getExpressionType(),
+        newValue);
   }
 
   private static Stream<CExpression> calcMutationsFor(

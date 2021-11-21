@@ -75,6 +75,8 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
 
   private final StatTimer totalTime = new StatTimer("Total time for bug repair");
   private boolean fixFound = false;
+  private boolean fixedEdgeType = false;
+
 
   @Option(secure = true, required = true, description = "Config file of the internal analysis.")
   @FileOption(Type.OPTIONAL_INPUT_FILE)
@@ -174,7 +176,9 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
                       Level.INFO,
                       "Replaced "
                           + mutation.getSuspiciousEdge()
-                          + " with "
+                          + " ("
+                          + mutation.getSuspiciousEdge().getEdgeType()
+                          + ") with "
                           + mutation.getNewEdge()
                           + " on line "
                           + edge.getLineNumber());
@@ -282,7 +286,7 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
 
   @Override
   public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
-    StatisticsWriter.writingStatisticsTo(out).put(totalTime).put("Fix found", fixFound);
+    StatisticsWriter.writingStatisticsTo(out).put(totalTime).put("Fix found", fixFound).put("Edge type fixed", fixFound);
   }
 
   @Override
