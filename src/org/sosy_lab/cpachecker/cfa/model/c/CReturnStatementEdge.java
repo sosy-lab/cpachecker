@@ -48,11 +48,15 @@ public class CReturnStatementEdge extends AReturnStatementEdge {
 
   @Override
   public CReturnStatementEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
-    return new CReturnStatementEdge(
-        getRawStatement(),
-        getRawAST().get(),
-        getFileLocation(),
-        pNewPredecessorNode,
-        (FunctionExitNode) pNewSuccessorNode);
+    if (pNewSuccessorNode instanceof FunctionExitNode) {
+      return new CReturnStatementEdge(
+          getRawStatement(),
+          getRawAST().get(),
+          getFileLocation(),
+          pNewPredecessorNode,
+          (FunctionExitNode) pNewSuccessorNode);
+    } else {
+      return null;
+    }
   }
 }
