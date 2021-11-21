@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-
-
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
@@ -22,4 +20,5 @@ public interface CRightHandSide extends CAstNode, ARightHandSide {
 
   @Override
   CType getExpressionType();
+
 }

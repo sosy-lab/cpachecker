@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
@@ -607,8 +606,7 @@ public final class LoopStructure implements Serializable {
     if (e instanceof AStatementEdge) {
       AStatementEdge stmtEdge = (AStatementEdge) e;
       if (stmtEdge.getStatement() instanceof AAssignment) {
-        AExpressionAssignmentStatement assign =
-            (AExpressionAssignmentStatement) stmtEdge.getStatement();
+        AAssignment assign = (AAssignment) stmtEdge.getStatement();
 
         if (assign.getLeftHandSide() instanceof AIdExpression) {
           AIdExpression assignementToId = (AIdExpression) assign.getLeftHandSide();
@@ -620,8 +618,13 @@ public final class LoopStructure implements Serializable {
           AggregateConstantsVisitor<Exception> visitor =
               new AggregateConstantsVisitor<>(Optional.of(varSet), true);
           Optional<Integer> valueOptional;
+
+          if (!(assign instanceof AExpression)) {
+            return Optional.empty();
+          }
+
           try {
-            valueOptional = assign.getRightHandSide().accept_(visitor);
+            valueOptional = ((AExpression) assign.getRightHandSide()).accept_(visitor);
           } catch (Exception e1) {
             return Optional.empty();
           }
@@ -630,46 +633,6 @@ public final class LoopStructure implements Serializable {
           } else {
             return Optional.empty();
           }
-
-          /*
-          if (assign.getRightHandSide() instanceof CBinaryExpression) {
-            ABinaryExpression binExpr = (ABinaryExpression) assign.getRightHandSide();
-            ABinaryOperator op = binExpr.getOperator();
-
-            // TODO This line here currently only works for C Binary Operators
-            if (op == BinaryOperator.PLUS || op == BinaryOperator.MINUS) {
-
-              if (binExpr.getOperand1() instanceof ALiteralExpression
-                  || binExpr.getOperand2() instanceof ALiteralExpression) {
-                AIdExpression operandId = null;
-                AExpression valueExpression = null;
-
-                if (binExpr.getOperand1() instanceof CIdExpression) {
-                  operandId = (CIdExpression) binExpr.getOperand1();
-                  valueExpression = binExpr.getOperand2();
-                }
-                if (binExpr.getOperand2() instanceof CIdExpression) {
-                  operandId = (CIdExpression) binExpr.getOperand2();
-                  valueExpression = binExpr.getOperand1();
-                }
-
-                if (operandId != null && valueExpression != null) {
-                  String operandVar = operandId.getDeclaration().getQualifiedName();
-
-                  Optional<Integer> valueOptional;
-                  try {
-                    valueOptional = valueExpression.accept_(integerValueComputationVisitor);
-                  } catch (Exception e1) {
-                    return Optional.empty();
-                  }
-
-                  if (assignToVar.equals(operandVar) && valueOptional.isPresent()) {
-
-                  }
-                }
-              }
-            }
-          }*/
         }
       }
     }

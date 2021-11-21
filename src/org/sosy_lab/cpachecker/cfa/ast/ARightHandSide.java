@@ -26,6 +26,4 @@ public interface ARightHandSide extends AAstNode {
    * then this method can return a ProblemType.
    */
   Type getExpressionType();
-
-
 }
