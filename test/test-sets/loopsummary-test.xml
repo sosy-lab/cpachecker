@@ -16,16 +16,10 @@ SPDX-License-Identifier: Apache-2.0
 
   <rundefinition name="loopsummary-value">
           <option name="-config">config/loop-summary/valueAnalysis-loopsummary--overflow.properties</option>
-	  <!--<option name="-setprop">counterexample.export.enabled=false</option>
-          <option name="-setprop">cpa.arg.export=false</option>
-	  <option name="-setprop">report.export=false</option>-->
   </rundefinition>
 
   <rundefinition name="loopsummary-predicate">
           <option name="-config">config/loop-summary/predicateAnalysis-loopsummary--overflow.properties</option>
-	  <!--<option name="-setprop">counterexample.export.enabled=false</option>
-	  <option name="-setprop">cpa.arg.export=false</option>
-	  <option name="-setprop">report.export=false</option>-->
   </rundefinition>
 
   <rundefinition name="predicate">
