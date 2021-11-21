@@ -38,10 +38,14 @@ public class JMethodReturnEdge extends FunctionReturnEdge {
 
   @Override
   public JMethodReturnEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
-    return new JMethodReturnEdge(
-        getFileLocation(),
-        (FunctionExitNode) pNewPredecessorNode,
-        pNewSuccessorNode,
-        getSummaryEdge());
+    if (pNewPredecessorNode instanceof FunctionExitNode) {
+      return new JMethodReturnEdge(
+          getFileLocation(),
+          (FunctionExitNode) pNewPredecessorNode,
+          pNewSuccessorNode,
+          getSummaryEdge());
+    } else {
+      return null;
+    }
   }
 }

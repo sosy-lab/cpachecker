@@ -133,16 +133,12 @@ public final class LoopStructure implements Serializable {
     private Map<String, Integer> loopIncDecVariables;
     private Set<AVariableDeclaration> modifiedVariables;
 
-    // Some visitors
-    private VariableCollectorVisitor<Exception> variableCollectorVisitor;
-
     private Loop(CFANode loopHead, Set<CFANode> pNodes) {
       loopHeads = ImmutableSet.of(loopHead);
       nodes = ImmutableSortedSet.<CFANode>naturalOrder()
                                 .addAll(pNodes)
                                 .add(loopHead)
                                 .build();
-      this.variableCollectorVisitor = new VariableCollectorVisitor<>();
     }
 
     private void computeSets() {
@@ -184,6 +180,8 @@ public final class LoopStructure implements Serializable {
     private Set<AVariableDeclaration> collectModifiedVariables() {
       // TODO: For code reuse consider changing the Set<AVariableDeclaration> into LiveVariables
       // class or something similar.
+      VariableCollectorVisitor<Exception> variableCollectorVisitor =
+          new VariableCollectorVisitor<>();
       Set<AVariableDeclaration> modifiedVariablesLocal = new HashSet<>();
       for (CFAEdge e : this.getInnerLoopEdges()) {
         if (e instanceof AStatementEdge) {
@@ -191,9 +189,7 @@ public final class LoopStructure implements Serializable {
           if (statement instanceof AAssignment) {
             try {
               modifiedVariablesLocal.addAll(
-                  ((AAssignment) statement)
-                      .getLeftHandSide()
-                      .accept_(this.variableCollectorVisitor));
+                  ((AAssignment) statement).getLeftHandSide().accept_(variableCollectorVisitor));
             } catch (Exception e1) {
               // TODO: Improve this, since if everything is coded correctly the error here should
               // never happen

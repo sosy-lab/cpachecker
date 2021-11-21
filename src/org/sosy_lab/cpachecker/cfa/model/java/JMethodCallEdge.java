@@ -65,12 +65,16 @@ public class JMethodCallEdge extends FunctionCallEdge {
 
   @Override
   public JMethodCallEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
-    return new JMethodCallEdge(
-        getRawStatement(),
-        getFileLocation(),
-        pNewPredecessorNode,
-        (JMethodEntryNode) pNewSuccessorNode,
-        getRawAST().get(),
-        getSummaryEdge());
+    if (pNewSuccessorNode instanceof JMethodEntryNode) {
+      return new JMethodCallEdge(
+          getRawStatement(),
+          getFileLocation(),
+          pNewPredecessorNode,
+          (JMethodEntryNode) pNewSuccessorNode,
+          getRawAST().get(),
+          getSummaryEdge());
+    } else {
+      return null;
+    }
   }
 }

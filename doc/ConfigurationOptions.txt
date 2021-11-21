@@ -1864,10 +1864,11 @@ cpa.loopbound.startAtBound = 0
 cpa.loopbound.trackStack = false
 
 # Should Loopsummary Statistics be recorded
-cpa.loopsummary.loopsummarystats = true
+cpa.loopsummary.loopsummarystats = no default value
 
 # Max amount of first refinements.
 cpa.loopsummary.maxAmntFirstRefinements = 100
+cpa.loopsummary.maxAmntFirstRefinements = no default value
 
 # Where to perform abstraction
 cpa.lpi.abstractionLocations = LOOPHEAD

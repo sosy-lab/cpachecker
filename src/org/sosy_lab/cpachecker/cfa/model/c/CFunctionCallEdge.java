@@ -65,12 +65,16 @@ public class CFunctionCallEdge extends FunctionCallEdge {
 
   @Override
   public CFunctionCallEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
-    return new CFunctionCallEdge(
-        getRawStatement(),
-        getFileLocation(),
-        pNewPredecessorNode,
-        (CFunctionEntryNode) pNewSuccessorNode,
-        getRawAST().get(),
-        getSummaryEdge());
+    if (pNewSuccessorNode instanceof CFunctionEntryNode) {
+      return new CFunctionCallEdge(
+          getRawStatement(),
+          getFileLocation(),
+          pNewPredecessorNode,
+          (CFunctionEntryNode) pNewSuccessorNode,
+          getRawAST().get(),
+          getSummaryEdge());
+    } else {
+      return null;
+    }
   }
 }

@@ -33,7 +33,8 @@ public interface CFAEdge extends Serializable {
   /**
    * @param pNewPredecessorNode Starting node of the copy of the current edge
    * @param pNewSuccessorNode End node of the copy of the current edge
-   * @return Copy of the current CFAEdge
+   * @return Copy of the current CFAEdge if the CFANode's are valid for the Edge under
+   *     consideration. If not return null.
    */
   public CFAEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode);
 

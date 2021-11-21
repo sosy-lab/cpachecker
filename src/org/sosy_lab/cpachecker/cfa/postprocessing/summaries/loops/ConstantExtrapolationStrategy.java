@@ -58,115 +58,109 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
    */
   public Optional<AExpression> loopIterations(AExpression loopBoundExpression, Loop loopStructure) {
     // This expression is the amount of iterations given in symbols
-    try {
-      Optional<AExpression> iterationsMaybe = Optional.empty();
-      // TODO For now it only works for c programs
-      if (loopBoundExpression instanceof CBinaryExpression) {
-        LoopVariableDeltaVisitor<Exception> variableVisitor =
-            new LoopVariableDeltaVisitor<>(loopStructure, true);
+    Optional<AExpression> iterationsMaybe = Optional.empty();
+    // TODO For now it only works for c programs
+    if (loopBoundExpression instanceof CBinaryExpression) {
+      LoopVariableDeltaVisitor<Exception> variableVisitor =
+          new LoopVariableDeltaVisitor<>(loopStructure, true);
 
-        CExpression operand1 = ((CBinaryExpression) loopBoundExpression).getOperand1();
-        CExpression operand2 = ((CBinaryExpression) loopBoundExpression).getOperand2();
-        BinaryOperator operator = ((CBinaryExpression) loopBoundExpression).getOperator();
+      CExpression operand1 = ((CBinaryExpression) loopBoundExpression).getOperand1();
+      CExpression operand2 = ((CBinaryExpression) loopBoundExpression).getOperand2();
+      BinaryOperator operator = ((CBinaryExpression) loopBoundExpression).getOperator();
 
-        Optional<Integer> operand1variableDelta = operand1.accept(variableVisitor);
-        Optional<Integer> operand2variableDelta = operand2.accept(variableVisitor);
+      Optional<Integer> operand1variableDelta = operand1.accept(variableVisitor);
+      Optional<Integer> operand2variableDelta = operand2.accept(variableVisitor);
 
-        if (operand1variableDelta.isPresent() && operand2variableDelta.isPresent()) {
+      if (operand1variableDelta.isPresent() && operand2variableDelta.isPresent()) {
 
-          switch (operator) {
-            case EQUALS:
-              // Should iterate at most once if the Deltas are non zero
-              // If the deltas are zero and the integer is zero this loop would not terminate
-              // TODO: What do we do if the loop does not terminate?
-              // TODO: this can be improved if the value of the variables is known.
-              if (operand1variableDelta.get() - operand2variableDelta.get() != 0) {
-                // Returning this works because for any number of iterations less than or equal to 2
-                // The loop is simply unrolled. Since because of overflows no extrapolation can be
-                // made
-                iterationsMaybe =
-                    Optional.of(
-                        new AExpressionsFactory(ExpressionType.C).from(1, ExpressionType.C));
-              }
-              break;
-            case GREATER_EQUAL:
-              if (operand1variableDelta.get() - operand2variableDelta.get() < 0) {
-                iterationsMaybe =
-                    Optional.of(
-                        (AExpression)
-                            new AExpressionsFactory(ExpressionType.C)
-                                .from(operand1)
-                                .arithmeticExpression(
-                                    operand2, CBinaryExpression.BinaryOperator.MINUS)
-                                .divide(operand2variableDelta.get() - operand1variableDelta.get())
-                                .build());
-              }
-              break;
-            case GREATER_THAN:
-              if (operand1variableDelta.get() - operand2variableDelta.get() < 0) {
-                iterationsMaybe =
-                    Optional.of(
-                        (AExpression)
-                            new AExpressionsFactory(ExpressionType.C)
-                                .from(operand1)
-                                .arithmeticExpression(
-                                    operand2, CBinaryExpression.BinaryOperator.MINUS)
-                                .divide(operand2variableDelta.get() - operand1variableDelta.get())
-                                .add(1)
-                                .build());
-              }
-              break;
-            case LESS_EQUAL:
-              if (operand2variableDelta.get() - operand1variableDelta.get() < 0) {
-                iterationsMaybe =
-                    Optional.of(
-                        (AExpression)
-                            new AExpressionsFactory(ExpressionType.C)
-                                .from(operand2)
-                                .arithmeticExpression(
-                                    operand1, CBinaryExpression.BinaryOperator.MINUS)
-                                .divide(operand1variableDelta.get() - operand2variableDelta.get())
-                                .add(1)
-                                .build());
-              }
-              break;
-            case LESS_THAN:
-              if (operand2variableDelta.get() - operand1variableDelta.get() < 0) {
-                iterationsMaybe =
-                    Optional.of(
-                        (AExpression)
-                            new AExpressionsFactory(ExpressionType.C)
-                                .from(operand2)
-                                .arithmeticExpression(
-                                    operand1, CBinaryExpression.BinaryOperator.MINUS)
-                                .divide(operand1variableDelta.get() - operand2variableDelta.get())
-                                .build());
-              }
-              break;
-            case NOT_EQUALS:
-              // Should iterate at most once if the Deltas are zero
-              // If the deltas are non zero and the integer is zero this loop could terminate, but
-              // it is not known when this could happen
-              // TODO: What do we do if the loop does not terminate?
-              // TODO: this can be improved if the value of the variables is known.
-              if (operand1variableDelta.get() - operand2variableDelta.get() == 0) {
-                // Returning this works because for any number of iterations less than or equal to 2
-                // The loop is simply unrolled. Since because of overflows no extrapolation can be
-                // made
-                iterationsMaybe =
-                    Optional.of(
-                        new AExpressionsFactory(ExpressionType.C).from(1, ExpressionType.C));
-              }
-              break;
-            default:
-              break;
-          }
+        switch (operator) {
+          case EQUALS:
+            // Should iterate at most once if the Deltas are non zero
+            // If the deltas are zero and the integer is zero this loop would not terminate
+            // TODO: What do we do if the loop does not terminate?
+            // TODO: this can be improved if the value of the variables is known.
+            if (operand1variableDelta.get() - operand2variableDelta.get() != 0) {
+              // Returning this works because for any number of iterations less than or equal to 2
+              // The loop is simply unrolled. Since because of overflows no extrapolation can be
+              // made
+              iterationsMaybe =
+                  Optional.of(new AExpressionsFactory(ExpressionType.C).from(1, ExpressionType.C));
+            }
+            break;
+          case GREATER_EQUAL:
+            if (operand1variableDelta.get() - operand2variableDelta.get() < 0) {
+              iterationsMaybe =
+                  Optional.of(
+                      (AExpression)
+                          new AExpressionsFactory(ExpressionType.C)
+                              .from(operand1)
+                              .arithmeticExpression(
+                                  operand2, CBinaryExpression.BinaryOperator.MINUS)
+                              .divide(operand2variableDelta.get() - operand1variableDelta.get())
+                              .build());
+            }
+            break;
+          case GREATER_THAN:
+            if (operand1variableDelta.get() - operand2variableDelta.get() < 0) {
+              iterationsMaybe =
+                  Optional.of(
+                      (AExpression)
+                          new AExpressionsFactory(ExpressionType.C)
+                              .from(operand1)
+                              .arithmeticExpression(
+                                  operand2, CBinaryExpression.BinaryOperator.MINUS)
+                              .divide(operand2variableDelta.get() - operand1variableDelta.get())
+                              .add(1)
+                              .build());
+            }
+            break;
+          case LESS_EQUAL:
+            if (operand2variableDelta.get() - operand1variableDelta.get() < 0) {
+              iterationsMaybe =
+                  Optional.of(
+                      (AExpression)
+                          new AExpressionsFactory(ExpressionType.C)
+                              .from(operand2)
+                              .arithmeticExpression(
+                                  operand1, CBinaryExpression.BinaryOperator.MINUS)
+                              .divide(operand1variableDelta.get() - operand2variableDelta.get())
+                              .add(1)
+                              .build());
+            }
+            break;
+          case LESS_THAN:
+            if (operand2variableDelta.get() - operand1variableDelta.get() < 0) {
+              iterationsMaybe =
+                  Optional.of(
+                      (AExpression)
+                          new AExpressionsFactory(ExpressionType.C)
+                              .from(operand2)
+                              .arithmeticExpression(
+                                  operand1, CBinaryExpression.BinaryOperator.MINUS)
+                              .divide(operand1variableDelta.get() - operand2variableDelta.get())
+                              .build());
+            }
+            break;
+          case NOT_EQUALS:
+            // Should iterate at most once if the Deltas are zero
+            // If the deltas are non zero and the integer is zero this loop could terminate, but
+            // it is not known when this could happen
+            // TODO: What do we do if the loop does not terminate?
+            // TODO: this can be improved if the value of the variables is known.
+            if (operand1variableDelta.get() - operand2variableDelta.get() == 0) {
+              // Returning this works because for any number of iterations less than or equal to 2
+              // The loop is simply unrolled. Since because of overflows no extrapolation can be
+              // made
+              iterationsMaybe =
+                  Optional.of(new AExpressionsFactory(ExpressionType.C).from(1, ExpressionType.C));
+            }
+            break;
+          default:
+            break;
         }
       }
-      return iterationsMaybe;
-    } catch (Exception e) {
-      return Optional.empty();
     }
+    return iterationsMaybe;
   }
 
   protected Optional<GhostCFA> summarizeLoop(

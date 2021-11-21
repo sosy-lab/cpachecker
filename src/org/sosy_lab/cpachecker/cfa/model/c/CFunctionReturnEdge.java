@@ -38,11 +38,15 @@ public class CFunctionReturnEdge extends FunctionReturnEdge {
 
   @Override
   public CFunctionReturnEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
+    if (pNewPredecessorNode instanceof FunctionExitNode) {
     return new CFunctionReturnEdge(
         getFileLocation(),
         (FunctionExitNode) pNewPredecessorNode,
         pNewSuccessorNode,
         getSummaryEdge());
+    } else {
+      return null;
+    }
   }
 
 

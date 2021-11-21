@@ -71,7 +71,7 @@ public class SummaryPostProcessor {
 
   public MutableCFA process(MutableCFA pCfa) {
 
-    List<GhostCFA> ghostCfaToBeAdded = new ArrayList<>();
+    List<GhostCFA> ghostCfaToBeAdded;
     CFANode startNode = pCfa.getMainFunction();
     boolean fixpoint = false;
     boolean nodesAdded = true;

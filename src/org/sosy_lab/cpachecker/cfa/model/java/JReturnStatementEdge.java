@@ -48,11 +48,15 @@ public class JReturnStatementEdge extends AReturnStatementEdge {
 
   @Override
   public JReturnStatementEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
-    return new JReturnStatementEdge(
-        getRawStatement(),
-        getRawAST().get(),
-        getFileLocation(),
-        pNewPredecessorNode,
-        (FunctionExitNode) pNewSuccessorNode);
+    if (pNewSuccessorNode instanceof FunctionExitNode) {
+      return new JReturnStatementEdge(
+          getRawStatement(),
+          getRawAST().get(),
+          getFileLocation(),
+          pNewPredecessorNode,
+          (FunctionExitNode) pNewSuccessorNode);
+    } else {
+      return null;
+    }
   }
 }
