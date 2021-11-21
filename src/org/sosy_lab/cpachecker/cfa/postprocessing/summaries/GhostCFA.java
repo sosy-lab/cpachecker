@@ -49,11 +49,11 @@ public class GhostCFA {
     if (getStartNodesConnection().isEmpty()) {
       CFAEdge startNodesConnectionLocal =
           new BlankEdge(
-              "Blank",
+              "Start Ghost Connection",
               FileLocation.DUMMY,
               getStartOriginalCfaNode(),
               getStartGhostCfaNode(),
-              "Blank");
+              "Start Ghost Connection");
       startNodesConnectionLocal.connect();
       setStartNodesConnection(Optional.of(startNodesConnectionLocal));
     }
@@ -61,11 +61,11 @@ public class GhostCFA {
     if (getEndNodesConnection().isEmpty()) {
       CFAEdge endNodesConnectionLocal =
           new BlankEdge(
-              "Blank",
+              "End Ghost Connection",
               FileLocation.DUMMY,
               getStopGhostCfaNode(),
               getStopOriginalCfaNode(),
-              "Blank");
+              "End Ghost Connection");
       endNodesConnectionLocal.connect();
       setStartNodesConnection(Optional.of(endNodesConnectionLocal));
     }

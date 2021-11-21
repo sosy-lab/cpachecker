@@ -72,6 +72,8 @@ public class StrategyFactory {
       case RecursionConstantExtrapolation:
         return new RecursionConstantExtrapolationStrategy(
             logger, shutdownNotifier, strategyDependencies, cfa);
+      case Base:
+        return new BaseStrategy();
       default:
         return null;
     }
