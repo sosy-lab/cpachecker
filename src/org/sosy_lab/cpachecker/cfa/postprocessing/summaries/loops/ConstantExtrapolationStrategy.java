@@ -68,8 +68,14 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
       CExpression operand2 = ((CBinaryExpression) loopBoundExpression).getOperand2();
       BinaryOperator operator = ((CBinaryExpression) loopBoundExpression).getOperator();
 
-      Optional<Integer> operand1variableDelta = operand1.accept(variableVisitor);
-      Optional<Integer> operand2variableDelta = operand2.accept(variableVisitor);
+      Optional<Integer> operand1variableDelta;
+      Optional<Integer> operand2variableDelta;
+      try {
+        operand1variableDelta = operand1.accept(variableVisitor);
+        operand2variableDelta = operand2.accept(variableVisitor);
+      } catch (Exception e) {
+        return Optional.empty();
+      }
 
       if (operand1variableDelta.isPresent() && operand2variableDelta.isPresent()) {
 
