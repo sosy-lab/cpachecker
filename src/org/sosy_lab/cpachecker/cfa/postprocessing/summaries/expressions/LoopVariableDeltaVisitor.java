@@ -160,7 +160,7 @@ public class LoopVariableDeltaVisitor<X extends Exception>
           if (operand2Evaluated.isPresent() && operand1Evaluated.isPresent()) {
             // TODO here a float division may be more appropriate than integer division.
             // But it is the question how do you handle this case. Use the same types as in c?
-            return Optional.of(operand1Evaluated.get() / operand2Evaluated.get());
+            return Optional.of(operand1Evaluated.orElseThrow() / operand2Evaluated.orElseThrow());
           } else {
             return Optional.empty();
           }
@@ -168,7 +168,7 @@ public class LoopVariableDeltaVisitor<X extends Exception>
           Optional<Integer> operand2EvaluatedPlus = pExp.getOperand2().accept_(this);
           Optional<Integer> operand1EvaluatedPlus = pExp.getOperand1().accept_(this);
           if (operand2EvaluatedPlus.isPresent() && operand1EvaluatedPlus.isPresent()) {
-            return Optional.of(operand2EvaluatedPlus.get() + operand1EvaluatedPlus.get());
+            return Optional.of(operand2EvaluatedPlus.orElseThrow() + operand1EvaluatedPlus.orElseThrow());
           } else {
             return Optional.empty();
           }
@@ -176,7 +176,7 @@ public class LoopVariableDeltaVisitor<X extends Exception>
           Optional<Integer> operand2EvaluatedMinus = pExp.getOperand2().accept_(this);
           Optional<Integer> operand1EvaluatedMinus = pExp.getOperand1().accept_(this);
           if (operand2EvaluatedMinus.isPresent() && operand1EvaluatedMinus.isPresent()) {
-            return Optional.of(operand1EvaluatedMinus.get() - operand2EvaluatedMinus.get());
+            return Optional.of(operand1EvaluatedMinus.orElseThrow() - operand2EvaluatedMinus.orElseThrow());
           } else {
             return Optional.empty();
           }
@@ -191,18 +191,18 @@ public class LoopVariableDeltaVisitor<X extends Exception>
                 pExp.getOperand2().accept_(this.noVariablesVisitor);
             if (operand2EvaluatedMultiply1.isPresent() && operand1EvaluatedMultiply1.isPresent()) {
               return Optional.of(
-                  operand2EvaluatedMultiply1.get() * operand1EvaluatedMultiply1.get());
+                  operand2EvaluatedMultiply1.orElseThrow() * operand1EvaluatedMultiply1.orElseThrow());
             } else if (operand2EvaluatedMultiply2.isPresent()
                 && operand1EvaluatedMultiply2.isPresent()) {
               return Optional.of(
-                  operand2EvaluatedMultiply2.get() * operand1EvaluatedMultiply2.get());
+                  operand2EvaluatedMultiply2.orElseThrow() * operand1EvaluatedMultiply2.orElseThrow());
             } else {
               return Optional.empty();
             }
           } else {
             if (operand2EvaluatedMultiply2.isPresent() && operand1EvaluatedMultiply1.isPresent()) {
               return Optional.of(
-                  operand2EvaluatedMultiply2.get() * operand1EvaluatedMultiply1.get());
+                  operand2EvaluatedMultiply2.orElseThrow() * operand1EvaluatedMultiply1.orElseThrow());
             } else {
               return Optional.empty();
             }
@@ -245,7 +245,7 @@ public class LoopVariableDeltaVisitor<X extends Exception>
       if (pExp.getOperator() == UnaryOperator.MINUS) {
         Optional<Integer> result = pExp.getOperand().accept_(this);
         if (result.isPresent()) {
-          return Optional.of(-result.get());
+          return Optional.of(-result.orElseThrow());
         } else {
           return Optional.empty();
         }

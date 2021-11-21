@@ -113,16 +113,15 @@ public class GhostCFA {
     }
 
     allEdges = new HashSet<>();
-    Set<CFAEdge> currentEdges = new HashSet<>();
-    currentEdges.addAll(this.getStartGhostCfaNode().getLeavingEdges());
+    Set<CFAEdge> currentEdges = new HashSet<>(this.getStartGhostCfaNode().getLeavingEdges());
+    
     Set<CFAEdge> newEdges = new HashSet<>();
     while (!currentEdges.isEmpty()) {
       for (CFAEdge e : currentEdges) {
         for (CFAEdge e2 : e.getSuccessor().getLeavingEdges()) {
-          if (!allEdges.contains(e2)) {
-            allEdges.add(e2);
-            newEdges.add(e2);
-          }
+          if (allEdges.add(e2)) {
+newEdges.add(e2);
+}
         }
       }
       currentEdges = newEdges;
@@ -144,10 +143,9 @@ public class GhostCFA {
       for (CFANode n : currentNodes) {
         for (CFAEdge e : n.getLeavingEdges()) {
           CFANode n2 = e.getSuccessor();
-          if (!allNodes.contains(n2)) {
-            allNodes.add(n2);
-            newNodes.add(n2);
-          }
+          if (allNodes.add(n2)) {
+newNodes.add(n2);
+}
         }
       }
       currentNodes = newNodes;

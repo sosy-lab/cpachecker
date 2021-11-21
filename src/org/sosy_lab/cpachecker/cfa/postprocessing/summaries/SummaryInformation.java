@@ -87,7 +87,7 @@ public class SummaryInformation {
   public void addCfaInformations(CFA pCfa) {
     Optional<LoopStructure> optionalLoopStructure = pCfa.getLoopStructure();
     if (!optionalLoopStructure.isEmpty()) {
-      for (Loop loop : optionalLoopStructure.get().getAllLoops()) {
+      for (Loop loop : optionalLoopStructure.orElseThrow().getAllLoops()) {
         for (CFANode node : loop.getLoopHeads()) {
           nodeToLoopStructure.put(node, loop);
         }

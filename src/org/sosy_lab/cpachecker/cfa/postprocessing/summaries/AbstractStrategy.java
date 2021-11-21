@@ -38,7 +38,7 @@ public abstract class AbstractStrategy implements StrategyInterface {
     this.shutdownNotifier = pShutdownNotifier;
     this.logger = pLogger;
     this.strategyDependencies = strategyDependencies;
-    this.summaryInformation = pCfa.getSummaryInformation().get();
+    this.summaryInformation = pCfa.getSummaryInformation().orElseThrow();
     this.setExpressionFactory(new AExpressionsFactory());
   }
 

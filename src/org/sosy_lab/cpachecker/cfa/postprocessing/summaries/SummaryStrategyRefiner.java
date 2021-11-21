@@ -39,7 +39,7 @@ public class SummaryStrategyRefiner implements Refiner {
       throws InvalidConfigurationException {
     logger = pLogger;
     argCpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, Refiner.class);
-    summaryInformation = pCfa.getSummaryInformation().get();
+    summaryInformation = pCfa.getSummaryInformation().orElseThrow();
   }
 
   @Override
@@ -89,9 +89,9 @@ public class SummaryStrategyRefiner implements Refiner {
     } else {
       ARGState refinementState = optionalRefinementState.orElseThrow();
 
-      if (optionalStrategy.get() != StrategiesEnum.Base) {
+      if (optionalStrategy.orElseThrow() != StrategiesEnum.Base) {
         this.summaryInformation.addUnallowedStrategiesForNode(
-            AbstractStates.extractLocation(refinementState), optionalStrategy.get());
+            AbstractStates.extractLocation(refinementState), optionalStrategy.orElseThrow());
       }
 
       while (!refinementState.getChildren().isEmpty()) {

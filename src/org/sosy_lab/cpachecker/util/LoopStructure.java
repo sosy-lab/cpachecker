@@ -227,7 +227,7 @@ public final class LoopStructure implements Serializable {
       for (CFAEdge e : getInnerLoopEdges()) {
         Optional<Pair<String, Integer>> varMaybe = obtainIncDecVariable(e);
         if (varMaybe.isPresent()) {
-          Pair<String, Integer> var = varMaybe.get();
+          Pair<String, Integer> var = varMaybe.orElseThrow();
           if (result.containsKey(var.getFirst())) {
             result.put(var.getFirst(), result.get(var.getFirst()) + var.getSecond());
           } else {
@@ -355,14 +355,14 @@ public final class LoopStructure implements Serializable {
       List<Pair<CFANode, CFANode>> currentNodes = new ArrayList<>();
 
       currentNodes.add(startNodes);
-      while (currentNodes.size() != 0) {
+      while (!currentNodes.isEmpty()) {
         Pair<CFANode, CFANode> nodePair = currentNodes.remove(0);
         CFANode newNode = nodePair.getFirst();
         CFANode originalNode = nodePair.getSecond();
         for (CFAEdge succ : originalNode.getLeavingEdges()) {
           CFANode newSuccessor;
           CFANode successor = succ.getSuccessor();
-          if (originalToNewNodes.keySet().contains(successor)) {
+          if (originalToNewNodes.containsKey(successor)) {
             if (firstNode == originalToNewNodes.get(successor)) {
               newSuccessor = lastNode;
             } else {
@@ -476,7 +476,7 @@ public final class LoopStructure implements Serializable {
     public boolean onlyConstantVarModification() {
       this.computeSets();
       for (AVariableDeclaration var : this.modifiedVariables) {
-        if (!this.loopIncDecVariables.keySet().contains(var.getQualifiedName())) {
+        if (!this.loopIncDecVariables.containsKey(var.getQualifiedName())) {
           return false;
         }
       }
@@ -626,7 +626,7 @@ public final class LoopStructure implements Serializable {
             return Optional.empty();
           }
           if (valueOptional.isPresent()) {
-            return Optional.of(Pair.of(assignToVar, valueOptional.get()));
+            return Optional.of(Pair.of(assignToVar, valueOptional.orElseThrow()));
           } else {
             return Optional.empty();
           }

@@ -51,7 +51,7 @@ public class SummaryPostProcessor {
     useCompilerForSummary = pUseCompilerForSummary;
     maxUnrollingsStrategy = pMaxUnrollingsStrategy;
     setOriginalCFA(pCfa);
-    summaryInformation = pCfa.getSummaryInformation().get();
+    summaryInformation = pCfa.getSummaryInformation().orElseThrow();
     strategyFactory =
         new StrategyFactory(
             pLogger,
@@ -93,7 +93,7 @@ public class SummaryPostProcessor {
             if (strategyDependencies.apply(s, iterations)) {
               Optional<GhostCFA> maybeGhostCFA = s.summarize(node);
               if (maybeGhostCFA.isPresent()) {
-                ghostCfaToBeAdded.add(maybeGhostCFA.get());
+                ghostCfaToBeAdded.add(maybeGhostCFA.orElseThrow());
                 fixpoint = false;
               }
             }

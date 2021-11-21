@@ -47,7 +47,7 @@ public class LocationTransferRelation implements TransferRelation {
       if (this.pCFA.getSummaryInformation().isEmpty()) {
         return Collections.singleton(factory.getState(cfaEdge.getSuccessor()));
       } else {
-        SummaryInformation summaryInformation = pCFA.getSummaryInformation().get();
+        SummaryInformation summaryInformation = pCFA.getSummaryInformation().orElseThrow();
         List<StrategiesEnum> availableStrategies =
             CFAUtils.successorsOf(cfaEdge.getPredecessor())
                 .transform(n -> summaryInformation.getStrategyForNode(n))
@@ -78,7 +78,7 @@ public class LocationTransferRelation implements TransferRelation {
     if (this.pCFA.getSummaryInformation().isEmpty()) {
       return CFAUtils.successorsOf(node).transform(n -> factory.getState(n)).toList();
     } else {
-      SummaryInformation summaryInformation =  pCFA.getSummaryInformation().get();
+      SummaryInformation summaryInformation =  pCFA.getSummaryInformation().orElseThrow();
       List<StrategiesEnum> availableStrategies =
           CFAUtils.successorsOf(node)
               .transform(n -> summaryInformation.getStrategyForNode(n))

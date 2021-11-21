@@ -85,7 +85,7 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
             // If the deltas are zero and the integer is zero this loop would not terminate
             // TODO: What do we do if the loop does not terminate?
             // TODO: this can be improved if the value of the variables is known.
-            if (operand1variableDelta.get() - operand2variableDelta.get() != 0) {
+            if (operand1variableDelta.orElseThrow() - operand2variableDelta.orElseThrow() != 0) {
               // Returning this works because for any number of iterations less than or equal to 2
               // The loop is simply unrolled. Since because of overflows no extrapolation can be
               // made
@@ -94,7 +94,7 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
             }
             break;
           case GREATER_EQUAL:
-            if (operand1variableDelta.get() - operand2variableDelta.get() < 0) {
+            if (operand1variableDelta.orElseThrow() - operand2variableDelta.orElseThrow() < 0) {
               iterationsMaybe =
                   Optional.of(
                       (AExpression)
@@ -102,12 +102,12 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
                               .from(operand1)
                               .arithmeticExpression(
                                   operand2, CBinaryExpression.BinaryOperator.MINUS)
-                              .divide(operand2variableDelta.get() - operand1variableDelta.get())
+                              .divide(operand2variableDelta.orElseThrow() - operand1variableDelta.orElseThrow())
                               .build());
             }
             break;
           case GREATER_THAN:
-            if (operand1variableDelta.get() - operand2variableDelta.get() < 0) {
+            if (operand1variableDelta.orElseThrow() - operand2variableDelta.orElseThrow() < 0) {
               iterationsMaybe =
                   Optional.of(
                       (AExpression)
@@ -115,13 +115,13 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
                               .from(operand1)
                               .arithmeticExpression(
                                   operand2, CBinaryExpression.BinaryOperator.MINUS)
-                              .divide(operand2variableDelta.get() - operand1variableDelta.get())
+                              .divide(operand2variableDelta.orElseThrow() - operand1variableDelta.orElseThrow())
                               .add(1)
                               .build());
             }
             break;
           case LESS_EQUAL:
-            if (operand2variableDelta.get() - operand1variableDelta.get() < 0) {
+            if (operand2variableDelta.orElseThrow() - operand1variableDelta.orElseThrow() < 0) {
               iterationsMaybe =
                   Optional.of(
                       (AExpression)
@@ -129,13 +129,13 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
                               .from(operand2)
                               .arithmeticExpression(
                                   operand1, CBinaryExpression.BinaryOperator.MINUS)
-                              .divide(operand1variableDelta.get() - operand2variableDelta.get())
+                              .divide(operand1variableDelta.orElseThrow() - operand2variableDelta.orElseThrow())
                               .add(1)
                               .build());
             }
             break;
           case LESS_THAN:
-            if (operand2variableDelta.get() - operand1variableDelta.get() < 0) {
+            if (operand2variableDelta.orElseThrow() - operand1variableDelta.orElseThrow() < 0) {
               iterationsMaybe =
                   Optional.of(
                       (AExpression)
@@ -143,7 +143,7 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
                               .from(operand2)
                               .arithmeticExpression(
                                   operand1, CBinaryExpression.BinaryOperator.MINUS)
-                              .divide(operand1variableDelta.get() - operand2variableDelta.get())
+                              .divide(operand1variableDelta.orElseThrow() - operand2variableDelta.orElseThrow())
                               .build());
             }
             break;
@@ -153,7 +153,7 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
             // it is not known when this could happen
             // TODO: What do we do if the loop does not terminate?
             // TODO: this can be improved if the value of the variables is known.
-            if (operand1variableDelta.get() - operand2variableDelta.get() == 0) {
+            if (operand1variableDelta.orElseThrow() - operand2variableDelta.orElseThrow() == 0) {
               // Returning this works because for any number of iterations less than or equal to 2
               // The loop is simply unrolled. Since because of overflows no extrapolation can be
               // made
@@ -183,8 +183,8 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
       return Optional.empty();
     }
 
-    CFANode startUnrolledLoopNode = unrolledLoopNodesMaybe.get().getFirst();
-    CFANode endUnrolledLoopNode = unrolledLoopNodesMaybe.get().getSecond();
+    CFANode startUnrolledLoopNode = unrolledLoopNodesMaybe.orElseThrow().getFirst();
+    CFANode endUnrolledLoopNode = unrolledLoopNodesMaybe.orElseThrow().getSecond();
 
     startNodeGhostCFA.connectTo(startUnrolledLoopNode);
 
@@ -214,7 +214,7 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
         return Optional.empty();
       }
 
-      Integer delta = deltaMaybe.get();
+      Integer delta = deltaMaybe.orElseThrow();
 
       // TODO: Refactor expression Factory
       // TODO: the use of a C expression should be replaced for selecting if a Java or C
@@ -252,8 +252,8 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
       return Optional.empty();
     }
 
-    startUnrolledLoopNode = unrolledLoopNodesMaybe.get().getFirst();
-    endUnrolledLoopNode = unrolledLoopNodesMaybe.get().getSecond();
+    startUnrolledLoopNode = unrolledLoopNodesMaybe.orElseThrow().getFirst();
+    endUnrolledLoopNode = unrolledLoopNodesMaybe.orElseThrow().getSecond();
     currentSummaryNodeCFA.connectTo(startUnrolledLoopNode);
     endUnrolledLoopNode.connectTo(endNodeGhostCFA);
 
@@ -295,7 +295,7 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
     if (loopStructureMaybe.isEmpty()) {
       return Optional.empty();
     }
-    Loop loopStructure = loopStructureMaybe.get();
+    Loop loopStructure = loopStructureMaybe.orElseThrow();
 
     if (!loopStructure.onlyConstantVarModification()) {
       return Optional.empty();
@@ -305,7 +305,7 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
     if (loopBoundExpressionMaybe.isEmpty()) {
       return Optional.empty();
     }
-    AExpression loopBoundExpression = loopBoundExpressionMaybe.get();
+    AExpression loopBoundExpression = loopBoundExpressionMaybe.orElseThrow();
 
     Optional<AExpression> iterationsMaybe = this.loopIterations(loopBoundExpression, loopStructure);
 
@@ -313,7 +313,7 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
       return Optional.empty();
     }
 
-    AExpression iterations = iterationsMaybe.get();
+    AExpression iterations = iterationsMaybe.orElseThrow();
 
     Optional<GhostCFA> summarizedLoopMaybe =
         summarizeLoop(iterations, loopBoundExpression, loopStructure, beforeWhile);

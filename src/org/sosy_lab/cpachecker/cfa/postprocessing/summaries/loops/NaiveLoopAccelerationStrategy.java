@@ -110,8 +110,8 @@ public class NaiveLoopAccelerationStrategy extends AbstractLoopStrategy {
       return Optional.empty();
     }
 
-    CFANode startUnrolledLoopNode = unrolledLoopNodesMaybe.get().getFirst();
-    CFANode endUnrolledLoopNode = unrolledLoopNodesMaybe.get().getSecond();
+    CFANode startUnrolledLoopNode = unrolledLoopNodesMaybe.orElseThrow().getFirst();
+    CFANode endUnrolledLoopNode = unrolledLoopNodesMaybe.orElseThrow().getSecond();
 
     currentNode.connectTo(startUnrolledLoopNode);
     endUnrolledLoopNode.connectTo(endNodeGhostCFA);
@@ -153,7 +153,7 @@ public class NaiveLoopAccelerationStrategy extends AbstractLoopStrategy {
     if (loopStructureMaybe.isEmpty()) {
       return Optional.empty();
     }
-    Loop loopStructure = loopStructureMaybe.get();
+    Loop loopStructure = loopStructureMaybe.orElseThrow();
 
     Set<AVariableDeclaration> modifiedVariables = loopStructure.getModifiedVariables();
 
@@ -161,7 +161,7 @@ public class NaiveLoopAccelerationStrategy extends AbstractLoopStrategy {
     if (loopBoundExpressionMaybe.isEmpty()) {
       return Optional.empty();
     }
-    AExpression loopBoundExpression = loopBoundExpressionMaybe.get();
+    AExpression loopBoundExpression = loopBoundExpressionMaybe.orElseThrow();
 
     Optional<GhostCFA> summarizedLoopMaybe =
         summarizeLoop(loopStructure, modifiedVariables, beforeWhile, loopBoundExpression);

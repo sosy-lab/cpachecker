@@ -140,7 +140,7 @@ public class AggregateConstantsVisitor<X extends Exception>
   public Optional<Integer> visit(AIdExpression pExp) throws X {
     if (this.knownVariables.isEmpty()) {
       return Optional.empty();
-    } else if (this.knownVariables.get().contains(pExp.getDeclaration().getQualifiedName())) {
+    } else if (this.knownVariables.orElseThrow().contains(pExp.getDeclaration().getQualifiedName())) {
       return Optional.of(0);
     } else {
       return Optional.empty();
@@ -162,7 +162,7 @@ public class AggregateConstantsVisitor<X extends Exception>
         if (operand2Maybe.isPresent() && operand1Maybe.isPresent()) {
           // TODO here a float division may be more appropriate than integer division.
           // But it is the question how do you handle this case. Use the same types as in c?
-          return Optional.of(operand1Maybe.get() / operand2Maybe.get());
+          return Optional.of(operand1Maybe.orElseThrow() / operand2Maybe.orElseThrow());
         } else {
           return Optional.empty();
         }
@@ -173,8 +173,8 @@ public class AggregateConstantsVisitor<X extends Exception>
         return Optional.empty();
       }
 
-      Integer operand1 = operand1Maybe.get();
-      Integer operand2 = operand2Maybe.get();
+      Integer operand1 = operand1Maybe.orElseThrow();
+      Integer operand2 = operand2Maybe.orElseThrow();
 
       switch (((CBinaryExpression) pExp).getOperator()) {
         case MINUS:
@@ -230,7 +230,7 @@ public class AggregateConstantsVisitor<X extends Exception>
       if (pExp.getOperator() == UnaryOperator.MINUS) {
         Optional<Integer> operandEvaluated = pExp.getOperand().accept_(this);
         if (operandEvaluated.isPresent()) {
-          return Optional.of(-operandEvaluated.get());
+          return Optional.of(-operandEvaluated.orElseThrow());
         }
       }
     }
