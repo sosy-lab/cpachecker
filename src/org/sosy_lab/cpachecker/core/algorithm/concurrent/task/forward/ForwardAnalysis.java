@@ -282,17 +282,16 @@ public class ForwardAnalysis extends Task {
     assert argState.getWrappedState() instanceof BlockAwareCompositeState;
     BlockAwareCompositeState blockAwareState = (BlockAwareCompositeState) argState.getWrappedState();
     
-    boolean foundError = false;
     for (final AbstractState componentState : blockAwareState.getWrappedStates()) {
       if (componentState instanceof Targetable) {
         Targetable targetableState = (Targetable) componentState;
         if (targetableState.isTarget() && targetableState instanceof AutomatonState) {
-          foundError = true;
+          return true;
         }
       }
     }
 
-    return foundError;
+    return false;
   }
 
   private void propagateThroughExits()
