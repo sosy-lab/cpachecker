@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.components;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -17,7 +15,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.PriorityBlockingQueue;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -28,14 +26,12 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.components.cut.BlockOperatorCutter;
 import org.sosy_lab.cpachecker.core.algorithm.components.parallel.Message;
-import org.sosy_lab.cpachecker.core.algorithm.components.parallel.Message.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.components.parallel.Worker;
 import org.sosy_lab.cpachecker.core.algorithm.components.parallel.Worker.WorkerFactory;
 import org.sosy_lab.cpachecker.core.algorithm.components.parallel.WorkerClient;
 import org.sosy_lab.cpachecker.core.algorithm.components.parallel.WorkerSocket;
 import org.sosy_lab.cpachecker.core.algorithm.components.tree.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.components.tree.BlockTree;
-import org.sosy_lab.cpachecker.core.algorithm.components.util.MessageLogger;
 import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -76,8 +72,10 @@ public class ComponentAnalysis implements Algorithm {
         return AlgorithmStatus.SOUND_AND_PRECISE;
       }
       WorkerFactory workerFactory = new WorkerFactory();
-      BlockingQueue<Message> messages = new LinkedBlockingQueue<>();
-      WorkerSocket mainSocket = workerFactory.getSocketFactory().makeSocket(logger, messages, "main", "localhost", 8090);
+
+      // Create main socket
+      BlockingQueue<Message> messages = new PriorityBlockingQueue<>();
+      WorkerSocket mainSocket = workerFactory.getSocketFactory().makeSocket(logger, messages,"localhost", 8090);
       Thread mainSocketThread = new Thread(() -> {
         try {
           mainSocket.startServer();
@@ -86,66 +84,64 @@ public class ComponentAnalysis implements Algorithm {
         }
       });
       mainSocketThread.start();
-      Set<Worker> workers = new HashSet<>();
-      int port = 8091;
-      for (BlockNode node : tree.getDistinctNodes()) {
-        Worker worker =
-            workerFactory.createWorker(node, logger, cfa, specification, configuration,
-                shutdownManager,"localhost", port++);
-        workers.add(worker);
-      }
-      for (Worker worker : workers) {
-        for (InetSocketAddress address : workerFactory.getSocketFactory().getAddresses()) {
-          worker.addClient(
-              new WorkerClient(address.getAddress().getHostAddress(), address.getPort()));
-        }
-        new Thread(worker).start();
-      }
 
+      // TODO: side effect -> must be executed before mainClients are created
+      Set<Worker> workers = createWorkers(tree, workerFactory);
+
+      // create all clients for the
       Set<WorkerClient> mainClients = new HashSet<>();
       for (InetSocketAddress address : workerFactory.getSocketFactory().getAddresses()) {
         mainClients.add(
             new WorkerClient(address.getAddress().getHostAddress(), address.getPort()));
       }
 
-      WorkerClient mainClient = new WorkerClient("localhost", 8090);
-      Set<String> ids = workers.stream().map(w -> w.getBlockId()).collect(
-          ImmutableSet.toImmutableSet());
-      Set<String> finished = new HashSet<>();
-      Set<String> stale = new HashSet<>();
-      Result result;
-      while (true) {
+      Set<String> staleIds = new HashSet<>();
+      Result result = Result.UNKNOWN;
+      boolean exitLoop = false;
+      while (!exitLoop) {
         Message m = messages.take();
-        if (m.getType() == MessageType.FINISHED) {
-          result = Result.valueOf(m.getPayload());
-          finished.add(m.getUniqueBlockId());
-          logger.log(Level.INFO, "Unfinished workers: ", Sets.difference(ids, finished));
-          if (finished.size() == workers.size()) {
-            mainClient.broadcast(Message.newFinishMessage("main", 0, result));
-            break;
-          }
-        } else if (m.getType() == MessageType.STALE) {
-          stale.add(m.getUniqueBlockId());
-          logger.log(Level.INFO, "Active workers: ", Sets.difference(ids, stale));
-          if (stale.size() == workers.size()) {
-            for (WorkerClient client : mainClients) {
-              client.broadcast(Message.newFinishMessage("", 0, Result.TRUE));
+        switch (m.getType()) {
+          case STALE:
+            if (Boolean.parseBoolean(m.getPayload())) {
+              staleIds.add(m.getUniqueBlockId());
+            } else {
+              staleIds.remove(m.getUniqueBlockId());
             }
-          }
-        } else {
-          stale.remove(m.getUniqueBlockId());
+            if (staleIds.size() == workers.size()) {
+              result = Result.TRUE;
+              for (WorkerClient client : mainClients) {
+                client.broadcast(Message.newShutdownMessage());
+              }
+              exitLoop = true;
+            }
+            break;
+          case FOUND_VIOLATION:
+            result = Result.FALSE;
+            for (WorkerClient client : mainClients) {
+              client.broadcast(Message.newShutdownMessage());
+            }
+            exitLoop = true;
+            break;
+          case SHUTDOWN:
+          case PRECONDITION:
+          case POSTCONDITION:
+            break;
+          default:
+            throw new AssertionError("Unknown MessageType " + m.getType());
         }
       }
-      mainClient.close();
+      for (WorkerClient mainClient : mainClients) {
+        mainClient.close();
+      }
       mainSocketThread.interrupt();
-      ARGState state = (ARGState) reachedSet.getFirstState();
-      CompositeState cState = (CompositeState) state.getWrappedState();
-      Precision initialPrecision = reachedSet.getPrecision(state);
-      List<AbstractState> states = new ArrayList<>();
-      states.addAll(cState.getWrappedStates());
-      states.add(DummyTargetState.withoutTargetInformation());
       logger.log(Level.INFO, "Block analysis finished.");
       if (result == Result.FALSE) {
+        ARGState state = (ARGState) reachedSet.getFirstState();
+        CompositeState cState = (CompositeState) state.getWrappedState();
+        Precision initialPrecision = reachedSet.getPrecision(state);
+        List<AbstractState> states = new ArrayList<>();
+        states.addAll(cState.getWrappedStates());
+        states.add(DummyTargetState.withoutTargetInformation());
         reachedSet.add(new ARGState(new CompositeState(states), null), initialPrecision);
       }
       if (result == Result.TRUE) {
@@ -157,6 +153,28 @@ public class ComponentAnalysis implements Algorithm {
       throw new CPAException("Invalid configuration", pE);
     }
   }
+
+  private Set<Worker> createWorkers(BlockTree tree, WorkerFactory workerFactory)
+      throws IOException, CPAException, InterruptedException, InvalidConfigurationException {
+    Set<Worker> workers = new HashSet<>();
+    int port = 8091;
+    for (BlockNode node : tree.getDistinctNodes()) {
+      Worker worker =
+          workerFactory.createWorker(node, logger, cfa, specification, configuration,
+              shutdownManager,"localhost", port++);
+      workers.add(worker);
+    }
+    for (Worker worker : workers) {
+      for (InetSocketAddress address : workerFactory.getSocketFactory().getAddresses()) {
+        worker.addClient(new WorkerClient(address));
+      }
+      new Thread(worker).start();
+    }
+    return workers;
+  }
+
+  // TODO: Parallel back and forward in two queues
+  // FastForward backwards?
 
 
 }

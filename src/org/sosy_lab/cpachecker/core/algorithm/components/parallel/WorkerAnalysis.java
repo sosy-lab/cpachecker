@@ -335,11 +335,11 @@ public abstract class WorkerAnalysis {
           AnalysisDirection.BACKWARD);
       BooleanFormula result = formulas.isEmpty() ? bmgr.makeTrue() : bmgr.or(formulas.values());
       // by definition: if the post-condition reaches the root element, the specification is violated
+      actionLogger.log(Action.BACKWARD, BooleanFormulaParser.parse(condition.getFormula()).toString(), BooleanFormulaParser.parse(result).toString());
       if (block.getPredecessors().isEmpty() && !solver.isUnsat(result)) {
-        return Message.newFinishMessage(block.getId(), block.getStartNode().getNodeNumber(),
+        return Message.newResultMessage(block.getId(), block.getStartNode().getNodeNumber(),
             Result.FALSE);
       }
-      actionLogger.log(Action.BACKWARD, BooleanFormulaParser.parse(condition.getFormula()).toString(), BooleanFormulaParser.parse(result).toString());
       return Message.newPostconditionMessage(block.getId(), block.getStartNode().getNodeNumber(),
           result, fmgr);
     }

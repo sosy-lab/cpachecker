@@ -18,13 +18,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.algorithm.components.parallel.Message;
 import org.sosy_lab.cpachecker.core.algorithm.components.tree.BlockNode;
 
 public class MessageLogger {
@@ -32,6 +30,8 @@ public class MessageLogger {
   public enum Action {
     BACKWARD, FORWARD
   }
+
+  public static final Path output = Path.of("./output/worker_log_" + System.currentTimeMillis() + "/");
 
   @FileOption(Type.OUTPUT_FILE)
   private final Path reportFile;
@@ -45,7 +45,7 @@ public class MessageLogger {
 
   public MessageLogger(BlockNode pBlock, LogManager pLogger) throws IOException {
     workerId = pBlock.getId();
-    reportFile = Path.of("./output/worker_log/" + workerId + ".json");
+    reportFile = Path.of(output.toString(), workerId + ".json");
     IO.openOutputFile(reportFile, StandardCharsets.US_ASCII, StandardOpenOption.CREATE);
     entries = new ArrayList<>();
     logger = pLogger;
@@ -72,15 +72,6 @@ public class MessageLogger {
     } catch (IOException pE) {
       logger.log(Level.SEVERE, "Cannot log worker results", pE);
     }
-  }
-
-  private synchronized Map<String, Object> messageToMap(Message pMessage) {
-    Map<String, Object> toJSON = new HashMap<>();
-    toJSON.put("sender", pMessage.getUniqueBlockId());
-    toJSON.put("condition", pMessage.getPayload());
-    toJSON.put("type", pMessage.getType().toString());
-    toJSON.put("target", pMessage.getTargetNodeNumber());
-    return toJSON;
   }
 
 }

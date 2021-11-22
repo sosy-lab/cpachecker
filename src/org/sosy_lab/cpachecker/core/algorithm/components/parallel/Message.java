@@ -26,13 +26,24 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-public class Message {
+public class Message implements Comparable<Message>{
+
+  @Override
+  public int compareTo(Message o) {
+    return Integer.compare(o.type.priority, type.priority);
+  }
 
   public enum MessageType {
-    PRECONDITION,
-    POSTCONDITION,
-    FINISHED,
-    STALE
+    STALE(0),
+    PRECONDITION(1),
+    POSTCONDITION(2),
+    FOUND_VIOLATION(3),
+    SHUTDOWN(4);
+
+    private final int priority;
+    MessageType(int pPriority) {
+      priority = pPriority;
+    }
   }
 
   private final int targetNodeNumber;
@@ -106,11 +117,15 @@ public class Message {
         pFmgr.dumpFormula(pPayload).toString());
   }
 
-  public static Message newFinishMessage(
+  public static Message newResultMessage(
       String pUniqueBlockId,
       int pTargetNodeNumber,
       Result pResult) {
-    return new Message(MessageType.FINISHED, pUniqueBlockId, pTargetNodeNumber, pResult.name());
+    return new Message(MessageType.FOUND_VIOLATION, pUniqueBlockId, pTargetNodeNumber, pResult.name());
+  }
+
+  public static Message newShutdownMessage() {
+    return new Message(MessageType.SHUTDOWN, "", 0, "");
   }
 
   public static Message newStaleMessage(

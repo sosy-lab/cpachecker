@@ -20,8 +20,11 @@ public class WorkerClient {
   private final MessageConverter converter;
 
   public WorkerClient(String pAddress, int pPort) throws IOException {
-    InetSocketAddress hostAddress = new InetSocketAddress(pAddress, pPort);
-    client = SocketChannel.open(hostAddress);
+    this(new InetSocketAddress(pAddress, pPort));
+  }
+
+  public WorkerClient(InetSocketAddress pAddress) throws IOException {
+    client = SocketChannel.open(pAddress);
     converter = new MessageConverter();
   }
 

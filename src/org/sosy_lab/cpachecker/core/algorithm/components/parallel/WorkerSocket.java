@@ -26,7 +26,6 @@ import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.components.parallel.Message.MessageConverter;
 import org.sosy_lab.cpachecker.core.algorithm.components.parallel.Message.MessageType;
-import org.sosy_lab.cpachecker.core.algorithm.components.util.MessageLogger;
 
 public class WorkerSocket {
 
@@ -34,7 +33,6 @@ public class WorkerSocket {
   private final InetSocketAddress listenAddress;
   private final BlockingQueue<Message> sharedQueue;
   private final LogManager logger;
-  private final String workerId;
   private final MessageConverter converter;
 
   private static final int BUFFER_SIZE = 1024;
@@ -42,12 +40,11 @@ public class WorkerSocket {
   private WorkerSocket(
       LogManager pLogger,
       BlockingQueue<Message> pSharedQueue,
-      InetSocketAddress pAddress,
-      String pWorkerId) {
+      InetSocketAddress pAddress
+  ) {
     listenAddress = pAddress;
     sharedQueue = pSharedQueue;
     logger = pLogger;
-    workerId = pWorkerId;
     converter = new MessageConverter();
   }
 
@@ -139,7 +136,7 @@ public class WorkerSocket {
     Message received = converter.jsonToMessage(builder.toString());
     sharedQueue.add(received);
     logger.log(Level.INFO, "Socket received message: " + received);
-    return received.getType() == MessageType.FINISHED && workerId.equals(received.getUniqueBlockId());
+    return received.getType() == MessageType.SHUTDOWN;
   }
 
   public static class WorkerSocketFactory {
@@ -153,12 +150,11 @@ public class WorkerSocket {
     public WorkerSocket makeSocket(
         LogManager pLogger,
         BlockingQueue<Message> pSharedQueue,
-        String pWorkerId,
         String pAddress,
         int pPort) throws IOException {
       InetSocketAddress address = new InetSocketAddress(pAddress, pPort);
       addresses.add(address);
-      return new WorkerSocket(pLogger, pSharedQueue, address, pWorkerId);
+      return new WorkerSocket(pLogger, pSharedQueue, address);
     }
 
     public Set<InetSocketAddress> getAddresses() {

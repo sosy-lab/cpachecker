@@ -13,9 +13,7 @@ def relative_path(name):
 
 
 def create_arg_parser():
-    parser = argparse.ArgumentParser(
-        description="Transforms Worker logs to HTML."
-    )
+    parser = argparse.ArgumentParser(description="Transforms Worker logs to HTML.")
 
     parser.add_argument("--dir", type=str)
 
@@ -24,8 +22,8 @@ def create_arg_parser():
 
 def parse_jsons(path):
     jsons = list()
-    for filename in glob.glob(os.path.join(path, '*.json')):
-        with open(os.path.join(os.getcwd(), filename), 'r') as f:
+    for filename in glob.glob(os.path.join(path, "*.json")):
+        with open(os.path.join(os.getcwd(), filename), "r") as f:
             jsons.append(json.loads(f.read()))
     return jsons
 
@@ -53,42 +51,67 @@ def find_all_worker_ids(jsons):
 
 
 def html_for_message(message):
+    def wrap(tag, content, options=None):
+        option_str = " " + (" ".join(options) if options else "")
+        return f"<{tag}{option_str}>{content}</{tag}>"
+
+    def from_post(blocks):
+        return wrap("p", wrap("span", "&uarr;") + wrap("span", f"{blocks}"))
+
+    def from_pre(blocks):
+        return wrap("p", wrap("span", "&darr;") + wrap("span", f"{blocks}"))
+
+    def from_block(direction, successor, predecessor, introduction="Received from "):
+        if direction == "FORWARD":
+            return from_pre(
+                introduction + wrap("b", ", ".join(sorted(predecessor))) + ":"
+            )
+        else:
+            return from_post(introduction + wrap("b", ", ".join(sorted(successor))) + ":")
+
     if not message:
         return "<div></div>"
     # msg_id = message["id"]
     predecessors = message["predecessors"]
     successors = message["successors"]
     condition = message["currentMap"]
-    direction = "pre" if message["action"] == "FORWARD" else "post"
     result = message["result"]
     code = message["code"].replace("]", "]\n").replace(";", ";\n")
+    action = message["action"]
 
-    from_blocks = "Received from <b>" + ", ".join(sorted(predecessors if direction == "pre" else successors)) + "</b>:"
-    arrow = "&darr;" if direction == "pre" else "&uarr;"
-    from_part = f"<p><span>{arrow}</span><span>{from_blocks}</span></p>"
+    from_part = from_block(action, successors, predecessors)
 
-    condition_part = f"<p><textarea readonly>{condition}</textarea></p>"
+    condition_part = wrap("p", wrap("textarea", f"{condition}", options="readonly"))
 
-    to_blocks = f"Calculating new {direction}condition for <b>" + ", ".join(sorted(predecessors if direction != "pre" else successors)) + "</b>:"
-    result_part = f"<p><textarea readonly>{result}</textarea></p>"
+    condition_name = "pre" if action == "FORWARD" else "post"
 
-    return f'<div title="{code}" class="{direction}cond">{from_part}{condition_part}{to_blocks}{result_part}</div>'
+    to_blocks = from_block(
+        action,
+        predecessors,
+        successors,
+        introduction=f"Calculating new {condition_name}condition for ",
+    )
+    result_part = wrap("p", wrap("textarea", f"{result}", options="readonly"))
+
+    return wrap(
+        "div",
+        f"{from_part}{condition_part}{to_blocks}{result_part}",
+        options=[f'title="{code}"', f'class="{condition_name}cond"'],
+    )
 
 
 def html_dict_to_html_table(html_dict):
-    table = '<table id="worker">'
-    headline = "<tr>"
+    table = "<tr>"
     for key in html_dict.keys():
-        headline += "<th>" + str(key) + "</th>"
-    headline += "</tr>"
-    table += headline
+        table += "<th>" + str(key) + "</th>"
+    table += "</tr>"
     for values in zip(*html_dict.values()):
         row = "<tr>"
         for value in values:
             row += "<td>" + str(value) + "</td>"
         row += "</tr>"
         table += row
-    return table + "</table>"
+    return table
 
 
 def main(argv=None):
@@ -113,9 +136,17 @@ def main(argv=None):
         for unused in unused_ids:
             render_dict[unused].append(None)
     print("Create table...")
-    html_dict = {"time": list(time_stamps.keys()), **{block_id: list(map(html_for_message, render_dict[block_id])) for block_id in render_dict.keys()}}
+    html_dict = {
+        "time": list(time_stamps.keys()),
+        **{
+            block_id: list(map(html_for_message, render_dict[block_id]))
+            for block_id in render_dict.keys()
+        },
+    }
     with open(relative_path("table.html")) as html:
-        text = html.read().replace("<!--<<<TABLE>>><!-->", html_dict_to_html_table(html_dict))
+        text = html.read().replace(
+            "<!--<<<TABLE>>><!-->", html_dict_to_html_table(html_dict)
+        )
         with open(relative_path("report.html"), "w+") as new_html:
             new_html.write(text)
     webbrowser.open(relative_path("report.html"))

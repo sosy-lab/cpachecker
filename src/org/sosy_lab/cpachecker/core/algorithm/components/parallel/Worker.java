@@ -18,7 +18,7 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.PriorityBlockingQueue;
 import java.util.logging.Level;
 import javax.annotation.Nonnull;
 import org.sosy_lab.common.ShutdownManager;
@@ -28,7 +28,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.components.parallel.Message.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.components.parallel.WorkerAnalysis.BackwardAnalysis;
@@ -184,11 +183,11 @@ public class Worker implements Runnable {
 
   public void analyze() throws InterruptedException, CPAException, IOException, SolverException {
     while (!finished) {
-      if (read.isEmpty() && (lastMessage.isEmpty()
-          || lastMessage.orElseThrow().getType() != MessageType.STALE)) {
+      if (read.isEmpty()) {
         broadcast(Message.newStaleMessage(block.getId(), true));
       }
       Message m = read.take();
+      broadcast(Message.newStaleMessage(block.getId(), false));
       processMessage(m);
     }
   }
@@ -203,9 +202,10 @@ public class Worker implements Runnable {
       case PRECONDITION:
         processPreconditionMessage(message);
         break;
-      case FINISHED:
-        processFinishMessage(message);
+      case SHUTDOWN:
+        shutdown(message);
         break;
+      case FOUND_VIOLATION:
       case STALE:
         break;
       default:
@@ -213,14 +213,15 @@ public class Worker implements Runnable {
     }
   }
 
-  private void processFinishMessage(Message message) throws IOException {
-    Preconditions.checkArgument(message.getType() == MessageType.FINISHED,
-        "can only process messages with type %s", MessageType.FINISHED);
-    finished = true;
-    broadcast(Message.newFinishMessage(block.getId(), message.getTargetNodeNumber(),
-        Result.valueOf(message.getPayload())));
-    shutdownCommunication();
+  private void shutdown(Message message) throws IOException {
+    Preconditions.checkArgument(message.getType() == MessageType.SHUTDOWN,
+        "can only process messages with type %s", MessageType.SHUTDOWN);
     logger.log(Level.INFO, "Shutting down worker for", block.getId());
+    finished = true;
+    for (WorkerClient client : clients) {
+      client.close();
+    }
+    socketThread.interrupt();
     Thread.currentThread().interrupt();
   }
 
@@ -330,13 +331,6 @@ public class Worker implements Runnable {
     return block.getId();
   }
 
-  public void shutdownCommunication() throws IOException {
-    for (WorkerClient client : clients) {
-      client.close();
-    }
-    socketThread.interrupt();
-  }
-
   @Override
   public String toString() {
     return "Worker{" + "block=" + block + ", finished=" + finished + '}';
@@ -366,8 +360,8 @@ public class Worker implements Runnable {
         int pPort)
         throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
       workerCount++;
-      BlockingQueue<Message> sharedQueue = new LinkedBlockingQueue<>();
-      WorkerSocket socket = socketFactory.makeSocket(pLogger, sharedQueue, pNode.getId(), pAddress, pPort);
+      BlockingQueue<Message> sharedQueue = new PriorityBlockingQueue<>();
+      WorkerSocket socket = socketFactory.makeSocket(pLogger, sharedQueue, pAddress, pPort);
       return new Worker(pNode.getId() + "W" + workerCount, pNode, sharedQueue, socket, pLogger, pCFA, pSpecification, pConfiguration,
           pShutdownManager);
     }
