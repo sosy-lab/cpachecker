@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 /**
@@ -138,18 +137,4 @@ public final class JBinaryExpression extends ABinaryExpression implements JExpre
 
     return super.equals(obj);
   }
-
-  @Override
-  public <
-          R,
-          R1 extends R,
-          R2 extends R,
-          X1 extends Exception,
-          X2 extends Exception,
-          V extends CAstNodeVisitor<R1, X1> & JAstNodeVisitor<R2, X2>>
-      R accept_(V pV) throws X1, X2 {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
 }

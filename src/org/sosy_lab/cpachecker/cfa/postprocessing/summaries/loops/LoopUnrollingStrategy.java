@@ -12,12 +12,8 @@ import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.GhostCFA;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyInterface;
 
 public class LoopUnrollingStrategy extends AbstractLoopStrategy {
@@ -34,7 +30,12 @@ public class LoopUnrollingStrategy extends AbstractLoopStrategy {
     maxUnrollingsStrategy = pMaxUnrollingsStrategy;
   }
 
-  private Optional<GhostCFA> summaryCFA(CFANode pLoopStartNode, Integer pLoopBranchIndex) {
+  @Override
+  public Optional<GhostCFA> summarize(CFANode pLoopStartNode) {
+    return Optional.empty();
+  }
+
+  /*
     // Initialize Ghost CFA
     CFANode startNodeGhostCFA = CFANode.newDummyCFANode("LSSTARTGHHOST");
     CFANode endNodeGhostCFA = CFANode.newDummyCFANode("LSENDGHHOST");
@@ -105,8 +106,5 @@ public class LoopUnrollingStrategy extends AbstractLoopStrategy {
     return Optional.of(ghostCFA);
   }
 
-  @Override
-  public boolean isPrecise() {
-    return true;
-  }
+  */
 }

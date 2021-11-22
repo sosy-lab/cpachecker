@@ -113,37 +113,6 @@ public class AbstractLoopExtrapolationStrategy extends AbstractLoopStrategy {
     return false;
   }
 
-  @Override
-  protected Optional<Integer> getLoopBranchIndex(CFANode loopStartNode) {
-    if (loopStartNode.getNumLeavingEdges() != 2) {
-      return Optional.empty();
-    }
-    CFANode nextNode0 = loopStartNode.getLeavingEdge(0).getSuccessor();
-    CFANode nextNode1 = loopStartNode.getLeavingEdge(1).getSuccessor();
-    boolean nextNode0Valid = true;
-    boolean nextNode1Valid = true;
-    while (nextNode0 != loopStartNode
-        && nextNode1 != loopStartNode
-        && (nextNode0Valid || nextNode1Valid)) {
-      if (nextNode0Valid && nextNode0.getNumLeavingEdges() == 1) {
-        nextNode0 = nextNode0.getLeavingEdge(0).getSuccessor();
-      } else {
-        nextNode0Valid = false;
-      }
-      if (nextNode1Valid && nextNode1.getNumLeavingEdges() == 1) {
-        nextNode1 = nextNode1.getLeavingEdge(0).getSuccessor();
-      } else {
-        nextNode1Valid = false;
-      }
-      if (nextNode0 == loopStartNode) {
-        return Optional.of(0);
-      } else if (nextNode1 == loopStartNode) {
-        return Optional.of(1);
-      }
-    }
-    return Optional.empty();
-  }
-
   // Returns the bound in the form 0 < x where x is the CExpression returned
   protected Optional<CExpression> bound(final CFANode pLoopStartNode) {
     CFAEdge edge = pLoopStartNode.getLeavingEdge(0);

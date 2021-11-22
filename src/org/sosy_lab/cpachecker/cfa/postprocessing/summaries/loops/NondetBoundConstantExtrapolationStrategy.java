@@ -8,36 +8,13 @@
 
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.GhostCFA;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyInterface;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public class NondetBoundConstantExtrapolationStrategy extends ConstantExtrapolationStrategy {
 
@@ -56,11 +33,11 @@ public class NondetBoundConstantExtrapolationStrategy extends ConstantExtrapolat
   // extrapolation is nondet, which will always generate an overflow. Does it still make sense
   // to include this as a valid Strategy?
 
-  protected Optional<GhostCFA> summaryCFA(
-      final CFANode loopStartNode,
-      final Map<String, Integer> loopVariableDelta,
-      final Integer loopBranchIndex) {
-    CFANode startNode = CFANode.newDummyCFANode("Ghost in the shell");
+  @Override
+  public Optional<GhostCFA> summarize(final CFANode beforeWhile) {
+    return Optional.empty();
+  }
+    /*CFANode startNode = CFANode.newDummyCFANode("Ghost in the shell");
 
     String variableName =
         "tmpVarForLoopBoundWithExtraUniqueIdentifierIfThisVaribeleNameWasAlreadyTakenSomethingIsWrongWithYourCode";
@@ -187,10 +164,5 @@ public class NondetBoundConstantExtrapolationStrategy extends ConstantExtrapolat
     }
 
     return Optional.of(ghostCFA);
-  }
-
-  @Override
-  public boolean isPrecise() {
-    return false;
-  }
+  }*/
 }
