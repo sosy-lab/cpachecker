@@ -544,7 +544,7 @@ public class SMGExpressionEvaluator {
         SMGState newState = subscriptValueAndState.getSmgState();
 
         if (subscriptValue.isUnknown()) {
-          if (newState.isTrackPredicatesEnabled()  && !arrayAddress.isUnknown()) {
+          if (newState.isTrackErrorPredicatesEnabled()  && !arrayAddress.isUnknown()) {
             for (SMGValueAndState symbolicValueAndState :
                 evaluateNonAddressValue(newState, cfaEdge, subscriptExpression)) {
               SMGValue value = symbolicValueAndState.getObject();

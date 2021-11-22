@@ -1961,7 +1961,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     return options.trackPredicates();
   }
 
-  boolean isTrackErrorPredicatesEnabled() {
+  public boolean isTrackErrorPredicatesEnabled() {
     return options.trackErrorPredicates();
   }
 
