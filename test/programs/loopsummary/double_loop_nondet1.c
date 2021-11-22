@@ -28,7 +28,7 @@ int main() {
       i=0;
       while (i<5000) {
         x-=1;
-        i+=1
+        i+=1;
       }
     }
     __VERIFIER_assert(x == 1000000);

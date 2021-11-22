@@ -14,7 +14,7 @@ properties:
   - property_file: ../../config/properties/unreach-call.prp
     expected_verdict: true
   - property_file: ../../config/properties/no-overflow.prp
-    expected_verdict: true
+    expected_verdict: false
 
 options:
   language: C
