@@ -19,18 +19,19 @@ int main() {
   int x = __VERIFIER_nondet_int();
   int i = 0;
   if (x < 1000000) {
-    while (x<1000000) {
-      i = 0;
-      while (i<5000 + 1) {
-        x+=1;
-        i+=1;
+        while (x<1000000) {
+          i = 0;
+          while (i<5000 + 1) {
+            x+=1;
+            i+=1;
+          }
+          i=0;
+          while (i<5000) {
+            x-=1;
+            i+=1;
+          }
+        __VERIFIER_assert(x != 1000000);
       }
-      i=0;
-      while (i<5000) {
-        x-=1;
-        i+=1;
-      }
-    __VERIFIER_assert(x != 1000000);
   }
   return 0;
 }
