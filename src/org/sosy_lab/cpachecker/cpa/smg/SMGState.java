@@ -1965,6 +1965,10 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     return options.trackErrorPredicates();
   }
 
+  public boolean isCrashOnUnknownEnabled() {
+    return options.crashOnUnknown();
+  }
+
   public void addPredicateRelation(
       SMGValue pV1,
       SMGType pSMGType1,

@@ -570,6 +570,9 @@ public class SMGExpressionEvaluator {
               }
             }
           } else {
+            if (newState.isCrashOnUnknownEnabled()) {
+              throw new CPATransferException("Unknown array index");
+            }
             // assume address is invalid
             newState = handleUnknownDereference(newState, cfaEdge).getSmgState();
           }
