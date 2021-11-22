@@ -1904,7 +1904,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   @Override
   public SMGState withUnknownDereference() {
     // TODO: accurate define SMG change on unknown dereference with predicate knowledge
-    if (options.isHandleUnknownDereferenceAsSafe() && isTrackPredicatesEnabled()) {
+    if (options.isHandleUnknownDereferenceAsSafe() && isTrackErrorPredicatesEnabled()) {
       // doesn't stop analysis on unknown dereference
       return this;
     }
@@ -2314,7 +2314,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   }
 
   public void unknownWrite() {
-    if (!isTrackPredicatesEnabled()) {
+    if (!isTrackErrorPredicatesEnabled()) {
       heap.clearValues();
     }
   }
