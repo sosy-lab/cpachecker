@@ -15,6 +15,11 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyInterface;
 public interface StrategyDependencyInterface {
 
   /*
+   * Returns true if the CFA postprocessing should stop or not
+   */
+  public boolean stopPostProcessing(Integer iteration, boolean changesInCFA);
+
+  /*
    * Returns true if the Strategy can be applied in this iteration, else false
    */
   public boolean apply(StrategyInterface pStrategy, Integer iteration);
@@ -24,6 +29,5 @@ public interface StrategyDependencyInterface {
    * This solves the Problem of Strategies depending on one another to be applied
    *
    */
-
   public List<StrategiesEnum> filter(List<StrategiesEnum> availableStrategies);
 }

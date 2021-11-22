@@ -10,7 +10,7 @@
     <booleanAttribute key="org.eclipse.jdt.launching.ATTR_USE_CLASSPATH_ONLY_JAR" value="false"/>
     <stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value="org.sosy_lab.cpachecker.cmdline.CPAMain"/>
     <stringAttribute key="org.eclipse.jdt.launching.MODULE_NAME" value="CPAchecker"/>
-    <stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="-config config/loopsummary/predicateAnalysis-loopsummary.properties -spec test/config/properties/unreach-call.prp test/programs/loopsummary/naive_multiple_loops4.c"/>
+    <stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="-config config/loopsummary/predicateAnalysis-loopsummary.properties -spec test/config/properties/unreach-call.prp test/programs/loopsummary/naive.c"/>
     <stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="CPAchecker"/>
     <stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-ea&#10;-Xmx1200m"/>
 </launchConfiguration>

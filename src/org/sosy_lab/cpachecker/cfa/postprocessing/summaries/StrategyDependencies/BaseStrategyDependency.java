@@ -28,4 +28,9 @@ public class BaseStrategyDependency implements StrategyDependencyInterface {
     }
     return preferredStrategies;
   }
+
+  @Override
+  public boolean stopPostProcessing(Integer pIteration, boolean pChangesInCFA) {
+    return true;
+  }
 }

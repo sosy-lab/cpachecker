@@ -9,7 +9,10 @@
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -60,7 +63,7 @@ public class NaiveLoopAccelerationStrategy extends AbstractLoopStrategy {
     CFANode startNodeGhostCFA = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
     CFANode endNodeGhostCFA = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
 
-    CFANode currentNode = startNodeGhostCFA;
+    CFANode currentNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
     CFANode newNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
 
     CFAEdge loopBoundCFAEdge =
@@ -72,9 +75,11 @@ public class NaiveLoopAccelerationStrategy extends AbstractLoopStrategy {
             (CExpression) pLoopBoundExpression,
             true);
     loopBoundCFAEdge.connect();
+
     CAssumeEdge negatedBoundCFAEdge =
         ((CAssumeEdge) loopBoundCFAEdge).negate().copyWith(startNodeGhostCFA, endNodeGhostCFA);
     negatedBoundCFAEdge.connect();
+
     for (AVariableDeclaration pc : pModifiedVariables) {
       CIdExpression leftHandSide = new CIdExpression(FileLocation.DUMMY, (CSimpleDeclaration) pc);
       CFunctionCallExpression rightHandSide =
@@ -141,20 +146,26 @@ public class NaiveLoopAccelerationStrategy extends AbstractLoopStrategy {
   @Override
   public Optional<GhostCFA> summarize(final CFANode beforeWhile) {
 
-    if (beforeWhile.getNumLeavingEdges() != 1) {
+    List<CFAEdge> filteredOutgoingEdges =
+        this.summaryFilter.getEdgesForStrategies(
+            beforeWhile.getLeavingEdges(),
+            new HashSet<>(Arrays.asList(StrategiesEnum.Base, this.strategyEnum)));
+
+    if (filteredOutgoingEdges.size() != 1) {
       return Optional.empty();
     }
 
-    if (!beforeWhile.getLeavingEdge(0).getDescription().equals("while")) {
+    if (!filteredOutgoingEdges.get(0).getDescription().equals("while")) {
       return Optional.empty();
     }
 
-    CFANode loopStartNode = beforeWhile.getLeavingEdge(0).getSuccessor();
+    CFANode loopStartNode = filteredOutgoingEdges.get(0).getSuccessor();
 
     Optional<Loop> loopStructureMaybe = summaryInformation.getLoop(loopStartNode);
     if (loopStructureMaybe.isEmpty()) {
       return Optional.empty();
     }
+
     Loop loopStructure = loopStructureMaybe.orElseThrow();
 
     Set<AVariableDeclaration> modifiedVariables = loopStructure.getModifiedVariables();

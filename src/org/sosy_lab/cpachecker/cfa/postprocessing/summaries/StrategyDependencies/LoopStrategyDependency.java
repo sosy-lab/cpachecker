@@ -45,4 +45,13 @@ public class LoopStrategyDependency implements StrategyDependencyInterface {
     }
     return preferredStrategies;
   }
+
+  @Override
+  public boolean stopPostProcessing(Integer pIteration, boolean pChangesInCFA) {
+    if (pIteration < 3) {
+      return false;
+    } else {
+      return !pChangesInCFA;
+    }
+  }
 }

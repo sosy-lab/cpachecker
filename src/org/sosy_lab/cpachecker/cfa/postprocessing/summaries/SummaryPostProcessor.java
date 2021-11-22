@@ -80,7 +80,6 @@ public class SummaryPostProcessor {
     List<CFANode> newNodes = new ArrayList<>();
     Set<CFANode> visitedNodes = new HashSet<>();
     while (!fixpoint) {
-      fixpoint = true;
       ghostCfaToBeAdded = new ArrayList<>();
 
       currentNodes.add(startNode);
@@ -115,6 +114,7 @@ public class SummaryPostProcessor {
       currentNodes = new ArrayList<>();
       newNodes = new ArrayList<>();
       visitedNodes = new HashSet<>();
+      nodesAdded = true;
 
       if (iterations > maxIterationsSummaries) {
         fixpoint = true;
@@ -128,6 +128,8 @@ public class SummaryPostProcessor {
         }
         summaryInformation.addGhostCFA(gCFA);
       }
+
+      fixpoint = this.strategyDependencies.stopPostProcessing(iterations, !fixpoint);
     }
 
     return pCfa;

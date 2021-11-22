@@ -25,4 +25,9 @@ public class NoStrategyDependency implements StrategyDependencyInterface {
     List<StrategiesEnum> preferredStrategies = new ArrayList<>();
     return preferredStrategies;
   }
+
+  @Override
+  public boolean stopPostProcessing(Integer pIteration, boolean pChangesInCFA) {
+    return true;
+  }
 }

@@ -8,8 +8,11 @@
 
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -369,15 +372,18 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
   @Override
   public Optional<GhostCFA> summarize(final CFANode beforeWhile) {
 
-    if (beforeWhile.getNumLeavingEdges() != 1) {
+    List<CFAEdge> filteredOutgoingEdges =
+        this.summaryFilter.getEdgesForStrategies(beforeWhile.getLeavingEdges(), new HashSet<>(Arrays.asList(StrategiesEnum.Base, this.strategyEnum)));
+
+    if (filteredOutgoingEdges.size() != 1) {
       return Optional.empty();
     }
 
-    if (!beforeWhile.getLeavingEdge(0).getDescription().equals("while")) {
+    if (!filteredOutgoingEdges.get(0).getDescription().equals("while")) {
       return Optional.empty();
     }
 
-    CFANode loopStartNode = beforeWhile.getLeavingEdge(0).getSuccessor();
+    CFANode loopStartNode = filteredOutgoingEdges.get(0).getSuccessor();
 
     Optional<Loop> loopStructureMaybe = summaryInformation.getLoop(loopStartNode);
     if (loopStructureMaybe.isEmpty()) {
