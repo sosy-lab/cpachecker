@@ -619,7 +619,7 @@ public final class LoopStructure implements Serializable {
               new AggregateConstantsVisitor<>(Optional.of(varSet), true);
           Optional<Integer> valueOptional;
 
-          if (!(assign instanceof AExpression)) {
+          if (!(assign.getRightHandSide() instanceof AExpression)) {
             return Optional.empty();
           }
 
