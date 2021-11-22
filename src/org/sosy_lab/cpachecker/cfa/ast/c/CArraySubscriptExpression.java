@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
@@ -23,6 +24,20 @@ public final class CArraySubscriptExpression extends AArraySubscriptExpression i
                                       final CExpression pArrayExpression,
                                       final CExpression pSubscriptExpression) {
     super(pFileLocation, pType, pArrayExpression, pSubscriptExpression);
+  }
+
+  @Override
+  public AArraySubscriptExpression copyWithExpressions(
+      AExpression pArrayExpression, AExpression pSubscriptExpression) {
+    if (pArrayExpression instanceof CExpression && pSubscriptExpression instanceof CExpression) {
+      return new CArraySubscriptExpression(
+          this.getFileLocation(),
+          this.getExpressionType(),
+          (CExpression) pArrayExpression,
+          (CExpression) pSubscriptExpression);
+    } else {
+      return null;
+    }
   }
 
   @Override

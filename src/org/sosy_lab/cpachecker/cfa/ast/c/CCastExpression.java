@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.ACastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
@@ -26,6 +27,16 @@ public final class CCastExpression extends ACastExpression implements CExpressio
   public CCastExpression(
       final FileLocation pFileLocation, final CType pExpressionType, final CExpression pOperand) {
     super(pFileLocation, pExpressionType, pOperand);
+  }
+
+  @Override
+  public AExpression copyWithExpression(AExpression pNewOperand) {
+    if (pNewOperand instanceof CCastExpression) {
+      return new CCastExpression(
+          this.getFileLocation(), this.getExpressionType(), (CExpression) pNewOperand);
+    } else {
+      return null;
+    }
   }
 
   /** returns the target-type of the cast-expression.

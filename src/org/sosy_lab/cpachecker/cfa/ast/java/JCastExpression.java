@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import org.sosy_lab.cpachecker.cfa.ast.ACastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
@@ -28,6 +29,16 @@ public final class JCastExpression extends ACastExpression implements JExpressio
 
   public JCastExpression(FileLocation pFileLocation, JType pCastType, JExpression pOperand) {
     super(pFileLocation, pCastType, pOperand);
+  }
+
+  @Override
+  public AExpression copyWithExpression(AExpression pNewOperand) {
+    if (pNewOperand instanceof JCastExpression) {
+      return new JCastExpression(
+          this.getFileLocation(), this.getExpressionType(), (JExpression) pNewOperand);
+    } else {
+      return null;
+    }
   }
 
   @Override

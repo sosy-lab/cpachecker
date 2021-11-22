@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import java.util.Objects;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -33,6 +34,20 @@ public final class CComplexCastExpression extends AbstractExpression implements 
     isReal = pIsRealCast;
     operand = pOperand;
     type = pType;
+  }
+
+  public CComplexCastExpression copyWithExpression(AExpression pOperand) {
+    if (pOperand instanceof CExpression) {
+      return new CComplexCastExpression(
+          this.getFileLocation(),
+          this.getExpressionType(),
+          (CExpression) pOperand,
+          this.getExpressionType(),
+          this.isReal);
+    } else {
+      return null;
+    }
+
   }
 
   @Override

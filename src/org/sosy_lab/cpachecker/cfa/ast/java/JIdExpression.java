@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
@@ -32,6 +33,19 @@ public class JIdExpression extends AIdExpression implements JLeftHandSide {
     // TODO Refactor, so we do not need null for declaration.
     // (Insert extra classes or objects for unresolvable declarations)
     //assert pDeclaration != null;
+  }
+
+  @Override
+  public AIdExpression copyWithDeclaration(ASimpleDeclaration pDeclaration) {
+    if (pDeclaration instanceof JSimpleDeclaration) {
+      return new JIdExpression(
+          this.getFileLocation(),
+          this.getExpressionType(),
+          pDeclaration.getName(),
+          (JSimpleDeclaration) pDeclaration);
+    } else {
+      return null;
+    }
   }
 
   @Override

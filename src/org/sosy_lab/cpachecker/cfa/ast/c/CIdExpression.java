@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
@@ -26,6 +27,19 @@ public final class CIdExpression extends AIdExpression implements CLeftHandSide 
 
   public CIdExpression(final FileLocation pFileLocation, final CSimpleDeclaration pDeclaration) {
     super(pFileLocation, pDeclaration);
+  }
+
+  @Override
+  public AIdExpression copyWithDeclaration(ASimpleDeclaration pDeclaration) {
+    if (pDeclaration instanceof CSimpleDeclaration) {
+      return new CIdExpression(
+          this.getFileLocation(),
+          this.getExpressionType(),
+          pDeclaration.getName(),
+          (CSimpleDeclaration) pDeclaration);
+    } else {
+      return null;
+    }
   }
 
   @Override

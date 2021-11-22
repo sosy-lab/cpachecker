@@ -8,8 +8,11 @@
 
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops;
 
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -22,9 +25,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.visitors.ReplaceVariablesVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.visitors.VariableCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.GhostCFA;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
@@ -32,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.expressions.AExpressionsFactory;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.expressions.AExpressionsFactory.ExpressionType;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.expressions.LoopVariableDeltaVisitor;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -206,8 +214,88 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
 
     CFANode nextSummaryNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
 
-    // Make Summary of Loop
 
+    // To evade race conditions when the loop bound variables are updated before the
+    // rest. The solution is to init new Variables and set them to the original value and replace
+    // the new ones into the iterations Expression
+    VariableCollectorVisitor<Exception> variableCollectorVisitor = new VariableCollectorVisitor<>();
+
+    Set<AVariableDeclaration> modifiedVariablesLocal;
+
+    try {
+      modifiedVariablesLocal = pIterations.accept_(variableCollectorVisitor);
+    } catch (Exception e) {
+      return Optional.empty();
+    }
+
+    Map<AVariableDeclaration, AVariableDeclaration> mappingFromOriginalToTmpVariables =
+        new HashMap<>();
+
+    for (AVariableDeclaration var : modifiedVariablesLocal) {
+
+      if (!(var instanceof CVariableDeclaration)) {
+        return Optional.empty();
+      }
+
+      // First create the new variable
+      CVariableDeclaration newVariable =
+          new CVariableDeclaration(
+              FileLocation.DUMMY,
+              false,
+              ((CVariableDeclaration) var).getCStorageClass(),
+              (CType) var.getType(),
+              var.getName() + "TmpVariableForLoopBoundary",
+              var.getOrigName() + "TmpVariableForLoopBoundary",
+              var.getQualifiedName() + "TmpVariableForLoopBoundary",
+              null);
+
+      mappingFromOriginalToTmpVariables.put(var, newVariable);
+
+      CFAEdge varInitEdge =
+          new CDeclarationEdge(
+              newVariable.toString(),
+              FileLocation.DUMMY,
+              currentSummaryNodeCFA,
+              nextSummaryNode,
+              newVariable);
+      varInitEdge.connect();
+
+      currentSummaryNodeCFA = nextSummaryNode;
+      nextSummaryNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
+
+      // Then create a new Variable based on the value of the old variable
+      CIdExpression oldVariableAsExpression =
+          new CIdExpression(FileLocation.DUMMY, (CSimpleDeclaration) var);
+
+      AExpressionsFactory expressionFactory = new AExpressionsFactory(ExpressionType.C);
+      CExpressionAssignmentStatement assignmentExpression =
+          (CExpressionAssignmentStatement)
+              expressionFactory.from(oldVariableAsExpression).assignTo(newVariable).build();
+
+      CFAEdge dummyEdge =
+          new CStatementEdge(
+              assignmentExpression.toString(),
+              assignmentExpression,
+              FileLocation.DUMMY,
+              currentSummaryNodeCFA,
+              nextSummaryNode);
+      dummyEdge.connect();
+
+      currentSummaryNodeCFA = nextSummaryNode;
+      nextSummaryNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
+    }
+
+    // Transform the iterations by replacing the Variables
+    ReplaceVariablesVisitor<Exception> replaceVariablesVisitor =
+        new ReplaceVariablesVisitor<>(mappingFromOriginalToTmpVariables);
+    AExpression transformedIterations;
+    try {
+      transformedIterations = pIterations.accept_(replaceVariablesVisitor);
+    } catch (Exception e) {
+      return Optional.empty();
+    }
+
+    // Make Summary of Loop
     for (AVariableDeclaration var : pLoopStructure.getModifiedVariables()) {
       Optional<Integer> deltaMaybe = pLoopStructure.getDelta(var.getQualifiedName());
       if (deltaMaybe.isEmpty()) {
@@ -223,7 +311,7 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
       CExpressionAssignmentStatement assignmentExpression =
           (CExpressionAssignmentStatement)
               expressionFactory
-                  .from(pIterations)
+                  .from(transformedIterations)
                   .minus(1)
                   .multiply(delta)
                   .add(

@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
@@ -30,6 +31,20 @@ public final class JArraySubscriptExpression extends AArraySubscriptExpression
   public JArraySubscriptExpression(FileLocation pFileLocation, JType pType, JExpression pArrayExpression,
       JExpression pSubscriptExpression) {
     super(pFileLocation, pType, pArrayExpression, pSubscriptExpression);
+  }
+
+  @Override
+  public AArraySubscriptExpression copyWithExpressions(
+      AExpression pArrayExpression, AExpression pSubscriptExpression) {
+    if (pArrayExpression instanceof JExpression && pSubscriptExpression instanceof JExpression) {
+      return new JArraySubscriptExpression(
+          this.getFileLocation(),
+          this.getExpressionType(),
+          (JExpression) pArrayExpression,
+          (JExpression) pSubscriptExpression);
+    } else {
+      return null;
+    }
   }
 
   @Override

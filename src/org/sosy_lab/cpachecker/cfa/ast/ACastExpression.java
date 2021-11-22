@@ -29,6 +29,8 @@ public abstract class ACastExpression extends AbstractLeftHandSide {
     castType = castExpressionType;
   }
 
+  public abstract AExpression copyWithExpression(AExpression pOperand);
+
   public AExpression getOperand() {
     return operand;
   }

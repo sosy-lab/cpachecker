@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.APointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -21,6 +22,15 @@ public class CPointerExpression extends APointerExpression implements CLeftHandS
                             final CType pType, final CExpression pOperand) {
     super(pFileLocation, pType, pOperand);
 
+  }
+
+  public AExpression copyWithExpression(AExpression pOperand) {
+    if (pOperand instanceof CExpression) {
+      return new CPointerExpression(
+          this.getFileLocation(), this.getExpressionType(), (CExpression) pOperand);
+    } else {
+      return null;
+    }
   }
 
   @Override

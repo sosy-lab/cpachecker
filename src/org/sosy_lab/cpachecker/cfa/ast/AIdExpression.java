@@ -33,6 +33,8 @@ public abstract class AIdExpression extends AbstractLeftHandSide {
         pDeclaration.getName(), pDeclaration);
   }
 
+  public abstract AIdExpression copyWithDeclaration(ASimpleDeclaration pDeclaration);
+
   public String getName() {
     return name;
   }

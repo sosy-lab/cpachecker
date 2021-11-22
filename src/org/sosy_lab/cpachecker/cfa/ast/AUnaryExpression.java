@@ -27,6 +27,8 @@ public abstract class AUnaryExpression extends AbstractExpression {
     operator = pOperator;
   }
 
+  public abstract AUnaryExpression copyWithExpression(final AExpression pOperand);
+
   public AExpression getOperand() {
     return operand;
   }
@@ -71,5 +73,4 @@ public abstract class AUnaryExpression extends AbstractExpression {
     /** Returns the string representation of this operator (e.g. "*", "+"). */
     String getOperator();
   }
-
 }

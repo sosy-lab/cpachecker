@@ -29,6 +29,9 @@ public abstract class AArraySubscriptExpression extends AbstractLeftHandSide {
 
   }
 
+  public abstract AArraySubscriptExpression copyWithExpressions(
+      AExpression pArrayExpression, AExpression pSubscriptExpression);
+
   public AExpression getArrayExpression() {
     return arrayExpression;
   }
