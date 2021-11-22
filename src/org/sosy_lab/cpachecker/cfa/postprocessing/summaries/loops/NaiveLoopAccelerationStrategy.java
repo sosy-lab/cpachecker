@@ -56,10 +56,12 @@ public class NaiveLoopAccelerationStrategy extends AbstractLoopStrategy {
       Set<AVariableDeclaration> pModifiedVariables,
       CFANode pBeforeWhile,
       AExpression pLoopBoundExpression) {
-    CFANode startNodeGhostCFA = CFANode.newDummyCFANode("STARTNODEGHOST");
-    CFANode endNodeGhostCFA = CFANode.newDummyCFANode("ENDNODEGHOST");
+
+    CFANode startNodeGhostCFA = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
+    CFANode endNodeGhostCFA = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
+
     CFANode currentNode = startNodeGhostCFA;
-    CFANode newNode = CFANode.newDummyCFANode("LSNA");
+    CFANode newNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
 
     CFAEdge loopBoundCFAEdge =
         new CAssumeEdge(
@@ -102,7 +104,7 @@ public class NaiveLoopAccelerationStrategy extends AbstractLoopStrategy {
               pc.getName() + " = NONDET", cStatementEdge, FileLocation.DUMMY, currentNode, newNode);
       dummyEdge.connect();
       currentNode = newNode;
-      newNode = CFANode.newDummyCFANode("LSNA");
+      newNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
     }
 
     Optional<Pair<CFANode, CFANode>> unrolledLoopNodesMaybe = pLoopStructure.unrollOutermostLoop();

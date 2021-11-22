@@ -36,6 +36,10 @@ public class LoopStrategyDependency implements StrategyDependencyInterface {
       preferredStrategies.add(StrategiesEnum.LoopConstantExtrapolation);
     } else if (pAvailableStrategies.contains(StrategiesEnum.LoopLinearExtrapolation)) {
       preferredStrategies.add(StrategiesEnum.LoopLinearExtrapolation);
+    } else if (pAvailableStrategies.contains(StrategiesEnum.LoopAcceleration)) {
+      preferredStrategies.add(StrategiesEnum.LoopAcceleration);
+    } else if (pAvailableStrategies.contains(StrategiesEnum.NaiveLoopAcceleration)) {
+      preferredStrategies.add(StrategiesEnum.NaiveLoopAcceleration);
     } else {
       preferredStrategies = pAvailableStrategies;
     }
