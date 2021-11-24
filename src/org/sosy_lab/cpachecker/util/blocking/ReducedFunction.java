@@ -58,7 +58,7 @@ class ReducedFunction {
   }
 
   public void removeEdge(ReducedNode pFrom, ReducedNode pTo, ReducedEdge pEdge) {
-    assert (cfaEdges.contains(pFrom, pTo));
+    assert cfaEdges.contains(pFrom, pTo);
     assert (activeNodes.count(pFrom) > 0);
     assert (activeNodes.count(pTo) > 0);
     assert (pEdge.getPointsTo() == pTo);

@@ -645,7 +645,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
             }
           }
 
-          assert (nodeToARGState.containsKey(locContinueLoop));
+          assert nodeToARGState.containsKey(locContinueLoop);
           relevantARGStates.addAll(contextToARGState.values());
         }
       }

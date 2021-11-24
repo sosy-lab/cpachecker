@@ -163,7 +163,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
         ignoreTargetState = false;
 
         assert ARGUtils.checkARG(pReached);
-        assert (from(pReached).filter(AbstractStates::isTargetState).isEmpty());
+        assert from(pReached).filter(AbstractStates::isTargetState).isEmpty();
 
         AlgorithmStatus status = AlgorithmStatus.UNSOUND_AND_IMPRECISE;
         try {

@@ -377,7 +377,7 @@ public class BlockedCFAReducer implements BlockComputer {
   @Override
   public ImmutableSet<CFANode> computeAbstractionNodes(final CFA pCfa) {
     assert (pCfa != null);
-    assert (this.inliningStack.isEmpty());
+    assert this.inliningStack.isEmpty();
     assert (this.functionCallSeq == 0);
 
     this.functionCallSeq = 0;

@@ -347,7 +347,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
     }
     String mainFunction = AbstractStates.extractLocation(pArgRoot).getFunctionName();
     if (!translator.addsIncludeDirectives()) {
-      assert (isValidResidualProgram(mainFunction));
+      assert isValidResidualProgram(mainFunction);
     }
     return true;
   }
