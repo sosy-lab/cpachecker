@@ -17,8 +17,6 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.UnmodifiableIterator;
@@ -347,12 +345,7 @@ public class CFAUtils {
   }
 
   public static Map<Integer, CFANode> getMappingFromNodeIDsToCFANodes(CFA pCfa) {
-    Builder<Integer, CFANode> mapBuilder =
-        ImmutableMap.builderWithExpectedSize(pCfa.getAllNodes().size());
-    for (CFANode n : pCfa.getAllNodes()) {
-      mapBuilder.put(n.getNodeNumber(), n);
-    }
-    return mapBuilder.build();
+    return from(pCfa.getAllNodes()).uniqueIndex(node -> node.getNodeNumber());
   }
 
   /**
