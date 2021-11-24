@@ -30,7 +30,8 @@ public class ModificationsPropTest {
   private static final String PROGRAM_MODIFIED = "test/programs/modified/propbased_diff_mod.c";
   private static final String FCTCALL_ORIGINAL = "test/programs/modified/function_call_original.c";
   private static final String FCTCALL_MODIFIED = "test/programs/modified/function_call_mod.c";
-  private static final String REACH_PROPERTY = "config/specification/default.spc";
+  private static final String REACH_PROPERTY = "config/properties/unreach-call.prp";
+  private static final String DEFAULT_PROPERTY = "config/specification/default.spc";
   private static final String PROP_ORIGINAL_PROGRAM = "differential.program";
   private static final String PROP_REACH_PROPERTY = "differential.badstateProperties";
   private static final String PROP_PREPROCESSING = "differential.performPreprocessing";
@@ -60,6 +61,30 @@ public class ModificationsPropTest {
             PROP_REACH_PROPERTY, REACH_PROPERTY,
             PROP_PREPROCESSING, TRUE,
             PROP_SPEC, REACH_PROPERTY,
+            PROP_DECLARATION_IGNORE, FALSE);
+
+    results = CPATestRunner.run(getProperties(CONFIG_FILE, prop), OLD_UNSEC);
+    results.assertIsUnsafe();
+
+    // Now, both once more looking into default.spc
+
+    prop =
+        ImmutableMap.of(
+            PROP_ORIGINAL_PROGRAM, OLD_UNSEC,
+            PROP_REACH_PROPERTY, DEFAULT_PROPERTY,
+            PROP_PREPROCESSING, TRUE,
+            PROP_SPEC, DEFAULT_PROPERTY,
+            PROP_DECLARATION_IGNORE, FALSE);
+
+    results = CPATestRunner.run(getProperties(CONFIG_FILE, prop), OLD_SEC);
+    results.assertIsSafe();
+
+    prop =
+        ImmutableMap.of(
+            PROP_ORIGINAL_PROGRAM, OLD_SEC,
+            PROP_REACH_PROPERTY, DEFAULT_PROPERTY,
+            PROP_PREPROCESSING, TRUE,
+            PROP_SPEC, DEFAULT_PROPERTY,
             PROP_DECLARATION_IGNORE, FALSE);
 
     results = CPATestRunner.run(getProperties(CONFIG_FILE, prop), OLD_UNSEC);
