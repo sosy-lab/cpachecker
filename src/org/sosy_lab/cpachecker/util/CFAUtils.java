@@ -31,6 +31,7 @@ import java.util.NavigableSet;
 import java.util.Queue;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.Collections3;
@@ -106,6 +107,8 @@ import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 public class CFAUtils {
+
+  public static final Pattern CFA_NODE_NAME_PATTERN = Pattern.compile("N([0-9][0-9]*)");
 
   /**
    * Return an {@link Iterable} that contains all entering edges of a given CFANode,
