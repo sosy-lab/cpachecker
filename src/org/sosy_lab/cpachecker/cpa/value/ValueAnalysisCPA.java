@@ -16,7 +16,6 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -213,7 +212,7 @@ public class ValueAnalysisCPA extends AbstractCPA
       return mapping;
     }
 
-    Map<Integer, CFANode> idToCfaNode = createMappingForCFANodes(pCfa);
+    Map<Integer, CFANode> idToCfaNode = CFAUtils.getMappingFromNodeIDsToCFANodes(pCfa);
 
     CFANode location = getDefaultLocation(idToCfaNode);
     for (String currentLine : contents) {
@@ -237,14 +236,6 @@ public class ValueAnalysisCPA extends AbstractCPA
 
   private CFANode getDefaultLocation(Map<Integer, CFANode> idToCfaNode) {
     return idToCfaNode.values().iterator().next();
-  }
-
-  private Map<Integer, CFANode> createMappingForCFANodes(CFA pCfa) {
-    Map<Integer, CFANode> idToNodeMap = new HashMap<>();
-    for (CFANode n : pCfa.getAllNodes()) {
-      idToNodeMap.put(n.getNodeNumber(), n);
-    }
-    return idToNodeMap;
   }
 
   public void injectRefinablePrecision() throws InvalidConfigurationException {
