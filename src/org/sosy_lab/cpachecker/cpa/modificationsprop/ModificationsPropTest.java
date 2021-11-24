@@ -37,6 +37,8 @@ public class ModificationsPropTest {
   private static final String PROP_PREPROCESSING = "differential.performPreprocessing";
   private static final String PROP_DECLARATION_IGNORE = "differential.ignoreDeclarations";
   private static final String PROP_SPEC = "specification";
+  private static final String PROP_ENTRY = "analysis.entryFunction";
+  private static final String VAL_ENTRY = "main";
   private static final String TRUE = "true";
   private static final String FALSE = "false";
 
@@ -46,11 +48,11 @@ public class ModificationsPropTest {
   public void worksOnDiffcondExample() throws Exception {
     Map<String, String> prop =
         ImmutableMap.of(
+            PROP_SPEC, REACH_PROPERTY,
             PROP_ORIGINAL_PROGRAM, OLD_UNSEC,
             PROP_REACH_PROPERTY, REACH_PROPERTY,
             PROP_PREPROCESSING, TRUE,
-            PROP_SPEC, REACH_PROPERTY,
-            PROP_DECLARATION_IGNORE, FALSE);
+            PROP_ENTRY, VAL_ENTRY);
 
     TestResults results = CPATestRunner.run(getProperties(CONFIG_FILE, prop), OLD_SEC);
     results.assertIsSafe();
@@ -61,7 +63,8 @@ public class ModificationsPropTest {
             PROP_REACH_PROPERTY, REACH_PROPERTY,
             PROP_PREPROCESSING, TRUE,
             PROP_SPEC, REACH_PROPERTY,
-            PROP_DECLARATION_IGNORE, FALSE);
+            PROP_DECLARATION_IGNORE, FALSE,
+            PROP_ENTRY, VAL_ENTRY);
 
     results = CPATestRunner.run(getProperties(CONFIG_FILE, prop), OLD_UNSEC);
     results.assertIsUnsafe();
@@ -100,7 +103,8 @@ public class ModificationsPropTest {
             PROP_REACH_PROPERTY, REACH_PROPERTY,
             PROP_PREPROCESSING, FALSE,
             PROP_SPEC, REACH_PROPERTY,
-            PROP_DECLARATION_IGNORE, FALSE);
+            PROP_DECLARATION_IGNORE, FALSE,
+            PROP_ENTRY, VAL_ENTRY);
 
     final TestResults results =
         CPATestRunner.run(getProperties(CONFIG_FILE, prop), PROGRAM_MODIFIED);
@@ -116,7 +120,8 @@ public class ModificationsPropTest {
             PROP_REACH_PROPERTY, REACH_PROPERTY,
             PROP_PREPROCESSING, TRUE,
             PROP_SPEC, REACH_PROPERTY,
-            PROP_DECLARATION_IGNORE, TRUE);
+            PROP_DECLARATION_IGNORE, TRUE,
+            PROP_ENTRY, VAL_ENTRY);
 
     TestResults results = CPATestRunner.run(getProperties(CONFIG_FILE, prop), FCTCALL_MODIFIED);
     results.assertIsSafe();
@@ -127,7 +132,8 @@ public class ModificationsPropTest {
             PROP_REACH_PROPERTY, REACH_PROPERTY,
             PROP_PREPROCESSING, TRUE,
             PROP_SPEC, REACH_PROPERTY,
-            PROP_DECLARATION_IGNORE, FALSE);
+            PROP_DECLARATION_IGNORE, FALSE,
+            PROP_ENTRY, VAL_ENTRY);
 
     results = CPATestRunner.run(getProperties(CONFIG_FILE, prop), FCTCALL_MODIFIED);
     results.assertIsUnsafe();
@@ -142,7 +148,8 @@ public class ModificationsPropTest {
             PROP_REACH_PROPERTY, REACH_PROPERTY,
             PROP_PREPROCESSING, TRUE,
             PROP_SPEC, REACH_PROPERTY,
-            PROP_DECLARATION_IGNORE, FALSE);
+            PROP_DECLARATION_IGNORE, FALSE,
+            PROP_ENTRY, VAL_ENTRY);
 
     final TestResults results =
         CPATestRunner.run(getProperties(CONFIG_FILE, prop), PROGRAM_ORIGINAL);
