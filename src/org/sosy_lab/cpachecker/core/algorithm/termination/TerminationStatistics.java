@@ -567,7 +567,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
     while (!waitlist.isEmpty()) {
       loc = waitlist.pop();
       pred = nodeToARGState.get(loc);
-      assert (pred != null);
+      assert pred != null;
 
       for (CFAEdge leave : CFAUtils.leavingEdges(loc)) {
         if (nonterminatingLoop.getLoopNodes().contains(leave.getSuccessor())) {
@@ -600,7 +600,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
           while (!waitlistFun.isEmpty()) {
             context = waitlistFun.pop();
             predFun = contextToARGState.get(context);
-            assert (predFun != null);
+            assert predFun != null;
 
             for (CFAEdge leaveFun : CFAUtils.leavingEdges(context.getFirst())) {
               newContext = Pair.of(leaveFun.getSuccessor(), context.getSecond());

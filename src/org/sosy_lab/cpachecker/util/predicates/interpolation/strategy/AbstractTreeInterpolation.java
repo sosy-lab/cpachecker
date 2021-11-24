@@ -85,7 +85,8 @@ public abstract class AbstractTreeInterpolation extends ITPStrategy {
     // Thus the check might fail. TODO check this!
 
     assert formulas.size() == subtrees.length() : "each formula must be part of a subtree";
-    assert formulas.size() == interpolants.size() + 1 : "number of interpolants should match the tree-structure";
+    assert formulas.size() == interpolants.size() + 1
+        : "number of interpolants should match the tree-structure";
 
     // check (A)
     if (!solver.implies(formulas.get(0), interpolants.get(0))) {
@@ -226,7 +227,7 @@ public abstract class AbstractTreeInterpolation extends ITPStrategy {
     {
       final AbstractState abstractionState = formulasWithStatesAndGroupdIds.get(callIndex).getSecond();
       final CFANode node = AbstractStates.extractLocation(abstractionState);
-      assert (node instanceof FunctionEntryNode) : "call needed as input param";
+      assert node instanceof FunctionEntryNode : "call needed as input param";
       callstack.addLast(node);
     }
 
@@ -326,12 +327,16 @@ public abstract class AbstractTreeInterpolation extends ITPStrategy {
 
     final Pair<Triple<BooleanFormula, AbstractState, T>, Integer> last = stack.removeLast();
     assert last == leftMostSubtree : "root must start at left-most subtree";
-    assert stack.isEmpty() : "after building the tree-structure there should not be formulas on the stack";
+    assert stack.isEmpty()
+        : "after building the tree-structure there should not be formulas on the stack";
 
     logger.log(Level.ALL, "formulas of tree are:", formulas);
     logger.log(Level.ALL, "subtree-structure is:", resultingStartOfSubtree);
-    assert formulas.size() == formulasWithStatesAndGroupdIds.size() :
-            "invalid number of tree elements: " + formulas.size() + " vs " + formulasWithStatesAndGroupdIds.size();
+    assert formulas.size() == formulasWithStatesAndGroupdIds.size()
+        : "invalid number of tree elements: "
+            + formulas.size()
+            + " vs "
+            + formulasWithStatesAndGroupdIds.size();
 
     return Pair.of(formulas, resultingStartOfSubtree);
   }

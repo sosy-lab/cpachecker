@@ -189,7 +189,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
     ARGState argRoot = (ARGState) pReachedSet.getFirstState();
 
     CFANode mainFunction = AbstractStates.extractLocation(argRoot);
-    assert (mainFunction != null);
+    assert mainFunction != null;
 
     if (pReachedSet.hasWaitingState()) {
       logger.log(Level.SEVERE, "Analysis run to get structure of residual program is incomplete. ",

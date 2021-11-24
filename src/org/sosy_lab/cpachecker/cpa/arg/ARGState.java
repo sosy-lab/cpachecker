@@ -362,7 +362,7 @@ public class ARGState extends AbstractSerializableSingleWrapperState
   }
 
   public boolean isOlderThan(ARGState other) {
-    return (stateId < other.stateId);
+    return stateId < other.stateId;
   }
 
   @Override

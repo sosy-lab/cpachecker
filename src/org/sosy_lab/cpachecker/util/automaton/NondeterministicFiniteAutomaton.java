@@ -56,7 +56,7 @@ public final class NondeterministicFiniteAutomaton<T> {
 
       @Override
       public boolean hasNext() {
-        return (mCounter < mSize);
+        return mCounter < mSize;
       }
 
       @Override
@@ -150,7 +150,7 @@ public final class NondeterministicFiniteAutomaton<T> {
 
       if (lEdge.mSource.equals(mSource) && lEdge.mTarget.equals(mTarget)) {
         if (mLabel == null) {
-          return (lEdge.mLabel == null);
+          return lEdge.mLabel == null;
         } else {
           return mLabel.equals(lEdge.mLabel);
         }

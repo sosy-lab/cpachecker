@@ -188,7 +188,7 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
 
     try {
       ARGState rootOfSubgraph = findPath(pLastElement, pRefinedStates);
-      assert (rootOfSubgraph != null);
+      assert rootOfSubgraph != null;
       if (rootOfSubgraph.equals(BAMMultipleCEXSubgraphComputer.DUMMY_STATE_FOR_REPEATED_STATE)) {
         return null;
       }

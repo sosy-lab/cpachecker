@@ -533,7 +533,7 @@ class ASTConverter {
 
     assert !mB.isAbstract : "Local Variable has abstract modifier?";
     assert !mB.isNative : "Local Variable has native modifier?";
-    assert (mB.visibility == VisibilityModifier.NONE) : "Local Variable has Visibility modifier?";
+    assert mB.visibility == VisibilityModifier.NONE : "Local Variable has Visibility modifier?";
     assert !mB.isStatic : "Local Variable has static modifier?";
     assert !mB.isStrictFp : "Local Variable has strictFp modifier?";
     assert !mB.isSynchronized : "Local Variable has synchronized modifier?";
