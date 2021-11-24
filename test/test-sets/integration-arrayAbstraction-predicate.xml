@@ -59,4 +59,11 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--i2c--busses--i2c-diolan-u2c.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--tty--serial--mfd.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude> <!-- flapping timeout -->
   </tasks>
+
+  <columns>
+    <column title="arrayAbstractionStatus">Array abstraction status</column>
+    <column title="arrayAbstractionTime">Time for array abstraction</column>
+    <column title="transformedArrays">Number of transformed arrays</column>
+    <column title="transformedLoops">Number of transformed loops</column>
+  </columns>
 </benchmark>

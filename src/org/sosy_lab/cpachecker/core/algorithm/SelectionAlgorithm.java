@@ -158,6 +158,7 @@ public class SelectionAlgorithm extends NestingAlgorithm {
     private boolean requiresArrayHandling = false;
     private boolean requiresFloatHandling = false;
     private boolean requiresRecursionHandling = false;
+    private boolean hasSingleLoop = false;
 
     SelectionAlgorithmStatistics(LogManager pLogger) {
       super(pLogger);
@@ -221,6 +222,10 @@ public class SelectionAlgorithm extends NestingAlgorithm {
   @Option(secure = true, description = "Configuration for loop-free programs.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path loopFreeConfig;
+
+  @Option(secure = true, description = "Configuration for programs with a single loop.")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private Path singleLoopConfig;
 
   @Option(secure = true, required = true, description = "Configuration for programs with loops.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
@@ -404,6 +409,9 @@ public class SelectionAlgorithm extends NestingAlgorithm {
         !Collections.disjoint(variableClassification.getRelevantVariables(), visitor.floatVariables)
             || !Collections.disjoint(
                 variableClassification.getAddressedFields().values(), visitor.floatVariables);
+
+    stats.hasSingleLoop =
+        loopStructure.isPresent() && loopStructure.orElseThrow().getAllLoops().size() == 1;
   }
 
   /** use statistical data and choose a configuration for further analysis. */
@@ -436,6 +444,9 @@ public class SelectionAlgorithm extends NestingAlgorithm {
         && complexLoopConfig != null) {
       // Run complex loop config
       chosenConfig = complexLoopConfig;
+    } else if (stats.hasSingleLoop && singleLoopConfig != null) {
+      // Run single loop config
+      chosenConfig = singleLoopConfig;
     } else {
       // Run standard loop config
       chosenConfig = loopConfig;

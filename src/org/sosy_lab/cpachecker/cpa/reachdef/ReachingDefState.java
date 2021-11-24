@@ -214,7 +214,7 @@ public class ReachingDefState implements AbstractState, Serializable,
     }
 
     if (changed) {
-      assert (newLocal != null);
+      assert newLocal != null;
       return new ReachingDefState(newLocal, resultOfMapUnion);
     }
     return toJoin;

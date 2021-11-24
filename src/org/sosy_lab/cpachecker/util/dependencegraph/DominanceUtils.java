@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
 import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import java.util.Collections;
 import java.util.Iterator;
@@ -17,7 +18,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-final class DominanceUtils {
+public final class DominanceUtils {
 
   private DominanceUtils() {}
 
@@ -34,37 +35,57 @@ final class DominanceUtils {
     return () -> Iterators.filter(iterator, pFilter);
   }
 
-  private static Iterable<CFANode> createPredecessorIterable(CFANode pNode) {
+  private static Iterable<CFANode> createPredecessorIterable(
+      CFANode pNode, ImmutableSet<CFANode> pIgnoreSet) {
 
     return createNodeIterable(
         pNode,
         false,
         node -> node instanceof FunctionEntryNode,
-        node -> !(node instanceof FunctionExitNode));
+        node -> !(node instanceof FunctionExitNode) && !pIgnoreSet.contains(node));
   }
 
-  private static Iterable<CFANode> createSuccessorIterable(CFANode pNode) {
+  private static Iterable<CFANode> createSuccessorIterable(
+      CFANode pNode, ImmutableSet<CFANode> pIgnoreSet) {
 
     return createNodeIterable(
         pNode,
         true,
         node -> node instanceof FunctionExitNode,
-        node -> !(node instanceof FunctionEntryNode));
+        node -> !(node instanceof FunctionEntryNode) && !pIgnoreSet.contains(node));
   }
 
   public static Dominance.DomTree<CFANode> createFunctionDomTree(FunctionEntryNode pEntryNode) {
 
     return Dominance.createDomTree(
         pEntryNode,
-        DominanceUtils::createSuccessorIterable,
-        DominanceUtils::createPredecessorIterable);
+        node -> createSuccessorIterable(node, ImmutableSet.of()),
+        node -> createPredecessorIterable(node, ImmutableSet.of()));
   }
 
   public static Dominance.DomTree<CFANode> createFunctionPostDomTree(FunctionEntryNode pEntryNode) {
 
     return Dominance.createDomTree(
         pEntryNode,
-        DominanceUtils::createPredecessorIterable,
-        DominanceUtils::createSuccessorIterable);
+        node -> createPredecessorIterable(node, ImmutableSet.of()),
+        node -> createSuccessorIterable(node, ImmutableSet.of()));
+  }
+
+  public static Dominance.DomTree<CFANode> createFunctionDomTree(
+      CFANode pStartNode, ImmutableSet<CFANode> pIgnoreSet) {
+
+    return Dominance.createDomTree(
+        pStartNode,
+        node -> createSuccessorIterable(node, pIgnoreSet),
+        node -> createPredecessorIterable(node, pIgnoreSet));
+  }
+
+  public static Dominance.DomTree<CFANode> createFunctionPostDomTree(
+      CFANode pStartNode, ImmutableSet<CFANode> pIgnoreSet) {
+
+    return Dominance.createDomTree(
+        pStartNode,
+        node -> createPredecessorIterable(node, pIgnoreSet),
+        node -> createSuccessorIterable(node, pIgnoreSet));
   }
 }

@@ -36,7 +36,7 @@ public class CFAPathStandardState implements CFAPathState, Iterable<CFAEdge> {
 
     @Override
     public boolean hasNext() {
-      return (crrentState != sEmptyPath);
+      return crrentState != sEmptyPath;
     }
 
     @Override

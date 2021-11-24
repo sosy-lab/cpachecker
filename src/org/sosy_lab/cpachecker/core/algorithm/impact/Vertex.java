@@ -173,7 +173,7 @@ class Vertex extends AbstractSingleWrapperState {
   }
 
   public boolean isOlderThan(Vertex v) {
-    return (id < v.id);
+    return id < v.id;
   }
 
   @Override
