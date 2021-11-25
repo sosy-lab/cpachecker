@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.components.parallel;
+package org.sosy_lab.cpachecker.core.algorithm.components.block_analysis;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
@@ -31,8 +31,9 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.components.state_transformer.AnyStateTransformer;
-import org.sosy_lab.cpachecker.core.algorithm.components.tree.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.components.util.MessageLogger;
 import org.sosy_lab.cpachecker.core.algorithm.components.util.MessageLogger.Action;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -61,7 +62,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public abstract class WorkerAnalysis {
+public abstract class BlockAnalysis {
 
   protected final Solver solver;
   protected final FormulaManagerView fmgr;
@@ -81,7 +82,7 @@ public abstract class WorkerAnalysis {
 
   protected AlgorithmStatus status;
 
-  public WorkerAnalysis(
+  public BlockAnalysis(
       String pId,
       LogManager pLogger,
       BlockNode pBlock,
@@ -267,7 +268,7 @@ public abstract class WorkerAnalysis {
   public abstract Message analyze(PathFormula condition, CFANode node)
       throws CPAException, InterruptedException, SolverException;
 
-  public static class ForwardAnalysis extends WorkerAnalysis {
+  public static class ForwardAnalysis extends BlockAnalysis {
 
     public ForwardAnalysis(
         String pId,
@@ -278,7 +279,8 @@ public abstract class WorkerAnalysis {
         Configuration pConfiguration,
         ShutdownManager pShutdownManager)
         throws CPAException, InterruptedException, InvalidConfigurationException, IOException {
-      super(pId, pLogger, pBlock, pCFA, AnalysisDirection.FORWARD, pSpecification, pConfiguration, pShutdownManager);
+      super(pId, pLogger, pBlock, pCFA, AnalysisDirection.FORWARD, pSpecification, pConfiguration,
+          pShutdownManager);
     }
 
     @Override
@@ -297,20 +299,23 @@ public abstract class WorkerAnalysis {
               "States need to have a location but they do not:" + targetState.get());
         }
         return Message.newPostconditionMessage(block.getId(),
-            targetNode.get().getNodeNumber(), bmgr.makeTrue(), block.getPredecessors().size() - 1, fmgr);
+            targetNode.get().getNodeNumber(), bmgr.makeTrue(),
+            fmgr);
       }
       Map<AbstractState, BooleanFormula>
           formulas = transformReachedSet(reachedSet, block.getLastNode(),
           AnalysisDirection.FORWARD);
       BooleanFormula result = formulas.isEmpty() ? bmgr.makeTrue() : bmgr.or(formulas.values());
-      actionLogger.log(Action.FORWARD, BooleanFormulaParser.parse(condition.getFormula()).toString(), BooleanFormulaParser.parse(result).toString());
+      actionLogger.log(Action.FORWARD,
+          BooleanFormulaParser.parse(condition.getFormula()).toString(),
+          BooleanFormulaParser.parse(result).toString());
       return Message.newPreconditionMessage(block.getId(), block.getLastNode().getNodeNumber(),
           result,
           fmgr);
     }
   }
 
-  public static class BackwardAnalysis extends WorkerAnalysis {
+  public static class BackwardAnalysis extends BlockAnalysis {
 
     public BackwardAnalysis(
         String pId,
@@ -321,7 +326,8 @@ public abstract class WorkerAnalysis {
         Configuration pConfiguration,
         ShutdownManager pShutdownManager)
         throws CPAException, InterruptedException, InvalidConfigurationException, IOException {
-      super(pId, pLogger, pBlock, pCFA, AnalysisDirection.BACKWARD, pSpecification, pConfiguration, pShutdownManager);
+      super(pId, pLogger, pBlock, pCFA, AnalysisDirection.BACKWARD, pSpecification, pConfiguration,
+          pShutdownManager);
     }
 
     @Override
@@ -335,13 +341,15 @@ public abstract class WorkerAnalysis {
           AnalysisDirection.BACKWARD);
       BooleanFormula result = formulas.isEmpty() ? bmgr.makeTrue() : bmgr.or(formulas.values());
       // by definition: if the post-condition reaches the root element, the specification is violated
-      actionLogger.log(Action.BACKWARD, BooleanFormulaParser.parse(condition.getFormula()).toString(), BooleanFormulaParser.parse(result).toString());
+      actionLogger.log(Action.BACKWARD,
+          BooleanFormulaParser.parse(condition.getFormula()).toString(),
+          BooleanFormulaParser.parse(result).toString());
       if (block.getPredecessors().isEmpty() && !solver.isUnsat(result)) {
         return Message.newResultMessage(block.getId(), block.getStartNode().getNodeNumber(),
             Result.FALSE);
       }
       return Message.newPostconditionMessage(block.getId(), block.getStartNode().getNodeNumber(),
-          result, 0, fmgr);
+          result, fmgr);
     }
 
     public boolean cantContinue(String currentPreCondition, String receivedPostCondition)

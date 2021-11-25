@@ -15,7 +15,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.algorithm.components.tree.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -26,7 +26,6 @@ import org.sosy_lab.cpachecker.cpa.block.BlockTransferRelation.ForwardBlockTrans
 public class BlockCPA extends AbstractCPA {
 
   private final BlockStateFactory factory;
-  private CFANode startNode;
 
   public BlockCPA(BlockStateFactory pStateFactory) {
     super("join", "sep", new ForwardBlockTransferRelation(pStateFactory));
@@ -34,7 +33,6 @@ public class BlockCPA extends AbstractCPA {
   }
 
   public void init(BlockNode pBlockNode) {
-    startNode = pBlockNode.getStartNode();
     TransferRelation relation = getTransferRelation();
     checkState(relation instanceof BlockTransferRelation, "Expected %s but got %s",
         BlockTransferRelation.class, relation.getClass());

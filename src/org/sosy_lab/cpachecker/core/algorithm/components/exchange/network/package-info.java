@@ -7,7 +7,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Provides a basic data structure for configurable block trees.
- * A block is a subgraph of the CFA.
+ * Implements a network connection using SocketChannels and Selectors
  */
-package org.sosy_lab.cpachecker.core.algorithm.components.tree;
+package org.sosy_lab.cpachecker.core.algorithm.components.exchange.network;

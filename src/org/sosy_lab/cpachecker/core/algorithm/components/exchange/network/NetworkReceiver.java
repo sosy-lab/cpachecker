@@ -6,50 +6,39 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.components.parallel;
+package org.sosy_lab.cpachecker.core.algorithm.components.exchange.network;
 
-import com.google.common.collect.ImmutableSet;
+import java.io.Closeable;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Set;
 import java.util.concurrent.BlockingQueue;
-import java.util.logging.Level;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.algorithm.components.parallel.Message.MessageConverter;
-import org.sosy_lab.cpachecker.core.algorithm.components.parallel.Message.MessageType;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageConverter;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageType;
 
-public class WorkerSocket {
+public class NetworkReceiver implements Closeable {
 
   private Selector selector;
   private final InetSocketAddress listenAddress;
   private final BlockingQueue<Message> sharedQueue;
-  private final LogManager logger;
   private final MessageConverter converter;
+  private final Thread receiverThread;
 
   private static final int BUFFER_SIZE = 1024;
 
-  private WorkerSocket(
-      LogManager pLogger,
+  NetworkReceiver(
       BlockingQueue<Message> pSharedQueue,
       InetSocketAddress pAddress
-  ) {
+  ) throws IOException {
     listenAddress = pAddress;
     sharedQueue = pSharedQueue;
-    logger = pLogger;
     converter = new MessageConverter();
-  }
-
-  // create server channel
-  public void startServer() throws IOException {
     selector = Selector.open();
     ServerSocketChannel serverChannel = ServerSocketChannel.open();
     serverChannel.configureBlocking(false);
@@ -57,15 +46,28 @@ public class WorkerSocket {
     // retrieve server socket and bind to port
     serverChannel.socket().bind(listenAddress);
     serverChannel.register(selector, SelectionKey.OP_ACCEPT);
+    receiverThread = new Thread(() -> {
+      try {
+        startServer();
+      } catch (IOException pE) {
 
-    logger.log(Level.INFO, "Server started...");
+      }
+    });
+    receiverThread.start();
+  }
 
+  public BlockingQueue<Message> getSharedQueue() {
+    return sharedQueue;
+  }
+
+  // create server channel
+  public void startServer() throws IOException {
     while (true) {
       // wait for events
       selector.select();
 
       //work on selected keys
-      Iterator<SelectionKey> keys = this.selector.selectedKeys().iterator();
+      Iterator<SelectionKey> keys = selector.selectedKeys().iterator();
       while (keys.hasNext()) {
         SelectionKey key = keys.next();
 
@@ -93,12 +95,13 @@ public class WorkerSocket {
     ServerSocketChannel serverChannel = (ServerSocketChannel) key.channel();
     SocketChannel channel = serverChannel.accept();
     channel.configureBlocking(false);
-    Socket socket = channel.socket();
-    SocketAddress remoteAddr = socket.getRemoteSocketAddress();
-    logger.log(Level.INFO, "Connected to: " + remoteAddr);
 
     // register channel with selector for further IO
     channel.register(this.selector, SelectionKey.OP_READ);
+  }
+
+  public InetSocketAddress getListenAddress() {
+    return listenAddress;
   }
 
   //read from the socket channel
@@ -109,9 +112,6 @@ public class WorkerSocket {
     int numRead = channel.read(buffer);
 
     if (numRead == -1) {
-      Socket socket = channel.socket();
-      SocketAddress remoteSocketAddress = socket.getRemoteSocketAddress();
-      logger.log(Level.INFO, "Connection closed by client: " + remoteSocketAddress);
       channel.close();
       key.cancel();
       return false;
@@ -131,34 +131,15 @@ public class WorkerSocket {
         break;
       }
       numRead = channel.read(buffer);
-    } while(true);
+    } while (true);
 
     Message received = converter.jsonToMessage(builder.toString());
     sharedQueue.add(received);
-    // logger.log(Level.INFO, "Socket received message: " + received);
-    return received.getType() == MessageType.SHUTDOWN;
+    return received.getType() == MessageType.FOUND_RESULT;
   }
 
-  public static class WorkerSocketFactory {
-
-    private final Set<InetSocketAddress> addresses;
-
-    public WorkerSocketFactory() {
-      addresses = new HashSet<>();
-    }
-
-    public WorkerSocket makeSocket(
-        LogManager pLogger,
-        BlockingQueue<Message> pSharedQueue,
-        String pAddress,
-        int pPort) throws IOException {
-      InetSocketAddress address = new InetSocketAddress(pAddress, pPort);
-      addresses.add(address);
-      return new WorkerSocket(pLogger, pSharedQueue, address);
-    }
-
-    public Set<InetSocketAddress> getAddresses() {
-      return ImmutableSet.copyOf(addresses);
-    }
+  @Override
+  public void close() throws IOException {
+    receiverThread.interrupt();
   }
 }

@@ -9,13 +9,10 @@
 package org.sosy_lab.cpachecker.core.algorithm.components;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.PriorityBlockingQueue;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -24,14 +21,17 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.components.cut.BlockOperatorCutter;
-import org.sosy_lab.cpachecker.core.algorithm.components.parallel.Message;
-import org.sosy_lab.cpachecker.core.algorithm.components.parallel.Worker;
-import org.sosy_lab.cpachecker.core.algorithm.components.parallel.Worker.WorkerFactory;
-import org.sosy_lab.cpachecker.core.algorithm.components.parallel.WorkerClient;
-import org.sosy_lab.cpachecker.core.algorithm.components.parallel.WorkerSocket;
-import org.sosy_lab.cpachecker.core.algorithm.components.tree.BlockNode;
-import org.sosy_lab.cpachecker.core.algorithm.components.tree.BlockTree;
+import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockOperatorDecomposer;
+import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockTree;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Connection;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageType;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.memory.InMemoryConnectionProvider;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.network.NetworkConnectionProvider;
+import org.sosy_lab.cpachecker.core.algorithm.components.worker.ComponentsBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.components.worker.ComponentsBuilder.Components;
+import org.sosy_lab.cpachecker.core.algorithm.components.worker.Worker;
 import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -66,80 +66,43 @@ public class ComponentAnalysis implements Algorithm {
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
     logger.log(Level.INFO, "Starting block analysis...");
     try {
-      BlockTree tree = new BlockOperatorCutter(configuration).cut(cfa);
+      BlockTree tree = new BlockOperatorDecomposer(configuration).cut(cfa);
       if (tree.isEmpty()) {
         // empty program
         return AlgorithmStatus.SOUND_AND_PRECISE;
       }
-      WorkerFactory workerFactory = new WorkerFactory();
 
-      // Create main socket
-      BlockingQueue<Message> messages = new PriorityBlockingQueue<>();
-      WorkerSocket mainSocket = workerFactory.getSocketFactory().makeSocket(logger, messages,"localhost", 8090);
-      Thread mainSocketThread = new Thread(() -> {
-        try {
-          mainSocket.startServer();
-        } catch (IOException pE) {
-          logger.log(Level.SEVERE, pE);
-        }
-      });
-      mainSocketThread.start();
+      // create run
+      Set<BlockNode> blocks = tree.getDistinctNodes();
+      ComponentsBuilder builder = new ComponentsBuilder(logger, cfa, specification, configuration, shutdownManager);
+      builder = builder.withConnectionType(InMemoryConnectionProvider.class).createAdditionalConnections(1);
+      for (BlockNode distinctNode : blocks) {
+        builder = builder.addAnalysisWorker(distinctNode);
+      }
+      builder = builder.createResultCollectorWorker(blocks.size());
+      Components components = builder.build();
 
-      // TODO: side effect -> must be executed before mainClients are created
-      Set<Worker> workers = createWorkers(tree, workerFactory);
-
-      // create all clients for the
-      Set<WorkerClient> mainClients = new HashSet<>();
-      for (InetSocketAddress address : workerFactory.getSocketFactory().getAddresses()) {
-        mainClients.add(
-            new WorkerClient(address.getAddress().getHostAddress(), address.getPort()));
+      // run all workers
+      for (Worker worker : components.getWorkers()) {
+        new Thread(worker).start();
       }
 
-      Set<String> noViolations = new HashSet<>();
-      Result result = Result.UNKNOWN;
-      boolean exitLoop = false;
-      int numberViolations = 0;
-      boolean hasViolations = false;
-      while (!exitLoop) {
-        Message m = messages.take();
-        switch (m.getType()) {
-          case FOUND_VIOLATION:
-            result = Result.FALSE;
-            exitLoop = true;
-            break;
-          case PRECONDITION:
-            noViolations.add(m.getUniqueBlockId());
-            break;
-          case POSTCONDITION:
-            int add = Integer.parseInt(m.getAdditionalInformation());
-            hasViolations = hasViolations || add > 0;
-            numberViolations += add;
-            break;
-          case REDUCE:
-            numberViolations--;
-            break;
-          case SHUTDOWN:
-            break;
-          default:
-            throw new AssertionError("Unknown MessageType " + m.getType());
-        }
-        if (noViolations.size() == workers.size() && !hasViolations) {
-          result = Result.TRUE;
+      Connection mainThreadConnection = components.getAdditionalConnections().get(0);
+
+      // Wait for result
+      Result result;
+      while (true) {
+        Message m = mainThreadConnection.read();
+        if (m.getType() == MessageType.FOUND_RESULT) {
+          result = Result.valueOf(m.getPayload());
           break;
-        } else {
-          if (hasViolations && numberViolations == 0) {
-            result = Result.TRUE;
-            break;
-          }
         }
       }
-      for (WorkerClient client : mainClients) {
-        client.broadcast(Message.newShutdownMessage());
-      }
-      for (WorkerClient mainClient : mainClients) {
-        mainClient.close();
-      }
-      mainSocketThread.interrupt();
+
+      // shutdown
+      mainThreadConnection.close();
+
+      // print result
       logger.log(Level.INFO, "Block analysis finished.");
       if (result == Result.FALSE) {
         ARGState state = (ARGState) reachedSet.getFirstState();
@@ -153,34 +116,12 @@ public class ComponentAnalysis implements Algorithm {
       if (result == Result.TRUE) {
         reachedSet.clear();
       }
-      return workers.stream().map(Worker::getStatus).reduce(AlgorithmStatus::update).orElseThrow();
-    } catch (InvalidConfigurationException | IOException pE) {
+      // TODO?????
+      return AlgorithmStatus.SOUND_AND_PRECISE;
+    } catch (InvalidConfigurationException | IOException | InvocationTargetException | InstantiationException | IllegalAccessException | NoSuchMethodException pE) {
       logger.log(Level.SEVERE, "Block analysis stopped due to ", pE);
       throw new CPAException("Invalid configuration", pE);
     }
   }
-
-  private Set<Worker> createWorkers(BlockTree tree, WorkerFactory workerFactory)
-      throws IOException, CPAException, InterruptedException, InvalidConfigurationException {
-    Set<Worker> workers = new HashSet<>();
-    int port = 8091;
-    for (BlockNode node : tree.getDistinctNodes()) {
-      Worker worker =
-          workerFactory.createWorker(node, logger, cfa, specification, configuration,
-              shutdownManager,"localhost", port++);
-      workers.add(worker);
-    }
-    for (Worker worker : workers) {
-      for (InetSocketAddress address : workerFactory.getSocketFactory().getAddresses()) {
-        worker.addClient(new WorkerClient(address));
-      }
-      new Thread(worker).start();
-    }
-    return workers;
-  }
-
-  // TODO: Parallel back and forward in two queues
-  // FastForward backwards?
-
 
 }

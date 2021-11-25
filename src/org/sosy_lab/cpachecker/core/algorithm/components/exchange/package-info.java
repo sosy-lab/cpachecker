@@ -7,6 +7,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Provides an interface and its implementations for cutting CFA to BlockNodes
+ * Implements our exchange format.
  */
-package org.sosy_lab.cpachecker.core.algorithm.components.cut;
+package org.sosy_lab.cpachecker.core.algorithm.components.exchange;

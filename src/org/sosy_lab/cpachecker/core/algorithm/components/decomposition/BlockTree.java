@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.components.tree;
+package org.sosy_lab.cpachecker.core.algorithm.components.decomposition;
 
 import java.util.ArrayDeque;
 import java.util.HashSet;

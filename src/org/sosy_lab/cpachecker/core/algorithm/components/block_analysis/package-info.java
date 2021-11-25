@@ -6,13 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.components.cut;
-
-import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.core.algorithm.components.tree.BlockTree;
-
-public interface CFACutter {
-
-  BlockTree cut(CFA cfa);
-
-}
+/**
+ * Contains all classes that are responsible for parallel computation of BlockNodes
+ */
+package org.sosy_lab.cpachecker.core.algorithm.components.block_analysis;

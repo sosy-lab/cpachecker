@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.components.cut;
+package org.sosy_lab.cpachecker.core.algorithm.components.decomposition;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
@@ -21,17 +21,15 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.components.tree.BlockNode;
-import org.sosy_lab.cpachecker.core.algorithm.components.tree.BlockNode.BlockNodeFactory;
-import org.sosy_lab.cpachecker.core.algorithm.components.tree.BlockTree;
+import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode.BlockNodeFactory;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 
-public class BlockOperatorCutter implements CFACutter {
+public class BlockOperatorDecomposer implements CFADecomposer {
 
   private final BlockOperator operator;
 
-  public BlockOperatorCutter(Configuration pConfiguration) throws InvalidConfigurationException {
+  public BlockOperatorDecomposer(Configuration pConfiguration) throws InvalidConfigurationException {
     operator = new BlockOperator();
     pConfiguration.inject(operator);
   }

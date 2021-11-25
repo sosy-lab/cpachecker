@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.components.parallel;
+package org.sosy_lab.cpachecker.core.algorithm.components.exchange;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
@@ -26,20 +26,22 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-public class Message implements Comparable<Message>{
+public class Message implements Comparable<Message> {
 
   @Override
   public int compareTo(Message o) {
-    return Integer.compare(o.type.ordinal(), type.ordinal());
+    return 0;
+    //return Integer.compare(o.type.ordinal(), type.ordinal());
   }
 
   // ORDER BY PRIORITY:
   public enum MessageType {
+    EMPTY,
     PRECONDITION,
-    REDUCE,
     POSTCONDITION,
-    FOUND_VIOLATION,
-    SHUTDOWN;
+    FOUND_RESULT,
+    STALE,
+    ERROR,
   }
 
   private final int targetNodeNumber;
@@ -123,25 +125,33 @@ public class Message implements Comparable<Message>{
       String pUniqueBlockId,
       int pTargetNodeNumber,
       BooleanFormula pPayload,
-      int count,
       FormulaManagerView pFmgr) {
     return new Message(MessageType.POSTCONDITION, pUniqueBlockId, pTargetNodeNumber,
-        pFmgr.dumpFormula(pPayload).toString(), Integer.toString(count));
+        pFmgr.dumpFormula(pPayload).toString());
   }
 
   public static Message newResultMessage(
       String pUniqueBlockId,
       int pTargetNodeNumber,
-      Result pResult) {
-    return new Message(MessageType.FOUND_VIOLATION, pUniqueBlockId, pTargetNodeNumber, pResult.name());
+      Result pResult
+  ) {
+    return new Message(MessageType.FOUND_RESULT, pUniqueBlockId, pTargetNodeNumber, pResult.name());
   }
 
-  public static Message newShutdownMessage() {
-    return new Message(MessageType.SHUTDOWN, "", 0, "");
+  public static Message newStaleMessage(String pUniqueBlockId, boolean isStale) {
+    return new Message(MessageType.STALE, pUniqueBlockId, 0, Boolean.toString(isStale));
   }
 
-  public static Message newReduceOneMessage() {
-    return new Message(MessageType.REDUCE, "", 0, "");
+  public static Message noResponse() {
+    return new Message(MessageType.EMPTY, "", 0, "");
+  }
+
+  public static Message newErrorMessage(String pUniqueBlockId, Exception pException) {
+    return new Message(MessageType.ERROR, pUniqueBlockId, 0, pException.getMessage());
+  }
+
+  public boolean isEmpty() {
+    return type == MessageType.EMPTY;
   }
 
   @Override
@@ -167,7 +177,7 @@ public class Message implements Comparable<Message>{
     }
 
     public String messageToJson(Message pMessage) throws JsonProcessingException {
-      return mapper.writeValueAsString(pMessage);
+      return mapper.writeValueAsString(pMessage).replace("\n", " ");
     }
 
     public Message jsonToMessage(String pJSON) throws JsonProcessingException {
@@ -216,5 +226,4 @@ public class Message implements Comparable<Message>{
       pJsonGenerator.writeEndObject();
     }
   }
-
 }

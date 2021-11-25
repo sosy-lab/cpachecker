@@ -6,31 +6,35 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.components.parallel;
+package org.sosy_lab.cpachecker.core.algorithm.components.exchange.network;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
-import org.sosy_lab.cpachecker.core.algorithm.components.parallel.Message.MessageConverter;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageConverter;
 
-public class WorkerClient {
+public class NetworkSender {
 
   private final SocketChannel client;
   private final MessageConverter converter;
 
-  public WorkerClient(String pAddress, int pPort) throws IOException {
+  public NetworkSender(String pAddress, int pPort) throws IOException {
     this(new InetSocketAddress(pAddress, pPort));
   }
 
-  public WorkerClient(InetSocketAddress pAddress) throws IOException {
-    client = SocketChannel.open(pAddress);
+  public NetworkSender(InetSocketAddress pAddress) throws IOException {
     converter = new MessageConverter();
+    client = SocketChannel.open(pAddress);
   }
 
-  public void broadcast(Message pMessage) throws IOException {
+  public void send(Message pMessage) throws IOException {
+    if (pMessage.isEmpty()) {
+      return;
+    }
     String json = converter.messageToJson(pMessage);
-    byte [] message = json.getBytes();
+    byte[] message = json.getBytes();
     ByteBuffer buffer = ByteBuffer.wrap(message);
     client.write(buffer);
     buffer.clear();
