@@ -188,6 +188,8 @@ public class Message implements Comparable<Message> {
 
   private static class MessageDeserializer extends StdDeserializer<Message> {
 
+    private static final long serialVersionUID = 196344175L;
+
     public MessageDeserializer(Class<Message> vc) {
       super(vc);
     }
@@ -208,6 +210,8 @@ public class Message implements Comparable<Message> {
   }
 
   private static class MessageSerializer extends StdSerializer<Message> {
+
+    private static final long serialVersionUID = 1324289L;
 
     private MessageSerializer(Class<Message> t) {
       super(t);

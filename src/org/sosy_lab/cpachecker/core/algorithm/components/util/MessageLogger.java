@@ -19,8 +19,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import org.sosy_lab.common.JSON;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
@@ -33,7 +31,6 @@ public class MessageLogger {
 
   public static final Path output = Path.of("./output/worker_log_" + System.currentTimeMillis() + "/");
 
-  @FileOption(Type.OUTPUT_FILE)
   private final Path reportFile;
   private final String workerId;
 

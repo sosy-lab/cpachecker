@@ -78,8 +78,7 @@ public class ComponentsBuilder {
     return this;
   }
 
-  public ComponentsBuilder createResultCollectorWorker(int numAnalysisWorker)
-      throws IOException {
+  public ComponentsBuilder createResultCollectorWorker(int numAnalysisWorker) {
     workers.add(new ResultWorker(logger, numAnalysisWorker));
     return this;
   }

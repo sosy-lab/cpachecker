@@ -20,7 +20,7 @@ def create_arg_parser():
 
 
 def parse_jsons(path):
-    jsons = list()
+    jsons = []
     for filename in glob.glob(os.path.join(path, "*.json")):
         with open(os.path.join(os.getcwd(), filename), "r") as f:
             jsons.append(json.loads(f.read()))
@@ -32,8 +32,8 @@ def collect_and_adapt_time_stamps(jsons):
     for worker in jsons:
         for message in worker:
             time_stamps.add(int(message["time"]))
-    sorted_list = list(sorted(time_stamps))
-    time_to_message_dict = {time - sorted_list[0]: list() for time in sorted_list}
+    sorted_list = sorted(time_stamps)
+    time_to_message_dict = {time - sorted_list[0]: [] for time in sorted_list}
     for worker in jsons:
         for message in worker:
             message["time"] -= sorted_list[0]
@@ -120,12 +120,12 @@ def main(argv=None):
     ids = find_all_worker_ids(jsons)
     print("Found ids:", ids)
     print("Prepare dictionary for rendering the table...")
-    render_dict = {worker_id: list() for worker_id in ids}
+    render_dict = {worker_id: [] for worker_id in ids}
     print("Extract and normalize timestamps...")
     time_stamps = collect_and_adapt_time_stamps(jsons)
     print("Found timestamps:", list(time_stamps.keys()))
     print("Fill table...")
-    for time, messages in time_stamps.items():
+    for _time, messages in time_stamps.items():
         unused_ids = set(ids)
         for message in messages:
             unused_ids.remove(message["id"])

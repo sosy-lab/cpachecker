@@ -19,11 +19,12 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
-import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class BlockState implements AbstractStateWithLocation, AbstractQueryableState, Partitionable,
                                    Serializable {
+
+  private static final long serialVersionUID = 3805801L;
 
   protected final CFANode node;
 
@@ -67,6 +68,8 @@ public class BlockState implements AbstractStateWithLocation, AbstractQueryableS
   }
 
   static class BackwardsBlockState extends BlockState implements Targetable {
+
+    private static final long serialVersionUID = 3805801L;
 
     private final CFANode blockStartNode;
     private final Set<TargetInformation> targetInformation;

@@ -41,28 +41,6 @@ public class ResultWorker extends Worker {
   @Override
   public Message processMessage(Message pMessage)
       throws InterruptedException, CPAException, IOException, SolverException {
-    /*switch (pMessage.getType()) {
-      case FOUND_RESULT:
-      case ERROR:
-        shutdown();
-      case EMPTY:
-        return Message.noResponse();
-      case PRECONDITION:
-      case POSTCONDITION:
-        staleIds.remove(pMessage.getUniqueBlockId());
-        return Message.noResponse();
-      case STALE:
-        if (Boolean.parseBoolean(pMessage.getPayload())) {
-          staleIds.add(nextMessage().getUniqueBlockId());
-        }
-        finished = staleIds.size() == numberWorkers;
-        if (finished) {
-          return Message.newResultMessage("collector", 0, Result.TRUE);
-        }
-        return Message.newStaleMessage("collector", false);
-      default:
-        throw new AssertionError("MessageType " + pMessage.getType() + " unknown");
-    }*/
     if (pMessage.getType() == MessageType.STALE) {
       if (Boolean.parseBoolean(pMessage.getPayload())) {
         staleIds.add(pMessage.getUniqueBlockId());
@@ -77,6 +55,7 @@ public class ResultWorker extends Worker {
     return Message.noResponse();
   }
 
+  @Override
   public void shutdown() throws IOException {
     connection.close();
     Thread.currentThread().interrupt();

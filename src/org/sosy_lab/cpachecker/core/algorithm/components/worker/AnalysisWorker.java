@@ -181,6 +181,7 @@ public class AnalysisWorker extends Worker {
     }
   }
 
+  @Override
   public Message nextMessage() throws InterruptedException {
     return connection.read();
   }

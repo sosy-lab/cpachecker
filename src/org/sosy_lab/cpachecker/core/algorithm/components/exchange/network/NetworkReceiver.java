@@ -24,7 +24,7 @@ import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.Messag
 
 public class NetworkReceiver implements Closeable {
 
-  private Selector selector;
+  private final Selector selector;
   private final InetSocketAddress listenAddress;
   private final BlockingQueue<Message> sharedQueue;
   private final MessageConverter converter;
@@ -50,7 +50,8 @@ public class NetworkReceiver implements Closeable {
       try {
         startServer();
       } catch (IOException pE) {
-
+        sharedQueue.add(Message.newErrorMessage("own", pE));
+        Thread.currentThread().interrupt();
       }
     });
     receiverThread.start();
@@ -106,36 +107,39 @@ public class NetworkReceiver implements Closeable {
 
   //read from the socket channel
   private boolean read(SelectionKey key) throws IOException {
-    SocketChannel channel = (SocketChannel) key.channel();
-    ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
+    try (SocketChannel channel = (SocketChannel) key.channel()) {
+      ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
 
-    int numRead = channel.read(buffer);
+      int numRead = channel.read(buffer);
 
-    if (numRead == -1) {
-      channel.close();
-      key.cancel();
-      return false;
+      if (numRead == -1) {
+        channel.close();
+        key.cancel();
+        return false;
+      }
+
+      StringBuilder builder = new StringBuilder();
+
+      do {
+        if (numRead > 0) {
+          buffer.flip();
+          byte[] read = new byte[numRead];
+          buffer.get(read, 0, numRead);
+          builder.append(new String(read));
+          buffer.compact();
+        }
+        if (numRead != BUFFER_SIZE) {
+          break;
+        }
+        numRead = channel.read(buffer);
+      } while (true);
+
+      Message received = converter.jsonToMessage(builder.toString());
+      sharedQueue.add(received);
+      return received.getType() == MessageType.FOUND_RESULT;
+    } catch (Exception pE) {
+      throw new IOException(pE);
     }
-
-    StringBuilder builder = new StringBuilder();
-
-    do {
-      if (numRead > 0) {
-        buffer.flip();
-        byte[] read = new byte[numRead];
-        buffer.get(read, 0, numRead);
-        builder.append(new String(read));
-        buffer.compact();
-      }
-      if (numRead != BUFFER_SIZE) {
-        break;
-      }
-      numRead = channel.read(buffer);
-    } while (true);
-
-    Message received = converter.jsonToMessage(builder.toString());
-    sharedQueue.add(received);
-    return received.getType() == MessageType.FOUND_RESULT;
   }
 
   @Override

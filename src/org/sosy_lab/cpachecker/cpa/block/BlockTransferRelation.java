@@ -57,9 +57,11 @@ public abstract class BlockTransferRelation implements TransferRelation {
     return setBuilder.build();
   }
 
+  @Override
   public abstract Collection<BlockState> getAbstractSuccessorsForEdge(
       AbstractState element, Precision prec, CFAEdge cfaEdge);
 
+  @Override
   public abstract Collection<BlockState> getAbstractSuccessors(AbstractState element, Precision prec)
       throws CPATransferException;
 
