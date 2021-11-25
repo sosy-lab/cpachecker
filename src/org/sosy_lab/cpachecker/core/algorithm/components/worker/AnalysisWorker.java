@@ -86,15 +86,6 @@ public class AnalysisWorker extends Worker {
         .setOption("cpa.predicate.abstractAtTargetState", "false")
         .build();
 
-    /*Configuration backwardConfiguration = Configuration.builder()
-        .copyFrom(pConfiguration)
-        .loadFromFile(
-            "config/includes/predicateAnalysisBackward.properties")
-        .setOption("CompositeCPA.cpas", "cpa.location.LocationCPABackwards, cpa.block.BlockCPABackward, cpa.callstack.CallstackCPA, cpa.functionpointer.FunctionPointerCPA, cpa.predicate.PredicateCPA")
-        .setOption("backwardSpecification", "config/specification/MainEntry.spc")
-        .setOption("specification", "config/specification/MainEntry.spc")
-        .build();*/
-
     Specification backwardSpecification =
         Specification.fromFiles(ImmutableSet.of(Path.of("config/specification/MainEntry.spc")),
             pCFA, backwardConfiguration, logger, pShutdownManager.getNotifier());
