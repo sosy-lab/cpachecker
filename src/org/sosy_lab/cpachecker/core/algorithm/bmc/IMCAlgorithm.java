@@ -9,10 +9,17 @@
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.filterAncestors;
 
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -21,31 +28,44 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.predicates.AssignmentToPathAllocator;
+import org.sosy_lab.cpachecker.util.predicates.PathChecker;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.java_smt.api.BasicProverEnvironment;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
+import org.sosy_lab.java_smt.api.Model.ValueAssignment;
+import org.sosy_lab.java_smt.api.ProverEnvironment;
+import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /**
@@ -87,7 +107,9 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private final BooleanFormulaManagerView bfmgr;
   private final Solver solver;
 
+  private final Configuration config;
   private final CFA cfa;
+  private final AssignmentToPathAllocator assignmentToPathAllocator;
 
   public IMCAlgorithm(
       Algorithm pAlgorithm,
@@ -115,6 +137,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     pConfig.inject(this);
 
     cpa = pCPA;
+    config = pConfig;
     cfa = pCFA;
     algorithm = pAlgorithm;
 
@@ -124,6 +147,9 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     pfmgr = predCpa.getPathFormulaManager();
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
+
+    assignmentToPathAllocator =
+        new AssignmentToPathAllocator(config, shutdownNotifier, pLogger, pCFA.getMachineModel());
   }
 
   @Override
@@ -174,10 +200,16 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       stats.bmcPreparation.stop();
       shutdownNotifier.shutdownIfNecessary();
       // BMC
-      boolean isTargetStateReachable = !solver.isUnsat(buildReachTargetStateFormula(pReachedSet));
-      if (isTargetStateReachable) {
-        logger.log(Level.FINE, "A target state is reached by BMC");
-        return AlgorithmStatus.UNSOUND_AND_PRECISE;
+      try (ProverEnvironment bmcProver =
+          solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+        BooleanFormula targetFormula = buildReachTargetStateFormula(pReachedSet);
+        bmcProver.push(targetFormula);
+        boolean isTargetStateReachable = !bmcProver.isUnsat();
+        if (isTargetStateReachable) {
+          logger.log(Level.FINE, "A target state is reached by BMC");
+          analyzeCounterexample(targetFormula, pReachedSet, bmcProver);
+          return AlgorithmStatus.UNSOUND_AND_PRECISE;
+        }
       }
       // Check if interpolation or forward-condition check is applicable
       if (interpolation && !checkAndAdjustARG(pReachedSet)) {
@@ -246,6 +278,163 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private static void removeUnreachableTargetStates(ReachedSet pReachedSet) {
     if (pReachedSet.wasTargetReached()) {
       TargetLocationCandidateInvariant.INSTANCE.assumeTruth(pReachedSet);
+    }
+  }
+
+  @Override
+  protected void analyzeCounterexample(
+      final BooleanFormula pCounterexampleFormula,
+      final ReachedSet pReachedSet,
+      final BasicProverEnvironment<?> pProver)
+      throws CPATransferException, InterruptedException {
+
+    analyzeCounterexample0(pCounterexampleFormula, pReachedSet, pProver)
+        .ifPresent(cex -> cex.getTargetState().addCounterexampleInformation(cex));
+  }
+  /**
+   * This method tries to find a feasible path to (one of) the target state(s). It does so by asking
+   * the solver for a satisfying assignment.
+   */
+  @SuppressWarnings("resource")
+  private Optional<CounterexampleInfo> analyzeCounterexample0(
+      final BooleanFormula pCounterexampleFormula,
+      final ReachedSet pReachedSet,
+      final BasicProverEnvironment<?> pProver)
+      throws CPATransferException, InterruptedException {
+    if (!(cpa instanceof ARGCPA)) {
+      logger.log(Level.INFO, "Error found, but error path cannot be created without ARGCPA");
+      return Optional.empty();
+    }
+
+    stats.errorPathCreation.start();
+    try {
+      logger.log(Level.INFO, "Error found, creating error path");
+
+      Set<ARGState> targetStates =
+          from(pReachedSet).filter(AbstractStates::isTargetState).filter(ARGState.class).toSet();
+      Set<ARGState> redundantStates = filterAncestors(targetStates, AbstractStates::isTargetState);
+      redundantStates.forEach(
+          state -> {
+            state.removeFromARG();
+          });
+      pReachedSet.removeAll(redundantStates);
+      targetStates = Sets.difference(targetStates, redundantStates);
+
+      final boolean shouldCheckBranching;
+      if (targetStates.size() == 1) {
+        ARGState state = Iterables.getOnlyElement(targetStates);
+        while (state.getParents().size() == 1 && state.getChildren().size() <= 1) {
+          state = Iterables.getOnlyElement(state.getParents());
+        }
+        shouldCheckBranching = (state.getParents().size() > 1) || (state.getChildren().size() > 1);
+      } else {
+        shouldCheckBranching = true;
+      }
+
+      if (shouldCheckBranching) {
+        Set<ARGState> arg = from(pReachedSet).filter(ARGState.class).toSet();
+
+        // get the branchingFormula
+        // this formula contains predicates for all branches we took
+        // this way we can figure out which branches make a feasible path
+        BooleanFormula branchingFormula = pfmgr.buildBranchingFormula(arg);
+
+        if (bfmgr.isTrue(branchingFormula)) {
+          logger.log(
+              Level.WARNING,
+              "Could not create error path because of missing branching information!");
+          return Optional.empty();
+        }
+
+        // add formula to solver environment
+        pProver.push(branchingFormula);
+      }
+
+      List<ValueAssignment> model;
+      try {
+        // need to ask solver for satisfiability again,
+        // otherwise model doesn't contain new predicates
+        boolean stillSatisfiable = !pProver.isUnsat();
+
+        if (!stillSatisfiable) {
+          // should not occur
+          logger.log(
+              Level.WARNING,
+              "Could not create error path information because of inconsistent branching"
+                  + " information!");
+          return Optional.empty();
+        }
+
+        model = pProver.getModelAssignments();
+
+      } catch (SolverException e) {
+        logger.log(Level.WARNING, "Solver could not produce model, cannot create error path.");
+        logger.logDebugException(e);
+        return Optional.empty();
+
+      } finally {
+        if (shouldCheckBranching) {
+          pProver.pop(); // remove branchingFormula
+        }
+      }
+
+      // get precise error path
+      Map<Integer, Boolean> branchingInformation =
+          pfmgr.getBranchingPredicateValuesFromModel(model);
+      ARGState root = (ARGState) pReachedSet.getFirstState();
+
+      ARGPath targetPath;
+      try {
+        Set<AbstractState> arg = pReachedSet.asCollection();
+        targetPath = ARGUtils.getPathFromBranchingInformation(root, arg, branchingInformation);
+      } catch (IllegalArgumentException e) {
+        logger.logUserException(Level.WARNING, e, "Could not create error path");
+        return Optional.empty();
+      }
+
+      BooleanFormula cexFormula = pCounterexampleFormula;
+
+      // replay error path for a more precise satisfying assignment
+      PathChecker pathChecker;
+      try {
+        Solver solverForPathChecker = this.solver;
+        PathFormulaManager pmgrForPathChecker = this.pfmgr;
+
+        if (solverForPathChecker.getVersion().toLowerCase().contains("smtinterpol")) {
+          // SMTInterpol does not support reusing the same solver
+          solverForPathChecker = Solver.create(config, logger, shutdownNotifier);
+          FormulaManagerView formulaManager = solverForPathChecker.getFormulaManager();
+          pmgrForPathChecker =
+              new PathFormulaManagerImpl(
+                  formulaManager, config, logger, shutdownNotifier, cfa, AnalysisDirection.FORWARD);
+          // cannot dump pCounterexampleFormula, PathChecker would use wrong FormulaManager for it
+          cexFormula =
+              solverForPathChecker.getFormulaManager().getBooleanFormulaManager().makeTrue();
+        }
+
+        pathChecker =
+            new PathChecker(
+                config,
+                logger,
+                pmgrForPathChecker,
+                solverForPathChecker,
+                assignmentToPathAllocator);
+
+      } catch (InvalidConfigurationException e) {
+        // Configuration has somehow changed and can no longer be used to create the solver and path
+        // formula manager
+        logger.logUserException(
+            Level.WARNING, e, "Could not replay error path to get a more precise model");
+        return Optional.empty();
+      }
+
+      CounterexampleTraceInfo cexInfo =
+          CounterexampleTraceInfo.feasible(
+              ImmutableList.of(cexFormula), model, branchingInformation);
+      return Optional.of(pathChecker.createCounterexample(targetPath, cexInfo));
+
+    } finally {
+      stats.errorPathCreation.stop();
     }
   }
 
