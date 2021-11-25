@@ -228,11 +228,6 @@ public class AnalysisWorker extends Worker {
     return Message.noResponse();
   }
 
-  @Override
-  public void broadcast(Message toSend) throws IOException, InterruptedException {
-    connection.write(toSend);
-  }
-
   // return post condition
   private Message forwardAnalysis(CFANode pStartNode) throws CPAException, InterruptedException {
     Message message =
