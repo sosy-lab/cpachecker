@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 /** A collection of utility methods for accessing data on {@link CFAEdge}s. */
 public final class CFAEdgeUtils {
 
-  public static final Type getLeftHandType(CFAEdge pEdge) {
+  public static Type getLeftHandType(CFAEdge pEdge) {
     if (pEdge instanceof ADeclarationEdge) {
       ADeclarationEdge declarationEdge = (ADeclarationEdge) pEdge;
       if (declarationEdge.getDeclaration() instanceof AVariableDeclaration) {
@@ -50,7 +50,7 @@ public final class CFAEdgeUtils {
     return null;
   }
 
-  public static final String getLeftHandVariable(CFAEdge pEdge) {
+  public static String getLeftHandVariable(CFAEdge pEdge) {
     if (pEdge instanceof ADeclarationEdge) {
       ADeclarationEdge declarationEdge = (ADeclarationEdge) pEdge;
       if (declarationEdge.getDeclaration() instanceof AVariableDeclaration) {
@@ -67,7 +67,7 @@ public final class CFAEdgeUtils {
     return null;
   }
 
-  public static final ALeftHandSide getLeftHandSide(CFAEdge pEdge) {
+  public static ALeftHandSide getLeftHandSide(CFAEdge pEdge) {
     if (pEdge instanceof AStatementEdge) {
       AStatementEdge statementEdge = (AStatementEdge) pEdge;
       if (statementEdge.getStatement() instanceof AAssignment) {
@@ -86,7 +86,7 @@ public final class CFAEdgeUtils {
     return null;
   }
 
-  public static final CRightHandSide getRightHandSide(CFAEdge pEdge) {
+  public static CRightHandSide getRightHandSide(CFAEdge pEdge) {
     if (pEdge instanceof CDeclarationEdge) {
       CDeclarationEdge declarationEdge = (CDeclarationEdge) pEdge;
       if (declarationEdge.getDeclaration() instanceof CVariableDeclaration) {

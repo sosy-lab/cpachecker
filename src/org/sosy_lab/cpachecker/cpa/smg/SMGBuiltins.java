@@ -22,10 +22,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGExplicitValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGRightHandSideEvaluator;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGType;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
@@ -34,7 +36,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
@@ -83,7 +84,8 @@ public class SMGBuiltins {
           // TODO: Properly model printf (dereferences and stuff)
           // TODO: General modelling system for functions which do not modify state?
           "printf",
-          "strcmp");
+          "strcmp",
+          "realloc");
 
   private void evaluateVBPlot(
       CFunctionCallExpression functionCall, UnmodifiableSMGState currentState) {
@@ -161,7 +163,7 @@ public class SMGBuiltins {
       CFAEdge cfaEdge,
       SMGAddressValue bufferAddress,
       SMGExplicitValue countValue,
-      SMGSymbolicValue ch,
+      SMGValue ch,
       SMGExplicitValue expValue)
       throws CPATransferException {
 
@@ -305,8 +307,9 @@ public class SMGBuiltins {
 
         if (valueAndStates.size() != 1) {
           throw new SMGInconsistentException(
-            "Found abstraction where non should exist,due to the expression " + sizeExpr.toASTString()
-                + "already being evaluated once in this transferrelation step.");
+              "Found abstraction where non should exist,due to the expression "
+                  + sizeExpr.toASTString()
+                  + "already being evaluated once in this transferrelation step.");
          }
 
         SMGExplicitValueAndState valueAndState = valueAndStates.get(0);
@@ -424,9 +427,11 @@ public class SMGBuiltins {
           currentState = forcedValueAndState.getSmgState();
           List<SMGExplicitValueAndState> forcedvalueAndStates = evaluateExplicitValue(currentState, cfaEdge, sizeExpr);
 
-          if (forcedvalueAndStates.size() != 1) { throw new SMGInconsistentException(
-              "Found abstraction where non should exist,due to the expression " + sizeExpr.toASTString()
-                  + "already being evaluated once in this transferrelation step.");
+          if (forcedvalueAndStates.size() != 1) {
+            throw new SMGInconsistentException(
+                "Found abstraction where non should exist,due to the expression "
+                    + sizeExpr.toASTString()
+                    + "already being evaluated once in this transferrelation step.");
           }
 
           resultValueAndState = forcedvalueAndStates.get(0);
@@ -532,7 +537,8 @@ public class SMGBuiltins {
                 .withErrorDescription(
                     "Free on expression "
                         + pointerExp.toASTString()
-                        + " is invalid, because the target of the address could not be calculated.");
+                        + " is invalid, because the target of the address could not be"
+                        + " calculated.");
         resultStates.add(invalidFreeState);
         continue;
       }
@@ -627,29 +633,36 @@ public class SMGBuiltins {
           SMGExplicitValue explicitSizeValue = sizeValueAndState.getObject();
 
           if (!targetObject.isUnknown() && !sourceObject.isUnknown()) {
-            int symbolicValueSize =
-                expressionEvaluator.getBitSizeof(
-                    pCfaEdge, sizeExpr.getExpressionType(), currentState);
+            CType expressionType = sizeExpr.getExpressionType();
+            SMGType symbolicValueSMGType =
+                SMGType.constructSMGType(
+                    expressionType, currentState, pCfaEdge, expressionEvaluator);
             for (SMGValueAndState sizeSymbolicValueAndState :
                 evaluateExpressionValue(currentState, pCfaEdge, sizeExpr)) {
-              SMGSymbolicValue symbolicValue = sizeSymbolicValueAndState.getObject();
+              SMGValue symbolicValue = sizeSymbolicValueAndState.getObject();
 
-              int sourceRangeOffset = sourceObject.getOffset().getAsInt() / machineModel.getSizeofCharInBits();
-              int sourceSize = sourceObject.getObject().getSize() / machineModel.getSizeofCharInBits();
-              int availableSource = sourceSize - sourceRangeOffset;
+              long sourceRangeOffset = sourceObject.getOffset().getAsLong() / machineModel.getSizeofCharInBits();
+              long sourceSize = sourceObject.getObject().getSize() / machineModel.getSizeofCharInBits();
+              long availableSource = sourceSize - sourceRangeOffset;
 
-              int targetRangeOffset = targetObject.getOffset().getAsInt() / machineModel.getSizeofCharInBits();
-              int targetSize = targetObject.getObject().getSize() / machineModel.getSizeofCharInBits();
-              int availableTarget = targetSize - targetRangeOffset;
+              long targetRangeOffset = targetObject.getOffset().getAsLong() / machineModel.getSizeofCharInBits();
+              long targetSize = targetObject.getObject().getSize() / machineModel.getSizeofCharInBits();
+              long availableTarget = targetSize - targetRangeOffset;
 
               if (explicitSizeValue.isUnknown() && !symbolicValue.isUnknown()) {
                 if (!currentState.getHeap().isObjectExternallyAllocated(sourceObject.getObject())) {
-                  currentState.addErrorPredicate(symbolicValue, symbolicValueSize, SMGKnownExpValue
-                      .valueOf(availableSource), symbolicValueSize, pCfaEdge);
+                  currentState.addErrorPredicate(
+                      symbolicValue,
+                      symbolicValueSMGType,
+                      SMGKnownExpValue.valueOf(availableSource),
+                      pCfaEdge);
                 }
                 if (!currentState.getHeap().isObjectExternallyAllocated(targetObject.getObject())) {
-                  currentState.addErrorPredicate(symbolicValue, symbolicValueSize, SMGKnownExpValue
-                      .valueOf(availableTarget), symbolicValueSize, pCfaEdge);
+                  currentState.addErrorPredicate(
+                      symbolicValue,
+                      symbolicValueSMGType,
+                      SMGKnownExpValue.valueOf(availableTarget),
+                      pCfaEdge);
                 }
               }
             }
@@ -820,7 +833,7 @@ public class SMGBuiltins {
       SMGAddressValue firstSymbolic, SMGAddressValue secondSymbolic, SMGState pState)
       throws SMGInconsistentException {
     // resolve addresses and perform initial null and unknown check
-    if (!bothValuesAreDefined(firstSymbolic, secondSymbolic)) {
+    if (!allValuesAreDefined(firstSymbolic, secondSymbolic)) {
       return SMGValueAndState.of(pState, SMGUnknownValue.INSTANCE);
     }
 
@@ -851,19 +864,19 @@ public class SMGBuiltins {
           symFirstValueAndState
               .getSmgState()
               .readValue(secondRegion, offset, machineModel.getSizeofCharInBits());
-      SMGSymbolicValue symFirstValue = symFirstValueAndState.getObject();
-      SMGSymbolicValue symSecondValue = symSecondValueAndState.getObject();
+      SMGValue symFirstValue = symFirstValueAndState.getObject();
+      SMGValue symSecondValue = symSecondValueAndState.getObject();
       state = symSecondValueAndState.getSmgState();
-      if (!bothValuesAreDefined(symFirstValue, symSecondValue)) {
+      if (!allValuesAreDefined(symFirstValue, symSecondValue)) {
         return SMGValueAndState.of(pState, SMGUnknownValue.INSTANCE);
       }
 
       // read explicit values
       // explicit values are necessary to calculate difference between char ascii codes
-      SMGExplicitValue expFirstValue = state.getExplicit((SMGKnownSymbolicValue) symFirstValue);
-      SMGExplicitValue expSecondValue = state.getExplicit((SMGKnownSymbolicValue) symSecondValue);
+      SMGExplicitValue expFirstValue = state.getExplicit(symFirstValue);
+      SMGExplicitValue expSecondValue = state.getExplicit(symSecondValue);
 
-      if (!bothValuesAreDefined(expFirstValue, expSecondValue)) {
+      if (!allValuesAreDefined(expFirstValue, expSecondValue)) {
         // in case evaluation for explicit values compare symbolic values
         // TODO does this happen?
         if (symFirstValue.equals(symSecondValue)) {
@@ -895,8 +908,13 @@ public class SMGBuiltins {
     return SMGValueAndState.of(resultState, symbolicResult);
   }
 
-  private boolean bothValuesAreDefined(SMGValue value1, SMGValue value2) {
-    return value1 != null && value2 != null && !value1.isUnknown() && !value2.isUnknown();
+  private boolean allValuesAreDefined(SMGValue... values) {
+    for (SMGValue value : values) {
+      if (value == null || value.isUnknown()) {
+        return false;
+      }
+    }
+    return true;
   }
 
   List<SMGAddressValueAndState> handleUnknownFunction(
@@ -911,7 +929,7 @@ public class SMGBuiltins {
           throw new CPATransferException(
               String.format(
                   "Unknown function '%s' may be unsafe. See the "
-                      + "cpa.smg.handleUnknownFunctions or cpa.smg.option.safeUnknownFunctions",
+                      + "cpa.smg.handleUnknownFunctions or cpa.smg.safeUnknownFunctions",
                   calledFunctionName));
         }
         // $FALL-THROUGH$ // for safe functions
@@ -935,10 +953,28 @@ public class SMGBuiltins {
     if (isABuiltIn(functionName)) {
       if (isConfigurableAllocationFunction(functionName)) {
         return evaluateConfigurableAllocationFunction(pFunctionCall, pSmgState, pCfaEdge, pKind);
+      } else if (functionName.equals("realloc")) {
+        return evaluateRealloc();
+      } else {
+        return handleBuiltinFunctionCall(pCfaEdge, pFunctionCall, functionName, pSmgState, pKind);
       }
-      return handleBuiltinFunctionCall(pCfaEdge, pFunctionCall, functionName, pSmgState, pKind);
     } else {
       return handleUnknownFunction(pCfaEdge, pFunctionCall, functionName, pSmgState);
     }
+  }
+
+  private List<SMGAddressValueAndState> evaluateRealloc(
+//      CFunctionCallExpression functionCall,
+//      SMGState pState,
+//      CFAEdge cfaEdge,
+//      SMGTransferRelationKind kind)
+  )
+      throws CPATransferException {
+//      List<SMGAddressValueAndState> result = new ArrayList<>();
+//      evaluateAlloca();
+//      evaluateMemcpy();
+//      evaluateFree();
+    throw new CPATransferException("Unhandled realloc function");
+//    return result;
   }
 }

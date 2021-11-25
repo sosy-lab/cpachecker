@@ -16,7 +16,6 @@ import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.Deque;
@@ -48,7 +47,7 @@ class BAMReachedSetExporter implements Statistics {
 
   @Option(secure = true, description = "export blocked ARG as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path argFile = Paths.get("BlockedARG.dot");
+  private Path argFile = Path.of("BlockedARG.dot");
 
   @Option(
     secure = true,
@@ -59,7 +58,7 @@ class BAMReachedSetExporter implements Statistics {
 
   @Option(secure = true, description = "export used parts of blocked ARG as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path simplifiedArgFile = Paths.get("BlockedARGSimplified.dot");
+  private Path simplifiedArgFile = Path.of("BlockedARGSimplified.dot");
 
   private final LogManager logger;
   private final AbstractBAMCPA bamcpa;

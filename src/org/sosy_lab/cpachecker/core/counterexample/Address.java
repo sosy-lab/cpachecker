@@ -115,7 +115,7 @@ public abstract class Address {
       long value = ((Integer) pAddress).longValue();
       return new ConcreteAddress(BigInteger.valueOf(value));
     } else if (pAddress instanceof Long) {
-      long value = ((Long) pAddress).longValue();
+      long value = ((Long) pAddress);
       return new ConcreteAddress(BigInteger.valueOf(value));
     } else if (pAddress instanceof Short) {
       long value = ((Short) pAddress).longValue();

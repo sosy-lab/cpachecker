@@ -9,12 +9,10 @@
 package org.sosy_lab.cpachecker.cmdline;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static java.util.stream.Collectors.toList;
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.io.DuplicateOutputStream.mergeStreams;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
@@ -31,7 +29,6 @@ import java.io.PrintStream;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -40,9 +37,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
@@ -67,15 +62,14 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofGenerator;
 import org.sosy_lab.cpachecker.core.counterexample.ReportGenerator;
 import org.sosy_lab.cpachecker.core.specification.Property;
-import org.sosy_lab.cpachecker.core.specification.Property.CommonCoverageType;
-import org.sosy_lab.cpachecker.core.specification.Property.CommonPropertyType;
-import org.sosy_lab.cpachecker.core.specification.SpecificationProperty;
+import org.sosy_lab.cpachecker.core.specification.Property.CommonCoverageProperty;
+import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
+import org.sosy_lab.cpachecker.core.specification.Property.CoverFunctionCallProperty;
+import org.sosy_lab.cpachecker.core.specification.PropertyFileParser;
+import org.sosy_lab.cpachecker.core.specification.PropertyFileParser.InvalidPropertyFileException;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetType;
-import org.sosy_lab.cpachecker.util.PropertyFileParser;
-import org.sosy_lab.cpachecker.util.PropertyFileParser.InvalidPropertyFileException;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 @SuppressForbidden("System.out in this class is ok")
@@ -98,13 +92,11 @@ public class CPAMain {
     Configuration cpaConfig = null;
     LoggingOptions logOptions;
     String outputDirectory = null;
-    Set<SpecificationProperty> properties = null;
     try {
       try {
         Config p = createConfiguration(args);
         cpaConfig = p.configuration;
         outputDirectory = p.outputPath;
-        properties = p.properties;
       } catch (InvalidCmdlineArgumentException e) {
         throw Output.fatalError("Could not process command line arguments: %s", e.getMessage());
       } catch (IOException e) {
@@ -120,7 +112,6 @@ public class CPAMain {
     }
     final LogManager logManager = BasicLogManager.create(logOptions);
     cpaConfig.enableLogging(logManager);
-    GlobalInfo.getInstance().storeLogManager(logManager);
 
     // create everything
     final ShutdownManager shutdownManager = ShutdownManager.create();
@@ -166,7 +157,7 @@ public class CPAMain {
     shutdownNotifier.register(forcedExitOnShutdown);
 
     // run analysis
-    CPAcheckerResult result = cpachecker.run(options.programs, properties);
+    CPAcheckerResult result = cpachecker.run(options.programs);
 
     // generated proof (if enabled)
     if (proofGenerator != null) {
@@ -174,8 +165,7 @@ public class CPAMain {
     }
 
     // We want to print the statistics completely now that we have come so far,
-    // so we disable all the limits, shutdown hooks, etc.
-    shutdownHook.disable();
+    // so we disable all the limits, etc.
     shutdownNotifier.unregister(forcedExitOnShutdown);
     ForceTerminationOnShutdown.cancelPendingTermination();
     limits.cancel();
@@ -190,6 +180,8 @@ public class CPAMain {
     System.out.flush();
     System.err.flush();
     logManager.flush();
+    // Prevent closing on incoming signal from benchexec while printResultAndStatistics
+    shutdownHook.disableAndStop();
   }
 
   // Default values for options from external libraries
@@ -258,7 +250,7 @@ public class CPAMain {
     @Option(secure=true, name="configuration.dumpFile",
         description="Dump the complete configuration to a file.")
     @FileOption(FileOption.Type.OUTPUT_FILE)
-    private Path configurationOutputFile = Paths.get("UsedConfiguration.properties");
+    private Path configurationOutputFile = Path.of("UsedConfiguration.properties");
 
     @Option(secure=true, name="statistics.export", description="write some statistics to disk")
     private boolean exportStatistics = true;
@@ -266,7 +258,7 @@ public class CPAMain {
     @Option(secure=true, name="statistics.file",
         description="write some statistics to disk")
     @FileOption(FileOption.Type.OUTPUT_FILE)
-    private Path exportStatisticsFile = Paths.get("Statistics.txt");
+    private Path exportStatisticsFile = Path.of("Statistics.txt");
 
     @Option(secure=true, name="statistics.print", description="print statistics to console")
     private boolean printStatistics = false;
@@ -289,9 +281,9 @@ public class CPAMain {
 
   private static final ImmutableSet<? extends Property> MEMSAFETY_PROPERTY_TYPES =
       Sets.immutableEnumSet(
-          CommonPropertyType.VALID_DEREF,
-          CommonPropertyType.VALID_FREE,
-          CommonPropertyType.VALID_MEMTRACK);
+          CommonVerificationProperty.VALID_DEREF,
+          CommonVerificationProperty.VALID_FREE,
+          CommonVerificationProperty.VALID_MEMTRACK);
 
   /**
    * Parse the command line, read the configuration file, and setup the program-wide base paths.
@@ -310,7 +302,7 @@ public class CPAMain {
     }
 
     // Read property file if present and adjust cmdline options
-    Set<SpecificationProperty> properties = handlePropertyFile(cmdLineOptions);
+    Set<Property> properties = handlePropertyFile(cmdLineOptions);
 
     // get name of config file (may be null)
     // and remove this from the list of options (it's not a real option)
@@ -361,11 +353,11 @@ public class CPAMain {
       config.dumpUsedOptionsTo(System.out);
     }
 
-    return new Config(config, outputDirectory, properties);
+    return new Config(config, outputDirectory);
   }
 
   private static String extractApproachNameFromConfigName(String configFilename) {
-    String filename = Paths.get(configFilename).getFileName().toString();
+    String filename = Path.of(configFilename).getFileName().toString();
     // remove the extension (most likely ".properties")
     return filename.contains(".") ? filename.substring(0, filename.lastIndexOf(".")) : filename;
   }
@@ -447,20 +439,18 @@ public class CPAMain {
 
   private static final ImmutableMap<Property, TestTargetType> TARGET_TYPES =
       ImmutableMap.<Property, TestTargetType>builder()
-          .put(CommonCoverageType.COVERAGE_BRANCH, TestTargetType.ASSUME)
-          .put(CommonCoverageType.COVERAGE_CONDITION, TestTargetType.ASSUME)
-          .put(CommonCoverageType.COVERAGE_ERROR, TestTargetType.ERROR_CALL)
-          .put(CommonCoverageType.COVERAGE_STATEMENT, TestTargetType.STATEMENT)
+          .put(CommonCoverageProperty.COVERAGE_BRANCH, TestTargetType.TEST_COMP_ASSUME)
+          .put(CommonCoverageProperty.COVERAGE_CONDITION, TestTargetType.ASSUME)
+          .put(CommonCoverageProperty.COVERAGE_ERROR, TestTargetType.ERROR_CALL)
+          .put(CommonCoverageProperty.COVERAGE_STATEMENT, TestTargetType.STATEMENT)
           .build();
 
   private static Configuration handlePropertyOptions(
       Configuration config,
       BootstrapOptions options,
       Map<String, String> cmdLineOptions,
-      Set<SpecificationProperty> pProperties)
+      Set<Property> properties)
       throws InvalidConfigurationException, IOException {
-    Set<Property> properties =
-        transformedImmutableSetCopy(pProperties, SpecificationProperty::getProperty);
 
     final Path alternateConfigFile;
 
@@ -471,31 +461,31 @@ public class CPAMain {
             "Unsupported combination of properties: " + properties);
       }
       alternateConfigFile = check(options.memsafetyConfig, "memory safety", "memorysafety.config");
-    } else if (properties.contains(CommonPropertyType.VALID_MEMCLEANUP)) {
+    } else if (properties.contains(CommonVerificationProperty.VALID_MEMCLEANUP)) {
       if (properties.size() != 1) {
         // MemCleanup property cannot be checked with others in combination
         throw new InvalidConfigurationException(
             "Unsupported combination of properties: " + properties);
       }
       alternateConfigFile = check(options.memcleanupConfig, "memory cleanup", "memorycleanup.config");
-    } else if (properties.contains(CommonPropertyType.OVERFLOW)) {
+    } else if (properties.contains(CommonVerificationProperty.OVERFLOW)) {
       if (properties.size() != 1) {
         // Overflow property cannot be checked with others in combination
         throw new InvalidConfigurationException(
             "Unsupported combination of properties: " + properties);
       }
       alternateConfigFile = check(options.overflowConfig, "overflows", "overflow.config");
-    } else if (properties.contains(CommonPropertyType.TERMINATION)) {
+    } else if (properties.contains(CommonVerificationProperty.TERMINATION)) {
       // Termination property cannot be checked with others in combination
       if (properties.size() != 1) {
         throw new InvalidConfigurationException(
             "Unsupported combination of properties: " + properties);
       }
       alternateConfigFile = check(options.terminationConfig, "termination", "termination.config");
-    } else if (properties.contains(CommonCoverageType.COVERAGE_ERROR)
-        || properties.contains(CommonCoverageType.COVERAGE_BRANCH)
-        || properties.contains(CommonCoverageType.COVERAGE_CONDITION)
-        || properties.contains(CommonCoverageType.COVERAGE_STATEMENT)) {
+    } else if (properties.contains(CommonCoverageProperty.COVERAGE_ERROR)
+        || properties.contains(CommonCoverageProperty.COVERAGE_BRANCH)
+        || properties.contains(CommonCoverageProperty.COVERAGE_CONDITION)
+        || properties.contains(CommonCoverageProperty.COVERAGE_STATEMENT)) {
       // coverage criterion cannot be checked with other properties in combination
       if (properties.size() != 1) {
         throw new InvalidConfigurationException(
@@ -504,6 +494,18 @@ public class CPAMain {
       return Configuration.builder()
           .copyFrom(config)
           .setOption("testcase.targets.type", TARGET_TYPES.get(properties.iterator().next()).name())
+          .build();
+    } else if (from(properties).anyMatch(p -> p instanceof CoverFunctionCallProperty)) {
+      if (properties.size() != 1) {
+        throw new InvalidConfigurationException(
+            "Unsupported combination of properties: " + properties);
+      }
+      return Configuration.builder()
+          .copyFrom(config)
+          .setOption("testcase.targets.type", "FUN_CALL")
+          .setOption(
+              "testcase.targets.funName",
+              ((CoverFunctionCallProperty) properties.iterator().next()).getCoverFunction())
           .build();
     } else {
       alternateConfigFile = null;
@@ -537,21 +539,7 @@ public class CPAMain {
     return config;
   }
 
-  private static final ImmutableMap<Property, String> SPECIFICATION_FILES =
-      ImmutableMap.<Property, String>builder()
-          .put(CommonPropertyType.REACHABILITY_LABEL, "sv-comp-errorlabel")
-          .put(CommonPropertyType.REACHABILITY, "sv-comp-reachability")
-          .put(CommonPropertyType.REACHABILITY_ERROR, "sv-comp-reachability")
-          .put(CommonPropertyType.VALID_FREE, "sv-comp-memorysafety")
-          .put(CommonPropertyType.VALID_DEREF, "sv-comp-memorysafety")
-          .put(CommonPropertyType.VALID_MEMTRACK, "sv-comp-memorysafety")
-          .put(CommonPropertyType.VALID_MEMCLEANUP, "sv-comp-memorycleanup")
-          .put(CommonPropertyType.OVERFLOW, "sv-comp-overflow")
-          .put(CommonPropertyType.DEADLOCK, "deadlock")
-          // .put(CommonPropertyType.TERMINATION, "none needed")
-          .build();
-
-  private static Set<SpecificationProperty> handlePropertyFile(Map<String, String> cmdLineOptions)
+  private static Set<Property> handlePropertyFile(Map<String, String> cmdLineOptions)
       throws InvalidCmdlineArgumentException {
     List<String> specificationFiles =
         Splitter.on(',')
@@ -560,7 +548,7 @@ public class CPAMain {
             .splitToList(cmdLineOptions.getOrDefault(SPECIFICATION_OPTION, ""));
 
     List<String> propertyFiles =
-        specificationFiles.stream().filter(file -> file.endsWith(".prp")).collect(toList());
+        from(specificationFiles).filter(file -> file.endsWith(".prp")).toList();
     if (propertyFiles.isEmpty()) {
       return ImmutableSet.of();
     }
@@ -570,7 +558,7 @@ public class CPAMain {
     String propertyFile = propertyFiles.get(0);
 
     // Parse property files
-    PropertyFileParser parser = new PropertyFileParser(Paths.get(propertyFile));
+    PropertyFileParser parser = new PropertyFileParser(Path.of(propertyFile));
     try {
       parser.parse();
     } catch (InvalidPropertyFileException e) {
@@ -581,25 +569,6 @@ public class CPAMain {
           "Could not read property file: " + e.getMessage(), e);
     }
 
-    // set the file from where to read the specification automaton
-    ImmutableSet<SpecificationProperty> properties =
-        transformedImmutableSetCopy(
-            parser.getProperties(),
-            prop ->
-                new SpecificationProperty(
-                    parser.getEntryFunction(),
-                    prop,
-                    Optional.ofNullable(SPECIFICATION_FILES.get(prop))
-                        .map(CmdLineArguments::resolveSpecificationFileOrExit)));
-    assert !properties.isEmpty();
-
-    String specFiles =
-        Optionals.presentInstances(
-                properties.stream().map(SpecificationProperty::getInternalSpecificationPath))
-            .map(Object::toString)
-            .distinct()
-            .collect(Collectors.joining(","));
-    cmdLineOptions.put(SPECIFICATION_OPTION, specFiles);
     if (cmdLineOptions.containsKey(ENTRYFUNCTION_OPTION)) {
       if (!cmdLineOptions.get(ENTRYFUNCTION_OPTION).equals(parser.getEntryFunction())) {
         throw new InvalidCmdlineArgumentException(
@@ -608,7 +577,7 @@ public class CPAMain {
     } else {
       cmdLineOptions.put(ENTRYFUNCTION_OPTION, parser.getEntryFunction());
     }
-    return properties;
+    return parser.getProperties();
   }
 
   @Options
@@ -640,6 +609,18 @@ public class CPAMain {
     )
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private @Nullable Path correctnessWitnessValidationConfig = null;
+
+    @Option(
+        secure = true,
+        name = "witness.validation.correctness.isa",
+        description = "Use correctness witness as invariants specification automaton (ISA).")
+    private boolean validateInvariantsSpecificationAutomaton = false;
+
+    @Option(
+        secure = true,
+        name = "witness.validation.correctness.acsl",
+        description = "Validate program using invariants from ACSL annotations.")
+    private boolean useACSLAnnotatedProgram = false;
   }
 
   private static Configuration handleWitnessOptions(
@@ -651,24 +632,35 @@ public class CPAMain {
       return config;
     }
 
-    WitnessType witnessType = AutomatonGraphmlParser.getWitnessType(options.witness);
     final Path validationConfigFile;
-    switch (witnessType) {
-      case VIOLATION_WITNESS:
-        validationConfigFile = options.violationWitnessValidationConfig;
-        String specs = overrideOptions.get(SPECIFICATION_OPTION);
-        String witnessSpec = options.witness.toString();
-        specs = specs == null ? witnessSpec : Joiner.on(',').join(specs, witnessSpec);
-        overrideOptions.put(SPECIFICATION_OPTION, specs);
-        break;
-      case CORRECTNESS_WITNESS:
-        validationConfigFile = options.correctnessWitnessValidationConfig;
-        overrideOptions.put(
-            "invariantGeneration.kInduction.invariantsAutomatonFile", options.witness.toString());
-        break;
-      default:
-        throw new InvalidConfigurationException(
-            "Witness type " + witnessType + " of witness " + options.witness + " is not supported");
+    if (options.useACSLAnnotatedProgram) {
+      validationConfigFile = options.correctnessWitnessValidationConfig;
+      appendWitnessToSpecificationOption(options, overrideOptions);
+    } else {
+      WitnessType witnessType = AutomatonGraphmlParser.getWitnessType(options.witness);
+      switch (witnessType) {
+        case VIOLATION_WITNESS:
+          validationConfigFile = options.violationWitnessValidationConfig;
+          appendWitnessToSpecificationOption(options, overrideOptions);
+          break;
+        case CORRECTNESS_WITNESS:
+          validationConfigFile = options.correctnessWitnessValidationConfig;
+          if (options.validateInvariantsSpecificationAutomaton) {
+            appendWitnessToSpecificationOption(options, overrideOptions);
+          } else {
+            overrideOptions.put(
+                "invariantGeneration.kInduction.invariantsAutomatonFile",
+                options.witness.toString());
+          }
+          break;
+        default:
+          throw new InvalidConfigurationException(
+              "Witness type "
+                  + witnessType
+                  + " of witness "
+                  + options.witness
+                  + " is not supported");
+      }
     }
     if (validationConfigFile == null) {
       throw new InvalidConfigurationException(
@@ -681,6 +673,7 @@ public class CPAMain {
             .clearOption("witness.validation.file")
             .clearOption("witness.validation.violation.config")
             .clearOption("witness.validation.correctness.config")
+            .clearOption("witness.validation.correctness.acsl")
             .clearOption("output.path")
             .clearOption("rootDirectory");
     if (configFileName.isPresent()) {
@@ -690,7 +683,15 @@ public class CPAMain {
     return configBuilder.build();
   }
 
-  @SuppressWarnings("resource")
+  private static void appendWitnessToSpecificationOption(
+      WitnessOptions pOptions, Map<String, String> pOverrideOptions) {
+    String specs = pOverrideOptions.get(SPECIFICATION_OPTION);
+    String witnessSpec = pOptions.witness.toString();
+    specs = specs == null ? witnessSpec : (specs + "," + witnessSpec);
+    pOverrideOptions.put(SPECIFICATION_OPTION, specs);
+  }
+
+  @SuppressWarnings("deprecation")
   private static void printResultAndStatistics(
       CPAcheckerResult mResult,
       String outputDirectory,
@@ -776,13 +777,9 @@ public class CPAMain {
 
     private final String outputPath;
 
-    private final Set<SpecificationProperty> properties;
-
-    public Config(
-        Configuration pConfiguration, String pOutputPath, Set<SpecificationProperty> pProperties) {
+    public Config(Configuration pConfiguration, String pOutputPath) {
       configuration = pConfiguration;
       outputPath = pOutputPath;
-      properties = ImmutableSet.copyOf(pProperties);
     }
   }
 }

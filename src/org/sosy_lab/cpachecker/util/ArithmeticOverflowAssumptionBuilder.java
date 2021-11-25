@@ -199,7 +199,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements
       case ReturnStatementEdge:
         CReturnStatementEdge returnEdge = (CReturnStatementEdge) pEdge;
         if (returnEdge.getExpression().isPresent()) {
-          returnEdge.getExpression().get().accept(finder);
+          returnEdge.getExpression().orElseThrow().accept(finder);
         }
         break;
       case FunctionReturnEdge:
@@ -271,8 +271,9 @@ public final class ArithmeticOverflowAssumptionBuilder implements
         }
       } else if (trackMultiplications && binop.equals(BinaryOperator.MULTIPLY)) {
         if (lowerBounds.get(calculationType) != null && upperBounds.get(calculationType) != null) {
-          ofmgr.addMultiplicationAssumptions(
-              op1, op2, lowerBounds.get(calculationType), upperBounds.get(calculationType), result);
+          result.addAll(
+              ofmgr.addMultiplicationAssumptions(
+                  op1, op2, lowerBounds.get(calculationType), upperBounds.get(calculationType)));
         }
       } else if (trackDivisions
           && (binop.equals(BinaryOperator.DIVIDE) || binop.equals(BinaryOperator.MODULO))) {

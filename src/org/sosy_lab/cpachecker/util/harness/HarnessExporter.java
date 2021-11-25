@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -88,8 +89,11 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
@@ -136,6 +140,9 @@ public class HarnessExporter {
   @Option(secure = true, description = "Use the counterexample model to provide test-vector values")
   private boolean useModel = true;
 
+  @Option(secure = true, description = "Only genenerate for __VERIFIER_nondet calls")
+  private boolean onlyVerifierNondet = false;
+
   public HarnessExporter(Configuration pConfig, LogManager pLogger, CFA pCFA)
       throws InvalidConfigurationException {
     cfa = pCFA;
@@ -165,13 +172,13 @@ public class HarnessExporter {
       codeAppender.appendln("struct _IO_FILE;");
       codeAppender.appendln("typedef struct _IO_FILE FILE;");
       codeAppender.appendln("extern struct _IO_FILE *stderr;");
-      codeAppender.appendln("extern int fprintf(FILE *__restrict __stream, const char *__restrict __format, ...);");
+      codeAppender.appendln(
+          "extern int fprintf(FILE *__restrict __stream, const char *__restrict __format, ...);");
       codeAppender.appendln("extern void exit(int __status) __attribute__ ((__noreturn__));");
 
       // implement error-function
       CFAEdge edgeToTarget = testVector.orElseThrow().getEdgeToTarget();
-      Optional<AFunctionDeclaration> errorFunction =
-          getErrorFunction(edgeToTarget, externalFunctions);
+      Optional<AFunctionDeclaration> errorFunction = getErrorFunction(edgeToTarget);
       if (errorFunction.isPresent()) {
         codeAppender.append(errorFunction.orElseThrow());
         codeAppender.appendln(" {");
@@ -203,22 +210,30 @@ public class HarnessExporter {
     }
   }
 
-  private Optional<AFunctionDeclaration> getErrorFunction(
-      CFAEdge pEdgeToTarget, Set<AFunctionDeclaration> pExternalFunctions) {
+  private Optional<AFunctionDeclaration> getErrorFunction(CFAEdge pEdgeToTarget) {
+    AFunctionCall callStatement = null;
     if (pEdgeToTarget instanceof AStatementEdge) {
       AStatementEdge statementEdge = (AStatementEdge) pEdgeToTarget;
       AStatement statement = statementEdge.getStatement();
       if (statement instanceof AFunctionCall) {
-        AFunctionCall functionCallStatement = (AFunctionCall) statement;
-        AFunctionCallExpression functionCallExpression =
-            functionCallStatement.getFunctionCallExpression();
-        AFunctionDeclaration declaration = functionCallExpression.getDeclaration();
-        if (declaration != null && pExternalFunctions.contains(declaration)) {
-          return Optional.of(functionCallExpression.getDeclaration());
-        }
+        callStatement = (AFunctionCall) statement;
       }
+    } else if (pEdgeToTarget instanceof FunctionCallEdge) {
+      callStatement = ((FunctionCallEdge) pEdgeToTarget).getSummaryEdge().getExpression();
     }
-    return Optional.empty();
+
+    if (callStatement != null) {
+      return getFunctionDeclaration(callStatement);
+    } else {
+      return Optional.empty();
+    }
+  }
+
+  private Optional<AFunctionDeclaration> getFunctionDeclaration(final AFunctionCall pFunctionCall) {
+    final AFunctionCallExpression functionCallExpression =
+        pFunctionCall.getFunctionCallExpression();
+    final AFunctionDeclaration declaration = functionCallExpression.getDeclaration();
+    return Optional.ofNullable(declaration);
   }
 
   private Set<AFunctionDeclaration> getExternalFunctions() {
@@ -360,7 +375,8 @@ public class HarnessExporter {
           ASimpleDeclaration declaration = idExpression.getDeclaration();
           if (declaration != null) {
             String name = declaration.getQualifiedName();
-            if (cfa.getFunctionHead(name) == null) {
+            if (cfa.getFunctionHead(name) == null
+                && (!onlyVerifierNondet || name.startsWith("__VERIFIER_nondet"))) {
               if (functionCall instanceof AFunctionCallStatement) {
                 return handlePlainFunctionCall(pPrevious, pChild, functionCallExpression);
               }
@@ -385,6 +401,12 @@ public class HarnessExporter {
                   return handleCompositeCall(pPrevious, pChild, functionCallExpression);
                 }
                 return handlePlainFunctionCall(pPrevious, pChild, functionCallExpression);
+              } else if (onlyVerifierNondet && name.startsWith("__VERIFIER_nondet")) {
+                Optional<ExpressionTestValue> defaultValue =
+                    getDefaultValue(functionDeclaration.getType().getReturnType());
+                if (defaultValue.isPresent()) {
+                  return Optional.of(new State(pChild, pPrevious.testVector.addInputValue(functionDeclaration, defaultValue.orElseThrow())));
+                }
               }
               return Optional.empty();
             }
@@ -737,7 +759,7 @@ public class HarnessExporter {
             FileLocation.DUMMY,
             type,
             "malloc",
-            Collections.singletonList(
+            ImmutableList.of(
                 new CParameterDeclaration(
                     FileLocation.DUMMY, CPointerType.POINTER_TO_VOID, "size")));
     return new CFunctionCallExpression(
@@ -762,7 +784,7 @@ public class HarnessExporter {
     return addValue(pTestVector, pFunctionDeclaration, value);
   }
 
-  private static final AExpression getDummyValue(Type pType) {
+  private static AExpression getDummyValue(Type pType) {
     if (pType instanceof CType) {
       if (canInitialize(pType)) {
         CInitializer initializer = CDefaults.forType((CType) pType, FileLocation.DUMMY);
@@ -776,7 +798,7 @@ public class HarnessExporter {
     return new JIntegerLiteralExpression(FileLocation.DUMMY, BigInteger.ZERO);
   }
 
-  private static final AInitializer getDummyInitializer(Type pType) {
+  private static AInitializer getDummyInitializer(Type pType) {
     if (pType instanceof CType) {
       if (canInitialize(pType)) {
         return CDefaults.forType((CType) pType, FileLocation.DUMMY);
@@ -788,6 +810,33 @@ public class HarnessExporter {
     }
     return new JInitializerExpression(
         FileLocation.DUMMY, new JIntegerLiteralExpression(FileLocation.DUMMY, BigInteger.ZERO));
+  }
+
+  private static Optional<ExpressionTestValue> getDefaultValue(final Type pReturnType) {
+    if (pReturnType instanceof CType) {
+
+      CType returnType = ((CType) pReturnType).getCanonicalType();
+
+      if (returnType instanceof CSimpleType
+          && ((CSimpleType) returnType).getType() == CBasicType.CHAR) {
+        return Optional.of(
+            ExpressionTestValue
+                .of(new CCharLiteralExpression(FileLocation.DUMMY, returnType, ' ')));
+      }
+
+      if (!(returnType instanceof CCompositeType
+          || returnType instanceof CArrayType
+          || returnType instanceof CBitFieldType
+          || (returnType instanceof CElaboratedType
+              && ((CElaboratedType) returnType).getKind() != ComplexTypeKind.ENUM))) {
+
+        return Optional.of(
+            ExpressionTestValue.of(
+                ((CInitializerExpression) CDefaults.forType(returnType, FileLocation.DUMMY))
+                    .getExpression()));
+      }
+    }
+    return Optional.empty();
   }
 
   static boolean canInitialize(Type pType) {

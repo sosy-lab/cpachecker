@@ -8,16 +8,12 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-/**
- * An enumeration listing the visibility modifier public, protected, none, private of Java.
- */
+/** An enumeration listing the visibility modifier public, protected, none, private of Java. */
 public enum VisibilityModifier {
-
-  PUBLIC     ("public"),
-  NONE   (""),
-  PROTECTED    ("protected"),
-  PRIVATE        ("private")
-  ;
+  PUBLIC("public"),
+  NONE(""),
+  PROTECTED("protected"),
+  PRIVATE("private");
 
   private final String mod;
 

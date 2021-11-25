@@ -210,7 +210,7 @@ public class FormulaSlicingManager implements StatisticsProvider {
     );
 
     Set<BooleanFormula> lemmas = rcnfManager.toLemmasInstantiated(
-        pf.updateFormula(transition), fmgr
+        pf.withFormula(transition), fmgr
     );
 
     Set<BooleanFormula> finalLemmas = new HashSet<>();
@@ -443,12 +443,9 @@ public class FormulaSlicingManager implements StatisticsProvider {
       SlicingAbstractedState pSlicingAbstractedState) {
     return SlicingIntermediateState.of(
         pSlicingAbstractedState.getNode(),
-        new PathFormula(
-            bfmgr.makeTrue(),
-            pSlicingAbstractedState.getSSA(),
-            pSlicingAbstractedState.getPointerTargetSet(),
-            0), pSlicingAbstractedState
-    );
+        pfmgr.makeEmptyPathFormulaWithContext(
+            pSlicingAbstractedState.getSSA(), pSlicingAbstractedState.getPointerTargetSet()),
+        pSlicingAbstractedState);
   }
 
   private boolean shouldPerformAbstraction(CFANode node, AbstractState pFullState) {

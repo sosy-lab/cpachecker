@@ -16,16 +16,57 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 public class SMGEdgeHasValueFilter {
 
-  public static SMGEdgeHasValueFilter objectFilter(SMGObject pObject) {
-    return new SMGEdgeHasValueFilter().filterByObject(pObject);
+  protected SMGObject object;
+  private SMGValue value;
+  private boolean valueComplement;
+  private Long offset;
+  private long sizeInBits;
+  private boolean sizeNotRequired;
+  private SMGEdgeHasValue overlapsWith;
+
+  public SMGEdgeHasValueFilter() {
+    object = null;
+    value = null;
+    valueComplement = false;
+    offset = null;
+    sizeInBits = -1;
+    sizeNotRequired = false;
+    overlapsWith = null;
   }
 
-  private SMGObject object = null;
-  private SMGValue value = null;
-  private boolean valueComplement = false;
-  private Long offset = null;
-  private long sizeInBits = -1;
-  private boolean sizeNotRequired = false;
+  public SMGEdgeHasValueFilter(SMGEdgeHasValueFilter pFilter) {
+    object = pFilter.object;
+    value = pFilter.value;
+    valueComplement = pFilter.valueComplement;
+    offset = pFilter.offset;
+    sizeInBits = pFilter.sizeInBits;
+    sizeNotRequired = pFilter.sizeNotRequired;
+    overlapsWith = pFilter.overlapsWith;
+  }
+
+  public static class SMGEdgeHasValueFilterByObject extends SMGEdgeHasValueFilter {
+    @VisibleForTesting
+    @Override
+    public SMGEdgeHasValueFilterByObject filterByObject(SMGObject pObject) {
+      object = pObject;
+      return this;
+    }
+
+    @Override
+    public SMGHasValueEdges filter(SMGHasValueEdges pEdges) {
+      SMGHasValueEdges filtered;
+      if (object != null) {
+        filtered = pEdges.getEdgesForObject(object);
+      } else {
+        filtered = pEdges.getHvEdges();
+      }
+      return filtered;
+    }
+  }
+
+  public static SMGEdgeHasValueFilterByObject objectFilter(SMGObject pObject) {
+    return new SMGEdgeHasValueFilterByObject().filterByObject(pObject);
+  }
 
   public SMGObject getObject() {
     return object;
@@ -47,48 +88,64 @@ public class SMGEdgeHasValueFilter {
     return sizeNotRequired;
   }
 
+  public SMGEdgeHasValue getOverlapsWith() {
+    return overlapsWith;
+  }
+
   @VisibleForTesting
   public SMGEdgeHasValueFilter filterByObject(SMGObject pObject) {
-    object = pObject;
-    return this;
+    SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter(this);
+    filter.object = pObject;
+    return filter;
   }
 
   public SMGEdgeHasValueFilter filterWithoutSize() {
-    sizeNotRequired = true;
-    return this;
+    SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter(this);
+    filter.sizeNotRequired = true;
+    return filter;
   }
 
   public SMGEdgeHasValueFilter filterHavingValue(SMGValue pValue) {
-    value = pValue;
-    valueComplement = false;
+    SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter(this);
+    filter.value = pValue;
+    filter.valueComplement = false;
     if (!pValue.isZero()) {
-      sizeNotRequired = true;
+      filter.sizeNotRequired = true;
     }
-    return this;
+    return filter;
   }
 
   public SMGEdgeHasValueFilter filterNotHavingValue(SMGValue pValue) {
-    value = pValue;
-    valueComplement = true;
+    SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter(this);
+    filter.value = pValue;
+    filter.valueComplement = true;
     if (pValue.isZero()) {
-      sizeNotRequired = true;
+      filter.sizeNotRequired = true;
     }
-    return this;
+    return filter;
   }
 
   public SMGEdgeHasValueFilter filterAtOffset(long pOffset) {
-    offset = pOffset;
-    return this;
+    SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter(this);
+    filter.offset = pOffset;
+    return filter;
   }
 
   public SMGEdgeHasValueFilter filterBySize(long pSizeInBits) {
     Preconditions.checkArgument(pSizeInBits >= 0, "negative sizes not allowed for filtering");
-    sizeInBits = pSizeInBits;
-    return this;
+    SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter(this);
+    filter.sizeInBits = pSizeInBits;
+    return filter;
+  }
+
+  public SMGEdgeHasValueFilter overlapsWith(SMGEdgeHasValue pEdge) {
+    SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter(this);
+    filter.overlapsWith = pEdge;
+    return filter;
   }
 
   public boolean holdsFor(SMGEdgeHasValue pEdge) {
-    assert (sizeInBits >= 0 || sizeNotRequired);
+    assert sizeInBits >= 0 || sizeNotRequired || overlapsWith != null;
     if (object != null && object != pEdge.getObject()) {
       return false;
     }
@@ -105,6 +162,18 @@ public class SMGEdgeHasValueFilter {
       return false;
     }
 
+    if (overlapsWith != null) {
+      if (!overlapsWith.getObject().equals(pEdge.getObject())) {
+        return false;
+      }
+      if (overlapsWith.getOffset() > pEdge.getOffset() + pEdge.getSizeInBits()) {
+        return false;
+      }
+      if (overlapsWith.getOffset() + overlapsWith.getSizeInBits() <= pEdge.getOffset()) {
+        return false;
+      }
+    }
+
     if (sizeInBits >= 0 && sizeInBits != pEdge.getSizeInBits()) {
       // zero edge with bigger size can hold current edge
       if (sizeInBits < pEdge.getSizeInBits() && pEdge.getValue().isZero()) {
@@ -116,7 +185,7 @@ public class SMGEdgeHasValueFilter {
     return true;
   }
 
-  public SMGHasValueEdges filter(SMGHasValueEdges pEdges) {
+  public Iterable<SMGEdgeHasValue> filter(SMGHasValueEdges pEdges) {
     SMGHasValueEdges filtered;
     if (object != null) {
       filtered = pEdges.getEdgesForObject(object);
@@ -134,6 +203,6 @@ public class SMGEdgeHasValueFilter {
   public String toString() {
     return String.format(
         "Filter %s<object=%s@%d, value=%s, size=%d>",
-        valueComplement ? "" : "NOT", object, offset, value, sizeInBits);
+        valueComplement ? "NOT" : "", object, offset, value, sizeInBits);
   }
 }

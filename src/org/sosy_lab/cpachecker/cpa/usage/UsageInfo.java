@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 
 public final class UsageInfo implements Comparable<UsageInfo> {
 
-  public static enum Access {
+  public enum Access {
     WRITE,
     READ;
   }
@@ -98,7 +98,7 @@ public final class UsageInfo implements Comparable<UsageInfo> {
   }
 
   public @NonNull SingleIdentifier getId() {
-    assert (core.id != null);
+    assert core.id != null;
     return core.id;
   }
 

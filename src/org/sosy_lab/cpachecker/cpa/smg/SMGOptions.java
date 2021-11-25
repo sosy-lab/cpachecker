@@ -140,6 +140,12 @@ public class SMGOptions {
   private boolean trackPredicates = false;
 
   @Option(
+      secure = true,
+      name = "trackErrorPredicates",
+      description = "Enable track predicates for possible memory safety error on SMG state")
+  private boolean trackErrorPredicates = false;
+
+  @Option(
     secure = true,
     name = "handleUnknownDereferenceAsSafe",
     description =
@@ -147,6 +153,12 @@ public class SMGOptions {
             + "depends on trackPredicates"
   )
   private boolean handleUnknownDereferenceAsSafe = false;
+
+  @Option(
+      secure = true,
+      name = "crashOnUnknown",
+      description = "Crash on unknown array dereferences")
+  private boolean crashOnUnknown = false;
 
   @Option(
       secure = true,
@@ -289,6 +301,10 @@ public class SMGOptions {
     return trackPredicates;
   }
 
+  public boolean trackErrorPredicates() {
+    return trackErrorPredicates;
+  }
+
   public boolean isHeapAbstractionEnabled() {
     return enableHeapAbstraction;
   }
@@ -327,5 +343,9 @@ public class SMGOptions {
 
   public boolean getJoinOnBlockEnd() {
     return joinOnBlockEnd;
+  }
+
+  public boolean crashOnUnknown() {
+    return crashOnUnknown;
   }
 }

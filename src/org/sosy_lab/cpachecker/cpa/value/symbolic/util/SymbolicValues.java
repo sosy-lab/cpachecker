@@ -22,17 +22,11 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
-/**
- * Util class for {@link SymbolicValue}.
- * Before using this class, {@link #initialize()} has to be called at least once.
- */
+/** Util class for {@link SymbolicValue}. */
 public class SymbolicValues {
 
-  private static SymbolicIdentifierLocator identifierLocator;
-
-  public static void initialize() {
-    identifierLocator = SymbolicIdentifierLocator.getInstance();
-  }
+  private static final SymbolicIdentifierLocator identifierLocator =
+      SymbolicIdentifierLocator.getInstance();
 
   /**
    * Returns whether the given constraints represent the same C code (string wise). This is the case

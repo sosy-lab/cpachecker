@@ -17,7 +17,6 @@ import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -39,7 +38,7 @@ public class PathPairIterator extends
   private final Set<List<Integer>> refinedStates = new HashSet<>();
   private final BAMCPA bamCpa;
   private BAMMultipleCEXSubgraphComputer subgraphComputer;
-  private final Map<UsageInfo, BAMSubgraphIterator> targetToPathIterator;
+  private final IdentityHashMap<UsageInfo, BAMSubgraphIterator> targetToPathIterator;
 
   //Statistics
   private StatTimer computingPath = new StatTimer("Time for path computing");
@@ -49,8 +48,10 @@ public class PathPairIterator extends
   private StatCounter numberOfRepeatedConstructedPaths = new StatCounter("Number of repeated path computed");
   //private int numberOfrepeatedPaths = 0;
 
-  private Map<UsageInfo, List<ExtendedARGPath>> computedPathsForUsage = new IdentityHashMap<>();
-  private Map<UsageInfo, Iterator<ExtendedARGPath>> currentIterators = new IdentityHashMap<>();
+  private IdentityHashMap<UsageInfo, List<ExtendedARGPath>> computedPathsForUsage =
+      new IdentityHashMap<>();
+  private IdentityHashMap<UsageInfo, Iterator<ExtendedARGPath>> currentIterators =
+      new IdentityHashMap<>();
 
   private final Function<ARGState, Integer> idExtractor;
 
@@ -190,7 +191,6 @@ public class PathPairIterator extends
       refinedStates.clear();
       targetToPathIterator.clear();
       firstPath = null;
-      refinedStates.clear();
       subgraphComputer = null;
     } else if (callerClass.equals(PointIterator.class)) {
       currentIterators.clear();

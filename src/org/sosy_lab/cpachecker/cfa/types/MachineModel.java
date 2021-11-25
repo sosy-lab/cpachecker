@@ -15,6 +15,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigInteger;
+import java.nio.ByteOrder;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -70,7 +71,9 @@ public enum MachineModel {
       // alignof other
       1, // void
       1, //bool
-      4 //pointer
+      4, //pointer
+      true, // char is signed
+      ByteOrder.LITTLE_ENDIAN // endianness
   ),
 
   /** Machine model representing a 64bit Linux machine with alignment: */
@@ -101,7 +104,9 @@ public enum MachineModel {
       // alignof other
       1, // void
       1, // bool
-      8 // pointer
+      8, // pointer
+      true, // char is signed
+      ByteOrder.LITTLE_ENDIAN // endianness
   ),
 
   /** Machine model representing an ARM machine with alignment: */
@@ -124,16 +129,52 @@ public enum MachineModel {
       2, // short
       4, // int
       4, // long int
-      4, // long long int
+      8, // long long int
       4, // float
-      4, // double
-      4, // long double
+      8, // double
+      8, // long double
 
       // alignof other
       1, // void
-      4, // bool
-      4 // pointer
-  );
+      1, // bool
+      4, // pointer
+      false, // char is signed
+      ByteOrder.LITTLE_ENDIAN // endianness
+      ),
+
+  /** Machine model representing an ARM64 machine with alignment: */
+  ARM64(
+      // numeric types
+      2, // short
+      4, // int
+      8, // long int
+      8, // long long int
+      4, // float
+      8, // double
+      16, // long double
+
+      // other
+      1, // void
+      1, // bool
+      8, // pointer
+
+      //  alignof numeric types
+      2, // short
+      4, // int
+      8, // long int
+      8, // long long int
+      4, // float
+      8, // double
+      16, // long double
+
+      // alignof other
+      1, // void
+      1, // bool
+      8, // pointer
+      false, // char is signed
+      ByteOrder.LITTLE_ENDIAN // endianness
+      );
+
   // numeric types
   private final int sizeofShort;
   private final int sizeofInt;
@@ -147,6 +188,8 @@ public enum MachineModel {
   private final int sizeofVoid;
   private final int sizeofBool;
   private final int sizeofPtr;
+
+  private final transient ByteOrder endianness;
 
   // alignof numeric types
   private final int alignofShort;
@@ -165,6 +208,7 @@ public enum MachineModel {
   // according to ANSI C, sizeof(char) is always 1
   private final int mSizeofChar = 1;
   private final int mAlignofChar = 1;
+  private final boolean defaultCharSigned;
 
   // a char is always a byte, but a byte doesn't have to be 8 bits
   private final int mSizeofCharInBits = 8;
@@ -190,7 +234,9 @@ public enum MachineModel {
       int pAlignofLongDouble,
       int pAlignofVoid,
       int pAlignofBool,
-      int pAlignofPtr) {
+      int pAlignofPtr,
+      boolean pDefaultCharSigned,
+      ByteOrder pEndianness) {
     sizeofShort = pSizeofShort;
     sizeofInt = pSizeofInt;
     sizeofLongInt = pSizeofLongInt;
@@ -212,6 +258,8 @@ public enum MachineModel {
     alignofVoid = pAlignofVoid;
     alignofBool = pAlignofBool;
     alignofPtr = pAlignofPtr;
+    defaultCharSigned = pDefaultCharSigned;
+    endianness = pEndianness;
 
     if (sizeofPtr == sizeofInt) {
       ptrEquivalent = CNumericTypes.INT;
@@ -256,7 +304,7 @@ public enum MachineModel {
    * or <code>unsigned char</code>.
    */
   public boolean isDefaultCharSigned() {
-    return true;
+    return defaultCharSigned;
   }
 
   /**
@@ -379,6 +427,10 @@ public enum MachineModel {
       default:
         throw new AssertionError("Unrecognized CBasicType " + type.getType());
     }
+  }
+
+  public ByteOrder getEndianness() {
+    return endianness;
   }
 
   public int getSizeofInBits(CSimpleType type) {
@@ -603,7 +655,7 @@ public enum MachineModel {
 
     @Override
     public BigInteger visit(CProblemType pProblemType) throws IllegalArgumentException {
-      throw new IllegalArgumentException("Unknown C-Type: " + pProblemType.getClass().toString());
+      throw new IllegalArgumentException("Unknown C-Type: " + pProblemType.getClass());
     }
 
     @Override
@@ -734,7 +786,7 @@ public enum MachineModel {
 
     @Override
     public Integer visit(CProblemType pProblemType) throws IllegalArgumentException {
-      throw new IllegalArgumentException("Unknown C-Type: " + pProblemType.getClass().toString());
+      throw new IllegalArgumentException("Unknown C-Type: " + pProblemType.getClass());
     }
 
     @Override

@@ -8,6 +8,63 @@ SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 SPDX-License-Identifier: Apache-2.0
 -->
 
+Changes from CPAchecker 2.0 to CPAchecker 2.1
+---------------------------------------------
+* Interpolation-Sequence based Model Checking (ISMC)  
+  A new reachability-safety analysis (config `-bmc-interpolationSequence`),
+  which adopts a verification algorithm for hardware
+  proposed by Yakir Vizel and Orna Grumberg
+  (cf. ["Interpolation-sequence based model checking", Proc. FMCAD, 2009](https://doi.org/10.1109/FMCAD.2009.5351148))
+  to software, has been added to CPAchecker.
+
+* Self-contained HTML reports  
+  The [HTML report](https://cpachecker.sosy-lab.org/counterexample-report/ErrorPath.0.html)
+  that CPAchecker creates for the analysis result
+  (for example showing the counterexample)
+  now is a fully self contained file with all dependencies bundled.
+  This means one does no longer need Internet access to open one.
+
+
+Changes from CPAchecker 1.9.1 to CPAchecker 2.0
+-----------------------------------------------
+* Better support for Windows  
+  We now bundle binaries of SMT solvers like MathSAT and Z3 for Windows,
+  such that most configurations of CPAchecker work on Windows out of the box.
+
+* REUSE compliance  
+  CPAchecker now follows the [licensing best practices](https://reuse.software/)
+  of the FSFE and is [REUSE compliant](https://api.reuse.software/info/gitlab.com/sosy-lab/software/cpachecker),
+  i.e., everything in the repository is labeled with machine-readable
+  headers that include copyright and license information.
+  This makes it easy to check the licenses of all CPAchecker-internal and
+  third-party components and ensure that all requirements such as bundling
+  license texts and copyright notices are fulfilled
+  when redistributing CPAchecker.
+  More information about the license status can be found in [README.md](README.md).
+
+* Interpolation-based Model Checking (IMC)  
+  A new reachability-safety analysis (config `-bmc-interpolation`),
+  which adopts a state-of-the-art verification algorithm
+  for hardware proposed by K. L. McMillan
+  (cf. ["Interpolation and SAT-Based Model Checking", Proc. CAV, 2003](https://doi.org/10.1007/978-3-540-45069-6_1))
+  to software, has been added to CPAchecker.
+
+* Automated Fault Localization  
+  CPAchecker now supports multiple techniques for automatic fault-localization.
+  If fault localization is enabled and CPAchecker finds a counterexample during
+  analysis, CPAchecker will mark likely faults in the program that lead to that counterexample.
+  Fault-localization results are presented in the produced HTML reports
+  (`Counterexample.*.html`).
+  The following fault-localization configurations exist:
+
+    * [Coverage-based fault localization](https://ieeexplore.ieee.org/abstract/document/4041886):
+      `-setprop analysis.algorithm.faultLocalization.by_coverage=true`
+    * [Interpolation-based fault localization](https://link.springer.com/chapter/10.1007/978-3-642-32759-9_17):
+      `-setprop analysis.algorithm.faultLocalization.by_traceformula=true`
+    * [Distance metrics](https://dl.acm.org/doi/abs/10.1145/1029894.1029908):
+      `-setprop analysis.algorithm.faultlocalization.by_distance=true`
+
+
 Changes from CPAchecker 1.9 to CPAchecker 1.9.1
 -----------------------------------------------
 CPAchecker 1.9.1 celebrates our SVN revision 33333,

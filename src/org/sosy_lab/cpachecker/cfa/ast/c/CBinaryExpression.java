@@ -52,7 +52,7 @@ public class CBinaryExpression extends ABinaryExpression implements CExpression 
    * This method returns the type for the 'calculation' of this binary expression.
    *
    * This is not the type of the 'result' of this binary expression.
-   * The result-type is returned from getType().
+   * The result-type is returned from getExpressionType().
    * <p>
    * Before the calculation, if necessary,
    * both operand should be casted to the calculation-type.
@@ -138,6 +138,26 @@ public class CBinaryExpression extends ABinaryExpression implements CExpression 
         return true;
       default:
         throw new AssertionError("Unhandled case statement");
+      }
+    }
+
+    public BinaryOperator getSwitchOperandsSidesLogicalOperator() {
+      assert isLogicalOperator();
+      switch (this) {
+        case LESS_EQUAL:
+          return GREATER_EQUAL;
+        case LESS_THAN:
+          return GREATER_THAN;
+        case GREATER_EQUAL:
+          return LESS_EQUAL;
+        case GREATER_THAN:
+          return LESS_THAN;
+        case EQUALS:
+          return EQUALS;
+        case NOT_EQUALS:
+          return NOT_EQUALS;
+        default:
+          return this;
       }
     }
 

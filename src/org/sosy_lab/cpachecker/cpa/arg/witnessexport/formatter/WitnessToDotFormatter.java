@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Edge;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.ElementType;
@@ -85,7 +85,7 @@ public class WitnessToDotFormatter extends WitnessToOutputFormatter<String> {
       labels.add(eq(f.key, "true"));
       nodesToColor.put(nodeId, nodesToColor.getOrDefault(nodeId, "") + " " + getColorForNode(f));
     }
-    for (Property violation : witness.getViolatedProperties().get(pNodeId)) {
+    for (TargetInformation violation : witness.getViolatedProperties().get(pNodeId)) {
       labels.add(eq(KeyDef.VIOLATEDPROPERTY, violation));
     }
     if (witness.hasQuasiInvariant(pNodeId)) {

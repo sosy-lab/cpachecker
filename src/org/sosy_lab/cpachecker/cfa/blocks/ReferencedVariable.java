@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.blocks;
 
+import com.google.common.base.CharMatcher;
 import java.util.Set;
 
 /**
@@ -25,7 +26,9 @@ public class ReferencedVariable {
 
   public ReferencedVariable(String pIdent, boolean pOccursInCondition,
       Set<ReferencedVariable> pInfluencingByVariables) {
-    ident = pIdent.replaceAll("[ \n\t]", ""); //mimic behavior of CtoFormulaConverter.exprToVarName
+    ident =
+        CharMatcher.whitespace()
+            .removeFrom(pIdent); // mimic behavior of CtoFormulaConverter.exprToVarName
     occursInCondition = pOccursInCondition;
     influencingVariables = pInfluencingByVariables;
   }

@@ -169,7 +169,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
   public LiveVariablesState getInitialState(CFANode pNode) {
     if (pNode instanceof FunctionExitNode) {
       FunctionExitNode eNode = (FunctionExitNode) pNode;
-      com.google.common.base.Optional<? extends AVariableDeclaration> returnVarName =
+      Optional<? extends AVariableDeclaration> returnVarName =
           eNode.getEntryNode().getReturnVariable();
 
       // e.g. a function void foo();
@@ -202,8 +202,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
 
       if (node instanceof FunctionEntryNode) {
         FunctionEntryNode entryNode = (FunctionEntryNode) node;
-        com.google.common.base.Optional<? extends AVariableDeclaration> returnVarName =
-            entryNode.getReturnVariable();
+        Optional<? extends AVariableDeclaration> returnVarName = entryNode.getReturnVariable();
         if (returnVarName.isPresent()) {
           allDecls.add(LIVE_DECL_EQUIVALENCE.wrap(returnVarName.get()));
         }
@@ -417,7 +416,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
     List<Wrapper<ASimpleDeclaration>> out = new ArrayList<>();
     for (int i = data.nextSetBit(0); i >= 0; i = data.nextSetBit(i + 1)) {
       out.add(allDeclarations.get(i));
-      assert (i != Integer.MAX_VALUE);
+      assert i != Integer.MAX_VALUE;
     }
     return out;
   }

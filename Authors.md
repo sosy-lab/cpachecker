@@ -9,112 +9,130 @@ SPDX-License-Identifier: Apache-2.0
 -->
 
 # Maintainers
-- Dirk Beyer (since 2007), LMU Munich, Germany
-- Philipp Wendler (since 2009), LMU Munich, Germany
+- Beyer, Dirk (since 2007); LMU Munich, Germany
+- Wendler, Philipp (since 2009); LMU Munich, Germany
 
 # Former Maintainers
-- Erkan Keremoglu (2008 - 2011), SFU, Canada
+- Keremoglu, Erkan (2008 - 2011); SFU, Canada
 
 # Developers/Contributors
-- Niklas Amslgruber (since 2020), LMU Munich, Germany
-- Pavel Andrianov (since 2014), ISP RAS, Russia
-- Moritz Beck (since 2019), LMU Munich, Germany
-- Thomas Bunk (since 2018), LMU Munich, Germany
-- Marek Chalupa (since 2018), Masaryk University, Czechia
-- Matthias Dangl (since 2012), LMU Munich, Germany
-- Karlheinz Friedberger (since 2011), LMU Munich, Germany
-- Stephan Holzner (since 2019), LMU Munich, Germany
-- Marie-Christine Jakobs (since 2012), TU Darmstadt, Germany
-- Matthias Kettl (since 2019), LMU Munich, Germany
-- Thomas Lemberger (since 2014), LMU Munich, Germany
-- Grigory Markin (since 2017), University of Lübeck, Germany
-- Vitaly Mordan (since 2014), ISP RAS, Russia
-- Vadim Mutilin (since 2012), ISP RAS, Russia
-- Valentin Port (since 2019), LMU Munich, Germany
-- Balthasar Schüss (since 2019), LMU Munich, Germany
-- Jakob Selberg (since 2018), LMU Munich, Germany
-- Martin Spießl (since 2017), LMU Munich, Germany
-- Sarita Sridharan (since 2019), LMU Munich, Germany
-- Sven Umbricht (since 2020), LMU Munich, Germany
-- Anton Vasilyev (since 2015), ISP RAS, Russia
-- Anton Volkov (since 2015), ISP RAS, Russia
-- Nico Weise (since 2019), LMU Munich, Germany
+- Andrianov, Pavel (since 2014); ISP RAS, Russia
+- Baier, Daniel (since 2021); LMU Munich, Germany
+- Bunk, Thomas (since 2018); LMU Munich, Germany
+- Chien, Po-Chun (since 2021); LMU Munich, Germany
+- Cimbalnik, Klara (since 2020): LMU Munich, Germany
+- Friedberger, Karlheinz (since 2011); LMU Munich, Germany
+- Haltermann, Jan (since 2019); University of Oldenburg, Germany
+- Holzner, Stephan (since 2019); LMU Munich, Germany
+- Jakobs, Marie-Christine (since 2012); TU Darmstadt, Germany
+- Kanav, Sudeep (since 2021); LMU Munich, Germany
+- Kettl, Matthias (since 2019); LMU Munich, Germany
+- Lee, Nian-Ze (since 2020); LMU Munich, Germany
+- Lemberger, Thomas (since 2014); LMU Munich, Germany
+- Lingsch, Marian (since 2020): LMU Munich, Germany
+- Mutilin, Vadim (since 2012); ISP RAS, Russia
+- Port, Valentin (since 2019); LMU Munich, Germany
+- Rust, Henry (since 2021); TU Darmstadt, Germany
+- Schönberger, Frederic (since 2021); LMU Munich, Germany
+- Schüss, Balthasar (since 2019); LMU Munich, Germany
+- Selberg, Jakob (since 2018); LMU Munich, Germany
+- Spießl, Martin (since 2017); LMU Munich, Germany
+- Tschöpel, Sebastian (since 2021); LMU Munich, Germany
+- Umbricht, Sven (since 2020); LMU Munich, Germany
+- Vasilyev, Anton (since 2015); ISP RAS, Russia
+- Weise, Nico (since 2019); LMU Munich, Germany
 
 # Former Developers/Contributors
-- Emanuele De Angelis (2013 - 2014), University of Chieti and Pescara, Italy
-- Bernhard Bermeitinger (2015), University of Passau, Germany
-- Christian Bielert (2013 - 2014), University of Passau, Germany
-- Stefan Brand (2015), University of Passau, Germany
-- Henrik Bröcher (2016), University of Paderborn, Germany
-- Michael Bruckmeier (2011), University of Passau, Germany
-- Moritz Buhl (2018), LMU Munich, Germany
-- Johannes Bürdek (2014 - 2018), TU Darmstadt, Germany
-- Rodrigo Castaño (2017 - 2018), University of Buenos Aires, Argentina
-- Mike Czech (2013 - 2014), University of Paderborn, Germany
-- Przemislaw Daca (2011 - 2012), Technical University of Denmark, Denmark
-- Peter Dahlberg (2013 - 2016), University of Passau, Germany
-- Matthias Dittrich (2013), University of Passau, Germany
-- Andreas Donig (2010 - 2013), University of Passau, Germany
-- Georg Dresler (2013 - 2014), University of Passau, Germany
-- Alexander Driemeyer (2012 - 2016), University of Passau, Germany
-- Barbara Eckl (2016), University of Passau, Germany
-- Gregor Endler (2009 - 2010), University of Passau, Germany
-- Alexander Esch (2012), University of Passau, Germany
-- Flutura Estler (2018), LMU Munich, Germany
-- Ashgan Fararooy (2009), SFU, Canada
-- Tobias Friedl (2013 - 2014), University of Passau, Germany
-- Matthias Gerlach (2017 - 2018), LMU Munich, Germany
-- Alberto Griggio (2008 - 2009), SFU, Canada / University of Trento, Italy
-- Christian Hagenhof (2015), University of Passau, Germany
-- Raphael Hagl (2018 - 2019), LMU Munich, Germany
-- Peter Häring (2011 - 2014), University of Passau, Germany
-- Julian Heydebrand (2015), University of Passau, Germany
-- Andreas Holzer (2008 - 2015), TU Darmstadt, Germany / TU Vienna, Austria
-- Dejan Ivanov (2017), LMU Munich, Germany
-- George Karpenkov (2014 - 2017), Verimag, Grenoble
-- Michael Käufl (2011), University of Passau, Germany
-- Steven Kieffer (2011 - 2012), SFU, Canada
-- Johannes Knaut (2018), LMU Munich, Germany
-- Alexander Koos (2017 - 2018), LMU Munich, Germany
-- Philipp Korth (2012), University of Paderborn, Germany
-- Michal Kotoun (2018), Brno University of Technology, Czechia
-- Stefan Kronawitter (2012), University of Passau, Germany
-- Zdenek Letko (2014), Brno University of Technology, Czechia
-- Stefan Löwe (2010 - 2016), University of Passau, Germany
-- Stephan Lukasczyk (2015 - 2016), University of Passau, Germany
-- Michael Maier (2017 - 2019), LMU Munich, Germany
-- Mikhail Mandrykin (2013 - 2017), ISP RAS, Russia
-- Alexander Maringer (2010), University of Passau, Germany
-- Petr Muller (2012 - 2014), Brno University of Technology, Czechia
-- Magdalena Murr (2015), University of Passau, Germany
-- Lokesh Nandanwar (2018), National Institute of Technology Durgapur, India
-- Christian Olbrich (2014), University of Passau, Germany
-- Sebastian Ott (2013 - 2016), University of Passau, Germany
-- Stefan Peters (2011 - 2012), University of Passau, Germany
-- Daniel Pöllmann (2019), LMU Munich, Germany
-- Florian Quadt (2013 - 2014), University of Passau, Germany
-- Alexander von Rhein (2010), University of Passau, Germany
-- Sebastian Scheffel (2014 - 2015), University of Passau, Germany
-- Alexander Schremmer (2012 - 2013), University of Paderborn, Germany
-- Georg Seibt (2015), University of Passau, Germany
-- Leon Sell (2015 - 2016), University of Passau, Germany
-- Hendrik Speidel (2010), University of Passau, Germany
-- Andreas Stahlbauer (2011 - 2016), University of Passau, Germany / GrammaTech, USA
-- Thomas Stieglmaier (2011 - 2016), University of Passau, Germany
-- Maximilian Syri (2015 - 2016), University of Passau, Germany
-- Michael Tautschnig (2008 - 2009), TU Darmstadt, Germany
-- Gregory Theoduloz (2009 - 2010), EPFL, Switzerland
-- Manuel Töws (2016), University of Paderborn, Germany
-- Tanja Tornede (2014 - 2016), University of Paderborn, Germany
-- Mirjam Trapp (2018 - 2019), LMU Munich, Germany
-- Max Wiesholler (2018 - 2019), LMU Munich, Germany
-- Katharina Winter (2018 - 2019), LMU Munich, Germany
-- Christoph Woller (2014 - 2015), University of Passau, Germany
-- Daniel Wonisch (2011 - 2012), University of Paderborn, Germany
-- Geoff Zenger (2007), SFU, Canada
-- Gernot Zorneck (2016 - 2017), University of Passau, Germany
-- Ilja Zakharov (2016), ISP RAS, Russia
+- Ali, Schindar (2020); LMU Munich, Germany
+- Amslgruber, Niklas (2020); LMU Munich, Germany
+- Angelis, Emanuele De (2013 - 2014); University of Chieti and Pescara, Italy
+- Beck, Moritz (2019 - 2020); LMU Munich, Germany
+- Bermeitinger, Bernhard (2015); University of Passau, Germany
+- Bielert, Christian (2013 - 2014); University of Passau, Germany
+- Brand, Stefan (2015); University of Passau, Germany
+- Bröcher, Henrik (2016); University of Paderborn, Germany
+- Bruckmeier, Michael (2011); University of Passau, Germany
+- Brunn, Jens (2020 - 2021); TU Darmstadt, Germany
+- Buhl, Moritz (2018); LMU Munich, Germany
+- Bürdek, Johannes (2014 - 2018); TU Darmstadt, Germany
+- Castaño, Rodrigo (2017 - 2018); University of Buenos Aires, Argentina
+- Chalupa, Marek (2018 - 2019); Masaryk University, Czechia
+- Czech, Mike (2013 - 2014); University of Paderborn, Germany
+- Daca, Przemislaw (2011 - 2012); Technical University of Denmark, Denmark
+- Dahlberg, Peter (2013 - 2016); University of Passau, Germany
+- Dangl, Matthias (2012 - 2019); LMU Munich, Germany
+- Dittrich, Matthias (2013); University of Passau, Germany
+- Donig, Andreas (2010 - 2013); University of Passau, Germany
+- Dresler, Georg (2013 - 2014); University of Passau, Germany
+- Driemeyer, Alexander (2012 - 2016); University of Passau, Germany
+- Eckl, Barbara (2016); University of Passau, Germany
+- Endler, Gregor (2009 - 2010); University of Passau, Germany
+- Esch, Alexander (2012); University of Passau, Germany
+- Estler, Flutura (2018); LMU Munich, Germany
+- Fararooy, Ashgan (2009); SFU, Canada
+- Friedl, Tobias (2013 - 2014); University of Passau, Germany
+- Gerlach, Matthias (2017 - 2018); LMU Munich, Germany
+- Griggio, Alberto (2008 - 2009); SFU, Canada / University of Trento, Italy
+- Hagenhof, Christian (2015); University of Passau, Germany
+- Hagl, Raphael (2018 - 2019); LMU Munich, Germany
+- Häring, Peter (2011 - 2014); University of Passau, Germany
+- Heydebrand, Julian (2015); University of Passau, Germany
+- Holzer, Andreas (2008 - 2015); TU Darmstadt, Germany / TU Vienna, Austria
+- Ivanov, Dejan (2017); LMU Munich, Germany
+- Kafounis, Angelos (2020); LMU Munich, Germany
+- Karpenkov, George (2014 - 2017); Verimag, Grenoble
+- Käufl, Michael (2011); University of Passau, Germany
+- Kieffer, Steven (2011 - 2012); SFU, Canada
+- Knaut, Johannes (2018); LMU Munich, Germany
+- Kolesnykov, Vladyslav (2020); LMU Munich, Germany
+- Koos, Alexander (2017 - 2018); LMU Munich, Germany
+- Korth, Philipp (2012); University of Paderborn, Germany
+- Kotoun, Michal (2018); Brno University of Technology, Czechia
+- Kronawitter, Stefan (2012); University of Passau, Germany
+- Lachner, Michael (2020 - 2021); LMU Munich, Germany
+- Letko, Zdenek (2014); Brno University of Technology, Czechia
+- Löwe, Stefan (2010 - 2016); University of Passau, Germany
+- Lukasczyk, Stephan (2015 - 2016); University of Passau, Germany
+- Maier, Michael (2017 - 2019); LMU Munich, Germany
+- Mandrykin, Mikhail (2013 - 2017); ISP RAS, Russia
+- Maringer, Alexander (2010); University of Passau, Germany
+- Markin, Grigory (2017 - 2020); University of Lübeck, Germany
+- Massard, Sven (2019-2020); LMU Munich, Germany
+- Mordan, Vitaly (2014 - 2018); ISP RAS, Russia
+- Muller, Petr (2012 - 2014); Brno University of Technology, Czechia
+- Murr, Magdalena (2015); University of Passau, Germany
+- Nandanwar, Lokesh (2018); National Institute of Technology Durgapur, India
+- Olbrich, Christian (2014); University of Passau, Germany
+- Ott, Sebastian (2013 - 2016); University of Passau, Germany
+- Peters, Stefan (2011 - 2012); University of Passau, Germany
+- Pöllmann, Daniel (2019); LMU Munich, Germany
+- Quadt, Florian (2013 - 2014); University of Passau, Germany
+- Ratke, Sabine (2020); LMU Munich, Germany
+- Rhein, Alexander von (2010); University of Passau, Germany
+- Scheffel, Sebastian (2014 - 2015); University of Passau, Germany
+- Schremmer, Alexander (2012 - 2013); University of Paderborn, Germany
+- Seibt, Georg (2015); University of Passau, Germany
+- Sell, Leon (2015 - 2016); University of Passau, Germany
+- Serdyukov, Denys (2021); TU Darmstadt, Germany
+- Speidel, Hendrik (2010); University of Passau, Germany
+- Sridharan, Sarita (2019 - 2020); LMU Munich, Germany
+- Stahlbauer, Andreas (2011 - 2016); University of Passau, Germany / GrammaTech, USA
+- Stieglmaier, Thomas (2011 - 2016); University of Passau, Germany
+- Syri, Maximilian (2015 - 2016); University of Passau, Germany
+- Tautschnig, Michael (2008 - 2009); TU Darmstadt, Germany
+- Theoduloz, Gregory (2009 - 2010); EPFL, Switzerland
+- Töws, Manuel (2016); University of Paderborn, Germany
+- Tornede, Tanja (2014 - 2016); University of Paderborn, Germany
+- Trapp, Mirjam (2018 - 2019); LMU Munich, Germany
+- Volkov, Anton (2015 - 2018); ISP RAS, Russia
+- Wiesholler, Max (2018 - 2019); LMU Munich, Germany
+- Winter, Katharina (2018 - 2019); LMU Munich, Germany
+- Woller, Christoph (2014 - 2015); University of Passau, Germany
+- Wonisch, Daniel (2011 - 2012); University of Paderborn, Germany
+- Zenger, Geoff (2007); SFU, Canada
+- Zorneck, Gernot (2016 - 2017); University of Passau, Germany
+- Zakharov, Ilja (2016); ISP RAS, Russia
 
 Questions and bug reports:  
-  Dirk Beyer: CPAchecker-Users@googlegroups.com (cf. [doc/Mailing.md](doc/Mailing.md))
+  Beyer, Dirk: CPAchecker-Users@googlegroups.com (cf. [doc/Mailing.md](doc/Mailing.md))
 

@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -40,8 +39,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -59,7 +58,7 @@ import org.sosy_lab.java_smt.api.SolverException;
  * interpolants grows to an inductive set of states, the property is proved. Otherwise, it returns
  * back to the BMC phase and keeps unrolling the CFA.
  */
-@Options(prefix="imc")
+@Options(prefix = "imc")
 public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   @Option(secure = true, description = "toggle checking forward conditions")
@@ -69,8 +68,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private boolean interpolation = true;
 
   @Option(
-    secure = true,
-    description = "toggle falling back if interpolation or forward-condition is disabled")
+      secure = true,
+      description = "toggle falling back if interpolation or forward-condition is disabled")
   private boolean fallBack = true;
 
   @Option(secure = true, description = "toggle deriving the interpolants from suffix formulas")
@@ -83,6 +82,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   private final Algorithm algorithm;
 
+  private final PathFormulaManager pfmgr;
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final Solver solver;
@@ -121,12 +121,14 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     @SuppressWarnings("resource")
     PredicateCPA predCpa = CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, IMCAlgorithm.class);
     solver = predCpa.getSolver();
+    pfmgr = predCpa.getPathFormulaManager();
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
   }
 
   @Override
-  public AlgorithmStatus run(final ReachedSet pReachedSet) throws CPAException, InterruptedException {
+  public AlgorithmStatus run(final ReachedSet pReachedSet)
+      throws CPAException, InterruptedException {
     try {
       return interpolationModelChecking(pReachedSet);
     } catch (SolverException e) {
@@ -141,15 +143,12 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    *
    * @param pReachedSet Abstract Reachability Graph (ARG)
    * @return {@code AlgorithmStatus.UNSOUND_AND_PRECISE} if an error location is reached, i.e.,
-   *         unsafe; {@code AlgorithmStatus.SOUND_AND_PRECISE} if a fixed point is derived, i.e.,
-   *         safe.
+   *     unsafe; {@code AlgorithmStatus.SOUND_AND_PRECISE} if a fixed point is derived, i.e., safe.
    */
   private AlgorithmStatus interpolationModelChecking(final ReachedSet pReachedSet)
       throws CPAException, SolverException, InterruptedException {
     if (getTargetLocations().isEmpty()) {
-      for (AbstractState state : ImmutableList.copyOf(pReachedSet.getWaitlist())) {
-        pReachedSet.removeOnlyFromWaitlist(state);
-      }
+      pReachedSet.clearWaitlist();
       return AlgorithmStatus.SOUND_AND_PRECISE;
     }
 
@@ -227,14 +226,15 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   private void fallBackToBMC(final String pReason) {
-    logger.log(Level.WARNING, pReason);
-    logger.log(Level.WARNING, "Interpolation disabled: falling back to BMC");
+    logger.log(
+        Level.WARNING, "Interpolation disabled because of " + pReason + ", falling back to BMC");
     interpolation = false;
   }
 
   private void fallBackToBMCWithoutForwardCondition(final String pReason) {
-    logger.log(Level.WARNING, pReason);
-    logger.log(Level.WARNING, "Forward-condition disabled: falling back to plain BMC");
+    logger.log(
+        Level.WARNING,
+        "Forward-condition disabled because of " + pReason + ", falling back to plain BMC");
     interpolation = false;
     checkForwardConditions = false;
   }
@@ -244,7 +244,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   private static void removeUnreachableTargetStates(ReachedSet pReachedSet) {
-    if (pReachedSet.hasViolatedProperties()) {
+    if (pReachedSet.wasTargetReached()) {
       TargetLocationCandidateInvariant.INSTANCE.assumeTruth(pReachedSet);
     }
   }
@@ -288,8 +288,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return true;
   }
 
-  private List<AbstractState>
-      getUnreachableStopStates(final FluentIterable<AbstractState> pStopStates)
+  private List<AbstractState> getUnreachableStopStates(
+      final FluentIterable<AbstractState> pStopStates)
       throws SolverException, InterruptedException {
     List<AbstractState> unreachableStopStates = new ArrayList<>();
     for (AbstractState stopState : pStopStates) {
@@ -327,11 +327,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   private PathFormula makeFalsePathFormula() {
-    return new PathFormula(
-        bfmgr.makeFalse(),
-        SSAMap.emptySSAMap(),
-        PointerTargetSet.emptyPointerTargetSet(),
-        0);
+    return pfmgr.makeEmptyPathFormula().withFormula(bfmgr.makeFalse());
   }
 
   private PathFormula buildPrefixFormula(final List<ARGState> pAbstractionStates) {
@@ -348,8 +344,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     List<BooleanFormula> blockFormulas = new ArrayList<>();
     if (pAbstractionStates.size() > 4) {
       for (int i = 3; i < pAbstractionStates.size() - 1; ++i) {
-        blockFormulas
-            .add(getPredicateAbstractionBlockFormula(pAbstractionStates.get(i)).getFormula());
+        blockFormulas.add(
+            getPredicateAbstractionBlockFormula(pAbstractionStates.get(i)).getFormula());
       }
     }
     return bfmgr.and(blockFormulas);
@@ -364,8 +360,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return getAbstractionStatesToRoot(pTargetState).size() > 2;
   }
 
-  private static FluentIterable<AbstractState>
-      getTargetStatesAfterLoop(final ReachedSet pReachedSet) {
+  private static FluentIterable<AbstractState> getTargetStatesAfterLoop(
+      final ReachedSet pReachedSet) {
     return AbstractStates.getTargetStates(pReachedSet)
         .filter(IMCAlgorithm::isTargetStateAfterLoopStart);
   }
@@ -386,9 +382,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * @throws InterruptedException On shutdown request.
    */
   private <T> BooleanFormula getInterpolantFrom(
-      InterpolatingProverEnvironment<T> itpProver,
-      final List<T> pFormulaA,
-      final List<T> pFormulaB)
+      InterpolatingProverEnvironment<T> itpProver, final List<T> pFormulaA, final List<T> pFormulaB)
       throws SolverException, InterruptedException {
     if (deriveInterpolantFromSuffix) {
       logger.log(Level.FINE, "Deriving the interpolant from suffix (formula B) and negate it");
@@ -404,12 +398,11 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    *
    * @param itpProver the prover with interpolation enabled
    * @return {@code true} if a fixed point is reached, i.e., property is proved; {@code false} if
-   *         the current over-approximation is unsafe.
+   *     the current over-approximation is unsafe.
    * @throws InterruptedException On shutdown request.
    */
   private <T> boolean reachFixedPointByInterpolation(
-      InterpolatingProverEnvironment<T> itpProver,
-      final PartitionedFormulas formulas)
+      InterpolatingProverEnvironment<T> itpProver, final PartitionedFormulas formulas)
       throws InterruptedException, SolverException {
     BooleanFormula prefixBooleanFormula = formulas.prefixFormula.getFormula();
     SSAMap prefixSsaMap = formulas.prefixFormula.getSsa();
@@ -468,9 +461,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
 
     public PartitionedFormulas(
-        PathFormula pPrefixFormula,
-        BooleanFormula pLoopFormula,
-        BooleanFormula pSuffixFormula) {
+        PathFormula pPrefixFormula, BooleanFormula pLoopFormula, BooleanFormula pSuffixFormula) {
       prefixFormula = pPrefixFormula;
       loopFormula = pLoopFormula;
       suffixFormula = pSuffixFormula;
@@ -478,12 +469,12 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   private BooleanFormula createDisjunctionFromStates(final FluentIterable<AbstractState> pStates) {
-    return pStates.transform(e -> getPredicateAbstractionBlockFormula(e).getFormula())
-        .stream()
+    return pStates.transform(e -> getPredicateAbstractionBlockFormula(e).getFormula()).stream()
         .collect(bfmgr.toDisjunction());
   }
 
-  private BooleanFormula buildReachFormulaForStates(final FluentIterable<AbstractState> pGoalStates) {
+  private BooleanFormula buildReachFormulaForStates(
+      final FluentIterable<AbstractState> pGoalStates) {
     List<BooleanFormula> pathFormulas = new ArrayList<>();
     for (AbstractState goalState : pGoalStates) {
       BooleanFormula pathFormula =
@@ -503,7 +494,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   private static FluentIterable<AbstractState> getStopStates(final ReachedSet pReachedSet) {
-    return from(pReachedSet).filter(AbstractBMCAlgorithm::isStopState)
+    return from(pReachedSet)
+        .filter(AbstractBMCAlgorithm::isStopState)
         .filter(AbstractBMCAlgorithm::isRelevantForReachability);
   }
 

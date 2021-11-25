@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.arg;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -17,6 +16,7 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
@@ -396,7 +396,7 @@ public final class ErrorPathShrinker {
                       .getTruthAssumption());
 
             }
-            return (isEqualVarName && isEqualOp);
+            return isEqualVarName && isEqualOp;
           }
         }
       }

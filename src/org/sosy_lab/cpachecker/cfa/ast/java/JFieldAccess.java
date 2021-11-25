@@ -13,21 +13,23 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 /**
- *   JFieldAccess is no FieldAccess, but a qualified FieldAccess.
- *   Distinction between Fields and Variables are made through
- *   Declarations JVariableDeclaration and JFieldDeclarations
- *   JField Access makes the distinction between non-static
- *   fields with qualifier, and the rest.
- *
+ * JFieldAccess is no FieldAccess, but a qualified FieldAccess. Distinction between Fields and
+ * Variables are made through Declarations JVariableDeclaration and JFieldDeclarations JField Access
+ * makes the distinction between non-static fields with qualifier, and the rest.
  */
 public final class JFieldAccess extends JIdExpression {
 
-  //TODO Investigate if this should be refactored.
+  // TODO Investigate if this should be refactored.
 
   private static final long serialVersionUID = 2729676155903102814L;
   private final JIdExpression qualifier;
 
-  public JFieldAccess(FileLocation pFileLocation, JType pType, String pName, JFieldDeclaration pDeclaration, JIdExpression pQualifier) {
+  public JFieldAccess(
+      FileLocation pFileLocation,
+      JType pType,
+      String pName,
+      JFieldDeclaration pDeclaration,
+      JIdExpression pQualifier) {
     super(pFileLocation, pType, pName, pDeclaration);
     qualifier = pQualifier;
   }
@@ -64,8 +66,7 @@ public final class JFieldAccess extends JIdExpression {
       return true;
     }
 
-    if (!(obj instanceof JFieldAccess)
-        || super.equals(obj)) {
+    if (!(obj instanceof JFieldAccess) || super.equals(obj)) {
       return false;
     }
 
@@ -73,5 +74,4 @@ public final class JFieldAccess extends JIdExpression {
 
     return Objects.equals(other.qualifier, qualifier);
   }
-
 }

@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
-import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -92,9 +91,7 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
   }
 
   @Override
-  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException,
-      CPAEnabledAnalysisPropertyViolationException {
-
+  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     logger.log(Level.INFO, "Get custom instruction applications in program.");
 
     CustomInstructionApplications cia = null;
@@ -128,7 +125,7 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
     // analysis was unsound
     if (!status.isSound()
         || pReachedSet.hasWaitingState()
-        || (status.wasPropertyChecked() && !pReachedSet.getViolatedProperties().isEmpty())) {
+        || (status.wasPropertyChecked() && !pReachedSet.getTargetInformation().isEmpty())) {
       logger.log(Level.SEVERE, "Do not extract requirements since analysis failed.");
       return status;
     }

@@ -92,7 +92,7 @@ class SymbolicPrecisionRefinementStrategy extends PredicateAbstractionRefinement
 
       for (AbstractionPredicate p : entry.getValue()) {
         for (String varName : formulaManager.extractVariableNames(p.getSymbolicAtom())) {
-          locations.add(MemoryLocation.valueOf(varName));
+          locations.add(MemoryLocation.parseExtendedQualifiedName(varName));
         }
       }
 

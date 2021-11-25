@@ -17,7 +17,6 @@ import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
@@ -61,7 +60,7 @@ public class BlockedCFAReducer implements BlockComputer {
 
   @Option(secure=true, name="reducedCfaFile", description="write the reduced cfa to the specified file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path reducedCfaFile = Paths.get("ReducedCfa.rsf");
+  private Path reducedCfaFile = Path.of("ReducedCfa.rsf");
 
   private int functionCallSeq = 0;
   private final Deque<FunctionEntryNode> inliningStack;
@@ -86,7 +85,7 @@ public class BlockedCFAReducer implements BlockComputer {
    * with pNode as the root-node.
    */
   private void incSummarizationsOnNode(ReducedNode pNode, int pIncBy) {
-    assert (reductionThreshold > 0);
+    assert reductionThreshold > 0;
     pNode.incSummarizations(pIncBy);
   }
 
@@ -141,8 +140,8 @@ public class BlockedCFAReducer implements BlockComputer {
         for (ReducedEdge f: vLeavingEdges) {
           ReducedNode w = f.getPointsTo();
 
-          assert (u != v);
-          assert (v != w);
+          assert u != v;
+          assert v != w;
 
           ReducedEdge sumEdge = new ReducedEdge(w);
           sumEdge.addEdge(e);
@@ -377,9 +376,9 @@ public class BlockedCFAReducer implements BlockComputer {
    */
   @Override
   public ImmutableSet<CFANode> computeAbstractionNodes(final CFA pCfa) {
-    assert (pCfa != null);
-    assert (this.inliningStack.isEmpty());
-    assert (this.functionCallSeq == 0);
+    assert pCfa != null;
+    assert this.inliningStack.isEmpty();
+    assert this.functionCallSeq == 0;
 
     this.functionCallSeq = 0;
     ReducedFunction reducedProgram = inlineAndSummarize(pCfa.getMainFunction(), pCfa);
