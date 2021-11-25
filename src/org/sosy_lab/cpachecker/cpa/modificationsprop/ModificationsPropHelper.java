@@ -23,8 +23,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
@@ -242,13 +240,16 @@ public class ModificationsPropHelper {
             rhs.addAll(((CExpressionAssignmentStatement) stmt).getRightHandSide().accept(visitor));
           }
         }
-        if (stmt instanceof CFunctionCall) {
-          CFunctionCallExpression funCall = ((CFunctionCall) stmt).getFunctionCallExpression();
-          rhs.addAll(funCall.getFunctionNameExpression().accept(visitor));
-          for (CExpression exp : funCall.getParameterExpressions()) {
-            rhs.addAll(exp.accept(visitor));
-          }
-        }
+        /* Function Calls are handled differently now.
+         *
+         * if (stmt instanceof CFunctionCall) {
+         * CFunctionCallExpression funCall = ((CFunctionCall) stmt).getFunctionCallExpression();
+         * rhs.addAll(funCall.getFunctionNameExpression().accept(visitor));
+         * for (CExpression exp : funCall.getParameterExpressions()) {
+         *   rhs.addAll(exp.accept(visitor));
+         * }
+         * }
+         */
       }
 
       if (lhs != null && pVars.contains(lhs)) {
