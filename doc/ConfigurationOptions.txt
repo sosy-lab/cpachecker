@@ -3597,14 +3597,15 @@ invariantStore.witness = "invariantwitness.yaml"
 # toggle checking forward conditions
 ismc.checkForwardConditions = true
 
-# toggle deriving the interpolants from suffix formulas
-ismc.deriveInterpolantFromSuffix = true
-
 # toggle falling back if interpolation or forward-condition is disabled
 ismc.fallBack = true
 
 # toggle using interpolation to verify programs with loops
 ismc.interpolation = true
+
+# toggle which direction to derive interpolants
+ismc.itpDeriveDirection = BACKWARD
+  enum:     [FORWARD, BACKWARD, BIDIRECTION]
 
 # toggle removing unreachable stop states in ARG
 ismc.removeUnreachableStopStates = false
