@@ -30,36 +30,43 @@ public class Message implements Comparable<Message>{
 
   @Override
   public int compareTo(Message o) {
-    return Integer.compare(o.type.priority, type.priority);
+    return Integer.compare(o.type.ordinal(), type.ordinal());
   }
 
+  // ORDER BY PRIORITY:
   public enum MessageType {
-    STALE(0),
-    PRECONDITION(1),
-    POSTCONDITION(2),
-    FOUND_VIOLATION(3),
-    SHUTDOWN(4);
-
-    private final int priority;
-    MessageType(int pPriority) {
-      priority = pPriority;
-    }
+    PRECONDITION,
+    REDUCE,
+    POSTCONDITION,
+    FOUND_VIOLATION,
+    SHUTDOWN;
   }
 
   private final int targetNodeNumber;
   private final String uniqueBlockId;
   private final MessageType type;
   private final String payload;
+  private final String additionalInformation;
 
   private Message(
       MessageType pType,
       String pUniqueBlockId,
       int pTargetNodeNumber,
       String pPayload) {
+    this(pType, pUniqueBlockId, pTargetNodeNumber, pPayload, "");
+  }
+
+  private Message(
+      MessageType pType,
+      String pUniqueBlockId,
+      int pTargetNodeNumber,
+      String pPayload,
+      String pAdditionalInformation) {
     targetNodeNumber = pTargetNodeNumber;
     type = pType;
     payload = pPayload;
     uniqueBlockId = pUniqueBlockId;
+    additionalInformation = pAdditionalInformation;
   }
 
   public int getTargetNodeNumber() {
@@ -76,6 +83,10 @@ public class Message implements Comparable<Message>{
 
   public String getUniqueBlockId() {
     return uniqueBlockId;
+  }
+
+  public String getAdditionalInformation() {
+    return additionalInformation;
   }
 
   @Override
@@ -112,9 +123,10 @@ public class Message implements Comparable<Message>{
       String pUniqueBlockId,
       int pTargetNodeNumber,
       BooleanFormula pPayload,
+      int count,
       FormulaManagerView pFmgr) {
     return new Message(MessageType.POSTCONDITION, pUniqueBlockId, pTargetNodeNumber,
-        pFmgr.dumpFormula(pPayload).toString());
+        pFmgr.dumpFormula(pPayload).toString(), Integer.toString(count));
   }
 
   public static Message newResultMessage(
@@ -128,10 +140,8 @@ public class Message implements Comparable<Message>{
     return new Message(MessageType.SHUTDOWN, "", 0, "");
   }
 
-  public static Message newStaleMessage(
-      String pUniqueBlockId,
-      boolean pIsStale) {
-    return new Message(MessageType.STALE, pUniqueBlockId, 0, Boolean.toString(pIsStale));
+  public static Message newReduceOneMessage() {
+    return new Message(MessageType.REDUCE, "", 0, "");
   }
 
   @Override
@@ -182,7 +192,8 @@ public class Message implements Comparable<Message>{
       int nodeNumber = node.get("targetNodeNumber").asInt();
       MessageType type = MessageType.valueOf(node.get("type").asText());
       String payload = node.get("payload").asText();
-      return new Message(type, uniqueBlockId, nodeNumber, payload);
+      String additionalInfo = node.get("additionalInformation").asText();
+      return new Message(type, uniqueBlockId, nodeNumber, payload, additionalInfo);
     }
   }
 
@@ -201,6 +212,7 @@ public class Message implements Comparable<Message>{
       pJsonGenerator.writeNumberField("targetNodeNumber", pMessage.getTargetNodeNumber());
       pJsonGenerator.writeStringField("type", pMessage.getType().name());
       pJsonGenerator.writeStringField("payload", pMessage.getPayload());
+      pJsonGenerator.writeStringField("additionalInformation", pMessage.getAdditionalInformation());
       pJsonGenerator.writeEndObject();
     }
   }

@@ -297,7 +297,7 @@ public abstract class WorkerAnalysis {
               "States need to have a location but they do not:" + targetState.get());
         }
         return Message.newPostconditionMessage(block.getId(),
-            targetNode.get().getNodeNumber(), bmgr.makeTrue(), fmgr);
+            targetNode.get().getNodeNumber(), bmgr.makeTrue(), block.getPredecessors().size() - 1, fmgr);
       }
       Map<AbstractState, BooleanFormula>
           formulas = transformReachedSet(reachedSet, block.getLastNode(),
@@ -341,7 +341,7 @@ public abstract class WorkerAnalysis {
             Result.FALSE);
       }
       return Message.newPostconditionMessage(block.getId(), block.getStartNode().getNodeNumber(),
-          result, fmgr);
+          result, 0, fmgr);
     }
 
     public boolean cantContinue(String currentPreCondition, String receivedPostCondition)

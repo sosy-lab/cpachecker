@@ -135,7 +135,7 @@ public class WorkerSocket {
 
     Message received = converter.jsonToMessage(builder.toString());
     sharedQueue.add(received);
-    logger.log(Level.INFO, "Socket received message: " + received);
+    // logger.log(Level.INFO, "Socket received message: " + received);
     return received.getType() == MessageType.SHUTDOWN;
   }
 

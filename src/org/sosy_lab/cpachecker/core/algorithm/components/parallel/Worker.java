@@ -183,11 +183,7 @@ public class Worker implements Runnable {
 
   public void analyze() throws InterruptedException, CPAException, IOException, SolverException {
     while (!finished) {
-      if (read.isEmpty()) {
-        broadcast(Message.newStaleMessage(block.getId(), true));
-      }
       Message m = read.take();
-      broadcast(Message.newStaleMessage(block.getId(), false));
       processMessage(m);
     }
   }
@@ -206,7 +202,7 @@ public class Worker implements Runnable {
         shutdown(message);
         break;
       case FOUND_VIOLATION:
-      case STALE:
+      case REDUCE:
         break;
       default:
         throw new AssertionError("Message type " + message.getType() + " does not exist");
@@ -259,6 +255,7 @@ public class Worker implements Runnable {
     if (node.equals(block.getLastNode()) || !node.equals(block.getLastNode()) && !node.equals(
         block.getStartNode()) && block.getNodesInBlock().contains(node)) {
       if (lastPreConditionMessage.isPresent() && backwardAnalysis.cantContinue(lastPreConditionMessage.orElseThrow().getPayload(), message.getPayload())) {
+        broadcast(Message.newReduceOneMessage());
         return;
       }
       postConditionUpdates.put(message.getUniqueBlockId(), message);

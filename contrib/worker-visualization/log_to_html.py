@@ -4,6 +4,7 @@ import os
 import glob
 import sys
 import webbrowser
+from airium import Airium
 
 from pathlib import Path
 
@@ -14,9 +15,7 @@ def relative_path(name):
 
 def create_arg_parser():
     parser = argparse.ArgumentParser(description="Transforms Worker logs to HTML.")
-
     parser.add_argument("--dir", type=str)
-
     return parser
 
 
@@ -47,71 +46,69 @@ def find_all_worker_ids(jsons):
     for worker in jsons:
         for message in worker:
             ids.add(message["id"])
-    return list(sorted(ids))
+    return sorted(ids, key=lambda bid: int(bid[1::]))
 
 
 def html_for_message(message):
-    def wrap(tag, content, options=None):
-        option_str = " " + (" ".join(options) if options else "")
-        return f"<{tag}{option_str}>{content}</{tag}>"
 
-    def from_post(blocks):
-        return wrap("p", wrap("span", "&uarr;") + wrap("span", f"{blocks}"))
-
-    def from_pre(blocks):
-        return wrap("p", wrap("span", "&darr;") + wrap("span", f"{blocks}"))
-
-    def from_block(direction, successor, predecessor, introduction="Received from "):
-        if direction == "FORWARD":
-            return from_pre(
-                introduction + wrap("b", ", ".join(sorted(predecessor))) + ":"
-            )
-        else:
-            return from_post(introduction + wrap("b", ", ".join(sorted(successor))) + ":")
+    div = Airium()
 
     if not message:
-        return "<div></div>"
-    # msg_id = message["id"]
+        with div.div():
+            div("")
+        return str(div), ""
+
     predecessors = message["predecessors"]
     successors = message["successors"]
     condition = message["currentMap"]
     result = message["result"]
     code = message["code"].replace("]", "]\n").replace(";", ";\n")
-    action = message["action"]
+    direction = message["action"]
 
-    from_part = from_block(action, successors, predecessors)
+    is_forward = direction == "FORWARD"
+    senders = predecessors if is_forward else successors
+    receivers = successors if is_forward else predecessors
+    condition_name = "precondition" if is_forward else "postcondition"
+    arrow = "<big>" + ("&darr;" if is_forward else "&uarr;") + "</big>"
 
-    condition_part = wrap("p", wrap("textarea", f"{condition}", options="readonly"))
+    with div.div(title=code):
+        with div.p():
+            with div.span():
+                div(arrow)
+            with div.span():
+                sender = "self"
+                if senders:
+                    sender = ", ".join(senders)
+                div(f"Received from <strong>{sender}</strong>:")
+        div.textarea(_t=condition)
+        with div.p():
+            receiver = ", ".join(receivers)
+            div(f"Calculated new {condition_name} for <strong>{receiver}</strong>")
+        div.textarea(_t=result)
 
-    condition_name = "pre" if action == "FORWARD" else "post"
-
-    to_blocks = from_block(
-        action,
-        predecessors,
-        successors,
-        introduction=f"Calculating new {condition_name}condition for ",
-    )
-    result_part = wrap("p", wrap("textarea", f"{result}", options="readonly"))
-
-    return wrap(
-        "div",
-        f"{from_part}{condition_part}{to_blocks}{result_part}",
-        options=[f'title="{code}"', f'class="{condition_name}cond"'],
-    )
+    return str(div), condition_name
 
 
 def html_dict_to_html_table(html_dict):
-    table = "<tr>"
-    for key in html_dict.keys():
-        table += "<th>" + str(key) + "</th>"
-    table += "</tr>"
-    for values in zip(*html_dict.values()):
-        row = "<tr>"
-        for value in values:
-            row += "<td>" + str(value) + "</td>"
-        row += "</tr>"
-        table += row
-    return table
+    table = Airium()
+    with table.table(klass="worker"):
+        # header
+        with table.tr(klass='header_row'):
+            for key in html_dict.keys():
+                table.th(_t=f'{key}')
+
+        # row values
+        for values in zip(*html_dict.values()):
+            with table.tr():
+                is_time_column = True
+                for value in values:
+                    if is_time_column:
+                        table.td(_t=str(value))
+                        is_time_column = False
+                    else:
+                        table.td(klass=str(value[1]), _t=str(value[0]))
+
+    return str(table)
 
 
 def main(argv=None):

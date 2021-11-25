@@ -95,40 +95,46 @@ public class ComponentAnalysis implements Algorithm {
             new WorkerClient(address.getAddress().getHostAddress(), address.getPort()));
       }
 
-      Set<String> staleIds = new HashSet<>();
+      Set<String> noViolations = new HashSet<>();
       Result result = Result.UNKNOWN;
       boolean exitLoop = false;
+      int numberViolations = 0;
+      boolean hasViolations = false;
       while (!exitLoop) {
         Message m = messages.take();
         switch (m.getType()) {
-          case STALE:
-            if (Boolean.parseBoolean(m.getPayload())) {
-              staleIds.add(m.getUniqueBlockId());
-            } else {
-              staleIds.remove(m.getUniqueBlockId());
-            }
-            if (staleIds.size() == workers.size()) {
-              result = Result.TRUE;
-              for (WorkerClient client : mainClients) {
-                client.broadcast(Message.newShutdownMessage());
-              }
-              exitLoop = true;
-            }
-            break;
           case FOUND_VIOLATION:
             result = Result.FALSE;
-            for (WorkerClient client : mainClients) {
-              client.broadcast(Message.newShutdownMessage());
-            }
             exitLoop = true;
             break;
-          case SHUTDOWN:
           case PRECONDITION:
+            noViolations.add(m.getUniqueBlockId());
+            break;
           case POSTCONDITION:
+            int add = Integer.parseInt(m.getAdditionalInformation());
+            hasViolations = hasViolations || add > 0;
+            numberViolations += add;
+            break;
+          case REDUCE:
+            numberViolations--;
+            break;
+          case SHUTDOWN:
             break;
           default:
             throw new AssertionError("Unknown MessageType " + m.getType());
         }
+        if (noViolations.size() == workers.size() && !hasViolations) {
+          result = Result.TRUE;
+          break;
+        } else {
+          if (hasViolations && numberViolations == 0) {
+            result = Result.TRUE;
+            break;
+          }
+        }
+      }
+      for (WorkerClient client : mainClients) {
+        client.broadcast(Message.newShutdownMessage());
       }
       for (WorkerClient mainClient : mainClients) {
         mainClient.close();
