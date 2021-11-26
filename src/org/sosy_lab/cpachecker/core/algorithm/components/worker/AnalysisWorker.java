@@ -120,11 +120,11 @@ public class AnalysisWorker extends Worker {
     typeMap = forwardAnalysis.getPathFormulaManager().makeFormulaForPath(blockEdges).getSsa();
   }
 
-  public PathFormula getPostCondition(FormulaManagerView fmgr, PathFormulaManagerImpl manager) {
+  private PathFormula getPostCondition(FormulaManagerView fmgr, PathFormulaManagerImpl manager) {
     return getBooleanFormula(fmgr, manager, postConditionUpdates);
   }
 
-  public PathFormula getPreCondition(FormulaManagerView fmgr, PathFormulaManagerImpl manager) {
+  private PathFormula getPreCondition(FormulaManagerView fmgr, PathFormulaManagerImpl manager) {
     return getBooleanFormula(fmgr, manager, preConditionUpdates);
   }
 
@@ -143,9 +143,12 @@ public class AnalysisWorker extends Worker {
         Pair<String, OptionalInt> variableIndexPair = FormulaManagerView.parseName(variable);
         if (!variable.contains(".") && variableIndexPair.getSecond().isPresent()) {
           //TODO find correct type
-          mapBuilder = mapBuilder.setIndex(variableIndexPair.getFirst(), typeMap.getType(variableIndexPair.getFirst()),
-              variableIndexPair.getSecond()
-                  .orElse(1));
+          String variableName = variableIndexPair.getFirst();
+          if (variableName != null) {
+            mapBuilder = mapBuilder.setIndex(variableName, typeMap.getType(variableName),
+                variableIndexPair.getSecond()
+                    .orElse(1));
+          }
         }
       }
       disjunction = fmgr.getBooleanFormulaManager().or(disjunction, parsed);
@@ -153,14 +156,6 @@ public class AnalysisWorker extends Worker {
     disjunction = fmgr.uninstantiate(disjunction);
     return manager.makeAnd(manager.makeEmptyPathFormulaWithContext(mapBuilder.build(),
         PointerTargetSet.emptyPointerTargetSet()), disjunction);
-  }
-
-  public void analyze() throws InterruptedException, CPAException, IOException, SolverException {
-    while (!finished) {
-      Message receivedMessage = nextMessage();
-      Message responseMessage = processMessage(receivedMessage);
-      broadcast(responseMessage);
-    }
   }
 
   @Override
@@ -173,18 +168,13 @@ public class AnalysisWorker extends Worker {
         return processPreconditionMessage(message);
       case ERROR:
       case FOUND_RESULT:
-      case POSTCONDITION_UNREACHABLE:
         shutdown();
+      case POSTCONDITION_UNREACHABLE:
         return Message.noResponse();
       case EMPTY:
       default:
         throw new AssertionError("Message type " + message.getType() + " does not exist");
     }
-  }
-
-  @Override
-  public Message nextMessage() throws InterruptedException {
-    return connection.read();
   }
 
   private Message processPreconditionMessage(Message message)
@@ -257,30 +247,11 @@ public class AnalysisWorker extends Worker {
     return message;
   }
 
-  private void runContinuousAnalysis() {
-    try {
-      analyze();
-    } catch (InterruptedException | CPAException | IOException | SolverException pE) {
-      if (!finished) {
-        logger.log(Level.SEVERE, this + " run into an error while waiting because of " + pE);
-        logger.log(Level.SEVERE, "Restarting Worker " + this + "...");
-        runContinuousAnalysis();
-      } else {
-        logger.log(
-            Level.SEVERE,
-            this
-                + " run into an error while waiting because of "
-                + pE
-                + " but there is nothing to do because analysis finished before.");
-      }
-    }
-  }
-
   @Override
   public void run() {
     try {
       broadcast(forwardAnalysis(block.getStartNode()));
-      runContinuousAnalysis();
+      super.run();
     } catch (CPAException | InterruptedException | IOException pE) {
       logger.log(Level.SEVERE, "ComponentAnalysis run into an error: %s", pE);
       logger.log(Level.SEVERE, "Stopping analysis...");

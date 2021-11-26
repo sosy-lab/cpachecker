@@ -47,11 +47,6 @@ public class ResultWorker extends Worker {
   }
 
   @Override
-  public Message nextMessage() throws InterruptedException {
-    return connection.read();
-  }
-
-  @Override
   public Message processMessage(Message pMessage)
       throws InterruptedException, CPAException, IOException, SolverException {
     String senderId = pMessage.getUniqueBlockId();
@@ -106,20 +101,4 @@ public class ResultWorker extends Worker {
     return Message.noResponse();
   }
 
-  @Override
-  public void shutdown() throws IOException {
-    connection.close();
-    Thread.currentThread().interrupt();
-  }
-
-  @Override
-  public void run() {
-    try {
-      while (!finished) {
-        broadcast(processMessage(nextMessage()));
-      }
-    } catch (CPAException | InterruptedException | IOException | SolverException pE) {
-      logger.log(Level.SEVERE, pE);
-    }
-  }
 }

@@ -79,7 +79,7 @@ public class ComponentAnalysis implements Algorithm {
         builder = builder.addAnalysisWorker(distinctNode);
       }
       // TODO make independent
-      builder = builder.createResultCollectorWorker(blocks);
+      builder = builder.addResultCollectorWorker(blocks);
       Components components = builder.build();
 
       // run all workers

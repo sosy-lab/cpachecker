@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.components.worker;
 
 import java.io.IOException;
 import java.util.Objects;
+import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
@@ -27,7 +28,15 @@ public abstract class Worker implements Runnable {
     logger = pLogger;
   }
 
-  public abstract Message nextMessage() throws InterruptedException;
+  /**
+   * Get the next message from the connection.
+   * Note that the connection must have a blocking read()
+   * @return the current message to be processed
+   * @throws InterruptedException thrown if thread is interrupted
+   */
+  public Message nextMessage() throws InterruptedException {
+    return connection.read();
+  }
 
   public abstract Message processMessage(Message pMessage) throws InterruptedException, IOException,
                                                                   SolverException, CPAException;
@@ -38,7 +47,15 @@ public abstract class Worker implements Runnable {
   }
 
   @Override
-  public abstract void run();
+  public void run() {
+    try {
+      while (!finished) {
+        broadcast(processMessage(nextMessage()));
+      }
+    } catch (CPAException | InterruptedException | IOException | SolverException pE) {
+      logger.log(Level.SEVERE, pE);
+    }
+  }
 
   public void shutdown() throws IOException {
     finished = true;
@@ -46,7 +63,7 @@ public abstract class Worker implements Runnable {
     Thread.currentThread().interrupt();
   }
 
-  void setConnection(Connection pConnection) {
+  final void setConnection(Connection pConnection) {
     connection = pConnection;
   }
 }

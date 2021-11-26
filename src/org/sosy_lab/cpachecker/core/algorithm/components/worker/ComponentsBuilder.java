@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.components.worker;
 
 import java.io.IOException;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -21,7 +22,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.ConnectionProvider;
-import org.sosy_lab.cpachecker.core.algorithm.components.exchange.ConnectionProviders;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.network.NetworkConnectionProvider;
 import org.sosy_lab.cpachecker.core.algorithm.components.worker.MonitoredAnalysisWorker.Monitor;
 import org.sosy_lab.cpachecker.core.specification.Specification;
@@ -68,18 +68,20 @@ public class ComponentsBuilder {
   public ComponentsBuilder addAnalysisWorker(BlockNode pNode)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     String id = "W" + workers.size() + pNode.getId();
-    workers.add(new AnalysisWorker(id, pNode, logger, cfa, specification, configuration, shutdownManager));
+    workers.add(
+        new AnalysisWorker(id, pNode, logger, cfa, specification, configuration, shutdownManager));
     return this;
   }
 
   public ComponentsBuilder addMonitoredAnalysisWorker(Monitor pMonitor, BlockNode pNode)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     String id = "W" + workers.size() + pNode.getId();
-    workers.add(new MonitoredAnalysisWorker(id, pNode, logger, cfa, specification, configuration, shutdownManager, pMonitor));
+    workers.add(new MonitoredAnalysisWorker(id, pNode, logger, cfa, specification, configuration,
+        shutdownManager, pMonitor));
     return this;
   }
 
-  public ComponentsBuilder createResultCollectorWorker(Collection<BlockNode> nodes) {
+  public ComponentsBuilder addResultCollectorWorker(Collection<BlockNode> nodes) {
     workers.add(new ResultWorker(logger, nodes));
     return this;
   }
@@ -87,7 +89,8 @@ public class ComponentsBuilder {
   public Components build()
       throws InvocationTargetException, InstantiationException, IllegalAccessException,
              NoSuchMethodException, IOException {
-    List<? extends Connection> connections = ConnectionProviders.getConnections(connectionProviderClass, workers.size() + additionalConnections);
+    List<? extends Connection> connections =
+        getConnections(connectionProviderClass, workers.size() + additionalConnections);
     List<Connection> excessConnections = new ArrayList<>();
     for (int i = 0; i < workers.size() + additionalConnections; i++) {
       if (i >= workers.size()) {
@@ -97,6 +100,34 @@ public class ComponentsBuilder {
       }
     }
     return new Components(workers, excessConnections);
+  }
+
+  /**
+   * @param clazz             ConnectionProvider that is responsible for creating the list
+   * @param numberConnections number of Connections to generate
+   * @param <C>               explicit type of the ConnectionProvider
+   * @return list of connections of type C
+   */
+  private static <C extends ConnectionProvider<?>> List<? extends Connection> getConnections(
+      Class<C> clazz,
+      int numberConnections)
+      throws InstantiationException, IllegalAccessException, NoSuchMethodException,
+             InvocationTargetException, IOException {
+    Constructor<?>[] constructors = clazz.getDeclaredConstructors();
+    boolean hasEmptyConstructor = false;
+    for (Constructor<?> constructor : constructors) {
+      if (constructor.getParameterTypes().length == 0) {
+        hasEmptyConstructor = true;
+        break;
+      }
+    }
+    if (!hasEmptyConstructor) {
+      throw new AssertionError(ComponentsBuilder.class
+          + " can only use classes without constructor parameters that are an instance of "
+          + ConnectionProvider.class);
+    }
+    C connectionProvider = clazz.getDeclaredConstructor().newInstance();
+    return connectionProvider.createConnections(numberConnections);
   }
 
   public static class Components {
