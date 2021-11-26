@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.string.domains;
 
-import com.google.common.collect.ImmutableList.Builder;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -71,7 +70,8 @@ public class CharSetDomain implements AbstractStringDomain<char[]> {
   }
 
   private List<Character> toCharacterList(char[] arr) {
-    Builder<Character> builder = new Builder<>();
+    com.google.common.collect.ImmutableList.Builder<Character> builder =
+        new com.google.common.collect.ImmutableList.Builder<>();
     for (char c : arr) {
       builder.add(c);
     }

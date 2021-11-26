@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.string.domains;
 
-import com.google.common.collect.ImmutableList.Builder;
 import java.util.List;
 import org.sosy_lab.cpachecker.cpa.string.StringOptions;
 import org.sosy_lab.cpachecker.cpa.string.utils.Aspect;
@@ -33,7 +32,8 @@ public class ContainsDomain implements AbstractStringDomain<List<String>> {
 
   @Override
   public Aspect<List<String>> addNewAspectOfThisDomain(String pVariable) {
-    Builder<String> builder = new Builder<>();
+    com.google.common.collect.ImmutableList.Builder<String> builder =
+        new com.google.common.collect.ImmutableList.Builder<>();
     for (String given : givenset) {
       if (pVariable.contains(given)) {
         builder.add(given);
@@ -88,7 +88,8 @@ public class ContainsDomain implements AbstractStringDomain<List<String>> {
   }
 
   private Aspect<List<String>> join(List<String> l1, List<String> l2) {
-    Builder<String> builder = new Builder<>();
+    com.google.common.collect.ImmutableList.Builder<String> builder =
+        new com.google.common.collect.ImmutableList.Builder<>();
     builder.addAll(l1);
     for (String str : l2) {
       if (!l1.contains(str)) {

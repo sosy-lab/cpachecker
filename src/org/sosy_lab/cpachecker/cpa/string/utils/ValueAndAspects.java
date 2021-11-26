@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.string.utils;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import java.util.List;
 import org.sosy_lab.cpachecker.cpa.string.domains.AbstractStringDomain;
 import org.sosy_lab.cpachecker.cpa.string.domains.DomainType;
@@ -37,12 +36,14 @@ public class ValueAndAspects {
   public ValueAndAspects updateOneAspect(Aspect<?> as) {
     Aspect<?> temp = getAspectOfDomain(as.getDomain());
     if (temp instanceof UnknownAspect) {
-      Builder<Aspect<?>> builder = new Builder<>();
+      com.google.common.collect.ImmutableList.Builder<Aspect<?>> builder =
+          new com.google.common.collect.ImmutableList.Builder<>();
       aspects = builder.addAll(aspects).add(as).build();
 
     } else {
       if (!temp.getValue().equals(as.getValue())) {
-        Builder<Aspect<?>> builder = new Builder<>();
+        com.google.common.collect.ImmutableList.Builder<Aspect<?>> builder =
+            new com.google.common.collect.ImmutableList.Builder<>();
         for (Aspect<?> a : aspects) {
           if (!a.equals(temp)) {
             builder.add(a);

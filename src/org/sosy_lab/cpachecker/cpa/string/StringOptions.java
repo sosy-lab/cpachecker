@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.string;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
@@ -70,7 +69,8 @@ public class StringOptions {
 
   private ImmutableList<AbstractStringDomain<?>>
       generateDomains(ImmutableList<String> pDomainList) {
-    Builder<AbstractStringDomain<?>> builder = new Builder<>();
+    com.google.common.collect.ImmutableList.Builder<AbstractStringDomain<?>> builder =
+        new com.google.common.collect.ImmutableList.Builder<>();
 
     for (String domainName : pDomainList) {
       try {
@@ -99,7 +99,8 @@ public class StringOptions {
    * Add the string Literals in a program to the List of Strings in StringSetDomain
    */
   public void addStringToGivenSet(String str) {
-    Builder<String> builder = new Builder<>();
+    com.google.common.collect.ImmutableList.Builder<String> builder =
+        new com.google.common.collect.ImmutableList.Builder<>();
     builder.addAll(stringSet).add(str);
     stringSet = builder.build();
   }

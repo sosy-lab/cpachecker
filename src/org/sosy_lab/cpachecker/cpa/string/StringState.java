@@ -3,7 +3,6 @@ package org.sosy_lab.cpachecker.cpa.string;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 import java.util.Map;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
@@ -57,7 +56,8 @@ public class StringState implements LatticeAbstractState<StringState> {
   // Update doesn't create a new state
   public StringState updateVariable(JVariableIdentifier pJid, ValueAndAspects vaa) {
     // ValueAndAspects svaa = new ValueAndAspects(updateValue, storeAllAspects(updateValue));
-    Builder<JVariableIdentifier, ValueAndAspects> builder = new Builder<>();
+    com.google.common.collect.ImmutableMap.Builder<JVariableIdentifier, ValueAndAspects> builder =
+        new com.google.common.collect.ImmutableMap.Builder<>();
     for (Map.Entry<JVariableIdentifier, ValueAndAspects> entry : stringsAndAspects.entrySet()) {
       JVariableIdentifier jid = entry.getKey();
       if (!jid.equals(pJid)) {
@@ -75,7 +75,8 @@ public class StringState implements LatticeAbstractState<StringState> {
 
   public StringState addVariable(JVariableIdentifier jid, ValueAndAspects vaa) {
     // return updateVariable(jid, vaa);
-    Builder<JVariableIdentifier, ValueAndAspects> builder = new Builder<>();
+    com.google.common.collect.ImmutableMap.Builder<JVariableIdentifier, ValueAndAspects> builder =
+        new com.google.common.collect.ImmutableMap.Builder<>();
     builder.putAll(stringsAndAspects);
     builder.put(jid, vaa);
     return new StringState(builder.build(), options);
@@ -114,7 +115,8 @@ public class StringState implements LatticeAbstractState<StringState> {
 
   private ImmutableMap<JVariableIdentifier, ValueAndAspects>
       joinMapsNoDups(Map<JVariableIdentifier, ValueAndAspects> pStringMap) {
-    Builder<JVariableIdentifier, ValueAndAspects> builder = new Builder<>();
+    com.google.common.collect.ImmutableMap.Builder<JVariableIdentifier, ValueAndAspects> builder =
+        new com.google.common.collect.ImmutableMap.Builder<>();
     builder.putAll(stringsAndAspects);
     for (Map.Entry<JVariableIdentifier, ValueAndAspects> entry : stringsAndAspects.entrySet()) {
       JVariableIdentifier jid = entry.getKey();
@@ -180,7 +182,8 @@ public class StringState implements LatticeAbstractState<StringState> {
   // }
 
   public StringState clearAFunction(String funcname) {
-    Builder<JVariableIdentifier, ValueAndAspects> builder = new Builder<>();
+    com.google.common.collect.ImmutableMap.Builder<JVariableIdentifier, ValueAndAspects> builder =
+        new com.google.common.collect.ImmutableMap.Builder<>();
     for (Map.Entry<JVariableIdentifier, ValueAndAspects> entry : stringsAndAspects.entrySet()) {
       JVariableIdentifier jid = entry.getKey();
       if (!jid.getMemLoc().isOnFunctionStack(funcname)) {
@@ -191,7 +194,8 @@ public class StringState implements LatticeAbstractState<StringState> {
   }
 
   public StringState clearAllLocalVariables() {
-    Builder<JVariableIdentifier, ValueAndAspects> builder = new Builder<>();
+    com.google.common.collect.ImmutableMap.Builder<JVariableIdentifier, ValueAndAspects> builder =
+        new com.google.common.collect.ImmutableMap.Builder<>();
     for (Map.Entry<JVariableIdentifier, ValueAndAspects> entry : stringsAndAspects.entrySet()) {
       JVariableIdentifier jid = entry.getKey();
       if (!jid.isGlobal()) {
@@ -223,7 +227,6 @@ public class StringState implements LatticeAbstractState<StringState> {
 
   @Override
   public int hashCode() {
-    // TODO Auto-generated method stub
     return super.hashCode();
   }
 }

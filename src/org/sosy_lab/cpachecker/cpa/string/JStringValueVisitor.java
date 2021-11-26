@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.string;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayLengthExpression;
@@ -106,7 +105,8 @@ public class JStringValueVisitor
   @Override
   public ValueAndAspects visit(JStringLiteralExpression pE)
       throws NoException {
-    Builder<Aspect<?>> builder = new Builder<>();
+    com.google.common.collect.ImmutableList.Builder<Aspect<?>> builder =
+        new com.google.common.collect.ImmutableList.Builder<>();
     String val = pE.getValue();
     for (AbstractStringDomain<?> dom : domains) {
       if (dom instanceof StringSetDomain) {
@@ -130,7 +130,8 @@ public class JStringValueVisitor
     ValueAndAspects vaa2 = op2.accept(this);
     if (vaa1 != null && vaa2 != null) {
       if (!(vaa1 instanceof UnknownValueAndAspects) && !(vaa2 instanceof UnknownValueAndAspects)) {
-        Builder<Aspect<?>> builder = new Builder<>();
+        com.google.common.collect.ImmutableList.Builder<Aspect<?>> builder =
+            new com.google.common.collect.ImmutableList.Builder<>();
         for (AbstractStringDomain<?> dom : domains) {
           builder
               .add(
