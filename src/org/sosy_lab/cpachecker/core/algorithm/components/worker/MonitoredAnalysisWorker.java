@@ -60,6 +60,7 @@ public class MonitoredAnalysisWorker extends AnalysisWorker {
   @Override
   public void run() {
     try {
+      // AnalysisWorker start forward analysis -> immediate acquire
       monitor.blockAcquire(block);
       super.run();
     } catch (InterruptedException pE) {
