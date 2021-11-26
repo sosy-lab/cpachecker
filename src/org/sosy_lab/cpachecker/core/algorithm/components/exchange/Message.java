@@ -36,7 +36,6 @@ public class Message implements Comparable<Message> {
 
   // ORDER BY PRIORITY:
   public enum MessageType {
-    EMPTY,
     PRECONDITION,
     POSTCONDITION,
     POSTCONDITION_UNREACHABLE,
@@ -143,16 +142,8 @@ public class Message implements Comparable<Message> {
     return new Message(MessageType.FOUND_RESULT, pUniqueBlockId, pTargetNodeNumber, pResult.name());
   }
 
-  public static Message noResponse() {
-    return new Message(MessageType.EMPTY, "", 0, "");
-  }
-
   public static Message newErrorMessage(String pUniqueBlockId, Exception pException) {
     return new Message(MessageType.ERROR, pUniqueBlockId, 0, pException.getMessage());
-  }
-
-  public boolean isEmpty() {
-    return type == MessageType.EMPTY;
   }
 
   @Override

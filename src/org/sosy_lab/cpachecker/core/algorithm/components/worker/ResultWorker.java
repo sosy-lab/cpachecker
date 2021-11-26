@@ -14,8 +14,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
-import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
@@ -47,12 +47,12 @@ public class ResultWorker extends Worker {
   }
 
   @Override
-  public Message processMessage(Message pMessage)
+  public Optional<Message> processMessage(Message pMessage)
       throws InterruptedException, CPAException, IOException, SolverException {
     String senderId = pMessage.getUniqueBlockId();
     MessageType type = pMessage.getType();
     if (!nodeMap.containsKey(senderId)) {
-      return Message.noResponse();
+      return noResponse;
     }
     int numViolationsBefore = violationOrigins.size();
     messageReceived.add(senderId);
@@ -74,15 +74,14 @@ public class ResultWorker extends Worker {
       case FOUND_RESULT:
       case ERROR:
         shutdown();
-      case EMPTY:
       case PRECONDITION:
-        return Message.noResponse();
+        return noResponse;
       default:
         throw new AssertionError(type + " does not exist");
     }
   }
 
-  private Message response(int numViolationsBefore) {
+  private Optional<Message> response(int numViolationsBefore) {
     boolean onlyOriginViolations = true;
     for (Entry<String, Integer> stringIntegerEntry : expectAnswer.entrySet()) {
       if (violationOrigins.contains(stringIntegerEntry.getKey())) {
@@ -96,9 +95,9 @@ public class ResultWorker extends Worker {
             && (expectAnswer.values().stream().mapToInt(i -> i).sum() == 0
             || onlyOriginViolations);
     if (finished) {
-      return Message.newResultMessage("main", 0, Result.TRUE);
+      return answer(Message.newResultMessage("main", 0, Result.TRUE));
     }
-    return Message.noResponse();
+    return noResponse;
   }
 
 }

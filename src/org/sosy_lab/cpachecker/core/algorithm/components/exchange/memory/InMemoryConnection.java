@@ -31,9 +31,6 @@ public class InMemoryConnection implements Connection {
 
   @Override
   public void write(Message message) throws IOException, InterruptedException {
-    if (message.isEmpty()) {
-      return;
-    }
     for (BlockingQueue<Message> messages : out) {
       messages.put(message);
     }

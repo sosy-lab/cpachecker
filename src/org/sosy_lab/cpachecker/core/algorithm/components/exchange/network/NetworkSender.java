@@ -30,9 +30,6 @@ public class NetworkSender {
   }
 
   public void send(Message pMessage) throws IOException {
-    if (pMessage.isEmpty()) {
-      return;
-    }
     String json = converter.messageToJson(pMessage);
     byte[] message = json.getBytes();
     ByteBuffer buffer = ByteBuffer.wrap(message);

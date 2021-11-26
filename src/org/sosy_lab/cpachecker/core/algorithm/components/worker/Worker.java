@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.components.worker;
 
 import java.io.IOException;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Connection;
@@ -23,6 +24,8 @@ public abstract class Worker implements Runnable {
   protected Connection connection;
 
   protected boolean finished;
+
+  protected static final Optional<Message> noResponse = Optional.empty();
 
   protected Worker(LogManager pLogger) {
     logger = pLogger;
@@ -38,12 +41,15 @@ public abstract class Worker implements Runnable {
     return connection.read();
   }
 
-  public abstract Message processMessage(Message pMessage) throws InterruptedException, IOException,
-                                                                  SolverException, CPAException;
+  public abstract Optional<Message> processMessage(Message pMessage) throws InterruptedException, IOException,
+                                                                            SolverException, CPAException;
 
-  public void broadcast(Message pMessage) throws IOException, InterruptedException {
+  public void broadcast(Optional<Message> pMessage) throws IOException, InterruptedException {
+    if (pMessage.isEmpty()) {
+      return;
+    }
     Objects.requireNonNull(connection, "Connection cannot be null.");
-    connection.write(pMessage);
+    connection.write(pMessage.orElseThrow());
   }
 
   @Override
@@ -65,5 +71,9 @@ public abstract class Worker implements Runnable {
 
   final void setConnection(Connection pConnection) {
     connection = pConnection;
+  }
+
+  protected final Optional<Message> answer(Message pMessage) {
+    return Optional.of(pMessage);
   }
 }

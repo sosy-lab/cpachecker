@@ -159,7 +159,7 @@ public class AnalysisWorker extends Worker {
   }
 
   @Override
-  public Message processMessage(Message message)
+  public Optional<Message> processMessage(Message message)
       throws InterruptedException, CPAException, IOException, SolverException {
     switch (message.getType()) {
       case POSTCONDITION:
@@ -170,21 +170,20 @@ public class AnalysisWorker extends Worker {
       case FOUND_RESULT:
         shutdown();
       case POSTCONDITION_UNREACHABLE:
-        return Message.noResponse();
-      case EMPTY:
+        return noResponse;
       default:
         throw new AssertionError("Message type " + message.getType() + " does not exist");
     }
   }
 
-  private Message processPreconditionMessage(Message message)
+  private Optional<Message> processPreconditionMessage(Message message)
       throws CPAException, InterruptedException {
     Preconditions.checkArgument(message.getType() == MessageType.PRECONDITION,
         "can only process messages with type %s", MessageType.PRECONDITION);
     Optional<CFANode> optionalCFANode = block.getNodesInBlock().stream()
         .filter(node -> node.getNodeNumber() == message.getTargetNodeNumber()).findAny();
     if (optionalCFANode.isEmpty()) {
-      return Message.noResponse();
+      return noResponse;
     }
     CFANode node = optionalCFANode.orElseThrow();
     if (node.equals(block.getStartNode())) {
@@ -193,39 +192,39 @@ public class AnalysisWorker extends Worker {
       if (lastPreConditionMessage.isEmpty() || !toSend.equals(
           lastPreConditionMessage.orElseThrow())) {
         lastPreConditionMessage = Optional.of(toSend);
-        return toSend;
+        return answer(toSend);
       }
       lastPreConditionMessage = Optional.of(toSend);
     }
-    return Message.noResponse();
+    return noResponse;
   }
 
-  private Message processPostConditionMessage(Message message)
+  private Optional<Message> processPostConditionMessage(Message message)
       throws SolverException, InterruptedException, CPAException {
     Preconditions.checkArgument(message.getType() == MessageType.POSTCONDITION,
         "can only process messages with type %s", MessageType.POSTCONDITION);
     Optional<CFANode> optionalCFANode = block.getNodesInBlock().stream()
         .filter(node -> node.getNodeNumber() == message.getTargetNodeNumber()).findAny();
     if (optionalCFANode.isEmpty()) {
-      return Message.noResponse();
+      return noResponse;
     }
     CFANode node = optionalCFANode.orElseThrow();
     if (node.equals(block.getLastNode()) || !node.equals(block.getLastNode()) && !node.equals(
         block.getStartNode()) && block.getNodesInBlock().contains(node)) {
       if (lastPreConditionMessage.isPresent() && backwardAnalysis.cantContinue(
           lastPreConditionMessage.orElseThrow().getPayload(), message.getPayload())) {
-        return Message.newPostConditionUnreachableMessage(block.getId());
+        return answer(Message.newPostConditionUnreachableMessage(block.getId()));
       }
       postConditionUpdates.put(message.getUniqueBlockId(), message);
       Message toSend = backwardAnalysis(node);
       if (lastPostConditionMessage.isEmpty() || !toSend.equals(
           lastPostConditionMessage.orElseThrow())) {
         lastPostConditionMessage = Optional.of(toSend);
-        return toSend;
+        return answer(toSend);
       }
       lastPostConditionMessage = Optional.of(toSend);
     }
-    return Message.noResponse();
+    return noResponse;
   }
 
   // return post condition
@@ -250,7 +249,7 @@ public class AnalysisWorker extends Worker {
   @Override
   public void run() {
     try {
-      broadcast(forwardAnalysis(block.getStartNode()));
+      broadcast(Optional.of(forwardAnalysis(block.getStartNode())));
       super.run();
     } catch (CPAException | InterruptedException | IOException pE) {
       logger.log(Level.SEVERE, "ComponentAnalysis run into an error: %s", pE);

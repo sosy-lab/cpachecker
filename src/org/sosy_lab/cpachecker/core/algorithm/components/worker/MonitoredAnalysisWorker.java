@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.components.worker;
 
 import java.io.IOException;
+import java.util.Optional;
 import java.util.concurrent.Semaphore;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
@@ -46,12 +47,12 @@ public class MonitoredAnalysisWorker extends AnalysisWorker {
   @Override
   public Message nextMessage() throws InterruptedException {
     Message next =  super.nextMessage();
-    monitor.blockAcquire(next, block);
+    monitor.blockAcquire(block);
     return next;
   }
 
   @Override
-  public void broadcast(Message pMessage) throws IOException, InterruptedException {
+  public void broadcast(Optional<Message> pMessage) throws IOException, InterruptedException {
     super.broadcast(pMessage);
     monitor.blockRelease();
   }
@@ -59,7 +60,7 @@ public class MonitoredAnalysisWorker extends AnalysisWorker {
   @Override
   public void run() {
     try {
-      monitor.blockAcquire(Message.noResponse(), block);
+      monitor.blockAcquire(block);
       super.run();
     } catch (InterruptedException pE) {
       logger.log(Level.SEVERE, pE);
@@ -78,8 +79,8 @@ public class MonitoredAnalysisWorker extends AnalysisWorker {
       open = pPermits;
     }
 
-    public void blockAcquire(Message pMessage, BlockNode pBlockNode) throws InterruptedException {
-      logger.log(Level.FINEST, pBlockNode.getId() + " acquires for " + pMessage + "(" + open + ")");
+    public void blockAcquire(BlockNode pBlockNode) throws InterruptedException {
+      logger.log(Level.FINEST, pBlockNode.getId() + " requires resource (" + open + ")");
       semaphore.acquire();
       open--;
     }
