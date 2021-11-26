@@ -122,8 +122,9 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   @Override
   public AlgorithmStatus run(final ReachedSet pReachedSet)
       throws CPAException, InterruptedException {
-    try {
-      return runISMC(pReachedSet);
+    try (InterpolatingProverEnvironment<?> itpProver =
+        solver.newProverEnvironmentWithInterpolation()) {
+      return runISMC(pReachedSet, itpProver);
     } catch (SolverException e) {
       throw new CPAException("Solver Failure " + e.getMessage(), e);
     } finally {
@@ -138,7 +139,8 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * @return {@code AlgorithmStatus.UNSOUND_AND_PRECISE} if an error location is reached, i.e.,
    *     unsafe; {@code AlgorithmStatus.SOUND_AND_PRECISE} if a fixed point is derived, i.e., safe.
    */
-  private AlgorithmStatus runISMC(final ReachedSet pReachedSet)
+  private <T> AlgorithmStatus runISMC(
+      final ReachedSet pReachedSet, InterpolatingProverEnvironment<T> itpProver)
       throws CPAException, SolverException, InterruptedException {
     if (getTargetLocations().isEmpty()) {
       pReachedSet.clearWaitlist();
@@ -161,7 +163,6 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     // initialize the reachability vector
     List<BooleanFormula> reachVector = new ArrayList<>();
     do {
-      int maxLoopIterations = CPAs.retrieveCPA(cpa, LoopBoundCPA.class).getMaxLoopIterations();
       // Unroll
       shutdownNotifier.shutdownIfNecessary();
       stats.bmcPreparation.start();
@@ -206,6 +207,8 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
       // TODO: some implemetation questions
       // - reuse solver environment or not?
+      final int maxLoopIterations =
+          CPAs.retrieveCPA(cpa, LoopBoundCPA.class).getMaxLoopIterations();
       if (interpolation
           && maxLoopIterations > 1
           && !AbstractStates.getTargetStates(pReachedSet).isEmpty()) {
@@ -216,11 +219,8 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
         logger.log(Level.FINE, "Extracting interpolation-sequence");
         List<BooleanFormula> itpSequence = null;
-        try (InterpolatingProverEnvironment<?> itpProver =
-            solver.newProverEnvironmentWithInterpolation()) {
-          itpSequence = getInterpolationSequence(itpProver, partitionedFormulas);
-          logger.log(Level.ALL, "Interpolation sequence:", itpSequence);
-        }
+        itpSequence = getInterpolationSequence(itpProver, partitionedFormulas);
+        logger.log(Level.ALL, "Interpolation sequence:", itpSequence);
 
         logger.log(Level.FINE, "Updating reachability vector");
         reachVector = updateReachabilityVector(reachVector, itpSequence);
