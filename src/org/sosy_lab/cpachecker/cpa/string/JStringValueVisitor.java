@@ -131,13 +131,12 @@ public class JStringValueVisitor
     if (vaa1 != null && vaa2 != null) {
       if (!(vaa1 instanceof UnknownValueAndAspects) && !(vaa2 instanceof UnknownValueAndAspects)) {
         Builder<Aspect<?>> builder = new Builder<>();
-        for (int i = 0; i < domains.size(); i++) {
-          AbstractStringDomain<?> a = domains.get(i);
+        for (AbstractStringDomain<?> dom : domains) {
           builder
               .add(
-                  a.combineAspectsForStringConcat(
-                      vaa1.getAspectOfDomain(a),
-                      vaa2.getAspectOfDomain(a)));
+                  dom.combineAspectsForStringConcat(
+                      vaa1.getAspectOfDomain(dom),
+                      vaa2.getAspectOfDomain(dom)));
         }
         return new ValueAndAspects(builder.build());
       } else {

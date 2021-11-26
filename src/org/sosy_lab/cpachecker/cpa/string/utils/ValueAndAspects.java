@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.string.utils;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import java.util.List;
 import org.sosy_lab.cpachecker.cpa.string.domains.AbstractStringDomain;
@@ -129,7 +130,7 @@ public class ValueAndAspects {
     private final static UnknownValueAndAspects instance = new UnknownValueAndAspects();
 
     private UnknownValueAndAspects() {
-      super(List.of());
+      super(ImmutableList.of());
     }
 
     public static UnknownValueAndAspects getInstance() {

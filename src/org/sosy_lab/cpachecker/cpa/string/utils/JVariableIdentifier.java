@@ -59,10 +59,10 @@ public class JVariableIdentifier {
       return false;
     }
     JVariableIdentifier other = (JVariableIdentifier) obj;
-    return (type == other.type)
-        && (varIdentifier.equals(other.varIdentifier))
-        && (functionName.equals(other.functionName))
-        && (isGlobal == other.isGlobal);
+    return type == other.type
+        && varIdentifier.equals(other.varIdentifier)
+        && functionName.equals(other.functionName)
+        && isGlobal == other.isGlobal;
   }
 
   @Override

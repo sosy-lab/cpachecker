@@ -241,7 +241,7 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
         jid = Optional.of(jVarNameVis.visit((JLeftHandSide) op1));
       }
       if (jid.isPresent()) {
-        return pState.updateVariable(jid.get(), newValue);
+        return pState.updateVariable(jid.orElseThrow(), newValue);
       }
     }
     return pState;

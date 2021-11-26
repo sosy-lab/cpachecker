@@ -58,7 +58,8 @@ public class StringState implements LatticeAbstractState<StringState> {
   public StringState updateVariable(JVariableIdentifier pJid, ValueAndAspects vaa) {
     // ValueAndAspects svaa = new ValueAndAspects(updateValue, storeAllAspects(updateValue));
     Builder<JVariableIdentifier, ValueAndAspects> builder = new Builder<>();
-    for (JVariableIdentifier jid : stringsAndAspects.keySet()) {
+    for (Map.Entry<JVariableIdentifier, ValueAndAspects> entry : stringsAndAspects.entrySet()) {
+      JVariableIdentifier jid = entry.getKey();
       if (!jid.equals(pJid)) {
         builder.put(jid, stringsAndAspects.get(jid));
       }
@@ -115,7 +116,8 @@ public class StringState implements LatticeAbstractState<StringState> {
       joinMapsNoDups(Map<JVariableIdentifier, ValueAndAspects> pStringMap) {
     Builder<JVariableIdentifier, ValueAndAspects> builder = new Builder<>();
     builder.putAll(stringsAndAspects);
-    for (JVariableIdentifier jid : pStringMap.keySet()) {
+    for (Map.Entry<JVariableIdentifier, ValueAndAspects> entry : stringsAndAspects.entrySet()) {
+      JVariableIdentifier jid = entry.getKey();
       if (!stringsAndAspects.containsKey(jid)) {
         builder.put(jid, pStringMap.get(jid));
       }
@@ -179,7 +181,8 @@ public class StringState implements LatticeAbstractState<StringState> {
 
   public StringState clearAFunction(String funcname) {
     Builder<JVariableIdentifier, ValueAndAspects> builder = new Builder<>();
-    for (JVariableIdentifier jid : stringsAndAspects.keySet()) {
+    for (Map.Entry<JVariableIdentifier, ValueAndAspects> entry : stringsAndAspects.entrySet()) {
+      JVariableIdentifier jid = entry.getKey();
       if (!jid.getMemLoc().isOnFunctionStack(funcname)) {
         builder.put(jid, stringsAndAspects.get(jid));
       }
@@ -189,7 +192,8 @@ public class StringState implements LatticeAbstractState<StringState> {
 
   public StringState clearAllLocalVariables() {
     Builder<JVariableIdentifier, ValueAndAspects> builder = new Builder<>();
-    for (JVariableIdentifier jid : stringsAndAspects.keySet()) {
+    for (Map.Entry<JVariableIdentifier, ValueAndAspects> entry : stringsAndAspects.entrySet()) {
+      JVariableIdentifier jid = entry.getKey();
       if (!jid.isGlobal()) {
         builder.put(jid, stringsAndAspects.get(jid));
       }
@@ -200,8 +204,9 @@ public class StringState implements LatticeAbstractState<StringState> {
   @Override
   public String toString() {
     StringBuilder builder = new StringBuilder("String State: {");
-    for (JVariableIdentifier jid : stringsAndAspects.keySet()) {
-      builder.append("[" + jid.toString() + stringsAndAspects.get(jid).toString() + "]");
+    for (Map.Entry<JVariableIdentifier, ValueAndAspects> entry : stringsAndAspects.entrySet()) {
+      JVariableIdentifier jid = entry.getKey();
+      builder.append("[" + jid.toString() + stringsAndAspects.get(jid) + "]");
     }
     builder.append("} ");
     return builder.toString();
