@@ -12,8 +12,11 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
@@ -21,8 +24,8 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.components.block_analysis.BlockAnalysis.BackwardAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.components.block_analysis.BlockAnalysis.ForwardAnalysis;
@@ -31,6 +34,7 @@ import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageType;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
@@ -56,6 +60,8 @@ public class AnalysisWorker extends Worker {
 
   private Optional<Message> lastPreConditionMessage;
   private Optional<Message> lastPostConditionMessage;
+
+  private final SSAMap typeMap;
 
   AnalysisWorker(
       String pId,
@@ -105,6 +111,13 @@ public class AnalysisWorker extends Worker {
 
     lastPreConditionMessage = Optional.empty();
     lastPostConditionMessage = Optional.empty();
+
+    Set<CFANode> allNodes = block.getNodesInBlock();
+    List<CFAEdge> blockEdges = new ArrayList<>();
+    for (CFANode cfaNode : allNodes) {
+      CFAUtils.leavingEdges(cfaNode).filter(edge -> allNodes.contains(edge.getSuccessor())).copyInto(blockEdges);
+    }
+    typeMap = forwardAnalysis.getPathFormulaManager().makeFormulaForPath(blockEdges).getSsa();
   }
 
   public PathFormula getPostCondition(FormulaManagerView fmgr, PathFormulaManagerImpl manager) {
@@ -130,7 +143,7 @@ public class AnalysisWorker extends Worker {
         Pair<String, OptionalInt> variableIndexPair = FormulaManagerView.parseName(variable);
         if (!variable.contains(".") && variableIndexPair.getSecond().isPresent()) {
           //TODO find correct type
-          mapBuilder = mapBuilder.setIndex(variableIndexPair.getFirst(), CNumericTypes.SIGNED_INT,
+          mapBuilder = mapBuilder.setIndex(variableIndexPair.getFirst(), typeMap.getType(variableIndexPair.getFirst()),
               variableIndexPair.getSecond()
                   .orElse(1));
         }
