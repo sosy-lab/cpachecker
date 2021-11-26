@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.memory.InMemoryConnectionProvider;
-import org.sosy_lab.cpachecker.core.algorithm.components.exchange.network.NetworkConnectionProvider;
 import org.sosy_lab.cpachecker.core.algorithm.components.worker.ComponentsBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.components.worker.ComponentsBuilder.Components;
 import org.sosy_lab.cpachecker.core.algorithm.components.worker.Worker;
@@ -79,7 +78,8 @@ public class ComponentAnalysis implements Algorithm {
       for (BlockNode distinctNode : blocks) {
         builder = builder.addAnalysisWorker(distinctNode);
       }
-      builder = builder.createResultCollectorWorker(blocks.size());
+      // TODO make independent
+      builder = builder.createResultCollectorWorker(blocks);
       Components components = builder.build();
 
       // run all workers
@@ -108,8 +108,7 @@ public class ComponentAnalysis implements Algorithm {
         ARGState state = (ARGState) reachedSet.getFirstState();
         CompositeState cState = (CompositeState) state.getWrappedState();
         Precision initialPrecision = reachedSet.getPrecision(state);
-        List<AbstractState> states = new ArrayList<>();
-        states.addAll(cState.getWrappedStates());
+        List<AbstractState> states = new ArrayList<>(cState.getWrappedStates());
         states.add(DummyTargetState.withoutTargetInformation());
         reachedSet.add(new ARGState(new CompositeState(states), null), initialPrecision);
       }

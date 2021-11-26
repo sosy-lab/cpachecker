@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.components.worker;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -78,8 +79,8 @@ public class ComponentsBuilder {
     return this;
   }
 
-  public ComponentsBuilder createResultCollectorWorker(int numAnalysisWorker) {
-    workers.add(new ResultWorker(logger, numAnalysisWorker));
+  public ComponentsBuilder createResultCollectorWorker(Collection<BlockNode> nodes) {
+    workers.add(new ResultWorker(logger, nodes));
     return this;
   }
 

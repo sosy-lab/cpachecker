@@ -123,9 +123,9 @@ public class NetworkReceiver implements Closeable {
       do {
         if (numRead > 0) {
           buffer.flip();
-          byte[] read = new byte[numRead];
-          buffer.get(read, 0, numRead);
-          builder.append(new String(read));
+          char[] read = new char[numRead];
+          buffer.asCharBuffer().get(read, 0, numRead);
+          builder.append(read);
           buffer.compact();
         }
         if (numRead != BUFFER_SIZE) {

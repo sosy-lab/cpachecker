@@ -39,9 +39,9 @@ public class Message implements Comparable<Message> {
     EMPTY,
     PRECONDITION,
     POSTCONDITION,
+    POSTCONDITION_UNREACHABLE,
     FOUND_RESULT,
-    STALE,
-    ERROR,
+    ERROR
   }
 
   private final int targetNodeNumber;
@@ -125,9 +125,14 @@ public class Message implements Comparable<Message> {
       String pUniqueBlockId,
       int pTargetNodeNumber,
       BooleanFormula pPayload,
-      FormulaManagerView pFmgr) {
+      FormulaManagerView pFmgr,
+      boolean first) {
     return new Message(MessageType.POSTCONDITION, pUniqueBlockId, pTargetNodeNumber,
-        pFmgr.dumpFormula(pPayload).toString());
+        pFmgr.dumpFormula(pPayload).toString(), Boolean.toString(first));
+  }
+
+  public static Message newPostConditionUnreachableMessage(String pUniqueBlockId) {
+    return new Message(MessageType.POSTCONDITION_UNREACHABLE, pUniqueBlockId, 0, "");
   }
 
   public static Message newResultMessage(
@@ -136,10 +141,6 @@ public class Message implements Comparable<Message> {
       Result pResult
   ) {
     return new Message(MessageType.FOUND_RESULT, pUniqueBlockId, pTargetNodeNumber, pResult.name());
-  }
-
-  public static Message newStaleMessage(String pUniqueBlockId, boolean isStale) {
-    return new Message(MessageType.STALE, pUniqueBlockId, 0, Boolean.toString(isStale));
   }
 
   public static Message noResponse() {

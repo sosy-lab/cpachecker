@@ -29,7 +29,8 @@ public class BlockOperatorDecomposer implements CFADecomposer {
 
   private final BlockOperator operator;
 
-  public BlockOperatorDecomposer(Configuration pConfiguration) throws InvalidConfigurationException {
+  public BlockOperatorDecomposer(Configuration pConfiguration)
+      throws InvalidConfigurationException {
     operator = new BlockOperator();
     pConfiguration.inject(operator);
   }
@@ -76,11 +77,12 @@ public class BlockOperatorDecomposer implements CFADecomposer {
         coveredBlockEnds.add(lastCFANode);
       }
       // add all successors of lastCFANode to toSearch.
-      // additionally, we want to store any node that is between start -> end of a BlockNode
+      // additionally, we want to store any node that is between start -> end of a BlockNode,
       // so we use the class Entry to track the current node and the nodes in between.
       final CFANode currentRootNode = lastCFANode;
-      toSearch.addAll(CFAUtils.successorsOf(lastCFANode).transform(succ ->
-          new Entry(succ, new LinkedHashSet<>(ImmutableList.of(currentRootNode, succ)))).toList());
+      CFAUtils.successorsOf(lastCFANode).transform(
+              succ -> new Entry(succ, new LinkedHashSet<>(ImmutableList.of(currentRootNode, succ))))
+          .copyInto(toSearch);
 
       // if toSearch is empty, all successor nodes of lastCFANode have reached the block end
       while (!toSearch.isEmpty()) {

@@ -16,7 +16,6 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
-import javax.annotation.Nonnull;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -116,7 +115,6 @@ public class AnalysisWorker extends Worker {
     return getBooleanFormula(fmgr, manager, preConditionUpdates);
   }
 
-  @Nonnull
   private PathFormula getBooleanFormula(
       FormulaManagerView fmgr,
       PathFormulaManagerImpl manager,
@@ -160,10 +158,9 @@ public class AnalysisWorker extends Worker {
         return processPostConditionMessage(message);
       case PRECONDITION:
         return processPreconditionMessage(message);
-      case STALE:
-        return Message.noResponse();
       case ERROR:
       case FOUND_RESULT:
+      case POSTCONDITION_UNREACHABLE:
         shutdown();
         return Message.noResponse();
       case EMPTY:
@@ -214,7 +211,7 @@ public class AnalysisWorker extends Worker {
         block.getStartNode()) && block.getNodesInBlock().contains(node)) {
       if (lastPreConditionMessage.isPresent() && backwardAnalysis.cantContinue(
           lastPreConditionMessage.orElseThrow().getPayload(), message.getPayload())) {
-        return Message.noResponse();
+        return Message.newPostConditionUnreachableMessage(block.getId());
       }
       postConditionUpdates.put(message.getUniqueBlockId(), message);
       Message toSend = backwardAnalysis(node);
