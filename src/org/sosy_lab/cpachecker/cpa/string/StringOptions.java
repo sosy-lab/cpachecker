@@ -50,7 +50,14 @@ public class StringOptions {
     description = "which domains to use in StringCPA")
   private ImmutableList<String> domainList =
       ImmutableList
-          .copyOf(Arrays.asList("PrefixDomain", "SuffixDomain", "LengthDomain", "CharSetDomain"));
+          .copyOf(
+              Arrays.asList(
+                  "PrefixDomain",
+                  "SuffixDomain",
+                  "LengthDomain",
+                  "CharSetDomain",
+                  "ContainsDomain",
+                  "StringSetDomain"));
 
   private ImmutableList<AbstractStringDomain<?>> domains;
   private LogManager logger;

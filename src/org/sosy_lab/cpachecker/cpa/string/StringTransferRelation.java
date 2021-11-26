@@ -326,7 +326,6 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
               (JReferencedMethodInvocationExpression) jmie;
           JVariableIdentifier jid = jVarNameVis.visit(jrmie.getReferencedVariable());
           ValueAndAspects vaa = pState.getVaa(jid);
-          // TODO
           if (!(logger instanceof LogManagerWithoutDuplicates)) {
             logger = new LogManagerWithoutDuplicates(logger);
           }
@@ -358,14 +357,14 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
     @Override
     public Value visit(JClassLiteralExpression pJClassLiteralExpression) throws NoException {
       // Not needed
-      return null;
+      return super.visitDefault(pJClassLiteralExpression);
     }
 
     @Override
     protected Value evaluateCPointerExpression(CPointerExpression pCPointerExpression)
         throws UnrecognizedCodeException {
       // Not needed
-      return null;
+      return super.visitDefault(pCPointerExpression);
     }
 
     @Override

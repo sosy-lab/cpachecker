@@ -23,6 +23,7 @@ import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -168,6 +169,10 @@ public abstract class AbstractExpressionValueVisitor
 
   @Override
   protected Value visitDefault(CExpression pExp) {
+    return Value.UnknownValue.getInstance();
+  }
+
+  protected Value visitDefault(@SuppressWarnings("unused") AExpression pExp) {
     return Value.UnknownValue.getInstance();
   }
 
