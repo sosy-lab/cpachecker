@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
+import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -98,6 +99,11 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
 
   @Option(secure = true, description = "safely stop analysis on pointer accesses and similar")
   private boolean stopOnPointers = false;
+
+  @Option(
+      secure = true,
+      description = "Switch on/off to form the union of variable sets at identical location pairs")
+  private boolean variableSetMerge = true;
 
   @Option(
       secure = true,
@@ -195,13 +201,15 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
   @Override
   public MergeOperator getMergeOperator() {
     // check equality of location tuple and merge by joining then
-    return new MergeJoinOnOperator<>(
-        getAbstractDomain(),
-        new ImmutableSet.Builder<Function<ModificationsPropState, Object>>()
-            .add(mps -> mps.getLocationInGivenCfa())
-            .add(mps -> mps.getLocationInOriginalCfa())
-            .add(mps -> mps.getOriginalStack())
-            .build());
+    return variableSetMerge
+        ? new MergeJoinOnOperator<>(
+            getAbstractDomain(),
+            new ImmutableSet.Builder<Function<ModificationsPropState, Object>>()
+                .add(mps -> mps.getLocationInGivenCfa())
+                .add(mps -> mps.getLocationInOriginalCfa())
+                .add(mps -> mps.getOriginalStack())
+                .build())
+        : new MergeSepOperator();
   }
 
   @Override

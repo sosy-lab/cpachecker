@@ -3495,6 +3495,10 @@ differential.program = no default value
 # safely stop analysis on pointer accesses and similar
 differential.stopOnPointers = false
 
+# Switch on/off to form the union of variable sets at identical location
+# pairs
+differential.variableSetMerge = true
+
 # Enable to use lazy refinement in current analysis instead of restarting
 # from root after each refinement.
 enabledanalysis.allowLazyRefinement = false
