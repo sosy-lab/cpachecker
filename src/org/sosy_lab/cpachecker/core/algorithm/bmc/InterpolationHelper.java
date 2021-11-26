@@ -21,19 +21,23 @@ public final class InterpolationHelper {
    * <ul>
    *   <li>{@code FORWARD}: compute interpolants from the prefix <i>itp(A, B)</i>.
    *   <li>{@code BACKWARD}: compute interpolants from the suffix <i>!itp(B, A)</i>.
-   *   <li>{@code BIDIRECTION}: compute interpolants from both the prefix and the suffix <i>itp(A,
-   *       B) v !itp(B, A)</i>.
+   *   <li>{@code BIDIRECTION_CONJUNCT}: compute interpolants from both the prefix and the suffix
+   *       and conjunct the two <i>itp(A, B) &and; !itp(B, A)</i>.
+   *   <li>{@code BIDIRECTION_DISJUNCT}: compute interpolants from both the prefix and the suffix
+   *       and disjunct the two <i>itp(A, B) &or; !itp(B, A)</i>.
    * </ul>
    */
   public enum ItpDeriveDirection {
     FORWARD,
     BACKWARD,
-    BIDIRECTION
+    BIDIRECTION_CONJUNCT,
+    BIDIRECTION_DISJUNCT
   }
 
   /**
    * A helper method to derive an interpolant. It computes either <i>itp(A, B)</i>, <i>!itp(B,
-   * A)</i>, or <i>itp(A, B) v !itp(B, A)</i> according to the given direction.
+   * A)</i>, <i>itp(A, B) &and; !itp(B, A)</i>, or <i>itp(A, B) &or; !itp(B, A)</i> according to the
+   * given direction.
    *
    * @param bfmgr Boolean formula manager
    * @param itpProver SMT solver stack
@@ -50,13 +54,30 @@ public final class InterpolationHelper {
       final List<T> formulaA,
       final List<T> formulaB)
       throws SolverException, InterruptedException {
-    if (itpDeriveDirection == ItpDeriveDirection.FORWARD) {
-      return itpProver.getInterpolant(formulaA);
-    } else if (itpDeriveDirection == ItpDeriveDirection.FORWARD) {
-      return bfmgr.not(itpProver.getInterpolant(formulaB));
-    } else { // itpDeriveDirection == ItpDeriveDirection.BIDIRECTION
-      return bfmgr.or(
-          itpProver.getInterpolant(formulaA), bfmgr.not(itpProver.getInterpolant(formulaB)));
+    BooleanFormula forwardItp = itpProver.getInterpolant(formulaA);
+    BooleanFormula backwardItp = bfmgr.not(itpProver.getInterpolant(formulaB));
+    switch (itpDeriveDirection) {
+      case FORWARD:
+        {
+          return forwardItp;
+        }
+      case BACKWARD:
+        {
+          return backwardItp;
+        }
+      case BIDIRECTION_CONJUNCT:
+        {
+          return bfmgr.and(forwardItp, backwardItp);
+        }
+      case BIDIRECTION_DISJUNCT:
+        {
+          return bfmgr.or(forwardItp, backwardItp);
+        }
+      default:
+        {
+          throw new IllegalArgumentException(
+              "InterpolationHelper does not support ItpDeriveDirection=" + itpDeriveDirection);
+        }
     }
   }
 }

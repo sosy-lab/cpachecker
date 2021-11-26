@@ -218,8 +218,7 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         logger.log(Level.ALL, "Partitioned formulas:", partitionedFormulas);
 
         logger.log(Level.FINE, "Extracting interpolation-sequence");
-        List<BooleanFormula> itpSequence = null;
-        itpSequence = getInterpolationSequence(itpProver, partitionedFormulas);
+        List<BooleanFormula> itpSequence = getInterpolationSequence(itpProver, partitionedFormulas);
         logger.log(Level.ALL, "Interpolation sequence:", itpSequence);
 
         logger.log(Level.FINE, "Updating reachability vector");
