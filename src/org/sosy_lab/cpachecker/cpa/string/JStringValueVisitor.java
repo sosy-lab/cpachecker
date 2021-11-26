@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JNullLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JReferencedMethodInvocationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeEqualsType;
 import org.sosy_lab.cpachecker.cfa.ast.java.JStringLiteralExpression;
@@ -39,7 +38,6 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cpa.string.domains.AbstractStringDomain;
-import org.sosy_lab.cpachecker.cpa.string.domains.DomainType;
 import org.sosy_lab.cpachecker.cpa.string.domains.StringSetDomain;
 import org.sosy_lab.cpachecker.cpa.string.utils.Aspect;
 import org.sosy_lab.cpachecker.cpa.string.utils.Aspect.UnknownAspect;
@@ -62,11 +60,12 @@ public class JStringValueVisitor
   @Override
   public ValueAndAspects visit(JMethodInvocationExpression pE)
       throws NoException {
-    if (pE instanceof JReferencedMethodInvocationExpression
-        && pE.getDeclaration().getOrigName().contains("String_length")
-        && options.containsDomain(DomainType.LENGTH)) {
-      JReferencedMethodInvocationExpression jrmie = (JReferencedMethodInvocationExpression) pE;
-    }
+    // Used for Implementation of handling of general length-call
+    // if (pE instanceof JReferencedMethodInvocationExpression
+    // && pE.getDeclaration().getOrigName().contains("String_length")
+    // && options.containsDomain(DomainType.LENGTH)) {
+    // JReferencedMethodInvocationExpression jrmie = (JReferencedMethodInvocationExpression) pE;
+    // }
 
     return null;
   }

@@ -46,7 +46,6 @@ public class StringOptions {
   @Option(
     secure = true,
     name = "domains",
-    values = {"PrefixDomain"},
     description = "which domains to use in StringCPA")
   private ImmutableList<String> domainList =
       ImmutableList

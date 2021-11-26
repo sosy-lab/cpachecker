@@ -126,7 +126,7 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
         break;
       case CallToReturnEdge:
         if (pCfaEdge instanceof JMethodSummaryEdge) {
-          successor = handleJMethodSummaryEdge((JMethodSummaryEdge) pCfaEdge, state);
+          successor = handleJMethodSummaryEdge(/* (JMethodSummaryEdge) pCfaEdge, */state);
         }
         break;
       case FunctionCallEdge:
@@ -136,7 +136,7 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
           final String calledFunctionName = succ.getFunctionName();
           successor =
               handleJMethodCallEdge(
-                  fnkCall,
+                  // fnkCall,
                   fnkCall.getArguments(),
                   succ.getFunctionParameters(),
                   calledFunctionName,
@@ -178,7 +178,7 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
 
   // f(x)", that calls "f(int a)
   private StringState handleJMethodCallEdge(
-      JMethodCallEdge pFnkCall,
+      // JMethodCallEdge pFnkCall,
       List<JExpression> pArguments,
       List<? extends AParameterDeclaration> parameters,
       String pCalledFunctionName,
@@ -253,7 +253,8 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
     return pState;
   }
 
-  private StringState handleJMethodSummaryEdge(JMethodSummaryEdge summaryEdge, StringState pState) {
+  private StringState
+      handleJMethodSummaryEdge(/* JMethodSummaryEdge summaryEdge, */StringState pState) {
     // TODO length, substring
     return pState;
   }

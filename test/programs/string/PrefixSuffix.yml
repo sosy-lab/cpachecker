@@ -10,5 +10,5 @@ format_version: "1.0"
 input_files:
   - string_programs/PrefixSuffix/
 properties:
-  - property_file: "../../../config/string.properties"
+  - property_file: "../../../properties/assert.prp"
     expected_verdict: true
