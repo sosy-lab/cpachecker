@@ -163,6 +163,7 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     // initialize the reachability vector
     List<BooleanFormula> reachVector = new ArrayList<>();
     do {
+      /* note: an exact copy from IMCAlgorithm -- START */
       // Unroll
       shutdownNotifier.shutdownIfNecessary();
       stats.bmcPreparation.start();
@@ -204,6 +205,7 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
       }
+      /* note: an exact copy from IMCAlgorithm -- END */
 
       // TODO: some implemetation questions
       // - reuse solver environment or not?
@@ -351,14 +353,14 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return false;
   }
 
-  // note: an exact copy from IMCAlgorithm.java
+  // note: an exact copy from IMCAlgorithm
   private void fallBackToBMC(final String pReason) {
     logger.log(
         Level.WARNING, "Interpolation disabled because of " + pReason + ", falling back to BMC");
     interpolation = false;
   }
 
-  // note: an exact copy from IMCAlgorithm.java
+  // note: an exact copy from IMCAlgorithm
   private void fallBackToBMCWithoutForwardCondition(final String pReason) {
     logger.log(
         Level.WARNING,
@@ -367,6 +369,7 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     checkForwardConditions = false;
   }
 
+  // note: an exact copy from IMCAlgorithm
   @Override
   protected CandidateGenerator getCandidateInvariants() {
     throw new AssertionError(

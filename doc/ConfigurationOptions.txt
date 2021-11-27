@@ -3546,14 +3546,15 @@ heuristicSelection.recursionConfig = no default value
 # toggle checking forward conditions
 imc.checkForwardConditions = true
 
-# toggle deriving the interpolants from suffix formulas
-imc.deriveInterpolantFromSuffix = true
-
 # toggle falling back if interpolation or forward-condition is disabled
 imc.fallBack = true
 
 # toggle using interpolation to verify programs with loops
 imc.interpolation = true
+
+# toggle which direction to derive interpolants
+imc.itpDeriveDirection = BACKWARD
+  enum:     [FORWARD, BACKWARD, BIDIRECTION_CONJUNCT, BIDIRECTION_DISJUNCT]
 
 # toggle removing unreachable stop states in ARG
 imc.removeUnreachableStopStates = false

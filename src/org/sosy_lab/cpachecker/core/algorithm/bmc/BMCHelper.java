@@ -550,4 +550,9 @@ public final class BMCHelper {
       BooleanFormulaManagerView bfmgr, final ReachedSet pReachedSet) {
     return buildReachFormulaForStates(bfmgr, getStopStates(pReachedSet));
   }
+
+  static PathFormula makeFalsePathFormula(
+      PathFormulaManager pfmgr, BooleanFormulaManagerView bfmgr) {
+    return pfmgr.makeEmptyPathFormula().withFormula(bfmgr.makeFalse());
+  }
 }
