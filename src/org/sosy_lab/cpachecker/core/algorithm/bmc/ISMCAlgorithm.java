@@ -213,25 +213,14 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           && maxLoopIterations > 1
           && !AbstractStates.getTargetStates(pReachedSet).isEmpty()) {
 
-        logger.log(Level.FINE, "Collecting BMC-partitioning formulas");
         List<BooleanFormula> partitionedFormulas = collectFormulas(pReachedSet);
-        logger.log(Level.ALL, "Partitioned formulas:", partitionedFormulas);
-
-        logger.log(Level.FINE, "Extracting interpolation-sequence");
         List<BooleanFormula> itpSequence = getInterpolationSequence(itpProver, partitionedFormulas);
-        logger.log(Level.ALL, "Interpolation sequence:", itpSequence);
+        updateReachabilityVector(reachVector, itpSequence);
 
-        logger.log(Level.FINE, "Updating reachability vector");
-        reachVector = updateReachabilityVector(reachVector, itpSequence);
-        logger.log(Level.ALL, "Updated reachability vector:", reachVector);
-
-        logger.log(Level.FINE, "Checking fiexd-point");
         if (reachFixedPoint(reachVector)) {
-          logger.log(Level.INFO, "Fixed point reached");
           BMCHelper.removeUnreachableTargetStates(pReachedSet);
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
-        logger.log(Level.FINE, "The overapproximation is unsafe, going back to BMC phase");
       }
       BMCHelper.removeUnreachableTargetStates(pReachedSet);
     } while (adjustConditions());
@@ -245,6 +234,7 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * @param pReachedSet Abstract Reachability Graph
    */
   private List<BooleanFormula> collectFormulas(final ReachedSet pReachedSet) {
+    logger.log(Level.FINE, "Collecting BMC-partitioning formulas");
     FluentIterable<AbstractState> targetStatesAfterLoop =
         BMCHelper.getTargetStatesAfterLoop(pReachedSet);
     List<ARGState> abstractionStates =
@@ -266,7 +256,7 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
     // ~P
     formulas.add(BMCHelper.createDisjunctionFromStates(bfmgr, targetStatesAfterLoop));
-
+    logger.log(Level.ALL, "Partitioned formulas:", formulas);
     return formulas;
   }
 
@@ -283,6 +273,8 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       throws InterruptedException, SolverException {
     // TODO: consider using the methods that generates interpolation sequence in ImpactAlgorithm
     // should be something like: imgr.buildCounterexampleTrace(formulas)
+
+    logger.log(Level.FINE, "Extracting interpolation-sequence");
 
     // push formulas
     List<T> pushedFormulas = new ArrayList<>();
@@ -310,28 +302,29 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       itpProver.pop();
     }
 
+    logger.log(Level.ALL, "Interpolation sequence:", itpSequence);
     return itpSequence;
   }
 
   /**
    * A method to update the reachabiltiy vector with newly derived interpolants
    *
-   * @param oldReachVector the reachability vector of the previous iteration
+   * @param reachVector the reachability vector of the previous iteration
    * @param itpSequence the interpolation sequence derived at the current iteration
-   * @return the updated reachability vector
    */
-  private List<BooleanFormula> updateReachabilityVector(
-      List<BooleanFormula> oldReachVector, List<BooleanFormula> itpSequence) {
-    List<BooleanFormula> newReachVector = new ArrayList<>();
-    assert oldReachVector.size() + 1 == itpSequence.size();
+  private void updateReachabilityVector(
+      List<BooleanFormula> reachVector, List<BooleanFormula> itpSequence) {
+    logger.log(Level.FINE, "Updating reachability vector");
 
-    for (int i = 0; i < oldReachVector.size(); ++i) {
-      BooleanFormula image = oldReachVector.get(i);
+    assert reachVector.size() + 1 == itpSequence.size();
+
+    for (int i = 0; i < reachVector.size(); ++i) {
+      BooleanFormula image = reachVector.get(i);
       BooleanFormula itp = itpSequence.get(i);
-      newReachVector.add(bfmgr.and(image, itp));
+      reachVector.set(i, bfmgr.and(image, itp));
     }
-    newReachVector.add(itpSequence.get(itpSequence.size() - 1));
-    return newReachVector;
+    reachVector.add(itpSequence.get(itpSequence.size() - 1));
+    logger.log(Level.ALL, "Updated reachability vector:", reachVector);
   }
 
   /**
@@ -344,14 +337,17 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    */
   private boolean reachFixedPoint(List<BooleanFormula> reachVector)
       throws InterruptedException, SolverException {
+    logger.log(Level.FINE, "Checking fiexd-point");
     BooleanFormula currentImage = reachVector.get(0);
     for (int i = 1; i < reachVector.size(); ++i) {
       BooleanFormula imageAtI = reachVector.get(i);
       if (solver.implies(imageAtI, currentImage)) {
+        logger.log(Level.INFO, "Fixed point reached");
         return true;
       }
       currentImage = bfmgr.or(currentImage, imageAtI);
     }
+    logger.log(Level.FINE, "The overapproximation is unsafe, going back to BMC phase");
     return false;
   }
 
