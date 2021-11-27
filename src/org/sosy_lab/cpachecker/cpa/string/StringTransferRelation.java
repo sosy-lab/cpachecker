@@ -9,9 +9,9 @@
 package org.sosy_lab.cpachecker.cpa.string;
 
 import com.google.common.collect.ImmutableSet;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -20,17 +20,11 @@ import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.java.JClassLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.java.JInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JLeftHandSide;
@@ -62,11 +56,8 @@ import org.sosy_lab.cpachecker.cpa.string.utils.HelperMethods;
 import org.sosy_lab.cpachecker.cpa.string.utils.JVariableIdentifier;
 import org.sosy_lab.cpachecker.cpa.string.utils.ValueAndAspects;
 import org.sosy_lab.cpachecker.cpa.string.utils.ValueAndAspects.UnknownValueAndAspects;
-import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.NoException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -87,7 +78,7 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
       MachineModel pMachineModel) {
     logger = pLogger;
     this.options = pOptions;
-    variables = new LinkedList<>();
+    variables = new ArrayList<>();
     model = pMachineModel;
   }
 
@@ -283,7 +274,7 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private StringState handleJDeclaration(JDeclaration pJDecl, StringState pState) {
-    if (!(pJDecl instanceof JVariableDeclaration) || !(HelperMethods.isString(pJDecl.getType()))) {
+    if (!(pJDecl instanceof JVariableDeclaration) || !HelperMethods.isString(pJDecl.getType())) {
       return pState;
     }
     JVariableDeclaration jDecl = (JVariableDeclaration) pJDecl;
@@ -330,7 +321,7 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
           if (!(logger instanceof LogManagerWithoutDuplicates)) {
             logger = new LogManagerWithoutDuplicates(logger);
           }
-          aevv vis = new aevv(funcName, model, (LogManagerWithoutDuplicates) logger);
+          Aevv vis = new Aevv(funcName, model, (LogManagerWithoutDuplicates) logger);
           Value va = other.accept(vis);
           if (truthAssumption) {
             pState = handleMethodCallStringLength(jbe.getOperator(), pState, jid, vaa, va);
@@ -344,56 +335,6 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
       return pState;
     }
     return null;
-  }
-
-  private class aevv extends AbstractExpressionValueVisitor {
-
-    protected aevv(
-        String pFunctionName,
-        MachineModel pMachineModel,
-        LogManagerWithoutDuplicates pLogger) {
-      super(pFunctionName, pMachineModel, pLogger);
-    }
-
-    @Override
-    public Value visit(JClassLiteralExpression pJClassLiteralExpression) throws NoException {
-      // Not needed
-      return super.visitDefault(pJClassLiteralExpression);
-    }
-
-    @Override
-    protected Value evaluateCPointerExpression(CPointerExpression pCPointerExpression)
-        throws UnrecognizedCodeException {
-      // Not needed
-      return super.visitDefault(pCPointerExpression);
-    }
-
-    @Override
-    protected Value evaluateCIdExpression(CIdExpression pCIdExpression)
-        throws UnrecognizedCodeException {
-      // Not needed
-      return null;
-    }
-
-    @Override
-    protected Value evaluateJIdExpression(JIdExpression pVarName) {
-      return super.evaluate(pVarName, pVarName.getDeclaration().getType());
-    }
-
-    @Override
-    protected Value evaluateCFieldReference(CFieldReference pLValue)
-        throws UnrecognizedCodeException {
-      // Not needed
-      return null;
-    }
-
-    @Override
-    protected Value evaluateCArraySubscriptExpression(CArraySubscriptExpression pLValue)
-        throws UnrecognizedCodeException {
-      // Not needed
-      return null;
-    }
-
   }
 
   private Pair<JMethodInvocationExpression, JExpression>

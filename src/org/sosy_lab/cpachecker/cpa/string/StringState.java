@@ -210,7 +210,7 @@ public class StringState implements LatticeAbstractState<StringState> {
     StringBuilder builder = new StringBuilder("String State: {");
     for (Map.Entry<JVariableIdentifier, ValueAndAspects> entry : stringsAndAspects.entrySet()) {
       JVariableIdentifier jid = entry.getKey();
-      builder.append("[" + jid.toString() + stringsAndAspects.get(jid) + "]");
+      builder.append("[" + jid + stringsAndAspects.get(jid) + "]");
     }
     builder.append("} ");
     return builder.toString();
