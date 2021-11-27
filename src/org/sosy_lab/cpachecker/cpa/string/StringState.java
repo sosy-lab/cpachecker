@@ -94,12 +94,11 @@ public class StringState implements LatticeAbstractState<StringState> {
     return stringsAndAspects;
   }
 
-  /*
+  /**
    * (non-Javadoc)
    *
-   * @see
-   * org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState#join(org.sosy_lab.cpachecker.core.
-   * defaults.LatticeAbstractState)
+   * @see org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState#join(org.sosy_lab.cpachecker.core.
+   *      defaults.LatticeAbstractState)
    */
   @Override
   public StringState join(StringState pOther) throws CPAException, InterruptedException {
@@ -127,11 +126,11 @@ public class StringState implements LatticeAbstractState<StringState> {
     return builder.build();
   }
 
-  /*
+  /**
    * (non-Javadoc)
    *
    * @see org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState#isLessOrEqual(org.sosy_lab.
-   * cpachecker.core.defaults.LatticeAbstractState)
+   *      cpachecker.core.defaults.LatticeAbstractState)
    */
   @Override
   public boolean isLessOrEqual(StringState pOther) throws CPAException, InterruptedException {
