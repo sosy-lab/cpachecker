@@ -166,7 +166,7 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
                     retMo = (CReturnStatementEdge) pCfaEdge;
                 if (helper.sameFunction(retMo.getSuccessor(), retOr.getSuccessor())) {
                   helper.logCase(
-                      "Taking case 4 for function returns with modified variables or different statements.");
+                      "Taking case 4 for function returns, potentially with modified variables or different statements.");
                   final ImmutableSet<String> returnChangedVars;
                   try {
                     if (retMo.getReturnStatement() == null
@@ -241,7 +241,7 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
           if (pCfaEdge instanceof CFunctionReturnEdge) {
             final ArrayDeque<CFANode> stackminus = stack.clone();
             // Pop summary edge goal to compare to function return edge goal.
-            final CFANode summaryGoal = stackminus.poll();
+            final CFANode summaryGoal = stackminus.removeLast();
             if (summaryGoal != null) {
               for (CFAEdge edgeInOriginal : CFAUtils.leavingEdges(nodeInOriginal)) {
                 if (edgeInOriginal instanceof CFunctionReturnEdge
@@ -362,7 +362,7 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
                   if (summaryEdge != null) {
                     // Add summary edge goal to queue in order to take correct function return edge.
                     // On ArrayDeque we always have space left, so no false check needed here.
-                    stackplus.offer(nodeInOriginal.getLeavingSummaryEdge().getSuccessor());
+                    stackplus.addLast(nodeInOriginal.getLeavingSummaryEdge().getSuccessor());
                   } else {
                     helper.logProblem(
                         "Function call without summary edge found. This is not critical yet, but might indicate a problem.");
