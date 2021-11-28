@@ -367,7 +367,7 @@ public class ModificationsPropHelper {
               pB.getPredecessor().getFunctionName(),
               ssaMap,
               pB.getTruthAssumption());
-    } catch (UnrecognizedCodeException | InterruptedException e1) {
+    } catch (IllegalArgumentException | UnrecognizedCodeException | InterruptedException e) {
       logger.log(Level.WARNING, "Converting to predicate failed.");
       return false;
     }
