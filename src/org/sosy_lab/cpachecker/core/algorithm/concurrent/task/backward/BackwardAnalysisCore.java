@@ -49,7 +49,8 @@ public class BackwardAnalysisCore extends Task {
   private final ARGCPA argcpa;
   private final Solver solver;
   private final FormulaManagerView fMgr;
-
+  private final BackwardAnalysisFullStatistics statistics;
+  
   private AlgorithmStatus status = SOUND_AND_PRECISE;
 
   public BackwardAnalysisCore(
@@ -69,7 +70,8 @@ public class BackwardAnalysisCore extends Task {
     fMgr = solver.getFormulaManager();
     target = pBlock;
     origin = pOrigin;
-
+    statistics = new BackwardAnalysisFullStatistics();
+    
     reached = pReachedSet;
     algorithm = pAlgorithm;
   }
@@ -109,7 +111,7 @@ public class BackwardAnalysisCore extends Task {
     }
 
     logManager.log(Level.FINE, "Completed BackwardAnalysis on", target);
-    messageFactory.sendTaskCompletionMessage(this, status);
+    messageFactory.sendTaskCompletedMessage(this, status, statistics);
   }
 
   private void processReachedState(final AbstractState state)

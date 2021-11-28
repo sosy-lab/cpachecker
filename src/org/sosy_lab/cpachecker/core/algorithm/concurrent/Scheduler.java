@@ -32,12 +32,15 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.Message;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.completion.ErrorReachedProgramEntryMessage;
-import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.completion.TaskCompletionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.completion.TaskAbortedMessage;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.completion.TaskCompletedMessage;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.RequestInvalidatedException;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.TaskRequest;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.Task;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ErrorOrigin;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ShareableBooleanFormula;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 
 /**
  * JobExecutor manages execution of concurrent analysis tasks from {@linkplain
@@ -55,7 +58,7 @@ import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ShareableBooleanFo
  * does so if data with which a new job has been created (e.g. a block summary) has become outdated
  * due to a concurrent task which completed and which calculated an updated version of such data.
  */
-public final class Scheduler implements Runnable {
+public final class Scheduler implements Runnable, StatisticsProvider {
   private final LinkedBlockingQueue<Message> messages = new LinkedBlockingQueue<>();
   private final ExecutorService executor;
   private final ShutdownManager shutdownManager;
@@ -229,6 +232,11 @@ public final class Scheduler implements Runnable {
     shutdown();
   }
 
+  @Override
+  public void collectStatistics(Collection<Statistics> statsCollection) {
+    
+  }
+
   public class MessageProcessingVisitor {
     public void visit(final TaskRequest pMessage) {
       try {
@@ -245,21 +253,30 @@ public final class Scheduler implements Runnable {
       }
     }
 
-    public void visit(final TaskCompletionMessage pMessage) {
+    public void visit(final TaskCompletedMessage pMessage) {
       --jobCount;
       status = status.update(pMessage.getStatus());
       
+      shutdownIfComplete();
+    }
+
+    public void visit(final TaskAbortedMessage pMessage) {
+      --jobCount;
+      shutdownIfComplete();
+    }
+    
+    public void visit(final ErrorReachedProgramEntryMessage pMessage) {
+      target = Optional.of(pMessage.getOrigin());
+      status = status.update(pMessage.getStatus());
+      errorReachedProgramEntry();
+    }
+    
+    private void shutdownIfComplete() {
       if (jobCount == 0 && messages.isEmpty()) {
         logManager.log(Level.INFO, "All tasks completed.");
         schedulerThread.interrupt();
         shutdown();
       }
-    }
-
-    public void visit(final ErrorReachedProgramEntryMessage pMessage) {
-      target = Optional.of(pMessage.getOrigin());
-      status = status.update(pMessage.getStatus());
-      errorReachedProgramEntry();
     }
   }
   

@@ -76,7 +76,8 @@ public class ForwardAnalysis extends Task {
   private final FormulaManagerView fMgr;
   private final BooleanFormulaManagerView bfMgr;
   private final PathFormulaManager pfMgr;
-
+  private final ForwardAnalysisStatistics statistics;
+  
   private AlgorithmStatus status = SOUND_AND_PRECISE;
 
   public ForwardAnalysis(
@@ -106,7 +107,8 @@ public class ForwardAnalysis extends Task {
     expectedVersion = pExpectedVersion;
     predecessorSummaries =
         transformedImmutableListCopy(pPredecessorSummaries, formula->formula.getFor(fMgr, pfMgr));
-
+    statistics = new ForwardAnalysisStatistics();
+    
     reached = pReachedSet;
     algorithm = pAlgorithm;
     cpa = pCPA;
@@ -135,14 +137,14 @@ public class ForwardAnalysis extends Task {
 
     if (isSummaryUnchanged()) {
       logManager.log(Level.INFO, "Summary unchanged, refined analysis aborted.");
-      messageFactory.sendTaskCompletionMessage(this, status);
+      messageFactory.sendTaskCompletedMessage(this, status, statistics);
       return;
     }
 
     PathFormula cumPredSummary = buildCumulativePredecessorSummary();
     if (thereIsNoRelevantChange(cumPredSummary)) {
       logManager.log(Level.INFO, "No relevant change on summary, refined analysis aborted.");
-      messageFactory.sendTaskCompletionMessage(this, status);
+      messageFactory.sendTaskCompletedMessage(this, status, statistics);
       return;
     }
 
@@ -162,7 +164,7 @@ public class ForwardAnalysis extends Task {
     } while (reached.hasWaitingState());
 
     logManager.log(Level.FINE, "Completed ForwardAnalysis on ", target);
-    messageFactory.sendTaskCompletionMessage(this, status);
+    messageFactory.sendTaskCompletedMessage(this, status, statistics);
   }
 
   private void prepareForNextAlgorithmRun() throws InterruptedException {

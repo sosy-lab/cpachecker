@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.concurrent;
 
 import static org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus.NO_PROPERTY_CHECKED;
 
+import java.util.Collection;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
@@ -24,12 +25,14 @@ import org.sosy_lab.cpachecker.cfa.blockgraph.builder.BlockGraphBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.MessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ErrorOrigin;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 
-public class ConcurrentAnalysis implements Algorithm {
+public class ConcurrentAnalysis implements Algorithm, StatisticsProvider {
 
   private final Algorithm algorithm;
 
@@ -116,5 +119,10 @@ public class ConcurrentAnalysis implements Algorithm {
 
     logger.log(Level.INFO, "Stopping concurrent analysis ...");
     return status;
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> statsCollection) {
+    
   }
 }

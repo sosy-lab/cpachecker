@@ -18,9 +18,11 @@ import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.ConcurrentStatisticsCollector.TaskStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.Scheduler;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.completion.ErrorReachedProgramEntryMessage;
-import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.completion.TaskCompletionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.completion.TaskAbortedMessage;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.completion.TaskCompletedMessage;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.backward.BackwardAnalysisContinuationRequest;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.backward.BackwardAnalysisRequest;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.forward.ForwardAnalysisRequest;
@@ -143,8 +145,14 @@ public class MessageFactory {
     executor.sendMessage(message);
   }
   
-  public void sendTaskCompletionMessage(final Task task, final AlgorithmStatus pStatus) {
-    Message msg = new TaskCompletionMessage(task, pStatus);
+  public void sendTaskCompletedMessage(final Task pTask, final AlgorithmStatus pStatus,
+                                       final TaskStatistics pStatistics) {
+    Message msg = new TaskCompletedMessage(pTask, pStatus, pStatistics);
+    executor.sendMessage(msg);
+  }
+
+  public void sendTaskAbortedMessage(final Task pTask) {
+    Message msg = new TaskAbortedMessage(pTask);
     executor.sendMessage(msg);
   }
 

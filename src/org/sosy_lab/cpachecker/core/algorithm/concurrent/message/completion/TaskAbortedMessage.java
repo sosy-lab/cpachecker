@@ -8,32 +8,23 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.concurrent.message.completion;
 
-
-import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.Scheduler.MessageProcessingVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.Message;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.Task;
 
-public class TaskCompletionMessage implements Message {  
+public class TaskAbortedMessage implements Message {
   private final Task task;
-  
-  private final AlgorithmStatus status;
-  
-  public TaskCompletionMessage(final Task pTask, final AlgorithmStatus pStatus) {
+
+  public TaskAbortedMessage(final Task pTask) {
     task = pTask;
-    status = pStatus;
   }
-  
+
   @Override
   public void accept(MessageProcessingVisitor visitor) {
     visitor.visit(this);
   }
-  
+
   public Task getTask() {
     return task;
-  }
-  
-  public AlgorithmStatus getStatus() {
-    return status;
   }
 }

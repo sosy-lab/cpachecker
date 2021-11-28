@@ -69,7 +69,8 @@ public class BackwardAnalysisFull extends Task {
   private final Solver solver;
   private final FormulaManagerView fMgr;
   private final AlgorithmStatus status = SOUND_AND_PRECISE;
-
+  private final BackwardAnalysisFullStatistics statistics;
+  
   public BackwardAnalysisFull(
       final Block pBlock,
       final ErrorOrigin pOrigin,
@@ -96,7 +97,8 @@ public class BackwardAnalysisFull extends Task {
     origin = pOrigin;
     errorCondition = pErrorCondition.getFor(fMgr, pfMgr);
     blockSummary = pBlockSummary.getFor(fMgr, pfMgr);
-
+    statistics = new BackwardAnalysisFullStatistics();
+    
     reached = pReachedSet;
     algorithm = pAlgorithm;
   }
@@ -202,7 +204,7 @@ public class BackwardAnalysisFull extends Task {
     if (solver.isUnsat(reachable)) {
       logManager.log(Level.INFO, "Verdict: Swallowed error condition: ",
           errorCondition.getFormula());
-      messageFactory.sendTaskCompletionMessage(this, status);
+      messageFactory.sendTaskCompletedMessage(this, status, statistics);
       return;
     }
 
