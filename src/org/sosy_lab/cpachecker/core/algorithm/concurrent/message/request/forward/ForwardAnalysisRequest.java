@@ -54,7 +54,7 @@ public class ForwardAnalysisRequest extends CPACreatingRequest implements TaskRe
       + "file which sets this value, i.e. usually"
       + "concurrent-task-partitioning.properties in config/includes/."
       + "If no value is set, the analysis uses the file predicateBackward.properties in"
-      + "the package core.algorithm.concurrent.task.backward.")
+      + "the package core.algorithm.concurrent.task.backward.", secure=true)
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path configFile = null;
 
