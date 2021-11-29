@@ -2808,6 +2808,9 @@ cpa.smg.memoryErrors = true
 cpa.smg.merge = "SEP"
   allowed values: [SEP, JOIN]
 
+# Produce error trace instead of exception during analysis
+cpa.smg.produceErrorTraceInsteadOfException = false
+
 # export interpolant smgs for every path interpolation to this path template
 cpa.smg.refinement.exportInterpolantSMGs = "smg/interpolation-%d/%s"
 

@@ -928,11 +928,18 @@ public class SMGBuiltins {
     switch (options.getHandleUnknownFunctions()) {
       case STRICT:
         if (!isSafeFunction(calledFunctionName)) {
-          throw new CPATransferException(
+          String errorMessage =
               String.format(
-                  "Unknown function '%s' may be unsafe. See the cpa.smg.handleUnknownFunctions or"
-                      + " cpa.smg.safeUnknownFunctionsPatterns",
-                  calledFunctionName));
+                  "Unknown function '%s' may be unsafe. Please check the"
+                      + " cpa.smg.handleUnknownFunctions and cpa.smg.safeUnknownFunctionsPatterns"
+                      + " options",
+                  calledFunctionName);
+          if (options.produceErrorTraceInsteadOfException()) {
+            return ImmutableList.of(
+                SMGAddressValueAndState.of(
+                    pState.withInvalidRead().withErrorDescription(errorMessage)));
+          }
+          throw new CPATransferException(errorMessage);
         }
         // $FALL-THROUGH$ // for safe functions
       case ASSUME_SAFE:
