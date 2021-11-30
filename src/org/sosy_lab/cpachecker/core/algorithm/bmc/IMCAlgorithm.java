@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -106,10 +107,13 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final Solver solver;
+  private final PredicateAbstractionManager predAbsMgr;
 
   private final Configuration config;
   private final CFA cfa;
   private final AssignmentToPathAllocator assignmentToPathAllocator;
+
+  private BooleanFormula finalFixedPoint;
 
   public IMCAlgorithm(
       Algorithm pAlgorithm,
@@ -145,11 +149,14 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     PredicateCPA predCpa = CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, IMCAlgorithm.class);
     solver = predCpa.getSolver();
     pfmgr = predCpa.getPathFormulaManager();
+    predAbsMgr = predCpa.getPredicateManager();
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
 
     assignmentToPathAllocator =
         new AssignmentToPathAllocator(config, shutdownNotifier, pLogger, pCFA.getMachineModel());
+
+    finalFixedPoint = bfmgr.makeFalse();
   }
 
   @Override
@@ -248,6 +255,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             solver.newProverEnvironmentWithInterpolation()) {
           if (reachFixedPointByInterpolation(itpProver, formulas)) {
             removeUnreachableTargetStates(pReachedSet);
+            storeFixedPointAsAbstractionAtLoopHeads(pReachedSet);
             return AlgorithmStatus.SOUND_AND_PRECISE;
           }
         }
@@ -613,6 +621,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       logger.log(Level.ALL, "After changing SSA", interpolant);
       if (solver.implies(interpolant, currentImage)) {
         logger.log(Level.INFO, "The current image reaches a fixed point");
+        finalFixedPoint = fmgr.uninstantiate(currentImage);
         return true;
       }
       currentImage = bfmgr.or(currentImage, interpolant);
@@ -622,6 +631,34 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
     logger.log(Level.FINE, "The overapproximation is unsafe, going back to BMC phase");
     return false;
+  }
+
+  /**
+   * This method stores the final fixed point in the abstraction formula of every abstraction state
+   * at the loop head in order to generate correctness witnesses.
+   *
+   * <p>In predicate analysis, the invariant at a program location is obtained by taking the
+   * disjunction of all abstraction formulas at this location. Therefore, it is necessary to set the
+   * abstraction formula of every loop-head abstraction state to the fixed point; otherwise, the
+   * invariant will be the tautology.
+   *
+   * @throws InterruptedException on shutdown request.
+   */
+  @SuppressWarnings("resource")
+  private void storeFixedPointAsAbstractionAtLoopHeads(ReachedSet pReachedSet)
+      throws InterruptedException {
+    // Find all abstraction states: they are at same loop head due to single-loop assumption
+    // Skip the root; target states must be removed beforehand
+    List<AbstractState> abstractionStates =
+        from(pReachedSet.asCollection())
+            .skip(1) // skip the root
+            .filter(PredicateAbstractState::containsAbstractionState)
+            .toList();
+    for (AbstractState state : abstractionStates) {
+      PredicateAbstractState predState = PredicateAbstractState.getPredicateState(state);
+      predState.setAbstraction(
+          predAbsMgr.asAbstraction(finalFixedPoint, pfmgr.makeEmptyPathFormula()));
+    }
   }
 
   @Override
