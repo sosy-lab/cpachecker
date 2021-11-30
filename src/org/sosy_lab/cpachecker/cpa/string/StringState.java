@@ -56,8 +56,8 @@ public class StringState implements LatticeAbstractState<StringState> {
   // Update doesn't create a new state
   public StringState updateVariable(JVariableIdentifier pJid, ValueAndAspects vaa) {
     // ValueAndAspects svaa = new ValueAndAspects(updateValue, storeAllAspects(updateValue));
-    com.google.common.collect.ImmutableMap.Builder<JVariableIdentifier, ValueAndAspects> builder =
-        new com.google.common.collect.ImmutableMap.Builder<>();
+    ImmutableMap.Builder<JVariableIdentifier, ValueAndAspects> builder =
+        new ImmutableMap.Builder<>();
     for (Map.Entry<JVariableIdentifier, ValueAndAspects> entry : stringsAndAspects.entrySet()) {
       JVariableIdentifier jid = entry.getKey();
       if (!jid.equals(pJid)) {
@@ -75,8 +75,8 @@ public class StringState implements LatticeAbstractState<StringState> {
 
   public StringState addVariable(JVariableIdentifier jid, ValueAndAspects vaa) {
     // return updateVariable(jid, vaa);
-    com.google.common.collect.ImmutableMap.Builder<JVariableIdentifier, ValueAndAspects> builder =
-        new com.google.common.collect.ImmutableMap.Builder<>();
+    ImmutableMap.Builder<JVariableIdentifier, ValueAndAspects> builder =
+        new ImmutableMap.Builder<>();
     builder.putAll(stringsAndAspects);
     builder.put(jid, vaa);
     return new StringState(builder.build(), options);
@@ -114,8 +114,8 @@ public class StringState implements LatticeAbstractState<StringState> {
 
   private ImmutableMap<JVariableIdentifier, ValueAndAspects>
       joinMapsNoDups(Map<JVariableIdentifier, ValueAndAspects> pStringMap) {
-    com.google.common.collect.ImmutableMap.Builder<JVariableIdentifier, ValueAndAspects> builder =
-        new com.google.common.collect.ImmutableMap.Builder<>();
+    ImmutableMap.Builder<JVariableIdentifier, ValueAndAspects> builder =
+        new ImmutableMap.Builder<>();
     builder.putAll(stringsAndAspects);
     for (Map.Entry<JVariableIdentifier, ValueAndAspects> entry : stringsAndAspects.entrySet()) {
       JVariableIdentifier jid = entry.getKey();
@@ -137,7 +137,7 @@ public class StringState implements LatticeAbstractState<StringState> {
     if (this.stringsAndAspects.size() < pOther.stringsAndAspects.size()) {
       return false;
     }
-    for (java.util.Map.Entry<JVariableIdentifier, ValueAndAspects> otherEntry : pOther.stringsAndAspects
+    for (Map.Entry<JVariableIdentifier, ValueAndAspects> otherEntry : pOther.stringsAndAspects
         .entrySet()) {
       ValueAndAspects otherVaa = otherEntry.getValue();
       JVariableIdentifier jid = otherEntry.getKey();
@@ -181,8 +181,8 @@ public class StringState implements LatticeAbstractState<StringState> {
   // }
 
   public StringState clearAFunction(String funcname) {
-    com.google.common.collect.ImmutableMap.Builder<JVariableIdentifier, ValueAndAspects> builder =
-        new com.google.common.collect.ImmutableMap.Builder<>();
+    ImmutableMap.Builder<JVariableIdentifier, ValueAndAspects> builder =
+        new ImmutableMap.Builder<>();
     for (Map.Entry<JVariableIdentifier, ValueAndAspects> entry : stringsAndAspects.entrySet()) {
       JVariableIdentifier jid = entry.getKey();
       if (!jid.getMemLoc().isOnFunctionStack(funcname)) {
@@ -193,8 +193,8 @@ public class StringState implements LatticeAbstractState<StringState> {
   }
 
   public StringState clearAllLocalVariables() {
-    com.google.common.collect.ImmutableMap.Builder<JVariableIdentifier, ValueAndAspects> builder =
-        new com.google.common.collect.ImmutableMap.Builder<>();
+    ImmutableMap.Builder<JVariableIdentifier, ValueAndAspects> builder =
+        new ImmutableMap.Builder<>();
     for (Map.Entry<JVariableIdentifier, ValueAndAspects> entry : stringsAndAspects.entrySet()) {
       JVariableIdentifier jid = entry.getKey();
       if (!jid.isGlobal()) {

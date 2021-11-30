@@ -36,14 +36,12 @@ public class ValueAndAspects {
   public ValueAndAspects updateOneAspect(Aspect<?> as) {
     Aspect<?> temp = getAspectOfDomain(as.getDomain());
     if (temp instanceof UnknownAspect) {
-      com.google.common.collect.ImmutableList.Builder<Aspect<?>> builder =
-          new com.google.common.collect.ImmutableList.Builder<>();
+      ImmutableList.Builder<Aspect<?>> builder = new ImmutableList.Builder<>();
       aspects = builder.addAll(aspects).add(as).build();
 
     } else {
       if (!temp.getValue().equals(as.getValue())) {
-        com.google.common.collect.ImmutableList.Builder<Aspect<?>> builder =
-            new com.google.common.collect.ImmutableList.Builder<>();
+        ImmutableList.Builder<Aspect<?>> builder = new ImmutableList.Builder<>();
         for (Aspect<?> a : aspects) {
           if (!a.equals(temp)) {
             builder.add(a);

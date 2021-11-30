@@ -105,8 +105,7 @@ public class JStringValueVisitor
   @Override
   public ValueAndAspects visit(JStringLiteralExpression pE)
       throws NoException {
-    com.google.common.collect.ImmutableList.Builder<Aspect<?>> builder =
-        new com.google.common.collect.ImmutableList.Builder<>();
+    ImmutableList.Builder<Aspect<?>> builder = new ImmutableList.Builder<>();
     String val = pE.getValue();
     for (AbstractStringDomain<?> dom : domains) {
       if (dom instanceof StringSetDomain) {
@@ -130,8 +129,7 @@ public class JStringValueVisitor
     ValueAndAspects vaa2 = op2.accept(this);
     if (vaa1 != null && vaa2 != null) {
       if (!(vaa1 instanceof UnknownValueAndAspects) && !(vaa2 instanceof UnknownValueAndAspects)) {
-        com.google.common.collect.ImmutableList.Builder<Aspect<?>> builder =
-            new com.google.common.collect.ImmutableList.Builder<>();
+        ImmutableList.Builder<Aspect<?>> builder = new ImmutableList.Builder<>();
         for (AbstractStringDomain<?> dom : domains) {
           builder
               .add(

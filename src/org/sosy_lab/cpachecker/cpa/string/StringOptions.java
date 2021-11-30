@@ -69,8 +69,7 @@ public class StringOptions {
 
   private ImmutableList<AbstractStringDomain<?>>
       generateDomains(ImmutableList<String> pDomainList) {
-    com.google.common.collect.ImmutableList.Builder<AbstractStringDomain<?>> builder =
-        new com.google.common.collect.ImmutableList.Builder<>();
+    ImmutableList.Builder<AbstractStringDomain<?>> builder = new ImmutableList.Builder<>();
 
     for (String domainName : pDomainList) {
       try {
@@ -99,8 +98,7 @@ public class StringOptions {
    * Add the string Literals in a program to the List of Strings in StringSetDomain
    */
   public void addStringToGivenSet(String str) {
-    com.google.common.collect.ImmutableList.Builder<String> builder =
-        new com.google.common.collect.ImmutableList.Builder<>();
+    ImmutableList.Builder<String> builder = new ImmutableList.Builder<>();
     builder.addAll(stringSet).add(str);
     stringSet = builder.build();
   }
