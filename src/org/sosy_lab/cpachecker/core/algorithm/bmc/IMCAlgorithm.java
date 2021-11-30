@@ -169,14 +169,14 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       shutdownNotifier.shutdownIfNecessary();
       // BMC
       boolean isTargetStateReachable =
-          !solver.isUnsat(BMCHelper.buildReachTargetStateFormula(bfmgr, pReachedSet));
+          !solver.isUnsat(InterpolationHelper.buildReachTargetStateFormula(bfmgr, pReachedSet));
       if (isTargetStateReachable) {
         logger.log(Level.FINE, "A target state is reached by BMC");
         return AlgorithmStatus.UNSOUND_AND_PRECISE;
       }
       // Check if interpolation or forward-condition check is applicable
       if (interpolation
-          && !BMCHelper.checkAndAdjustARG(
+          && !InterpolationHelper.checkAndAdjustARG(
               logger, cpa, bfmgr, solver, pReachedSet, removeUnreachableStopStates)) {
         if (fallBack) {
           fallBackToBMC("The check of ARG failed");
@@ -184,7 +184,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           throw new CPAException("ARG does not meet the requirements");
         }
       }
-      if (checkForwardConditions && BMCHelper.hasCoveredStates(pReachedSet)) {
+      if (checkForwardConditions && InterpolationHelper.hasCoveredStates(pReachedSet)) {
         if (fallBack) {
           fallBackToBMCWithoutForwardCondition(
               "Covered states in ARG: forward-condition might be unsound!");
@@ -195,10 +195,10 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       // Forward-condition check
       if (checkForwardConditions) {
         boolean isStopStateUnreachable =
-            solver.isUnsat(BMCHelper.buildBoundingAssertionFormula(bfmgr, pReachedSet));
+            solver.isUnsat(InterpolationHelper.buildBoundingAssertionFormula(bfmgr, pReachedSet));
         if (isStopStateUnreachable) {
           logger.log(Level.FINE, "The program cannot be further unrolled");
-          BMCHelper.removeUnreachableTargetStates(pReachedSet);
+          InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
       }
@@ -216,12 +216,12 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         try (InterpolatingProverEnvironment<?> itpProver =
             solver.newProverEnvironmentWithInterpolation()) {
           if (reachFixedPointByInterpolation(itpProver, formulas)) {
-            BMCHelper.removeUnreachableTargetStates(pReachedSet);
+            InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
             return AlgorithmStatus.SOUND_AND_PRECISE;
           }
         }
       }
-      BMCHelper.removeUnreachableTargetStates(pReachedSet);
+      InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
     } while (adjustConditions());
     return AlgorithmStatus.UNSOUND_AND_PRECISE;
   }
@@ -247,15 +247,15 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * @param pReachedSet Abstract Reachability Graph
    */
   private PartitionedFormulas collectFormulas(final ReachedSet pReachedSet) {
-    PathFormula prefixFormula = BMCHelper.makeFalsePathFormula(pfmgr, bfmgr);
+    PathFormula prefixFormula = InterpolationHelper.makeFalsePathFormula(pfmgr, bfmgr);
     BooleanFormula loopFormula = bfmgr.makeTrue();
     BooleanFormula tailFormula = bfmgr.makeTrue();
     FluentIterable<AbstractState> targetStatesAfterLoop =
-        BMCHelper.getTargetStatesAfterLoop(pReachedSet);
+        InterpolationHelper.getTargetStatesAfterLoop(pReachedSet);
     if (!targetStatesAfterLoop.isEmpty()) {
       // Initialize prefix, loop, and tail using the first target state after the loop
       List<ARGState> abstractionStates =
-          BMCHelper.getAbstractionStatesToRoot(targetStatesAfterLoop.get(0)).toList();
+          InterpolationHelper.getAbstractionStatesToRoot(targetStatesAfterLoop.get(0)).toList();
       prefixFormula = buildPrefixFormula(abstractionStates);
       loopFormula = buildLoopFormula(abstractionStates);
       tailFormula = buildTailFormula(abstractionStates);
@@ -264,16 +264,18 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         prefixFormula,
         loopFormula,
         bfmgr.and(
-            tailFormula, BMCHelper.createDisjunctionFromStates(bfmgr, targetStatesAfterLoop)));
+            tailFormula,
+            InterpolationHelper.createDisjunctionFromStates(bfmgr, targetStatesAfterLoop)));
   }
 
   private PathFormula buildPrefixFormula(final List<ARGState> pAbstractionStates) {
-    return BMCHelper.getPredicateAbstractionBlockFormula(pAbstractionStates.get(1));
+    return InterpolationHelper.getPredicateAbstractionBlockFormula(pAbstractionStates.get(1));
   }
 
   private BooleanFormula buildLoopFormula(final List<ARGState> pAbstractionStates) {
     return pAbstractionStates.size() > 3
-        ? BMCHelper.getPredicateAbstractionBlockFormula(pAbstractionStates.get(2)).getFormula()
+        ? InterpolationHelper.getPredicateAbstractionBlockFormula(pAbstractionStates.get(2))
+            .getFormula()
         : bfmgr.makeTrue();
   }
 
@@ -282,7 +284,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     if (pAbstractionStates.size() > 4) {
       for (int i = 3; i < pAbstractionStates.size() - 1; ++i) {
         blockFormulas.add(
-            BMCHelper.getPredicateAbstractionBlockFormula(pAbstractionStates.get(i)).getFormula());
+            InterpolationHelper.getPredicateAbstractionBlockFormula(pAbstractionStates.get(i))
+                .getFormula());
       }
     }
     return bfmgr.and(blockFormulas);

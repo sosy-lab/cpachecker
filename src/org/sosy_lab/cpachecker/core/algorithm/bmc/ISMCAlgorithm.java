@@ -172,14 +172,14 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       shutdownNotifier.shutdownIfNecessary();
       // BMC
       boolean isTargetStateReachable =
-          !solver.isUnsat(BMCHelper.buildReachTargetStateFormula(bfmgr, pReachedSet));
+          !solver.isUnsat(InterpolationHelper.buildReachTargetStateFormula(bfmgr, pReachedSet));
       if (isTargetStateReachable) {
         logger.log(Level.FINE, "A target state is reached by BMC");
         return AlgorithmStatus.UNSOUND_AND_PRECISE;
       }
       // Check if interpolation or forward-condition check is applicable
       if (interpolation
-          && !BMCHelper.checkAndAdjustARG(
+          && !InterpolationHelper.checkAndAdjustARG(
               logger, cpa, bfmgr, solver, pReachedSet, removeUnreachableStopStates)) {
         if (fallBack) {
           fallBackToBMC("The check of ARG failed");
@@ -187,7 +187,7 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           throw new CPAException("ARG does not meet the requirements");
         }
       }
-      if (checkForwardConditions && BMCHelper.hasCoveredStates(pReachedSet)) {
+      if (checkForwardConditions && InterpolationHelper.hasCoveredStates(pReachedSet)) {
         if (fallBack) {
           fallBackToBMCWithoutForwardCondition(
               "Covered states in ARG: forward-condition might be unsound!");
@@ -198,10 +198,10 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       // Forward-condition check
       if (checkForwardConditions) {
         boolean isStopStateUnreachable =
-            solver.isUnsat(BMCHelper.buildBoundingAssertionFormula(bfmgr, pReachedSet));
+            solver.isUnsat(InterpolationHelper.buildBoundingAssertionFormula(bfmgr, pReachedSet));
         if (isStopStateUnreachable) {
           logger.log(Level.FINE, "The program cannot be further unrolled");
-          BMCHelper.removeUnreachableTargetStates(pReachedSet);
+          InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
       }
@@ -220,11 +220,11 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         updateReachabilityVector(reachVector, itpSequence);
 
         if (reachFixedPoint(reachVector)) {
-          BMCHelper.removeUnreachableTargetStates(pReachedSet);
+          InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
       }
-      BMCHelper.removeUnreachableTargetStates(pReachedSet);
+      InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
     } while (adjustConditions());
     return AlgorithmStatus.UNSOUND_AND_PRECISE;
   }
@@ -238,26 +238,28 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private List<BooleanFormula> collectFormulas(final ReachedSet pReachedSet) {
     logger.log(Level.FINE, "Collecting BMC-partitioning formulas");
     FluentIterable<AbstractState> targetStatesAfterLoop =
-        BMCHelper.getTargetStatesAfterLoop(pReachedSet);
+        InterpolationHelper.getTargetStatesAfterLoop(pReachedSet);
     List<ARGState> abstractionStates =
-        BMCHelper.getAbstractionStatesToRoot(targetStatesAfterLoop.get(0)).toList();
+        InterpolationHelper.getAbstractionStatesToRoot(targetStatesAfterLoop.get(0)).toList();
 
     List<BooleanFormula> formulas = new ArrayList<>();
     for (int i = 2; i < abstractionStates.size() - 1; ++i) {
       // TR(V_k, V_k+1)
       BooleanFormula transitionRelation =
-          BMCHelper.getPredicateAbstractionBlockFormula(abstractionStates.get(i)).getFormula();
+          InterpolationHelper.getPredicateAbstractionBlockFormula(abstractionStates.get(i))
+              .getFormula();
       if (i == 2) {
         // INIT(V_0) ^ TR(V_0, V_1)
         BooleanFormula initialCondition =
-            BMCHelper.getPredicateAbstractionBlockFormula(abstractionStates.get(1)).getFormula();
+            InterpolationHelper.getPredicateAbstractionBlockFormula(abstractionStates.get(1))
+                .getFormula();
         transitionRelation = bfmgr.and(initialCondition, transitionRelation);
       }
       formulas.add(transitionRelation);
     }
 
     // ~P
-    formulas.add(BMCHelper.createDisjunctionFromStates(bfmgr, targetStatesAfterLoop));
+    formulas.add(InterpolationHelper.createDisjunctionFromStates(bfmgr, targetStatesAfterLoop));
     logger.log(Level.ALL, "Partitioned formulas:", formulas);
     return formulas;
   }
