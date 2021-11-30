@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
+import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.filterAncestors;
 
@@ -648,10 +649,10 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private void storeFixedPointAsAbstractionAtLoopHeads(ReachedSet pReachedSet)
       throws InterruptedException {
     // Find all abstraction states: they are at same loop head due to single-loop assumption
-    // Skip the root; target states must be removed beforehand
     List<AbstractState> abstractionStates =
-        from(pReachedSet.asCollection())
+        from(pReachedSet)
             .skip(1) // skip the root
+            .filter(not(AbstractStates::isTargetState)) // target states may be abstraction states
             .filter(PredicateAbstractState::containsAbstractionState)
             .toList();
     for (AbstractState state : abstractionStates) {
