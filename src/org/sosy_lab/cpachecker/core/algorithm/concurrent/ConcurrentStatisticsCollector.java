@@ -38,14 +38,14 @@ public class ConcurrentStatisticsCollector implements StatisticsProvider, Statis
     final StatInt forwardAnalysisCountValues = new StatInt(StatKind.AVG, "FA Count");
 
     for (final Map.Entry<Block, Integer> entry : forwardAnalysisCount.entrySet()) {
-      out.format("Forward Analysis Tasks Count for Block with entry node %s: %d\n",
+      out.format("Forward Analysis Tasks Count for Block with entry node %s: %d%n",
           entry.getKey().getEntry(), entry.getValue());
       forwardAnalysisCountValues.setNextValue(entry.getValue());
     }
 
-    out.format("Forward Analysis Average Count: %f\n", forwardAnalysisCountValues.getAverage());
-    out.format("Forward Analysis Max Count: %d\n", forwardAnalysisCountValues.getMaxValue());
-    out.format("Forward Analysis Min Count: %d\n", forwardAnalysisCountValues.getMinValue());
+    out.format("Forward Analysis Average Count: %f%n", forwardAnalysisCountValues.getAverage());
+    out.format("Forward Analysis Max Count: %d%n", forwardAnalysisCountValues.getMaxValue());
+    out.format("Forward Analysis Min Count: %d%n", forwardAnalysisCountValues.getMinValue());
   }
 
   @Override
