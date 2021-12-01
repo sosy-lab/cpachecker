@@ -134,6 +134,10 @@ public class ConcurrentAnalysis implements Algorithm, StatisticsProvider {
 
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
+    if(algorithm instanceof StatisticsProvider) {
+      ((StatisticsProvider) algorithm).collectStatistics(statsCollection);
+    }
     
+    scheduler.collectStatistics(statsCollection);
   }
 }

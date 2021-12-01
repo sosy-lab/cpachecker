@@ -32,6 +32,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.ConcurrentStatisticsCollector.TaskStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.Message;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.completion.ErrorReachedProgramEntryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.completion.TaskAbortedMessage;
@@ -71,7 +72,7 @@ public final class Scheduler implements Runnable, StatisticsProvider {
   private final Table<Block, Block, ShareableBooleanFormula> summaries = HashBasedTable.create();
   private final Map<Block, Integer> summaryVersion = new HashMap<>();
   private final Set<CFANode> alreadyPropagated = new HashSet<>();
-  
+  private final ConcurrentStatisticsCollector statisticsCollector;
   private int jobCount = 0;
   private volatile boolean complete = false;
   private volatile Optional<ErrorOrigin> target = Optional.empty();
@@ -91,6 +92,8 @@ public final class Scheduler implements Runnable, StatisticsProvider {
     executor = Executors.newFixedThreadPool(pThreads);
     logManager = pLogManager;
     shutdownManager = pShutdownManager;
+
+    statisticsCollector = new ConcurrentStatisticsCollector();
   }
 
   /**
@@ -268,7 +271,9 @@ public final class Scheduler implements Runnable, StatisticsProvider {
     public void visit(final TaskCompletedMessage pMessage) {
       --jobCount;
       status = status.update(pMessage.getStatus());
-      
+      final TaskStatistics statistics = pMessage.getStatistics();
+      statistics.accept(statisticsCollector);
+
       shutdownIfComplete();
     }
 

@@ -107,7 +107,7 @@ public class ForwardAnalysis extends Task {
     expectedVersion = pExpectedVersion;
     predecessorSummaries =
         transformedImmutableListCopy(pPredecessorSummaries, formula->formula.getFor(fMgr, pfMgr));
-    statistics = new ForwardAnalysisStatistics();
+    statistics = new ForwardAnalysisStatistics(target);
     
     reached = pReachedSet;
     algorithm = pAlgorithm;
