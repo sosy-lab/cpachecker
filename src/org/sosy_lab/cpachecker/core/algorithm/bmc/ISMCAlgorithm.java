@@ -72,6 +72,9 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   @Option(secure = true, description = "toggle removing unreachable stop states in ARG")
   private boolean removeUnreachableStopStates = false;
 
+  @Option(secure = true, description = "toggle Impact-like covering for the fixed-point check")
+  private boolean impactLikeCovering = false;
+
   private final ConfigurableProgramAnalysis cpa;
 
   private final Algorithm algorithm;
@@ -213,7 +216,6 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       if (interpolation
           && maxLoopIterations > 1
           && !AbstractStates.getTargetStates(pReachedSet).isEmpty()) {
-
         List<BooleanFormula> partitionedFormulas = collectFormulas(pReachedSet);
         List<BooleanFormula> itpSequence = getInterpolationSequence(itpProver, partitionedFormulas);
         updateReachabilityVector(reachVector, itpSequence);
@@ -331,7 +333,7 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   /**
-   * A method to determine whether fixed-point has been reached.
+   * A method to determine whether a fixed point has been reached.
    *
    * @param reachVector the reachability vector at current iteration
    * @return {@code true} if a fixed point is reached, i.e., property is proved; {@code false} if
@@ -340,16 +342,29 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    */
   private boolean reachFixedPoint(List<BooleanFormula> reachVector)
       throws InterruptedException, SolverException {
-    logger.log(Level.FINE, "Checking fiexd-point");
-    BooleanFormula currentImage = reachVector.get(0);
-    for (int i = 1; i < reachVector.size(); ++i) {
-      BooleanFormula imageAtI = reachVector.get(i);
-      if (solver.implies(imageAtI, currentImage)) {
-        logger.log(Level.INFO, "Fixed point reached");
-        return true;
+    logger.log(Level.FINE, "Checking fiexd point");
+
+    if (impactLikeCovering) {
+      BooleanFormula lastImage = reachVector.get(reachVector.size() - 1);
+      for (int i = 0; i < reachVector.size() - 1; ++i) {
+        BooleanFormula imageAtI = reachVector.get(i);
+        if (solver.implies(lastImage, imageAtI)) {
+          logger.log(Level.INFO, "Fixed point reached");
+          return true;
+        }
       }
-      currentImage = bfmgr.or(currentImage, imageAtI);
+    } else {
+      BooleanFormula currentImage = reachVector.get(0);
+      for (int i = 1; i < reachVector.size(); ++i) {
+        BooleanFormula imageAtI = reachVector.get(i);
+        if (solver.implies(imageAtI, currentImage)) {
+          logger.log(Level.INFO, "Fixed point reached");
+          return true;
+        }
+        currentImage = bfmgr.or(currentImage, imageAtI);
+      }
     }
+
     logger.log(Level.FINE, "The overapproximation is unsafe, going back to BMC phase");
     return false;
   }
