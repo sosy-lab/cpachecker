@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 
 class LoopBlockBuilder extends BlockBuilder {
-  private BlockGraph nested = null;
+  // private BlockGraph nested = null;
 
   protected LoopBlockBuilder(
       final CFANode pStart, final ArrayDeque<CFANode> pScope, final ShutdownNotifier pShutdownNotifier
@@ -91,7 +91,7 @@ class LoopBlockBuilder extends BlockBuilder {
   @Override public Block getBlock() {
     if(result.isEmpty()) {
       result = Optional.of(new Block(entry, nodes));
-      result.orElseThrow().setNestedGraph(nested);
+      // result.orElseThrow().setNestedGraph(nested);
     }
 
     return result.orElseThrow();
