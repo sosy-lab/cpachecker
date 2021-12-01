@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.concurrent.message;
 
+import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -28,6 +29,7 @@ import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.backwar
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.forward.ForwardAnalysisRequest;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.Task;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ErrorOrigin;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ReusableCoreComponents;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ShareableBooleanFormula;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
@@ -159,6 +161,14 @@ public class MessageFactory {
   public void sendErrorReachedProgramEntryMessage(final ErrorOrigin pOrigin, final AlgorithmStatus pStatus) {
     Message msg = new ErrorReachedProgramEntryMessage(pOrigin, pStatus);
     executor.sendMessage(msg);
+  }
+  
+  public Optional<ReusableCoreComponents> requestIdleForwardAnalysisComponents() {
+    return executor.requestIdleForwardAnalysisComponents();
+  }
+
+  public Optional<ReusableCoreComponents> requestIdleBackwardAnalysisComponents() {
+    return executor.requestIdleBackwardAnalysisComponents();
   }
 
   public static class TaskManagerFactory {

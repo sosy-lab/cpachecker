@@ -19,19 +19,23 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
+import net.bytebuddy.dynamic.loading.ClassLoadingStrategy.Configurable;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.ConcurrentStatisticsCollector.TaskStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.Message;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.completion.ErrorReachedProgramEntryMessage;
@@ -40,8 +44,12 @@ import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.completion.Task
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.RequestInvalidatedException;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.TaskRequest;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.Task;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.backward.BackwardAnalysisCore;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.forward.ForwardAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ErrorOrigin;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ReusableCoreComponents;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ShareableBooleanFormula;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 
@@ -78,6 +86,9 @@ public final class Scheduler implements Runnable, StatisticsProvider {
   private volatile Optional<ErrorOrigin> target = Optional.empty();
   private volatile AlgorithmStatus status = SOUND_AND_PRECISE;
 
+  private BlockingQueue<ReusableCoreComponents> idleForwardAnalysisComponents = new LinkedBlockingQueue<>();
+  private BlockingQueue<ReusableCoreComponents> idleBackwardAnalysisComponents = new LinkedBlockingQueue<>();
+  
   /**
    * Prepare a new {@link Scheduler}. Actual execution does not start until {@link #start()} gets
    * called.
@@ -271,6 +282,8 @@ public final class Scheduler implements Runnable, StatisticsProvider {
     public void visit(final TaskCompletedMessage pMessage) {
       --jobCount;
 
+      retrieveReusableComponents(pMessage.getTask());
+      
       status = status.update(pMessage.getStatus());
       final TaskStatistics statistics = pMessage.getStatistics();
       statistics.accept(statisticsCollector);
@@ -296,5 +309,28 @@ public final class Scheduler implements Runnable, StatisticsProvider {
         shutdown();
       }
     }
+    
+    private void retrieveReusableComponents(final Task pTask) {
+      ReusableCoreComponents reusableCoreComponents
+          = new ReusableCoreComponents(pTask.getCPA(), pTask.getAlgorithm(), pTask.getReachedSet());
+
+      /*
+       * Best-effort attempt to store reusable components.
+       * If not possible immediately, they get discarded.
+       */
+      if(pTask instanceof ForwardAnalysis) {
+        idleForwardAnalysisComponents.offer(reusableCoreComponents);
+      } else if(pTask instanceof BackwardAnalysisCore) {
+        idleBackwardAnalysisComponents.offer(reusableCoreComponents);
+      }
+    }
+  }
+  
+  public Optional<ReusableCoreComponents> requestIdleForwardAnalysisComponents() {
+    return Optional.ofNullable(idleForwardAnalysisComponents.poll()); 
+  }
+
+  public Optional<ReusableCoreComponents> requestIdleBackwardAnalysisComponents() {
+    return Optional.ofNullable(idleBackwardAnalysisComponents.poll());
   }
 }
