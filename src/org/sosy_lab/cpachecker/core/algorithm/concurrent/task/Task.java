@@ -8,9 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.concurrent.task;
 
-import static org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus.SOUND_AND_PRECISE;
-import static org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus.UNSOUND_AND_PRECISE;
-
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
