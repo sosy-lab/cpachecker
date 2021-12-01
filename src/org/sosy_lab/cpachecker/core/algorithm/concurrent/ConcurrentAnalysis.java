@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.concurrent;
 
+import static java.util.logging.Level.SEVERE;
+import static java.util.logging.Level.WARNING;
 import static org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus.NO_PROPERTY_CHECKED;
 
 import java.util.Collection;
@@ -48,6 +50,8 @@ public class ConcurrentAnalysis implements Algorithm, StatisticsProvider {
 
   private final ShutdownManager shutdownManager;
 
+  private final Scheduler scheduler;
+  
   private ConcurrentAnalysis(
       final Algorithm pAlgorithm,
       final CFA pCFA,
@@ -61,6 +65,9 @@ public class ConcurrentAnalysis implements Algorithm, StatisticsProvider {
     shutdownManager = ShutdownManager.createWithParent(pShutdownNotifier);
     config = pConfig;
     specification = pSpecification;
+
+    final int processors = Runtime.getRuntime().availableProcessors();
+    scheduler = new Scheduler(processors, logger, shutdownManager);
   }
 
   public static Algorithm create(
@@ -76,7 +83,8 @@ public class ConcurrentAnalysis implements Algorithm, StatisticsProvider {
 
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
-    AlgorithmStatus status = algorithm.run(reachedSet);
+    reachedSet.clear();
+    AlgorithmStatus status = NO_PROPERTY_CHECKED; // algorithm.run(reachedSet);
 
     logger.log(Level.INFO, "Starting concurrent analysis ...");
 
@@ -88,9 +96,6 @@ public class ConcurrentAnalysis implements Algorithm, StatisticsProvider {
       BlockGraph graph =
           BlockGraphBuilder.create(shutdownManager.getNotifier()).build(cfa.getMainFunction(), blk);
 
-      final int processors = Runtime.getRuntime().availableProcessors();
-      Scheduler executor = new Scheduler(processors, logger, shutdownManager);
-
       MessageFactory messageFactory =
           MessageFactory.factory()
               .set(config, Configuration.class)
@@ -98,22 +103,28 @@ public class ConcurrentAnalysis implements Algorithm, StatisticsProvider {
               .set(logger, LogManager.class)
               .set(shutdownManager.getNotifier(), ShutdownNotifier.class)
               .set(cfa, CFA.class)
-              .set(executor, Scheduler.class)
+              .set(scheduler, Scheduler.class)
               .createInstance();
 
       for (final Block block : graph.getBlocks()) {
         messageFactory.sendForwardAnalysisRequest(block);
       }
 
-      executor.start();
-      Optional<ErrorOrigin> error = executor.waitForCompletion();
+      Optional<ErrorOrigin> error = Optional.empty();
+      scheduler.start();
+      try {
+        error = scheduler.waitForCompletion();  
+      } catch(final Throwable throwable) {
+        logger.log(WARNING, "Unexpected exception while waiting for analysis completion.");
+      }
+              
       if (error.isPresent()) {
         reachedSet.addNoWaitlist(error.orElseThrow().getState(), error.orElseThrow().getPrecision());
       }
-
-      status = status.update(executor.getStatus());
+      
+      status = status.update(scheduler.getStatus());
     } catch (InvalidConfigurationException exception) {
-      logger.log(Level.SEVERE, "Invalid configuration:", exception.getMessage());
+      logger.log(SEVERE, "Invalid configuration:", exception.getMessage());
       status = NO_PROPERTY_CHECKED;
     }
 
