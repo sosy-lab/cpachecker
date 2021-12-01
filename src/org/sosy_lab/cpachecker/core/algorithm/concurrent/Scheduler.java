@@ -50,11 +50,11 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
  * org.sosy_lab.cpachecker.core.algorithm.concurrent.task concurrent.task}.
  *
  * <p>After creating the executor using the public constructor {@link #Scheduler(int,
- * LogManager, ShutdownManager)}, user can request execution of {@link Task}s with 
- * {@link #sendMessage(Message)}. In particular, scheduled tasks can use this method to spawn 
- * further tasks themselves. Actual execution starts as soon as {@link #start()} gets called. 
- * {@link Scheduler} shuts down as soon as all requested jobs (including ones spawned by running 
- * jobs themselves) have completed. To wait for this situation, the user can call 
+ * LogManager, ShutdownManager)}, user can request execution of {@link Task}s with
+ * {@link #sendMessage(Message)}. In particular, scheduled tasks can use this method to spawn
+ * further tasks themselves. Actual execution starts as soon as {@link #start()} gets called.
+ * {@link Scheduler} shuts down as soon as all requested jobs (including ones spawned by running
+ * jobs themselves) have completed. To wait for this situation, the user can call
  * {@link #waitForCompletion()}, which blocks until all jobs have completed.
  *
  * <p>{@link Scheduler} can modify requested jobs before actually posting them for execution. It
@@ -68,7 +68,7 @@ public final class Scheduler implements Runnable, StatisticsProvider {
   private final LogManager logManager;
   private final Collection<Thread> waitingForCompletion = new ArrayList<>();
   private final Thread schedulerThread = new Thread(this, Scheduler.getThreadName());
-  
+
   private final Table<Block, Block, ShareableBooleanFormula> summaries = HashBasedTable.create();
   private final Map<Block, Integer> summaryVersion = new HashMap<>();
   private final Set<CFANode> alreadyPropagated = new HashSet<>();
@@ -77,7 +77,7 @@ public final class Scheduler implements Runnable, StatisticsProvider {
   private volatile boolean complete = false;
   private volatile Optional<ErrorOrigin> target = Optional.empty();
   private volatile AlgorithmStatus status = SOUND_AND_PRECISE;
-  
+
   /**
    * Prepare a new {@link Scheduler}. Actual execution does not start until {@link #start()} gets
    * called.
@@ -123,8 +123,8 @@ public final class Scheduler implements Runnable, StatisticsProvider {
     while (!complete) {
       try {
         synchronized (currentThread) {
-          if(!complete) {
-            currentThread.wait(); 
+          if (!complete) {
+            currentThread.wait();
           }
         }
       } catch (final InterruptedException exception) {
@@ -133,7 +133,7 @@ public final class Scheduler implements Runnable, StatisticsProvider {
         }
       }
     }
-    
+
     return target;
   }
 
@@ -170,11 +170,11 @@ public final class Scheduler implements Runnable, StatisticsProvider {
    */
   private void shutdown() {
     assert messages.isEmpty();
-    
+
     /*
      * During regular shutdown, 'jobCount' must equal 0 (because this triggers the shutdown).
-     * If shutdown has been requested because an error reached the program entry, then 'jobCount' 
-     * might be different from 0. In this case however, 'errorReachedProgramEntry()' already set 
+     * If shutdown has been requested because an error reached the program entry, then 'jobCount'
+     * might be different from 0. In this case however, 'errorReachedProgramEntry()' already set
      * 'complete' to 'false'.
      */
     assert jobCount == 0 || complete;
@@ -189,11 +189,11 @@ public final class Scheduler implements Runnable, StatisticsProvider {
      */
     List<Runnable> aborted = executor.shutdownNow();
     assert aborted.isEmpty();
-    
+
     for (final Thread waitingThread : waitingForCompletion) {
       synchronized (waitingThread) {
         complete = true;
-        
+
         waitingThread.notify();
       }
     }
@@ -206,12 +206,12 @@ public final class Scheduler implements Runnable, StatisticsProvider {
    */
   public void sendMessage(final Message pMessage) {
     checkNotNull(pMessage);
-    
+
     /* Best-effort early-return. */
-    if(complete) {
+    if (complete) {
       return;
     }
-    
+
     boolean success = false;
 
     while (!success) {
@@ -225,15 +225,15 @@ public final class Scheduler implements Runnable, StatisticsProvider {
       }
     }
   }
-  
+
   private void errorReachedProgramEntry() {
     shutdownManager.requestShutdown("Error reached program entry");
-    
+
     executor.shutdownNow();
     messages.clear();
     jobCount = 0;
     complete = true;
-    
+
     shutdown();
   }
 
@@ -257,7 +257,7 @@ public final class Scheduler implements Runnable, StatisticsProvider {
       try {
         Task newTask = pMessage.process(summaries, summaryVersion, alreadyPropagated);
         executor.execute(newTask);
-        
+
         ++jobCount;
       } catch (final RequestInvalidatedException ignored) {
         logManager.log(Level.INFO, "Request has been invalidated!", pMessage);
@@ -270,6 +270,7 @@ public final class Scheduler implements Runnable, StatisticsProvider {
 
     public void visit(final TaskCompletedMessage pMessage) {
       --jobCount;
+
       status = status.update(pMessage.getStatus());
       final TaskStatistics statistics = pMessage.getStatistics();
       statistics.accept(statisticsCollector);
@@ -281,13 +282,13 @@ public final class Scheduler implements Runnable, StatisticsProvider {
       --jobCount;
       shutdownIfComplete();
     }
-    
+
     public void visit(final ErrorReachedProgramEntryMessage pMessage) {
       target = Optional.of(pMessage.getOrigin());
       status = status.update(pMessage.getStatus());
       errorReachedProgramEntry();
     }
-    
+
     private void shutdownIfComplete() {
       if (jobCount == 0 && messages.isEmpty()) {
         logManager.log(Level.INFO, "All tasks completed.");
