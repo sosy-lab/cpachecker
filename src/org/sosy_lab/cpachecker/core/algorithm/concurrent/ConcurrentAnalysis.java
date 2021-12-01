@@ -83,9 +83,9 @@ public class ConcurrentAnalysis implements Algorithm, StatisticsProvider {
 
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
-    reachedSet.clear();
+    // reachedSet.clear();
     AlgorithmStatus status = NO_PROPERTY_CHECKED; // algorithm.run(reachedSet);
-
+    
     logger.log(Level.INFO, "Starting concurrent analysis ...");
 
     try {
@@ -122,7 +122,7 @@ public class ConcurrentAnalysis implements Algorithm, StatisticsProvider {
         reachedSet.addNoWaitlist(error.orElseThrow().getState(), error.orElseThrow().getPrecision());
       }
       
-      status = status.update(scheduler.getStatus());
+      status = scheduler.getStatus();
     } catch (InvalidConfigurationException exception) {
       logger.log(SEVERE, "Invalid configuration:", exception.getMessage());
       status = NO_PROPERTY_CHECKED;
