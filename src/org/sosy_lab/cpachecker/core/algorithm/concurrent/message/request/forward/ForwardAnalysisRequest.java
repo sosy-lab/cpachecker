@@ -167,7 +167,7 @@ public class ForwardAnalysisRequest extends CPACreatingRequest implements TaskRe
       final Set<CFANode> pAlreadyPropagated)
       throws RequestInvalidatedException {
     assert Thread.currentThread().getName().equals(Scheduler.getThreadName())
-        : "Only " + Scheduler.getThreadName() + " may call finalize()";
+        : "Only " + Scheduler.getThreadName() + " may call process()";
 
     final Map<Block, ShareableBooleanFormula> incoming = pSummaries.column(block);
     ShareableBooleanFormula oldSummary = incoming.getOrDefault(predecessor, null);

@@ -121,7 +121,7 @@ public class BackwardAnalysisRequest extends CPACreatingRequest implements TaskR
       Set<CFANode> pAlreadyPropagated)
       throws RequestInvalidatedException {
     assert Thread.currentThread().getName().equals(Scheduler.getThreadName())
-        : "Only " + Scheduler.getThreadName() + " may call finalize() on task";
+        : "Only " + Scheduler.getThreadName() + " may call process() on task";
 
     if (source == null) {
       CFANode location = origin.getLocation();
