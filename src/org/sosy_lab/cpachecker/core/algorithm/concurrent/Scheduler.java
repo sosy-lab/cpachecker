@@ -291,9 +291,4 @@ public final class Scheduler implements Runnable, StatisticsProvider {
       }
     }
   }
-  
-  public AlgorithmStatus getStatus() {
-    assert complete : "Scheduler only reports status after analysis completion";
-    return status;
-  }
 }
