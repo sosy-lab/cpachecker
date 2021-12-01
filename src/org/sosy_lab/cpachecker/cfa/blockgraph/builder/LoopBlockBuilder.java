@@ -83,7 +83,8 @@ class LoopBlockBuilder extends BlockBuilder {
       }
     }
 
-    nested = BlockGraphBuilder.create(shutdownNotifier).build(entry, blk);
+    // Todo: Re-enable after nested loops are supported.
+    // nested = BlockGraphBuilder.create(shutdownNotifier).build(entry, blk);
     return exits;
   }
 

@@ -53,7 +53,8 @@ public class Block {
 
   public void setNestedGraph(final BlockGraph pGraph) {
     Preconditions.checkState(!complete);
-    nested = Optional.of(pGraph);
+    // Todo: Re-introduce nested graphs which also support nested loops. 
+    // nested = Optional.of(pGraph);
   }
 
   public void complete() {
