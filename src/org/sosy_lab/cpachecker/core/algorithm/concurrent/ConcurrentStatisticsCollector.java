@@ -53,11 +53,11 @@ public class ConcurrentStatisticsCollector implements StatisticsProvider, Statis
     return "Concurrent Analysis";
   }
 
-  public void visit(final BackwardAnalysisFullStatistics pStatistics) {
+  public void visit(@SuppressWarnings("unused") final BackwardAnalysisFullStatistics pStatistics) {
     //pStatistics.accept(this);
   }
 
-  public void visit(final BackwardAnalysisCoreStatistics pStatistics) {
+  public void visit(@SuppressWarnings("unused") final BackwardAnalysisCoreStatistics pStatistics) {
     //pStatistics.accept(this);
   }
 

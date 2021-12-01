@@ -278,7 +278,7 @@ public final class Scheduler implements Runnable, StatisticsProvider {
       shutdownIfComplete();
     }
 
-    public void visit(final TaskAbortedMessage pMessage) {
+    public void visit(@SuppressWarnings("unused") final TaskAbortedMessage pMessage) {
       --jobCount;
       shutdownIfComplete();
     }

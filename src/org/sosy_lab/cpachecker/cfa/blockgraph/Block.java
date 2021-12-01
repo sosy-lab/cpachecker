@@ -51,7 +51,7 @@ public class Block {
     return nested.orElseThrow();
   }
 
-  public void setNestedGraph(final BlockGraph pGraph) {
+  public void setNestedGraph(@SuppressWarnings("unused") final BlockGraph pGraph) {
     Preconditions.checkState(!complete);
     // Todo: Re-introduce nested graphs which also support nested loops. 
     // nested = Optional.of(pGraph);
