@@ -234,7 +234,17 @@ public final class Scheduler implements Runnable, StatisticsProvider {
 
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
-    
+    statisticsCollector.collectStatistics(statsCollection);
+  }
+
+  public AlgorithmStatus getStatus() {
+    if (!complete) {
+      logManager.log(WARNING, "Status requested from Scheduler before analysis completed.\n"
+          + "Reporting NO_PROPERTY_CHECKED.");
+      return NO_PROPERTY_CHECKED;
+    }
+
+    return status;
   }
 
   public class MessageProcessingVisitor {
