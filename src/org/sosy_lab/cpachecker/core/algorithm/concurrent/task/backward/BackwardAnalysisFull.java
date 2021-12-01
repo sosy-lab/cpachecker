@@ -63,9 +63,6 @@ public class BackwardAnalysisFull extends Task {
   private final PathFormula errorCondition;
   private final PathFormula blockSummary;
   private final PathFormulaManager pfMgr;
-  private final ReachedSet reached;
-  private final Algorithm algorithm;
-  private final ARGCPA argcpa;
   private final Solver solver;
   private final FormulaManagerView fMgr;
   private final AlgorithmStatus status = SOUND_AND_PRECISE;
@@ -79,14 +76,13 @@ public class BackwardAnalysisFull extends Task {
       final ShareableBooleanFormula pBlockSummary,
       final ReachedSet pReachedSet,
       final Algorithm pAlgorithm,
-      final ARGCPA pARGCPA,
+      final ARGCPA pCPA,
       final MessageFactory pMessageFactory,
       final LogManager pLogManager,
       final ShutdownNotifier pShutdownNotifier) {
-    super(pMessageFactory, pLogManager, pShutdownNotifier);
+    super(pCPA, pAlgorithm, pReachedSet, pMessageFactory, pLogManager, pShutdownNotifier);
 
-    argcpa = pARGCPA;
-    PredicateCPA predicateCPA = argcpa.retrieveWrappedCpa(PredicateCPA.class);
+    PredicateCPA predicateCPA = cpa.retrieveWrappedCpa(PredicateCPA.class);
 
     pfMgr = predicateCPA.getPathFormulaManager();
     solver = predicateCPA.getSolver();
@@ -98,9 +94,6 @@ public class BackwardAnalysisFull extends Task {
     errorCondition = pErrorCondition.getFor(fMgr, pfMgr);
     blockSummary = pBlockSummary.getFor(fMgr, pfMgr);
     statistics = new BackwardAnalysisFullStatistics();
-    
-    reached = pReachedSet;
-    algorithm = pAlgorithm;
   }
 
   public static Configuration getConfiguration(
@@ -123,8 +116,8 @@ public class BackwardAnalysisFull extends Task {
   private ARGState buildEntryState() throws InterruptedException {
     PredicateAbstractState predicateEntryState = buildPredicateEntryState();
 
-    assert argcpa.getWrappedCPAs().size() == 1 && argcpa.getWrappedCPAs().get(0) instanceof BlockAwareCompositeCPA;
-    BlockAwareCompositeCPA blockAwareCPA = (BlockAwareCompositeCPA) argcpa.getWrappedCPAs().get(0);
+    assert cpa.getWrappedCPAs().size() == 1 && cpa.getWrappedCPAs().get(0) instanceof BlockAwareCompositeCPA;
+    BlockAwareCompositeCPA blockAwareCPA = (BlockAwareCompositeCPA) cpa.getWrappedCPAs().get(0);
         
     List<AbstractState> componentStates = new ArrayList<>();
     for (ConfigurableProgramAnalysis componentCPA : blockAwareCPA.getWrappedCPAs()) {
@@ -147,7 +140,7 @@ public class BackwardAnalysisFull extends Task {
   }
 
   private PredicateAbstractState buildPredicateEntryState() {
-    PredicateCPA predicateCPA = argcpa.retrieveWrappedCpa(PredicateCPA.class);
+    PredicateCPA predicateCPA = cpa.retrieveWrappedCpa(PredicateCPA.class);
     
     return PredicateAbstractState.mkAbstractionState(
         errorCondition,
@@ -209,11 +202,11 @@ public class BackwardAnalysisFull extends Task {
     }
 
     ARGState entryState = buildEntryState();
-    Precision precision = argcpa.getInitialPrecision(start, getDefaultPartition());
+    Precision precision = cpa.getInitialPrecision(start, getDefaultPartition());
     reached.add(entryState, precision);
 
     shutdownNotifier.shutdownIfNecessary();
-    new BackwardAnalysisCore(target, reached, origin, algorithm, argcpa,
+    new BackwardAnalysisCore(target, reached, origin, algorithm, cpa,
         solver, messageFactory,
         logManager,
         shutdownNotifier).run();

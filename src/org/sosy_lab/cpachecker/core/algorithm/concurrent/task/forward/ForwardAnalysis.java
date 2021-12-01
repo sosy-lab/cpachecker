@@ -69,9 +69,6 @@ public class ForwardAnalysis extends Task {
   private final PathFormula oldSummary;
   private final int expectedVersion;
   private final ImmutableList<PathFormula> predecessorSummaries;
-  private final ReachedSet reached;
-  private final Algorithm algorithm;
-  private final ARGCPA cpa;
   private final Solver solver;
   private final FormulaManagerView fMgr;
   private final BooleanFormulaManagerView bfMgr;
@@ -92,7 +89,7 @@ public class ForwardAnalysis extends Task {
       final MessageFactory pMessageFactory,
       final LogManager pLogManager,
       final ShutdownNotifier pShutdownNotifier) {
-    super(pMessageFactory, pLogManager, pShutdownNotifier);
+    super(pCPA, pAlgorithm, pReachedSet, pMessageFactory, pLogManager, pShutdownNotifier);
 
     PredicateCPA predCPA = pCPA.retrieveWrappedCpa(PredicateCPA.class);
 
@@ -108,10 +105,6 @@ public class ForwardAnalysis extends Task {
     predecessorSummaries =
         transformedImmutableListCopy(pPredecessorSummaries, formula->formula.getFor(fMgr, pfMgr));
     statistics = new ForwardAnalysisStatistics(target);
-    
-    reached = pReachedSet;
-    algorithm = pAlgorithm;
-    cpa = pCPA;
   }
 
   public static Configuration getConfiguration(

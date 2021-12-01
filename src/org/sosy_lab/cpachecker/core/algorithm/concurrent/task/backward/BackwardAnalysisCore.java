@@ -43,10 +43,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 public class BackwardAnalysisCore extends Task {
   private final Block target;
-  private final ReachedSet reached;
   private final ErrorOrigin origin;
-  private final Algorithm algorithm;
-  private final ARGCPA argcpa;
   private final Solver solver;
   private final FormulaManagerView fMgr;
   private final BackwardAnalysisFullStatistics statistics;
@@ -58,22 +55,18 @@ public class BackwardAnalysisCore extends Task {
       final ReachedSet pReachedSet,
       final ErrorOrigin pOrigin,
       final Algorithm pAlgorithm,
-      final ARGCPA pARGCPA,
+      final ARGCPA pCPA,
       final Solver pSolver,
       final MessageFactory pMessageFactory,
       final LogManager pLogManager,
       final ShutdownNotifier pShutdownNotifier) {
-    super(pMessageFactory, pLogManager, pShutdownNotifier);
+    super(pCPA, pAlgorithm, pReachedSet, pMessageFactory, pLogManager, pShutdownNotifier);
 
-    argcpa = pARGCPA;
     solver = pSolver;
     fMgr = solver.getFormulaManager();
     target = pBlock;
     origin = pOrigin;
     statistics = new BackwardAnalysisFullStatistics();
-    
-    reached = pReachedSet;
-    algorithm = pAlgorithm;
   }
 
   @Override
@@ -94,20 +87,20 @@ public class BackwardAnalysisCore extends Task {
       assert location != null;
 
       if (location != target.getEntry()) {
-        reached.add(waitingState, argcpa.getInitialPrecision(location, getDefaultPartition()));
+        reached.add(waitingState, cpa.getInitialPrecision(location, getDefaultPartition()));
       } else if (location.isLoopStart()) {
         assert waitingState instanceof ARGState;
 
         ARGState newStart =
             BlockAwareAnalysisContinuationState.createFromSource(waitingState, target, BACKWARD);
-        reached.add(newStart, argcpa.getInitialPrecision(location, getDefaultPartition()));
+        reached.add(newStart, cpa.getInitialPrecision(location, getDefaultPartition()));
       }
     }
 
     shutdownNotifier.shutdownIfNecessary();
     if (reached.hasWaitingState()) {
       messageFactory.sendBackwardAnalysisContinuationRequest(target, origin, reached, algorithm,
-          argcpa, solver);
+          cpa, solver);
     }
 
     logManager.log(Level.FINE, "Completed BackwardAnalysis on", target);
