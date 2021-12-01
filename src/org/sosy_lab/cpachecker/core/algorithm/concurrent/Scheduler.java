@@ -9,6 +9,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.concurrent;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.logging.Level.WARNING;
+import static org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus.NO_PROPERTY_CHECKED;
 import static org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus.SOUND_AND_PRECISE;
 
 import com.google.common.collect.HashBasedTable;
