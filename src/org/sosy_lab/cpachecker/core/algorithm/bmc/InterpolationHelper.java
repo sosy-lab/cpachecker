@@ -32,92 +32,25 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
 
+/**
+ * This helper class provides utility functions for algorithms that require formulas encoding the
+ * transition of a complete loop-unrolling in their analysis. Such algorithms, including {@link
+ * IMCAlgorithm} and {@link ISMCAlgorithm}, often assume single-loop programs as input and have to
+ * be used with large-blocking encoding such that the block formulas of the abstraction states at
+ * loop heads represent the transition formula of a complete loop. An ARG under this setting has a
+ * sequence of abstraction states whose locations are the unique loop head.
+ *
+ * <p>This class implements methods to check if an ARG has the required shape and collect formulas
+ * from such ARGs. It also provides a method to derive interpolants from unsatisfiable path
+ * formulas, considering different derivation directions.
+ */
 public final class InterpolationHelper {
   /**
-   * Represent the direction to derive interpolants.
-   *
-   * <ul>
-   *   <li>{@code FORWARD}: compute interpolants from the prefix <i>itp(A, B)</i>.
-   *   <li>{@code BACKWARD}: compute interpolants from the suffix <i>!itp(B, A)</i>.
-   *   <li>{@code BIDIRECTION_CONJUNCT}: compute interpolants from both the prefix and the suffix
-   *       and conjunct the two <i>itp(A, B) &and; !itp(B, A)</i>.
-   *   <li>{@code BIDIRECTION_DISJUNCT}: compute interpolants from both the prefix and the suffix
-   *       and disjunct the two <i>itp(A, B) &or; !itp(B, A)</i>.
-   * </ul>
-   */
-  public enum ItpDeriveDirection {
-    FORWARD,
-    BACKWARD,
-    BIDIRECTION_CONJUNCT,
-    BIDIRECTION_DISJUNCT
-  }
-
-  /**
-   * A helper method to derive an interpolant. It computes either <i>itp(A, B)</i>, <i>!itp(B,
-   * A)</i>, <i>itp(A, B) &and; !itp(B, A)</i>, or <i>itp(A, B) &or; !itp(B, A)</i> according to the
-   * given direction.
-   *
-   * @param bfmgr Boolean formula manager
-   * @param itpProver SMT solver stack
-   * @param itpDeriveDirection the direction to derive an interplant
-   * @param formulaA Formula A (prefix)
-   * @param formulaB Formula B (suffix)
-   * @return A {@code BooleanFormula} interpolant
-   * @throws InterruptedException On shutdown request.
-   */
-  static <T> BooleanFormula getInterpolantFrom(
-      BooleanFormulaManagerView bfmgr,
-      InterpolatingProverEnvironment<T> itpProver,
-      ItpDeriveDirection itpDeriveDirection,
-      final List<T> formulaA,
-      final List<T> formulaB)
-      throws SolverException, InterruptedException {
-    BooleanFormula forwardItp = itpProver.getInterpolant(formulaA);
-    BooleanFormula backwardItp = bfmgr.not(itpProver.getInterpolant(formulaB));
-    switch (itpDeriveDirection) {
-      case FORWARD:
-        {
-          return forwardItp;
-        }
-      case BACKWARD:
-        {
-          return backwardItp;
-        }
-      case BIDIRECTION_CONJUNCT:
-        {
-          return bfmgr.and(forwardItp, backwardItp);
-        }
-      case BIDIRECTION_DISJUNCT:
-        {
-          return bfmgr.or(forwardItp, backwardItp);
-        }
-      default:
-        {
-          throw new IllegalArgumentException(
-              "InterpolationHelper does not support ItpDeriveDirection=" + itpDeriveDirection);
-        }
-    }
-  }
-
-  // Utility functions for IMC and ISMC
-
-  static boolean hasCoveredStates(final ReachedSet pReachedSet) {
-    return !from(pReachedSet).transformAndConcat(e -> ((ARGState) e).getCoveredByThis()).isEmpty();
-  }
-
-  static void removeUnreachableTargetStates(ReachedSet pReachedSet) {
-    if (pReachedSet.wasTargetReached()) {
-      TargetLocationCandidateInvariant.INSTANCE.assumeTruth(pReachedSet);
-    }
-  }
-
-  /**
-   * A method to check whether interpolation is applicable. For interpolation to be applicable, ARG
-   * must satisfy 1) no covered states exist and 2) there is a unique stop state. If there are
-   * multiple stop states and the option {@code removeUnreachableStopStates} is {@code true}, this
-   * method will remove unreachable stop states and only disable interpolation if there are multiple
-   * reachable stop states. Enabling this option indeed increases the number of solved tasks, but
-   * also results in some wrong proofs.
+   * A method to check whether the ARG has the required shape. The ARG must satisfy 1) no covered
+   * states exist and 2) there is a unique stop state. If there are multiple stop states and the
+   * option {@code removeUnreachableStopStates} is {@code true}, this method will remove unreachable
+   * stop states and only disable interpolation if there are multiple reachable stop states. Note:
+   * enabling this option is potentially UNSOUND!
    *
    * @param pReachedSet Abstract Reachability Graph
    */
@@ -157,6 +90,16 @@ public final class InterpolationHelper {
     return true;
   }
 
+  static boolean hasCoveredStates(final ReachedSet pReachedSet) {
+    return !from(pReachedSet).transformAndConcat(e -> ((ARGState) e).getCoveredByThis()).isEmpty();
+  }
+
+  private static FluentIterable<AbstractState> getStopStates(final ReachedSet pReachedSet) {
+    return from(pReachedSet)
+        .filter(AbstractBMCAlgorithm::isStopState)
+        .filter(AbstractBMCAlgorithm::isRelevantForReachability);
+  }
+
   private static List<AbstractState> getUnreachableStopStates(
       BooleanFormulaManagerView bfmgr,
       Solver solver,
@@ -172,32 +115,23 @@ public final class InterpolationHelper {
     return unreachableStopStates;
   }
 
-  static FluentIterable<ARGState> getAbstractionStatesToRoot(AbstractState pTargetState) {
-    return from(ARGUtils.getOnePathTo((ARGState) pTargetState).asStatesList())
-        .filter(PredicateAbstractState::containsAbstractionState);
+  static void removeUnreachableTargetStates(ReachedSet pReachedSet) {
+    if (pReachedSet.wasTargetReached()) {
+      TargetLocationCandidateInvariant.INSTANCE.assumeTruth(pReachedSet);
+    }
   }
 
-  private static boolean isTargetStateAfterLoopStart(AbstractState pTargetState) {
-    return getAbstractionStatesToRoot(pTargetState).size() > 2;
-  }
-
-  static FluentIterable<AbstractState> getTargetStatesAfterLoop(final ReachedSet pReachedSet) {
-    return AbstractStates.getTargetStates(pReachedSet)
-        .filter(InterpolationHelper::isTargetStateAfterLoopStart);
-  }
-
-  static PathFormula getPredicateAbstractionBlockFormula(AbstractState pState) {
-    return PredicateAbstractState.getPredicateState(pState)
-        .getAbstractionFormula()
-        .getBlockFormula();
-  }
-
-  static BooleanFormula createDisjunctionFromStates(
-      BooleanFormulaManagerView bfmgr, final FluentIterable<AbstractState> pStates) {
-    return pStates.transform(e -> getPredicateAbstractionBlockFormula(e).getFormula()).stream()
-        .collect(bfmgr.toDisjunction());
-  }
-
+  /**
+   * This method builds a formula that encodes the path formulas to the input goal states. It
+   * assumes that the program is unrolled with large-block encoding and conjoins the block formulas
+   * of the abstraction states to a goal state. If a goal state is not an abstraction state, it
+   * additionally adds its path formula into the conjunction for completeness. The final formula is
+   * a disjunction of all path formulas to individual goal states.
+   *
+   * @param bfmgr Boolean formula manager
+   * @param pGoalStates The states for which we want to build path formulas
+   * @return A formula encoding the reachability of the input goal states
+   */
   private static BooleanFormula buildReachFormulaForStates(
       BooleanFormulaManagerView bfmgr, final FluentIterable<AbstractState> pGoalStates) {
     List<BooleanFormula> pathFormulas = new ArrayList<>();
@@ -218,12 +152,6 @@ public final class InterpolationHelper {
     return bfmgr.or(pathFormulas);
   }
 
-  private static FluentIterable<AbstractState> getStopStates(final ReachedSet pReachedSet) {
-    return from(pReachedSet)
-        .filter(AbstractBMCAlgorithm::isStopState)
-        .filter(AbstractBMCAlgorithm::isRelevantForReachability);
-  }
-
   static BooleanFormula buildReachTargetStateFormula(
       BooleanFormulaManagerView bfmgr, final ReachedSet pReachedSet) {
     return buildReachFormulaForStates(bfmgr, AbstractStates.getTargetStates(pReachedSet));
@@ -234,8 +162,98 @@ public final class InterpolationHelper {
     return buildReachFormulaForStates(bfmgr, getStopStates(pReachedSet));
   }
 
+  static FluentIterable<ARGState> getAbstractionStatesToRoot(AbstractState pTargetState) {
+    return from(ARGUtils.getOnePathTo((ARGState) pTargetState).asStatesList())
+        .filter(PredicateAbstractState::containsAbstractionState);
+  }
+
+  static PathFormula getPredicateAbstractionBlockFormula(AbstractState pState) {
+    return PredicateAbstractState.getPredicateState(pState)
+        .getAbstractionFormula()
+        .getBlockFormula();
+  }
+
+  static FluentIterable<AbstractState> getTargetStatesAfterLoop(final ReachedSet pReachedSet) {
+    return AbstractStates.getTargetStates(pReachedSet)
+        .filter(InterpolationHelper::isTargetStateAfterLoopStart);
+  }
+
+  private static boolean isTargetStateAfterLoopStart(AbstractState pTargetState) {
+    return getAbstractionStatesToRoot(pTargetState).size() > 2;
+  }
+
+  static BooleanFormula createDisjunctionFromStates(
+      BooleanFormulaManagerView bfmgr, final FluentIterable<AbstractState> pStates) {
+    return pStates.transform(e -> getPredicateAbstractionBlockFormula(e).getFormula()).stream()
+        .collect(bfmgr.toDisjunction());
+  }
+
   static PathFormula makeFalsePathFormula(
       PathFormulaManager pfmgr, BooleanFormulaManagerView bfmgr) {
     return pfmgr.makeEmptyPathFormula().withFormula(bfmgr.makeFalse());
+  }
+
+  /**
+   * Represent the direction to derive interpolants.
+   *
+   * <ul>
+   *   <li>{@code FORWARD}: compute interpolants from the prefix <i>itp(A, B)</i>.
+   *   <li>{@code BACKWARD}: compute interpolants from the suffix <i>!itp(B, A)</i>.
+   *   <li>{@code BIDIRECTION_CONJUNCT}: compute interpolants from both the prefix and the suffix
+   *       and conjunct the two <i>itp(A, B) &and; !itp(B, A)</i>.
+   *   <li>{@code BIDIRECTION_DISJUNCT}: compute interpolants from both the prefix and the suffix
+   *       and disjunct the two <i>itp(A, B) &or; !itp(B, A)</i>.
+   * </ul>
+   */
+  public enum ItpDeriveDirection {
+    FORWARD,
+    BACKWARD,
+    BIDIRECTION_CONJUNCT,
+    BIDIRECTION_DISJUNCT
+  }
+
+  /**
+   * A helper method to derive an interpolant according to the given derivation direction.
+   *
+   * @param bfmgr Boolean formula manager
+   * @param itpProver SMT solver stack
+   * @param itpDeriveDirection the derivation direction for interpolants
+   * @param formulaA Formula A (prefix)
+   * @param formulaB Formula B (suffix)
+   * @return A {@code BooleanFormula} interpolant
+   * @throws InterruptedException on shutdown request
+   */
+  static <T> BooleanFormula getInterpolantFrom(
+      BooleanFormulaManagerView bfmgr,
+      InterpolatingProverEnvironment<T> itpProver,
+      ItpDeriveDirection itpDeriveDirection,
+      final List<T> formulaA,
+      final List<T> formulaB)
+      throws SolverException, InterruptedException {
+    switch (itpDeriveDirection) {
+      case FORWARD:
+        {
+          return itpProver.getInterpolant(formulaA);
+        }
+      case BACKWARD:
+        {
+          return bfmgr.not(itpProver.getInterpolant(formulaB));
+        }
+      case BIDIRECTION_CONJUNCT:
+        {
+          return bfmgr.and(
+              itpProver.getInterpolant(formulaA), bfmgr.not(itpProver.getInterpolant(formulaB)));
+        }
+      case BIDIRECTION_DISJUNCT:
+        {
+          return bfmgr.or(
+              itpProver.getInterpolant(formulaA), bfmgr.not(itpProver.getInterpolant(formulaB)));
+        }
+      default:
+        {
+          throw new IllegalArgumentException(
+              "InterpolationHelper does not support ItpDeriveDirection=" + itpDeriveDirection);
+        }
+    }
   }
 }

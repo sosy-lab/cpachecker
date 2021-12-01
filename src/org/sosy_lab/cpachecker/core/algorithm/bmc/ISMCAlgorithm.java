@@ -40,17 +40,16 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
 
-// TODO: factor out the utility functions of IMCAlgorithm and ISMCAlgorithm to a new class
 /**
- * This class provides an implementation of interpolation-seqence based model checking algorithm,
+ * This class provides an implementation of interpolation-sequence based model checking algorithm,
  * adapted for program verification. The original algorithm was proposed in the paper
  * "Interpolation-sequence based model checking" by Yakir Vizel and Orna Grumberg. The algorithm
  * consists of two phases: BMC phase and interpolation phase. In the BMC phase, it unrolls the CFA
  * and collects the path formula to target states. If the path formula is UNSAT, it enters the
  * interpolation phase, and computes the overapproximation of reachable states at each unrolling
- * step in the form of interpolation-sequence . The overapproximation is then conjoined with the
+ * step in the form of an interpolation sequence. The overapproximation is then conjoined with the
  * ones obtained in the previous interpolation phases and forms a reachability vector. If the
- * reachability vector reaches a fixedpoint, i.e. the overapproximated state set becomes inductive,
+ * reachability vector reaches a fixed point, i.e. the overapproximated state set becomes inductive,
  * the property is proved. Otherwise, it returns back to the BMC phase and keeps unrolling the CFA.
  */
 @Options(prefix = "ismc")
@@ -207,7 +206,7 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
       /* note: an exact copy from IMCAlgorithm -- END */
 
-      // TODO: some implemetation questions
+      // TODO: some implementation questions
       // - reuse solver environment or not?
       final int maxLoopIterations =
           CPAs.retrieveCPA(cpa, LoopBoundCPA.class).getMaxLoopIterations();
@@ -311,7 +310,7 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   /**
-   * A method to update the reachabiltiy vector with newly derived interpolants
+   * A method to update the reachability vector with newly derived interpolants
    *
    * @param reachVector the reachability vector of the previous iteration
    * @param itpSequence the interpolation sequence derived at the current iteration

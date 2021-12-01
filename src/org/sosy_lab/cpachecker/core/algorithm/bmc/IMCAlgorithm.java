@@ -202,7 +202,6 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
       }
-
       // Interpolation
       final int maxLoopIterations =
           CPAs.retrieveCPA(cpa, LoopBoundCPA.class).getMaxLoopIterations();
