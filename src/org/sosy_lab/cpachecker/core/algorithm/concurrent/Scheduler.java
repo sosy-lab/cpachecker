@@ -15,6 +15,7 @@ import static org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus.S
 
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -308,7 +309,14 @@ public final class Scheduler implements Runnable, StatisticsProvider {
         shutdown();
       }
     }
-    
+
+    @SuppressFBWarnings(
+        value="RV_RETURN_VALUE_IGNORED", 
+        justification="Reusable components are stored and retrieved on a best-effort basis. " 
+            + "If storing components with offer() is not possible immediately, the components are " 
+            + "just discarded (which is okay). Therefore, there is no need to check the return " 
+            + "value of offer()."
+    )
     private void retrieveReusableComponents(final Task pTask) {
       /*
        * If the completed task is a BackwardAnalysisCore which has created a 
