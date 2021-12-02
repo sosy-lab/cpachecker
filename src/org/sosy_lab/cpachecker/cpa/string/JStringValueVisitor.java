@@ -108,7 +108,7 @@ public class JStringValueVisitor
     ImmutableList.Builder<Aspect<?>> builder = new ImmutableList.Builder<>();
     String val = pE.getValue();
     for (AbstractStringDomain<?> dom : domains) {
-      if (dom instanceof StringSetDomain) {
+      if (dom instanceof StringSetDomain && !options.getStringSet().contains(val)) {
         options.addStringToGivenSet(val);
       }
       builder.add(dom.addNewAspectOfThisDomain(val));

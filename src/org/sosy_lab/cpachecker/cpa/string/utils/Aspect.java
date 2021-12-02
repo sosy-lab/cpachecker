@@ -42,7 +42,6 @@ public class Aspect<T> {
 
   @Override
   public String toString() {
-    // return "(" + domain.toString() + "," + value + ")";
     return "(" + getDomainType() + "," + value + ")";
   }
 

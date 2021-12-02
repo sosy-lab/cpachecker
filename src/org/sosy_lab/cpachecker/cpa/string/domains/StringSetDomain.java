@@ -19,13 +19,11 @@ import org.sosy_lab.cpachecker.cpa.string.utils.Aspect.UnknownAspect;
  */
 public class StringSetDomain implements AbstractStringDomain<List<String>> {
 
-  private ImmutableList<String> givenSet = ImmutableList.of();
   private static final DomainType TYPE = DomainType.STRING_SET;
-  // private StringOptions options;
+  private StringOptions options;
 
   public StringSetDomain(StringOptions pOptions) {
-    // options = pOptions;
-    givenSet = ImmutableList.copyOf(pOptions.getStringSet());
+    options = pOptions;
   }
 
   /*
@@ -33,6 +31,7 @@ public class StringSetDomain implements AbstractStringDomain<List<String>> {
    */
   @Override
   public Aspect<List<String>> addNewAspectOfThisDomain(String pVariable) {
+    ImmutableList<String> givenSet = ImmutableList.copyOf(options.getStringSet());
     if (givenSet.contains(pVariable)) {
       return new Aspect<>(this, givenSet);
     }
@@ -82,8 +81,7 @@ public class StringSetDomain implements AbstractStringDomain<List<String>> {
   }
 
   private Aspect<List<String>> join(List<String> l1, List<String> l2) {
-    com.google.common.collect.ImmutableList.Builder<String> builder =
-        new com.google.common.collect.ImmutableList.Builder<>();
+    ImmutableList.Builder<String> builder = new ImmutableList.Builder<>();
     builder.addAll(l1);
     for (String str : l2) {
       if (!l1.contains(str)) {

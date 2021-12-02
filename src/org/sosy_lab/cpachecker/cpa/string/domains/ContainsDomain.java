@@ -17,22 +17,19 @@ import org.sosy_lab.cpachecker.cpa.string.utils.Aspect.UnknownAspect;
 /*
  * Tracks if the string contains elements of a given set
  */
-//@Options(prefix = "string.cpa")
 public class ContainsDomain implements AbstractStringDomain<List<String>> {
 
-  // @Option(description = "the given set to compare to", name = "containset")
-  private List<String> givenset; // = new ArrayList<>();
 
   private static final DomainType TYPE = DomainType.CONTAINS;
-  // private final StringOptions options;
+  private StringOptions options;
 
   public ContainsDomain(StringOptions pOptions) {
-    // options = pOptions;
-    givenset = pOptions.getContainset();
+    options = pOptions;
   }
 
   @Override
   public Aspect<List<String>> addNewAspectOfThisDomain(String pVariable) {
+    List<String> givenset = ImmutableList.copyOf(options.getContainset());
     ImmutableList.Builder<String> builder = new ImmutableList.Builder<>();
     for (String given : givenset) {
       if (pVariable.contains(given)) {

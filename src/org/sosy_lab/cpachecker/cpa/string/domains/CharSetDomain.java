@@ -32,7 +32,6 @@ public class CharSetDomain implements AbstractStringDomain<char[]> {
         Arrays.asList(pVariable.split(""))
             .stream()
             .distinct()
-            .sorted()
             .collect(Collectors.joining())
             .toCharArray();
     return new Aspect<>(this, temp);
@@ -46,8 +45,8 @@ public class CharSetDomain implements AbstractStringDomain<char[]> {
   @Override
   public boolean isLessOrEqual(Aspect<?> p1, Aspect<?> p2) {
     if (p1.getDomainType().equals(TYPE) && p2.getDomainType().equals(TYPE)) {
-      List<Character> firstChars = toCharacterList((char[]) p1.getValue());
-      List<Character> scndChars = toCharacterList((char[]) p2.getValue());
+      List<Character> firstChars = toCharList((char[]) p1.getValue());
+      List<Character> scndChars = toCharList((char[]) p2.getValue());
       return scndChars.containsAll(firstChars);
     }
     return false;
@@ -62,15 +61,26 @@ public class CharSetDomain implements AbstractStringDomain<char[]> {
       return p1;
     }
     if (p1.getDomainType().equals(TYPE) && p2.getDomainType().equals(TYPE)) {
-      StringBuilder builder = new StringBuilder();
-      builder.append(p1.getValue());
-      builder.append(p2.getValue());
-      return addNewAspectOfThisDomain(builder.toString());
+      char[] p1Val = (char[]) p1.getValue();
+      char[] p2Val = (char[]) p2.getValue();
+      char[] result = mergeArrays(p1Val, p2Val);
+      return addNewAspectOfThisDomain(String.copyValueOf(result));
     }
     return null;
   }
 
-  private List<Character> toCharacterList(char[] arr) {
+  private char[] mergeArrays(char[] arr1, char[] arr2) {
+    char[] result = new char[arr1.length + arr2.length];
+    for (int i = 0; i < arr1.length; i++) {
+      result[i] = arr1[i];
+    }
+    for (int i = arr1.length; i < result.length; i++) {
+      int n = i - arr1.length;
+      result[i] = arr2[n];
+    }
+    return result;
+  }
+  private List<Character> toCharList(char[] arr) {
     ImmutableList.Builder<Character> builder = new ImmutableList.Builder<>();
     for (char c : arr) {
       builder.add(c);
