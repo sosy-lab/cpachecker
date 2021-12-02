@@ -47,6 +47,7 @@ public class BackwardAnalysisCore extends Task {
   private final Solver solver;
   private final FormulaManagerView fMgr;
   private final BackwardAnalysisFullStatistics statistics;
+  private boolean hasCreatedContinuationRequest = false;
   
   private AlgorithmStatus status = SOUND_AND_PRECISE;
 
@@ -99,8 +100,10 @@ public class BackwardAnalysisCore extends Task {
 
     shutdownNotifier.shutdownIfNecessary();
     if (reached.hasWaitingState()) {
-      messageFactory.sendBackwardAnalysisContinuationRequest(target, origin, reached, algorithm,
-          cpa, solver);
+      hasCreatedContinuationRequest = true;
+      messageFactory.sendBackwardAnalysisContinuationRequest(
+          target, origin, reached, algorithm, cpa, solver
+      );
     }
 
     logManager.log(Level.FINE, "Completed BackwardAnalysis on", target);
@@ -149,5 +152,9 @@ public class BackwardAnalysisCore extends Task {
 
   @Override public String toString() {
     return "BackwardAnalysisCore on block with entry location " + target.getEntry();
+  }
+  
+  public boolean hasCreatedContinuationRequest() {
+    return hasCreatedContinuationRequest;
   }
 }

@@ -19,7 +19,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -29,13 +28,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
-import net.bytebuddy.dynamic.loading.ClassLoadingStrategy.Configurable;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.ConcurrentStatisticsCollector.TaskStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.Message;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.completion.ErrorReachedProgramEntryMessage;
@@ -49,9 +46,11 @@ import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.forward.ForwardAna
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ErrorOrigin;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ReusableCoreComponents;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ShareableBooleanFormula;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 
 /**
  * JobExecutor manages execution of concurrent analysis tasks from {@linkplain
@@ -311,8 +310,27 @@ public final class Scheduler implements Runnable, StatisticsProvider {
     }
     
     private void retrieveReusableComponents(final Task pTask) {
+      /*
+       * If the completed task is a BackwardAnalysisCore which has created a 
+       * BackwardAnalysisContinuationRequest, no component reuse is possible (yet), because the 
+       * continued backward analysis already re-uses the components.
+       * 
+       * Todo: Remove ContinuationRequests as seperate messages/job requests altogether.
+       *       Implement a different way to ensure that non-terminating BackwardAnalysis jobs don't
+       *       starve the analysis by occupying all available threads.
+       */
+      if(pTask instanceof BackwardAnalysisCore) {
+        BackwardAnalysisCore analysis = (BackwardAnalysisCore) pTask;
+        if(analysis.hasCreatedContinuationRequest()) {
+          return;
+        }
+      }
+      
+      ARGCPA argcpa = pTask.getCPA();
+      CompositeCPA compositeCPA = ((WrapperCPA)argcpa).retrieveWrappedCpa(CompositeCPA.class);
+      
       ReusableCoreComponents reusableCoreComponents
-          = new ReusableCoreComponents(pTask.getCPA(), pTask.getAlgorithm(), pTask.getReachedSet());
+          = new ReusableCoreComponents(compositeCPA, pTask.getAlgorithm(), pTask.getReachedSet());
 
       /*
        * Best-effort attempt to store reusable components.

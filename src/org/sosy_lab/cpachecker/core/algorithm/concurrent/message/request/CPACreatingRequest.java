@@ -8,7 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request;
 
-import com.google.common.collect.ImmutableList;
+import static java.util.logging.Level.INFO;
+import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -18,7 +19,9 @@ import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.MessageFactory;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ReusableCoreComponents;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
@@ -33,7 +36,7 @@ abstract public class CPACreatingRequest {
   protected final LogManager logManager;
 
   protected Algorithm algorithm = null;
-  protected ARGCPA argcpa = null;
+  protected ARGCPA cpa = null;
   protected ReachedSet reached = null;
 
   public CPACreatingRequest(
@@ -49,28 +52,38 @@ abstract public class CPACreatingRequest {
       final Configuration pTaskConfiguration,
       final CFA pCFA,
       final Specification pSpecification,
-      final Block pBlock) throws InvalidConfigurationException, CPAException, InterruptedException {
-    CoreComponentsFactory factory =
-        new CoreComponentsFactory(
-            pTaskConfiguration, logManager, shutdownNotifier, AggregatedReachedSets.empty());
+      final Block pBlock,
+      final Optional<ReusableCoreComponents> pReusableCoreComponents)
+      throws InvalidConfigurationException, CPAException, InterruptedException {
+    CompositeCPA compositeCPA;
+    
+    if(pReusableCoreComponents.isPresent()) {
+      ReusableCoreComponents components = pReusableCoreComponents.get();
+      reached = components.getReachedSet();
+      algorithm = components.getAlgorithm();
+      compositeCPA = components.getCpa();
+      cpa = injectBlockAwareCPA(compositeCPA, pSpecification, pCFA, pBlock, pTaskConfiguration);
+      
+      logManager.log(INFO, "Reusing existing core components.");
+    } else {
+      CoreComponentsFactory factory =
+          new CoreComponentsFactory(pTaskConfiguration, logManager, shutdownNotifier,
+              AggregatedReachedSets.empty());
+      WrapperCPA configuredCPA = (WrapperCPA) factory.createCPA(pCFA, pSpecification);
+      compositeCPA = configuredCPA.retrieveWrappedCpa(CompositeCPA.class);
+      assert compositeCPA != null : "Configured CPAs must contain CompositeCPA!";
 
-    ARGCPA configuredCPA = (ARGCPA) factory.createCPA(pCFA, pSpecification);
-    argcpa = injectBlockAwareCPA(configuredCPA, pSpecification, pCFA, pBlock, pTaskConfiguration);
-    reached = factory.createReachedSet(argcpa);
-    algorithm = factory.createAlgorithm(argcpa, pCFA, pSpecification);
+      cpa = injectBlockAwareCPA(compositeCPA, pSpecification, pCFA, pBlock, pTaskConfiguration);
+      reached = factory.createReachedSet(cpa);
+      algorithm = factory.createAlgorithm(cpa, pCFA, pSpecification);  
+    }
   }
 
   private ARGCPA injectBlockAwareCPA(
-      final ARGCPA configuredCPA,
+      final CompositeCPA baseCPA,
       final Specification pSpecification,
       final CFA pCFA, final Block pBlock, final Configuration pTaskConfiguration)
       throws InvalidConfigurationException, CPAException {
-    ImmutableList<ConfigurableProgramAnalysis> wrappedCPAs = configuredCPA.getWrappedCPAs();
-      assert wrappedCPAs.size() == 1 && wrappedCPAs.get(0) instanceof CompositeCPA;
-    CompositeCPA compositeCPA = (CompositeCPA) wrappedCPAs.get(0);
-
-    assert compositeCPA != null : "Configured top-level CPA must be ARGCPA!";
-
     BlockAwareCompositeCPA blockAwareCPA =
         (BlockAwareCompositeCPA)
             BlockAwareCompositeCPA.factory()
@@ -79,7 +92,7 @@ abstract public class CPACreatingRequest {
                 .setShutdownNotifier(shutdownNotifier)
                 .set(pCFA, CFA.class)
                 .set(pBlock, Block.class)
-                .set(compositeCPA, CompositeCPA.class)
+                .set(baseCPA, CompositeCPA.class)
                 .createInstance();
 
     return (ARGCPA) ARGCPA.factory()

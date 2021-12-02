@@ -10,17 +10,17 @@ package org.sosy_lab.cpachecker.core.algorithm.concurrent.util;
 
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 
 public class ReusableCoreComponents {
-  private final ARGCPA cpa;
+  private final CompositeCPA cpa;
 
   private final Algorithm algorithm;
 
   private final ReachedSet reachedSet;
 
   public ReusableCoreComponents(
-      final ARGCPA pCPA,
+      final CompositeCPA pCPA,
       final Algorithm pAlgorithm,
       final ReachedSet pReachedSet) {
     cpa = pCPA;
@@ -31,7 +31,7 @@ public class ReusableCoreComponents {
     reachedSet.clear();
   }
 
-  public ARGCPA getCpa() {
+  public CompositeCPA getCpa() {
     return cpa;
   }
 

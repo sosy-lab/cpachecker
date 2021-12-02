@@ -8,9 +8,12 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.backward;
 
+import static org.sosy_lab.cpachecker.core.specification.Specification.alwaysSatisfied;
+
 import com.google.common.collect.Table;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -31,6 +34,7 @@ import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.TaskReq
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.Task;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.backward.BackwardAnalysisFull;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ErrorOrigin;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ReusableCoreComponents;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ShareableBooleanFormula;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -79,14 +83,16 @@ public class BackwardAnalysisRequest extends CPACreatingRequest implements TaskR
     pConfig.inject(this);
     taskConfiguration = BackwardAnalysisFull.getConfiguration(pLogger, configFile, pConfig);
 
-    prepareCPA(taskConfiguration, pCFA, Specification.alwaysSatisfied(), pTarget);
+    Optional<ReusableCoreComponents> reusableComponents 
+        = messageFactory.requestIdleBackwardAnalysisComponents();
+    prepareCPA(taskConfiguration, pCFA, alwaysSatisfied(), pTarget, reusableComponents);
     
     target = pTarget;
     origin = pOrigin;
     start = pStart;
     source = pSource;
     
-    PredicateCPA predicateCPA = argcpa.retrieveWrappedCpa(PredicateCPA.class);
+    PredicateCPA predicateCPA = cpa.retrieveWrappedCpa(PredicateCPA.class);
     assert predicateCPA != null;
 
     fMgr = predicateCPA.getSolver().getFormulaManager();
@@ -150,7 +156,7 @@ public class BackwardAnalysisRequest extends CPACreatingRequest implements TaskR
         blockSummary,
         reached,
         algorithm,
-        argcpa,
+        cpa,
         messageFactory,
         logManager,
         shutdownNotifier);

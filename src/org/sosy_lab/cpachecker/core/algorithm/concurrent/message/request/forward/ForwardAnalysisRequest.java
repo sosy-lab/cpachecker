@@ -13,6 +13,7 @@ import com.google.common.collect.Table;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -32,6 +33,7 @@ import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.Request
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.TaskRequest;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.Task;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.forward.ForwardAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ReusableCoreComponents;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ShareableBooleanFormula;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -75,13 +77,15 @@ public class ForwardAnalysisRequest extends CPACreatingRequest implements TaskRe
     pConfig.inject(this);
     taskConfiguration = ForwardAnalysis.getConfiguration(pLogger, configFile, pConfig);
 
-    prepareCPA(taskConfiguration, pCFA, pSpecification, pBlock);
+    Optional<ReusableCoreComponents> reusableComponents
+        = messageFactory.requestIdleForwardAnalysisComponents();
+    prepareCPA(taskConfiguration, pCFA, pSpecification, pBlock, reusableComponents);
     
     predecessor = pPredecessor;
     block = pBlock;
     expectedPredVersion = pExpectedPredVersion;
 
-    PredicateCPA predicateCPA = argcpa.retrieveWrappedCpa(PredicateCPA.class);
+    PredicateCPA predicateCPA = cpa.retrieveWrappedCpa(PredicateCPA.class);
 
     FormulaManagerView formulaManager = predicateCPA.getSolver().getFormulaManager();
     PathFormulaManager pfMgr = predicateCPA.getPathFormulaManager();
@@ -91,7 +95,7 @@ public class ForwardAnalysisRequest extends CPACreatingRequest implements TaskRe
         ? new ShareableBooleanFormula(formulaManager, pfMgr.makeEmptyPathFormula())
         : pNewSummary;
     
-    assert algorithm != null && argcpa != null && reached != null;
+    assert algorithm != null && cpa != null && reached != null;
   }
 
   /**
@@ -186,7 +190,7 @@ public class ForwardAnalysisRequest extends CPACreatingRequest implements TaskRe
         predecessorSummaries,
         reached,
         algorithm,
-        argcpa,
+        cpa,
         messageFactory,
         logManager,
         shutdownNotifier);
