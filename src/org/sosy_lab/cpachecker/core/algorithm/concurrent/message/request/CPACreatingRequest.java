@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request;
 
 import static java.util.logging.Level.INFO;
+
 import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -57,7 +58,7 @@ abstract public class CPACreatingRequest {
       throws InvalidConfigurationException, CPAException, InterruptedException {
     CompositeCPA compositeCPA;
     
-    if(pReusableCoreComponents.isPresent()) {
+    if(false && pReusableCoreComponents.isPresent()) {
       ReusableCoreComponents components = pReusableCoreComponents.get();
       reached = components.getReachedSet();
       algorithm = components.getAlgorithm();

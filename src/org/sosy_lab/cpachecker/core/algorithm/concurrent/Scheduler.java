@@ -332,22 +332,29 @@ public final class Scheduler implements Runnable, StatisticsProvider {
           return;
         }
       }
+
+      /*if(pTask instanceof ForwardAnalysisCore) {
+        BackwardAnalysisCore analysis = (BackwardAnalysisCore) pTask;
+        if(analysis.hasCreatedContinuationRequest()) {
+          return;
+        }
+      }*/
       
-      ARGCPA argcpa = pTask.getCPA();
+      /*ARGCPA argcpa = pTask.getCPA();
       CompositeCPA compositeCPA = ((WrapperCPA)argcpa).retrieveWrappedCpa(CompositeCPA.class);
       
       ReusableCoreComponents reusableCoreComponents
           = new ReusableCoreComponents(compositeCPA, pTask.getAlgorithm(), pTask.getReachedSet());
-
+      */
       /*
        * Best-effort attempt to store reusable components.
        * If not possible immediately, they get discarded.
        */
-      if(pTask instanceof ForwardAnalysis) {
+      /*if(pTask instanceof ForwardAnalysisCore) {
         idleForwardAnalysisComponents.offer(reusableCoreComponents);
       } else if(pTask instanceof BackwardAnalysisCore) {
         idleBackwardAnalysisComponents.offer(reusableCoreComponents);
-      }
+      }*/
     }
   }
   
