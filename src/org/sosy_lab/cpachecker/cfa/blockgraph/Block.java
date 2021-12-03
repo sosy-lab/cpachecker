@@ -81,4 +81,9 @@ public class Block {
     Preconditions.checkState(complete);
     return ImmutableSet.copyOf(predecessors);
   }
+
+  @Override
+  public String toString() {
+    return "Block starting at " + entry.toString() + " (" + super.toString() + ")";
+  }
 }
