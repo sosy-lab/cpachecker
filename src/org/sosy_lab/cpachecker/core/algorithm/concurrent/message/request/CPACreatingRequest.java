@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request;
 
+import static java.util.logging.Level.INFO;
+
 import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -54,28 +56,25 @@ abstract public class CPACreatingRequest {
       final Block pBlock,
       final Optional<ReusableCoreComponents> pReusableCoreComponents)
       throws InvalidConfigurationException, CPAException, InterruptedException {
+    CoreComponentsFactory factory =
+        new CoreComponentsFactory(pTaskConfiguration, logManager, shutdownNotifier,
+            AggregatedReachedSets.empty());
     CompositeCPA compositeCPA;
-    /*
-    if(false && pReusableCoreComponents.isPresent()) {
+    
+    if(pReusableCoreComponents.isPresent()) {
       ReusableCoreComponents components = pReusableCoreComponents.get();
-      reached = components.getReachedSet();
-      algorithm = components.getAlgorithm();
       compositeCPA = components.getCpa();
-      cpa = injectBlockAwareCPA(compositeCPA, pSpecification, pCFA, pBlock, pTaskConfiguration);
       
       logManager.log(INFO, "Reusing existing core components.");
-    } else {*/
-      CoreComponentsFactory factory =
-          new CoreComponentsFactory(pTaskConfiguration, logManager, shutdownNotifier,
-              AggregatedReachedSets.empty());
+    } else {
       WrapperCPA configuredCPA = (WrapperCPA) factory.createCPA(pCFA, pSpecification);
       compositeCPA = configuredCPA.retrieveWrappedCpa(CompositeCPA.class);
       assert compositeCPA != null : "Configured CPAs must contain CompositeCPA!";
+    }
 
-      cpa = injectBlockAwareCPA(compositeCPA, pSpecification, pCFA, pBlock, pTaskConfiguration);
-      reached = factory.createReachedSet(cpa);
-      algorithm = factory.createAlgorithm(cpa, pCFA, pSpecification);  
-    //}
+    cpa = injectBlockAwareCPA(compositeCPA, pSpecification, pCFA, pBlock, pTaskConfiguration);
+    reached = factory.createReachedSet(cpa);
+    algorithm = factory.createAlgorithm(cpa, pCFA, pSpecification);
   }
 
   private ARGCPA injectBlockAwareCPA(

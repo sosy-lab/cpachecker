@@ -8,38 +8,17 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.concurrent.util;
 
-import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 
 public class ReusableCoreComponents {
   private final CompositeCPA cpa;
 
-  private final Algorithm algorithm;
-
-  private final ReachedSet reachedSet;
-
   public ReusableCoreComponents(
-      final CompositeCPA pCPA,
-      final Algorithm pAlgorithm,
-      final ReachedSet pReachedSet) {
+      final CompositeCPA pCPA) {
     cpa = pCPA;
-    
-    algorithm = pAlgorithm;
-    
-    reachedSet = pReachedSet;
-    reachedSet.clear();
   }
 
   public CompositeCPA getCpa() {
     return cpa;
-  }
-
-  public Algorithm getAlgorithm() {
-    return algorithm;
-  }
-
-  public ReachedSet getReachedSet() {
-    return reachedSet;
   }
 }

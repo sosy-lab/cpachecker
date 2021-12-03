@@ -54,7 +54,8 @@ public class ForwardAnalysisCore extends Task {
   private final ForwardAnalysisStatistics statistics;
   
   private AlgorithmStatus status = SOUND_AND_PRECISE;
-
+  private boolean hasCreatedContinuationRequest = false;
+  
   public ForwardAnalysisCore(
       final Block pTarget,
       final ReachedSet pReachedSet, 
@@ -93,6 +94,7 @@ public class ForwardAnalysisCore extends Task {
   
     shutdownNotifier.shutdownIfNecessary();
     if(reached.hasWaitingState()) {
+      hasCreatedContinuationRequest = true;
       messageFactory.sendForwardAnalysisContinuationRequest(
           target, expectedVersion, cpa, algorithm, reached, solver, pfMgr
       );
@@ -167,5 +169,9 @@ public class ForwardAnalysisCore extends Task {
 
   @Override public String toString() {
     return "ForwardAnalysisCore on block with entry location " + target.getEntry();
+  }
+
+  public boolean hasCreatedContinuationRequest() {
+    return hasCreatedContinuationRequest;
   }
 }
