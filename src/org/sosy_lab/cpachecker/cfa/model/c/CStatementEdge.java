@@ -13,8 +13,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
-public class CStatementEdge extends AStatementEdge {
-
+public class CStatementEdge extends AStatementEdge implements CCfaEdge {
 
   private static final long serialVersionUID = -2606975234598958304L;
 
@@ -29,5 +28,10 @@ public class CStatementEdge extends AStatementEdge {
   @Override
   public CStatement getStatement() {
     return (CStatement) statement;
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(CCfaEdgeVisitor<R, X> pVisitor) throws X {
+    return pVisitor.visit(this);
   }
 }

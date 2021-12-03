@@ -156,6 +156,7 @@ solver.z3.requireProofs = false
 solver.z3.usePhantomReferences = false
 
 # SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2007-2021 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
@@ -187,6 +188,10 @@ analysis.algorithm.CEGAR = false
 # use McMillan's interpolation-based model checking algorithm, works only
 # with PredicateCPA and large-block encoding
 analysis.algorithm.IMC = false
+
+# use interpolation-sequence based model checking algorithm, works only with
+# PredicateCPA and large-block encoding
+analysis.algorithm.ISMC = false
 
 # Use MPI for running analyses in new subprocesses. The resulting reachedset
 # is the one of the first analysis returning in time. All other mpi-processes
@@ -320,9 +325,12 @@ analysis.initialStatesFor = Sets.newHashSet(InitialStatesFor.ENTRY)
 # run interprocedural analysis
 analysis.interprocedural = true
 
+# Runs an algorithm that produces and exports invariants
+analysis.invariantExport = false
+
 # the machine model, which determines the sizes of types like int
 analysis.machineModel = LINUX32
-  enum:     [LINUX32, LINUX64, ARM]
+  enum:     [LINUX32, LINUX64, ARM, ARM64]
 
 # Use as targets for call edges only those shich are assigned to the
 # particular expression (structure field).
@@ -483,6 +491,9 @@ analysis.unknownAsTrue = false
 # certain restrictions.
 analysis.unknownIfUnrestrictedProgram = false
 
+# Use array abstraction by program transformation.
+analysis.useArrayAbstraction = false
+
 # select an analysis from a set of analyses after unknown result
 analysis.useCompositionAnalysis = false
 
@@ -496,8 +507,41 @@ analysis.useLoopStructure = true
 # analysis finishing in time. All other analyses are terminated.
 analysis.useParallelAnalyses = false
 
+# generate random test cases
+analysis.useRandomTestCaseGeneratorAlgorithm = false
+
 # generate test cases for covered test targets
 analysis.useTestCaseGeneratorAlgorithm = false
+
+# converts a witness to an ACSL annotated program
+analysis.useWitnessToACSLAlgorithm = false
+
+# converts a graphml witness to invariant witness
+analysis.witnessToInvariant = false
+
+# Whether to allow imprecise array abstraction that may lead to false alarms.
+arrayAbstraction.allowImprecision = false
+
+# Whether to export the CFA with abstracted arrays as C source file.
+arrayAbstraction.cfa.c.export = true
+
+# C source file path for CFA with abstracted arrays.
+arrayAbstraction.cfa.c.file = "abstracted-arrays.c"
+
+# Whether to export the CFA with abstracted arrays as DOT file.
+arrayAbstraction.cfa.dot.export = true
+
+# DOT file path for CFA with abstracted arrays.
+arrayAbstraction.cfa.dot.file = "cfa-abstracted-arrays.dot"
+
+# Use a second delegate analysis run to check counterexamples on the original
+# program that contains (non-abstracted) arrays for imprecise array
+# abstractions.
+arrayAbstraction.checkCounterexamples = false
+
+# Configuration file path of the delegate analysis running on the transformed
+# program.
+arrayAbstraction.delegateAnalysis = no default value
 
 # Add a threshold to the automaton, after so many branches on a path the
 # automaton will be ignored (0 to disable)
@@ -657,7 +701,7 @@ bmc.induction = false
 
 # Strategy for generating auxiliary invariants
 bmc.invariantGenerationStrategy = REACHED_SET
-  enum:     [INDUCTION, REACHED_SET, DO_NOTHING]
+  enum:     [INDUCTION, REACHED_SET, DO_NOTHING, INVARIANT_STORE]
 
 # k-induction configuration to be used as an invariant generator for
 # k-induction (ki-ki(-ai)).
@@ -1092,6 +1136,9 @@ cpa.abe.checkTargetStates = true
 
 # Cache formulas produced by path formula manager
 cpa.abe.useCachingPathFormulaManager = true
+
+# only store pure C expressions without ACSL-specific constructs
+cpa.acsl.usePureExpressionsOnly = true
 
 # Use this to change the underlying abstract domain in the APRON library
 cpa.apron.domain = OCTAGON
@@ -2693,6 +2740,9 @@ cpa.smg.arrayAllocationFunctions = {"calloc"}
 # function returns, and not only at the end of the main function
 cpa.smg.checkForMemLeaksAtEveryFrameDrop = true
 
+# Crash on unknown array dereferences
+cpa.smg.crashOnUnknown = false
+
 # Deallocation functions
 cpa.smg.deallocationFunctions = {"free"}
 
@@ -2788,6 +2838,9 @@ cpa.smg.safeUnknownFunctions = {"abort"}
 # which stop operator to use for the SMGCPA
 cpa.smg.stop = "SEP"
   allowed values: [SEP, NEVER, END_BLOCK]
+
+# Enable track predicates for possible memory safety error on SMG state
+cpa.smg.trackErrorPredicates = false
 
 # Enable track predicates on SMG state
 cpa.smg.trackPredicates = false
@@ -2995,6 +3048,11 @@ cpa.threading.useClonedFunctions = true
 # only reads and writes its own variables.
 cpa.threading.useLocalAccessLocks = true
 
+# The max amount of refinements for the trace abstraction algorithm. Setting
+# it to 0 leads to an analysis of the ARG without executing any refinements.
+# This is used for debugging purposes.
+cpa.traceabstraction.refinementStrategy.maxRefinementIterations = -1
+
 # which merge operator to use for UninitializedVariablesCPA?
 cpa.uninitvars.merge = "sep"
   allowed values: [sep, join]
@@ -3182,10 +3240,6 @@ cpa.value.optimizeBooleanVariables = true
 # target file to hold the exported precision
 cpa.value.precisionFile = no default value
 
-# which strategy to use to convert predicate to value precision
-cpa.value.predToValPrecStrategy = no default value
-  enum:     [CONVERT_ONLY]
-
 # whether or not to add assumptions to counterexamples, e.g., for supporting
 # counterexample checks
 cpa.value.refinement.addAssumptionsToCex = true
@@ -3258,6 +3312,27 @@ cpa.value.refinement.useTopDownInterpolationStrategy = true
 # Whether to write symbolic trace (including path constraints) for found
 # erexamples
 cpa.value.refinement.writePathConstraints = true
+
+# Overall timelimit for computing initial value precision from given
+# predicate precision(use seconds or specify a unit; 0 for infinite)
+cpa.value.reuse.precision.predicate.adaptionLimit = 0ns
+
+# also consider other binary operators then ==, !== when considering control
+# dependencies while adapting predicate precision
+cpa.value.reuse.precision.predicate.includeControlNonEquiv = false
+
+# comma-separated list of files with property specifications that should be
+# considered when determining the relevant edges for predicate precision
+# adaption
+cpa.value.reuse.precision.predicate.relevantProperties = []
+
+# which strategy to use to convert predicate to value precision
+cpa.value.reuse.precision.predicate.strategy = CONVERT_ONLY
+  enum:     [CONVERT_ONLY, CONVERT_AND_ADD_FLOW_BACKWARD,
+             CONVERT_AND_ADD_FLOW_BIDIRECTED]
+
+# also consider control dependencies during adaption of predicate precision
+cpa.value.reuse.precision.predicate.useControl = false
 
 # which stop operator to use for ValueAnalysisCPA
 cpa.value.stop = "SEP"
@@ -3477,17 +3552,21 @@ heuristicSelection.preAnalysisAlgorithmConfig = no default value
 # Configuration for programs containing recursion.
 heuristicSelection.recursionConfig = no default value
 
+# Configuration for programs with a single loop.
+heuristicSelection.singleLoopConfig = no default value
+
 # toggle checking forward conditions
 imc.checkForwardConditions = true
-
-# toggle deriving the interpolants from suffix formulas
-imc.deriveInterpolantFromSuffix = true
 
 # toggle falling back if interpolation or forward-condition is disabled
 imc.fallBack = true
 
 # toggle using interpolation to verify programs with loops
 imc.interpolation = true
+
+# toggle which direction to derive interpolants
+imc.itpDeriveDirection = BACKWARD
+  enum:     [FORWARD, BACKWARD, BIDIRECTION_CONJUNCT, BIDIRECTION_DISJUNCT]
 
 # toggle removing unreachable stop states in ARG
 imc.removeUnreachableStopStates = false
@@ -3516,6 +3595,36 @@ invariantGeneration.kInduction.invariantsAutomatonFile = no default value
 # For correctness-witness validation: Shut down if a candidate invariant is
 # found to be incorrect.
 invariantGeneration.kInduction.terminateOnCounterexample = false
+
+# The directory where the invariants are stored.
+invariantStore.export.outDir = "invariantWitnesses"
+invariantStore.import.storeDirectory = "invariantWitnesses"
+
+# Strategy for generating invariants
+invariantStore.invariantGenerationStrategy = REACHED_SET
+  enum:     [INDUCTION, REACHED_SET, DO_NOTHING, INVARIANT_STORE]
+
+# The witness from which invariants should be generated.
+invariantStore.witness = "invariantwitness.yaml"
+
+# toggle checking forward conditions
+ismc.checkForwardConditions = true
+
+# toggle falling back if interpolation or forward-condition is disabled
+ismc.fallBack = true
+
+# toggle Impact-like covering for the fixed-point check
+ismc.impactLikeCovering = false
+
+# toggle using interpolation to verify programs with loops
+ismc.interpolation = true
+
+# toggle which direction to derive interpolants
+ismc.itpDeriveDirection = BACKWARD
+  enum:     [FORWARD, BACKWARD, BIDIRECTION_CONJUNCT, BIDIRECTION_DISJUNCT]
+
+# toggle removing unreachable stop states in ARG
+ismc.removeUnreachableStopStates = false
 
 # Specify the class code path to search for java class or interface
 # definitions
@@ -3707,6 +3816,9 @@ parser.clang = "clang-" + extractVersionNumberFromLlvmJ() + " -S -emit-llvm -o /
 
 # Whether to dump the results of the preprocessor to disk.
 parser.clang.dumpResults = true
+
+# Whether to collect ACSL annotations if present
+parser.collectACSLAnnotations = false
 
 # C dialect for parser
 parser.dialect = GNUC
@@ -4146,8 +4258,11 @@ solver.interpolationSolver = no default value
 solver.solver = MATHSAT5
   enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, YICES2]
 
-# comma-separated list of files with specifications that should be checked
-# (see config/specification/ for examples)
+# Comma-separated list of files with specifications that should be checked
+# (cf. config/specification/ for examples). Property files as used in SV-COMP
+# can also be used here, but when these are specified inside a configuration
+# file instead of on the command line, CPAchecker will ignore the entry
+# function in the property file.
 specification = []
 
 # export abstract states as formula, e.g. for re-using them as
@@ -4294,12 +4409,34 @@ testcase.generate.parallel = false
 # display all test targets and non-covered test targets in statistics
 testcase.inStats = false
 
+# how many mutated test cases should be additionally generated (disabled if
+# <= 0)
+testcase.mutants = 0
+
+# Random seed for mutation of test cases
+testcase.mutationSeed = 0
+
+# Number of random test cases that should be generated
+testcase.numRandomTests = 1
+
 # Only convert literal value and do not add suffix, e.g., for unsigned, etc.
 testcase.plainLiteralValue = false
 
 # defines how progress is computed
 testcase.progress = RELATIVE_TOTAL
   enum:     [ABSOLUTE, RELATIVE_TOTAL]
+
+# Maximum value randomly generated
+testcase.random.max = 20
+
+# Number of random test cases that should be generated
+testcase.random.maxLength = 20
+
+# Minimum value randomly generated
+testcase.random.min = 0
+
+# Random seed for random test-case generation
+testcase.randomInputSeed = 0
 
 # when generating tests covering error call stop as soon as generated one
 # test case and report false (only possible in combination with error call
@@ -4390,6 +4527,20 @@ undefinedFunctionsCollector.stubsFile = "stubs.c"
 # select an analysis from a set of analyses after unknown result
 useCompositionAnalysis = false
 
+# Instead of comments, output the assertions into the original program as
+# violations to unreach_call.prp
+wacsl.makeDirectAssertions = false
+
+# The directory where generated, ACSL annotated programs are stored.
+wacsl.outDir = "annotated"
+
+# Makes the annotated file's name identical to the original source file's
+# name.
+wacsl.useSameFileName = false
+
+# The witness from which ACSL annotations should be generated.
+wacsl.witness = no default value
+
 # File for exporting the witness automaton in DOT format.
 witness.automatonDumpFile = no default value
 
@@ -4450,6 +4601,9 @@ witness.strictChecking = true
 # neccessary.This option is intended to be used with an ISA (c.f. option
 # witness.invariantsSpecificationAutomaton)
 witness.useInvariantsAsAssumptions = true
+
+# Validate program using invariants from ACSL annotations.
+witness.validation.correctness.acsl = false
 
 # When validating a correctness witness, use this configuration file instead
 # of the current one.

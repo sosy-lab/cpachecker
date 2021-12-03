@@ -67,7 +67,6 @@ import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ResultProviderReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
-import org.sosy_lab.cpachecker.core.specification.SpecificationProperty;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -158,20 +157,22 @@ public class CPAchecker {
   private Set<InitialStatesFor> initialStatesFor = Sets.newHashSet(InitialStatesFor.ENTRY);
 
   @Option(
-    secure = true,
-    name = "analysis.partitionInitialStates",
-    description =
-        "Partition the initial states based on the type of location they were created for (see 'initialStatesFor')"
-  )
+      secure = true,
+      name = "analysis.partitionInitialStates",
+      description =
+          "Partition the initial states based on the type of location they were created for (see"
+              + " 'initialStatesFor')")
   private boolean partitionInitialStates = false;
 
   @Option(
-    secure = true,
-    name = "specification",
-    description =
-        "comma-separated list of files with specifications that should be checked"
-            + "\n(see config/specification/ for examples)"
-  )
+      secure = true,
+      name = "specification",
+      description =
+          "Comma-separated list of files with specifications that should be checked (cf."
+              + " config/specification/ for examples). Property files as used in SV-COMP can also"
+              + " be used here, but when these are specified inside a configuration file instead of"
+              + " on the command line, CPAchecker"
+              + " will ignore the entry function in the property file.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<Path> specificationFiles = ImmutableList.of();
 
@@ -223,7 +224,8 @@ public class CPAchecker {
   static {
     String v = "(unknown version)";
     try {
-      URL url = CPAchecker.class.getClassLoader().getResource("org/sosy_lab/cpachecker/VERSION.txt");
+      URL url =
+          CPAchecker.class.getClassLoader().getResource("org/sosy_lab/cpachecker/VERSION.txt");
       if (url != null) {
         String content = Resources.toString(url, StandardCharsets.US_ASCII).trim();
         if (content.matches("[a-zA-Z0-9 ._+:-]+")) {
@@ -264,21 +266,34 @@ public class CPAchecker {
   public static String getVersion(Configuration pConfig) {
     StringJoiner joiner = new StringJoiner(" / ");
     joiner.add("CPAchecker " + getPlainVersion());
-    try {
-      String analysisName = new ApproachNameInformation(pConfig).getApproachName();
+    String analysisName = getApproachName(pConfig);
       if (analysisName != null) {
         joiner.add(analysisName);
       }
-    } catch (InvalidConfigurationException e) {
-      // Injecting a non-required "secure" String option without restrictions on allowed values
-      // actually never fails, and avoiding a throws clause simplifies callers of this method.
-      throw new AssertionError(e);
-    }
     return joiner.toString();
   }
 
   public static String getPlainVersion() {
     return version;
+  }
+
+  /**
+   * Returns a string that represents the aproach that CPAchecker runs (typically the name of the
+   * properties file).
+   *
+   * <p>Result can be null if name can not be determined.
+   *
+   * @param pConfig current config
+   * @return approach name
+   */
+  public static String getApproachName(Configuration pConfig) {
+    try {
+      return new ApproachNameInformation(pConfig).getApproachName();
+    } catch (InvalidConfigurationException e) {
+      // Injecting a non-required "secure" String option without restrictions on allowed values
+      // actually never fails, and avoiding a throws clause simplifies callers of this method.
+      throw new AssertionError(e);
+    }
   }
 
   public static String getJavaInformation() {
@@ -301,8 +316,7 @@ public class CPAchecker {
             pConfiguration, pLogManager, shutdownNotifier, AggregatedReachedSets.empty());
   }
 
-  public CPAcheckerResult run(
-      List<String> programDenotation, Set<SpecificationProperty> properties) {
+  public CPAcheckerResult run(List<String> programDenotation) {
     checkArgument(!programDenotation.isEmpty());
 
     logger.logf(Level.INFO, "%s (%s) started", getVersion(config), getJavaInformation());
@@ -332,8 +346,7 @@ public class CPAchecker {
       stats.cpaCreationTime.start();
       try {
         specification =
-            Specification.fromFiles(
-                properties, specificationFiles, cfa, config, logger, shutdownNotifier);
+            Specification.fromFiles(specificationFiles, cfa, config, logger, shutdownNotifier);
         cpa = factory.createCPA(cfa, specification);
       } finally {
         stats.cpaCreationTime.stop();
@@ -367,7 +380,7 @@ public class CPAchecker {
             mcmillan.getInitialState(cfa.getMainFunction()),
             mcmillan.getInitialPrecision(cfa.getMainFunction()));
       } else {
-        initializeReachedSet(reached, cpa, properties, cfa.getMainFunction(), cfa);
+        initializeReachedSet(reached, cpa, cfa.getMainFunction(), cfa);
       }
 
       printConfigurationWarnings();
@@ -410,9 +423,13 @@ public class CPAchecker {
       StringBuilder msg = new StringBuilder();
       msg.append("Please make sure that the code can be compiled by a compiler.\n");
       if (e.getLanguage() == Language.C) {
-        msg.append("If the code was not preprocessed, please use a C preprocessor\nor specify the -preprocess command-line argument.\n");
+        msg.append(
+            "If the code was not preprocessed, please use a C preprocessor\n"
+                + "or specify the -preprocess command-line argument.\n");
       }
-      msg.append("If the error still occurs, please send this error message\ntogether with the input file to cpachecker-users@googlegroups.com.\n");
+      msg.append(
+          "If the error still occurs, please send this error message\n"
+              + "together with the input file to cpachecker-users@googlegroups.com.\n");
       logger.log(Level.INFO, msg);
 
     } catch (ClassNotFoundException e) {
@@ -468,13 +485,19 @@ public class CPAchecker {
   private void printConfigurationWarnings() {
     Set<String> unusedProperties = config.getUnusedProperties();
     if (!unusedProperties.isEmpty()) {
-      logger.log(Level.WARNING, "The following configuration options were specified but are not used:\n",
-          Joiner.on("\n ").join(unusedProperties), "\n");
+      logger.log(
+          Level.WARNING,
+          "The following configuration options were specified but are not used:\n",
+          Joiner.on("\n ").join(unusedProperties),
+          "\n");
     }
     Set<String> deprecatedProperties = config.getDeprecatedProperties();
     if (!deprecatedProperties.isEmpty()) {
-      logger.log(Level.WARNING, "The following options are deprecated and will be removed in the future:\n",
-          Joiner.on("\n ").join(deprecatedProperties), "\n");
+      logger.log(
+          Level.WARNING,
+          "The following options are deprecated and will be removed in the future:\n",
+          Joiner.on("\n ").join(deprecatedProperties),
+          "\n");
     }
   }
 
@@ -531,7 +554,9 @@ public class CPAchecker {
     }
 
     if (!isSound) {
-      logger.log(Level.WARNING, "Analysis incomplete: no errors found, but not everything could be checked.");
+      logger.log(
+          Level.WARNING,
+          "Analysis incomplete: no errors found, but not everything could be checked.");
       return Result.UNKNOWN;
     }
 
@@ -559,7 +584,6 @@ public class CPAchecker {
   private void initializeReachedSet(
       final ReachedSet pReached,
       final ConfigurableProgramAnalysis pCpa,
-      final Set<SpecificationProperty> pProperties,
       final FunctionEntryNode pAnalysisEntryFunction,
       final CFA pCfa)
       throws InvalidConfigurationException, InterruptedException {
@@ -601,7 +625,6 @@ public class CPAchecker {
               tlp.tryGetAutomatonTargetLocations(
                   pAnalysisEntryFunction,
                   Specification.fromFiles(
-                      pProperties,
                       backwardSpecificationFiles,
                       pCfa,
                       config,
@@ -617,7 +640,8 @@ public class CPAchecker {
 
     if (!pReached.hasWaitingState()
         && !initialStatesFor.equals(Collections.singleton(InitialStatesFor.TARGET))) {
-      throw new InvalidConfigurationException("Initialization of the set of initial states failed: No analysis target found!");
+      throw new InvalidConfigurationException(
+          "Initialization of the set of initial states failed: No analysis target found!");
     } else {
       logger.logf(
           Level.FINE,

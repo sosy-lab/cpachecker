@@ -526,7 +526,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
       configPath = configFiles.get(subanalysis_index);
       outputPath = Path.of(OUTPUT_DIR, SUBANALYSIS_DIR + subanalysis_index);
       logfileName = Path.of(SUBANALYSIS_DIR + subanalysis_index + ".log");
-      String specPath = Joiner.on(", ").join(specification.getSpecFiles());
+      String specPath = Joiner.on(", ").join(specification.getFiles());
 
       /*
        * Hack to setup the desired config options for the child CPAchecker processes. The idea is to

@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
@@ -364,31 +365,51 @@ public class SMGTransferRelation
       CExpression exp = arguments.get(i);
       String varName = paramDecl.get(i).getName();
       CType cParamType = TypeUtils.getRealExpressionType(paramDecl.get(i));
+      List<SMGState> result = new ArrayList<>();
 
-     // handle string argument
-     if(exp instanceof CStringLiteralExpression) {
+      // workaround for casting
+      if (exp instanceof CCastExpression) {
+        exp = ((CCastExpression) exp).getOperand();
+      }
+      // handle string argument
+      if (exp instanceof CStringLiteralExpression) {
        CStringLiteralExpression strExp = (CStringLiteralExpression) exp;
        cParamType =  strExp.transformTypeToArrayType();
+
+        String name = strExp.getContentString() + " string literal";
+
+        SMGRegion stringObj = initialNewState.getHeap().getObjectForVisibleVariable(name);
+
+        if (stringObj != null) {
+          //FIXME: require correctly process with redefinition of string literal to provide
+          // state corresponding to previous
+          name = name + "ID" + SMGCPA.getNewValue();
+        }
         // 1. create region and save string as char array
-        SMGRegion stringObj =
-            initialNewState
-                .addAnonymousVariable(
-                    machineModel.getSizeofPtrInBits() * (strExp.getValue().length() + 1))
-                .orElseThrow();
+        stringObj =
+            initialNewState.addGlobalVariable(
+                machineModel.getSizeofInBits(cParamType).longValue(), name);
        CInitializerExpression initializer =
            new CInitializerExpression(exp.getFileLocation(), exp);
-       CVariableDeclaration decl = new CVariableDeclaration(exp.getFileLocation(), false, CStorageClass.AUTO,
-           cParamType, stringObj.getLabel(), stringObj.getLabel(), stringObj.getLabel(), initializer);
+        CVariableDeclaration decl =
+            new CVariableDeclaration(
+                exp.getFileLocation(),
+                true,
+                CStorageClass.AUTO,
+                cParamType,
+                name,
+                name,
+                name,
+                initializer);
        newStates = new ArrayList<>(
            handleInitializer(initialNewState, decl, callEdge, stringObj, 0, cParamType,
                initializer));
-       // 2. create pointer on region created in 1.
-       exp = new CIdExpression(exp.getFileLocation(), cParamType, stringObj.getLabel(),decl);
-
+        // 2. create pointer on region created in 1.
+        exp = new CIdExpression(exp.getFileLocation(), cParamType, name, decl);
      }
 
      // If parameter is a array, convert to pointer
-     final int size;
+     final long size;
      if (cParamType instanceof CArrayType) {
        size = machineModel.getSizeofPtrInBits();
      } else {
@@ -396,7 +417,6 @@ public class SMGTransferRelation
      }
      SMGRegion paramObj = new SMGRegion(size, varName);
      // get value of actual parameter in caller function context
-     List<SMGState> result = new ArrayList<>();
      for (SMGState newState : newStates) {
        result.addAll(evaluateArgumentValue(callEdge, valuesMap, i, exp, paramObj, newState));
      }
@@ -479,7 +499,7 @@ public class SMGTransferRelation
 
       SMGRegion newObject = values.get(i).getFirst();
       SMGValue symbolicValue = values.get(i).getSecond();
-      int typeSize = expressionEvaluator.getBitSizeof(callEdge, cParamType, newState);
+      long typeSize = expressionEvaluator.getBitSizeof(callEdge, cParamType, newState);
 
       newState.addLocalVariable(typeSize, varName, newObject);
 
@@ -926,7 +946,7 @@ public class SMGTransferRelation
      *  already processed the declaration, we do nothing.
      */
     if (newObject == null && (!isExtern || options.getAllocateExternalVariables())) {
-      int typeSize = expressionEvaluator.getBitSizeof(pEdge, cType, pState);
+      long typeSize = expressionEvaluator.getBitSizeof(pEdge, cType, pState);
 
       // Handle incomplete type of extern variables as externally allocated
       if (options.isHandleIncompleteExternalVariableAsExternalAllocation()
@@ -991,22 +1011,33 @@ public class SMGTransferRelation
       CInitializer pInitializer)
       throws CPATransferException {
 
-    //string literal handling
-    if (pInitializer instanceof CInitializerExpression && ((CInitializerExpression) pInitializer).getExpression() instanceof CStringLiteralExpression){
-      return handleStringInitializer(
-          pNewState,
-          pVarDecl,
-          pEdge,
-          pNewObject,
-          pOffset,
-          pLValueType,
-          pInitializer.getFileLocation(),
-          (CStringLiteralExpression) ((CInitializerExpression) pInitializer).getExpression());
-
-    } else if (pInitializer instanceof CInitializerExpression) {
-        return assignFieldToState(pNewState, pEdge, pNewObject,
-            pOffset, pLValueType,
-            ((CInitializerExpression) pInitializer).getExpression());
+    if (pInitializer instanceof CInitializerExpression) {
+      CExpression expression = ((CInitializerExpression) pInitializer).getExpression();
+      // string literal handling
+      if (expression instanceof CStringLiteralExpression) {
+        return handleStringInitializer(
+            pNewState,
+            pVarDecl,
+            pEdge,
+            pNewObject,
+            pOffset,
+            pLValueType,
+            pInitializer.getFileLocation(),
+            (CStringLiteralExpression) expression);
+      } else if (expression instanceof CCastExpression) {
+        // handle casting on initialization like 'char *str = (char *)"string";'
+        return handleCastInitializer(
+            pNewState,
+            pVarDecl,
+            pEdge,
+            pNewObject,
+            pOffset,
+            pLValueType,
+            pInitializer.getFileLocation(),
+            (CCastExpression) expression);
+      } else {
+        return assignFieldToState(pNewState, pEdge, pNewObject, pOffset, pLValueType, expression);
+      }
     } else if (pInitializer instanceof CInitializerList) {
       CInitializerList pNewInitializer = ((CInitializerList) pInitializer);
       CType realCType = pLValueType.getCanonicalType();
@@ -1039,6 +1070,41 @@ public class SMGTransferRelation
     }
   }
 
+  private List<SMGState> handleCastInitializer(
+      SMGState pNewState,
+      CVariableDeclaration pVarDecl,
+      CFAEdge pEdge,
+      SMGObject pNewObject,
+      long pOffset,
+      CType pLValueType,
+      FileLocation pFileLocation,
+      CCastExpression pExpression)
+      throws CPATransferException {
+    CExpression expression = pExpression.getOperand();
+    if (expression instanceof CStringLiteralExpression) {
+      return handleStringInitializer(
+          pNewState,
+          pVarDecl,
+          pEdge,
+          pNewObject,
+          pOffset,
+          pLValueType,
+          pFileLocation,
+          (CStringLiteralExpression) expression);
+    } else if (expression instanceof CCastExpression) {
+      return handleCastInitializer(
+          pNewState,
+          pVarDecl,
+          pEdge,
+          pNewObject,
+          pOffset,
+          pLValueType,
+          pFileLocation,
+          (CCastExpression) expression);
+    } else {
+      return assignFieldToState(pNewState, pEdge, pNewObject, pOffset, pLValueType, expression);
+    }
+  }
   /*
    * Handle string literal expression initializer:
    * if a string initializer nested in struct type:
@@ -1067,25 +1133,49 @@ public class SMGTransferRelation
 
     // handle string initializer nested in struct type or assign string to pointer
     if (realCType instanceof CCompositeType || pLValueType instanceof CPointerType) {
-      // create a new region for string expression
-      SMGRegion region =
-          pNewState
-              .addAnonymousVariable(
-                  machineModel.getSizeofCharInBits() * (pExpression.getValue().length() + 1))
-              .orElseThrow();
-      CInitializerExpression initializer = new CInitializerExpression(pExpression.getFileLocation(), pExpression);
-      CType cParamType = pExpression.transformTypeToArrayType();
-      CVariableDeclaration decl = new CVariableDeclaration(pFileLocation, false, CStorageClass.AUTO, cParamType, region.getLabel(), region.getLabel(), region.getLabel(), initializer);
-
+      // create a new global region for string literal expression
       List<SMGState> smgStates = new ArrayList<>();
-      //call #handleInitializer for new region and string expression
-      for(SMGState smgState: handleInitializer(pNewState, decl, pEdge, region, 0, cParamType, initializer)){
-        //create pointer for new region
-        CIdExpression exp = new CIdExpression(pFileLocation, cParamType, region.getLabel(),decl);
+      CType cParamType = pExpression.transformTypeToArrayType();
+      String name = pExpression.getContentString() + " string literal";
+      SMGRegion region = pNewState.getHeap().getObjectForVisibleVariable(name);
+
+      if (region != null) {
+        smgStates.add(pNewState);
+        name = name + "ID" + SMGCPA.getNewValue();
+      }
+
+      region =
+          pNewState.addGlobalVariable(machineModel.getSizeofInBits(cParamType).longValue(), name);
+      CInitializerExpression initializer =
+          new CInitializerExpression(pExpression.getFileLocation(), pExpression);
+      CVariableDeclaration decl =
+          new CVariableDeclaration(
+              pFileLocation,
+              false,
+              CStorageClass.AUTO,
+              cParamType,
+              region.getLabel(),
+              region.getLabel(),
+              region.getLabel(),
+              initializer);
+
+      // call #handleInitializer for new region and string expression
+      for (SMGState smgState :
+          handleInitializer(pNewState, decl, pEdge, region, 0, cParamType, initializer)) {
+        // create pointer for new region
+        CIdExpression exp = new CIdExpression(pFileLocation, cParamType, region.getLabel(), decl);
         CInitializerExpression newInitializer =
             new CInitializerExpression(pExpression.getFileLocation(), exp);
-        //initialize struct field with new pointer
-        smgStates.addAll(handleInitializer(smgState, pVarDecl, pEdge, pNewObject, pOffset, pExpression.getExpressionType(), newInitializer));
+        // initialize struct field with new pointer
+        smgStates.addAll(
+            handleInitializer(
+                smgState,
+                pVarDecl,
+                pEdge,
+                pNewObject,
+                pOffset,
+                pExpression.getExpressionType(),
+                newInitializer));
       }
 
       return smgStates;
@@ -1181,7 +1271,7 @@ public class SMGTransferRelation
     if (pVarDecl.isGlobal()) {
       List<Pair<SMGState, Long>> result = new ArrayList<>();
 
-      int sizeOfType = expressionEvaluator.getBitSizeof(pEdge, pLValueType, pNewState);
+      long sizeOfType = expressionEvaluator.getBitSizeof(pEdge, pLValueType, pNewState);
 
       SMGState newState =
           expressionEvaluator.writeValue(
@@ -1274,32 +1364,35 @@ public class SMGTransferRelation
 
     CType elementType = pLValueType.getType();
 
-    int sizeOfElementType = expressionEvaluator.getBitSizeof(pEdge, elementType, pNewState);
+    long sizeOfElementType = expressionEvaluator.getBitSizeof(pEdge, elementType, pNewState);
 
     List<SMGState> newStates = new ArrayList<>(4);
     newStates.add(pNewState);
 
-    // Move preinitialization of global variable because of unpredictable fields' order within
-    // CDesignatedInitializer
-    if (pVarDecl.isGlobal()) {
-      List<SMGState> result = new ArrayList<>(newStates.size());
+    // preinitialization of variable because of unpredictable fields' order within
+    // CDesignatedInitializer according to C99 6.7.8 21
+    // If there are fewer initializers in a brace-enclosed list than there are elements or members
+    // of an aggregate, or fewer characters in a string literal used to initialize an array of known
+    // size  than  there  are  elements  in the array, the  remainder  of  the  aggregate  shall  be
+    // initialized implicitly the same as objects that have static storage duration.
 
-      for (SMGState newState : newStates) {
-        if (!options.isGCCZeroLengthArray() || pLValueType.getLength() != null) {
-          int sizeOfType = expressionEvaluator.getBitSizeof(pEdge, pLValueType, pNewState);
-          newState =
-              expressionEvaluator.writeValue(
-                  newState,
-                  pNewObject,
-                  pOffset,
-                  TypeUtils.createTypeWithLength(Math.toIntExact(sizeOfType)),
-                  SMGZeroValue.INSTANCE,
-                  pEdge);
-        }
-        result.add(newState);
+    List<SMGState> result = new ArrayList<>(newStates.size());
+
+    for (SMGState newState : newStates) {
+      if (!options.isGCCZeroLengthArray() || pLValueType.getLength() != null) {
+        long sizeOfType = expressionEvaluator.getBitSizeof(pEdge, pLValueType, pNewState);
+        newState =
+            expressionEvaluator.writeValue(
+                newState,
+                pNewObject,
+                pOffset,
+                TypeUtils.createTypeWithLength(Math.toIntExact(sizeOfType)),
+                SMGZeroValue.INSTANCE,
+                pEdge);
       }
-      newStates = result;
+      result.add(newState);
     }
+    newStates = result;
 
     for (CInitializer initializer : pNewInitializer.getInitializers()) {
       if (initializer instanceof CDesignatedInitializer) {
@@ -1330,7 +1423,7 @@ public class SMGTransferRelation
 
       long offset = pOffset + listCounter * sizeOfElementType;
 
-      List<SMGState> result = new ArrayList<>();
+      result = new ArrayList<>(newStates.size());
 
       for (SMGState newState : newStates) {
         result.addAll(handleInitializer(newState, pVarDecl, pEdge,

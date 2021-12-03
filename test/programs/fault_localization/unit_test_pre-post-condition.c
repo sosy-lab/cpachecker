@@ -38,7 +38,7 @@ int main(){
 			test *= i;
 			// Reset i to restart computation with new number
 			number = number / i;
-			i = 2;
+			i = 2; // FIX: i = 1
 		}
 	}
 

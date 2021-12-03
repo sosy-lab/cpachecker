@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.util;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.nio.file.Path;
@@ -54,6 +53,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
 
 /**
@@ -161,7 +161,6 @@ public class WitnessInvariantsExtractor {
   private Specification buildSpecification(Path pathToWitnessFile)
       throws InvalidConfigurationException, InterruptedException {
     return Specification.fromFiles(
-        ImmutableSet.of(),
         ImmutableList.of(pathToWitnessFile),
         cfa,
         config,
@@ -211,11 +210,16 @@ public class WitnessInvariantsExtractor {
         String groupId = automatonState.getInternalStateName();
         ExpressionTreeLocationInvariant previousInv = null;
         if (!candidate.equals(ExpressionTrees.getTrue())) {
+          // search if we already have an location invariant at this location,
+          // if so assign it to previousInv:
           for (ExpressionTreeLocationInvariant inv : invariants) {
             if (inv.getLocation().equals(location)) {
               previousInv = inv;
             }
           }
+
+          // extract expression tree for already existing invariant
+          // at this location (or true treeotherwise)
           ExpressionTree<AExpression> previousExpression = ExpressionTrees.getTrue();
           if (previousInv != null) {
             @SuppressWarnings("unchecked")
@@ -224,9 +228,18 @@ public class WitnessInvariantsExtractor {
             previousExpression = expr;
             invariants.remove(previousInv);
           }
-          invariants.add(
-              new ExpressionTreeLocationInvariant(
-                  groupId, location, And.of(previousExpression, candidate), toCodeVisitorCache));
+
+          // make an OR between already existing expression tree (if it exists)
+          // and the invariant at the currently looked at abstract state
+          if (previousExpression.equals(ExpressionTrees.getTrue())) {
+            invariants.add(
+                new ExpressionTreeLocationInvariant(
+                    groupId, location, candidate, toCodeVisitorCache));
+          } else {
+            invariants.add(
+                new ExpressionTreeLocationInvariant(
+                    groupId, location, Or.of(previousExpression, candidate), toCodeVisitorCache));
+          }
         }
       }
     }

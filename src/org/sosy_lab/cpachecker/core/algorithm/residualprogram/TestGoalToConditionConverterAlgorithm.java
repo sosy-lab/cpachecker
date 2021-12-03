@@ -71,6 +71,8 @@ public class TestGoalToConditionConverterAlgorithm extends NestingAlgorithm {
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private Path inputfile;
 
+  private final CFA cfa;
+
   public TestGoalToConditionConverterAlgorithm(
       Configuration pConfig,
       LogManager pLogger,
@@ -79,8 +81,10 @@ public class TestGoalToConditionConverterAlgorithm extends NestingAlgorithm {
       Algorithm pOuter,
       ConfigurableProgramAnalysis pOuterCpa) throws InvalidConfigurationException, InterruptedException {
 
-    super(pConfig, pLogger, pShutdownNotifier, Specification.alwaysSatisfied(), pCfa);
+    super(pConfig, pLogger, pShutdownNotifier, Specification.alwaysSatisfied());
     pConfig.inject(this);
+
+    cfa = pCfa;
 
     switch (strategy) {
       case NAIVE:
@@ -93,25 +97,25 @@ public class TestGoalToConditionConverterAlgorithm extends NestingAlgorithm {
         throw new InvalidConfigurationException("A strategy must be selected!");
     }
     try {
-      var backwardsCpaTriple = this.createAlgorithm(
-          Path.of("config/components/goalConverterBackwardsSearch.properties"),
-          pCfa.getMainFunction(),
-          ShutdownManager.createWithParent(pShutdownNotifier),
-          AggregatedReachedSets.empty(),
-          ImmutableList.of(
-              "analysis.testGoalConverter",
-              "cpa",
-              "specification",
-              "ARGCPA.cpa",
-              "cpa.property_reachability.noFollowBackwardsUnreachable",
-              "analysis.initialStatesFor",
-              "CompositeCPA.cpas",
-              "cpa.callstack.traverseBackwards",
-              "analysis.collectAssumptions",
-              "assumptions.automatonFile"
-          ),
-          new HashSet<>()
-      );
+      var backwardsCpaTriple =
+          this.createAlgorithm(
+              Path.of("config/components/goalConverterBackwardsSearch.properties"),
+              pCfa.getMainFunction(),
+              pCfa,
+              ShutdownManager.createWithParent(pShutdownNotifier),
+              AggregatedReachedSets.empty(),
+              ImmutableList.of(
+                  "analysis.testGoalConverter",
+                  "cpa",
+                  "specification",
+                  "ARGCPA.cpa",
+                  "cpa.property_reachability.noFollowBackwardsUnreachable",
+                  "analysis.initialStatesFor",
+                  "CompositeCPA.cpas",
+                  "cpa.callstack.traverseBackwards",
+                  "analysis.collectAssumptions",
+                  "assumptions.automatonFile"),
+              new HashSet<>());
 
       backwardsCpaAlgorithm = backwardsCpaTriple.getFirst();
       backwardsCpa = backwardsCpaTriple.getSecond();

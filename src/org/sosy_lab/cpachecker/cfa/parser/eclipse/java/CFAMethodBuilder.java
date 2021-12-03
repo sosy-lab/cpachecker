@@ -85,10 +85,10 @@ import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.java.JAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodEntryNode;
@@ -125,7 +125,7 @@ class CFAMethodBuilder extends ASTVisitor {
   private final Deque<CFANode> switchCaseStack = new ArrayDeque<>();
 
   // Data structures for label , continue , break
-  private final Map<String, CLabelNode> labelMap = new HashMap<>();
+  private final Map<String, CFALabelNode> labelMap = new HashMap<>();
   private final Map<String, List<Pair<CFANode, ContinueStatement>>> registeredContinues =
       new HashMap<>();
 
@@ -257,7 +257,7 @@ class CFAMethodBuilder extends ASTVisitor {
   @Override
   public boolean visit(final VariableDeclarationStatement sd) {
 
-    assert (!locStack.isEmpty()) : "not in a methods's scope";
+    assert !locStack.isEmpty() : "not in a methods's scope";
 
     CFANode prevNode = locStack.pop();
 
@@ -272,7 +272,7 @@ class CFAMethodBuilder extends ASTVisitor {
   @Override
   public boolean visit(final SingleVariableDeclaration sd) {
 
-    assert (!locStack.isEmpty()) : "not in a methods's scope";
+    assert !locStack.isEmpty() : "not in a methods's scope";
 
     CFANode prevNode = locStack.pop();
 
@@ -1666,7 +1666,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
     AFunctionDeclaration methodName = cfa.getFunction();
     // In Java label Node is placed after Label Body
-    CLabelNode labelNode = new CLabelNode(methodName, labelName);
+    CFALabelNode labelNode = new CFALabelNode(methodName, labelName);
     cfaNodes.add(labelNode);
     labelMap.put(labelName, labelNode);
 
@@ -1699,7 +1699,7 @@ class CFAMethodBuilder extends ASTVisitor {
             + "out of scope, but scope does not contain it";
 
     // Add Edge from end of Label Body to Label
-    CLabelNode labelNode = labelMap.get(labelStatement.getLabel().getIdentifier());
+    CFALabelNode labelNode = labelMap.get(labelStatement.getLabel().getIdentifier());
     CFANode prevNode = locStack.pop();
 
     if (isReachableNode(prevNode)) {
