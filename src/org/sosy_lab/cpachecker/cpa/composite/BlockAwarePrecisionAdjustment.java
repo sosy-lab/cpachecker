@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.composite;
 
+import static org.sosy_lab.cpachecker.core.AnalysisDirection.BACKWARD;
+import static org.sosy_lab.cpachecker.core.AnalysisDirection.FORWARD;
 import static org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action.BREAK;
 import static org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action.CONTINUE;
 
@@ -62,7 +64,10 @@ public class BlockAwarePrecisionAdjustment implements PrecisionAdjustment {
           BlockAwareCompositeState.create(adjustedState, block, direction);
 
       Action action = CONTINUE;
-      if (newState.isTarget()) {
+      if (direction == BACKWARD && newState.isTarget()) {
+        action = BREAK;
+      }
+      else if (direction == FORWARD && newState.isLoopStart()) {
         action = BREAK;
       }
       return Optional.of(adjustment.withAbstractState(newState).withAction(action));

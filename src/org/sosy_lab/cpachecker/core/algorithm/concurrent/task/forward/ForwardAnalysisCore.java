@@ -9,13 +9,14 @@
 package org.sosy_lab.cpachecker.core.algorithm.concurrent.task.forward;
 
 import static org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus.SOUND_AND_PRECISE;
+import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDefaultPartition;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import static org.sosy_lab.cpachecker.util.AbstractStates.filterLocation;
-import static org.sosy_lab.cpachecker.util.AbstractStates.getTargetStates;
 import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 
-import java.util.List;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Map;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -38,6 +39,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.composite.BlockAwareCompositeState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -84,14 +86,22 @@ public class ForwardAnalysisCore extends Task {
   {
     logManager.log(Level.FINE, "Starting ForwardAnalysisCore on ", target);
     
-    prepareForNextAlgorithmRun();
-
     AlgorithmStatus newStatus = algorithm.run(reached);
     status = status.update(newStatus);
 
     handleTargetStates();
     propagateThroughExits();
-  
+
+    Collection<AbstractState> waiting = new ArrayList<>(reached.getWaitlist());
+    reached.clear();
+    for (final AbstractState waitingState : waiting) {
+      CFANode location = AbstractStates.extractLocation(waitingState);
+      assert location != null;
+
+      assert location.isLoopStart();
+      reached.add(waitingState, cpa.getInitialPrecision(location, getDefaultPartition()));
+    }
+    
     shutdownNotifier.shutdownIfNecessary();
     if(reached.hasWaitingState()) {
       hasCreatedContinuationRequest = true;
@@ -102,13 +112,6 @@ public class ForwardAnalysisCore extends Task {
 
     logManager.log(Level.FINE, "Completed ForwardAnalysisCore on ", target);
     messageFactory.sendTaskCompletedMessage(this, status, statistics);
-  }
-
-  private void prepareForNextAlgorithmRun() throws InterruptedException {
-    shutdownNotifier.shutdownIfNecessary();
-    
-    final List<AbstractState> discoveredTargets = getTargetStates(reached).toList();
-    reached.removeAll(discoveredTargets);
   }
   
   private void handleTargetStates()

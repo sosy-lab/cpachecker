@@ -83,13 +83,21 @@ public class BlockAwareCompositeState extends CompositeState {
     if (direction == BACKWARD && block.getEntry() == location) {
       return true;
     }
-
+    
     boolean programExit = block.getExits().isEmpty() && location.getNumLeavingEdges() == 0;
-    if ((direction == FORWARD && block.getExits().containsKey(location)) || programExit) {
+    boolean blockExit = block.getExits().containsKey(location);
+    if (direction == FORWARD && (blockExit || programExit)) {
       return true;
     }
 
     return defaultTarget;
+  }
+  
+  public boolean isLoopStart() {
+    final CFANode location = extractLocation(this);
+    assert location != null;
+    
+    return location.isLoopStart();
   }
 
   @Override
