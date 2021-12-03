@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request;
 
-import static java.util.logging.Level.INFO;
-
 import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -57,7 +55,7 @@ abstract public class CPACreatingRequest {
       final Optional<ReusableCoreComponents> pReusableCoreComponents)
       throws InvalidConfigurationException, CPAException, InterruptedException {
     CompositeCPA compositeCPA;
-    
+    /*
     if(false && pReusableCoreComponents.isPresent()) {
       ReusableCoreComponents components = pReusableCoreComponents.get();
       reached = components.getReachedSet();
@@ -66,7 +64,7 @@ abstract public class CPACreatingRequest {
       cpa = injectBlockAwareCPA(compositeCPA, pSpecification, pCFA, pBlock, pTaskConfiguration);
       
       logManager.log(INFO, "Reusing existing core components.");
-    } else {
+    } else {*/
       CoreComponentsFactory factory =
           new CoreComponentsFactory(pTaskConfiguration, logManager, shutdownNotifier,
               AggregatedReachedSets.empty());
@@ -77,7 +75,7 @@ abstract public class CPACreatingRequest {
       cpa = injectBlockAwareCPA(compositeCPA, pSpecification, pCFA, pBlock, pTaskConfiguration);
       reached = factory.createReachedSet(cpa);
       algorithm = factory.createAlgorithm(cpa, pCFA, pSpecification);  
-    }
+    //}
   }
 
   private ARGCPA injectBlockAwareCPA(
