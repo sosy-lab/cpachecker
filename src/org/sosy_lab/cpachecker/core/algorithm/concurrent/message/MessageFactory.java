@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.completion.Task
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.completion.TaskCompletedMessage;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.backward.BackwardAnalysisContinuationRequest;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.backward.BackwardAnalysisRequest;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.forward.ForwardAnalysisContinuationRequest;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.forward.ForwardAnalysisRequest;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.Task;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ErrorOrigin;
@@ -35,6 +36,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 public class MessageFactory {
@@ -109,7 +111,26 @@ public class MessageFactory {
     }
   }
 
-  public void sendBackwardAnalysisRequest(final Block pBlock, final CFANode pStart, final ErrorOrigin pOrigin)
+  public void sendForwardAnalysisContinuationRequest(
+      final Block pTarget,
+      final int pExpectedVersion,
+      final ARGCPA pCPA,
+      final Algorithm pAlgorithm,
+      final ReachedSet pReachedSet,
+      final Solver pSolver,
+      final PathFormulaManager pPfMgr)
+      throws InterruptedException, InvalidConfigurationException, CPAException {
+    Message message = new ForwardAnalysisContinuationRequest(
+        pTarget, pExpectedVersion, pCPA, pAlgorithm, pReachedSet, pSolver, pPfMgr, this, logManager,
+        shutdownNotifier
+    );
+    executor.sendMessage(message);
+  }
+
+  public void sendBackwardAnalysisRequest(
+      final Block pBlock,
+      final CFANode pStart,
+      final ErrorOrigin pOrigin)
       throws InterruptedException, InvalidConfigurationException, CPAException {
     assert pBlock.contains(pStart) : "Block must contain analysis start location";
 
@@ -146,9 +167,24 @@ public class MessageFactory {
 
     executor.sendMessage(message);
   }
-  
-  public void sendTaskCompletedMessage(final Task pTask, final AlgorithmStatus pStatus,
-                                       final TaskStatistics pStatistics) {
+
+  public void sendForwardAnalysisContinuationRequest(
+      final Block pBlock,
+      final ErrorOrigin pOrigin,
+      final ReachedSet pReachedSet,
+      final Algorithm pAlgorithm,
+      final ARGCPA pCPA, final Solver pSolver) {
+    Message message =
+        new BackwardAnalysisContinuationRequest(
+            pBlock, pOrigin, pReachedSet, pAlgorithm, pCPA, pSolver, this, logManager,
+            shutdownNotifier);
+
+    executor.sendMessage(message);
+  }
+
+  public void sendTaskCompletedMessage(
+      final Task pTask, final AlgorithmStatus pStatus,
+      final TaskStatistics pStatistics) {
     Message msg = new TaskCompletedMessage(pTask, pStatus, pStatistics);
     executor.sendMessage(msg);
   }
@@ -158,11 +194,13 @@ public class MessageFactory {
     executor.sendMessage(msg);
   }
 
-  public void sendErrorReachedProgramEntryMessage(final ErrorOrigin pOrigin, final AlgorithmStatus pStatus) {
+  public void sendErrorReachedProgramEntryMessage(
+      final ErrorOrigin pOrigin,
+      final AlgorithmStatus pStatus) {
     Message msg = new ErrorReachedProgramEntryMessage(pOrigin, pStatus);
     executor.sendMessage(msg);
   }
-  
+
   public Optional<ReusableCoreComponents> requestIdleForwardAnalysisComponents() {
     return executor.requestIdleForwardAnalysisComponents();
   }

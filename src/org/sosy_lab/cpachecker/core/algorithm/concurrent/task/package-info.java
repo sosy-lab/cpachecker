@@ -16,7 +16,7 @@ package org.sosy_lab.cpachecker.core.algorithm.concurrent.task;
  * {@link org.sosy_lab.cpachecker.core.algorithm.concurrent.ConcurrentAnalysis}
  * employs two task types which implement the common interface
  * {@link org.sosy_lab.cpachecker.core.algorithm.concurrent.task.Task}.
- * {@link org.sosy_lab.cpachecker.core.algorithm.concurrent.task.forward.ForwardAnalysis} implements
+ * {@link org.sosy_lab.cpachecker.core.algorithm.concurrent.task.forward.ForwardAnalysisCore} implements
  * forward analysis and calculates block summaries, while
  * {@link org.sosy_lab.cpachecker.core.algorithm.concurrent.task.forward.BackwardAnalysisFull} applies
  * a backward analysis and propagates an error condition towards program entry.

@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.core.algorithm.concurrent.Scheduler.MessageProces
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.Message;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.Task;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.backward.BackwardAnalysisFull;
-import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.forward.ForwardAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.forward.ForwardAnalysisCore;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ShareableBooleanFormula;
 
 public interface TaskRequest extends Message {
@@ -32,7 +32,7 @@ public interface TaskRequest extends Message {
    * maintained by the scheduler and centrally manage the latest known block summary and its version
    * for each edge between two {@link Block}s. Depending on the task type, the method can a) update
    * block summaries within it, or b) modify the task parameters with the information stored in the
-   * table. A {@link ForwardAnalysis} always updates <em>all</em> block summaries along outgoing
+   * table. A {@link ForwardAnalysisCore} always updates <em>all</em> block summaries along outgoing
    * edges of a {@link Block}. Therefore, the versions of all such summaries are identical, and are
    * stored as only one value for the whole {@link Block}. Therefore, {@code pSummaryVersions} is a
    * simple {@link Map}, while {@code pSummaries} requires a {@link Table}.
@@ -40,7 +40,7 @@ public interface TaskRequest extends Message {
    * <p>Similarily, the {@link Set} {@code pAlreadyPropagated} centrally stores whether the
    * algorithm has already scheduled a {@link BackwardAnalysisFull} starting from a {@link CFANode}. It
    * can be used to prevent the repeated propagation of the same error condition, which would
-   * otherwise occur if a refined {@link ForwardAnalysis} encounters the same target location as a
+   * otherwise occur if a refined {@link ForwardAnalysisCore} encounters the same target location as a
    * preceding one before.
    *
    * @param pSummaries         Latest block summaries

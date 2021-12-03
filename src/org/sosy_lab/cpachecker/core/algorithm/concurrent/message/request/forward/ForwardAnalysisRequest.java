@@ -32,7 +32,8 @@ import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.CPACrea
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.RequestInvalidatedException;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.TaskRequest;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.Task;
-import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.forward.ForwardAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.forward.ForwardAnalysisCore;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.forward.ForwardAnalysisFull;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ReusableCoreComponents;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ShareableBooleanFormula;
 import org.sosy_lab.cpachecker.core.specification.Specification;
@@ -75,7 +76,7 @@ public class ForwardAnalysisRequest extends CPACreatingRequest implements TaskRe
     super(pMessageFactory, pLogger, pShutdownNotifier);
     
     pConfig.inject(this);
-    taskConfiguration = ForwardAnalysis.getConfiguration(pLogger, configFile, pConfig);
+    taskConfiguration = ForwardAnalysisFull.getConfiguration(pLogger, configFile, pConfig);
 
     Optional<ReusableCoreComponents> reusableComponents
         = messageFactory.requestIdleForwardAnalysisComponents();
@@ -124,8 +125,8 @@ public class ForwardAnalysisRequest extends CPACreatingRequest implements TaskRe
    *
    * <ol>
    *   <li>Publish updated block summary of predecessor block, if applicable.<br>
-   *       In most cases, a new ForwardAnalysis <em>t1</em> on a block <em>b1</em> has been
-   *       triggered by a completed ForwardAnalysis <em>t0</em> on a block <em>b0</em>, where
+   *       In most cases, a new ForwardAnalysisCore <em>t1</em> on a block <em>b1</em> has been
+   *       triggered by a completed ForwardAnalysisCore <em>t0</em> on a block <em>b0</em>, where
    *       <em>b0</em> belongs to the set of predecessors of <em>b1</em>. This other analysis
    *       <em>t0</em> usually identified a new block summary <em>Q0</em> for <em>b0</em>. Because
    *       the tasks themselves don't gain access to the global synchronization structures, {@link
@@ -159,10 +160,10 @@ public class ForwardAnalysisRequest extends CPACreatingRequest implements TaskRe
    *       predecessor summary.
    * </ol>
    *
-   * @return The immutable {@link ForwardAnalysis} which actually implements the {@link Task}.
+   * @return The immutable {@link ForwardAnalysisCore} which actually implements the {@link Task}.
    * @throws RequestInvalidatedException The {@link ForwardAnalysisRequest} has become invalidated by a
-   *                                     more recent one and the {@link ForwardAnalysis} must not execute.
-   * @see ForwardAnalysis
+   *                                     more recent one and the {@link ForwardAnalysisCore} must not execute.
+   * @see ForwardAnalysisCore
    */
   @Override
   public Task process(
@@ -182,7 +183,7 @@ public class ForwardAnalysisRequest extends CPACreatingRequest implements TaskRe
     Collection<ShareableBooleanFormula> predecessorSummaries =
         Maps.filterKeys(incoming, key -> predecessor != key).values();
 
-    return new ForwardAnalysis(
+    return new ForwardAnalysisFull(
         block,
         oldSummary,
         newSummary,

@@ -23,13 +23,13 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.Task;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.backward.BackwardAnalysisFull;
-import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.forward.ForwardAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.forward.ForwardAnalysisCore;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 
 @Options(prefix = "concurrent.task.config")
 public class ConfigurationLoader {
   @Option(secure = true, description =
-      "Check provided configurations of ForwardAnalysis and BackwardAnalysis regarding a set of "
+      "Check provided configurations of ForwardAnalysisCore and BackwardAnalysis regarding a set of "
           + "properties required for a successful analysis.")
   private boolean verify = true;
 
@@ -78,22 +78,22 @@ public class ConfigurationLoader {
 
     if (!options.cpa.endsWith("ARGCPA")) {
       throw new InvalidConfigurationException(
-          "Concurrent analysis requires cpa.arg.ARGCPA as top-level CPA for both ForwardAnalysis and BackwardAnalysis!");
+          "Concurrent analysis requires cpa.arg.ARGCPA as top-level CPA for both ForwardAnalysisCore and BackwardAnalysis!");
     }
 
     if (!options.cpas.contains("cpa.predicate.PredicateCPA")) {
       throw new InvalidConfigurationException(
-          "Concurrent analysis requires cpa.predicate.PredicateCPA as component CPA for both ForwardAnalysis and BackwardAnalysis!");
+          "Concurrent analysis requires cpa.predicate.PredicateCPA as component CPA for both ForwardAnalysisCore and BackwardAnalysis!");
     }
 
-    if (task == ForwardAnalysis.class) {
+    if (task == ForwardAnalysisCore.class) {
       if (!options.cpas.contains("cpa.location.LocationCPA")) {
         throw new InvalidConfigurationException(
-            "ForwardAnalysis configuration requires cpa.location.LocationCPA as component CPA!");
+            "ForwardAnalysisCore configuration requires cpa.location.LocationCPA as component CPA!");
       }
       if (options.direction != FORWARD) {
         throw new InvalidConfigurationException(
-            "ForwardAnalysis configuration requires cpa.predicate.direction=FORWARD!");
+            "ForwardAnalysisCore configuration requires cpa.predicate.direction=FORWARD!");
       }
     } else if (task == BackwardAnalysisFull.class) {
       if (!options.cpas.contains("cpa.location.LocationCPABackwards")) {
@@ -108,22 +108,22 @@ public class ConfigurationLoader {
 
     if (options.handlePointerAliasing) {
       throw new InvalidConfigurationException(
-          "Concurrent analysis requires cpa.predicate.handlePointerAliasing=false for both ForwardAnalysis and BackwardAnalysis!");
+          "Concurrent analysis requires cpa.predicate.handlePointerAliasing=false for both ForwardAnalysisCore and BackwardAnalysis!");
     }
 
     if (options.alwaysAtFunctions) {
       throw new InvalidConfigurationException(
-          "Concurrent analysis requires cpa.predicate.blk.alwaysAtFunctions=false for both ForwardAnalysis and BackwardAnalysis!");
+          "Concurrent analysis requires cpa.predicate.blk.alwaysAtFunctions=false for both ForwardAnalysisCore and BackwardAnalysis!");
     }
 
     if (options.alwaysAtTarget) {
       throw new InvalidConfigurationException(
-          "Concurrent analysis requires cpa.predicate.blk.alwaysAtTarget=false for both ForwardAnalysis and BackwardAnalysis!");
+          "Concurrent analysis requires cpa.predicate.blk.alwaysAtTarget=false for both ForwardAnalysisCore and BackwardAnalysis!");
     }
 
     if (options.alwaysAtLoops) {
       throw new InvalidConfigurationException(
-          "Concurrent analysis requires cpa.predicate.blk.alwaysAtLoops=false for both ForwardAnalysis and BackwardAnalysis!");
+          "Concurrent analysis requires cpa.predicate.blk.alwaysAtLoops=false for both ForwardAnalysisCore and BackwardAnalysis!");
     }
   }
 
