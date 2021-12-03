@@ -43,15 +43,11 @@ import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.Request
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.TaskRequest;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.Task;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.backward.BackwardAnalysisCore;
-import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.forward.ForwardAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ErrorOrigin;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ReusableCoreComponents;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ShareableBooleanFormula;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
-import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
-import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 
 /**
  * JobExecutor manages execution of concurrent analysis tasks from {@linkplain
@@ -86,8 +82,10 @@ public final class Scheduler implements Runnable, StatisticsProvider {
   private volatile Optional<ErrorOrigin> target = Optional.empty();
   private volatile AlgorithmStatus status = SOUND_AND_PRECISE;
 
-  private BlockingQueue<ReusableCoreComponents> idleForwardAnalysisComponents = new LinkedBlockingQueue<>();
-  private BlockingQueue<ReusableCoreComponents> idleBackwardAnalysisComponents = new LinkedBlockingQueue<>();
+  private final BlockingQueue<ReusableCoreComponents> idleForwardAnalysisComponents 
+      = new LinkedBlockingQueue<>();
+  private final BlockingQueue<ReusableCoreComponents> idleBackwardAnalysisComponents 
+      = new LinkedBlockingQueue<>();
   
   /**
    * Prepare a new {@link Scheduler}. Actual execution does not start until {@link #start()} gets
@@ -317,6 +315,7 @@ public final class Scheduler implements Runnable, StatisticsProvider {
             + "just discarded (which is okay). Therefore, there is no need to check the return " 
             + "value of offer()."
     )
+    
     private void retrieveReusableComponents(final Task pTask) {
       /*
        * If the completed task is a BackwardAnalysisCore which has created a 

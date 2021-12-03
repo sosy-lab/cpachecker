@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.concurrent.message;
 
 import java.util.Optional;
-import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -77,9 +76,7 @@ public class MessageFactory {
       final Block pBlock,
       final ShareableBooleanFormula pNewPrecondition)
       throws InterruptedException, InvalidConfigurationException, CPAException {
-
-    try {
-      Message request =
+    Message request =
         new ForwardAnalysisRequest(
             pPredecessor,
             pBlock,
@@ -91,24 +88,17 @@ public class MessageFactory {
             shutdownNotifier,
             cfa,
             this);
-    
-      executor.sendMessage(request);
-    } catch(final AssertionError error) {
-      logManager.log(Level.SEVERE, "AssertionError:", error);
-    }
+
+    executor.sendMessage(request);
   }
 
   public void sendForwardAnalysisRequest(final Block pBlock)
       throws InterruptedException, InvalidConfigurationException, CPAException {
-    try {
-      Message message =
-          new ForwardAnalysisRequest(
-              null, pBlock, null, 0, config, specification, logManager, shutdownNotifier, cfa,
-              this);
-      executor.sendMessage(message);
-    } catch(final AssertionError error) {
-      logManager.log(Level.SEVERE, "AssertionError:", error);
-    }
+    Message message =
+        new ForwardAnalysisRequest(
+            null, pBlock, null, 0, config, specification, logManager, shutdownNotifier, cfa,
+            this);
+    executor.sendMessage(message);
   }
 
   public void sendForwardAnalysisContinuationRequest(
@@ -151,7 +141,8 @@ public class MessageFactory {
 
     Message message =
         new BackwardAnalysisRequest(
-            pBlock, pOrigin, pStart, pSource, pCondition, config, logManager, shutdownNotifier, cfa, this);
+            pBlock, pOrigin, pStart, pSource, pCondition, config, logManager, shutdownNotifier, cfa,
+            this);
     executor.sendMessage(message);
   }
 
@@ -163,7 +154,8 @@ public class MessageFactory {
       final ARGCPA pCPA, final Solver pSolver) {
     Message message =
         new BackwardAnalysisContinuationRequest(
-            pBlock, pOrigin, pReachedSet, pAlgorithm, pCPA, pSolver, this, logManager, shutdownNotifier);
+            pBlock, pOrigin, pReachedSet, pAlgorithm, pCPA, pSolver, this, logManager,
+            shutdownNotifier);
 
     executor.sendMessage(message);
   }
