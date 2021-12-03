@@ -128,6 +128,7 @@ public class ConcurrentAnalysis implements Algorithm, StatisticsProvider {
       status = NO_PROPERTY_CHECKED;
     }
 
+    reachedSet.clearWaitlist();
     logger.log(Level.INFO, "Stopping concurrent analysis ...");
     return status;
   }
