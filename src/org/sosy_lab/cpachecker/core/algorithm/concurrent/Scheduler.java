@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.concurrent;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.WARNING;
 import static org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus.NO_PROPERTY_CHECKED;
 import static org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus.SOUND_AND_PRECISE;
@@ -30,6 +31,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -43,11 +46,15 @@ import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.Request
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.TaskRequest;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.Task;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.backward.BackwardAnalysisCore;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.forward.ForwardAnalysisCore;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ErrorOrigin;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ReusableCoreComponents;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ShareableBooleanFormula;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 
 /**
  * JobExecutor manages execution of concurrent analysis tasks from {@linkplain
@@ -69,6 +76,7 @@ public final class Scheduler implements Runnable, StatisticsProvider {
   private final LinkedBlockingQueue<Message> messages = new LinkedBlockingQueue<>();
   private final ExecutorService executor;
   private final ShutdownManager shutdownManager;
+  private final String benignShutdownReason = "Error reached program entry.";
   private final LogManager logManager;
   private final Collection<Thread> waitingForCompletion = new ArrayList<>();
   private final Thread schedulerThread = new Thread(this, Scheduler.getThreadName());
@@ -236,8 +244,7 @@ public final class Scheduler implements Runnable, StatisticsProvider {
   }
 
   private void errorReachedProgramEntry() {
-    shutdownManager.requestShutdown("Error reached program entry");
-
+    shutdownManager.requestShutdown(benignShutdownReason);
     executor.shutdownNow();
     messages.clear();
     jobCount = 0;
@@ -290,11 +297,40 @@ public final class Scheduler implements Runnable, StatisticsProvider {
     }
 
     public void visit(@SuppressWarnings("unused") final TaskAbortedMessage pMessage) {
+      /*
+       * If tasks abort because a shutdown has been requested, there can be two different reasons: 
+       * (a) The analysis is complete because an error condition reached program entry. 
+       *     In this case, the scheduler must continue to track completed and running tasks and will
+       *     eventually reach a state where all tasks have stopped and where it can report the 
+       *     analysis as complete.
+       * (b) Shutdown has been requested for a reason external to the analysis, i.e. the analysis
+       *     gets cancelled. In this case, tasks might abort in an unsound state and the analysis 
+       *     must be marked as incomplete. To do so, the scheduler stops to track the number of 
+       *     running tasks by not decrementing it within this method. As a result, if getStatus() 
+       *     gets called later on, the scheduler will report the analysis as incomplete.  
+       * 
+       * If no shutdown has been requested, the task aborted because it has been invalidated or 
+       * due to other expected situations within the algorithm. In this case, the scheduler 
+       * continues to track the number of running jobs. 
+       */
+      ShutdownNotifier notifier = shutdownManager.getNotifier();
+      if(notifier.shouldShutdown()) {
+        if(!notifier.getReason().equals(benignShutdownReason)) {
+          /*
+           * Shutdown requested for a reason external to the analysis. 
+           * Give up on tracking the number of running tasks, which will lead to the analysis 
+           * getting reported as incomplete later-on.  
+           */
+          return;
+        }
+      }
+      
       --jobCount;
       shutdownIfComplete();
     }
 
     public void visit(final ErrorReachedProgramEntryMessage pMessage) {
+      logManager.log(FINE, "Error reached program entry.");
       target = Optional.of(pMessage.getOrigin());
       status = status.update(pMessage.getStatus());
       errorReachedProgramEntry();

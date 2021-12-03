@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.concurrent;
 import static java.util.logging.Level.SEVERE;
 import static java.util.logging.Level.WARNING;
 import static org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus.NO_PROPERTY_CHECKED;
+import static org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus.SOUND_AND_PRECISE;
 
 import java.util.Collection;
 import java.util.Optional;
@@ -83,9 +84,7 @@ public class ConcurrentAnalysis implements Algorithm, StatisticsProvider {
 
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
-    // reachedSet.clear();
-    AlgorithmStatus status = NO_PROPERTY_CHECKED; // algorithm.run(reachedSet);
-    
+    AlgorithmStatus status = SOUND_AND_PRECISE;
     logger.log(Level.INFO, "Starting concurrent analysis ...");
 
     try {
