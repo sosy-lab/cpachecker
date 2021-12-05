@@ -9,6 +9,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.concurrent.task.forward;
 
 import static org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus.SOUND_AND_PRECISE;
+import static org.sosy_lab.cpachecker.core.algorithm.concurrent.task.Task.AnalysisBreakupOnLoopBlocks.NONE;
+import static org.sosy_lab.cpachecker.core.algorithm.concurrent.task.Task.AnalysisBreakupOnLoopBlocks.SINGLE_ITERATION_PER_JOB;
 import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDefaultPartition;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
@@ -50,6 +52,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
+@Options(prefix = "concurrent.task.forward")
 public class ForwardAnalysisCore extends Task {
   private final Block target;
   private final Solver solver;
@@ -61,6 +64,15 @@ public class ForwardAnalysisCore extends Task {
   
   private AlgorithmStatus status = SOUND_AND_PRECISE;
   private boolean hasCreatedContinuationRequest = false;
+
+  @SuppressWarnings("FieldMayBeFinal")
+  @Option(secure = true, toUppercase = true,
+      description = "An analysis task on a block which contains a non-terminating loop can cause" 
+          + "overall analysis progress to starve. With SINGLE_ITERATION_PER_JOB, the algorithm" 
+          + "prevents this by spawning a separate analysis task for each iteration of a loop. With" 
+          + "this option, this behavior gets configured for forward analysis tasks."
+  )
+  private AnalysisBreakupOnLoopBlocks loopBreakup = SINGLE_ITERATION_PER_JOB;
   
   public ForwardAnalysisCore(
       final Configuration pGlobalConfiguration,
@@ -91,21 +103,14 @@ public class ForwardAnalysisCore extends Task {
       throws CPAException, InterruptedException, InvalidConfigurationException, SolverException 
   {
     logManager.log(Level.FINE, "Starting ForwardAnalysisCore on ", target);
-    
-    AlgorithmStatus newStatus = algorithm.run(reached);
-    status = status.update(newStatus);
 
-    handleTargetStates();
-    propagateThroughExits();
-
-    Collection<AbstractState> waiting = new ArrayList<>(reached.getWaitlist());
-    reached.clear();
-    for (final AbstractState waitingState : waiting) {
-      CFANode location = AbstractStates.extractLocation(waitingState);
-      assert location != null;
-
-      assert location.isLoopStart();
-      reached.add(waitingState, cpa.getInitialPrecision(location, getDefaultPartition()));
+    if(loopBreakup == NONE) {
+      do {
+        singleIteration();
+      } while(reached.hasWaitingState());
+    } else {
+      assert loopBreakup == SINGLE_ITERATION_PER_JOB;
+      singleIteration();
     }
     
     shutdownNotifier.shutdownIfNecessary();
@@ -118,6 +123,40 @@ public class ForwardAnalysisCore extends Task {
 
     logManager.log(Level.FINE, "Completed ForwardAnalysisCore on ", target);
     messageFactory.sendTaskCompletedMessage(this, status, statistics);
+  }
+  
+  private void singleIteration() throws InterruptedException, CPAException, InvalidConfigurationException, SolverException {
+    AlgorithmStatus newStatus = algorithm.run(reached);
+    status = status.update(newStatus);
+
+    handleTargetStates();
+    propagateThroughExits();
+
+    Collection<AbstractState> waiting = new ArrayList<>(reached.getWaitlist());
+    reached.clear();
+    for (final AbstractState waitingState : waiting) {
+      CFANode location = AbstractStates.extractLocation(waitingState);
+      assert location != null;
+      
+      if(!location.isLoopStart() && isTargetState(waitingState)) {
+        continue;
+      }
+      
+      final PredicateAbstractState predicateState 
+          = extractStateByType(waitingState, PredicateAbstractState.class);
+      assert predicateState != null;
+
+      /*
+       * Todo: Make loop-formula check configurable.
+       */
+      BooleanFormula abstractionFormula = predicateState.getAbstractionFormula().asFormula();
+      BooleanFormula pathFormula = predicateState.getPathFormula().getFormula(); 
+      BooleanFormula formula = fMgr.makeAnd(abstractionFormula, pathFormula);
+      
+      if(!solver.isUnsat(formula)) {
+        reached.add(waitingState, cpa.getInitialPrecision(location, getDefaultPartition()));
+      }
+    }
   }
   
   private void handleTargetStates()

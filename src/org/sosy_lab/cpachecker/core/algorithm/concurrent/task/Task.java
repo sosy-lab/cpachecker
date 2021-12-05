@@ -21,6 +21,10 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
  * analysis.
  */
 public abstract class Task implements Runnable {
+  public enum AnalysisBreakupOnLoopBlocks {
+    NONE, SINGLE_ITERATION_PER_JOB
+  }
+  
   protected final MessageFactory messageFactory;
   protected final LogManager logManager;
   protected final ShutdownNotifier shutdownNotifier;
