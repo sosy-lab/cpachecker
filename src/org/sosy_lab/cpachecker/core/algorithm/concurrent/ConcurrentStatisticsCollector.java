@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.concurrent;
 
-import static java.util.logging.Level.INFO;
 import static java.util.logging.Level.WARNING;
 
 import java.io.IOException;
@@ -27,7 +26,9 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
@@ -78,6 +79,11 @@ public class ConcurrentStatisticsCollector implements StatisticsProvider, Statis
   private final BlockingQueue<TaskStatistics> pendingStatistics = new LinkedBlockingQueue<>();
 
   @SuppressWarnings("FieldMayBeFinal")
+  @Option(secure = true, 
+      description = "Indicates whether to collect detailled statistics about concurrent analysis tasks.")
+  private boolean collectDetailedStatistics = true;
+  
+  @SuppressWarnings("FieldMayBeFinal")
   @Option(secure = true, name = "sequence.file",
       description = "File into which to output task sequence information")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -97,15 +103,21 @@ public class ConcurrentStatisticsCollector implements StatisticsProvider, Statis
 
   public ConcurrentStatisticsCollector(
       final LogManager pLogManager,
-      final ShutdownNotifier pShutdownNotifier) {
+      final ShutdownNotifier pShutdownNotifier,
+      final Configuration pConfiguration) throws InvalidConfigurationException {
+    pConfiguration.inject(this);
+    
     logManager = pLogManager;
     shutdownNotifier = pShutdownNotifier;
   }
 
   @Override
   public void run() {
+    if(!collectDetailedStatistics) {
+      return;
+    }
+    
     while(!pendingStatistics.isEmpty() || !shutdownNotifier.shouldShutdown()) {// || !pendingStatistics.isEmpty() || !shutdownNotifier.shouldShutdown()) {
-      logManager.log(INFO, "!");
       try {
         final TaskStatistics statistics = pendingStatistics.take();
         statistics.accept(this);
@@ -118,6 +130,10 @@ public class ConcurrentStatisticsCollector implements StatisticsProvider, Statis
   }
 
   public void submitNewStatistics(final TaskStatistics pStatistics) {
+    if(!collectDetailedStatistics) {
+      return;
+    }
+    
     try {
       pendingStatistics.put(pStatistics);  
     } catch(final InterruptedException ignored) {
@@ -130,6 +146,10 @@ public class ConcurrentStatisticsCollector implements StatisticsProvider, Statis
   @Override
   public void printStatistics(
       PrintStream out, Result result, UnmodifiableReachedSet reached) {
+    if(!collectDetailedStatistics) {
+      return;
+    }
+    
     final StatInt forwardAnalysisCountValues = new StatInt(StatKind.AVG, "FA Count");
 
     out.format("Forward Analysis Average Count: %f%n", forwardAnalysisCountValues.getAverage());
@@ -173,6 +193,10 @@ public class ConcurrentStatisticsCollector implements StatisticsProvider, Statis
 
   @Override
   public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
+    if(!collectDetailedStatistics) {
+      return;
+    }
+    
     /*
      * Todo: Make calling thread wait for completion. In practice, this assertion rarely fails, but
      *       for correctness, a waiting-mechanism must be implemented.  

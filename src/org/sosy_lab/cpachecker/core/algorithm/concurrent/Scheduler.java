@@ -167,8 +167,9 @@ public final class Scheduler implements Runnable, StatisticsProvider {
     logManager = pLogManager;
     shutdownManager = pShutdownManager;
 
-    statisticsCollector 
-        = new ConcurrentStatisticsCollector(logManager, shutdownManager.getNotifier());
+    statisticsCollector
+        = new ConcurrentStatisticsCollector(logManager, shutdownManager.getNotifier(),
+        pConfiguration);
     statisticsCollector.start();
   }
 
