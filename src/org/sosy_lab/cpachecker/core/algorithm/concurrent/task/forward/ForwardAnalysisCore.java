@@ -197,17 +197,24 @@ public class ForwardAnalysisCore extends Task {
       throws InterruptedException, CPAException, InvalidConfigurationException {
     for (Map.Entry<CFANode, Block> entry : target.getExits().entrySet()) {
       final CFANode exit = entry.getKey();
-      PathFormula exitFormula = pfMgr.makeEmptyPathFormula();
       
-      for (final AbstractState exitState : filterLocation(reached, exit)) {
-        final PredicateAbstractState predState = extractStateByType(exitState, PredicateAbstractState.class);
+      PathFormula exitFormula = null;
+      for (AbstractState exitState : filterLocation(reached, exit)) {
+        final PredicateAbstractState predState =
+            extractStateByType(exitState, PredicateAbstractState.class);
         assert predState != null;
 
         PathFormula partialExitFormula
             = pfMgr.makeAnd(predState.getPathFormula(), predState.getAbstractionFormula().asFormula());
-          
-        exitFormula = pfMgr.makeOr(exitFormula, partialExitFormula);
+
+        if (exitFormula == null) {
+          exitFormula = partialExitFormula;
+        } else {
+          exitFormula = pfMgr.makeOr(exitFormula, partialExitFormula);
+        }
       }
+      
+      assert exitFormula != null;
       
       Block successor = entry.getValue();
       final ShareableBooleanFormula shareableFormula = new ShareableBooleanFormula(fMgr, exitFormula);

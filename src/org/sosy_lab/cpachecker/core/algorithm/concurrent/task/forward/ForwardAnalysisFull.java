@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.concurrent.task.forward;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.core.AnalysisDirection.FORWARD;
+import static org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus.SOUND_AND_PRECISE;
 import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDefaultPartition;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
@@ -20,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -123,7 +125,7 @@ public class ForwardAnalysisFull extends Task {
       return;
     }
 
-    PathFormula cumPredSummary = buildCumulativePredecessorSummary();
+    Optional<PathFormula> cumPredSummary = buildCumulativePredecessorSummary();
     if (thereIsNoRelevantChange(cumPredSummary)) {
       logManager.log(Level.INFO, "No relevant change on summary, refined analysis aborted.");
       messageFactory.sendTaskCompletedMessage(this, SOUND_AND_PRECISE, statistics);
@@ -144,13 +146,15 @@ public class ForwardAnalysisFull extends Task {
   public String toString() {
     return "ForwardAnalysisFull on block with entry location " + target.getEntry();
   }
-
-  private boolean thereIsNoRelevantChange(final PathFormula cumPredSummary)
+  
+  private boolean thereIsNoRelevantChange(final Optional<PathFormula> cumPredSummaryOptional)
       throws SolverException, InterruptedException {
-    if (oldSummary == null || newSummary == null) {
+    if (oldSummary == null || newSummary == null || cumPredSummaryOptional.isEmpty()) {
       return false;
     }
-
+    
+    PathFormula cumPredSummary = cumPredSummaryOptional.get();
+    
     BooleanFormula addedContext
         = bfMgr.and(oldSummary.getFormula(), bfMgr.not(newSummary.getFormula()));
     BooleanFormula relevantChange = bfMgr.implication(cumPredSummary.getFormula(), addedContext);
@@ -159,13 +163,25 @@ public class ForwardAnalysisFull extends Task {
     return solver.isUnsat(relevantChange);
   }
 
-  private PathFormula buildCumulativePredecessorSummary() throws InterruptedException {
-    PathFormula cumPredSummary = pfMgr.makeEmptyPathFormula();
+  private Optional<PathFormula> buildCumulativePredecessorSummary() throws InterruptedException {
+    if(predecessorSummaries.isEmpty()) {
+      return Optional.empty();
+    }
+    
+    int index = 0;
+    PathFormula cumPredSummary = null;
     for (final PathFormula formula : predecessorSummaries) {
-      cumPredSummary = pfMgr.makeOr(cumPredSummary, formula);
+      if(index == 0) {
+        cumPredSummary = formula;
+      }
+      else {
+        cumPredSummary = pfMgr.makeOr(cumPredSummary, formula);  
+      }
+      
+      index++;
     }
 
-    return cumPredSummary;
+    return Optional.of(cumPredSummary);
   }
 
   private PredicateAbstractState getRawPredicateEntryState() throws InterruptedException {
@@ -198,7 +214,7 @@ public class ForwardAnalysisFull extends Task {
     return !solver.isUnsat(equivalence);
   }
 
-  private ARGState buildEntryState(final PathFormula cumPredSummary)
+  private ARGState buildEntryState(final Optional<PathFormula> cumPredSummary)
       throws InterruptedException {
     PredicateAbstractState predicateEntryState = buildPredicateEntryState(cumPredSummary);
 
@@ -223,9 +239,15 @@ public class ForwardAnalysisFull extends Task {
     return BlockAwareCompositeState.createAndWrap(componentStates, target, FORWARD);
   }
 
-  private PredicateAbstractState buildPredicateEntryState(final PathFormula cumPredSummary)
+  private PredicateAbstractState buildPredicateEntryState(final Optional<PathFormula> cumPredSummary)
       throws InterruptedException {
-    PathFormula newContext = pfMgr.makeOr(cumPredSummary, newSummary);
+    PathFormula newContext = null;
+
+    if(cumPredSummary.isPresent()) {
+      newContext = pfMgr.makeOr(cumPredSummary.get(), newSummary);
+    } else {
+      newContext = newSummary;
+    }
 
     PredicateAbstractState rawPredicateState = getRawPredicateEntryState();
 
