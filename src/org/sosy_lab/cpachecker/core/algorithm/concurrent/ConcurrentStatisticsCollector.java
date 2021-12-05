@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.forward.ForwardAna
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.util.statistics.StatInt;
+import org.sosy_lab.cpachecker.util.statistics.StatIntHist;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 
 @Options(prefix = "concurrent.algorithm")
@@ -69,10 +69,16 @@ public class ConcurrentStatisticsCollector implements StatisticsProvider, Statis
   
   private Optional<Thread> thread = Optional.empty();
   
-  private final Map<Block, Integer> forwardAnalysisCount = new HashMap<>();
+  private final Map<Block, Integer> forwardAnalysisCountPerBlock = new HashMap<>();
 
-  private final Map<Block, Integer> backwardAnalysisCount = new HashMap<>();
+  private final Map<Block, Integer> backwardAnalysisCountPerBlock = new HashMap<>();
 
+  private final StatIntHist forwardAnalysisCount 
+      = new StatIntHist(StatKind.AVG, "ForwardAnalysis Count");
+
+  private final StatIntHist backwardAnalysisCount 
+      = new StatIntHist(StatKind.AVG, "BackwardAnalysis Count");
+  
   private final List<ExecutedTaskInfo> sequence = new ArrayList<>();
   
   private final BlockingQueue<TaskStatistics> pendingStatistics = new LinkedBlockingQueue<>();
@@ -149,12 +155,16 @@ public class ConcurrentStatisticsCollector implements StatisticsProvider, Statis
     if (!collectDetailedStatistics) {
       return;
     }
+    accumulateCounts(forwardAnalysisCountPerBlock, forwardAnalysisCount);
+    accumulateCounts(backwardAnalysisCountPerBlock, backwardAnalysisCount);
 
-    final StatInt forwardAnalysisCountValues = new StatInt(StatKind.AVG, "FA Count");
+    out.format("Forward Analysis Average Count: %f%n", forwardAnalysisCount.getAverage());
+    out.format("Forward Analysis Min Count: %d%n", forwardAnalysisCount.getMinValue());
+    out.format("Forward Analysis Max Count: %d%n", forwardAnalysisCount.getMaxValue());
 
-    out.format("Forward Analysis Average Count: %f%n", forwardAnalysisCountValues.getAverage());
-    out.format("Forward Analysis Max Count: %d%n", forwardAnalysisCountValues.getMaxValue());
-    out.format("Forward Analysis Min Count: %d%n", forwardAnalysisCountValues.getMinValue());
+    out.format("Backward Analysis Average Count: %f%n", backwardAnalysisCount.getAverage());
+    out.format("Backward Analysis Min Count: %d%n", backwardAnalysisCount.getMinValue());
+    out.format("Backward Analysis Max Count: %d%n", backwardAnalysisCount.getMaxValue());
   }
 
   @Override
@@ -164,8 +174,8 @@ public class ConcurrentStatisticsCollector implements StatisticsProvider, Statis
 
   public void visit(final BackwardAnalysisFullStatistics pStatistics) {
     final Block target = pStatistics.getTarget();
-    final int oldValue = backwardAnalysisCount.getOrDefault(target, 0);
-    backwardAnalysisCount.put(target, oldValue + 1);
+    final int oldValue = backwardAnalysisCountPerBlock.getOrDefault(target, 0);
+    backwardAnalysisCountPerBlock.put(target, oldValue + 1);
 
     collectExecutedTaskInfo(pStatistics, "BackwardAnalysisFull");
   }
@@ -180,8 +190,8 @@ public class ConcurrentStatisticsCollector implements StatisticsProvider, Statis
 
   public void visit(final ForwardAnalysisFullStatistics pStatistics) {
     final Block target = pStatistics.getTarget();
-    final int oldValue = forwardAnalysisCount.getOrDefault(target, 0);
-    forwardAnalysisCount.put(target, oldValue + 1);
+    final int oldValue = forwardAnalysisCountPerBlock.getOrDefault(target, 0);
+    forwardAnalysisCountPerBlock.put(target, oldValue + 1);
 
     collectExecutedTaskInfo(pStatistics, "ForwardAnalysisFull");
   }
@@ -220,15 +230,21 @@ public class ConcurrentStatisticsCollector implements StatisticsProvider, Statis
   }
 
   private void writeForwardAnalysisCount() {
-    String content = buildCountFileContent(forwardAnalysisCount);
+    String content = buildCountFileContent(forwardAnalysisCountPerBlock);
     writeFile(faCountFile, content, "forward analysis count");
   }
 
   private void writeBackwardAnalysisCount() {
-    String content = buildCountFileContent(backwardAnalysisCount);
+    String content = buildCountFileContent(backwardAnalysisCountPerBlock);
     writeFile(baCountFile, content, "backward analysis count");
   }
 
+  private void accumulateCounts(final Map<Block, Integer> counts, final StatIntHist counter) {
+    for (final Map.Entry<Block, Integer> entry : counts.entrySet()) {
+      counter.setNextValue(entry.getValue());
+    }
+  }
+  
   private String buildCountFileContent(final Map<Block, Integer> counts) {
     StringBuilder content = new StringBuilder();
 
