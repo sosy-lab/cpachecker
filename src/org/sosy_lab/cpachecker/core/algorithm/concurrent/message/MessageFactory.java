@@ -127,7 +127,7 @@ public class MessageFactory {
     assert pBlock.contains(pStart) : "Block must contain analysis start location";
 
     Message message =
-        new BackwardAnalysisRequest(config,
+        new BackwardAnalysisRequest(
             pBlock, pOrigin, pStart, null, null, config, logManager, shutdownNotifier, cfa, this);
     executor.sendMessage(message);
   }
@@ -142,7 +142,7 @@ public class MessageFactory {
     assert pBlock.contains(pStart) : "Block must contain analysis start location";
 
     Message message =
-        new BackwardAnalysisRequest(config,
+        new BackwardAnalysisRequest(
             pBlock, pOrigin, pStart, pSource, pCondition, config, logManager, shutdownNotifier, cfa,
             this);
     executor.sendMessage(message);
