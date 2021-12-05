@@ -75,7 +75,7 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
  * does so if data with which a new job has been created (e.g. a block summary) has become outdated
  * due to a concurrent task which completed and which calculated an updated version of such data.
  */
-@Options(prefix = "concurrent.scheduler")
+@Options(prefix = "concurrent.algorithm")
 public final class Scheduler implements Runnable, StatisticsProvider {
   private final LinkedBlockingQueue<Message> messages = new LinkedBlockingQueue<>();
   private final ExecutorService executor;
