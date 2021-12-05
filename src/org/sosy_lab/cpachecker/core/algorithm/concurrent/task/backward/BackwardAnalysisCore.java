@@ -64,7 +64,6 @@ public class BackwardAnalysisCore extends Task {
       final LogManager pLogManager,
       final ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     super(pCPA, pAlgorithm, pReachedSet, pMessageFactory, pLogManager, pShutdownNotifier);
-    pGlobalConfiguration.inject(this);
         
     solver = pSolver;
     fMgr = solver.getFormulaManager();

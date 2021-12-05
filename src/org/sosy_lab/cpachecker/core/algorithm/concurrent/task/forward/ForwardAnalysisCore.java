@@ -71,7 +71,6 @@ public class ForwardAnalysisCore extends Task {
       final LogManager pLogManager,
       final ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     super(pCPA, pAlgorithm, pReachedSet, pMessageFactory, pLogManager, pShutdownNotifier);
-    pGlobalConfiguration.inject(this);
     
     target = pTarget;
     expectedVersion = pExpectedVersion;
