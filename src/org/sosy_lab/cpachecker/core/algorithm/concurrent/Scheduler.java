@@ -63,12 +63,12 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
  * JobExecutor manages execution of concurrent analysis tasks from {@linkplain
  * org.sosy_lab.cpachecker.core.algorithm.concurrent.task concurrent.task}.
  *
- * <p>After creating the executor using the public constructor {@link #Scheduler(int,
- * LogManager, ShutdownManager)}, user can request execution of {@link Task}s with
- * {@link #sendMessage(Message)}. In particular, scheduled tasks can use this method to spawn
- * further tasks themselves. Actual execution starts as soon as {@link #start()} gets called.
- * {@link Scheduler} shuts down as soon as all requested jobs (including ones spawned by running
- * jobs themselves) have completed. To wait for this situation, the user can call
+ * <p>After creating the executor using the public constructor 
+ * {@link #Scheduler(int, Configuration, LogManager, ShutdownManager)}, user can request execution 
+ * of {@link Task}s with {@link #sendMessage(Message)}. In particular, scheduled tasks can use this 
+ * method to spawn further tasks themselves. Actual execution starts as soon as {@link #start()} 
+ * gets called. {@link Scheduler} shuts down as soon as all requested jobs (including ones spawned 
+ * by running jobs themselves) have completed. To wait for this situation, the user can call
  * {@link #waitForCompletion()}, which blocks until all jobs have completed.
  *
  * <p>{@link Scheduler} can modify requested jobs before actually posting them for execution. It
