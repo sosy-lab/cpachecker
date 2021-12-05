@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 @Options(prefix = "concurrent.task.forward")
 public class ForwardAnalysisContinuationRequest implements TaskRequest {
-  private final Configuration globalConfiguration;
   private final Block target;
   private final int expectedVersion;
   private final ARGCPA cpa;
@@ -69,8 +68,7 @@ public class ForwardAnalysisContinuationRequest implements TaskRequest {
       final LogManager pLogManager,
       final ShutdownNotifier pShutdownNotifier
   ) throws InvalidConfigurationException {    
-    globalConfiguration = pGlobalConfiguration;
-    globalConfiguration.inject(this);
+    pGlobalConfiguration.inject(this);
     
     target = pTarget;
     expectedVersion = pPExpectedVersion;
@@ -123,7 +121,7 @@ public class ForwardAnalysisContinuationRequest implements TaskRequest {
     }
     
     return new ForwardAnalysisCore(
-        globalConfiguration, target, reachedSet, expectedVersion, algorithm, cpa, solver, pfMgr, messageFactory,
+        target, reachedSet, expectedVersion, algorithm, cpa, solver, pfMgr, messageFactory,
         logManager, shutdownNotifier
     );
   }

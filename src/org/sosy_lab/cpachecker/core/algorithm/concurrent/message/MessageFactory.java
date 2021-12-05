@@ -155,7 +155,7 @@ public class MessageFactory {
       final Algorithm pAlgorithm,
       final ARGCPA pCPA, final Solver pSolver) {
     Message message =
-        new BackwardAnalysisContinuationRequest(config,
+        new BackwardAnalysisContinuationRequest(
             pBlock, pOrigin, pReachedSet, pAlgorithm, pCPA, pSolver, this, logManager,
             shutdownNotifier);
 
@@ -169,7 +169,7 @@ public class MessageFactory {
       final Algorithm pAlgorithm,
       final ARGCPA pCPA, final Solver pSolver) {
     Message message =
-        new BackwardAnalysisContinuationRequest(config,
+        new BackwardAnalysisContinuationRequest(
             pBlock, pOrigin, pReachedSet, pAlgorithm, pCPA, pSolver, this, logManager,
             shutdownNotifier);
 

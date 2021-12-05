@@ -12,7 +12,6 @@ import com.google.common.collect.Table;
 import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
@@ -31,7 +30,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 public class BackwardAnalysisContinuationRequest implements TaskRequest {
-  final Configuration globalConfiguration;
   final Block block;
   final ErrorOrigin origin;
   final ReachedSet reachedSet;
@@ -43,7 +41,6 @@ public class BackwardAnalysisContinuationRequest implements TaskRequest {
   final ShutdownNotifier shutdownNotifier;
 
   public BackwardAnalysisContinuationRequest(
-      final Configuration pGlobalConfiguration,
       final Block pBlock,
       final ErrorOrigin pOrigin,
       final ReachedSet pReachedSet,
@@ -54,7 +51,6 @@ public class BackwardAnalysisContinuationRequest implements TaskRequest {
       final LogManager pLogManager,
       final ShutdownNotifier pShutdownNotifier
   ) {
-    globalConfiguration = pGlobalConfiguration;
     block = pBlock;
     origin = pOrigin;
     reachedSet = pReachedSet;
@@ -74,7 +70,6 @@ public class BackwardAnalysisContinuationRequest implements TaskRequest {
                                               InvalidConfigurationException {
 
     return new BackwardAnalysisCore(
-        globalConfiguration,
         block, reachedSet, origin, algorithm, argcpa,
         solver, messageFactory, logManager, shutdownNotifier
     );

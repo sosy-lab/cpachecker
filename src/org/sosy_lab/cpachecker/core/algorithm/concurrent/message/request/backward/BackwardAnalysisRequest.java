@@ -152,7 +152,6 @@ public class BackwardAnalysisRequest extends CPACreatingRequest implements TaskR
     }
 
     return new BackwardAnalysisFull(
-        globalConfiguration,
         target,
         origin,
         start,

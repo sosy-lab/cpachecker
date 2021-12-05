@@ -19,7 +19,6 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
@@ -59,7 +58,6 @@ public class ForwardAnalysisCore extends Task {
   private boolean hasCreatedContinuationRequest = false;
   
   public ForwardAnalysisCore(
-      final Configuration pGlobalConfiguration,
       final Block pTarget,
       final ReachedSet pReachedSet,
       final int pExpectedVersion,
@@ -69,7 +67,7 @@ public class ForwardAnalysisCore extends Task {
       final PathFormulaManager pPfMgr,
       final MessageFactory pMessageFactory,
       final LogManager pLogManager,
-      final ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+      final ShutdownNotifier pShutdownNotifier) {
     super(pCPA, pAlgorithm, pReachedSet, pMessageFactory, pLogManager, pShutdownNotifier);
     
     target = pTarget;

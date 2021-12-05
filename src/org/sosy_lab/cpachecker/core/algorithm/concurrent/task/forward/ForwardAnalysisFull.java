@@ -162,7 +162,6 @@ public class ForwardAnalysisFull extends Task {
       messageFactory.sendStatsReportMessage(this, statistics);
       
       new ForwardAnalysisCore(
-          globalConfiguration, 
           target, 
           reached, 
           expectedVersion, 
