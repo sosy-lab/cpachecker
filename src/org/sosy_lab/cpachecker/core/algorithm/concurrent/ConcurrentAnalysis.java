@@ -12,6 +12,8 @@ import static java.util.logging.Level.SEVERE;
 import static java.util.logging.Level.WARNING;
 import static org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus.NO_PROPERTY_CHECKED;
 import static org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus.SOUND_AND_PRECISE;
+import static org.sosy_lab.cpachecker.core.algorithm.concurrent.ConcurrentAnalysis.InitialTaskSpawnStrategy.ALL_BLOCKS;
+import static org.sosy_lab.cpachecker.core.algorithm.concurrent.ConcurrentAnalysis.InitialTaskSpawnStrategy.PROGRAM_ENTRY;
 
 import java.util.Collection;
 import java.util.Optional;
@@ -20,6 +22,8 @@ import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
@@ -35,23 +39,27 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 
+@Options(prefix = "concurrent.algorithm")
 public class ConcurrentAnalysis implements Algorithm, StatisticsProvider {
-
   private final Algorithm algorithm;
-
   private final LogManager logger;
-
-  @SuppressWarnings({"FieldCanBeLocal", "UnusedVariable"})
   private final CFA cfa;
-
-  @SuppressWarnings({"FieldCanBeLocal", "UnusedVariable"})
   private final Configuration config;
-
   private final Specification specification;
-
   private final ShutdownManager shutdownManager;
-
   private final Scheduler scheduler;
+
+  public enum InitialTaskSpawnStrategy {
+    ALL_BLOCKS, PROGRAM_ENTRY
+  }
+  @SuppressWarnings("FieldMayBeFinal")
+  @Option(secure = true, toUppercase = true,
+      values = {"ALL_BLOCKS", "PROGRAM_ENTRY"},
+      description = "Strategy for spawning initial forward analysis tasks to kick off the analysis.\n" 
+          + "With ALL_BLOCKS, the algorithm initially creates forward analysis tasks on all blocks," 
+          + "with PROGRAM_ENTRY, a single forward analysis starts from program entry."
+  )
+  private InitialTaskSpawnStrategy initialTaskSpawnStrategy = ALL_BLOCKS;
   
   private ConcurrentAnalysis(
       final Algorithm pAlgorithm,
@@ -60,6 +68,8 @@ public class ConcurrentAnalysis implements Algorithm, StatisticsProvider {
       final Specification pSpecification,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+    pConfig.inject(this);
+    
     algorithm = pAlgorithm;
     cfa = pCFA;
     logger = pLogger;
@@ -105,22 +115,28 @@ public class ConcurrentAnalysis implements Algorithm, StatisticsProvider {
               .set(scheduler, Scheduler.class)
               .createInstance();
 
-      for (final Block block : graph.getBlocks()) {
-        messageFactory.sendForwardAnalysisRequest(block);
+      if(initialTaskSpawnStrategy == ALL_BLOCKS) {
+        for (final Block block : graph.getBlocks()) {
+          messageFactory.sendForwardAnalysisRequest(block);
+        }
+      } else {
+        assert initialTaskSpawnStrategy == PROGRAM_ENTRY;
+        messageFactory.sendForwardAnalysisRequest(graph.getEntry());
       }
-
+      
       Optional<ErrorOrigin> error = Optional.empty();
       scheduler.start();
       try {
-        error = scheduler.waitForCompletion();  
-      } catch(final Throwable throwable) {
+        error = scheduler.waitForCompletion();
+      } catch (final Throwable throwable) {
         logger.log(WARNING, "Unexpected exception while waiting for analysis completion.");
       }
-              
+
       if (error.isPresent()) {
-        reachedSet.addNoWaitlist(error.orElseThrow().getState(), error.orElseThrow().getPrecision());
+        reachedSet.addNoWaitlist(error.orElseThrow().getState(),
+            error.orElseThrow().getPrecision());
       }
-      
+
       status = scheduler.getStatus();
     } catch (InvalidConfigurationException exception) {
       logger.log(SEVERE, "Invalid configuration:", exception.getMessage());
@@ -134,10 +150,10 @@ public class ConcurrentAnalysis implements Algorithm, StatisticsProvider {
 
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
-    if(algorithm instanceof StatisticsProvider) {
+    if (algorithm instanceof StatisticsProvider) {
       ((StatisticsProvider) algorithm).collectStatistics(statsCollection);
     }
-    
+
     scheduler.collectStatistics(statsCollection);
   }
 }
