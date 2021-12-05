@@ -916,6 +916,30 @@ compositionAlgorithm.strategy = no default value
 # not only the last one that is executed
 compositionAlgorithm.writeIntermediateOutputFiles = true
 
+# File into which to output the number of backward analysis tasks per block.
+concurrent.algorithm.backwardAnalysisCount.file = "output/count-backwardAnalysis.txt"
+
+# Indicates whether to collect detailled statistics about concurrent analysis
+# tasks.
+concurrent.algorithm.collectDetailedStatistics = true
+
+# File into which to output the number of forward analysis tasks per block.
+concurrent.algorithm.forwardAnalysisCount.file = "output/count-forwardAnalysis.txt"
+
+# Strategy for spawning initial forward analysis tasks to kick off the
+# analysis.
+# With ALL_BLOCKS, the algorithm initially creates forward analysis tasks on
+# all blocks,with PROGRAM_ENTRY, a single forward analysis starts from
+# program entry.
+concurrent.algorithm.initialTaskSpawnStrategy = ALL_BLOCKS
+  enum:     [ALL_BLOCKS, PROGRAM_ENTRY]
+
+# Reuse idle CPA instances in consecutive analysis tasks.
+concurrent.algorithm.reuseComponents = true
+
+# File into which to output task sequence information
+concurrent.algorithm.sequence.file = "output/sequence.txt"
+
 # Optional configuration file for forward analysis during concurrent
 # analysis.Relative paths get interpreted starting from the location of the
 # configurationfile which sets this value, i.e.
@@ -924,7 +948,7 @@ compositionAlgorithm.writeIntermediateOutputFiles = true
 # package core.algorithm.concurrent.task.forward.
 concurrent.task.backward.configFile = no default value
 
-# Check provided configurations of ForwardAnalysis and BackwardAnalysis
+# Check provided configurations of ForwardAnalysisCore and BackwardAnalysis
 # regarding a set of properties required for a successful analysis.
 concurrent.task.config.verify = true
 
@@ -935,6 +959,14 @@ concurrent.task.config.verify = true
 # value is set, the analysis uses the file predicateBackward.properties inthe
 # package core.algorithm.concurrent.task.backward.
 concurrent.task.forward.configFile = no default value
+
+# Indicates whether the analysis should first check if a new summary really
+# adds new information or is just redundant. In the later case, the analysis
+# for the new summary gets aborted. These checks involve satisfiability
+# queries and get performed for each new forward analysis task. This option
+# provides the user with the ability to declare whether the overhead of these
+# checks is worth the advantage of aborting analysis tasks early.
+concurrent.task.forward.performRedundancyChecks = true
 
 # configuration of the residual program generator
 conditional.verifier.generatorConfig = no default value
