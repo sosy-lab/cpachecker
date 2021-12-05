@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.Scheduler;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.Scheduler.SummaryVersion;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.MessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.RequestInvalidatedException;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.TaskRequest;
@@ -72,16 +73,32 @@ public class ForwardAnalysisContinuationRequest implements TaskRequest {
   @Override
   public Task process(
       Table<Block, Block, ShareableBooleanFormula> pSummaries,
-      Map<Block, Integer> pSummaryVersions,
+      Map<Block, SummaryVersion> pSummaryVersions,
       Set<CFANode> pAlreadyPropagated) throws RequestInvalidatedException,
                                               InvalidConfigurationException {
     assert Thread.currentThread().getName().equals(Scheduler.getThreadName())
         : "Only " + Scheduler.getThreadName() + " may call process()";
 
-    int currentVersion = pSummaryVersions.getOrDefault(target, 0);
-    if(currentVersion != expectedVersion) {
+    SummaryVersion version = pSummaryVersions.getOrDefault(target, SummaryVersion.getInitial());
+    if(version.passedNonRedundancyCheck < expectedVersion) {
+      /*
+       * This analysis just passed the non-redundancy-check and publishes this information by 
+       * setting the latestVersionWhichPassedNonRedundancyCheck-value for the summary of the target 
+       * block to its version value.  
+       */
+      pSummaryVersions.put(target, version.setLatestVersionWhichPassedRedundancyCheck(expectedVersion));
+    } else if(version.passedNonRedundancyCheck > expectedVersion) {
+      /*
+       * Another more recent analysis with a higher version value has passed the 
+       * non-redundancy-check. The present analysis therefore becomes redundant and stops.
+       */
       throw new RequestInvalidatedException();
     }
+    /*
+     * The case version.passedNonRedundancyCheck == expectedVersion represents that the current task
+     * remains the most recent analysis for the target block which has passed the non-redundancy-
+     * check and can just continue to run.
+     */
     
     return new ForwardAnalysisCore(
         globalConfiguration, target, reachedSet, expectedVersion, algorithm, cpa, solver, pfMgr, messageFactory,

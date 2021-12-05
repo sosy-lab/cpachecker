@@ -77,6 +77,52 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
  */
 @Options(prefix = "concurrent.algorithm")
 public final class Scheduler implements Runnable, StatisticsProvider {
+  /*
+   * Simple type which represent version information about the summary calculation of a block.
+   */
+  public static class SummaryVersion {
+    /**
+     * Version which gets increment as soon as a ForwardAnalysis gets scheduled on a block.
+     * This value ensures that the results of a more recent ForwardAnalysis don't get overwritten 
+     * by a ForwardAnalysis created earlier which has randomly completed later. 
+     * In the tasks, it actually checked, but instead the value 'passedNonRedundancyCheck' gets used
+     * to determine whether a request has been invalidated, The additional value 'current' just 
+     * ensures that each task gets assigned a fresh and separate version number.
+     */
+    public final int current;
+
+    /*
+     * Latest Version for which the corresponding task passed the non-redundancy checks and actually
+     * performs the analysis.  
+     * This value is required because a ForwardAnalysisContinuation aborts the analysis if it
+     * recognizes that a more recent ForwardAnalysis has been scheduled. If this check would also
+     * use the value of 'current', this could lead to a situation where the older ForwardAnalysis
+     * stops because a new one has been scheduled, but the new one also stops because the checks for
+     * redundant changes reveal that the new summary dopes not provide new contect. In this case,
+     * a loop would not continue to get unrolled, because the old ForwardAnalasis has stoped and the
+     * the new one has conclued that it is redundant.
+     */
+    public final int passedNonRedundancyCheck;
+
+    private SummaryVersion(final int pCurrent, final int pPassedNonRedundancyCheck) {
+      current = pCurrent;
+      passedNonRedundancyCheck = pPassedNonRedundancyCheck;
+    }
+
+    public SummaryVersion incrementCurrent() {
+      return new SummaryVersion(current + 1, passedNonRedundancyCheck);
+    }
+
+    public SummaryVersion setLatestVersionWhichPassedRedundancyCheck(final int version) {
+      assert version >= current;
+      return new SummaryVersion(current, version);
+    }
+
+    public static SummaryVersion getInitial() {
+      return new SummaryVersion(0, 0);
+    }
+  }
+  
   private final LinkedBlockingQueue<Message> messages = new LinkedBlockingQueue<>();
   private final ExecutorService executor;
   private final ShutdownManager shutdownManager;
@@ -86,7 +132,7 @@ public final class Scheduler implements Runnable, StatisticsProvider {
   private final Thread schedulerThread = new Thread(this, Scheduler.getThreadName());
 
   private final Table<Block, Block, ShareableBooleanFormula> summaries = HashBasedTable.create();
-  private final Map<Block, Integer> summaryVersion = new HashMap<>();
+  private final Map<Block, SummaryVersion> summaryVersion = new HashMap<>();
   private final Set<CFANode> alreadyPropagated = new HashSet<>();
   private final ConcurrentStatisticsCollector statisticsCollector;
   private int jobCount = 0;

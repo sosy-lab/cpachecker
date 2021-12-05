@@ -15,6 +15,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.Scheduler.MessageProcessingVisitor;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.Scheduler.SummaryVersion;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.Message;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.Task;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.backward.BackwardAnalysisFull;
@@ -43,14 +44,13 @@ public interface TaskRequest extends Message {
    * can be used to prevent the repeated propagation of the same error condition, which would
    * otherwise occur if a refined {@link ForwardAnalysisCore} encounters the same target location as a
    * preceding one before.
-   *
-   * @param pSummaries         Latest block summaries
+   *  @param pSummaries         Latest block summaries
    * @param pSummaryVersions   Version counter for block summaries
    * @param pAlreadyPropagated CFANodes from which a BackwardAnalysisFull has already emerged
    */
   Task process(
       final Table<Block, Block, ShareableBooleanFormula> pSummaries,
-      final Map<Block, Integer> pSummaryVersions,
+      final Map<Block, SummaryVersion> pSummaryVersions,
       final Set<CFANode> pAlreadyPropagated) throws RequestInvalidatedException,
                                                     InvalidConfigurationException;
 

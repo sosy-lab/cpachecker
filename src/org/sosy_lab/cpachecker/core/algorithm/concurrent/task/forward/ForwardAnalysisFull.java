@@ -135,11 +135,12 @@ public class ForwardAnalysisFull extends Task {
     AbstractState entryState = buildEntryState(cumPredSummary);
     Precision precision = cpa.getInitialPrecision(target.getEntry(), getDefaultPartition());
     reached.add(entryState, precision);
-    
+
     shutdownNotifier.shutdownIfNecessary();
-    new ForwardAnalysisCore(
-        globalConfiguration, target, reached, expectedVersion, algorithm, cpa, solver, pfMgr, messageFactory, logManager, shutdownNotifier
-    ).run();
+    messageFactory.sendForwardAnalysisContinuationRequest(
+        target, expectedVersion, cpa, algorithm, reached, solver, pfMgr
+    );
+    messageFactory.sendTaskCompletedMessage(this, SOUND_AND_PRECISE, statistics);
   }
 
   @Override

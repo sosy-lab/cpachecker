@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.Scheduler;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.Scheduler.SummaryVersion;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.MessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.CPACreatingRequest;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.RequestInvalidatedException;
@@ -102,24 +103,6 @@ public class ForwardAnalysisRequest extends CPACreatingRequest implements TaskRe
   }
 
   /**
-   * Increment version count of the block summary for {@code pBlock}.<br>
-   * Used by {@link #process(Table, Map, Set)}.
-   *
-   * @param pBlock The block for which to update the summary version
-   * @param pVersions The global map of summary versions
-   * @return The new summary version
-   * @see #process(Table, Map, Set)
-   */
-  private static int incrementVersion(final Block pBlock, final Map<Block, Integer> pVersions) {
-    assert Thread.currentThread().getName().equals(Scheduler.getThreadName())
-        : "Only " + Scheduler.getThreadName() + " may call incrementVersion()";
-
-    int currentVersion = pVersions.getOrDefault(pBlock, 0);
-    pVersions.put(pBlock, ++currentVersion);
-    return currentVersion;
-  }
-
-  /**
    * {@inheritDoc}
    * <hr/>
    *
@@ -132,20 +115,20 @@ public class ForwardAnalysisRequest extends CPACreatingRequest implements TaskRe
    *       <em>b0</em> belongs to the set of predecessors of <em>b1</em>. This other analysis
    *       <em>t0</em> usually identified a new block summary <em>Q0</em> for <em>b0</em>. Because
    *       the tasks themselves don't gain access to the global synchronization structures, {@link
-   *       #process(Table, Map, Set)} running for <em>t1</em> offers the first opportunity after
+   *       TaskRequest#process(Table, Map, Set)} running for <em>t1</em> offers the first opportunity after
    *       the completion of <em>t0</em> to access the global map of calculated summaries and
-   *       publish <em>Q0</em> to it. Before doing so, {@link #process(Table, Map, Set)} running
+   *       publish <em>Q0</em> to it. Before doing so, {@link TaskRequest#process(Table, Map, Set)} running
    *       for <em>t1</em> first checks the expected version of the summary for <em>b0</em> against
    *       the value found in the global map of version counters. At the time the
    *       {@link ForwardAnalysisRequest} <em>t1</em> got created by <em>t0</em>, <em>t0</em>
    *       provided <em>t1</em> with the version applicable when <em>t0</em> was scheduled. If
-   *       {@link #process(Table, Map, Set)} for <em>t1</em> still encounters the same version in
+   *       {@link TaskRequest#process(Table, Map, Set)} for <em>t1</em> still encounters the same version in
    *       the global map, the updated summary <em>Q0</em> found by <em>t0</em> remains valid and
    *       must be published. If the version has been increment further in the meantime, the
    *       calculation of a newer version for the block summary of <em>b0</em> has been scheduled
    *       with a {@link ForwardAnalysisRequest} <em>t2</em>. Furthermore, <em>t2</em> might even
    *       already have completed, and its result might have been published to the global map of
-   *       block summaries. In this case, {@link #process(Table, Map, Set)} for <em>t1</em> must
+   *       block summaries. In this case, {@link TaskRequest#process(Table, Map, Set)} for <em>t1</em> must
    *       not overwrite this value with its now outdated version of <em>Q0</em>. Such task
    *       <em>t2</em> would also already have created a new {@link ForwardAnalysisRequest} on
    *       <em>b1</em>, which makes the present task <em>t1</em> redundant. In this case, the method
@@ -170,7 +153,7 @@ public class ForwardAnalysisRequest extends CPACreatingRequest implements TaskRe
   @Override
   public Task process(
       final Table<Block, Block, ShareableBooleanFormula> pSummaries,
-      final Map<Block, Integer> pSummaryVersions,
+      final Map<Block, SummaryVersion> pSummaryVersions,
       final Set<CFANode> pAlreadyPropagated)
       throws RequestInvalidatedException {
     assert Thread.currentThread().getName().equals(Scheduler.getThreadName())
@@ -181,7 +164,13 @@ public class ForwardAnalysisRequest extends CPACreatingRequest implements TaskRe
 
     publishPredSummary(incoming, pSummaryVersions);
 
-    int expectedVersion = incrementVersion(block, pSummaryVersions);
+    final SummaryVersion version 
+        = pSummaryVersions.getOrDefault(block, SummaryVersion.getInitial());
+    
+    final SummaryVersion nextVersion = version.incrementCurrent();
+    pSummaryVersions.put(block, nextVersion);
+    final int expectedVersion = nextVersion.current;
+    
     Collection<ShareableBooleanFormula> predecessorSummaries =
         Maps.filterKeys(incoming, key -> predecessor != key).values();
 
@@ -202,16 +191,16 @@ public class ForwardAnalysisRequest extends CPACreatingRequest implements TaskRe
 
   /**
    * Publish an updated block summary to the global map of block summaries.<br>
-   * Used by {@link #process(Table, Map, Set)}.
+   * Used by {@link TaskRequest#process(Table, Map, Set)}.
    *
    * @param predSummaries The global map of block summaries
    * @param versions      The global map of block summary versions
-   * @throws RequestInvalidatedException The task for which {@link #process(Table, Map, Set)} called 
-   * this method has been invalidated (see documentation for {@link #process(Table, Map, Set)}).
-   * @see #process(Table, Map, Set)
+   * @throws RequestInvalidatedException The task for which {@link TaskRequest#process(Table, Map, Set)} called 
+   * this method has been invalidated (see documentation for {@link TaskRequest#process(Table, Map, Set)}).
+   * @see TaskRequest#process(Table, Map, Set)
    */
   private void publishPredSummary(
-      final Map<Block, ShareableBooleanFormula> predSummaries, final Map<Block, Integer> versions)
+      final Map<Block, ShareableBooleanFormula> predSummaries, final Map<Block, SummaryVersion> versions)
       throws RequestInvalidatedException {
     assert Thread.currentThread().getName().equals(Scheduler.getThreadName())
         : "Only the central thread "
@@ -222,9 +211,14 @@ public class ForwardAnalysisRequest extends CPACreatingRequest implements TaskRe
       return;
     }
 
-    final int predVersion = versions.getOrDefault(predecessor, 0);
+    final SummaryVersion predVersion 
+        = versions.getOrDefault(predecessor, SummaryVersion.getInitial());
 
-    if (expectedPredVersion != predVersion) {
+    if (expectedPredVersion < predVersion.passedNonRedundancyCheck) {
+      /*
+       * Another, more recent task has passed the non-redundancy-check. This invalidates the current
+       * task, which can stop.
+       */
       throw new RequestInvalidatedException();
     } else {
       predSummaries.put(predecessor, newSummary);

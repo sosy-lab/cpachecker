@@ -18,6 +18,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.Scheduler.SummaryVersion;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.MessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.RequestInvalidatedException;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.TaskRequest;
@@ -68,7 +69,7 @@ public class BackwardAnalysisContinuationRequest implements TaskRequest {
   @Override
   public Task process(
       Table<Block, Block, ShareableBooleanFormula> pSummaries,
-      Map<Block, Integer> pSummaryVersions,
+      Map<Block, SummaryVersion> pSummaryVersions,
       Set<CFANode> pAlreadyPropagated) throws RequestInvalidatedException,
                                               InvalidConfigurationException {
 

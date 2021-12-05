@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.Scheduler;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.Scheduler.SummaryVersion;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.MessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.CPACreatingRequest;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.RequestInvalidatedException;
@@ -125,7 +126,7 @@ public class BackwardAnalysisRequest extends CPACreatingRequest implements TaskR
    */
   @Override
   public Task process(
-      Table<Block, Block, ShareableBooleanFormula> pSummaries, Map<Block, Integer> pSummaryVersions,
+      Table<Block, Block, ShareableBooleanFormula> pSummaries, Map<Block, SummaryVersion> pSummaryVersions,
       Set<CFANode> pAlreadyPropagated)
       throws RequestInvalidatedException {
     assert Thread.currentThread().getName().equals(Scheduler.getThreadName())
