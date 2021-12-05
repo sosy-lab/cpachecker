@@ -54,7 +54,6 @@ public class ConcurrentAnalysis implements Algorithm, StatisticsProvider {
   }
   @SuppressWarnings("FieldMayBeFinal")
   @Option(secure = true, toUppercase = true,
-      values = {"ALL_BLOCKS", "PROGRAM_ENTRY"},
       description = "Strategy for spawning initial forward analysis tasks to kick off the analysis.\n" 
           + "With ALL_BLOCKS, the algorithm initially creates forward analysis tasks on all blocks," 
           + "with PROGRAM_ENTRY, a single forward analysis starts from program entry."
