@@ -85,7 +85,7 @@ public class Block {
 
   @Override
   public String toString() {
-    return "Block starting at " + entry.toString() + " (" + super.toString() + ")";
+    return "Block starting at " + entry + " (" + super.toString() + ")";
   }
   
   public String getPrintableNodeList() {
