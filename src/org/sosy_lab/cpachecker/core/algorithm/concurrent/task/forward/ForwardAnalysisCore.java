@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.composite.BlockAwareCompositeState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -113,22 +112,16 @@ public class ForwardAnalysisCore extends Task {
   
   private void resetReachedSet() throws InterruptedException, SolverException {
     Collection<AbstractState> waiting = new ArrayList<>(reached.getWaitlist());
-    reached.clear();
+    reached.clearWaitlist();
+    
     for (final AbstractState waitingState : waiting) {
-      CFANode location = AbstractStates.extractLocation(waitingState);
+      CFANode location = extractLocation(waitingState);
       assert location != null;
-
-      if(!location.isLoopStart() && isTargetState(waitingState)) {
-        continue;
-      }
 
       final PredicateAbstractState predicateState
           = extractStateByType(waitingState, PredicateAbstractState.class);
       assert predicateState != null;
 
-      /*
-       * Todo: Make loop-formula check configurable.
-       */
       BooleanFormula abstractionFormula = predicateState.getAbstractionFormula().asFormula();
       BooleanFormula pathFormula = predicateState.getPathFormula().getFormula();
       BooleanFormula formula = fMgr.makeAnd(abstractionFormula, pathFormula);
