@@ -14,6 +14,7 @@ import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -44,6 +45,15 @@ public class ForwardAnalysisContinuationRequest implements TaskRequest {
   private final LogManager logManager;
   private final ShutdownNotifier shutdownNotifier;
 
+  @SuppressWarnings("FieldMayBeFinal")
+  @Option(description="Indicates whether the analysis should first check if a new summary"
+      + "really adds new information or is just redundant. In the later case, the analysis"
+      + "for the new summary gets aborted. These checks involve satisfiability queries and"
+      + "get performed for each new forward analysis task. This option provides the user with"
+      + "the ability to declare whether the overhead of these checks is worth the advantage "
+      + "of aborting analysis tasks early.")
+  private boolean performRedundancyChecks = true;
+  
   public ForwardAnalysisContinuationRequest(
       final Configuration pGlobalConfiguration,
       final Block pTarget,
@@ -56,8 +66,10 @@ public class ForwardAnalysisContinuationRequest implements TaskRequest {
       final MessageFactory pMessageFactory,
       final LogManager pLogManager,
       final ShutdownNotifier pShutdownNotifier
-  ) {
+  ) throws InvalidConfigurationException {    
     globalConfiguration = pGlobalConfiguration;
+    globalConfiguration.inject(this);
+    
     target = pTarget;
     expectedVersion = pPExpectedVersion;
     cpa = pCPA;
@@ -80,25 +92,33 @@ public class ForwardAnalysisContinuationRequest implements TaskRequest {
         : "Only " + Scheduler.getThreadName() + " may call process()";
 
     SummaryVersion version = pSummaryVersions.getOrDefault(target, SummaryVersion.getInitial());
-    if(version.passedNonRedundancyCheck < expectedVersion) {
+    if(performRedundancyChecks) {
+      if (version.passedNonRedundancyCheck < expectedVersion) {
+        /*
+         * This analysis just passed the non-redundancy-check and publishes this information by
+         * setting the latestVersionWhichPassedNonRedundancyCheck-value for the summary of the target
+         * block to its version value.
+         */
+        pSummaryVersions.put(target,
+            version.setLatestVersionWhichPassedRedundancyCheck(expectedVersion));
+      } else if (version.passedNonRedundancyCheck > expectedVersion) {
+        /*
+         * Another more recent analysis with a higher version value has passed the
+         * non-redundancy-check. The present analysis therefore becomes redundant and stops.
+         */
+        throw new RequestInvalidatedException();
+      }
       /*
-       * This analysis just passed the non-redundancy-check and publishes this information by 
-       * setting the latestVersionWhichPassedNonRedundancyCheck-value for the summary of the target 
-       * block to its version value.  
+       * The case version.passedNonRedundancyCheck == expectedVersion represents that the current task
+       * remains the most recent analysis for the target block which has passed the non-redundancy-
+       * check and can just continue to run.
        */
-      pSummaryVersions.put(target, version.setLatestVersionWhichPassedRedundancyCheck(expectedVersion));
-    } else if(version.passedNonRedundancyCheck > expectedVersion) {
-      /*
-       * Another more recent analysis with a higher version value has passed the 
-       * non-redundancy-check. The present analysis therefore becomes redundant and stops.
-       */
-      throw new RequestInvalidatedException();
     }
-    /*
-     * The case version.passedNonRedundancyCheck == expectedVersion represents that the current task
-     * remains the most recent analysis for the target block which has passed the non-redundancy-
-     * check and can just continue to run.
-     */
+    else {
+        if(version.current > expectedVersion) {
+          throw new RequestInvalidatedException();
+        }
+    }
     
     return new ForwardAnalysisCore(
         globalConfiguration, target, reachedSet, expectedVersion, algorithm, cpa, solver, pfMgr, messageFactory,

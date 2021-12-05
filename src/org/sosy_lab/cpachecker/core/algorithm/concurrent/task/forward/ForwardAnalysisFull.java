@@ -26,6 +26,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -52,7 +54,17 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class ForwardAnalysisFull extends Task { 
+@Options(prefix = "concurrent.task.forward")
+public class ForwardAnalysisFull extends Task {
+  @SuppressWarnings("FieldMayBeFinal")
+  @Option(description="Indicates whether the analysis should first check if a new summary"
+      + "really adds new information or is just redundant. In the later case, the analysis"
+      + "for the new summary gets aborted. These checks involve satisfiability queries and"
+      + "get performed for each new forward analysis task. This option provides the user with"
+      + "the ability to declare whether the overhead of these checks is worth the advantage "
+      + "of aborting analysis tasks early.")
+  private boolean performRedundancyChecks = true;
+  
   private static volatile ConfigurationLoader configLoader = null;
   private final Configuration globalConfiguration;
   
@@ -79,9 +91,10 @@ public class ForwardAnalysisFull extends Task {
       final ARGCPA pCPA,
       final MessageFactory pMessageFactory,
       final LogManager pLogManager,
-      final ShutdownNotifier pShutdownNotifier) {
+      final ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     super(pCPA, pAlgorithm, pReachedSet, pMessageFactory, pLogManager, pShutdownNotifier);
     globalConfiguration = pGlobalConfiguration;
+    globalConfiguration.inject(this);
     
     PredicateCPA predCPA = pCPA.retrieveWrappedCpa(PredicateCPA.class);
 
@@ -119,28 +132,44 @@ public class ForwardAnalysisFull extends Task {
   @Override
   protected void execute()
       throws CPAException, InterruptedException, InvalidConfigurationException, SolverException {
-    if (isSummaryUnchanged()) {
+    if (performRedundancyChecks && isSummaryUnchanged()) {
       logManager.log(Level.INFO, "Summary unchanged, refined analysis aborted.");
       messageFactory.sendTaskCompletedMessage(this, SOUND_AND_PRECISE, statistics);
       return;
     }
 
     Optional<PathFormula> cumPredSummary = buildCumulativePredecessorSummary();
-    if (thereIsNoRelevantChange(cumPredSummary)) {
+    if (performRedundancyChecks && thereIsNoRelevantChange(cumPredSummary)) {
       logManager.log(Level.INFO, "No relevant change on summary, refined analysis aborted.");
       messageFactory.sendTaskCompletedMessage(this, SOUND_AND_PRECISE, statistics);
       return;
     }
-
+    
     AbstractState entryState = buildEntryState(cumPredSummary);
     Precision precision = cpa.getInitialPrecision(target.getEntry(), getDefaultPartition());
     reached.add(entryState, precision);
 
-    shutdownNotifier.shutdownIfNecessary();
-    messageFactory.sendForwardAnalysisContinuationRequest(
-        target, expectedVersion, cpa, algorithm, reached, solver, pfMgr
-    );
-    messageFactory.sendTaskCompletedMessage(this, SOUND_AND_PRECISE, statistics);
+    if(performRedundancyChecks) {
+      shutdownNotifier.shutdownIfNecessary();
+      messageFactory.sendForwardAnalysisContinuationRequest(
+          target, expectedVersion, cpa, algorithm, reached, solver, pfMgr
+      );
+      messageFactory.sendTaskCompletedMessage(this, SOUND_AND_PRECISE, statistics);
+    } else {
+      new ForwardAnalysisCore(
+          globalConfiguration, 
+          target, 
+          reached, 
+          expectedVersion, 
+          algorithm, 
+          cpa, 
+          solver, 
+          pfMgr, 
+          messageFactory, 
+          logManager, 
+          shutdownNotifier
+      ).run();
+    }
   }
 
   @Override

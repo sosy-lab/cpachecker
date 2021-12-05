@@ -62,7 +62,16 @@ public class ForwardAnalysisRequest extends CPACreatingRequest implements TaskRe
       + "the package core.algorithm.concurrent.task.backward.", secure=true)
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path configFile = null;
-
+  
+  @SuppressWarnings("FieldMayBeFinal")
+  @Option(description="Indicates whether the analysis should first check if a new summary" 
+      + "really adds new information or is just redundant. In the later case, the analysis" 
+      + "for the new summary gets aborted. These checks involve satisfiability queries and" 
+      + "get performed for each new forward analysis task. This option provides the user with" 
+      + "the ability to declare whether the overhead of these checks is worth the advantage " 
+      + "of aborting analysis tasks early.")
+  private boolean performRedundancyChecks = true;
+  
   public ForwardAnalysisRequest(
       @Nullable final Block pPredecessor,
       final Block pBlock,
@@ -78,7 +87,7 @@ public class ForwardAnalysisRequest extends CPACreatingRequest implements TaskRe
     super(pMessageFactory, pLogger, pShutdownNotifier);
 
     globalConfiguration = pConfig;
-    pConfig.inject(this);
+    globalConfiguration.inject(this);
     taskConfiguration = ForwardAnalysisFull.getConfiguration(pLogger, configFile, pConfig);
 
     Optional<ReusableCoreComponents> reusableComponents
@@ -155,7 +164,7 @@ public class ForwardAnalysisRequest extends CPACreatingRequest implements TaskRe
       final Table<Block, Block, ShareableBooleanFormula> pSummaries,
       final Map<Block, SummaryVersion> pSummaryVersions,
       final Set<CFANode> pAlreadyPropagated)
-      throws RequestInvalidatedException {
+      throws RequestInvalidatedException, InvalidConfigurationException {
     assert Thread.currentThread().getName().equals(Scheduler.getThreadName())
         : "Only " + Scheduler.getThreadName() + " may call process()";
 
@@ -214,11 +223,13 @@ public class ForwardAnalysisRequest extends CPACreatingRequest implements TaskRe
     final SummaryVersion predVersion 
         = versions.getOrDefault(predecessor, SummaryVersion.getInitial());
 
-    if (expectedPredVersion < predVersion.passedNonRedundancyCheck) {
+    if (performRedundancyChecks && expectedPredVersion < predVersion.passedNonRedundancyCheck) {
       /*
        * Another, more recent task has passed the non-redundancy-check. This invalidates the current
        * task, which can stop.
        */
+      throw new RequestInvalidatedException();
+    } else if(!performRedundancyChecks && expectedPredVersion < predVersion.current) {
       throw new RequestInvalidatedException();
     } else {
       predSummaries.put(predecessor, newSummary);
