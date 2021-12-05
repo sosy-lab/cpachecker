@@ -110,7 +110,7 @@ public class MessageFactory {
       final ReachedSet pReachedSet,
       final Solver pSolver,
       final PathFormulaManager pPfMgr)
-      throws InterruptedException, InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException {
     Message message = new ForwardAnalysisContinuationRequest(
         config, pTarget, pExpectedVersion, pCPA, pAlgorithm, pReachedSet, pSolver, pPfMgr, this,
         logManager,
