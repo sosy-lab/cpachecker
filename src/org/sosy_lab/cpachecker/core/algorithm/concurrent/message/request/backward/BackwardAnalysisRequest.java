@@ -45,8 +45,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
 @Options(prefix = "concurrent.task.backward")
 public class BackwardAnalysisRequest extends CPACreatingRequest implements TaskRequest {
-  private final Configuration taskConfiguration;
-  
   private final Block target;
   private final Block source;
   private final ErrorOrigin origin;
@@ -81,7 +79,8 @@ public class BackwardAnalysisRequest extends CPACreatingRequest implements TaskR
     super(pMessageFactory, pLogger, pShutdownNotifier);
     
     pConfig.inject(this);
-    taskConfiguration = BackwardAnalysisFull.getConfiguration(pLogger, configFile, pConfig);
+    Configuration taskConfiguration 
+        = BackwardAnalysisFull.getConfiguration(pLogger, configFile, pConfig);
 
     Optional<ReusableCoreComponents> reusableComponents 
         = messageFactory.requestIdleBackwardAnalysisComponents();
