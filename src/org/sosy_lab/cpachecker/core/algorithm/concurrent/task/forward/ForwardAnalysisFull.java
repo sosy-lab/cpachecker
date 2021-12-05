@@ -188,7 +188,7 @@ public class ForwardAnalysisFull extends Task {
       return false;
     }
     
-    PathFormula cumPredSummary = cumPredSummaryOptional.get();
+    PathFormula cumPredSummary = cumPredSummaryOptional.orElseThrow();
     
     BooleanFormula addedContext
         = bfMgr.and(oldSummary.getFormula(), bfMgr.not(newSummary.getFormula()));
@@ -279,7 +279,7 @@ public class ForwardAnalysisFull extends Task {
     PathFormula newContext = null;
 
     if(cumPredSummary.isPresent()) {
-      newContext = pfMgr.makeOr(cumPredSummary.get(), newSummary);
+      newContext = pfMgr.makeOr(cumPredSummary.orElseThrow(), newSummary);
     } else {
       newContext = newSummary;
     }

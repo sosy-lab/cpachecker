@@ -62,7 +62,7 @@ abstract public class CPACreatingRequest {
     CompositeCPA compositeCPA;
     
     if(pReusableCoreComponents.isPresent()) {
-      ReusableCoreComponents components = pReusableCoreComponents.get();
+      ReusableCoreComponents components = pReusableCoreComponents.orElseThrow();
       compositeCPA = components.getCpa();
       
       logManager.log(INFO, "Reusing existing core components.");
