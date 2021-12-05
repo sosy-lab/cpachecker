@@ -96,7 +96,7 @@ public class BackwardAnalysisFull extends Task {
     origin = pOrigin;
     errorCondition = pErrorCondition.getFor(fMgr, pfMgr);
     blockSummary = pBlockSummary.getFor(fMgr, pfMgr);
-    statistics = new BackwardAnalysisFullStatistics();
+    statistics = new BackwardAnalysisFullStatistics(target);
   }
 
   public static Configuration getConfiguration(
@@ -208,6 +208,8 @@ public class BackwardAnalysisFull extends Task {
     Precision precision = cpa.getInitialPrecision(start, getDefaultPartition());
     reached.add(entryState, precision);
 
+    messageFactory.sendStatsReportMessage(this, statistics);
+    
     shutdownNotifier.shutdownIfNecessary();
     new BackwardAnalysisCore(globalConfiguration, target, reached, origin, algorithm, cpa,
         solver, messageFactory,

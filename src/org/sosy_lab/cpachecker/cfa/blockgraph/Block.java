@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.blockgraph;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.UnmodifiableIterator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -85,5 +86,22 @@ public class Block {
   @Override
   public String toString() {
     return "Block starting at " + entry.toString() + " (" + super.toString() + ")";
+  }
+  
+  public String getPrintableNodeList() {
+    StringBuilder stringBuilder = new StringBuilder();
+    stringBuilder.append("{ ");
+    
+    final UnmodifiableIterator<CFANode> iterator = nodes.iterator();
+    while(iterator.hasNext()) {
+      stringBuilder.append(iterator.next().toString());
+      
+      if(iterator.hasNext()) {
+        stringBuilder.append(", ");
+      }
+    }
+
+    stringBuilder.append(" }");
+    return stringBuilder.toString();
   }
 }

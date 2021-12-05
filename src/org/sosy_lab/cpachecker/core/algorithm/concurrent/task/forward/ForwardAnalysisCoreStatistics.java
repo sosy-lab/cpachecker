@@ -6,19 +6,19 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.concurrent.task.backward;
+package org.sosy_lab.cpachecker.core.algorithm.concurrent.task.forward;
 
 import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.ConcurrentStatisticsCollector;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.ConcurrentStatisticsCollector.TaskStatistics;
 
-public class BackwardAnalysisFullStatistics implements TaskStatistics {
+public class ForwardAnalysisCoreStatistics implements TaskStatistics {
   private final Block target;
-
-  public BackwardAnalysisFullStatistics(final Block pTarget) {
+  
+  public ForwardAnalysisCoreStatistics(final Block pTarget) {
     target = pTarget;
   }
-
+  
   public Block getTarget() {
     return target;
   }

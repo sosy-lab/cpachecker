@@ -77,7 +77,7 @@ public class ForwardAnalysisFull extends Task {
   private final FormulaManagerView fMgr;
   private final BooleanFormulaManagerView bfMgr;
   private final PathFormulaManager pfMgr;
-  private final ForwardAnalysisStatistics statistics;
+  private final ForwardAnalysisFullStatistics statistics;
 
   public ForwardAnalysisFull(
       final Configuration pGlobalConfiguration,
@@ -109,7 +109,7 @@ public class ForwardAnalysisFull extends Task {
     expectedVersion = pExpectedVersion;
     predecessorSummaries =
         transformedImmutableListCopy(pPredecessorSummaries, formula -> formula.getFor(fMgr, pfMgr));
-    statistics = new ForwardAnalysisStatistics(target);
+    statistics = new ForwardAnalysisFullStatistics(target);
   }
 
   public static Configuration getConfiguration(
@@ -156,6 +156,7 @@ public class ForwardAnalysisFull extends Task {
       );
       messageFactory.sendTaskCompletedMessage(this, SOUND_AND_PRECISE, statistics);
     } else {
+      messageFactory.sendStatsReportMessage(this, statistics);
       new ForwardAnalysisCore(
           globalConfiguration, 
           target, 

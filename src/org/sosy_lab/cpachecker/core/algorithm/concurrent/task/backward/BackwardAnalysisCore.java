@@ -49,7 +49,7 @@ public class BackwardAnalysisCore extends Task {
   private final ErrorOrigin origin;
   private final Solver solver;
   private final FormulaManagerView fMgr;
-  private final BackwardAnalysisFullStatistics statistics;
+  private final BackwardAnalysisCoreStatistics statistics;
   private boolean hasCreatedContinuationRequest = false;
   
   private AlgorithmStatus status = SOUND_AND_PRECISE;
@@ -72,7 +72,7 @@ public class BackwardAnalysisCore extends Task {
     fMgr = solver.getFormulaManager();
     target = pBlock;
     origin = pOrigin;
-    statistics = new BackwardAnalysisFullStatistics();
+    statistics = new BackwardAnalysisCoreStatistics();
   }
 
   @Override

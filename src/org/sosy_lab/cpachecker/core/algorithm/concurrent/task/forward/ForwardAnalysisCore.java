@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.concurrent.task.forward;
 
 import static org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus.SOUND_AND_PRECISE;
-import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDefaultPartition;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import static org.sosy_lab.cpachecker.util.AbstractStates.filterLocation;
@@ -56,7 +55,7 @@ public class ForwardAnalysisCore extends Task {
   private final FormulaManagerView fMgr;
   private final PathFormulaManager pfMgr;
   
-  private final ForwardAnalysisStatistics statistics;
+  private final ForwardAnalysisCoreStatistics statistics;
   
   private AlgorithmStatus status = SOUND_AND_PRECISE;
   private boolean hasCreatedContinuationRequest = false;
@@ -82,7 +81,7 @@ public class ForwardAnalysisCore extends Task {
     fMgr = solver.getFormulaManager();
     pfMgr = pPfMgr;
     
-    statistics = new ForwardAnalysisStatistics(pTarget);
+    statistics = new ForwardAnalysisCoreStatistics(pTarget);
   }
 
   @Override
@@ -115,9 +114,6 @@ public class ForwardAnalysisCore extends Task {
     reached.clearWaitlist();
     
     for (final AbstractState waitingState : waiting) {
-      CFANode location = extractLocation(waitingState);
-      assert location != null;
-
       final PredicateAbstractState predicateState
           = extractStateByType(waitingState, PredicateAbstractState.class);
       assert predicateState != null;
@@ -125,9 +121,9 @@ public class ForwardAnalysisCore extends Task {
       BooleanFormula abstractionFormula = predicateState.getAbstractionFormula().asFormula();
       BooleanFormula pathFormula = predicateState.getPathFormula().getFormula();
       BooleanFormula formula = fMgr.makeAnd(abstractionFormula, pathFormula);
-
+      
       if(!solver.isUnsat(formula)) {
-        reached.add(waitingState, cpa.getInitialPrecision(location, getDefaultPartition()));
+        reached.add(waitingState, reached.getPrecision(waitingState));
       }
     }
   }

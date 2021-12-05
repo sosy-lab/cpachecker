@@ -40,9 +40,9 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.concurrent.ConcurrentStatisticsCollector.TaskStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.Message;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.completion.ErrorReachedProgramEntryMessage;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.completion.StatsReportMessage;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.completion.TaskAbortedMessage;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.completion.TaskCompletedMessage;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.RequestInvalidatedException;
@@ -166,7 +166,9 @@ public final class Scheduler implements Runnable, StatisticsProvider {
     logManager = pLogManager;
     shutdownManager = pShutdownManager;
 
-    statisticsCollector = new ConcurrentStatisticsCollector();
+    statisticsCollector 
+        = new ConcurrentStatisticsCollector(logManager, shutdownManager.getNotifier());
+    statisticsCollector.start();
   }
 
   /**
@@ -242,6 +244,10 @@ public final class Scheduler implements Runnable, StatisticsProvider {
    * <p><em>Precondition:</em> All scheduled jobs must have completed and no new ones requested.
    */
   private void shutdown() {
+    if(!shutdownManager.getNotifier().shouldShutdown()) {
+      shutdownManager.requestShutdown("Scheduler Request to Shutdown");  
+    }
+    
     assert messages.isEmpty();
 
     /*
@@ -270,6 +276,8 @@ public final class Scheduler implements Runnable, StatisticsProvider {
         waitingThread.notify();
       }
     }
+    
+    statisticsCollector.stop();
   }
 
   /**
@@ -348,10 +356,13 @@ public final class Scheduler implements Runnable, StatisticsProvider {
       }
       
       status = status.update(pMessage.getStatus());
-      final TaskStatistics statistics = pMessage.getStatistics();
-      statistics.accept(statisticsCollector);
+      statisticsCollector.submitNewStatistics(pMessage.getStatistics());
 
       shutdownIfComplete();
+    }
+
+    public void visit(final StatsReportMessage pMessage) {
+      statisticsCollector.submitNewStatistics(pMessage.getStatistics());
     }
 
     public void visit(@SuppressWarnings("unused") final TaskAbortedMessage pMessage) {
