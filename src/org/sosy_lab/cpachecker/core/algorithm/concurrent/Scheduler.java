@@ -63,11 +63,11 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
  * JobExecutor manages execution of concurrent analysis tasks from {@linkplain
  * org.sosy_lab.cpachecker.core.algorithm.concurrent.task concurrent.task}.
  *
- * <p>After creating the executor using the public constructor 
- * {@link #Scheduler(int, Configuration, LogManager, ShutdownManager)}, user can request execution 
- * of {@link Task}s with {@link #sendMessage(Message)}. In particular, scheduled tasks can use this 
- * method to spawn further tasks themselves. Actual execution starts as soon as {@link #start()} 
- * gets called. {@link Scheduler} shuts down as soon as all requested jobs (including ones spawned 
+ * <p>After creating the executor using the public constructor
+ * {@link #Scheduler(int, Configuration, LogManager, ShutdownManager)}, user can request execution
+ * of {@link Task}s with {@link #sendMessage(Message)}. In particular, scheduled tasks can use this
+ * method to spawn further tasks themselves. Actual execution starts as soon as {@link #start()}
+ * gets called. {@link Scheduler} shuts down as soon as all requested jobs (including ones spawned
  * by running jobs themselves) have completed. To wait for this situation, the user can call
  * {@link #waitForCompletion()}, which blocks until all jobs have completed.
  *
@@ -77,52 +77,6 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
  */
 @Options(prefix = "concurrent.algorithm")
 public final class Scheduler implements Runnable, StatisticsProvider {
-  /*
-   * Simple type which represent version information about the summary calculation of a block.
-   */
-  public static class SummaryVersion {
-    /**
-     * Version which gets increment as soon as a ForwardAnalysis gets scheduled on a block.
-     * This value ensures that the results of a more recent ForwardAnalysis don't get overwritten 
-     * by a ForwardAnalysis created earlier which has randomly completed later. 
-     * In the tasks, it actually checked, but instead the value 'passedNonRedundancyCheck' gets used
-     * to determine whether a request has been invalidated, The additional value 'current' just 
-     * ensures that each task gets assigned a fresh and separate version number.
-     */
-    public final int current;
-
-    /*
-     * Latest Version for which the corresponding task passed the non-redundancy checks and actually
-     * performs the analysis.  
-     * This value is required because a ForwardAnalysisContinuation aborts the analysis if it
-     * recognizes that a more recent ForwardAnalysis has been scheduled. If this check would also
-     * use the value of 'current', this could lead to a situation where the older ForwardAnalysis
-     * stops because a new one has been scheduled, but the new one also stops because the checks for
-     * redundant changes reveal that the new summary dopes not provide new contect. In this case,
-     * a loop would not continue to get unrolled, because the old ForwardAnalasis has stoped and the
-     * the new one has conclued that it is redundant.
-     */
-    public final int passedNonRedundancyCheck;
-
-    private SummaryVersion(final int pCurrent, final int pPassedNonRedundancyCheck) {
-      current = pCurrent;
-      passedNonRedundancyCheck = pPassedNonRedundancyCheck;
-    }
-
-    public SummaryVersion incrementCurrent() {
-      return new SummaryVersion(current + 1, passedNonRedundancyCheck);
-    }
-
-    public SummaryVersion setLatestVersionWhichPassedRedundancyCheck(final int version) {
-      assert version >= current;
-      return new SummaryVersion(current, version);
-    }
-
-    public static SummaryVersion getInitial() {
-      return new SummaryVersion(0, 0);
-    }
-  }
-  
   private final LinkedBlockingQueue<Message> messages = new LinkedBlockingQueue<>();
   private final ExecutorService executor;
   private final ShutdownManager shutdownManager;
@@ -130,25 +84,21 @@ public final class Scheduler implements Runnable, StatisticsProvider {
   private final LogManager logManager;
   private final Collection<Thread> waitingForCompletion = new ArrayList<>();
   private final Thread schedulerThread = new Thread(this, Scheduler.getThreadName());
-
   private final Table<Block, Block, ShareableBooleanFormula> summaries = HashBasedTable.create();
   private final Map<Block, SummaryVersion> summaryVersion = new HashMap<>();
   private final Set<CFANode> alreadyPropagated = new HashSet<>();
   private final ConcurrentStatisticsCollector statisticsCollector;
+  private final BlockingQueue<ReusableCoreComponents> idleForwardAnalysisComponents
+      = new LinkedBlockingQueue<>();
+  private final BlockingQueue<ReusableCoreComponents> idleBackwardAnalysisComponents
+      = new LinkedBlockingQueue<>();
   private int jobCount = 0;
   private volatile boolean complete = false;
   private volatile Optional<ErrorOrigin> target = Optional.empty();
   private volatile AlgorithmStatus status = SOUND_AND_PRECISE;
-  
   @SuppressWarnings("FieldMayBeFinal")
   @Option(description = "Reuse idle CPA instances in consecutive analysis tasks.", secure = true)
   private boolean reuseComponents = true;
-  
-  private final BlockingQueue<ReusableCoreComponents> idleForwardAnalysisComponents 
-      = new LinkedBlockingQueue<>();
-  private final BlockingQueue<ReusableCoreComponents> idleBackwardAnalysisComponents 
-      = new LinkedBlockingQueue<>();
-  
   /**
    * Prepare a new {@link Scheduler}. Actual execution does not start until {@link #start()} gets
    * called.
@@ -162,7 +112,7 @@ public final class Scheduler implements Runnable, StatisticsProvider {
       final LogManager pLogManager,
       final ShutdownManager pShutdownManager) throws InvalidConfigurationException {
     pConfiguration.inject(this);
-    
+
     executor = Executors.newFixedThreadPool(pThreads);
     logManager = pLogManager;
     shutdownManager = pShutdownManager;
@@ -246,10 +196,10 @@ public final class Scheduler implements Runnable, StatisticsProvider {
    * <p><em>Precondition:</em> All scheduled jobs must have completed and no new ones requested.
    */
   private void shutdown() {
-    if(!shutdownManager.getNotifier().shouldShutdown()) {
-      shutdownManager.requestShutdown("Scheduler Request to Shutdown");  
+    if (!shutdownManager.getNotifier().shouldShutdown()) {
+      shutdownManager.requestShutdown("Scheduler Request to Shutdown");
     }
-    
+
     assert messages.isEmpty();
 
     /*
@@ -278,7 +228,7 @@ public final class Scheduler implements Runnable, StatisticsProvider {
         waitingThread.notify();
       }
     }
-    
+
     statisticsCollector.stop();
   }
 
@@ -334,6 +284,69 @@ public final class Scheduler implements Runnable, StatisticsProvider {
     return status;
   }
 
+  public Optional<ReusableCoreComponents> requestIdleForwardAnalysisComponents() {
+    if (reuseComponents) {
+      return Optional.ofNullable(idleForwardAnalysisComponents.poll());
+    }
+
+    return Optional.empty();
+  }
+
+  public Optional<ReusableCoreComponents> requestIdleBackwardAnalysisComponents() {
+    if (reuseComponents) {
+      return Optional.ofNullable(idleBackwardAnalysisComponents.poll());
+    }
+
+    return Optional.empty();
+
+  }
+
+  /*
+   * Simple type which represent version information about the summary calculation of a block.
+   */
+  public static class SummaryVersion {
+    /**
+     * Version which gets increment as soon as a ForwardAnalysis gets scheduled on a block.
+     * This value ensures that the results of a more recent ForwardAnalysis don't get overwritten
+     * by a ForwardAnalysis created earlier which has randomly completed later.
+     * In the tasks, it actually checked, but instead the value 'passedNonRedundancyCheck' gets used
+     * to determine whether a request has been invalidated, The additional value 'current' just
+     * ensures that each task gets assigned a fresh and separate version number.
+     */
+    public final int current;
+
+    /*
+     * Latest Version for which the corresponding task passed the non-redundancy checks and actually
+     * performs the analysis.
+     * This value is required because a ForwardAnalysisContinuation aborts the analysis if it
+     * recognizes that a more recent ForwardAnalysis has been scheduled. If this check would also
+     * use the value of 'current', this could lead to a situation where the older ForwardAnalysis
+     * stops because a new one has been scheduled, but the new one also stops because the checks for
+     * redundant changes reveal that the new summary does not provide new contect. In this case,
+     * a loop would not continue to get unrolled, because the old ForwardAnalasis has stopped and
+     * the new one has conclued that it is redundant.
+     */
+    public final int passedNonRedundancyCheck;
+
+    private SummaryVersion(final int pCurrent, final int pPassedNonRedundancyCheck) {
+      current = pCurrent;
+      passedNonRedundancyCheck = pPassedNonRedundancyCheck;
+    }
+
+    public static SummaryVersion getInitial() {
+      return new SummaryVersion(0, 0);
+    }
+
+    public SummaryVersion incrementCurrent() {
+      return new SummaryVersion(current + 1, passedNonRedundancyCheck);
+    }
+
+    public SummaryVersion setLatestVersionWhichPassedRedundancyCheck(final int version) {
+      assert version >= current;
+      return new SummaryVersion(current, version);
+    }
+  }
+
   public class MessageProcessingVisitor {
     public void visit(final TaskRequest pMessage) {
       try {
@@ -353,10 +366,10 @@ public final class Scheduler implements Runnable, StatisticsProvider {
     public void visit(final TaskCompletedMessage pMessage) {
       --jobCount;
 
-      if(reuseComponents) {
-        retrieveReusableComponents(pMessage.getTask()); 
+      if (reuseComponents) {
+        retrieveReusableComponents(pMessage.getTask());
       }
-      
+
       status = status.update(pMessage.getStatus());
       statisticsCollector.submitNewStatistics(pMessage.getStatistics());
 
@@ -369,33 +382,33 @@ public final class Scheduler implements Runnable, StatisticsProvider {
 
     public void visit(@SuppressWarnings("unused") final TaskAbortedMessage pMessage) {
       /*
-       * If tasks abort because a shutdown has been requested, there can be two different reasons: 
-       * (a) The analysis is complete because an error condition reached program entry. 
+       * If tasks abort because a shutdown has been requested, there can be two different reasons:
+       * (a) The analysis is complete because an error condition reached program entry.
        *     In this case, the scheduler must continue to track completed and running tasks and will
-       *     eventually reach a state where all tasks have stopped and where it can report the 
+       *     eventually reach a state where all tasks have stopped and where it can report the
        *     analysis as complete.
        * (b) Shutdown has been requested for a reason external to the analysis, i.e. the analysis
-       *     gets cancelled. In this case, tasks might abort in an unsound state and the analysis 
-       *     must be marked as incomplete. To do so, the scheduler stops to track the number of 
-       *     running tasks by not decrementing it within this method. As a result, if getStatus() 
-       *     gets called later on, the scheduler will report the analysis as incomplete.  
-       * 
-       * If no shutdown has been requested, the task aborted because it has been invalidated or 
-       * due to other expected situations within the algorithm. In this case, the scheduler 
-       * continues to track the number of running jobs. 
+       *     gets cancelled. In this case, tasks might abort in an unsound state and the analysis
+       *     must be marked as incomplete. To do so, the scheduler stops to track the number of
+       *     running tasks by not decrementing it within this method. As a result, if getStatus()
+       *     gets called later on, the scheduler will report the analysis as incomplete.
+       *
+       * If no shutdown has been requested, the task aborted because it has been invalidated or
+       * due to other expected situations within the algorithm. In this case, the scheduler
+       * continues to track the number of running jobs.
        */
       ShutdownNotifier notifier = shutdownManager.getNotifier();
-      if(notifier.shouldShutdown()) {
-        if(!notifier.getReason().equals(benignShutdownReason)) {
+      if (notifier.shouldShutdown()) {
+        if (!notifier.getReason().equals(benignShutdownReason)) {
           /*
-           * Shutdown requested for a reason external to the analysis. 
-           * Give up on tracking the number of running tasks, which will lead to the analysis 
-           * getting reported as incomplete later-on.  
+           * Shutdown requested for a reason external to the analysis.
+           * Give up on tracking the number of running tasks, which will lead to the analysis
+           * getting reported as incomplete later-on.
            */
           return;
         }
       }
-      
+
       --jobCount;
       shutdownIfComplete();
     }
@@ -416,70 +429,53 @@ public final class Scheduler implements Runnable, StatisticsProvider {
     }
 
     @SuppressFBWarnings(
-        value="RV_RETURN_VALUE_IGNORED", 
-        justification="Reusable components are stored and retrieved on a best-effort basis. " 
-            + "If storing components with offer() is not possible immediately, the components are " 
-            + "just discarded (which is okay). Therefore, there is no need to check the return " 
+        value = "RV_RETURN_VALUE_IGNORED",
+        justification = "Reusable components are stored and retrieved on a best-effort basis. "
+            + "If storing components with offer() is not possible immediately, the components are "
+            + "just discarded (which is okay). Therefore, there is no need to check the return "
             + "value of offer()."
     )
-    
+
     private void retrieveReusableComponents(final Task pTask) {
       assert reuseComponents;
       /*
-       * If the completed task is a BackwardAnalysisCore which has created a 
-       * BackwardAnalysisContinuationRequest, no component reuse is possible (yet), because the 
+       * If the completed task is a BackwardAnalysisCore which has created a
+       * BackwardAnalysisContinuationRequest, no component reuse is possible (yet), because the
        * continued backward analysis already re-uses the components.
-       * 
+       *
        * Todo: Remove ContinuationRequests as seperate messages/job requests altogether.
        *       Implement a different way to ensure that non-terminating BackwardAnalysis jobs don't
        *       starve the analysis by occupying all available threads.
        */
-      if(pTask instanceof BackwardAnalysisCore) {
+      if (pTask instanceof BackwardAnalysisCore) {
         BackwardAnalysisCore analysis = (BackwardAnalysisCore) pTask;
-        if(analysis.hasCreatedContinuationRequest()) {
+        if (analysis.hasCreatedContinuationRequest()) {
           return;
         }
       }
 
-      if(pTask instanceof ForwardAnalysisCore) {
+      if (pTask instanceof ForwardAnalysisCore) {
         ForwardAnalysisCore analysis = (ForwardAnalysisCore) pTask;
-        if(analysis.hasCreatedContinuationRequest()) {
+        if (analysis.hasCreatedContinuationRequest()) {
           return;
         }
       }
-      
+
       ARGCPA argcpa = pTask.getCPA();
-      CompositeCPA compositeCPA = ((WrapperCPA)argcpa).retrieveWrappedCpa(CompositeCPA.class);
-      
+      CompositeCPA compositeCPA = ((WrapperCPA) argcpa).retrieveWrappedCpa(CompositeCPA.class);
+
       ReusableCoreComponents reusableCoreComponents
           = new ReusableCoreComponents(compositeCPA);
-      
+
       /*
        * Best-effort attempt to store reusable components.
        * If not possible immediately, they get discarded.
        */
-      if(pTask instanceof ForwardAnalysisCore) {
+      if (pTask instanceof ForwardAnalysisCore) {
         idleForwardAnalysisComponents.offer(reusableCoreComponents);
-      } else if(pTask instanceof BackwardAnalysisCore) {
+      } else if (pTask instanceof BackwardAnalysisCore) {
         idleBackwardAnalysisComponents.offer(reusableCoreComponents);
       }
     }
-  }
-  
-  public Optional<ReusableCoreComponents> requestIdleForwardAnalysisComponents() {
-    if(reuseComponents) {
-      return Optional.ofNullable(idleForwardAnalysisComponents.poll());
-    }
-    
-    return Optional.empty();
-  }
-
-  public Optional<ReusableCoreComponents> requestIdleBackwardAnalysisComponents() {
-    if(reuseComponents) {
-      return Optional.ofNullable(idleBackwardAnalysisComponents.poll());  
-    }
-    
-    return Optional.empty();
-    
   }
 }
