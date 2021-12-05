@@ -17,7 +17,6 @@ import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -291,24 +290,20 @@ public class ConcurrentStatisticsCollector implements StatisticsProvider, Statis
     
     private final Block target;
     
-    private Optional<Date> started = Optional.empty();
+    private Optional<Long> started = Optional.empty();
 
-    private Optional<Date> completed = Optional.empty();
+    private Optional<Long> completed = Optional.empty();
 
     public void setTaskStarted() {
-      started = Optional.of(new Date());
+      started = Optional.of(System.currentTimeMillis());
     }
 
     public Optional<Long> getStartedTimestamp() {
-      if(started.isPresent()) {
-        return Optional.of(started.get().getTime());
-      } else {
-        return Optional.empty();
-      }
+      return started;
     }
 
     public void setTaskCompleted() {
-      completed = Optional.of(new Date());
+      completed = Optional.of(System.currentTimeMillis());
     }
 
     public Block getTarget() {
@@ -316,11 +311,7 @@ public class ConcurrentStatisticsCollector implements StatisticsProvider, Statis
     }
 
     public Optional<Long> getCompletedTimestamp() {
-      if(completed.isPresent()) {
-        return Optional.of(completed.get().getTime());
-      } else {
-        return Optional.empty();
-      }
+      return completed;
     }
   }
 }
