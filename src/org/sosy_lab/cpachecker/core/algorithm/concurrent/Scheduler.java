@@ -32,6 +32,9 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
@@ -72,6 +75,7 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
  * does so if data with which a new job has been created (e.g. a block summary) has become outdated
  * due to a concurrent task which completed and which calculated an updated version of such data.
  */
+@Options(prefix = "concurrent.scheduler")
 public final class Scheduler implements Runnable, StatisticsProvider {
   private final LinkedBlockingQueue<Message> messages = new LinkedBlockingQueue<>();
   private final ExecutorService executor;
@@ -89,7 +93,10 @@ public final class Scheduler implements Runnable, StatisticsProvider {
   private volatile boolean complete = false;
   private volatile Optional<ErrorOrigin> target = Optional.empty();
   private volatile AlgorithmStatus status = SOUND_AND_PRECISE;
-
+  
+  @Option(description = "Reuse idle CPA instances in consecutive analysis tasks.", secure = true)
+  private boolean reuseComponents = true;
+  
   private final BlockingQueue<ReusableCoreComponents> idleForwardAnalysisComponents 
       = new LinkedBlockingQueue<>();
   private final BlockingQueue<ReusableCoreComponents> idleBackwardAnalysisComponents 
@@ -104,8 +111,11 @@ public final class Scheduler implements Runnable, StatisticsProvider {
    */
   public Scheduler(
       final int pThreads,
+      final Configuration pConfiguration,
       final LogManager pLogManager,
-      final ShutdownManager pShutdownManager) {
+      final ShutdownManager pShutdownManager) throws InvalidConfigurationException {
+    pConfiguration.inject(this);
+    
     executor = Executors.newFixedThreadPool(pThreads);
     logManager = pLogManager;
     shutdownManager = pShutdownManager;
@@ -287,7 +297,9 @@ public final class Scheduler implements Runnable, StatisticsProvider {
     public void visit(final TaskCompletedMessage pMessage) {
       --jobCount;
 
-      retrieveReusableComponents(pMessage.getTask());
+      if(reuseComponents) {
+        retrieveReusableComponents(pMessage.getTask()); 
+      }
       
       status = status.update(pMessage.getStatus());
       final TaskStatistics statistics = pMessage.getStatistics();
@@ -353,6 +365,7 @@ public final class Scheduler implements Runnable, StatisticsProvider {
     )
     
     private void retrieveReusableComponents(final Task pTask) {
+      assert reuseComponents;
       /*
        * If the completed task is a BackwardAnalysisCore which has created a 
        * BackwardAnalysisContinuationRequest, no component reuse is possible (yet), because the 
@@ -395,10 +408,19 @@ public final class Scheduler implements Runnable, StatisticsProvider {
   }
   
   public Optional<ReusableCoreComponents> requestIdleForwardAnalysisComponents() {
-    return Optional.ofNullable(idleForwardAnalysisComponents.poll()); 
+    if(reuseComponents) {
+      return Optional.ofNullable(idleForwardAnalysisComponents.poll());
+    }
+    
+    return Optional.empty();
   }
 
   public Optional<ReusableCoreComponents> requestIdleBackwardAnalysisComponents() {
-    return Optional.ofNullable(idleBackwardAnalysisComponents.poll());
+    if(reuseComponents) {
+      return Optional.ofNullable(idleBackwardAnalysisComponents.poll());  
+    }
+    
+    return Optional.empty();
+    
   }
 }

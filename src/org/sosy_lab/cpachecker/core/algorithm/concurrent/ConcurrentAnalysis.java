@@ -59,7 +59,7 @@ public class ConcurrentAnalysis implements Algorithm, StatisticsProvider {
       final Configuration pConfig,
       final Specification pSpecification,
       final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier) {
+      final ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     algorithm = pAlgorithm;
     cfa = pCFA;
     logger = pLogger;
@@ -68,7 +68,7 @@ public class ConcurrentAnalysis implements Algorithm, StatisticsProvider {
     specification = pSpecification;
 
     final int processors = Runtime.getRuntime().availableProcessors();
-    scheduler = new Scheduler(processors, logger, shutdownManager);
+    scheduler = new Scheduler(processors, pConfig, logger, shutdownManager);
   }
 
   public static Algorithm create(
@@ -77,7 +77,7 @@ public class ConcurrentAnalysis implements Algorithm, StatisticsProvider {
       final Configuration pConfig,
       final Specification pSpecification,
       final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier) {
+      final ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     return new ConcurrentAnalysis(
         pAlgorithm, pCFA, pConfig, pSpecification, pLogger, pShutdownNotifier);
   }
