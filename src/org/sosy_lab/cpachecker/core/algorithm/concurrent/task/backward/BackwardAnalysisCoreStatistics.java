@@ -8,10 +8,15 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.concurrent.task.backward;
 
+import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.ConcurrentStatisticsCollector;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.ConcurrentStatisticsCollector.TaskStatistics;
 
-public class BackwardAnalysisCoreStatistics implements TaskStatistics {
+public class BackwardAnalysisCoreStatistics extends TaskStatistics {
+  public BackwardAnalysisCoreStatistics(final Block pTarget) {
+    super(pTarget);
+  }
+  
   @Override
   public void accept(final ConcurrentStatisticsCollector collector) {
     collector.visit(this);

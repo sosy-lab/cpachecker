@@ -72,11 +72,12 @@ public class BackwardAnalysisCore extends Task {
     fMgr = solver.getFormulaManager();
     target = pBlock;
     origin = pOrigin;
-    statistics = new BackwardAnalysisCoreStatistics();
+    statistics = new BackwardAnalysisCoreStatistics(target);
   }
 
   @Override
   protected void execute() throws Exception {
+    statistics.setTaskStarted();
     logManager.log(Level.FINE, "BackwardAnalysisCore on", target);
 
     AlgorithmStatus newStatus = algorithm.run(reached);
@@ -113,6 +114,7 @@ public class BackwardAnalysisCore extends Task {
 
     logManager.log(Level.FINE, "Completed BackwardAnalysis on", target);
     messageFactory.sendTaskCompletedMessage(this, status, statistics);
+    statistics.setTaskCompleted();
   }
 
   private void processReachedState(final AbstractState state)

@@ -88,6 +88,7 @@ public class ForwardAnalysisCore extends Task {
   protected void execute()
       throws CPAException, InterruptedException, InvalidConfigurationException, SolverException 
   {
+    statistics.setTaskStarted();
     logManager.log(Level.FINE, "Starting ForwardAnalysisCore on ", target);
 
     AlgorithmStatus newStatus = algorithm.run(reached);
@@ -107,6 +108,7 @@ public class ForwardAnalysisCore extends Task {
 
     logManager.log(Level.FINE, "Completed ForwardAnalysisCore on ", target);
     messageFactory.sendTaskCompletedMessage(this, status, statistics);
+    statistics.setTaskCompleted();
   }
   
   private void resetReachedSet() throws InterruptedException, SolverException {

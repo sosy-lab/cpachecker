@@ -132,6 +132,7 @@ public class ForwardAnalysisFull extends Task {
   @Override
   protected void execute()
       throws CPAException, InterruptedException, InvalidConfigurationException, SolverException {
+    statistics.setTaskStarted();
     if (performRedundancyChecks && isSummaryUnchanged()) {
       logManager.log(Level.INFO, "Summary unchanged, refined analysis aborted.");
       messageFactory.sendTaskCompletedMessage(this, SOUND_AND_PRECISE, statistics);
@@ -155,8 +156,11 @@ public class ForwardAnalysisFull extends Task {
           target, expectedVersion, cpa, algorithm, reached, solver, pfMgr
       );
       messageFactory.sendTaskCompletedMessage(this, SOUND_AND_PRECISE, statistics);
+      statistics.setTaskCompleted();
     } else {
+      statistics.setTaskCompleted();
       messageFactory.sendStatsReportMessage(this, statistics);
+      
       new ForwardAnalysisCore(
           globalConfiguration, 
           target, 

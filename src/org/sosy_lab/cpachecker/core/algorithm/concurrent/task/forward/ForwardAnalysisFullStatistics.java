@@ -12,17 +12,11 @@ import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.ConcurrentStatisticsCollector;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.ConcurrentStatisticsCollector.TaskStatistics;
 
-public class ForwardAnalysisFullStatistics implements TaskStatistics {
-  private final Block target;
-
+public class ForwardAnalysisFullStatistics extends TaskStatistics {
   public ForwardAnalysisFullStatistics(final Block pTarget) {
-    target = pTarget;
+    super(pTarget);
   }
-
-  public Block getTarget() {
-    return target;
-  }
-
+  
   @Override
   public void accept(final ConcurrentStatisticsCollector collector) {
     collector.visit(this);

@@ -195,6 +195,7 @@ public class BackwardAnalysisFull extends Task {
 
   @Override
   protected void execute() throws Exception {
+    statistics.setTaskStarted();
     PathFormula condition = stitchIndicesTogether(blockSummary, errorCondition);
     BooleanFormula reachable = fMgr.makeAnd(blockSummary.getFormula(), condition.getFormula());
     if (solver.isUnsat(reachable)) {
@@ -207,9 +208,10 @@ public class BackwardAnalysisFull extends Task {
     ARGState entryState = buildEntryState();
     Precision precision = cpa.getInitialPrecision(start, getDefaultPartition());
     reached.add(entryState, precision);
-
-    messageFactory.sendStatsReportMessage(this, statistics);
     
+    statistics.setTaskCompleted();
+    messageFactory.sendStatsReportMessage(this, statistics);
+
     shutdownNotifier.shutdownIfNecessary();
     new BackwardAnalysisCore(globalConfiguration, target, reached, origin, algorithm, cpa,
         solver, messageFactory,

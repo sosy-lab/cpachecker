@@ -140,6 +140,7 @@ public final class Scheduler implements Runnable, StatisticsProvider {
   private volatile Optional<ErrorOrigin> target = Optional.empty();
   private volatile AlgorithmStatus status = SOUND_AND_PRECISE;
   
+  @SuppressWarnings("FieldMayBeFinal")
   @Option(description = "Reuse idle CPA instances in consecutive analysis tasks.", secure = true)
   private boolean reuseComponents = true;
   
