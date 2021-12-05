@@ -10,8 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.concurrent.task.backward;
 
 import static org.sosy_lab.cpachecker.core.AnalysisDirection.BACKWARD;
 import static org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus.SOUND_AND_PRECISE;
-import static org.sosy_lab.cpachecker.core.algorithm.concurrent.task.Task.AnalysisBreakupOnLoopBlocks.NONE;
-import static org.sosy_lab.cpachecker.core.algorithm.concurrent.task.Task.AnalysisBreakupOnLoopBlocks.SINGLE_ITERATION_PER_JOB;
 import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDefaultPartition;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
@@ -22,7 +20,6 @@ import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
@@ -57,15 +54,6 @@ public class BackwardAnalysisCore extends Task {
   
   private AlgorithmStatus status = SOUND_AND_PRECISE;
   
-  @SuppressWarnings("FieldMayBeFinal")
-  @Option(secure = true, toUppercase = true,
-      description = "An analysis task on a block which contains a non-terminating loop can cause"
-          + "overall analysis progress to starve. With SINGLE_ITERATION_PER_JOB, the algorithm"
-          + "prevents this by spawning a separate analysis task for each iteration of a loop. With"
-          + "this option, this behavior gets configured for backward analysis tasks."
-  )
-  private AnalysisBreakupOnLoopBlocks loopBreakup = SINGLE_ITERATION_PER_JOB;
-  
   public BackwardAnalysisCore(
       final Configuration pGlobalConfiguration, 
       final Block pBlock,
@@ -91,13 +79,28 @@ public class BackwardAnalysisCore extends Task {
   protected void execute() throws Exception {
     logManager.log(Level.FINE, "BackwardAnalysisCore on", target);
 
-    if(loopBreakup == NONE) {
-      do {
-        singleIteration();
-      } while(reached.hasWaitingState());
-    } else {
-      assert loopBreakup == SINGLE_ITERATION_PER_JOB;
-      singleIteration();
+    AlgorithmStatus newStatus = algorithm.run(reached);
+    status = status.update(newStatus);
+
+    for (final AbstractState reachedState : reached.asCollection()) {
+      processReachedState(reachedState);
+    }
+
+    Collection<AbstractState> waiting = new ArrayList<>(reached.getWaitlist());
+    reached.clear();
+    for (final AbstractState waitingState : waiting) {
+      CFANode location = AbstractStates.extractLocation(waitingState);
+      assert location != null;
+
+      if (location != target.getEntry()) {
+        reached.add(waitingState, cpa.getInitialPrecision(location, getDefaultPartition()));
+      } else if (location.isLoopStart()) {
+        assert waitingState instanceof ARGState;
+
+        ARGState newStart =
+            BlockAwareAnalysisContinuationState.createFromSource(waitingState, target, BACKWARD);
+        reached.add(newStart, cpa.getInitialPrecision(location, getDefaultPartition()));
+      }
     }
 
     shutdownNotifier.shutdownIfNecessary();
@@ -158,31 +161,5 @@ public class BackwardAnalysisCore extends Task {
   
   public boolean hasCreatedContinuationRequest() {
     return hasCreatedContinuationRequest;
-  }
-  
-  private void singleIteration() throws InterruptedException, CPAException, InvalidConfigurationException {
-    AlgorithmStatus newStatus = algorithm.run(reached);
-    status = status.update(newStatus);
-
-    for (final AbstractState reachedState : reached.asCollection()) {
-      processReachedState(reachedState);
-    }
-
-    Collection<AbstractState> waiting = new ArrayList<>(reached.getWaitlist());
-    reached.clear();
-    for (final AbstractState waitingState : waiting) {
-      CFANode location = AbstractStates.extractLocation(waitingState);
-      assert location != null;
-
-      if (location != target.getEntry()) {
-        reached.add(waitingState, cpa.getInitialPrecision(location, getDefaultPartition()));
-      } else if (location.isLoopStart()) {
-        assert waitingState instanceof ARGState;
-
-        ARGState newStart =
-            BlockAwareAnalysisContinuationState.createFromSource(waitingState, target, BACKWARD);
-        reached.add(newStart, cpa.getInitialPrecision(location, getDefaultPartition()));
-      }
-    }
   }
 }
