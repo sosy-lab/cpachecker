@@ -79,7 +79,7 @@ public class ForwardAnalysisContinuationRequest implements TaskRequest {
         : "Only " + Scheduler.getThreadName() + " may call process()";
 
     int currentVersion = pSummaryVersions.getOrDefault(target, 0);
-    if(currentVersion > expectedVersion) {
+    if(currentVersion != expectedVersion) {
       throw new RequestInvalidatedException();
     }
     

@@ -224,10 +224,9 @@ public class ForwardAnalysisRequest extends CPACreatingRequest implements TaskRe
 
     final int predVersion = versions.getOrDefault(predecessor, 0);
 
-    if (expectedPredVersion < predVersion) {
+    if (expectedPredVersion != predVersion) {
       throw new RequestInvalidatedException();
     } else {
-      versions.put(predecessor, expectedPredVersion);
       predSummaries.put(predecessor, newSummary);
     }
   }
