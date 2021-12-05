@@ -12,6 +12,8 @@ import com.google.common.collect.Table;
 import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -29,6 +31,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 public class ForwardAnalysisContinuationRequest implements TaskRequest {
+  private final Configuration globalConfiguration;
   private final Block target;
   private final int expectedVersion;
   private final ARGCPA cpa;
@@ -41,6 +44,7 @@ public class ForwardAnalysisContinuationRequest implements TaskRequest {
   private final ShutdownNotifier shutdownNotifier;
 
   public ForwardAnalysisContinuationRequest(
+      final Configuration pGlobalConfiguration,
       final Block pTarget,
       final int pPExpectedVersion,
       final ARGCPA pCPA,
@@ -52,6 +56,7 @@ public class ForwardAnalysisContinuationRequest implements TaskRequest {
       final LogManager pLogManager,
       final ShutdownNotifier pShutdownNotifier
   ) {
+    globalConfiguration = pGlobalConfiguration;
     target = pTarget;
     expectedVersion = pPExpectedVersion;
     cpa = pCPA;
@@ -68,7 +73,8 @@ public class ForwardAnalysisContinuationRequest implements TaskRequest {
   public Task process(
       Table<Block, Block, ShareableBooleanFormula> pSummaries,
       Map<Block, Integer> pSummaryVersions,
-      Set<CFANode> pAlreadyPropagated) throws RequestInvalidatedException {
+      Set<CFANode> pAlreadyPropagated) throws RequestInvalidatedException,
+                                              InvalidConfigurationException {
     assert Thread.currentThread().getName().equals(Scheduler.getThreadName())
         : "Only " + Scheduler.getThreadName() + " may call process()";
 
@@ -78,7 +84,7 @@ public class ForwardAnalysisContinuationRequest implements TaskRequest {
     }
     
     return new ForwardAnalysisCore(
-        target, reachedSet, expectedVersion, algorithm, cpa, solver, pfMgr, messageFactory,
+        globalConfiguration, target, reachedSet, expectedVersion, algorithm, cpa, solver, pfMgr, messageFactory,
         logManager, shutdownNotifier
     );
   }

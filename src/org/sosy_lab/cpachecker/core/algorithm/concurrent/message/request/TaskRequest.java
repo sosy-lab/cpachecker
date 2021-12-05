@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request;
 import com.google.common.collect.Table;
 import java.util.Map;
 import java.util.Set;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.Scheduler.MessageProcessingVisitor;
@@ -50,9 +51,11 @@ public interface TaskRequest extends Message {
   Task process(
       final Table<Block, Block, ShareableBooleanFormula> pSummaries,
       final Map<Block, Integer> pSummaryVersions,
-      final Set<CFANode> pAlreadyPropagated) throws RequestInvalidatedException;
-  
-  @Override default void accept(final MessageProcessingVisitor visitor) {
+      final Set<CFANode> pAlreadyPropagated) throws RequestInvalidatedException,
+                                                    InvalidConfigurationException;
+
+  @Override
+  default void accept(final MessageProcessingVisitor visitor) {
     visitor.visit(this);
   }
 }

@@ -111,7 +111,8 @@ public class MessageFactory {
       final PathFormulaManager pPfMgr)
       throws InterruptedException, InvalidConfigurationException, CPAException {
     Message message = new ForwardAnalysisContinuationRequest(
-        pTarget, pExpectedVersion, pCPA, pAlgorithm, pReachedSet, pSolver, pPfMgr, this, logManager,
+        config, pTarget, pExpectedVersion, pCPA, pAlgorithm, pReachedSet, pSolver, pPfMgr, this,
+        logManager,
         shutdownNotifier
     );
     executor.sendMessage(message);
@@ -125,7 +126,7 @@ public class MessageFactory {
     assert pBlock.contains(pStart) : "Block must contain analysis start location";
 
     Message message =
-        new BackwardAnalysisRequest(
+        new BackwardAnalysisRequest(config,
             pBlock, pOrigin, pStart, null, null, config, logManager, shutdownNotifier, cfa, this);
     executor.sendMessage(message);
   }
@@ -140,7 +141,7 @@ public class MessageFactory {
     assert pBlock.contains(pStart) : "Block must contain analysis start location";
 
     Message message =
-        new BackwardAnalysisRequest(
+        new BackwardAnalysisRequest(config,
             pBlock, pOrigin, pStart, pSource, pCondition, config, logManager, shutdownNotifier, cfa,
             this);
     executor.sendMessage(message);
@@ -153,7 +154,7 @@ public class MessageFactory {
       final Algorithm pAlgorithm,
       final ARGCPA pCPA, final Solver pSolver) {
     Message message =
-        new BackwardAnalysisContinuationRequest(
+        new BackwardAnalysisContinuationRequest(config,
             pBlock, pOrigin, pReachedSet, pAlgorithm, pCPA, pSolver, this, logManager,
             shutdownNotifier);
 
@@ -167,7 +168,7 @@ public class MessageFactory {
       final Algorithm pAlgorithm,
       final ARGCPA pCPA, final Solver pSolver) {
     Message message =
-        new BackwardAnalysisContinuationRequest(
+        new BackwardAnalysisContinuationRequest(config,
             pBlock, pOrigin, pReachedSet, pAlgorithm, pCPA, pSolver, this, logManager,
             shutdownNotifier);
 

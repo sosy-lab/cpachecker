@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.concurrent.task.forward;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.core.AnalysisDirection.FORWARD;
-import static org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus.SOUND_AND_PRECISE;
 import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDefaultPartition;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
@@ -20,7 +19,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.logging.Level;
+import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -53,7 +52,8 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 public class ForwardAnalysisFull extends Task { 
   private static volatile ConfigurationLoader configLoader = null;
-
+  private final Configuration globalConfiguration;
+  
   private final Block target;
   private final PathFormula newSummary;
   private final PathFormula oldSummary;
@@ -66,6 +66,7 @@ public class ForwardAnalysisFull extends Task {
   private final ForwardAnalysisStatistics statistics;
 
   public ForwardAnalysisFull(
+      final Configuration pGlobalConfiguration,
       final Block pTarget,
       @Nullable final ShareableBooleanFormula pOldSummary,
       @Nullable final ShareableBooleanFormula pNewSummary,
@@ -78,7 +79,8 @@ public class ForwardAnalysisFull extends Task {
       final LogManager pLogManager,
       final ShutdownNotifier pShutdownNotifier) {
     super(pCPA, pAlgorithm, pReachedSet, pMessageFactory, pLogManager, pShutdownNotifier);
-
+    globalConfiguration = pGlobalConfiguration;
+    
     PredicateCPA predCPA = pCPA.retrieveWrappedCpa(PredicateCPA.class);
 
     solver = predCPA.getSolver();
@@ -134,7 +136,7 @@ public class ForwardAnalysisFull extends Task {
     
     shutdownNotifier.shutdownIfNecessary();
     new ForwardAnalysisCore(
-        target, reached, expectedVersion, algorithm, cpa, solver, pfMgr, messageFactory, logManager, shutdownNotifier
+        globalConfiguration, target, reached, expectedVersion, algorithm, cpa, solver, pfMgr, messageFactory, logManager, shutdownNotifier
     ).run();
   }
 

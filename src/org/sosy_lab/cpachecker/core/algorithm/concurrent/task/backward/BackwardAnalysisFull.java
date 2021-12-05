@@ -57,6 +57,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 public class BackwardAnalysisFull extends Task {
   private static volatile ConfigurationLoader configLoader = null;
 
+  private final Configuration globalConfiguration;
   private final Block target;
   private final ErrorOrigin origin;
   private final CFANode start;
@@ -69,6 +70,7 @@ public class BackwardAnalysisFull extends Task {
   private final BackwardAnalysisFullStatistics statistics;
   
   public BackwardAnalysisFull(
+      final Configuration pGlobalConfiguration,
       final Block pBlock,
       final ErrorOrigin pOrigin,
       final CFANode pStart,
@@ -81,7 +83,8 @@ public class BackwardAnalysisFull extends Task {
       final LogManager pLogManager,
       final ShutdownNotifier pShutdownNotifier) {
     super(pCPA, pAlgorithm, pReachedSet, pMessageFactory, pLogManager, pShutdownNotifier);
-
+    globalConfiguration = pGlobalConfiguration;
+    
     PredicateCPA predicateCPA = cpa.retrieveWrappedCpa(PredicateCPA.class);
 
     pfMgr = predicateCPA.getPathFormulaManager();
@@ -206,7 +209,7 @@ public class BackwardAnalysisFull extends Task {
     reached.add(entryState, precision);
 
     shutdownNotifier.shutdownIfNecessary();
-    new BackwardAnalysisCore(target, reached, origin, algorithm, cpa,
+    new BackwardAnalysisCore(globalConfiguration, target, reached, origin, algorithm, cpa,
         solver, messageFactory,
         logManager,
         shutdownNotifier).run();

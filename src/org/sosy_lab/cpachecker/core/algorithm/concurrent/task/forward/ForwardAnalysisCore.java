@@ -20,7 +20,10 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -44,6 +47,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class ForwardAnalysisCore extends Task {
@@ -59,8 +63,9 @@ public class ForwardAnalysisCore extends Task {
   private boolean hasCreatedContinuationRequest = false;
   
   public ForwardAnalysisCore(
+      final Configuration pGlobalConfiguration,
       final Block pTarget,
-      final ReachedSet pReachedSet, 
+      final ReachedSet pReachedSet,
       final int pExpectedVersion,
       final Algorithm pAlgorithm,
       final ARGCPA pCPA,
@@ -68,8 +73,9 @@ public class ForwardAnalysisCore extends Task {
       final PathFormulaManager pPfMgr,
       final MessageFactory pMessageFactory,
       final LogManager pLogManager,
-      final ShutdownNotifier pShutdownNotifier) {
+      final ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     super(pCPA, pAlgorithm, pReachedSet, pMessageFactory, pLogManager, pShutdownNotifier);
+    pGlobalConfiguration.inject(this);
     
     target = pTarget;
     expectedVersion = pExpectedVersion;

@@ -18,7 +18,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -52,6 +55,7 @@ public class BackwardAnalysisCore extends Task {
   private AlgorithmStatus status = SOUND_AND_PRECISE;
 
   public BackwardAnalysisCore(
+      final Configuration pGlobalConfiguration, 
       final Block pBlock,
       final ReachedSet pReachedSet,
       final ErrorOrigin pOrigin,
@@ -60,9 +64,10 @@ public class BackwardAnalysisCore extends Task {
       final Solver pSolver,
       final MessageFactory pMessageFactory,
       final LogManager pLogManager,
-      final ShutdownNotifier pShutdownNotifier) {
+      final ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     super(pCPA, pAlgorithm, pReachedSet, pMessageFactory, pLogManager, pShutdownNotifier);
-
+    pGlobalConfiguration.inject(this);
+        
     solver = pSolver;
     fMgr = solver.getFormulaManager();
     target = pBlock;

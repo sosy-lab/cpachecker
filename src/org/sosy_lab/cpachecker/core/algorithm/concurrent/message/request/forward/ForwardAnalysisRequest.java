@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
 @Options(prefix = "concurrent.task.forward")
 public class ForwardAnalysisRequest extends CPACreatingRequest implements TaskRequest {
+  private final Configuration globalConfiguration;
   private final Configuration taskConfiguration;
   private final Block predecessor;
   private final Block block;
@@ -74,7 +75,8 @@ public class ForwardAnalysisRequest extends CPACreatingRequest implements TaskRe
       final MessageFactory pMessageFactory)
       throws InvalidConfigurationException, CPAException, InterruptedException {
     super(pMessageFactory, pLogger, pShutdownNotifier);
-    
+
+    globalConfiguration = pConfig;
     pConfig.inject(this);
     taskConfiguration = ForwardAnalysisFull.getConfiguration(pLogger, configFile, pConfig);
 
@@ -184,6 +186,7 @@ public class ForwardAnalysisRequest extends CPACreatingRequest implements TaskRe
         Maps.filterKeys(incoming, key -> predecessor != key).values();
 
     return new ForwardAnalysisFull(
+        globalConfiguration,
         block,
         oldSummary,
         newSummary,
