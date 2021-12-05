@@ -47,10 +47,10 @@ public class ForwardAnalysisContinuationRequest implements TaskRequest {
   private final ShutdownNotifier shutdownNotifier;
 
   @SuppressWarnings("FieldMayBeFinal")
-  @Option(description = "Indicates whether the analysis should first check if a new summary"
-      + "really adds new information or is just redundant. In the later case, the analysis"
-      + "for the new summary gets aborted. These checks involve satisfiability queries and"
-      + "get performed for each new forward analysis task. This option provides the user with"
+  @Option(description = "Indicates whether the analysis should first check if a new summary "
+      + "really adds new information or is just redundant. In the later case, the analysis "
+      + "for the new summary gets aborted. These checks involve satisfiability queries and "
+      + "get performed for each new forward analysis task. This option provides the user with "
       + "the ability to declare whether the overhead of these checks is worth the advantage "
       + "of aborting analysis tasks early.")
   private boolean performRedundancyChecks = true;
