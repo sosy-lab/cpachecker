@@ -52,15 +52,15 @@ public class BackwardAnalysisRequest extends CPACreatingRequest implements TaskR
   private final ShareableBooleanFormula errorCondition;
   private final FormulaManagerView fMgr;
   private final PathFormulaManager pfMgr;
-  
+
   @SuppressWarnings("FieldMayBeFinal")
-  @Option(description 
+  @Option(description
       = "Optional configuration file for forward analysis during concurrent analysis."
       + "Relative paths get interpreted starting from the location of the configuration"
       + "file which sets this value, i.e. usually"
       + "concurrent-task-partitioning.properties in config/includes/."
       + "If no value is set, the analysis uses the file predicateForward.properties in"
-      + "the package core.algorithm.concurrent.task.forward.", secure=true)
+      + "the package core.algorithm.concurrent.task.forward.", secure = true)
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path configFile = null;
 
@@ -77,26 +77,26 @@ public class BackwardAnalysisRequest extends CPACreatingRequest implements TaskR
       final MessageFactory pMessageFactory)
       throws InvalidConfigurationException, CPAException, InterruptedException {
     super(pMessageFactory, pLogger, pShutdownNotifier);
-    
+
     pConfig.inject(this);
-    Configuration taskConfiguration 
+    Configuration taskConfiguration
         = BackwardAnalysisFull.getConfiguration(pLogger, configFile, pConfig);
 
-    Optional<ReusableCoreComponents> reusableComponents 
+    Optional<ReusableCoreComponents> reusableComponents
         = messageFactory.requestIdleBackwardAnalysisComponents();
     prepareCPA(taskConfiguration, pCFA, alwaysSatisfied(), pTarget, reusableComponents);
-    
+
     target = pTarget;
     origin = pOrigin;
     start = pStart;
     source = pSource;
-    
+
     PredicateCPA predicateCPA = cpa.retrieveWrappedCpa(PredicateCPA.class);
     assert predicateCPA != null;
 
     fMgr = predicateCPA.getSolver().getFormulaManager();
     pfMgr = predicateCPA.getPathFormulaManager();
-    
+
     if (pErrorCondition == null) {
       PathFormula condition = pfMgr.makeEmptyPathFormula();
       errorCondition = new ShareableBooleanFormula(fMgr, condition);
@@ -116,13 +116,14 @@ public class BackwardAnalysisRequest extends CPACreatingRequest implements TaskR
    *
    * @return The immutable {@link BackwardAnalysisFull} which actually implements the {@link Task}.
    * @throws RequestInvalidatedException The {@link BackwardAnalysisRequest} has become invalidated by
-   *                                  a more recent one and the {@link BackwardAnalysisFull} must not
-   *                                  execute.
+   *                                     a more recent one and the {@link BackwardAnalysisFull} must not
+   *                                     execute.
    * @see BackwardAnalysisFull
    */
   @Override
   public Task process(
-      Table<Block, Block, ShareableBooleanFormula> pSummaries, Map<Block, SummaryVersion> pSummaryVersions,
+      Table<Block, Block, ShareableBooleanFormula> pSummaries,
+      Map<Block, SummaryVersion> pSummaryVersions,
       Set<CFANode> pAlreadyPropagated)
       throws RequestInvalidatedException {
     assert Thread.currentThread().getName().equals(Scheduler.getThreadName())

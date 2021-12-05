@@ -60,11 +60,11 @@ abstract public class CPACreatingRequest {
         new CoreComponentsFactory(pTaskConfiguration, logManager, shutdownNotifier,
             AggregatedReachedSets.empty());
     CompositeCPA compositeCPA;
-    
-    if(pReusableCoreComponents.isPresent()) {
+
+    if (pReusableCoreComponents.isPresent()) {
       ReusableCoreComponents components = pReusableCoreComponents.orElseThrow();
       compositeCPA = components.getCpa();
-      
+
       logManager.log(INFO, "Reusing existing core components.");
     } else {
       WrapperCPA configuredCPA = (WrapperCPA) factory.createCPA(pCFA, pSpecification);

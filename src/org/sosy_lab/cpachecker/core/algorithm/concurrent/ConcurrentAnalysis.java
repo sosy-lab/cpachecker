@@ -48,18 +48,15 @@ public class ConcurrentAnalysis implements Algorithm, StatisticsProvider {
   private final Specification specification;
   private final ShutdownManager shutdownManager;
   private final Scheduler scheduler;
-
-  public enum InitialTaskSpawnStrategy {
-    ALL_BLOCKS, PROGRAM_ENTRY
-  }
   @SuppressWarnings("FieldMayBeFinal")
   @Option(secure = true, toUppercase = true,
-      description = "Strategy for spawning initial forward analysis tasks to kick off the analysis.\n" 
-          + "With ALL_BLOCKS, the algorithm initially creates forward analysis tasks on all blocks," 
-          + "with PROGRAM_ENTRY, a single forward analysis starts from program entry."
+      description =
+          "Strategy for spawning initial forward analysis tasks to kick off the analysis.\n"
+              + "With ALL_BLOCKS, the algorithm initially creates forward analysis tasks on all blocks,"
+              + "with PROGRAM_ENTRY, a single forward analysis starts from program entry."
   )
   private InitialTaskSpawnStrategy initialTaskSpawnStrategy = ALL_BLOCKS;
-  
+
   private ConcurrentAnalysis(
       final Algorithm pAlgorithm,
       final CFA pCFA,
@@ -68,7 +65,7 @@ public class ConcurrentAnalysis implements Algorithm, StatisticsProvider {
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     pConfig.inject(this);
-    
+
     algorithm = pAlgorithm;
     cfa = pCFA;
     logger = pLogger;
@@ -114,7 +111,7 @@ public class ConcurrentAnalysis implements Algorithm, StatisticsProvider {
               .set(scheduler, Scheduler.class)
               .createInstance();
 
-      if(initialTaskSpawnStrategy == ALL_BLOCKS) {
+      if (initialTaskSpawnStrategy == ALL_BLOCKS) {
         for (final Block block : graph.getBlocks()) {
           messageFactory.sendForwardAnalysisRequest(block);
         }
@@ -122,7 +119,7 @@ public class ConcurrentAnalysis implements Algorithm, StatisticsProvider {
         assert initialTaskSpawnStrategy == PROGRAM_ENTRY;
         messageFactory.sendForwardAnalysisRequest(graph.getEntry());
       }
-      
+
       Optional<ErrorOrigin> error = Optional.empty();
       scheduler.start();
       try {
@@ -154,5 +151,10 @@ public class ConcurrentAnalysis implements Algorithm, StatisticsProvider {
     }
 
     scheduler.collectStatistics(statsCollection);
+  }
+
+  public enum InitialTaskSpawnStrategy {
+    ALL_BLOCKS,
+    PROGRAM_ENTRY
   }
 }

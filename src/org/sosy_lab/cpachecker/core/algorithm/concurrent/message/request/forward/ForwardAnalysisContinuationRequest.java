@@ -47,14 +47,14 @@ public class ForwardAnalysisContinuationRequest implements TaskRequest {
   private final ShutdownNotifier shutdownNotifier;
 
   @SuppressWarnings("FieldMayBeFinal")
-  @Option(description="Indicates whether the analysis should first check if a new summary"
+  @Option(description = "Indicates whether the analysis should first check if a new summary"
       + "really adds new information or is just redundant. In the later case, the analysis"
       + "for the new summary gets aborted. These checks involve satisfiability queries and"
       + "get performed for each new forward analysis task. This option provides the user with"
       + "the ability to declare whether the overhead of these checks is worth the advantage "
       + "of aborting analysis tasks early.")
   private boolean performRedundancyChecks = true;
-  
+
   public ForwardAnalysisContinuationRequest(
       final Configuration pGlobalConfiguration,
       final Block pTarget,
@@ -67,9 +67,9 @@ public class ForwardAnalysisContinuationRequest implements TaskRequest {
       final MessageFactory pMessageFactory,
       final LogManager pLogManager,
       final ShutdownNotifier pShutdownNotifier
-  ) throws InvalidConfigurationException {    
+  ) throws InvalidConfigurationException {
     pGlobalConfiguration.inject(this);
-    
+
     target = pTarget;
     expectedVersion = pPExpectedVersion;
     cpa = pCPA;
@@ -92,7 +92,7 @@ public class ForwardAnalysisContinuationRequest implements TaskRequest {
         : "Only " + Scheduler.getThreadName() + " may call process()";
 
     SummaryVersion version = pSummaryVersions.getOrDefault(target, SummaryVersion.getInitial());
-    if(performRedundancyChecks) {
+    if (performRedundancyChecks) {
       if (version.passedNonRedundancyCheck < expectedVersion) {
         /*
          * This analysis just passed the non-redundancy-check and publishes this information by
@@ -113,13 +113,12 @@ public class ForwardAnalysisContinuationRequest implements TaskRequest {
        * remains the most recent analysis for the target block which has passed the non-redundancy-
        * check and can just continue to run.
        */
+    } else {
+      if (version.current > expectedVersion) {
+        throw new RequestInvalidatedException();
+      }
     }
-    else {
-        if(version.current > expectedVersion) {
-          throw new RequestInvalidatedException();
-        }
-    }
-    
+
     return new ForwardAnalysisCore(
         target, reachedSet, expectedVersion, algorithm, cpa, solver, pfMgr, messageFactory,
         logManager, shutdownNotifier

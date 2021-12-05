@@ -51,12 +51,12 @@ public class ForwardAnalysisCore extends Task {
   private final int expectedVersion;
   private final FormulaManagerView fMgr;
   private final PathFormulaManager pfMgr;
-  
+
   private final ForwardAnalysisCoreStatistics statistics;
-  
+
   private AlgorithmStatus status = SOUND_AND_PRECISE;
   private boolean hasCreatedContinuationRequest = false;
-  
+
   public ForwardAnalysisCore(
       final Block pTarget,
       final ReachedSet pReachedSet,
@@ -69,20 +69,19 @@ public class ForwardAnalysisCore extends Task {
       final LogManager pLogManager,
       final ShutdownNotifier pShutdownNotifier) {
     super(pCPA, pAlgorithm, pReachedSet, pMessageFactory, pLogManager, pShutdownNotifier);
-    
+
     target = pTarget;
     expectedVersion = pExpectedVersion;
     solver = pSolver;
     fMgr = solver.getFormulaManager();
     pfMgr = pPfMgr;
-    
+
     statistics = new ForwardAnalysisCoreStatistics(pTarget);
   }
 
   @Override
   protected void execute()
-      throws CPAException, InterruptedException, InvalidConfigurationException, SolverException 
-  {
+      throws CPAException, InterruptedException, InvalidConfigurationException, SolverException {
     statistics.setTaskStarted();
     logManager.log(Level.FINE, "Starting ForwardAnalysisCore on ", target);
 
@@ -91,10 +90,10 @@ public class ForwardAnalysisCore extends Task {
 
     handleTargetStates();
     propagateThroughExits();
-    resetReachedSet();    
-    
+    resetReachedSet();
+
     shutdownNotifier.shutdownIfNecessary();
-    if(reached.hasWaitingState()) {
+    if (reached.hasWaitingState()) {
       hasCreatedContinuationRequest = true;
       messageFactory.sendForwardAnalysisContinuationRequest(
           target, expectedVersion, cpa, algorithm, reached, solver, pfMgr
@@ -105,11 +104,11 @@ public class ForwardAnalysisCore extends Task {
     messageFactory.sendTaskCompletedMessage(this, status, statistics);
     statistics.setTaskCompleted();
   }
-  
+
   private void resetReachedSet() throws InterruptedException, SolverException {
     Collection<AbstractState> waiting = new ArrayList<>(reached.getWaitlist());
     reached.clearWaitlist();
-    
+
     for (final AbstractState waitingState : waiting) {
       final PredicateAbstractState predicateState
           = extractStateByType(waitingState, PredicateAbstractState.class);
@@ -118,13 +117,13 @@ public class ForwardAnalysisCore extends Task {
       BooleanFormula abstractionFormula = predicateState.getAbstractionFormula().asFormula();
       BooleanFormula pathFormula = predicateState.getPathFormula().getFormula();
       BooleanFormula formula = fMgr.makeAnd(abstractionFormula, pathFormula);
-      
-      if(!solver.isUnsat(formula)) {
+
+      if (!solver.isUnsat(formula)) {
         reached.add(waitingState, reached.getPrecision(waitingState));
       }
     }
   }
-  
+
   private void handleTargetStates()
       throws InterruptedException, CPAException, InvalidConfigurationException {
     for (final AbstractState state : reached.asCollection()) {
@@ -145,8 +144,9 @@ public class ForwardAnalysisCore extends Task {
     ARGState argState = (ARGState) state;
 
     assert argState.getWrappedState() instanceof BlockAwareCompositeState;
-    BlockAwareCompositeState blockAwareState = (BlockAwareCompositeState) argState.getWrappedState();
-    
+    BlockAwareCompositeState blockAwareState =
+        (BlockAwareCompositeState) argState.getWrappedState();
+
     for (final AbstractState componentState : blockAwareState.getWrappedStates()) {
       if (componentState instanceof Targetable) {
         Targetable targetableState = (Targetable) componentState;
@@ -163,7 +163,7 @@ public class ForwardAnalysisCore extends Task {
       throws InterruptedException, CPAException, InvalidConfigurationException {
     for (Map.Entry<CFANode, Block> entry : target.getExits().entrySet()) {
       final CFANode exit = entry.getKey();
-      
+
       PathFormula exitFormula = null;
       for (AbstractState exitState : filterLocation(reached, exit)) {
         final PredicateAbstractState predState =
@@ -171,7 +171,8 @@ public class ForwardAnalysisCore extends Task {
         assert predState != null;
 
         PathFormula partialExitFormula
-            = pfMgr.makeAnd(predState.getPathFormula(), predState.getAbstractionFormula().asFormula());
+            = pfMgr.makeAnd(predState.getPathFormula(),
+            predState.getAbstractionFormula().asFormula());
 
         if (exitFormula == null) {
           exitFormula = partialExitFormula;
@@ -179,16 +180,19 @@ public class ForwardAnalysisCore extends Task {
           exitFormula = pfMgr.makeOr(exitFormula, partialExitFormula);
         }
       }
-      
+
       assert exitFormula != null;
-      
+
       Block successor = entry.getValue();
-      final ShareableBooleanFormula shareableFormula = new ShareableBooleanFormula(fMgr, exitFormula);
-      messageFactory.sendForwardAnalysisRequest(target, expectedVersion, successor, shareableFormula);
+      final ShareableBooleanFormula shareableFormula =
+          new ShareableBooleanFormula(fMgr, exitFormula);
+      messageFactory.sendForwardAnalysisRequest(target, expectedVersion, successor,
+          shareableFormula);
     }
   }
 
-  @Override public String toString() {
+  @Override
+  public String toString() {
     return "ForwardAnalysisCore on block with entry location " + target.getEntry();
   }
 

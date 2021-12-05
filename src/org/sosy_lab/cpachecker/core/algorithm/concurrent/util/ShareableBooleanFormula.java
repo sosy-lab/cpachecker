@@ -29,8 +29,8 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
  *
  * <p>{@link ShareableBooleanFormula} encapsulates a {@link PathFormula} together with the {@link
  * FormulaManagerView} to which it belongs. The method {@link
- * ShareableBooleanFormula#getFor(FormulaManagerView, PathFormulaManager)} provides the user with 
- * the ability to obtain an equivalent {@link PathFormula} usable in the context of an arbitrary 
+ * ShareableBooleanFormula#getFor(FormulaManagerView, PathFormulaManager)} provides the user with
+ * the ability to obtain an equivalent {@link PathFormula} usable in the context of an arbitrary
  * {@link PathFormulaManager}. As such, it offers an opportunity to easily exchange a {@link
  * PathFormula} across threads whose operations rely on different underlying instances of {@link
  * Solver}.
@@ -42,7 +42,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
  */
 public class ShareableBooleanFormula {
   private final FormulaManagerView fMgr;
-  
+
   private final PathFormula formula;
 
   public ShareableBooleanFormula(FormulaManagerView pFMgr, PathFormula pFormula) {
@@ -56,7 +56,7 @@ public class ShareableBooleanFormula {
   public PathFormula getFor(FormulaManagerView pTargetFMgr, PathFormulaManager pTargetPfMgr) {
     checkNotNull(pTargetFMgr);
     checkNotNull(pTargetPfMgr);
-    
+
     if (fMgr == pTargetFMgr) {
       return formula;
     }
@@ -67,7 +67,7 @@ public class ShareableBooleanFormula {
     SSAMap ssa = formula.getSsa();
     PointerTargetSet pts = formula.getPointerTargetSet();
     PathFormula targetFormula = pTargetPfMgr.makeEmptyPathFormulaWithContext(ssa, pts);
-    
+
     return targetFormula.withFormula(targetRaw);
   }
 }

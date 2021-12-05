@@ -105,39 +105,40 @@ public class ConcurrentStatisticsCollector implements StatisticsProvider, Statis
       final ShutdownNotifier pShutdownNotifier,
       final Configuration pConfiguration) throws InvalidConfigurationException {
     pConfiguration.inject(this);
-    
+
     logManager = pLogManager;
     shutdownNotifier = pShutdownNotifier;
   }
 
   @Override
   public void run() {
-    if(!collectDetailedStatistics) {
+    if (!collectDetailedStatistics) {
       return;
     }
-    
-    while(!pendingStatistics.isEmpty() || !shutdownNotifier.shouldShutdown()) {// || !pendingStatistics.isEmpty() || !shutdownNotifier.shouldShutdown()) {
+
+    while (!pendingStatistics.isEmpty()
+        || !shutdownNotifier.shouldShutdown()) {// || !pendingStatistics.isEmpty() || !shutdownNotifier.shouldShutdown()) {
       try {
         final TaskStatistics statistics = pendingStatistics.take();
         statistics.accept(this);
-      } catch(final Throwable ignored) {
+      } catch (final Throwable ignored) {
         /*
-         * Ignored because surrounding loop already checks for shutdown request. 
+         * Ignored because surrounding loop already checks for shutdown request.
          */
       }
     }
   }
 
   public void submitNewStatistics(final TaskStatistics pStatistics) {
-    if(!collectDetailedStatistics) {
+    if (!collectDetailedStatistics) {
       return;
     }
-    
+
     try {
-      pendingStatistics.put(pStatistics);  
-    } catch(final InterruptedException ignored) {
-      logManager.log(WARNING, 
-          "Interrupted while waiting to submit statistics; pending ones discarded.", 
+      pendingStatistics.put(pStatistics);
+    } catch (final InterruptedException ignored) {
+      logManager.log(WARNING,
+          "Interrupted while waiting to submit statistics; pending ones discarded.",
           "Statistics will be incomplete.");
     }
   }
@@ -145,10 +146,10 @@ public class ConcurrentStatisticsCollector implements StatisticsProvider, Statis
   @Override
   public void printStatistics(
       PrintStream out, Result result, UnmodifiableReachedSet reached) {
-    if(!collectDetailedStatistics) {
+    if (!collectDetailedStatistics) {
       return;
     }
-    
+
     final StatInt forwardAnalysisCountValues = new StatInt(StatKind.AVG, "FA Count");
 
     out.format("Forward Analysis Average Count: %f%n", forwardAnalysisCountValues.getAverage());
@@ -192,22 +193,22 @@ public class ConcurrentStatisticsCollector implements StatisticsProvider, Statis
 
   @Override
   public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
-    if(!collectDetailedStatistics) {
+    if (!collectDetailedStatistics) {
       return;
     }
-    
+
     /*
      * Todo: Make calling thread wait for completion. In practice, this assertion rarely fails, but
-     *       for correctness, a waiting-mechanism must be implemented.  
+     *       for correctness, a waiting-mechanism must be implemented.
      */
-    assert pendingStatistics.isEmpty() : 
+    assert pendingStatistics.isEmpty() :
         "Statistics output file creation requested before collection of statistics complete.";
-    
+
     writeForwardAnalysisCount();
     writeBackwardAnalysisCount();
     writeSequenceInformation();
   }
-  
+
   private void writeFile(final Path path, final String content, final String identifier) {
     try {
       try (Writer writer = IO.openOutputFile(path, Charset.defaultCharset())) {
@@ -217,7 +218,7 @@ public class ConcurrentStatisticsCollector implements StatisticsProvider, Statis
       logManager.log(WARNING, "Could not write", identifier, " (" + path + ").");
     }
   }
-  
+
   private void writeForwardAnalysisCount() {
     String content = buildCountFileContent(forwardAnalysisCount);
     writeFile(faCountFile, content, "forward analysis count");
@@ -237,14 +238,14 @@ public class ConcurrentStatisticsCollector implements StatisticsProvider, Statis
       content.append(entry.getValue());
       content.append("\n");
     }
-    
+
     return content.toString();
   }
-  
+
   private void writeSequenceInformation() {
     StringBuilder stringBuilder = new StringBuilder();
-    
-    for(final ExecutedTaskInfo info : sequence) {
+
+    for (final ExecutedTaskInfo info : sequence) {
       stringBuilder.append(info.start.isPresent() ? info.start.orElseThrow() : "-");
       stringBuilder.append("; ");
       stringBuilder.append(info.end.isPresent() ? info.end.orElseThrow() : "-");
@@ -254,10 +255,10 @@ public class ConcurrentStatisticsCollector implements StatisticsProvider, Statis
       stringBuilder.append(info.block);
       stringBuilder.append("\n");
     }
-    
+
     writeFile(sequenceFile, stringBuilder.toString(), "analysis task sequence information");
   }
-  
+
   private void collectExecutedTaskInfo(final TaskStatistics pStatistics, final String pType) {
     final ExecutedTaskInfo info = new ExecutedTaskInfo(
         pStatistics.getStartedTimestamp(),
@@ -267,7 +268,7 @@ public class ConcurrentStatisticsCollector implements StatisticsProvider, Statis
     );
     sequence.add(info);
   }
-  
+
   public void start() {
     thread = Optional.of(new Thread(this, "Concurrent Statistics Collector"));
     thread.orElseThrow().start();
@@ -275,24 +276,22 @@ public class ConcurrentStatisticsCollector implements StatisticsProvider, Statis
 
   public void stop() {
     assert shutdownNotifier.shouldShutdown();
-    
-    if(thread.isPresent()) {
+
+    if (thread.isPresent()) {
       thread.orElseThrow().interrupt();
     }
   }
-  
+
   public abstract static class TaskStatistics {
-    public abstract void accept(final ConcurrentStatisticsCollector collector);
-    
+    private final Block target;
+    private Optional<Long> started = Optional.empty();
+    private Optional<Long> completed = Optional.empty();
+
     public TaskStatistics(final Block pTarget) {
       target = pTarget;
     }
-    
-    private final Block target;
-    
-    private Optional<Long> started = Optional.empty();
 
-    private Optional<Long> completed = Optional.empty();
+    public abstract void accept(final ConcurrentStatisticsCollector collector);
 
     public void setTaskStarted() {
       started = Optional.of(System.currentTimeMillis());

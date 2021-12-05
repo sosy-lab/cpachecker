@@ -44,7 +44,8 @@ public interface TaskRequest extends Message {
    * can be used to prevent the repeated propagation of the same error condition, which would
    * otherwise occur if a refined {@link ForwardAnalysisCore} encounters the same target location as a
    * preceding one before.
-   *  @param pSummaries         Latest block summaries
+   *
+   * @param pSummaries         Latest block summaries
    * @param pSummaryVersions   Version counter for block summaries
    * @param pAlreadyPropagated CFANodes from which a BackwardAnalysisFull has already emerged
    */

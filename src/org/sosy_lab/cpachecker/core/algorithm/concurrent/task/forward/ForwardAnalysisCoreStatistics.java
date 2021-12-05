@@ -16,7 +16,7 @@ public class ForwardAnalysisCoreStatistics extends TaskStatistics {
   public ForwardAnalysisCoreStatistics(final Block pTarget) {
     super(pTarget);
   }
-  
+
   @Override
   public void accept(final ConcurrentStatisticsCollector collector) {
     collector.visit(this);

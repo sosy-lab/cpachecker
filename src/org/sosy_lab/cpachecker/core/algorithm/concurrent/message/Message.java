@@ -12,9 +12,9 @@ import org.sosy_lab.cpachecker.core.algorithm.concurrent.Scheduler.MessageProces
 
 /**
  * Tasks communicate with the Scheduler using message objects of this class.
- * Such messages (a) provide the scheduler with statistics about a completed task, (b) request the 
- * execution of a new task. Often, these two events occur simultaneously, because new tasks   
+ * Such messages (a) provide the scheduler with statistics about a completed task, (b) request the
+ * execution of a new task. Often, these two events occur simultaneously, because new tasks
  */
-public interface Message { 
+public interface Message {
   void accept(final MessageProcessingVisitor visitor);
 }

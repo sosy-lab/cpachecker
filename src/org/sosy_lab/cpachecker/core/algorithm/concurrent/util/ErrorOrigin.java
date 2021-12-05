@@ -18,13 +18,13 @@ public class ErrorOrigin {
   private final AbstractState state;
 
   private final CFANode location;
-  
+
   private final Precision precision;
-    
+
   private ErrorOrigin(final AbstractState pState, final Precision pPrecision) {
     state = pState;
     precision = pPrecision;
-    
+
     location = extractLocation(state);
     assert location != null;
   }
@@ -32,15 +32,15 @@ public class ErrorOrigin {
   public static ErrorOrigin create(final AbstractState pState, final Precision pPrecision) {
     return new ErrorOrigin(pState, pPrecision);
   }
-  
+
   public AbstractState getState() {
     return state;
   }
-  
+
   public CFANode getLocation() {
     return location;
   }
-  
+
   public Precision getPrecision() {
     return precision;
   }

@@ -21,18 +21,13 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
  * analysis.
  */
 public abstract class Task implements Runnable {
-  public enum AnalysisBreakupOnLoopBlocks {
-    NONE, SINGLE_ITERATION_PER_JOB
-  }
-  
   protected final MessageFactory messageFactory;
   protected final LogManager logManager;
   protected final ShutdownNotifier shutdownNotifier;
-  
   protected final ARGCPA cpa;
   protected final Algorithm algorithm;
   protected final ReachedSet reached;
-  
+
   protected Task(
       final ARGCPA pCPA,
       final Algorithm pAlgorithm,
@@ -43,12 +38,12 @@ public abstract class Task implements Runnable {
     cpa = pCPA;
     algorithm = pAlgorithm;
     reached = pReachedSet;
-    
+
     messageFactory = pMessageFactory;
     logManager = pLogManager;
     shutdownNotifier = pShutdownNotifier;
   }
-  
+
   @Override
   public final void run() {
     try {
@@ -59,14 +54,14 @@ public abstract class Task implements Runnable {
     } catch (final Throwable object) {
       logManager.log(Level.WARNING, "Unexpected throwable:", object);
       messageFactory.sendTaskAbortedMessage(this);
-    } 
+    }
   }
 
   protected abstract void execute() throws Exception;
-  
+
   @Override
   public abstract String toString();
-  
+
   public ARGCPA getCPA() {
     return cpa;
   }
@@ -74,8 +69,13 @@ public abstract class Task implements Runnable {
   public Algorithm getAlgorithm() {
     return algorithm;
   }
-  
+
   public ReachedSet getReachedSet() {
     return reached;
+  }
+
+  public enum AnalysisBreakupOnLoopBlocks {
+    NONE,
+    SINGLE_ITERATION_PER_JOB
   }
 }

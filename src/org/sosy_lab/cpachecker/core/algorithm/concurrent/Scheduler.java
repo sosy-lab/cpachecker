@@ -99,6 +99,7 @@ public final class Scheduler implements Runnable, StatisticsProvider {
   @SuppressWarnings("FieldMayBeFinal")
   @Option(description = "Reuse idle CPA instances in consecutive analysis tasks.", secure = true)
   private boolean reuseComponents = true;
+
   /**
    * Prepare a new {@link Scheduler}. Actual execution does not start until {@link #start()} gets
    * called.

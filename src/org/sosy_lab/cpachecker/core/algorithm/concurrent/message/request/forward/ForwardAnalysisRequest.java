@@ -52,25 +52,25 @@ public class ForwardAnalysisRequest extends CPACreatingRequest implements TaskRe
   private final ShareableBooleanFormula newSummary;
 
   @SuppressWarnings("FieldMayBeFinal")
-  @Option(description 
+  @Option(description
       = "Optional configuration file for backward analysis during concurrent analysis."
       + "Relative paths get interpreted starting from the location of the configuration"
       + "file which sets this value, i.e. usually"
       + "concurrent-task-partitioning.properties in config/includes/."
       + "If no value is set, the analysis uses the file predicateBackward.properties in"
-      + "the package core.algorithm.concurrent.task.backward.", secure=true)
+      + "the package core.algorithm.concurrent.task.backward.", secure = true)
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path configFile = null;
-  
+
   @SuppressWarnings("FieldMayBeFinal")
-  @Option(description="Indicates whether the analysis should first check if a new summary" 
-      + "really adds new information or is just redundant. In the later case, the analysis" 
-      + "for the new summary gets aborted. These checks involve satisfiability queries and" 
-      + "get performed for each new forward analysis task. This option provides the user with" 
-      + "the ability to declare whether the overhead of these checks is worth the advantage " 
+  @Option(description = "Indicates whether the analysis should first check if a new summary"
+      + "really adds new information or is just redundant. In the later case, the analysis"
+      + "for the new summary gets aborted. These checks involve satisfiability queries and"
+      + "get performed for each new forward analysis task. This option provides the user with"
+      + "the ability to declare whether the overhead of these checks is worth the advantage "
       + "of aborting analysis tasks early.")
   private boolean performRedundancyChecks = true;
-  
+
   public ForwardAnalysisRequest(
       @Nullable final Block pPredecessor,
       final Block pBlock,
@@ -87,13 +87,13 @@ public class ForwardAnalysisRequest extends CPACreatingRequest implements TaskRe
 
     globalConfiguration = pConfig;
     globalConfiguration.inject(this);
-    Configuration taskConfiguration 
+    Configuration taskConfiguration
         = ForwardAnalysisFull.getConfiguration(pLogger, configFile, pConfig);
 
     Optional<ReusableCoreComponents> reusableComponents
         = messageFactory.requestIdleForwardAnalysisComponents();
     prepareCPA(taskConfiguration, pCFA, pSpecification, pBlock, reusableComponents);
-    
+
     predecessor = pPredecessor;
     block = pBlock;
     expectedPredVersion = pExpectedPredVersion;
@@ -107,7 +107,7 @@ public class ForwardAnalysisRequest extends CPACreatingRequest implements TaskRe
         (pNewSummary == null)
         ? new ShareableBooleanFormula(formulaManager, pfMgr.makeEmptyPathFormula())
         : pNewSummary;
-    
+
     assert algorithm != null && cpa != null && reached != null;
   }
 
@@ -173,13 +173,13 @@ public class ForwardAnalysisRequest extends CPACreatingRequest implements TaskRe
 
     publishPredSummary(incoming, pSummaryVersions);
 
-    final SummaryVersion version 
+    final SummaryVersion version
         = pSummaryVersions.getOrDefault(block, SummaryVersion.getInitial());
-    
+
     final SummaryVersion nextVersion = version.incrementCurrent();
     pSummaryVersions.put(block, nextVersion);
     final int expectedVersion = nextVersion.current;
-    
+
     Collection<ShareableBooleanFormula> predecessorSummaries =
         Maps.filterKeys(incoming, key -> predecessor != key).values();
 
@@ -204,12 +204,13 @@ public class ForwardAnalysisRequest extends CPACreatingRequest implements TaskRe
    *
    * @param predSummaries The global map of block summaries
    * @param versions      The global map of block summary versions
-   * @throws RequestInvalidatedException The task for which {@link TaskRequest#process(Table, Map, Set)} called 
-   * this method has been invalidated (see documentation for {@link TaskRequest#process(Table, Map, Set)}).
+   * @throws RequestInvalidatedException The task for which {@link TaskRequest#process(Table, Map, Set)} called
+   *                                     this method has been invalidated (see documentation for {@link TaskRequest#process(Table, Map, Set)}).
    * @see TaskRequest#process(Table, Map, Set)
    */
   private void publishPredSummary(
-      final Map<Block, ShareableBooleanFormula> predSummaries, final Map<Block, SummaryVersion> versions)
+      final Map<Block, ShareableBooleanFormula> predSummaries,
+      final Map<Block, SummaryVersion> versions)
       throws RequestInvalidatedException {
     assert Thread.currentThread().getName().equals(Scheduler.getThreadName())
         : "Only the central thread "
@@ -220,7 +221,7 @@ public class ForwardAnalysisRequest extends CPACreatingRequest implements TaskRe
       return;
     }
 
-    final SummaryVersion predVersion 
+    final SummaryVersion predVersion
         = versions.getOrDefault(predecessor, SummaryVersion.getInitial());
 
     if (performRedundancyChecks && expectedPredVersion < predVersion.passedNonRedundancyCheck) {
@@ -229,7 +230,7 @@ public class ForwardAnalysisRequest extends CPACreatingRequest implements TaskRe
        * task, which can stop.
        */
       throw new RequestInvalidatedException();
-    } else if(!performRedundancyChecks && expectedPredVersion < predVersion.current) {
+    } else if (!performRedundancyChecks && expectedPredVersion < predVersion.current) {
       throw new RequestInvalidatedException();
     } else {
       predSummaries.put(predecessor, newSummary);

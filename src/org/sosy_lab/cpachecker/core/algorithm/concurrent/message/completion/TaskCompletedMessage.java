@@ -30,7 +30,7 @@ public class TaskCompletedMessage implements Message {
     status = pStatus;
     stats = pStats;
   }
-  
+
   @Override
   public void accept(MessageProcessingVisitor visitor) {
     visitor.visit(this);

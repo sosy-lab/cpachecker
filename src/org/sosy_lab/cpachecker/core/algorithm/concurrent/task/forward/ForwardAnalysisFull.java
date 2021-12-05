@@ -56,18 +56,8 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "concurrent.task.forward")
 public class ForwardAnalysisFull extends Task {
-  @SuppressWarnings("FieldMayBeFinal")
-  @Option(description="Indicates whether the analysis should first check if a new summary"
-      + "really adds new information or is just redundant. In the later case, the analysis"
-      + "for the new summary gets aborted. These checks involve satisfiability queries and"
-      + "get performed for each new forward analysis task. This option provides the user with"
-      + "the ability to declare whether the overhead of these checks is worth the advantage "
-      + "of aborting analysis tasks early.")
-  private boolean performRedundancyChecks = true;
-  
   private static volatile ConfigurationLoader configLoader = null;
   private final Configuration globalConfiguration;
-  
   private final Block target;
   private final PathFormula newSummary;
   private final PathFormula oldSummary;
@@ -78,6 +68,14 @@ public class ForwardAnalysisFull extends Task {
   private final BooleanFormulaManagerView bfMgr;
   private final PathFormulaManager pfMgr;
   private final ForwardAnalysisFullStatistics statistics;
+  @SuppressWarnings("FieldMayBeFinal")
+  @Option(description = "Indicates whether the analysis should first check if a new summary"
+      + "really adds new information or is just redundant. In the later case, the analysis"
+      + "for the new summary gets aborted. These checks involve satisfiability queries and"
+      + "get performed for each new forward analysis task. This option provides the user with"
+      + "the ability to declare whether the overhead of these checks is worth the advantage "
+      + "of aborting analysis tasks early.")
+  private boolean performRedundancyChecks = true;
 
   public ForwardAnalysisFull(
       final Configuration pGlobalConfiguration,
@@ -95,7 +93,7 @@ public class ForwardAnalysisFull extends Task {
     super(pCPA, pAlgorithm, pReachedSet, pMessageFactory, pLogManager, pShutdownNotifier);
     globalConfiguration = pGlobalConfiguration;
     globalConfiguration.inject(this);
-    
+
     PredicateCPA predCPA = pCPA.retrieveWrappedCpa(PredicateCPA.class);
 
     solver = predCPA.getSolver();
@@ -145,12 +143,12 @@ public class ForwardAnalysisFull extends Task {
       messageFactory.sendTaskCompletedMessage(this, SOUND_AND_PRECISE, statistics);
       return;
     }
-    
+
     AbstractState entryState = buildEntryState(cumPredSummary);
     Precision precision = cpa.getInitialPrecision(target.getEntry(), getDefaultPartition());
     reached.add(entryState, precision);
 
-    if(performRedundancyChecks) {
+    if (performRedundancyChecks) {
       shutdownNotifier.shutdownIfNecessary();
       messageFactory.sendForwardAnalysisContinuationRequest(
           target, expectedVersion, cpa, algorithm, reached, solver, pfMgr
@@ -160,17 +158,17 @@ public class ForwardAnalysisFull extends Task {
     } else {
       statistics.setTaskCompleted();
       messageFactory.sendStatsReportMessage(this, statistics);
-      
+
       new ForwardAnalysisCore(
-          target, 
-          reached, 
-          expectedVersion, 
-          algorithm, 
-          cpa, 
-          solver, 
-          pfMgr, 
-          messageFactory, 
-          logManager, 
+          target,
+          reached,
+          expectedVersion,
+          algorithm,
+          cpa,
+          solver,
+          pfMgr,
+          messageFactory,
+          logManager,
           shutdownNotifier
       ).run();
     }
@@ -180,15 +178,15 @@ public class ForwardAnalysisFull extends Task {
   public String toString() {
     return "ForwardAnalysisFull on block with entry location " + target.getEntry();
   }
-  
+
   private boolean thereIsNoRelevantChange(final Optional<PathFormula> cumPredSummaryOptional)
       throws SolverException, InterruptedException {
     if (oldSummary == null || newSummary == null || cumPredSummaryOptional.isEmpty()) {
       return false;
     }
-    
+
     PathFormula cumPredSummary = cumPredSummaryOptional.orElseThrow();
-    
+
     BooleanFormula addedContext
         = bfMgr.and(oldSummary.getFormula(), bfMgr.not(newSummary.getFormula()));
     BooleanFormula relevantChange = bfMgr.implication(cumPredSummary.getFormula(), addedContext);
@@ -198,20 +196,19 @@ public class ForwardAnalysisFull extends Task {
   }
 
   private Optional<PathFormula> buildCumulativePredecessorSummary() throws InterruptedException {
-    if(predecessorSummaries.isEmpty()) {
+    if (predecessorSummaries.isEmpty()) {
       return Optional.empty();
     }
-    
+
     int index = 0;
     PathFormula cumPredSummary = null;
     for (final PathFormula formula : predecessorSummaries) {
-      if(index == 0) {
+      if (index == 0) {
         cumPredSummary = formula;
+      } else {
+        cumPredSummary = pfMgr.makeOr(cumPredSummary, formula);
       }
-      else {
-        cumPredSummary = pfMgr.makeOr(cumPredSummary, formula);  
-      }
-      
+
       index++;
     }
 
@@ -277,7 +274,7 @@ public class ForwardAnalysisFull extends Task {
       throws InterruptedException {
     PathFormula newContext = null;
 
-    if(cumPredSummary.isPresent()) {
+    if (cumPredSummary.isPresent()) {
       newContext = pfMgr.makeOr(cumPredSummary.orElseThrow(), newSummary);
     } else {
       newContext = newSummary;

@@ -67,7 +67,7 @@ public class BackwardAnalysisFull extends Task {
   private final FormulaManagerView fMgr;
   private final AlgorithmStatus status = SOUND_AND_PRECISE;
   private final BackwardAnalysisFullStatistics statistics;
-  
+
   public BackwardAnalysisFull(
       final Block pBlock,
       final ErrorOrigin pOrigin,
@@ -81,7 +81,7 @@ public class BackwardAnalysisFull extends Task {
       final LogManager pLogManager,
       final ShutdownNotifier pShutdownNotifier) {
     super(pCPA, pAlgorithm, pReachedSet, pMessageFactory, pLogManager, pShutdownNotifier);
-    
+
     PredicateCPA predicateCPA = cpa.retrieveWrappedCpa(PredicateCPA.class);
 
     pfMgr = predicateCPA.getPathFormulaManager();
@@ -116,9 +116,10 @@ public class BackwardAnalysisFull extends Task {
   private ARGState buildEntryState() throws InterruptedException {
     PredicateAbstractState predicateEntryState = buildPredicateEntryState();
 
-    assert cpa.getWrappedCPAs().size() == 1 && cpa.getWrappedCPAs().get(0) instanceof BlockAwareCompositeCPA;
+    assert cpa.getWrappedCPAs().size() == 1 && cpa.getWrappedCPAs()
+        .get(0) instanceof BlockAwareCompositeCPA;
     BlockAwareCompositeCPA blockAwareCPA = (BlockAwareCompositeCPA) cpa.getWrappedCPAs().get(0);
-        
+
     List<AbstractState> componentStates = new ArrayList<>();
     for (ConfigurableProgramAnalysis componentCPA : blockAwareCPA.getWrappedCPAs()) {
       AbstractState componentState = null;
@@ -136,12 +137,13 @@ public class BackwardAnalysisFull extends Task {
       componentStates.add(componentState);
     }
 
-    return BlockAwareCompositeState.createAndWrap(new CompositeState(componentStates), target, BACKWARD);
+    return BlockAwareCompositeState.createAndWrap(new CompositeState(componentStates), target,
+        BACKWARD);
   }
 
   private PredicateAbstractState buildPredicateEntryState() {
     PredicateCPA predicateCPA = cpa.retrieveWrappedCpa(PredicateCPA.class);
-    
+
     return PredicateAbstractState.mkAbstractionState(
         errorCondition,
         predicateCPA.getPredicateManager().makeTrueAbstractionFormula(errorCondition),
@@ -205,7 +207,7 @@ public class BackwardAnalysisFull extends Task {
     ARGState entryState = buildEntryState();
     Precision precision = cpa.getInitialPrecision(start, getDefaultPartition());
     reached.add(entryState, precision);
-    
+
     statistics.setTaskCompleted();
     messageFactory.sendStatsReportMessage(this, statistics);
 
@@ -216,7 +218,8 @@ public class BackwardAnalysisFull extends Task {
         shutdownNotifier).run();
   }
 
-  @Override public String toString() {
+  @Override
+  public String toString() {
     return "BackwardAnalysisFull on block with entry location " + target.getEntry();
   }
 }

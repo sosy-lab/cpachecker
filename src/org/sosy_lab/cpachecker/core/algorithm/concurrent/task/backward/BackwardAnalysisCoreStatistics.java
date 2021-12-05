@@ -16,7 +16,7 @@ public class BackwardAnalysisCoreStatistics extends TaskStatistics {
   public BackwardAnalysisCoreStatistics(final Block pTarget) {
     super(pTarget);
   }
-  
+
   @Override
   public void accept(final ConcurrentStatisticsCollector collector) {
     collector.visit(this);

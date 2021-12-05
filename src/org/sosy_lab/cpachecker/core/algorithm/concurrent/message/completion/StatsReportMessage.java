@@ -14,7 +14,7 @@ import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.Message;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.Task;
 
 /**
- * Message which only delivers statistics to the scheduler, but does not influence overall job 
+ * Message which only delivers statistics to the scheduler, but does not influence overall job
  * count.
  */
 public class StatsReportMessage implements Message {
@@ -28,7 +28,7 @@ public class StatsReportMessage implements Message {
     task = pTask;
     stats = pStats;
   }
-  
+
   @Override
   public void accept(MessageProcessingVisitor visitor) {
     visitor.visit(this);
