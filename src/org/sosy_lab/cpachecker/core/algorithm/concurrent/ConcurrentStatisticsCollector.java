@@ -245,9 +245,9 @@ public class ConcurrentStatisticsCollector implements StatisticsProvider, Statis
     StringBuilder stringBuilder = new StringBuilder();
     
     for(final ExecutedTaskInfo info : sequence) {
-      stringBuilder.append(info.start.isPresent() ? info.start.get() : "-");
+      stringBuilder.append(info.start.isPresent() ? info.start.orElseThrow() : "-");
       stringBuilder.append("; ");
-      stringBuilder.append(info.end.isPresent() ? info.end.get() : "-");
+      stringBuilder.append(info.end.isPresent() ? info.end.orElseThrow() : "-");
       stringBuilder.append("; ");
       stringBuilder.append(info.type);
       stringBuilder.append("; ");
@@ -270,14 +270,14 @@ public class ConcurrentStatisticsCollector implements StatisticsProvider, Statis
   
   public void start() {
     thread = Optional.of(new Thread(this, "Concurrent Statistics Collector"));
-    thread.get().start();
+    thread.orElseThrow().start();
   }
 
   public void stop() {
     assert shutdownNotifier.shouldShutdown();
     
     if(thread.isPresent()) {
-      thread.get().interrupt();
+      thread.orElseThrow().interrupt();
     }
   }
   
