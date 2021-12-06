@@ -803,6 +803,10 @@ cfa.exportPerFunction = true
 cfa.exportToC = false
 cfa.exportToC.file = "cfa.c"
 
+# use CFA-to-C exporter which produces C programs more similar to the
+# original programs
+cfa.exportToC.prettyPrint = false
+
 # export CFA as .dot file
 cfa.file = "cfa.dot"
 

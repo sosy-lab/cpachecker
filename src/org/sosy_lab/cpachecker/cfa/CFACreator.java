@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLParser;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.util.SyntacticBlock;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.util.SyntacticBlockStructureBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -85,7 +86,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLParser;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
@@ -98,6 +98,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.cwriter.CFAToCExporter;
 import org.sosy_lab.cpachecker.util.cwriter.CFAToCTranslator;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
@@ -187,6 +188,13 @@ public class CFACreator {
   @Option(secure = true, name = "cfa.exportToC.file", description = "export CFA as C file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path exportCfaToCFile = Path.of("cfa.c");
+
+  @Option(
+      secure = true,
+      name = "cfa.exportToC.prettyPrint",
+      description =
+          "use CFA-to-C exporter which produces C programs more similar to the original programs")
+  private boolean exportCfaToCPrettyPrint = false;
 
   @Option(secure=true, name="cfa.callgraph.export",
       description="dump a simple call graph")
@@ -900,7 +908,8 @@ public class CFACreator {
 
         logger.log(
             Level.WARNING,
-            "Multiple methods with same name but different parameters found. Make sure you picked the right one.\n"
+            "Multiple methods with same name but different parameters found. Make sure you picked"
+                + " the right one.\n"
                 + "Methods found:\n\n"
                 + foundMethods
                 + "\n\n"
@@ -1197,7 +1206,12 @@ v.addInitializer(initializer);
 
     if (exportCfaToC && exportCfaToCFile != null) {
       try {
-        String code = new CFAToCTranslator(config).translateCfa(cfa);
+        String code;
+        if (exportCfaToCPrettyPrint) {
+          code = new CFAToCExporter().exportCfa(cfa);
+        } else {
+          code = new CFAToCTranslator(config).translateCfa(cfa);
+        }
         try (Writer writer = IO.openOutputFile(exportCfaToCFile, Charset.defaultCharset())) {
           writer.write(code);
         }
