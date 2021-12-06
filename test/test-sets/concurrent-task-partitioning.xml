@@ -13,10 +13,55 @@ SPDX-License-Identifier: Apache-2.0
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.9//EN" "https://www.sosy-lab.org/benchexec/benchmark-1.9.dtd">
 <benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="960 s" memlimit="15 GB" cpuCores="2">
 
-  <rundefinition name="sv-comp21">
+  <rundefinition name="spawn-on-all-blocks">
     <option name="-concurrent-task-partitioning"/>
     <option name="-benchmark"/>
-    <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+    <option name="-noout"/>
+    <option name="-setprop">concurrent.algorithm.initialTaskSpawnStrategy=ALL_BLOCKS</option>
+    <option name="-setprop">concurrent.algorithm.reuseComponents=true</option>
+    <option name="-setprop">concurrent.algorithm.collectDetailledStatistics=false</option>
+    <option name="-setprop">concurrent.task.forward.performRedundancyChecks=true</option>
+  </rundefinition>
+
+  <rundefinition name="spawn-on-program-entry">
+    <option name="-concurrent-task-partitioning"/>
+    <option name="-benchmark"/>
+    <option name="-noout"/>
+    <option name="-setprop">concurrent.algorithm.initialTaskSpawnStrategy=PROGRAM_ENTRY</option>
+    <option name="-setprop">concurrent.algorithm.reuseComponents=true</option>
+    <option name="-setprop">concurrent.algorithm.collectDetailledStatistics=false</option>
+    <option name="-setprop">concurrent.task.forward.performRedundancyChecks=true</option>
+  </rundefinition>
+
+  <rundefinition name="no-component-reuse">
+    <option name="-concurrent-task-partitioning"/>
+    <option name="-benchmark"/>
+    <option name="-noout"/>
+    <option name="-setprop">concurrent.algorithm.initialTaskSpawnStrategy=ALL_BLOCKS</option>
+    <option name="-setprop">concurrent.algorithm.reuseComponents=false</option>
+    <option name="-setprop">concurrent.algorithm.collectDetailledStatistics=false</option>
+    <option name="-setprop">concurrent.task.forward.performRedundancyChecks=true</option>
+  </rundefinition>
+
+  <rundefinition name="no-redundancy-checks">
+    <option name="-concurrent-task-partitioning"/>
+    <option name="-benchmark"/>
+    <option name="-noout"/>
+    <option name="-setprop">concurrent.algorithm.initialTaskSpawnStrategy=ALL_BLOCKS</option>
+    <option name="-setprop">concurrent.algorithm.reuseComponents=true</option>
+    <option name="-setprop">concurrent.algorithm.collectDetailledStatistics=false</option>
+    <option name="-setprop">concurrent.task.forward.performRedundancyChecks=false</option>
+  </rundefinition>
+
+  <rundefinition name="baseline-predicateAnalysis-backwards">
+    <option name="-predicateAnalysisBackward"/>
+    <option name="-benchmark"/>
+    <option name="-noout"/>
+  </rundefinition>
+
+  <rundefinition name="baseline-predicateAnalysis">
+    <option name="-predicateAnalysis"/>
+    <option name="-benchmark"/>
     <option name="-noout"/>
   </rundefinition>
 
