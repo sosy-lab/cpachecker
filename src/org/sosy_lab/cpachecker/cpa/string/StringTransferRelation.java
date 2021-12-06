@@ -34,6 +34,8 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JMethodOrConstructorInvocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JReferencedMethodInvocationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.java.JStatement;
+import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -297,7 +299,18 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
 
   private StringState
       handleJAssumption(boolean truthAssumption, JAssumeEdge pCfaEdge, StringState pState) {
+
     JExpression exp = pCfaEdge.getExpression();
+
+    // true if exp = !(exp)
+    boolean negatedUnaryOperator = false;
+    if (exp instanceof JUnaryExpression) {
+      if (((JUnaryExpression) exp).getOperator().equals(UnaryOperator.NOT)) {
+        negatedUnaryOperator = true;
+      }
+      exp = ((JUnaryExpression) exp).getOperand();
+    }
+
     if (exp instanceof JBinaryExpression) {
       JBinaryExpression jbe = (JBinaryExpression) exp;
       Pair<JMethodInvocationExpression, JExpression> pair =
@@ -308,22 +321,27 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
         jmie = pair.getFirst();
         other = pair.getSecond();
       } else {
-        return pState;
+        return handleTruthAssumption(truthAssumption, pState);
       }
+
       do {
         if (jmie instanceof JReferencedMethodInvocationExpression
             && jmie.getDeclaration().getOrigName().contains("String_length")
             && options.containsDomain(DomainType.LENGTH)) {
+
           JReferencedMethodInvocationExpression jrmie =
               (JReferencedMethodInvocationExpression) jmie;
           JVariableIdentifier jid = jVarNameVis.visit(jrmie.getReferencedVariable());
           ValueAndAspects vaa = pState.getVaa(jid);
+
           if (!(logger instanceof LogManagerWithoutDuplicates)) {
             logger = new LogManagerWithoutDuplicates(logger);
           }
+
           Aevv vis = new Aevv(funcName, model, (LogManagerWithoutDuplicates) logger);
           Value va = other.accept(vis);
-          if (truthAssumption) {
+
+          if (negatedUnaryOperator) {
             pState = handleMethodCallStringLength(jbe.getOperator(), pState, jid, vaa, va);
           } else {
             pState = handleMethodCallStringLengthNegTA(jbe.getOperator(), pState, jid, vaa, va);
@@ -331,6 +349,11 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
         }
       } while (other instanceof JBinaryExpression);
     }
+    return handleTruthAssumption(truthAssumption, pState);
+  }
+
+  private StringState handleTruthAssumption(boolean truthAssumption, StringState pState) {
+
     if (truthAssumption) {
       return pState;
     }
@@ -339,6 +362,7 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
 
   private Pair<JMethodInvocationExpression, JExpression>
       parseBinExpToJmieAndJe(JExpression first, JExpression second) {
+
     if (first instanceof JMethodInvocationExpression) {
       return Pair.of((JMethodInvocationExpression) first, second);
     }
@@ -381,7 +405,6 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
 
   private StringState handleMethodCallStringLength(
       BinaryOperator pBinOp,
-      // JExpression jexp,
       StringState pState,
       JVariableIdentifier pJid,
       ValueAndAspects pVaa,
