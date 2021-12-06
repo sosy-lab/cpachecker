@@ -240,8 +240,8 @@ public class ConcurrentStatisticsCollector implements StatisticsProvider, Statis
   }
 
   private void accumulateCounts(final Map<Block, Integer> counts, final StatIntHist counter) {
-    for (final Map.Entry<Block, Integer> entry : counts.entrySet()) {
-      counter.setNextValue(entry.getValue());
+    for (Integer value : counts.values()) {
+      counter.setNextValue(value);
     }
   }
   
