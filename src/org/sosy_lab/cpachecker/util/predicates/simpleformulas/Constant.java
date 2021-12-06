@@ -36,7 +36,7 @@ public final class Constant implements Term {
 
     Constant lConstant = (Constant)pOther;
 
-    return (mValue == lConstant.mValue);
+    return mValue == lConstant.mValue;
   }
 
   @Override

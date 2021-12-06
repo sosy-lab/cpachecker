@@ -416,7 +416,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
     List<Wrapper<ASimpleDeclaration>> out = new ArrayList<>();
     for (int i = data.nextSetBit(0); i >= 0; i = data.nextSetBit(i + 1)) {
       out.add(allDeclarations.get(i));
-      assert (i != Integer.MAX_VALUE);
+      assert i != Integer.MAX_VALUE;
     }
     return out;
   }

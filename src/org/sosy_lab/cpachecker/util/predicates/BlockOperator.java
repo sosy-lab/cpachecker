@@ -107,7 +107,7 @@ public class BlockOperator {
     // If you change this function, make sure to adapt alwaysReturnsFalse(), too!
 
     if (alwaysAndOnlyAtExplicitNodes) {
-      assert (explicitAbstractionNodes != null);
+      assert explicitAbstractionNodes != null;
       return explicitAbstractionNodes.contains(loc);
     }
 

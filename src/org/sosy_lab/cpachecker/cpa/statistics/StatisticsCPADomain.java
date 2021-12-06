@@ -21,7 +21,8 @@ public class StatisticsCPADomain implements AbstractDomain {
   public AbstractState join(AbstractState pState1, AbstractState pState2) throws CPAException {
     StatisticsState state1 = (StatisticsState) pState1;
     StatisticsState state2 = (StatisticsState) pState2;
-    assert (state1.getLocationNode().equals(state2.getLocationNode())) : "can only merge on the same location";
+    assert state1.getLocationNode().equals(state2.getLocationNode())
+        : "can only merge on the same location";
     return state1.mergeState(state2);
   }
 

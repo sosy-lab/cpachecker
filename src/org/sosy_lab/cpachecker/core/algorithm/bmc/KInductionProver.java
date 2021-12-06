@@ -437,7 +437,7 @@ class KInductionProver implements AutoCloseable {
 
     InductionResult<T> result = null;
     AssertCandidate assertPredecessor =
-        (p -> assertAt(filterInductiveAssertionIteration(loopHeadStates), p, fmgr, pfmgr, true));
+        p -> assertAt(filterInductiveAssertionIteration(loopHeadStates), p, fmgr, pfmgr, true);
     while (result == null) {
       shutdownNotifier.shutdownIfNecessary();
 

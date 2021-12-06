@@ -9,12 +9,13 @@
 package org.sosy_lab.cpachecker.util.arrayabstraction;
 
 import com.google.common.collect.ImmutableSet;
-import java.util.HashMap;
+import com.google.common.collect.Sets;
+import java.math.BigInteger;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
@@ -50,6 +51,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
@@ -61,680 +63,554 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-/**
- * Represents an array in a program that can be transformed/abstracted.
- *
- * <p>Instances of {@code TransformableArray} are for a specific array (identified by its memory
- * location) and contain information about the array type and all CFA-edges that access the array.
- */
-public final class TransformableArray {
+/** Represents an array that can be transformed by an array abstraction. */
+final class TransformableArray {
 
-  private final MemoryLocation memoryLocation;
-  private final CArrayType type;
+  private static final String VALUE_VARIABLE_PREFIX = "__array_value_";
+  private static final String INDEX_VARIABLE_PREFIX = "__array_index_";
 
-  private final ImmutableSet<CFAEdge> readEdges;
-  private final ImmutableSet<CFAEdge> writeEdges;
+  private final CDeclarationEdge arrayDeclarationEdge;
+  private final CDeclarationEdge valueDeclarationEdge;
+  private final CDeclarationEdge indexDeclarationEdge;
 
-  private TransformableArray(
-      MemoryLocation pMemoryLocation,
-      CArrayType pType,
-      ImmutableSet<CFAEdge> pReadEdges,
-      ImmutableSet<CFAEdge> pWriteEdges) {
+  private final CExpression lengthExpression;
 
-    memoryLocation = pMemoryLocation;
-    type = pType;
-
-    readEdges = pReadEdges;
-    writeEdges = pWriteEdges;
+  private TransformableArray(CDeclarationEdge pArrayDeclarationEdge) {
+    arrayDeclarationEdge = pArrayDeclarationEdge;
+    valueDeclarationEdge = createValueDeclarationEdge(pArrayDeclarationEdge);
+    indexDeclarationEdge = createIndexDeclarationEdge(pArrayDeclarationEdge);
+    lengthExpression = createLengthExpression(pArrayDeclarationEdge).orElseThrow();
   }
 
-  private static void collectArrayReadWriteEdges(
-      CFA pCfa, Map<MemoryLocation, TransformableArray.Builder> pBuilders) {
+  private static CDeclarationEdge createValueDeclarationEdge(
+      CDeclarationEdge pArrayDeclarationEdge) {
+
+    CVariableDeclaration arrayDeclaration =
+        (CVariableDeclaration) pArrayDeclarationEdge.getDeclaration();
+
+    String valueName = VALUE_VARIABLE_PREFIX + arrayDeclaration.getName();
+    String functionName = pArrayDeclarationEdge.getSuccessor().getFunctionName();
+    String valueQualifiedName =
+        MemoryLocation.forLocalVariable(functionName, valueName).getExtendedQualifiedName();
+
+    CType arrayType = arrayDeclaration.getType();
+    CType valueType;
+    if (arrayType instanceof CArrayType) {
+      valueType = ((CArrayType) arrayType).getType();
+    } else if (arrayType instanceof CPointerType) {
+      valueType = ((CPointerType) arrayType).getType();
+    } else {
+      throw new AssertionError("Unknown array type");
+    }
+
+    CVariableDeclaration valueDeclaration =
+        new CVariableDeclaration(
+            arrayDeclaration.getFileLocation(),
+            arrayDeclaration.isGlobal(),
+            arrayDeclaration.getCStorageClass(),
+            valueType,
+            valueName,
+            valueName,
+            valueQualifiedName,
+            null);
+
+    return new CDeclarationEdge(
+        pArrayDeclarationEdge.getRawStatement(),
+        pArrayDeclarationEdge.getFileLocation(),
+        new CFANode(pArrayDeclarationEdge.getPredecessor().getFunction()),
+        new CFANode(pArrayDeclarationEdge.getSuccessor().getFunction()),
+        valueDeclaration);
+  }
+
+  private static CDeclarationEdge createIndexDeclarationEdge(
+      CDeclarationEdge pArrayDeclarationEdge) {
+
+    CVariableDeclaration arrayDeclaration =
+        (CVariableDeclaration) pArrayDeclarationEdge.getDeclaration();
+
+    String indexName = INDEX_VARIABLE_PREFIX + arrayDeclaration.getName();
+    String functionName = pArrayDeclarationEdge.getSuccessor().getFunctionName();
+    String indexQualifiedName =
+        MemoryLocation.forLocalVariable(functionName, indexName).getExtendedQualifiedName();
+
+    CVariableDeclaration valueDeclaration =
+        new CVariableDeclaration(
+            arrayDeclaration.getFileLocation(),
+            arrayDeclaration.isGlobal(),
+            arrayDeclaration.getCStorageClass(),
+            CNumericTypes.INT,
+            indexName,
+            indexName,
+            indexQualifiedName,
+            null);
+
+    return new CDeclarationEdge(
+        pArrayDeclarationEdge.getRawStatement(),
+        pArrayDeclarationEdge.getFileLocation(),
+        new CFANode(pArrayDeclarationEdge.getPredecessor().getFunction()),
+        new CFANode(pArrayDeclarationEdge.getSuccessor().getFunction()),
+        valueDeclaration);
+  }
+
+  public CDeclarationEdge getArrayDeclarationEdge() {
+    return arrayDeclarationEdge;
+  }
+
+  public CSimpleDeclaration getArrayDeclaration() {
+    return arrayDeclarationEdge.getDeclaration();
+  }
+
+  public CDeclarationEdge getValueDeclarationEdge() {
+    return valueDeclarationEdge;
+  }
+
+  public CSimpleDeclaration getValueDeclaration() {
+    return valueDeclarationEdge.getDeclaration();
+  }
+
+  public CDeclarationEdge getIndexDeclarationEdge() {
+    return indexDeclarationEdge;
+  }
+
+  public CSimpleDeclaration getIndexDeclaration() {
+    return indexDeclarationEdge.getDeclaration();
+  }
+
+  public CExpression getLengthExpression() {
+    return lengthExpression;
+  }
+
+  private static Optional<CExpression> createLengthExpression(CDeclarationEdge pDeclarationEdge) {
+
+    CDeclaration declaration = pDeclarationEdge.getDeclaration();
+    if (declaration instanceof CVariableDeclaration) {
+      CType type = declaration.getType();
+      if (type instanceof CArrayType) {
+        return Optional.of(((CArrayType) type).getLength());
+      }
+    }
+
+    return Optional.empty();
+  }
+
+  private static boolean isArrayDeclarationEdge(CDeclarationEdge pDeclarationEdge) {
+
+    CDeclaration declaration = pDeclarationEdge.getDeclaration();
+    if (declaration instanceof CVariableDeclaration) {
+      CType type = declaration.getType();
+      if ((type instanceof CArrayType || type instanceof CPointerType)
+          && createLengthExpression(pDeclarationEdge).isPresent()) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  private static ImmutableSet<CDeclarationEdge> findArrayDeclarationEdges(CFA pCfa) {
+
+    return pCfa.getAllNodes().stream()
+        .flatMap(node -> CFAUtils.allLeavingEdges(node).stream())
+        .filter(edge -> edge instanceof CDeclarationEdge)
+        .map(edge -> (CDeclarationEdge) edge)
+        .filter(TransformableArray::isArrayDeclarationEdge)
+        .collect(ImmutableSet.toImmutableSet());
+  }
+
+  private static boolean isRelevantArrayAccessOfArray(
+      ArrayAccess pArrayAccess, CSimpleDeclaration pArrayDeclaration) {
+
+    CExpression arrayExpression = pArrayAccess.getArrayExpression();
+    CExpression subscriptExpression = pArrayAccess.getSubscriptExpression();
+
+    if (arrayExpression instanceof CIdExpression) {
+      CSimpleDeclaration arrayExpressDeclaration =
+          ((CIdExpression) arrayExpression).getDeclaration();
+      if (arrayExpressDeclaration.equals(pArrayDeclaration)) {
+        if (subscriptExpression instanceof CIntegerLiteralExpression) {
+          CIntegerLiteralExpression integerExpression =
+              (CIntegerLiteralExpression) subscriptExpression;
+          // we don't consider arrays as relevant if they are only accessed at index 0
+          // (these accesses could come from pointers that point to a single element)
+          return !integerExpression.getValue().equals(BigInteger.ZERO);
+        } else {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  public static ImmutableSet<TransformableArray> findTransformableArrays(CFA pCfa) {
+
+    Set<CDeclarationEdge> unproblematicArrayDeclarationEdges =
+        new LinkedHashSet<>(findArrayDeclarationEdges(pCfa));
+    Set<CDeclarationEdge> relevantArrayDeclarationEdges = new LinkedHashSet<>();
 
     for (CFANode node : pCfa.getAllNodes()) {
       for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
-        Optional<? extends AAstNode> optAstNode = edge.getRawAST();
-        if (optAstNode.isPresent()) {
 
-          AAstNode astNode = optAstNode.get();
+        Iterator<CDeclarationEdge> iterator = unproblematicArrayDeclarationEdges.iterator();
+        while (iterator.hasNext()) {
 
-          if (astNode instanceof CAstNode) {
+          CDeclarationEdge arrayDeclarationEdge = iterator.next();
+          CDeclaration declaration = arrayDeclarationEdge.getDeclaration();
 
-            CAstNode cAstNode = (CAstNode) astNode;
-            ArrayOperationFinder arrayFinder =
-                new ArrayOperationFinder() {
+          // we skip the array declaration edge itself (it would otherwise be a problematic usage)
+          if (arrayDeclarationEdge.equals(edge)) {
+            continue;
+          }
 
-                  @Override
-                  protected void handleArrayOperation(
-                      ArrayOperationType pType,
-                      MemoryLocation pArrayMemoryLocation,
-                      CExpression pIndexExpression) {
-                    TransformableArray.Builder builder = pBuilders.get(pArrayMemoryLocation);
-                    if (builder != null) {
-                      if (pType == ArrayOperationType.READ) {
-                        builder.addArrayReadEdge(edge);
-                      } else {
-                        builder.addArrayWriteEdge(edge);
-                      }
-                    }
-                  }
-                };
+          if (ProblematicArrayUsageFinder.containsProblematicUsage(
+              edge, arrayDeclarationEdge.getDeclaration())) {
+            iterator.remove();
+          }
 
-            cAstNode.accept(arrayFinder);
+          // is array declaration already relevant?
+          if (relevantArrayDeclarationEdges.contains(arrayDeclarationEdge)) {
+            continue;
+          }
+
+          for (ArrayAccess arrayAccess : ArrayAccess.findArrayAccesses(edge)) {
+            if (isRelevantArrayAccessOfArray(arrayAccess, declaration)) {
+              relevantArrayDeclarationEdges.add(arrayDeclarationEdge);
+            }
           }
         }
       }
     }
+
+    return Sets.intersection(unproblematicArrayDeclarationEdges, relevantArrayDeclarationEdges)
+        .stream()
+        .map(TransformableArray::new)
+        .collect(ImmutableSet.toImmutableSet());
   }
 
-  /**
-   * Returns all transformable arrays in the specified CFA.
-   *
-   * @param pCfa the CFA to find transformable arrays in
-   * @return all transformable arrays in the specified CFA
-   * @throws NullPointerException if {@code pCfa == null}
-   */
-  public static ImmutableSet<TransformableArray> getTransformableArrays(CFA pCfa) {
+  @Override
+  public int hashCode() {
+    return arrayDeclarationEdge.hashCode();
+  }
 
-    Objects.requireNonNull(pCfa, "pCfa must not be null");
+  @Override
+  public boolean equals(Object pObject) {
 
-    Map<MemoryLocation, TransformableArray.Builder> builders = new HashMap<>();
-
-    for (CFANode node : pCfa.getAllNodes()) {
-      for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
-        if (edge instanceof CDeclarationEdge) {
-          CDeclaration declaration = ((CDeclarationEdge) edge).getDeclaration();
-          CType type = declaration.getType();
-          if (declaration instanceof CVariableDeclaration && type instanceof CArrayType) {
-            MemoryLocation arrayMemoryLocation =
-                MemoryLocation.forDeclaration(declaration);
-            TransformableArray.Builder builder =
-                new TransformableArray.Builder(arrayMemoryLocation, (CArrayType) type);
-            builders.put(arrayMemoryLocation, builder);
-          }
-        }
-      }
+    if (this == pObject) {
+      return true;
     }
 
-    collectArrayReadWriteEdges(pCfa, builders);
-
-    ImmutableSet.Builder<TransformableArray> transformableArrays = ImmutableSet.builder();
-    for (TransformableArray.Builder builder : builders.values()) {
-      transformableArrays.add(builder.build());
+    if (!(pObject instanceof TransformableArray)) {
+      return false;
     }
 
-    return transformableArrays.build();
-  }
-
-  /**
-   * Returns all array operations for the specified CFA-edge.
-   *
-   * @param pEdge the CFA-edge to get the array operations for
-   * @return all array operations for the specified CFA-edge
-   */
-  public static ImmutableSet<ArrayOperation> getArrayOperations(CFAEdge pEdge) {
-
-    Objects.requireNonNull(pEdge, "pEdge must not be null");
-
-    if (pEdge instanceof CFunctionSummaryEdge) {
-      return getArrayOperations(((CFunctionSummaryEdge) pEdge).getExpression());
-    }
-
-    Optional<? extends AAstNode> optAstNode = pEdge.getRawAST();
-    if (optAstNode.isPresent()) {
-      AAstNode astNode = optAstNode.get();
-      if (astNode instanceof CAstNode) {
-        return getArrayOperations((CAstNode) astNode);
-      }
-    }
-
-    return ImmutableSet.of();
-  }
-
-  /**
-   * Returns all array operations for the specified AST-node.
-   *
-   * @param pCAstNode the AST-node to get the array operations for
-   * @return all array operations for the specified AST-node
-   */
-  public static ImmutableSet<ArrayOperation> getArrayOperations(CAstNode pCAstNode) {
-
-    Objects.requireNonNull(pCAstNode, "pCAstNode must not be null");
-
-    ImmutableSet.Builder<ArrayOperation> builder = ImmutableSet.builder();
-
-    ArrayOperationFinder arrayFinder =
-        new ArrayOperationFinder() {
-
-          @Override
-          protected void handleArrayOperation(
-              ArrayOperationType pType,
-              MemoryLocation pArrayMemoryLocation,
-              CExpression pIndexExpression) {
-            builder.add(new ArrayOperation(pType, pArrayMemoryLocation, pIndexExpression));
-          }
-        };
-    pCAstNode.accept(arrayFinder);
-
-    return builder.build();
-  }
-
-  /**
-   * Returns the memory location of this transformable array.
-   *
-   * @return the memory location of this transformable array
-   */
-  public MemoryLocation getMemoryLocation() {
-    return memoryLocation;
-  }
-
-  /**
-   * Returns the array type of this transformable array.
-   *
-   * @return the array type of this transformable array
-   */
-  public CArrayType getArrayType() {
-    return type;
-  }
-
-  /**
-   * Returns the set of CFA-edges that read from this transformable array.
-   *
-   * @return the set of CFA-edges that read from this transformable array
-   */
-  public ImmutableSet<CFAEdge> getReadEdges() {
-    return readEdges;
-  }
-
-  /**
-   * Returns the set of CFA-edges that write to this transformable array.
-   *
-   * @return the set of CFA-edges that write to this transformable array
-   */
-  public ImmutableSet<CFAEdge> getWriteEdges() {
-    return writeEdges;
+    TransformableArray other = (TransformableArray) pObject;
+    return arrayDeclarationEdge.equals(other.arrayDeclarationEdge);
   }
 
   @Override
   public String toString() {
-
-    return String.format(
-        Locale.ENGLISH,
-        "%s[memoryLocation=%s,arrayType=%s,#readEdges=%d,#writeEdges=%d]",
-        getClass().getName(),
-        memoryLocation,
-        type,
-        readEdges.size(),
-        writeEdges.size());
-  }
-
-  /** Represents the type of an array operation (read/write). */
-  public enum ArrayOperationType {
-    WRITE,
-    READ
+    return getClass().getName() + '[' + arrayDeclarationEdge + ']';
   }
 
   /**
-   * Represents an operation involving array access (either read or write).
-   *
-   * <p>Instances of {@code ArrayOperation} are of a specific type (read/write), for a specific
-   * array (identified by its memory location), and are on a specific index (defined by the array
-   * subscript expression).
+   * Visitor that returns whether an AST node contains problematic uses of a specified array that
+   * prohibit its transformation. {@code true} is returned if any problematic uses are found.
    */
-  public static final class ArrayOperation {
+  private static final class ProblematicArrayUsageFinder
+      implements CAstNodeVisitor<Boolean, NoException> {
 
-    private final ArrayOperationType type;
-    private final MemoryLocation arrayMemoryLocation;
-    private final CExpression indexExpression;
+    private final CSimpleDeclaration arrayDeclaration;
 
-    private ArrayOperation(
-        ArrayOperationType pType,
-        MemoryLocation pArrayMemoryLocation,
-        CExpression pIndexExpression) {
-      type = pType;
-      arrayMemoryLocation = pArrayMemoryLocation;
-      indexExpression = pIndexExpression;
+    private ProblematicArrayUsageFinder(CSimpleDeclaration pArrayDeclaration) {
+      arrayDeclaration = pArrayDeclaration;
     }
 
-    /**
-     * Returns the type of this array operation (read/write).
-     *
-     * @return the type of this array operation (read/write)
-     */
-    public ArrayOperationType getType() {
-      return type;
-    }
+    private static boolean containsProblematicUsage(
+        CFAEdge pEdge, CSimpleDeclaration pArrayDeclaration) {
 
-    /**
-     * Returns the memory location of the array accessed by this operation.
-     *
-     * @return the memory location of the array accessed by this operation
-     */
-    public MemoryLocation getArrayMemoryLocation() {
-      return arrayMemoryLocation;
-    }
+      CAstNode astNode = null;
 
-    /**
-     * Return the array subscript expression for this array operation.
-     *
-     * @return the array subscript expression for this array operation
-     */
-    public CExpression getIndexExpression() {
-      return indexExpression;
-    }
-
-    /**
-     * Returns an {@code ArrayOperation} with the same array and index but where the type is {@code
-     * ArrayOperationType.READ}.
-     *
-     * @return an {@code ArrayOperation} with the same array and index but where the type is {@code
-     *     ArrayOperationType.READ}.
-     */
-    public ArrayOperation toReadOperation() {
-      return new ArrayOperation(ArrayOperationType.READ, arrayMemoryLocation, indexExpression);
-    }
-
-    /**
-     * Returns an {@code ArrayOperation} with the same array and index but where the type is {@code
-     * ArrayOperationType.WRITE}.
-     *
-     * @return an {@code ArrayOperation} with the same array and index but where the type is {@code
-     *     ArrayOperationType.WRITE}.
-     */
-    public ArrayOperation toWriteOperation() {
-      return new ArrayOperation(ArrayOperationType.WRITE, arrayMemoryLocation, indexExpression);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(arrayMemoryLocation, indexExpression, type);
-    }
-
-    @Override
-    public boolean equals(Object pObject) {
-      if (this == pObject) {
-        return true;
+      if (pEdge instanceof CFunctionSummaryEdge) {
+        astNode = ((CFunctionSummaryEdge) pEdge).getExpression();
       }
 
-      if (!(pObject instanceof ArrayOperation)) {
+      Optional<? extends AAstNode> optAstNode = pEdge.getRawAST();
+      if (optAstNode.isPresent()) {
+        AAstNode aAstNode = optAstNode.get();
+        if (aAstNode instanceof CAstNode) {
+          astNode = (CAstNode) aAstNode;
+        }
+      }
+
+      if (astNode != null) {
+        return astNode.accept(new ProblematicArrayUsageFinder(pArrayDeclaration));
+      } else {
         return false;
       }
-
-      ArrayOperation other = (ArrayOperation) pObject;
-      return Objects.equals(arrayMemoryLocation, other.arrayMemoryLocation)
-          && Objects.equals(indexExpression, other.indexExpression)
-          && type == other.type;
     }
 
     @Override
-    public String toString() {
-      return String.format(
-          Locale.ENGLISH,
-          "%s[type=%s, arrayMemoryLocation=%s, indexExpression=%s]",
-          getClass().getName(),
-          type,
-          arrayMemoryLocation,
-          indexExpression);
-    }
-  }
+    public Boolean visit(CArraySubscriptExpression pIastArraySubscriptExpression) {
 
-  /**
-   * Builder for creation of {@link TransformableArray} instances.
-   *
-   * <p>CFA-edges are added using the {@code addArray{Read,Write}Edge} methods.
-   */
-  private static final class Builder {
-
-    private final MemoryLocation memoryLocation;
-    private final CArrayType type;
-    private final ImmutableSet.Builder<CFAEdge> readEdges;
-    private final ImmutableSet.Builder<CFAEdge> writeEdges;
-
-    private Builder(MemoryLocation pMemoryLocation, CArrayType pType) {
-      memoryLocation = pMemoryLocation;
-      type = pType;
-
-      readEdges = ImmutableSet.builder();
-      writeEdges = ImmutableSet.builder();
-    }
-
-    private void addArrayReadEdge(CFAEdge pEdge) {
-      readEdges.add(pEdge);
-    }
-
-    private void addArrayWriteEdge(CFAEdge pEdge) {
-      writeEdges.add(pEdge);
-    }
-
-    private TransformableArray build() {
-      return new TransformableArray(memoryLocation, type, readEdges.build(), writeEdges.build());
-    }
-  }
-
-  /** AST-visitor for finding array operations. */
-  private abstract static class ArrayOperationFinder implements CAstNodeVisitor<Void, NoException> {
-
-    private ArrayOperationType mode;
-
-    private ArrayOperationFinder() {
-      mode = ArrayOperationType.READ;
-    }
-
-    /**
-     * Handles an array operation found by this AST-visitor.
-     *
-     * <p>The method is called for every detected array operation.
-     *
-     * @param pType the type of the array operation (read/write)
-     * @param pArrayMemoryLocation the memory location of the array operated on
-     * @param pIndexExpression the array subscript expression
-     */
-    protected abstract void handleArrayOperation(
-        ArrayOperationType pType,
-        MemoryLocation pArrayMemoryLocation,
-        CExpression pIndexExpression);
-
-    @Override
-    public Void visit(CArraySubscriptExpression pIastArraySubscriptExpression) {
-
-      ArrayOperationType prev = mode;
-
-      CExpression arrayExpression = pIastArraySubscriptExpression.getArrayExpression();
-      CExpression subscriptExpression = pIastArraySubscriptExpression.getSubscriptExpression();
-
-      if (arrayExpression instanceof CIdExpression) {
-        CIdExpression arrayIdExpression = (CIdExpression) arrayExpression;
-        MemoryLocation arrayMemoryLocation = MemoryLocation.forDeclaration(arrayIdExpression.getDeclaration());
-        handleArrayOperation(mode, arrayMemoryLocation, subscriptExpression);
+      if (pIastArraySubscriptExpression.getArrayExpression() instanceof CIdExpression) {
+        return pIastArraySubscriptExpression.getSubscriptExpression().accept(this);
       }
 
-      mode = ArrayOperationType.READ;
-      subscriptExpression.accept(this);
-
-      mode = prev;
-
-      return null;
+      return pIastArraySubscriptExpression.getArrayExpression().accept(this)
+          || pIastArraySubscriptExpression.getSubscriptExpression().accept(this);
     }
 
     @Override
-    public Void visit(CArrayDesignator pArrayDesignator) {
-
-      pArrayDesignator.getSubscriptExpression().accept(this);
-
-      return null;
+    public Boolean visit(CArrayDesignator pArrayDesignator) {
+      return pArrayDesignator.getSubscriptExpression().accept(this);
     }
 
     @Override
-    public Void visit(CArrayRangeDesignator pArrayRangeDesignator) {
-
-      pArrayRangeDesignator.getFloorExpression().accept(this);
-      pArrayRangeDesignator.getCeilExpression().accept(this);
-
-      return null;
+    public Boolean visit(CArrayRangeDesignator pArrayRangeDesignator) {
+      return pArrayRangeDesignator.getFloorExpression().accept(this)
+          || pArrayRangeDesignator.getCeilExpression().accept(this);
     }
 
     @Override
-    public Void visit(CFieldDesignator pFieldDesignator) {
-      return null;
+    public Boolean visit(CFieldDesignator pFieldDesignator) {
+      return false;
     }
 
     @Override
-    public Void visit(CInitializerExpression pInitializerExpression) {
-
-      pInitializerExpression.getExpression().accept(this);
-
-      return null;
+    public Boolean visit(CInitializerExpression pInitializerExpression) {
+      return pInitializerExpression.getExpression().accept(this);
     }
 
     @Override
-    public Void visit(CInitializerList pInitializerList) {
+    public Boolean visit(CInitializerList pInitializerList) {
 
       for (CInitializer initializer : pInitializerList.getInitializers()) {
-        initializer.accept(this);
+        if (initializer.accept(this)) {
+          return true;
+        }
       }
 
-      return null;
+      return false;
     }
 
     @Override
-    public Void visit(CDesignatedInitializer pCStructInitializerPart) {
+    public Boolean visit(CDesignatedInitializer pCStructInitializerPart) {
 
       pCStructInitializerPart.getRightHandSide().accept(this);
 
       for (CDesignator designator : pCStructInitializerPart.getDesignators()) {
-        designator.accept(this);
+        if (designator.accept(this)) {
+          return true;
+        }
       }
 
-      return null;
+      return false;
     }
 
     @Override
-    public Void visit(CFunctionCallExpression pIastFunctionCallExpression) {
+    public Boolean visit(CFunctionCallExpression pIastFunctionCallExpression) {
 
       pIastFunctionCallExpression.getFunctionNameExpression().accept(this);
 
       for (CExpression expression : pIastFunctionCallExpression.getParameterExpressions()) {
-        expression.accept(this);
+        if (expression.accept(this)) {
+          return true;
+        }
       }
 
-      return null;
+      return false;
     }
 
     @Override
-    public Void visit(CBinaryExpression pIastBinaryExpression) {
-
-      pIastBinaryExpression.getOperand1().accept(this);
-      pIastBinaryExpression.getOperand2().accept(this);
-
-      return null;
+    public Boolean visit(CBinaryExpression pIastBinaryExpression) {
+      return pIastBinaryExpression.getOperand1().accept(this)
+          || pIastBinaryExpression.getOperand2().accept(this);
     }
 
     @Override
-    public Void visit(CCastExpression pIastCastExpression) {
-
-      pIastCastExpression.getOperand().accept(this);
-
-      return null;
+    public Boolean visit(CCastExpression pIastCastExpression) {
+      return pIastCastExpression.getOperand().accept(this);
     }
 
     @Override
-    public Void visit(CCharLiteralExpression pIastCharLiteralExpression) {
-      return null;
+    public Boolean visit(CCharLiteralExpression pIastCharLiteralExpression) {
+      return false;
     }
 
     @Override
-    public Void visit(CFloatLiteralExpression pIastFloatLiteralExpression) {
-      return null;
+    public Boolean visit(CFloatLiteralExpression pIastFloatLiteralExpression) {
+      return false;
     }
 
     @Override
-    public Void visit(CIntegerLiteralExpression pIastIntegerLiteralExpression) {
-      return null;
+    public Boolean visit(CIntegerLiteralExpression pIastIntegerLiteralExpression) {
+      return false;
     }
 
     @Override
-    public Void visit(CStringLiteralExpression pIastStringLiteralExpression) {
-      return null;
+    public Boolean visit(CStringLiteralExpression pIastStringLiteralExpression) {
+      return false;
     }
 
     @Override
-    public Void visit(CTypeIdExpression pIastTypeIdExpression) {
-      return null;
+    public Boolean visit(CTypeIdExpression pIastTypeIdExpression) {
+      return false;
     }
 
     @Override
-    public Void visit(CUnaryExpression pIastUnaryExpression) {
+    public Boolean visit(CUnaryExpression pIastUnaryExpression) {
 
-      pIastUnaryExpression.getOperand().accept(this);
-
-      return null;
-    }
-
-    @Override
-    public Void visit(CImaginaryLiteralExpression PIastLiteralExpression) {
-      return null;
-    }
-
-    @Override
-    public Void visit(CAddressOfLabelExpression pAddressOfLabelExpression) {
-      return null;
-    }
-
-    @Override
-    public Void visit(CFieldReference pIastFieldReference) {
-
-      if (pIastFieldReference.isPointerDereference()) {
-
-        ArrayOperationType prev = mode;
-
-        mode = ArrayOperationType.READ;
-        pIastFieldReference.getFieldOwner().accept(this);
-
-        mode = prev;
-
-      } else {
-        pIastFieldReference.getFieldOwner().accept(this);
+      if (pIastUnaryExpression.getOperator() == CUnaryExpression.UnaryOperator.AMPER) {
+        for (ArrayAccess arrayAccess : ArrayAccess.findArrayAccesses(pIastUnaryExpression)) {
+          if (arrayAccess.getArrayExpression().accept(this)) {
+            return true;
+          }
+        }
       }
 
-      return null;
+      return pIastUnaryExpression.getOperand().accept(this);
     }
 
     @Override
-    public Void visit(CIdExpression pIastIdExpression) {
-      return null;
+    public Boolean visit(CImaginaryLiteralExpression PIastLiteralExpression) {
+      return false;
     }
 
     @Override
-    public Void visit(CPointerExpression pPointerExpression) {
-
-      ArrayOperationType prev = mode;
-
-      mode = ArrayOperationType.READ;
-      pPointerExpression.getOperand().accept(this);
-
-      mode = prev;
-
-      return null;
+    public Boolean visit(CAddressOfLabelExpression pAddressOfLabelExpression) {
+      return false;
     }
 
     @Override
-    public Void visit(CComplexCastExpression pComplexCastExpression) {
-
-      pComplexCastExpression.getOperand().accept(this);
-
-      return null;
+    public Boolean visit(CFieldReference pIastFieldReference) {
+      return pIastFieldReference.getFieldOwner().accept(this);
     }
 
     @Override
-    public Void visit(CFunctionDeclaration pDecl) {
+    public Boolean visit(CIdExpression pIastIdExpression) {
+      return arrayDeclaration.equals(pIastIdExpression.getDeclaration());
+    }
+
+    @Override
+    public Boolean visit(CPointerExpression pPointerExpression) {
+
+      if (!ArrayAccess.findArrayAccesses(pPointerExpression).isEmpty()
+          && ArrayAccess.findArrayAccesses(pPointerExpression.getOperand()).isEmpty()) {
+
+        ArrayAccess arrayAccess =
+            ArrayAccess.findArrayAccesses(pPointerExpression).stream().findAny().orElseThrow();
+        if (arrayAccess.getArrayExpression() instanceof CIdExpression) {
+          return arrayAccess.getSubscriptExpression().accept(this);
+        }
+      }
+
+      return pPointerExpression.getOperand().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CComplexCastExpression pComplexCastExpression) {
+      return pComplexCastExpression.getOperand().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CFunctionDeclaration pDecl) {
 
       for (CParameterDeclaration declaration : pDecl.getParameters()) {
-        declaration.accept(this);
+        if (declaration.accept(this)) {
+          return true;
+        }
       }
 
-      return null;
+      return false;
     }
 
     @Override
-    public Void visit(CComplexTypeDeclaration pDecl) {
-      return null;
+    public Boolean visit(CComplexTypeDeclaration pDecl) {
+      return false;
     }
 
     @Override
-    public Void visit(CTypeDefDeclaration pDecl) {
-      return null;
+    public Boolean visit(CTypeDefDeclaration pDecl) {
+      return false;
     }
 
     @Override
-    public Void visit(CVariableDeclaration pDecl) {
+    public Boolean visit(CVariableDeclaration pDecl) {
 
       CInitializer initializer = pDecl.getInitializer();
       if (initializer != null) {
-        mode = ArrayOperationType.READ;
-        initializer.accept(this);
+        return initializer.accept(this);
       }
 
-      return null;
+      return false;
     }
 
     @Override
-    public Void visit(CParameterDeclaration pDecl) {
-
-      pDecl.asVariableDeclaration().accept(this);
-
-      return null;
+    public Boolean visit(CParameterDeclaration pDecl) {
+      return pDecl.asVariableDeclaration().accept(this);
     }
 
     @Override
-    public Void visit(CEnumerator pDecl) {
-      return null;
+    public Boolean visit(CEnumerator pDecl) {
+      return false;
     }
 
     @Override
-    public Void visit(CExpressionStatement pIastExpressionStatement) {
-
-      pIastExpressionStatement.getExpression().accept(this);
-
-      return null;
+    public Boolean visit(CExpressionStatement pIastExpressionStatement) {
+      return pIastExpressionStatement.getExpression().accept(this);
     }
 
     @Override
-    public Void visit(CExpressionAssignmentStatement pIastExpressionAssignmentStatement) {
-
-      mode = ArrayOperationType.WRITE;
-      pIastExpressionAssignmentStatement.getLeftHandSide().accept(this);
-
-      mode = ArrayOperationType.READ;
-      pIastExpressionAssignmentStatement.getRightHandSide().accept(this);
-
-      return null;
+    public Boolean visit(CExpressionAssignmentStatement pIastExpressionAssignmentStatement) {
+      return pIastExpressionAssignmentStatement.getLeftHandSide().accept(this)
+          || pIastExpressionAssignmentStatement.getRightHandSide().accept(this);
     }
 
     @Override
-    public Void visit(CFunctionCallAssignmentStatement pIastFunctionCallAssignmentStatement) {
-
-      mode = ArrayOperationType.WRITE;
-      pIastFunctionCallAssignmentStatement.getLeftHandSide().accept(this);
-
-      mode = ArrayOperationType.READ;
-      pIastFunctionCallAssignmentStatement.getRightHandSide().accept(this);
-
-      return null;
+    public Boolean visit(CFunctionCallAssignmentStatement pIastFunctionCallAssignmentStatement) {
+      return pIastFunctionCallAssignmentStatement.getLeftHandSide().accept(this)
+          || pIastFunctionCallAssignmentStatement.getRightHandSide().accept(this);
     }
 
     @Override
-    public Void visit(CFunctionCallStatement pIastFunctionCallStatement) {
+    public Boolean visit(CFunctionCallStatement pIastFunctionCallStatement) {
 
       List<CExpression> paramExpressions =
           pIastFunctionCallStatement.getFunctionCallExpression().getParameterExpressions();
 
       for (CExpression expression : paramExpressions) {
-        expression.accept(this);
+        if (expression.accept(this)) {
+          return true;
+        }
       }
 
       CFunctionDeclaration declaration =
           pIastFunctionCallStatement.getFunctionCallExpression().getDeclaration();
       if (declaration != null) {
-        declaration.accept(this);
+        if (declaration.accept(this)) {
+          return true;
+        }
       }
 
-      return null;
+      return false;
     }
 
     @Override
-    public Void visit(CReturnStatement pNode) {
+    public Boolean visit(CReturnStatement pNode) {
 
       Optional<CExpression> optExpression = pNode.getReturnValue();
 
       if (optExpression.isPresent()) {
         return optExpression.orElseThrow().accept(this);
       } else {
-        return null;
+        return false;
       }
     }
   }

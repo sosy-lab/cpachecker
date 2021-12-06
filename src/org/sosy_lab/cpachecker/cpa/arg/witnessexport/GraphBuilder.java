@@ -99,7 +99,7 @@ enum GraphBuilder {
               CFAEdge innerEdge = allEdgeToNextState.get(i);
               String pseudoStateId = getId(child, i, multiEdgeCount);
 
-              assert (!(innerEdge instanceof AssumeEdge));
+              assert !(innerEdge instanceof AssumeEdge);
 
               boolean isAssumptionAvailableForEdge =
                   Iterables.any(pValueMap.get(s), a -> a.getCFAEdge().equals(innerEdge));

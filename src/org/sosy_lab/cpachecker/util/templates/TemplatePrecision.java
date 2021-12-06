@@ -333,7 +333,7 @@ public class TemplatePrecision implements Precision {
   private Stream<LinearExpression<CIdExpression>> filterRedundantExpressions(
       Stream<LinearExpression<CIdExpression>> pLinearExpressions) {
     Predicate<Optional<Rational>> existsAndMoreThanOne =
-        (coeff -> coeff.isPresent() && coeff.orElseThrow().compareTo(Rational.ONE) > 0);
+        coeff -> coeff.isPresent() && coeff.orElseThrow().compareTo(Rational.ONE) > 0;
     Set<LinearExpression<CIdExpression>> linearExpressions =
         pLinearExpressions.collect(toImmutableSet());
     return linearExpressions
