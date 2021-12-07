@@ -23,7 +23,7 @@ public class LengthDomain implements AbstractStringDomain<Integer> {
   }
 
   @Override
-  public Aspect<Integer> addNewAspectOfThisDomain(String pVariable) {
+  public Aspect<Integer> addNewAspect(String pVariable) {
     return new Aspect<>(this, pVariable.length());
   }
 
@@ -34,27 +34,36 @@ public class LengthDomain implements AbstractStringDomain<Integer> {
 
   @Override
   public boolean isLessOrEqual(Aspect<?> p1, Aspect<?> p2) {
+
     if (p1.getDomainType().equals(TYPE) && p2.getDomainType().equals(TYPE)) {
+
       int len1 = (int) p1.getValue();
       int len2 = (int) p2.getValue();
+
       return len1 >= len2;
     }
+
     return false;
   }
 
   @Override
   public Aspect<?> combineAspectsForStringConcat(Aspect<?> p1, Aspect<?> p2) {
+
     if (p1 instanceof UnknownAspect) {
       return p2;
     }
     if (p2 instanceof UnknownAspect) {
       return p1;
     }
+
     if (p1.getDomainType().equals(TYPE) && p2.getDomainType().equals(TYPE)) {
+
       int len1 = (int) p1.getValue();
       int len2 = (int) p2.getValue();
+
       return new Aspect<>(this, len1 + len2);
     }
+
     return null;
   }
 

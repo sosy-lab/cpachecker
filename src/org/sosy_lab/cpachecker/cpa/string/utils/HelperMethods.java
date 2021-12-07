@@ -14,12 +14,17 @@ import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 public class HelperMethods {
 
   public static boolean isString(Type pType) {
+
     if (pType instanceof JClassType) {
+
       JClassType t = (JClassType) pType;
+
       if (t.getName().equals("java.lang.String") && t.getSimpleName().equals("String")) {
         return true;
       }
+
     }
+
     return false;
   }
 }

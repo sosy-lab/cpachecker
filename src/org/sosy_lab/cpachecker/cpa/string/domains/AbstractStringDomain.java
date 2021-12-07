@@ -12,7 +12,7 @@ import org.sosy_lab.cpachecker.cpa.string.utils.Aspect;
 
 public interface AbstractStringDomain<T> {
 
-  public Aspect<T> addNewAspectOfThisDomain(String pVariable);
+  public Aspect<T> addNewAspect(String pVariable);
 
   public DomainType getType();
 

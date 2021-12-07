@@ -66,11 +66,12 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 public class StringTransferRelation extends SingleEdgeTransferRelation {
 
   private StringOptions options;
-  private List<JVariableIdentifier> variables;
+  private List<JVariableIdentifier> localVariables;
   private String funcName;
+
   private JStringValueVisitor jValVis;
   private JVariableVisitor jVarNameVis;
-  // private JVariableVisitor jVis;
+
   private LogManager logger;
   private final MachineModel model;
 
@@ -80,7 +81,7 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
       MachineModel pMachineModel) {
     logger = pLogger;
     this.options = pOptions;
-    variables = new ArrayList<>();
+    localVariables = new ArrayList<>();
     model = pMachineModel;
   }
 
@@ -88,48 +89,59 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
   public Collection<StringState>
       getAbstractSuccessorsForEdge(AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
           throws CPATransferException, InterruptedException {
+
     StringState state = StringState.copyOf((StringState) pState);
     StringState successor = null;
     jValVis = new JStringValueVisitor(options);
     jVarNameVis = new JVariableVisitor();
-    // jVis = new JVariableVisitor();
     funcName = pCfaEdge.getPredecessor().getFunctionName();
 
     switch (pCfaEdge.getEdgeType()) {
+
       case DeclarationEdge:
         if (pCfaEdge instanceof JDeclarationEdge) {
+
           JDeclaration jDecl = ((JDeclarationEdge) pCfaEdge).getDeclaration();
           successor = handleJDeclaration(jDecl, state);
         }
         break;
+
       case StatementEdge:
         if (pCfaEdge instanceof JStatementEdge) {
+
           JStatement jStat = ((JStatementEdge) pCfaEdge).getStatement();
           successor = handleJStatemt(jStat, state);
         }
         break;
+
       case AssumeEdge:
         if (pCfaEdge instanceof JAssumeEdge) {
+
           JAssumeEdge jae = (JAssumeEdge) pCfaEdge;
           successor = handleJAssumption(jae.getTruthAssumption(), jae, state);
         }
         break;
+
       case BlankEdge:
         successor = handleBlankEdge((BlankEdge) pCfaEdge, state);
         break;
+
       case CallToReturnEdge:
         if (pCfaEdge instanceof JMethodSummaryEdge) {
-          successor = handleJMethodSummaryEdge(/* (JMethodSummaryEdge) pCfaEdge, */state);
+
+          successor = handleJMethodSummaryEdge(state);
         }
         break;
+
       case FunctionCallEdge:
         if (pCfaEdge instanceof JMethodCallEdge) {
+
           final JMethodCallEdge fnkCall = (JMethodCallEdge) pCfaEdge;
           final FunctionEntryNode succ = fnkCall.getSuccessor();
           final String calledFunctionName = succ.getFunctionName();
+
           successor =
               handleJMethodCallEdge(
-                  // fnkCall,
                   fnkCall.getArguments(),
                   succ.getFunctionParameters(),
                   calledFunctionName,
@@ -140,160 +152,198 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
 
       case FunctionReturnEdge:
         if (pCfaEdge instanceof JMethodReturnEdge) {
-          // final String callerFunctionName = pCfaEdge.getSuccessor().getFunctionName();
+
           final JMethodReturnEdge fnkReturnEdge = (JMethodReturnEdge) pCfaEdge;
           final JMethodSummaryEdge summaryEdge = fnkReturnEdge.getSummaryEdge();
+
           successor =
               handleJMethodReturnEdge(
                   fnkReturnEdge,
-                  // summaryEdge,
                   summaryEdge.getExpression(),
-                  // callerFunctionName,
                   state);
         }
         break;
+
       case ReturnStatementEdge:
         if (pCfaEdge instanceof JReturnStatementEdge) {
-          // final JReturnStatementEdge returnEdge = (JReturnStatementEdge) pCfaEdge;
-          successor = handleJReturnStatementEdge(/* returnEdge, */ state);
+          successor = handleJReturnStatementEdge(state);
         }
         break;
 
       default:
         logger.log(Level.SEVERE, "No such edge existing");
     }
+
     if (successor != null) {
+
       return Collections.singleton(successor);
+
     } else {
+
       return ImmutableSet.of();
+
     }
+
   }
 
   // f(x)", that calls "f(int a)
   private StringState handleJMethodCallEdge(
-      // JMethodCallEdge pFnkCall,
       List<JExpression> pArguments,
       List<? extends AParameterDeclaration> parameters,
       String pCalledFunctionName,
       FunctionEntryNode pSucc,
       StringState pState) {
+
     if (pSucc.getReturnVariable().isPresent()) {
+
       AVariableDeclaration decl = pSucc.getReturnVariable().get();
       pState = handleJDeclaration((JDeclaration) decl, pState);
+
     }
-    // if (pCalledFunctionName.contains("String_length")
-    // && pFnkCall.getFunctionCallExpression() instanceof JReferencedMethodInvocationExpression) {
-    // JReferencedMethodInvocationExpression jrmie =
-    // (JReferencedMethodInvocationExpression) pFnkCall.getFunctionCallExpression();
-    // return handleMethodCallStringLength(jrmie, pState);
-    // }
+
     for (int i = 0; i < parameters.size(); i++) {
+
       JExpression exp = pArguments.get(i);
+
       if (HelperMethods.isString(exp.getExpressionType())) {
+
         AParameterDeclaration param = parameters.get(i);
         MemoryLocation formalParamName =
             MemoryLocation.forLocalVariable(pCalledFunctionName, param.getName());
         JVariableIdentifier jid = new JVariableIdentifier(param.getType(), formalParamName);
         ValueAndAspects value = exp.accept(jValVis);
+
         pState.updateVariable(jid, value);
+
       }
+
     }
+
     return pState;
   }
 
   // y=f(x)
   private StringState handleJMethodReturnEdge(
       JMethodReturnEdge pFnkReturnEdge,
-      // JMethodSummaryEdge pSummaryEdge,
       JMethodOrConstructorInvocation expSummary,
-      // String pCallerFunctionName,
       StringState pState) {
+
     Optional<? extends AVariableDeclaration> returnVarName =
         pFnkReturnEdge.getFunctionEntry().getReturnVariable();
     JVariableIdentifier retJid = null;
+
     if (returnVarName.isPresent()) {
       if (HelperMethods.isString(returnVarName.get().getType())) {
+
         retJid =
             new JVariableIdentifier(
                 returnVarName.get().getType(),
                 MemoryLocation.forDeclaration(returnVarName.get()));
       }
+
     }
+
     if (expSummary instanceof JMethodInvocationAssignmentStatement) {
+
       JMethodInvocationAssignmentStatement assignExp =
           ((JMethodInvocationAssignmentStatement) expSummary);
       AExpression op1 = assignExp.getLeftHandSide();
-
       ValueAndAspects newValue = null;
       boolean valueExists = returnVarName.isPresent() && pState.contains(retJid);
+
       if (valueExists) {
         newValue = pState.getVaa(retJid);
+
       }
+
       Optional<JVariableIdentifier> jid = Optional.empty();
+
       if (op1 instanceof JLeftHandSide) {
         jid = Optional.of(jVarNameVis.visit((JLeftHandSide) op1));
+
       }
+
       if (jid.isPresent() && jid.get().isString()) {
+
         return pState.updateVariable(jid.orElseThrow(), newValue);
+
       }
+
     }
+
     return pState;
+
   }
 
   // "return (x)"
-  // not needed.
   private StringState handleJReturnStatementEdge(StringState pState) {
     return pState;
   }
 
   private StringState
-      handleJMethodSummaryEdge(/* JMethodSummaryEdge summaryEdge, */StringState pState) {
+      handleJMethodSummaryEdge(StringState pState) {
     // TODO length, substring
     return pState;
   }
 
   private StringState handleBlankEdge(BlankEdge pCfaEdge, StringState pState) {
+
     if (pCfaEdge.getSuccessor() instanceof FunctionExitNode) {
+
       StringState state = StringState.copyOf(pState);
-      state.clearAFunction(funcName);
+      state.clearLocalVariables(funcName);
+
       return state;
     }
+
     return pState;
   }
 
   private StringState handleJStatemt(JStatement pJStat, StringState pState) {
     if (pJStat instanceof JAssignment) {
+
       JLeftHandSide jLeft = ((JAssignment) pJStat).getLeftHandSide();
       JRightHandSide jRight = ((JAssignment) pJStat).getRightHandSide();
       JVariableIdentifier jid = jLeft.accept(jVarNameVis);
 
       if (jid.isString()) {
+
         ValueAndAspects vaa = jRight.accept(jValVis);
         return pState.updateVariable(jid, vaa);
+
       }
+
     }
     return pState;
   }
 
   private StringState handleJDeclaration(JDeclaration pJDecl, StringState pState) {
+
     if (!(pJDecl instanceof JVariableDeclaration) || !HelperMethods.isString(pJDecl.getType())) {
       return pState;
     }
+
     JVariableDeclaration jDecl = (JVariableDeclaration) pJDecl;
     JVariableIdentifier jid =
         new JVariableIdentifier(jDecl.getType(), MemoryLocation.forDeclaration(jDecl));
+
     JInitializer init = (JInitializer) jDecl.getInitializer();
     ValueAndAspects value = getInitialValue(init);
-    variables.add(jid);
+    localVariables.add(jid);
+
     return pState.addVariable(jid, value);
   }
 
   private ValueAndAspects getInitialValue(JInitializer pJ) {
+
     if (pJ instanceof JInitializerExpression) {
+
       JExpression init = ((JInitializerExpression) pJ).getExpression();
       ValueAndAspects value = init.accept(jValVis);
+
       return value;
     }
+
     return UnknownValueAndAspects.getInstance();
   }
 
@@ -305,22 +355,29 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
     // true if exp = !(exp)
     boolean negatedUnaryOperator = false;
     if (exp instanceof JUnaryExpression) {
+
       if (((JUnaryExpression) exp).getOperator().equals(UnaryOperator.NOT)) {
         negatedUnaryOperator = true;
       }
+
       exp = ((JUnaryExpression) exp).getOperand();
     }
 
     if (exp instanceof JBinaryExpression) {
+
       JBinaryExpression jbe = (JBinaryExpression) exp;
       Pair<JMethodInvocationExpression, JExpression> pair =
           parseBinExpToJmieAndJe(jbe.getOperand1(), jbe.getOperand2());
       JExpression other;
       JMethodInvocationExpression jmie;
+
       if (pair != null) {
+
         jmie = pair.getFirst();
         other = pair.getSecond();
+
       } else {
+
         return handleTruthAssumption(truthAssumption, pState);
       }
 
@@ -346,9 +403,12 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
           } else {
             pState = handleMethodCallStringLengthNegTA(jbe.getOperator(), pState, jid, vaa, va);
           }
+
         }
       } while (other instanceof JBinaryExpression);
+
     }
+
     return handleTruthAssumption(truthAssumption, pState);
   }
 
@@ -366,6 +426,7 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
     if (first instanceof JMethodInvocationExpression) {
       return Pair.of((JMethodInvocationExpression) first, second);
     }
+
     if (second instanceof JMethodInvocationExpression) {
       return Pair.of((JMethodInvocationExpression) second, first);
     } else {
@@ -380,22 +441,27 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
       JVariableIdentifier pJid,
       ValueAndAspects pVaa,
       Value pVa) {
+
     if (pVa.isNumericValue()) {
+
       Aspect<?> a = null;
+
       switch (pBinOp) {
         case LESS_EQUAL:
         case LESS_THAN:
         case NOT_EQUALS: {
           int val = pVa.asNumericValue().getNumber().intValue();
-          a = options.getDomain(DomainType.LENGTH).addNewAspectOfThisDomain(Integer.toString(val));
+          a = options.getDomain(DomainType.LENGTH).addNewAspect(Integer.toString(val));
         }
           break;
+
         case GREATER_EQUAL:
         case GREATER_THAN:
         case EQUALS:
         default:
           break;
       }
+
       if (a != null) {
         pState.updateVariable(pJid, pVaa.updateOneAspect(a));
       }
@@ -409,22 +475,27 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
       JVariableIdentifier pJid,
       ValueAndAspects pVaa,
       Value pVa) {
+
     if (pVa.isNumericValue()) {
+
       Aspect<?> a = null;
+
       switch (pBinOp) {
         case GREATER_EQUAL:
         case GREATER_THAN:
         case EQUALS: {
           int val = pVa.asNumericValue().getNumber().intValue();
-          a = options.getDomain(DomainType.LENGTH).addNewAspectOfThisDomain(Integer.toString(val));
+          a = options.getDomain(DomainType.LENGTH).addNewAspect(Integer.toString(val));
         }
           break;
+
         case LESS_EQUAL:
         case LESS_THAN:
         case NOT_EQUALS:
         default:
           break;
       }
+
       if (a != null) {
         pState.updateVariable(pJid, pVaa.updateOneAspect(a));
       }

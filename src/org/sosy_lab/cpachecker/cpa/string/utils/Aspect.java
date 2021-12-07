@@ -14,14 +14,17 @@ import org.sosy_lab.cpachecker.cpa.string.domains.DomainType;
 public class Aspect<T> {
 
   private AbstractStringDomain<?> domain;
+
+  private T t;
   // t as a string
   private String value;
-  private T t;
 
   public Aspect(AbstractStringDomain<T> pDomain, T pT) {
+
     domain = pDomain;
     t = pT;
     value = pT.toString();
+
   }
 
   public String getValueAsString() {

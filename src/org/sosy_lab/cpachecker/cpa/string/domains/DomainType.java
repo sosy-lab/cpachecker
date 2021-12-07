@@ -17,7 +17,6 @@ public enum DomainType {
   CHAR_SET;
 
   public boolean isLessOrEqual(DomainType obj) {
-    // Hierarchy?
     return this == obj;
   }
 }

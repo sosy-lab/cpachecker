@@ -46,8 +46,6 @@ public class StringCPA extends AbstractCPA {
   private String stopType = "SEP";
 
   private Configuration config;
-  @SuppressWarnings("unused")
-  private final StringTransferRelation transfer;
   private StringOptions options;
   private final LogManager logger;
   private final CFA cfa;
@@ -56,14 +54,12 @@ public class StringCPA extends AbstractCPA {
       throws InvalidConfigurationException {
     super(
         DelegateAbstractDomain.<StringState>getInstance(),
-        // new StringTransferRelation(pLogger)
         null);
     this.cfa = pCfa;
     this.config = pConfig;
     this.logger = pLogger;
     options = new StringOptions(pConfig, logger);
     config.inject(this, StringCPA.class);
-    this.transfer = getTransferRelation();
     getMergeOperator();
     getStopOperator();
   }
@@ -79,13 +75,11 @@ public class StringCPA extends AbstractCPA {
 
   @Override
   public MergeOperator getMergeOperator() {
-    // return new MergeJoinOperator(getAbstractDomain());
     return buildMergeOperator(mergeType);
   }
 
   @Override
   public StopOperator getStopOperator() {
-    // return new StopJoinOperator(getAbstractDomain());
     return buildStopOperator(stopType);
   }
 

@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.string.utils;
 
 public class StringValue {
-  // private boolean unknown;
 
 public boolean isUnknown() {
   return false;
