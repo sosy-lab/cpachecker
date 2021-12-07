@@ -10,6 +10,9 @@ package org.sosy_lab.cpachecker.cpa.string.domains;
 
 import org.sosy_lab.cpachecker.cpa.string.utils.Aspect;
 
+/*
+ * Interface for a generic abstract string domain.
+ */
 public interface AbstractStringDomain<T> {
 
   public Aspect<T> addNewAspect(String pVariable);

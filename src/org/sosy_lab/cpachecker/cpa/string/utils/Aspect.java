@@ -11,6 +11,10 @@ package org.sosy_lab.cpachecker.cpa.string.utils;
 import org.sosy_lab.cpachecker.cpa.string.domains.AbstractStringDomain;
 import org.sosy_lab.cpachecker.cpa.string.domains.DomainType;
 
+/*
+ * Represents an aspect or fact about a string.
+ * The type of the aspect is dependent on the domain that constructs the aspect.
+ */
 public class Aspect<T> {
 
   private AbstractStringDomain<?> domain;

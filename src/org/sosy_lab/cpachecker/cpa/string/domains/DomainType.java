@@ -8,6 +8,10 @@
 
 package org.sosy_lab.cpachecker.cpa.string.domains;
 
+/*
+ * Enum for storing the domain type.
+ * Used to assign every aspect to a domain.
+ */
 public enum DomainType {
   PREFFIX,
   SUFFIX,

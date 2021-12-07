@@ -12,6 +12,10 @@ import org.sosy_lab.cpachecker.cpa.string.StringOptions;
 import org.sosy_lab.cpachecker.cpa.string.utils.Aspect;
 import org.sosy_lab.cpachecker.cpa.string.utils.Aspect.UnknownAspect;
 
+/*
+ * Tracks the suffix of a string.
+ * The max. length of the suffix depends on suffixLength
+ */
 public class SuffixDomain implements AbstractStringDomain<String> {
 
   private int suffixLength;

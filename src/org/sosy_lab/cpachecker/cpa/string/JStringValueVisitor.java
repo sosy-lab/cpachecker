@@ -44,7 +44,10 @@ import org.sosy_lab.cpachecker.cpa.string.utils.ValueAndAspects;
 import org.sosy_lab.cpachecker.cpa.string.utils.ValueAndAspects.UnknownValueAndAspects;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
-//We can expect that only string-variable are used in the visitor (because of check in transfer relation)
+/*
+ * Visitor that creates a list of aspects, depending on the expression.
+ * We can expect that only string-variables are used in the visitor (because of check in transfer relation)
+ */
 public class JStringValueVisitor
     implements JRightHandSideVisitor<ValueAndAspects, NoException> {
 

@@ -21,6 +21,9 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
+/*
+ * Rudimentary visitor for non - string values.
+ */
 public class Aevv extends AbstractExpressionValueVisitor {
 
   protected Aevv(

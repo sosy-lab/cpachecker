@@ -11,6 +11,9 @@ package org.sosy_lab.cpachecker.cpa.string.utils;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 
+/*
+ * Helper - class
+ */
 public class HelperMethods {
 
   public static boolean isString(Type pType) {

@@ -12,6 +12,10 @@ import org.sosy_lab.cpachecker.cpa.string.StringOptions;
 import org.sosy_lab.cpachecker.cpa.string.utils.Aspect;
 import org.sosy_lab.cpachecker.cpa.string.utils.Aspect.UnknownAspect;
 
+/*
+ * Tracks the prefix of a string.
+ * The max length that is tracked depends on the variable prefixLength.
+ */
 public class PrefixDomain implements AbstractStringDomain<String> {
 
   private final int prefixLength;

@@ -14,6 +14,10 @@ import org.sosy_lab.cpachecker.cpa.string.domains.AbstractStringDomain;
 import org.sosy_lab.cpachecker.cpa.string.domains.DomainType;
 import org.sosy_lab.cpachecker.cpa.string.utils.Aspect.UnknownAspect;
 
+/*
+ * Stores all known aspects of a string as a list.
+ * Util-class to perform functions on the list.
+ */
 public class ValueAndAspects {
 
   private List<Aspect<?>> aspects;

@@ -12,7 +12,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-//rename to JSVarRepresenter?
+/*
+ * Used to uniquely identify every string in the abstract state
+ */
 public class JVariableIdentifier {
 
   private final Type type;

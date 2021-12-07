@@ -18,12 +18,10 @@ import org.sosy_lab.cpachecker.cpa.string.utils.JVariableIdentifier;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-public class JVariableVisitor implements //JExpressionVisitor<JVariableIdentifier, NoException>,
-//    JAstNodeVisitor<JVariableIdentifier, NoException>// ,
-    JLeftHandSideVisitor<JVariableIdentifier, NoException>// ,
-                                                          // JStatementVisitor<JVariableIdentifier,
-                                                          // NoException>
-{
+/*
+ * Visitor used to create the string identifier JVariableIdentifier
+ */
+public class JVariableVisitor implements JLeftHandSideVisitor<JVariableIdentifier, NoException> {
 
   @Override
   public JVariableIdentifier visit(JArraySubscriptExpression pE)
@@ -44,33 +42,5 @@ public class JVariableVisitor implements //JExpressionVisitor<JVariableIdentifie
   public JVariableIdentifier visit(JLeftHandSide pOp1) {
     return pOp1.accept(this);
   }
-
-//  @Override
-//  public JVariableIdentifier visit(JExpressionAssignmentStatement pAExpressionAssignmentStatement)
-//      throws NoException {
-//    // TODO Auto-generated method stub
-//    return null;
-//  }
-//
-//  @Override
-//  public JVariableIdentifier visit(JExpressionStatement pAExpressionStatement) throws NoException {
-//    // TODO Auto-generated method stub
-//    return null;
-//  }
-//
-//  @Override
-//  public JVariableIdentifier
-//      visit(JMethodInvocationAssignmentStatement pAFunctionCallAssignmentStatement)
-//          throws NoException {
-//    // TODO Auto-generated method stub
-//    return null;
-//  }
-//
-//  @Override
-//  public JVariableIdentifier visit(JMethodInvocationStatement pAFunctionCallStatement)
-//      throws NoException {
-//    // TODO Auto-generated method stub
-//    return null;
-//  }
 
 }

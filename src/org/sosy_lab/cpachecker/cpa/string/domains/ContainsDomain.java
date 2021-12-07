@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.cpa.string.utils.Aspect;
 import org.sosy_lab.cpachecker.cpa.string.utils.Aspect.UnknownAspect;
 
 /*
- * Tracks if the string contains elements of a given set
+ * Tracks if the string contains elements of a given set.
  */
 public class ContainsDomain implements AbstractStringDomain<List<String>> {
 
