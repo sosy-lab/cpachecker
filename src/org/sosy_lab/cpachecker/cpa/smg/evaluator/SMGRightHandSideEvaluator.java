@@ -61,8 +61,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
 
   private final SMGOptions options;
-  private final SMGTransferRelationKind kind;
-  public final SMGBuiltins builtins;
 
   public SMGRightHandSideEvaluator(
       LogManagerWithoutDuplicates pLogger,
@@ -70,9 +68,8 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
       SMGOptions pOptions,
       SMGTransferRelationKind pKind,
       SMGExportDotOption exportSMGOptions) {
-    super(pLogger, pMachineModel);
+    super(pLogger, pMachineModel, pKind);
     options = pOptions;
-    kind = pKind;
     builtins = new SMGBuiltins(this, options, exportSMGOptions, machineModel, logger);
   }
 

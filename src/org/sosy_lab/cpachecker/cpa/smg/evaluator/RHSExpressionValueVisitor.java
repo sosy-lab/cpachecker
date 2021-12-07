@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 
 import java.util.List;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.smg.SMGBuiltins;
@@ -37,9 +36,7 @@ class RHSExpressionValueVisitor extends ExpressionValueVisitor {
   @Override
   public List<? extends SMGValueAndState> visit(CFunctionCallExpression pIastFunctionCallExpression)
       throws CPATransferException {
-    CExpression fileNameExpression = pIastFunctionCallExpression.getFunctionNameExpression();
-    String functionName = fileNameExpression.toASTString();
     return builtins.handleFunctioncall(
-        pIastFunctionCallExpression, functionName, getInitialSmgState(), getCfaEdge(), kind);
+        pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge(), kind);
   }
 }

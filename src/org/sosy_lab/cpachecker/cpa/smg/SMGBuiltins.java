@@ -970,11 +970,12 @@ public class SMGBuiltins {
 
   public List<? extends SMGValueAndState> handleFunctioncall(
       CFunctionCallExpression pFunctionCall,
-      String functionName,
       SMGState pSmgState,
       CFAEdge pCfaEdge,
       SMGTransferRelationKind pKind)
       throws CPATransferException, AssertionError {
+    CExpression fileNameExpression = pFunctionCall.getFunctionNameExpression();
+    String functionName = fileNameExpression.toASTString();
     if (isABuiltIn(functionName)) {
       if (isConfigurableAllocationFunction(functionName)) {
         return evaluateConfigurableAllocationFunction(pFunctionCall, pSmgState, pCfaEdge, pKind);

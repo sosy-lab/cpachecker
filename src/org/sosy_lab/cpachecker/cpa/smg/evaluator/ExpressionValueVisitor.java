@@ -615,7 +615,7 @@ class ExpressionValueVisitor
   @Override
   public List<? extends SMGValueAndState> visit(CFunctionCallExpression pIastFunctionCallExpression)
       throws CPATransferException {
-    return singletonList(SMGValueAndState.withUnknownValue(getInitialSmgState()));
+    return smgExpressionEvaluator.builtins.handleFunctioncall(pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge(), smgExpressionEvaluator.kind);
   }
 
   SMGState getInitialSmgState() {

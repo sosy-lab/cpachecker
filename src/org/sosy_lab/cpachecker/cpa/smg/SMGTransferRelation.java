@@ -731,8 +731,8 @@ public class SMGTransferRelation
       CFunctionCallExpression cFCExpression,
       String calledFunctionName)
       throws CPATransferException, AssertionError {
-    if (expressionEvaluator.builtins.isABuiltIn(calledFunctionName)) {
-      if (expressionEvaluator.builtins.isConfigurableAllocationFunction(calledFunctionName)) {
+    if (expressionEvaluator.getBuiltins().isABuiltIn(calledFunctionName)) {
+      if (expressionEvaluator.getBuiltins().isConfigurableAllocationFunction(calledFunctionName)) {
         logger.logf(
             Level.INFO,
             "%s: Calling '%s' and not using the result, resulting in memory leak.",
@@ -740,7 +740,7 @@ public class SMGTransferRelation
             calledFunctionName);
         List<SMGState> newStates =
             asSMGStateList(
-                expressionEvaluator.builtins.evaluateConfigurableAllocationFunction(
+                expressionEvaluator.getBuiltins().evaluateConfigurableAllocationFunction(
                     cFCExpression, pState, pCfaEdge, kind));
         for (SMGState s : newStates) {
           s.setMemLeak(
@@ -751,16 +751,16 @@ public class SMGTransferRelation
         }
         return newStates;
       }
-      if (expressionEvaluator.builtins.isDeallocationFunction(calledFunctionName)) {
-        return expressionEvaluator.builtins.evaluateFree(cFCExpression, pState, pCfaEdge);
+      if (expressionEvaluator.getBuiltins().isDeallocationFunction(calledFunctionName)) {
+        return expressionEvaluator.getBuiltins().evaluateFree(cFCExpression, pState, pCfaEdge);
       }
       return asSMGStateList(
-          expressionEvaluator.builtins.handleBuiltinFunctionCall(
+          expressionEvaluator.getBuiltins().handleBuiltinFunctionCall(
               pCfaEdge, cFCExpression, calledFunctionName, pState, kind));
 
     } else {
       return asSMGStateList(
-          expressionEvaluator.builtins.handleUnknownFunction(
+          expressionEvaluator.getBuiltins().handleUnknownFunction(
               pCfaEdge, cFCExpression, calledFunctionName, pState));
     }
   }
@@ -831,7 +831,8 @@ public class SMGTransferRelation
     List<SMGState> result = new ArrayList<>(4);
     CType rValueType = TypeUtils.getRealExpressionType(rValue);
 
-    SMGExpressionEvaluator expEvaluator = new SMGExpressionEvaluator(logger, machineModel);
+    SMGExpressionEvaluator expEvaluator = new SMGExpressionEvaluator(logger, machineModel, kind);
+    expEvaluator.setBuiltins(expressionEvaluator.getBuiltins());
     for (SMGExplicitValueAndState expValueAndState :
         expEvaluator.evaluateExplicitValue(pNewState, cfaEdge, rValue)) {
       SMGExplicitValue expValue = expValueAndState.getObject();
@@ -893,7 +894,8 @@ public class SMGTransferRelation
       throws CPATransferException {
 
     List<Pair<SMGState, SMGKnownSymbolicValue>> result = new ArrayList<>();
-    SMGExpressionEvaluator expEvaluator = new SMGExpressionEvaluator(logger, machineModel);
+    SMGExpressionEvaluator expEvaluator = new SMGExpressionEvaluator(logger, machineModel, kind);
+    expEvaluator.setBuiltins(expressionEvaluator.getBuiltins());
 
 
     for (SMGExplicitValueAndState expValueAndState :

@@ -37,8 +37,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.smg.SMGBuiltins;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelationKind;
 import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
@@ -72,10 +74,21 @@ public class SMGExpressionEvaluator {
 
   final LogManagerWithoutDuplicates logger;
   final MachineModel machineModel;
+  SMGBuiltins builtins;
+  final SMGTransferRelationKind kind;
 
-  public SMGExpressionEvaluator(LogManagerWithoutDuplicates pLogger, MachineModel pMachineModel) {
+  public SMGExpressionEvaluator(LogManagerWithoutDuplicates pLogger, MachineModel pMachineModel, SMGTransferRelationKind pKind) {
     logger = pLogger;
     machineModel = pMachineModel;
+    kind = pKind;
+  }
+
+  public void setBuiltins(SMGBuiltins pBuiltins) {
+    builtins = pBuiltins;
+  }
+
+  public SMGBuiltins getBuiltins() {
+    return builtins;
   }
 
   /**
