@@ -31,11 +31,11 @@ public final class CIdExpression extends AIdExpression implements CLeftHandSide 
 
   @Override
   public AIdExpression copyWithDeclaration(ASimpleDeclaration pDeclaration) {
-    if (pDeclaration instanceof CSimpleDeclaration) {
+    if (pDeclaration instanceof CSimpleDeclaration && pDeclaration.getType() instanceof CType) {
       return new CIdExpression(
           this.getFileLocation(),
-          this.getExpressionType(),
-          this.getName(),
+          (CType) pDeclaration.getType(),
+          pDeclaration.getName(),
           (CSimpleDeclaration) pDeclaration);
     } else {
       return null;

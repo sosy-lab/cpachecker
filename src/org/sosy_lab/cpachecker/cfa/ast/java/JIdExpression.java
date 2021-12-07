@@ -37,10 +37,10 @@ public class JIdExpression extends AIdExpression implements JLeftHandSide {
 
   @Override
   public AIdExpression copyWithDeclaration(ASimpleDeclaration pDeclaration) {
-    if (pDeclaration instanceof JSimpleDeclaration) {
+    if (pDeclaration instanceof JSimpleDeclaration && pDeclaration.getExpressionType() instanceof JType) {
       return new JIdExpression(
           this.getFileLocation(),
-          this.getExpressionType(),
+          (JType) pDeclaration.getType(),
           pDeclaration.getName(),
           (JSimpleDeclaration) pDeclaration);
     } else {
