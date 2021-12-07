@@ -46,10 +46,15 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.visitors.AggregateConstantsVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.visitors.LinearVariableDependencyVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.visitors.VariableCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
@@ -59,6 +64,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.utils.LinearVariableDependency;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.utils.LinearVariableDependencyGraph;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
@@ -132,6 +139,8 @@ public final class LoopStructure implements Serializable {
     private Map<String, Integer> loopIncDecVariables;
     private Set<AVariableDeclaration> modifiedVariables;
 
+    private LinearVariableDependencyGraph linearVariableDependencies = null;
+
     private Loop(CFANode loopHead, Set<CFANode> pNodes) {
       loopHeads = ImmutableSet.of(loopHead);
       nodes = ImmutableSortedSet.<CFANode>naturalOrder()
@@ -144,6 +153,9 @@ public final class LoopStructure implements Serializable {
       if (innerLoopEdges != null) {
         assert incomingEdges != null;
         assert outgoingEdges != null;
+        assert linearVariableDependencies != null;
+        assert loopIncDecVariables != null;
+        assert modifiedVariables != null;
         return;
       }
 
@@ -168,6 +180,7 @@ public final class LoopStructure implements Serializable {
 
       loopIncDecVariables = collectLoopIncDecVariables();
       modifiedVariables = collectModifiedVariables();
+      linearVariableDependencies = calculateLinearVariableDependencies();
     }
 
     /**
@@ -495,6 +508,75 @@ public final class LoopStructure implements Serializable {
         modifiedVarsNames.add(var.getQualifiedName());
       }
       return modifiedVarsNames;
+    }
+
+    /**
+     * This method obtains the linear dependencies of this Variable, if it is the case.
+     *
+     * @param e the edge from which to obtain variables
+     * @return a Linear Variable Dependency or None
+     */
+    private static Optional<LinearVariableDependency> obtainLinearVariableDependency(CFAEdge e) {
+      if (e instanceof AStatementEdge) {
+        AStatementEdge stmtEdge = (AStatementEdge) e;
+        if (stmtEdge.getStatement() instanceof AAssignment) {
+          AAssignment assign = (AAssignment) stmtEdge.getStatement();
+          LinearVariableDependencyVisitor<Exception> visitor =
+              new LinearVariableDependencyVisitor<>();
+          ALeftHandSide leftHandSide = assign.getLeftHandSide();
+          ARightHandSide rightHandSide = assign.getRightHandSide();
+          if (assign instanceof AExpressionAssignmentStatement) {
+            if (leftHandSide instanceof AIdExpression) {
+              LinearVariableDependency linearVariableDependency =
+                  new LinearVariableDependency(
+                      (AVariableDeclaration) ((AIdExpression) leftHandSide).getDeclaration());
+              Optional<LinearVariableDependency> dependencies =  Optional.empty();
+              if (rightHandSide instanceof AExpression) {
+                try {
+                  dependencies =
+                      ((AExpression) rightHandSide).accept_(visitor);
+                } catch (Exception e1) {
+                  return Optional.empty();
+                }
+                if (dependencies.isEmpty()) {
+                  return Optional.empty();
+                }
+                // TODO: Make this more general to also include Java Expressions
+                linearVariableDependency.modifyDependency(
+                    dependencies.get(), CBinaryExpression.BinaryOperator.PLUS);
+                return Optional.of(linearVariableDependency);
+              } else {
+                return Optional.empty();
+              }
+            } else {
+              return Optional.empty();
+            }
+          } else {
+            return Optional.empty();
+          }
+
+        }
+      }
+      return Optional.empty();
+    }
+
+    public LinearVariableDependencyGraph calculateLinearVariableDependencies() {
+      LinearVariableDependencyGraph linearVariableDependencyGraph =
+          new LinearVariableDependencyGraph();
+      for (CFAEdge e : this.getInnerLoopEdges()) {
+        Optional<LinearVariableDependency> dependency = obtainLinearVariableDependency(e);
+        if (dependency.isPresent()) {
+          // TODO: Make this more general to also include Java Expressions
+          linearVariableDependencyGraph.modifyDependencies(
+              dependency.get(), CBinaryExpression.BinaryOperator.PLUS);
+        }
+      }
+
+      return linearVariableDependencyGraph;
+    }
+
+    public LinearVariableDependencyGraph getLinearVariableDependencies() {
+      return this.linearVariableDependencies;
     }
   }
 

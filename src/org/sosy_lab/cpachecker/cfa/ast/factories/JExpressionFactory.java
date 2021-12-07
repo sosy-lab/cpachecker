@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
@@ -103,6 +104,16 @@ public class JExpressionFactory implements IExpressionFactory {
             pVariableDeclaration.getType(),
             pVariableDeclaration.getQualifiedName(),
             pVariableDeclaration);
+    return this;
+  }
+
+  public JExpressionFactory unaryOperation(UnaryOperator pOperator) {
+    this.currentExpression =
+        new JUnaryExpression(
+            FileLocation.DUMMY,
+            this.currentExpression.getExpressionType(),
+            currentExpression,
+            pOperator);
     return this;
   }
 }

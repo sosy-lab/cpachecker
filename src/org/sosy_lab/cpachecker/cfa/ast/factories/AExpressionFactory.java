@@ -11,12 +11,15 @@ package org.sosy_lab.cpachecker.cfa.ast.factories;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression.AUnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -121,6 +124,18 @@ public class AExpressionFactory implements IExpressionFactory {
   @Override
   public IExpressionFactory negate() {
     this.chosenFactory.negate();
+    return this;
+  }
+
+  public AExpressionFactory unaryOperation(AUnaryOperator pOperator) {
+    if (pOperator instanceof CUnaryExpression.UnaryOperator) {
+      ((CExpressionFactory) this.chosenFactory).unaryOperation((CUnaryExpression.UnaryOperator) pOperator);
+    } else if (pOperator instanceof JUnaryExpression.UnaryOperator) {
+      ((JExpressionFactory) this.chosenFactory).unaryOperation((JUnaryExpression.UnaryOperator) pOperator);
+    } else {
+      return null;
+    }
+
     return this;
   }
 

@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -109,6 +110,16 @@ public class CExpressionFactory implements IExpressionFactory {
             pVariableDeclaration.getType(),
             pVariableDeclaration.getQualifiedName(),
             pVariableDeclaration);
+    return this;
+  }
+
+  public CExpressionFactory unaryOperation(UnaryOperator pOperator) {
+    this.currentExpression =
+        new CUnaryExpression(
+            FileLocation.DUMMY,
+            this.currentExpression.getExpressionType(),
+            currentExpression,
+            pOperator);
     return this;
   }
 }

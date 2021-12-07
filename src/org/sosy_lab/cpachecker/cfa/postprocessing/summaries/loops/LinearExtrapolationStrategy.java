@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.GhostCFA;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyInterface;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.utils.LinearVariableDependencyGraph;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 public class LinearExtrapolationStrategy extends AbstractLoopExtrapolationStrategy {
@@ -95,23 +96,8 @@ public class LinearExtrapolationStrategy extends AbstractLoopExtrapolationStrate
       Loop pLoopStructure,
       CFANode pBeforeWhile) {
 
-    /*
-    // Get the Variables for the Matrix
-    Map<String, Map<String, Integer>> loopVariableDependencies =
-        getLoopVariableDependencies(loopStartNodeLocal, loopBranchIndex);
-    Map<String, Integer> constantMap = new HashMap<>();
-    constantMap.put("1", 1);
-    loopVariableDependencies.put("1", constantMap);
-
-    // For simplicity check that all self dependencies are 1
-    // This can be improved upon, but for the start this implementation will do
-    // TODO Improve to the general case where self dependencies are not 1
-    for (Entry<String, Map<String, Integer>> e : loopVariableDependencies.entrySet()) {
-      if (e.getValue().get(e.getKey()) != 1) {
-        return Optional.empty();
-      }
-    }
-    */
+    LinearVariableDependencyGraph variableDependencyGraph =
+        pLoopStructure.getLinearVariableDependencies();
 
     return Optional.empty();
   }
