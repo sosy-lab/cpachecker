@@ -12,22 +12,16 @@ import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.ast.factories.AExpressionFactory;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyInterface;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.expressions.LoopVariableDeltaVisitor;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 public class AbstractLoopExtrapolationStrategy extends AbstractLoopStrategy {
   protected AbstractLoopExtrapolationStrategy(
@@ -38,157 +32,177 @@ public class AbstractLoopExtrapolationStrategy extends AbstractLoopStrategy {
     super(pLogger, pShutdownNotifier, pStrategyDependencies, pCFA);
   }
 
-  // For an explanation why this works in conjunction with ConstatnExtrapolationStrategy see
-  // https://stackoverflow.com/questions/4595512/java-calling-a-super-method-which-calls-an-overridden-method
-  protected boolean linearArithmeticExpressionEdge(final CFAEdge edge) {
-    if (edge instanceof BlankEdge) {
-      return true;
-    }
+  /**
+   * This method returns the Amount of iterations the loop will go through, if it is possible to
+   * calculate this
+   *
+   * @param loopBoundExpression the expression of the loop while (EXPR) { something; }
+   * @param loopStructure The loop structure which is being summarized
+   */
+  public Optional<AExpression> loopIterations(AExpression loopBoundExpression, Loop loopStructure) {
+    // This expression is the amount of iterations given in symbols
+    Optional<AExpression> iterationsMaybe = Optional.empty();
+    // TODO For now it only works for c programs
+    if (loopBoundExpression instanceof CBinaryExpression) {
+      LoopVariableDeltaVisitor<Exception> variableVisitor =
+          new LoopVariableDeltaVisitor<>(loopStructure, true);
 
-    if (edge instanceof CAssumeEdge) {
-      return true;
-    }
+      CExpression operand1 = ((CBinaryExpression) loopBoundExpression).getOperand1();
+      CExpression operand2 = ((CBinaryExpression) loopBoundExpression).getOperand2();
+      BinaryOperator operator = ((CBinaryExpression) loopBoundExpression).getOperator();
 
-    if (!(edge instanceof CStatementEdge)) {
-      return false;
-    }
-
-    CStatement statement = ((CStatementEdge) edge).getStatement();
-    if (!(statement instanceof CExpressionAssignmentStatement)) {
-      return false;
-    }
-
-    CExpression leftSide = ((CExpressionAssignmentStatement) statement).getLeftHandSide();
-    CExpression rigthSide = ((CExpressionAssignmentStatement) statement).getRightHandSide();
-
-    if (!(leftSide instanceof CIdExpression)) {
-      return false;
-    }
-    if (!linearArithemticExpression(rigthSide)) {
-      return false;
-    }
-
-    return true;
-  }
-
-  protected boolean linearArithemticExpression(final CExpression expression) {
-    if (expression instanceof CIdExpression || expression instanceof CIntegerLiteralExpression) {
-      return true;
-    } else if (expression instanceof CBinaryExpression) {
-      String operator = ((CBinaryExpression) expression).getOperator().getOperator();
-      CExpression operand1 = ((CBinaryExpression) expression).getOperand1();
-      CExpression operand2 = ((CBinaryExpression) expression).getOperand2();
-      switch (operator) {
-        case "+":
-        case "-":
-          return linearArithemticExpression(operand1) && linearArithemticExpression(operand2);
-        case "*":
-          return (linearArithemticExpression(operand1)
-                  && operand2 instanceof CIntegerLiteralExpression)
-              || (operand1 instanceof CIntegerLiteralExpression
-                  && linearArithemticExpression(operand2));
-        default:
-          return false;
-      }
-    } else {
-      return false;
-    }
-  }
-
-  protected boolean linearArithmeticExpressionsLoop(final CFANode pLoopStartNode, int branchIndex) {
-    CFANode nextNode0 = pLoopStartNode.getLeavingEdge(branchIndex).getSuccessor();
-    boolean nextNode0Valid = true;
-    while (nextNode0 != pLoopStartNode && nextNode0Valid) {
-      if (nextNode0Valid
-          && nextNode0.getNumLeavingEdges() == 1
-          && linearArithmeticExpressionEdge(nextNode0.getLeavingEdge(0))) {
-        nextNode0 = nextNode0.getLeavingEdge(0).getSuccessor();
-      } else {
-        nextNode0Valid = false;
-      }
-      if (nextNode0 == pLoopStartNode) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  // Returns the bound in the form 0 < x where x is the CExpression returned
-  protected Optional<CExpression> bound(final CFANode pLoopStartNode) {
-    CFAEdge edge = pLoopStartNode.getLeavingEdge(0);
-    if (!(edge instanceof CAssumeEdge)) {
-      return Optional.empty();
-    }
-    CExpression expression = ((CAssumeEdge) edge).getExpression();
-    if (!(expression instanceof CBinaryExpression)) {
-      return Optional.empty();
-    }
-
-    String operator = ((CBinaryExpression) expression).getOperator().getOperator();
-    CExpression operand1 = ((CBinaryExpression) expression).getOperand1();
-    CExpression operand2 = ((CBinaryExpression) expression).getOperand2();
-    CType calculationType = ((CBinaryExpression) expression).getCalculationType();
-    CType expressionType = ((CBinaryExpression) expression).getExpressionType();
-
-    if (!((operand1 instanceof CIdExpression
-            && (operand2 instanceof CIdExpression || operand2 instanceof CIntegerLiteralExpression))
-        || (operand1 instanceof CIntegerLiteralExpression && operand2 instanceof CIdExpression))) {
-      return Optional.empty();
-    }
-
-    switch (operator) {
-      case "<":
-        return Optional.of(
-            new CBinaryExpression(
-                FileLocation.DUMMY,
-                expressionType,
-                calculationType,
-                operand2,
-                operand1,
-                BinaryOperator.MINUS));
-
-      case ">":
-        return Optional.of(
-            new CBinaryExpression(
-                FileLocation.DUMMY,
-                expressionType,
-                calculationType,
-                operand1,
-                operand2,
-                BinaryOperator.MINUS));
-      case "<=":
-        return Optional.of(
-            new CBinaryExpression(
-                FileLocation.DUMMY,
-                expressionType,
-                calculationType,
-                operand2,
-                new CBinaryExpression(
-                    expression.getFileLocation(),
-                    expressionType,
-                    calculationType,
-                    operand1,
-                    CIntegerLiteralExpression.createDummyLiteral(1, CNumericTypes.INT),
-                    BinaryOperator.MINUS),
-                BinaryOperator.MINUS));
-      case ">=":
-        return Optional.of(
-            new CBinaryExpression(
-                FileLocation.DUMMY,
-                expressionType,
-                calculationType,
-                operand1,
-                new CBinaryExpression(
-                    expression.getFileLocation(),
-                    expressionType,
-                    calculationType,
-                    operand2,
-                    CIntegerLiteralExpression.createDummyLiteral(1, CNumericTypes.INT),
-                    BinaryOperator.MINUS),
-                BinaryOperator.MINUS));
-      default:
+      Optional<Integer> operand1variableDelta;
+      Optional<Integer> operand2variableDelta;
+      try {
+        operand1variableDelta = operand1.accept(variableVisitor);
+        operand2variableDelta = operand2.accept(variableVisitor);
+      } catch (Exception e) {
         return Optional.empty();
+      }
+
+      if (operand1variableDelta.isPresent() && operand2variableDelta.isPresent()) {
+
+        switch (operator) {
+          case EQUALS:
+            // Should iterate at most once if the Deltas are non zero
+            // If the deltas are zero and the integer is zero this loop would not terminate
+            // TODO: What do we do if the loop does not terminate?
+            // TODO: this can be improved if the value of the variables is known.
+            if (operand1variableDelta.orElseThrow() - operand2variableDelta.orElseThrow() != 0) {
+              // Returning this works because for any number of iterations less than or equal to 2
+              // The loop is simply unrolled. Since because of overflows no extrapolation can be
+              // made
+              iterationsMaybe =
+                  Optional.of(
+                      new AExpressionFactory()
+                          .from(
+                              Integer.valueOf(1),
+                              new CSimpleType(
+                                  false,
+                                  false,
+                                  CBasicType.INT,
+                                  true,
+                                  false,
+                                  true,
+                                  false,
+                                  false,
+                                  false,
+                                  false))
+                          .build());
+            }
+            break;
+          case GREATER_EQUAL:
+            if (operand1variableDelta.orElseThrow() - operand2variableDelta.orElseThrow() < 0) {
+              iterationsMaybe =
+                  Optional.of(
+                      new AExpressionFactory(operand1)
+                          .binaryOperation(operand2, CBinaryExpression.BinaryOperator.MINUS)
+                          .binaryOperation(
+                              Integer.valueOf(
+                                  operand2variableDelta.orElseThrow()
+                                      - operand1variableDelta.orElseThrow()),
+                              new CSimpleType(
+                                  false,
+                                  false,
+                                  CBasicType.INT,
+                                  true,
+                                  false,
+                                  true,
+                                  false,
+                                  false,
+                                  false,
+                                  false),
+                              CBinaryExpression.BinaryOperator.DIVIDE)
+                          .build());
+            }
+            break;
+          case GREATER_THAN:
+            if (operand1variableDelta.orElseThrow() - operand2variableDelta.orElseThrow() < 0) {
+              iterationsMaybe =
+                  Optional.of(
+                      new AExpressionFactory(operand1)
+                          .binaryOperation(operand2, CBinaryExpression.BinaryOperator.MINUS)
+                          .binaryOperation(
+                              Integer.valueOf(
+                                  operand2variableDelta.orElseThrow()
+                                      - operand1variableDelta.orElseThrow()),
+                              new CSimpleType(
+                                  false,
+                                  false,
+                                  CBasicType.INT,
+                                  true,
+                                  false,
+                                  true,
+                                  false,
+                                  false,
+                                  false,
+                                  false),
+                              CBinaryExpression.BinaryOperator.DIVIDE)
+                          .binaryOperation(
+                              Integer.valueOf(1),
+                              new CSimpleType(
+                                  false,
+                                  false,
+                                  CBasicType.INT,
+                                  true,
+                                  false,
+                                  true,
+                                  false,
+                                  false,
+                                  false,
+                                  false),
+                              CBinaryExpression.BinaryOperator.PLUS)
+                          .build());
+            }
+            break;
+          case LESS_EQUAL:
+            if (operand2variableDelta.orElseThrow() - operand1variableDelta.orElseThrow() < 0) {
+              iterationsMaybe =
+                  Optional.of(
+                      new AExpressionFactory(operand2)
+                          .binaryOperation(
+                              operand1, CBinaryExpression.BinaryOperator.MINUS)
+                          .binaryOperation(
+                              Integer.valueOf(operand1variableDelta.orElseThrow()
+                                  - operand2variableDelta.orElseThrow()), new CSimpleType(false, false, CBasicType.INT, true, false, true, false, false, false, false) , CBinaryExpression.BinaryOperator.DIVIDE)
+                          .binaryOperation(
+                              Integer.valueOf(1), new CSimpleType(false, false, CBasicType.INT, true, false, true, false, false, false, false) , CBinaryExpression.BinaryOperator.PLUS)
+                          .build());
+            }
+            break;
+          case LESS_THAN:
+            if (operand2variableDelta.orElseThrow() - operand1variableDelta.orElseThrow() < 0) {
+              iterationsMaybe =
+                  Optional.of(
+                      new AExpressionFactory(operand2)
+                          .binaryOperation(
+                              operand1, CBinaryExpression.BinaryOperator.MINUS)
+                          .binaryOperation(
+                              Integer.valueOf(operand1variableDelta.orElseThrow()
+                                  - operand2variableDelta.orElseThrow()), new CSimpleType(false, false, CBasicType.INT, true, false, true, false, false, false, false) , CBinaryExpression.BinaryOperator.DIVIDE)
+                          .build());
+            }
+            break;
+          case NOT_EQUALS:
+            // Should iterate at most once if the Deltas are zero
+            // If the deltas are non zero and the integer is zero this loop could terminate, but
+            // it is not known when this could happen
+            // TODO: What do we do if the loop does not terminate?
+            // TODO: this can be improved if the value of the variables is known.
+            if (operand1variableDelta.orElseThrow() - operand2variableDelta.orElseThrow() == 0) {
+              // Returning this works because for any number of iterations less than or equal to 2
+              // The loop is simply unrolled. Since because of overflows no extrapolation can be
+              // made
+              iterationsMaybe =
+                  Optional.of(new AExpressionFactory().from(Integer.valueOf(1), new CSimpleType(false, false, CBasicType.INT, true, false, true, false, false, false, false)).build());
+            }
+            break;
+          default:
+            break;
+        }
+      }
     }
+    return iterationsMaybe;
   }
 
   @Override

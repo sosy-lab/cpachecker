@@ -8,18 +8,27 @@
 
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops;
 
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.GhostCFA;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyInterface;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 public class LinearExtrapolationStrategy extends AbstractLoopExtrapolationStrategy {
 
   // See
   // https://math.stackexchange.com/questions/2079950/compute-the-n-th-power-of-triangular-3-times3-matrix
+
+  private StrategiesEnum strategyEnum;
 
   public LinearExtrapolationStrategy(
       final LogManager pLogger,
@@ -27,10 +36,83 @@ public class LinearExtrapolationStrategy extends AbstractLoopExtrapolationStrate
       StrategyDependencyInterface pStrategyDependencies,
       CFA pCFA) {
     super(pLogger, pShutdownNotifier, pStrategyDependencies, pCFA);
+
+    this.strategyEnum = StrategiesEnum.LoopLinearExtrapolation;
   }
 
   @Override
-  public Optional<GhostCFA> summarize(final CFANode loopStartNode) {
+  public Optional<GhostCFA> summarize(final CFANode beforeWhile) {
+
+    List<CFAEdge> filteredOutgoingEdges =
+        this.summaryFilter.getEdgesForStrategies(
+            beforeWhile.getLeavingEdges(),
+            new HashSet<>(Arrays.asList(StrategiesEnum.Base, this.strategyEnum)));
+
+    if (filteredOutgoingEdges.size() != 1) {
+      return Optional.empty();
+    }
+
+    if (!filteredOutgoingEdges.get(0).getDescription().equals("while")) {
+      return Optional.empty();
+    }
+
+    CFANode loopStartNode = filteredOutgoingEdges.get(0).getSuccessor();
+
+    Optional<Loop> loopStructureMaybe = summaryInformation.getLoop(loopStartNode);
+    if (loopStructureMaybe.isEmpty()) {
+      return Optional.empty();
+    }
+    Loop loopStructure = loopStructureMaybe.orElseThrow();
+
+    if (!loopStructure.onlyConstantVarModification()) {
+      return Optional.empty();
+    }
+
+    Optional<AExpression> loopBoundExpressionMaybe = loopStructure.getBound();
+    if (loopBoundExpressionMaybe.isEmpty()) {
+      return Optional.empty();
+    }
+    AExpression loopBoundExpression = loopBoundExpressionMaybe.orElseThrow();
+
+    Optional<AExpression> iterationsMaybe = this.loopIterations(loopBoundExpression, loopStructure);
+
+    if (iterationsMaybe.isEmpty()) {
+      return Optional.empty();
+    }
+
+    AExpression iterations = iterationsMaybe.orElseThrow();
+
+    Optional<GhostCFA> summarizedLoopMaybe =
+        summarizeLoop(iterations, loopBoundExpression, loopStructure, beforeWhile);
+
+    return summarizedLoopMaybe;
+  }
+
+  @SuppressWarnings("unused")
+  private Optional<GhostCFA> summarizeLoop(
+      AExpression pIterations,
+      AExpression pLoopBoundExpression,
+      Loop pLoopStructure,
+      CFANode pBeforeWhile) {
+
+    /*
+    // Get the Variables for the Matrix
+    Map<String, Map<String, Integer>> loopVariableDependencies =
+        getLoopVariableDependencies(loopStartNodeLocal, loopBranchIndex);
+    Map<String, Integer> constantMap = new HashMap<>();
+    constantMap.put("1", 1);
+    loopVariableDependencies.put("1", constantMap);
+
+    // For simplicity check that all self dependencies are 1
+    // This can be improved upon, but for the start this implementation will do
+    // TODO Improve to the general case where self dependencies are not 1
+    for (Entry<String, Map<String, Integer>> e : loopVariableDependencies.entrySet()) {
+      if (e.getValue().get(e.getKey()) != 1) {
+        return Optional.empty();
+      }
+    }
+    */
+
     return Optional.empty();
   }
 

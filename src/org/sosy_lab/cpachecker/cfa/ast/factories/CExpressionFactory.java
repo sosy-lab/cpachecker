@@ -1,0 +1,114 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.cfa.ast.factories;
+
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+
+public class CExpressionFactory implements IExpressionFactory {
+
+  private CExpression currentExpression = null;
+
+  public CExpressionFactory(CExpression pAExpression) {
+    this.currentExpression = pAExpression;
+  }
+
+  public CExpressionFactory() {
+  }
+
+  @Override
+  public CExpression build() {
+    return this.currentExpression;
+  }
+
+  @Override
+  public CExpressionFactory from(AExpression pAExpression) {
+    if (pAExpression instanceof CExpression) {
+      this.currentExpression = (CExpression) pAExpression;
+    } else {
+      return null;
+    }
+    return this;
+  }
+
+  public CExpressionFactory from(Number pValue, CType pType) {
+    if (pType instanceof CSimpleType) {
+      if (((CSimpleType) pType).getType() == CBasicType.INT
+          || ((CSimpleType) pType).getType() == CBasicType.INT128) {
+        this.currentExpression = CIntegerLiteralExpression.createDummyLiteral((long) pValue, pType);
+      } else if (((CSimpleType) pType).getType() == CBasicType.FLOAT
+          || ((CSimpleType) pType).getType() == CBasicType.DOUBLE
+          || ((CSimpleType) pType).getType() == CBasicType.FLOAT128) {
+        this.currentExpression = CFloatLiteralExpression.createDummyLiteral((double) pValue, pType);
+      }
+    } else {
+      return null;
+    }
+    return this;
+  }
+
+  public CExpressionFactory binaryOperation(CExpression pExpr, BinaryOperator pOperator) {
+    this.currentExpression =
+        new CBinaryExpression(
+            FileLocation.DUMMY,
+            TypeFactory.getMostGeneralType(
+                this.currentExpression.getExpressionType(), pExpr.getExpressionType()),
+            TypeFactory.getCalculationType(
+                this.currentExpression.getExpressionType(), pExpr.getExpressionType()),
+            this.currentExpression,
+            pExpr,
+            pOperator);
+    return this;
+  }
+
+  @Override
+  public void reset() {
+    this.currentExpression = null;
+  }
+
+  @Override
+  public IExpressionFactory negate() {
+    this.currentExpression =
+        new CUnaryExpression(
+            FileLocation.DUMMY,
+            this.currentExpression.getExpressionType(),
+            currentExpression,
+            CUnaryExpression.UnaryOperator.MINUS);
+    return this;
+  }
+
+  public CExpressionAssignmentStatement assignTo(CVariableDeclaration pVar) {
+    CExpressionFactory tmpFactory = new CExpressionFactory();
+    return new CExpressionAssignmentStatement(
+        FileLocation.DUMMY, (CLeftHandSide) tmpFactory.from(pVar).build(), currentExpression);
+  }
+
+  public CExpressionFactory from(CVariableDeclaration pVariableDeclaration) {
+    this.currentExpression =
+        new CIdExpression(
+            FileLocation.DUMMY,
+            pVariableDeclaration.getType(),
+            pVariableDeclaration.getQualifiedName(),
+            pVariableDeclaration);
+    return this;
+  }
+}

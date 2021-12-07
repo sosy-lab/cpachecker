@@ -6,5 +6,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/** Loop Summaries */
-package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops;
+/**
+ * Utils for building and mantaining Loop Summaries. Some of the classes present here are only here
+ * because it is not yet known where they fit in better.
+ */
+package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.utils;

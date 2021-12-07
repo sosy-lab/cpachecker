@@ -26,6 +26,10 @@ public final class JFloatLiteralExpression extends AFloatLiteralExpression
     super(pFileLocation, JSimpleType.getFloat(), pValue);
   }
 
+  public static JExpression createDummyLiteral(double pValue) {
+    return new JFloatLiteralExpression(FileLocation.DUMMY, BigDecimal.valueOf(pValue));
+  }
+
   @Override
   public JType getExpressionType() {
       return (JType) super.getExpressionType();

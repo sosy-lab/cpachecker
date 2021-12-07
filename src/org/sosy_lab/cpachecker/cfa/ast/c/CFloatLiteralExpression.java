@@ -19,6 +19,10 @@ public final class CFloatLiteralExpression extends AFloatLiteralExpression imple
 
   private static final long serialVersionUID = 5021145411123854111L;
 
+  public static CExpression createDummyLiteral(double pValue, CType pType) {
+    return new CFloatLiteralExpression(FileLocation.DUMMY, pType, BigDecimal.valueOf(pValue));
+  }
+
   public CFloatLiteralExpression(FileLocation pFileLocation, CType pType, BigDecimal pValue) {
     super(pFileLocation, pType, pValue);
   }

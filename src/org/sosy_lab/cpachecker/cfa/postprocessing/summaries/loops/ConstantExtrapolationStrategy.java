@@ -23,12 +23,12 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.factories.AExpressionFactory;
 import org.sosy_lab.cpachecker.cfa.ast.visitors.ReplaceVariablesVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.visitors.VariableCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -39,9 +39,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.GhostCFA;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyInterface;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.expressions.AExpressionsFactory;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.expressions.AExpressionsFactory.ExpressionType;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.expressions.LoopVariableDeltaVisitor;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -58,126 +57,6 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
     super(pLogger, pShutdownNotifier, pStrategyDependencies, pCFA);
 
     this.strategyEnum = StrategiesEnum.LoopConstantExtrapolation;
-  }
-
-  /**
-   * This method returns the Amount of iterations the loop will go through, if it is possible to
-   * calculate this
-   *
-   * @param loopBoundExpression the expression of the loop while (EXPR) { something; }
-   * @param loopStructure The loop structure which is being summarized
-   */
-  public Optional<AExpression> loopIterations(AExpression loopBoundExpression, Loop loopStructure) {
-    // This expression is the amount of iterations given in symbols
-    Optional<AExpression> iterationsMaybe = Optional.empty();
-    // TODO For now it only works for c programs
-    if (loopBoundExpression instanceof CBinaryExpression) {
-      LoopVariableDeltaVisitor<Exception> variableVisitor =
-          new LoopVariableDeltaVisitor<>(loopStructure, true);
-
-      CExpression operand1 = ((CBinaryExpression) loopBoundExpression).getOperand1();
-      CExpression operand2 = ((CBinaryExpression) loopBoundExpression).getOperand2();
-      BinaryOperator operator = ((CBinaryExpression) loopBoundExpression).getOperator();
-
-      Optional<Integer> operand1variableDelta;
-      Optional<Integer> operand2variableDelta;
-      try {
-        operand1variableDelta = operand1.accept(variableVisitor);
-        operand2variableDelta = operand2.accept(variableVisitor);
-      } catch (Exception e) {
-        return Optional.empty();
-      }
-
-      if (operand1variableDelta.isPresent() && operand2variableDelta.isPresent()) {
-
-        switch (operator) {
-          case EQUALS:
-            // Should iterate at most once if the Deltas are non zero
-            // If the deltas are zero and the integer is zero this loop would not terminate
-            // TODO: What do we do if the loop does not terminate?
-            // TODO: this can be improved if the value of the variables is known.
-            if (operand1variableDelta.orElseThrow() - operand2variableDelta.orElseThrow() != 0) {
-              // Returning this works because for any number of iterations less than or equal to 2
-              // The loop is simply unrolled. Since because of overflows no extrapolation can be
-              // made
-              iterationsMaybe =
-                  Optional.of(new AExpressionsFactory(ExpressionType.C).from(1, ExpressionType.C));
-            }
-            break;
-          case GREATER_EQUAL:
-            if (operand1variableDelta.orElseThrow() - operand2variableDelta.orElseThrow() < 0) {
-              iterationsMaybe =
-                  Optional.of(
-                      (AExpression)
-                          new AExpressionsFactory(ExpressionType.C)
-                              .from(operand1)
-                              .arithmeticExpression(
-                                  operand2, CBinaryExpression.BinaryOperator.MINUS)
-                              .divide(operand2variableDelta.orElseThrow() - operand1variableDelta.orElseThrow())
-                              .build());
-            }
-            break;
-          case GREATER_THAN:
-            if (operand1variableDelta.orElseThrow() - operand2variableDelta.orElseThrow() < 0) {
-              iterationsMaybe =
-                  Optional.of(
-                      (AExpression)
-                          new AExpressionsFactory(ExpressionType.C)
-                              .from(operand1)
-                              .arithmeticExpression(
-                                  operand2, CBinaryExpression.BinaryOperator.MINUS)
-                              .divide(operand2variableDelta.orElseThrow() - operand1variableDelta.orElseThrow())
-                              .add(1)
-                              .build());
-            }
-            break;
-          case LESS_EQUAL:
-            if (operand2variableDelta.orElseThrow() - operand1variableDelta.orElseThrow() < 0) {
-              iterationsMaybe =
-                  Optional.of(
-                      (AExpression)
-                          new AExpressionsFactory(ExpressionType.C)
-                              .from(operand2)
-                              .arithmeticExpression(
-                                  operand1, CBinaryExpression.BinaryOperator.MINUS)
-                              .divide(operand1variableDelta.orElseThrow() - operand2variableDelta.orElseThrow())
-                              .add(1)
-                              .build());
-            }
-            break;
-          case LESS_THAN:
-            if (operand2variableDelta.orElseThrow() - operand1variableDelta.orElseThrow() < 0) {
-              iterationsMaybe =
-                  Optional.of(
-                      (AExpression)
-                          new AExpressionsFactory(ExpressionType.C)
-                              .from(operand2)
-                              .arithmeticExpression(
-                                  operand1, CBinaryExpression.BinaryOperator.MINUS)
-                              .divide(operand1variableDelta.orElseThrow() - operand2variableDelta.orElseThrow())
-                              .build());
-            }
-            break;
-          case NOT_EQUALS:
-            // Should iterate at most once if the Deltas are zero
-            // If the deltas are non zero and the integer is zero this loop could terminate, but
-            // it is not known when this could happen
-            // TODO: What do we do if the loop does not terminate?
-            // TODO: this can be improved if the value of the variables is known.
-            if (operand1variableDelta.orElseThrow() - operand2variableDelta.orElseThrow() == 0) {
-              // Returning this works because for any number of iterations less than or equal to 2
-              // The loop is simply unrolled. Since because of overflows no extrapolation can be
-              // made
-              iterationsMaybe =
-                  Optional.of(new AExpressionsFactory(ExpressionType.C).from(1, ExpressionType.C));
-            }
-            break;
-          default:
-            break;
-        }
-      }
-    }
-    return iterationsMaybe;
   }
 
   protected Optional<GhostCFA> summarizeLoop(
@@ -270,10 +149,9 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
       CIdExpression oldVariableAsExpression =
           new CIdExpression(FileLocation.DUMMY, (CSimpleDeclaration) var);
 
-      AExpressionsFactory expressionFactory = new AExpressionsFactory(ExpressionType.C);
       CExpressionAssignmentStatement assignmentExpression =
           (CExpressionAssignmentStatement)
-              expressionFactory.from(oldVariableAsExpression).assignTo(newVariable).build();
+              new AExpressionFactory(oldVariableAsExpression).assignTo(newVariable);
 
       CFAEdge dummyEdge =
           new CStatementEdge(
@@ -307,21 +185,41 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
 
       Integer delta = deltaMaybe.orElseThrow();
 
-      // TODO: Refactor expression Factory
-      // TODO: the use of a C expression should be replaced for selecting if a Java or C
-      // expression should be used in this context
-      AExpressionsFactory expressionFactory = new AExpressionsFactory(ExpressionType.C);
       CExpressionAssignmentStatement assignmentExpression =
           (CExpressionAssignmentStatement)
-              expressionFactory
-                  .from(transformedIterations)
-                  .minus(1)
-                  .multiply(delta)
-                  .add(
-                      new CIdExpression(
-                          FileLocation.DUMMY, (CSimpleDeclaration) var)) // TODO Improve this
-                  .assignTo(var)
-                  .build();
+              new AExpressionFactory(transformedIterations)
+                  .binaryOperation(
+                      Integer.valueOf(1),
+                      new CSimpleType(
+                          false,
+                          false,
+                          CBasicType.INT,
+                          true,
+                          false,
+                          true,
+                          false,
+                          false,
+                          false,
+                          false),
+                      CBinaryExpression.BinaryOperator.MINUS)
+                  .binaryOperation(
+                      Integer.valueOf(delta),
+                      new CSimpleType(
+                          false,
+                          false,
+                          CBasicType.INT,
+                          true,
+                          false,
+                          true,
+                          false,
+                          false,
+                          false,
+                          false),
+                      CBinaryExpression.BinaryOperator.MULTIPLY)
+                  .binaryOperation(
+                      new CIdExpression(FileLocation.DUMMY, (CSimpleDeclaration) var),
+                      CBinaryExpression.BinaryOperator.PLUS)
+                  .assignTo(var);
 
       CFAEdge dummyEdge =
           new CStatementEdge(
@@ -346,7 +244,17 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
     startUnrolledLoopNode = unrolledLoopNodesMaybe.orElseThrow().getFirst();
     endUnrolledLoopNode = unrolledLoopNodesMaybe.orElseThrow().getSecond();
     currentSummaryNodeCFA.connectTo(startUnrolledLoopNode);
-    endUnrolledLoopNode.connectTo(endNodeGhostCFA);
+
+    unrolledLoopNodesMaybe = pLoopStructure.unrollOutermostLoop();
+    if (unrolledLoopNodesMaybe.isEmpty()) {
+      return Optional.empty();
+    }
+
+    CFANode secondStartUnrolledNode = unrolledLoopNodesMaybe.orElseThrow().getFirst();
+    CFANode secondEndUnrolledNode = unrolledLoopNodesMaybe.orElseThrow().getSecond();
+
+    endUnrolledLoopNode.connectTo(secondStartUnrolledNode);
+    secondEndUnrolledNode.connectTo(endNodeGhostCFA);
 
     CFAEdge leavingEdge;
     Iterator<CFAEdge> iter =
