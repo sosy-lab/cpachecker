@@ -35,7 +35,7 @@ public final class CIdExpression extends AIdExpression implements CLeftHandSide 
       return new CIdExpression(
           this.getFileLocation(),
           this.getExpressionType(),
-          pDeclaration.getName(),
+          this.getName(),
           (CSimpleDeclaration) pDeclaration);
     } else {
       return null;

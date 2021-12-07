@@ -139,7 +139,7 @@ public final class LoopStructure implements Serializable {
     private Map<String, Integer> loopIncDecVariables;
     private Set<AVariableDeclaration> modifiedVariables;
 
-    private LinearVariableDependencyGraph linearVariableDependencies = null;
+    private LinearVariableDependencyGraph linearVariableDependencies;
 
     private Loop(CFANode loopHead, Set<CFANode> pNodes) {
       loopHeads = ImmutableSet.of(loopHead);
@@ -153,9 +153,6 @@ public final class LoopStructure implements Serializable {
       if (innerLoopEdges != null) {
         assert incomingEdges != null;
         assert outgoingEdges != null;
-        assert linearVariableDependencies != null;
-        assert loopIncDecVariables != null;
-        assert modifiedVariables != null;
         return;
       }
 

@@ -9,10 +9,13 @@
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -26,6 +29,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.factories.AExpressionFactory;
+import org.sosy_lab.cpachecker.cfa.ast.factories.TypeFactory;
+import org.sosy_lab.cpachecker.cfa.ast.visitors.ReplaceVariablesVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.visitors.VariableCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -37,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -52,6 +59,135 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
     super(pLogger, pShutdownNotifier, pStrategyDependencies, pCFA);
 
     this.strategyEnum = StrategiesEnum.LoopConstantExtrapolation;
+  }
+
+  protected Optional<Pair<CFANode, AVariableDeclaration>> createIterationsVariable(
+      CFANode pStartNode, AExpression pIterations, CFANode pBeforeWhile) {
+    // Overflows occur since the iterations calculation variables do not have the correct type.
+    // Because of this new Variables with more general types are introduced in order to not have
+    // this defficiency
+    CFANode currentSummaryNode = pStartNode;
+    CFANode nextSummaryNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
+
+    VariableCollectorVisitor<Exception> variableCollectorVisitor = new VariableCollectorVisitor<>();
+
+    Set<AVariableDeclaration> modifiedVariablesLocal;
+
+    try {
+      modifiedVariablesLocal = pIterations.accept_(variableCollectorVisitor);
+    } catch (Exception e) {
+      return Optional.empty();
+    }
+
+    Map<AVariableDeclaration, AVariableDeclaration> mappingFromOriginalToTmpVariables =
+        new HashMap<>();
+
+    for (AVariableDeclaration var : modifiedVariablesLocal) {
+
+      if (!(var instanceof CVariableDeclaration)) {
+        return Optional.empty();
+      }
+
+      // First create the new variable
+      CVariableDeclaration newVariable =
+          new CVariableDeclaration(
+              FileLocation.DUMMY,
+              false,
+              ((CVariableDeclaration) var).getCStorageClass(),
+              (CType) TypeFactory.getBiggestType(var.getType()),
+              var.getName() + "TmpVariableReallyTmp",
+              var.getOrigName() + "TmpVariableReallyTmp",
+              var.getQualifiedName() + "TmpVariableReallyTmp",
+              null);
+
+      mappingFromOriginalToTmpVariables.put(var, newVariable);
+
+      CFAEdge varInitEdge =
+          new CDeclarationEdge(
+              newVariable.toString(),
+              FileLocation.DUMMY,
+              currentSummaryNode,
+              nextSummaryNode,
+              newVariable);
+      varInitEdge.connect();
+
+      currentSummaryNode = nextSummaryNode;
+      nextSummaryNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
+
+      // Then create a new Variable based on the value of the old variable
+      CIdExpression oldVariableAsExpression =
+          new CIdExpression(FileLocation.DUMMY, (CSimpleDeclaration) var);
+
+      AExpressionFactory expressionFactory = new AExpressionFactory();
+      CExpressionAssignmentStatement assignmentExpression =
+          (CExpressionAssignmentStatement)
+              expressionFactory.from(oldVariableAsExpression).assignTo(newVariable);
+
+      CFAEdge dummyEdge =
+          new CStatementEdge(
+              assignmentExpression.toString(),
+              assignmentExpression,
+              FileLocation.DUMMY,
+              currentSummaryNode,
+              nextSummaryNode);
+      dummyEdge.connect();
+
+      currentSummaryNode = nextSummaryNode;
+      nextSummaryNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
+    }
+
+    // Transform the iterations by replacing the Variables
+    ReplaceVariablesVisitor<Exception> replaceVariablesVisitor =
+        new ReplaceVariablesVisitor<>(mappingFromOriginalToTmpVariables);
+    AExpression transformedIterations;
+    try {
+      transformedIterations = pIterations.accept_(replaceVariablesVisitor);
+    } catch (Exception e) {
+      return Optional.empty();
+    }
+
+    CVariableDeclaration iterationsVariable =
+        new CVariableDeclaration(
+            FileLocation.DUMMY,
+            false,
+            CStorageClass.AUTO,
+            new CSimpleType(
+                false, false, CBasicType.INT, false, false, false, false, false, false, true),
+            "iterationsTmpVariableForLoopBoundary",
+            "iterationsTmpVariableForLoopBoundary",
+            pBeforeWhile.getFunctionName() + "::iterationsTmpVariableForLoopBoundary",
+            null);
+
+    CFAEdge varInitEdge =
+        new CDeclarationEdge(
+            iterationsVariable.toString(),
+            FileLocation.DUMMY,
+            currentSummaryNode,
+            nextSummaryNode,
+            iterationsVariable);
+    varInitEdge.connect();
+
+    currentSummaryNode = nextSummaryNode;
+    nextSummaryNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
+
+    // Set the iterations to the new Variable
+
+    CExpressionAssignmentStatement iterationVariableAssignmentExpression =
+        (CExpressionAssignmentStatement)
+            new AExpressionFactory(transformedIterations).assignTo(iterationsVariable);
+
+    CFAEdge assignmentIterationsVariableEdge =
+        new CStatementEdge(
+            iterationVariableAssignmentExpression.toString(),
+            iterationVariableAssignmentExpression,
+            FileLocation.DUMMY,
+            currentSummaryNode,
+            nextSummaryNode);
+    assignmentIterationsVariableEdge.connect();
+
+    currentSummaryNode = nextSummaryNode;
+
+    return Optional.of(Pair.of(currentSummaryNode, iterationsVariable));
   }
 
   protected Optional<GhostCFA> summarizeLoop(
@@ -89,51 +225,18 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
         ((CAssumeEdge) loopBoundCFAEdge).negate().copyWith(endUnrolledLoopNode, endNodeGhostCFA);
     negatedBoundCFAEdge.connect();
 
+
+    Optional<Pair<CFANode, AVariableDeclaration>> nextNodeAndIterationsVariable =
+        createIterationsVariable(currentSummaryNodeCFA, pIterations, pBeforeWhile);
+
+    if (nextNodeAndIterationsVariable.isEmpty()) {
+      return Optional.empty();
+    }
+
+    currentSummaryNodeCFA = nextNodeAndIterationsVariable.get().getFirst();
+    AVariableDeclaration iterationsVariable = nextNodeAndIterationsVariable.get().getSecond();
+
     CFANode nextSummaryNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
-
-    // To evade race conditions when the loop bound variables are updated before the
-    // rest. The solution is to init a new Variable with the amount of iterations
-    CVariableDeclaration iterationsVariable =
-        new CVariableDeclaration(
-            FileLocation.DUMMY,
-            false,
-            CStorageClass.AUTO,
-            new CSimpleType(
-                false, false, CBasicType.INT, false, false, false, true, false, false, true),
-            "iterationsTmpVariableForLoopBoundary",
-            "iterationsTmpVariableForLoopBoundary",
-            "iterationsTmpVariableForLoopBoundary",
-            null);
-
-    CFAEdge varInitEdge =
-        new CDeclarationEdge(
-            iterationsVariable.toString(),
-            FileLocation.DUMMY,
-            currentSummaryNodeCFA,
-            nextSummaryNode,
-            iterationsVariable);
-    varInitEdge.connect();
-
-    currentSummaryNodeCFA = nextSummaryNode;
-    nextSummaryNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
-
-    // Set the iterations to the new Variable
-
-    CExpressionAssignmentStatement iterationVariableAssignmentExpression =
-        (CExpressionAssignmentStatement)
-            new AExpressionFactory(pIterations).assignTo(iterationsVariable);
-
-    CFAEdge assignmentIterationsVariableEdge =
-        new CStatementEdge(
-            iterationVariableAssignmentExpression.toString(),
-            iterationVariableAssignmentExpression,
-            FileLocation.DUMMY,
-            currentSummaryNodeCFA,
-            nextSummaryNode);
-    assignmentIterationsVariableEdge.connect();
-
-    currentSummaryNodeCFA = nextSummaryNode;
-    nextSummaryNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
 
     // Make Summary of Loop
     for (AVariableDeclaration var : pLoopStructure.getModifiedVariables()) {
@@ -194,7 +297,7 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
       nextSummaryNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
     }
 
-    // Unroll Loop Once again
+    // Unroll Loop two times
 
     unrolledLoopNodesMaybe = pLoopStructure.unrollOutermostLoop();
     if (unrolledLoopNodesMaybe.isEmpty()) {

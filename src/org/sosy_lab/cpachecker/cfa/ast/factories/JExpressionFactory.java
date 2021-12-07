@@ -67,8 +67,9 @@ public class JExpressionFactory implements IExpressionFactory {
     this.currentExpression =
         new JBinaryExpression(
             FileLocation.DUMMY,
-            TypeFactory.getMostGeneralType(
-                this.currentExpression.getExpressionType(), pExpr.getExpressionType()),
+            (JType)
+                TypeFactory.getMostGeneralType(
+                    this.currentExpression.getExpressionType(), pExpr.getExpressionType()),
             this.currentExpression,
             pExpr,
             pOperator);

@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -55,11 +55,13 @@ public class CExpressionFactory implements IExpressionFactory {
     if (pType instanceof CSimpleType) {
       if (((CSimpleType) pType).getType() == CBasicType.INT
           || ((CSimpleType) pType).getType() == CBasicType.INT128) {
-        this.currentExpression = CIntegerLiteralExpression.createDummyLiteral((long) pValue, pType);
+        this.currentExpression =
+            CIntegerLiteralExpression.createDummyLiteral(pValue.longValue(), pType);
       } else if (((CSimpleType) pType).getType() == CBasicType.FLOAT
           || ((CSimpleType) pType).getType() == CBasicType.DOUBLE
           || ((CSimpleType) pType).getType() == CBasicType.FLOAT128) {
-        this.currentExpression = CFloatLiteralExpression.createDummyLiteral((double) pValue, pType);
+        this.currentExpression =
+            CFloatLiteralExpression.createDummyLiteral(pValue.doubleValue(), pType);
       }
     } else {
       return null;
@@ -71,8 +73,9 @@ public class CExpressionFactory implements IExpressionFactory {
     this.currentExpression =
         new CBinaryExpression(
             FileLocation.DUMMY,
-            TypeFactory.getMostGeneralType(
-                this.currentExpression.getExpressionType(), pExpr.getExpressionType()),
+            (CType)
+                TypeFactory.getMostGeneralType(
+                    this.currentExpression.getExpressionType(), pExpr.getExpressionType()),
             TypeFactory.getCalculationType(
                 this.currentExpression.getExpressionType(), pExpr.getExpressionType()),
             this.currentExpression,
@@ -98,9 +101,10 @@ public class CExpressionFactory implements IExpressionFactory {
   }
 
   public CExpressionAssignmentStatement assignTo(CVariableDeclaration pVar) {
-    CExpressionFactory tmpFactory = new CExpressionFactory();
     return new CExpressionAssignmentStatement(
-        FileLocation.DUMMY, (CLeftHandSide) tmpFactory.from(pVar).build(), currentExpression);
+        FileLocation.DUMMY,
+        (CIdExpression) new CExpressionFactory().from(pVar).build(),
+        currentExpression);
   }
 
   public CExpressionFactory from(CVariableDeclaration pVariableDeclaration) {
@@ -108,7 +112,7 @@ public class CExpressionFactory implements IExpressionFactory {
         new CIdExpression(
             FileLocation.DUMMY,
             pVariableDeclaration.getType(),
-            pVariableDeclaration.getQualifiedName(),
+            pVariableDeclaration.getName(),
             pVariableDeclaration);
     return this;
   }
