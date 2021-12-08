@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 /*
  * Used to uniquely identify every string in the abstract state
  */
-public class JVariableIdentifier {
+public class JStringVariableIdentifier {
 
   private final Type type;
 
@@ -25,7 +25,7 @@ public class JVariableIdentifier {
   private final boolean isGlobal;
   private final MemoryLocation memLoc;
 
-  public JVariableIdentifier(Type pType, MemoryLocation pMemLoc) {
+  public JStringVariableIdentifier(Type pType, MemoryLocation pMemLoc) {
 
     memLoc = pMemLoc;
     type = pType;
@@ -62,11 +62,11 @@ public class JVariableIdentifier {
       return true;
     }
 
-    if (!(obj instanceof JVariableIdentifier)) {
+    if (!(obj instanceof JStringVariableIdentifier)) {
       return false;
     }
 
-    JVariableIdentifier other = (JVariableIdentifier) obj;
+    JStringVariableIdentifier other = (JStringVariableIdentifier) obj;
 
     return type == other.type
         && varIdentifier.equals(other.varIdentifier)
@@ -85,7 +85,7 @@ public class JVariableIdentifier {
     return "ID:" + varIdentifier;
   }
 
-  public static class NotJSVar extends JVariableIdentifier {
+  public static class NotJSVar extends JStringVariableIdentifier {
 
     private final static NotJSVar instance = new NotJSVar();
 

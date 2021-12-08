@@ -14,17 +14,17 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.java.JLeftHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JSimpleDeclaration;
-import org.sosy_lab.cpachecker.cpa.string.utils.JVariableIdentifier;
+import org.sosy_lab.cpachecker.cpa.string.utils.JStringVariableIdentifier;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /*
  * Visitor used to create the string identifier JVariableIdentifier
  */
-public class JVariableVisitor implements JLeftHandSideVisitor<JVariableIdentifier, NoException> {
+public class JVariableVisitor implements JLeftHandSideVisitor<JStringVariableIdentifier, NoException> {
 
   @Override
-  public JVariableIdentifier visit(JArraySubscriptExpression pE)
+  public JStringVariableIdentifier visit(JArraySubscriptExpression pE)
       throws NoException {
     JExpression je = pE.getSubscriptExpression();
     if (je instanceof JLeftHandSide) {
@@ -34,12 +34,12 @@ public class JVariableVisitor implements JLeftHandSideVisitor<JVariableIdentifie
   }
 
   @Override
-  public JVariableIdentifier visit(JIdExpression pE) throws NoException {
+  public JStringVariableIdentifier visit(JIdExpression pE) throws NoException {
     JSimpleDeclaration decl =pE.getDeclaration();
-    return new JVariableIdentifier(decl.getType(),MemoryLocation.forDeclaration(decl));
+    return new JStringVariableIdentifier(decl.getType(),MemoryLocation.forDeclaration(decl));
   }
 
-  public JVariableIdentifier visit(JLeftHandSide pOp1) {
+  public JStringVariableIdentifier visit(JLeftHandSide pOp1) {
     return pOp1.accept(this);
   }
 

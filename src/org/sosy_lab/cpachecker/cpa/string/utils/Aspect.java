@@ -21,13 +21,13 @@ public class Aspect<T> {
 
   private T t;
   // t as a string
-  private String value;
+  private String tAsString;
 
   public Aspect(AbstractStringDomain<T> pDomain, T pT) {
 
     domain = pDomain;
     t = pT;
-    value = pT.toString();
+    tAsString = pT.toString();
 
   }
 
@@ -49,7 +49,7 @@ public class Aspect<T> {
 
   @Override
   public String toString() {
-    return "(" + getDomainType() + "," + value + ")";
+    return "(" + getDomainType() + "," + tAsString + ")";
   }
 
   public static class UnknownAspect extends Aspect<Void> {

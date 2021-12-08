@@ -18,15 +18,15 @@ import org.sosy_lab.cpachecker.cpa.string.utils.Aspect.UnknownAspect;
  * Stores all known aspects of a string as a list.
  * Util-class to perform functions on the list.
  */
-public class ValueAndAspects {
+public class AspectList {
 
   private List<Aspect<?>> aspects;
 
-  public ValueAndAspects(List<Aspect<?>> pAspects) {
+  public AspectList(List<Aspect<?>> pAspects) {
     aspects = pAspects;
   }
 
-  public ValueAndAspects newValue(List<Aspect<?>> pAspects) {
+  public AspectList newValue(List<Aspect<?>> pAspects) {
     aspects = pAspects;
     return this;
   }
@@ -35,7 +35,7 @@ public class ValueAndAspects {
     return aspects.size();
   }
 
-  public ValueAndAspects updateOneAspect(Aspect<?> as) {
+  public AspectList updateOneAspect(Aspect<?> as) {
 
     Aspect<?> temp = getAspectOfDomain(as.getDomain());
 
@@ -82,7 +82,7 @@ public class ValueAndAspects {
     return UnknownAspect.getInstance();
   }
 
-  public boolean isLessOrEqual(ValueAndAspects pOther) {
+  public boolean isLessOrEqual(AspectList pOther) {
 
     List<Aspect<?>> otherList = pOther.aspects;
 
@@ -122,11 +122,11 @@ public class ValueAndAspects {
   @Override
   public boolean equals(Object obj) {
 
-    if (!(obj instanceof ValueAndAspects)) {
+    if (!(obj instanceof AspectList)) {
       return false;
     }
 
-    ValueAndAspects vaa = (ValueAndAspects) obj;
+    AspectList vaa = (AspectList) obj;
 
     if ((vaa.aspects.size() != this.aspects.size())) {
       return false;
@@ -161,7 +161,7 @@ public class ValueAndAspects {
     return super.hashCode();
   }
 
-  public static class UnknownValueAndAspects extends ValueAndAspects {
+  public static class UnknownValueAndAspects extends AspectList {
 
     private final static UnknownValueAndAspects instance = new UnknownValueAndAspects();
 

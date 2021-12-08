@@ -54,10 +54,10 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.string.domains.DomainType;
 import org.sosy_lab.cpachecker.cpa.string.utils.Aspect;
+import org.sosy_lab.cpachecker.cpa.string.utils.AspectList;
+import org.sosy_lab.cpachecker.cpa.string.utils.AspectList.UnknownValueAndAspects;
 import org.sosy_lab.cpachecker.cpa.string.utils.HelperMethods;
-import org.sosy_lab.cpachecker.cpa.string.utils.JVariableIdentifier;
-import org.sosy_lab.cpachecker.cpa.string.utils.ValueAndAspects;
-import org.sosy_lab.cpachecker.cpa.string.utils.ValueAndAspects.UnknownValueAndAspects;
+import org.sosy_lab.cpachecker.cpa.string.utils.JStringVariableIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -66,11 +66,11 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 public class StringTransferRelation extends SingleEdgeTransferRelation {
 
   private StringOptions options;
-  private List<JVariableIdentifier> localVariables;
+  private List<JStringVariableIdentifier> localVariables;
   private String funcName;
 
-  private JStringValueVisitor jValVis;
-  private JVariableVisitor jVarNameVis;
+  private JAspectListVisitor jalv;
+  private JVariableVisitor jvv;
 
   private LogManager logger;
   private final MachineModel model;
@@ -92,8 +92,8 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
 
     StringState state = StringState.copyOf((StringState) pState);
     StringState successor = null;
-    jValVis = new JStringValueVisitor(options);
-    jVarNameVis = new JVariableVisitor();
+    jalv = new JAspectListVisitor(options);
+    jvv = new JVariableVisitor();
     funcName = pCfaEdge.getPredecessor().getFunctionName();
 
     switch (pCfaEdge.getEdgeType()) {
@@ -210,8 +210,8 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
         AParameterDeclaration param = parameters.get(i);
         MemoryLocation formalParamName =
             MemoryLocation.forLocalVariable(pCalledFunctionName, param.getName());
-        JVariableIdentifier jid = new JVariableIdentifier(param.getType(), formalParamName);
-        ValueAndAspects value = exp.accept(jValVis);
+        JStringVariableIdentifier jid = new JStringVariableIdentifier(param.getType(), formalParamName);
+        AspectList value = exp.accept(jalv);
 
         pState.updateVariable(jid, value);
 
@@ -230,13 +230,13 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
 
     Optional<? extends AVariableDeclaration> returnVarName =
         pFnkReturnEdge.getFunctionEntry().getReturnVariable();
-    JVariableIdentifier retJid = null;
+    JStringVariableIdentifier retJid = null;
 
     if (returnVarName.isPresent()) {
       if (HelperMethods.isString(returnVarName.get().getType())) {
 
         retJid =
-            new JVariableIdentifier(
+            new JStringVariableIdentifier(
                 returnVarName.get().getType(),
                 MemoryLocation.forDeclaration(returnVarName.get()));
       }
@@ -248,7 +248,7 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
       JMethodInvocationAssignmentStatement assignExp =
           ((JMethodInvocationAssignmentStatement) expSummary);
       AExpression op1 = assignExp.getLeftHandSide();
-      ValueAndAspects newValue = null;
+      AspectList newValue = null;
       boolean valueExists = returnVarName.isPresent() && pState.contains(retJid);
 
       if (valueExists) {
@@ -256,10 +256,10 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
 
       }
 
-      Optional<JVariableIdentifier> jid = Optional.empty();
+      Optional<JStringVariableIdentifier> jid = Optional.empty();
 
       if (op1 instanceof JLeftHandSide) {
-        jid = Optional.of(jVarNameVis.visit((JLeftHandSide) op1));
+        jid = Optional.of(jvv.visit((JLeftHandSide) op1));
 
       }
 
@@ -304,11 +304,11 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
 
       JLeftHandSide jLeft = ((JAssignment) pJStat).getLeftHandSide();
       JRightHandSide jRight = ((JAssignment) pJStat).getRightHandSide();
-      JVariableIdentifier jid = jLeft.accept(jVarNameVis);
+      JStringVariableIdentifier jid = jLeft.accept(jvv);
 
       if (jid.isString()) {
 
-        ValueAndAspects vaa = jRight.accept(jValVis);
+        AspectList vaa = jRight.accept(jalv);
         return pState.updateVariable(jid, vaa);
 
       }
@@ -324,22 +324,22 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
     }
 
     JVariableDeclaration jDecl = (JVariableDeclaration) pJDecl;
-    JVariableIdentifier jid =
-        new JVariableIdentifier(jDecl.getType(), MemoryLocation.forDeclaration(jDecl));
+    JStringVariableIdentifier jid =
+        new JStringVariableIdentifier(jDecl.getType(), MemoryLocation.forDeclaration(jDecl));
 
     JInitializer init = (JInitializer) jDecl.getInitializer();
-    ValueAndAspects value = getInitialValue(init);
+    AspectList value = getInitialValue(init);
     localVariables.add(jid);
 
     return pState.addVariable(jid, value);
   }
 
-  private ValueAndAspects getInitialValue(JInitializer pJ) {
+  private AspectList getInitialValue(JInitializer pJ) {
 
     if (pJ instanceof JInitializerExpression) {
 
       JExpression init = ((JInitializerExpression) pJ).getExpression();
-      ValueAndAspects value = init.accept(jValVis);
+      AspectList value = init.accept(jalv);
 
       return value;
     }
@@ -367,7 +367,7 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
 
       JBinaryExpression jbe = (JBinaryExpression) exp;
       Pair<JMethodInvocationExpression, JExpression> pair =
-          parseBinExpToJmieAndJe(jbe.getOperand1(), jbe.getOperand2());
+          parseBinaryExpression(jbe.getOperand1(), jbe.getOperand2());
       JExpression other;
       JMethodInvocationExpression jmie;
 
@@ -378,7 +378,7 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
 
       } else {
 
-        return handleTruthAssumption(truthAssumption, pState);
+        return checkTruthAssumption(truthAssumption, pState);
       }
 
       do {
@@ -388,8 +388,8 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
 
           JReferencedMethodInvocationExpression jrmie =
               (JReferencedMethodInvocationExpression) jmie;
-          JVariableIdentifier jid = jVarNameVis.visit(jrmie.getReferencedVariable());
-          ValueAndAspects vaa = pState.getVaa(jid);
+          JStringVariableIdentifier jid = jvv.visit(jrmie.getReferencedVariable());
+          AspectList vaa = pState.getVaa(jid);
 
           if (!(logger instanceof LogManagerWithoutDuplicates)) {
             logger = new LogManagerWithoutDuplicates(logger);
@@ -409,10 +409,10 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
 
     }
 
-    return handleTruthAssumption(truthAssumption, pState);
+    return checkTruthAssumption(truthAssumption, pState);
   }
 
-  private StringState handleTruthAssumption(boolean truthAssumption, StringState pState) {
+  private StringState checkTruthAssumption(boolean truthAssumption, StringState pState) {
 
     if (truthAssumption) {
       return pState;
@@ -421,7 +421,7 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private Pair<JMethodInvocationExpression, JExpression>
-      parseBinExpToJmieAndJe(JExpression first, JExpression second) {
+      parseBinaryExpression(JExpression first, JExpression second) {
 
     if (first instanceof JMethodInvocationExpression) {
       return Pair.of((JMethodInvocationExpression) first, second);
@@ -438,8 +438,8 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
   private StringState handleMethodCallStringLengthNegTA(
       BinaryOperator pBinOp,
       StringState pState,
-      JVariableIdentifier pJid,
-      ValueAndAspects pVaa,
+      JStringVariableIdentifier pJid,
+      AspectList pVaa,
       Value pVa) {
 
     if (pVa.isNumericValue()) {
@@ -472,8 +472,8 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
   private StringState handleMethodCallStringLength(
       BinaryOperator pBinOp,
       StringState pState,
-      JVariableIdentifier pJid,
-      ValueAndAspects pVaa,
+      JStringVariableIdentifier pJid,
+      AspectList pVaa,
       Value pVa) {
 
     if (pVa.isNumericValue()) {

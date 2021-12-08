@@ -6,8 +6,8 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
-import org.sosy_lab.cpachecker.cpa.string.utils.JVariableIdentifier;
-import org.sosy_lab.cpachecker.cpa.string.utils.ValueAndAspects;
+import org.sosy_lab.cpachecker.cpa.string.utils.JStringVariableIdentifier;
+import org.sosy_lab.cpachecker.cpa.string.utils.AspectList;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class StringState implements LatticeAbstractState<StringState> {
@@ -15,10 +15,10 @@ public class StringState implements LatticeAbstractState<StringState> {
   private StringOptions options;
 
   // Stores all strings of the program, along with the aspects
-  private ImmutableMap<JVariableIdentifier, ValueAndAspects> stringsAndAspects;
+  private ImmutableMap<JStringVariableIdentifier, AspectList> stringsAndAspects;
 
   public StringState(
-      ImmutableMap<JVariableIdentifier, ValueAndAspects> pStringMap,
+      ImmutableMap<JStringVariableIdentifier, AspectList> pStringMap,
       StringOptions pOptions) {
 
     options = pOptions;
@@ -36,14 +36,14 @@ public class StringState implements LatticeAbstractState<StringState> {
   }
 
   // Update doesn't create a new state
-  public StringState updateVariable(JVariableIdentifier pJid, ValueAndAspects vaa) {
+  public StringState updateVariable(JStringVariableIdentifier pJid, AspectList vaa) {
 
-    ImmutableMap.Builder<JVariableIdentifier, ValueAndAspects> builder =
+    ImmutableMap.Builder<JStringVariableIdentifier, AspectList> builder =
         new ImmutableMap.Builder<>();
 
-    for (Map.Entry<JVariableIdentifier, ValueAndAspects> entry : stringsAndAspects.entrySet()) {
+    for (Map.Entry<JStringVariableIdentifier, AspectList> entry : stringsAndAspects.entrySet()) {
 
-      JVariableIdentifier jid = entry.getKey();
+      JStringVariableIdentifier jid = entry.getKey();
 
       if (!jid.equals(pJid)) {
         builder.put(jid, stringsAndAspects.get(jid));
@@ -56,13 +56,13 @@ public class StringState implements LatticeAbstractState<StringState> {
     return this;
   }
 
-  public StringState addVariable(JVariableIdentifier jid) {
+  public StringState addVariable(JStringVariableIdentifier jid) {
     return addVariable(jid, null);
   }
 
-  public StringState addVariable(JVariableIdentifier jid, ValueAndAspects vaa) {
+  public StringState addVariable(JStringVariableIdentifier jid, AspectList vaa) {
 
-    ImmutableMap.Builder<JVariableIdentifier, ValueAndAspects> builder =
+    ImmutableMap.Builder<JStringVariableIdentifier, AspectList> builder =
         new ImmutableMap.Builder<>();
 
     builder.putAll(stringsAndAspects);
@@ -71,7 +71,7 @@ public class StringState implements LatticeAbstractState<StringState> {
     return new StringState(builder.build(), options);
   }
 
-  public Map<JVariableIdentifier, ValueAndAspects> getStringsAndAspects() {
+  public Map<JStringVariableIdentifier, AspectList> getStringsAndAspects() {
     return stringsAndAspects;
   }
 
@@ -93,17 +93,17 @@ public class StringState implements LatticeAbstractState<StringState> {
     return this;
   }
 
-  private ImmutableMap<JVariableIdentifier, ValueAndAspects>
-      joinMapsNoDuplicates(Map<JVariableIdentifier, ValueAndAspects> pStringMap) {
+  private ImmutableMap<JStringVariableIdentifier, AspectList>
+      joinMapsNoDuplicates(Map<JStringVariableIdentifier, AspectList> pStringMap) {
 
-    ImmutableMap.Builder<JVariableIdentifier, ValueAndAspects> builder =
+    ImmutableMap.Builder<JStringVariableIdentifier, AspectList> builder =
         new ImmutableMap.Builder<>();
 
     builder.putAll(stringsAndAspects);
 
-    for (Map.Entry<JVariableIdentifier, ValueAndAspects> entry : stringsAndAspects.entrySet()) {
+    for (Map.Entry<JStringVariableIdentifier, AspectList> entry : stringsAndAspects.entrySet()) {
 
-      JVariableIdentifier jid = entry.getKey();
+      JStringVariableIdentifier jid = entry.getKey();
 
       if (!stringsAndAspects.containsKey(jid)) {
         builder.put(jid, pStringMap.get(jid));
@@ -126,12 +126,12 @@ public class StringState implements LatticeAbstractState<StringState> {
       return false;
     }
 
-    for (Map.Entry<JVariableIdentifier, ValueAndAspects> otherEntry : pOther.stringsAndAspects
+    for (Map.Entry<JStringVariableIdentifier, AspectList> otherEntry : pOther.stringsAndAspects
         .entrySet()) {
 
-      ValueAndAspects otherVaa = otherEntry.getValue();
-      JVariableIdentifier jid = otherEntry.getKey();
-      ValueAndAspects vaa = this.stringsAndAspects.get(jid);
+      AspectList otherVaa = otherEntry.getValue();
+      JStringVariableIdentifier jid = otherEntry.getKey();
+      AspectList vaa = this.stringsAndAspects.get(jid);
 
       if (vaa == null || !vaa.isLessOrEqual(otherVaa)) {
         return false;
@@ -142,9 +142,9 @@ public class StringState implements LatticeAbstractState<StringState> {
     return true;
   }
 
-  public Optional<JVariableIdentifier> isVariableInMap(String pVar) {
+  public Optional<JStringVariableIdentifier> isVariableInMap(String pVar) {
 
-    for (JVariableIdentifier jid : stringsAndAspects.keySet()) {
+    for (JStringVariableIdentifier jid : stringsAndAspects.keySet()) {
 
       if (jid.getIdentifier().equals(pVar)) {
         return Optional.of(jid);
@@ -155,26 +155,26 @@ public class StringState implements LatticeAbstractState<StringState> {
     return Optional.empty();
   }
 
-  public ValueAndAspects getVaa(JVariableIdentifier jid) {
+  public AspectList getVaa(JStringVariableIdentifier jid) {
     return checkNotNull(stringsAndAspects.get(jid));
   }
 
-  public boolean contains(JVariableIdentifier jid) {
+  public boolean contains(JStringVariableIdentifier jid) {
     return stringsAndAspects.containsKey(jid);
   }
 
-  public boolean contains(ValueAndAspects vaa) {
+  public boolean contains(AspectList vaa) {
     return stringsAndAspects.containsValue(vaa);
   }
 
   public StringState clearLocalVariables(String funcname) {
 
-    ImmutableMap.Builder<JVariableIdentifier, ValueAndAspects> builder =
+    ImmutableMap.Builder<JStringVariableIdentifier, AspectList> builder =
         new ImmutableMap.Builder<>();
 
-    for (Map.Entry<JVariableIdentifier, ValueAndAspects> entry : stringsAndAspects.entrySet()) {
+    for (Map.Entry<JStringVariableIdentifier, AspectList> entry : stringsAndAspects.entrySet()) {
 
-      JVariableIdentifier jid = entry.getKey();
+      JStringVariableIdentifier jid = entry.getKey();
 
       if (!jid.getMemLoc().isOnFunctionStack(funcname)) {
         builder.put(jid, stringsAndAspects.get(jid));
@@ -187,12 +187,12 @@ public class StringState implements LatticeAbstractState<StringState> {
 
   public StringState clearAllLocalVariables() {
 
-    ImmutableMap.Builder<JVariableIdentifier, ValueAndAspects> builder =
+    ImmutableMap.Builder<JStringVariableIdentifier, AspectList> builder =
         new ImmutableMap.Builder<>();
 
-    for (Map.Entry<JVariableIdentifier, ValueAndAspects> entry : stringsAndAspects.entrySet()) {
+    for (Map.Entry<JStringVariableIdentifier, AspectList> entry : stringsAndAspects.entrySet()) {
 
-      JVariableIdentifier jid = entry.getKey();
+      JStringVariableIdentifier jid = entry.getKey();
 
       if (!jid.isGlobal()) {
         builder.put(jid, stringsAndAspects.get(jid));
@@ -206,9 +206,9 @@ public class StringState implements LatticeAbstractState<StringState> {
 
     StringBuilder builder = new StringBuilder("String State: {");
 
-    for (Map.Entry<JVariableIdentifier, ValueAndAspects> entry : stringsAndAspects.entrySet()) {
+    for (Map.Entry<JStringVariableIdentifier, AspectList> entry : stringsAndAspects.entrySet()) {
 
-      JVariableIdentifier jid = entry.getKey();
+      JStringVariableIdentifier jid = entry.getKey();
       builder.append("[" + jid + stringsAndAspects.get(jid) + "]");
     }
     builder.append("} ");
