@@ -72,6 +72,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JReferencedMethodInvocationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.java.JSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
@@ -112,6 +113,13 @@ import org.sosy_lab.cpachecker.cpa.pointer2.util.ExplicitLocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
 import org.sosy_lab.cpachecker.cpa.rtt.NameProvider;
 import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
+import org.sosy_lab.cpachecker.cpa.string.StringState;
+import org.sosy_lab.cpachecker.cpa.string.domains.DomainType;
+import org.sosy_lab.cpachecker.cpa.string.utils.Aspect;
+import org.sosy_lab.cpachecker.cpa.string.utils.Aspect.UnknownAspect;
+import org.sosy_lab.cpachecker.cpa.string.utils.AspectList;
+import org.sosy_lab.cpachecker.cpa.string.utils.HelperMethods;
+import org.sosy_lab.cpachecker.cpa.string.utils.JStringVariableIdentifier;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
@@ -1378,6 +1386,27 @@ public class ValueAnalysisTransferRelation
         }
         toStrengthen.clear();
         toStrengthen.addAll(result);
+      } else if (ae instanceof StringState) {
+        result.clear();
+
+        CFAEdge edge = pCfaEdge;
+        StringState stringState = (StringState) ae;
+        ARightHandSide rightHandSide = CFAEdgeUtils.getRightHandSide(edge);
+        String leftHandVariable = CFAEdgeUtils.getLeftHandVariable(edge);
+
+        for (ValueAnalysisState stateToStrengthen : toStrengthen) {
+          super.setInfo(pElement, pPrecision, pCfaEdge);
+          ValueAnalysisState newState =
+              strengthenWithString(
+                  stateToStrengthen,
+                  stringState,
+                  rightHandSide,
+                  leftHandVariable,
+                  UnknownValue.getInstance());
+          result.add(newState);
+        }
+        toStrengthen.clear();
+        toStrengthen.addAll(result);
       }
 
     }
@@ -1397,6 +1426,50 @@ public class ValueAnalysisTransferRelation
     oldState = null;
 
     return postProcessedResult;
+  }
+
+  /*
+   * Handles x = s.length() where s is a string
+   */
+  private ValueAnalysisState strengthenWithString(
+      ValueAnalysisState pValueState,
+      StringState pStringState,
+      ARightHandSide pRightHandSide,
+      String pLeftHandVariable,
+      Value pValue) {
+    ValueAnalysisState newState = pValueState;
+
+    Value value = pValue;
+    if (pLeftHandVariable == null) {
+      return newState;
+    }
+    if (pRightHandSide instanceof JReferencedMethodInvocationExpression) {
+      JReferencedMethodInvocationExpression referencedMethodInvocationExpression =
+          (JReferencedMethodInvocationExpression) pRightHandSide;
+      JSimpleDeclaration jsDeclaration =
+          referencedMethodInvocationExpression.getReferencedVariable().getDeclaration();
+      if (HelperMethods.isString(jsDeclaration.getType())) {
+
+        MemoryLocation memLoc =
+            MemoryLocation.parseExtendedQualifiedName(jsDeclaration.getQualifiedName());
+        JStringVariableIdentifier jStringIdentifier =
+            new JStringVariableIdentifier(jsDeclaration.getType(), memLoc);
+        AspectList list = pStringState.getAspectList(jStringIdentifier);
+
+        if(HelperMethods.methodCallLength(referencedMethodInvocationExpression, pStringState)) {
+          Aspect<?> aspect = list.getAspect(DomainType.LENGTH);
+          if (!aspect.equals(UnknownAspect.getInstance())) {
+            @SuppressWarnings("unchecked") // Safe
+            Aspect<Integer> intAspect = (Aspect<Integer>) aspect;
+            value = new NumericValue(intAspect.getValue());
+          }
+        }
+        newState = ValueAnalysisState.copyOf(pValueState);
+        newState.assignConstant(pLeftHandVariable, value);
+      }
+
+    }
+    return newState;
   }
 
   /**

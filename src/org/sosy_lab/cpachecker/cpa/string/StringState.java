@@ -6,8 +6,8 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
-import org.sosy_lab.cpachecker.cpa.string.utils.JStringVariableIdentifier;
 import org.sosy_lab.cpachecker.cpa.string.utils.AspectList;
+import org.sosy_lab.cpachecker.cpa.string.utils.JStringVariableIdentifier;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class StringState implements LatticeAbstractState<StringState> {
@@ -155,8 +155,12 @@ public class StringState implements LatticeAbstractState<StringState> {
     return Optional.empty();
   }
 
-  public AspectList getVaa(JStringVariableIdentifier jid) {
+  public AspectList getAspectList(JStringVariableIdentifier jid) {
     return checkNotNull(stringsAndAspects.get(jid));
+  }
+
+  public StringOptions getOptions() {
+    return options;
   }
 
   public boolean contains(JStringVariableIdentifier jid) {

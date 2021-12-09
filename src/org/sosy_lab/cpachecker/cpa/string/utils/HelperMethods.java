@@ -8,8 +8,11 @@
 
 package org.sosy_lab.cpachecker.cpa.string.utils;
 
+import org.sosy_lab.cpachecker.cfa.ast.java.JReferencedMethodInvocationExpression;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
+import org.sosy_lab.cpachecker.cpa.string.StringState;
+import org.sosy_lab.cpachecker.cpa.string.domains.DomainType;
 
 /*
  * Helper - class
@@ -29,5 +32,11 @@ public class HelperMethods {
     }
 
     return false;
+  }
+
+  public static boolean
+      methodCallLength(JReferencedMethodInvocationExpression jrmie, StringState state) {
+    return jrmie.getDeclaration().getOrigName().contains("String_length")
+        && state.getOptions().containsDomain(DomainType.LENGTH);
   }
 }

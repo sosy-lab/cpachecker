@@ -156,11 +156,7 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
           final JMethodReturnEdge fnkReturnEdge = (JMethodReturnEdge) pCfaEdge;
           final JMethodSummaryEdge summaryEdge = fnkReturnEdge.getSummaryEdge();
 
-          successor =
-              handleJMethodReturnEdge(
-                  fnkReturnEdge,
-                  summaryEdge.getExpression(),
-                  state);
+          successor = handleJMethodReturnEdge(fnkReturnEdge, summaryEdge.getExpression(), state);
         }
         break;
 
@@ -210,7 +206,8 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
         AParameterDeclaration param = parameters.get(i);
         MemoryLocation formalParamName =
             MemoryLocation.forLocalVariable(pCalledFunctionName, param.getName());
-        JStringVariableIdentifier jid = new JStringVariableIdentifier(param.getType(), formalParamName);
+        JStringVariableIdentifier jid =
+            new JStringVariableIdentifier(param.getType(), formalParamName);
         AspectList value = exp.accept(jalv);
 
         pState.updateVariable(jid, value);
@@ -252,7 +249,7 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
       boolean valueExists = returnVarName.isPresent() && pState.contains(retJid);
 
       if (valueExists) {
-        newValue = pState.getVaa(retJid);
+        newValue = pState.getAspectList(retJid);
 
       }
 
@@ -280,8 +277,7 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
     return pState;
   }
 
-  private StringState
-      handleJMethodSummaryEdge(StringState pState) {
+  private StringState handleJMethodSummaryEdge(StringState pState) {
     // TODO length, substring
     return pState;
   }
@@ -382,28 +378,27 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
       }
 
       do {
-        if (jmie instanceof JReferencedMethodInvocationExpression
-            && jmie.getDeclaration().getOrigName().contains("String_length")
-            && options.containsDomain(DomainType.LENGTH)) {
+        if (jmie instanceof JReferencedMethodInvocationExpression) {
 
           JReferencedMethodInvocationExpression jrmie =
               (JReferencedMethodInvocationExpression) jmie;
-          JStringVariableIdentifier jid = jvv.visit(jrmie.getReferencedVariable());
-          AspectList vaa = pState.getVaa(jid);
+          if (HelperMethods.methodCallLength(jrmie, pState)) {
+            JStringVariableIdentifier jid = jvv.visit(jrmie.getReferencedVariable());
+            AspectList vaa = pState.getAspectList(jid);
 
-          if (!(logger instanceof LogManagerWithoutDuplicates)) {
-            logger = new LogManagerWithoutDuplicates(logger);
+            if (!(logger instanceof LogManagerWithoutDuplicates)) {
+              logger = new LogManagerWithoutDuplicates(logger);
+            }
+
+            Aevv vis = new Aevv(funcName, model, (LogManagerWithoutDuplicates) logger);
+            Value va = other.accept(vis);
+
+            if (negatedUnaryOperator) {
+              pState = handleMethodCallStringLength(jbe.getOperator(), pState, jid, vaa, va);
+            } else {
+              pState = handleMethodCallStringLengthNegTA(jbe.getOperator(), pState, jid, vaa, va);
+            }
           }
-
-          Aevv vis = new Aevv(funcName, model, (LogManagerWithoutDuplicates) logger);
-          Value va = other.accept(vis);
-
-          if (negatedUnaryOperator) {
-            pState = handleMethodCallStringLength(jbe.getOperator(), pState, jid, vaa, va);
-          } else {
-            pState = handleMethodCallStringLengthNegTA(jbe.getOperator(), pState, jid, vaa, va);
-          }
-
         }
       } while (other instanceof JBinaryExpression);
 

@@ -37,7 +37,7 @@ public class AspectList {
 
   public AspectList updateOneAspect(Aspect<?> as) {
 
-    Aspect<?> temp = getAspectOfDomain(as.getDomain());
+    Aspect<?> temp = getAspect(as.getDomain());
 
     if (temp instanceof UnknownAspect) {
 
@@ -68,13 +68,15 @@ public class AspectList {
     return this;
   }
 
-  public Aspect<?> getAspectOfDomain(AbstractStringDomain<?> domain) {
-
+  public Aspect<?> getAspect(AbstractStringDomain<?> domain) {
     DomainType type = domain.getType();
+    return getAspect(type);
+  }
+
+  public Aspect<?> getAspect(DomainType pDomainType) {
 
     for (Aspect<?> a : aspects) {
-
-      if (a.getDomainType().equals(type)) {
+      if (a.getDomainType().equals(pDomainType)) {
         return a;
       }
     }

@@ -120,8 +120,8 @@ public class JAspectListVisitor
           builder
               .add(
                   dom.combineAspectsForStringConcat(
-                      vaa1.getAspectOfDomain(dom),
-                      vaa2.getAspectOfDomain(dom)));
+                      vaa1.getAspect(dom),
+                      vaa2.getAspect(dom)));
         }
 
         return new AspectList(builder.build());
