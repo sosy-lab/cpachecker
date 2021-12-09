@@ -555,10 +555,13 @@ public class SMGBuiltins {
     return resultStates;
   }
 
-  boolean isABuiltIn(String functionName) {
-    return (BUILTINS.contains(functionName) || isNondetBuiltin(functionName) ||
-        isConfigurableAllocationFunction(functionName) || isDeallocationFunction(functionName) ||
-        isExternalAllocationFunction(functionName));
+  public boolean isABuiltIn(CFunctionCallExpression pFunctionCall) {
+    String functionName = getFunctionName(pFunctionCall);
+    return (BUILTINS.contains(functionName)
+        || isNondetBuiltin(functionName)
+        || isConfigurableAllocationFunction(pFunctionCall)
+        || isDeallocationFunction(pFunctionCall)
+        || isExternalAllocationFunction(pFunctionCall));
   }
 
   private static final String NONDET_PREFIX = "__VERIFIER_nondet_";
@@ -567,16 +570,19 @@ public class SMGBuiltins {
     return pFunctionName.startsWith(NONDET_PREFIX) || pFunctionName.equals("nondet_int");
   }
 
-  boolean isConfigurableAllocationFunction(String functionName) {
+  boolean isConfigurableAllocationFunction(CFunctionCallExpression cFCExpression) {
+    String functionName = getFunctionName(cFCExpression);
     return options.getMemoryAllocationFunctions().contains(functionName)
         || options.getArrayAllocationFunctions().contains(functionName);
   }
 
-  boolean isDeallocationFunction(String functionName) {
+  boolean isDeallocationFunction(CFunctionCallExpression cFCExpression) {
+    String functionName = getFunctionName(cFCExpression);
     return options.getDeallocationFunctions().contains(functionName);
   }
 
-  private boolean isExternalAllocationFunction(String functionName) {
+  private boolean isExternalAllocationFunction(CFunctionCallExpression cFCExpression) {
+    String functionName = getFunctionName(cFCExpression);
     return options.getExternalAllocationFunction().contains(functionName);
   }
 
@@ -742,12 +748,13 @@ public class SMGBuiltins {
   List<? extends SMGValueAndState> handleBuiltinFunctionCall(
       CFAEdge pCfaEdge,
       CFunctionCallExpression cFCExpression,
-      String calledFunctionName,
       SMGState newState,
       SMGTransferRelationKind kind)
       throws CPATransferException {
 
-    if (isExternalAllocationFunction(calledFunctionName)) {
+    String calledFunctionName = getFunctionName(cFCExpression);
+
+    if (isExternalAllocationFunction(cFCExpression)) {
       return evaluateExternalAllocation(cFCExpression, newState);
     }
 
@@ -919,12 +926,10 @@ public class SMGBuiltins {
     return true;
   }
 
-  List<SMGAddressValueAndState> handleUnknownFunction(
-      CFAEdge pCfaEdge,
-      CFunctionCallExpression cFCExpression,
-      String calledFunctionName,
-      SMGState pState)
+  public List<SMGAddressValueAndState> handleUnknownFunction(
+      CFAEdge pCfaEdge, CFunctionCallExpression cFCExpression, SMGState pState)
       throws CPATransferException, AssertionError {
+    String calledFunctionName = getFunctionName(cFCExpression);
     switch (options.getHandleUnknownFunctions()) {
       case STRICT:
         if (!isSafeFunction(calledFunctionName)) {
@@ -974,15 +979,18 @@ public class SMGBuiltins {
       CFAEdge pCfaEdge,
       SMGTransferRelationKind pKind)
       throws CPATransferException, AssertionError {
-    CExpression fileNameExpression = pFunctionCall.getFunctionNameExpression();
-    String functionName = fileNameExpression.toASTString();
-    if (isABuiltIn(functionName)) {
-      if (isConfigurableAllocationFunction(functionName)) {
+    if (isABuiltIn(pFunctionCall)) {
+      if (isConfigurableAllocationFunction(pFunctionCall)) {
         return evaluateConfigurableAllocationFunction(pFunctionCall, pSmgState, pCfaEdge, pKind);
       }
-      return handleBuiltinFunctionCall(pCfaEdge, pFunctionCall, functionName, pSmgState, pKind);
+      return handleBuiltinFunctionCall(pCfaEdge, pFunctionCall, pSmgState, pKind);
     } else {
-      return handleUnknownFunction(pCfaEdge, pFunctionCall, functionName, pSmgState);
+      return handleUnknownFunction(pCfaEdge, pFunctionCall, pSmgState);
     }
+  }
+
+  String getFunctionName(CFunctionCallExpression pFunctionCallExpression) {
+    CExpression fileNameExpression = pFunctionCallExpression.getFunctionNameExpression();
+    return fileNameExpression.toASTString();
   }
 }

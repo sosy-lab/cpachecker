@@ -697,8 +697,6 @@ public class SMGTransferRelation
 
       CFunctionCallStatement cFCall = (CFunctionCallStatement) cStmt;
       CFunctionCallExpression cFCExpression = cFCall.getFunctionCallExpression();
-      CExpression fileNameExpression = cFCExpression.getFunctionNameExpression();
-      String calledFunctionName = fileNameExpression.toASTString();
 
       Set<SMGState> states = new LinkedHashSet<>();
       states.add(state.copyOf());
@@ -716,8 +714,7 @@ public class SMGTransferRelation
 
       ImmutableList.Builder<SMGState> result = ImmutableList.builder();
       for (SMGState newState : states) {
-        result.addAll(
-            handleFunctionCallWithoutBody(newState, pCfaEdge, cFCExpression, calledFunctionName));
+        result.addAll(handleFunctionCallWithoutBody(newState, pCfaEdge, cFCExpression));
       }
       return result.build();
     } else {
@@ -726,13 +723,13 @@ public class SMGTransferRelation
   }
 
   private Collection<SMGState> handleFunctionCallWithoutBody(
-      SMGState pState,
-      CStatementEdge pCfaEdge,
-      CFunctionCallExpression cFCExpression,
-      String calledFunctionName)
+      SMGState pState, CStatementEdge pCfaEdge, CFunctionCallExpression cFCExpression)
       throws CPATransferException, AssertionError {
-    if (expressionEvaluator.getBuiltins().isABuiltIn(calledFunctionName)) {
-      if (expressionEvaluator.getBuiltins().isConfigurableAllocationFunction(calledFunctionName)) {
+    CExpression fileNameExpression = cFCExpression.getFunctionNameExpression();
+    String calledFunctionName = fileNameExpression.toASTString();
+
+    if (expressionEvaluator.getBuiltins().isABuiltIn(cFCExpression)) {
+      if (expressionEvaluator.getBuiltins().isConfigurableAllocationFunction(cFCExpression)) {
         logger.logf(
             Level.INFO,
             "%s: Calling '%s' and not using the result, resulting in memory leak.",
@@ -751,17 +748,17 @@ public class SMGTransferRelation
         }
         return newStates;
       }
-      if (expressionEvaluator.getBuiltins().isDeallocationFunction(calledFunctionName)) {
+      if (expressionEvaluator.getBuiltins().isDeallocationFunction(cFCExpression)) {
         return expressionEvaluator.getBuiltins().evaluateFree(cFCExpression, pState, pCfaEdge);
       }
       return asSMGStateList(
-          expressionEvaluator.getBuiltins().handleBuiltinFunctionCall(
-              pCfaEdge, cFCExpression, calledFunctionName, pState, kind));
+          expressionEvaluator
+              .getBuiltins()
+              .handleBuiltinFunctionCall(pCfaEdge, cFCExpression, pState, kind));
 
     } else {
       return asSMGStateList(
-          expressionEvaluator.getBuiltins().handleUnknownFunction(
-              pCfaEdge, cFCExpression, calledFunctionName, pState));
+          expressionEvaluator.getBuiltins().handleUnknownFunction(pCfaEdge, cFCExpression, pState));
     }
   }
 
