@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cpa.string.domains.AbstractStringDomain;
 import org.sosy_lab.cpachecker.cpa.string.domains.StringSetDomain;
 import org.sosy_lab.cpachecker.cpa.string.utils.Aspect;
-import org.sosy_lab.cpachecker.cpa.string.utils.Aspect.UnknownAspect;
 import org.sosy_lab.cpachecker.cpa.string.utils.AspectList;
 import org.sosy_lab.cpachecker.cpa.string.utils.AspectList.UnknownValueAndAspects;
 import org.sosy_lab.cpachecker.exceptions.NoException;
@@ -72,7 +71,7 @@ public class JAspectListVisitor
       }
     }
 
-    return new AspectList(ImmutableList.of(UnknownAspect.getInstance()));
+    return new AspectList(ImmutableList.of());
   }
 
   @Override
@@ -103,7 +102,7 @@ public class JAspectListVisitor
       return calcAspectsForStringConcat(pE.getOperand1(), pE.getOperand2());
     }
 
-    return new AspectList(ImmutableList.of(UnknownAspect.getInstance()));
+    return new AspectList(ImmutableList.of());
   }
 
   private AspectList calcAspectsForStringConcat(JExpression op1, JExpression op2) {
@@ -127,7 +126,7 @@ public class JAspectListVisitor
         return new AspectList(builder.build());
 
       } else {
-        return new AspectList(ImmutableList.of(UnknownAspect.getInstance()));
+        return new AspectList(ImmutableList.of());
 
       }
 
@@ -168,7 +167,8 @@ public class JAspectListVisitor
   @Override
   public AspectList visit(JMethodInvocationExpression pE)
       throws NoException {
-    return null;
+    // TODO substring
+    return new AspectList(ImmutableList.of());
   }
 
   @Override

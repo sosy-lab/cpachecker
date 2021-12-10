@@ -27,8 +27,11 @@ public class Aspect<T> {
 
     domain = pDomain;
     t = pT;
-    tAsString = pT.toString();
-
+    if (pT == null) {
+      tAsString = null;
+    } else {
+      tAsString = pT.toString();
+    }
   }
 
   public String getValueAsString() {
