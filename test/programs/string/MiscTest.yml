@@ -10,5 +10,5 @@ format_version: "1.0"
 input_files:
   - string_programs/MiscTest/
 properties:
-  - property_file: "../../../config/properties/assert.prp"
+  - property_file: "../../config/properties/assert.prp"
     expected_verdict: true
