@@ -6,12 +6,3 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-public class PrefixSuffix {
-  public static void main(String[] args) {
-    String pref = "suffix";
-    String suff = "prefix";
-    assert pref.substring(0, 3).equals("suf");
-    assert suff.substring(4, 6).equals("fix");
-    
-  }
-}

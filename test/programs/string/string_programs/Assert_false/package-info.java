@@ -6,11 +6,3 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-public class Assert_false {
-  public static void main(String[] args) {
-    String one = "foo";
-    assert one.length() == 1;
-
-  }
-
-}

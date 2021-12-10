@@ -6,17 +6,12 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-public class MethodStrRet {
-
-  static String Foo(String s) {
-    return s;
-  }
-
+public class Main {
   public static void main(String[] args) {
-    String iron = "man";
-    String he = Foo(iron);
-    iron = Foo("captain");
-    assert iron.equals("captain");
-  }
-
+    String a = "foo"+ "";
+    for (int i = 0; i < 20; i++) {
+      a += "bar";
+      }
+    assert a.length() == 63;
+    }
 }

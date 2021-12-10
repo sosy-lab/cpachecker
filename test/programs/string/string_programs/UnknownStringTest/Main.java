@@ -8,7 +8,7 @@
 
 import java.util.Scanner;
 
-public class UnknownStringTest {
+public class Main {
   public static void main(String[]main) {
     Scanner sc = new Scanner(System.in);
     String b = sc.nextLine();
