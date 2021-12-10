@@ -14,7 +14,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -39,10 +38,10 @@ public class ExternModelLoader {
   }
 
   public BooleanFormula handleExternModelFunction(List<CExpression> parameters, SSAMapBuilder ssa) {
-    assert (!parameters.isEmpty()) : "No external model given!";
+    assert !parameters.isEmpty() : "No external model given!";
     // the parameter comes in C syntax (with ")
-    String filename = parameters.get(0).toASTString().replaceAll("\"", "");
-    Path modelFile = Paths.get(filename);
+    String filename = parameters.get(0).toASTString().replace("\"", "");
+    Path modelFile = Path.of(filename);
     return loadExternalFormula(modelFile, ssa);
   }
 

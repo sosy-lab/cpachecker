@@ -9,12 +9,20 @@
 package org.sosy_lab.cpachecker.cpa.testtargets;
 
 import com.google.common.collect.Sets;
+import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -39,7 +47,7 @@ public final class TestTargetReductionUtils {
     Set<CFANode> toExplore = Sets.newHashSetWithExpectedSize(pTestTargets.size() + 1);
     Deque<CFANode> waitlist = new ArrayDeque<>();
 
-    origCFANodeToCopyMap.put(pEntryNode, CFANode.newDummyCFANode(""));
+    origCFANodeToCopyMap.put(pEntryNode, CFANode.newDummyCFANode());
     toExplore.add(pEntryNode);
     origCFANodeToCopyMap.put(pEntryNode.getExitNode(), CFANode.newDummyCFANode(""));
     successorNodes.add(pEntryNode.getExitNode());
@@ -71,7 +79,6 @@ public final class TestTargetReductionUtils {
       while (!waitlist.isEmpty()) {
         currentNode = waitlist.poll();
 
-
         for (CFAEdge leaving : CFAUtils.leavingEdges(currentNode)) {
           if (successorNodes.contains(leaving.getSuccessor())) {
             if (!origCFANodeToCopyMap.get(predecessor)
@@ -88,9 +95,51 @@ public final class TestTargetReductionUtils {
         }
       }
     }
-    return Pair.of(
+
+    if (removeUnreachableTestGoalsAndIsReachExit(
+        pTestTargets,
+        pCopiedEdgeToTestTargetsMap,
         origCFANodeToCopyMap.get(pEntryNode),
-        origCFANodeToCopyMap.get(pEntryNode.getExitNode()));
+        origCFANodeToCopyMap.get(pEntryNode.getExitNode()))) {
+      return Pair.of(
+          origCFANodeToCopyMap.get(pEntryNode), origCFANodeToCopyMap.get(pEntryNode.getExitNode()));
+    } else {
+      return Pair.of(origCFANodeToCopyMap.get(pEntryNode), null);
+    }
+  }
+
+  private static boolean removeUnreachableTestGoalsAndIsReachExit(
+      final Set<CFAEdge> pTestTargets,
+      final Map<CFAEdge, CFAEdge> pCopiedEdgeToTestTargetsMap,
+      final CFANode pEntry,
+      final CFANode pExit) {
+    Set<CFANode> visited = new HashSet<>();
+    Deque<CFANode> waitlist = new ArrayDeque<>();
+    visited.add(pEntry);
+    waitlist.add(pEntry);
+
+    CFANode pred;
+    while (!waitlist.isEmpty()) {
+      pred = waitlist.poll();
+      for (CFANode succ : CFAUtils.allSuccessorsOf(pred)) {
+        if (visited.add(succ)) {
+          waitlist.add(succ);
+        }
+      }
+    }
+
+    Collection<CFAEdge> toDelete = new ArrayList<>();
+    for (Entry<CFAEdge, CFAEdge> mapEntry : pCopiedEdgeToTestTargetsMap.entrySet()) {
+      if (!visited.contains(mapEntry.getKey().getPredecessor())) {
+        pTestTargets.remove(mapEntry.getValue());
+        toDelete.add(mapEntry.getKey());
+      }
+    }
+    for (CFAEdge unreachTarget : toDelete) {
+      pCopiedEdgeToTestTargetsMap.remove(unreachTarget);
+    }
+
+    return visited.contains(pExit);
   }
 
   public static CFAEdge copyAsDummyEdge(final CFANode pred, final CFANode succ) {
@@ -98,5 +147,35 @@ public final class TestTargetReductionUtils {
     pred.addLeavingEdge(newEdge);
     succ.addEnteringEdge(newEdge);
     return newEdge;
+  }
+
+  public static void drawGraph(final Path pOutputfile, final CFANode pEntry) throws IOException {
+    try (Writer sb = IO.openOutputFile(pOutputfile, Charset.defaultCharset())) {
+      sb.append("digraph " + "CFA" + " {\n");
+      // define the graphic representation for all subsequent nodes
+      sb.append("node [shape=\"circle\"]\n");
+
+      Set<CFANode> visited = new HashSet<>();
+      Deque<CFANode> waitlist = new ArrayDeque<>();
+
+      visited.add(pEntry);
+      waitlist.add(pEntry);
+      sb.append(pEntry.getNodeNumber() + " [shape=\"circle\"]" + "\n");
+
+      CFANode pred;
+      while (!waitlist.isEmpty()) {
+        pred = waitlist.poll();
+        for (CFANode succ : CFAUtils.allSuccessorsOf(pred)) {
+          if (visited.add(succ)) {
+            sb.append(succ.getNodeNumber() + " [shape=\"circle\"]" + "\n");
+            waitlist.add(succ);
+          }
+          sb.append(pred.getNodeNumber() + " -> " + succ.getNodeNumber() + "\n");
+        }
+
+        // add edges
+      }
+      sb.append("}");
+    }
   }
 }

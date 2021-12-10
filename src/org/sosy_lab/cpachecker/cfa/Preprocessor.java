@@ -16,7 +16,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.logging.Level;
 import org.sosy_lab.common.MoreStrings;
@@ -38,7 +37,7 @@ public abstract class Preprocessor {
       name = "preprocessor.dumpDirectory",
       description = "Directory where to dump the results of the preprocessor.")
   @FileOption(Type.OUTPUT_DIRECTORY)
-  private Path dumpDirectory = Paths.get("preprocessed");
+  private Path dumpDirectory = Path.of("preprocessed");
 
   private final LogManager logger;
 
@@ -51,19 +50,30 @@ public abstract class Preprocessor {
     }
   }
 
-  public String preprocess(String file) throws CParserException, InterruptedException {
+  /**
+   * Preprocess the given file and potentially write the result to a dump file depending on the
+   * specifications set on the preprocessor.
+   *
+   * @param file The file to preprocess.
+   * @return The preprocessed file.
+   */
+  public String preprocess(Path file) throws CParserException, InterruptedException {
     String result = preprocess0(file);
-    getAndWriteDumpedFile(result, file);
+    getAndWriteDumpFile(result, file);
     return result;
   }
 
+  public Path getDumpDirectory() {
+    return dumpDirectory;
+  }
+
   @SuppressWarnings("JdkObsolete") // buffer is accessed from several threads
-  protected String preprocess0(String file) throws CParserException, InterruptedException {
+  protected String preprocess0(Path file) throws CParserException, InterruptedException {
     // create command line
     List<String> argList =
         Lists.newArrayList(
             Splitter.on(CharMatcher.whitespace()).omitEmptyStrings().split(getCommandLine()));
-    argList.add(file);
+    argList.add(file.toString());
     String[] args = argList.toArray(new String[0]);
 
     logger.log(Level.FINE, "Running", MoreStrings.lazyString(this::getName), argList);
@@ -97,10 +107,14 @@ public abstract class Preprocessor {
     }
   }
 
-  protected Path getAndWriteDumpedFile(String programCode, String file) {
-    if (dumpResults() && dumpDirectory != null) {
-      final Path dumpFile = dumpDirectory.resolve(getDumpFileOfFile(file)).normalize();
-      if (dumpFile.startsWith(dumpDirectory)) {
+  protected Path getAndWriteDumpFile(String programCode, Path file) {
+    return getAndWriteDumpFile(programCode, file, dumpDirectory);
+  }
+
+  protected Path getAndWriteDumpFile(String programCode, Path file, Path pDumpDirectory) {
+    if (dumpResults() && pDumpDirectory != null) {
+      final Path dumpFile = pDumpDirectory.resolve(getDumpFileOfFile(file.toString())).normalize();
+      if (dumpFile.startsWith(pDumpDirectory)) {
         try {
           IO.writeFile(dumpFile, Charset.defaultCharset(), programCode);
         } catch (IOException e) {

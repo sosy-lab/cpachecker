@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.invariants;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
-import java.util.OptionalLong;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
@@ -105,7 +104,7 @@ public class MemoryLocationExtractor {
         return scope(varName);
       }
     }
-    return MemoryLocation.valueOf(varName);
+    return MemoryLocation.parseExtendedQualifiedName(varName);
   }
 
   public MemoryLocation getMemoryLocation(AExpression pLhs) throws UnrecognizedCodeException {
@@ -135,7 +134,7 @@ public class MemoryLocationExtractor {
       CPointerExpression pe = (CPointerExpression) pLhs;
       if (pe.getOperand() instanceof CLeftHandSide) {
         // TODO
-        return MemoryLocation.valueOf(String.format("*(%s)", getMemoryLocation(pe.getOperand())));
+        return MemoryLocation.parseExtendedQualifiedName(String.format("*(%s)", getMemoryLocation(pe.getOperand())));
       }
       // TODO
       return scope(pLhs.toString());
@@ -147,7 +146,7 @@ public class MemoryLocationExtractor {
       return getMemoryLocation(cast.getOperand());
     } else if (pLhs instanceof CUnaryExpression && ((CUnaryExpression) pLhs).getOperator() == UnaryOperator.AMPER) {
       // TODO
-      return MemoryLocation.valueOf(String.format("&(%s)", getMemoryLocation(((CUnaryExpression) pLhs).getOperand())));
+      return MemoryLocation.parseExtendedQualifiedName(String.format("&(%s)", getMemoryLocation(((CUnaryExpression) pLhs).getOperand())));
     } else {
       // TODO
       return scope(pLhs.toString()); // This actually seems wrong but is currently the only way to deal with some cases of pointer arithmetics
@@ -165,7 +164,7 @@ public class MemoryLocationExtractor {
         return scope(varName);
       }
     }
-    return MemoryLocation.valueOf(varName);
+    return MemoryLocation.parseExtendedQualifiedName(varName);
   }
 
   private MemoryLocation getFieldReferenceMemoryLocation(String pVarName, @Nullable AExpression pOwner,
@@ -174,7 +173,7 @@ public class MemoryLocationExtractor {
     if (pOwner != null) {
       varName = getMemoryLocation(pOwner) + (pIsPointerDereference ? "->" : ".") + varName;
     }
-    return MemoryLocation.valueOf(varName, OptionalLong.empty());
+    return MemoryLocation.fromQualifiedName(varName);
   }
 
   private MemoryLocation getArraySubscriptMemoryLocation(AExpression pOwner, AExpression pSubscript) throws UnrecognizedCodeException {
@@ -183,7 +182,7 @@ public class MemoryLocationExtractor {
 
     if (pSubscript instanceof CIntegerLiteralExpression) {
       CIntegerLiteralExpression literal = (CIntegerLiteralExpression) pSubscript;
-      return MemoryLocation.valueOf(
+      return MemoryLocation.parseExtendedQualifiedName(
           String.format("%s[%d]", getMemoryLocation(pOwner), literal.asLong()));
     }
     final CompoundInterval subscriptValue;
@@ -197,10 +196,10 @@ public class MemoryLocationExtractor {
       subscriptValue = compoundIntervalManagerFactory.createCompoundIntervalManager(machineModel, pOwner.getExpressionType()).allPossibleValues();
     }
     if (subscriptValue.isSingleton()) {
-      return MemoryLocation.valueOf(
+      return MemoryLocation.parseExtendedQualifiedName(
           String.format("%s[%s]", getMemoryLocation(pOwner), subscriptValue.getValue()));
     }
-    return MemoryLocation.valueOf(String.format("%s[*]", getMemoryLocation(pOwner)));
+    return MemoryLocation.parseExtendedQualifiedName(String.format("%s[*]", getMemoryLocation(pOwner)));
   }
 
   private CompoundInterval evaluate(NumeralFormula<CompoundInterval> pFormula) {
@@ -212,7 +211,7 @@ public class MemoryLocationExtractor {
   }
 
   public static MemoryLocation scope(String pVar, String pFunction) {
-    return MemoryLocation.valueOf(pFunction, pVar);
+    return MemoryLocation.forLocalVariable(pFunction, pVar);
   }
 
   public boolean isFunctionScoped(String pScopedVariableName) {

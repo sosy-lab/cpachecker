@@ -16,12 +16,10 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -59,6 +57,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAnalysisPrecision
 import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAnalysisPrecisionAdjustment.SymbolicStatistics;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAssigner;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
@@ -97,6 +96,10 @@ public class ValueAnalysisCPA extends AbstractCPA
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path initialPrecisionFile = null;
 
+  @Option(secure = true, description = "get an initial precision from a predicate precision file")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private Path initialPredicatePrecisionFile = null;
+
   @Option(
       secure = true,
       name = "unknownValueHandling",
@@ -124,6 +127,7 @@ public class ValueAnalysisCPA extends AbstractCPA
   private final ValueTransferOptions transferOptions;
   private final PrecAdjustmentOptions precisionAdjustmentOptions;
   private final PrecAdjustmentStatistics precisionAdjustmentStatistics;
+  private final PredicateToValuePrecisionConverter predToValPrec;
 
   private SymbolicStatistics symbolicStats;
 
@@ -136,6 +140,8 @@ public class ValueAnalysisCPA extends AbstractCPA
     this.cfa              = cfa;
 
     config.inject(this, ValueAnalysisCPA.class);
+
+    predToValPrec = new PredicateToValuePrecisionConverter(config, logger, pShutdownNotifier, cfa);
 
     precision           = initializePrecision(config, cfa);
     statistics          = new ValueAnalysisCPAStatistics(this, config);
@@ -164,25 +170,40 @@ public class ValueAnalysisCPA extends AbstractCPA
   }
 
   private VariableTrackingPrecision initializePrecision(Configuration pConfig, CFA pCfa) throws InvalidConfigurationException {
-
-    if (initialPrecisionFile == null) {
+    if (initialPrecisionFile == null && initialPredicatePrecisionFile == null) {
       return VariableTrackingPrecision.createStaticPrecision(pConfig, pCfa.getVarClassification(), getClass());
-
-    } else {
-      // create precision with empty, refinable component precision
-      VariableTrackingPrecision initialPrecision =
-          VariableTrackingPrecision.createRefineablePrecision(
-              pConfig,
-              VariableTrackingPrecision.createStaticPrecision(
-                  pConfig, pCfa.getVarClassification(), getClass()));
-      // refine the refinable component precision with increment from file
-      return initialPrecision.withIncrement(restoreMappingFromFile(pCfa));
     }
+
+    // Initialize precision
+    VariableTrackingPrecision initialPrecision =
+        VariableTrackingPrecision.createRefineablePrecision(
+            pConfig,
+            VariableTrackingPrecision.createStaticPrecision(
+                pConfig, pCfa.getVarClassification(), getClass()));
+
+    if (initialPredicatePrecisionFile != null) {
+
+      // convert the predicate precision to variable tracking precision and
+      // refine precision with increment from the newly gained variable tracking precision
+      // otherwise return empty precision if given predicate precision is empty
+
+      initialPrecision =
+          initialPrecision.withIncrement(
+              predToValPrec.convertPredPrecToVariableTrackingPrec(initialPredicatePrecisionFile));
+    }
+    if (initialPrecisionFile != null) {
+      // create precision with empty, refinable component precision
+      // refine the refinable component precision with increment from file
+      initialPrecision = initialPrecision.withIncrement(restoreMappingFromFile(pCfa));
+    }
+
+    return initialPrecision;
   }
+
+
 
   private Multimap<CFANode, MemoryLocation> restoreMappingFromFile(CFA pCfa) {
     Multimap<CFANode, MemoryLocation> mapping = HashMultimap.create();
-
     List<String> contents = null;
     try {
       contents = Files.readAllLines(initialPrecisionFile, Charset.defaultCharset());
@@ -191,8 +212,7 @@ public class ValueAnalysisCPA extends AbstractCPA
       return mapping;
     }
 
-    Map<Integer, CFANode> idToCfaNode = createMappingForCFANodes(pCfa);
-    final Pattern CFA_NODE_PATTERN = Pattern.compile("N([0-9][0-9]*)");
+    Map<Integer, CFANode> idToCfaNode = CFAUtils.getMappingFromNodeIDsToCFANodes(pCfa);
 
     CFANode location = getDefaultLocation(idToCfaNode);
     for (String currentLine : contents) {
@@ -201,13 +221,13 @@ public class ValueAnalysisCPA extends AbstractCPA
 
       } else if(currentLine.endsWith(":")) {
         String scopeSelectors = currentLine.substring(0, currentLine.indexOf(":"));
-        Matcher matcher = CFA_NODE_PATTERN.matcher(scopeSelectors);
+        Matcher matcher = CFAUtils.CFA_NODE_NAME_PATTERN.matcher(scopeSelectors);
         if (matcher.matches()) {
           location = idToCfaNode.get(Integer.parseInt(matcher.group(1)));
         }
 
       } else {
-        mapping.put(location, MemoryLocation.valueOf(currentLine));
+        mapping.put(location, MemoryLocation.parseExtendedQualifiedName(currentLine));
       }
     }
 
@@ -218,18 +238,12 @@ public class ValueAnalysisCPA extends AbstractCPA
     return idToCfaNode.values().iterator().next();
   }
 
-  private Map<Integer, CFANode> createMappingForCFANodes(CFA pCfa) {
-    Map<Integer, CFANode> idToNodeMap = new HashMap<>();
-    for (CFANode n : pCfa.getAllNodes()) {
-      idToNodeMap.put(n.getNodeNumber(), n);
-    }
-    return idToNodeMap;
-  }
-
   public void injectRefinablePrecision() throws InvalidConfigurationException {
 
     // replace the full precision with an empty, refinable precision
-    if (initialPrecisionFile == null && !refineablePrecisionSet) {
+    if (initialPrecisionFile == null
+        && initialPredicatePrecisionFile == null
+        && !refineablePrecisionSet) {
       precision = VariableTrackingPrecision.createRefineablePrecision(config, precision);
       refineablePrecisionSet = true;
     }
@@ -311,6 +325,9 @@ public class ValueAnalysisCPA extends AbstractCPA
       pStatsCollection.add(symbolicStats);
     }
     pStatsCollection.add(constraintsStrengthenOperator);
+    if (predToValPrec.collectedStats()) {
+      pStatsCollection.add(predToValPrec);
+    }
     writer.collectStatistics(pStatsCollection);
   }
 

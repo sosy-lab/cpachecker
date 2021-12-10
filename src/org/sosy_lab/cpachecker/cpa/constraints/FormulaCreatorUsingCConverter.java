@@ -8,18 +8,15 @@
 
 package org.sosy_lab.cpachecker.cpa.constraints;
 
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.SymbolicExpressionToCExpressionTransformer;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -85,13 +82,7 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
     private final CFANode dummyNode;
 
     private DummyEdge(String pFunctionName) {
-      dummyNode =
-          new CFANode(
-              new CFunctionDeclaration(
-                  FileLocation.DUMMY,
-                  CFunctionType.NO_ARGS_VOID_FUNCTION,
-                  pFunctionName,
-                  ImmutableList.of()));
+      dummyNode = CFANode.newDummyCFANode(pFunctionName);
     }
 
     public static DummyEdge getInstance(String pFunctionName) {
@@ -121,8 +112,8 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
     }
 
     @Override
-    public Optional<? extends AAstNode> getRawAST() {
-      return Optional.absent();
+    public Optional<AAstNode> getRawAST() {
+      return Optional.empty();
     }
 
     @Override

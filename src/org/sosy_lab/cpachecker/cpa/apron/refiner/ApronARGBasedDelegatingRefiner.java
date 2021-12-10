@@ -268,10 +268,9 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
     return valueAnalysisChecker.isFeasible(path);
   }
 
-  /**
-   * Creates a new OctagonAnalysisPathChecker, which checks the given path at full precision.
-   */
-  private OctagonAnalysisFeasibilityChecker createApronFeasibilityChecker(ARGPath path) throws CPAException, ApronException {
+  /** Creates a new OctagonAnalysisPathChecker, which checks the given path at full precision. */
+  private OctagonAnalysisFeasibilityChecker createApronFeasibilityChecker(ARGPath path)
+      throws CPAException, ApronException, InterruptedException {
     try {
       OctagonAnalysisFeasibilityChecker checker;
 
@@ -307,7 +306,7 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
       }
 
       return checker;
-    } catch (InterruptedException | InvalidConfigurationException e) {
+    } catch (InvalidConfigurationException e) {
       throw new CPAException("counterexample-check failed: ", e);
     }
   }

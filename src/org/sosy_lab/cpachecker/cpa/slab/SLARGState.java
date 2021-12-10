@@ -21,10 +21,9 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
+import org.sosy_lab.cpachecker.core.defaults.SimpleTargetInformation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.Splitable;
@@ -135,8 +134,8 @@ public class SLARGState extends ARGState
   }
 
   @Override
-  public @NonNull Set<Property> getViolatedProperties() throws IllegalStateException {
-    return NamedProperty.singleton("Error state reached");
+  public @NonNull Set<TargetInformation> getTargetInformation() throws IllegalStateException {
+    return SimpleTargetInformation.singleton("Error state reached");
   }
 
   /*@Override
@@ -156,7 +155,7 @@ public class SLARGState extends ARGState
   @Override
   public String toString() {
     String result = super.toString();
-    return result.replaceAll("ARG State", "SLARG State");
+    return result.replace("ARG State", "SLARG State");
   }
 
   public void addParent(SLARGState pParent, EdgeSet pEdgeSet) {
@@ -236,14 +235,14 @@ public class SLARGState extends ARGState
 
     // copy children
     for (ARGState child : new ArrayList<>(getChildren())) {
-      assert (child.getParents().contains(this)) : "Inconsistent ARG at " + this;
+      assert child.getParents().contains(this) : "Inconsistent ARG at " + this;
       ((SLARGState) child)
           .addParent((SLARGState) replacement, new EdgeSet(this.getEdgeSetToChild(child)));
       child.removeParent(this);
     }
 
     for (ARGState parent : new ArrayList<>(getParents())) {
-      assert (parent.getChildren().contains(this)) : "Inconsistent ARG at " + this;
+      assert parent.getChildren().contains(this) : "Inconsistent ARG at " + this;
       ((SLARGState) replacement)
           .addParent(
               (SLARGState) parent, new EdgeSet(((SLARGState) parent).getEdgeSetToChild(this)));

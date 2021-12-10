@@ -14,19 +14,13 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
-/**
- * This class represents the integer number literal AST node type.
- */
+/** This class represents the integer number literal AST node type. */
 public final class JIntegerLiteralExpression extends AIntegerLiteralExpression
     implements JLiteralExpression {
 
   private static final long serialVersionUID = 1867514989284112879L;
 
-  public static JIntegerLiteralExpression createDummyLiteral(long value) {
-    return new JIntegerLiteralExpression(FileLocation.DUMMY, BigInteger.valueOf(value));
-  }
-
-  public JIntegerLiteralExpression(FileLocation pFileLocation,  BigInteger pValue) {
+  public JIntegerLiteralExpression(FileLocation pFileLocation, BigInteger pValue) {
     super(pFileLocation, JSimpleType.getInt(), pValue);
   }
 

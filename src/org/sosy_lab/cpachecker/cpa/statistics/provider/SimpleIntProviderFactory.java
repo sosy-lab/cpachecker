@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
  */
 public class SimpleIntProviderFactory {
 
-  public static interface Counter<T> {
+  public interface Counter<T> {
     int count(T e);
   }
   /**
@@ -117,7 +117,7 @@ public class SimpleIntProviderFactory {
       CReturnStatementEdge returnEdge = (CReturnStatementEdge) pEdge;
 
       if (returnEdge.getExpression().isPresent()) {
-        count += countExpressions(returnEdge.getExpression().get(), counter);
+          count += countExpressions(returnEdge.getExpression().orElseThrow(), counter);
       }
       break;
 

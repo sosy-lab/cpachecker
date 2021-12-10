@@ -69,7 +69,7 @@ public class TestTargetMinimizerEssential {
 
     Queue<CFANode> waitlist = new ArrayDeque<>();
     // start with function entry point
-    origCFANodeToCopyMap.put(pEntryNode, CFANode.newDummyCFANode(""));
+    origCFANodeToCopyMap.put(pEntryNode, CFANode.newDummyCFANode());
     waitlist.add(pEntryNode);
     origNodesCopied.add(pEntryNode);
     while (!waitlist.isEmpty()) {
@@ -360,6 +360,11 @@ public class TestTargetMinimizerEssential {
       final Set<CFAEdge> pTestTargets,
       final Map<CFAEdge, CFAEdge> copiedEdgeToTestTargetsMap,
       final Pair<CFANode, CFANode> pCopiedFunctionEntryExit) {
+    // exit not reachable, e.g., due to while(1) without break, return statement
+    if (pCopiedFunctionEntryExit.getSecond() == null) {
+      return;
+    }
+
     // remove edges from dummy graph according to third rule
     Set<CFANode> visitedNodes = new HashSet<>();
     Queue<CFANode> waitlist = new ArrayDeque<>();
@@ -373,6 +378,7 @@ public class TestTargetMinimizerEssential {
             pCopiedFunctionEntryExit.getSecond(),
             CFAUtils::allPredecessorsOf,
             CFAUtils::allSuccessorsOf);
+
     waitlist.add(pCopiedFunctionEntryExit.getFirst());
     visitedNodes.add(pCopiedFunctionEntryExit.getFirst());
     while (!waitlist.isEmpty()) {

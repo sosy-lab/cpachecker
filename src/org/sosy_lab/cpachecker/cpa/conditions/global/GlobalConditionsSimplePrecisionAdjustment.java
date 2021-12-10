@@ -110,7 +110,7 @@ class GlobalConditionsSimplePrecisionAdjustment extends SimplePrecisionAdjustmen
 
     long cputime = cputimeNanos / (1000*1000);
 
-    return (cputime > threshold);
+    return cputime > threshold;
   }
 
   private boolean checkHeapMemory() {
@@ -153,6 +153,6 @@ class GlobalConditionsSimplePrecisionAdjustment extends SimplePrecisionAdjustmen
 
     long memUsed = ((Long)memUsedObject) / (1000*1000);
 
-    return (memUsed > threshold);
+    return memUsed > threshold;
   }
 }

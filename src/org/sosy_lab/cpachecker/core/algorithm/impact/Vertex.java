@@ -12,9 +12,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableList;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.io.IOException;
-import java.io.NotSerializableException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -33,20 +30,7 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
  * This class is basically similar to {@link AbstractState},
  * but allows only one parent and additionally stores a modifiable state formula.
  */
-@SuppressFBWarnings("SE_BAD_FIELD")
 class Vertex extends AbstractSingleWrapperState {
-  /* Boilerplate code to avoid serializing this class */
-  private static final long serialVersionUID = 0xDEADBEEF;
-
-  /**
-   * javadoc to remove unused parameter warning
-   *
-   * @param out the output stream
-   */
-  @SuppressWarnings("UnusedVariable") // parameter is required by API
-  private void writeObject(java.io.ObjectOutputStream out) throws IOException {
-    throw new NotSerializableException();
-  }
 
   private static int nextId = 0;
   private final int id = nextId++;
@@ -189,7 +173,7 @@ class Vertex extends AbstractSingleWrapperState {
   }
 
   public boolean isOlderThan(Vertex v) {
-    return (id < v.id);
+    return id < v.id;
   }
 
   @Override

@@ -15,7 +15,7 @@ interface AbstractionStrategy {
    *
    * @return an abstraction state with no specific data.
    */
-  public AbstractionState getAbstractionState();
+  AbstractionState getAbstractionState();
 
   /**
    * Gets an abstraction state that represents the successor of the given
@@ -26,7 +26,7 @@ interface AbstractionStrategy {
    * @return an abstraction state that represents the successor of the given
    * abstraction state.
    */
-  public AbstractionState getSuccessorState(AbstractionState pPrevious);
+  AbstractionState getSuccessorState(AbstractionState pPrevious);
 
   /**
    * Gets an abstraction state that resembles the given abstraction state as
@@ -37,6 +37,5 @@ interface AbstractionStrategy {
    * @return an abstraction state that resembles the given abstraction state as
    * close as this factory allows.
    */
-  public AbstractionState from(AbstractionState pOther);
-
+  AbstractionState from(AbstractionState pOther);
 }

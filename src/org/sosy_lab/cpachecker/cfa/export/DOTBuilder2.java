@@ -329,9 +329,9 @@ public final class DOTBuilder2 {
           sb.append("" + edge.getPredecessor().getNodeNumber());
           sb.append("</td><td align=\"left\">");
           sb.append(HtmlEscapers.htmlEscaper().escape(getEdgeText(edge))
-                            .replaceAll("\\|", "&#124;")
-                            .replaceAll("\\{", "&#123;")
-                            .replaceAll("\\}", "&#125;"));
+                            .replace("|", "&#124;")
+                            .replace("{", "&#123;")
+                            .replace("}", "&#125;"));
           sb.append("</td></tr>");
         }
         sb.append("</table>>");

@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -74,9 +75,18 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class ProofSlicer {
+
+  private final ReachedSetFactory reachedSetFactory;
+
   private int numNotCovered;
 
-  public UnmodifiableReachedSet sliceProof(final UnmodifiableReachedSet pReached) {
+  public ProofSlicer(LogManager pLogger) throws InvalidConfigurationException {
+    // TODO: Really always a standard reached set instead of user-specified configuration?
+    reachedSetFactory = new ReachedSetFactory(Configuration.defaultConfiguration(), pLogger);
+  }
+
+  public UnmodifiableReachedSet sliceProof(
+      final UnmodifiableReachedSet pReached, final ConfigurableProgramAnalysis pCpa) {
     AbstractState first = pReached.getFirstState();
     if (first instanceof ARGState
         && AbstractStates.extractLocation(first) != null
@@ -90,8 +100,7 @@ public class ProofSlicer {
       computeRelevantVariablesPerState((ARGState) first, varMap);
 
       assert (numNotCovered == pReached.size());
-      return buildSlicedARG(varMap, pReached);
-
+      return buildSlicedARG(varMap, pReached, pCpa);
     }
 
     return pReached;
@@ -108,7 +117,7 @@ public class ProofSlicer {
       next = waitlist.pop();
 
       for (ARGState succ : getStateAndItsCoveredNodes(next)) {
-        assert (varMap.containsKey(succ));
+        assert varMap.containsKey(succ);
 
         for (ARGState p : succ.getParents()) {
           if (p.getEdgeToChild(succ) == null) {
@@ -148,7 +157,7 @@ public class ProofSlicer {
       final ARGState succ,
       final Set<String> succVars,
       final Map<ARGState, Set<String>> varMap) {
-    assert (varMap.containsKey(pred));
+    assert varMap.containsKey(pred);
     Set<String> updatedVars = new HashSet<>(varMap.get(pred));
 
     Set<String> sSet = new HashSet<>(succVars);
@@ -178,7 +187,7 @@ public class ProofSlicer {
       final CFAEdge edge,
       final Set<String> succVars,
       final Map<ARGState, Set<String>> varMap) {
-    assert (varMap.containsKey(pred));
+    assert varMap.containsKey(pred);
     Set<String> updatedPredVars = new HashSet<>(varMap.get(pred));
 
     addTransferSet(edge, succVars, updatedPredVars);
@@ -260,7 +269,7 @@ public class ProofSlicer {
           addAllExceptVar(varName, succVars, updatedVars);
 
           if (retStm.getExpression().isPresent()) {
-            CFAUtils.getVariableNamesOfExpression(retStm.getExpression().get())
+            CFAUtils.getVariableNamesOfExpression(retStm.getExpression().orElseThrow())
                 .copyInto(updatedVars);
           }
         } else {
@@ -299,7 +308,8 @@ public class ProofSlicer {
           addAllExceptVar(varName, succVars, updatedVars);
           if (!funRet.getFunctionEntry().getReturnVariable().isPresent()) { throw new AssertionError(
               "No return variable provided for non-void function."); }
-          updatedVars.add(funRet.getFunctionEntry().getReturnVariable().get().getQualifiedName());
+          updatedVars.add(
+              funRet.getFunctionEntry().getReturnVariable().orElseThrow().getQualifiedName());
         } else {
           updatedVars.addAll(succVars);
         }
@@ -386,7 +396,7 @@ public class ProofSlicer {
   }
 
   private Set<String> initState(final ARGState parent) {
-    assert (!parent.isCovered());
+    assert !parent.isCovered();
     for (CFAEdge edge : CFAUtils.leavingEdges(AbstractStates.extractLocation(parent))) {
 
       if (edge.getEdgeType() == CFAEdgeType.AssumeEdge) {
@@ -418,10 +428,12 @@ public class ProofSlicer {
   }
 
   private UnmodifiableReachedSet buildSlicedARG(
-      final Map<ARGState, Set<String>> pVarMap, final UnmodifiableReachedSet pReached) {
+      final Map<ARGState, Set<String>> pVarMap,
+      final UnmodifiableReachedSet pReached,
+      final ConfigurableProgramAnalysis pCpa) {
     Map<ARGState, ARGState> oldToSliced = Maps.newHashMapWithExpectedSize(pVarMap.size());
     ARGState root = (ARGState) pReached.getFirstState();
-    assert (pVarMap.containsKey(root));
+    assert pVarMap.containsKey(root);
 
     for (Entry<ARGState, Set<String>> entry : pVarMap.entrySet()) {
       oldToSliced.put(entry.getKey(), getSlicedARGState(entry.getKey(), entry.getValue()));
@@ -436,22 +448,14 @@ public class ProofSlicer {
       }
     }
 
-    ReachedSet returnReached;
-    try {
-      returnReached =
-          new ReachedSetFactory(
-                  Configuration.defaultConfiguration(), LogManager.createNullLogManager())
-              .create();
-      // add root
-      returnReached.add(oldToSliced.get(root), pReached.getPrecision(root));
-      // add remaining elements
-      for (Entry<ARGState, ARGState> entry : oldToSliced.entrySet()) {
-        if (Objects.equals(entry.getKey(), root) && !entry.getKey().isCovered()) {
-          returnReached.add(entry.getValue(), pReached.getPrecision(entry.getKey()));
-        }
+    ReachedSet returnReached = reachedSetFactory.create(pCpa);
+    // add root
+    returnReached.add(oldToSliced.get(root), pReached.getPrecision(root));
+    // add remaining elements
+    for (Entry<ARGState, ARGState> entry : oldToSliced.entrySet()) {
+      if (Objects.equals(entry.getKey(), root) && !entry.getKey().isCovered()) {
+        returnReached.add(entry.getValue(), pReached.getPrecision(entry.getKey()));
       }
-    } catch (InvalidConfigurationException e) {
-      return pReached;
     }
     return returnReached;
   }

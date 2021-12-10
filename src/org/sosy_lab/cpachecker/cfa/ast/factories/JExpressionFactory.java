@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.factories;
 
+import java.math.BigInteger;
+
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
@@ -53,7 +55,7 @@ public class JExpressionFactory implements IExpressionFactory {
 
   public JExpressionFactory from(Number pValue, JType pType) {
     if (pType == JSimpleType.getInt() || pType == JSimpleType.getLong() || pType == JSimpleType.getShort()) {
-      this.currentExpression = JIntegerLiteralExpression.createDummyLiteral((long) pValue);
+      this.currentExpression = new JIntegerLiteralExpression(FileLocation.DUMMY, new  BigInteger("" + pValue));
       return this;
     } else if (pType == JSimpleType.getDouble() || pType == JSimpleType.getFloat()) {
       this.currentExpression = JFloatLiteralExpression.createDummyLiteral((double) pValue);

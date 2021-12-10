@@ -8,15 +8,14 @@
 
 package org.sosy_lab.cpachecker.cpa.thread;
 
-import static com.google.common.collect.FluentIterable.from;
-
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.TreeMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -194,10 +193,12 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
     Map<String, ThreadStatus> tSet = state.getThreadSet();
 
     Optional<ThreadLabel> result =
-        from(order).filter(l -> l.getVarName().equals(jCall.getVariableName())).last();
+        Lists.reverse(order).stream()
+            .filter(l -> l.getVarName().equals(jCall.getVariableName()))
+            .findFirst();
     // Do not self-join
     if (result.isPresent()) {
-      ThreadLabel toRemove = result.get();
+      ThreadLabel toRemove = result.orElseThrow();
       String var = toRemove.getVarName();
       if (tSet.containsKey(var) && tSet.get(var) != ThreadStatus.CREATED_THREAD) {
         Map<String, ThreadStatus> newSet = new TreeMap<>(tSet);
@@ -211,11 +212,11 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private boolean isThreadCreateFunction(CFunctionCall statement) {
-    return (statement instanceof CThreadCreateStatement);
+    return statement instanceof CThreadCreateStatement;
   }
 
   private boolean isThreadJoinFunction(CFunctionCall statement) {
-    return (statement instanceof CThreadJoinStatement);
+    return statement instanceof CThreadJoinStatement;
   }
 
   public Statistics getStatistics() {

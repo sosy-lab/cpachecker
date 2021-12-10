@@ -219,9 +219,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
         // add predicates according to the scope
         // location scope is chosen if neither function or global scope is specified or both are
         // specified which would be a conflict here
-        boolean applyLocally =
-            (!options.applyFunctionWide && !options.applyGlobally)
-                || (options.applyFunctionWide && options.applyGlobally);
+        boolean applyLocally = options.applyFunctionWide == options.applyGlobally;
         if (applyLocally) {
           result = result.addLocalPredicates(localPredicates.entries());
         } else if (options.applyFunctionWide) {

@@ -8,12 +8,13 @@
 
 package org.sosy_lab.cpachecker.cfa.model;
 
-import com.google.common.base.Optional;
 import java.util.List;
+import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-
 
 
 public class FunctionCallEdge extends AbstractCFAEdge {
@@ -39,10 +40,16 @@ public class FunctionCallEdge extends AbstractCFAEdge {
     return  summaryEdge;
   }
 
+  public AFunctionCall getFunctionCall() {
+    return functionCall;
+  }
 
+  public AFunctionCallExpression getFunctionCallExpression() {
+    return getFunctionCall().getFunctionCallExpression();
+  }
 
   public List<? extends AExpression> getArguments() {
-    return functionCall.getFunctionCallExpression().getParameterExpressions();
+    return getFunctionCallExpression().getParameterExpressions();
   }
 
   @Override
@@ -51,7 +58,7 @@ public class FunctionCallEdge extends AbstractCFAEdge {
   }
 
   @Override
-  public Optional<? extends AFunctionCall> getRawAST() {
+  public Optional<AAstNode> getRawAST() {
     return Optional.of(functionCall);
   }
 
@@ -68,7 +75,7 @@ public class FunctionCallEdge extends AbstractCFAEdge {
         getFileLocation(),
         pNewPredecessorNode,
         pNewSuccessorNode,
-        getRawAST().get(),
+        getFunctionCall(),
         getSummaryEdge());
   }
 }

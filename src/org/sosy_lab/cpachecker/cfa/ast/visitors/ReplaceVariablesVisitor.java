@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayLengthExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBooleanLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JClassLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JEnumConstantExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JNullLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeEqualsType;
@@ -176,5 +177,10 @@ public class ReplaceVariablesVisitor<X extends Exception>
         .from(pExp.getOperand().accept_(this))
         .unaryOperation(pExp.getOperator())
         .build();
+  }
+  
+  @Override
+  public AExpression visit(JClassLiteralExpression pJClassLiteralExpression) throws X {
+    return pJClassLiteralExpression;
   }
 }

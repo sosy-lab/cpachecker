@@ -29,7 +29,6 @@ import java.io.IOException;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,6 +49,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcher;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonIntVariable;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonSetVariable;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 /**
@@ -60,7 +60,8 @@ public class AutomatonInternalTest {
   private final LogManager logger;
   private final CParser parser;
 
-  private static final Path defaultSpecPath = Paths.get("test/config/automata/defaultSpecification.spc");
+  private static final Path defaultSpecPath =
+      Path.of("test/config/automata/defaultSpecification.spc");
   private static final CharSource defaultSpec =
       MoreFiles.asCharSource(defaultSpecPath, StandardCharsets.UTF_8);
 
@@ -172,13 +173,25 @@ public class AutomatonInternalTest {
   public void testJokerReplacementInPattern() {
     // tests the replacement of Joker expressions in the AST comparison
     String result = AutomatonASTComparator.replaceJokersInPattern("$20 = $?");
-    assertThat(result).contains("CPAchecker_AutomatonAnalysis_JokerExpression_Num20  =  CPAchecker_AutomatonAnalysis_JokerExpression");
+    assertThat(result)
+        .contains(
+            "CPAchecker_AutomatonAnalysis_JokerExpression_Num20  = "
+                + " CPAchecker_AutomatonAnalysis_JokerExpression");
     result = AutomatonASTComparator.replaceJokersInPattern("$1 = $?");
-    assertThat(result).contains("CPAchecker_AutomatonAnalysis_JokerExpression_Num1  =  CPAchecker_AutomatonAnalysis_JokerExpression");
+    assertThat(result)
+        .contains(
+            "CPAchecker_AutomatonAnalysis_JokerExpression_Num1  = "
+                + " CPAchecker_AutomatonAnalysis_JokerExpression");
     result = AutomatonASTComparator.replaceJokersInPattern("$? = $?");
-    assertThat(result).contains("CPAchecker_AutomatonAnalysis_JokerExpression_Wildcard0  =  CPAchecker_AutomatonAnalysis_JokerExpression_Wildcard1");
+    assertThat(result)
+        .contains(
+            "CPAchecker_AutomatonAnalysis_JokerExpression_Wildcard0  = "
+                + " CPAchecker_AutomatonAnalysis_JokerExpression_Wildcard1");
     result = AutomatonASTComparator.replaceJokersInPattern("$1 = $5");
-    assertThat(result).contains("CPAchecker_AutomatonAnalysis_JokerExpression_Num1  =  CPAchecker_AutomatonAnalysis_JokerExpression_Num5 ");
+    assertThat(result)
+        .contains(
+            "CPAchecker_AutomatonAnalysis_JokerExpression_Num1  = "
+                + " CPAchecker_AutomatonAnalysis_JokerExpression_Num5 ");
   }
 
   @Test
@@ -187,9 +200,24 @@ public class AutomatonInternalTest {
     final String pattern = "$20 = $5($1, $?);";
     final String source = "var1 = function(var2, egal);";
 
-    assert_().about(ASTMatcherSubject::new).that(pattern).matches(source).andVariable(20).isEqualTo("var1");
-    assert_().about(ASTMatcherSubject::new).that(pattern).matches(source).andVariable(1).isEqualTo("var2");
-    assert_().about(ASTMatcherSubject::new).that(pattern).matches(source).andVariable(5).isEqualTo("function");
+    assert_()
+        .about(ASTMatcherSubject::new)
+        .that(pattern)
+        .matches(source)
+        .andVariable(20)
+        .isEqualTo("var1");
+    assert_()
+        .about(ASTMatcherSubject::new)
+        .that(pattern)
+        .matches(source)
+        .andVariable(1)
+        .isEqualTo("var2");
+    assert_()
+        .about(ASTMatcherSubject::new)
+        .that(pattern)
+        .matches(source)
+        .andVariable(5)
+        .isEqualTo("function");
   }
 
   @Test
@@ -302,7 +330,12 @@ public class AutomatonInternalTest {
     assert_().about(ASTMatcherSubject::new).that("f();").doesNotMatch("f(x, y);");
 
     assert_().about(ASTMatcherSubject::new).that("f($1);").doesNotMatch("f();");
-    assert_().about(ASTMatcherSubject::new).that("f($1);").matches("f(x);").andVariable(1).isEqualTo("x");
+    assert_()
+        .about(ASTMatcherSubject::new)
+        .that("f($1);")
+        .matches("f(x);")
+        .andVariable(1)
+        .isEqualTo("x");
     assert_().about(ASTMatcherSubject::new).that("f($1);").doesNotMatch("f(x, y);");
 
     assert_().about(ASTMatcherSubject::new).that("f($?);").matches("f();");
@@ -318,11 +351,21 @@ public class AutomatonInternalTest {
   public void testAstMatcherFunctionCall() throws InterruptedException {
     assert_().about(ASTMatcherSubject::new).that("$?();").matches("f();");
     assert_().about(ASTMatcherSubject::new).that("$?();").doesNotMatch("x = f();");
-    assert_().about(ASTMatcherSubject::new).that("$1();").matches("f();").andVariable(1).isEqualTo("f");
+    assert_()
+        .about(ASTMatcherSubject::new)
+        .that("$1();")
+        .matches("f();")
+        .andVariable(1)
+        .isEqualTo("f");
 
     assert_().about(ASTMatcherSubject::new).that("x = $?();").doesNotMatch("f();");
     assert_().about(ASTMatcherSubject::new).that("x = $?();").matches("x = f();");
-    assert_().about(ASTMatcherSubject::new).that("x = $1();").matches("x = f();").andVariable(1).isEqualTo("f");
+    assert_()
+        .about(ASTMatcherSubject::new)
+        .that("x = $1();")
+        .matches("x = f();")
+        .andVariable(1)
+        .isEqualTo("f");
 
     assert_().about(ASTMatcherSubject::new).that("$?($?);").matches("f();");
     assert_().about(ASTMatcherSubject::new).that("$?($?);").matches("f(y);");
@@ -423,7 +466,7 @@ public class AutomatonInternalTest {
     }
   }
 
-  private static interface Matches {
+  private interface Matches {
     StringSubject andVariable(int var);
   }
 }

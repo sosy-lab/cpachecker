@@ -8,9 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.interfaces;
 
-import org.checkerframework.checker.nullness.qual.NonNull;
-
 import com.google.common.base.Preconditions;
+import org.checkerframework.checker.nullness.qual.NonNull;
 
 /**
  * Interface that describes a partition of the state space.
@@ -23,7 +22,7 @@ import com.google.common.base.Preconditions;
  */
 public class StateSpacePartition implements Partitionable {
 
-  private static final StateSpacePartition defaultPartition = getPartitionWithKey(Integer.valueOf(0));
+  private static final StateSpacePartition defaultPartition = getPartitionWithKey(0);
 
   public static StateSpacePartition getDefaultPartition() {
     return defaultPartition;

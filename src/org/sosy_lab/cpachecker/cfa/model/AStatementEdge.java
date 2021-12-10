@@ -8,8 +8,10 @@
 
 package org.sosy_lab.cpachecker.cfa.model;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 
@@ -35,7 +37,7 @@ public class AStatementEdge extends AbstractCFAEdge {
   }
 
   @Override
-  public Optional<? extends AStatement> getRawAST() {
+  public Optional<AAstNode> getRawAST() {
     return Optional.of(statement);
   }
 

@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cfa.model;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.Serializable;
@@ -26,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 
 public class CFANode implements Comparable<CFANode>, Serializable {
@@ -58,15 +58,19 @@ public class CFANode implements Comparable<CFANode>, Serializable {
   // reverse postorder sort id, smaller if it appears later in sorting
   private int reversePostorderId = 0;
 
-  /** This method provides a simple way to generate a function. */
-  @VisibleForTesting
-  public static CFANode newDummyCFANode(String dummyName) {
+  /** Create new CFA node for a dummy function (with a C type). Useful for testing etc. */
+  public static CFANode newDummyCFANode(String functionName) {
     return new CFANode(
         new CFunctionDeclaration(
             FileLocation.DUMMY,
             CFunctionType.NO_ARGS_VOID_FUNCTION,
-            dummyName,
+            functionName,
             ImmutableList.of()));
+  }
+
+  /** Create a new CFA node for a dummy function (with a C type). */
+  public static CFANode newDummyCFANode() {
+    return new CFANode(CFunctionDeclaration.DUMMY);
   }
 
   public CFANode(AFunctionDeclaration pFunction) {
@@ -267,7 +271,7 @@ public class CFANode implements Comparable<CFANode>, Serializable {
     if (getNumLeavingEdges() > 0) {
       CFAEdge edge = getLeavingEdge(0);
 
-      if (!edge.getFileLocation().equals(FileLocation.DUMMY)) {
+      if (edge.getFileLocation().isRealLocation()) {
         return "before " + edge.getFileLocation();
       }
     }
@@ -275,7 +279,7 @@ public class CFANode implements Comparable<CFANode>, Serializable {
     if (getNumEnteringEdges() > 0) {
       CFAEdge edge = getEnteringEdge(0);
 
-      if (!edge.getFileLocation().equals(FileLocation.DUMMY)) {
+      if (edge.getFileLocation().isRealLocation()) {
         return "after " + edge.getFileLocation();
       }
     }
@@ -297,7 +301,13 @@ public class CFANode implements Comparable<CFANode>, Serializable {
     if (outOfScopeVariables == null) { // lazy
       outOfScopeVariables = new LinkedHashSet<>();
     }
-    outOfScopeVariables.addAll(pOutOfScopeVariables);
+    outOfScopeVariables.addAll(
+        pOutOfScopeVariables.stream()
+            .filter(
+                decl ->
+                    !(decl instanceof CVariableDeclaration)
+                        || !((CVariableDeclaration) decl).isGlobal())
+            .collect(ImmutableSet.toImmutableSet()));
   }
 
   /**

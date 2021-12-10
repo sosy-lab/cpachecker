@@ -8,7 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.model;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -105,13 +106,12 @@ public class AssumeEdge extends AbstractCFAEdge {
   }
 
   /**
-   * TODO
-   * Warning: for instances with {@link #getTruthAssumption()} == false, the
-   * return value of this method does not represent exactly the return value
-   * of {@link #getRawStatement()} (it misses the outer negation of the expression).
+   * TODO Warning: for instances with {@link #getTruthAssumption()} == false, the return value of
+   * this method does not represent exactly the return value of {@link #getRawStatement()} (it
+   * misses the outer negation of the expression).
    */
   @Override
-  public Optional<? extends AExpression> getRawAST() {
+  public Optional<AAstNode> getRawAST() {
     return Optional.of(expression);
   }
 

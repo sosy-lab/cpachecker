@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.model.java;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
@@ -19,39 +19,38 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 
 public class JReturnStatementEdge extends AReturnStatementEdge {
 
-
   private static final long serialVersionUID = -6303184113368127372L;
 
-  public JReturnStatementEdge(String pRawStatement, JReturnStatement pRawAST,
-      FileLocation pFileLocation, CFANode pPredecessor, FunctionExitNode pSuccessor) {
+  public JReturnStatementEdge(
+      String pRawStatement,
+      JReturnStatement pRawAST,
+      FileLocation pFileLocation,
+      CFANode pPredecessor,
+      FunctionExitNode pSuccessor) {
 
     super(pRawStatement, pRawAST, pFileLocation, pPredecessor, pSuccessor);
-
   }
 
-  @SuppressWarnings("unchecked") // safe because Optional is covariant
+  @Override
+  public JReturnStatement getReturnStatement() {
+    return (JReturnStatement) returnStatement;
+  }
+
   @Override
   public Optional<JExpression> getExpression() {
-    return (Optional<JExpression>)rawAST.getReturnValue();
+    return getReturnStatement().getReturnValue();
   }
 
-  @SuppressWarnings("unchecked") // safe because Optional is covariant
   @Override
   public Optional<JAssignment> asAssignment() {
-    return (Optional<JAssignment>)super.asAssignment();
+    return getReturnStatement().asAssignment();
   }
-
-  @Override
-  public Optional<JReturnStatement> getRawAST() {
-    return Optional.of((JReturnStatement)rawAST);
-  }
-
   @Override
   public JReturnStatementEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
     if (pNewSuccessorNode instanceof FunctionExitNode) {
       return new JReturnStatementEdge(
           getRawStatement(),
-          getRawAST().get(),
+          getReturnStatement(),
           getFileLocation(),
           pNewPredecessorNode,
           (FunctionExitNode) pNewSuccessorNode);

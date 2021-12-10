@@ -64,6 +64,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/seq-mthreaded/pals_lcr*</exclude> <!-- mostly timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_lcr*</exclude> <!-- mostly timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_opt-floodmax.4.1.ufo.UNBOUNDED.pals.c.v+lhb-reducer.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_opt-floodmax.5.4.ufo.BOUNDED-10.pals.c.p+lhb-reducer.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_floodmax.4.1.ufo.UNBOUNDED.pals.c.v+lhb-reducer.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_floodmax.5.1.ufo.BOUNDED-10.pals.c.v+cfa-reducer.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/seq-pthread/*</exclude> <!-- only timeouts -->

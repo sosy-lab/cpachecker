@@ -49,6 +49,7 @@ The following command-line arguments are allowed:
  - `-64`			sets `analysis.machineModel = Linux64`
  - `-skipRecursion`		sets `cpa.callstack.skipRecursion = true` and `analysis.summaryEdges = true`
  - `-preprocess`		sets `parser.usePreprocessor = true`
+ - `-clang`			sets `parser.useClang = true`
  - `-java`  			sets `language = JAVA`
  - `-secureMode`		enables a secure mode which forbids some configuration options that would allow arbitrary code execution
  - `-debug` 			enables the JVM debug interface on TCP port 5005 for remote debugging
@@ -108,7 +109,7 @@ to specify the wrapped CPA, depending whether this CPA wraps one or
 several other CPAs (the latter is only used for CompositeCPA). This option
 has to be prefixed with the identifier of the CPA as described above.
 
-A simple example (the first line could be ommitted as it's the default):
+A simple example (the first line could be omitted as it is the default):
 
 ```
 cpa = cpa.composite.CompositeCPA
@@ -126,12 +127,29 @@ ErrorLocationAutomaton.cpa.automaton.inputFile = config/specification/ErrorLocat
 ```
 
 Note that instead of manually specifying an `ObserverAutomatonCPA`, you can
-use the option `specification`. The following example is identical to the last one:
+use the option `specification` (or the equivalent command-line argument `-spec`).
+The following example is identical to the last one:
 
 ```
 cpa = cpa.arg.ARGCPA arg
 arg.cpa = cpa.composite.CompositeCPA composite
 composite.cpas = cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.predicate.PredicateCPA
+specification = config/specification/ErrorLocation.spc
+```
+
+If the option `specification` is used, CPAchecker will create CPA instances
+for each of the automata within the specification
+and insert them in an appropriate place in the tree of CPAs,
+usually below a CompositeCPA instance.
+To override this behavior
+and specify where the CPAs for specification automata should be inserted,
+use the placeholder `$specification` in the appropriate place.
+Thus the following example is again identical to the previous two:
+
+```
+cpa = cpa.arg.ARGCPA arg
+arg.cpa = cpa.composite.CompositeCPA composite
+composite.cpas = cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.predicate.PredicateCPA, $specification
 specification = config/specification/ErrorLocation.spc
 ```
 

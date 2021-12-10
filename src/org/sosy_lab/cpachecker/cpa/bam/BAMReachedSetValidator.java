@@ -92,7 +92,7 @@ public class BAMReachedSetValidator {
       if (partitioning.isCallNode(node)) {
         if (data.hasInitialState(state)) {
           for (ARGState child : state.getChildren()) {
-            assert (data.hasExpandedState(child))
+            assert data.hasExpandedState(child)
                 : "child of non-reduced initial state should be expanded: " + child;
             ARGState reducedChild = (ARGState) data.getReducedStateForExpandedState(child);
             if (reducedChild.isDestroyed()) {

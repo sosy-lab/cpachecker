@@ -49,7 +49,7 @@ class OctagonDomain implements AbstractDomain {
       totaltime = totaltime + (System.currentTimeMillis() - start);
       return false;
     } else {
-      assert (result == 3);
+      assert result == 3;
       boolean included = octState1.getOctagon().getManager().isIncludedIn(octState1.getOctagon(), octState2.getOctagon());
       if (included) {
         Set<OctagonState> s;

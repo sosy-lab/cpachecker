@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayLengthExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBooleanLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JClassLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JEnumConstantExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JNullLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeEqualsType;
@@ -239,6 +240,11 @@ public class AggregateConstantsVisitor<X extends Exception>
 
   @Override
   public Optional<Integer> visit(JBooleanLiteralExpression pJBooleanLiteralExpression) throws X {
+    return Optional.empty();
+  }
+
+  @Override
+  public Optional<Integer> visit(JClassLiteralExpression pJClassLiteralExpression) throws X {
     return Optional.empty();
   }
 }

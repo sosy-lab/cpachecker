@@ -72,6 +72,7 @@ public enum MachineModel {
       1, // void
       1, //bool
       4, //pointer
+      true, // char is signed
       ByteOrder.LITTLE_ENDIAN // endianness
   ),
 
@@ -104,6 +105,7 @@ public enum MachineModel {
       1, // void
       1, // bool
       8, // pointer
+      true, // char is signed
       ByteOrder.LITTLE_ENDIAN // endianness
   ),
 
@@ -127,17 +129,52 @@ public enum MachineModel {
       2, // short
       4, // int
       4, // long int
-      4, // long long int
+      8, // long long int
       4, // float
-      4, // double
-      4, // long double
+      8, // double
+      8, // long double
 
       // alignof other
       1, // void
-      4, // bool
+      1, // bool
       4, // pointer
+      false, // char is signed
       ByteOrder.LITTLE_ENDIAN // endianness
-  );
+      ),
+
+  /** Machine model representing an ARM64 machine with alignment: */
+  ARM64(
+      // numeric types
+      2, // short
+      4, // int
+      8, // long int
+      8, // long long int
+      4, // float
+      8, // double
+      16, // long double
+
+      // other
+      1, // void
+      1, // bool
+      8, // pointer
+
+      //  alignof numeric types
+      2, // short
+      4, // int
+      8, // long int
+      8, // long long int
+      4, // float
+      8, // double
+      16, // long double
+
+      // alignof other
+      1, // void
+      1, // bool
+      8, // pointer
+      false, // char is signed
+      ByteOrder.LITTLE_ENDIAN // endianness
+      );
+
   // numeric types
   private final int sizeofShort;
   private final int sizeofInt;
@@ -152,7 +189,6 @@ public enum MachineModel {
   private final int sizeofBool;
   private final int sizeofPtr;
 
-  @SuppressWarnings("ImmutableEnumChecker")
   private final transient ByteOrder endianness;
 
   // alignof numeric types
@@ -172,6 +208,7 @@ public enum MachineModel {
   // according to ANSI C, sizeof(char) is always 1
   private final int mSizeofChar = 1;
   private final int mAlignofChar = 1;
+  private final boolean defaultCharSigned;
 
   // a char is always a byte, but a byte doesn't have to be 8 bits
   private final int mSizeofCharInBits = 8;
@@ -198,6 +235,7 @@ public enum MachineModel {
       int pAlignofVoid,
       int pAlignofBool,
       int pAlignofPtr,
+      boolean pDefaultCharSigned,
       ByteOrder pEndianness) {
     sizeofShort = pSizeofShort;
     sizeofInt = pSizeofInt;
@@ -220,6 +258,7 @@ public enum MachineModel {
     alignofVoid = pAlignofVoid;
     alignofBool = pAlignofBool;
     alignofPtr = pAlignofPtr;
+    defaultCharSigned = pDefaultCharSigned;
     endianness = pEndianness;
 
     if (sizeofPtr == sizeofInt) {
@@ -265,7 +304,7 @@ public enum MachineModel {
    * or <code>unsigned char</code>.
    */
   public boolean isDefaultCharSigned() {
-    return true;
+    return defaultCharSigned;
   }
 
   /**
@@ -616,7 +655,7 @@ public enum MachineModel {
 
     @Override
     public BigInteger visit(CProblemType pProblemType) throws IllegalArgumentException {
-      throw new IllegalArgumentException("Unknown C-Type: " + pProblemType.getClass().toString());
+      throw new IllegalArgumentException("Unknown C-Type: " + pProblemType.getClass());
     }
 
     @Override
@@ -747,7 +786,7 @@ public enum MachineModel {
 
     @Override
     public Integer visit(CProblemType pProblemType) throws IllegalArgumentException {
-      throw new IllegalArgumentException("Unknown C-Type: " + pProblemType.getClass().toString());
+      throw new IllegalArgumentException("Unknown C-Type: " + pProblemType.getClass());
     }
 
     @Override
