@@ -39,20 +39,6 @@ public final class JBinaryExpression extends ABinaryExpression implements JExpre
   }
 
   @Override
-  public ABinaryExpression copyWithExpressions(AExpression pNewOperand1, AExpression pNewOperand2) {
-    if (pNewOperand1 instanceof JExpression && pNewOperand2 instanceof JExpression) {
-      return new JBinaryExpression(
-          this.getFileLocation(),
-          this.getExpressionType(),
-          (JExpression) pNewOperand1,
-          (JExpression) pNewOperand2,
-          this.getOperator());
-    } else {
-      return null;
-    }
-  }
-
-  @Override
   public <R, X extends Exception> R accept(JExpressionVisitor<R, X> v) throws X {
     return v.visit(this);
   }

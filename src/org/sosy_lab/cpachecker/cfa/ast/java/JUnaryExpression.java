@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
@@ -31,19 +30,6 @@ public final class JUnaryExpression extends AUnaryExpression implements JExpress
   public JUnaryExpression(FileLocation pFileLocation, JType pType, JExpression pOperand, UnaryOperator pOperator) {
     super(pFileLocation, pType, pOperand, pOperator);
 
-  }
-
-  @Override
-  public AUnaryExpression copyWithExpression(final AExpression pOperand) {
-    if (pOperand instanceof JExpression) {
-      return new JUnaryExpression(
-          this.getFileLocation(),
-          this.getExpressionType(),
-          (JExpression) pOperand,
-          this.getOperator());
-    } else {
-      return null;
-    }
   }
 
   @Override

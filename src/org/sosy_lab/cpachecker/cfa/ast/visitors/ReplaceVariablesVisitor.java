@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.factories.AExpressionFactory;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayLengthExpression;
@@ -139,8 +140,9 @@ public class ReplaceVariablesVisitor<X extends Exception>
 
   @Override
   public AExpression visit(ABinaryExpression pExp) throws X {
-      return pExp.copyWithExpressions(
-          pExp.getOperand1().accept_(this), pExp.getOperand2().accept_(this));
+    return new AExpressionFactory(pExp.getOperand1().accept_(this))
+        .binaryOperation(pExp.getOperand2().accept_(this), pExp.getOperator())
+        .build();
   }
 
   @Override
@@ -170,6 +172,9 @@ public class ReplaceVariablesVisitor<X extends Exception>
 
   @Override
   public AExpression visit(AUnaryExpression pExp) throws X {
-    return pExp.copyWithExpression(pExp.getOperand().accept_(this));
+    return new AExpressionFactory()
+        .from(pExp.getOperand().accept_(this))
+        .unaryOperation(pExp.getOperator())
+        .build();
   }
 }

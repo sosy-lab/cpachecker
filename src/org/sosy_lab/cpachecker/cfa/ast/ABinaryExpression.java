@@ -36,9 +36,6 @@ public abstract class ABinaryExpression extends AbstractExpression {
     operator = pOperator;
   }
 
-  public abstract ABinaryExpression copyWithExpressions(
-      final AExpression pAExpression, final AExpression pAExpression2);
-
   public AExpression getOperand1() {
     return operand1;
   }

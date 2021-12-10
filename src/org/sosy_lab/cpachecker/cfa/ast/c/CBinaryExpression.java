@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
@@ -27,21 +26,6 @@ public class CBinaryExpression extends ABinaryExpression implements CExpression 
                               final BinaryOperator pOperator) {
     super(pFileLocation, pExpressionType, pOperand1, pOperand2, pOperator);
     calculationType = pCalculationType;
-  }
-
-  @Override
-  public ABinaryExpression copyWithExpressions(AExpression pNewOperand1, AExpression pNewOperand2) {
-    if (pNewOperand1 instanceof CExpression && pNewOperand2 instanceof CExpression) {
-      return new CBinaryExpression(
-          this.getFileLocation(),
-          this.getExpressionType(),
-          this.getCalculationType(),
-          (CExpression) pNewOperand1,
-          (CExpression) pNewOperand2,
-          this.getOperator());
-    } else {
-      return null;
-    }
   }
 
   @Override

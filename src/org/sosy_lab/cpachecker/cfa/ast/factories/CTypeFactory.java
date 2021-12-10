@@ -14,9 +14,31 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public class CTypeFactory {
 
-  @SuppressWarnings("unused")
   public static CType getMostGeneralType(CType type1, CType type2) {
-    return type1;
+    if (type1 instanceof CSimpleType && type2 instanceof CSimpleType) {
+      switch (((CSimpleType) type1).getType()) {
+        case BOOL:
+        case CHAR:
+        case DOUBLE:
+          return type1;
+        case FLOAT:
+        case FLOAT128:
+          if (((CSimpleType) type2).getType() == CBasicType.DOUBLE) {
+            return type2;
+          } else {
+            return type1;
+          }
+        case INT:
+        case INT128:
+          return new CSimpleType(
+              false, false, CBasicType.INT, false, false, false, false, false, false, true);
+        case UNSPECIFIED:
+        default:
+          return type1;
+      }
+    } else {
+      return null;
+    }
   }
 
   public static CType getBiggestType(CType pType) {

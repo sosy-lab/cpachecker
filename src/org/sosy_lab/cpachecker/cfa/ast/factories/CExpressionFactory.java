@@ -17,7 +17,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -76,8 +75,9 @@ public class CExpressionFactory implements IExpressionFactory {
             (CType)
                 TypeFactory.getMostGeneralType(
                     this.currentExpression.getExpressionType(), pExpr.getExpressionType()),
-            TypeFactory.getCalculationType(
-                this.currentExpression.getExpressionType(), pExpr.getExpressionType()),
+            (CType)
+                TypeFactory.getMostGeneralType(
+                    this.currentExpression.getExpressionType(), pExpr.getExpressionType()),
             this.currentExpression,
             pExpr,
             pOperator);

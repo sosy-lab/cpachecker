@@ -27,8 +27,6 @@ public abstract class AUnaryExpression extends AbstractExpression {
     operator = pOperator;
   }
 
-  public abstract AUnaryExpression copyWithExpression(final AExpression pOperand);
-
   public AExpression getOperand() {
     return operand;
   }

@@ -24,11 +24,6 @@ public class TypeFactory {
     }
   }
 
-  @SuppressWarnings("unused")
-  public static CType getCalculationType(CType type1, CType type2) {
-    return type1;
-  }
-
   public static Type getBiggestType(Type pType) {
     if (pType instanceof CType) {
       return CTypeFactory.getBiggestType((CType) pType);
