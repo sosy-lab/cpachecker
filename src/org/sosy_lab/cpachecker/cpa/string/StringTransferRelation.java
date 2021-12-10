@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.model.java.JMethodSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -300,10 +301,10 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
 
       JLeftHandSide jLeft = ((JAssignment) pJStat).getLeftHandSide();
       JRightHandSide jRight = ((JAssignment) pJStat).getRightHandSide();
-      JStringVariableIdentifier jid = jLeft.accept(jvv);
+      JType type = jLeft.getExpressionType();
 
-      if (jid.isString()) {
-
+      if (HelperMethods.isString(type)) {
+        JStringVariableIdentifier jid = jLeft.accept(jvv);
         AspectList vaa = jRight.accept(jalv);
         return pState.updateVariable(jid, vaa);
 
