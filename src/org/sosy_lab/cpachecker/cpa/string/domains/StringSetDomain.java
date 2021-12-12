@@ -39,7 +39,7 @@ public class StringSetDomain implements AbstractStringDomain<List<String>> {
       return new Aspect<>(this, givenSet);
     }
 
-    return new Aspect<>(this, givenSet);
+    return new Aspect<>(this, ImmutableList.of());
   }
 
   @Override
