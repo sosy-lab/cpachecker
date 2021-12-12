@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.string.domains.DomainType;
+import org.sosy_lab.cpachecker.cpa.string.domains.LengthDomain;
 import org.sosy_lab.cpachecker.cpa.string.utils.Aspect;
 import org.sosy_lab.cpachecker.cpa.string.utils.AspectList;
 import org.sosy_lab.cpachecker.cpa.string.utils.AspectList.UnknownValueAndAspects;
@@ -438,6 +439,10 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
       AspectList pVaa,
       Value pVa) {
 
+    LengthDomain domain = (LengthDomain) options.getDomain(DomainType.LENGTH);
+    if (pVaa.getAspect(domain) != null) {
+      return pState;
+    }
     if (pVa.isNumericValue()) {
 
       Aspect<?> a = null;
@@ -447,7 +452,7 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
         case LESS_THAN:
         case NOT_EQUALS: {
           int val = pVa.asNumericValue().getNumber().intValue();
-          a = options.getDomain(DomainType.LENGTH).addNewAspect(Integer.toString(val));
+          a = domain.addNewAspect(Integer.toString(val));
         }
           break;
 
@@ -472,6 +477,11 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
       AspectList pVaa,
       Value pVa) {
 
+    LengthDomain domain = (LengthDomain) options.getDomain(DomainType.LENGTH);
+    if (pVaa.getAspect(domain) != null) {
+      return pState;
+    }
+
     if (pVa.isNumericValue()) {
 
       Aspect<?> a = null;
@@ -481,7 +491,7 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
         case GREATER_THAN:
         case EQUALS: {
           int val = pVa.asNumericValue().getNumber().intValue();
-          a = options.getDomain(DomainType.LENGTH).addNewAspect(Integer.toString(val));
+          a = domain.addNewAspect(Integer.toString(val));
         }
           break;
 
