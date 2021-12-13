@@ -6,11 +6,3 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-public class InStringset_true {
-
-  static String s1 = "man";
-
-  public static void main(String[] args) {
-    assert s1.equals("man");
-  }
-}

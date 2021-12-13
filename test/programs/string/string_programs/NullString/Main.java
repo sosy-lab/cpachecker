@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-public class NullString {
+public class Main {
     
   public static String empty() {
     return null;

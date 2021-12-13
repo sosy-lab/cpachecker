@@ -6,17 +6,18 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-public class StringConcat_false {
+public class Main {
 
   public static void main(String[] args) {
-    String s1 = "ar";
-    String s2 = "me";
-    String s3 = "ur";
 
-    String result = s1 + s2;
-    result = result + s3;
+    String s1 = "batman";
+    String nonSuffix = "tma";
 
-    assert result.equals("armour");
+    assert s1.endsWith(nonSuffix);
+
+    String s2 = "superman";
+    String s3 = s1 + s2;
+    assert s3.endsWith(nonSuffix);
   }
 
 }

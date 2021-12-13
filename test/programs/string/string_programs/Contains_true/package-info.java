@@ -6,12 +6,3 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import java.util.Scanner;
-
-public class UnknownStringTest_false {
-  public static void main(String[]main) {
-    Scanner sc = new Scanner(System.in);
-    String b = sc.nextLine();
-    assert b.length()> 20; 
-    }
-}

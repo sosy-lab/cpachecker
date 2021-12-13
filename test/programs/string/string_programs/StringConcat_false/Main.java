@@ -6,24 +6,17 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-public class StringConcat_true {
-  public class Main {
-  }
+public class Main {
 
   public static void main(String[] args) {
-
     String s1 = "ar";
-    String s2 = "mo";
+    String s2 = "me";
     String s3 = "ur";
 
     String result = s1 + s2;
-    assert result.equals("armo");
     result = result + s3;
 
     assert result.equals("armour");
-
-    result = s3 + "card";
-    String compareTo = "urcard";
-    assert result.equals(compareTo);
   }
+
 }

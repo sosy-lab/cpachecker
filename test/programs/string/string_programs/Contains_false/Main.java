@@ -6,17 +6,17 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-public class Prefix_true {
+public class Main {
 
     public static void main(String[] args) {
-        String s1= "batman"; 
-        String prefix = "bat";
-        assert s1.startsWith(prefix); 
+        String s1 = "Bat"; 
+        String contain1 = "ma";
+        assert s1.contains(contain1);
         
-        String s2= "superman"; 
-        String s3 = s1 + s2; 
-        
-        assert s3.startsWith(prefix); 
+        String s2 = "Bat";
+        String s3 = s2+ s1;
+        String contain2 = "t"+contain1;
+        assert s3.contains(contain2);
     }
 
 }
