@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JNullLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeEqualsType;
 import org.sosy_lab.cpachecker.cfa.ast.java.JStringLiteralExpression;
@@ -41,7 +42,9 @@ import org.sosy_lab.cpachecker.cpa.string.domains.StringSetDomain;
 import org.sosy_lab.cpachecker.cpa.string.utils.Aspect;
 import org.sosy_lab.cpachecker.cpa.string.utils.AspectList;
 import org.sosy_lab.cpachecker.cpa.string.utils.AspectList.UnknownValueAndAspects;
+import org.sosy_lab.cpachecker.cpa.string.utils.JStringVariableIdentifier;
 import org.sosy_lab.cpachecker.exceptions.NoException;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /*
  * Visitor that creates a list of aspects, depending on the expression.
@@ -52,10 +55,12 @@ public class JAspectListVisitor
 
   private final ImmutableList<AbstractStringDomain<?>> domains;
   private StringOptions options;
+  private StringState state;
 
-  public JAspectListVisitor(StringOptions pOptions) {
+  public JAspectListVisitor(StringOptions pOptions, StringState pState) {
     domains = ImmutableList.copyOf(pOptions.getDomains());
     options = pOptions;
+    state = pState;
   }
 
   @Override
@@ -69,6 +74,14 @@ public class JAspectListVisitor
       if (init instanceof JInitializerExpression) {
         return ((JInitializerExpression) init).getExpression().accept(this);
       }
+    }
+    if (pE.getDeclaration() instanceof JParameterDeclaration) {
+      JParameterDeclaration jpd = (JParameterDeclaration) pE.getDeclaration();
+      String qualifiedName = jpd.getQualifiedName();
+      MemoryLocation memLoc = MemoryLocation.fromQualifiedName(qualifiedName);
+      JStringVariableIdentifier jid = new JStringVariableIdentifier(jpd.getType(), memLoc);
+      AspectList list = state.getAspectList(jid);
+      return list;
     }
 
     return new AspectList(ImmutableList.of());

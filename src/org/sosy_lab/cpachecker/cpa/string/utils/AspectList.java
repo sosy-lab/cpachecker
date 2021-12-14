@@ -75,6 +75,9 @@ public class AspectList {
 
   public Aspect<?> getAspect(DomainType pDomainType) {
 
+    if (aspects.isEmpty()) {
+      return UnknownAspect.getInstance();
+    }
     for (Aspect<?> a : aspects) {
       if (a.getDomainType().equals(pDomainType)) {
         return a;

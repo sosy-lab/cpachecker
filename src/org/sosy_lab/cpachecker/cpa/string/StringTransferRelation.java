@@ -94,7 +94,7 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
 
     StringState state = StringState.copyOf((StringState) pState);
     StringState successor = null;
-    jalv = new JAspectListVisitor(options);
+    jalv = new JAspectListVisitor(options,state);
     jvv = new JVariableVisitor();
     funcName = pCfaEdge.getPredecessor().getFunctionName();
 

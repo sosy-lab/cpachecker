@@ -59,7 +59,7 @@ public class JStringVariableIdentifier {
 
     JStringVariableIdentifier other = (JStringVariableIdentifier) obj;
 
-    return type == other.type
+    return type.equals(other.type)
         && varIdentifier.equals(other.varIdentifier)
         && memLoc.equals(other.memLoc);
   }

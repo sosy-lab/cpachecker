@@ -1,7 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.string;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import java.util.Optional;
@@ -156,7 +155,12 @@ public class StringState implements LatticeAbstractState<StringState> {
   }
 
   public AspectList getAspectList(JStringVariableIdentifier jid) {
-    return checkNotNull(stringsAndAspects.get(jid));
+    for (Map.Entry<JStringVariableIdentifier, AspectList> entry : stringsAndAspects.entrySet()) {
+      if (entry.getKey().equals(jid)) {
+        return entry.getValue();
+      }
+    }
+    return new AspectList(ImmutableList.of());
   }
 
   public StringOptions getOptions() {
