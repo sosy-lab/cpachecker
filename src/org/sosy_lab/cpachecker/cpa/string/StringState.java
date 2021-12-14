@@ -189,22 +189,6 @@ public class StringState implements LatticeAbstractState<StringState> {
     return new StringState(builder.build(), options);
   }
 
-  public StringState clearAllLocalVariables() {
-
-    ImmutableMap.Builder<JStringVariableIdentifier, AspectList> builder =
-        new ImmutableMap.Builder<>();
-
-    for (Map.Entry<JStringVariableIdentifier, AspectList> entry : stringsAndAspects.entrySet()) {
-
-      JStringVariableIdentifier jid = entry.getKey();
-
-      if (!jid.isGlobal()) {
-        builder.put(jid, stringsAndAspects.get(jid));
-      }
-    }
-    return new StringState(builder.build(), options);
-  }
-
   @Override
   public String toString() {
 
