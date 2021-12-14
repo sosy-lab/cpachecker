@@ -33,4 +33,14 @@ public class TypeFactory {
       return null;
     }
   }
+
+  public static Number getUpperLimit(Type pType) {
+    if (pType instanceof CType) {
+      return CTypeFactory.getUpperLimit((CType) pType);
+    } else if (pType instanceof CType) {
+      return JTypeFactory.getUpperLimit((JType) pType);
+    } else {
+      return null;
+    }
+  }
 }

@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.factories;
 
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression.ABinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression.AUnaryOperator;
@@ -118,6 +119,49 @@ public class AExpressionFactory implements IExpressionFactory {
       Number value, Type type, ABinaryExpression.ABinaryOperator pOperator) {
     AExpressionFactory tmpFactory = new AExpressionFactory();
     this.binaryOperation(tmpFactory.from(value, type).build(), pOperator);
+    return this;
+  }
+
+  public AExpressionFactory binaryOperation(
+      Number value,
+      Type valueType,
+      Type operatorType,
+      ABinaryExpression.ABinaryOperator pOperator) {
+    AExpressionFactory tmpFactory = new AExpressionFactory();
+    this.binaryOperation(tmpFactory.from(value, valueType).build(), operatorType, pOperator);
+    return this;
+  }
+
+  private AExpressionFactory binaryOperation(
+      AExpression pExpr, Type pOperatorType, ABinaryOperator pOperator) {
+    if (pExpr instanceof CExpression
+        && pOperator instanceof CBinaryExpression.BinaryOperator
+        && pOperatorType instanceof CType
+        && this.chosenFactory instanceof CExpressionFactory) {
+      ((CExpressionFactory) this.chosenFactory)
+          .binaryOperation(
+              (CExpression) pExpr,
+              (CType) pOperatorType,
+              (CBinaryExpression.BinaryOperator) pOperator);
+    } else if (pExpr instanceof JExpression
+        && pOperator instanceof JBinaryExpression.BinaryOperator
+        && pOperatorType instanceof JType
+        && this.chosenFactory instanceof JExpressionFactory) {
+      ((JExpressionFactory) this.chosenFactory)
+          .binaryOperation(
+              (JExpression) pExpr,
+              (JType) pOperatorType,
+              (JBinaryExpression.BinaryOperator) pOperator);
+    } else {
+      return null;
+    }
+    return this;
+  }
+
+  public AExpressionFactory binaryOperation(
+      AVariableDeclaration var, ABinaryExpression.ABinaryOperator pOperator) {
+    AExpressionFactory tmpFactory = new AExpressionFactory();
+    this.binaryOperation(tmpFactory.from(var).build(), pOperator);
     return this;
   }
 

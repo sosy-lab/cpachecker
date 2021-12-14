@@ -64,4 +64,26 @@ public class CTypeFactory {
       return null;
     }
   }
+
+  public static Number getUpperLimit(CType pType) {
+    if (pType instanceof CSimpleType) {
+      switch (((CSimpleType) pType).getType()) {
+        case BOOL:
+        case CHAR:
+        case UNSPECIFIED:
+        case DOUBLE:
+          return null;
+        case FLOAT:
+        case FLOAT128:
+          return null;
+        case INT:
+        case INT128:
+          return 2147483647;
+        default:
+          return null;
+      }
+    } else {
+      return null;
+    }
+  }
 }

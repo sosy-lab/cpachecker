@@ -25,4 +25,9 @@ public class JTypeFactory {
       return null;
     }
   }
+
+  public static Number getUpperLimit(JType pType) {
+    // TODO Auto-generated method stub
+    return null;
+  }
 }

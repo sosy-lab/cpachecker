@@ -23,8 +23,10 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -245,10 +247,52 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
         return Optional.empty();
       }
 
+      // Create a new tmp variable in order for the overflow check to work
+      CVariableDeclaration newVariableForOverflows =
+          new CVariableDeclaration(
+              FileLocation.DUMMY,
+              false,
+              CStorageClass.AUTO,
+              (CType) var.getType(),
+              var.getName() + "TmpVariableReallyReallyTmp",
+              var.getOrigName() + "TmpVariableReallyReallyTmp",
+              var.getQualifiedName() + "::TmpVariableReallyReallyTmp",
+              null);
+
+      CFAEdge newVarInitEdge =
+          new CDeclarationEdge(
+              newVariableForOverflows.toString(),
+              FileLocation.DUMMY,
+              currentSummaryNodeCFA,
+              nextSummaryNode,
+              newVariableForOverflows);
+      newVarInitEdge.connect();
+
+      currentSummaryNodeCFA = nextSummaryNode;
+      nextSummaryNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
+
+      AExpressionFactory expressionFactory = new AExpressionFactory();
+      CExpressionAssignmentStatement newVariableAssignmentExpression =
+          (CExpressionAssignmentStatement)
+              expressionFactory.from(var).assignTo(newVariableForOverflows);
+
+      CFAEdge dummyEdge =
+          new CStatementEdge(
+              newVariableAssignmentExpression.toString(),
+              newVariableAssignmentExpression,
+              FileLocation.DUMMY,
+              currentSummaryNodeCFA,
+              nextSummaryNode);
+      dummyEdge.connect();
+
+      currentSummaryNodeCFA = nextSummaryNode;
+      nextSummaryNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
+
+      // Make the extrapolation
       Integer delta = deltaMaybe.orElseThrow();
 
-      CExpressionAssignmentStatement assignmentExpression =
-          (CExpressionAssignmentStatement)
+      CExpression leftHandSide =
+          (CExpression)
               new AExpressionFactory()
                   .from(iterationsVariable)
                   .binaryOperation(
@@ -280,18 +324,50 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
                           false),
                       CBinaryExpression.BinaryOperator.MULTIPLY)
                   .binaryOperation(
-                      new CIdExpression(FileLocation.DUMMY, (CSimpleDeclaration) var),
+                      new CIdExpression(FileLocation.DUMMY, newVariableForOverflows),
                       CBinaryExpression.BinaryOperator.PLUS)
-                  .assignTo(var);
+                  .build();
 
-      CFAEdge dummyEdge =
+      CExpressionAssignmentStatement assignmentExpressionExtrapolation =
+          (CExpressionAssignmentStatement)
+              new AExpressionFactory().from(leftHandSide).assignTo(var);
+
+      CFAEdge extrapolationDummyEdge =
           new CStatementEdge(
-              assignmentExpression.toString(),
-              assignmentExpression,
+              assignmentExpressionExtrapolation.toString(),
+              assignmentExpressionExtrapolation,
               FileLocation.DUMMY,
               currentSummaryNodeCFA,
               nextSummaryNode);
-      dummyEdge.connect();
+      extrapolationDummyEdge.connect();
+
+      currentSummaryNodeCFA = nextSummaryNode;
+      nextSummaryNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
+
+      // Make a statement in order to check for an overflow
+      // INT_MAX + (  ((int)(x + incr)) == x + incr  )  to raise the overflow if it happens, since
+      // the c standard implicitly calculates modulo when a long is assigned to an int
+
+      CExpression overflowExpression =
+          (CExpression)
+              new AExpressionFactory()
+                  .from(var)
+                  .binaryOperation(leftHandSide, BinaryOperator.NOT_EQUALS)
+                  .binaryOperation(
+                      TypeFactory.getUpperLimit(var.getType()),
+                      var.getType(),
+                      var.getType(),
+                      BinaryOperator.PLUS)
+                  .build();
+
+      CFAEdge overflowCheckEdge =
+          new CStatementEdge(
+              overflowExpression.toString(),
+              new CExpressionStatement(FileLocation.DUMMY, overflowExpression),
+              FileLocation.DUMMY,
+              currentSummaryNodeCFA,
+              nextSummaryNode);
+      overflowCheckEdge.connect();
 
       currentSummaryNodeCFA = nextSummaryNode;
       nextSummaryNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());

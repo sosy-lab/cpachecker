@@ -126,4 +126,17 @@ public class CExpressionFactory implements IExpressionFactory {
             pOperator);
     return this;
   }
+
+  public CExpressionFactory binaryOperation(
+      CExpression pExpr, CType pOperatorType, BinaryOperator pOperator) {
+    this.currentExpression =
+        new CBinaryExpression(
+            FileLocation.DUMMY,
+            pOperatorType,
+            pOperatorType,
+            this.currentExpression,
+            pExpr,
+            pOperator);
+    return this;
+  }
 }
