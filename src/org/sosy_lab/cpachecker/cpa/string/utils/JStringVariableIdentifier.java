@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.string.utils;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -20,9 +19,7 @@ public class JStringVariableIdentifier {
   private final Type type;
 
   private final String varIdentifier;
-  private final @Nullable String functionName;
 
-  private final boolean isGlobal;
   private final MemoryLocation memLoc;
 
   public JStringVariableIdentifier(Type pType, MemoryLocation pMemLoc) {
@@ -30,8 +27,6 @@ public class JStringVariableIdentifier {
     memLoc = pMemLoc;
     type = pType;
     varIdentifier = memLoc.getIdentifier();
-    functionName = memLoc.getFunctionName();
-    isGlobal = functionName.isEmpty();
 
   }
 
@@ -45,10 +40,6 @@ public class JStringVariableIdentifier {
 
   public String getIdentifier() {
     return varIdentifier;
-  }
-
-  public boolean isGlobal() {
-    return isGlobal;
   }
 
   public boolean isString() {
@@ -70,8 +61,7 @@ public class JStringVariableIdentifier {
 
     return type == other.type
         && varIdentifier.equals(other.varIdentifier)
-        && functionName.equals(other.functionName)
-        && isGlobal == other.isGlobal;
+        && memLoc.equals(other.memLoc);
   }
 
   @Override
