@@ -88,7 +88,7 @@ public class PrefixDomain implements AbstractStringDomain<String> {
 
     }
 
-    return null;
+    return UnknownAspect.getInstance();
   }
 
 }

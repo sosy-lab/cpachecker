@@ -77,7 +77,7 @@ public class CharSetDomain implements AbstractStringDomain<char[]> {
       return addNewAspect(String.copyValueOf(result));
     }
 
-    return null;
+    return UnknownAspect.getInstance();
 
   }
 

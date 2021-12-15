@@ -64,7 +64,7 @@ public class LengthDomain implements AbstractStringDomain<Integer> {
       return new Aspect<>(this, len1 + len2);
     }
 
-    return null;
+    return UnknownAspect.getInstance();
   }
 
 }

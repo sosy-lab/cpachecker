@@ -89,7 +89,7 @@ public class StringSetDomain implements AbstractStringDomain<List<String>> {
       return join(val1, val2);
     }
 
-    return null;
+    return UnknownAspect.getInstance();
   }
 
   private Aspect<List<String>> join(List<String> l1, List<String> l2) {

@@ -95,7 +95,7 @@ public class ContainsDomain implements AbstractStringDomain<List<String>> {
       return join(l1, l2);
     }
 
-    return null;
+    return UnknownAspect.getInstance();
   }
 
   private Aspect<List<String>> join(List<String> l1, List<String> l2) {

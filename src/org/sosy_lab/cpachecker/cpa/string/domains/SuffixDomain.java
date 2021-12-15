@@ -68,8 +68,11 @@ public class SuffixDomain implements AbstractStringDomain<String> {
   @Override
   public Aspect<?> combineAspectsForStringConcat(Aspect<?> p1, Aspect<?> p2) {
 
-    if (p1 instanceof UnknownAspect || p2 instanceof UnknownAspect) {
+    if (p1 instanceof UnknownAspect) {
       return p2;
+    }
+    else if (p2 instanceof UnknownAspect) {
+      return p1;
     }
 
     if (p1.getDomainType().equals(TYPE) && p2.getDomainType().equals(TYPE)) {
@@ -91,8 +94,7 @@ public class SuffixDomain implements AbstractStringDomain<String> {
 
     }
 
-    return null;
+    return UnknownAspect.getInstance();
   }
-
 
 }
