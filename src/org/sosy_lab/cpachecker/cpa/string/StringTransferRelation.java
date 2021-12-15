@@ -147,7 +147,6 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
                   fnkCall.getArguments(),
                   succ.getFunctionParameters(),
                   calledFunctionName,
-                  succ,
                   state);
         }
         break;
@@ -189,15 +188,7 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
       List<JExpression> pArguments,
       List<? extends AParameterDeclaration> parameters,
       String pCalledFunctionName,
-      FunctionEntryNode pSucc,
       StringState pState) {
-
-    if (pSucc.getReturnVariable().isPresent()) {
-
-      AVariableDeclaration decl = pSucc.getReturnVariable().get();
-      pState = handleJDeclaration((JDeclaration) decl, pState);
-
-    }
 
     for (int i = 0; i < parameters.size(); i++) {
 
@@ -249,17 +240,19 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
       AExpression op1 = assignExp.getLeftHandSide();
       AspectList newValue = null;
       boolean valueExists = returnVarName.isPresent() && pState.contains(retJid);
+      Optional<JStringVariableIdentifier> jid = Optional.empty();
 
       if (valueExists) {
         newValue = pState.getAspectList(retJid);
-
+        jid = Optional.of(retJid);
       }
 
-      Optional<JStringVariableIdentifier> jid = Optional.empty();
-
-      if (op1 instanceof JLeftHandSide) {
+      else {
+        if (op1 instanceof JLeftHandSide) {
         jid = Optional.of(jvv.visit((JLeftHandSide) op1));
-
+          // JMethodInvocationExpression jmie =
+          newValue = jalv.visit(assignExp.getFunctionCallExpression());
+        }
       }
 
       if (jid.isPresent() && jid.get().isString()) {
