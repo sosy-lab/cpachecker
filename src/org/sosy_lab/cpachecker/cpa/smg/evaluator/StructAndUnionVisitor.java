@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 
+import java.util.ArrayList;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -18,6 +19,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressAndState;
+import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -39,7 +41,21 @@ class StructAndUnionVisitor extends AddressVisitor
 
   @Override
   public List<SMGAddressAndState> visit(CFunctionCallExpression pIastFunctionCallExpression) throws CPATransferException {
-    return visitDefault(pIastFunctionCallExpression);
+    if (!smgExpressionEvaluator.builtins.isABuiltIn(pIastFunctionCallExpression)) {
+      List<SMGAddressValueAndState> smgAddressValueAndStates =
+          smgExpressionEvaluator.builtins.handleUnknownFunction(
+              getCfaEdge(), pIastFunctionCallExpression, getInitialSmgState());
+      List<SMGAddressAndState> result = new ArrayList<>();
+      for (SMGAddressValueAndState smgAddressValueAndState : smgAddressValueAndStates) {
+        result.add(
+            SMGAddressAndState.of(
+                smgAddressValueAndState.getSmgState(),
+                smgAddressValueAndState.getObject().getAddress()));
+      }
+      return result;
+    } else {
+      return visitDefault(pIastFunctionCallExpression);
+    }
   }
 
   @Override
