@@ -66,6 +66,11 @@ public class Aspect<T> {
     public static UnknownAspect getInstance() {
       return instance;
     }
+
+    @Override
+    public String toString() {
+      return "UNKNOWN";
+    }
   }
 
 }
