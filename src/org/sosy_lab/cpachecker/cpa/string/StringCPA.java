@@ -58,7 +58,7 @@ public class StringCPA extends AbstractCPA {
     this.cfa = pCfa;
     this.config = pConfig;
     this.logger = pLogger;
-    options = new StringOptions(pConfig, logger);
+    options = new StringOptions(pConfig);
     config.inject(this, StringCPA.class);
     getMergeOperator();
     getStopOperator();

@@ -18,7 +18,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.string.domains.AbstractStringDomain;
 import org.sosy_lab.cpachecker.cpa.string.domains.DomainType;
 
@@ -57,13 +56,11 @@ public class StringOptions {
                   "StringSetDomain"));
 
   private ImmutableList<AbstractStringDomain<?>> domains;
-  private LogManager logger;
 
-  public StringOptions(Configuration config, LogManager pLogger)
+  public StringOptions(Configuration config)
       throws InvalidConfigurationException {
 
     config.inject(this);
-    logger = pLogger;
     domains = generateDomains(domainList);
 
   }
