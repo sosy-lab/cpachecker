@@ -14,7 +14,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -70,7 +69,7 @@ public class StringOptions {
   }
 
   private ImmutableList<AbstractStringDomain<?>>
-      generateDomains(ImmutableList<String> pDomainList) {
+      generateDomains(ImmutableList<String> pDomainList) throws InvalidConfigurationException {
 
     ImmutableList.Builder<AbstractStringDomain<?>> builder = new ImmutableList.Builder<>();
 
@@ -87,9 +86,7 @@ public class StringOptions {
       } catch (InstantiationException | IllegalAccessException | IllegalArgumentException
           | InvocationTargetException | NoSuchMethodException | SecurityException
           | ClassNotFoundException e) {
-
-        logger.log(
-            Level.FINE,
+        throw new InvalidConfigurationException(
             domainName
                 + " is not an existing Domain or was  implemented incorrectly! Please refer to package-info in folder domain for more information.");
       }
