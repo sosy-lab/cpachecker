@@ -9,9 +9,10 @@
 public class Main {
   public static void main(String[] args) {
     String a = "foo"+ "";
-    for (int i = 0; i < 20; i++) {
-      a += "bar";
+    for (int i = 0; i < 2; i++) {
+      a = a+ "bar";
       }
-    assert a.length() == 63;
+
+    assert a.startsWith("foo");
     }
 }
