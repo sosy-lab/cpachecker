@@ -127,9 +127,6 @@ public class NaiveLoopAccelerationStrategy extends AbstractLoopStrategy {
     Iterator<CFAEdge> iter = pLoopStructure.getOutgoingEdges().iterator();
     if (iter.hasNext()) {
       leavingEdge = iter.next();
-      if (iter.hasNext()) {
-        return Optional.empty();
-      }
     } else {
       return Optional.empty();
     }
