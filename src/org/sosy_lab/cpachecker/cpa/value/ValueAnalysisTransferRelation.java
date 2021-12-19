@@ -118,7 +118,7 @@ import org.sosy_lab.cpachecker.cpa.string.domains.DomainType;
 import org.sosy_lab.cpachecker.cpa.string.utils.Aspect;
 import org.sosy_lab.cpachecker.cpa.string.utils.Aspect.UnknownAspect;
 import org.sosy_lab.cpachecker.cpa.string.utils.AspectList;
-import org.sosy_lab.cpachecker.cpa.string.utils.HelperMethods;
+import org.sosy_lab.cpachecker.cpa.string.utils.StringCpaUtilMethods;
 import org.sosy_lab.cpachecker.cpa.string.utils.JStringVariableIdentifier;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
@@ -1448,7 +1448,7 @@ public class ValueAnalysisTransferRelation
           (JReferencedMethodInvocationExpression) pRightHandSide;
       JSimpleDeclaration jsDeclaration =
           referencedMethodInvocationExpression.getReferencedVariable().getDeclaration();
-      if (HelperMethods.isString(jsDeclaration.getType())) {
+      if (StringCpaUtilMethods.isString(jsDeclaration.getType())) {
 
         MemoryLocation memLoc =
             MemoryLocation.parseExtendedQualifiedName(jsDeclaration.getQualifiedName());
@@ -1456,7 +1456,7 @@ public class ValueAnalysisTransferRelation
             new JStringVariableIdentifier(jsDeclaration.getType(), memLoc);
         AspectList list = pStringState.getAspectList(jStringIdentifier);
 
-        if(HelperMethods.methodCallLength(referencedMethodInvocationExpression, pStringState)) {
+        if(StringCpaUtilMethods.methodCallLength(referencedMethodInvocationExpression, pStringState)) {
           Aspect<?> aspect = list.getAspect(DomainType.LENGTH);
           if (!aspect.equals(UnknownAspect.getInstance())) {
             @SuppressWarnings("unchecked") // Safe

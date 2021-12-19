@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.cpa.string.domains.DomainType;
 /*
  * Helper - class
  */
-public class HelperMethods {
+public class StringCpaUtilMethods {
 
   public static boolean isString(Type pType) {
 
@@ -38,5 +38,17 @@ public class HelperMethods {
       methodCallLength(JReferencedMethodInvocationExpression jrmie, StringState state) {
     return jrmie.getDeclaration().getOrigName().contains("String_length")
         && state.getOptions().containsDomain(DomainType.LENGTH);
+  }
+
+  public static boolean
+      methoCallEquals(JReferencedMethodInvocationExpression jrmie, StringState state) {
+    return jrmie.getDeclaration().getOrigName().contains("String_equals")
+        && state.getOptions().containsDomain(DomainType.STRING_SET);
+  }
+
+  public static boolean
+      methoCallStartsWith(JReferencedMethodInvocationExpression jrmie, StringState state) {
+    return jrmie.getDeclaration().getOrigName().contains("String_startswith")
+        && state.getOptions().containsDomain(DomainType.PREFFIX);
   }
 }

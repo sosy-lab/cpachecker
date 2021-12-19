@@ -43,7 +43,7 @@ public class JStringVariableIdentifier {
   }
 
   public boolean isString() {
-    return HelperMethods.isString(type);
+    return StringCpaUtilMethods.isString(type);
   }
 
   @Override

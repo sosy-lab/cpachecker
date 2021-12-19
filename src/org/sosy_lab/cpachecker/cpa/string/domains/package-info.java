@@ -10,13 +10,13 @@
  * Domains for Stringcpa
  * A domain represents aspects that all share the
  */
-/*
- * Instructions on how to add new domains:
- * For each Domain do the following:
- * 1. The domain needs to implement @AbstractStringDomain
- * 2. The domain needs to have a constructor, that takes StringOptions as input
- * 3. If the domain needs additional Input, write that in StringOptions
- * 4. Add the Name of your Domain to @DomainType
- * 5. Implement the methods from @AbstractStringDomain
+/**
+ * Instructions on how to add new domains: For each new Domain do the following steps: 1. The domain
+ * needs to implement the class
+ * {@link org.sosy_lab.cpachecker.cpa.string.domains.AbstractStringDomain} 2. The domain needs to
+ * have a constructor, that takes just StringOptions as input. StringOptions needs to be given as
+ * input, even it is not used! 3. If the domain needs additional Input, write that in StringOptions
+ * 4. Add the Name of your Domain to {@link org.sosy_lab.cpachecker.cpa.string.domains.DomainType}
+ * 5. Implement the methods from AbstractStringDomain
  */
 package org.sosy_lab.cpachecker.cpa.string.domains;
