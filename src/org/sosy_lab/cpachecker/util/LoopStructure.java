@@ -140,6 +140,9 @@ public final class LoopStructure implements Serializable {
     private Set<AVariableDeclaration> modifiedVariables;
 
     private LinearVariableDependencyGraph linearVariableDependencies;
+    private Boolean onlyConstantVariableModifications = null;
+    private Boolean onlyLinearVariableModifications = null;
+    private Set<CFAEdge> innerStatementEdges = null;
 
     private Loop(CFANode loopHead, Set<CFANode> pNodes) {
       loopHeads = ImmutableSet.of(loopHead);
@@ -178,6 +181,17 @@ public final class LoopStructure implements Serializable {
       loopIncDecVariables = collectLoopIncDecVariables();
       modifiedVariables = collectModifiedVariables();
       linearVariableDependencies = calculateLinearVariableDependencies();
+      innerStatementEdges = getInnerStatementEdges();
+    }
+
+    private Set<CFAEdge> getInnerStatementEdges() {
+      Set<CFAEdge> selectedEdges = new HashSet<>();
+      for (CFAEdge e : this.getInnerLoopEdges()) {
+        if (e instanceof AStatementEdge) {
+          selectedEdges.add(e);
+        }
+      }
+      return selectedEdges;
     }
 
     /**
@@ -482,17 +496,6 @@ public final class LoopStructure implements Serializable {
       }
     }
 
-    public boolean onlyConstantVarModification() {
-      this.computeSets();
-      for (AVariableDeclaration var : this.modifiedVariables) {
-        if (!this.loopIncDecVariables.containsKey(var.getQualifiedName())) {
-          return false;
-        }
-      }
-
-      return true;
-    }
-
     public Set<AVariableDeclaration> getModifiedVariables() {
       this.computeSets();
       return modifiedVariables;
@@ -573,7 +576,86 @@ public final class LoopStructure implements Serializable {
     }
 
     public LinearVariableDependencyGraph getLinearVariableDependencies() {
+      this.computeSets();
       return this.linearVariableDependencies;
+    }
+
+    public boolean hasOnlyConstantVariableModifications() {
+      if (onlyConstantVariableModifications == null) {
+        // Calculate the value if it is not present
+        for (CFAEdge e : this.getInnerLoopEdges()) {
+          if (e instanceof AStatementEdge) {
+            AStatementEdge stmtEdge = (AStatementEdge) e;
+            if (stmtEdge.getStatement() instanceof AAssignment) {
+              AAssignment assignment = (AAssignment) stmtEdge.getStatement();
+              ALeftHandSide leftHandSide = assignment.getLeftHandSide();
+              ARightHandSide rightHandSide = assignment.getRightHandSide();
+              if (leftHandSide instanceof AIdExpression && rightHandSide instanceof AExpression) {
+                AggregateConstantsVisitor<Exception> visitor =
+                    new AggregateConstantsVisitor<>(
+                        Optional.of(
+                            Set.of(
+                                (AVariableDeclaration)
+                                    ((AIdExpression) leftHandSide).getDeclaration())),
+                        true);
+                Optional<Integer> valueOptional = Optional.empty();
+                try {
+                  valueOptional = ((AExpression) rightHandSide).accept_(visitor);
+                } catch (Exception e1) {
+                  onlyConstantVariableModifications = null;
+                }
+                onlyConstantVariableModifications = Boolean.valueOf(valueOptional.isPresent());
+              }
+            }
+          }
+        }
+        return onlyConstantVariableModifications.booleanValue();
+      } else {
+        return onlyConstantVariableModifications.booleanValue();
+      }
+    }
+
+    public boolean hasOnlyLinearVariableModifications() {
+      if (onlyLinearVariableModifications == null) {
+        if (onlyConstantVariableModifications != null) {
+          if (onlyConstantVariableModifications.booleanValue()) {
+            onlyLinearVariableModifications = Boolean.valueOf(onlyConstantVariableModifications.booleanValue());
+            return onlyLinearVariableModifications.booleanValue();
+          }
+        }
+
+        // Calculate the value if it is not present
+        for (CFAEdge e : this.getInnerLoopEdges()) {
+          if (e instanceof AStatementEdge) {
+            AStatementEdge stmtEdge = (AStatementEdge) e;
+            if (stmtEdge.getStatement() instanceof AAssignment) {
+              AAssignment assignment = (AAssignment) stmtEdge.getStatement();
+              ALeftHandSide leftHandSide = assignment.getLeftHandSide();
+              ARightHandSide rightHandSide = assignment.getRightHandSide();
+              if (leftHandSide instanceof AIdExpression && rightHandSide instanceof AExpression) {
+                LinearVariableDependencyVisitor<Exception> visitor =
+                    new LinearVariableDependencyVisitor<>();
+                Optional<LinearVariableDependency> valueOptional = Optional.empty();
+                try {
+                  valueOptional = ((AExpression) rightHandSide).accept_(visitor);
+                } catch (Exception e1) {
+                  onlyLinearVariableModifications = null;
+                }
+                onlyLinearVariableModifications = Boolean.valueOf(valueOptional.isPresent());
+              }
+            }
+          }
+        }
+
+        return onlyLinearVariableModifications.booleanValue();
+      } else {
+        return onlyLinearVariableModifications.booleanValue();
+      }
+    }
+
+    public Integer amountOfInnerStatementEdges() {
+      this.computeSets();
+      return Integer.valueOf(this.innerStatementEdges.size());
     }
   }
 
@@ -689,9 +771,9 @@ public final class LoopStructure implements Serializable {
 
         if (assign.getLeftHandSide() instanceof AIdExpression) {
           AIdExpression assignementToId = (AIdExpression) assign.getLeftHandSide();
-          String assignToVar = assignementToId.getDeclaration().getQualifiedName();
+          AVariableDeclaration assignToVar = (AVariableDeclaration) assignementToId.getDeclaration();
 
-          Set<String> varSet = new HashSet<>();
+          Set<AVariableDeclaration> varSet = new HashSet<>();
           varSet.add(assignToVar);
 
           AggregateConstantsVisitor<Exception> visitor =
@@ -708,7 +790,8 @@ public final class LoopStructure implements Serializable {
             return Optional.empty();
           }
           if (valueOptional.isPresent()) {
-            return Optional.of(Pair.of(assignToVar, valueOptional.orElseThrow()));
+            return Optional.of(
+                Pair.of(assignToVar.getQualifiedName(), valueOptional.orElseThrow()));
           } else {
             return Optional.empty();
           }

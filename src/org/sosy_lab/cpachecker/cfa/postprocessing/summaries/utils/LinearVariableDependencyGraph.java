@@ -67,14 +67,17 @@ public class LinearVariableDependencyGraph {
     }
   }
 
-  public void modifyDependencies(
+  public boolean modifyDependencies(
       LinearVariableDependency pLinearVariableDependency, ABinaryOperator pOperator) {
     Optional<LinearVariableDependency> existingLinearVariableDependency =
         findDependency(pLinearVariableDependency);
     if (existingLinearVariableDependency.isPresent()) {
-      existingLinearVariableDependency.get().modifyDependency(pLinearVariableDependency, pOperator);
+      return existingLinearVariableDependency
+          .get()
+          .modifyDependency(pLinearVariableDependency, pOperator);
     } else {
       this.putDependency(pLinearVariableDependency);
+      return true;
     }
   }
 }

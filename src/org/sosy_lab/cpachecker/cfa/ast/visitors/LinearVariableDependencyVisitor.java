@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.factories.AExpressionFactory;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayLengthExpression;
@@ -154,7 +155,11 @@ public class LinearVariableDependencyVisitor<X extends Exception>
 
   @Override
   public Optional<LinearVariableDependency> visit(AIdExpression pExp) throws X {
-    return Optional.of(new LinearVariableDependency((AVariableDeclaration) pExp.getDeclaration()));
+    LinearVariableDependency linVarDependency = new LinearVariableDependency();
+    linVarDependency.insertOrOverwriteDependency(
+        (AVariableDeclaration) pExp.getDeclaration(),
+        new AExpressionFactory().from(1, pExp.getDeclaration().getType()).build());
+    return Optional.of(linVarDependency);
   }
 
   @Override
@@ -162,7 +167,9 @@ public class LinearVariableDependencyVisitor<X extends Exception>
     Optional<LinearVariableDependency> operand1Result = pExp.getOperand1().accept_(this);
     Optional<LinearVariableDependency> operand2Result = pExp.getOperand2().accept_(this);
     if (operand1Result.isPresent() && operand2Result.isPresent()) {
-      operand1Result.get().modifyDependency(operand2Result.get(), pExp.getOperator());
+      if (!operand1Result.get().modifyDependency(operand2Result.get(), pExp.getOperator())) {
+        return Optional.empty();
+      }
       return operand1Result;
     }
     return Optional.empty();

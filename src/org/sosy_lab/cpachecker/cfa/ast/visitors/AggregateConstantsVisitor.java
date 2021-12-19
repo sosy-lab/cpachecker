@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -44,7 +45,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 public class AggregateConstantsVisitor<X extends Exception>
     extends AExpressionVisitor<Optional<Integer>, X> {
 
-  Optional<Set<String>> knownVariables;
+  Optional<Set<AVariableDeclaration>> knownVariables;
   private boolean linearTermsOnly;
   AggregateConstantsVisitor<X> noVariablesVisitor;
 
@@ -52,7 +53,7 @@ public class AggregateConstantsVisitor<X extends Exception>
    * The Set of Known variables must contain the qualified names of the variables
    */
   public AggregateConstantsVisitor(
-      Optional<Set<String>> pKnownVariables, boolean pLinearTermsOnly) {
+      Optional<Set<AVariableDeclaration>> pKnownVariables, boolean pLinearTermsOnly) {
     knownVariables = pKnownVariables;
     linearTermsOnly = pLinearTermsOnly;
     if (pKnownVariables.isPresent()) {
@@ -141,7 +142,7 @@ public class AggregateConstantsVisitor<X extends Exception>
   public Optional<Integer> visit(AIdExpression pExp) throws X {
     if (this.knownVariables.isEmpty()) {
       return Optional.empty();
-    } else if (this.knownVariables.orElseThrow().contains(pExp.getDeclaration().getQualifiedName())) {
+    } else if (this.knownVariables.orElseThrow().contains(pExp.getDeclaration())) {
       return Optional.of(0);
     } else {
       return Optional.empty();

@@ -128,6 +128,9 @@ public class SummaryPostProcessor {
         }
         summaryInformation.addGhostCFA(gCFA);
       }
+      // TODO: update CFA structure to incorporate new summaries. Specifically, create a new
+      // LoopStructure if a Loop inside a Loop was summarized using the summarized loop as an inner
+      // edge.
 
       fixpoint = this.strategyDependencies.stopPostProcessing(iterations, !fixpoint);
     }

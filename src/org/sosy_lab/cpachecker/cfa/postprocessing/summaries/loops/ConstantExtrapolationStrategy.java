@@ -344,6 +344,11 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
       currentSummaryNodeCFA = nextSummaryNode;
       nextSummaryNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
 
+      // Since the formula for checking for an overflow explicitly is very expensive
+      // we add an if statement to the CFA, which checkss if the possibility of an overflow exists.
+      // If it does, the statement is executed in order to explicitly find the overflow
+      // TODO
+
       // Make a statement in order to check for an overflow
       // INT_MAX + (  ((int)(x + incr)) == x + incr  )  to raise the overflow if it happens, since
       // the c standard implicitly calculates modulo when a long is assigned to an int
@@ -438,7 +443,8 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
     }
     Loop loopStructure = loopStructureMaybe.orElseThrow();
 
-    if (!loopStructure.onlyConstantVarModification()) {
+    if (!loopStructure.hasOnlyConstantVariableModifications()
+        || loopStructure.amountOfInnerStatementEdges() != 1) {
       return Optional.empty();
     }
 
