@@ -14,7 +14,6 @@ public class Main {
       s1 = s1+ s2;
       }
    
-   assert s1.startsWith("foo");
-   assert s2.endsWith("bar");
+   assert s1.startsWith("oof");
     }
 }
