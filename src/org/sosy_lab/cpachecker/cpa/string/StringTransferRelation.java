@@ -8,11 +8,14 @@
 
 package org.sosy_lab.cpachecker.cpa.string;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
@@ -30,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodOrConstructorInvocation;
+import org.sosy_lab.cpachecker.cfa.ast.java.JReferencedMethodInvocationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.java.JStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
@@ -48,6 +52,10 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.string.domains.AbstractStringDomain;
+import org.sosy_lab.cpachecker.cpa.string.domains.DomainType;
+import org.sosy_lab.cpachecker.cpa.string.utils.Aspect;
+import org.sosy_lab.cpachecker.cpa.string.utils.Aspect.UnknownAspect;
 import org.sosy_lab.cpachecker.cpa.string.utils.AspectList;
 import org.sosy_lab.cpachecker.cpa.string.utils.AspectList.UnknownValueAndAspects;
 import org.sosy_lab.cpachecker.cpa.string.utils.JStringVariableIdentifier;
@@ -59,6 +67,7 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
 
   private StringOptions options;
   private List<JStringVariableIdentifier> localVariables;
+  private Map<String, JReferencedMethodInvocationExpression> tempVariables;
   private String funcName;
 
   private JAspectListVisitor jalv;
@@ -66,12 +75,11 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
 
   private LogManager logger;
 
-  public StringTransferRelation(
-      LogManager pLogger,
-      StringOptions pOptions) {
+  public StringTransferRelation(LogManager pLogger, StringOptions pOptions) {
     logger = pLogger;
     this.options = pOptions;
     localVariables = new ArrayList<>();
+    tempVariables = new HashMap<>();
   }
 
   @Override
@@ -250,15 +258,35 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
 
   private StringState handleJStatemt(JStatement pJStat, StringState pState) {
     if (pJStat instanceof JAssignment) {
-
       JLeftHandSide jLeft = ((JAssignment) pJStat).getLeftHandSide();
       JRightHandSide jRight = ((JAssignment) pJStat).getRightHandSide();
-      JType type = jLeft.getExpressionType();
 
+      JType type = jLeft.getExpressionType();
       if (StringCpaUtilMethods.isString(type)) {
         JStringVariableIdentifier jid = jLeft.accept(jvv);
         AspectList vaa = jRight.accept(jalv);
         return pState.updateVariable(jid, vaa);
+      }
+
+      /*
+       * We can't create an AST for the Methods in the Java Standard Library (that feature is not
+       * implemented). Thus we have to use a Workaround: store all temporary variables, if their
+       * referenced variable is a string. Then analyse that if possible. TODO: handle methods on
+       * strings properly
+       */
+      if (pJStat instanceof JMethodInvocationAssignmentStatement) {
+        if (jLeft instanceof JIdExpression) {
+          JIdExpression tempVarJidexp = (JIdExpression) jLeft;
+          if (StringCpaUtilMethods.isTemporaryVariable(tempVarJidexp)
+              && (jRight instanceof JReferencedMethodInvocationExpression)) {
+            JReferencedMethodInvocationExpression jrmie =
+                (JReferencedMethodInvocationExpression) jRight;
+            JIdExpression jid = jrmie.getReferencedVariable();
+            if (StringCpaUtilMethods.isString(jid.getExpressionType())) {
+              tempVariables.put(tempVarJidexp.getName(), jrmie);
+            }
+          }
+        }
       }
     }
     return pState;
@@ -313,14 +341,14 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
       else if (StringCpaUtilMethods.isString(op1Type) || StringCpaUtilMethods.isString(op2Type)) {
         return pState;
       }
+
       // E.g. s1.equals("foo") -> all methods on strings that return boolean
       else if (operand1 instanceof JIdExpression) {
         JIdExpression jidExp = (JIdExpression) operand1;
-        // "Dirty" workaround,
         if (StringCpaUtilMethods.isTemporaryVariable(jidExp)) {
-          // String functionName = jidExp.getName();
+          JReferencedMethodInvocationExpression jrmie = tempVariables.get(jidExp.getName());
+          truthValue = handleStringMethodCall(jrmie, pState);
         }
-
       }
       // No strings used in assumption -> pass state
       else {
@@ -334,14 +362,86 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
     return null;
   }
 
+  private boolean
+      handleStringMethodCall(JReferencedMethodInvocationExpression jrmie, StringState pState) {
+    JIdExpression jid = jrmie.getReferencedVariable();
+    JIdExpression funcNameExp = (JIdExpression) jrmie.getFunctionNameExpression();
+    String stringFuncName = funcNameExp.getName();
+
+    ImmutableList.Builder<JExpression> builder = new ImmutableList.Builder<>();
+    for (JExpression jexp : jrmie.getParameterExpressions()) {
+      builder.add(jexp);
+    }
+    ImmutableList<JExpression> parameters = builder.build();
+
+    boolean result = false;
+    // the different functions, TODO add more functions
+    switch (stringFuncName) {
+      case "equals": {
+        result = parseStringComparison(jid, parameters.get(0), BinaryOperator.EQUALS, pState);
+      }
+        break;
+      case "startsWith": {
+        result = parsePrefixComparison(jid, parameters.get(0), pState);
+      }
+        break;
+      case "endsWtih": {
+        return parseSuffixComparison(jid, parameters.get(0), pState);
+      }
+      default:
+        logger.log(Level.FINE, "This function was not implemented yet.");
+        break;
+    }
+    return result;
+
+  }
+
+  private boolean
+      parsePrefixComparison(JIdExpression pJid, JExpression pJExpression, StringState pState) {
+    AspectList first = parseExpressionToAspectList(pJid, pState);
+    AspectList second = parseExpressionToAspectList(pJExpression, pState);
+    AbstractStringDomain<?> prefix = options.getDomain(DomainType.PREFFIX);
+    if (prefix != null) {
+      Aspect<?> aspectFirst = first.getAspect(DomainType.PREFFIX);
+      Aspect<?> aspectSecond = second.getAspect(DomainType.PREFFIX);
+      if (!(aspectSecond instanceof UnknownAspect)) {
+        int secondLength = ((String) aspectSecond.getValue()).length();
+        if (secondLength <= options.getPrefixLength()) {
+          return prefix.isLessOrEqual(aspectFirst, aspectSecond)
+              && prefix.isLessOrEqual(aspectSecond, aspectFirst);
+        }
+      }
+    }
+    return false;
+  }
+
+  private boolean
+      parseSuffixComparison(JIdExpression pJid, JExpression pJExpression, StringState pState) {
+    AspectList first = parseExpressionToAspectList(pJid, pState);
+    AspectList second = parseExpressionToAspectList(pJExpression, pState);
+    AbstractStringDomain<?> suffix = options.getDomain(DomainType.SUFFIX);
+    if (suffix != null) {
+      Aspect<?> aspectFirst = first.getAspect(DomainType.SUFFIX);
+      Aspect<?> aspectSecond = second.getAspect(DomainType.SUFFIX);
+      if (!(aspectSecond instanceof UnknownAspect)) {
+        int secondLength = ((String) aspectSecond.getValue()).length();
+        if (secondLength <= options.getSuffixLength()) {
+          return suffix.isLessOrEqual(aspectFirst, aspectSecond)
+              && suffix.isLessOrEqual(aspectSecond, aspectFirst);
+        }
+      }
+    }
+    return false;
+  }
+
   // Compares if two aspect lists are the same
   private boolean parseStringComparison(
       JExpression pOperand1,
       JExpression pOperand2,
       BinaryOperator pBinaryOperator,
       StringState pState) {
-    AspectList first = parseExpression(pOperand1, pState);
-    AspectList second = parseExpression(pOperand2, pState);
+    AspectList first = parseExpressionToAspectList(pOperand1, pState);
+    AspectList second = parseExpressionToAspectList(pOperand2, pState);
     boolean equals = first.isLessOrEqual(second) && second.isLessOrEqual(second);
     switch (pBinaryOperator) {
       case EQUALS:
@@ -354,25 +454,11 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
     return false;
   }
 
-  private AspectList parseExpression(JExpression pOp, StringState pState) {
+  private AspectList parseExpressionToAspectList(JExpression pOp, StringState pState) {
     if (pOp instanceof JLeftHandSide) {
       JStringVariableIdentifier jid = jvv.visit((JLeftHandSide) pOp);
       return pState.getAspectList(jid);
     }
     return pOp.accept(jalv);
   }
-
-  // private Pair<JMethodInvocationExpression, JExpression>
-  // parseBinaryExpression(JExpression first, JExpression second) {
-//
-  // if (first instanceof JMethodInvocationExpression) {
-  // return Pair.of((JMethodInvocationExpression) first, second);
-  // }
-//
-  // if (second instanceof JMethodInvocationExpression) {
-  // return Pair.of((JMethodInvocationExpression) second, first);
-  // } else {
-  // return null;
-  // }
-  // }
 }

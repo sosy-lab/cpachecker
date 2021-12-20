@@ -14,7 +14,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -48,14 +47,12 @@ public class StringCPA extends AbstractCPA {
   private Configuration config;
   private StringOptions options;
   private final LogManager logger;
-  private final CFA cfa;
 
-  private StringCPA(Configuration pConfig, LogManager pLogger, CFA pCfa)
+  private StringCPA(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
     super(
         DelegateAbstractDomain.<StringState>getInstance(),
         null);
-    this.cfa = pCfa;
     this.config = pConfig;
     this.logger = pLogger;
     options = new StringOptions(pConfig);

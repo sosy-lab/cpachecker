@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.string.utils;
 
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JReferencedMethodInvocationExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cpa.string.StringState;
@@ -55,5 +56,9 @@ public class StringCpaUtilMethods {
 
   public static boolean isTemporaryVariable(JIdExpression jidExp) {
     return jidExp.getName().contains("__CPAchecker_TMP");
+  }
+
+  public static boolean isTemporaryVariable(JVariableDeclaration jDecl) {
+    return jDecl.getName().contains("__CPAchecker_TMP");
   }
 }
