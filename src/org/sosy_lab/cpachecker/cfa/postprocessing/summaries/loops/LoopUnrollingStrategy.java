@@ -41,9 +41,7 @@ public class LoopUnrollingStrategy extends AbstractLoopStrategy {
     strategyEnum = StrategiesEnum.LoopUnrolling;
   }
 
-  protected Optional<GhostCFA> summarizeLoop(
-      Loop pLoopStructure,
-      CFANode pBeforeWhile) {
+  protected Optional<GhostCFA> summarizeLoop(Loop pLoopStructure, CFANode pBeforeWhile) {
 
     CFANode startNodeGhostCFA = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
     CFANode endNodeGhostCFA = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());

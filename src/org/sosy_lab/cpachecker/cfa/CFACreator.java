@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLParser;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.util.SyntacticBlock;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.util.SyntacticBlockStructureBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -91,7 +92,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLParser;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
@@ -247,8 +247,9 @@ public class CFACreator {
               // by assuming the negation of the loop
               // Condition
               StrategiesEnum.NaiveLoopAcceleration,
-              StrategiesEnum.LoopAcceleration, // TODO Not yet implemented
-              StrategiesEnum.LoopUnrolling));
+              StrategiesEnum.LoopAcceleration // TODO Not yet implemented
+              // ,StrategiesEnum.LoopUnrolling
+              ));
 
   @Option(
       secure = true,

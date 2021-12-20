@@ -40,6 +40,8 @@ public class LoopStrategyDependency implements StrategyDependencyInterface {
       preferredStrategies.add(StrategiesEnum.LoopAcceleration);
     } else if (pAvailableStrategies.contains(StrategiesEnum.NaiveLoopAcceleration)) {
       preferredStrategies.add(StrategiesEnum.NaiveLoopAcceleration);
+    } else if (pAvailableStrategies.contains(StrategiesEnum.Base)) {
+      preferredStrategies.add(StrategiesEnum.Base);
     }
     return preferredStrategies;
   }
