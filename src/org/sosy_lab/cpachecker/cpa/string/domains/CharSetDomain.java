@@ -8,18 +8,17 @@
 
 package org.sosy_lab.cpachecker.cpa.string.domains;
 
-import com.google.common.collect.ImmutableList;
-import java.util.Arrays;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.primitives.Chars;
 import java.util.List;
-import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cpa.string.StringOptions;
 import org.sosy_lab.cpachecker.cpa.string.utils.Aspect;
 import org.sosy_lab.cpachecker.cpa.string.utils.Aspect.UnknownAspect;
 
 /*
- * Tracks the characters in the string
+ * Tracks the characters in a string
  */
-public class CharSetDomain implements AbstractStringDomain<char[]> {
+public class CharSetDomain implements AbstractStringDomain<ImmutableSet<Character>> {
 
   private static final DomainType TYPE = DomainType.CHAR_SET;
 
@@ -27,16 +26,10 @@ public class CharSetDomain implements AbstractStringDomain<char[]> {
   }
 
   @Override
-  public Aspect<char[]> addNewAspect(String pVariable) {
-
-    char[] temp =
-        Arrays.asList(pVariable.split(""))
-            .stream()
-            .distinct()
-            .collect(Collectors.joining())
-            .toCharArray();
-
-    return new Aspect<>(this, temp);
+  public Aspect<ImmutableSet<Character>> addNewAspect(String pVariable) {
+    char[] charArr = pVariable.toCharArray();
+    List<Character> charList = Chars.asList(charArr);
+    return createAspect(ImmutableSet.copyOf(charList));
   }
 
   @Override
@@ -46,21 +39,18 @@ public class CharSetDomain implements AbstractStringDomain<char[]> {
 
   @Override
   public boolean isLessOrEqual(Aspect<?> p1, Aspect<?> p2) {
-
     if (p1.getDomainType().equals(TYPE) && p2.getDomainType().equals(TYPE)) {
-
-      List<Character> firstChars = toCharList((char[]) p1.getValue());
-      List<Character> scndChars = toCharList((char[]) p2.getValue());
-
+      @SuppressWarnings("unchecked") // Safe, because we checked if p1 belongs to this domain
+      ImmutableSet<Character> firstChars = (ImmutableSet<Character>) p1.getValue();
+      @SuppressWarnings("unchecked") // Safe, same reason
+      ImmutableSet<Character> scndChars = (ImmutableSet<Character>) p2.getValue();
       return scndChars.containsAll(firstChars);
     }
-
     return false;
   }
 
   @Override
   public Aspect<?> combineAspectsForStringConcat(Aspect<?> p1, Aspect<?> p2) {
-
     if (p1 instanceof UnknownAspect) {
       return p2;
     }
@@ -69,45 +59,18 @@ public class CharSetDomain implements AbstractStringDomain<char[]> {
     }
 
     if (p1.getDomainType().equals(TYPE) && p2.getDomainType().equals(TYPE)) {
-
-      char[] p1Val = (char[]) p1.getValue();
-      char[] p2Val = (char[]) p2.getValue();
-      char[] result = mergeArrays(p1Val, p2Val);
-
-      return addNewAspect(String.copyValueOf(result));
+      @SuppressWarnings("unchecked") // Safe, because we checked if p1 belongs to this domain
+      ImmutableSet<Character> firstChars = (ImmutableSet<Character>) p1.getValue();
+      @SuppressWarnings("unchecked") // Safe, same reason
+      ImmutableSet<Character> scndChars = (ImmutableSet<Character>) p2.getValue();
+      ImmutableSet.Builder<Character> builder = new ImmutableSet.Builder<>();
+      ImmutableSet<Character> result = builder.addAll(firstChars).addAll(scndChars).build();
+      return createAspect(result);
     }
-
     return UnknownAspect.getInstance();
-
   }
 
-  private char[] mergeArrays(char[] arr1, char[] arr2) {
-
-    char[] result = new char[arr1.length + arr2.length];
-
-    for (int i = 0; i < arr1.length; i++) {
-      result[i] = arr1[i];
-    }
-
-    for (int i = arr1.length; i < result.length; i++) {
-
-      int n = i - arr1.length;
-      result[i] = arr2[n];
-
-    }
-
-    return result;
+  private Aspect<ImmutableSet<Character>> createAspect(ImmutableSet<Character> charList) {
+    return new Aspect<>(this, charList);
   }
-
-  private List<Character> toCharList(char[] arr) {
-
-    ImmutableList.Builder<Character> builder = new ImmutableList.Builder<>();
-
-    for (char c : arr) {
-      builder.add(c);
-    }
-
-    return builder.build();
-  }
-
 }
