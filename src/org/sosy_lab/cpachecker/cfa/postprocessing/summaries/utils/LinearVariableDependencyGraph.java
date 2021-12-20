@@ -68,7 +68,7 @@ public class LinearVariableDependencyGraph {
     // the dependency
     Optional<Integer> optionalIndex = findDependencyIndex(pVariableDependency);
     if (optionalIndex.isPresent()) {
-      this.variableDependencies.set(optionalIndex.get(), pVariableDependency);
+      this.variableDependencies.set(optionalIndex.orElseThrow(), pVariableDependency);
     } else {
       this.variableDependencies.add(pVariableDependency);
     }
@@ -79,8 +79,7 @@ public class LinearVariableDependencyGraph {
     Optional<LinearVariableDependency> existingLinearVariableDependency =
         findDependency(pLinearVariableDependency);
     if (existingLinearVariableDependency.isPresent()) {
-      return existingLinearVariableDependency
-          .get()
+      return existingLinearVariableDependency.orElseThrow()
           .modifyDependency(pLinearVariableDependency, pOperator);
     } else {
       this.putDependency(pLinearVariableDependency);

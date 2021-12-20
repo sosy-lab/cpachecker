@@ -235,8 +235,8 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
       return Optional.empty();
     }
 
-    currentSummaryNodeCFA = nextNodeAndIterationsVariable.get().getFirst();
-    AVariableDeclaration iterationsVariable = nextNodeAndIterationsVariable.get().getSecond();
+    currentSummaryNodeCFA = nextNodeAndIterationsVariable.orElseThrow().getFirst();
+    AVariableDeclaration iterationsVariable = nextNodeAndIterationsVariable.orElseThrow().getSecond();
 
     CFANode nextSummaryNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
 
@@ -310,7 +310,7 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
                           false),
                       CBinaryExpression.BinaryOperator.MINUS)
                   .binaryOperation(
-                      Integer.valueOf(delta),
+                      delta,
                       new CSimpleType(
                           false,
                           false,

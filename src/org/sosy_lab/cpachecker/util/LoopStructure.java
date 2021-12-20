@@ -139,7 +139,7 @@ public final class LoopStructure implements Serializable {
     private Map<String, Integer> loopIncDecVariables;
     private Set<AVariableDeclaration> modifiedVariables;
 
-    private LinearVariableDependencyGraph linearVariableDependencies;
+    private transient LinearVariableDependencyGraph linearVariableDependencies;
     private Boolean onlyConstantVariableModifications = null;
     private Boolean onlyLinearVariableModifications = null;
     private Set<CFAEdge> innerAssumeEdges = null;
@@ -543,7 +543,7 @@ public final class LoopStructure implements Serializable {
                 }
                 // TODO: Make this more general to also include Java Expressions
                 linearVariableDependency.modifyDependency(
-                    dependencies.get(), CBinaryExpression.BinaryOperator.PLUS);
+                    dependencies.orElseThrow(), CBinaryExpression.BinaryOperator.PLUS);
                 return Optional.of(linearVariableDependency);
               } else {
                 return Optional.empty();
@@ -568,7 +568,7 @@ public final class LoopStructure implements Serializable {
         if (dependency.isPresent()) {
           // TODO: Make this more general to also include Java Expressions
           linearVariableDependencyGraph.modifyDependencies(
-              dependency.get(), CBinaryExpression.BinaryOperator.PLUS);
+              dependency.orElseThrow(), CBinaryExpression.BinaryOperator.PLUS);
         }
       }
 
@@ -594,9 +594,7 @@ public final class LoopStructure implements Serializable {
                 AggregateConstantsVisitor<Exception> visitor =
                     new AggregateConstantsVisitor<>(
                         Optional.of(
-                            Set.of(
-                                (AVariableDeclaration)
-                                    ((AIdExpression) leftHandSide).getDeclaration())),
+                            ImmutableSet.of((AVariableDeclaration)((AIdExpression) leftHandSide).getDeclaration())),
                         true);
                 Optional<Integer> valueOptional = Optional.empty();
                 try {
@@ -619,7 +617,7 @@ public final class LoopStructure implements Serializable {
       if (onlyLinearVariableModifications == null) {
         if (onlyConstantVariableModifications != null) {
           if (onlyConstantVariableModifications.booleanValue()) {
-            onlyLinearVariableModifications = Boolean.valueOf(onlyConstantVariableModifications.booleanValue());
+            onlyLinearVariableModifications = onlyConstantVariableModifications;
             return onlyLinearVariableModifications.booleanValue();
           }
         }
@@ -771,29 +769,32 @@ public final class LoopStructure implements Serializable {
 
         if (assign.getLeftHandSide() instanceof AIdExpression) {
           AIdExpression assignementToId = (AIdExpression) assign.getLeftHandSide();
-          AVariableDeclaration assignToVar = (AVariableDeclaration) assignementToId.getDeclaration();
+          if (assignementToId.getDeclaration() instanceof AVariableDeclaration) {
+            AVariableDeclaration assignToVar =
+                (AVariableDeclaration) assignementToId.getDeclaration();
 
-          Set<AVariableDeclaration> varSet = new HashSet<>();
-          varSet.add(assignToVar);
+            Set<AVariableDeclaration> varSet = new HashSet<>();
+            varSet.add(assignToVar);
 
-          AggregateConstantsVisitor<Exception> visitor =
-              new AggregateConstantsVisitor<>(Optional.of(varSet), true);
-          Optional<Integer> valueOptional;
+            AggregateConstantsVisitor<Exception> visitor =
+                new AggregateConstantsVisitor<>(Optional.of(varSet), true);
+            Optional<Integer> valueOptional;
 
-          if (!(assign.getRightHandSide() instanceof AExpression)) {
-            return Optional.empty();
-          }
+            if (!(assign.getRightHandSide() instanceof AExpression)) {
+              return Optional.empty();
+            }
 
-          try {
-            valueOptional = ((AExpression) assign.getRightHandSide()).accept_(visitor);
-          } catch (Exception e1) {
-            return Optional.empty();
-          }
-          if (valueOptional.isPresent()) {
-            return Optional.of(
-                Pair.of(assignToVar.getQualifiedName(), valueOptional.orElseThrow()));
-          } else {
-            return Optional.empty();
+            try {
+              valueOptional = ((AExpression) assign.getRightHandSide()).accept_(visitor);
+            } catch (Exception e1) {
+              return Optional.empty();
+            }
+            if (valueOptional.isPresent()) {
+              return Optional.of(
+                  Pair.of(assignToVar.getQualifiedName(), valueOptional.orElseThrow()));
+            } else {
+              return Optional.empty();
+            }
           }
         }
       }

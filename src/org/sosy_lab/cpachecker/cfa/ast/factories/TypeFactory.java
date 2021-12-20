@@ -27,7 +27,7 @@ public class TypeFactory {
   public static Type getBiggestType(Type pType) {
     if (pType instanceof CType) {
       return CTypeFactory.getBiggestType((CType) pType);
-    } else if (pType instanceof CType) {
+    } else if (pType instanceof JType) {
       return JTypeFactory.getBiggestType((JType) pType);
     } else {
       return null;
@@ -37,7 +37,7 @@ public class TypeFactory {
   public static Number getUpperLimit(Type pType) {
     if (pType instanceof CType) {
       return CTypeFactory.getUpperLimit((CType) pType);
-    } else if (pType instanceof CType) {
+    } else if (pType instanceof JType) {
       return JTypeFactory.getUpperLimit((JType) pType);
     } else {
       return null;

@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies
 
 public class LoopUnrollingStrategy extends AbstractLoopStrategy {
 
+  @SuppressWarnings("unused")
   Integer maxUnrollingsStrategy = 0;
 
   public LoopUnrollingStrategy(

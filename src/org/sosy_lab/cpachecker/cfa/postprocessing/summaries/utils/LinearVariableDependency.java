@@ -157,10 +157,10 @@ public class LinearVariableDependency {
       return true;
     } else if (operator == CBinaryExpression.BinaryOperator.MULTIPLY
         || operator == JBinaryExpression.BinaryOperator.MULTIPLY) {
-      if (this.dependencies.keySet().size() != 0 && pLinearVariableDependency.dependencies.keySet().size() != 0) {
+      if (!this.dependencies.keySet().isEmpty() && !pLinearVariableDependency.dependencies.keySet().isEmpty()) {
         return false;
       } else {
-        if (this.dependencies.keySet().size() == 0) {
+        if (this.dependencies.keySet().isEmpty()) {
           for (Entry<AVariableDeclaration, AExpression> s :
               pLinearVariableDependency.dependencies.entrySet()) {
             this.setDependency(s.getKey(), s.getValue());
@@ -168,7 +168,7 @@ public class LinearVariableDependency {
               return false;
             }
           }
-        } else if (pLinearVariableDependency.dependencies.keySet().size() == 0) {
+        } else if (pLinearVariableDependency.dependencies.keySet().isEmpty()) {
           for (Entry<AVariableDeclaration, AExpression> s : this.dependencies.entrySet()) {
             if (!this.modifyDependency(
                 s.getKey(), pLinearVariableDependency.numericalValue, operator)) {
@@ -181,7 +181,7 @@ public class LinearVariableDependency {
       }
     } else if (operator == JBinaryExpression.BinaryOperator.DIVIDE
         || operator == CBinaryExpression.BinaryOperator.DIVIDE) {
-      if (pLinearVariableDependency.dependencies.keySet().size() == 0) {
+      if (pLinearVariableDependency.dependencies.keySet().isEmpty()) {
           for (Entry<AVariableDeclaration, AExpression> s : this.dependencies.entrySet()) {
             if (!this.modifyDependency(
                 s.getKey(), pLinearVariableDependency.numericalValue, operator)) {

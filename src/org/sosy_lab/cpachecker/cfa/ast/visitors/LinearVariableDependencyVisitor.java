@@ -167,7 +167,7 @@ public class LinearVariableDependencyVisitor<X extends Exception>
     Optional<LinearVariableDependency> operand1Result = pExp.getOperand1().accept_(this);
     Optional<LinearVariableDependency> operand2Result = pExp.getOperand2().accept_(this);
     if (operand1Result.isPresent() && operand2Result.isPresent()) {
-      if (!operand1Result.get().modifyDependency(operand2Result.get(), pExp.getOperator())) {
+      if (!operand1Result.orElseThrow().modifyDependency(operand2Result.orElseThrow(), pExp.getOperator())) {
         return Optional.empty();
       }
       return operand1Result;
@@ -207,7 +207,7 @@ public class LinearVariableDependencyVisitor<X extends Exception>
         || pExp.getOperator() == JUnaryExpression.UnaryOperator.MINUS) {
         Optional<LinearVariableDependency> innerVisitor = pExp.getOperand().accept_(this);
       if (innerVisitor.isPresent()) {
-        innerVisitor.get().negateDependencies();
+        innerVisitor.orElseThrow().negateDependencies();
       }
       return innerVisitor;
     }
