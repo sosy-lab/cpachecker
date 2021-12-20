@@ -98,7 +98,7 @@ public class LinearVariableDependencyGraph {
       dependeciesAndSize.add(Pair.of(s, s.getVariableDependencies().getFirst().keySet().size()));
     }
 
-    dependeciesAndSize.sort(Comparator.comparing(p1 -> p1.getSecond()));
+    dependeciesAndSize.sort(Comparator.comparing(p1 -> -p1.getSecond()));
     for (Pair<LinearVariableDependency, Integer> d : dependeciesAndSize) {
       variableOrdering.add(d.getFirst().getDependentVariable());
     }

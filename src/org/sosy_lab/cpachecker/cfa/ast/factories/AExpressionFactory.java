@@ -132,7 +132,7 @@ public class AExpressionFactory implements IExpressionFactory {
     return this;
   }
 
-  private AExpressionFactory binaryOperation(
+  public AExpressionFactory binaryOperation(
       AExpression pExpr, Type pOperatorType, ABinaryOperator pOperator) {
     if (pExpr instanceof CExpression
         && pOperator instanceof CBinaryExpression.BinaryOperator

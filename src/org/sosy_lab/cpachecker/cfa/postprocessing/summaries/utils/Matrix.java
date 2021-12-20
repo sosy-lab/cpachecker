@@ -31,18 +31,19 @@ public class Matrix<T> {
 
   public Matrix(Matrix<T> pMatrix) {
     matrix = new ArrayList<>(pMatrix.amountRows);
+    amountRows = pMatrix.amountRows;
+    amountColumns = pMatrix.amountColumns;
+    multiplicationFunction = pMatrix.multiplicationFunction;
+    additionFunction = pMatrix.additionFunction;
     for (int t = 0; t < pMatrix.amountRows; t++) {
       matrix.add(new ArrayList<>(pMatrix.amountColumns));
     }
 
     for (int i = 0; i < amountRows; i++) {
       for (int j = 0; j < pMatrix.amountColumns; j++) {
-        matrix.get(i).set(j, pMatrix.get(i, j));
+        matrix.get(i).add(j, pMatrix.get(i, j));
       }
     }
-
-    amountRows = pMatrix.amountRows;
-    amountColumns = pMatrix.amountColumns;
   }
 
   public T get(Integer row, Integer column) {
@@ -50,7 +51,11 @@ public class Matrix<T> {
   }
 
   public void put(Integer row, Integer column, T pValue) {
-    matrix.get(row).set(column, pValue);
+    if (matrix.get(row).size() <= column) {
+      matrix.get(row).add(column, pValue);
+    } else {
+      matrix.get(row).set(column, pValue);
+    }
   }
 
   public void multiplyWith(Matrix<T> pMatrix) {
@@ -75,7 +80,7 @@ public class Matrix<T> {
                   this.multiplicationFunction.apply(
                       this.matrix.get(i).get(k), pMatrix.matrix.get(k).get(j)));
         }
-        resultMatrix.get(i).set(j, cellResult);
+        resultMatrix.get(i).add(j, cellResult);
       }
     }
     this.matrix = resultMatrix;
@@ -104,6 +109,6 @@ public class Matrix<T> {
   }
 
   public void setMultiplicationOperation(BiFunction<T, T, T> pMultiplicationFunction) {
-    this.additionFunction = pMultiplicationFunction;
+    this.multiplicationFunction = pMultiplicationFunction;
   }
 }

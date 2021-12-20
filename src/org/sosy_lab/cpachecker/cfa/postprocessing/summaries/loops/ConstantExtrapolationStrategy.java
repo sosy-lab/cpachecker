@@ -444,7 +444,7 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
     Loop loopStructure = loopStructureMaybe.orElseThrow();
 
     if (!loopStructure.hasOnlyConstantVariableModifications()
-        || loopStructure.amountOfInnerStatementEdges() != 1) {
+        || loopStructure.amountOfInnerAssumeEdges() != 1) {
       return Optional.empty();
     }
 

@@ -142,7 +142,7 @@ public final class LoopStructure implements Serializable {
     private LinearVariableDependencyGraph linearVariableDependencies;
     private Boolean onlyConstantVariableModifications = null;
     private Boolean onlyLinearVariableModifications = null;
-    private Set<CFAEdge> innerStatementEdges = null;
+    private Set<CFAEdge> innerAssumeEdges = null;
 
     private Loop(CFANode loopHead, Set<CFANode> pNodes) {
       loopHeads = ImmutableSet.of(loopHead);
@@ -181,13 +181,13 @@ public final class LoopStructure implements Serializable {
       loopIncDecVariables = collectLoopIncDecVariables();
       modifiedVariables = collectModifiedVariables();
       linearVariableDependencies = calculateLinearVariableDependencies();
-      innerStatementEdges = getInnerStatementEdges();
+      innerAssumeEdges = getInnerAssumeEdges();
     }
 
-    private Set<CFAEdge> getInnerStatementEdges() {
+    private Set<CFAEdge> getInnerAssumeEdges() {
       Set<CFAEdge> selectedEdges = new HashSet<>();
       for (CFAEdge e : this.getInnerLoopEdges()) {
-        if (e instanceof AStatementEdge) {
+        if (e instanceof AssumeEdge) {
           selectedEdges.add(e);
         }
       }
@@ -653,9 +653,9 @@ public final class LoopStructure implements Serializable {
       }
     }
 
-    public Integer amountOfInnerStatementEdges() {
+    public Integer amountOfInnerAssumeEdges() {
       this.computeSets();
-      return Integer.valueOf(this.innerStatementEdges.size());
+      return Integer.valueOf(this.innerAssumeEdges.size());
     }
   }
 

@@ -9,9 +9,11 @@
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.utils;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -72,14 +74,7 @@ public class LinearVariableDependencyMatrix {
       for (Entry<AVariableDeclaration, AExpression> v :
           l.getVariableDependencies().getFirst().entrySet()) {
         Integer indexOfDependencyVariable = pVariableOrdering.indexOf(v.getKey());
-        matrixRepresentation.put(
-            indexOfVariable,
-            indexOfDependencyVariable,
-            // TODO: Generalize for Java Expressions
-            new AExpressionFactory()
-                .from(matrixRepresentation.get(indexOfVariable, indexOfDependencyVariable))
-                .binaryOperation(v.getValue(), CBinaryExpression.BinaryOperator.PLUS)
-                .build());
+        matrixRepresentation.put(indexOfVariable, indexOfDependencyVariable, v.getValue());
       }
       matrixRepresentation.put(
           indexOfVariable,
@@ -103,8 +98,8 @@ public class LinearVariableDependencyMatrix {
   }
 
   public boolean isUpperDiagonal() {
-    for (int j = 0; j < matrixSize; j++) {
-      for (int i = 0; i < j; i++) {
+    for (int i = 0; i < matrixSize; i++) {
+      for (int j = 0; j < i; j++) {
         AExpression matrixValue = matrixRepresentation.get(i, j);
         if (matrixValue instanceof ALiteralExpression) {
           Object value = ((ALiteralExpression) matrixValue).getValue();
@@ -165,6 +160,8 @@ public class LinearVariableDependencyMatrix {
         : "This algorithm only terminates in general for upper Diagonal matrices";
 
     Matrix<AExpression> currentMatrixPower = new Matrix<>(this.matrixSize);
+    // TODO: Update the addition and multiplication operators, because the report cannot be read and
+    // the overflow analysis has problems because of division by 0
     currentMatrixPower.setAdditionOperation(
         (p1, p2) ->
             new AExpressionFactory()
@@ -172,7 +169,7 @@ public class LinearVariableDependencyMatrix {
                 // TODO: Generalize for Java
                 .binaryOperation(p2, CBinaryExpression.BinaryOperator.PLUS)
                 .build());
-    currentMatrixPower.setAdditionOperation(
+    currentMatrixPower.setMultiplicationOperation(
         (p1, p2) ->
             new AExpressionFactory()
                 .from(p1)
@@ -246,7 +243,7 @@ public class LinearVariableDependencyMatrix {
                 // TODO: Generalize for Java
                 .binaryOperation(p2, CBinaryExpression.BinaryOperator.PLUS)
                 .build());
-    resultMatrix.setAdditionOperation(
+    resultMatrix.setMultiplicationOperation(
         (p1, p2) ->
             new AExpressionFactory()
                 .from(p1)
@@ -309,5 +306,38 @@ public class LinearVariableDependencyMatrix {
     LinearVariableDependencyMatrix resultDependencyMatrix =
         new LinearVariableDependencyMatrix(currentMatrixPower, this.variableOrdering);
     return resultDependencyMatrix;
+  }
+
+  public List<AExpressionAssignmentStatement> asAssignments() {
+    List<AExpressionAssignmentStatement> assignments = new ArrayList<>();
+    for (int i = 0; i < this.variableOrdering.size(); i++) {
+      AExpression leftHandSide =
+          new AExpressionFactory()
+              .from(this.variableOrdering.get(i))
+              .binaryOperation(
+                  this.matrixRepresentation.get(i, i), CBinaryExpression.BinaryOperator.MULTIPLY)
+              .build();
+      for (int j = i; j < this.variableOrdering.size(); j++) {
+        leftHandSide =
+            new AExpressionFactory()
+                .from(this.variableOrdering.get(j))
+                .binaryOperation(
+                    this.matrixRepresentation.get(i, j),
+                    CBinaryExpression.BinaryOperator.MULTIPLY)
+                .binaryOperation(leftHandSide, CBinaryExpression.BinaryOperator.PLUS)
+                .build();
+      }
+
+      leftHandSide =
+          new AExpressionFactory()
+              .from(leftHandSide)
+              .binaryOperation(
+                  this.matrixRepresentation.get(i, this.variableOrdering.size()),
+                  CBinaryExpression.BinaryOperator.MULTIPLY)
+              .build();
+      assignments.add(
+          new AExpressionFactory().from(leftHandSide).assignTo(this.variableOrdering.get(i)));
+    }
+    return assignments;
   }
 }
