@@ -16,13 +16,18 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.GhostCFA;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyInterface;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.utils.LinearVariableDependencyGraph;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.utils.LinearVariableDependencyMatrix;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.Pair;
 
 public class LinearExtrapolationStrategy extends AbstractLoopExtrapolationStrategy {
 
@@ -65,7 +70,9 @@ public class LinearExtrapolationStrategy extends AbstractLoopExtrapolationStrate
     }
     Loop loopStructure = loopStructureMaybe.orElseThrow();
 
-    if (!loopStructure.hasOnlyLinearVariableModifications()) {
+    if (loopStructure.hasOnlyConstantVariableModifications()
+        || loopStructure.amountOfInnerStatementEdges() != 1
+        || !loopStructure.hasOnlyLinearVariableModifications()) {
       return Optional.empty();
     }
 
@@ -98,6 +105,47 @@ public class LinearExtrapolationStrategy extends AbstractLoopExtrapolationStrate
 
     LinearVariableDependencyGraph variableDependencyGraph =
         pLoopStructure.getLinearVariableDependencies();
+
+    LinearVariableDependencyMatrix variableDependencyMatrix = variableDependencyGraph.asMatrix();
+
+    if (!variableDependencyMatrix.isUpperDiagonal()) {
+      return Optional.empty();
+    }
+
+    if (!variableDependencyMatrix.diagonalValueEquals(Integer.valueOf(1))) {
+      return Optional.empty();
+    }
+
+    LinearVariableDependencyMatrix powerOfMatrix = variableDependencyMatrix.toThepower(pIterations);
+
+    CFANode startNodeGhostCFA = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
+    CFANode endNodeGhostCFA = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
+
+    Optional<Pair<CFANode, CFANode>> unrolledLoopNodesMaybe = pLoopStructure.unrollOutermostLoop();
+    if (unrolledLoopNodesMaybe.isEmpty()) {
+      return Optional.empty();
+    }
+
+    CFANode startUnrolledLoopNode = unrolledLoopNodesMaybe.orElseThrow().getFirst();
+    CFANode endUnrolledLoopNode = unrolledLoopNodesMaybe.orElseThrow().getSecond();
+
+    startNodeGhostCFA.connectTo(startUnrolledLoopNode);
+
+    CFANode currentSummaryNodeCFA = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
+
+    CFAEdge loopBoundCFAEdge =
+        new CAssumeEdge(
+            "Loop Bound Assumption",
+            FileLocation.DUMMY,
+            endUnrolledLoopNode,
+            currentSummaryNodeCFA,
+            (CExpression) pLoopBoundExpression,
+            true); // TODO: this may not be the correct way to do this; Review
+    loopBoundCFAEdge.connect();
+
+    CAssumeEdge negatedBoundCFAEdge =
+        ((CAssumeEdge) loopBoundCFAEdge).negate().copyWith(endUnrolledLoopNode, endNodeGhostCFA);
+    negatedBoundCFAEdge.connect();
 
     return Optional.empty();
   }

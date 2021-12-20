@@ -67,7 +67,7 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
       CFANode pStartNode, AExpression pIterations, CFANode pBeforeWhile) {
     // Overflows occur since the iterations calculation variables do not have the correct type.
     // Because of this new Variables with more general types are introduced in order to not have
-    // this defficiency
+    // this deficiency
     CFANode currentSummaryNode = pStartNode;
     CFANode nextSummaryNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
 
