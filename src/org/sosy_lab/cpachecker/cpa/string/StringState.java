@@ -1,6 +1,5 @@
 package org.sosy_lab.cpachecker.cpa.string;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import java.util.Optional;
@@ -160,7 +159,8 @@ public class StringState implements LatticeAbstractState<StringState> {
         return entry.getValue();
       }
     }
-    return new AspectList(ImmutableList.of());
+    // Variable not in program
+    return null;
   }
 
   public StringOptions getOptions() {

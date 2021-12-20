@@ -70,7 +70,7 @@ public class StringCPA extends AbstractCPA {
 
   @Override
   public StringTransferRelation getTransferRelation() {
-    return new StringTransferRelation(logger, options, cfa.getMachineModel());
+    return new StringTransferRelation(logger, options);
   }
 
   @Override

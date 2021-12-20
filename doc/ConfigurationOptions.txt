@@ -60,7 +60,7 @@ rootDirectory = "."
 # SPDX-License-Identifier: Apache-2.0
 
 # Further options for Boolector in addition to the default options. Format: 
-# "Optionname=value" with â€™,â€™ to seperate options. Optionname and value can
+# "Optionname=value" with ’,’ to seperate options. Optionname and value can
 # be found in BtorOption or Boolector C Api.Example:
 # "BTOR_OPT_MODEL_GEN=2,BTOR_OPT_INCREMENTAL=1".
 solver.boolector.furtherOptions = ""
@@ -157,7 +157,7 @@ solver.z3.usePhantomReferences = false
 
 # SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2007-2021 Dirk Beyer <https://www.sosy-lab.org>
-# SPDX-FileCopyrightText: 2014-2017 UniversitÃ© Grenoble Alpes
+# SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
 #
@@ -3007,6 +3007,29 @@ cpa.statistics.metric.structVariablesCount = true
 # target file to hold the statistics
 cpa.statistics.statisticsCPAFile = no default value
 
+# Look if these Strings are Part of a String
+cpa.string.containset = new ArrayList<>()
+
+# which domains to use in StringCPA
+cpa.string.domains = ImmutableList
+          .copyOf(
+              Arrays.asList(
+                  "PrefixDomain",
+                  "SuffixDomain",
+                  "LengthDomain",
+                  "CharSetDomain",
+                  "ContainsDomain",
+                  "StringSetDomain"))
+
+# Which prefixlength shall be tracked
+cpa.string.prefixlength = 3
+
+# Compare these Strings for StringSetDomain
+cpa.string.stringset = []
+
+# Which suffixlength shall be tracked
+cpa.string.suffixlength = 3
+
 # Which refinement algorithm to use? (give class name, required for
 # termination algorithm with CEGAR) If the package name starts with
 # 'org.sosy_lab.cpachecker.', this prefix can be omitted.
@@ -4315,6 +4338,14 @@ statistics.print = false
 # which stop operator to use for LiveVariablesCPA
 stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
+
+# which merge operator to use for StringCPA
+string.cpa.merge = "JOIN"
+  allowed values: [SEP, JOIN]
+
+# which stop operator to use for StringCPA
+string.cpa.stop = "SEP"
+  allowed values: [SEP, JOIN]
 
 # compress the produced violation-witness automata using GZIP compression.
 termination.compressWitness = true

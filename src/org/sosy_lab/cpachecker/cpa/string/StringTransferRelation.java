@@ -16,7 +16,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
@@ -25,17 +24,14 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.java.JInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodOrConstructorInvocation;
-import org.sosy_lab.cpachecker.cfa.ast.java.JReferencedMethodInvocationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.java.JStatement;
-import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -48,21 +44,15 @@ import org.sosy_lab.cpachecker.cfa.model.java.JMethodReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.string.domains.DomainType;
-import org.sosy_lab.cpachecker.cpa.string.domains.LengthDomain;
-import org.sosy_lab.cpachecker.cpa.string.utils.Aspect;
 import org.sosy_lab.cpachecker.cpa.string.utils.AspectList;
 import org.sosy_lab.cpachecker.cpa.string.utils.AspectList.UnknownValueAndAspects;
-import org.sosy_lab.cpachecker.cpa.string.utils.HelperMethods;
 import org.sosy_lab.cpachecker.cpa.string.utils.JStringVariableIdentifier;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cpa.string.utils.StringCpaUtilMethods;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class StringTransferRelation extends SingleEdgeTransferRelation {
@@ -75,16 +65,13 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
   private JVariableVisitor jvv;
 
   private LogManager logger;
-  private final MachineModel model;
 
   public StringTransferRelation(
       LogManager pLogger,
-      StringOptions pOptions,
-      MachineModel pMachineModel) {
+      StringOptions pOptions) {
     logger = pLogger;
     this.options = pOptions;
     localVariables = new ArrayList<>();
-    model = pMachineModel;
   }
 
   @Override
@@ -94,15 +81,13 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
 
     StringState state = StringState.copyOf((StringState) pState);
     StringState successor = null;
-    jalv = new JAspectListVisitor(options,state);
+    jalv = new JAspectListVisitor(options, state);
     jvv = new JVariableVisitor();
     funcName = pCfaEdge.getPredecessor().getFunctionName();
 
     switch (pCfaEdge.getEdgeType()) {
-
       case DeclarationEdge:
         if (pCfaEdge instanceof JDeclarationEdge) {
-
           JDeclaration jDecl = ((JDeclarationEdge) pCfaEdge).getDeclaration();
           successor = handleJDeclaration(jDecl, state);
         }
@@ -110,7 +95,6 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
 
       case StatementEdge:
         if (pCfaEdge instanceof JStatementEdge) {
-
           JStatement jStat = ((JStatementEdge) pCfaEdge).getStatement();
           successor = handleJStatemt(jStat, state);
         }
@@ -118,7 +102,6 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
 
       case AssumeEdge:
         if (pCfaEdge instanceof JAssumeEdge) {
-
           JAssumeEdge jae = (JAssumeEdge) pCfaEdge;
           successor = handleJAssumption(jae.getTruthAssumption(), jae, state);
         }
@@ -130,18 +113,15 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
 
       case CallToReturnEdge:
         if (pCfaEdge instanceof JMethodSummaryEdge) {
-
           successor = handleJMethodSummaryEdge(state);
         }
         break;
 
       case FunctionCallEdge:
         if (pCfaEdge instanceof JMethodCallEdge) {
-
           final JMethodCallEdge fnkCall = (JMethodCallEdge) pCfaEdge;
           final FunctionEntryNode succ = fnkCall.getSuccessor();
           final String calledFunctionName = succ.getFunctionName();
-
           successor =
               handleJMethodCallEdge(
                   fnkCall.getArguments(),
@@ -153,10 +133,8 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
 
       case FunctionReturnEdge:
         if (pCfaEdge instanceof JMethodReturnEdge) {
-
           final JMethodReturnEdge fnkReturnEdge = (JMethodReturnEdge) pCfaEdge;
           final JMethodSummaryEdge summaryEdge = fnkReturnEdge.getSummaryEdge();
-
           successor = handleJMethodReturnEdge(fnkReturnEdge, summaryEdge.getExpression(), state);
         }
         break;
@@ -172,15 +150,10 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
     }
 
     if (successor != null) {
-
       return Collections.singleton(successor);
-
     } else {
-
       return ImmutableSet.of();
-
     }
-
   }
 
   // f(x)", that calls "f(int a)
@@ -191,10 +164,8 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
       StringState pState) {
 
     for (int i = 0; i < parameters.size(); i++) {
-
       JExpression exp = pArguments.get(i);
-
-      if (HelperMethods.isString(exp.getExpressionType())) {
+      if (StringCpaUtilMethods.isString(exp.getExpressionType())) {
 
         AParameterDeclaration param = parameters.get(i);
         MemoryLocation formalParamName =
@@ -204,11 +175,8 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
         AspectList value = exp.accept(jalv);
 
         pState.updateVariable(jid, value);
-
       }
-
     }
-
     return pState;
   }
 
@@ -223,14 +191,13 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
     JStringVariableIdentifier retJid = null;
 
     if (returnVarName.isPresent()) {
-      if (HelperMethods.isString(returnVarName.get().getType())) {
+      if (StringCpaUtilMethods.isString(returnVarName.get().getType())) {
 
         retJid =
             new JStringVariableIdentifier(
                 returnVarName.get().getType(),
                 MemoryLocation.forDeclaration(returnVarName.get()));
       }
-
     }
 
     if (expSummary instanceof JMethodInvocationAssignmentStatement) {
@@ -249,22 +216,17 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
 
       else {
         if (op1 instanceof JLeftHandSide) {
-        jid = Optional.of(jvv.visit((JLeftHandSide) op1));
+          jid = Optional.of(jvv.visit((JLeftHandSide) op1));
           // JMethodInvocationExpression jmie =
           newValue = jalv.visit(assignExp.getFunctionCallExpression());
         }
       }
 
       if (jid.isPresent() && jid.get().isString()) {
-
         return pState.updateVariable(jid.orElseThrow(), newValue);
-
       }
-
     }
-
     return pState;
-
   }
 
   // "return (x)"
@@ -278,15 +240,11 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private StringState handleBlankEdge(BlankEdge pCfaEdge, StringState pState) {
-
     if (pCfaEdge.getSuccessor() instanceof FunctionExitNode) {
-
       StringState state = StringState.copyOf(pState);
       state.clearLocalVariables(funcName);
-
       return state;
     }
-
     return pState;
   }
 
@@ -297,20 +255,19 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
       JRightHandSide jRight = ((JAssignment) pJStat).getRightHandSide();
       JType type = jLeft.getExpressionType();
 
-      if (HelperMethods.isString(type)) {
+      if (StringCpaUtilMethods.isString(type)) {
         JStringVariableIdentifier jid = jLeft.accept(jvv);
         AspectList vaa = jRight.accept(jalv);
         return pState.updateVariable(jid, vaa);
-
       }
-
     }
     return pState;
   }
 
   private StringState handleJDeclaration(JDeclaration pJDecl, StringState pState) {
 
-    if (!(pJDecl instanceof JVariableDeclaration) || !HelperMethods.isString(pJDecl.getType())) {
+    if (!(pJDecl instanceof JVariableDeclaration)
+        || !StringCpaUtilMethods.isString(pJDecl.getType())) {
       return pState;
     }
 
@@ -326,179 +283,96 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private AspectList getInitialValue(JInitializer pJ) {
-
     if (pJ instanceof JInitializerExpression) {
-
       JExpression init = ((JInitializerExpression) pJ).getExpression();
       AspectList value = init.accept(jalv);
-
       return value;
     }
-
     return UnknownValueAndAspects.getInstance();
   }
 
   private StringState
       handleJAssumption(boolean truthAssumption, JAssumeEdge pCfaEdge, StringState pState) {
-
     JExpression exp = pCfaEdge.getExpression();
 
-    // true if exp = !(exp)
-    boolean negatedUnaryOperator = false;
-    if (exp instanceof JUnaryExpression) {
-
-      if (((JUnaryExpression) exp).getOperator().equals(UnaryOperator.NOT)) {
-        negatedUnaryOperator = true;
-      }
-
-      exp = ((JUnaryExpression) exp).getOperand();
-    }
-
+    boolean truthValue = false;
     if (exp instanceof JBinaryExpression) {
+      JBinaryExpression binaryExpression = (JBinaryExpression) exp;
+      JExpression operand1 = binaryExpression.getOperand1();
+      JExpression operand2 = binaryExpression.getOperand2();
+      JType op1Type = operand1.getExpressionType();
+      JType op2Type = operand2.getExpressionType();
 
-      JBinaryExpression jbe = (JBinaryExpression) exp;
-      Pair<JMethodInvocationExpression, JExpression> pair =
-          parseBinaryExpression(jbe.getOperand1(), jbe.getOperand2());
-      JExpression other;
-      JMethodInvocationExpression jmie;
-
-      if (pair != null) {
-
-        jmie = pair.getFirst();
-        other = pair.getSecond();
-
-      } else {
-
-        return checkTruthAssumption(truthAssumption, pState);
+      // E.g. s1==s2 or s1 !=s2
+      if (StringCpaUtilMethods.isString(op1Type) && StringCpaUtilMethods.isString(op2Type)) {
+        truthValue =
+            parseStringComparison(operand1, operand2, binaryExpression.getOperator(), pState);
       }
-
-      do {
-        if (jmie instanceof JReferencedMethodInvocationExpression) {
-
-          JReferencedMethodInvocationExpression jrmie =
-              (JReferencedMethodInvocationExpression) jmie;
-          if (HelperMethods.methodCallLength(jrmie, pState)) {
-            JStringVariableIdentifier jid = jvv.visit(jrmie.getReferencedVariable());
-            AspectList vaa = pState.getAspectList(jid);
-
-            if (!(logger instanceof LogManagerWithoutDuplicates)) {
-              logger = new LogManagerWithoutDuplicates(logger);
-            }
-
-            Aevv vis = new Aevv(funcName, model, (LogManagerWithoutDuplicates) logger);
-            Value va = other.accept(vis);
-
-            if (negatedUnaryOperator) {
-              pState = handleMethodCallStringLength(jbe.getOperator(), pState, jid, vaa, va);
-            } else {
-              pState = handleMethodCallStringLengthNegTA(jbe.getOperator(), pState, jid, vaa, va);
-            }
-          }
+      // E.g. s1.length() == n
+      // This case is handled in valuecpa, so we just pass the state
+      else if (StringCpaUtilMethods.isString(op1Type) || StringCpaUtilMethods.isString(op2Type)) {
+        return pState;
+      }
+      // E.g. s1.equals("foo") -> all methods on strings that return boolean
+      else if (operand1 instanceof JIdExpression) {
+        JIdExpression jidExp = (JIdExpression) operand1;
+        // "Dirty" workaround,
+        if (StringCpaUtilMethods.isTemporaryVariable(jidExp)) {
+          // String functionName = jidExp.getName();
         }
-      } while (other instanceof JBinaryExpression);
 
+      }
+      // No strings used in assumption -> pass state
+      else {
+        return pState;
+      }
     }
 
-    return checkTruthAssumption(truthAssumption, pState);
-  }
-
-  private StringState checkTruthAssumption(boolean truthAssumption, StringState pState) {
-
-    if (truthAssumption) {
+    if (truthValue == truthAssumption) {
       return pState;
     }
     return null;
   }
 
-  private Pair<JMethodInvocationExpression, JExpression>
-      parseBinaryExpression(JExpression first, JExpression second) {
-
-    if (first instanceof JMethodInvocationExpression) {
-      return Pair.of((JMethodInvocationExpression) first, second);
+  // Compares if two aspect lists are the same
+  private boolean parseStringComparison(
+      JExpression pOperand1,
+      JExpression pOperand2,
+      BinaryOperator pBinaryOperator,
+      StringState pState) {
+    AspectList first = parseExpression(pOperand1, pState);
+    AspectList second = parseExpression(pOperand2, pState);
+    boolean equals = first.isLessOrEqual(second) && second.isLessOrEqual(second);
+    switch (pBinaryOperator) {
+      case EQUALS:
+        return equals;
+      case NOT_EQUALS:
+        return !equals;
+      default:
+        break;
     }
-
-    if (second instanceof JMethodInvocationExpression) {
-      return Pair.of((JMethodInvocationExpression) second, first);
-    } else {
-      return null;
-    }
-
+    return false;
   }
 
-  private StringState handleMethodCallStringLengthNegTA(
-      BinaryOperator pBinOp,
-      StringState pState,
-      JStringVariableIdentifier pJid,
-      AspectList pVaa,
-      Value pVa) {
-
-    LengthDomain domain = (LengthDomain) options.getDomain(DomainType.LENGTH);
-    if (pVaa.getAspect(domain) != null) {
-      return pState;
+  private AspectList parseExpression(JExpression pOp, StringState pState) {
+    if (pOp instanceof JLeftHandSide) {
+      JStringVariableIdentifier jid = jvv.visit((JLeftHandSide) pOp);
+      return pState.getAspectList(jid);
     }
-    if (pVa.isNumericValue()) {
-
-      Aspect<?> a = null;
-
-      switch (pBinOp) {
-        case LESS_EQUAL:
-        case LESS_THAN:
-        case NOT_EQUALS: {
-          int val = pVa.asNumericValue().getNumber().intValue();
-          a = domain.addNewAspect(Integer.toString(val));
-        }
-          break;
-
-        case GREATER_EQUAL:
-        case GREATER_THAN:
-        case EQUALS:
-        default:
-          break;
-      }
-
-      if (a != null) {
-        pState.updateVariable(pJid, pVaa.updateOneAspect(a));
-      }
-    }
-    return pState;
+    return pOp.accept(jalv);
   }
 
-  private StringState handleMethodCallStringLength(
-      BinaryOperator pBinOp,
-      StringState pState,
-      JStringVariableIdentifier pJid,
-      AspectList pVaa,
-      Value pVa) {
-
-    LengthDomain domain = (LengthDomain) options.getDomain(DomainType.LENGTH);
-    if (pVaa.getAspect(domain) != null) {
-      return pState;
-    }
-
-    if (pVa.isNumericValue()) {
-
-      Aspect<?> a = null;
-
-      switch (pBinOp) {
-        case GREATER_EQUAL:
-        case GREATER_THAN:
-        case EQUALS: {
-          int val = pVa.asNumericValue().getNumber().intValue();
-          a = domain.addNewAspect(Integer.toString(val));
-        }
-          break;
-
-        case LESS_EQUAL:
-        case LESS_THAN:
-        case NOT_EQUALS:
-        default:
-          break;
-      }
-
-      if (a != null) {
-        pState.updateVariable(pJid, pVaa.updateOneAspect(a));
-      }
-    }
-    return pState;
-  }
+  // private Pair<JMethodInvocationExpression, JExpression>
+  // parseBinaryExpression(JExpression first, JExpression second) {
+//
+  // if (first instanceof JMethodInvocationExpression) {
+  // return Pair.of((JMethodInvocationExpression) first, second);
+  // }
+//
+  // if (second instanceof JMethodInvocationExpression) {
+  // return Pair.of((JMethodInvocationExpression) second, first);
+  // } else {
+  // return null;
+  // }
+  // }
 }

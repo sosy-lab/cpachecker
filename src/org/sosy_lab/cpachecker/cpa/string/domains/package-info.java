@@ -8,7 +8,7 @@
 
 /*
  * Domains for Stringcpa
- * A domain represents aspects that all share the
+ * A domain represents aspects of strings. It is used to create an aspect from a string.
  */
 /**
  * Instructions on how to add new domains: For each new Domain do the following steps: 1. The domain

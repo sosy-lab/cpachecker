@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.string.utils;
 
+import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JReferencedMethodInvocationExpression;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
@@ -50,5 +51,9 @@ public class StringCpaUtilMethods {
       methoCallStartsWith(JReferencedMethodInvocationExpression jrmie, StringState state) {
     return jrmie.getDeclaration().getOrigName().contains("String_startswith")
         && state.getOptions().containsDomain(DomainType.PREFFIX);
+  }
+
+  public static boolean isTemporaryVariable(JIdExpression jidExp) {
+    return jidExp.getName().contains("__CPAchecker_TMP");
   }
 }
