@@ -36,6 +36,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
@@ -75,7 +76,7 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
 
   private final StatTimer totalTime = new StatTimer("Total time for bug repair");
   private boolean fixFound = false;
-  private boolean fixedEdgeType = false;
+  private CFAEdgeType fixedEdgeType;
 
 
   @Option(secure = true, required = true, description = "Config file of the internal analysis.")
@@ -184,6 +185,7 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
                           + edge.getLineNumber());
 
                   fixFound = true;
+                  fixedEdgeType = mutation.getSuspiciousEdge().getEdgeType();
                 });
 
         if (fixFound) {
@@ -286,7 +288,7 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
 
   @Override
   public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
-    StatisticsWriter.writingStatisticsTo(out).put(totalTime).put("Fix found", fixFound).put("Edge type fixed", fixFound);
+    StatisticsWriter.writingStatisticsTo(out).put(totalTime).put("Fix found", fixFound).put("Edge type fixed", fixedEdgeType);
   }
 
   @Override

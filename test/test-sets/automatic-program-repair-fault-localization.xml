@@ -9,7 +9,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
-<benchmark tool="cpachecker" timelimit="300 s" memlimit="1000 MB" cpuCores="1">
+<benchmark tool="cpachecker" timelimit="520 s" memlimit="1000 MB" cpuCores="1">
 
   <option name="-noout"/>
   <option name="-heap">13000M</option>
@@ -22,6 +22,7 @@
   <requiredfiles>../config/automaticProgramRepair.properties</requiredfiles>
 
   <tasks>
+    <include>../programs/automatic_program_repair/*.yml</include>
     <include>../programs/fault_localization/*.yml</include>
   </tasks>
 
@@ -29,7 +30,10 @@
     <column title="total">time for CPAchecker</column>
     <column title="cpa time">time for CPA algorithm</column>
     <column title="reached">Size of reached set</column>
-    <column title="fix">Fix found</column>
+    <column title="fix found">Fix found</column>
+    <!--<column title="edge type fixed">Edge type fixed</column>-->
 
   </columns>
 </benchmark>
+
+
