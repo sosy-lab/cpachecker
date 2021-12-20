@@ -84,7 +84,8 @@ public class SMGBuiltins {
           // TODO: Properly model printf (dereferences and stuff)
           // TODO: General modelling system for functions which do not modify state?
           "printf",
-          "strcmp");
+          "strcmp",
+          "realloc");
 
   private void evaluateVBPlot(
       CFunctionCallExpression functionCall, UnmodifiableSMGState currentState) {
@@ -952,10 +953,28 @@ public class SMGBuiltins {
     if (isABuiltIn(functionName)) {
       if (isConfigurableAllocationFunction(functionName)) {
         return evaluateConfigurableAllocationFunction(pFunctionCall, pSmgState, pCfaEdge, pKind);
+      } else if (functionName.equals("realloc")) {
+        return evaluateRealloc();
+      } else {
+        return handleBuiltinFunctionCall(pCfaEdge, pFunctionCall, functionName, pSmgState, pKind);
       }
-      return handleBuiltinFunctionCall(pCfaEdge, pFunctionCall, functionName, pSmgState, pKind);
     } else {
       return handleUnknownFunction(pCfaEdge, pFunctionCall, functionName, pSmgState);
     }
+  }
+
+  private List<SMGAddressValueAndState> evaluateRealloc(
+//      CFunctionCallExpression functionCall,
+//      SMGState pState,
+//      CFAEdge cfaEdge,
+//      SMGTransferRelationKind kind)
+  )
+      throws CPATransferException {
+//      List<SMGAddressValueAndState> result = new ArrayList<>();
+//      evaluateAlloca();
+//      evaluateMemcpy();
+//      evaluateFree();
+    throw new CPATransferException("Unhandled realloc function");
+//    return result;
   }
 }

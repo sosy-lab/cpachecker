@@ -332,7 +332,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     int numRootStates = rootNodes.size();
     Set<String> commonAutomataStates = new TreeSet<>();
     for (int i = 1, j = 0; i < automataStateNames.size(); i++) {
-      assert (j < i && j >= 0);
+      assert j < i && j >= 0;
       if (automataStateNames.get(j).equals(automataStateNames.get(i))) {
         if (j + numRootStates - 1 == i ) {
           // automaton states commonly used

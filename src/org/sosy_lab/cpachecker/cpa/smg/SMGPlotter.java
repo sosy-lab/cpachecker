@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.smg;
 
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Joiner;
-import com.google.common.base.Strings;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
@@ -363,6 +362,6 @@ public final class SMGPlotter {
   }
 
   private String newLineWithOffset(String pLine) {
-    return  Strings.repeat(" ", offset) + pLine + "\n";
+    return " ".repeat(offset) + pLine + "\n";
   }
 }

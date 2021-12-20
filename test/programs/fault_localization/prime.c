@@ -13,7 +13,7 @@ int isPrime(int check){
 		return 0;
 	}
 	// check/2 + 1 for fewer checks. 
-	for(int i = 2; i <= check/2+1; i++){
+	for(int i = 2; i <= check/2+1; i++){ // FIX: i < check/2 + 1
 		if(check % i == 0){
 			return 0;
 		}

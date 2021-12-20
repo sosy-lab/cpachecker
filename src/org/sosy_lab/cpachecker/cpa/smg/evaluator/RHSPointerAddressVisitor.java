@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 
+import java.util.ArrayList;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -24,6 +25,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelationKind;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
@@ -72,15 +74,24 @@ class RHSPointerAddressVisitor extends PointerVisitor {
   @Override
   public List<SMGAddressValueAndState> visit(CStringLiteralExpression pStringLiteralExpression)
       throws CPATransferException {
+    List<SMGAddressValueAndState> result = new ArrayList<>();
     SMGState smgState = getInitialSmgState();
-    // create a new global region for string literal expression
-    SMGObject region =
-        smgState.addGlobalVariable(
-            smgExpressionEvaluator.machineModel.getSizeofCharInBits()
-                * (pStringLiteralExpression.getContentString().length() + 1),
-            pStringLiteralExpression.getContentString() + "ID" + SMGCPA.getNewValue());
 
+    String name = pStringLiteralExpression.getContentString() + " string literal";
+    SMGRegion region = smgState.getHeap().getObjectForVisibleVariable(name);
+
+    if (region != null) {
+      result.addAll(
+          smgRightHandSideEvaluator.createAddress(smgState, region, SMGZeroValue.INSTANCE));
+      name = name + "ID" + SMGCPA.getNewValue();
+    }
+
+    smgState = getInitialSmgState();
+    // create a new global region for string literal expression
     CArrayType cParamType = pStringLiteralExpression.transformTypeToArrayType();
+    region =
+        smgState.addGlobalVariable(
+            smgExpressionEvaluator.machineModel.getSizeofInBits(cParamType).longValue(), name);
 
     long fieldOffset = 0;
     for (CCharLiteralExpression cCharLiteralExpression :
@@ -98,7 +109,8 @@ class RHSPointerAddressVisitor extends PointerVisitor {
       fieldOffset += smgExpressionEvaluator.machineModel.getSizeofCharInBits();
     }
 
-    // return pointer for new region
-    return smgRightHandSideEvaluator.createAddress(smgState, region, SMGZeroValue.INSTANCE);
+    result.addAll(smgRightHandSideEvaluator.createAddress(smgState, region, SMGZeroValue.INSTANCE));
+
+    return result;
   }
 }

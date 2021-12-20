@@ -101,8 +101,8 @@ public abstract class CartesianRequirementsTranslator<T extends AbstractState> e
   protected abstract List<String> getListOfIndependentRequirements(final T requirement, final SSAMap indices, final @Nullable Collection<String> pRequiredVars);
 
   public static String getVarWithIndex(final String var, final SSAMap indices) {
-    assert (indices != null);
-    assert (var != null);
+    assert indices != null;
+    assert var != null;
 
     int index = indices.getIndex(var);
 

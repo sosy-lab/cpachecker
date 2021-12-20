@@ -189,6 +189,10 @@ analysis.algorithm.CEGAR = false
 # with PredicateCPA and large-block encoding
 analysis.algorithm.IMC = false
 
+# use interpolation-sequence based model checking algorithm, works only with
+# PredicateCPA and large-block encoding
+analysis.algorithm.ISMC = false
+
 # Use MPI for running analyses in new subprocesses. The resulting reachedset
 # is the one of the first analysis returning in time. All other mpi-processes
 # will get aborted.
@@ -323,6 +327,9 @@ analysis.initialStatesFor = Sets.newHashSet(InitialStatesFor.ENTRY)
 
 # run interprocedural analysis
 analysis.interprocedural = true
+
+# Runs an algorithm that produces and exports invariants
+analysis.invariantExport = false
 
 # the machine model, which determines the sizes of types like int
 analysis.machineModel = LINUX32
@@ -487,7 +494,7 @@ analysis.unknownAsTrue = false
 # certain restrictions.
 analysis.unknownIfUnrestrictedProgram = false
 
-# Use array abstraction by program translation
+# Use array abstraction by program transformation.
 analysis.useArrayAbstraction = false
 
 # select an analysis from a set of analyses after unknown result
@@ -503,20 +510,36 @@ analysis.useLoopStructure = true
 # analysis finishing in time. All other analyses are terminated.
 analysis.useParallelAnalyses = false
 
+# generate random test cases
+analysis.useRandomTestCaseGeneratorAlgorithm = false
+
 # generate test cases for covered test targets
 analysis.useTestCaseGeneratorAlgorithm = false
 
 # converts a witness to an ACSL annotated program
 analysis.useWitnessToACSLAlgorithm = false
 
+# converts a graphml witness to invariant witness
+analysis.witnessToInvariant = false
+
+# Whether to allow imprecise array abstraction that may lead to false alarms.
+arrayAbstraction.allowImprecision = false
+
+# Whether to export the CFA with abstracted arrays as C source file.
+arrayAbstraction.cfa.c.export = true
+
+# C source file path for CFA with abstracted arrays.
+arrayAbstraction.cfa.c.file = "abstracted-arrays.c"
+
 # Whether to export the CFA with abstracted arrays as DOT file.
-arrayAbstraction.cfa.export = true
+arrayAbstraction.cfa.dot.export = true
 
 # DOT file path for CFA with abstracted arrays.
-arrayAbstraction.cfa.file = "cfa-abstracted-arrays.dot"
+arrayAbstraction.cfa.dot.file = "cfa-abstracted-arrays.dot"
 
 # Use a second delegate analysis run to check counterexamples on the original
-# program that contains (non-abstracted) arrays.
+# program that contains (non-abstracted) arrays for imprecise array
+# abstractions.
 arrayAbstraction.checkCounterexamples = false
 
 # Configuration file path of the delegate analysis running on the transformed
@@ -681,7 +704,7 @@ bmc.induction = false
 
 # Strategy for generating auxiliary invariants
 bmc.invariantGenerationStrategy = REACHED_SET
-  enum:     [INDUCTION, REACHED_SET, DO_NOTHING]
+  enum:     [INDUCTION, REACHED_SET, DO_NOTHING, INVARIANT_STORE]
 
 # k-induction configuration to be used as an invariant generator for
 # k-induction (ki-ki(-ai)).
@@ -2720,6 +2743,9 @@ cpa.smg.arrayAllocationFunctions = {"calloc"}
 # function returns, and not only at the end of the main function
 cpa.smg.checkForMemLeaksAtEveryFrameDrop = true
 
+# Crash on unknown array dereferences
+cpa.smg.crashOnUnknown = false
+
 # Deallocation functions
 cpa.smg.deallocationFunctions = {"free"}
 
@@ -2815,6 +2841,9 @@ cpa.smg.safeUnknownFunctions = {"abort"}
 # which stop operator to use for the SMGCPA
 cpa.smg.stop = "SEP"
   allowed values: [SEP, NEVER, END_BLOCK]
+
+# Enable track predicates for possible memory safety error on SMG state
+cpa.smg.trackErrorPredicates = false
 
 # Enable track predicates on SMG state
 cpa.smg.trackPredicates = false
@@ -3021,6 +3050,11 @@ cpa.threading.useClonedFunctions = true
 # local access locks are used to avoid expensive interleaving, if a thread
 # only reads and writes its own variables.
 cpa.threading.useLocalAccessLocks = true
+
+# The max amount of refinements for the trace abstraction algorithm. Setting
+# it to 0 leads to an analysis of the ARG without executing any refinements.
+# This is used for debugging purposes.
+cpa.traceabstraction.refinementStrategy.maxRefinementIterations = -1
 
 # which merge operator to use for UninitializedVariablesCPA?
 cpa.uninitvars.merge = "sep"
@@ -3521,17 +3555,21 @@ heuristicSelection.preAnalysisAlgorithmConfig = no default value
 # Configuration for programs containing recursion.
 heuristicSelection.recursionConfig = no default value
 
+# Configuration for programs with a single loop.
+heuristicSelection.singleLoopConfig = no default value
+
 # toggle checking forward conditions
 imc.checkForwardConditions = true
-
-# toggle deriving the interpolants from suffix formulas
-imc.deriveInterpolantFromSuffix = true
 
 # toggle falling back if interpolation or forward-condition is disabled
 imc.fallBack = true
 
 # toggle using interpolation to verify programs with loops
 imc.interpolation = true
+
+# toggle which direction to derive interpolants
+imc.itpDeriveDirection = BACKWARD
+  enum:     [FORWARD, BACKWARD, BIDIRECTION_CONJUNCT, BIDIRECTION_DISJUNCT]
 
 # toggle removing unreachable stop states in ARG
 imc.removeUnreachableStopStates = false
@@ -3560,6 +3598,36 @@ invariantGeneration.kInduction.invariantsAutomatonFile = no default value
 # For correctness-witness validation: Shut down if a candidate invariant is
 # found to be incorrect.
 invariantGeneration.kInduction.terminateOnCounterexample = false
+
+# The directory where the invariants are stored.
+invariantStore.export.outDir = "invariantWitnesses"
+invariantStore.import.storeDirectory = "invariantWitnesses"
+
+# Strategy for generating invariants
+invariantStore.invariantGenerationStrategy = REACHED_SET
+  enum:     [INDUCTION, REACHED_SET, DO_NOTHING, INVARIANT_STORE]
+
+# The witness from which invariants should be generated.
+invariantStore.witness = "invariantwitness.yaml"
+
+# toggle checking forward conditions
+ismc.checkForwardConditions = true
+
+# toggle falling back if interpolation or forward-condition is disabled
+ismc.fallBack = true
+
+# toggle Impact-like covering for the fixed-point check
+ismc.impactLikeCovering = false
+
+# toggle using interpolation to verify programs with loops
+ismc.interpolation = true
+
+# toggle which direction to derive interpolants
+ismc.itpDeriveDirection = BACKWARD
+  enum:     [FORWARD, BACKWARD, BIDIRECTION_CONJUNCT, BIDIRECTION_DISJUNCT]
+
+# toggle removing unreachable stop states in ARG
+ismc.removeUnreachableStopStates = false
 
 # Specify the class code path to search for java class or interface
 # definitions
@@ -4347,12 +4415,34 @@ testcase.generate.parallel = false
 # display all test targets and non-covered test targets in statistics
 testcase.inStats = false
 
+# how many mutated test cases should be additionally generated (disabled if
+# <= 0)
+testcase.mutants = 0
+
+# Random seed for mutation of test cases
+testcase.mutationSeed = 0
+
+# Number of random test cases that should be generated
+testcase.numRandomTests = 1
+
 # Only convert literal value and do not add suffix, e.g., for unsigned, etc.
 testcase.plainLiteralValue = false
 
 # defines how progress is computed
 testcase.progress = RELATIVE_TOTAL
   enum:     [ABSOLUTE, RELATIVE_TOTAL]
+
+# Maximum value randomly generated
+testcase.random.max = 20
+
+# Number of random test cases that should be generated
+testcase.random.maxLength = 20
+
+# Minimum value randomly generated
+testcase.random.min = 0
+
+# Random seed for random test-case generation
+testcase.randomInputSeed = 0
 
 # when generating tests covering error call stop as soon as generated one
 # test case and report false (only possible in combination with error call

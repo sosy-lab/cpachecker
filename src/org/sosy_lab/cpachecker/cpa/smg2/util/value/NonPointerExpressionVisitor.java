@@ -236,8 +236,8 @@ public class NonPointerExpressionVisitor
      }).collect(ImmutableList.toImmutableList());
 
     case SIZEOF:
-      long size = evaluator.getBitSizeof(initialSmgState, unaryOperand);
-      CValue val = (size == 0) ? CValue.zero() : CValue.getUnknownValue();
+      BigInteger size = evaluator.getBitSizeof(initialSmgState, unaryOperand);
+      CValue val = size.equals(BigInteger.ZERO) ? CValue.zero() : CValue.getUnknownValue();
       return singletonList(CValueAndSMGState.of(val, initialSmgState));
     case TILDE:
 

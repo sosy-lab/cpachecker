@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.value.CValue;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.CValueAndSMGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.smg.join.SMGJoinSPC;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -320,6 +321,36 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   public SMGState addElementToCurrentChain(CValueAndSMGState pResult) {
     // TODO Auto-generated method stub
     return null;
+  }
+
+  /**
+   * Determines the SMGRegion object which is pointed by a given CValue address representation.
+   * Return Null Object if there is no such existing address.
+   *
+   * @param pValue - the given CValue representation of the address.
+   * @return the SMGObject which the address points to, or SMGObject.nullInstance() if there is no
+   *         such.
+   */
+  public SMGObject getPointsToTarget(CValue pValue) {
+    Optional<SMGValue> addressOptional = getSMGValueForCValue(pValue);
+    if (addressOptional.isPresent()) {
+      Optional<SMGPointsToEdge> pointerEdgeOptional =
+          heap.getSmg().getPTEdge(addressOptional.orElseThrow());
+      if (pointerEdgeOptional.isPresent()) {
+        return pointerEdgeOptional.orElseThrow().pointsTo();
+      }
+    }
+    return SMGObject.nullInstance();
+  }
+
+  public CValueAndSMGState
+      readValue(SMGObject pObject, BigInteger pFieldOffset, BigInteger pSizeofInBits) {
+    if (!heap.isObjectValid(pObject) && !heap.isObjectExternallyAllocated(pObject)) {
+      SMGState newState = copyWithErrorInfo(heap, errorInfo.withObject(pObject)
+          .withErrorMessage(HAS_INVALID_READS));
+      return CValueAndSMGState.ofUnknown(newState);
+    }
+    return CValueAndSMGState.of(getHeap().readValue(pObject, pFieldOffset, pSizeofInBits), this);
   }
 
 }
