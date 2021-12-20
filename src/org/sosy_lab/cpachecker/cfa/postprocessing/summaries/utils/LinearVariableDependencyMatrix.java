@@ -299,6 +299,12 @@ public class LinearVariableDependencyMatrix {
                   new CSimpleType(
                       false, false, CBasicType.INT, false, false, false, false, false, false, true),
                   CBinaryExpression.BinaryOperator.MINUS)
+              .binaryOperation(
+                  k + 1,
+                  // TODO: Generalize for Java
+                  new CSimpleType(
+                      false, false, CBasicType.INT, false, false, false, false, false, false, true),
+                  CBinaryExpression.BinaryOperator.DIVIDE)
               .binaryOperation(nChooseKValue, CBinaryExpression.BinaryOperator.MULTIPLY)
               .build();
     }

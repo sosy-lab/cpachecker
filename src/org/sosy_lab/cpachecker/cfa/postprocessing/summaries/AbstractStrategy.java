@@ -12,7 +12,6 @@ import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.factories.AExpressionFactory;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyInterface;
 
@@ -22,7 +21,6 @@ public abstract class AbstractStrategy implements StrategyInterface {
   protected final ShutdownNotifier shutdownNotifier;
   protected final SummaryInformation summaryInformation;
   private StrategyDependencyInterface strategyDependencies;
-  private AExpressionFactory expressionFactory;
   protected SummaryFilter summaryFilter;
 
   protected AbstractStrategy(
@@ -34,7 +32,6 @@ public abstract class AbstractStrategy implements StrategyInterface {
     this.logger = pLogger;
     this.strategyDependencies = strategyDependencies;
     this.summaryInformation = pCfa.getSummaryInformation().orElseThrow();
-    this.setExpressionFactory(new AExpressionFactory());
     this.summaryFilter = new SummaryFilter(this.summaryInformation, this.strategyDependencies);
   }
 
@@ -48,11 +45,4 @@ public abstract class AbstractStrategy implements StrategyInterface {
     return false;
   }
 
-  public AExpressionFactory getExpressionFactory() {
-    return expressionFactory;
-  }
-
-  public void setExpressionFactory(AExpressionFactory pExpressionFactory) {
-    expressionFactory = pExpressionFactory;
-  }
 }

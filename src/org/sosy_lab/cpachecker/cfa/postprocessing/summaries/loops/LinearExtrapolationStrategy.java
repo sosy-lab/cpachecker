@@ -18,9 +18,11 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.factories.AExpressionFactory;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -94,10 +96,11 @@ public class LinearExtrapolationStrategy extends AbstractLoopExtrapolationStrate
 
     AExpression iterations = iterationsMaybe.orElseThrow();
 
+    @SuppressWarnings("unused")
     Optional<GhostCFA> summarizedLoopMaybe =
         createGhostCFA(iterations, loopBoundExpression, loopStructure, beforeWhile);
 
-    return summarizedLoopMaybe;
+    return Optional.empty();
   }
 
   private Optional<GhostCFA> createGhostCFA(
@@ -118,8 +121,6 @@ public class LinearExtrapolationStrategy extends AbstractLoopExtrapolationStrate
     if (!variableDependencyMatrix.diagonalValueEquals(Integer.valueOf(1))) {
       return Optional.empty();
     }
-
-    LinearVariableDependencyMatrix powerOfMatrix = variableDependencyMatrix.toThepower(pIterations);
 
     CFANode startNodeGhostCFA = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
     CFANode endNodeGhostCFA = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
@@ -150,18 +151,35 @@ public class LinearExtrapolationStrategy extends AbstractLoopExtrapolationStrate
         ((CAssumeEdge) loopBoundCFAEdge).negate().copyWith(endUnrolledLoopNode, endNodeGhostCFA);
     negatedBoundCFAEdge.connect();
 
-    // Make the Summary
-    // TODO: Race conditions exist when updating variables which depend on one another
-    // TODO: The amount of extrapolations may produce an overflow even though none exists. See
-    // solution in ConstantExtrapolationStrategy
-    // TODO: Overflows may not be detected correctly when assigning variables. See solution in
-    // ConstantExtrapolationStrategy
+    // Create the Amount of iterations as a long long
+    Optional<Pair<CFANode, AVariableDeclaration>> nextNodeAndIterationsVariable =
+        createIterationsVariable(currentSummaryNodeCFA, pIterations, pBeforeWhile);
 
+    if (nextNodeAndIterationsVariable.isEmpty()) {
+      return Optional.empty();
+    }
+
+    currentSummaryNodeCFA = nextNodeAndIterationsVariable.orElseThrow().getFirst();
+    AVariableDeclaration iterationsVariable =
+        nextNodeAndIterationsVariable.orElseThrow().getSecond();
+
+    LinearVariableDependencyMatrix powerOfMatrix =
+        variableDependencyMatrix.toThepower(
+            new AExpressionFactory().from(iterationsVariable).build());
     List<AExpressionAssignmentStatement> extrapolationAssignments = powerOfMatrix.asAssignments();
+
+    // TODO: This is wrong, since the extrapolation with the matrix calculation is wrong. This would
+    // need to be fixed.
 
     CFANode nextSummaryNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
 
+    // Make the Summary
     for (AExpressionAssignmentStatement e : extrapolationAssignments) {
+
+      // TODO: Overflows may be detected incorrectly when assigning variables. See solution in
+      // ConstantExtrapolationStrategy. This occurs since a new variable needs to be made in order
+      // to implement a special statement to check if an overflow occurs
+
       CFAEdge dummyEdge =
           new CStatementEdge(
               e.toString(),

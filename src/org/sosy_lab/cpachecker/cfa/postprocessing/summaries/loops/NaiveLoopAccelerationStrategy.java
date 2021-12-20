@@ -123,21 +123,23 @@ public class NaiveLoopAccelerationStrategy extends AbstractLoopStrategy {
     currentNode.connectTo(startUnrolledLoopNode);
     endUnrolledLoopNode.connectTo(endNodeGhostCFA);
 
-    CFAEdge leavingEdge;
+    CFANode leavingSuccessor;
     Iterator<CFAEdge> iter = pLoopStructure.getOutgoingEdges().iterator();
     if (iter.hasNext()) {
-      leavingEdge = iter.next();
+      leavingSuccessor = iter.next().getSuccessor();
     } else {
       return Optional.empty();
     }
 
+    for (CFAEdge e : pLoopStructure.getOutgoingEdges()) {
+      if (e.getSuccessor().getNodeNumber() != leavingSuccessor.getNodeNumber()) {
+        return Optional.empty();
+      }
+    }
+
     return Optional.of(
         new GhostCFA(
-            startNodeGhostCFA,
-            endNodeGhostCFA,
-            pBeforeWhile,
-            leavingEdge.getSuccessor(),
-            this.strategyEnum));
+            startNodeGhostCFA, endNodeGhostCFA, pBeforeWhile, leavingSuccessor, this.strategyEnum));
   }
 
   @Override

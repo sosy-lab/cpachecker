@@ -8,18 +8,27 @@
 
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops;
 
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.GhostCFA;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyInterface;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.Pair;
 
 public class LoopUnrollingStrategy extends AbstractLoopStrategy {
 
-  @SuppressWarnings("unused")
-  Integer maxUnrollingsStrategy = 0;
+  private Integer maxUnrollingsStrategy = 0;
+
+  private StrategiesEnum strategyEnum;
 
   public LoopUnrollingStrategy(
       LogManager pLogger,
@@ -29,83 +38,87 @@ public class LoopUnrollingStrategy extends AbstractLoopStrategy {
       CFA pCFA) {
     super(pLogger, pShutdownNotifier, pStrategyDependencies, pCFA);
     maxUnrollingsStrategy = pMaxUnrollingsStrategy;
+    strategyEnum = StrategiesEnum.LoopUnrolling;
   }
 
-  @Override
-  public Optional<GhostCFA> summarize(CFANode pLoopStartNode) {
-    return Optional.empty();
-  }
+  protected Optional<GhostCFA> summarizeLoop(
+      Loop pLoopStructure,
+      CFANode pBeforeWhile) {
 
-  /*
-    // Initialize Ghost CFA
-    CFANode startNodeGhostCFA = CFANode.newDummyCFANode("LSSTARTGHHOST");
-    CFANode endNodeGhostCFA = CFANode.newDummyCFANode("LSENDGHHOST");
-    CFANode currentNode = startNodeGhostCFA;
+    CFANode startNodeGhostCFA = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
+    CFANode endNodeGhostCFA = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
 
-    for (int t = 0; t < maxUnrollingsStrategy; t++) {
+    CFANode currentSummaryNodeCFA = startNodeGhostCFA;
+    CFANode nextCFANode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
 
-      Optional<CFANode> loopUnrollingSuccess =
-          unrollLoopOnce(pLoopStartNode, pLoopBranchIndex, currentNode, endNodeGhostCFA);
-      if (loopUnrollingSuccess.isEmpty()) {
+    for (int i = 0; i < maxUnrollingsStrategy; i++) {
+
+      Optional<Pair<CFANode, CFANode>> unrolledLoopNodesMaybe =
+          pLoopStructure.unrollOutermostLoop();
+      if (unrolledLoopNodesMaybe.isEmpty()) {
         return Optional.empty();
-      } else {
-        currentNode = loopUnrollingSuccess.orElseThrow();
+      }
+
+      CFANode startUnrolledLoopNode = unrolledLoopNodesMaybe.orElseThrow().getFirst();
+      CFANode endUnrolledLoopNode = unrolledLoopNodesMaybe.orElseThrow().getSecond();
+
+      currentSummaryNodeCFA.connectTo(startUnrolledLoopNode);
+      endUnrolledLoopNode.connectTo(nextCFANode);
+
+      currentSummaryNodeCFA = nextCFANode;
+      nextCFANode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
+    }
+
+    currentSummaryNodeCFA.connectTo(endNodeGhostCFA);
+
+    CFANode leavingSuccessor;
+    Iterator<CFAEdge> iter = pLoopStructure.getOutgoingEdges().iterator();
+    if (iter.hasNext()) {
+      leavingSuccessor = iter.next().getSuccessor();
+    } else {
+      return Optional.empty();
+    }
+
+    for (CFAEdge e : pLoopStructure.getOutgoingEdges()) {
+      if (e.getSuccessor().getNodeNumber() != leavingSuccessor.getNodeNumber()) {
+        return Optional.empty();
       }
     }
 
-    CFAEdge blankOutgoingEdge =
-        new BlankEdge("Blank", FileLocation.DUMMY, currentNode, endNodeGhostCFA, "Blank");
-    currentNode.addLeavingEdge(blankOutgoingEdge);
-    endNodeGhostCFA.addEnteringEdge(blankOutgoingEdge);
     return Optional.of(
         new GhostCFA(
-            startNodeGhostCFA,
-            endNodeGhostCFA,
-            pLoopStartNode,
-            pLoopStartNode,
-            StrategiesEnum.LoopUnrolling));
+            startNodeGhostCFA, endNodeGhostCFA, pBeforeWhile, pBeforeWhile, this.strategyEnum));
   }
 
   @Override
-  public Optional<GhostCFA> summarize(final CFANode loopStartNode) {
-    // TODO Unroll the Loop some amount of times. Can be improved by checking the maximal amount of
-    // Loop iterations and unrolling only that amount of iterations.
-    // Can be faster than the normal analysis, since it does not expect the Refinement in order to
-    // unroll the loop
-    // but may also be slower, since the loop unrolling has been done and must be transversed.
-    // TODO, how can we see if we already applied loop unrolling in order to not apply it again once
-    // the current unrolling has finished?
+  public Optional<GhostCFA> summarize(final CFANode beforeWhile) {
 
-    if (loopStartNode.getNumLeavingEdges() != 1) {
+    List<CFAEdge> filteredOutgoingEdges =
+        this.summaryFilter.getEdgesForStrategies(
+            beforeWhile.getLeavingEdges(),
+            new HashSet<>(Arrays.asList(StrategiesEnum.Base, this.strategyEnum)));
+
+    if (filteredOutgoingEdges.size() != 1) {
       return Optional.empty();
     }
 
-    if (!loopStartNode.getLeavingEdge(0).getDescription().equals("while")) {
+    if (!filteredOutgoingEdges.get(0).getDescription().equals("while")) {
       return Optional.empty();
     }
 
-    CFANode loopStartNodeLocal = loopStartNode.getLeavingEdge(0).getSuccessor();
+    CFANode loopStartNode = filteredOutgoingEdges.get(0).getSuccessor();
 
-    Optional<Integer> loopBranchIndexOptional = getLoopBranchIndex(loopStartNodeLocal);
-    Integer loopBranchIndex;
-
-    if (loopBranchIndexOptional.isEmpty()) {
+    Optional<Loop> loopStructureMaybe = summaryInformation.getLoop(loopStartNode);
+    if (loopStructureMaybe.isEmpty()) {
       return Optional.empty();
-    } else {
-      loopBranchIndex = loopBranchIndexOptional.orElseThrow();
     }
+    Loop loopStructure = loopStructureMaybe.orElseThrow();
 
-    GhostCFA ghostCFA;
-    Optional<GhostCFA> ghostCFASuccess = summaryCFA(loopStartNodeLocal, loopBranchIndex);
-
-    if (ghostCFASuccess.isEmpty()) {
-      return Optional.empty();
-    } else {
-      ghostCFA = ghostCFASuccess.orElseThrow();
-    }
-
-    return Optional.of(ghostCFA);
+    return summarizeLoop(loopStructure, beforeWhile);
   }
 
-  */
+  @Override
+  public boolean isPrecise() {
+    return true;
+  }
 }

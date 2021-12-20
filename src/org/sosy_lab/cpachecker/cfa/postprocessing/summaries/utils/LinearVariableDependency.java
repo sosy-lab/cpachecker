@@ -169,9 +169,9 @@ public class LinearVariableDependency {
             }
           }
         } else if (pLinearVariableDependency.dependencies.keySet().isEmpty()) {
-          for (Entry<AVariableDeclaration, AExpression> s : this.dependencies.entrySet()) {
+          for (AVariableDeclaration s : this.dependencies.keySet()) {
             if (!this.modifyDependency(
-                s.getKey(), pLinearVariableDependency.numericalValue, operator)) {
+                s, pLinearVariableDependency.numericalValue, operator)) {
               return false;
             }
           }
@@ -182,9 +182,8 @@ public class LinearVariableDependency {
     } else if (operator == JBinaryExpression.BinaryOperator.DIVIDE
         || operator == CBinaryExpression.BinaryOperator.DIVIDE) {
       if (pLinearVariableDependency.dependencies.keySet().isEmpty()) {
-          for (Entry<AVariableDeclaration, AExpression> s : this.dependencies.entrySet()) {
-            if (!this.modifyDependency(
-                s.getKey(), pLinearVariableDependency.numericalValue, operator)) {
+        for (AVariableDeclaration s : this.dependencies.keySet()) {
+          if (!this.modifyDependency(s, pLinearVariableDependency.numericalValue, operator)) {
               return false;
             }
           }
