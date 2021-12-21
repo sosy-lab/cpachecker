@@ -37,11 +37,11 @@ public class StringState implements LatticeAbstractState<StringState> {
     ImmutableMap.Builder<JStringVariableIdentifier, AspectList> builder =
         new ImmutableMap.Builder<>();
     StringState state = copyOf(this);
-    for (Map.Entry<JStringVariableIdentifier, AspectList> entry : state.stringsAndAspects
+    for (Map.Entry<JStringVariableIdentifier, AspectList> entry : stringsAndAspects
         .entrySet()) {
       JStringVariableIdentifier jid = entry.getKey();
       if (!jid.equals(pJid)) {
-        builder.put(jid, state.stringsAndAspects.get(jid));
+        builder.put(jid, stringsAndAspects.get(jid));
       }
     }
     state.stringsAndAspects = builder.put(pJid, vaa).build();

@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 /*
  * Visitor used to create the string identifier JVariableIdentifier
  */
-public class JVariableVisitor implements JLeftHandSideVisitor<JStringVariableIdentifier, NoException> {
+public class JStringVariableVisitor implements JLeftHandSideVisitor<JStringVariableIdentifier, NoException> {
 
   @Override
   public JStringVariableIdentifier visit(JArraySubscriptExpression pE)
@@ -41,6 +41,11 @@ public class JVariableVisitor implements JLeftHandSideVisitor<JStringVariableIde
 
   public JStringVariableIdentifier visit(JLeftHandSide pOp1) {
     return pOp1.accept(this);
+  }
+
+  public JStringVariableIdentifier visit(JSimpleDeclaration pE) {
+    return new JStringVariableIdentifier(pE.getType(), MemoryLocation.forDeclaration(pE));
+
   }
 
 }

@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JNullLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeEqualsType;
+import org.sosy_lab.cpachecker.cfa.ast.java.JSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
@@ -43,7 +44,6 @@ import org.sosy_lab.cpachecker.cpa.string.utils.AspectList;
 import org.sosy_lab.cpachecker.cpa.string.utils.AspectList.UnknownValueAndAspects;
 import org.sosy_lab.cpachecker.cpa.string.utils.JStringVariableIdentifier;
 import org.sosy_lab.cpachecker.exceptions.NoException;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /*
  * Visitor that creates a list of aspects, depending on the expression.
@@ -62,21 +62,17 @@ public class JAspectListVisitor
 
   @Override
   public AspectList visit(JIdExpression pE) throws NoException {
-
-    if (pE.getDeclaration() instanceof JVariableDeclaration ) {
-
+    JSimpleDeclaration jDecl = pE.getDeclaration();
+    if (jDecl instanceof JVariableDeclaration) {
       JInitializer init =
           (JInitializer) ((JVariableDeclaration) pE.getDeclaration()).getInitializer();
-
       if (init instanceof JInitializerExpression) {
         return ((JInitializerExpression) init).getExpression().accept(this);
       }
     }
-    if (pE.getDeclaration() instanceof JParameterDeclaration) {
-      JParameterDeclaration jpd = (JParameterDeclaration) pE.getDeclaration();
-      String qualifiedName = jpd.getQualifiedName();
-      MemoryLocation memLoc = MemoryLocation.fromQualifiedName(qualifiedName);
-      JStringVariableIdentifier jid = new JStringVariableIdentifier(jpd.getType(), memLoc);
+    if (jDecl instanceof JParameterDeclaration) {
+      JStringVariableVisitor jvv = new JStringVariableVisitor();
+      JStringVariableIdentifier jid = jvv.visit(jDecl);
       AspectList list = state.getAspectList(jid);
       return list;
     }

@@ -113,13 +113,14 @@ import org.sosy_lab.cpachecker.cpa.pointer2.util.ExplicitLocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
 import org.sosy_lab.cpachecker.cpa.rtt.NameProvider;
 import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
+import org.sosy_lab.cpachecker.cpa.string.JStringVariableVisitor;
 import org.sosy_lab.cpachecker.cpa.string.StringState;
 import org.sosy_lab.cpachecker.cpa.string.domains.DomainType;
 import org.sosy_lab.cpachecker.cpa.string.utils.Aspect;
 import org.sosy_lab.cpachecker.cpa.string.utils.Aspect.UnknownAspect;
 import org.sosy_lab.cpachecker.cpa.string.utils.AspectList;
-import org.sosy_lab.cpachecker.cpa.string.utils.StringCpaUtilMethods;
 import org.sosy_lab.cpachecker.cpa.string.utils.JStringVariableIdentifier;
+import org.sosy_lab.cpachecker.cpa.string.utils.StringCpaUtilMethods;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
@@ -1449,11 +1450,8 @@ public class ValueAnalysisTransferRelation
       JSimpleDeclaration jsDeclaration =
           referencedMethodInvocationExpression.getReferencedVariable().getDeclaration();
       if (StringCpaUtilMethods.isString(jsDeclaration.getType())) {
-
-        MemoryLocation memLoc =
-            MemoryLocation.parseExtendedQualifiedName(jsDeclaration.getQualifiedName());
-        JStringVariableIdentifier jStringIdentifier =
-            new JStringVariableIdentifier(jsDeclaration.getType(), memLoc);
+        JStringVariableVisitor jStringVariableVisitor = new JStringVariableVisitor();
+        JStringVariableIdentifier jStringIdentifier = jStringVariableVisitor.visit(jsDeclaration);
         AspectList list = pStringState.getAspectList(jStringIdentifier);
 
         if(StringCpaUtilMethods.methodCallLength(referencedMethodInvocationExpression, pStringState)) {
