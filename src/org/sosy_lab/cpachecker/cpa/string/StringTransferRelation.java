@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.string;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -19,7 +18,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAssignment;
@@ -31,10 +29,13 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.java.JInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodOrConstructorInvocation;
+import org.sosy_lab.cpachecker.cfa.ast.java.JParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JReferencedMethodInvocationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.java.JSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -55,30 +56,29 @@ import org.sosy_lab.cpachecker.cpa.string.domains.AbstractStringDomain;
 import org.sosy_lab.cpachecker.cpa.string.domains.DomainType;
 import org.sosy_lab.cpachecker.cpa.string.utils.Aspect;
 import org.sosy_lab.cpachecker.cpa.string.utils.Aspect.UnknownAspect;
-import org.sosy_lab.cpachecker.cpa.string.utils.AspectList;
-import org.sosy_lab.cpachecker.cpa.string.utils.AspectList.UnknownValueAndAspects;
+import org.sosy_lab.cpachecker.cpa.string.utils.AspectSet;
 import org.sosy_lab.cpachecker.cpa.string.utils.JStringVariableIdentifier;
 import org.sosy_lab.cpachecker.cpa.string.utils.StringCpaUtilMethods;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class StringTransferRelation extends SingleEdgeTransferRelation {
 
-  private StringOptions options;
-  private List<JStringVariableIdentifier> localVariables;
-  private Map<String, JReferencedMethodInvocationExpression> tempVariables;
+  private final StringOptions options;
+  private final Map<String, JReferencedMethodInvocationExpression> tempVariables;
   private String funcName;
 
   private JAspectListVisitor jalv;
-  private JVariableVisitor jvv;
+  private JStringVariableVisitor jvv;
 
   private LogManager logger;
 
-  public StringTransferRelation(LogManager pLogger, StringOptions pOptions) {
+  public StringTransferRelation(
+      LogManager pLogger,
+      StringOptions pOptions,
+      HashMap<String, JReferencedMethodInvocationExpression> pTemporaryVars) {
     logger = pLogger;
     this.options = pOptions;
-    localVariables = new ArrayList<>();
-    tempVariables = new HashMap<>();
+    tempVariables = pTemporaryVars;
   }
 
   @Override
@@ -88,9 +88,9 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
 
     StringState state = StringState.copyOf((StringState) pState);
     StringState successor = null;
-    jalv = new JAspectListVisitor(options, state);
-    jvv = new JVariableVisitor();
     funcName = pCfaEdge.getPredecessor().getFunctionName();
+    jalv = new JAspectListVisitor(options, state, funcName);
+    jvv = new JStringVariableVisitor(funcName);
 
     switch (pCfaEdge.getEdgeType()) {
       case DeclarationEdge:
@@ -128,12 +128,10 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
         if (pCfaEdge instanceof JMethodCallEdge) {
           final JMethodCallEdge fnkCall = (JMethodCallEdge) pCfaEdge;
           final FunctionEntryNode succ = fnkCall.getSuccessor();
-          final String calledFunctionName = succ.getFunctionName();
           successor =
               handleJMethodCallEdge(
                   fnkCall.getArguments(),
                   succ.getFunctionParameters(),
-                  calledFunctionName,
                   state);
         }
         break;
@@ -171,19 +169,15 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
   private StringState handleJMethodCallEdge(
       List<JExpression> pArguments,
       List<? extends AParameterDeclaration> parameters,
-      String pCalledFunctionName,
       StringState pState) {
 
     for (int i = 0; i < parameters.size(); i++) {
       JExpression exp = pArguments.get(i);
       if (StringCpaUtilMethods.isString(exp.getExpressionType())) {
 
-        AParameterDeclaration param = parameters.get(i);
-        MemoryLocation formalParamName =
-            MemoryLocation.forLocalVariable(pCalledFunctionName, param.getName());
-        JStringVariableIdentifier jid =
-            new JStringVariableIdentifier(param.getType(), formalParamName);
-        AspectList value = exp.accept(jalv);
+        JParameterDeclaration param = (JParameterDeclaration) parameters.get(i);
+        JStringVariableIdentifier jid = jvv.visit(param);
+        AspectSet value = exp.accept(jalv);
 
         pState.updateVariable(jid, value);
       }
@@ -197,17 +191,14 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
       JMethodOrConstructorInvocation expSummary,
       StringState pState) {
 
-    Optional<? extends AVariableDeclaration> returnVarName =
+    Optional<? extends AVariableDeclaration> returnVar =
         pFnkReturnEdge.getFunctionEntry().getReturnVariable();
     JStringVariableIdentifier retJid = null;
 
-    if (returnVarName.isPresent()) {
-      if (StringCpaUtilMethods.isString(returnVarName.get().getType())) {
-
-        retJid =
-            new JStringVariableIdentifier(
-                returnVarName.get().getType(),
-                MemoryLocation.forDeclaration(returnVarName.get()));
+    if (returnVar.isPresent()) {
+      if (StringCpaUtilMethods.isString(returnVar.get().getType())) {
+        JVariableDeclaration jDecl = (JVariableDeclaration) returnVar.get();
+        retJid = jvv.visit(jDecl);
       }
     }
 
@@ -215,9 +206,9 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
 
       JMethodInvocationAssignmentStatement assignExp =
           ((JMethodInvocationAssignmentStatement) expSummary);
-      AExpression op1 = assignExp.getLeftHandSide();
-      AspectList newValue = null;
-      boolean valueExists = returnVarName.isPresent() && pState.contains(retJid);
+      JExpression op1 = assignExp.getLeftHandSide();
+      AspectSet newValue = null;
+      boolean valueExists = returnVar.isPresent() && pState.contains(retJid);
       Optional<JStringVariableIdentifier> jid = Optional.empty();
 
       if (valueExists) {
@@ -228,7 +219,6 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
       else {
         if (op1 instanceof JLeftHandSide) {
           jid = Optional.of(jvv.visit((JLeftHandSide) op1));
-          // JMethodInvocationExpression jmie =
           newValue = jalv.visit(assignExp.getFunctionCallExpression());
         }
       }
@@ -261,59 +251,40 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
       JType type = jLeft.getExpressionType();
       if (StringCpaUtilMethods.isString(type)) {
         JStringVariableIdentifier jid = jLeft.accept(jvv);
-        AspectList vaa = jRight.accept(jalv);
+        AspectSet vaa = jRight.accept(jalv);
         return pState.updateVariable(jid, vaa);
-      }
-
-      /*
-       * We can't create an AST for the Methods in the Java Standard Library (that feature is not
-       * implemented). Thus we have to use a Workaround: store all temporary variables, if their
-       * referenced variable is a string. Then analyse that if possible. TODO: handle methods on
-       * strings properly
-       */
-      if (pJStat instanceof JMethodInvocationAssignmentStatement) {
-        if (jLeft instanceof JIdExpression) {
-          JIdExpression tempVarJidexp = (JIdExpression) jLeft;
-          if (StringCpaUtilMethods.isTemporaryVariable(tempVarJidexp)
-              && (jRight instanceof JReferencedMethodInvocationExpression)) {
-            JReferencedMethodInvocationExpression jrmie =
-                (JReferencedMethodInvocationExpression) jRight;
-            JIdExpression jid = jrmie.getReferencedVariable();
-            if (StringCpaUtilMethods.isString(jid.getExpressionType())) {
-              tempVariables.put(tempVarJidexp.getName(), jrmie);
-            }
-          }
-        }
       }
     }
     return pState;
   }
 
-  private StringState handleJDeclaration(JDeclaration pJDecl, StringState pState) {
+  private StringState handleJDeclaration(JSimpleDeclaration pJDecl, StringState pState) {
+    if (pJDecl instanceof JVariableDeclaration) {
+      if (!StringCpaUtilMethods.isString(pJDecl.getType())) {
+        return pState;
+      }
+      JStringVariableIdentifier jid = jvv.visit(pJDecl);
+      JInitializer init = (JInitializer) ((AVariableDeclaration) pJDecl).getInitializer();
+      AspectSet aspectSet = getInitialValue(init);
+      return pState.addVariable(jid, aspectSet);
 
-    if (!(pJDecl instanceof JVariableDeclaration)
-        || !StringCpaUtilMethods.isString(pJDecl.getType())) {
-      return pState;
+    } else if (pJDecl instanceof JMethodDeclaration) {
+      List<JParameterDeclaration> paramList = ((JMethodDeclaration) pJDecl).getParameters();
+      for (JParameterDeclaration param : paramList) {
+        pState = handleJDeclaration(param, pState);
+      }
     }
 
-    JVariableDeclaration jDecl = (JVariableDeclaration) pJDecl;
-    JStringVariableIdentifier jid =
-        new JStringVariableIdentifier(jDecl.getType(), MemoryLocation.forDeclaration(jDecl));
-
-    JInitializer init = (JInitializer) jDecl.getInitializer();
-    AspectList value = getInitialValue(init);
-    localVariables.add(jid);
-
-    return pState.addVariable(jid, value);
+    return pState;
   }
 
-  private AspectList getInitialValue(JInitializer pJ) {
+  private AspectSet getInitialValue(JInitializer pJ) {
     if (pJ instanceof JInitializerExpression) {
       JExpression init = ((JInitializerExpression) pJ).getExpression();
-      AspectList value = init.accept(jalv);
+      AspectSet value = init.accept(jalv);
       return value;
     }
-    return UnknownValueAndAspects.getInstance();
+    return new AspectSet(ImmutableSet.of());
   }
 
   private StringState
@@ -395,8 +366,8 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
 
   private boolean
       parsePrefixComparison(JIdExpression pJid, JExpression pJExpression, StringState pState) {
-    AspectList first = parseExpressionToAspectList(pJid, pState);
-    AspectList second = parseExpressionToAspectList(pJExpression, pState);
+    AspectSet first = parseExpressionToAspectList(pJid, pState);
+    AspectSet second = parseExpressionToAspectList(pJExpression, pState);
     AbstractStringDomain<?> prefix = options.getDomain(DomainType.PREFFIX);
     if (prefix != null) {
       Aspect<?> aspectFirst = first.getAspect(DomainType.PREFFIX);
@@ -414,8 +385,8 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
 
   private boolean
       parseSuffixComparison(JIdExpression pJid, JExpression pJExpression, StringState pState) {
-    AspectList first = parseExpressionToAspectList(pJid, pState);
-    AspectList second = parseExpressionToAspectList(pJExpression, pState);
+    AspectSet first = parseExpressionToAspectList(pJid, pState);
+    AspectSet second = parseExpressionToAspectList(pJExpression, pState);
     AbstractStringDomain<?> suffix = options.getDomain(DomainType.SUFFIX);
     if (suffix != null) {
       Aspect<?> aspectFirst = first.getAspect(DomainType.SUFFIX);
@@ -437,8 +408,12 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
       JExpression pOperand2,
       BinaryOperator pBinaryOperator,
       StringState pState) {
-    AspectList first = parseExpressionToAspectList(pOperand1, pState);
-    AspectList second = parseExpressionToAspectList(pOperand2, pState);
+    AspectSet first = parseExpressionToAspectList(pOperand1, pState);
+    AspectSet second = parseExpressionToAspectList(pOperand2, pState);
+    // Catch any case, that wasn't implemented yet
+    if (first == null || second == null) {
+      return false;
+    }
     boolean equals = first.isLessOrEqual(second) && second.isLessOrEqual(second);
     switch (pBinaryOperator) {
       case EQUALS:
@@ -451,7 +426,7 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
     return false;
   }
 
-  private AspectList parseExpressionToAspectList(JExpression pOp, StringState pState) {
+  private AspectSet parseExpressionToAspectList(JExpression pOp, StringState pState) {
     if (pOp instanceof JLeftHandSide) {
       JStringVariableIdentifier jid = jvv.visit((JLeftHandSide) pOp);
       return pState.getAspectList(jid);

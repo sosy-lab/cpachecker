@@ -118,7 +118,7 @@ import org.sosy_lab.cpachecker.cpa.string.StringState;
 import org.sosy_lab.cpachecker.cpa.string.domains.DomainType;
 import org.sosy_lab.cpachecker.cpa.string.utils.Aspect;
 import org.sosy_lab.cpachecker.cpa.string.utils.Aspect.UnknownAspect;
-import org.sosy_lab.cpachecker.cpa.string.utils.AspectList;
+import org.sosy_lab.cpachecker.cpa.string.utils.AspectSet;
 import org.sosy_lab.cpachecker.cpa.string.utils.JStringVariableIdentifier;
 import org.sosy_lab.cpachecker.cpa.string.utils.StringCpaUtilMethods;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
@@ -1450,9 +1450,9 @@ public class ValueAnalysisTransferRelation
       JSimpleDeclaration jsDeclaration =
           referencedMethodInvocationExpression.getReferencedVariable().getDeclaration();
       if (StringCpaUtilMethods.isString(jsDeclaration.getType())) {
-        JStringVariableVisitor jStringVariableVisitor = new JStringVariableVisitor();
+        JStringVariableVisitor jStringVariableVisitor = new JStringVariableVisitor(functionName);
         JStringVariableIdentifier jStringIdentifier = jStringVariableVisitor.visit(jsDeclaration);
-        AspectList list = pStringState.getAspectList(jStringIdentifier);
+        AspectSet list = pStringState.getAspectList(jStringIdentifier);
 
         if(StringCpaUtilMethods.methodCallLength(referencedMethodInvocationExpression, pStringState)) {
           Aspect<?> aspect = list.getAspect(DomainType.LENGTH);

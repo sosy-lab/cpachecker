@@ -9,6 +9,8 @@
 package org.sosy_lab.cpachecker.cpa.string;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSortedSet;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayLengthExpression;
@@ -40,8 +42,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cpa.string.domains.AbstractStringDomain;
 import org.sosy_lab.cpachecker.cpa.string.utils.Aspect;
-import org.sosy_lab.cpachecker.cpa.string.utils.AspectList;
-import org.sosy_lab.cpachecker.cpa.string.utils.AspectList.UnknownValueAndAspects;
+import org.sosy_lab.cpachecker.cpa.string.utils.AspectSet;
 import org.sosy_lab.cpachecker.cpa.string.utils.JStringVariableIdentifier;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
@@ -50,18 +51,20 @@ import org.sosy_lab.cpachecker.exceptions.NoException;
  * We can expect that only string-variables are returned from the visitor (because of check in transfer relation)
  */
 public class JAspectListVisitor
-    implements JRightHandSideVisitor<AspectList, NoException> {
+    implements JRightHandSideVisitor<AspectSet, NoException> {
 
   private final ImmutableList<AbstractStringDomain<?>> domains;
+  private final String functionName;
   private StringState state;
 
-  public JAspectListVisitor(StringOptions pOptions, StringState pState) {
+  public JAspectListVisitor(StringOptions pOptions, StringState pState, String pFunctionName) {
     domains = ImmutableList.copyOf(pOptions.getDomains());
+    this.functionName = pFunctionName;
     state = pState;
   }
 
   @Override
-  public AspectList visit(JIdExpression pE) throws NoException {
+  public AspectSet visit(JIdExpression pE) throws NoException {
     JSimpleDeclaration jDecl = pE.getDeclaration();
     if (jDecl instanceof JVariableDeclaration) {
       JInitializer init =
@@ -71,61 +74,62 @@ public class JAspectListVisitor
       }
     }
     if (jDecl instanceof JParameterDeclaration) {
-      JStringVariableVisitor jvv = new JStringVariableVisitor();
+      JStringVariableVisitor jvv = new JStringVariableVisitor(functionName);
       JStringVariableIdentifier jid = jvv.visit(jDecl);
-      AspectList list = state.getAspectList(jid);
+      AspectSet list = state.getAspectList(jid);
+      if (list == null) {
+        return new AspectSet(ImmutableSet.of());
+      }
       return list;
     }
 
-    return new AspectList(ImmutableList.of());
+    return new AspectSet(ImmutableSortedSet.of());
   }
 
   @Override
-  public AspectList visit(JStringLiteralExpression pE)
+  public AspectSet visit(JStringLiteralExpression pE)
       throws NoException {
 
-    ImmutableList.Builder<Aspect<?>> builder = new ImmutableList.Builder<>();
+    ImmutableSet.Builder<Aspect<?>> builder = new ImmutableSet.Builder<>();
     String val = pE.getValue();
 
     for (AbstractStringDomain<?> dom : domains) {
       builder.add(dom.addNewAspect(val));
     }
 
-    return new AspectList(builder.build());
+    return new AspectSet(builder.build());
   }
 
   @Override
-  public AspectList visit(JBinaryExpression pE) throws NoException {
+  public AspectSet visit(JBinaryExpression pE) throws NoException {
 
     if (pE.getOperator().equals(BinaryOperator.STRING_CONCATENATION)) {
       return calcAspectsForStringConcat(pE.getOperand1(), pE.getOperand2());
     }
 
-    return new AspectList(ImmutableList.of());
+    return new AspectSet(ImmutableSortedSet.of());
   }
 
-  private AspectList calcAspectsForStringConcat(JExpression op1, JExpression op2) {
+  private AspectSet calcAspectsForStringConcat(JExpression op1, JExpression op2) {
 
-    AspectList vaa1 = op1.accept(this);
-    AspectList vaa2 = op2.accept(this);
+    AspectSet aspects1 = op1.accept(this);
+    AspectSet aspects2 = op2.accept(this);
 
-    if (vaa1 != null && vaa2 != null) {
-      if (!(vaa1 instanceof UnknownValueAndAspects) && !(vaa2 instanceof UnknownValueAndAspects)) {
-
-        ImmutableList.Builder<Aspect<?>> builder = new ImmutableList.Builder<>();
-
+    if (aspects1 != null && aspects2 != null) {
+      if (!(aspects1.getAspects().isEmpty()) && !(aspects2.getAspects().isEmpty())) {
+        ImmutableSet.Builder<Aspect<?>> builder = new ImmutableSet.Builder<>();
         for (AbstractStringDomain<?> dom : domains) {
           builder
               .add(
                   dom.combineAspectsForStringConcat(
-                      vaa1.getAspect(dom),
-                      vaa2.getAspect(dom)));
+                      aspects1.getAspect(dom),
+                      aspects2.getAspect(dom)));
         }
 
-        return new AspectList(builder.build());
+        return new AspectSet(builder.build());
 
       } else {
-        return new AspectList(ImmutableList.of());
+        return new AspectSet(ImmutableSet.of());
 
       }
 
@@ -135,106 +139,106 @@ public class JAspectListVisitor
   }
 
   @Override
-  public AspectList visit(JUnaryExpression pE) throws NoException {
+  public AspectSet visit(JUnaryExpression pE) throws NoException {
 
     JExpression e = pE.getOperand();
     return e.accept(this);
   }
 
   @Override
-  public AspectList visit(JCastExpression pE) throws NoException {
+  public AspectSet visit(JCastExpression pE) throws NoException {
 
     JExpression e = pE.getOperand();
     return e.accept(this);
   }
 
   @Override
-  public AspectList visit(JArraySubscriptExpression pE) throws NoException {
+  public AspectSet visit(JArraySubscriptExpression pE) throws NoException {
     return pE.getSubscriptExpression().accept(this);
   }
 
   @Override
-  public AspectList visit(JVariableRunTimeType pE) throws NoException {
+  public AspectSet visit(JVariableRunTimeType pE) throws NoException {
     return pE.getReferencedVariable().accept(this);
   }
 
   @Override
-  public AspectList visit(JRunTimeTypeEqualsType pE) throws NoException {
+  public AspectSet visit(JRunTimeTypeEqualsType pE) throws NoException {
     return pE.getRunTimeTypeExpression().accept(this);
   }
 
   @Override
-  public AspectList visit(JMethodInvocationExpression pE)
+  public AspectSet visit(JMethodInvocationExpression pE)
       throws NoException {
     // TODO substring
-    return new AspectList(ImmutableList.of());
+    return new AspectSet(ImmutableSet.of());
   }
 
   @Override
-  public AspectList visit(JClassInstanceCreation pE)
+  public AspectSet visit(JClassInstanceCreation pE)
       throws NoException {
     return null;
   }
 
   @Override
-  public AspectList visit(JCharLiteralExpression pE) throws NoException {
+  public AspectSet visit(JCharLiteralExpression pE) throws NoException {
     return null;
   }
 
   @Override
-  public AspectList visit(JIntegerLiteralExpression pJIntegerLiteralExpression)
+  public AspectSet visit(JIntegerLiteralExpression pJIntegerLiteralExpression)
       throws NoException {
     return null;
   }
 
   @Override
-  public AspectList visit(JBooleanLiteralExpression pJBooleanLiteralExpression)
+  public AspectSet visit(JBooleanLiteralExpression pJBooleanLiteralExpression)
       throws NoException {
     return null;
   }
 
   @Override
-  public AspectList visit(JFloatLiteralExpression pJFloatLiteralExpression)
+  public AspectSet visit(JFloatLiteralExpression pJFloatLiteralExpression)
       throws NoException {
     return null;
   }
 
   @Override
-  public AspectList visit(JArrayCreationExpression pJArrayCreationExpression)
+  public AspectSet visit(JArrayCreationExpression pJArrayCreationExpression)
       throws NoException {
     return null;
   }
 
   @Override
-  public AspectList visit(JArrayInitializer pJArrayInitializer) throws NoException {
+  public AspectSet visit(JArrayInitializer pJArrayInitializer) throws NoException {
     return null;
   }
 
   @Override
-  public AspectList visit(JArrayLengthExpression pJArrayLengthExpression)
+  public AspectSet visit(JArrayLengthExpression pJArrayLengthExpression)
       throws NoException {
     return null;
   }
 
   @Override
-  public AspectList visit(JNullLiteralExpression pJNullLiteralExpression)
+  public AspectSet visit(JNullLiteralExpression pJNullLiteralExpression)
       throws NoException {
     return null;
   }
 
   @Override
-  public AspectList visit(JEnumConstantExpression pJEnumConstantExpression)
+  public AspectSet visit(JEnumConstantExpression pJEnumConstantExpression)
       throws NoException {
     return null;
   }
 
   @Override
-  public AspectList visit(JThisExpression pThisExpression) throws NoException {
+  public AspectSet visit(JThisExpression pThisExpression) throws NoException {
     return null;
   }
 
   @Override
-  public AspectList visit(JClassLiteralExpression pJClassLiteralExpression)
+  public AspectSet visit(JClassLiteralExpression pJClassLiteralExpression)
       throws NoException {
     return null;
   }

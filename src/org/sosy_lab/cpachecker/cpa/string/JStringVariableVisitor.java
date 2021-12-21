@@ -14,6 +14,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.java.JLeftHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JSimpleDeclaration;
+import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.cpa.string.utils.JStringVariableIdentifier;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -22,6 +23,13 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  * Visitor used to create the string identifier JVariableIdentifier
  */
 public class JStringVariableVisitor implements JLeftHandSideVisitor<JStringVariableIdentifier, NoException> {
+
+  private final String funcName;
+
+  public JStringVariableVisitor(String pFuncName) {
+
+    funcName = pFuncName;
+  }
 
   @Override
   public JStringVariableIdentifier visit(JArraySubscriptExpression pE)
@@ -35,8 +43,15 @@ public class JStringVariableVisitor implements JLeftHandSideVisitor<JStringVaria
 
   @Override
   public JStringVariableIdentifier visit(JIdExpression pE) throws NoException {
-    JSimpleDeclaration decl =pE.getDeclaration();
-    return new JStringVariableIdentifier(decl.getType(),MemoryLocation.forDeclaration(decl));
+    final MemoryLocation memLoc;
+    if (pE.getDeclaration() != null) {
+      memLoc = MemoryLocation.forDeclaration(pE.getDeclaration());
+    } else if (!ForwardingTransferRelation.isGlobal(pE)) {
+      memLoc = MemoryLocation.forLocalVariable(funcName, pE.getName());
+    } else {
+      memLoc = MemoryLocation.forIdentifier(pE.getName());
+    }
+    return new JStringVariableIdentifier(pE.getDeclaration().getType(), memLoc);
   }
 
   public JStringVariableIdentifier visit(JLeftHandSide pOp1) {

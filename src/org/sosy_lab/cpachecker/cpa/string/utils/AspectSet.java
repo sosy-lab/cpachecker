@@ -8,9 +8,11 @@
 
 package org.sosy_lab.cpachecker.cpa.string.utils;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSortedSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.string.domains.AbstractStringDomain;
 import org.sosy_lab.cpachecker.cpa.string.domains.DomainType;
 import org.sosy_lab.cpachecker.cpa.string.utils.Aspect.UnknownAspect;
@@ -19,57 +21,57 @@ import org.sosy_lab.cpachecker.cpa.string.utils.Aspect.UnknownAspect;
  * Stores all known aspects of a string as a list.
  * Util-class to perform functions on the list.
  */
-public class AspectList {
+public class AspectSet {
 
-  private List<Aspect<?>> aspects;
+  private ImmutableSortedSet<Aspect<?>> aspects;
 
-  public AspectList(List<Aspect<?>> pAspects) {
-    aspects = pAspects;
+  public AspectSet(Set<Aspect<?>> pAspects) {
+    aspects = ImmutableSortedSet.copyOf(pAspects);
   }
 
-  public AspectList newValue(List<Aspect<?>> pAspects) {
-    aspects = pAspects;
+  public AspectSet newValue(Set<Aspect<?>> pAspects) {
+    aspects = ImmutableSortedSet.copyOf(pAspects);
     return this;
+  }
+
+  public ImmutableSortedSet<Aspect<?>> getAspects() {
+    return aspects;
   }
 
   public int getAspectAmount() {
     return aspects.size();
   }
 
-  public AspectList updateOneAspect(Aspect<?> as) {
+  public AspectSet updateOneAspect(Aspect<?> as) {
 
     Aspect<?> temp = getAspect(as.getDomain());
 
     if (temp instanceof UnknownAspect) {
 
-      ImmutableList.Builder<Aspect<?>> builder = new ImmutableList.Builder<>();
-      aspects = builder.addAll(aspects).add(as).build();
-
+      ImmutableSet.Builder<Aspect<?>> builder = new ImmutableSet.Builder<>();
+      ImmutableSet<Aspect<?>> tempSet = builder.addAll(aspects).add(as).build();
+      aspects = ImmutableSortedSet.copyOf(tempSet);
     } else {
-
       if (!temp.getValue().equals(as.getValue())) {
-
-        ImmutableList.Builder<Aspect<?>> builder = new ImmutableList.Builder<>();
-
+        ImmutableSet.Builder<Aspect<?>> builder = new ImmutableSet.Builder<>();
         for (Aspect<?> a : aspects) {
-
           if (!a.equals(temp)) {
             builder.add(a);
-
           } else {
             builder.add(as);
           }
-
         }
-
-        aspects = builder.build();
+        ImmutableSet<Aspect<?>> tempSet = builder.build();
+        aspects = ImmutableSortedSet.copyOf(tempSet);
       }
-
     }
     return this;
   }
 
   public Aspect<?> getAspect(AbstractStringDomain<?> domain) {
+    if (aspects.isEmpty()) {
+      return UnknownAspect.getInstance();
+    }
     DomainType type = domain.getType();
     return getAspect(type);
   }
@@ -88,39 +90,21 @@ public class AspectList {
     return UnknownAspect.getInstance();
   }
 
-  public boolean isLessOrEqual(AspectList pOther) {
+  public boolean isLessOrEqual(AspectSet pOther) {
 
-    List<Aspect<?>> otherList = pOther.aspects;
+    ImmutableSortedSet<Aspect<?>> otherSet = pOther.aspects;
 
-    if (aspects.size() < otherList.size()) {
+    if (aspects.size() < otherSet.size()) {
       return false;
     }
-
-    for (int i = 0; i < otherList.size(); i++) {
-
-      Aspect<?> a = aspects.get(i);
-      Aspect<?> other = otherList.get(i);
-
-      // if not in same order or missing aspects.
-      if (!other.getDomainType().equals(a.getDomainType())) {
-
-        DomainType type = other.getDomainType();
-
-        for (Aspect<?> temp : aspects) {
-
-          if (temp.getDomainType().equals(type)) {
-            a = temp;
-            break;
-          }
-
-        }
-
-      }
-
-      if (!a.getDomain().isLessOrEqual(a, other)) {
+    List<Aspect<?>> aspectsAsList = aspects.asList();
+    List<Aspect<?>> otherAspectsAsList = otherSet.asList();
+    for (int i = 0; i < otherAspectsAsList.size(); i++) {
+      Aspect<?> thisAspect = aspectsAsList.get(i);
+      Aspect<?> other = otherAspectsAsList.get(i);
+      if (!thisAspect.getDomain().isLessOrEqual(thisAspect, other)) {
         return false;
       }
-
     }
     return true;
   }
@@ -141,7 +125,7 @@ public class AspectList {
     if (getClass() != obj.getClass()) {
       return false;
     }
-    AspectList other = (AspectList) obj;
+    AspectSet other = (AspectSet) obj;
     return Objects.equals(aspects, other.aspects);
   }
 
@@ -153,19 +137,5 @@ public class AspectList {
     }
     builder.append(")");
     return builder.toString();
-  }
-
-  public static class UnknownValueAndAspects extends AspectList {
-
-    private final static UnknownValueAndAspects instance = new UnknownValueAndAspects();
-
-    private UnknownValueAndAspects() {
-      super(ImmutableList.of());
-    }
-
-    public static UnknownValueAndAspects getInstance() {
-      return instance;
-    }
-
   }
 }
