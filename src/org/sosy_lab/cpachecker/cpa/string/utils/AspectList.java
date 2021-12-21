@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.string.utils;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cpa.string.domains.AbstractStringDomain;
 import org.sosy_lab.cpachecker.cpa.string.domains.DomainType;
 import org.sosy_lab.cpachecker.cpa.string.utils.Aspect.UnknownAspect;
@@ -125,45 +126,33 @@ public class AspectList {
   }
 
   @Override
+  public int hashCode() {
+    return Objects.hash(aspects);
+  }
+
+  @Override
   public boolean equals(Object obj) {
-
-    if (!(obj instanceof AspectList)) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null) {
       return false;
     }
-
-    AspectList vaa = (AspectList) obj;
-
-    if ((vaa.aspects.size() != this.aspects.size())) {
+    if (getClass() != obj.getClass()) {
       return false;
     }
-
-    for (Aspect<?> a : this.aspects) {
-
-      if (!vaa.aspects.contains(a)) {
-        return false;
-      }
-
-    }
-
-    return true;
+    AspectList other = (AspectList) obj;
+    return Objects.equals(aspects, other.aspects);
   }
 
   @Override
   public String toString() {
-
     StringBuilder builder = new StringBuilder("(Domains:");
-
     for (Aspect<?> a : aspects) {
       builder.append(a.toString() + ",");
     }
-
     builder.append(")");
     return builder.toString();
-  }
-
-  @Override
-  public int hashCode() {
-    return super.hashCode();
   }
 
   public static class UnknownValueAndAspects extends AspectList {
