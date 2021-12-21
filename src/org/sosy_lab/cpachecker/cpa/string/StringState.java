@@ -2,6 +2,7 @@ package org.sosy_lab.cpachecker.cpa.string;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.cpa.string.utils.AspectList;
@@ -10,21 +11,20 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class StringState implements LatticeAbstractState<StringState> {
 
-  private StringOptions options;
+  private final StringOptions options;
 
   // Stores all strings of the program, along with the aspects
   private ImmutableMap<JStringVariableIdentifier, AspectList> stringsAndAspects;
 
+
   public StringState(
       ImmutableMap<JStringVariableIdentifier, AspectList> pStringMap,
       StringOptions pOptions) {
-
     options = pOptions;
-    stringsAndAspects = ImmutableMap.copyOf(pStringMap);
+    stringsAndAspects = pStringMap;
   }
 
   private StringState(StringState state) {
-
     stringsAndAspects = state.stringsAndAspects;
     options = state.options;
   }
@@ -33,25 +33,19 @@ public class StringState implements LatticeAbstractState<StringState> {
     return new StringState(state);
   }
 
-  // Update doesn't create a new state
   public StringState updateVariable(JStringVariableIdentifier pJid, AspectList vaa) {
-
     ImmutableMap.Builder<JStringVariableIdentifier, AspectList> builder =
         new ImmutableMap.Builder<>();
-
-    for (Map.Entry<JStringVariableIdentifier, AspectList> entry : stringsAndAspects.entrySet()) {
-
+    StringState state = copyOf(this);
+    for (Map.Entry<JStringVariableIdentifier, AspectList> entry : state.stringsAndAspects
+        .entrySet()) {
       JStringVariableIdentifier jid = entry.getKey();
-
       if (!jid.equals(pJid)) {
-        builder.put(jid, stringsAndAspects.get(jid));
+        builder.put(jid, state.stringsAndAspects.get(jid));
       }
-
     }
-
-    stringsAndAspects = ImmutableMap.copyOf(builder.put(pJid, vaa).build());
-
-    return this;
+    state.stringsAndAspects = builder.put(pJid, vaa).build();
+    return state;
   }
 
   public StringState addVariable(JStringVariableIdentifier jid) {
@@ -59,13 +53,10 @@ public class StringState implements LatticeAbstractState<StringState> {
   }
 
   public StringState addVariable(JStringVariableIdentifier jid, AspectList vaa) {
-
     ImmutableMap.Builder<JStringVariableIdentifier, AspectList> builder =
         new ImmutableMap.Builder<>();
-
     builder.putAll(stringsAndAspects);
     builder.put(jid, vaa);
-
     return new StringState(builder.build(), options);
   }
 
@@ -87,27 +78,22 @@ public class StringState implements LatticeAbstractState<StringState> {
     if (pOther.isLessOrEqual(this)) {
       return this;
     }
-    stringsAndAspects = joinMapsNoDuplicates(pOther.stringsAndAspects);
-    return this;
+    StringState state = copyOf(this);
+    state.stringsAndAspects = joinMapsNoDuplicates(pOther.stringsAndAspects);
+    return state;
   }
 
   private ImmutableMap<JStringVariableIdentifier, AspectList>
       joinMapsNoDuplicates(Map<JStringVariableIdentifier, AspectList> pStringMap) {
-
     ImmutableMap.Builder<JStringVariableIdentifier, AspectList> builder =
         new ImmutableMap.Builder<>();
-
-    builder.putAll(stringsAndAspects);
-
-    for (Map.Entry<JStringVariableIdentifier, AspectList> entry : stringsAndAspects.entrySet()) {
-
-      JStringVariableIdentifier jid = entry.getKey();
-
-      if (!stringsAndAspects.containsKey(jid)) {
+    for (Map.Entry<JStringVariableIdentifier, AspectList> otherEntry : pStringMap.entrySet()) {
+      JStringVariableIdentifier jid = otherEntry.getKey();
+      AspectList aspectList = otherEntry.getValue();
+      if (Objects.equals(aspectList, stringsAndAspects.get(jid))) {
         builder.put(jid, pStringMap.get(jid));
       }
     }
-
     return builder.build();
   }
 
@@ -119,37 +105,28 @@ public class StringState implements LatticeAbstractState<StringState> {
    */
   @Override
   public boolean isLessOrEqual(StringState pOther) throws CPAException, InterruptedException {
-
-    if (this.stringsAndAspects.size() < pOther.stringsAndAspects.size()) {
+    if (stringsAndAspects.size() < pOther.stringsAndAspects.size()) {
       return false;
     }
 
     for (Map.Entry<JStringVariableIdentifier, AspectList> otherEntry : pOther.stringsAndAspects
         .entrySet()) {
-
       AspectList otherVaa = otherEntry.getValue();
       JStringVariableIdentifier jid = otherEntry.getKey();
       AspectList vaa = this.stringsAndAspects.get(jid);
-
       if (vaa == null || !vaa.isLessOrEqual(otherVaa)) {
         return false;
       }
-
     }
-
     return true;
   }
 
   public Optional<JStringVariableIdentifier> isVariableInMap(String pVar) {
-
     for (JStringVariableIdentifier jid : stringsAndAspects.keySet()) {
-
       if (jid.getIdentifier().equals(pVar)) {
         return Optional.of(jid);
       }
-
     }
-
     return Optional.empty();
   }
 
@@ -176,52 +153,26 @@ public class StringState implements LatticeAbstractState<StringState> {
   }
 
   public StringState clearLocalVariables(String funcname) {
-
     ImmutableMap.Builder<JStringVariableIdentifier, AspectList> builder =
         new ImmutableMap.Builder<>();
-
     for (Map.Entry<JStringVariableIdentifier, AspectList> entry : stringsAndAspects.entrySet()) {
-
       JStringVariableIdentifier jid = entry.getKey();
-
       if (!jid.getMemLoc().isOnFunctionStack(funcname)) {
         builder.put(jid, stringsAndAspects.get(jid));
       }
-
     }
-
     return new StringState(builder.build(), options);
   }
 
   @Override
   public String toString() {
-
     StringBuilder builder = new StringBuilder("String State: {");
-
     for (Map.Entry<JStringVariableIdentifier, AspectList> entry : stringsAndAspects.entrySet()) {
-
       JStringVariableIdentifier jid = entry.getKey();
       builder.append("[" + jid + stringsAndAspects.get(jid) + "]");
     }
     builder.append("} ");
 
     return builder.toString();
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-
-    if (obj instanceof StringState) {
-
-      // imprecise equals, doesn't care about contents of strings
-      return this.stringsAndAspects.size() == ((StringState) obj).stringsAndAspects.size();
-    }
-
-    return false;
-  }
-
-  @Override
-  public int hashCode() {
-    return super.hashCode();
   }
 }
