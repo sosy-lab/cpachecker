@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cpa.string.domains.AbstractStringDomain;
-import org.sosy_lab.cpachecker.cpa.string.domains.StringSetDomain;
 import org.sosy_lab.cpachecker.cpa.string.utils.Aspect;
 import org.sosy_lab.cpachecker.cpa.string.utils.AspectList;
 import org.sosy_lab.cpachecker.cpa.string.utils.AspectList.UnknownValueAndAspects;
@@ -54,12 +53,10 @@ public class JAspectListVisitor
     implements JRightHandSideVisitor<AspectList, NoException> {
 
   private final ImmutableList<AbstractStringDomain<?>> domains;
-  private StringOptions options;
   private StringState state;
 
   public JAspectListVisitor(StringOptions pOptions, StringState pState) {
     domains = ImmutableList.copyOf(pOptions.getDomains());
-    options = pOptions;
     state = pState;
   }
 
@@ -95,14 +92,7 @@ public class JAspectListVisitor
     String val = pE.getValue();
 
     for (AbstractStringDomain<?> dom : domains) {
-
-      // Add string literal to string
-      if (dom instanceof StringSetDomain && !options.getStringSet().contains(val)) {
-        options.addStringToGivenSet(val);
-      }
-
       builder.add(dom.addNewAspect(val));
-
     }
 
     return new AspectList(builder.build());
