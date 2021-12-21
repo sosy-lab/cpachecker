@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /*
  * Visitor that creates a list of aspects, depending on the expression.
- * We can expect that only string-variables are used in the visitor (because of check in transfer relation)
+ * We can expect that only string-variables are returned from the visitor (because of check in transfer relation)
  */
 public class JAspectListVisitor
     implements JRightHandSideVisitor<AspectList, NoException> {

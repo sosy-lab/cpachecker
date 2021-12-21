@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JReferencedMethodInvocationExpressio
 import org.sosy_lab.cpachecker.cfa.ast.java.JRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.java.JStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -116,7 +115,7 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
         break;
 
       case BlankEdge:
-        successor = handleBlankEdge((BlankEdge) pCfaEdge, state);
+        successor = handleBlankEdge(state);
         break;
 
       case CallToReturnEdge:
@@ -158,6 +157,10 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
     }
 
     if (successor != null) {
+      if (pCfaEdge.getSuccessor() instanceof FunctionExitNode) {
+        successor = StringState.copyOf(successor);
+        state.clearLocalVariables(funcName);
+      }
       return Collections.singleton(successor);
     } else {
       return ImmutableSet.of();
@@ -243,16 +246,10 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private StringState handleJMethodSummaryEdge(StringState pState) {
-    // TODO length, substring
     return pState;
   }
 
-  private StringState handleBlankEdge(BlankEdge pCfaEdge, StringState pState) {
-    if (pCfaEdge.getSuccessor() instanceof FunctionExitNode) {
-      StringState state = StringState.copyOf(pState);
-      state.clearLocalVariables(funcName);
-      return state;
-    }
+  private StringState handleBlankEdge(StringState pState) {
     return pState;
   }
 
