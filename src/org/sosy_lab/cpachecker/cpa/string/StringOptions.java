@@ -52,7 +52,6 @@ public class StringOptions {
                   "SuffixDomain",
                   "LengthDomain",
                   "CharSetDomain",
-                  "ContainsDomain",
               "StringSetDomain");
 
   private ImmutableList<AbstractStringDomain<?>> domains;

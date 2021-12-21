@@ -43,7 +43,7 @@ public class StringCPA extends AbstractCPA {
     toUppercase = true,
     values = {"SEP", "JOIN"},
     description = "which merge operator to use for StringCPA")
-  private String mergeType = "JOIN";
+  private String mergeType = "SEP";
 
   @Option(
     secure = true,
