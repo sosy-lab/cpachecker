@@ -19,7 +19,7 @@ int main() {
   int y = 0;
   while (x + i - 2147483646 < 2147483646) {
     x += 1;
-    i += 1:
+    i += 1;
     y += 2;
   }
   __VERIFIER_assert(x == 2147483646);

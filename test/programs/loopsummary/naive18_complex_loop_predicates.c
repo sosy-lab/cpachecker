@@ -19,7 +19,7 @@ int main() {
   int y = 0;
   while (x + i - y < 2*1000000) {
     x += 2;
-    i += 1:
+    i += 1;
     y += 1;
   }
   __VERIFIER_assert(x%2 != 0);

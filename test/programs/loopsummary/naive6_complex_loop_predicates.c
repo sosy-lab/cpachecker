@@ -18,7 +18,7 @@ int main() {
   int i = 0;
   while (x + i < 3*1000000) {
     x += 2;
-    i += 1:
+    i += 1;
   }
   __VERIFIER_assert(x%2 == 0);
   return 0;
