@@ -96,11 +96,10 @@ public class LinearExtrapolationStrategy extends AbstractLoopExtrapolationStrate
 
     AExpression iterations = iterationsMaybe.orElseThrow();
 
-    @SuppressWarnings("unused")
     Optional<GhostCFA> summarizedLoopMaybe =
         createGhostCFA(iterations, loopBoundExpression, loopStructure, beforeWhile);
 
-    return Optional.empty();
+    return summarizedLoopMaybe;
   }
 
   private Optional<GhostCFA> createGhostCFA(
