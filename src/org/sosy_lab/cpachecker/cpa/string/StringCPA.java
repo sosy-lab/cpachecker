@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JReferencedMethodInvocationExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -44,6 +45,7 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 @Options(prefix = "cpa.string")
 public class StringCPA extends AbstractCPA {
@@ -68,7 +70,7 @@ public class StringCPA extends AbstractCPA {
   private final StringOptions options;
   private final LogManager logger;
   private final CFA cfa;
-  private final HashMap<String, JReferencedMethodInvocationExpression> temporaryVars;
+  private final HashMap<MemoryLocation, JReferencedMethodInvocationExpression> temporaryVars;
 
   private StringCPA(Configuration pConfig, LogManager pLogger, CFA pCfa)
       throws InvalidConfigurationException {
@@ -76,7 +78,7 @@ public class StringCPA extends AbstractCPA {
     this.config = pConfig;
     this.logger = pLogger;
     this.cfa = pCfa;
-    Pair<HashMap<String, JReferencedMethodInvocationExpression>, ImmutableSet<String>> tempPair =
+    Pair<HashMap<MemoryLocation, JReferencedMethodInvocationExpression>, ImmutableSet<String>> tempPair =
         getAllStringLiterals();
     temporaryVars = tempPair.getFirst();
     options = new StringOptions(pConfig, tempPair.getSecond());
@@ -114,11 +116,12 @@ public class StringCPA extends AbstractCPA {
     return DelegateAbstractDomain.<StringState>getInstance();
   }
 
-  private Pair<HashMap<String, JReferencedMethodInvocationExpression>, ImmutableSet<String>>
+  private Pair<HashMap<MemoryLocation, JReferencedMethodInvocationExpression>, ImmutableSet<String>>
       getAllStringLiterals() {
     ImmutableSet.Builder<String> builder = new ImmutableSet.Builder<>();
     EdgeCollectingCFAVisitor edgeVisitor = new CFATraversal.EdgeCollectingCFAVisitor();
-    HashMap<String, JReferencedMethodInvocationExpression> temporaryVariableMap = new HashMap<>();
+    HashMap<MemoryLocation, JReferencedMethodInvocationExpression> temporaryVariableMap =
+        new HashMap<>();
     CFATraversal.dfs().traverseOnce(cfa.getMainFunction(), edgeVisitor);
     for (CFAEdge edge : edgeVisitor.getVisitedEdges()) {
       Optional<AAstNode> optNode = edge.getRawAST();
@@ -142,34 +145,32 @@ public class StringCPA extends AbstractCPA {
   /*
    * We can't create an AST for the Methods in the Java Standard Library (that feature is not
    * implemented). Thus we have to use a Workaround: store all temporary variables, if their
-   * referenced variable is a string. Then analyse that if possible. TODO: handle methods on strings
+   * referenced variable is a string. Then analyze that if possible. TODO: handle methods on strings
    * properly
    */
   private void addTemporaryVariableToMap(
       JMethodInvocationAssignmentStatement jmias,
-      HashMap<String, JReferencedMethodInvocationExpression> pTemporaryVariableMap) {
+      HashMap<MemoryLocation, JReferencedMethodInvocationExpression> pTemporaryVariableMap) {
     JMethodInvocationExpression jRight = jmias.getRightHandSide();
     JLeftHandSide jLeft = jmias.getLeftHandSide();
-    String tempVarName = null;
+    MemoryLocation tempVarName = null;
     if (jLeft instanceof JIdExpression) {
       if (StringCpaUtilMethods.isTemporaryVariable((JIdExpression) jLeft)) {
-        tempVarName = ((JIdExpression) jLeft).getName();
+        JSimpleDeclaration jsimp = ((JIdExpression) jLeft).getDeclaration();
+        tempVarName = MemoryLocation.forDeclaration(jsimp);
       } else {
         return;
       }
     } else if (jLeft instanceof JDeclaration) {
       if (StringCpaUtilMethods.isTemporaryVariable((JDeclaration) jLeft)) {
-        tempVarName = ((JDeclaration) jLeft).getName();
+        tempVarName = MemoryLocation.forDeclaration((JDeclaration) jLeft);
       } else {
         return;
       }
     }
     if (jRight instanceof JReferencedMethodInvocationExpression) {
       JReferencedMethodInvocationExpression jrmie = (JReferencedMethodInvocationExpression) jRight;
-        pTemporaryVariableMap.put(tempVarName, jrmie);
-
+      pTemporaryVariableMap.put(tempVarName, jrmie);
     }
-
   }
-
 }

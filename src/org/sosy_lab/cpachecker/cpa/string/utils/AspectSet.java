@@ -91,10 +91,11 @@ public class AspectSet {
   }
 
   public boolean isLessOrEqual(AspectSet pOther) {
-
     ImmutableSortedSet<Aspect<?>> otherSet = pOther.aspects;
-
     if (aspects.size() < otherSet.size()) {
+      return false;
+    }
+    if (aspects.size() == 0 && otherSet.size() == 0) {
       return false;
     }
     List<Aspect<?>> aspectsAsList = aspects.asList();
@@ -102,6 +103,9 @@ public class AspectSet {
     for (int i = 0; i < otherAspectsAsList.size(); i++) {
       Aspect<?> thisAspect = aspectsAsList.get(i);
       Aspect<?> other = otherAspectsAsList.get(i);
+      if (thisAspect instanceof UnknownAspect || other instanceof UnknownAspect) {
+        return false;
+      }
       if (!thisAspect.getDomain().isLessOrEqual(thisAspect, other)) {
         return false;
       }

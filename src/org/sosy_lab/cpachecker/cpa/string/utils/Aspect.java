@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.cpa.string.domains.DomainType;
  * Represents an aspect or fact about a string.
  * The type of the aspect is dependent on the domain that constructs the aspect.
  */
-public class Aspect<T> implements Comparable<AbstractStringDomain<?>> {
+public class Aspect<T> implements Comparable<Aspect<?>> {
 
   private AbstractStringDomain<?> domain;
 
@@ -66,13 +66,13 @@ public class Aspect<T> implements Comparable<AbstractStringDomain<?>> {
   }
 
   @Override
-  public int compareTo(AbstractStringDomain<?> pOther) {
-    if (this.domain == null && pOther != null) {
+  public int compareTo(Aspect<?> pOther) {
+    if (this.domain == null && pOther.domain != null) {
       return -1;
-    } else if (this.domain != null && pOther == null) {
+    } else if (this.domain != null && pOther.domain == null) {
       return 1;
     }
-    return domain.toString().compareTo(pOther.toString());
+    return domain.toString().compareTo(pOther.domain.toString());
   }
 
 }

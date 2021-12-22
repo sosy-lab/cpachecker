@@ -82,21 +82,20 @@ public class JAspectListVisitor
       }
       return list;
     }
-
     return new AspectSet(ImmutableSortedSet.of());
   }
 
   @Override
   public AspectSet visit(JStringLiteralExpression pE)
       throws NoException {
-
     ImmutableSet.Builder<Aspect<?>> builder = new ImmutableSet.Builder<>();
     String val = pE.getValue();
-
+    if (val == null) {
+      return new AspectSet(ImmutableSortedSet.of());
+    }
     for (AbstractStringDomain<?> dom : domains) {
       builder.add(dom.addNewAspect(val));
     }
-
     return new AspectSet(builder.build());
   }
 
@@ -106,17 +105,14 @@ public class JAspectListVisitor
     if (pE.getOperator().equals(BinaryOperator.STRING_CONCATENATION)) {
       return calcAspectsForStringConcat(pE.getOperand1(), pE.getOperand2());
     }
-
     return new AspectSet(ImmutableSortedSet.of());
   }
 
   private AspectSet calcAspectsForStringConcat(JExpression op1, JExpression op2) {
-
     AspectSet aspects1 = op1.accept(this);
     AspectSet aspects2 = op2.accept(this);
-
     if (aspects1 != null && aspects2 != null) {
-      if (!(aspects1.getAspects().isEmpty()) && !(aspects2.getAspects().isEmpty())) {
+      if (!(aspects1.getAspects().isEmpty() && aspects2.getAspects().isEmpty())) {
         ImmutableSet.Builder<Aspect<?>> builder = new ImmutableSet.Builder<>();
         for (AbstractStringDomain<?> dom : domains) {
           builder
@@ -125,16 +121,11 @@ public class JAspectListVisitor
                       aspects1.getAspect(dom),
                       aspects2.getAspect(dom)));
         }
-
         return new AspectSet(builder.build());
-
       } else {
         return new AspectSet(ImmutableSet.of());
-
       }
-
     }
-
     return null;
   }
 
@@ -223,7 +214,7 @@ public class JAspectListVisitor
   @Override
   public AspectSet visit(JNullLiteralExpression pJNullLiteralExpression)
       throws NoException {
-    return null;
+    return new AspectSet(ImmutableSortedSet.of());
   }
 
   @Override

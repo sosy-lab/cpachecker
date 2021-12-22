@@ -60,11 +60,12 @@ import org.sosy_lab.cpachecker.cpa.string.utils.AspectSet;
 import org.sosy_lab.cpachecker.cpa.string.utils.JStringVariableIdentifier;
 import org.sosy_lab.cpachecker.cpa.string.utils.StringCpaUtilMethods;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class StringTransferRelation extends SingleEdgeTransferRelation {
 
   private final StringOptions options;
-  private final Map<String, JReferencedMethodInvocationExpression> tempVariables;
+  private final Map<MemoryLocation, JReferencedMethodInvocationExpression> tempVariables;
   private String funcName;
 
   private JAspectListVisitor jalv;
@@ -75,7 +76,7 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
   public StringTransferRelation(
       LogManager pLogger,
       StringOptions pOptions,
-      HashMap<String, JReferencedMethodInvocationExpression> pTemporaryVars) {
+      HashMap<MemoryLocation, JReferencedMethodInvocationExpression> pTemporaryVars) {
     logger = pLogger;
     this.options = pOptions;
     tempVariables = pTemporaryVars;
@@ -314,7 +315,8 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
       else if (operand1 instanceof JIdExpression) {
         JIdExpression jidExp = (JIdExpression) operand1;
         if (StringCpaUtilMethods.isTemporaryVariable(jidExp)) {
-          JReferencedMethodInvocationExpression jrmie = tempVariables.get(jidExp.getName());
+          MemoryLocation memLoc = jvv.visit(jidExp).getMemLoc();
+          JReferencedMethodInvocationExpression jrmie = tempVariables.get(memLoc);
           truthValue = handleStringMethodCall(jrmie, pState);
         }
       }
