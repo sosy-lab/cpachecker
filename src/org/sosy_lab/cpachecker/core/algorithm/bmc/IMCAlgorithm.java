@@ -8,9 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
-import static com.google.common.base.Predicates.not;
-import static com.google.common.collect.FluentIterable.from;
-
 import com.google.common.collect.FluentIterable;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,7 +29,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundCPA;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -234,7 +230,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             solver.newProverEnvironmentWithInterpolation()) {
           if (reachFixedPointByInterpolation(itpProver, formulas)) {
             InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
-            storeFixedPointAsAbstractionAtLoopHeads(pReachedSet);
+            InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
+                pReachedSet, finalFixedPoint, predAbsMgr, pfmgr);
             return AlgorithmStatus.SOUND_AND_PRECISE;
           }
         }
@@ -352,34 +349,6 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
     logger.log(Level.FINE, "The overapproximation is unsafe, going back to BMC phase");
     return false;
-  }
-
-  /**
-   * This method stores the final fixed point in the abstraction formula of every abstraction state
-   * at the loop head in order to generate correctness witnesses.
-   *
-   * <p>In predicate analysis, the invariant at a program location is obtained by taking the
-   * disjunction of all abstraction formulas at this location. Therefore, it is necessary to set the
-   * abstraction formula of every loop-head abstraction state to the fixed point; otherwise, the
-   * invariant will be the tautology.
-   *
-   * @throws InterruptedException on shutdown request.
-   */
-  @SuppressWarnings("resource")
-  private void storeFixedPointAsAbstractionAtLoopHeads(ReachedSet pReachedSet)
-      throws InterruptedException {
-    // Find all abstraction states: they are at same loop head due to single-loop assumption
-    List<AbstractState> abstractionStates =
-        from(pReachedSet)
-            .skip(1) // skip the root
-            .filter(not(AbstractStates::isTargetState)) // target states may be abstraction states
-            .filter(PredicateAbstractState::containsAbstractionState)
-            .toList();
-    for (AbstractState state : abstractionStates) {
-      PredicateAbstractState predState = PredicateAbstractState.getPredicateState(state);
-      predState.setAbstraction(
-          predAbsMgr.asAbstraction(finalFixedPoint, pfmgr.makeEmptyPathFormula()));
-    }
   }
 
   @Override
