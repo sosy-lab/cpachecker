@@ -3008,24 +3008,30 @@ cpa.statistics.metric.structVariablesCount = true
 cpa.statistics.statisticsCPAFile = no default value
 
 # Look if these Strings are Part of a String
-cpa.string.containset = new ArrayList<>()
+cpa.string.containset = {}
 
 # which domains to use in StringCPA
 cpa.string.domains = ImmutableList
-          .copyOf(
-              Arrays.asList(
+          .of(
                   "PrefixDomain",
                   "SuffixDomain",
                   "LengthDomain",
                   "CharSetDomain",
-                  "ContainsDomain",
-                  "StringSetDomain"))
+              "StringSetDomain")
+
+# which merge operator to use for StringCPA
+cpa.string.merge = "SEP"
+  allowed values: [SEP, JOIN]
 
 # Which prefixlength shall be tracked
 cpa.string.prefixlength = 3
 
+# which stop operator to use for StringCPA
+cpa.string.stop = "SEP"
+  allowed values: [SEP, JOIN]
+
 # Compare these Strings for StringSetDomain
-cpa.string.stringset = []
+cpa.string.stringset = {}
 
 # Which suffixlength shall be tracked
 cpa.string.suffixlength = 3
@@ -4338,14 +4344,6 @@ statistics.print = false
 # which stop operator to use for LiveVariablesCPA
 stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
-
-# which merge operator to use for StringCPA
-string.cpa.merge = "JOIN"
-  allowed values: [SEP, JOIN]
-
-# which stop operator to use for StringCPA
-string.cpa.stop = "SEP"
-  allowed values: [SEP, JOIN]
 
 # compress the produced violation-witness automata using GZIP compression.
 termination.compressWitness = true
