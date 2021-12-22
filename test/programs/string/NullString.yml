@@ -11,4 +11,4 @@ input_files:
   - string_programs/NullString/
 properties:
   - property_file: "../../config/properties/assert.prp"
-    expected_verdict: true
+    expected_verdict: false
