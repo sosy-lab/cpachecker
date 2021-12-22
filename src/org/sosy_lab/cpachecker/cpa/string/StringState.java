@@ -123,7 +123,7 @@ public class StringState implements LatticeAbstractState<StringState> {
 
   public Optional<JStringVariableIdentifier> isVariableInMap(String pVar) {
     for (JStringVariableIdentifier jid : stringsAndAspects.keySet()) {
-      if (jid.getIdentifier().equals(pVar)) {
+      if (jid.getMemLoc().getIdentifier().equals(pVar)) {
         return Optional.of(jid);
       }
     }

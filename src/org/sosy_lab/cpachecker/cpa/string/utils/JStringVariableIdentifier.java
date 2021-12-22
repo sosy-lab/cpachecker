@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.string.utils;
 
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -17,17 +18,11 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 public class JStringVariableIdentifier {
 
   private final Type type;
-
-  private final String varIdentifier;
-
   private final MemoryLocation memLoc;
 
   public JStringVariableIdentifier(Type pType, MemoryLocation pMemLoc) {
-
     memLoc = pMemLoc;
     type = pType;
-    varIdentifier = memLoc.getIdentifier();
-
   }
 
   public MemoryLocation getMemLoc() {
@@ -38,53 +33,29 @@ public class JStringVariableIdentifier {
     return type;
   }
 
-  public String getIdentifier() {
-    return varIdentifier;
-  }
-
   public boolean isString() {
     return StringCpaUtilMethods.isString(type);
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public int hashCode() {
+    return Objects.hash(memLoc);
+  }
 
+  @Override
+  public boolean equals(Object obj) {
     if (this == obj) {
       return true;
     }
-
     if (!(obj instanceof JStringVariableIdentifier)) {
       return false;
     }
-
     JStringVariableIdentifier other = (JStringVariableIdentifier) obj;
-
-    return type.equals(other.type)
-        && varIdentifier.equals(other.varIdentifier)
-        && memLoc.equals(other.memLoc);
-  }
-
-  @Override
-  public int hashCode() {
-    return super.hashCode();
-  }
-
+    return type.equals(other.type) && memLoc.equals(other.memLoc);
+    }
 
   @Override
   public String toString() {
-    return "ID:" + varIdentifier;
-  }
-
-  public static class NotJSVar extends JStringVariableIdentifier {
-
-    private final static NotJSVar instance = new NotJSVar();
-
-    private NotJSVar() {
-      super(null, null);
-    }
-
-    public static NotJSVar getInstance() {
-      return instance;
-    }
+    return "ID:" + memLoc.getIdentifier();
   }
 }
