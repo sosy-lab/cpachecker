@@ -64,36 +64,30 @@ public class SuffixDomain implements AbstractStringDomain<String> {
 
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public Aspect<?> combineAspectsForStringConcat(Aspect<?> p1, Aspect<?> p2) {
-
     if (p1 instanceof UnknownAspect) {
       return p2;
     }
     else if (p2 instanceof UnknownAspect) {
       return p1;
     }
-
     if (p1.getDomainType().equals(TYPE) && p2.getDomainType().equals(TYPE)) {
+      @SuppressWarnings("unchecked") // Safe, because check of TYPE
+      String suffixSecondAspect = (String) p2.getValue();
+      int p2Len = suffixSecondAspect.length();
 
-      int p2Len = ((String) p2.getValue()).length();
-
-      if (suffixLength < p2Len) {
-
-        return p1;
-
+      if (suffixLength <= p2Len) {
+        return p2;
       } else {
-
+        @SuppressWarnings("unchecked") // Safe, because check of TYPE
+        String suffixFirstAspect = (String) p1.getValue();
+        int firstAsLen = suffixFirstAspect.length();
         String res =
-            ((String) p1.getValue()).substring(0, suffixLength - p2Len) + ((String) p2.getValue());
-
+            suffixFirstAspect.substring(suffixLength - p2Len, firstAsLen) + suffixSecondAspect;
         return new Aspect<>(this, res);
-
       }
-
     }
-
     return UnknownAspect.getInstance();
   }
 

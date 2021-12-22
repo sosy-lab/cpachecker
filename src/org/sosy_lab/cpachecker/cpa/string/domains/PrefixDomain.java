@@ -63,29 +63,24 @@ public class PrefixDomain implements AbstractStringDomain<String> {
     return false;
   }
 
-  // Safe, because check via TYPE
-  @SuppressWarnings("unchecked")
   @Override
   public Aspect<?> combineAspectsForStringConcat(Aspect<?> p1, Aspect<?> p2) {
-
     if (p1 instanceof UnknownAspect || p2 instanceof UnknownAspect) {
       return p1;
     }
 
     if (p1.getDomainType().equals(TYPE) && p2.getDomainType().equals(TYPE)) {
-
-      int p1Len = ((String) p1.getValue()).length();
-
-      if (prefixLength < p1Len) {
+      @SuppressWarnings("unchecked")//Safe, because check of TYPE 
+      String firstPrefix = ((String) p1.getValue());
+      int p1Len = firstPrefix.length();
+      if (prefixLength <= p1Len) {
         return p1;
-
       } else {
-
-        String res = p1 + ((String) p2.getValue()).substring(0, prefixLength - p1Len);
-
+        @SuppressWarnings("unchecked")//Safe, because check of TYPE
+        String secondPrefix = ((String) p2.getValue());
+        String res = firstPrefix + secondPrefix.substring(0, prefixLength - p1Len);
         return new Aspect<>(this, res);
       }
-
     }
 
     return UnknownAspect.getInstance();
