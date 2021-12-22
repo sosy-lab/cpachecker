@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.string;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import java.util.HashMap;
 import java.util.Optional;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -70,7 +69,7 @@ public class StringCPA extends AbstractCPA {
   private final StringOptions options;
   private final LogManager logger;
   private final CFA cfa;
-  private final HashMap<MemoryLocation, JReferencedMethodInvocationExpression> temporaryVars;
+  private final ImmutableMap<MemoryLocation, JReferencedMethodInvocationExpression> temporaryVars;
 
   private StringCPA(Configuration pConfig, LogManager pLogger, CFA pCfa)
       throws InvalidConfigurationException {
@@ -78,7 +77,7 @@ public class StringCPA extends AbstractCPA {
     this.config = pConfig;
     this.logger = pLogger;
     this.cfa = pCfa;
-    Pair<HashMap<MemoryLocation, JReferencedMethodInvocationExpression>, ImmutableSet<String>> tempPair =
+    Pair<ImmutableMap<MemoryLocation, JReferencedMethodInvocationExpression>, ImmutableSet<String>> tempPair =
         getAllStringLiterals();
     temporaryVars = tempPair.getFirst();
     options = new StringOptions(pConfig, tempPair.getSecond());
@@ -116,12 +115,13 @@ public class StringCPA extends AbstractCPA {
     return DelegateAbstractDomain.<StringState>getInstance();
   }
 
-  private Pair<HashMap<MemoryLocation, JReferencedMethodInvocationExpression>, ImmutableSet<String>>
+  private
+      Pair<ImmutableMap<MemoryLocation, JReferencedMethodInvocationExpression>, ImmutableSet<String>>
       getAllStringLiterals() {
     ImmutableSet.Builder<String> builder = new ImmutableSet.Builder<>();
     EdgeCollectingCFAVisitor edgeVisitor = new CFATraversal.EdgeCollectingCFAVisitor();
-    HashMap<MemoryLocation, JReferencedMethodInvocationExpression> temporaryVariableMap =
-        new HashMap<>();
+    ImmutableMap.Builder<MemoryLocation, JReferencedMethodInvocationExpression> temporaryVariableMapBuilder =
+        new ImmutableMap.Builder<>();
     CFATraversal.dfs().traverseOnce(cfa.getMainFunction(), edgeVisitor);
     for (CFAEdge edge : edgeVisitor.getVisitedEdges()) {
       Optional<AAstNode> optNode = edge.getRawAST();
@@ -134,12 +134,12 @@ public class StringCPA extends AbstractCPA {
           } else if (jNode instanceof JMethodInvocationAssignmentStatement) {
             addTemporaryVariableToMap(
                 (JMethodInvocationAssignmentStatement) jNode,
-                temporaryVariableMap);
+                temporaryVariableMapBuilder);
           }
         }
       }
     }
-    return Pair.of(temporaryVariableMap, builder.build());
+    return Pair.of(temporaryVariableMapBuilder.build(), builder.build());
   }
 
   /*
@@ -150,7 +150,7 @@ public class StringCPA extends AbstractCPA {
    */
   private void addTemporaryVariableToMap(
       JMethodInvocationAssignmentStatement jmias,
-      HashMap<MemoryLocation, JReferencedMethodInvocationExpression> pTemporaryVariableMap) {
+      ImmutableMap.Builder<MemoryLocation, JReferencedMethodInvocationExpression> pTemporaryVariableMapBuilder) {
     JMethodInvocationExpression jRight = jmias.getRightHandSide();
     JLeftHandSide jLeft = jmias.getLeftHandSide();
     MemoryLocation tempVarName = null;
@@ -170,7 +170,7 @@ public class StringCPA extends AbstractCPA {
     }
     if (jRight instanceof JReferencedMethodInvocationExpression) {
       JReferencedMethodInvocationExpression jrmie = (JReferencedMethodInvocationExpression) jRight;
-      pTemporaryVariableMap.put(tempVarName, jrmie);
+      pTemporaryVariableMapBuilder.put(tempVarName, jrmie);
     }
   }
 }

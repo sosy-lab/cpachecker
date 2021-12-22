@@ -82,11 +82,10 @@ public class AspectSet {
       return UnknownAspect.getInstance();
     }
     for (Aspect<?> a : aspects) {
-      if (a.getDomainType().equals(pDomainType)) {
+      if (!(a instanceof UnknownAspect) && a.getDomainType().equals(pDomainType)) {
         return a;
       }
     }
-
     return UnknownAspect.getInstance();
   }
 
@@ -126,7 +125,7 @@ public class AspectSet {
     if (obj == null) {
       return false;
     }
-    if (getClass() != obj.getClass()) {
+    if (!(obj instanceof AspectSet)) {
       return false;
     }
     AspectSet other = (AspectSet) obj;

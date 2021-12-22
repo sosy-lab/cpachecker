@@ -9,10 +9,10 @@
 package org.sosy_lab.cpachecker.cpa.string;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodOrConstructorInvocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JReferencedMethodInvocationExpression;
@@ -76,7 +77,7 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
   public StringTransferRelation(
       LogManager pLogger,
       StringOptions pOptions,
-      HashMap<MemoryLocation, JReferencedMethodInvocationExpression> pTemporaryVars) {
+      ImmutableMap<MemoryLocation, JReferencedMethodInvocationExpression> pTemporaryVars) {
     logger = pLogger;
     this.options = pOptions;
     tempVariables = pTemporaryVars;
@@ -171,15 +172,12 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
       List<JExpression> pArguments,
       List<? extends AParameterDeclaration> parameters,
       StringState pState) {
-
     for (int i = 0; i < parameters.size(); i++) {
       JExpression exp = pArguments.get(i);
       if (StringCpaUtilMethods.isString(exp.getExpressionType())) {
-
         JParameterDeclaration param = (JParameterDeclaration) parameters.get(i);
         JStringVariableIdentifier jid = jvv.visit(param);
         AspectSet value = exp.accept(jalv);
-
         pState.updateVariable(jid, value);
       }
     }
@@ -207,21 +205,20 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
 
       JMethodInvocationAssignmentStatement assignExp =
           ((JMethodInvocationAssignmentStatement) expSummary);
-      JExpression op1 = assignExp.getLeftHandSide();
+      JLeftHandSide op1 = assignExp.getLeftHandSide();
       AspectSet newValue = null;
       boolean valueExists = returnVar.isPresent() && pState.contains(retJid);
       Optional<JStringVariableIdentifier> jid = Optional.empty();
-
       if (valueExists) {
         newValue = pState.getAspectList(retJid);
         jid = Optional.of(retJid);
       }
-
       else {
-        if (op1 instanceof JLeftHandSide) {
-          jid = Optional.of(jvv.visit((JLeftHandSide) op1));
-          newValue = jalv.visit(assignExp.getFunctionCallExpression());
-        }
+        jid = Optional.of(jvv.visit(op1));
+        JMethodInvocationExpression jmie = assignExp.getFunctionCallExpression();
+        newValue = jalv.visit(jmie);
+        // pState = handleJMethodCallEdge(jmie.getParameterExpressions(),);
+
       }
 
       if (jid.isPresent() && jid.get().isString()) {
