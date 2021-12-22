@@ -24,7 +24,7 @@ public class Main {
         
         Person p2 = new Person(p2FirstName, p2SurName, p2Gender,p2Age);
         String allpersons = p1.toString() + p2.toString();
-        assert allpersons.equals("(Full Name:Iron Man, Age:42, Gender:Male)(Full Name: Pepper Potts, Age: 35, Gender:Female)");
+        assert allpersons.equals("(Full Name:Iron Man, Age:42, Gender:Male)(Full Name:Pepper Potts, Age:35, Gender:Female)");
         
         PhoneBook book = new PhoneBook("Book", allpersons);
         book.addPerson(p2);
