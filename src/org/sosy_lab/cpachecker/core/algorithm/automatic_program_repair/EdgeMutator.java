@@ -12,9 +12,8 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CCfaTransformer;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.util.MutableGraph;
+import org.sosy_lab.cpachecker.cfa.CfaMutableNetwork;
+
 
 /**
  * This class provides functions to alter a given edge by one parameter. The functions return a new
@@ -29,7 +28,7 @@ public abstract class EdgeMutator {
 
   static CFA cloneCFA(CFA cfa, Configuration config, LogManager logger) {
 
-    MutableGraph<CFANode, CFAEdge> mutableGraph = CCfaTransformer.createMutableGraph(cfa);
+    CfaMutableNetwork mutableGraph = CfaMutableNetwork.of(cfa);
 
     return CCfaTransformer.createCfa(
         config, logger, cfa, mutableGraph, (originalCfaEdge, originalAstNode) -> originalAstNode);
