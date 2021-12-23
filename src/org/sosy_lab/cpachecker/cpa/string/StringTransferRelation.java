@@ -218,7 +218,6 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
         JMethodInvocationExpression jmie = assignExp.getFunctionCallExpression();
         newValue = jalv.visit(jmie);
         // pState = handleJMethodCallEdge(jmie.getParameterExpressions(),);
-
       }
 
       if (jid.isPresent() && jid.get().isString()) {

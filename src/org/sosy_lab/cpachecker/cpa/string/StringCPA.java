@@ -127,14 +127,16 @@ public class StringCPA extends AbstractCPA {
       Optional<AAstNode> optNode = edge.getRawAST();
       if (optNode.isPresent()) {
         AAstNode aNode = optNode.get();
-        FluentIterable<JAstNode> iterator = CFAUtils.traverseRecursively((JAstNode) aNode);
-        for (JAstNode jNode : iterator) {
-          if (jNode instanceof JStringLiteralExpression) {
-            builder.add(((JStringLiteralExpression) jNode).getValue());
-          } else if (jNode instanceof JMethodInvocationAssignmentStatement) {
-            addTemporaryVariableToMap(
-                (JMethodInvocationAssignmentStatement) jNode,
-                temporaryVariableMapBuilder);
+        if (aNode instanceof JAstNode) {
+          FluentIterable<JAstNode> iterator = CFAUtils.traverseRecursively((JAstNode) aNode);
+          for (JAstNode jNode : iterator) {
+            if (jNode instanceof JStringLiteralExpression) {
+              builder.add(((JStringLiteralExpression) jNode).getValue());
+            } else if (jNode instanceof JMethodInvocationAssignmentStatement) {
+              addTemporaryVariableToMap(
+                  (JMethodInvocationAssignmentStatement) jNode,
+                  temporaryVariableMapBuilder);
+            }
           }
         }
       }
