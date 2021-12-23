@@ -75,16 +75,16 @@ public class SuffixDomain implements AbstractStringDomain<String> {
     if (p1.getDomainType().equals(TYPE) && p2.getDomainType().equals(TYPE)) {
       @SuppressWarnings("unchecked") // Safe, because check of TYPE
       String suffixSecondAspect = (String) p2.getValue();
-      int p2Len = suffixSecondAspect.length();
+      int aspect2Len = suffixSecondAspect.length();
 
-      if (suffixLength <= p2Len) {
+      if (suffixLength <= aspect2Len) {
         return p2;
       } else {
         @SuppressWarnings("unchecked") // Safe, because check of TYPE
         String suffixFirstAspect = (String) p1.getValue();
-        int firstAsLen = suffixFirstAspect.length();
+        int aspect1Len = suffixFirstAspect.length();
         String res =
-            suffixFirstAspect.substring(suffixLength - p2Len, firstAsLen) + suffixSecondAspect;
+            suffixFirstAspect.substring(aspect1Len - aspect2Len, aspect1Len) + suffixSecondAspect;
         return new Aspect<>(this, res);
       }
     }
