@@ -119,9 +119,9 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
               false,
               CStorageClass.AUTO,
               (CType) var.getType(),
-              var.getName() + "TmpVariableReallyReallyTmp",
-              var.getOrigName() + "TmpVariableReallyReallyTmp",
-              var.getQualifiedName() + "::TmpVariableReallyReallyTmp",
+              var.getName() + "TmpVariableReallyReallyTmp" + nameCounter,
+              var.getOrigName() + "TmpVariableReallyReallyTmp" + nameCounter,
+              var.getQualifiedName() + "::TmpVariableReallyReallyTmp" + nameCounter,
               null);
 
       CFAEdge newVarInitEdge =
@@ -329,6 +329,8 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
 
     Optional<GhostCFA> summarizedLoopMaybe =
         summarizeLoop(iterations, loopBoundExpression, loopStructure, beforeWhile);
+
+    this.nameCounter += 1;
 
     return summarizedLoopMaybe;
 

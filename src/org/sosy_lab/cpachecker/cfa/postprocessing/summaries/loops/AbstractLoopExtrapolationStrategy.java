@@ -43,6 +43,9 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 
 public class AbstractLoopExtrapolationStrategy extends AbstractLoopStrategy {
+
+  protected Integer nameCounter = 0;
+
   protected AbstractLoopExtrapolationStrategy(
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
@@ -276,9 +279,9 @@ public class AbstractLoopExtrapolationStrategy extends AbstractLoopStrategy {
               false,
               ((CVariableDeclaration) var).getCStorageClass(),
               (CType) TypeFactory.getBiggestType(var.getType()),
-              var.getName() + "TmpVariableReallyTmp",
-              var.getOrigName() + "TmpVariableReallyTmp",
-              var.getQualifiedName() + "TmpVariableReallyTmp",
+              var.getName() + "TmpVariableReallyTmp" + this.nameCounter,
+              var.getOrigName() + "TmpVariableReallyTmp" + this.nameCounter,
+              var.getQualifiedName() + "TmpVariableReallyTmp" + this.nameCounter,
               null);
 
       mappingFromOriginalToTmpVariables.put(var, newVariable);
@@ -334,9 +337,11 @@ public class AbstractLoopExtrapolationStrategy extends AbstractLoopStrategy {
             CStorageClass.AUTO,
             new CSimpleType(
                 false, false, CBasicType.INT, false, false, false, false, false, false, true),
-            "iterationsTmpVariableForLoopBoundary",
-            "iterationsTmpVariableForLoopBoundary",
-            pBeforeWhile.getFunctionName() + "::iterationsTmpVariableForLoopBoundary",
+            "iterationsTmpVariableForLoopBoundary" + this.nameCounter,
+            "iterationsTmpVariableForLoopBoundary" + this.nameCounter,
+            pBeforeWhile.getFunctionName()
+                + "::iterationsTmpVariableForLoopBoundary"
+                + this.nameCounter,
             null);
 
     CFAEdge varInitEdge =
