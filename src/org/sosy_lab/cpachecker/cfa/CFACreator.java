@@ -83,7 +83,7 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.global.LabelAdder;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.SummaryInformation;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.SummaryPostProcessor;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.LoopStrategyDependency;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.LoopStrategyMostGeneralOrderingDependency;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyInterface;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
@@ -265,7 +265,8 @@ public class CFACreator {
       secure = true,
       name = "cfa.summaries.dependencies",
       description = "Dependencies between the Different Strategies")
-  private StrategyDependencyInterface strategyDependencies = new LoopStrategyDependency();
+  private StrategyDependencyInterface strategyDependencies =
+      new LoopStrategyMostGeneralOrderingDependency();
 
   @Option(
     secure = true,
