@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.GhostCFA;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyInterface;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -81,26 +81,27 @@ public class NaiveLoopAccelerationStrategy extends AbstractLoopStrategy {
     negatedBoundCFAEdge.connect();
 
     for (AVariableDeclaration pc : pModifiedVariables) {
+      // TODO improve for Java
       CIdExpression leftHandSide = new CIdExpression(FileLocation.DUMMY, (CSimpleDeclaration) pc);
       CFunctionCallExpression rightHandSide =
           new CFunctionCallExpression(
               FileLocation.DUMMY,
-              CNumericTypes.INT,
+              (CType) pc.getType(),
               new CIdExpression(
                   FileLocation.DUMMY,
                   new CFunctionDeclaration(
                       FileLocation.DUMMY,
                       new CFunctionTypeWithNames(
-                          CNumericTypes.INT, new ArrayList<CParameterDeclaration>(), false),
-                      "__VERIFIER_nondet_int",
+                          (CType) pc.getType(), new ArrayList<CParameterDeclaration>(), false),
+                      "__VERIFIER_nondet_" + pc.getType(),
                       new ArrayList<CParameterDeclaration>())),
               new ArrayList<CExpression>(),
               new CFunctionDeclaration(
                   FileLocation.DUMMY,
                   new CFunctionTypeWithNames(
-                      CNumericTypes.INT, new ArrayList<CParameterDeclaration>(), false),
-                  "__VERIFIER_nondet_int",
-                  "__VERIFIER_nondet_int",
+                      (CType) pc.getType(), new ArrayList<CParameterDeclaration>(), false),
+                  "__VERIFIER_nondet_" + pc.getType(),
+                  "__VERIFIER_nondet_" + pc.getType(),
                   new ArrayList<CParameterDeclaration>())); // TODO Improve this
       CFunctionCallAssignmentStatement cStatementEdge =
           new CFunctionCallAssignmentStatement(FileLocation.DUMMY, leftHandSide, rightHandSide);
@@ -135,7 +136,7 @@ public class NaiveLoopAccelerationStrategy extends AbstractLoopStrategy {
     loopBoundCFAEdgeEnd.connect();
 
     CAssumeEdge negatedBoundCFAEdgeEnd =
-        ((CAssumeEdge) loopBoundCFAEdge).negate().copyWith(currentNode, endNodeGhostCFA);
+        ((CAssumeEdge) loopBoundCFAEdgeEnd).negate().copyWith(currentNode, endNodeGhostCFA);
     negatedBoundCFAEdgeEnd.connect();
 
     CFANode leavingSuccessor;

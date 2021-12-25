@@ -128,7 +128,7 @@ public class HavocStrategy extends AbstractLoopStrategy {
     loopBoundCFAEdgeEnd.connect();
 
     CAssumeEdge negatedBoundCFAEdgeEnd =
-        ((CAssumeEdge) loopBoundCFAEdge).negate().copyWith(currentNode, endNodeGhostCFA);
+        ((CAssumeEdge) loopBoundCFAEdgeEnd).negate().copyWith(currentNode, endNodeGhostCFA);
     negatedBoundCFAEdgeEnd.connect();
 
     CFANode leavingSuccessor;

@@ -8,15 +8,39 @@
 
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.GhostCFA;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyInterface;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 public class NondetBoundConstantExtrapolationStrategy extends ConstantExtrapolationStrategy {
+
+  private StrategiesEnum strategyEnum = StrategiesEnum.NonDetBoundConstantExtrapolation;
 
   public NondetBoundConstantExtrapolationStrategy(
       final LogManager pLogger,
@@ -26,143 +50,153 @@ public class NondetBoundConstantExtrapolationStrategy extends ConstantExtrapolat
     super(pLogger, pShutdownNotifier, pStrategyDependencies, pCFA);
   }
 
-  // TODO: When this Strategy is used, loop unrolling starts occuring continously, since first the
-  // predicate refinement is done before the loop summary refinement
-  //
-  // TODO: This strategy will always result in an overflow since the bound is nondet, meaning the
-  // extrapolation is nondet, which will always generate an overflow. Does it still make sense
-  // to include this as a valid Strategy?
-
-  @Override
-  public Optional<GhostCFA> summarize(final CFANode beforeWhile) {
-    return Optional.empty();
-  }
-    /*CFANode startNode = CFANode.newDummyCFANode("Ghost in the shell");
-
+  private Optional<GhostCFA> createSumaryCFA(
+      CFANode beforeWhile, AExpression loopBoundExpression, Loop pLoopStructure) {
     String variableName =
         "tmpVarForLoopBoundWithExtraUniqueIdentifierIfThisVaribeleNameWasAlreadyTakenSomethingIsWrongWithYourCode";
-    CVariableDeclaration pc =
+    CVariableDeclaration iterationsVariableDeclaration =
         new CVariableDeclaration(
             FileLocation.DUMMY,
-            true,
-            CStorageClass.EXTERN,
+            false,
+            CStorageClass.AUTO,
             CNumericTypes.LONG_LONG_INT, // TODO Improve this
             variableName,
             variableName,
-            variableName,
+            beforeWhile.getFunctionName() + "::" + variableName,
             null);
-    CIdExpression leftHandSide = new CIdExpression(FileLocation.DUMMY, pc);
+
+    CIdExpression iterationsVariableExpression =
+        new CIdExpression(FileLocation.DUMMY, iterationsVariableDeclaration);
     CFunctionCallExpression rightHandSide =
         new CFunctionCallExpression(
             FileLocation.DUMMY,
-            CNumericTypes.LONG_LONG_INT,
+            iterationsVariableDeclaration.getType(),
             new CIdExpression(
                 FileLocation.DUMMY,
                 new CFunctionDeclaration(
                     FileLocation.DUMMY,
                     new CFunctionTypeWithNames(
-                        CNumericTypes.LONG_LONG_INT, new ArrayList<CParameterDeclaration>(), false),
-                    "__VERIFIER_nondet_long_long",
+                        iterationsVariableDeclaration.getType(),
+                        new ArrayList<CParameterDeclaration>(),
+                        false),
+                    "__VERIFIER_nondet_" + iterationsVariableDeclaration.getType(),
                     new ArrayList<CParameterDeclaration>())),
             new ArrayList<CExpression>(),
             new CFunctionDeclaration(
                 FileLocation.DUMMY,
                 new CFunctionTypeWithNames(
-                    CNumericTypes.LONG_LONG_INT, new ArrayList<CParameterDeclaration>(), false),
-                "__VERIFIER_nondet_long_long", // TODO See if this is the correct Syntax
-                "__VERIFIER_nondet_long_long",
+                    iterationsVariableDeclaration.getType(),
+                    new ArrayList<CParameterDeclaration>(),
+                    false),
+                "__VERIFIER_nondet_" + iterationsVariableDeclaration.getType(),
+                "__VERIFIER_nondet_" + iterationsVariableDeclaration.getType(),
                 new ArrayList<CParameterDeclaration>())); // TODO Improve this
     CFunctionCallAssignmentStatement cStatementEdge =
-        new CFunctionCallAssignmentStatement(FileLocation.DUMMY, leftHandSide, rightHandSide);
+        new CFunctionCallAssignmentStatement(
+            FileLocation.DUMMY, iterationsVariableExpression, rightHandSide);
 
-    CType calculationType =
-        new CSimpleType(false, false, CBasicType.INT, true, true, false, false, false, false, true);
-    CType expressionType =
-        new CSimpleType(false, false, CBasicType.INT, true, true, false, false, false, false, true);
+    CFANode startNodeGhostCFA = CFANode.newDummyCFANode(beforeWhile.getFunctionName());
+    CFANode endNodeGhostCFA = CFANode.newDummyCFANode(beforeWhile.getFunctionName());
 
-    CExpression loopBound =
-        new CBinaryExpression(
-            FileLocation.DUMMY,
-            expressionType,
-            calculationType,
-            new CIdExpression(FileLocation.DUMMY, pc),
-            CIntegerLiteralExpression.createDummyLiteral(0, CNumericTypes.INT),
-            BinaryOperator.MINUS);
-
-    Optional<GhostCFA> superOptionalGhostCFA = Optional.empty();
-    // super.summaryCFA(loopStartNode, loopVariableDelta, loopBound, 1, -1, loopBranchIndex);
-    super.summarizeLoop(leftHandSide, loopBound, null, startNode);
-
-    GhostCFA superGhostCFA;
-    if (superOptionalGhostCFA.isEmpty()) {
-      return Optional.empty();
-    } else {
-      superGhostCFA = superOptionalGhostCFA.orElseThrow();
-    }
+    CFANode currentNode = CFANode.newDummyCFANode(beforeWhile.getFunctionName());
 
     CFAEdge dummyEdge =
         new CStatementEdge(
-            variableName + " = NONDET",
+            iterationsVariableDeclaration.getName() + " = NONDET",
             cStatementEdge,
             FileLocation.DUMMY,
-            startNode,
-            superGhostCFA.getStartGhostCfaNode());
+            startNodeGhostCFA,
+            currentNode);
+    dummyEdge.connect();
 
-    startNode.addLeavingEdge(dummyEdge);
-    superGhostCFA.getStartGhostCfaNode().addEnteringEdge(dummyEdge);
+    Optional<GhostCFA> summarizedLoopMaybe =
+        super.summarizeLoop(
+            iterationsVariableExpression, loopBoundExpression, pLoopStructure, beforeWhile);
 
-    // TODO Fix this by adding a Check that the negated entry condition is satisfied.
+    if (summarizedLoopMaybe.isEmpty()) {
+      return Optional.empty();
+    }
 
-    CFANode afterLoopNode = loopStartNode.getLeavingEdge(1 - loopBranchIndex).getSuccessor();
+    currentNode.connectTo(summarizedLoopMaybe.get().getStartGhostCfaNode());
+
+    currentNode = CFANode.newDummyCFANode(beforeWhile.getFunctionName());
+
+    summarizedLoopMaybe.get().getStopGhostCfaNode().connectTo(currentNode);
+
+    CFAEdge loopBoundCFAEdgeEnd =
+        new CAssumeEdge(
+            "Loop Bound Assumption",
+            FileLocation.DUMMY,
+            currentNode,
+            CFANode.newDummyCFANode(beforeWhile.getFunctionName()),
+            (CExpression) loopBoundExpression,
+            true);
+    loopBoundCFAEdgeEnd.connect();
+
+    CAssumeEdge negatedBoundCFAEdgeEnd =
+        ((CAssumeEdge) loopBoundCFAEdgeEnd).negate().copyWith(currentNode, endNodeGhostCFA);
+    negatedBoundCFAEdgeEnd.connect();
+
+    CFAEdge leavingEdge;
+    Iterator<CFAEdge> iter = pLoopStructure.getOutgoingEdges().iterator();
+    if (iter.hasNext()) {
+      leavingEdge = iter.next();
+      if (iter.hasNext()) {
+        return Optional.empty();
+      }
+    } else {
+      return Optional.empty();
+    }
 
     return Optional.of(
         new GhostCFA(
-            startNode,
-            superGhostCFA.getStopGhostCfaNode(),
-            loopStartNode,
-            afterLoopNode,
-            StrategiesEnum.NonDetBoundConstantExtrapolation));
+            startNodeGhostCFA,
+            endNodeGhostCFA,
+            beforeWhile,
+            leavingEdge.getSuccessor(),
+            this.strategyEnum));
   }
 
   @Override
-  public Optional<GhostCFA> summarize(final CFANode loopStartNode) {
+  public Optional<GhostCFA> summarize(final CFANode beforeWhile) {
 
-    if (loopStartNode.getNumLeavingEdges() != 1) {
+    List<CFAEdge> filteredOutgoingEdges =
+        this.summaryFilter.getEdgesForStrategies(
+            beforeWhile.getLeavingEdges(),
+            new HashSet<>(Arrays.asList(StrategiesEnum.Base, this.strategyEnum)));
+
+    if (filteredOutgoingEdges.size() != 1) {
       return Optional.empty();
     }
 
-    if (!loopStartNode.getLeavingEdge(0).getDescription().equals("while")) {
+    if (!filteredOutgoingEdges.get(0).getDescription().equals("while")) {
       return Optional.empty();
     }
 
-    CFANode loopStartNodeLocal = loopStartNode.getLeavingEdge(0).getSuccessor();
+    CFANode loopStartNode = filteredOutgoingEdges.get(0).getSuccessor();
 
-    Optional<Integer> loopBranchIndexOptional = getLoopBranchIndex(loopStartNodeLocal);
-    Integer loopBranchIndex;
-
-    if (loopBranchIndexOptional.isEmpty()) {
+    Optional<Loop> loopStructureMaybe = summaryInformation.getLoop(loopStartNode);
+    if (loopStructureMaybe.isEmpty()) {
       return Optional.empty();
-    } else {
-      loopBranchIndex = loopBranchIndexOptional.orElseThrow();
     }
+    Loop loopStructure = loopStructureMaybe.orElseThrow();
 
-    if (!linearArithmeticExpressionsLoop(loopStartNodeLocal, loopBranchIndex)) {
+    if (!loopStructure.hasOnlyConstantVariableModifications()
+        || loopStructure.amountOfInnerAssumeEdges() != 1) {
       return Optional.empty();
     }
 
-    Map<String, Integer> loopVariableDelta = new HashMap<>();
-    // getLoopVariableDeltas(loopStartNodeLocal, loopBranchIndex);
-
-    GhostCFA ghostCFA;
-    Optional<GhostCFA> ghostCFASuccess =
-        this.summaryCFA(loopStartNodeLocal, loopVariableDelta, loopBranchIndex);
-
-    if (ghostCFASuccess.isEmpty()) {
+    Optional<AExpression> loopBoundExpressionMaybe = loopStructure.getBound();
+    if (loopBoundExpressionMaybe.isEmpty()) {
       return Optional.empty();
-    } else {
-      ghostCFA = ghostCFASuccess.orElseThrow();
     }
+    AExpression loopBoundExpression = loopBoundExpressionMaybe.orElseThrow();
 
-    return Optional.of(ghostCFA);
-  }*/
+    return this.createSumaryCFA(beforeWhile, loopBoundExpression, loopStructure);
+  }
+
+  @Override
+  public boolean isPrecise() {
+    return false;
+  }
 }

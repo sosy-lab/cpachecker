@@ -242,14 +242,10 @@ public class CFACreator {
           Arrays.asList(
               StrategiesEnum.LoopConstantExtrapolation,
               // StrategiesEnum.LoopLinearExtrapolation,
-              StrategiesEnum
-                  .NonDetBoundConstantExtrapolation, // See TODO in NondetBound File, may be solved
-              // by assuming the negation of the loop
-              // Condition
+              StrategiesEnum.NonDetBoundConstantExtrapolation,
               StrategiesEnum.LoopAcceleration, // TODO Not yet implemented
               StrategiesEnum.NaiveLoopAcceleration,
               StrategiesEnum.HavocStrategy
-
               // ,StrategiesEnum.LoopUnrolling
               ));
 
