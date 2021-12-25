@@ -40,18 +40,18 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 
-public class NaiveLoopAccelerationStrategy extends AbstractLoopStrategy {
+public class HavocStrategy extends AbstractLoopStrategy {
 
   private StrategiesEnum strategyEnum;
 
-  public NaiveLoopAccelerationStrategy(
+  public HavocStrategy(
       final LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       StrategyDependencyInterface pStrategyDependencies,
       CFA pCFA) {
     super(pLogger, pShutdownNotifier, pStrategyDependencies, pCFA);
 
-    this.strategyEnum = StrategiesEnum.NaiveLoopAcceleration;
+    this.strategyEnum = StrategiesEnum.HavocStrategy;
   }
 
   private Optional<GhostCFA> summarizeLoop(
@@ -116,13 +116,6 @@ public class NaiveLoopAccelerationStrategy extends AbstractLoopStrategy {
     if (unrolledLoopNodesMaybe.isEmpty()) {
       return Optional.empty();
     }
-
-    CFANode startUnrolledLoopNode = unrolledLoopNodesMaybe.orElseThrow().getFirst();
-    CFANode endUnrolledLoopNode = unrolledLoopNodesMaybe.orElseThrow().getSecond();
-
-    currentNode.connectTo(startUnrolledLoopNode);
-    currentNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
-    endUnrolledLoopNode.connectTo(currentNode);
 
     CFAEdge loopBoundCFAEdgeEnd =
         new CAssumeEdge(

@@ -15,6 +15,7 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.execution.ConcolicExecutionStrategy;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.execution.DeterministicExecutionStrategy;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops.ConstantExtrapolationStrategy;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops.HavocStrategy;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops.LinearExtrapolationStrategy;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops.LoopAccelerationStrategy;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops.LoopUnrollingStrategy;
@@ -74,6 +75,8 @@ public class StrategyFactory {
             logger, shutdownNotifier, strategyDependencies, cfa);
       case Base:
         return new BaseStrategy();
+      case HavocStrategy:
+        return new HavocStrategy(logger, shutdownNotifier, strategyDependencies, cfa);
       default:
         return null;
     }

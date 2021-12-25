@@ -246,8 +246,10 @@ public class CFACreator {
                   .NonDetBoundConstantExtrapolation, // See TODO in NondetBound File, may be solved
               // by assuming the negation of the loop
               // Condition
+              StrategiesEnum.LoopAcceleration, // TODO Not yet implemented
               StrategiesEnum.NaiveLoopAcceleration,
-              StrategiesEnum.LoopAcceleration // TODO Not yet implemented
+              StrategiesEnum.HavocStrategy
+
               // ,StrategiesEnum.LoopUnrolling
               ));
 

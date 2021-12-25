@@ -19,4 +19,5 @@ public enum StrategiesEnum {
   ConcolicExecution,
   DeterministicExecution,
   RecursionConstantExtrapolation,
+  HavocStrategy,
 }
