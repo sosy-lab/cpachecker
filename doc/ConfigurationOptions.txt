@@ -865,9 +865,6 @@ cfa.summaries.maxUnrollingsStrategy = 100
 cfa.summaries.strategies = new HashSet<>(
           Arrays.asList(
               StrategiesEnum.LoopConstantExtrapolation,
-              StrategiesEnum.LoopLinearExtrapolation,
-              StrategiesEnum
-                  .NonDetBoundConstantExtrapolation,
 
 # Use a Compilr for the execution of the C Code, if this option is set to
 # false an Interpreter in java is used.

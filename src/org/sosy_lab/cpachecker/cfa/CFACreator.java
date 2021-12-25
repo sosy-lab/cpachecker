@@ -241,7 +241,7 @@ public class CFACreator {
       new HashSet<>(
           Arrays.asList(
               StrategiesEnum.LoopConstantExtrapolation,
-              StrategiesEnum.LoopLinearExtrapolation,
+              // StrategiesEnum.LoopLinearExtrapolation,
               StrategiesEnum
                   .NonDetBoundConstantExtrapolation, // See TODO in NondetBound File, may be solved
               // by assuming the negation of the loop

@@ -336,4 +336,8 @@ public class CFANode implements Comparable<CFANode>, Serializable {
         new BlankEdge("Blank Edge", FileLocation.DUMMY, this, pNode, "Blank Edge");
     dummyOutgoingEdge.connect();
   }
+
+  public List<CFAEdge> getEnteringEdges() {
+    return this.enteringEdges;
+  }
 }

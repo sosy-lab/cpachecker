@@ -16,6 +16,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -90,13 +91,14 @@ public class SummaryStrategyRefiner implements Refiner {
       ARGState refinementState = optionalRefinementState.orElseThrow();
 
       if (optionalStrategy.orElseThrow() != StrategiesEnum.Base) {
-        this.summaryInformation.addUnallowedStrategiesForNode(
-            AbstractStates.extractLocation(refinementState), optionalStrategy.orElseThrow());
+        for (CFAEdge e : AbstractStates.extractLocation(refinementState).getEnteringEdges()) {
+          this.summaryInformation.addUnallowedStrategiesForNode(
+              e.getPredecessor(), optionalStrategy.orElseThrow());
+        }
+
       }
 
-      while (!refinementState.getChildren().isEmpty()) {
-        reached.removeSubtree(refinementState.getChildren().iterator().next());
-      }
+      reached.removeSubtree(refinementState);
 
       return true;
     }
