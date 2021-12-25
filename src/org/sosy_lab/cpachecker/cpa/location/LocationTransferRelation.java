@@ -49,12 +49,13 @@ public class LocationTransferRelation implements TransferRelation {
       } else {
         SummaryInformation summaryInformation = pCFA.getSummaryInformation().orElseThrow();
         List<StrategiesEnum> availableStrategies =
-            CFAUtils.successorsOf(cfaEdge.getPredecessor())
-                .transform(n -> summaryInformation.getStrategyForNode(n))
-                .toList();
-        Set<StrategiesEnum> allowedStrategies =
-            new HashSet<>(summaryInformation.getSummaryStrategy().filter(availableStrategies));
-        allowedStrategies.removeAll(summaryInformation.getUnallowedStrategiesForNode(node));
+            new ArrayList<>(
+                CFAUtils.successorsOf(cfaEdge.getPredecessor())
+                    .transform(n -> summaryInformation.getStrategyForNode(n))
+                    .toSet());
+        availableStrategies.removeAll(summaryInformation.getUnallowedStrategiesForNode(node));
+        List<StrategiesEnum> allowedStrategies =
+            new ArrayList<>(summaryInformation.getSummaryStrategy().filter(availableStrategies));
 
         List<CFANode> successors = new ArrayList<>();
         successors.add(cfaEdge.getSuccessor());

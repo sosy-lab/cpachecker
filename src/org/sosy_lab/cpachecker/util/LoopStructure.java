@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.factories.AExpressionFactory;
 import org.sosy_lab.cpachecker.cfa.ast.visitors.AggregateConstantsVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.visitors.LinearVariableDependencyVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.visitors.VariableCollectorVisitor;
@@ -450,6 +451,7 @@ public final class LoopStructure implements Serializable {
      * This is specially the case for while loops of the form
      * while (EXPR) {}
      * Other cases may be applicable but have not been considered in this iteration.
+     * TODO cases of the form (EXPR1 || EXPR2) are currently not supported
      */
     public Optional<AExpression> getBound() {
       if (this.getLoopHeads().size() != 1) {
@@ -457,6 +459,7 @@ public final class LoopStructure implements Serializable {
       }
 
       CFANode loopHead = this.getLoopHeads().asList().get(0);
+
 
       Set<CFAEdge> leavingEdgesLoopHead = new HashSet<>(loopHead.getLeavingEdges());
       Iterator<CFAEdge> iter =
@@ -467,10 +470,44 @@ public final class LoopStructure implements Serializable {
           return Optional.empty();
         }
 
+        AExpression bound;
         if (!(boundEdge instanceof AssumeEdge)) {
           return Optional.empty();
+        } else {
+          bound = ((AssumeEdge) boundEdge).getExpression();
         }
-        return Optional.of(((AssumeEdge) boundEdge).getExpression());
+
+        boolean continueBuildingBound = true;
+
+        while (continueBuildingBound) {
+          Set<CFAEdge> leavingEdges = new HashSet<>(boundEdge.getSuccessor().getLeavingEdges());
+          Iterator<CFAEdge> innerEdges =
+              Sets.intersection(leavingEdges, this.getInnerLoopEdges()).iterator();
+          if (innerEdges.hasNext()) {
+            boundEdge = innerEdges.next();
+            if (iter.hasNext() && boundEdge instanceof AssumeEdge) {
+              return Optional.empty();
+            } else {
+              if (!(boundEdge instanceof AssumeEdge)) {
+                continueBuildingBound = false;
+              } else {
+                // TODO Generalize for Java Expressions
+                // TODO: Why is the binary AND, the bitwise binary AND, and not the true and?
+
+                bound =
+                    new AExpressionFactory()
+                        .from(((AssumeEdge) boundEdge).getExpression())
+                        .binaryOperation(bound, CBinaryExpression.BinaryOperator.BINARY_AND)
+                        .build();
+                return Optional.empty();
+              }
+            }
+          } else {
+            continueBuildingBound = false;
+          }
+        }
+
+        return Optional.of(bound);
       }
 
       return Optional.empty();
