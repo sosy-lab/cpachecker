@@ -852,7 +852,9 @@ cfa.simplifyPointerExpressions = false
 cfa.summaries = false
 
 # Dependencies between the Different Strategies
-cfa.summaries.dependencies = new LoopStrategyDependency()
+cfa.summaries.dependencies = BASESTRATEGYDEPENDENCY
+  enum:     [NOSTRATEGYDEPENDENCY, BASESTRATEGYDEPENDENCY, LOOPSTRATEGYDEPENDENCY,
+             LOOPSTRATEGYMOSTGENERALORDERINGDEPENDENCY, LOOPSTRATEGYOVERFLOWDEPENDENCY]
 
 # Max amount fo Iterations for adapting the CFA
 cfa.summaries.maxIterations = 10

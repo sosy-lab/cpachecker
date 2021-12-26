@@ -83,7 +83,8 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.global.LabelAdder;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.SummaryInformation;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.SummaryPostProcessor;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.LoopStrategyMostGeneralOrderingDependency;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyEnum;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyFactory;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyInterface;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
@@ -265,8 +266,8 @@ public class CFACreator {
       secure = true,
       name = "cfa.summaries.dependencies",
       description = "Dependencies between the Different Strategies")
-  private StrategyDependencyInterface strategyDependencies =
-      new LoopStrategyMostGeneralOrderingDependency();
+  private StrategyDependencyEnum strategyDependencies =
+      StrategyDependencyEnum.BASESTRATEGYDEPENDENCY;
 
   @Option(
     secure = true,
@@ -643,7 +644,10 @@ public class CFACreator {
 
     // Make summaries, needs Loop Structure
     if (useSummaries) {
-      cfa.setSummaryInformations(new SummaryInformation(cfa, strategyDependencies));
+
+      StrategyDependencyInterface strategyDependency = new StrategyDependencyFactory().createStrategy(strategyDependencies);
+
+      cfa.setSummaryInformations(new SummaryInformation(cfa, strategyDependency));
       SummaryPostProcessor summaryPostProcessor =
           new SummaryPostProcessor(
               logger,
@@ -653,7 +657,7 @@ public class CFACreator {
               useCompilerForSummary,
               maxUnrollingsStrategy,
               maxIterationsSummaries,
-              strategyDependencies);
+              strategyDependency);
       cfa = summaryPostProcessor.process(cfa);
     }
 
