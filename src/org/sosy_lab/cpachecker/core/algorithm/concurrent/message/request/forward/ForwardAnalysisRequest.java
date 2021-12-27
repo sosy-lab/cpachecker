@@ -68,7 +68,7 @@ public class ForwardAnalysisRequest extends CPACreatingRequest implements TaskRe
       + "for the new summary gets aborted. These checks involve satisfiability queries and "
       + "get performed for each new forward analysis task. This option provides the user with "
       + "the ability to declare whether the overhead of these checks is worth the advantage "
-      + "of aborting analysis tasks early.")
+      + "of aborting analysis tasks early.", secure = true)
   private boolean performRedundancyChecks = true;
 
   public ForwardAnalysisRequest(
