@@ -50,7 +50,7 @@ public class PartitioningCPA extends AbstractCPA {
       if (partition == null) {
         return "PARTITION [NULL]";
       } else {
-        return "PARTITION " + partition.toString();
+        return "PARTITION " + partition;
       }
     }
 

@@ -191,7 +191,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
     if (!allowLazyRefinement) {
       restartFromScratchAfterRefinement(pReachedSet);
     } else {
-      if (pReachedSet.hasViolatedProperties()) {
+      if (pReachedSet.wasTargetReached()) {
         throw new RefinementFailedException(Reason.InterpolationFailed, null);
       }
     }
@@ -330,7 +330,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
         createFakeEdge(CIntegerLiteralExpression.ONE, predNode);
       }
 
-      assert (ARGUtils.checkARG(pReachedSet));
+      assert ARGUtils.checkARG(pReachedSet);
 
       // return true such that CEGAR works fine
       return AlgorithmStatus.SOUND_AND_PRECISE;
@@ -371,9 +371,9 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
 
         CompositeState newComp = new CompositeState(wrappedStates.build());
 
-        assert (pPredecessor.getChildren().isEmpty());
+        assert pPredecessor.getChildren().isEmpty();
         assert (pPredecessor.getParents().size() == 1);
-        assert (pPredecessor.getCoveredByThis().isEmpty());
+        assert pPredecessor.getCoveredByThis().isEmpty();
 
         ARGState newPred = new ARGState(newComp, pPredecessor.getParents().iterator().next());
         pPredecessor.removeFromARG();

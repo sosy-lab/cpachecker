@@ -95,8 +95,8 @@ public class CustomInstruction {
 
   private final CFANode ciStartNode;
   private final Set<CFANode> ciEndNodes;
-  private final List<String> inputVariables;
-  private final List<String> outputVariables;
+  private final ImmutableList<String> inputVariables;
+  private final ImmutableList<String> outputVariables;
   private final ShutdownNotifier shutdownNotifier;
 
   /**
@@ -112,8 +112,8 @@ public class CustomInstruction {
   public CustomInstruction(
       final CFANode pCIStartNode,
       final Set<CFANode> pCIEndNodes,
-      final List<String> pInputVariables,
-      final List<String> pOutputVariables,
+      final ImmutableList<String> pInputVariables,
+      final ImmutableList<String> pOutputVariables,
       final ShutdownNotifier pShutdownNotifier) {
 
       ciStartNode = pCIStartNode;
@@ -133,13 +133,14 @@ public class CustomInstruction {
 
     sb.append("(");
     if (!inputVariables.isEmpty()) {
-      Joiner.on(", ").appendTo(sb, Iterables.transform(inputVariables, CIUtils.GET_SMTNAME));
+      Joiner.on(", ").appendTo(sb, Iterables.transform(inputVariables, CIUtils::getSMTName));
     }
 
     sb.append(") -> (");
 
     if (!outputVariables.isEmpty()) {
-      Joiner.on(", ").appendTo(sb, Iterables.transform(outputVariables, CIUtils.GET_SMTNAME_WITH_INDEX));
+      Joiner.on(", ")
+          .appendTo(sb, Iterables.transform(outputVariables, CIUtils::getSMTNameWithIndex));
     }
     sb.append(")");
 
@@ -335,7 +336,7 @@ public class CustomInstruction {
 
     String aciVar;
     for (String ciVar : pVariables) {
-      assert (pMapping.containsKey(ciVar));
+      assert pMapping.containsKey(ciVar);
       aciVar = pMapping.get(ciVar);
       try {
         Integer.parseInt(aciVar);
@@ -641,7 +642,11 @@ public class CustomInstruction {
           throws AppliedCustomInstructionParsingFailedException {
 
     if (ciEdge.getExpression().isPresent() && aciEdge.getExpression().isPresent()){
-      ciEdge.getExpression().get().accept(new StructureComparisonVisitor(aciEdge.getExpression().get(), ciVarToAciVar));
+      ciEdge
+          .getExpression()
+          .orElseThrow()
+          .accept(
+              new StructureComparisonVisitor(aciEdge.getExpression().orElseThrow(), ciVarToAciVar));
 
     } else if ((!ciEdge.getExpression().isPresent() && aciEdge.getExpression().isPresent())
           ||(ciEdge.getExpression().isPresent() && !aciEdge.getExpression().isPresent()) ){

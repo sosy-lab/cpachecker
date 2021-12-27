@@ -532,8 +532,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
           //TODO someone has to check if length must be fixed to string size here if yes replace with stringExp.tranformTypeToArrayType
           lhsArrayType = new CArrayType(false, false, ((CPointerType) lhsType).getType(), null);
         } else {
-          throw new UnrecognizedCodeException(
-              "Assigning string literal to " + lhsType.toString(), assignment);
+          throw new UnrecognizedCodeException("Assigning string literal to " + lhsType, assignment);
         }
 
         List<CCharLiteralExpression> chars = ((CStringLiteralExpression) rhs).expandStringLiteral(lhsArrayType);
@@ -714,7 +713,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    */
   @Override
   protected BooleanFormula makeReturn(
-      final com.google.common.base.Optional<CAssignment> assignment,
+      final Optional<CAssignment> assignment,
       final CReturnStatementEdge returnEdge,
       final String function,
       final SSAMapBuilder ssa,
@@ -726,7 +725,9 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
     if (assignment.isPresent()) {
       final CVariableDeclaration returnVariableDeclaraton =
-          ((CFunctionEntryNode) returnEdge.getSuccessor().getEntryNode()).getReturnVariable().get();
+          ((CFunctionEntryNode) returnEdge.getSuccessor().getEntryNode())
+              .getReturnVariable()
+              .orElseThrow();
 
       declareSharedBase(
           returnVariableDeclaraton,

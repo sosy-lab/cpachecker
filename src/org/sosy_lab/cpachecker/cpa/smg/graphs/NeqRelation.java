@@ -69,7 +69,7 @@ final class NeqRelation {
 
   @Override
   public String toString() {
-    return "neq_rel=" + smgValues.toString();
+    return "neq_rel=" + smgValues;
   }
 
   @Override

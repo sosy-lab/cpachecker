@@ -121,7 +121,7 @@ public class ExpressionTreeLocationInvariant extends SingleLocationFormulaInvari
 
   @Override
   public String toString() {
-    return groupId + " at " + location + ": " + expressionTree.toString();
+    return groupId + " at " + location + ": " + expressionTree;
   }
 
   public static class ManagerKey {

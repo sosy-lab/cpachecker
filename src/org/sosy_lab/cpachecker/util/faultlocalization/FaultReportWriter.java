@@ -171,8 +171,7 @@ public class FaultReportWriter {
       String htmlId,
       List<? extends FaultInfo> infos,
       boolean useOrderedList){
-    List<? extends FaultInfo> copy = new ArrayList<>(infos);
-    Collections.sort(copy);
+    List<? extends FaultInfo> copy = ImmutableList.sortedCopyOf(infos);
     String listType = useOrderedList? "ol":"ul";
     String id = "";
     if(!htmlId.isEmpty()){
@@ -186,7 +185,7 @@ public class FaultReportWriter {
     return out.toString();
   }
 
-  private Map<Integer, String> getDistinctStatements(List<CFAEdge> pEdges) {
+  protected Map<Integer, String> getDistinctStatements(List<CFAEdge> pEdges) {
     Map<Integer, String> statements = new HashMap<>();
     for (CFAEdge e : pEdges) {
       int codeLineNumber = e.getFileLocation().getStartingLineInOrigin();

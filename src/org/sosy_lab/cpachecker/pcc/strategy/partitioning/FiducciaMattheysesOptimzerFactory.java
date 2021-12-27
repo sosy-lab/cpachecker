@@ -13,7 +13,8 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.FiducciaMattheysesOptimizer;
 public class FiducciaMattheysesOptimzerFactory {
 
   private FiducciaMattheysesOptimzerFactory(){}
-  public static enum OptimizationCriteria {
+
+  public enum OptimizationCriteria {
     EDGECUT,
     NODECUT
   }

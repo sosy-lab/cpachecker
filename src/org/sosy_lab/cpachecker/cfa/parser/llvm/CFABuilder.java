@@ -12,13 +12,12 @@ import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.isIntegerType;
 import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.isSignedIntegerType;
 import static org.sosy_lab.llvm_j.Value.OpCode.AShr;
 
-import com.google.common.base.Optional;
+import com.google.common.base.CharMatcher;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.TreeMultimap;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -26,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
+import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.TreeMap;
 import java.util.logging.Level;
@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -75,7 +76,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -160,7 +160,7 @@ public class CFABuilder {
 
   public ParseResult build(final Module pModule, final String pFilename) throws LLVMException {
     visit(pModule, pFilename);
-    List<Path> input_file = ImmutableList.of(Paths.get(pFilename));
+    List<Path> input_file = ImmutableList.of(Path.of(pFilename));
 
     return new ParseResult(functions, cfaNodes, globalDeclarations, input_file);
   }
@@ -257,7 +257,7 @@ public class CFABuilder {
       // create the basic blocks and instructions of the function.
       // A basic block is mapped to a pair <entry node, exit node>
       NavigableMap<Integer, BasicBlockInfo> basicBlocks = new TreeMap<>();
-      CLabelNode entryBB = iterateOverBasicBlocks(currFunc, en, basicBlocks, pFileName);
+      CFALabelNode entryBB = iterateOverBasicBlocks(currFunc, en, basicBlocks, pFileName);
 
       // add the edge from the entry of the function to the first
       // basic block
@@ -309,9 +309,9 @@ public class CFABuilder {
    *
    * <p>Add a label created for every basic block to a mapping passed as an argument.
    *
-   * @return the entry basic block (as a CLabelNode).
+   * @return the entry basic block (as a {@link CFALabelNode}).
    */
-  private CLabelNode iterateOverBasicBlocks(
+  private CFALabelNode iterateOverBasicBlocks(
       final Function pFunction,
       final FunctionEntryNode pEntryNode,
       final NavigableMap<Integer, BasicBlockInfo> pBasicBlocks,
@@ -321,10 +321,10 @@ public class CFABuilder {
       return null;
     }
 
-    CLabelNode entryBB = null;
+    CFALabelNode entryBB = null;
     for (BasicBlock block : pFunction) {
       // process this basic block
-      CLabelNode label = new CLabelNode(pEntryNode.getFunction(), getBBName(block));
+      CFALabelNode label = new CFALabelNode(pEntryNode.getFunction(), getBBName(block));
       addNode(pEntryNode.getFunctionName(), label);
       if (entryBB == null) {
         entryBB = label;
@@ -372,7 +372,7 @@ public class CFABuilder {
         continue;
       } else if (succNum == 1) {
         BasicBlock succ = terminatorInst.getSuccessor(0);
-        CLabelNode label = (CLabelNode) pBasicBlocks.get(succ.hashCode()).getEntryNode();
+        CFALabelNode label = (CFALabelNode) pBasicBlocks.get(succ.hashCode()).getEntryNode();
 
         addEdge(new BlankEdge("(goto)", FileLocation.DUMMY, brNode, label, "(goto)"));
         continue;
@@ -381,7 +381,7 @@ public class CFABuilder {
         CExpression conditionForElse = getBranchConditionForElse(terminatorInst, pFileName);
 
         BasicBlock succ = terminatorInst.getSuccessor(0);
-        CLabelNode label = (CLabelNode) pBasicBlocks.get(succ.hashCode()).getEntryNode();
+        CFALabelNode label = (CFALabelNode) pBasicBlocks.get(succ.hashCode()).getEntryNode();
         addEdge(
             new CAssumeEdge(
                 conditionForElse.toASTString(),
@@ -392,7 +392,7 @@ public class CFABuilder {
                 false));
 
         succ = terminatorInst.getSuccessor(1);
-        label = (CLabelNode) pBasicBlocks.get(succ.hashCode()).getEntryNode();
+        label = (CFALabelNode) pBasicBlocks.get(succ.hashCode()).getEntryNode();
         addEdge(
             new CAssumeEdge(
                 conditionForElse.toASTString(),
@@ -409,13 +409,13 @@ public class CFABuilder {
         CType compType = typeConverter.getCType(compValue.typeOf());
         CExpression comparisonLhs = getAssignedIdExpression(compValue, compType, pFileName);
         BasicBlock defaultBlock = terminatorInst.getSuccessor(0);
-        CLabelNode defaultLabel =
-            (CLabelNode) pBasicBlocks.get(defaultBlock.hashCode()).getEntryNode();
+        CFALabelNode defaultLabel =
+            (CFALabelNode) pBasicBlocks.get(defaultBlock.hashCode()).getEntryNode();
 
         CFANode currNode = brNode;
         for (int i = 1; i < succNum; i++) {
-          CLabelNode label =
-              (CLabelNode)
+          CFALabelNode label =
+              (CFALabelNode)
                   pBasicBlocks.get(terminatorInst.getSuccessor(i).hashCode()).getEntryNode();
           Value caseValue = terminatorInst.getOperand(2 * i);
           CExpression comparisonRhs = (CExpression) getConstant(caseValue, pFileName);
@@ -607,7 +607,7 @@ public class CFABuilder {
             curNode = newNode(pFunction);
             addEdge(
                 new CStatementEdge(
-                    expr.toASTString() + i.toString(),
+                    expr.toASTString() + i,
                     (CStatement) expr,
                     exprLocation,
                     prevNode,
@@ -915,8 +915,8 @@ public class CFABuilder {
     Optional<CExpression> maybeExpression;
     Optional<CAssignment> maybeAssignment;
     if (returnVal == null) {
-      maybeExpression = Optional.absent();
-      maybeAssignment = Optional.absent();
+      maybeExpression = Optional.empty();
+      maybeAssignment = Optional.empty();
 
     } else {
       CType expectedType = typeConverter.getCType(returnVal.typeOf());
@@ -1232,10 +1232,8 @@ public class CFABuilder {
       CType constantType = typeConverter.getCType(pItem.typeOf());
       /* get the name of the type and sanitize it
        * to form a correct C identifier */
-      String typeName = constantType.toString().replace(' ', '_');
-      typeName = typeName.replace('(', '_');
-      typeName = typeName.replace(')', '_');
-      typeName = typeName.replace(':', '_');
+      String typeName = constantType.toString();
+      typeName = CharMatcher.anyOf(" ():").replaceFrom(typeName, "_");
       typeName = typeName.replace("*", "_ptr_");
 
       String undefName = "__VERIFIER_undef_" + typeName;
@@ -1659,7 +1657,7 @@ public class CFABuilder {
     Optional<CVariableDeclaration> returnVar;
     CType returnType = cFuncType.getReturnType();
     if (returnType.equals(CVoidType.VOID)) {
-      returnVar = Optional.absent();
+      returnVar = Optional.empty();
 
     } else {
       FileLocation returnVarLocation = getLocation(pFuncDef, pFileName);
@@ -1930,6 +1928,6 @@ public class CFABuilder {
 
   private FileLocation getLocation(final Value pItem, final String pFileName) {
     assert pItem != null;
-    return new FileLocation(pFileName, 0, 1, 0, 0);
+    return new FileLocation(Path.of(pFileName), 0, 1, 0, 0);
   }
 }

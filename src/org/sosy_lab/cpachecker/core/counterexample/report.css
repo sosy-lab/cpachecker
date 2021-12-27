@@ -13,810 +13,838 @@
 with considerably less effort */
 
 html {
-	position: relative;
-	height: 100%;
-	overflow: hidden;
+  position: relative;
+  height: 100%;
+  overflow: hidden;
 }
 
 body {
-	padding-top: 50px;
-	height: 100%;
-	min-height: 300px;
-	min-width: 750px;
-	background-color: white;
+  padding-top: 50px;
+  height: 100%;
+  min-height: 300px;
+  min-width: 750px;
+  background-color: white;
 }
 
 .sections section {
-	position: absolute;
+  position: absolute;
 }
 
 .sections {
-	width: 100%;
-	overflow: auto;
-	padding: 0;
-	height: 100%;
+  width: 100%;
+  overflow: auto;
+  padding: 0;
+  height: 100%;
 }
 
 .ui-resizable-e {
-	cursor: e-resize;
-	display: block !important;
-	width: 20px;
-	right: -10px;
-	top: 0;
-	bottom: 0;
-	background: lightgrey;
+  cursor: e-resize;
+  display: block !important;
+  width: 20px;
+  right: -10px;
+  top: 0;
+  bottom: 0;
+  background: lightgrey;
 }
 
 .header {
-	position: absolute;
-	top: 0;
-	width: 100%;
-	min-width: 750px;
-	height: 50px;
-	background-color: #ffef96;
-	border-bottom: solid 4px;
-	border-bottom-color: lightgrey;
-	padding: 7px;
-	padding-top: 5px;
-	text-align: center;
-	justify-content: center;
+  position: absolute;
+  top: 0;
+  width: 100%;
+  min-width: 750px;
+  height: 50px;
+  background-color: #ffef96;
+  border-bottom: solid 4px;
+  border-bottom-color: lightgrey;
+  padding: 7px;
+  padding-top: 5px;
+  text-align: center;
+  justify-content: center;
 }
 
-.nav>li>a:hover {
-	background-color: #c0c0c0;
+.nav > li > a:hover {
+  background-color: #c0c0c0;
 }
 
 .btn {
-	cursor: pointer;
+  cursor: pointer;
 }
 
 .disabled-btn {
-        color: #c0c0c0;
-        border-color: #ffffff !important;
+  color: #c0c0c0;
+  border-color: #ffffff !important;
 }
 
 .disabled-btn:hover {
-        background-color: #ffffff !important;
-        color: #c0c0c0 !important;
+  background-color: #ffffff !important;
+  color: #c0c0c0 !important;
 }
 
 .header img.logo {
-	float: left;
-	height: 40px;
-	margin-left: 10px;
+  float: left;
+  height: 40px;
+  margin-left: 10px;
 }
 
 .header h1 {
-	display: inline;
-	font-size: 21px;
-	color: #50394c;
+  display: inline;
+  font-size: 21px;
+  color: #50394c;
 }
 
 .header .generated {
-	float: right;
-	margin-left: 2em;
-	font-size: 80%;
+  float: right;
+  margin-left: 2em;
+  font-size: 80%;
 }
 
 .popover {
-	min-width: 500px;
-	max-height: 500px;
-	white-space: pre-line !important;
-	overflow: auto;
-	background-color: #f5fff8;
-	border: solid 2px;
-	border-color: #00d415;
-	font-family: monospace
+  min-width: 500px;
+  max-height: 500px;
+  white-space: pre-line !important;
+  overflow: auto;
+  background-color: #f5fff8;
+  border: solid 2px;
+  border-color: #00d415;
+  font-family: monospace;
 }
 
 .dropdown-menu a:hover {
-	background-color: #71afff !important;
+  background-color: #71afff !important;
 }
 
 .dropdown-menu a {
-	cursor: pointer;
+  cursor: pointer;
 }
 
 /* The switch - the box around the slider */
 
 .switch {
-	position: relative;
-	display: inline-block;
-	width: 60px;
-	height: 34px;
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
 }
 
 /* Hide default HTML checkbox */
 
 .switch input {
-	padding: 10px;
-	display: none;
+  padding: 10px;
+  display: none;
 }
 
 /* The slider */
 
 .slider {
-	position: absolute;
-	cursor: pointer;
-	top: 0;
-	left: 0;
-	right: 0;
-	bottom: 0;
-	background-color: grey;
-	-webkit-transition: .4s;
-	transition: .4s;
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: grey;
+  -webkit-transition: 0.4s;
+  transition: 0.4s;
 }
 
 .slider:before {
-	position: absolute;
-	content: "";
-	height: 26px;
-	width: 26px;
-	left: 4px;
-	bottom: 4px;
-	background-color: white;
-	-webkit-transition: .4s;
-	transition: .4s;
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  -webkit-transition: 0.4s;
+  transition: 0.4s;
 }
 
-input:checked+.slider {
-	background-color: #ffc107;
+input:checked + .slider {
+  background-color: #ffc107;
 }
 
-input:focus+.slider {
-	box-shadow: 0 0 1px #ffc107;
+input:focus + .slider {
+  box-shadow: 0 0 1px #ffc107;
 }
 
-input:checked+.slider:before {
-	-webkit-transform: translateX(26px);
-	-ms-transform: translateX(26px);
-	transform: translateX(26px);
+input:checked + .slider:before {
+  -webkit-transform: translateX(26px);
+  -ms-transform: translateX(26px);
+  transform: translateX(26px);
 }
 
 /* Rounded sliders */
 
 .slider.round {
-	border-radius: 34px;
+  border-radius: 34px;
 }
 
 .slider.round:before {
-	border-radius: 50%;
+  border-radius: 50%;
 }
 
 #errorpath_section {
-	width: 25%;
-	float: left;
-	min-width: 0px;
-	height: inherit;
-	max-width: 60%;
-	background-color: white;
-	padding: 5px;
+  width: 25%;
+  float: left;
+  min-width: 0px;
+  height: inherit;
+  max-width: 60%;
+  background-color: white;
+  padding: 5px;
 }
 
 #errorpath_section header .input-group {
-	margin-top: 5px;
-	margin-bottom: 5px;
+  margin-top: 5px;
+  margin-bottom: 5px;
 }
 
 /* -185px for buttons and controllers
    -2px for the border of the change view button
    -2.25rem for the font size and the radius of the change view button */
 #errorpath_section .fileContent {
-	height: calc(100% - 187px - 2.25rem);
-	margin: 5px;
-	overflow: auto;
+  height: calc(100% - 187px - 2.25rem);
+  margin: 5px;
+  overflow: auto;
 }
 
 #searchOptions label {
-	font-weight: normal;
+  font-weight: normal;
 }
 
 #matches {
-	display: none;
+  display: none;
 }
 
 .markedValues {
-	background-color: #83d480;
-	border-radius: 25px;
-	margin-bottom: 2px;
-	padding: 2px;
-	padding-left: 8px;
-	max-width: 270px;
+  background-color: #83d480;
+  border-radius: 25px;
+  margin-bottom: 2px;
+  padding: 2px;
+  padding-left: 8px;
+  max-width: 270px;
 }
 
 .markedDescriptions {
-	background-color: #71afff;
-	border-radius: 20px;
-	padding: 2px;
-	padding-left: 8px;
-	margin-bottom: 2px;
-	max-width: 270px;
+  background-color: #71afff;
+  border-radius: 20px;
+  padding: 2px;
+  padding-left: 8px;
+  margin-bottom: 2px;
+  max-width: 270px;
 }
 
 .markedTableElement {
-	border: solid 2px;
-	border-color: #00d415;
+  border: solid 2px;
+  border-color: #00d415;
 }
 
 .markedValueElement pre {
-	background-color: #83d480 !important;
+  background-color: #83d480 !important;
 }
 
 .markedDescElement pre {
-	background-color: #71afff !important;
+  background-color: #71afff !important;
 }
 
 .markedValueDescElement pre {
-	background: linear-gradient(#83d480, #71afff) !important;
+  background: linear-gradient(#83d480, #71afff) !important;
 }
 
-#err-table td {
-	cursor: pointer;
+/*
+ if a table column in the error-path display has data-content or is clickable,
+ show this with a pointy cursor.
+*/
+#err-table td[data-content],
+#err-table td[ng-click] {
+  cursor: pointer;
 }
 
 #err-table td.disabled {
-	cursor: not-allowed;
-	pointer-events: none;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 #err-table td:hover {
-	font-weight: bold;
+  font-weight: bold;
 }
 
 #err-table td:first-child {
-	border-radius: 6px;
+  border-radius: 6px;
 }
 
 #err-table td pre {
-	padding: 0px;
-	margin: 0px;
-	border: none;
+  padding: 0px;
+  margin: 0px;
+  border: none;
 }
 
 #err-table tr td pre.make-pretty {
-	background-color: #ffe5d5;
+  background-color: #ffe5d5;
 }
 
 #err-table tr.clickedErrPathElement {
-	outline: #df80ff solid 2px;
+  outline: #df80ff solid 2px;
 }
 
 .rank {
-	text-align: center;
+  text-align: center;
 }
 
 .fault-table {
-	width: 100%;
-	border-collapse: collapse;
+  width: 100%;
+  border-collapse: collapse;
 }
 
 .fault-table td {
-	cursor: pointer;
-	padding: 7px;
-	border: #000000 2px solid;
+  cursor: pointer;
+  padding: 7px;
+  border: #000000 2px solid;
 }
 
 .fault-table .fault-rank {
-	background-color: #28a745;
-	text-align: center;
-	font-weight: 700;
-	width: 10%;
+  background-color: #28a745;
+  text-align: center;
+  font-weight: 700;
+  width: 10%;
 }
 
 .fault-table .fault-score {
-	background-color: #ffc107;
-	text-align: center;
-	width: 10%;
+  background-color: #ffc107;
+  text-align: center;
+  width: 10%;
 }
 
 .fault-table .fault-details-header {
-	background-color: #ff3907aa;
-	font-weight: 700;
+  background-color: #ff3907aa;
+  font-weight: 700;
 }
 
 .fault-table .fault-precond-header {
-	background-color: #28a745;
-	font-weight: 700;
+  background-color: #28a745;
+  font-weight: 700;
 }
 
 .fault-table .fault-lines {
-	max-height: 8em;
-	overflow: auto;
-	border: 1px solid gray;
-	border-radius: 3px;
+  max-height: 8em;
+  overflow: auto;
+  border: 1px solid gray;
+  border-radius: 3px;
 }
 
 .fault-lines {
-	padding: 3px;
-	list-style: none;
+  padding: 3px;
+  list-style: none;
 }
 
 .interval-scrollbox {
-	width: 100%;
-    height: 4rem;
-    font-size: 100%;
-    overflow: auto;
+  width: 100%;
+  height: 4rem;
+  font-size: 100%;
+  overflow: auto;
 }
 
 .precondition {
-	border: 1px solid gray;
-	border-radius: 3px;
-	padding: 3px;
+  border: 1px solid gray;
+  border-radius: 3px;
+  padding: 3px;
 }
 
 .value-table {
-	border-collapse: collapse;
-	width: 100%;
-}
-  
-.value-table th, .value-table td {
-	text-align: left;
-	padding: 8px;
+  border-collapse: collapse;
+  width: 100%;
 }
 
-.value-table tr:nth-child(even){background-color: #f2f2f2}
-  
+.value-table th,
+.value-table td {
+  text-align: left;
+  padding: 8px;
+}
+
+.value-table tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
+
 .value-table th {
-	border: 2px solid black;
-	background-color: #4CAF50;
-	color: white;
+  border: 2px solid black;
+  background-color: #4caf50;
+  color: white;
 }
 
 ul.fault-lines li {
-	display: grid;
-	grid-template-columns: minmax(2em, min-content) auto;
-	grid-column-gap: 5px;
+  display: grid;
+  grid-template-columns: minmax(2em, min-content) auto;
+  grid-column-gap: 5px;
 }
 
 .fault-lines .line-number {
-	text-align: right;
+  text-align: right;
 }
 
 .fault-lines .line-number::after {
-	content: ':';
+  content: ":";
 }
 
 .horizontal-div {
-    display: inline;
-    margin-left: auto;
-	margin-right: auto 
+  display: inline;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 #hint-list {
-	list-style-type: none;
-	counter-reset: elementcounter;
-  }
-  
-#hint-list>li::before {
-	position: relative;
-	content: "Hint " counter(elementcounter) ": ";
-	counter-increment: elementcounter;
-	font-weight: 700;
+  list-style-type: none;
+  counter-reset: elementcounter;
+}
+
+#hint-list > li::before {
+  position: relative;
+  content: "Hint " counter(elementcounter) ": ";
+  counter-increment: elementcounter;
+  font-weight: 700;
 }
 
 #fix-list {
-	list-style-type: none;
-	counter-reset: elementcounter;
-  }
+  list-style-type: none;
+  counter-reset: elementcounter;
+}
 
-#fix-list>li::before {
-	position: relative;
-	content: "Potential Fix " counter(elementcounter) ": ";
-	counter-increment: elementcounter;
-	font-weight: 700;
+#fix-list > li::before {
+  position: relative;
+  content: "Potential Fix " counter(elementcounter) ": ";
+  counter-increment: elementcounter;
+  font-weight: 700;
 }
 
 .important {
-        background-color: #ffc107;
-        outline: #ffc107 solid 2px;
+  background-color: #ffc107;
+  outline: #ffc107 solid 2px;
 }
 
 .highlight-line {
-	font-weight: 700;
-	outline: #57301d solid 3px;
+  font-weight: 700;
+  outline: #57301d solid 3px;
 }
 
 .highlight-selected-line {
-	font-weight: 700;
-	outline: #ff0000 solid 3px;
+  font-weight: 700;
+  outline: #ff0000 solid 3px;
 }
 
 .fault {
-        background-color: #ff3333;
-        outline: #aa3333 solid 2px;
-		font-weight: 900;
+  background-color: #ff3333;
+  outline: #aa3333 solid 2px;
+  font-weight: 900;
 }
 
-.tableheader{
-	font-weight: 700;
-	background-color: #bbbbbb;
-	text-align: center;
+.tableheader {
+  font-weight: 700;
+  background-color: #bbbbbb;
+  text-align: center;
 }
 
 .marked-source-line {
-	background-color: #df80ff !important;
+  background-color: #df80ff !important;
 }
 
 .marked-cfa-edge path {
-	stroke: #8B008B !important;
-	stroke-width: 3px !important;
+  stroke: #8b008b !important;
+  stroke-width: 3px !important;
 }
 
 .marked-arg-edge path {
-	stroke: #8B008B !important;
-	stroke-width: 3px !important;
+  stroke: #8b008b !important;
+  stroke-width: 3px !important;
 }
 
-.marked-cfa-node>rect {
-	outline: #8B008B solid thick !important;
-	rx: 5;
-	ry: 5
+.marked-cfa-node > rect {
+  outline: #8b008b solid thick !important;
+  rx: 5;
+  ry: 5;
 }
 
-.marked-cfa-node>polygon {
-	stroke: #8B008B !important;
-	stroke-width: 5px !important;
+.marked-cfa-node > polygon {
+  stroke: #8b008b !important;
+  stroke-width: 5px !important;
 }
 
-.marked-cfa-node>circle {
-	stroke: #8B008B !important;
-	stroke-width: 5px !important;
+.marked-cfa-node > circle {
+  stroke: #8b008b !important;
+  stroke-width: 5px !important;
 }
 
 .marked-cfa-node-label {
-	fill: #ff00ff !important;
+  fill: #ff00ff !important;
 }
 
-.marked-arg-node>rect {
-	outline: #8B008B solid thick !important;
-	rx: 5;
-	ry: 5
+.marked-arg-node > rect {
+  outline: #8b008b solid thick !important;
+  rx: 5;
+  ry: 5;
 }
 
 #externalFiles_section {
-	float: right;
-	position: absolute;
-	right: 0px;
-	width: 100%;
-	height: 100%;
-	background-color: white;
-	padding: 10px;
-	overflow: hidden;
+  float: right;
+  position: absolute;
+  right: 0px;
+  width: 100%;
+  height: 100%;
+  background-color: white;
+  padding: 10px;
+  overflow: hidden;
 }
 
 #externalFiles_section .popover {
-	overflow-x: hidden;
-	overflow-y: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 #externalFiles_section .fileContent {
-	height: calc(100% - 160px);
-	width: 100%;
-	margin: 5px;
-	position: relative;
+  height: calc(100% - 160px);
+  width: 100%;
+  margin: 5px;
+  position: relative;
 }
 
 #externalFiles_section div.content {
-	overflow: scroll;
-	position: absolute;
-	top: 100px;
-	bottom: 5px;
-	left: 5px;
-	right: 5px;
+  overflow: scroll;
+  position: absolute;
+  top: 100px;
+  bottom: 5px;
+  left: 5px;
+  right: 5px;
 }
 
 #externalFiles_section div.cfa-content {
-	overflow: scroll;
-	position: absolute;
-	height: calc(100% - 250px);
-	top: 200px;
-	bottom: 5px;
-	left: 5px;
-	right: 5px;
+  overflow: scroll;
+  position: absolute;
+  height: calc(100% - 250px);
+  top: 200px;
+  bottom: 5px;
+  left: 5px;
+  right: 5px;
 }
 
 #externalFiles_section div.arg-content {
-	overflow: scroll;
-	position: absolute;
-	height: calc(100% - 250px);
-	top: 200px;
-	bottom: 5px;
-	left: 5px;
-	right: 5px;
+  overflow: scroll;
+  position: absolute;
+  height: calc(100% - 250px);
+  top: 200px;
+  bottom: 5px;
+  left: 5px;
+  right: 5px;
 }
 
 table {
-	border-collapse: separate;
-	border-spacing: 2px;
+  border-collapse: separate;
+  border-spacing: 2px;
 }
 
 .dataTables_wrapper {
-	padding: 10px;
+  padding: 10px;
 }
 
 #statistics_table td:first-child {
-	white-space: pre;
+  white-space: pre;
 }
 
 #statistics_table .table_head {
-	background-color: #ccc;
+  background-color: #ccc;
 }
 
 #err-table td:first-child {
-	background-color: #ccc;
+  background-color: #ccc;
 }
 
 .sourceContent td:first-child {
-	background-color: #ccc;
+  background-color: #ccc;
 }
 
 .sourceContent td pre {
-	padding: 0px;
-	margin: 0px;
-	border: none;
+  padding: 0px;
+  margin: 0px;
+  border: none;
 }
 
 .sourceContent tr:nth-child(odd) td pre.prettyprint {
-	background-color: #c6dce7;
+  background-color: #c6dce7;
 }
 
 .sourceContent tr:nth-child(even) td pre.prettyprint {
-	background-color: #a8cfe2;
+  background-color: #a8cfe2;
 }
 
 .edit-line {
-	width: 100%;
-	background-color: white;
-	padding: 5px;
+  width: 100%;
+  background-color: white;
+  padding: 5px;
 }
 
 .edit-line div {
-	display: inline-block;
+  display: inline-block;
 }
 
 .edit-line label {
-	margin-right: 100px;
-	display: inline-block;
+  margin-right: 100px;
+  display: inline-block;
 }
 
 .edit-line p {
-	display: inline-block;
+  display: inline-block;
 }
 
 div pre {
-	background-color: transparent;
-	border: 0;
-	margin: 0;
-	padding: 0;
-	overflow: visible;
+  background-color: transparent;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
 }
 
 .help_button {
-	padding: 0px;
-	border: 0px;
-	margin: 0px;
-	display: inline-block;
+  padding: 0px;
+  border: 0px;
+  margin: 0px;
+  display: inline-block;
 }
 
 #externalFiles_section .help_button {
-	margin-left: 10px;
-	float: left;
+  margin-left: 10px;
+  float: left;
 }
 
 .cfa-graph {
-	visibility: hidden;
+  visibility: hidden;
 }
 
 .arg-graph {
-	visibility: hidden;
+  visibility: hidden;
 }
 
 .loader {
-	font-family: "Helvetica Neue", Helvetica, Arial, "sans-serf";
-	font-size: 20px;
-	font-style: italic;
-	color: #4040a1;
+  font-family: "Helvetica Neue", Helvetica, Arial, "sans-serf";
+  font-size: 20px;
+  font-style: italic;
+  color: #4040a1;
 }
 
 #cfa-toolbar {
-	width: auto;
-	background-color: white;
-	margin-top: 5px;
-	margin-left: 10px;
-	padding: 5px;
-	position: fixed;
-	display: inline-block;
-	visibility: hidden;
+  width: auto;
+  background-color: white;
+  margin-top: 5px;
+  margin-left: 10px;
+  padding: 5px;
+  position: fixed;
+  display: inline-block;
+  visibility: hidden;
 }
 
 #cfa-toolbar select {
-	max-width: 150px;
+  max-width: 150px;
 }
 
 #cfa-toolbar label {
-	margin-left: 20px;
-	margin-right: 5px;
+  margin-left: 20px;
+  margin-right: 5px;
 }
 
 #cfa-toolbar text {
-	font-family: "Helvetica Neue", Helvetica, Arial, sans-serf;
-	font-size: 11px;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serf;
+  font-size: 11px;
 }
 
-input[type=text] {
-	width: 80px;
-	height: 34px;
+input[type="text"] {
+  width: 80px;
+  height: 34px;
 }
 
 #arg-container {
-	top: 200px;
+  top: 200px;
 }
 
 #cfa-container {
-	top: 200px;
+  top: 200px;
 }
 
 #arg-toolbar {
-	width: auto;
-	background-color: white;
-	margin-top: 5px;
-	margin-left: 10px;
-	padding: 5px;
-	position: fixed;
-	display: inline-block;
-	visibility: hidden;
+  width: auto;
+  background-color: white;
+  margin-top: 5px;
+  margin-left: 10px;
+  padding: 5px;
+  position: fixed;
+  display: inline-block;
+  visibility: hidden;
 }
 
 #arg-toolbar label {
-	margin-left: 20px;
-	margin-right: 5px;
+  margin-left: 20px;
+  margin-right: 5px;
 }
 
 #arg-toolbar text {
-	font-family: "Helvetica Neue", Helvetica, Arial, sans-serf;
-	font-size: 11px;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serf;
+  font-size: 11px;
 }
 
 text {
-	font-weight: bold;
-	font-family: "Helvetica Neue", Helvetica, Arial, sans-serf;
-	font-size: 12px;
+  font-weight: bold;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serf;
+  font-size: 12px;
 }
 
-.arg-node.target>rect {
-	fill: red;
-	rx: 5;
-	ry: 5
+.arg-node.target > rect {
+  fill: red;
+  rx: 5;
+  ry: 5;
 }
 
-.arg-node.not-expanded>rect {
-	fill: orange;
-	rx: 5;
-	ry: 5
+.arg-node.not-expanded > rect {
+  fill: orange;
+  rx: 5;
+  ry: 5;
 }
 
-.arg-node.highlighted>rect {
-	fill: cornflowerblue;
-	rx: 5;
-	ry: 5
+.arg-node.highlighted > rect {
+  fill: cornflowerblue;
+  rx: 5;
+  ry: 5;
 }
 
-.arg-node.covered>rect {
-	fill: green;
-	rx: 5;
-	ry: 5
+.arg-node.covered > rect {
+  fill: green;
+  rx: 5;
+  ry: 5;
 }
 
 .arg-node text {
-	text-anchor: middle;
-	font-family: "Times New Roman", serif;
+  text-anchor: middle;
+  font-family: "Times New Roman", serif;
 }
 
 .arg-node rect {
-	fill: #fff;
-	rx: 5;
-	ry: 5
+  fill: #fff;
+  rx: 5;
+  ry: 5;
 }
 
 .cfa-node rect {
-	stroke: #999;
-	fill: #fff;
-	stroke-width: 1.5px;
-	rx: 5;
-	ry: 5
+  stroke: #999;
+  fill: #fff;
+  stroke-width: 1.5px;
+  rx: 5;
+  ry: 5;
 }
 
 .cfa-node circle {
-	stroke: #999;
-	fill: #fff;
-	stroke-width: 1.5px;
+  stroke: #999;
+  fill: #fff;
+  stroke-width: 1.5px;
 }
 
 .cfa-node polygon {
-	stroke: #999;
-	fill: #fff;
-	stroke-width: 1.5px;
+  stroke: #999;
+  fill: #fff;
+  stroke-width: 1.5px;
 }
 
 .cfa-dummy rect {
-	fill: #fff;
-	stroke: #c0c0c0;
-	stroke-width: 0.5px;
-	rx: 5;
-	ry: 5
+  fill: #fff;
+  stroke: #c0c0c0;
+  stroke-width: 0.5px;
+  rx: 5;
+  ry: 5;
 }
 
 .arg-dummy rect {
-	fill: #fff;
-	stroke: #c0c0c0;
-	stroke-width: 0.5px;
-	rx: 5;
-	ry: 5
+  fill: #fff;
+  stroke: #c0c0c0;
+  stroke-width: 0.5px;
+  rx: 5;
+  ry: 5;
 }
 
 .fcall rect {
-	stroke: #999;
-	fill: #fff;
-	stroke-width: 1.5px;
-	rx: 5;
-	ry: 5
+  stroke: #999;
+  fill: #fff;
+  stroke-width: 1.5px;
+  rx: 5;
+  ry: 5;
 }
 
 .edgePath path {
-	stroke: #A9A9A9;
-	fill: #ffffff;
-	stroke-width: 1.5px;
+  stroke: #a9a9a9;
+  fill: #ffffff;
+  stroke-width: 1.5px;
 }
 
 .error-edge path {
-	stroke: red;
-	fill: #ffffff;
-	stroke-width: 1.5px;
+  stroke: red;
+  fill: #ffffff;
+  stroke-width: 1.5px;
 }
 
 /* if we have display: none here Firefox cannot render the edges connecting to the dummy nodes */
 
 .dummy rect {
-	visibility: hidden;
+  visibility: hidden;
 }
 
 #infoBox {
-	visibility: hidden;
-	position: absolute;
-	top: 10px;
-	left: 10px;
-	z-index: 1;
-	width: 200px;
-	background-color: #ffef96;
-	display: inline-block;
-	border-radius: 6px;
+  visibility: hidden;
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 1;
+  width: 200px;
+  background-color: #ffef96;
+  display: inline-block;
+  border-radius: 6px;
 }
 
 .tool_tip #boxContent::after {
-	content: "";
-	position: absolute;
-	top: 25%;
-	right: 100%;
-	margin-top: -5px;
-	border-width: 5px;
-	border-style: solid;
-	border-color: transparent #ffef96 transparent transparent;
+  content: "";
+  position: absolute;
+  top: 25%;
+  right: 100%;
+  margin-top: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: transparent #ffef96 transparent transparent;
 }
 
 #insideBox {
-	padding-top: 10px;
+  padding-top: 10px;
 }
 
 #boxContent {
-	font-family: Verdana, Arial, Helvetica, sans-serif;
-	font-size: 12px;
-	line-height: 130%;
-	color: black;
-	text-align: center;
-	padding: 5px 0;
+  font-family: Verdana, Arial, Helvetica, sans-serif;
+  font-size: 12px;
+  line-height: 130%;
+  color: black;
+  text-align: center;
+  padding: 5px 0;
 }
 
 .bold {
-	font-weight: bold;
+  font-weight: bold;
 }
 
+#dependency-details .dependency-container {
+  padding: 1.5rem 0;
+  border-top: 1px solid #bfbfbf;
+}
+
+#dependency-details .dependency-container:first-of-type {
+  margin-top: 1rem;
+}
+
+#dependency-details h4 {
+  font-size: 1.3rem;
+}
+
+#dependency-details p {
+  margin-bottom: 0;
+}
+
+#dependency-details .license-text {
+  padding-top: 1rem;
+}

@@ -455,7 +455,7 @@ public class ARGToCTranslator {
   }
 
   private void pushToWaitlist(Deque<ARGEdge> pWaitlist, ARGState pCurrentElement, ARGState pChild, CFAEdge pEdgeToChild, CompoundStatement pCurrentBlock) {
-    assert (!pChild.isDestroyed());
+    assert !pChild.isDestroyed();
     pWaitlist.push(new ARGEdge(pCurrentElement, pChild, pEdgeToChild, pCurrentBlock));
   }
 
@@ -560,7 +560,7 @@ public class ARGToCTranslator {
 
       if(returnEdge.getExpression() != null && returnEdge.getExpression().isPresent()) {
 
-        String retval = returnEdge.getExpression().get().toQualifiedASTString();
+        String retval = returnEdge.getExpression().orElseThrow().toQualifiedASTString();
         String returnVar;
 
         if (childElement.isCovered()) {
@@ -590,7 +590,7 @@ public class ARGToCTranslator {
           assert (innerEdges.get(innerEdges.size() - 1) == innerEdge);
           CReturnStatementEdge returnEdge = (CReturnStatementEdge) innerEdge;
 
-          String retval = returnEdge.getExpression().get().toQualifiedASTString();
+          String retval = returnEdge.getExpression().orElseThrow().toQualifiedASTString();
           String returnVar;
 
           if (childElement.isCovered()) {

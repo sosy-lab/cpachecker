@@ -83,7 +83,7 @@ public class TestVector {
   public List<TestValue> getTestInputsInOrder() {
     checkState(
         inputValues.size()
-            == inputVariableValues.values().size()
+            == inputVariableValues.size()
                 + inputFunctionValues.values().stream()
                     .map(l -> l.size())
                     .reduce(0, (x, y) -> x + y));
@@ -160,7 +160,7 @@ public class TestVector {
 
   @Override
   public String toString() {
-    return inputFunctionValues.toString() + inputVariableValues.toString();
+    return inputFunctionValues.toString() + inputVariableValues;
   }
 
   public static TestVector newTestVector() {

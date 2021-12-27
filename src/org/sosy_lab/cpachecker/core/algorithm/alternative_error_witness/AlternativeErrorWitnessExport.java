@@ -90,7 +90,7 @@ public class AlternativeErrorWitnessExport implements Algorithm, StatisticsProvi
 
     AlgorithmStatus status = algorithm.run(reachedSet);
 
-    if (reachedSet.hasViolatedProperties()) {
+    if (reachedSet.wasTargetReached()) {
 
       final ARGState lastElement = (ARGState) pReached.getLastState();
       assert lastElement.isTarget()

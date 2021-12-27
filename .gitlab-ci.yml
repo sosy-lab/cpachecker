@@ -12,16 +12,24 @@ variables:
   PROJECT_PATH: "sosy-lab/software/cpachecker"
   GH_REF: "github.com/sosy-lab/cpachecker"
   # Version of https://gitlab.com/sosy-lab/software/refaster/ to use
-  REFASTER_REPO_REVISION: bc1fb643e97a552f1187a643be80a3f35a6ca115
+  REFASTER_REPO_REVISION: 8b7f38e2afedf64b3cfa9592bbb8790b88f58352
   # Needs to be synchronized with Error Prone version in lib/ivy.xml
-  REFASTER_VERSION: 2.7.1
+  REFASTER_VERSION: 2.10.0
   PIP_CACHE_DIR: "${CI_PROJECT_DIR}/.cache/pip"
+  npm_config_cache: "${CI_PROJECT_DIR}/.cache/npm"
+  npm_config_prefer_offline: "true"
 
 .pip-cache: &pip-cache
   cache:
     key: "${CI_JOB_NAME}"
     paths:
       - ".cache/pip"
+
+.node-cache: &node-cache
+  cache:
+    key: "${CI_JOB_NAME}"
+    paths:
+      - ".cache/npm"
 
 .binary_check: &binary_check
   stage: checks
@@ -62,7 +70,7 @@ configuration-documentation:
   <<: *binary_check
   script:
     - "cp doc/ConfigurationOptions.txt doc/ConfigurationOptions.txt.old"
-    - "ant $ANT_PROPS_CHECKS build-documentation"
+    - "ant $ANT_PROPS_CHECKS build-documentation -Ddocumentation.uptodate=false"
     - "diff doc/ConfigurationOptions.txt.old doc/ConfigurationOptions.txt"
   dependencies:
     - build-dependencies
@@ -122,13 +130,31 @@ python-unit-tests:jdk-16:
   image: ${CI_REGISTRY_IMAGE}/test:jdk-16
 
 
-javascript-unit-tests:
+javascript-build:
   stage: checks
   dependencies: []
+  needs: []
   image: ${CI_REGISTRY_IMAGE}/test:node
   before_script:
     - cd src/org/sosy_lab/cpachecker/core/counterexample/
-    - npm install
+    - npm ci
+  script:
+    - npm run build
+    - git diff --stat --exit-code
+  artifacts:
+    paths:
+      -  src/org/sosy_lab/cpachecker/core/counterexample/build
+    when: on_failure
+  <<: *node-cache
+
+javascript-unit-tests:
+  stage: checks
+  dependencies: []
+  needs: []
+  image: ${CI_REGISTRY_IMAGE}/test:node
+  before_script:
+    - cd src/org/sosy_lab/cpachecker/core/counterexample/
+    - npm ci
   script:
     - npm test
   cache:
@@ -138,6 +164,19 @@ javascript-unit-tests:
     paths:
       - src/org/sosy_lab/cpachecker/core/counterexample/unit_testing_report.html
     when: always
+  <<: *node-cache
+
+javascript-eslint:
+  stage: checks
+  dependencies: []
+  needs: []
+  image: ${CI_REGISTRY_IMAGE}/test:node
+  before_script:
+    - cd src/org/sosy_lab/cpachecker/core/counterexample/
+    - npm ci
+  script:
+    - npm run lint
+  <<: *node-cache
 
 
 build-docker:test:java-node:
@@ -156,7 +195,7 @@ build-docker:release:
   extends: .build-docker
   variables:
     DOCKERFILE: build/Dockerfile.release
-    IMAGE: ":2.0"
+    IMAGE: ":2.1"
     EXTRA_ARGS: "--destination $CI_REGISTRY_IMAGE:latest"
 
 
@@ -173,10 +212,8 @@ javascript-e2e-tests:
       # generate example report
     - scripts/cpa.sh -predicateAnalysis test/programs/simple/SSAMap-bug.c
     - cd src/org/sosy_lab/cpachecker/core/counterexample/
-    - npm install
-      # Due to a problem with the symlinks on the gitlab runners, we temporarily install protractor globally to ensure the symlink is present.
-    - npm install protractor -g
-    - "webdriver-manager update --versions.chrome $(dpkg-query --showformat='${Version}' --show google-chrome-stable)"
+    - npm ci
+    - "npx webdriver-manager update --versions.chrome $(dpkg-query --showformat='${Version}' --show google-chrome-stable)"
   script:
     - npm run e2e-test
   cache:
@@ -207,7 +244,7 @@ flake8:
   needs: []
   image: python:3.8
   before_script:
-    - pip install flake8-awesome
+    - "pip install 'flake8<4' flake8-awesome"
   script:
     - flake8
   <<: *pip-cache
@@ -232,6 +269,8 @@ build-tar:
 deploy-docker:
   stage: deploy
   dependencies:
+    - build-tar
+  needs:
     - build-tar
   extends: .build-docker
   variables:

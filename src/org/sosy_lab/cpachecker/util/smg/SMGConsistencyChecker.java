@@ -9,8 +9,9 @@
 package org.sosy_lab.cpachecker.util.smg;
 
 import java.util.Optional;
-import org.sosy_lab.cpachecker.util.smg.exception.SMGInconsistentcyException;
-import org.sosy_lab.cpachecker.util.smg.graph.SMGListSegment;
+import org.sosy_lab.cpachecker.util.smg.exception.SMGInconsistencyException;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 
 /**
@@ -22,16 +23,15 @@ public final class SMGConsistencyChecker {
    * Checks consistency of a given SMG.
    *
    * @param smg - the SMG to be checked
-   * @throws SMGInconsistentcyException - if the given SMG is inconsistent.
+   * @throws SMGInconsistencyException - if the given SMG is inconsistent.
    */
-  public static void checkBasicConsistency(SMG smg) throws SMGInconsistentcyException {
+  public static void checkBasicConsistency(SMG smg) throws SMGInconsistencyException {
     SMGObject nullPointer = smg.getNullObject();
-    if (nullPointer.isValid()
+    if (smg.isValid(nullPointer)
         || nullPointer.getSize().intValue() != 0
         || nullPointer.getNestingLevel() != 0
         || nullPointer.getOffset().intValue() != 0) {
-      throw new SMGInconsistentcyException(
-          "Inconsistent smg: " + smg.toString() + "\n Invalid nullObject");
+      throw new SMGInconsistencyException("Inconsistent smg: " + smg + "\n Invalid nullObject");
     }
 
     checkInvalidRegionConsistency(smg);
@@ -45,14 +45,11 @@ public final class SMGConsistencyChecker {
    * @param smg - the SMG to be checked
    */
   private static void checkValidDLLConsistency(SMG smg) {
-    Optional<SMGListSegment> invalidDLL = smg.getDLLs().stream().filter(l -> !l.isValid()).findAny();
+    Optional<SMGDoublyLinkedListSegment> invalidDLL =
+        smg.getDLLs().stream().filter(l -> !smg.isValid(l)).findAny();
     if (invalidDLL.isPresent()) {
-        throw new SMGInconsistentcyException(
-            "Inconsistent smg: "
-                + smg.toString()
-                + "\n Invalid DLL found: "
-                + invalidDLL.toString());
-
+      throw new SMGInconsistencyException(
+          "Inconsistent smg: " + smg + "\n Invalid DLL found: " + invalidDLL);
     }
   }
 
@@ -64,18 +61,36 @@ public final class SMGConsistencyChecker {
   private static void checkInvalidRegionConsistency(SMG smg) {
 
     for (SMGObject region : smg.getObjects()) {
-      if (!region.isValid()) {
+      if (!smg.isValid(region)) {
 
         if (!smg.getEdges(region).isEmpty()) {
-          throw new SMGInconsistentcyException(
-              "Inconsistent smg: "
-                  + smg.toString()
-                  + "\n Invalid region "
-                  + region.toString()
-                  + " has outgoing edges.");
+          throw new SMGInconsistencyException(
+              "Inconsistent smg: " + smg + "\n Invalid region " + region + " has outgoing edges.");
         }
       }
     }
   }
 
+  /**
+   * Checks field consistency of a given SMG.
+   *
+   * @param smg - the SMG to be checked
+   * @throws SMGInconsistencyException - if the given SMG is inconsistent.
+   */
+  public static void checkFieldConsistency(SMG smg)
+      throws SMGInconsistencyException {
+    smg.getHVEdges().forEach(e -> checkFieldConsistency(smg, e));
+  }
+
+  private static void
+      checkFieldConsistency(SMG smg, SMGHasValueEdge edge) {
+    if (edge.getSizeInBits().compareTo(edge.getOffset()) <= 0) {
+      throw new SMGInconsistencyException(
+          "Inconsistent smg: "
+              + smg
+              + "\n Edge "
+              + edge
+              + " points outside of it's field.");
+    }
+  }
 }

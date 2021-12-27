@@ -10,6 +10,17 @@ package org.sosy_lab.cpachecker.util.smg.graph;
 
 public interface SMGNode {
 
+  /**
+   * Returns the nesting level of this value node.
+   *
+   * @return The current nesting level of this value.
+   */
   int getNestingLevel();
 
+  /**
+   * Increases the nesting level of this node by a given adder.
+   *
+   * @param byX the adder
+   */
+  void increaseLevelBy(int byX);
 }

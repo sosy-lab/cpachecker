@@ -73,6 +73,6 @@ class IsRelevantLhsVisitor extends DefaultCExpressionVisitor<Boolean, NoExceptio
 
   @Override
   protected Boolean visitDefault(CExpression e) {
-    throw new IllegalArgumentException("Undexpected left hand side: " + e.toString());
+    throw new IllegalArgumentException("Undexpected left hand side: " + e);
   }
 }

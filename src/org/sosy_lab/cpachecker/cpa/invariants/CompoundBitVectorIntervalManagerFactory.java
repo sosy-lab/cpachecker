@@ -34,7 +34,7 @@ public enum CompoundBitVectorIntervalManagerFactory implements CompoundIntervalM
 
   private final Collection<OverflowEventHandler> overflowEventHandlers = new CopyOnWriteArrayList<>();
 
-  private final void handleAllOverflowHandlers() {
+  private void handleAllOverflowHandlers() {
     for (OverflowEventHandler component : overflowEventHandlers) {
       component.signedOverflow();
     }

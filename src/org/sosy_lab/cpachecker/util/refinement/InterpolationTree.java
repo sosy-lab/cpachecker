@@ -223,7 +223,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
       if (current.getValue().isTarget()) {
         result.append(current.getValue().getStateId() + " [style=filled, fillcolor=\"red\"]" + "\n");
       }
-      assert (!parent.isTarget());
+      assert !parent.isTarget();
     }
     result.append("}");
 
@@ -530,7 +530,8 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
       if (initialInterpolant == null) {
         initialInterpolant = interpolantManager.createInitialInterpolant();
 
-        assert (interpolants.size() == 0) : "initial interpolant was null after initial interpolation!";
+        assert interpolants.size() == 0
+            : "initial interpolant was null after initial interpolation!";
       }
 
       return initialInterpolant;

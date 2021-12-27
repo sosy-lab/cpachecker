@@ -85,7 +85,7 @@ public class SlicingDelegatingRefiner implements Refiner, StatisticsProvider {
     if (sliceRefinementSuccessful) {
       return true;
     }
-    
+
     boolean refinementResult = delegate.performRefinement(pReached);
     // Update counterexamples to be imprecise, because the program slice
     // may not reflect the real program semantics, but reflects the real program
