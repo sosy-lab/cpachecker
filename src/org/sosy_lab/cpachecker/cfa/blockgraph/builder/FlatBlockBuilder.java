@@ -40,6 +40,15 @@ class FlatBlockBuilder extends BlockBuilder {
     for (CFAEdge inEdge : CFAUtils.enteringEdges(pNode)) {
       if (inEdge.getEdgeType() != CFAEdgeType.FunctionCallEdge) {
         CFANode predecessor = inEdge.getPredecessor();
+
+        /*
+         * Todo: Fix 
+         * This check (obviously?) doesn't work in some situations, if CFA exploration has not yet
+         * left the current block, but also not yet expanded a separate path which also leads to the
+         * the current node pNode.
+         * Impact: Block might get terminated unnecessarily; correctness of the analysis should not 
+         * be in danger.
+         */
         if (!contains(predecessor)) {
           return true;
         }
