@@ -60,7 +60,8 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
       secure = true,
       name = "abstraction.initialPredicates",
       description =
-          "get an initial map of predicates from a list of files (see source doc/examples/predmap.txt for an example)")
+          "get an initial map of predicates from a list of files (see source"
+              + " doc/examples/predmap.txt for an example)")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<Path> predicatesFiles = ImmutableList.of();
 
@@ -80,23 +81,19 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     @Option(
         secure = true,
         description =
-            "Apply location- and function-specific predicates globally (to all locations in the program)")
+            "Apply location- and function-specific predicates globally (to all locations in the"
+                + " program)")
     private boolean applyGlobally = false;
 
     @Option(
         secure = true,
         description =
-            "when reading predicates from file, convert them from Integer- to BV-theory or reverse.")
+            "when reading predicates from file, convert them from Integer- to BV-theory or"
+                + " reverse.")
     private PrecisionConverter encodePredicates = PrecisionConverter.DISABLE;
 
     @Option(secure = true, description = "initial predicates are added as atomic predicates")
     private boolean splitIntoAtoms = false;
-
-    @Option(
-        secure = true,
-        description =
-            "Break the decision tree into its atoms before transforming it to SMT formulae. (May be benefitial to avoid simplifications like:  '(x >0)&& (x<0) --> true'")
-    public boolean splittBeforeTransformation = true;
 
     public boolean applyFunctionWide() {
       return applyFunctionWide;
@@ -226,7 +223,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
         List<AbstractionPredicate> predicates = new ArrayList<>();
         // get atom predicates from invariant
         if (options.splitIntoAtoms) {
-          final Set<ExpressionTreeLocationInvariant> splittTree = splittTree(invariant, options.splittBeforeTransformation);
+          final Set<ExpressionTreeLocationInvariant> splittTree = splitTree(invariant);
           for (ExpressionTreeLocationInvariant splittedExpr : splittTree) {
 
             BooleanFormula formula =
@@ -278,19 +275,18 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     return result;
   }
 
-  private Set<ExpressionTreeLocationInvariant> splittTree(
-      ExpressionTreeLocationInvariant pInvariant, boolean pSplittBeforeTransformation) {
-    if (!pSplittBeforeTransformation) {
-      return Sets.newHashSet(pInvariant);
-    }
+  private Set<ExpressionTreeLocationInvariant> splitTree(
+      ExpressionTreeLocationInvariant pInvariant) {
+    // Break the decision tree into its atoms before transforming it to SMT
+    // formulae. This avoids simplifications like '(x>0)||(x<=0)' to 'true'.
     CastingClassForAbstrExprTree<AExpression> castClass = new CastingClassForAbstrExprTree<>();
     Set<ExpressionTreeLocationInvariant> atoms = Sets.newHashSet();
-    // we now that this is a  ExpressionTree<AExpression>
+    // we know that this is an  ExpressionTree<AExpression>
     ExpressionTree<AExpression> tree = castClass.cast(pInvariant.asExpressionTree());
     if (tree instanceof And) {
-      ((And<AExpression>) tree).forEach(conj -> atoms.addAll(splitt(conj, pInvariant)));
+      ((And<AExpression>) tree).forEach(conj -> atoms.addAll(split(conj, pInvariant)));
     } else if (tree instanceof Or) {
-      ((Or<AExpression>) tree).forEach(conj -> atoms.addAll(splitt(conj, pInvariant)));
+      ((Or<AExpression>) tree).forEach(conj -> atoms.addAll(split(conj, pInvariant)));
     } else {
       atoms.add(pInvariant);
     }
@@ -298,13 +294,13 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     return atoms;
   }
 
-  private Collection<ExpressionTreeLocationInvariant> splitt(
+  private Collection<ExpressionTreeLocationInvariant> split(
       ExpressionTree<AExpression> pExpr, ExpressionTreeLocationInvariant pInvariant) {
     Set<ExpressionTreeLocationInvariant> atoms = Sets.newHashSet();
     if (pExpr instanceof And) {
-      ((And<AExpression>) pExpr).forEach(conj -> atoms.addAll(splitt(conj, pInvariant)));
+      ((And<AExpression>) pExpr).forEach(conj -> atoms.addAll(split(conj, pInvariant)));
     } else if (pExpr instanceof Or) {
-      ((Or<AExpression>) pExpr).forEach(conj -> atoms.addAll(splitt(conj, pInvariant)));
+      ((Or<AExpression>) pExpr).forEach(conj -> atoms.addAll(split(conj, pInvariant)));
     } else {
       atoms.add(
           new ExpressionTreeLocationInvariant(
