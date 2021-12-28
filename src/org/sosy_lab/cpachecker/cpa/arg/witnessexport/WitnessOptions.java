@@ -72,10 +72,10 @@ public class WitnessOptions {
   @Option(
       secure = true,
       description =
-          "Produce a InvariantWitnesses instead of a correctness witness. Constructing a invariant witness "
+          "Produce an invariant witness instead of a correctness witness. Constructing an invariant witness "
               + "makes use of a different merge for quasi-invariants: Instead of computing the disjunction of two "
               + "invariants present when merging nodes, 'true' is ignored when constructing the disjunction. "
-              + "This may be unsound in some situation,s so be careful when using this option.")
+              + "This may be unsound in some situations, so be careful when using this option.")
   private boolean produceInvariantWitnesses = false;
 
   boolean exportFunctionCallsAndReturns() {

@@ -1710,7 +1710,7 @@ class WitnessFactory implements EdgeAppender {
     }
   }
 
-  /** If one of the two nodes has ha quasi invariant that is 'true', the other invariant is used */
+  /** If one of the two nodes has a quasi invariant that is 'true', the other invariant is used */
   private void mergeQuasiInvariantForInvariantWitness(
       final String pNodeToKeep, final String pNodeToRemove) {
     ExpressionTree<Object> fromToKeep = getQuasiInvariant(pNodeToKeep);
