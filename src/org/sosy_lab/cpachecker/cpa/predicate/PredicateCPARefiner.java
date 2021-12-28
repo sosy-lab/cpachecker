@@ -15,14 +15,9 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractOptionalCallsta
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
-import java.io.IOException;
 import java.io.PrintStream;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -35,19 +30,14 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.algorithm.alternative_error_witness.LocationAwareBlockFormulas;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -130,19 +120,6 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
   @IntegerOption(min = -1)
   private int stopAfter = -1;
 
-  @Option(
-      secure = true,
-      description =
-          "use externally generated invariants for the CPA-Refinement, experimental feature!")
-  private boolean useExternalErrorPath = false;
-
-  @Option(
-      secure = true,
-      name = "formatWitness",
-      description = "Path to formula witness path description")
-  @FileOption(Type.OPTIONAL_INPUT_FILE)
-  private Path formatWitnessInput = Paths.get("output/errorPaths/path");
-
   // statistics
   private final StatInt totalPathLength =
       new StatInt(StatKind.AVG, "Avg. length of target path (in blocks)"); // measured in blocks
@@ -185,9 +162,6 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
   private final Optional<NewtonRefinementManager> newtonManager;
   private final Optional<UCBRefinementManager> ucbManager;
 
-
-  private CFA cfa;
-
   public PredicateCPARefiner(
       final Configuration pConfig,
       final LogManager pLogger,
@@ -200,11 +174,9 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
       final PrefixProvider pPrefixProvider,
       final PrefixSelector pPrefixSelector,
       final PredicateCPAInvariantsManager pInvariantsManager,
-      final RefinementStrategy pStrategy,
-      CFA pCfa)
+      final RefinementStrategy pStrategy)
       throws InvalidConfigurationException {
     pConfig.inject(this, PredicateCPARefiner.class);
-    cfa = pCfa;
     logger = pLogger;
     blockFormulaStrategy = pBlockFormulaStrategy;
     solver = pSolver;
@@ -296,87 +268,35 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
       BlockFormulas formulas;
       final boolean repeatedCounterexample;
       List<ARGState> abstractionStatesTrace;
-      ImmutableList<CFANode> errorPath = ImmutableList.of();
       boolean branchingOccurred;
-      if (useExternalErrorPath) {
-        try {
-          LocationAwareBlockFormulas locAwareformulas =
-              LocationAwareBlockFormulas.constructFromDump(
-                  formatWitnessInput.getParent(), fmgr, cfa);
+      ImmutableList<CFANode> errorPath =
+          allStatesTrace.asStatesList().stream()
+              .map(AbstractStates::extractLocation)
+              .filter(x -> x != null)
+              .collect(ImmutableList.toImmutableList());
+      repeatedCounterexample = lastErrorPaths.contains(errorPath);
+      lastErrorPaths.add(errorPath);
 
-        repeatedCounterexample = false;
-          //        abstractionStatesTrace = new ArrayList<>();
-          // TODO: This may produce imprecise counterexamples, but as we don't care about the
-          // counterexamples, it is "ok"
-          branchingOccurred = false;
+      Set<ARGState> elementsOnPath = extractElementsOnPath(allStatesTrace);
+      // No branches/merges in path, it is precise.
+      // We don't need to care about creating extra predicates for branching etc.
+      branchingOccurred = true;
+      if (elementsOnPath.size() == allStatesTrace.size()
+          && !containsBranchingInPath(elementsOnPath)) {
+        elementsOnPath = ImmutableSet.of();
+        branchingOccurred = false;
+      }
 
-          //Next, we need to determine for each element from the BlockFormulas and the
-          // associated CFANode, an ARG Node, s.t. the LocationNode of the ARGState and CFANode of the
-          //formula are equal. As the ARGNodes are only used to update the preicsion, we in fact dont care,
-          //which exact ARGState is used.
-          Map<CFANode, ARGState> cnfNodesToARGStates = new HashMap<>();
+      // create path with all abstraction location elements (excluding the initial element)
+      // the last element is the element corresponding to the error location
+      abstractionStatesTrace = filterAbstractionStates(allStatesTrace);
+      totalPathLength.setNextValue(abstractionStatesTrace.size());
 
+      logger.log(Level.ALL, "Abstraction trace is", abstractionStatesTrace);
 
-        for (AbstractState s : pReached.asReachedSet().asCollection()) {
-            CFANode loc = AbstractStates.extractLocation(s);
-            cnfNodesToARGStates.put(loc,    AbstractStates.extractStateByType(s, ARGState.class));
-
-          }
-        ARGState[] trace = new ARGState[locAwareformulas.getLocationList().size()];
-        for (int i = 0; i < locAwareformulas.getLocationList().size(); i++) {
-            CFANode loc = locAwareformulas.getLocationList().get(i);
-            if (cnfNodesToARGStates.containsKey(loc)) {
-              trace[i] =cnfNodesToARGStates.get(loc);
-
-          }else{
-              throw new CPAException(
-                  String.format(
-                      "The interpolation failed, as no  abstract state for location %s is"
-                          + " computed!",
-                      loc.toString()));
-            }
-          }
-
-          abstractionStatesTrace = Lists.newArrayList(trace);
-          formulas = locAwareformulas;
-        } catch (IllegalArgumentException | IOException e) {
-          throw new CPAException(
-              String.format(
-                  "An error occured while reading the alternative witnesses. Error:%s",
-                  Throwables.getStackTraceAsString(e)));
-        }
-      } else {
-        errorPath =
-            allStatesTrace
-                .asStatesList()
-                .stream()
-                .map(AbstractStates::extractLocation)
-                .filter(x -> x != null)
-                .collect(ImmutableList.toImmutableList());
-        repeatedCounterexample = lastErrorPaths.contains(errorPath);
-        lastErrorPaths.add(errorPath);
-
-        Set<ARGState> elementsOnPath = extractElementsOnPath(allStatesTrace);
-        // No branches/merges in path, it is precise.
-        // We don't need to care about creating extra predicates for branching etc.
-        branchingOccurred = true;
-        if (elementsOnPath.size() == allStatesTrace.size()
-            && !containsBranchingInPath(elementsOnPath)) {
-          elementsOnPath = ImmutableSet.of();
-          branchingOccurred = false;
-        }
-
-        // create path with all abstraction location elements (excluding the initial element)
-        // the last element is the element corresponding to the error location
-        abstractionStatesTrace = filterAbstractionStates(allStatesTrace);
-        totalPathLength.setNextValue(abstractionStatesTrace.size());
-
-        logger.log(Level.ALL, "Abstraction trace is", abstractionStatesTrace);
-
-        formulas = createFormulasOnPath(allStatesTrace, abstractionStatesTrace);
-        if (!formulas.hasBranchingFormula()) {
-          formulas = formulas.withBranchingFormula(pfmgr.buildBranchingFormula(elementsOnPath));
-        }
+      formulas = createFormulasOnPath(allStatesTrace, abstractionStatesTrace);
+      if (!formulas.hasBranchingFormula()) {
+        formulas = formulas.withBranchingFormula(pfmgr.buildBranchingFormula(elementsOnPath));
       }
       // find new invariants (this is a noop if no invariants should be used/generated)
       invariantsManager.findInvariants(allStatesTrace, abstractionStatesTrace, pfmgr, solver);
@@ -396,7 +316,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
                 counterexample.getInterpolants(),
                 repeatedCounterexample && !wereInvariantsUsedInLastRefinement);
 
-        if (!trackFurtherCEX || !useExternalErrorPath) {
+        if (!trackFurtherCEX) {
           // when trackFurtherCEX is false, we only track 'one' CEX, otherwise we track all of them.
           lastErrorPaths.clear();
           lastErrorPaths.add(errorPath);

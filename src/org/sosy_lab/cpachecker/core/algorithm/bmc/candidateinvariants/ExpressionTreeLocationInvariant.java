@@ -115,10 +115,6 @@ public class ExpressionTreeLocationInvariant extends SingleLocationFormulaInvari
     return false;
   }
 
-  public ConcurrentMap<ManagerKey, ToFormulaVisitor> getVisitorCache() {
-    return visitorCache;
-  }
-
   @Override
   public String toString() {
     return groupId + " at " + location + ": " + expressionTree;

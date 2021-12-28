@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
@@ -22,6 +23,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
+import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -40,11 +42,14 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapParser;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
 import org.sosy_lab.cpachecker.util.expressions.And;
-import org.sosy_lab.cpachecker.util.expressions.CastingClassForAbstrExprTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.expressions.Or;
+import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
+import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor.ToFormulaException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -206,11 +211,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
       final Set<ExpressionTreeLocationInvariant> invariants =
           extractor.extractInvariantsFromReachedSet();
 
-      boolean predicatesPresent = !invariants.isEmpty();
-      boolean predicatesPresentButNotAdded = false;
-      if (predicatesPresent) {
-        predicatesPresentButNotAdded = true;
-      }
+      boolean wereAnyPredicatesLoaded = false;
 
       for (ExpressionTreeLocationInvariant invariant : invariants) {
 
@@ -223,19 +224,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
         List<AbstractionPredicate> predicates = new ArrayList<>();
         // get atom predicates from invariant
         if (options.splitIntoAtoms) {
-          final Set<ExpressionTreeLocationInvariant> splittTree = splitTree(invariant);
-          for (ExpressionTreeLocationInvariant splittedExpr : splittTree) {
-
-            BooleanFormula formula =
-                splittedExpr.getFormula(formulaManagerView, pathFormulaManager, null);
-          ImmutableSet<AbstractionPredicate> predicatesForAtomsOf =
-              predicateAbstractionManager.getPredicatesForAtomsOf(formula);
-          if (predicatesPresent && !predicatesForAtomsOf.isEmpty()) {
-            predicatesPresentButNotAdded = false;
-          }
-
-          predicates.addAll(predicatesForAtomsOf);
-          }
+          predicates.addAll(splitToPredicates(invariant));
         }
         // get predicate from invariant
         else {
@@ -249,6 +238,8 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
           functionPredicates.put(invariant.getLocation().getFunctionName(), predicate);
         }
 
+        wereAnyPredicatesLoaded |= !predicates.isEmpty();
+
         // add predicates according to the scope
         // location scope is chosen if neither function or global scope is specified or both are
         // specified which would be a conflict here
@@ -261,11 +252,11 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
           result = result.addGlobalPredicates(globalPredicates);
         }
       }
-      if (predicatesPresentButNotAdded) {
+      if (!invariants.isEmpty() && !wereAnyPredicatesLoaded) {
         logger.log(
             Level.WARNING,
             "Predicate from correctness witness invariants could not be computed."
-                + "They are present, but are not corectly loaded");
+                + "They are present, but are not correctly loaded");
       }
 
     } catch (CPAException | InvalidConfigurationException e) {
@@ -275,42 +266,67 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     return result;
   }
 
-  private Set<ExpressionTreeLocationInvariant> splitTree(
-      ExpressionTreeLocationInvariant pInvariant) {
-    // Break the decision tree into its atoms before transforming it to SMT
-    // formulae. This avoids simplifications like '(x>0)||(x<=0)' to 'true'.
-    CastingClassForAbstrExprTree<AExpression> castClass = new CastingClassForAbstrExprTree<>();
-    Set<ExpressionTreeLocationInvariant> atoms = Sets.newHashSet();
-    // we know that this is an  ExpressionTree<AExpression>
-    ExpressionTree<AExpression> tree = castClass.cast(pInvariant.asExpressionTree());
-    if (tree instanceof And) {
-      ((And<AExpression>) tree).forEach(conj -> atoms.addAll(split(conj, pInvariant)));
-    } else if (tree instanceof Or) {
-      ((Or<AExpression>) tree).forEach(conj -> atoms.addAll(split(conj, pInvariant)));
-    } else {
-      atoms.add(pInvariant);
-    }
+  private ImmutableSet<AbstractionPredicate> splitToPredicates(
+      ExpressionTreeLocationInvariant pInvariant)
+      throws CPATransferException, InterruptedException {
+    Collection<ExpressionTree<AExpression>> atoms = splitTree(pInvariant);
+    ImmutableSet.Builder<AbstractionPredicate> predicates = ImmutableSet.builder();
 
-    return atoms;
+    for (ExpressionTree<AExpression> atom : atoms) {
+      predicates.addAll(predicateAbstractionManager.getPredicatesForAtomsOf(toFormula(atom)));
+    }
+    return predicates.build();
   }
 
-  private Collection<ExpressionTreeLocationInvariant> split(
-      ExpressionTree<AExpression> pExpr, ExpressionTreeLocationInvariant pInvariant) {
-    Set<ExpressionTreeLocationInvariant> atoms = Sets.newHashSet();
-    if (pExpr instanceof And) {
-      ((And<AExpression>) pExpr).forEach(conj -> atoms.addAll(split(conj, pInvariant)));
-    } else if (pExpr instanceof Or) {
-      ((Or<AExpression>) pExpr).forEach(conj -> atoms.addAll(split(conj, pInvariant)));
-    } else {
-      atoms.add(
-          new ExpressionTreeLocationInvariant(
-              pInvariant.getGroupId(),
-              pInvariant.getLocation(),
-              pExpr,
-              pInvariant.getVisitorCache()));
+  private BooleanFormula toFormula(ExpressionTree<AExpression> expressionTree)
+      throws CPATransferException, InterruptedException {
+    ToFormulaVisitor toFormulaVisitor =
+        new ToFormulaVisitor(formulaManagerView, pathFormulaManager, null);
+    try {
+      return expressionTree.accept(toFormulaVisitor);
+    } catch (ToFormulaException e) {
+      Throwables.propagateIfPossible(
+          e.getCause(), CPATransferException.class, InterruptedException.class);
+      throw new UnexpectedCheckedException("expression tree to formula", e);
     }
+  }
 
+  private Collection<ExpressionTree<AExpression>> splitTree(
+      ExpressionTreeLocationInvariant pInvariant) {
+    // Break the decision tree into its atoms before transforming it to SMT
+    // formulae. This avoids simplifications like '(x>0)||(x<=0)' to 'true'
+    // which would immediately happen when building the BooleanFormula.
+    return split(cast(pInvariant.asExpressionTree()));
+  }
 
+  @SuppressWarnings("unchecked")
+  // we keep this method locally and do not put it into utils, because it is dangerous to use
+  // if the real type of pInvariant is not known.
+  private <LeafType> ExpressionTree<LeafType> cast(ExpressionTree<Object> toCast) {
+    if (toCast instanceof And) {
+      Set<ExpressionTree<LeafType>> storedElemes = Sets.newHashSet();
+      ((And<LeafType>) toCast).forEach(obj -> storedElemes.add(obj));
+      return And.of(storedElemes);
+    } else if (toCast instanceof Or) {
+      Set<ExpressionTree<LeafType>> storedElemes = Sets.newHashSet();
+      ((Or<LeafType>) toCast).forEach(obj -> storedElemes.add(obj));
+      return Or.of(storedElemes);
+    } else {
+      return LeafExpression.of(((LeafExpression<LeafType>) toCast).getExpression());
+    }
+  }
+
+  private Collection<ExpressionTree<AExpression>> split(ExpressionTree<AExpression> pExpr) {
+    Set<ExpressionTree<AExpression>> atoms = Sets.newHashSet();
+    if (pExpr instanceof And) {
+      ((And<AExpression>) pExpr).forEach(conj -> atoms.addAll(split(conj)));
+    } else if (pExpr instanceof Or) {
+      ((Or<AExpression>) pExpr).forEach(conj -> atoms.addAll(split(conj)));
+    } else if (pExpr instanceof LeafExpression) {
+      atoms.add(pExpr);
+    } else {
+      throw new AssertionError("Unhandled expression type: " + pExpr.getClass());
+    }
     return atoms;
   }
 

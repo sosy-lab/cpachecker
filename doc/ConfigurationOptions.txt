@@ -491,11 +491,6 @@ analysis.unknownAsTrue = false
 # certain restrictions.
 analysis.unknownIfUnrestrictedProgram = false
 
-# Use an alternative format for error witnesses by using a set of boolean
-# formulae. This option should only be used, if the configuration
-# -witnessValidation is used.
-analysis.useAlternativeErrorWitnesses = false
-
 # Use array abstraction by program transformation.
 analysis.useArrayAbstraction = false
 
@@ -1155,10 +1150,6 @@ cpa.abe.useCachingPathFormulaManager = true
 
 # only store pure C expressions without ACSL-specific constructs
 cpa.acsl.usePureExpressionsOnly = true
-
-# Create a file that contains the StrongestPost for each loop in the program
-# in this directory.(with a concluding '/')
-cpa.alternativeWitnessExport.outdirForExport = "errorPaths/"
 
 # Use this to change the underlying abstract domain in the APRON library
 cpa.apron.domain = OCTAGON
@@ -2397,9 +2388,6 @@ cpa.predicate.refinement.dumpPredicates = false
 # File name for the predicates dumped after refinements.
 cpa.predicate.refinement.dumpPredicatesFile = "refinement%04d-predicates.prec"
 
-# Path to formula witness path description
-cpa.predicate.refinement.formatWitness = "output/errorPaths/path"
-
 # apply deletion-filter to the abstract counterexample, to get a minimal set
 # of blocks, before applying interpolation-based refinement
 cpa.predicate.refinement.getUsefulBlocks = false
@@ -2529,10 +2517,6 @@ cpa.predicate.refinement.tryAgainOnInterpolationError = true
 
 # Use BDDs to simplify interpolants (removing irrelevant predicates)
 cpa.predicate.refinement.useBddInterpolantSimplification = false
-
-# use externally generated invariants for the CPA-Refinement, experimental
-# feature!
-cpa.predicate.refinement.useExternalErrorPath = false
 
 # use Newton-based Algorithm for the CPA-Refinement, experimental feature!
 cpa.predicate.refinement.useNewtonRefinement = false
