@@ -1111,10 +1111,6 @@ counterexample.export.report = "Counterexample.%d.html"
 # export counterexample as source file
 counterexample.export.source = "Counterexample.%d.c"
 
-# Strengthen a found counterexample with information from the SMT solver's
-# model
-counterexample.export.useSmtInfosForCounterexample = true
-
 # export counterexample witness as Dot/Graphviz visualization
 counterexample.export.witnessGraph = "Counterexample.%d.witness.dot"
 

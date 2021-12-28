@@ -99,12 +99,6 @@ public class PathChecker {
   @Option(secure = true, description = "Always use imprecise counterexamples of the Predicate CPA")
   private boolean alwaysUseImpreciseCounterexamples = false;
 
-  @Option(
-      secure = true,
-      description =
-          "Strengthen a found counterexample with information from the SMT solver's model")
-  private boolean useSmtInfosForCounterexample = true;
-
   private final LogManager logger;
   private final PathFormulaManager pmgr;
   private final Solver solver;
@@ -184,10 +178,6 @@ public class PathChecker {
    */
   public CounterexampleInfo createCounterexample(
       final ARGPath precisePath, final CounterexampleTraceInfo pInfo) throws InterruptedException {
-
-    if (!useSmtInfosForCounterexample) {
-      return createImpreciseCounterexample(precisePath, pInfo);
-    }
 
     CFAPathWithAssumptions pathWithAssignments;
     CounterexampleTraceInfo preciseInfo;
