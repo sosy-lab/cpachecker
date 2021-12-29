@@ -244,7 +244,7 @@ public class CFACreator {
               StrategiesEnum.LoopConstantExtrapolation,
               // StrategiesEnum.LoopLinearExtrapolation,
               StrategiesEnum.NonDetBoundConstantExtrapolation,
-              StrategiesEnum.LoopAcceleration, // TODO Not yet implemented
+              // StrategiesEnum.LoopAcceleration, // TODO Not yet implemented
               StrategiesEnum.NaiveLoopAcceleration,
               StrategiesEnum.HavocStrategy
               // ,StrategiesEnum.LoopUnrolling

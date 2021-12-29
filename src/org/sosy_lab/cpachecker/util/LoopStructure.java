@@ -401,7 +401,7 @@ public final class LoopStructure implements Serializable {
             CFAEdge pNewLeavingEdge = succ.copyWith(newNode, newSuccessor);
             pNewLeavingEdge.connect();
             currentNodes.add(Pair.of(pNewLeavingEdge.getSuccessor(), successor));
-          } else {
+          } else if (getOutgoingEdges().contains(succ)) {
             // Should only happen when the Edges leave the Loop
             newSuccessor = lastNode;
             CFAEdge pNewLeavingEdge = succ.copyWith(newNode, newSuccessor);

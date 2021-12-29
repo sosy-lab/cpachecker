@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 public class NondetBoundConstantExtrapolationStrategy extends ConstantExtrapolationStrategy {
 
-  private StrategiesEnum strategyEnum = StrategiesEnum.NonDetBoundConstantExtrapolation;
+  private StrategiesEnum strategyEnum;
 
   public NondetBoundConstantExtrapolationStrategy(
       final LogManager pLogger,
@@ -45,6 +45,8 @@ public class NondetBoundConstantExtrapolationStrategy extends ConstantExtrapolat
       StrategyDependencyInterface pStrategyDependencies,
       CFA pCFA) {
     super(pLogger, pShutdownNotifier, pStrategyDependencies, pCFA);
+
+    this.strategyEnum = StrategiesEnum.NonDetBoundConstantExtrapolation;
   }
 
   private Optional<GhostCFA> createSumaryCFA(
