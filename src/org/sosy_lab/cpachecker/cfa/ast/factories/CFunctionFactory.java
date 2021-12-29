@@ -54,7 +54,7 @@ public class CFunctionFactory {
             if (((CSimpleType) pType).isUnsigned()) {
               nondetFunctionName = "__VERIFIER_nondet_uint";
             } else {
-              nondetFunctionName = "__VERIFIER_nondet_longlong";
+              nondetFunctionName = "__VERIFIER_nondet_int";
             }
           }
           break;
