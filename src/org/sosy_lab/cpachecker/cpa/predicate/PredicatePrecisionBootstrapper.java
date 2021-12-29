@@ -304,11 +304,11 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
   // if the real type of pInvariant is not known.
   private <LeafType> ExpressionTree<LeafType> cast(ExpressionTree<Object> toCast) {
     if (toCast instanceof And) {
-      Set<ExpressionTree<LeafType>> storedElemes = Sets.newHashSet();
+      Set<ExpressionTree<LeafType>> storedElemes = new HashSet<>();
       ((And<LeafType>) toCast).forEach(obj -> storedElemes.add(obj));
       return And.of(storedElemes);
     } else if (toCast instanceof Or) {
-      Set<ExpressionTree<LeafType>> storedElemes = Sets.newHashSet();
+      Set<ExpressionTree<LeafType>> storedElemes = new HashSet<>();
       ((Or<LeafType>) toCast).forEach(obj -> storedElemes.add(obj));
       return Or.of(storedElemes);
     } else {
@@ -317,7 +317,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
   }
 
   private Collection<ExpressionTree<AExpression>> split(ExpressionTree<AExpression> pExpr) {
-    Set<ExpressionTree<AExpression>> atoms = Sets.newHashSet();
+    Set<ExpressionTree<AExpression>> atoms = new HashSet<>();
     if (pExpr instanceof And) {
       ((And<AExpression>) pExpr).forEach(conj -> atoms.addAll(split(conj)));
     } else if (pExpr instanceof Or) {
