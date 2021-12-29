@@ -95,10 +95,10 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
   private boolean atomicInterpolants = true;
 
   @Option(
-      secure = true,
-      description =
-          "Should the path invariants be created and used (potentially additionally to the other"
-              + " invariants)")
+    secure = true,
+    description =
+        "Should the path invariants be created and used (potentially additionally to the other invariants)"
+  )
   private boolean usePathInvariants = false;
 
   @Option(
@@ -126,11 +126,9 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
   private int stopAfter = -1;
 
   // statistics
-  private final StatInt totalPathLength =
-      new StatInt(StatKind.AVG, "Avg. length of target path (in blocks)"); // measured in blocks
+  private final StatInt totalPathLength = new StatInt(StatKind.AVG, "Avg. length of target path (in blocks)"); // measured in blocks
   private final StatTimer totalRefinement = new StatTimer("Time for refinement");
-  private final StatTimer prefixExtractionTime =
-      new StatTimer("Extracting infeasible sliced prefixes");
+  private final StatTimer prefixExtractionTime = new StatTimer("Extracting infeasible sliced prefixes");
 
   private final StatTimer errorPathProcessing = new StatTimer("Error path post-processing");
   private final StatTimer getFormulasForPathTime = new StatTimer("Path-formulas extraction");
@@ -221,11 +219,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
       ucbManager = Optional.empty();
     }
 
-    logger.log(
-        Level.INFO,
-        "Using refinement for predicate analysis with "
-            + strategy.getClass().getSimpleName()
-            + " strategy.");
+    logger.log(Level.INFO, "Using refinement for predicate analysis with " + strategy.getClass().getSimpleName() + " strategy.");
   }
 
   /**
@@ -263,9 +257,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
   }
 
   @Override
-  public CounterexampleInfo performRefinementForPath(
-      final ARGReachedSet pReached, final ARGPath allStatesTrace)
-      throws CPAException, InterruptedException {
+  public CounterexampleInfo performRefinementForPath(final ARGReachedSet pReached, final ARGPath allStatesTrace) throws CPAException, InterruptedException {
     totalRefinement.start();
 
     try {
@@ -355,7 +347,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
    * Check whether the path contains states A, B, C with successor relations A->B, B->C, A->C.
    * Branching like this would not be detected otherwise.
    */
-  public static boolean containsBranchingInPath(Set<ARGState> pElementsOnPath) {
+  private boolean containsBranchingInPath(Set<ARGState> pElementsOnPath) {
     for (ARGState state : pElementsOnPath) {
       boolean alreadyFoundOneChild = false;
       for (ARGState child : state.getChildren()) {
@@ -478,8 +470,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
         // fall-back to interpolation
         logger.log(
             Level.FINEST,
-            "Starting interpolation-based refinement because invariant generation was not"
-                + " successful.");
+            "Starting interpolation-based refinement because invariant generation was not successful.");
         return performInterpolatingRefinement(abstractionStatesTrace, formulas);
 
       } else {
@@ -601,7 +592,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     return !prefixPreference.equals(PrefixSelector.NO_SELECTION);
   }
 
-  public static List<ARGState> filterAbstractionStates(ARGPath pPath) {
+  static List<ARGState> filterAbstractionStates(ARGPath pPath) {
     List<ARGState> result =
         from(pPath.asStatesList())
             .skip(1)

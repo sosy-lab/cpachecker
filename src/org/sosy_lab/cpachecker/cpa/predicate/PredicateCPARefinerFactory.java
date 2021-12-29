@@ -42,10 +42,7 @@ public class PredicateCPARefinerFactory {
   @Option(secure = true, description = "slice block formulas, experimental feature!")
   private boolean sliceBlockFormulas = false;
 
-  @Option(
-      secure = true,
-      name = "graphblockformulastrategy",
-      description = "BlockFormulaStrategy for graph-like ARGs (e.g. Slicing Abstractions)")
+  @Option(secure = true, name="graphblockformulastrategy", description = "BlockFormulaStrategy for graph-like ARGs (e.g. Slicing Abstractions)")
   private boolean graphBlockFormulaStrategy = false;
 
   @Option(

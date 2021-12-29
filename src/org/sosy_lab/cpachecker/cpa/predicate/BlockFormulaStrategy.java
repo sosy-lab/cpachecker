@@ -77,12 +77,11 @@ public class BlockFormulaStrategy {
 
   /**
    * Get the block formulas from a path.
-   *
    * @param argRoot The initial element of the analysis (= the root element of the ARG)
    * @param abstractionStates A list of all abstraction elements
    * @return A list of block formulas for this path.
-   * @throws CPATransferException If CFA edges cannot be analyzed (should not happen because the
-   *     main analyses analyzed them successfully).
+   * @throws CPATransferException If CFA edges cannot be analyzed
+   *    (should not happen because the main analyses analyzed them successfully).
    * @throws InterruptedException On shutdown request.
    */
   BlockFormulas getFormulasForPath(ARGState argRoot, List<ARGState> abstractionStates)
