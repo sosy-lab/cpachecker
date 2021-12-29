@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
 import static com.google.common.base.Strings.nullToEmpty;
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import static org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.SINK_NODE_ID;
 
@@ -1665,11 +1666,8 @@ class WitnessFactory implements EdgeAppender {
       if (witnessOptions.produceInvariantWitnesses()) {
         newSourceTree =
             computeInvariantForInvariantWitnesses(
-                enteringEdges
-                    .get(source)
-                    .stream()
-                    .map(e -> getStateInvariant(e.getSource()))
-                    .collect(ImmutableList.toImmutableList()));
+                transformedImmutableListCopy(enteringEdges
+                    .get(source), e->getStateInvariant(e.getSource())));
       } else {
       for (Edge e : enteringEdges.get(source)) {
         newSourceTree = factory.or(newSourceTree, getStateInvariant(e.getSource()));
