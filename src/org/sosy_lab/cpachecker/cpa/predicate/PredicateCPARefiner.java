@@ -115,8 +115,13 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
   @Option(
       secure = true,
       description =
-          "Stop after n-th spurious counterexample. If 0, precision is never refined. If -1, never"
-              + " stop.")
+          "Stop after refining the n-th spurious counterexample and export that. If 0, stop after"
+              + " finding the first spurious counterexample but before refinement. If -1, never"
+              + " stop. If this option is used with a value different from -1, option"
+              + " counterexample.export.alwaysUseImpreciseCounterexamples=true should be set. Then,"
+              + " an actually infeasible counterexample will be handed to export. So this option"
+              + " will also not work with additional counterexample checks or similar, because"
+              + " these may reject the (infeasible) counterexample.")
   @IntegerOption(min = -1)
   private int stopAfter = -1;
 
