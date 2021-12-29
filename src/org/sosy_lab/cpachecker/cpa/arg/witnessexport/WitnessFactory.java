@@ -1669,7 +1669,7 @@ class WitnessFactory implements EdgeAppender {
                     .get(source)
                     .stream()
                     .map(e -> getStateInvariant(e.getSource()))
-                    .collect(Collectors.toList()));
+                    .collect(ImmutableList.toImmutableList()));
       } else {
       for (Edge e : enteringEdges.get(source)) {
         newSourceTree = factory.or(newSourceTree, getStateInvariant(e.getSource()));
