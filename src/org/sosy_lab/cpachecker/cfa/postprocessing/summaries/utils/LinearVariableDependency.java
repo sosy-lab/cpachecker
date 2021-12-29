@@ -133,7 +133,12 @@ public class LinearVariableDependency {
         return false;
       }
     } else {
-      this.dependencies.put(pVariable, weight);
+      if (operator == CBinaryExpression.BinaryOperator.MINUS
+          || operator == JBinaryExpression.BinaryOperator.MINUS) {
+        this.dependencies.put(pVariable, new AExpressionFactory().from(weight).negate().build());
+      } else {
+        this.dependencies.put(pVariable, weight);
+      }
     }
     return true;
   }

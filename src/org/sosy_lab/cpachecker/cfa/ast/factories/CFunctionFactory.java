@@ -27,14 +27,17 @@ public class CFunctionFactory {
     if (pType instanceof CSimpleType) {
       switch (((CSimpleType) pType).getType()) {
         case BOOL:
+          nondetFunctionName = "__VERIFIER_nondet_bool";
           break;
         case CHAR:
+          nondetFunctionName = "__VERIFIER_nondet_char";
           break;
         case DOUBLE:
+          nondetFunctionName = "__VERIFIER_nondet_double";
           break;
         case FLOAT:
-          break;
         case FLOAT128:
+          nondetFunctionName = "__VERIFIER_nondet_float";
           break;
         case INT:
         case INT128:

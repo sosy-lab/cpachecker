@@ -55,17 +55,17 @@ public class VariableCollectorVisitor<X extends Exception>
   @Override
   public Set<AVariableDeclaration> visit(CAddressOfLabelExpression pAddressOfLabelExpression)
       throws X {
-    return pAddressOfLabelExpression.accept(this);
+    return new HashSet<>();
   }
 
   @Override
   public Set<AVariableDeclaration> visit(CFieldReference pIastFieldReference) throws X {
-    return pIastFieldReference.accept(this);
+    return pIastFieldReference.getFieldOwner().accept(this);
   }
 
   @Override
   public Set<AVariableDeclaration> visit(CPointerExpression pPointerExpression) throws X {
-    return pPointerExpression.accept(this);
+    return pPointerExpression.getOperand().accept(this);
   }
 
   @Override
@@ -123,7 +123,9 @@ public class VariableCollectorVisitor<X extends Exception>
 
   @Override
   public Set<AVariableDeclaration> visit(AArraySubscriptExpression pExp) throws X {
-    return pExp.accept_(this);
+    Set<AVariableDeclaration> result = pExp.getArrayExpression().accept_(this);
+    result.addAll(pExp.getSubscriptExpression().accept_(this));
+    return result;
   }
 
   @Override

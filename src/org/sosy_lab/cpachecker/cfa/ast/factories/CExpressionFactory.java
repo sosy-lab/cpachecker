@@ -53,7 +53,10 @@ public class CExpressionFactory implements IExpressionFactory {
   public CExpressionFactory from(Number pValue, CType pType) {
     if (pType instanceof CSimpleType) {
       if (((CSimpleType) pType).getType() == CBasicType.INT
-          || ((CSimpleType) pType).getType() == CBasicType.INT128) {
+          || ((CSimpleType) pType).getType() == CBasicType.INT128
+          || ((CSimpleType) pType).isLong()
+          || ((CSimpleType) pType).isLongLong()
+          || ((CSimpleType) pType).isUnsigned()) {
         this.currentExpression =
             CIntegerLiteralExpression.createDummyLiteral(pValue.longValue(), pType);
       } else if (((CSimpleType) pType).getType() == CBasicType.FLOAT
