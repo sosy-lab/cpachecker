@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -24,10 +23,9 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.factories.AFunctionFactory;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -35,8 +33,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.GhostCFA;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyInterface;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -84,25 +80,7 @@ public class NaiveLoopAccelerationStrategy extends AbstractLoopStrategy {
       // TODO improve for Java
       CIdExpression leftHandSide = new CIdExpression(FileLocation.DUMMY, (CSimpleDeclaration) pc);
       CFunctionCallExpression rightHandSide =
-          new CFunctionCallExpression(
-              FileLocation.DUMMY,
-              (CType) pc.getType(),
-              new CIdExpression(
-                  FileLocation.DUMMY,
-                  new CFunctionDeclaration(
-                      FileLocation.DUMMY,
-                      new CFunctionTypeWithNames(
-                          (CType) pc.getType(), new ArrayList<CParameterDeclaration>(), false),
-                      "__VERIFIER_nondet_" + pc.getType(),
-                      new ArrayList<CParameterDeclaration>())),
-              new ArrayList<CExpression>(),
-              new CFunctionDeclaration(
-                  FileLocation.DUMMY,
-                  new CFunctionTypeWithNames(
-                      (CType) pc.getType(), new ArrayList<CParameterDeclaration>(), false),
-                  "__VERIFIER_nondet_" + pc.getType(),
-                  "__VERIFIER_nondet_" + pc.getType(),
-                  new ArrayList<CParameterDeclaration>())); // TODO Improve this
+          (CFunctionCallExpression) new AFunctionFactory().callNondetFunction(pc.getType());
       CFunctionCallAssignmentStatement cStatementEdge =
           new CFunctionCallAssignmentStatement(FileLocation.DUMMY, leftHandSide, rightHandSide);
       CFAEdge dummyEdge =

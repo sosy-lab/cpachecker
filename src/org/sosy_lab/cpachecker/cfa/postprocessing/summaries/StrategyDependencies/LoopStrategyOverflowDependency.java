@@ -11,23 +11,8 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencie
 import java.util.ArrayList;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyInterface;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops.ConstantExtrapolationStrategy;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops.LinearExtrapolationStrategy;
 
-public class LoopStrategyOverflowDependency implements StrategyDependencyInterface {
-
-  @Override
-  public boolean apply(StrategyInterface pStrategy, Integer pIteration) {
-    if (pStrategy instanceof ConstantExtrapolationStrategy && pIteration >= 0) {
-      return true;
-    } else if (pStrategy instanceof LinearExtrapolationStrategy && pIteration >= 1) {
-      return true;
-    } else if (pIteration >= 2) {
-      return true;
-    }
-    return false;
-  }
+public class LoopStrategyOverflowDependency extends LoopStrategyDependency {
 
   @Override
   public List<StrategiesEnum> filter(List<StrategiesEnum> pAvailableStrategies) {
@@ -50,12 +35,4 @@ public class LoopStrategyOverflowDependency implements StrategyDependencyInterfa
     return preferredStrategies;
   }
 
-  @Override
-  public boolean stopPostProcessing(Integer pIteration, boolean pChangesInCFA) {
-    if (pIteration < 3) {
-      return false;
-    } else {
-      return !pChangesInCFA;
-    }
-  }
 }

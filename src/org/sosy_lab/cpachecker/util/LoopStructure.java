@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.factories.AExpressionFactory;
 import org.sosy_lab.cpachecker.cfa.ast.visitors.AggregateConstantsVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.visitors.LinearVariableDependencyVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.visitors.OnlyConstantVariableIncrementsVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.visitors.VariableCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
@@ -619,6 +620,7 @@ public final class LoopStructure implements Serializable {
 
     public boolean hasOnlyConstantVariableModifications() {
       if (onlyConstantVariableModifications == null) {
+        onlyConstantVariableModifications = true;
         // Calculate the value if it is not present
         for (CFAEdge e : this.getInnerLoopEdges()) {
           if (e instanceof AStatementEdge) {
@@ -628,18 +630,22 @@ public final class LoopStructure implements Serializable {
               ALeftHandSide leftHandSide = assignment.getLeftHandSide();
               ARightHandSide rightHandSide = assignment.getRightHandSide();
               if (leftHandSide instanceof AIdExpression && rightHandSide instanceof AExpression) {
-                AggregateConstantsVisitor<Exception> visitor =
-                    new AggregateConstantsVisitor<>(
+                OnlyConstantVariableIncrementsVisitor<Exception> visitor =
+                    new OnlyConstantVariableIncrementsVisitor<>(
                         Optional.of(
-                            ImmutableSet.of((AVariableDeclaration)((AIdExpression) leftHandSide).getDeclaration())),
-                        true);
-                Optional<Integer> valueOptional = Optional.empty();
+                            ImmutableSet.of(
+                                (AVariableDeclaration)
+                                    ((AIdExpression) leftHandSide).getDeclaration())));
                 try {
-                  valueOptional = ((AExpression) rightHandSide).accept_(visitor);
+                  onlyConstantVariableModifications =
+                      onlyConstantVariableModifications
+                          && ((AExpression) rightHandSide).accept_(visitor);
                 } catch (Exception e1) {
-                  onlyConstantVariableModifications = null;
+                  onlyConstantVariableModifications = Boolean.valueOf(false);
                 }
-                onlyConstantVariableModifications = Boolean.valueOf(valueOptional.isPresent());
+                if (!onlyConstantVariableModifications.booleanValue()) {
+                  break;
+                }
               }
             }
           }
@@ -660,6 +666,7 @@ public final class LoopStructure implements Serializable {
         }
 
         // Calculate the value if it is not present
+        onlyLinearVariableModifications = true;
         for (CFAEdge e : this.getInnerLoopEdges()) {
           if (e instanceof AStatementEdge) {
             AStatementEdge stmtEdge = (AStatementEdge) e;
@@ -674,9 +681,13 @@ public final class LoopStructure implements Serializable {
                 try {
                   valueOptional = ((AExpression) rightHandSide).accept_(visitor);
                 } catch (Exception e1) {
-                  onlyLinearVariableModifications = null;
+                  onlyLinearVariableModifications = false;
                 }
-                onlyLinearVariableModifications = Boolean.valueOf(valueOptional.isPresent());
+                onlyLinearVariableModifications =
+                    onlyLinearVariableModifications && Boolean.valueOf(valueOptional.isPresent());
+                if (!onlyLinearVariableModifications.booleanValue()) {
+                  break;
+                }
               }
             }
           }
