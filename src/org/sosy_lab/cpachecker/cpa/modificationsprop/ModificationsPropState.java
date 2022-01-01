@@ -2,7 +2,7 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2007-2021 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2007-2022 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.modificationsprop;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayDeque;
+import java.util.Arrays;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -137,6 +138,7 @@ public final class ModificationsPropState
     return Objects.equals(locationInOriginalCfa, that.locationInOriginalCfa)
         && Objects.equals(locationInGivenCfa, that.locationInGivenCfa)
         && Objects.equals(changedVariables, that.changedVariables)
+        && Arrays.equals(originalStack.toArray(), that.originalStack.toArray())
         && (isBad == that.isBad);
   }
 
@@ -224,7 +226,7 @@ public final class ModificationsPropState
     // If locations differ, we should never call join. The merge operator used guarantees that.
     assert locationInGivenCfa.equals(pOther.locationInGivenCfa);
     assert locationInOriginalCfa.equals(pOther.locationInOriginalCfa);
-    assert originalStack.equals(pOther.originalStack);
+    assert Arrays.equals(originalStack.toArray(), pOther.originalStack.toArray());
 
     // The first (with pBad || pOther.bad) and last case would semantically be sufficient. However,
     // we want to reuse as many state objects as possible for efficiency.
@@ -258,7 +260,7 @@ public final class ModificationsPropState
     // location pair must be identical
     return Objects.equals(locationInOriginalCfa, pOther.locationInOriginalCfa)
         && Objects.equals(locationInGivenCfa, pOther.locationInGivenCfa)
-        && Objects.equals(originalStack, pOther.originalStack)
+        && Arrays.equals(originalStack.toArray(), pOther.originalStack.toArray())
         // if this state is bad, the other one must be bad as well
         && (pOther.isBad || !isBad)
         // variables modifier must be a subset, else join is necessary

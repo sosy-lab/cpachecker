@@ -2,7 +2,7 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2007-2021 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2007-2022 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
@@ -201,15 +201,7 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
   @Override
   public MergeOperator getMergeOperator() {
     // check equality of location tuple and merge by joining then
-    return variableSetMerge
-        ? new MergeJoinOnOperator<>(
-            getAbstractDomain(),
-            new ImmutableSet.Builder<Function<ModificationsPropState, Object>>()
-                .add(mps -> mps.getLocationInGivenCfa())
-                .add(mps -> mps.getLocationInOriginalCfa())
-                .add(mps -> mps.getOriginalStack())
-                .build())
-        : new MergeSepOperator();
+    return variableSetMerge ? new ModificationsPropMergeOperator() : new MergeSepOperator();
   }
 
   @Override
