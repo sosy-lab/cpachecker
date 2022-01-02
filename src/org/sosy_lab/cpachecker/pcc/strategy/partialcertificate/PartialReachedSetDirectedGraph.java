@@ -12,6 +12,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -125,8 +126,9 @@ public class PartialReachedSetDirectedGraph implements Statistics {
     return getNumEdgesBetween(Sets.newHashSet(pSrcNodeIndex), pDstNodeSetIndices);
   }
 
-  public AbstractState[] getSetNodes(final Set<Integer> pNodeSetIndices,
-      final boolean pAsARGState) {
+  @SuppressFBWarnings(value = "DCN_NULLPOINTER_EXCEPTION", justification = "rethrown as other type")
+  public AbstractState[] getSetNodes(
+      final Set<Integer> pNodeSetIndices, final boolean pAsARGState) {
     List<AbstractState> listRes = new ArrayList<>();
 
     try {
@@ -139,9 +141,11 @@ public class PartialReachedSetDirectedGraph implements Statistics {
         }
       }
     } catch (ArrayIndexOutOfBoundsException | NullPointerException e) {
+      // TODO better style would be to check arguments first instead of catching exceptions
+      // that could also come from other bugs.
       throw new IllegalArgumentException(
-          "Wrong index set must not be null and all indices must be within [0;" + numNodes
-              + "-1].");
+          "Wrong index set must not be null and all indices must be within [0;" + numNodes + "-1].",
+          e);
     }
     return listRes.toArray(new AbstractState[0]);
   }
@@ -234,6 +238,7 @@ public class PartialReachedSetDirectedGraph implements Statistics {
     }
   }
 
+  @SuppressFBWarnings(value = "DCN_NULLPOINTER_EXCEPTION", justification = "rethrown as other type")
   private void visitOutsideSuccessors(final Set<Integer> pNodeSet, final NodeVisitor pVisitor) {
     try {
       Predicate<Integer> isOutsideSet = pNode -> !pNodeSet.contains(pNode);
@@ -241,22 +246,26 @@ public class PartialReachedSetDirectedGraph implements Statistics {
         visitOutsideSuccessorsOf(predecessor, pVisitor, isOutsideSet);
       }
     } catch (ArrayIndexOutOfBoundsException | NullPointerException e) {
+      // TODO better style would be to check arguments first instead of catching exceptions
+      // that could also come from other bugs.
       throw new IllegalArgumentException(
-          "Wrong index set must not be null and all indices be within [0;" + numNodes
-              + "-1].");
+          "Wrong index set must not be null and all indices be within [0;" + numNodes + "-1].", e);
     }
   }
 
-  private void visitOutsideAdjacentNodes(final Set<Integer> pSrcNodeSetIndices,
+  @SuppressFBWarnings(value = "DCN_NULLPOINTER_EXCEPTION", justification = "rethrown as other type")
+  private void visitOutsideAdjacentNodes(
+      final Set<Integer> pSrcNodeSetIndices,
       final Set<Integer> pDstNodeSetIndices,
       final NodeVisitor pVisitor) {
     try {
       visitSuccessorsInOtherSet(pSrcNodeSetIndices, pDstNodeSetIndices, pVisitor);
       visitSuccessorsInOtherSet(pDstNodeSetIndices, pSrcNodeSetIndices, pVisitor);
     } catch (ArrayIndexOutOfBoundsException | NullPointerException e) {
+      // TODO better style would be to check arguments first instead of catching exceptions
+      // that could also come from other bugs.
       throw new IllegalArgumentException(
-          "Wrong index set must not be null and all indices be within [0;" + numNodes
-              + "-1].");
+          "Wrong index set must not be null and all indices be within [0;" + numNodes + "-1].", e);
     }
   }
 
