@@ -14,7 +14,9 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.collect.FluentIterable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
@@ -64,6 +66,38 @@ public class CorrespondingEdgeProvider {
         returnEdge != null, "CFunctionSummaryEdge without corresponding CFunctionReturnEdge.");
 
     return returnEdge;
+  }
+
+  /**
+   * Given an assume edge that marks the start of a loop, this function will find the corresponding
+   * assume edge that contains the opposite condition. If this edge is not present an exception is
+   * thrown because this state is illegal.
+   */
+  public static CAssumeEdge findCorrespondingAssumeEdge(CAssumeEdge originalEdge) {
+    CFANode predecessorNode = originalEdge.getPredecessor();
+    CAssumeEdge correspondingAssumeEdge = null;
+
+    for (CFAEdge currentEdge : CFAUtils.leavingEdges(predecessorNode)) {
+
+      if (currentEdge instanceof CAssumeEdge) {
+        CAssumeEdge currentAssumeEdge = (CAssumeEdge) currentEdge;
+        if (isOppositeCondition(originalEdge, currentAssumeEdge)) {
+          correspondingAssumeEdge = currentAssumeEdge;
+          break;
+        }
+      }
+    }
+
+    checkState(
+        correspondingAssumeEdge != null,
+        "AssumeEdge in loop start without corresponding opposite condition.");
+
+    return correspondingAssumeEdge;
+  }
+
+  public static boolean isOppositeCondition(CAssumeEdge edge1, CAssumeEdge edge2) {
+    return edge1.getFileLocation().equals(edge2.getFileLocation())
+        && edge1.getTruthAssumption() != edge2.getTruthAssumption();
   }
 
   /**

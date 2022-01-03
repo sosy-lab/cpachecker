@@ -70,17 +70,26 @@ public class CFAMutator {
   }
 
   /* EDGES  */
-  private Stream<SimpleMutation> generateAssumeEdgeMutations(CAssumeEdge originalAssumeEdge) {
-
+  private Stream<Mutation> generateAssumeEdgeMutations(CAssumeEdge originalAssumeEdge) {
     return ExpressionMutator.calcMutationsFor(originalAssumeEdge.getExpression(), cfa)
         .map(
             alternativeExpression -> {
-              final SimpleEdgeMutator edgeMutator =
-                  new SimpleEdgeMutator(cfa, config, logger, originalAssumeEdge);
-              return new SimpleMutation(
-                  originalAssumeEdge,
-                  edgeMutator.replaceExpressionInAssumeEdge(alternativeExpression),
-                  cfa);
+              final boolean cond = originalAssumeEdge.getPredecessor().isLoopStart();
+              if (cond) {
+                final LoopConditionEdgeMutator edgeMutator =
+                    new LoopConditionEdgeMutator(cfa, config, logger, originalAssumeEdge);
+                return new LoopConditionMutation(
+                    originalAssumeEdge,
+                    edgeMutator.replaceExpressionInLoopConditionAggregate(alternativeExpression),
+                    edgeMutator.getClonedCFA());
+              } else {
+                final SimpleEdgeMutator edgeMutator =
+                    new SimpleEdgeMutator(cfa, config, logger, originalAssumeEdge);
+                return new SimpleMutation(
+                    originalAssumeEdge,
+                    edgeMutator.replaceExpressionInAssumeEdge(alternativeExpression),
+                    edgeMutator.getClonedCFA());
+              }
             });
   }
 
@@ -95,7 +104,7 @@ public class CFAMutator {
               return new SimpleMutation(
                   originalStatementEdge,
                   edgeMutator.replaceStatementInStatementEdge(newStatement),
-                  cfa);
+                  edgeMutator.getClonedCFA());
             });
   }
 
@@ -127,7 +136,8 @@ public class CFAMutator {
               FunctionCallEdgeAggregate newFunctionCallEdgeAggregate =
                   functionCallMutator.replaceFunctionCall(newFunctionCall);
 
-              return new FunctionCallMutation(originalEdge, newFunctionCallEdgeAggregate, cfa);
+              return new FunctionCallMutation(
+                  originalEdge, newFunctionCallEdgeAggregate, functionCallMutator.getClonedCFA());
             });
   }
 
@@ -154,7 +164,7 @@ public class CFAMutator {
                   originalReturnStatementEdge,
                   edgeMutator.replaceReturnExpressionInReturnStatementEdge(
                       returnStatement, assignment),
-                  cfa);
+                  edgeMutator.getClonedCFA());
             });
   }
 }
