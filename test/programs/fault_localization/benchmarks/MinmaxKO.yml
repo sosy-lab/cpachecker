@@ -7,7 +7,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 format_version: '1.0'
-input_files: 'TritypeKO4.c'
+input_files: 'MinmaxKO.c'
 
 properties:
   - property_file: ../../../../config/properties/unreach-label.prp

@@ -7,8 +7,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 format_version: '1.0'
-input_files: 'middleNumber.c'
+input_files: 'middleNumber1.c'
 
 properties:
-  - property_file: ../../../../config/properties/unreach-label.prp
+  - property_file: ../../../../../config/properties/unreach-label.prp
     expected_verdict: false
