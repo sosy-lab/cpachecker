@@ -24,7 +24,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
 
-@Options(prefix = "cpa.loopsummary")
+@Options(prefix = "cegar.refiner.summaries")
 public class SummaryBasedRefiner implements Refiner, StatisticsProvider {
 
   private final LogManager logger;

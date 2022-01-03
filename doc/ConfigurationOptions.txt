@@ -756,6 +756,9 @@ cegar.maxIterations = -1
 # omitted.
 cegar.refiner = no default value
 
+# Max amount of first refinements.
+cegar.refiner.summaries.maxAmntFirstRefinements = 100
+
 # whether or not to use refinement selection to decide which domain to refine
 cegar.useRefinementSelection = false
 
@@ -1868,9 +1871,6 @@ cpa.loopbound.startAtBound = 0
 
 # enable stack-based tracking of loops
 cpa.loopbound.trackStack = false
-
-# Max amount of first refinements.
-cpa.loopsummary.maxAmntFirstRefinements = 100
 
 # Where to perform abstraction
 cpa.lpi.abstractionLocations = LOOPHEAD

@@ -69,6 +69,9 @@ public class NondetBoundConstantExtrapolationStrategy extends ConstantExtrapolat
     CFunctionCallExpression rightHandSide =
         (CFunctionCallExpression)
             new AFunctionFactory().callNondetFunction(iterationsVariableDeclaration.getType());
+    if (rightHandSide == null) {
+      return Optional.empty();
+    }
     CFunctionCallAssignmentStatement cStatementEdge =
         new CFunctionCallAssignmentStatement(
             FileLocation.DUMMY, iterationsVariableExpression, rightHandSide);

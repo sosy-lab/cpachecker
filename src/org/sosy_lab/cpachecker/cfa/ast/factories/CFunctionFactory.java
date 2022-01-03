@@ -73,6 +73,9 @@ public class CFunctionFactory {
 
   public CFunctionCallExpression callNondetFunction(CType pType) {
     CFunctionDeclaration functionDeclaration = this.declareNondetFunction(pType);
+    if (functionDeclaration == null) {
+      return null;
+    }
     return new CFunctionCallExpression(
         FileLocation.DUMMY,
         pType,
@@ -83,6 +86,9 @@ public class CFunctionFactory {
 
   public CFunctionDeclaration declareNondetFunction(CType pType) {
     String nondetFunctionName = this.getNondetFunctionName(pType);
+    if (nondetFunctionName == null) {
+      return null;
+    }
     return new CFunctionDeclaration(
         FileLocation.DUMMY,
         new CFunctionTypeWithNames(pType, new ArrayList<CParameterDeclaration>(), false),

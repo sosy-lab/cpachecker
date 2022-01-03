@@ -15,11 +15,11 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.SummaryStrategyRefin
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
-import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.util.CPAs;
 
 public abstract class SummaryPredicateRefiner implements Refiner {
 
+  @SuppressWarnings("resource")
   public static Refiner create(ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
     LogManager logger;
@@ -29,7 +29,7 @@ public abstract class SummaryPredicateRefiner implements Refiner {
     logger = argCpa.getLogger();
 
     return new SummaryBasedRefiner(
-        AbstractARGBasedRefiner.forARGBasedRefiner(PredicateRefiner.create0(pCpa), pCpa),
+        PredicateRefiner.create(pCpa),
         new SummaryStrategyRefiner(logger, pCpa, argCpa.getCfa()),
         logger,
         pCpa,

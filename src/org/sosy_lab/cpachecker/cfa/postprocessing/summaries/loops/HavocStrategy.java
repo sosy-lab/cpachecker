@@ -80,6 +80,9 @@ public class HavocStrategy extends AbstractLoopStrategy {
       CIdExpression leftHandSide = new CIdExpression(FileLocation.DUMMY, (CSimpleDeclaration) pc);
       CFunctionCallExpression rightHandSide =
           (CFunctionCallExpression) new AFunctionFactory().callNondetFunction(pc.getType());
+      if (rightHandSide == null) {
+        return Optional.empty();
+      }
       CFunctionCallAssignmentStatement cStatementEdge =
           new CFunctionCallAssignmentStatement(FileLocation.DUMMY, leftHandSide, rightHandSide);
       CFAEdge dummyEdge =
