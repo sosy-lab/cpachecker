@@ -22,8 +22,9 @@
   <requiredfiles>../config/automaticProgramRepair.properties</requiredfiles>
 
   <tasks>
-    <include>../programs/automatic_program_repair/*.yml</include>
     <include>../programs/fault_localization/*.yml</include>
+    <include>../programs/fault_localization/benchmarks/*.yml</include>
+    <include>../programs/fault_localization/benchmarks/*/*.yml</include>
   </tasks>
 
   <columns>
@@ -31,8 +32,7 @@
     <column title="cpa time">time for CPA algorithm</column>
     <column title="reached">Size of reached set</column>
     <column title="fix found">Fix found</column>
-    <!--<column title="edge type fixed">Edge type fixed</column>-->
-
+    <column title="edge type fixed">Edge type fixed</column>
   </columns>
 </benchmark>
 

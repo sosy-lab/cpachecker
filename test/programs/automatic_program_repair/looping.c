@@ -10,17 +10,14 @@ extern int __VERIFIER_nondet_int();
 
 int main(){
 
-	//calculate 10%3 manually
-	int a = 10;
-	int b = 3;
+	int a = 3;
 
-	while(a >= 0)
-		a -= b;
-	a = -a - b; // FIX: a = - (-a - b) or a = a + b
+	while(a > 1) { // FIX a >= 1
+            a -= 1;
+	}
 
-	//POST-CONDITION check if manual computation is right (10%3 = 1)
-	if(a!=1)
-		goto ERROR;
+	if(a!=0)
+            goto ERROR;
 	
 
 EXIT: return 0;
