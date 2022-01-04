@@ -15,6 +15,7 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -34,8 +35,6 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.components.state_transformer.AnyStateTransformer;
-import org.sosy_lab.cpachecker.core.algorithm.components.util.MessageLogger;
-import org.sosy_lab.cpachecker.core.algorithm.components.util.MessageLogger.Action;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -44,6 +43,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.block.BlockStartReachedTargetInformation;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
@@ -55,7 +55,6 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pretty_print.BooleanFormulaParser;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -78,7 +77,6 @@ public abstract class BlockAnalysis {
 
   protected final BlockNode block;
   protected final LogManager logger;
-  protected final MessageLogger actionLogger;
 
   protected AlgorithmStatus status;
 
@@ -122,7 +120,6 @@ public abstract class BlockAnalysis {
     logger = pLogger;
 
     transformer = new AnyStateTransformer(pId);
-    actionLogger = new MessageLogger(block, logger);
   }
 
   public Optional<CFANode> abstractStateToLocation(AbstractState state) {
@@ -156,9 +153,7 @@ public abstract class BlockAnalysis {
       if (optionalLocation.isPresent() && optionalLocation.orElseThrow().equals(targetNode)) {
         BooleanFormula formula =
             transformer.safeTransform(abstractState, fmgr, direction, block.getId());
-        if (!fmgr.getBooleanFormulaManager().isTrue(formula)) {
-          formulas.put(abstractState, formula);
-        }
+        formulas.put(abstractState, formula);
       }
     }
     return formulas;
@@ -265,8 +260,14 @@ public abstract class BlockAnalysis {
     return status;
   }
 
-  public abstract Message analyze(PathFormula condition, CFANode node)
+  public abstract Collection<Message> analyze(PathFormula condition, CFANode node)
       throws CPAException, InterruptedException, SolverException;
+
+  public boolean cantContinue(String currentPreCondition, String receivedPostCondition)
+      throws SolverException, InterruptedException {
+    return solver.isUnsat(
+        bmgr.and(fmgr.parse(currentPreCondition), fmgr.parse(receivedPostCondition)));
+  }
 
   public static class ForwardAnalysis extends BlockAnalysis {
 
@@ -284,34 +285,49 @@ public abstract class BlockAnalysis {
     }
 
     @Override
-    public Message analyze(PathFormula condition, CFANode node)
+    public Collection<Message> analyze(PathFormula condition, CFANode node)
         throws CPAException, InterruptedException {
       reachedSet.clear();
       reachedSet.add(getStartState(condition, node), emptyPrecision);
       status = algorithm.run(reachedSet);
-      Optional<ARGState> targetState = from(reachedSet).filter(AbstractStates::isTargetState)
-          .filter(ARGState.class).first().toJavaUtil();
-      if (targetState.isPresent()) {
-        Optional<CFANode> targetNode =
-            abstractStateToLocation(targetState.orElseThrow());
-        if (targetNode.isEmpty()) {
-          throw new AssertionError(
-              "States need to have a location but they do not:" + targetState.orElseThrow());
-        }
-        return Message.newPostconditionMessage(block.getId(),
-            targetNode.orElseThrow().getNodeNumber(), bmgr.makeTrue(),
-            fmgr, true);
+      Set<ARGState> targetStates = from(reachedSet).filter(AbstractStates::isTargetState)
+          .filter(ARGState.class).copyInto(new HashSet<>());
+      if (targetStates.isEmpty()) {
+        //throw new AssertionError("At least one target state has to exist (block start)");
       }
+
+      // find violations for potential backward analysis
+      Set<Message> answers = new HashSet<>();
+      for (ARGState targetState : targetStates) {
+        int startInfos = from(targetState.getTargetInformation()).filter(
+            BlockStartReachedTargetInformation.class).size();
+        if (targetState.getTargetInformation().size() > startInfos) {
+          Optional<CFANode> targetNode =
+              abstractStateToLocation(targetState);
+          if (targetNode.isEmpty()) {
+            throw new AssertionError(
+                "States need to have a location but this one does not:" + targetState);
+          }
+          answers.add(Message.newErrorConditionMessage(block.getId(),
+              targetNode.orElseThrow().getNodeNumber(), bmgr.makeTrue(),
+              fmgr, true));
+          break;
+        }
+      }
+
+      // find all states with location at the end, make formula
       Map<AbstractState, BooleanFormula>
           formulas = transformReachedSet(reachedSet, block.getLastNode(),
           AnalysisDirection.FORWARD);
       BooleanFormula result = formulas.isEmpty() ? bmgr.makeTrue() : bmgr.or(formulas.values());
-      actionLogger.log(Action.FORWARD,
-          BooleanFormulaParser.parse(condition.getFormula()).toString(),
-          BooleanFormulaParser.parse(result).toString());
-      return Message.newPreconditionMessage(block.getId(), block.getLastNode().getNodeNumber(),
-          result,
-          fmgr);
+      if (!formulas.isEmpty() || block.getPredecessors().isEmpty()) {
+        Message response = Message.newBlockPostCondition(block.getId(), block.getLastNode().getNodeNumber(),
+            result,
+            fmgr,
+            block.getPredecessors().isEmpty());
+        answers.add(response);
+      }
+      return answers;
     }
   }
 
@@ -331,7 +347,7 @@ public abstract class BlockAnalysis {
     }
 
     @Override
-    public Message analyze(PathFormula condition, CFANode node)
+    public Collection<Message> analyze(PathFormula condition, CFANode node)
         throws CPAException, InterruptedException, SolverException {
       reachedSet.clear();
       reachedSet.add(getStartState(condition, node), emptyPrecision);
@@ -339,23 +355,71 @@ public abstract class BlockAnalysis {
       Map<AbstractState, BooleanFormula>
           formulas = transformReachedSet(reachedSet, block.getStartNode(),
           AnalysisDirection.BACKWARD);
-      BooleanFormula result = formulas.isEmpty() ? bmgr.makeTrue() : bmgr.or(formulas.values());
-      // by definition: if the post-condition reaches the root element, the specification is violated
-      actionLogger.log(Action.BACKWARD,
-          BooleanFormulaParser.parse(condition.getFormula()).toString(),
-          BooleanFormulaParser.parse(result).toString());
-      if (block.getPredecessors().isEmpty() && !solver.isUnsat(result)) {
-          return Message.newResultMessage(block.getId(), block.getStartNode().getNodeNumber(),
-              Result.FALSE);
+      BooleanFormula result = formulas.isEmpty() ? bmgr.makeFalse() : bmgr.or(formulas.values());
+      if (bmgr.isFalse(result)) {
+        return ImmutableSet.of(Message.newErrorConditionUnreachableMessage(block.getId()));
       }
-      return Message.newPostconditionMessage(block.getId(), block.getStartNode().getNodeNumber(),
-          result, fmgr, false);
+      // by definition: if the post-condition reaches the root element, the specification is violated
+      return ImmutableSet.of(Message.newErrorConditionMessage(block.getId(), block.getStartNode().getNodeNumber(),
+          result, fmgr, false));
+    }
+  }
+
+  public static class NoOpAnalysis extends BlockAnalysis {
+
+    private boolean hasSentFirstMessage;
+
+    public NoOpAnalysis(
+        String pId,
+        LogManager pLogger,
+        BlockNode pBlock,
+        CFA pCFA,
+        AnalysisDirection pDirection,
+        Specification pSpecification,
+        Configuration pConfiguration,
+        ShutdownManager pShutdownManager)
+        throws CPAException, InterruptedException, InvalidConfigurationException, IOException {
+      super(pId, pLogger, pBlock, pCFA, pDirection, pSpecification, pConfiguration,
+          pShutdownManager);
     }
 
-    public boolean cantContinue(String currentPreCondition, String receivedPostCondition)
-        throws SolverException, InterruptedException {
-      return solver.isUnsat(
-          bmgr.and(fmgr.parse(currentPreCondition), fmgr.parse(receivedPostCondition)));
+    @Override
+    public Collection<Message> analyze(
+        PathFormula condition, CFANode node)
+        throws CPAException, InterruptedException, SolverException {
+      if (hasSentFirstMessage) {
+        return ImmutableSet.of();
+      }
+      hasSentFirstMessage = true;
+      return ImmutableSet.of(Message.newBlockPostCondition(block.getId(), node.getNodeNumber(), bmgr.makeTrue(), fmgr, true));
+    }
+  }
+
+  public static class SatCheckAnalysis extends BlockAnalysis {
+
+    public SatCheckAnalysis(
+        String pId,
+        LogManager pLogger,
+        BlockNode pBlock,
+        CFA pCFA,
+        AnalysisDirection pDirection,
+        Specification pSpecification,
+        Configuration pConfiguration,
+        ShutdownManager pShutdownManager)
+        throws CPAException, InterruptedException, InvalidConfigurationException, IOException {
+      super(pId, pLogger, pBlock, pCFA, pDirection, pSpecification, pConfiguration,
+          pShutdownManager);
+    }
+
+    @Override
+    public Collection<Message> analyze(
+        PathFormula condition, CFANode node)
+        throws CPAException, InterruptedException, SolverException {
+      if (!solver.isUnsat(condition.getFormula())) {
+        return ImmutableSet.of(Message.newResultMessage(block.getId(), block.getStartNode().getNodeNumber(),
+            Result.FALSE));
+      }
+      return ImmutableSet.of();
     }
   }
 }
