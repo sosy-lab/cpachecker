@@ -454,6 +454,17 @@ public class CPAchecker {
     return new CPAcheckerResult(result, targetDescription, reached, cfa, stats);
   }
 
+  public boolean isResultTrue(ReachedSet reached, AlgorithmStatus status){
+      if (status.wasPropertyChecked() && !reached.wasTargetReached()) {
+        Result result = analyzeResult(reached, status.isSound());
+        if (unknownAsTrue && result == Result.UNKNOWN) {
+          return true;
+        }
+        return result ==  Result.TRUE;
+      }
+      return false;
+  }
+
   private CFA parse(List<String> fileNames, MainCPAStatistics stats)
       throws InvalidConfigurationException, IOException, ParserException, InterruptedException,
       ClassNotFoundException {

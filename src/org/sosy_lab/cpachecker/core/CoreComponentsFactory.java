@@ -450,7 +450,7 @@ public class CoreComponentsFactory {
         && !useProofCheckAlgorithmWithStoredConfig
         && !useRestartingAlgorithm
         && !useImpactAlgorithm
-        && (useBMC || useIMC || useISMC || useInvariantExportAlgorithm);
+        && (useBMC || useIMC || useISMC || useInvariantExportAlgorithm || useAutomaticProgramRepair);
   }
 
   public Algorithm createAlgorithm(
@@ -738,7 +738,8 @@ public class CoreComponentsFactory {
             new FaultLocalizationWithTraceFormula(algorithm, config, logger, cfa, shutdownNotifier);
       }
       if(useAutomaticProgramRepair) {
-        algorithm = new AutomaticProgramRepair(algorithm, config, logger, cfa, specification, shutdownNotifier);
+        verifyNotNull(shutdownManager);
+        algorithm = new AutomaticProgramRepair(algorithm, config, logger, cfa, specification, shutdownNotifier, shutdownManager);
       }
     }
 

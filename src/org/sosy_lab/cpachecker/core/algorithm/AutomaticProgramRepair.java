@@ -23,6 +23,7 @@ import java.util.Optional;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Optionals;
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.AnnotatedValue;
 import org.sosy_lab.common.configuration.Configuration;
@@ -38,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.automatic_program_repair.CFAMutator;
@@ -73,6 +75,7 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
   private final CFA cfa;
   private final Specification specification;
   private final ShutdownNotifier shutdownNotifier;
+  private final ShutdownManager shutdownManager;
 
   private final StatTimer totalTime = new StatTimer("Total time for bug repair");
   private boolean fixFound = false;
@@ -89,7 +92,8 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
       final LogManager pLogger,
       final CFA pCfa,
       final Specification pSpecification,
-      final ShutdownNotifier pShutdownNotifier)
+      final ShutdownNotifier pShutdownNotifier,
+      final ShutdownManager pShutdownManager)
       throws InvalidConfigurationException {
 
     if (!(pStoreAlgorithm instanceof FaultLocalizationWithTraceFormula)) {
@@ -110,6 +114,8 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
 
     specification = pSpecification;
     shutdownNotifier = pShutdownNotifier;
+    shutdownManager = pShutdownManager;
+
     pConfig.inject(this);
   }
 
@@ -154,7 +160,7 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
             .filter(
                 (Mutation mutation) -> {
                   try {
-                    return rerun(mutation.getCFA()).wasTargetReached();
+                    return wasRepairSuccessful(mutation.getCFA());
                   } catch (InvalidConfigurationException e) {
                     logger.logUserException(Level.SEVERE, e, "Invalid configuration");
                     return false;
@@ -163,9 +169,8 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
                     return false;
                   } catch (InterruptedException | CPAException e) {
                     // The exception can't be propagated here, because we're overwriting a method in
-                    // which the
-                    // method signature cannot be changed. Thus, we have to throw an unchecked
-                    // exceptions here.
+                    // which the method signature cannot be changed. Thus, we have to throw an
+                    // unchecked exceptions here.
                     throw new AutomaticProgramRepairException(e.getMessage(), e);
                   }
                 })
@@ -197,9 +202,11 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
     logger.log(Level.INFO, "No fix found. \n" + faultLocalizationInfo);
   }
 
-  private ReachedSet rerun(CFA mutatedCFA)
+  private boolean wasRepairSuccessful(CFA mutatedCFA)
       throws CPAException, InterruptedException, InvalidConfigurationException, IOException {
     Configuration internalAnalysisConfig = buildSubConfig(internalAnalysisConfigFile.value());
+
+    CPAchecker cpaChecker = new CPAchecker(internalAnalysisConfig, logger, shutdownManager);
 
     CoreComponentsFactory coreComponents =
         new CoreComponentsFactory(
@@ -214,9 +221,9 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
     ReachedSet reached =
         createInitialReachedSet(cpa, mutatedCFA.getMainFunction(), coreComponents, logger);
 
-    algo.runParentAlgorithm(reached);
+    AlgorithmStatus status = algo.runParentAlgorithm(reached);
 
-    return reached;
+    return cpaChecker.isResultTrue(reached, status);
   }
 
   // TODO temp solution: copied from NestingAlgorithm
