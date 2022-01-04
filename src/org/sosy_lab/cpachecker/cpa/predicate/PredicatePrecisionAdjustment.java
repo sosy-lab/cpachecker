@@ -57,9 +57,8 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   private final TimerWrapper totalPrecTime;
   private final TimerWrapper computingAbstractionTime;
 
-  // TODO abbrechen wenn neue infos
-  @Option(description = "", secure = true)
-  private boolean abstractAtTargetState = false;
+  @Option(description = "if the predicate precision adjustment should abstract at target states", secure = true)
+  private boolean abstractAtTargetState = true;
 
   public PredicatePrecisionAdjustment(
       LogManager pLogger,
@@ -126,7 +125,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     if (predicateState instanceof InfeasibleDummyState) {
       return false;
     }
-    if (blk.isBlockEnd(location, predicateState.getPathFormula().getLength())) {
+    if (blk.isBlockEnd(location, predicateState.getPathFormula().getLength()) && abstractAtTargetState) {
       return true;
     }
     if (AbstractStates.isTargetState(fullState) && abstractAtTargetState) {
