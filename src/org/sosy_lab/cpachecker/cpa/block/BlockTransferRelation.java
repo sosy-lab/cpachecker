@@ -31,6 +31,8 @@ public abstract class BlockTransferRelation implements TransferRelation {
   protected ImmutableSet<CFANode> nodes;
   protected BlockStateFactory factory;
   protected CFANode targetNode;
+  protected BlockNode bNode;
+  private boolean first;
 
   /**
    * This transfer relation produces successors iff an edge between two nodes exists in the CFA
@@ -45,6 +47,8 @@ public abstract class BlockTransferRelation implements TransferRelation {
     edges = validEdgesIn(pBlockNode);
     nodes = ImmutableSet.copyOf(pBlockNode.getNodesInBlock());
     targetNode = pBlockNode.getLastNode();
+    first = false;
+    bNode = pBlockNode;
   }
 
   private ImmutableSet<CFAEdge> validEdgesIn(BlockNode pBlockNode) {
@@ -58,6 +62,19 @@ public abstract class BlockTransferRelation implements TransferRelation {
       }
     }
     return setBuilder.build();
+  }
+
+  protected boolean shouldComputeSuccessor(BlockState pBlockState) {
+    boolean isTargetLoopHead = pBlockState.isTarget() && pBlockState.getLocationNode().equals(targetNode);
+    if (isTargetLoopHead) {
+      if (first) {
+        first = false;
+        return false;
+      }
+      first = true;
+      return true;
+    }
+    return true;
   }
 
   @Override
@@ -86,12 +103,11 @@ public abstract class BlockTransferRelation implements TransferRelation {
       checkNotNull(edges, "init method must be called before starting the analysis (edges == null)");
       BlockState blockState = (BlockState) element;
 
-      if (blockState.isTarget()) {
-        return ImmutableSet.of();
-      }
-
       CFANode node = blockState.getLocationNode();
       if (Sets.intersection(ImmutableSet.copyOf(CFAUtils.allLeavingEdges(node)), edges).contains(cfaEdge)) {
+        if (!shouldComputeSuccessor(blockState)) {
+          return ImmutableSet.of();
+        }
         return ImmutableList.of(factory.getState(cfaEdge.getSuccessor()));
       }
 
@@ -103,7 +119,7 @@ public abstract class BlockTransferRelation implements TransferRelation {
       checkNotNull(nodes, "init method must be called before starting the analysis (nodes == null)");
       BlockState blockState = (BlockState) element;
 
-      if (blockState.isTarget()) {
+      if (!shouldComputeSuccessor(blockState)) {
         return ImmutableSet.of();
       }
 
@@ -137,12 +153,11 @@ public abstract class BlockTransferRelation implements TransferRelation {
       checkNotNull(edges, "init method must be called before starting the analysis (edges == null)");
       BlockState blockState = (BlockState) element;
 
-      if (blockState.isTarget()) {
-        return ImmutableSet.of();
-      }
-
       CFANode node = blockState.getLocationNode();
       if (Sets.intersection(ImmutableSet.copyOf(CFAUtils.allEnteringEdges(node)), edges).contains(cfaEdge)) {
+        if (!shouldComputeSuccessor(blockState)) {
+          return ImmutableSet.of();
+        }
         return ImmutableList.of(factory.getState(cfaEdge.getPredecessor()));
       }
 
@@ -155,7 +170,7 @@ public abstract class BlockTransferRelation implements TransferRelation {
       checkNotNull(nodes, "init method must be called before starting the analysis (nodes == null)");
       BlockState blockState = (BlockState) element;
 
-      if (blockState.isTarget()) {
+      if (!shouldComputeSuccessor(blockState)) {
         return ImmutableSet.of();
       }
 
