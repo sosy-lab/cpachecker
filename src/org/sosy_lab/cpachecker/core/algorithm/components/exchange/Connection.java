@@ -20,6 +20,8 @@ public interface Connection extends Closeable {
    */
   Message read() throws InterruptedException;
 
+  int size();
+
   boolean isEmpty();
 
 /*

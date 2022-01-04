@@ -9,7 +9,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.components.worker;
 
 import java.io.IOException;
-import java.util.Optional;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
 import org.sosy_lab.common.ShutdownManager;
@@ -17,7 +18,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageType;
@@ -45,38 +45,31 @@ public class SmartAnalysisWorker extends AnalysisWorker {
 
   @Override
   public Message nextMessage() throws InterruptedException {
-    Optional<Message> foundPrecondition = Optional.empty();
-    Optional<Message> endMessage = Optional.empty();
-    if (connection.isEmpty()) {
-      return super.nextMessage();
+    if (!smartQueue.isEmpty()) {
+      return smartQueue.take();
     }
+    if (connection.isEmpty()) {
+      return connection.read();
+    }
+    Set<Message> newMessages = new LinkedHashSet<>();
     while (!connection.isEmpty()) {
-      Message m = super.nextMessage();
+      newMessages.add(connection.read());
+    }
+    Message postcondMessage = null;
+    for (Message m : newMessages) {
       if (m.getType() == MessageType.BLOCK_POSTCONDITION) {
-        Optional<CFANode> optionalCFANode = block.getNodesInBlock().stream()
-            .filter(node -> node.getNodeNumber() == m.getTargetNodeNumber()).findAny();
-        CFANode node = optionalCFANode.orElseThrow();
-        if (node.equals(block.getStartNode())) {
+        if (m.getTargetNodeNumber() == block.getStartNode().getNodeNumber()) {
+          postcondMessage = m;
           receivedPreConditions.put(m.getUniqueBlockId(), m);
-          foundPrecondition = Optional.of(m);
         }
-      } else if (m.getType() == MessageType.FOUND_RESULT || m.getType() == MessageType.ERROR) {
-        endMessage = Optional.of(m);
       } else {
         smartQueue.add(m);
       }
     }
-    // worker shuts down
-    if (endMessage.isPresent()) {
-      return endMessage.orElseThrow();
+    if (postcondMessage != null) {
+      smartQueue.add(postcondMessage);
     }
-
-    if (foundPrecondition.isPresent()) {
-      smartQueue.add(foundPrecondition.orElseThrow());
-    }
-    if (smartQueue.isEmpty()) {
-      return nextMessage();
-    }
-    return smartQueue.take();
+    return nextMessage();
   }
+
 }

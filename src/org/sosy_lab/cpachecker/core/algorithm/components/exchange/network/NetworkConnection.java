@@ -32,6 +32,11 @@ public class NetworkConnection implements Connection {
   }
 
   @Override
+  public int size() {
+    return sharedQueue.size();
+  }
+
+  @Override
   public boolean isEmpty() {
     return sharedQueue.isEmpty();
   }

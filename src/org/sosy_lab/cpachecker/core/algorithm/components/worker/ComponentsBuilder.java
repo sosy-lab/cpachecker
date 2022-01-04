@@ -42,7 +42,6 @@ public class ComponentsBuilder {
   private int additionalConnections;
 
   private final List<Worker> workers;
-
   public ComponentsBuilder(
       LogManager pLogger,
       CFA pCFA,
@@ -72,7 +71,7 @@ public class ComponentsBuilder {
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     String id = "W" + workers.size() + pNode.getId();
     workers.add(
-        new AnalysisWorker(id, pNode, logger, cfa, specification, configuration, shutdownManager, pTypeMap));
+        new SmartAnalysisWorker(id, pNode, logger, cfa, specification, configuration, shutdownManager, pTypeMap));
     return this;
   }
 

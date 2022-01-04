@@ -37,7 +37,7 @@ public class VisualizationWorker extends Worker {
   public Collection<Message> processMessage(Message pMessage)
       throws InterruptedException, IOException, SolverException, CPAException {
     messages.put(pMessage.getUniqueBlockId(), pMessage);
-    logger.log(Level.INFO, pMessage);
+    logger.log(Level.FINEST, pMessage);
     switch (pMessage.getType()) {
       case ERROR_CONDITION:
       case BLOCK_POSTCONDITION:

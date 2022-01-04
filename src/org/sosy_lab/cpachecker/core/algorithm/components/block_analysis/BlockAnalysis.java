@@ -43,8 +43,11 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
+import org.sosy_lab.cpachecker.cpa.block.BlockCPABackward;
 import org.sosy_lab.cpachecker.cpa.block.BlockStartReachedTargetInformation;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
+import org.sosy_lab.cpachecker.cpa.block.BlockTransferRelation;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
@@ -52,6 +55,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
@@ -271,6 +275,8 @@ public abstract class BlockAnalysis {
 
   public static class ForwardAnalysis extends BlockAnalysis {
 
+    private BlockTransferRelation relation;
+
     public ForwardAnalysis(
         String pId,
         LogManager pLogger,
@@ -282,18 +288,20 @@ public abstract class BlockAnalysis {
         throws CPAException, InterruptedException, InvalidConfigurationException, IOException {
       super(pId, pLogger, pBlock, pCFA, AnalysisDirection.FORWARD, pSpecification, pConfiguration,
           pShutdownManager);
+      relation = (BlockTransferRelation) CPAs.retrieveCPA(cpa, BlockCPA.class).getTransferRelation();
     }
 
     @Override
     public Collection<Message> analyze(PathFormula condition, CFANode node)
         throws CPAException, InterruptedException {
+      relation.init(block);
       reachedSet.clear();
       reachedSet.add(getStartState(condition, node), emptyPrecision);
       status = algorithm.run(reachedSet);
       Set<ARGState> targetStates = from(reachedSet).filter(AbstractStates::isTargetState)
           .filter(ARGState.class).copyInto(new HashSet<>());
       if (targetStates.isEmpty()) {
-        //throw new AssertionError("At least one target state has to exist (block start)");
+        // throw new AssertionError("At least one target state has to exist (block start)");
       }
 
       // find violations for potential backward analysis
@@ -333,6 +341,8 @@ public abstract class BlockAnalysis {
 
   public static class BackwardAnalysis extends BlockAnalysis {
 
+    private final BlockTransferRelation relation;
+
     public BackwardAnalysis(
         String pId,
         LogManager pLogger,
@@ -344,11 +354,13 @@ public abstract class BlockAnalysis {
         throws CPAException, InterruptedException, InvalidConfigurationException, IOException {
       super(pId, pLogger, pBlock, pCFA, AnalysisDirection.BACKWARD, pSpecification, pConfiguration,
           pShutdownManager);
+      relation = (BlockTransferRelation) CPAs.retrieveCPA(cpa, BlockCPABackward.class).getTransferRelation();
     }
 
     @Override
     public Collection<Message> analyze(PathFormula condition, CFANode node)
         throws CPAException, InterruptedException, SolverException {
+      relation.init(block);
       reachedSet.clear();
       reachedSet.add(getStartState(condition, node), emptyPrecision);
       status = algorithm.run(reachedSet);

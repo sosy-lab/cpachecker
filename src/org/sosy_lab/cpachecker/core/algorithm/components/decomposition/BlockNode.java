@@ -142,6 +142,7 @@ public class BlockNode {
         "id='" + id + '\'' +
         ", startNode=" + startNode +
         ", lastNode=" + lastNode +
+        ", size=" + nodesInBlock.size() +
         ", code='" + code.replaceAll("\n", "") + '\'' +
         '}';
   }

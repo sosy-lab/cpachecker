@@ -30,6 +30,11 @@ public class InMemoryConnection implements Connection {
   }
 
   @Override
+  public int size() {
+    return in.size();
+  }
+
+  @Override
   public boolean isEmpty() {
     return in.isEmpty();
   }

@@ -32,17 +32,22 @@ public class Message implements Comparable<Message> {
 
   @Override
   public int compareTo(Message o) {
-    return 0;
-    //return Integer.compare(o.type.ordinal(), type.ordinal());
+    return Integer.compare(type.priority, o.getType().priority);
   }
 
   // ORDER BY PRIORITY:
   public enum MessageType {
-    FOUND_RESULT,
-    ERROR_CONDITION,
-    ERROR_CONDITION_UNREACHABLE,
-    BLOCK_POSTCONDITION,
-    ERROR
+    FOUND_RESULT(1),
+    ERROR_CONDITION(3),
+    ERROR_CONDITION_UNREACHABLE(2),
+    BLOCK_POSTCONDITION(3),
+    ERROR(1);
+
+    private final int priority;
+
+    MessageType(int pPriority) {
+      priority = pPriority;
+    }
   }
 
   private final int targetNodeNumber;
