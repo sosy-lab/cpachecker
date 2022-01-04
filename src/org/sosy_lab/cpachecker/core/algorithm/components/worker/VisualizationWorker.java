@@ -9,33 +9,48 @@
 package org.sosy_lab.cpachecker.core.algorithm.components.worker;
 
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
-import java.util.Optional;
+import java.util.Collection;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockTree;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
-import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageType;
+import org.sosy_lab.cpachecker.core.algorithm.components.util.MessageLogger;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class VisualizationWorker extends Worker {
 
   private final Multimap<String, Message> messages;
+  private final MessageLogger messageLogger;
 
-  protected VisualizationWorker(LogManager pLogger) {
+  protected VisualizationWorker(LogManager pLogger, BlockTree pTree, Solver pSolver) {
     super(pLogger);
     messages = ArrayListMultimap.create();
+    messageLogger = new MessageLogger(pTree, pSolver);
   }
 
   @Override
-  public Optional<Message> processMessage(Message pMessage)
+  public Collection<Message> processMessage(Message pMessage)
       throws InterruptedException, IOException, SolverException, CPAException {
     messages.put(pMessage.getUniqueBlockId(), pMessage);
     logger.log(Level.INFO, pMessage);
-    if (pMessage.getType() == MessageType.FOUND_RESULT || pMessage.getType() == MessageType.ERROR) {
-      shutdown();
+    switch (pMessage.getType()) {
+      case ERROR_CONDITION:
+      case BLOCK_POSTCONDITION:
+        messageLogger.log(pMessage);
+      case ERROR_CONDITION_UNREACHABLE:
+        break;
+      case FOUND_RESULT:
+      case ERROR:
+        shutdown();
+        break;
+      default:
+        throw new AssertionError("Unknown message type: " + pMessage.getType());
     }
-    return noResponse;
+    return ImmutableSet.of();
   }
 }

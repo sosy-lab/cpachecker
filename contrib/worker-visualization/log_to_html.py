@@ -22,41 +22,16 @@ def relative_path(name):
 
 def create_arg_parser():
     parser = argparse.ArgumentParser(description="Transforms Worker logs to HTML.")
-    parser.add_argument("--dir", type=str)
+    parser.add_argument("--file", type=str)
     return parser
 
 
-def parse_jsons(path):
-    jsons = []
-    for filename in glob.glob(os.path.join(path, "*.json")):
-        with open(os.path.join(os.getcwd(), filename), "r") as f:
-            jsons.append(json.loads(f.read()))
-    return jsons
+def parse_jsons(file):
+    with open(file, "r") as f:
+        return json.loads(f.read())
 
 
-def collect_and_adapt_time_stamps(jsons):
-    time_stamps = set()
-    for worker in jsons:
-        for message in worker:
-            time_stamps.add(int(message["time"]))
-    sorted_list = sorted(time_stamps)
-    time_to_message_dict = {time - sorted_list[0]: [] for time in sorted_list}
-    for worker in jsons:
-        for message in worker:
-            message["time"] -= sorted_list[0]
-            time_to_message_dict[message["time"]].append(message)
-    return time_to_message_dict
-
-
-def find_all_worker_ids(jsons):
-    ids = set()
-    for worker in jsons:
-        for message in worker:
-            ids.add(message["id"])
-    return sorted(ids, key=lambda bid: int(bid[1::]))
-
-
-def html_for_message(message):
+def html_for_message(message, block_log):
 
     div = Airium()
 
@@ -65,18 +40,19 @@ def html_for_message(message):
             div("")
         return str(div), ""
 
-    predecessors = message["predecessors"]
-    successors = message["successors"]
-    condition = message["currentMap"]
-    result = message["result"]
-    code = message["code"].replace("]", "]\n").replace(";", ";\n")
-    direction = message["action"]
+    infos = block_log[message["from"]]
 
-    is_forward = direction == "FORWARD"
+    predecessors = ["none"] if "predecessors" not in infos else infos["predecessors"]
+    successors = ["none"] if "successors" not in infos else infos["successors"]
+    result = message["payload"]
+    direction = message["type"]
+
+    is_forward = direction == "BLOCK_POSTCONDITION"
     senders = predecessors if is_forward else successors
     receivers = successors if is_forward else predecessors
     condition_name = "precondition" if is_forward else "postcondition"
     arrow = "<big>" + ("&darr;" if is_forward else "&uarr;") + "</big>"
+    code = "\n".join([x for x in infos["code"] if x])
 
     with div.div(title=code):
         with div.p():
@@ -86,34 +62,39 @@ def html_for_message(message):
                 sender = "self"
                 if senders:
                     sender = ", ".join(senders)
-                div(f"Received from <strong>{sender}</strong>:")
-        div.textarea(_t=condition)
+                div(f"React to message from <strong>{sender}</strong>:")
         with div.p():
             receiver = ", ".join(receivers)
             div(f"Calculated new {condition_name} for <strong>{receiver}</strong>")
         div.textarea(_t=result)
 
-    return str(div), condition_name
+    return str(div)
 
 
-def html_dict_to_html_table(html_dict):
+def html_dict_to_html_table(all_messages, block_logs: dict):
+    first_timestamp = int(all_messages[0]["timestamp"])
+    timestamp_to_message = {}
+    for message in all_messages:
+        timestamp_to_message.setdefault(message["timestamp"] - first_timestamp, [""] * len(block_logs))[int(message["from"][1::])] = message
+    headers = ["time"] + list(sorted(block_logs.keys(), key=lambda x: int(x[1::])))
     table = Airium()
     with table.table(klass="worker"):
         # header
         with table.tr(klass='header_row'):
-            for key in html_dict.keys():
+            for key in headers:
                 table.th(_t=f'{key}')
 
         # row values
-        for values in zip(*html_dict.values()):
+        for timestamp in timestamp_to_message:
             with table.tr():
-                is_time_column = True
-                for value in values:
-                    if is_time_column:
-                        table.td(_t=str(value))
-                        is_time_column = False
+                table.td(_t=str(timestamp))
+                messages = timestamp_to_message[timestamp]
+                for msg in messages:
+                    if not msg:
+                        table.td()
                     else:
-                        table.td(klass=str(value[1]), _t=str(value[0]))
+                        klass = "postcondition" if msg["type"] == "ERROR_CONDITION" else "precondition"
+                        table.td(klass=klass, _t=html_for_message(msg, block_logs))
 
     return str(table)
 
@@ -121,35 +102,16 @@ def html_dict_to_html_table(html_dict):
 def main(argv=None):
     parser = create_arg_parser()
     args = parser.parse_args(argv)
-    print("Parsing JSON...")
-    jsons = parse_jsons(args.dir)
-    print("Find all available ids...")
-    ids = find_all_worker_ids(jsons)
-    print("Found ids:", ids)
-    print("Prepare dictionary for rendering the table...")
-    render_dict = {worker_id: [] for worker_id in ids}
-    print("Extract and normalize timestamps...")
-    time_stamps = collect_and_adapt_time_stamps(jsons)
-    print("Found timestamps:", list(time_stamps.keys()))
-    print("Fill table...")
-    for _time, messages in time_stamps.items():
-        unused_ids = set(ids)
-        for message in messages:
-            unused_ids.remove(message["id"])
-            render_dict[message["id"]].append(message)
-        for unused in unused_ids:
-            render_dict[unused].append(None)
-    print("Create table...")
-    html_dict = {
-        "time": list(time_stamps.keys()),
-        **{
-            block_id: list(map(html_for_message, render_dict[block_id]))
-            for block_id in render_dict.keys()
-        },
-    }
+    block_logs = parse_jsons(args.file)
+    all_messages = []
+    for key in block_logs:
+        all_messages += block_logs[key]["messages"]
+    if not all_messages:
+        return
+    all_messages = list(sorted(all_messages, key=lambda entry: (entry["timestamp"], entry["from"][1::])))
     with open(relative_path("table.html")) as html:
         text = html.read().replace(
-            "<!--<<<TABLE>>><!-->", html_dict_to_html_table(html_dict)
+            "<!--<<<TABLE>>><!-->", html_dict_to_html_table(all_messages, block_logs)
         )
         with open(relative_path("report.html"), "w+") as new_html:
             new_html.write(text)
