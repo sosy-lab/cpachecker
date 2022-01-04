@@ -20,6 +20,15 @@ public interface Connection extends Closeable {
    */
   Message read() throws InterruptedException;
 
+  boolean isEmpty();
+
+/*
+   * Get all messages with a certain type
+   * @param pType filter messages with this type
+   * @return collection of messages with type pType
+   *//*
+  Collection<Message> readType(MessageType pType);*/
+
   /**
    * Write and broadcast a message to all connections
    * @param message Message to broadcast

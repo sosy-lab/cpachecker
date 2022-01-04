@@ -38,10 +38,10 @@ public class Message implements Comparable<Message> {
 
   // ORDER BY PRIORITY:
   public enum MessageType {
-    PRECONDITION,
-    POSTCONDITION,
-    POSTCONDITION_UNREACHABLE,
     FOUND_RESULT,
+    ERROR_CONDITION,
+    ERROR_CONDITION_UNREACHABLE,
+    BLOCK_POSTCONDITION,
     ERROR
   }
 
@@ -49,8 +49,10 @@ public class Message implements Comparable<Message> {
   private final String uniqueBlockId;
   private final MessageType type;
   private final String payload;
-  private final String additionalInformation;
+  private final long timestamp;
+  private String additionalInformation;
 
+  //Serialize
   private Message(
       MessageType pType,
       String pUniqueBlockId,
@@ -70,6 +72,23 @@ public class Message implements Comparable<Message> {
     payload = pPayload;
     uniqueBlockId = pUniqueBlockId;
     additionalInformation = pAdditionalInformation;
+    timestamp = System.currentTimeMillis();
+  }
+
+  // Deserialize
+  private Message(
+      MessageType pType,
+      String pUniqueBlockId,
+      int pTargetNodeNumber,
+      long pTimestamp,
+      String pPayload,
+      String pAdditionalInformation) {
+    targetNodeNumber = pTargetNodeNumber;
+    type = pType;
+    payload = pPayload;
+    uniqueBlockId = pUniqueBlockId;
+    additionalInformation = pAdditionalInformation;
+    timestamp = pTimestamp;
   }
 
   public int getTargetNodeNumber() {
@@ -90,6 +109,14 @@ public class Message implements Comparable<Message> {
 
   public String getAdditionalInformation() {
     return additionalInformation;
+  }
+
+  public long getTimestamp() {
+    return timestamp;
+  }
+
+  public void setAdditionalInformation(String pAdditionalInformation) {
+    additionalInformation = pAdditionalInformation;
   }
 
   @Override
@@ -114,27 +141,28 @@ public class Message implements Comparable<Message> {
         message.payload);
   }
 
-  public static Message newPreconditionMessage(
+  public static Message newBlockPostCondition(
       String pUniqueBlockId,
       int pTargetNodeNumber,
       BooleanFormula pPayload,
-      FormulaManagerView pFmgr) {
-    return new Message(MessageType.PRECONDITION, pUniqueBlockId, pTargetNodeNumber,
-        pFmgr.dumpFormula(pPayload).toString());
+      FormulaManagerView pFmgr,
+      boolean fullPath) {
+    return new Message(MessageType.BLOCK_POSTCONDITION, pUniqueBlockId, pTargetNodeNumber,
+        pFmgr.dumpFormula(pPayload).toString(), Boolean.toString(fullPath));
   }
 
-  public static Message newPostconditionMessage(
+  public static Message newErrorConditionMessage(
       String pUniqueBlockId,
       int pTargetNodeNumber,
       BooleanFormula pPayload,
       FormulaManagerView pFmgr,
       boolean first) {
-    return new Message(MessageType.POSTCONDITION, pUniqueBlockId, pTargetNodeNumber,
+    return new Message(MessageType.ERROR_CONDITION, pUniqueBlockId, pTargetNodeNumber,
         pFmgr.dumpFormula(pPayload).toString(), Boolean.toString(first));
   }
 
-  public static Message newPostConditionUnreachableMessage(String pUniqueBlockId) {
-    return new Message(MessageType.POSTCONDITION_UNREACHABLE, pUniqueBlockId, 0, "");
+  public static Message newErrorConditionUnreachableMessage(String pUniqueBlockId) {
+    return new Message(MessageType.ERROR_CONDITION_UNREACHABLE, pUniqueBlockId, 0, "");
   }
 
   public static Message newResultMessage(
@@ -203,7 +231,8 @@ public class Message implements Comparable<Message> {
       MessageType type = MessageType.valueOf(node.get("type").asText());
       String payload = node.get("payload").asText();
       String additionalInfo = node.get("additionalInformation").asText();
-      return new Message(type, uniqueBlockId, nodeNumber, payload, additionalInfo);
+      long timestamp = node.get("timestamp").asLong();
+      return new Message(type, uniqueBlockId, nodeNumber, timestamp, payload, additionalInfo);
     }
   }
 
@@ -225,6 +254,7 @@ public class Message implements Comparable<Message> {
       pJsonGenerator.writeStringField("type", pMessage.getType().name());
       pJsonGenerator.writeStringField("payload", pMessage.getPayload());
       pJsonGenerator.writeStringField("additionalInformation", pMessage.getAdditionalInformation());
+      pJsonGenerator.writeNumberField("timestamp", pMessage.getTimestamp());
       pJsonGenerator.writeEndObject();
     }
   }

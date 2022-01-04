@@ -32,6 +32,11 @@ public class NetworkConnection implements Connection {
   }
 
   @Override
+  public boolean isEmpty() {
+    return sharedQueue.isEmpty();
+  }
+
+  @Override
   public void write(Message message) throws IOException {
     for (NetworkSender messageSender : sender) {
       messageSender.send(message);
