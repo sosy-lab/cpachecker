@@ -8,8 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.components.worker;
 
+import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
-import java.util.Optional;
+import java.util.Collection;
+import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
@@ -29,21 +31,30 @@ public class TimeoutWorker extends Worker {
   }
 
   @Override
-  public Optional<Message> processMessage(
+  public Collection<Message> processMessage(
       Message pMessage) throws InterruptedException, IOException, SolverException, CPAException {
-    return Optional.empty();
+    return ImmutableSet.of();
   }
 
   @Override
   public void run() {
     try {
       if (doWait) {
-        wait(wait);
+        Thread.sleep(wait);
       }
-      broadcast(answer(Message.newResultMessage("timeout", 0, Result.UNKNOWN)));
-    } catch (InterruptedException | IOException pE) {
+      broadcast(ImmutableSet.of(Message.newResultMessage("timeout", 0, Result.UNKNOWN)));
+    } catch (InterruptedException pE) {
       doWait = false;
       run();
+      logger.log(Level.SEVERE, "Thread interrupted because of", pE);
+    } catch (IOException pE) {
+      logger.log(Level.SEVERE, "Cannot broadcast timeout message properly because of", pE);
+      logger.log(Level.INFO, "Trying to send timeout message one last time...");
+      try {
+        broadcast(ImmutableSet.of(Message.newResultMessage("timeout", 0, Result.UNKNOWN)));
+      } catch (IOException | InterruptedException pEx) {
+        logger.log(Level.SEVERE, "Failed to send timeout message.", pEx);
+      }
     }
   }
 

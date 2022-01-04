@@ -8,13 +8,13 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.components.worker;
 
+import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -47,17 +47,17 @@ public class ResultWorker extends Worker {
   }
 
   @Override
-  public Optional<Message> processMessage(Message pMessage)
+  public Collection<Message> processMessage(Message pMessage)
       throws InterruptedException, CPAException, IOException, SolverException {
     String senderId = pMessage.getUniqueBlockId();
     MessageType type = pMessage.getType();
     if (!nodeMap.containsKey(senderId)) {
-      return noResponse;
+      return ImmutableSet.of();
     }
     int numViolationsBefore = violationOrigins.size();
     messageReceived.add(senderId);
     switch (type) {
-      case POSTCONDITION:
+      case ERROR_CONDITION:
         boolean newPostCondition = Boolean.parseBoolean(pMessage.getAdditionalInformation());
         if (newPostCondition) {
           expectAnswer.merge(senderId, 1, Integer::sum);
@@ -67,21 +67,21 @@ public class ResultWorker extends Worker {
           nodeMap.get(senderId).getPredecessors()
               .forEach(b -> expectAnswer.merge(b.getId(), 1, Integer::sum));
         }
-        return response(numViolationsBefore);
-      case POSTCONDITION_UNREACHABLE:
+        return response(numViolationsBefore, pMessage.getUniqueBlockId());
+      case ERROR_CONDITION_UNREACHABLE:
         expectAnswer.merge(senderId, -1, Integer::sum);
-        return response(numViolationsBefore);
+        return response(numViolationsBefore, pMessage.getUniqueBlockId());
       case FOUND_RESULT:
       case ERROR:
         shutdown();
-      case PRECONDITION:
-        return noResponse;
+      case BLOCK_POSTCONDITION:
+        return ImmutableSet.of();
       default:
         throw new AssertionError(type + " does not exist");
     }
   }
 
-  private Optional<Message> response(int numViolationsBefore) {
+  private Collection<Message> response(int numViolationsBefore, String blockId) {
     boolean onlyOriginViolations = true;
     for (Entry<String, Integer> stringIntegerEntry : expectAnswer.entrySet()) {
       if (violationOrigins.contains(stringIntegerEntry.getKey())) {
@@ -95,9 +95,9 @@ public class ResultWorker extends Worker {
             && (expectAnswer.values().stream().mapToInt(i -> i).sum() == 0
             || onlyOriginViolations);
     if (finished) {
-      return answer(Message.newResultMessage("main", 0, Result.TRUE));
+      return ImmutableSet.of(Message.newResultMessage(blockId, 0, Result.TRUE));
     }
-    return noResponse;
+    return ImmutableSet.of();
   }
 
 }

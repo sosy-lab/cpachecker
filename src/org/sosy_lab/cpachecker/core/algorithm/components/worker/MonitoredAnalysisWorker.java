@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.components.worker;
 
 import java.io.IOException;
-import java.util.Optional;
+import java.util.Collection;
 import java.util.concurrent.Semaphore;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
@@ -26,7 +26,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 public class MonitoredAnalysisWorker extends AnalysisWorker {
 
   private final Monitor monitor;
-  private final BlockNode block;
 
   MonitoredAnalysisWorker(
       String pId,
@@ -43,7 +42,6 @@ public class MonitoredAnalysisWorker extends AnalysisWorker {
         pConfiguration,
         pShutdownManager, pMap);
     monitor = pMonitor;
-    block = pBlock;
   }
 
   @Override
@@ -54,7 +52,7 @@ public class MonitoredAnalysisWorker extends AnalysisWorker {
   }
 
   @Override
-  public void broadcast(Optional<Message> pMessage) throws IOException, InterruptedException {
+  public void broadcast(Collection<Message> pMessage) throws IOException, InterruptedException {
     super.broadcast(pMessage);
     monitor.blockRelease();
   }

@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.components.worker;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -41,15 +42,14 @@ public abstract class Worker implements Runnable {
     return connection.read();
   }
 
-  public abstract Optional<Message> processMessage(Message pMessage) throws InterruptedException, IOException,
+  public abstract Collection<Message> processMessage(Message pMessage) throws InterruptedException, IOException,
                                                                             SolverException, CPAException;
 
-  public void broadcast(Optional<Message> pMessage) throws IOException, InterruptedException {
-    if (pMessage.isEmpty()) {
-      return;
-    }
+  public void broadcast(Collection<Message> pMessage) throws IOException, InterruptedException {
     Objects.requireNonNull(connection, "Connection cannot be null.");
-    connection.write(pMessage.orElseThrow());
+    for (Message message : pMessage) {
+      connection.write(message);
+    }
   }
 
   @Override
@@ -73,7 +73,4 @@ public abstract class Worker implements Runnable {
     connection = pConnection;
   }
 
-  protected final Optional<Message> answer(Message pMessage) {
-    return Optional.of(pMessage);
-  }
 }

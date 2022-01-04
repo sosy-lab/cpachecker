@@ -20,6 +20,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockTree;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.ConnectionProvider;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.network.NetworkConnectionProvider;
@@ -27,6 +28,7 @@ import org.sosy_lab.cpachecker.core.algorithm.components.worker.MonitoredAnalysi
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 public class ComponentsBuilder {
 
@@ -87,8 +89,13 @@ public class ComponentsBuilder {
     return this;
   }
 
-  public ComponentsBuilder addVisualizationWorker() {
-    workers.add(new VisualizationWorker(logger));
+  public ComponentsBuilder addTimeoutWorker(long pTimeout) {
+    workers.add(new TimeoutWorker(logger, pTimeout));
+    return this;
+  }
+
+  public ComponentsBuilder addVisualizationWorker(BlockTree pBlockTree, Solver pSolver) {
+    workers.add(new VisualizationWorker(logger, pBlockTree, pSolver));
     return this;
   }
 
