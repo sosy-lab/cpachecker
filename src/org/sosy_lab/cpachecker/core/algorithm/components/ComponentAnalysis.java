@@ -80,7 +80,7 @@ public class ComponentAnalysis implements Algorithm {
       }
       // TODO make independent
       builder = builder.addResultCollectorWorker(blocks);
-      Components components = builder.build();
+      Components components = builder.addVisualizationWorker().build();
 
       // run all workers
       for (Worker worker : components.getWorkers()) {

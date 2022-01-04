@@ -86,6 +86,11 @@ public class ComponentsBuilder {
     return this;
   }
 
+  public ComponentsBuilder addVisualizationWorker() {
+    workers.add(new VisualizationWorker(logger));
+    return this;
+  }
+
   public Components build()
       throws InvocationTargetException, InstantiationException, IllegalAccessException,
              NoSuchMethodException, IOException {

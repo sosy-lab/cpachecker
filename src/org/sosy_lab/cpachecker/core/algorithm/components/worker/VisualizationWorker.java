@@ -12,6 +12,7 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.util.Optional;
+import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -30,6 +31,7 @@ public class VisualizationWorker extends Worker {
   public Optional<Message> processMessage(Message pMessage)
       throws InterruptedException, IOException, SolverException, CPAException {
     messages.put(pMessage.getUniqueBlockId(), pMessage);
+    logger.log(Level.INFO, pMessage);
     return noResponse;
   }
 }
