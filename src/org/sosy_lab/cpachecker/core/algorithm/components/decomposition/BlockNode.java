@@ -78,9 +78,9 @@ public class BlockNode {
             continue;
           }
           if (leavingEdge.getEdgeType().equals(CFAEdgeType.AssumeEdge)) {
-            codeLines.append("[").append(leavingEdge.getCode()).append("]");
+            codeLines.append("[").append(leavingEdge.getCode()).append("]\n");
           } else {
-            codeLines.append(leavingEdge.getCode());
+            codeLines.append(leavingEdge.getCode()).append("\n");
           }
           break;
         }
@@ -138,14 +138,12 @@ public class BlockNode {
 
   @Override
   public String toString() {
-    return "BlockNode{"
-        + "startNode="
-        + startNode
-        + ", lastNode="
-        + lastNode
-        + ", code="
-        + code
-        + '}';
+    return "BlockNode{" +
+        "id='" + id + '\'' +
+        ", startNode=" + startNode +
+        ", lastNode=" + lastNode +
+        ", code='" + code.replaceAll("\n", "") + '\'' +
+        '}';
   }
 
   public String getCode() {
@@ -154,6 +152,10 @@ public class BlockNode {
 
   public String getId() {
     return id;
+  }
+
+  public boolean isRoot() {
+    return predecessors.isEmpty();
   }
 
   public static class BlockNodeFactory {

@@ -16,8 +16,11 @@ public class BlockTree {
 
   private final BlockNode root;
 
+  private final Set<BlockNode> distinctNodes;
+
   public BlockTree(BlockNode pRoot) {
     root = pRoot;
+    distinctNodes = calculateDistinctNodes();
   }
 
   public boolean isEmpty() {
@@ -28,7 +31,7 @@ public class BlockTree {
     return root;
   }
 
-  public Set<BlockNode> getDistinctNodes() {
+  private Set<BlockNode> calculateDistinctNodes() {
     Set<BlockNode> nodes = new HashSet<>();
     ArrayDeque<BlockNode> waiting = new ArrayDeque<>();
     waiting.add(root);
@@ -39,5 +42,9 @@ public class BlockTree {
       }
     }
     return nodes;
+  }
+
+  public Set<BlockNode> getDistinctNodes() {
+    return distinctNodes;
   }
 }
