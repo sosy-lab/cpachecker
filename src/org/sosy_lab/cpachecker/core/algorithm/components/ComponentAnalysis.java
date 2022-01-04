@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -80,7 +81,7 @@ public class ComponentAnalysis implements Algorithm {
       }
 
       // create run
-      Set<BlockNode> blocks = tree.getDistinctNodes();
+      Collection<BlockNode> blocks = tree.getDistinctNodes();
 
       Set<CFANode> allNodes = ImmutableSet.copyOf(cfa.getAllNodes());
       List<CFAEdge> blockEdges = new ArrayList<>();
@@ -109,7 +110,8 @@ public class ComponentAnalysis implements Algorithm {
         builder = builder.addAnalysisWorker(distinctNode, map);
       }
       builder = builder.addResultCollectorWorker(blocks);
-      Components components = builder.addVisualizationWorker().build();
+      builder = builder.addTimeoutWorker(900000);
+      Components components = builder.addVisualizationWorker(tree, solver).build();
 
       // run all workers
       for (Worker worker : components.getWorkers()) {
@@ -131,9 +133,6 @@ public class ComponentAnalysis implements Algorithm {
           break;
         }
       }
-
-      // shutdown
-      mainThreadConnection.close();
 
       // print result
       if (result == Result.FALSE) {
