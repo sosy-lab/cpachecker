@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.block.BlockTransferRelation.BackwardBlockTransferRelation;
 import org.sosy_lab.cpachecker.cpa.block.BlockTransferRelation.ForwardBlockTransferRelation;
 
 public class BlockCPA extends AbstractCPA {
@@ -33,6 +34,8 @@ public class BlockCPA extends AbstractCPA {
   }
 
   public void init(BlockNode pBlockNode) {
+    assert pBlockNode != null;
+    factory.setBlock(pBlockNode);
     TransferRelation relation = getTransferRelation();
     checkState(relation instanceof BlockTransferRelation, "Expected %s but got %s",
         BlockTransferRelation.class, relation.getClass());

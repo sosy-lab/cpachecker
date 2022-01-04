@@ -33,8 +33,7 @@ public class BlockCPABackward extends AbstractCPA {
   }
 
   public void init(BlockNode pBlockNode) {
-    CFANode startNode = pBlockNode.getStartNode();
-    factory.setStartNode(startNode);
+    factory.setBlock(pBlockNode);
     TransferRelation relation = getTransferRelation();
     checkState(relation instanceof BackwardBlockTransferRelation, "Expected %s but got %s",
         BackwardBlockTransferRelation.class, relation.getClass());

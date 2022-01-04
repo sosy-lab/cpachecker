@@ -22,20 +22,25 @@ import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-abstract class BlockState
+public class BlockState
     implements AbstractStateWithLocation, AbstractQueryableState, Partitionable,
                Serializable, Targetable {
 
   private static final long serialVersionUID = 3805801L;
 
-  protected final Set<TargetInformation> targetInformation;
-  protected final CFANode blockStartNode;
-  protected final CFANode node;
+  private final Set<TargetInformation> targetInformation;
+  private final CFANode targetNode;
+  private final CFANode node;
+  private final boolean forward;
 
-  public BlockState(CFANode pNode, CFANode pBlockStartNode) {
+  public BlockState(CFANode pNode, CFANode pTargetNode, boolean pForward) {
     node = pNode;
-    blockStartNode = pBlockStartNode;
+    targetNode = pTargetNode;
     targetInformation = new HashSet<>();
+    forward = pForward;
+    if (isTarget()) {
+      targetInformation.add(new BlockStartReachedTargetInformation(pTargetNode));
+    }
   }
 
   @Override
@@ -74,33 +79,13 @@ abstract class BlockState
   }
 
   @Override
-  public boolean isTarget() {
-    return blockStartNode.equals(node);
-  }
-
-  @Override
   public @NonNull Set<TargetInformation> getTargetInformation() throws IllegalStateException {
     return targetInformation;
   }
 
-  public static class ForwardBlockState extends BlockState {
-
-    public ForwardBlockState(CFANode pNode, CFANode pStartNode) {
-      super(pNode, pStartNode);
-      targetInformation.add(new BlockStartReachedTargetInformation(blockStartNode));
-    }
-
-  }
-
-  static class BackwardsForwardBlockState extends BlockState {
-
-    private static final long serialVersionUID = 3805801L;
-
-    public BackwardsForwardBlockState(final CFANode pLocationNode, final CFANode pStartNode) {
-      super(pLocationNode, pStartNode);
-      targetInformation.add(new BlockStartReachedTargetInformation(blockStartNode));
-    }
-
+  @Override
+  public boolean isTarget() {
+    return !forward && targetNode.equals(node);
   }
 
 }
