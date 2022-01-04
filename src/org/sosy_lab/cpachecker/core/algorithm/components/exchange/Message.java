@@ -96,7 +96,8 @@ public class Message implements Comparable<Message> {
         "targetNodeNumber=" + targetNodeNumber +
         ", uniqueBlockId='" + uniqueBlockId + '\'' +
         ", type=" + type +
-        ", condition='" + payload + '\'' +
+        ", payload='" + payload + '\'' +
+        ", additionalInformation='" + additionalInformation + '\'' +
         '}';
   }
 
