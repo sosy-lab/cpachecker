@@ -15,6 +15,7 @@ import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageType;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -32,6 +33,9 @@ public class VisualizationWorker extends Worker {
       throws InterruptedException, IOException, SolverException, CPAException {
     messages.put(pMessage.getUniqueBlockId(), pMessage);
     logger.log(Level.INFO, pMessage);
+    if (pMessage.getType() == MessageType.FOUND_RESULT) {
+      shutdown();
+    }
     return noResponse;
   }
 }
