@@ -40,9 +40,6 @@ public class NetworkConnection implements Connection {
 
   @Override
   public void close() throws IOException {
-    for (NetworkSender messageSender : sender) {
-      messageSender.close();
-    }
     receiver.close();
   }
 }

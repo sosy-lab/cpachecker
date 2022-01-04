@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.components;
 
+import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
@@ -19,6 +20,9 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
@@ -39,6 +43,10 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 public class ComponentAnalysis implements Algorithm {
 
@@ -73,12 +81,33 @@ public class ComponentAnalysis implements Algorithm {
 
       // create run
       Set<BlockNode> blocks = tree.getDistinctNodes();
-      ComponentsBuilder builder = new ComponentsBuilder(logger, cfa, specification, configuration, shutdownManager);
-      builder = builder.withConnectionType(InMemoryConnectionProvider.class).createAdditionalConnections(1);
-      for (BlockNode distinctNode : blocks) {
-        builder = builder.addAnalysisWorker(distinctNode);
+
+      Set<CFANode> allNodes = ImmutableSet.copyOf(cfa.getAllNodes());
+      List<CFAEdge> blockEdges = new ArrayList<>();
+      for (CFANode cfaNode : allNodes) {
+        CFAUtils.leavingEdges(cfaNode).filter(edge -> allNodes.contains(edge.getSuccessor()))
+            .copyInto(blockEdges);
       }
-      // TODO make independent
+
+      Solver solver = Solver.create(configuration, logger, shutdownManager.getNotifier());
+      PathFormulaManagerImpl manager =
+          new PathFormulaManagerImpl(
+              solver.getFormulaManager(),
+              configuration,
+              logger,
+              shutdownManager.getNotifier(),
+              cfa,
+              AnalysisDirection.FORWARD);
+      SSAMap map = manager.makeFormulaForPath(blockEdges).getSsa();
+
+
+      ComponentsBuilder builder =
+          new ComponentsBuilder(logger, cfa, specification, configuration, shutdownManager);
+      builder = builder.withConnectionType(InMemoryConnectionProvider.class)
+          .createAdditionalConnections(1);
+      for (BlockNode distinctNode : blocks) {
+        builder = builder.addAnalysisWorker(distinctNode, map);
+      }
       builder = builder.addResultCollectorWorker(blocks);
       Components components = builder.addVisualizationWorker().build();
 
@@ -95,6 +124,10 @@ public class ComponentAnalysis implements Algorithm {
         Message m = mainThreadConnection.read();
         if (m.getType() == MessageType.FOUND_RESULT) {
           result = Result.valueOf(m.getPayload());
+          break;
+        }
+        if (m.getType() == MessageType.ERROR) {
+          result = Result.UNKNOWN;
           break;
         }
       }
@@ -119,7 +152,7 @@ public class ComponentAnalysis implements Algorithm {
       return AlgorithmStatus.SOUND_AND_PRECISE;
     } catch (InvalidConfigurationException | IOException | InvocationTargetException | InstantiationException | IllegalAccessException | NoSuchMethodException pE) {
       logger.log(Level.SEVERE, "Block analysis stopped due to ", pE);
-      throw new CPAException("Invalid configuration", pE);
+      throw new CPAException("Component Analysis run into an error.", pE);
     }
   }
 

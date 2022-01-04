@@ -17,8 +17,8 @@ import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.Messag
 
 public class NetworkSender {
 
-  private final SocketChannel client;
   private final MessageConverter converter;
+  private final InetSocketAddress address;
 
   public NetworkSender(String pAddress, int pPort) throws IOException {
     this(new InetSocketAddress(pAddress, pPort));
@@ -26,19 +26,17 @@ public class NetworkSender {
 
   public NetworkSender(InetSocketAddress pAddress) throws IOException {
     converter = new MessageConverter();
-    client = SocketChannel.open(pAddress);
+    address = pAddress;
   }
 
   public void send(Message pMessage) throws IOException {
+    SocketChannel client = SocketChannel.open(address);
     String json = converter.messageToJson(pMessage);
     byte[] message = json.getBytes();
     ByteBuffer buffer = ByteBuffer.wrap(message);
     client.write(buffer);
-    buffer.clear();
-  }
-
-  public void close() throws IOException {
     client.close();
   }
+
 }
 

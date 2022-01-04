@@ -20,7 +20,9 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -144,7 +146,10 @@ public class Message implements Comparable<Message> {
   }
 
   public static Message newErrorMessage(String pUniqueBlockId, Exception pException) {
-    return new Message(MessageType.ERROR, pUniqueBlockId, 0, pException.getMessage());
+    ByteArrayOutputStream arrayWriter = new ByteArrayOutputStream();
+    PrintWriter printer = new PrintWriter(new ByteArrayOutputStream());
+    pException.printStackTrace(printer);
+    return new Message(MessageType.ERROR, pUniqueBlockId, 0, arrayWriter.toString());
   }
 
   @Override

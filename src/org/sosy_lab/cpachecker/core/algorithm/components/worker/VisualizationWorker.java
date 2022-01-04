@@ -33,7 +33,7 @@ public class VisualizationWorker extends Worker {
       throws InterruptedException, IOException, SolverException, CPAException {
     messages.put(pMessage.getUniqueBlockId(), pMessage);
     logger.log(Level.INFO, pMessage);
-    if (pMessage.getType() == MessageType.FOUND_RESULT) {
+    if (pMessage.getType() == MessageType.FOUND_RESULT || pMessage.getType() == MessageType.ERROR) {
       shutdown();
     }
     return noResponse;

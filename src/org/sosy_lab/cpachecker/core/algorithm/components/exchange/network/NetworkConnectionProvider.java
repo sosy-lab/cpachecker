@@ -20,10 +20,12 @@ public class NetworkConnectionProvider implements ConnectionProvider<NetworkConn
   @Override
   public List<NetworkConnection> createConnections(int numConnections) throws IOException {
     List<NetworkReceiver> receivers = new ArrayList<>();
+    // TODO options...
     int startPort = 8080;
     String address = "localhost";
     for (int i = 0; i < numConnections; i++) {
-      receivers.add(new NetworkReceiver(new PriorityBlockingQueue<>(), new InetSocketAddress(address, startPort++)));
+      receivers.add(new NetworkReceiver(new PriorityBlockingQueue<>(),
+          new InetSocketAddress(address, startPort++)));
     }
     List<NetworkConnection> connections = new ArrayList<>();
     for (NetworkReceiver receiver : receivers) {

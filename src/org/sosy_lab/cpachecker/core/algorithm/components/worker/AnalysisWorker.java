@@ -12,11 +12,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
@@ -24,7 +21,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.components.block_analysis.BlockAnalysis.BackwardAnalysis;
@@ -34,7 +30,6 @@ import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageType;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
@@ -70,13 +65,15 @@ public class AnalysisWorker extends Worker {
       CFA pCFA,
       Specification pSpecification,
       Configuration pConfiguration,
-      ShutdownManager pShutdownManager)
+      ShutdownManager pShutdownManager,
+      SSAMap pTypeMap)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     super(pLogger);
 
     block = pBlock;
     postConditionUpdates = new ConcurrentHashMap<>();
     preConditionUpdates = new ConcurrentHashMap<>();
+    typeMap = pTypeMap;
 
     Configuration backwardConfiguration = Configuration.builder()
         .copyFrom(pConfiguration)
@@ -111,13 +108,6 @@ public class AnalysisWorker extends Worker {
 
     lastPreConditionMessage = Optional.empty();
     lastPostConditionMessage = Optional.empty();
-
-    Set<CFANode> allNodes = block.getNodesInBlock();
-    List<CFAEdge> blockEdges = new ArrayList<>();
-    for (CFANode cfaNode : allNodes) {
-      CFAUtils.leavingEdges(cfaNode).filter(edge -> allNodes.contains(edge.getSuccessor())).copyInto(blockEdges);
-    }
-    typeMap = forwardAnalysis.getPathFormulaManager().makeFormulaForPath(blockEdges).getSsa();
   }
 
   private PathFormula getPostCondition(FormulaManagerView fmgr, PathFormulaManagerImpl manager) {
@@ -249,10 +239,10 @@ public class AnalysisWorker extends Worker {
   @Override
   public void run() {
     try {
-      broadcast(Optional.of(forwardAnalysis(block.getStartNode())));
+      broadcast(answer(forwardAnalysis(block.getStartNode())));
       super.run();
     } catch (CPAException | InterruptedException | IOException pE) {
-      logger.log(Level.SEVERE, "ComponentAnalysis run into an error: %s", pE);
+      logger.log(Level.SEVERE, "Worker run into an error: %s", pE);
       logger.log(Level.SEVERE, "Stopping analysis...");
     }
   }

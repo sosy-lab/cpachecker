@@ -119,16 +119,19 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
   private boolean shouldComputeAbstraction(
       AbstractState fullState, CFANode location, PredicateAbstractState predicateState) {
+    if (!abstractAtTargetState) {
+      return false;
+    }
     if (predicateState.isAbstractionState()) {
       return false;
     }
     if (predicateState instanceof InfeasibleDummyState) {
       return false;
     }
-    if (blk.isBlockEnd(location, predicateState.getPathFormula().getLength()) && abstractAtTargetState) {
+    if (blk.isBlockEnd(location, predicateState.getPathFormula().getLength())) {
       return true;
     }
-    if (AbstractStates.isTargetState(fullState) && abstractAtTargetState) {
+    if (AbstractStates.isTargetState(fullState)) {
       statistics.numTargetAbstractions.inc();
       return true;
     }

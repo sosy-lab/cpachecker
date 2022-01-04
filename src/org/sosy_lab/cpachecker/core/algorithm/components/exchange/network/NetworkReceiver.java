@@ -98,7 +98,7 @@ public class NetworkReceiver implements Closeable {
     channel.configureBlocking(false);
 
     // register channel with selector for further IO
-    channel.register(this.selector, SelectionKey.OP_READ);
+    channel.register(selector, SelectionKey.OP_READ);
   }
 
   public InetSocketAddress getListenAddress() {
@@ -123,9 +123,9 @@ public class NetworkReceiver implements Closeable {
       do {
         if (numRead > 0) {
           buffer.flip();
-          char[] read = new char[numRead];
-          buffer.asCharBuffer().get(read, 0, numRead);
-          builder.append(read);
+          byte[] read = new byte[numRead];
+          buffer.get(read, 0, numRead);
+          builder.append(new String(read));
           buffer.compact();
         }
         if (numRead != BUFFER_SIZE) {

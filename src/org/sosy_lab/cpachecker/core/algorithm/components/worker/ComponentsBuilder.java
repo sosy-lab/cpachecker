@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.core.algorithm.components.exchange.network.Networ
 import org.sosy_lab.cpachecker.core.algorithm.components.worker.MonitoredAnalysisWorker.Monitor;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 public class ComponentsBuilder {
 
@@ -65,19 +66,19 @@ public class ComponentsBuilder {
     return this;
   }
 
-  public ComponentsBuilder addAnalysisWorker(BlockNode pNode)
+  public ComponentsBuilder addAnalysisWorker(BlockNode pNode, SSAMap pTypeMap)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     String id = "W" + workers.size() + pNode.getId();
     workers.add(
-        new AnalysisWorker(id, pNode, logger, cfa, specification, configuration, shutdownManager));
+        new AnalysisWorker(id, pNode, logger, cfa, specification, configuration, shutdownManager, pTypeMap));
     return this;
   }
 
-  public ComponentsBuilder addMonitoredAnalysisWorker(Monitor pMonitor, BlockNode pNode)
+  public ComponentsBuilder addMonitoredAnalysisWorker(Monitor pMonitor, BlockNode pNode, SSAMap pMap)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     String id = "W" + workers.size() + pNode.getId();
     workers.add(new MonitoredAnalysisWorker(id, pNode, logger, cfa, specification, configuration,
-        shutdownManager, pMonitor));
+        shutdownManager, pMonitor, pMap));
     return this;
   }
 
@@ -140,7 +141,7 @@ public class ComponentsBuilder {
     private final List<Worker> workers;
     private final List<Connection> additionalConnections;
 
-    public Components(
+    private Components(
         List<Worker> pWorkers,
         List<Connection> pAdditionalConnections) {
       workers = pWorkers;
