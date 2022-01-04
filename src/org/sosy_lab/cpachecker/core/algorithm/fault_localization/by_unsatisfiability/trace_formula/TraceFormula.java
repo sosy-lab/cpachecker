@@ -14,6 +14,7 @@ import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 import org.sosy_lab.common.configuration.Configuration;
@@ -22,6 +23,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaEntryList.PreconditionEntry;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.LabeledCounterexample.FormulaLabel;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.LabeledCounterexample.LabeledFormula;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -143,6 +145,25 @@ public abstract class TraceFormula {
     trace = calculateTrace();
     // logs for unit tests
     context.getLogger().log(Level.FINEST, "tftrace=" + trace);
+  }
+
+  private TraceFormula(FormulaContext pContext, TraceFormulaOptions pTraceFormulaOptions, BooleanFormula pPrecondition, Optional<BooleanFormula> pPostcondition, List<CFAEdge> pEdges)
+      throws CPATransferException, InterruptedException {
+    entries = new FormulaEntryList();
+    selectorFactory = new Selector.Factory();
+    edges = pEdges;
+    options = pTraceFormulaOptions;
+    context = pContext;
+    bmgr = context.getSolver().getFormulaManager().getBooleanFormulaManager();
+    calculateEntries();
+    precondition = pPrecondition;
+    if (pPostcondition.isPresent()){
+      postcondition = pPostcondition.orElseThrow();
+    } else {
+      postcondition = calculatePostCondition();
+    }
+    entries.add(0, new PreconditionEntry(SSAMap.emptySSAMap()));
+    trace = calculateTrace();
   }
 
   public boolean isCalculationPossible() throws SolverException, InterruptedException {
@@ -362,6 +383,26 @@ public abstract class TraceFormula {
         List<CFAEdge> pCounterexample)
         throws CPAException, InterruptedException, SolverException {
       super(pFormulaContext, pTraceFormulaOptions, pCounterexample);
+    }
+
+    @Override
+    protected BooleanFormula calculateTrace() {
+      return entries.toSelectorList().stream()
+          .map(entry -> bmgr.implication(entry.getFormula(), entry.getEdgeFormula()))
+          .collect(bmgr.toConjunction());
+    }
+  }
+
+  public static class SelectorTraceWithKnownConditions extends TraceFormula {
+
+    public SelectorTraceWithKnownConditions(
+        FormulaContext pFormulaContext,
+        TraceFormulaOptions pTraceFormulaOptions,
+        List<CFAEdge> pCounterexample,
+        BooleanFormula pPreCondition,
+        Optional<BooleanFormula> pPostCondition)
+        throws CPAException, InterruptedException {
+      super(pFormulaContext, pTraceFormulaOptions, pPreCondition, pPostCondition, pCounterexample);
     }
 
     @Override
