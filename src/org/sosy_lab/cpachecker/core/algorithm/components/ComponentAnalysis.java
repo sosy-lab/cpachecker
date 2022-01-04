@@ -136,7 +136,6 @@ public class ComponentAnalysis implements Algorithm {
       mainThreadConnection.close();
 
       // print result
-      logger.log(Level.INFO, "Block analysis finished.");
       if (result == Result.FALSE) {
         ARGState state = (ARGState) reachedSet.getFirstState();
         CompositeState cState = (CompositeState) state.getWrappedState();
@@ -153,6 +152,8 @@ public class ComponentAnalysis implements Algorithm {
     } catch (InvalidConfigurationException | IOException | InvocationTargetException | InstantiationException | IllegalAccessException | NoSuchMethodException pE) {
       logger.log(Level.SEVERE, "Block analysis stopped due to ", pE);
       throw new CPAException("Component Analysis run into an error.", pE);
+    } finally {
+      logger.log(Level.INFO, "Block analysis finished.");
     }
   }
 
