@@ -31,6 +31,7 @@ public class SummaryBasedRefiner implements Refiner, StatisticsProvider {
 
   private final Refiner firstRefiner;
   private final Refiner secondRefiner;
+  private final SummaryRefinerStatistics stats;
   protected final ARGCPA argCpa;
 
   @Option(
@@ -48,10 +49,12 @@ public class SummaryBasedRefiner implements Refiner, StatisticsProvider {
       ConfigurableProgramAnalysis pCpa,
       Configuration pConfig)
       throws InvalidConfigurationException {
+    stats = new SummaryRefinerStatistics();
     firstRefiner = pFirstRefiner;
     secondRefiner = pSecondRefiner;
     logger = pLogger;
     argCpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, Refiner.class);
+
     pConfig.inject(this);
   }
 
@@ -63,12 +66,14 @@ public class SummaryBasedRefiner implements Refiner, StatisticsProvider {
     if (secondRefiner instanceof StatisticsProvider) {
       ((StatisticsProvider) secondRefiner).collectStatistics(pStatsCollection);
     }
+    pStatsCollection.add(stats);
   }
 
   @Override
   public boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
     if (amntFirstRefinements > maxAmntFirstRefinements) {
       amntFirstRefinements = 0;
+      stats.increaseDoubleRefinements();
       if (!secondRefiner.performRefinement(pReached)) {
         return firstRefiner.performRefinement(pReached);
       } else {
@@ -78,6 +83,7 @@ public class SummaryBasedRefiner implements Refiner, StatisticsProvider {
       if (!firstRefiner.performRefinement(pReached)) {
         amntFirstRefinements = 0;
         logger.log(Level.INFO, "Performing Double refinement");
+        stats.increaseDoubleRefinements();
         return secondRefiner.performRefinement(pReached);
       } else {
         amntFirstRefinements += 1;

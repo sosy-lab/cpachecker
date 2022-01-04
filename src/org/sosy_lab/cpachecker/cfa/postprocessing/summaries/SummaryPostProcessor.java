@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -19,8 +20,10 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyInterface;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 
-public class SummaryPostProcessor {
+public class SummaryPostProcessor implements StatisticsProvider {
 
   private static CFA originalCFA;
   private Set<StrategiesEnum> strategies;
@@ -33,6 +36,7 @@ public class SummaryPostProcessor {
   private int maxIterationsSummaries;
   private StrategyDependencyInterface strategyDependencies;
   private SummaryInformation summaryInformation;
+  private SummaryCFAStatistics stats;
 
   public SummaryPostProcessor(
       LogManager pLogger,
@@ -60,6 +64,8 @@ public class SummaryPostProcessor {
             useCompilerForSummary,
             strategyDependencies,
             pCfa);
+
+    stats = new SummaryCFAStatistics(summaryInformation, strategies);
 
     summaryInformation.setFactory(strategyFactory);
     for (StrategiesEnum s : strategies) {
@@ -122,6 +128,7 @@ public class SummaryPostProcessor {
 
       iterations += 1;
       for (GhostCFA gCFA : ghostCfaToBeAdded) {
+        stats.addStrategy(gCFA.getStrategy());
         gCFA.connectOriginalAndGhostCFA();
         for (CFANode n : gCFA.getAllNodes()) {
           pCfa.addNode(startNode.getFunctionName(), n);
@@ -152,5 +159,10 @@ public class SummaryPostProcessor {
 
   public void setStrategies(Set<StrategiesEnum> pStrategies) {
     strategies = pStrategies;
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(stats);
   }
 }

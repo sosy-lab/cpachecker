@@ -658,6 +658,7 @@ public class CFACreator {
               maxUnrollingsStrategy,
               maxIterationsSummaries,
               strategyDependency);
+      summaryPostProcessor.collectStatistics(stats.statisticsCollection);
       cfa = summaryPostProcessor.process(cfa);
     }
 
