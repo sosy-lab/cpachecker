@@ -38,9 +38,9 @@ public class Message implements Comparable<Message> {
   // ORDER BY PRIORITY:
   public enum MessageType {
     FOUND_RESULT(1),
-    ERROR_CONDITION(3),
+    ERROR_CONDITION(2),
     ERROR_CONDITION_UNREACHABLE(2),
-    BLOCK_POSTCONDITION(3),
+    BLOCK_POSTCONDITION(2),
     ERROR(1);
 
     private final int priority;
@@ -136,14 +136,20 @@ public class Message implements Comparable<Message> {
   }
 
   @Override
-  public boolean equals(Object comp) {
-    if (!(comp instanceof Message)) {
+  public boolean equals(Object pO) {
+    if (!(pO instanceof Message)) {
       return false;
     }
-    Message message = (Message) comp;
-    return targetNodeNumber == message.targetNodeNumber && Objects.equals(uniqueBlockId,
-        message.uniqueBlockId) && type == message.type && Objects.equals(payload,
-        message.payload);
+    Message message = (Message) pO;
+    return targetNodeNumber == message.targetNodeNumber && uniqueBlockId.equals(
+        message.uniqueBlockId)
+        && type == message.type && payload.equals(message.payload) && Objects.equals(
+        additionalInformation, message.additionalInformation);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(targetNodeNumber, uniqueBlockId, type, payload, additionalInformation);
   }
 
   public static Message newBlockPostCondition(
@@ -183,11 +189,6 @@ public class Message implements Comparable<Message> {
     PrintWriter printer = new PrintWriter(new ByteArrayOutputStream());
     pException.printStackTrace(printer);
     return new Message(MessageType.ERROR, pUniqueBlockId, 0, arrayWriter.toString());
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(targetNodeNumber, uniqueBlockId, type, payload);
   }
 
   public static class MessageConverter {

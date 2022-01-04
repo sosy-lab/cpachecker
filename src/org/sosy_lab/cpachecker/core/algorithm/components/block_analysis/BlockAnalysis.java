@@ -275,7 +275,8 @@ public abstract class BlockAnalysis {
 
   public static class ForwardAnalysis extends BlockAnalysis {
 
-    private BlockTransferRelation relation;
+    private final BlockTransferRelation relation;
+    private boolean reportedOriginalViolation;
 
     public ForwardAnalysis(
         String pId,
@@ -300,26 +301,29 @@ public abstract class BlockAnalysis {
       status = algorithm.run(reachedSet);
       Set<ARGState> targetStates = from(reachedSet).filter(AbstractStates::isTargetState)
           .filter(ARGState.class).copyInto(new HashSet<>());
-      if (targetStates.isEmpty()) {
-        // throw new AssertionError("At least one target state has to exist (block start)");
-      }
+      /*if (targetStates.isEmpty()) {
+        throw new AssertionError("At least one target state has to exist (block start)");
+      }*/
 
       // find violations for potential backward analysis
       Set<Message> answers = new HashSet<>();
-      for (ARGState targetState : targetStates) {
-        int startInfos = from(targetState.getTargetInformation()).filter(
-            BlockStartReachedTargetInformation.class).size();
-        if (targetState.getTargetInformation().size() > startInfos) {
-          Optional<CFANode> targetNode =
-              abstractStateToLocation(targetState);
-          if (targetNode.isEmpty()) {
-            throw new AssertionError(
-                "States need to have a location but this one does not:" + targetState);
+      if (!reportedOriginalViolation) {
+        for (ARGState targetState : targetStates) {
+          int startInfos = from(targetState.getTargetInformation()).filter(
+              BlockStartReachedTargetInformation.class).size();
+          if (targetState.getTargetInformation().size() > startInfos) {
+            Optional<CFANode> targetNode =
+                abstractStateToLocation(targetState);
+            if (targetNode.isEmpty()) {
+              throw new AssertionError(
+                  "States need to have a location but this one does not:" + targetState);
+            }
+            reportedOriginalViolation = true;
+            answers.add(Message.newErrorConditionMessage(block.getId(),
+                targetNode.orElseThrow().getNodeNumber(), bmgr.makeTrue(),
+                fmgr, true));
+            break;
           }
-          answers.add(Message.newErrorConditionMessage(block.getId(),
-              targetNode.orElseThrow().getNodeNumber(), bmgr.makeTrue(),
-              fmgr, true));
-          break;
         }
       }
 
@@ -431,7 +435,7 @@ public abstract class BlockAnalysis {
         return ImmutableSet.of(Message.newResultMessage(block.getId(), block.getStartNode().getNodeNumber(),
             Result.FALSE));
       }
-      return ImmutableSet.of();
+      return ImmutableSet.of(Message.newErrorConditionUnreachableMessage(block.getId()));
     }
   }
 }

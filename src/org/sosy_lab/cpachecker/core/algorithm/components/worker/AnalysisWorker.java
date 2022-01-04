@@ -9,10 +9,12 @@
 package org.sosy_lab.cpachecker.core.algorithm.components.worker;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.concurrent.ConcurrentHashMap;
@@ -54,13 +56,13 @@ public class AnalysisWorker extends Worker {
   protected final BlockAnalysis backwardAnalysis;
 
   // String >-> uniqueBlockId
-  private final ConcurrentHashMap<String, Message> ownErrorConditionsAtBlockStart;
   protected final ConcurrentHashMap<String, Message> receivedPreConditions;
   protected final ConcurrentHashMap<String, Message> receivedErrorConditions;
 
   private AlgorithmStatus status;
 
   private Optional<Message> lastPreConditionMessage;
+  private Optional<Message> firstPreConditionMessage;
   private boolean lastPreConditionBasedOnAllPredecessors;
   private boolean fullPath;
 
@@ -81,7 +83,6 @@ public class AnalysisWorker extends Worker {
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     super(pLogger);
     block = pBlock;
-    ownErrorConditionsAtBlockStart = new ConcurrentHashMap<>();
     receivedPreConditions = new ConcurrentHashMap<>();
     receivedErrorConditions = new ConcurrentHashMap<>();
     typeMap = pTypeMap;
@@ -126,6 +127,7 @@ public class AnalysisWorker extends Worker {
     status = AlgorithmStatus.NO_PROPERTY_CHECKED;
 
     lastPreConditionMessage = Optional.empty();
+    firstPreConditionMessage = Optional.empty();
   }
 
   private PathFormula getPreCondition(FormulaManagerView fmgr, PathFormulaManagerImpl manager) {
@@ -179,9 +181,9 @@ public class AnalysisWorker extends Worker {
       throws InterruptedException, CPAException, IOException, SolverException {
     switch (message.getType()) {
       case ERROR_CONDITION:
-        return processPostConditionMessage(message);
+        return processErrorCondition(message);
       case BLOCK_POSTCONDITION:
-        return processPreconditionMessage(message);
+        return processBlockPostCondition(message);
       case ERROR:
       case FOUND_RESULT:
         shutdown();
@@ -192,7 +194,7 @@ public class AnalysisWorker extends Worker {
     }
   }
 
-  private Collection<Message> processPreconditionMessage(Message message)
+  private Collection<Message> processBlockPostCondition(Message message)
       throws CPAException, InterruptedException, SolverException {
     Preconditions.checkArgument(message.getType() == MessageType.BLOCK_POSTCONDITION,
         "can only process messages with type %s", MessageType.BLOCK_POSTCONDITION);
@@ -215,7 +217,7 @@ public class AnalysisWorker extends Worker {
     return ImmutableSet.of();
   }
 
-  private Collection<Message> processPostConditionMessage(Message message)
+  private Collection<Message> processErrorCondition(Message message)
       throws SolverException, InterruptedException, CPAException {
     Preconditions.checkArgument(message.getType() == MessageType.ERROR_CONDITION,
         "can only process messages with type %s", MessageType.ERROR_CONDITION);
@@ -231,7 +233,8 @@ public class AnalysisWorker extends Worker {
       receivedErrorConditions.put(message.getUniqueBlockId(), message);
       if (lastPreConditionBasedOnAllPredecessors) {
         if (lastPreConditionMessage.isPresent()) {
-          if (backwardAnalysis.cantContinue(
+          if ((firstPreConditionMessage.isPresent() && backwardAnalysis.cantContinue(
+              firstPreConditionMessage.orElseThrow().getPayload(), message.getPayload())) || backwardAnalysis.cantContinue(
               lastPreConditionMessage.orElseThrow().getPayload(), message.getPayload())) {
             return ImmutableSet.of(Message.newErrorConditionUnreachableMessage(block.getId()));
           } else if (earlyFalseResult && fullPath) {
@@ -246,11 +249,7 @@ public class AnalysisWorker extends Worker {
       formula = backwardAnalysis.getFmgr().uninstantiate(formula);
       PathFormula pathFormula = manager.makeAnd(manager.makeEmptyPathFormulaWithContext(builder.build(),
           PointerTargetSet.emptyPointerTargetSet()), formula);
-      Collection<Message> messages = backwardAnalysis(node, pathFormula);
-      messages.stream().filter(m -> m.getType() == MessageType.ERROR_CONDITION).forEach(toSend -> {
-        ownErrorConditionsAtBlockStart.put(message.getUniqueBlockId(), toSend);
-      });
-      return messages;
+      return backwardAnalysis(node, pathFormula);
     }
     return ImmutableSet.of();
   }
@@ -286,7 +285,14 @@ public class AnalysisWorker extends Worker {
   @Override
   public void run() {
     try {
-      broadcast(forwardAnalysis(block.getStartNode()));
+      List<Message> initialMessages = ImmutableList.copyOf(forwardAnalysis(block.getStartNode()));
+      if (initialMessages.size() == 1) {
+        Message message = initialMessages.get(0);
+        if (message.getType() == MessageType.BLOCK_POSTCONDITION) {
+          firstPreConditionMessage = Optional.of(message);
+        }
+      }
+      broadcast(initialMessages);
       super.run();
     } catch (CPAException | InterruptedException | IOException | SolverException pE) {
       logger.log(Level.SEVERE, "Worker run into an error: %s", pE);
