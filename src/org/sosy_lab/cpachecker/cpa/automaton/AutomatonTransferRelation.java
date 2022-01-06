@@ -175,7 +175,7 @@ public class AutomatonTransferRelation implements TransferRelation {
     List<Pair<AutomatonTransition, Map<Integer, AAstNode>>> transitionsToBeTaken =
         new ArrayList<>(2);
 
-    for (AutomatonTransition t : state.getInternalState().getTransitions()) {
+    for (AutomatonTransition t : state.getInternalState().getTransitions().reverse()) {
       exprArgs.clearTransitionVariables();
 
       matchTime.start();
