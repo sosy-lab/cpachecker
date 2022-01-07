@@ -16,20 +16,20 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
  * This class represents a simple mutation of an edge that does not contain a function call (see
  * FunctionCallMutation).
  */
-public class LoopConditionMutation extends Mutation {
-  private final LoopConditionAggregate loopConditionAggregate;
+public class AssumeEdgeMutation extends Mutation {
+  private final AssumeEdgeAggregate assumeEdgeAggregate;
 
-  public LoopConditionMutation(
-      CAssumeEdge pSuspiciousEdge, LoopConditionAggregate pLoopConditionAggregate, CFA pCFA) {
+  public AssumeEdgeMutation(
+      CAssumeEdge pSuspiciousEdge, AssumeEdgeAggregate pAssumeEdgeAggregate, CFA pCFA) {
     super(pSuspiciousEdge, pCFA);
-    loopConditionAggregate = pLoopConditionAggregate;
+    assumeEdgeAggregate = pAssumeEdgeAggregate;
 
-    exchangeEdge(loopConditionAggregate.getCondition());
-    exchangeEdge(loopConditionAggregate.getOppositeCondition());
+    exchangeEdge(assumeEdgeAggregate.getCondition());
+    exchangeEdge(assumeEdgeAggregate.getOppositeCondition());
   }
 
   @Override
   public CFAEdge getNewEdge() {
-    return loopConditionAggregate.getCondition();
+    return assumeEdgeAggregate.getCondition();
   }
 }

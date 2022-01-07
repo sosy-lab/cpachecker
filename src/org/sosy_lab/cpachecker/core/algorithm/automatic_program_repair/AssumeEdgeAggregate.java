@@ -15,11 +15,11 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
  *
  * <p>aggregate of these three edges.
  */
-public class LoopConditionAggregate {
+public class AssumeEdgeAggregate {
   private final CAssumeEdge condition;
   private final CAssumeEdge oppositeCondition;
 
-  public LoopConditionAggregate(CAssumeEdge pCondition, CAssumeEdge pOppositeCondition) {
+  public AssumeEdgeAggregate(CAssumeEdge pCondition, CAssumeEdge pOppositeCondition) {
     condition = pCondition;
     oppositeCondition = pOppositeCondition;
   }

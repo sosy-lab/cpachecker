@@ -70,26 +70,16 @@ public class CFAMutator {
   }
 
   /* EDGES  */
-  private Stream<Mutation> generateAssumeEdgeMutations(CAssumeEdge originalAssumeEdge) {
+  private Stream<AssumeEdgeMutation> generateAssumeEdgeMutations(CAssumeEdge originalAssumeEdge) {
     return ExpressionMutator.calcMutationsFor(originalAssumeEdge.getExpression(), cfa)
         .map(
             alternativeExpression -> {
-              final boolean cond = originalAssumeEdge.getPredecessor().isLoopStart();
-              if (cond) {
-                final LoopConditionEdgeMutator edgeMutator =
-                    new LoopConditionEdgeMutator(cfa, config, logger, originalAssumeEdge);
-                return new LoopConditionMutation(
+                final AssumeEdgeMutator edgeMutator =
+                    new AssumeEdgeMutator(cfa, config, logger, originalAssumeEdge);
+                return new AssumeEdgeMutation(
                     originalAssumeEdge,
                     edgeMutator.replaceExpressionInLoopConditionAggregate(alternativeExpression),
                     edgeMutator.getClonedCFA());
-              } else {
-                final SimpleEdgeMutator edgeMutator =
-                    new SimpleEdgeMutator(cfa, config, logger, originalAssumeEdge);
-                return new SimpleMutation(
-                    originalAssumeEdge,
-                    edgeMutator.replaceExpressionInAssumeEdge(alternativeExpression),
-                    edgeMutator.getClonedCFA());
-              }
             });
   }
 

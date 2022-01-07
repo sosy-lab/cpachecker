@@ -14,10 +14,10 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 
-public class LoopConditionEdgeMutator extends EdgeMutator {
-  LoopConditionAggregate loopConditionAggregate;
+public class AssumeEdgeMutator extends EdgeMutator {
+  AssumeEdgeAggregate assumeEdgeAggregate;
 
-  public LoopConditionEdgeMutator(
+  public AssumeEdgeMutator(
       CFA cfa, Configuration config, LogManager logger, CAssumeEdge pOriginalEdge) {
     super(cfa, config, logger);
     final CAssumeEdge edgeToMutate =
@@ -25,14 +25,14 @@ public class LoopConditionEdgeMutator extends EdgeMutator {
             CorrespondingEdgeProvider.findCorrespondingEdge(pOriginalEdge, getClonedCFA());
     final CAssumeEdge reverseConditionEdgeToMutate =
         CorrespondingEdgeProvider.findCorrespondingAssumeEdge(edgeToMutate);
-    loopConditionAggregate = new LoopConditionAggregate(edgeToMutate, reverseConditionEdgeToMutate);
+    assumeEdgeAggregate = new AssumeEdgeAggregate(edgeToMutate, reverseConditionEdgeToMutate);
   }
 
   /** Returns a new assume edge with a different expression. */
-  public LoopConditionAggregate replaceExpressionInLoopConditionAggregate(
+  public AssumeEdgeAggregate replaceExpressionInLoopConditionAggregate(
       CExpression newExpression) {
-    CAssumeEdge originalAssumeEdge = loopConditionAggregate.getCondition();
-    CAssumeEdge originalReverseAssumeEdge = loopConditionAggregate.getOppositeCondition();
+    CAssumeEdge originalAssumeEdge = assumeEdgeAggregate.getCondition();
+    CAssumeEdge originalReverseAssumeEdge = assumeEdgeAggregate.getOppositeCondition();
 
     final CAssumeEdge newAssumeEdge =
         new CAssumeEdge(
@@ -51,6 +51,6 @@ public class LoopConditionEdgeMutator extends EdgeMutator {
             newExpression,
             originalReverseAssumeEdge.getTruthAssumption());
 
-    return new LoopConditionAggregate(newAssumeEdge, newReverseAssumeEdge);
+    return new AssumeEdgeAggregate(newAssumeEdge, newReverseAssumeEdge);
   }
 }
