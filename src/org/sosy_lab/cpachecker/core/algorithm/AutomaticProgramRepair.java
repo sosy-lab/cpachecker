@@ -215,13 +215,12 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
     ConfigurableProgramAnalysis cpa = coreComponents.createCPA(mutatedCFA, specification);
     GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
     // TODO add a proper check
-    FaultLocalizationWithTraceFormula algo =
-        (FaultLocalizationWithTraceFormula)
+    Algorithm algo =
             coreComponents.createAlgorithm(cpa, mutatedCFA, specification);
     ReachedSet reached =
         createInitialReachedSet(cpa, mutatedCFA.getMainFunction(), coreComponents, logger);
 
-    AlgorithmStatus status = algo.runParentAlgorithm(reached);
+    AlgorithmStatus status = algo.run(reached);
 
     return cpaChecker.isResultTrue(reached, status);
   }
