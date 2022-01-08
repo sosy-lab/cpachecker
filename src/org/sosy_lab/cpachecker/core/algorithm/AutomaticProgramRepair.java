@@ -156,7 +156,6 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
 
         cfaMutator
             .calcPossibleMutations()
-            .parallel()
             .filter(
                 (Mutation mutation) -> {
                   try {
