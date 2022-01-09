@@ -82,13 +82,13 @@ public class ComponentAnalysis implements Algorithm {
   private final Specification specification;
 
   @Option(description = "algorithm to decompose the CFA")
-  private DecompositionType decompositionType = DecompositionType.GIVEN_SIZE;
+  private DecompositionType decompositionType = DecompositionType.BLOCK_OPERATOR;
 
   @Option(description = "how to send messages")
   private ConnectionType connectionType = ConnectionType.IN_MEMORY;
 
   @Option(description = "which worker to use")
-  private WorkerType workerType = WorkerType.SMART;
+  private WorkerType workerType = WorkerType.DEFAULT;
 
   public ComponentAnalysis(
       Configuration pConfig,
