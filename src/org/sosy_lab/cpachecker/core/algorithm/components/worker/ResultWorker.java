@@ -68,10 +68,10 @@ public class ResultWorker extends Worker {
           nodeMap.get(senderId).getPredecessors()
               .forEach(b -> expectAnswer.merge(b.getId(), 1, Integer::sum));
         }
-        return response(numViolationsBefore, pMessage.getUniqueBlockId());
+        return response(numViolationsBefore, pMessage);
       case ERROR_CONDITION_UNREACHABLE:
         expectAnswer.merge(senderId, -1, Integer::sum);
-        return response(numViolationsBefore, pMessage.getUniqueBlockId());
+        return response(numViolationsBefore, pMessage);
       case FOUND_RESULT:
       case ERROR:
         shutdown();
@@ -82,10 +82,10 @@ public class ResultWorker extends Worker {
     }
   }
 
-  private Collection<Message> response(int numViolationsBefore, String blockId) {
+  private Collection<Message> response(int numViolationsBefore, Message pMessage) {
     if (expectAnswer.values().stream().anyMatch(i -> i < 0)) {
-      logger.log(Level.SEVERE, "Map with expected answers contains negative values: " + expectAnswer);
-      return ImmutableSet.of(Message.newErrorMessage(blockId, new CPAException("Map with expected answers contains negative values: " + expectAnswer)));
+      logger.log(Level.SEVERE, pMessage + " caused: Map with expected answers contains negative values: " + expectAnswer);
+      return ImmutableSet.of(Message.newErrorMessage(pMessage.getUniqueBlockId(), new CPAException(pMessage + " caused: Map with expected answers contains negative values: " + expectAnswer)));
     }
     boolean onlyOriginViolations = true;
     for (Entry<String, Integer> stringIntegerEntry : expectAnswer.entrySet()) {
@@ -100,7 +100,7 @@ public class ResultWorker extends Worker {
             && (expectAnswer.values().stream().mapToInt(i -> i).sum() == 0
             || onlyOriginViolations);
     if (finished) {
-      return ImmutableSet.of(Message.newResultMessage(blockId, 0, Result.TRUE));
+      return ImmutableSet.of(Message.newResultMessage(pMessage.getUniqueBlockId(), 0, Result.TRUE));
     }
     return ImmutableSet.of();
   }

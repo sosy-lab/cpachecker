@@ -34,9 +34,11 @@ import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockTree
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.CFADecomposer;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.GivenSizeDecomposer;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Connection;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.ConnectionProvider;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.memory.InMemoryConnectionProvider;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.network.NetworkConnectionProvider;
 import org.sosy_lab.cpachecker.core.algorithm.components.worker.ComponentsBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.components.worker.ComponentsBuilder.Components;
 import org.sosy_lab.cpachecker.core.algorithm.components.worker.Worker;
@@ -56,9 +58,21 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 @Options(prefix = "components")
 public class ComponentAnalysis implements Algorithm {
 
-  public enum DecompositionType {
+  private enum DecompositionType {
     BLOCK_OPERATOR,
     GIVEN_SIZE
+  }
+
+  private enum ConnectionType {
+    NETWORK,
+    IN_MEMORY
+  }
+
+  private enum WorkerType {
+    DEFAULT,
+    SMART,
+    MONITORED,
+    FAULT_LOCALIZATION
   }
 
   private final Configuration configuration;
@@ -69,6 +83,12 @@ public class ComponentAnalysis implements Algorithm {
 
   @Option(description = "algorithm to decompose the CFA")
   private DecompositionType decompositionType = DecompositionType.BLOCK_OPERATOR;
+
+  @Option(description = "how to send messages")
+  private ConnectionType connectionType = ConnectionType.IN_MEMORY;
+
+  @Option(description = "which worker to use")
+  private WorkerType workerType = WorkerType.DEFAULT;
 
   public ComponentAnalysis(
       Configuration pConfig,
@@ -92,6 +112,33 @@ public class ComponentAnalysis implements Algorithm {
         return new GivenSizeDecomposer(configuration, new BlockOperatorDecomposer(configuration));
       default:
         throw new AssertionError("Unknown DecompositionType: " + decompositionType);
+    }
+  }
+
+  private ComponentsBuilder analysisWorker(ComponentsBuilder pBuilder, BlockNode pNode, SSAMap pMap)
+      throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
+    switch (workerType) {
+      case DEFAULT:
+        return pBuilder.addAnalysisWorker(pNode, pMap);
+      case SMART:
+        return pBuilder.addSmartAnalysisWorker(pNode, pMap);
+      case MONITORED:
+        return pBuilder.addMonitoredAnalysisWorker(pNode, pMap);
+      case FAULT_LOCALIZATION:
+        return pBuilder.addFaultLocalizationWorker(pNode, pMap);
+      default:
+        throw new AssertionError("Unknown WorkerType: " + workerType);
+    }
+  }
+
+  private Class<? extends ConnectionProvider<?>> getConnectionProvider() {
+    switch (connectionType) {
+      case NETWORK:
+        return NetworkConnectionProvider.class;
+      case IN_MEMORY:
+        return InMemoryConnectionProvider.class;
+      default:
+        throw new AssertionError("Unknown ConnectionType " + connectionType);
     }
   }
 
@@ -129,11 +176,11 @@ public class ComponentAnalysis implements Algorithm {
 
 
       ComponentsBuilder builder =
-          new ComponentsBuilder(logger, cfa, specification, configuration, shutdownManager);
-      builder = builder.withConnectionType(InMemoryConnectionProvider.class)
+          new ComponentsBuilder(logger, cfa, specification, configuration, shutdownManager, tree);
+      builder = builder.withConnectionType(getConnectionProvider())
           .createAdditionalConnections(1);
       for (BlockNode distinctNode : blocks) {
-        builder = builder.addAnalysisWorker(distinctNode, map);
+        builder = analysisWorker(builder, distinctNode, map);
       }
       builder = builder.addResultCollectorWorker(blocks);
       builder = builder.addTimeoutWorker(900000);

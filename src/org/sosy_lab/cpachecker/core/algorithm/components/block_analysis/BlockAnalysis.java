@@ -435,7 +435,7 @@ public abstract class BlockAnalysis {
         return ImmutableSet.of(Message.newResultMessage(block.getId(), block.getStartNode().getNodeNumber(),
             Result.FALSE));
       }
-      return ImmutableSet.of(Message.newErrorConditionUnreachableMessage(block.getId()));
+      return ImmutableSet.of();
     }
   }
 }
