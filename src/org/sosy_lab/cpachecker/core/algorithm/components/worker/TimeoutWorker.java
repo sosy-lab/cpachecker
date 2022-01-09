@@ -57,15 +57,13 @@ public class TimeoutWorker extends Worker {
     switch (pMessage.getType()) {
       case ERROR:
       case FOUND_RESULT:
-        timer.cancel();
-        timer.purge();
         shutdown();
       case ERROR_CONDITION:
       case ERROR_CONDITION_UNREACHABLE:
       case BLOCK_POSTCONDITION:
         break;
       default:
-        throw new AssertionError("Unknown MessageType " + pMessage.getType());
+        throw new AssertionError("Unknown type of " + pMessage.getType().getClass() + ": " + pMessage.getType());
     }
     return ImmutableSet.of();
   }
@@ -85,6 +83,13 @@ public class TimeoutWorker extends Worker {
         logger.log(Level.SEVERE, "TimeoutWorker failed to send message.", pE);
       }
     }
+  }
+
+  @Override
+  public void shutdown() throws IOException {
+    timer.cancel();
+    timer.purge();
+    super.shutdown();
   }
 
 }
