@@ -16,15 +16,29 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 
+@Options(prefix = "decomposition")
 public class GivenSizeDecomposer implements CFADecomposer {
 
-  private final int desiredNumberOfBlocks;
+  @Option(description = "desired number of BlockNodes")
+  private int desiredNumberOfBlocks = 10;
+
   private final CFADecomposer decomposer;
 
-  public GivenSizeDecomposer(int pDesiredNumberOfBlocks, CFADecomposer pDecomposer) {
-    desiredNumberOfBlocks = pDesiredNumberOfBlocks;
+  /**
+   * A decomposer that merges as many parts as possible to maybe reach the desired number of blocks
+   * @param pConfiguration user configuration
+   * @param pDecomposer parent decomposer
+   * @throws InvalidConfigurationException thrown if configuration is invalid
+   */
+  public GivenSizeDecomposer(Configuration pConfiguration, CFADecomposer pDecomposer)
+      throws InvalidConfigurationException {
+    pConfiguration.inject(this);
     decomposer = pDecomposer;
   }
 

@@ -19,6 +19,8 @@ import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -51,7 +53,13 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImp
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
+@Options(prefix = "components")
 public class ComponentAnalysis implements Algorithm {
+
+  public enum DecompositionType {
+    BLOCK_OPERATOR,
+    GIVEN_SIZE
+  }
 
   private final Configuration configuration;
   private final LogManager logger;
@@ -59,24 +67,39 @@ public class ComponentAnalysis implements Algorithm {
   private final ShutdownManager shutdownManager;
   private final Specification specification;
 
+  @Option(description = "algorithm to decompose the CFA")
+  private DecompositionType decompositionType = DecompositionType.BLOCK_OPERATOR;
+
   public ComponentAnalysis(
       Configuration pConfig,
       LogManager pLogger,
       CFA pCfa,
       ShutdownManager pShutdownManager,
-      Specification pSpecification) {
+      Specification pSpecification) throws InvalidConfigurationException {
     configuration = pConfig;
+    configuration.inject(this);
     logger = pLogger;
     cfa = pCfa;
     shutdownManager = pShutdownManager;
     specification = pSpecification;
   }
 
+  private CFADecomposer getDecomposer() throws InvalidConfigurationException {
+    switch (decompositionType) {
+      case BLOCK_OPERATOR:
+        return new BlockOperatorDecomposer(configuration);
+      case GIVEN_SIZE:
+        return new GivenSizeDecomposer(configuration, new BlockOperatorDecomposer(configuration));
+      default:
+        throw new AssertionError("Unknown DecompositionType: " + decompositionType);
+    }
+  }
+
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
     logger.log(Level.INFO, "Starting block analysis...");
     try {
-      CFADecomposer decomposer = new GivenSizeDecomposer(10, new BlockOperatorDecomposer(configuration));
+      CFADecomposer decomposer = getDecomposer();
       BlockTree tree = decomposer.cut(cfa);
       if (tree.isEmpty()) {
         // empty program

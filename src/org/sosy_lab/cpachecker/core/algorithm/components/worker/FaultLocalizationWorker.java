@@ -10,11 +10,8 @@ package org.sosy_lab.cpachecker.core.algorithm.components.worker;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -23,23 +20,22 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
-import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
-import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaContext;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaEntryList;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.Selector.Factory;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula.SelectorTraceWithKnownConditions;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula.TraceFormulaOptions;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.unsat.OriginalMaxSatAlgorithm;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
-import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.SolverException;
 
 public class FaultLocalizationWorker extends AnalysisWorker {
 
@@ -87,26 +83,38 @@ public class FaultLocalizationWorker extends AnalysisWorker {
     } while (!currNode.equals(pBlock.getLastNode()));
   }
 
-  @Override
-  protected Collection<Message> backwardAnalysis(
-      CFANode pStartNode, PathFormula pFormula)
-      throws CPAException, InterruptedException, SolverException {
-    Collection<Message> messages = super.backwardAnalysis(pStartNode, pFormula);
-    if (messages.stream().anyMatch(m -> m.getType() == MessageType.ERROR_CONDITION)) {
-      Optional<BooleanFormula> postCond = Optional.empty();
-      if (pStartNode.equals(block.getLastNode())) {
-        postCond = Optional.of(bmgr.not(pFormula.getFormula()));
+  public TraceFormula createTraceFormula(Optional<BooleanFormula> pPostCondition) throws CPATransferException, InterruptedException {
+    PathFormulaManagerImpl pathFormulaManager = context.getManager();
+    PathFormula precondition = getBooleanFormula(fmgr, pathFormulaManager, receivedPostConditions);
+    FormulaEntryList entries = new FormulaEntryList();
+    PathFormula current = precondition;
+    BooleanFormula oldFormula = current.getFormula();
+    Factory selectorFactory = new Factory();
+    int id = 0;
+    for (CFAEdge cfaEdge : errorPath) {
+      current = pathFormulaManager.makeAnd(current, cfaEdge);
+      if (current.getFormula().equals(oldFormula)) {
+        continue;
       }
-      SelectorTraceWithKnownConditions trace = new SelectorTraceWithKnownConditions(context, options, errorPath, getBooleanFormula(
-          fmgr, backwardAnalysis.getPathFormulaManager(), receivedPreConditions).getFormula(), postCond);
-      OriginalMaxSatAlgorithm algorithm = new OriginalMaxSatAlgorithm();
-      Set<Fault> faults = algorithm.run(context, trace);
-      if (!faults.isEmpty()) {
-        Fault smallest = faults.stream().min(Comparator.comparingInt(f -> f.size())).orElseThrow();
-        for (FaultContribution faultContribution : smallest) {
-        }
+      id++;
+      BooleanFormula newFormula = current.getFormula();
+      List<BooleanFormula> parts = new ArrayList<>(bmgr.toConjunctionArgs(newFormula, false));
+      if (parts.size() != 2) {
+        throw new AssertionError("Splitting a BooleanFormula has to result in exactly two formulas: " + parts);
       }
+      BooleanFormula correctPart;
+      if (parts.get(0).equals(oldFormula)) {
+        correctPart = parts.get(1);
+      } else {
+        correctPart = parts.get(0);
+      }
+      entries.addEntry(id, current.getSsa(), selectorFactory.makeSelector(context, correctPart, cfaEdge), correctPart);
+      oldFormula = current.getFormula();
     }
-    return messages;
+    Optional<BooleanFormula> postCondition = Optional.empty();
+    if (pPostCondition.isPresent()) {
+      postCondition = Optional.of(fmgr.instantiate(fmgr.uninstantiate(pPostCondition.orElseThrow()), current.getSsa()));
+    }
+    return new SelectorTraceWithKnownConditions(context, options, entries, precondition.getFormula(), postCondition, errorPath);
   }
 }

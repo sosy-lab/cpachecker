@@ -60,7 +60,7 @@ public class SmartAnalysisWorker extends AnalysisWorker {
       if (m.getType() == MessageType.BLOCK_POSTCONDITION) {
         if (m.getTargetNodeNumber() == block.getStartNode().getNodeNumber()) {
           postcondMessage = m;
-          receivedPreConditions.put(m.getUniqueBlockId(), m);
+          receivedPostConditions.put(m.getUniqueBlockId(), m);
         }
       } else {
         smartQueue.add(m);

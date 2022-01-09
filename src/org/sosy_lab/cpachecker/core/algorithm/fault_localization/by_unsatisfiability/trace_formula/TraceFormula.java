@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiab
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -147,22 +148,19 @@ public abstract class TraceFormula {
     context.getLogger().log(Level.FINEST, "tftrace=" + trace);
   }
 
-  private TraceFormula(FormulaContext pContext, TraceFormulaOptions pTraceFormulaOptions, BooleanFormula pPrecondition, Optional<BooleanFormula> pPostcondition, List<CFAEdge> pEdges)
-      throws CPATransferException, InterruptedException {
-    entries = new FormulaEntryList();
+  private TraceFormula(FormulaContext pContext, TraceFormulaOptions pTraceFormulaOptions, BooleanFormula pPrecondition, Optional<BooleanFormula> pPostcondition, FormulaEntryList pList, List<CFAEdge> pEdges) {
     selectorFactory = new Selector.Factory();
     edges = pEdges;
     options = pTraceFormulaOptions;
     context = pContext;
     bmgr = context.getSolver().getFormulaManager().getBooleanFormulaManager();
-    calculateEntries();
+    entries = pList;
     precondition = pPrecondition;
-    if (pPostcondition.isPresent()){
+    if (pPostcondition.isPresent()) {
       postcondition = pPostcondition.orElseThrow();
     } else {
       postcondition = calculatePostCondition();
     }
-    entries.add(0, new PreconditionEntry(SSAMap.emptySSAMap()));
     trace = calculateTrace();
   }
 
@@ -398,11 +396,12 @@ public abstract class TraceFormula {
     public SelectorTraceWithKnownConditions(
         FormulaContext pFormulaContext,
         TraceFormulaOptions pTraceFormulaOptions,
-        List<CFAEdge> pCounterexample,
+        FormulaEntryList pPath,
         BooleanFormula pPreCondition,
-        Optional<BooleanFormula> pPostCondition)
-        throws CPAException, InterruptedException {
-      super(pFormulaContext, pTraceFormulaOptions, pPreCondition, pPostCondition, pCounterexample);
+        Optional<BooleanFormula> pPostCondition,
+        List<CFAEdge> pEdges)
+    {
+      super(pFormulaContext, pTraceFormulaOptions, pPreCondition, pPostCondition, pPath, new ArrayList<>(pEdges));
     }
 
     @Override

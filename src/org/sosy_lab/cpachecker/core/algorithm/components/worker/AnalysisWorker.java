@@ -56,7 +56,7 @@ public class AnalysisWorker extends Worker {
   protected final BlockAnalysis backwardAnalysis;
 
   // String >-> uniqueBlockId
-  protected final ConcurrentHashMap<String, Message> receivedPreConditions;
+  protected final ConcurrentHashMap<String, Message> receivedPostConditions;
   protected final ConcurrentHashMap<String, Message> receivedErrorConditions;
 
   private AlgorithmStatus status;
@@ -83,7 +83,7 @@ public class AnalysisWorker extends Worker {
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     super(pLogger);
     block = pBlock;
-    receivedPreConditions = new ConcurrentHashMap<>();
+    receivedPostConditions = new ConcurrentHashMap<>();
     receivedErrorConditions = new ConcurrentHashMap<>();
     typeMap = pTypeMap;
 
@@ -131,7 +131,7 @@ public class AnalysisWorker extends Worker {
   }
 
   private PathFormula getPreCondition(FormulaManagerView fmgr, PathFormulaManagerImpl manager) {
-    return getBooleanFormula(fmgr, manager, receivedPreConditions);
+    return getBooleanFormula(fmgr, manager, receivedPostConditions);
   }
 
   protected PathFormula getBooleanFormula(
@@ -206,8 +206,8 @@ public class AnalysisWorker extends Worker {
     }
     CFANode node = optionalCFANode.orElseThrow();
     if (node.equals(block.getStartNode())) {
-      receivedPreConditions.put(message.getUniqueBlockId(), message);
-      lastPreConditionBasedOnAllPredecessors = receivedPreConditions.size() == block.getPredecessors()
+      receivedPostConditions.put(message.getUniqueBlockId(), message);
+      lastPreConditionBasedOnAllPredecessors = receivedPostConditions.size() == block.getPredecessors()
           .size();
       Collection<Message> messages = forwardAnalysis(node);
       messages.stream().filter(m -> m.getType() == MessageType.BLOCK_POSTCONDITION).forEach(toSend -> {
@@ -264,8 +264,8 @@ public class AnalysisWorker extends Worker {
     for (Message message : messages) {
       if (message.getType() == MessageType.BLOCK_POSTCONDITION) {
         fullPath =
-            fullPath || receivedPreConditions.size() == block.getPredecessors().size()
-                && receivedPreConditions.values()
+            fullPath || receivedPostConditions.size() == block.getPredecessors().size()
+                && receivedPostConditions.values()
                 .stream().allMatch(m -> Boolean.parseBoolean(m.getAdditionalInformation()));
         message.setAdditionalInformation(Boolean.toString(fullPath));
       }
