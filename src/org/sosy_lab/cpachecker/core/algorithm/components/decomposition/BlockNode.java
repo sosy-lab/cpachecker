@@ -171,5 +171,10 @@ public class BlockNode {
       pNode.linkSuccessor(pNodeSuccessor);
     }
 
+    public void removeNode(BlockNode pNode) {
+      pNode.predecessors.forEach(p -> p.successors.remove(pNode));
+      pNode.successors.forEach(p -> p.predecessors.remove(pNode));
+    }
+
   }
 }

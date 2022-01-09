@@ -16,6 +16,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
@@ -82,6 +83,10 @@ public class ResultWorker extends Worker {
   }
 
   private Collection<Message> response(int numViolationsBefore, String blockId) {
+    if (expectAnswer.values().stream().anyMatch(i -> i < 0)) {
+      logger.log(Level.SEVERE, "Map with expected answers contains negative values: " + expectAnswer);
+      return ImmutableSet.of(Message.newErrorMessage(blockId, new CPAException("Map with expected answers contains negative values: " + expectAnswer)));
+    }
     boolean onlyOriginViolations = true;
     for (Entry<String, Integer> stringIntegerEntry : expectAnswer.entrySet()) {
       if (violationOrigins.contains(stringIntegerEntry.getKey())) {

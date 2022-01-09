@@ -179,6 +179,7 @@ public class AnalysisWorker extends Worker {
   @Override
   public Collection<Message> processMessage(Message message)
       throws InterruptedException, CPAException, IOException, SolverException {
+    working.add(this);
     switch (message.getType()) {
       case ERROR_CONDITION:
         return processErrorCondition(message);
@@ -285,6 +286,7 @@ public class AnalysisWorker extends Worker {
   @Override
   public void run() {
     try {
+      working.add(this);
       List<Message> initialMessages = ImmutableList.copyOf(forwardAnalysis(block.getStartNode()));
       if (initialMessages.size() == 1) {
         Message message = initialMessages.get(0);

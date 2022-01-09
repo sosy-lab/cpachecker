@@ -10,8 +10,11 @@ package org.sosy_lab.cpachecker.core.algorithm.components.worker;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Connection;
@@ -27,6 +30,8 @@ public abstract class Worker implements Runnable {
   protected boolean finished;
 
   protected static final Optional<Message> noResponse = Optional.empty();
+
+  public static Set<Worker> working = ConcurrentHashMap.newKeySet();
 
   protected Worker(LogManager pLogger) {
     logger = pLogger;
@@ -46,6 +51,7 @@ public abstract class Worker implements Runnable {
                                                                             SolverException, CPAException;
 
   public void broadcast(Collection<Message> pMessage) throws IOException, InterruptedException {
+    working.remove(this);
     Objects.requireNonNull(connection, "Connection cannot be null.");
     for (Message message : pMessage) {
       connection.write(message);

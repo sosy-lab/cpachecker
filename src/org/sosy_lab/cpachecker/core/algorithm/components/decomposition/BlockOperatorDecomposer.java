@@ -128,7 +128,7 @@ public class BlockOperatorDecomposer implements CFADecomposer {
         }
       }
     }
-    return new BlockTree(root);
+    return new BlockTree(root, nodeFactory);
   }
 
   private static class Entry {

@@ -29,6 +29,8 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockOperatorDecomposer;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockTree;
+import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.CFADecomposer;
+import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.GivenSizeDecomposer;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageType;
@@ -74,7 +76,8 @@ public class ComponentAnalysis implements Algorithm {
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
     logger.log(Level.INFO, "Starting block analysis...");
     try {
-      BlockTree tree = new BlockOperatorDecomposer(configuration).cut(cfa);
+      CFADecomposer decomposer = new GivenSizeDecomposer(10, new BlockOperatorDecomposer(configuration));
+      BlockTree tree = decomposer.cut(cfa);
       if (tree.isEmpty()) {
         // empty program
         return AlgorithmStatus.SOUND_AND_PRECISE;
@@ -129,8 +132,7 @@ public class ComponentAnalysis implements Algorithm {
           break;
         }
         if (m.getType() == MessageType.ERROR) {
-          result = Result.UNKNOWN;
-          break;
+          throw new CPAException(m.getPayload());
         }
       }
 
