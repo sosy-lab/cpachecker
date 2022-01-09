@@ -73,7 +73,6 @@ public class FaultLocalizationWorker extends AnalysisWorker {
     fmgr = backwardAnalysis.getFmgr();
     bmgr = fmgr.getBooleanFormulaManager();
     errorPath = new ArrayList<>();
-    earlyFalseResult = false;
 
     CFANode currNode = pBlock.getStartNode();
     do {

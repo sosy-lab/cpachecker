@@ -371,11 +371,12 @@ public abstract class BlockAnalysis {
       Map<AbstractState, BooleanFormula>
           formulas = transformReachedSet(reachedSet, block.getStartNode(),
           AnalysisDirection.BACKWARD);
-      BooleanFormula result = formulas.isEmpty() ? bmgr.makeFalse() : bmgr.or(formulas.values());
-      if (bmgr.isFalse(result)) {
+      BooleanFormula result = bmgr.or(formulas.values()); // returns false if formulas is empty
+      if (bmgr.isFalse(result) && !block.isEmpty()) {
         return ImmutableSet.of(Message.newErrorConditionUnreachableMessage(block.getId()));
       }
       // by definition: if the post-condition reaches the root element, the specification is violated
+      // (as far as this block can tell)
       return ImmutableSet.of(Message.newErrorConditionMessage(block.getId(), block.getStartNode().getNodeNumber(),
           result, fmgr, false));
     }

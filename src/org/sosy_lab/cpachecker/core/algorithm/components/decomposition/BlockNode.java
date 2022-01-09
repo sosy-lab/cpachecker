@@ -89,6 +89,10 @@ public class BlockNode {
     return codeLines.toString();
   }
 
+  public boolean isEmpty() {
+    return nodesInBlock.size() > 1;
+  }
+
   private void linkSuccessor(BlockNode node) {
     addSuccessors(node);
     node.addPredecessors(this);

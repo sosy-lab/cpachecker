@@ -26,7 +26,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.components.block_analysis.BlockAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.components.block_analysis.BlockAnalysis.BackwardAnalysis;
@@ -65,9 +64,6 @@ public class AnalysisWorker extends Worker {
   private Optional<Message> firstPreConditionMessage;
   private boolean lastPreConditionBasedOnAllPredecessors;
   private boolean fullPath;
-
-  /** has to be deactivated when using fault localization */
-  protected boolean earlyFalseResult = false;
 
   private final SSAMap typeMap;
 
@@ -238,9 +234,6 @@ public class AnalysisWorker extends Worker {
               firstPreConditionMessage.orElseThrow().getPayload(), message.getPayload())) || backwardAnalysis.cantContinue(
               lastPreConditionMessage.orElseThrow().getPayload(), message.getPayload())) {
             return ImmutableSet.of(Message.newErrorConditionUnreachableMessage(block.getId()));
-          } else if (earlyFalseResult && fullPath) {
-            // early false result
-            return ImmutableSet.of(Message.newResultMessage(block.getId(), 0, Result.FALSE));
           }
         }
       }
