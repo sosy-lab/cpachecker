@@ -60,6 +60,10 @@ public class ComponentsBuilder {
     monitor = new Monitor(logger, pTree.getDistinctNodes().size());
   }
 
+  private String nextId(String pAdditionalIdentifier) {
+    return "W" + workers.size() + pAdditionalIdentifier;
+  }
+
   public ComponentsBuilder withConnectionType(Class<? extends ConnectionProvider<?>> pConnectionType) {
     connectionProviderClass = pConnectionType;
     return this;
@@ -72,35 +76,31 @@ public class ComponentsBuilder {
 
   public ComponentsBuilder addAnalysisWorker(BlockNode pNode, SSAMap pTypeMap)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
-    String id = "W" + workers.size() + pNode.getId();
     workers.add(
-        new AnalysisWorker(id, pNode, logger, cfa, specification, configuration,
+        new AnalysisWorker(nextId(pNode.getId()), pNode, logger, cfa, specification, configuration,
             shutdownManager, pTypeMap));
     return this;
   }
 
   public ComponentsBuilder addSmartAnalysisWorker(BlockNode pNode, SSAMap pTypeMap)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
-    String id = "W" + workers.size() + pNode.getId();
     workers.add(
-        new SmartAnalysisWorker(id, pNode, logger, cfa, specification, configuration,
+        new SmartAnalysisWorker(nextId(pNode.getId()), pNode, logger, cfa, specification, configuration,
             shutdownManager, pTypeMap));
     return this;
   }
 
   public ComponentsBuilder addMonitoredAnalysisWorker(BlockNode pNode, SSAMap pMap)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
-    String id = "W" + workers.size() + pNode.getId();
-    workers.add(new MonitoredAnalysisWorker(id, pNode, logger, cfa, specification, configuration,
+    workers.add(new MonitoredAnalysisWorker(nextId(pNode.getId()), pNode, logger, cfa, specification, configuration,
         shutdownManager, monitor, pMap));
     return this;
   }
 
   public ComponentsBuilder addFaultLocalizationWorker(BlockNode pNode, SSAMap pTypeMap)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
-    String id = "W" + workers.size() + pNode.getId();
     workers.add(
-        new FaultLocalizationWorker(id, pNode, logger, cfa, specification, configuration, shutdownManager, pTypeMap));
+        new FaultLocalizationWorker(nextId(pNode.getId()), pNode, logger, cfa, specification, configuration, shutdownManager, pTypeMap));
     return this;
   }
 
