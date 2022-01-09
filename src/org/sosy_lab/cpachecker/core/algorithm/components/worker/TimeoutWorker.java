@@ -22,16 +22,33 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 public class TimeoutWorker extends Worker {
 
-  private final long wait;
+  private final long waitTime;
 
-  private boolean doWait;
+  private boolean shouldScheduleTimer;
   private final Timer timer;
+  private final TimerTask task;
 
   protected TimeoutWorker(LogManager pLogger, long pMillis) {
     super(pLogger);
-    wait = pMillis;
-    doWait = true;
+    waitTime = pMillis;
+    shouldScheduleTimer = true;
     timer = new Timer();
+    task = new TimerTask() {
+      @Override
+      public void run() {
+        try {
+          broadcast(ImmutableSet.of(Message.newResultMessage("timeout", 0, Result.UNKNOWN)));
+        } catch (IOException pE) {
+          logger.log(Level.SEVERE, "Cannot broadcast timeout message properly because of", pE);
+          logger.log(Level.INFO, "Trying to send timeout message one last time...");
+          shouldScheduleTimer = false;
+          run();
+        } catch (InterruptedException pE) {
+          shouldScheduleTimer = false;
+          run();
+        }
+      }
+    };
   }
 
   @Override
@@ -41,6 +58,7 @@ public class TimeoutWorker extends Worker {
       case ERROR:
       case FOUND_RESULT:
         timer.cancel();
+        timer.purge();
         shutdown();
       case ERROR_CONDITION:
       case ERROR_CONDITION_UNREACHABLE:
@@ -54,26 +72,13 @@ public class TimeoutWorker extends Worker {
 
   @Override
   public void run() {
-    TimerTask task = new TimerTask() {
-      @Override
-      public void run() {
-        try {
-          broadcast(ImmutableSet.of(Message.newResultMessage("timeout", 0, Result.UNKNOWN)));
-        } catch (IOException pE) {
-          logger.log(Level.SEVERE, "Cannot broadcast timeout message properly because of", pE);
-          logger.log(Level.INFO, "Trying to send timeout message one last time...");
-          doWait = false;
-          run();
-        } catch (InterruptedException pE) {
-          doWait = false;
-          run();
-        }
-      }
-    };
-    if (doWait) {
-      timer.schedule(task, wait);
+    if (shouldScheduleTimer) {
+      // abort in waitTime milliseconds
+      timer.schedule(task, waitTime);
+      // read incoming messages to terminate in case analysis finished early
       super.run();
     } else {
+      // if the timer encounters a problem with sending the timeout message try it one last time...
       try {
         broadcast(ImmutableSet.of(Message.newResultMessage("timeout", 0, Result.UNKNOWN)));
       } catch (IOException | InterruptedException pE) {
