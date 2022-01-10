@@ -49,33 +49,33 @@ public class StrategyFactory {
 
   public StrategyInterface buildStrategy(StrategiesEnum strategy) {
     switch (strategy) {
-      case LoopAcceleration:
+      case LOOPACCELERATION:
         return new LoopAccelerationStrategy(logger, shutdownNotifier, strategyDependencies, cfa);
-      case ConcolicExecution:
+      case CONCOLICEXECUTION:
         return new ConcolicExecutionStrategy(logger, shutdownNotifier, strategyDependencies, cfa);
-      case LoopConstantExtrapolation:
+      case LOOPCONSTANTEXTRAPOLATION:
         return new ConstantExtrapolationStrategy(
             logger, shutdownNotifier, strategyDependencies, cfa);
-      case DeterministicExecution:
+      case DETERMINISTICEXECUTION:
         return new DeterministicExecutionStrategy(
             logger, shutdownNotifier, useCompilerForSummary, strategyDependencies, cfa);
-      case LoopLinearExtrapolation:
+      case LOOPLINEAREXTRAPOLATION:
         return new LinearExtrapolationStrategy(logger, shutdownNotifier, strategyDependencies, cfa);
-      case LoopUnrolling:
+      case LOOPUNROLLING:
         return new LoopUnrollingStrategy(
             logger, shutdownNotifier, maxUnrollingsStrategy, strategyDependencies, cfa);
-      case NaiveLoopAcceleration:
+      case NAIVELOOPACCELERATION:
         return new NaiveLoopAccelerationStrategy(
             logger, shutdownNotifier, strategyDependencies, cfa);
-      case NonDetBoundConstantExtrapolation:
+      case NONDETBOUNDCONSTANTEXTRAPOLATION:
         return new NondetBoundConstantExtrapolationStrategy(
             logger, shutdownNotifier, strategyDependencies, cfa);
-      case RecursionConstantExtrapolation:
+      case RECURSIONCONSTANTEXTRAPOLATION:
         return new RecursionConstantExtrapolationStrategy(
             logger, shutdownNotifier, strategyDependencies, cfa);
-      case Base:
+      case BASE:
         return new BaseStrategy();
-      case HavocStrategy:
+      case HAVOCSTRATEGY:
         return new HavocStrategy(logger, shutdownNotifier, strategyDependencies, cfa);
       default:
         return null;

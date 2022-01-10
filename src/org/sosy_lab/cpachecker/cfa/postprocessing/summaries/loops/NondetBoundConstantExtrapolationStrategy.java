@@ -46,7 +46,7 @@ public class NondetBoundConstantExtrapolationStrategy extends ConstantExtrapolat
       CFA pCFA) {
     super(pLogger, pShutdownNotifier, pStrategyDependencies, pCFA);
 
-    this.strategyEnum = StrategiesEnum.NonDetBoundConstantExtrapolation;
+    this.strategyEnum = StrategiesEnum.NONDETBOUNDCONSTANTEXTRAPOLATION;
   }
 
   private Optional<GhostCFA> createSumaryCFA(
@@ -144,7 +144,7 @@ public class NondetBoundConstantExtrapolationStrategy extends ConstantExtrapolat
     List<CFAEdge> filteredOutgoingEdges =
         this.summaryFilter.getEdgesForStrategies(
             beforeWhile.getLeavingEdges(),
-            new HashSet<>(Arrays.asList(StrategiesEnum.Base, this.strategyEnum)));
+            new HashSet<>(Arrays.asList(StrategiesEnum.BASE, this.strategyEnum)));
 
     if (filteredOutgoingEdges.size() != 1) {
       return Optional.empty();

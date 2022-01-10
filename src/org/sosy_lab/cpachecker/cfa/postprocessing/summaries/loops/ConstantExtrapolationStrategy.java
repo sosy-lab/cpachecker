@@ -54,7 +54,7 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
       CFA pCFA) {
     super(pLogger, pShutdownNotifier, pStrategyDependencies, pCFA);
 
-    this.strategyEnum = StrategiesEnum.LoopConstantExtrapolation;
+    this.strategyEnum = StrategiesEnum.LOOPCONSTANTEXTRAPOLATION;
   }
 
   protected Optional<GhostCFA> summarizeLoop(
@@ -290,7 +290,7 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
   public Optional<GhostCFA> summarize(final CFANode beforeWhile) {
 
     List<CFAEdge> filteredOutgoingEdges =
-        this.summaryFilter.getEdgesForStrategies(beforeWhile.getLeavingEdges(), new HashSet<>(Arrays.asList(StrategiesEnum.Base, this.strategyEnum)));
+        this.summaryFilter.getEdgesForStrategies(beforeWhile.getLeavingEdges(), new HashSet<>(Arrays.asList(StrategiesEnum.BASE, this.strategyEnum)));
 
     if (filteredOutgoingEdges.size() != 1) {
       return Optional.empty();

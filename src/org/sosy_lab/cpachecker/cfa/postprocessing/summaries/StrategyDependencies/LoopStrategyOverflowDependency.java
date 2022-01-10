@@ -18,18 +18,18 @@ public class LoopStrategyOverflowDependency extends LoopStrategyDependency {
   public List<StrategiesEnum> filter(List<StrategiesEnum> pAvailableStrategies) {
     List<StrategiesEnum> preferredStrategies = new ArrayList<>();
 
-    if (pAvailableStrategies.contains(StrategiesEnum.NonDetBoundConstantExtrapolation)) {
-      preferredStrategies.add(StrategiesEnum.NonDetBoundConstantExtrapolation);
-    } else if (pAvailableStrategies.contains(StrategiesEnum.NaiveLoopAcceleration)) {
-      preferredStrategies.add(StrategiesEnum.NaiveLoopAcceleration);
-    } else if (pAvailableStrategies.contains(StrategiesEnum.LoopAcceleration)) {
-      preferredStrategies.add(StrategiesEnum.LoopAcceleration);
-    } else if (pAvailableStrategies.contains(StrategiesEnum.LoopConstantExtrapolation)) {
-      preferredStrategies.add(StrategiesEnum.LoopConstantExtrapolation);
-    } else if (pAvailableStrategies.contains(StrategiesEnum.LoopLinearExtrapolation)) {
-      preferredStrategies.add(StrategiesEnum.LoopLinearExtrapolation);
-    } else if (pAvailableStrategies.contains(StrategiesEnum.Base)) {
-      preferredStrategies.add(StrategiesEnum.Base);
+    if (pAvailableStrategies.contains(StrategiesEnum.NONDETBOUNDCONSTANTEXTRAPOLATION)) {
+      preferredStrategies.add(StrategiesEnum.NONDETBOUNDCONSTANTEXTRAPOLATION);
+    } else if (pAvailableStrategies.contains(StrategiesEnum.NAIVELOOPACCELERATION)) {
+      preferredStrategies.add(StrategiesEnum.NAIVELOOPACCELERATION);
+    } else if (pAvailableStrategies.contains(StrategiesEnum.LOOPACCELERATION)) {
+      preferredStrategies.add(StrategiesEnum.LOOPACCELERATION);
+    } else if (pAvailableStrategies.contains(StrategiesEnum.LOOPCONSTANTEXTRAPOLATION)) {
+      preferredStrategies.add(StrategiesEnum.LOOPCONSTANTEXTRAPOLATION);
+    } else if (pAvailableStrategies.contains(StrategiesEnum.LOOPLINEAREXTRAPOLATION)) {
+      preferredStrategies.add(StrategiesEnum.LOOPLINEAREXTRAPOLATION);
+    } else if (pAvailableStrategies.contains(StrategiesEnum.BASE)) {
+      preferredStrategies.add(StrategiesEnum.BASE);
     }
 
     return preferredStrategies;

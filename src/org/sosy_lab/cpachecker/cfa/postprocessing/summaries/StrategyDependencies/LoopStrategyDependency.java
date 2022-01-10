@@ -32,20 +32,20 @@ public class LoopStrategyDependency implements StrategyDependencyInterface {
   @Override
   public List<StrategiesEnum> filter(List<StrategiesEnum> pAvailableStrategies) {
     List<StrategiesEnum> preferredStrategies = new ArrayList<>();
-    if (pAvailableStrategies.contains(StrategiesEnum.LoopConstantExtrapolation)) {
-      preferredStrategies.add(StrategiesEnum.LoopConstantExtrapolation);
-    } else if (pAvailableStrategies.contains(StrategiesEnum.LoopLinearExtrapolation)) {
-      preferredStrategies.add(StrategiesEnum.LoopLinearExtrapolation);
-    } else if (pAvailableStrategies.contains(StrategiesEnum.LoopAcceleration)) {
-      preferredStrategies.add(StrategiesEnum.LoopAcceleration);
-    } else if (pAvailableStrategies.contains(StrategiesEnum.NaiveLoopAcceleration)) {
-      preferredStrategies.add(StrategiesEnum.NaiveLoopAcceleration);
-    } else if (pAvailableStrategies.contains(StrategiesEnum.Base)) {
-      preferredStrategies.add(StrategiesEnum.Base);
-    } else if (pAvailableStrategies.contains(StrategiesEnum.HavocStrategy)) {
-      preferredStrategies.add(StrategiesEnum.HavocStrategy);
-    } else if (pAvailableStrategies.contains(StrategiesEnum.NonDetBoundConstantExtrapolation)) {
-      preferredStrategies.add(StrategiesEnum.NonDetBoundConstantExtrapolation);
+    if (pAvailableStrategies.contains(StrategiesEnum.LOOPCONSTANTEXTRAPOLATION)) {
+      preferredStrategies.add(StrategiesEnum.LOOPCONSTANTEXTRAPOLATION);
+    } else if (pAvailableStrategies.contains(StrategiesEnum.LOOPLINEAREXTRAPOLATION)) {
+      preferredStrategies.add(StrategiesEnum.LOOPLINEAREXTRAPOLATION);
+    } else if (pAvailableStrategies.contains(StrategiesEnum.LOOPACCELERATION)) {
+      preferredStrategies.add(StrategiesEnum.LOOPACCELERATION);
+    } else if (pAvailableStrategies.contains(StrategiesEnum.NAIVELOOPACCELERATION)) {
+      preferredStrategies.add(StrategiesEnum.NAIVELOOPACCELERATION);
+    } else if (pAvailableStrategies.contains(StrategiesEnum.BASE)) {
+      preferredStrategies.add(StrategiesEnum.BASE);
+    } else if (pAvailableStrategies.contains(StrategiesEnum.HAVOCSTRATEGY)) {
+      preferredStrategies.add(StrategiesEnum.HAVOCSTRATEGY);
+    } else if (pAvailableStrategies.contains(StrategiesEnum.NONDETBOUNDCONSTANTEXTRAPOLATION)) {
+      preferredStrategies.add(StrategiesEnum.NONDETBOUNDCONSTANTEXTRAPOLATION);
     }
     return preferredStrategies;
   }

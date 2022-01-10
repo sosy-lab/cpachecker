@@ -40,11 +40,16 @@ public class SummaryInformation {
   private Map<CFANode, Loop> nodeToLoopStructure = new HashMap<>();
   private Set<StrategyInterface> strategies = new HashSet<>();
   private StrategyFactory factory;
-  private StrategyDependencyInterface summaryStrategy;
+  private StrategyDependencyInterface summaryCreationStrategy;
+  private StrategyDependencyInterface summaryTransferStrategy;
   private Map<CFANode, Set<StrategiesEnum>> unallowedStrategiesForNode = new HashMap<>();
 
-  public SummaryInformation(CFA pCfa, StrategyDependencyInterface pSummaryStrategy) {
-    summaryStrategy = pSummaryStrategy;
+  public SummaryInformation(
+      CFA pCfa,
+      StrategyDependencyInterface pCreationSummaryStrategy,
+      StrategyDependencyInterface pTransferSummaryStrategy) {
+    summaryCreationStrategy = pCreationSummaryStrategy;
+    summaryTransferStrategy = pTransferSummaryStrategy;
     this.addCfaInformations(pCfa);
   }
 
@@ -57,7 +62,7 @@ public class SummaryInformation {
     startNodeGhostCFAToGhostCFA.put(ghostCFA.getStartGhostCfaNode(), ghostCFA);
     startNodeOriginalCFAToGhostCFA.put(ghostCFA.getStartOriginalCfaNode(), ghostCFA);
     for (CFANode n : ghostCFA.getAllNodes()) {
-      this.addNodeForStrategy(StrategiesEnum.Base, n);
+      this.addNodeForStrategy(StrategiesEnum.BASE, n);
       this.unallowedStrategiesForNode.put(n, new HashSet<>());
     }
 
@@ -65,7 +70,7 @@ public class SummaryInformation {
   }
 
   public StrategiesEnum getStrategyForEdge(CFAEdge edge) {
-    if (nodesToStrategies.get(edge.getPredecessor()) == StrategiesEnum.Base) {
+    if (nodesToStrategies.get(edge.getPredecessor()) == StrategiesEnum.BASE) {
       return nodesToStrategies.get(edge.getSuccessor());
     } else {
       return nodesToStrategies.get(edge.getPredecessor());
@@ -95,7 +100,7 @@ public class SummaryInformation {
     }
 
     for (CFANode n : pCfa.getAllNodes()) {
-      this.addNodeForStrategy(StrategiesEnum.Base, n);
+      this.addNodeForStrategy(StrategiesEnum.BASE, n);
       this.unallowedStrategiesForNode.put(n, new HashSet<>());
     }
   }
@@ -120,8 +125,12 @@ public class SummaryInformation {
     return Optional.of(loop);
   }
 
-  public StrategyDependencyInterface getSummaryStrategy() {
-    return summaryStrategy;
+  public StrategyDependencyInterface getCreationSummaryStrategy() {
+    return this.summaryCreationStrategy;
+  }
+
+  public StrategyDependencyInterface getTransferSummaryStrategy() {
+    return this.summaryTransferStrategy;
   }
 
   public Set<StrategiesEnum> getUnallowedStrategiesForNode(CFANode node) {
@@ -138,5 +147,9 @@ public class SummaryInformation {
       unallowedStrategies.add(strategy);
       unallowedStrategiesForNode.put(node, unallowedStrategies);
     }
+  }
+
+  public void setTransferStrategy(StrategyDependencyInterface pSummaryTransferStrategy) {
+    this.summaryTransferStrategy = pSummaryTransferStrategy;
   }
 }

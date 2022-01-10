@@ -9,15 +9,15 @@
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries;
 
 public enum StrategiesEnum {
-  Base,
-  LoopAcceleration,
-  NaiveLoopAcceleration,
-  LoopLinearExtrapolation,
-  LoopConstantExtrapolation,
-  NonDetBoundConstantExtrapolation,
-  LoopUnrolling,
-  ConcolicExecution,
-  DeterministicExecution,
-  RecursionConstantExtrapolation,
-  HavocStrategy,
+  BASE,
+  LOOPACCELERATION,
+  NAIVELOOPACCELERATION,
+  LOOPLINEAREXTRAPOLATION,
+  LOOPCONSTANTEXTRAPOLATION,
+  NONDETBOUNDCONSTANTEXTRAPOLATION,
+  LOOPUNROLLING,
+  CONCOLICEXECUTION,
+  DETERMINISTICEXECUTION,
+  RECURSIONCONSTANTEXTRAPOLATION,
+  HAVOCSTRATEGY,
 }

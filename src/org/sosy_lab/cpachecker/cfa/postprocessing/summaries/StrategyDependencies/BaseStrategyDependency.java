@@ -23,8 +23,8 @@ public class BaseStrategyDependency implements StrategyDependencyInterface {
   @Override
   public List<StrategiesEnum> filter(List<StrategiesEnum> pAvailableStrategies) {
     List<StrategiesEnum> preferredStrategies = new ArrayList<>();
-    if (pAvailableStrategies.contains(StrategiesEnum.Base)) {
-      preferredStrategies.add(StrategiesEnum.Base);
+    if (pAvailableStrategies.contains(StrategiesEnum.BASE)) {
+      preferredStrategies.add(StrategiesEnum.BASE);
     }
     return preferredStrategies;
   }

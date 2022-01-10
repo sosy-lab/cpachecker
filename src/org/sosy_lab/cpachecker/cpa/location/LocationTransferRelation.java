@@ -16,25 +16,47 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.SummaryInformation;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyEnum;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyFactory;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyInterface;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
+@Options
 public class LocationTransferRelation implements TransferRelation {
 
   private final LocationStateFactory factory;
   private final CFA pCFA;
 
-  public LocationTransferRelation(LocationStateFactory pFactory, CFA pCFA) {
+  @Option(
+      secure = true,
+      name = "summaries.transfer",
+      description = "Dependencies between the Different Strategies")
+  private StrategyDependencyEnum transferStrategy = StrategyDependencyEnum.BASESTRATEGYDEPENDENCY;
+
+  public LocationTransferRelation(LocationStateFactory pFactory, CFA pCFA, Configuration config)
+      throws InvalidConfigurationException {
+    config.inject(this);
     factory = pFactory;
     this.pCFA = pCFA;
+    if (this.pCFA.getSummaryInformation().isPresent()) {
+      SummaryInformation summaryInformation = pCFA.getSummaryInformation().orElseThrow();
+      StrategyDependencyInterface summaryTransferStrategy =
+          new StrategyDependencyFactory().createStrategy(this.transferStrategy);
+      summaryInformation.setTransferStrategy(summaryTransferStrategy);
+    }
   }
 
   @Override
@@ -55,7 +77,8 @@ public class LocationTransferRelation implements TransferRelation {
                     .toSet());
         availableStrategies.removeAll(summaryInformation.getUnallowedStrategiesForNode(node));
         List<StrategiesEnum> allowedStrategies =
-            new ArrayList<>(summaryInformation.getSummaryStrategy().filter(availableStrategies));
+            new ArrayList<>(
+                summaryInformation.getTransferSummaryStrategy().filter(availableStrategies));
 
         List<CFANode> successors = new ArrayList<>();
         successors.add(cfaEdge.getSuccessor());
@@ -85,7 +108,8 @@ public class LocationTransferRelation implements TransferRelation {
               .transform(n -> summaryInformation.getStrategyForNode(n))
               .toList();
       Set<StrategiesEnum> allowedStrategies =
-          new HashSet<>(summaryInformation.getSummaryStrategy().filter(availableStrategies));
+          new HashSet<>(
+              summaryInformation.getTransferSummaryStrategy().filter(availableStrategies));
       allowedStrategies.removeAll(summaryInformation.getUnallowedStrategiesForNode(node));
 
       return CFAUtils.successorsOf(node)

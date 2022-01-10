@@ -241,12 +241,12 @@ public class CFACreator {
   private Set<StrategiesEnum> strategies =
       new HashSet<>(
           Arrays.asList(
-              StrategiesEnum.LoopConstantExtrapolation,
+              StrategiesEnum.LOOPCONSTANTEXTRAPOLATION,
               // StrategiesEnum.LoopLinearExtrapolation,
-              StrategiesEnum.NonDetBoundConstantExtrapolation,
+              StrategiesEnum.NONDETBOUNDCONSTANTEXTRAPOLATION,
               // StrategiesEnum.LoopAcceleration, // TODO Not yet implemented
-              StrategiesEnum.NaiveLoopAcceleration,
-              StrategiesEnum.HavocStrategy
+              StrategiesEnum.NAIVELOOPACCELERATION,
+              StrategiesEnum.HAVOCSTRATEGY
               // ,StrategiesEnum.LoopUnrolling
               ));
 
@@ -266,7 +266,7 @@ public class CFACreator {
       secure = true,
       name = "cfa.summaries.dependencies",
       description = "Dependencies between the Different Strategies")
-  private StrategyDependencyEnum strategyDependencies =
+  private StrategyDependencyEnum cfaCreationStrategy =
       StrategyDependencyEnum.BASESTRATEGYDEPENDENCY;
 
   @Option(
@@ -645,9 +645,11 @@ public class CFACreator {
     // Make summaries, needs Loop Structure
     if (useSummaries) {
 
-      StrategyDependencyInterface strategyDependency = new StrategyDependencyFactory().createStrategy(strategyDependencies);
+      StrategyDependencyInterface summaryCreationStrategy =
+          new StrategyDependencyFactory().createStrategy(this.cfaCreationStrategy);
 
-      cfa.setSummaryInformations(new SummaryInformation(cfa, strategyDependency));
+      cfa.setSummaryInformations(
+          new SummaryInformation(cfa, summaryCreationStrategy, summaryCreationStrategy));
       SummaryPostProcessor summaryPostProcessor =
           new SummaryPostProcessor(
               logger,
@@ -657,7 +659,7 @@ public class CFACreator {
               useCompilerForSummary,
               maxUnrollingsStrategy,
               maxIterationsSummaries,
-              strategyDependency);
+              summaryCreationStrategy);
       summaryPostProcessor.collectStatistics(stats.statisticsCollection);
       cfa = summaryPostProcessor.process(cfa);
     }

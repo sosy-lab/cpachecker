@@ -869,7 +869,7 @@ cfa.summaries.maxUnrollingsStrategy = 100
 # of it.
 cfa.summaries.strategies = new HashSet<>(
           Arrays.asList(
-              StrategiesEnum.LoopConstantExtrapolation,
+              StrategiesEnum.LOOPCONSTANTEXTRAPOLATION,
 
 # Use a Compilr for the execution of the C Code, if this option is set to
 # false an Interpreter in java is used.
@@ -4366,6 +4366,11 @@ statistics.print = false
 # which stop operator to use for LiveVariablesCPA
 stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
+
+# Dependencies between the Different Strategies
+summaries.transfer = BASESTRATEGYDEPENDENCY
+  enum:     [NOSTRATEGYDEPENDENCY, BASESTRATEGYDEPENDENCY, LOOPSTRATEGYDEPENDENCY,
+             LOOPSTRATEGYMOSTGENERALORDERINGDEPENDENCY, LOOPSTRATEGYOVERFLOWDEPENDENCY]
 
 # compress the produced violation-witness automata using GZIP compression.
 termination.compressWitness = true

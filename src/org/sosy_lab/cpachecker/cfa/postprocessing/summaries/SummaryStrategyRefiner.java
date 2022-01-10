@@ -90,7 +90,7 @@ public class SummaryStrategyRefiner implements Refiner {
     } else {
       ARGState refinementState = optionalRefinementState.orElseThrow();
 
-      if (optionalStrategy.orElseThrow() != StrategiesEnum.Base) {
+      if (optionalStrategy.orElseThrow() != StrategiesEnum.BASE) {
         for (CFAEdge e : AbstractStates.extractLocation(refinementState).getEnteringEdges()) {
           this.summaryInformation.addUnallowedStrategiesForNode(
               e.getPredecessor(), optionalStrategy.orElseThrow());

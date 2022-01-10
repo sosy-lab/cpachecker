@@ -38,7 +38,7 @@ public class LoopUnrollingStrategy extends AbstractLoopStrategy {
       CFA pCFA) {
     super(pLogger, pShutdownNotifier, pStrategyDependencies, pCFA);
     maxUnrollingsStrategy = pMaxUnrollingsStrategy;
-    strategyEnum = StrategiesEnum.LoopUnrolling;
+    strategyEnum = StrategiesEnum.LOOPUNROLLING;
   }
 
   protected Optional<GhostCFA> summarizeLoop(Loop pLoopStructure, CFANode pBeforeWhile) {
@@ -94,7 +94,7 @@ public class LoopUnrollingStrategy extends AbstractLoopStrategy {
     List<CFAEdge> filteredOutgoingEdges =
         this.summaryFilter.getEdgesForStrategies(
             beforeWhile.getLeavingEdges(),
-            new HashSet<>(Arrays.asList(StrategiesEnum.Base, this.strategyEnum)));
+            new HashSet<>(Arrays.asList(StrategiesEnum.BASE, this.strategyEnum)));
 
     if (filteredOutgoingEdges.size() != 1) {
       return Optional.empty();

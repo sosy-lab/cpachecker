@@ -47,7 +47,7 @@ public class NaiveLoopAccelerationStrategy extends AbstractLoopStrategy {
       CFA pCFA) {
     super(pLogger, pShutdownNotifier, pStrategyDependencies, pCFA);
 
-    this.strategyEnum = StrategiesEnum.NaiveLoopAcceleration;
+    this.strategyEnum = StrategiesEnum.NAIVELOOPACCELERATION;
   }
 
   private Optional<GhostCFA> summarizeLoop(
@@ -145,7 +145,7 @@ public class NaiveLoopAccelerationStrategy extends AbstractLoopStrategy {
     List<CFAEdge> filteredOutgoingEdges =
         this.summaryFilter.getEdgesForStrategies(
             beforeWhile.getLeavingEdges(),
-            new HashSet<>(Arrays.asList(StrategiesEnum.Base, this.strategyEnum)));
+            new HashSet<>(Arrays.asList(StrategiesEnum.BASE, this.strategyEnum)));
 
     if (filteredOutgoingEdges.size() != 1) {
       return Optional.empty();
