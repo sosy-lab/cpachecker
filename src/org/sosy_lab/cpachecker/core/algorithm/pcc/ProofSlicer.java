@@ -117,7 +117,7 @@ public class ProofSlicer {
       next = waitlist.pop();
 
       for (ARGState succ : getStateAndItsCoveredNodes(next)) {
-        assert (varMap.containsKey(succ));
+        assert varMap.containsKey(succ);
 
         for (ARGState p : succ.getParents()) {
           if (p.getEdgeToChild(succ) == null) {
@@ -157,7 +157,7 @@ public class ProofSlicer {
       final ARGState succ,
       final Set<String> succVars,
       final Map<ARGState, Set<String>> varMap) {
-    assert (varMap.containsKey(pred));
+    assert varMap.containsKey(pred);
     Set<String> updatedVars = new HashSet<>(varMap.get(pred));
 
     Set<String> sSet = new HashSet<>(succVars);
@@ -187,7 +187,7 @@ public class ProofSlicer {
       final CFAEdge edge,
       final Set<String> succVars,
       final Map<ARGState, Set<String>> varMap) {
-    assert (varMap.containsKey(pred));
+    assert varMap.containsKey(pred);
     Set<String> updatedPredVars = new HashSet<>(varMap.get(pred));
 
     addTransferSet(edge, succVars, updatedPredVars);
@@ -396,7 +396,7 @@ public class ProofSlicer {
   }
 
   private Set<String> initState(final ARGState parent) {
-    assert (!parent.isCovered());
+    assert !parent.isCovered();
     for (CFAEdge edge : CFAUtils.leavingEdges(AbstractStates.extractLocation(parent))) {
 
       if (edge.getEdgeType() == CFAEdgeType.AssumeEdge) {
@@ -433,7 +433,7 @@ public class ProofSlicer {
       final ConfigurableProgramAnalysis pCpa) {
     Map<ARGState, ARGState> oldToSliced = Maps.newHashMapWithExpectedSize(pVarMap.size());
     ARGState root = (ARGState) pReached.getFirstState();
-    assert (pVarMap.containsKey(root));
+    assert pVarMap.containsKey(root);
 
     for (Entry<ARGState, Set<String>> entry : pVarMap.entrySet()) {
       oldToSliced.put(entry.getKey(), getSlicedARGState(entry.getKey(), entry.getValue()));

@@ -1518,7 +1518,7 @@ public class CFASingleLoopTransformation {
      * @param pGraph the current graph.
      *
      * @return {@code true} if further growth of the graph is desired,
-     * @{code false} otherwise.
+     * {@code false} otherwise.
      */
     abstract boolean isFurtherGrowthDesired(AcyclicGraph pGraph);
   }

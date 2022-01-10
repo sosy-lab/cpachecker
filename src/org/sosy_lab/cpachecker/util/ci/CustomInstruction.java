@@ -336,7 +336,7 @@ public class CustomInstruction {
 
     String aciVar;
     for (String ciVar : pVariables) {
-      assert (pMapping.containsKey(ciVar));
+      assert pMapping.containsKey(ciVar);
       aciVar = pMapping.get(ciVar);
       try {
         Integer.parseInt(aciVar);

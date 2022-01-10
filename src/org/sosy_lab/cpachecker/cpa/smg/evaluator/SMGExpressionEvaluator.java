@@ -544,7 +544,7 @@ public class SMGExpressionEvaluator {
         SMGState newState = subscriptValueAndState.getSmgState();
 
         if (subscriptValue.isUnknown()) {
-          if (newState.isTrackPredicatesEnabled()  && !arrayAddress.isUnknown()) {
+          if (newState.isTrackErrorPredicatesEnabled()  && !arrayAddress.isUnknown()) {
             for (SMGValueAndState symbolicValueAndState :
                 evaluateNonAddressValue(newState, cfaEdge, subscriptExpression)) {
               SMGValue value = symbolicValueAndState.getObject();
@@ -570,6 +570,9 @@ public class SMGExpressionEvaluator {
               }
             }
           } else {
+            if (newState.isCrashOnUnknownEnabled()) {
+              throw new CPATransferException("Unknown array index");
+            }
             // assume address is invalid
             newState = handleUnknownDereference(newState, cfaEdge).getSmgState();
           }

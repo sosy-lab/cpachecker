@@ -75,6 +75,15 @@ public class WitnessOptions {
   @Option(secure = true, description = "Always export source file name, even default")
   private boolean exportSourceFileName = false;
 
+  @Option(
+      secure = true,
+      description =
+          "Produce an invariant witness instead of a correctness witness. Constructing an invariant witness "
+              + "makes use of a different merge for quasi-invariants: Instead of computing the disjunction of two "
+              + "invariants present when merging nodes, 'true' is ignored when constructing the disjunction. "
+              + "This may be unsound in some situations, so be careful when using this option.")
+  private boolean produceInvariantWitnesses = false;
+
   boolean exportFunctionCallsAndReturns() {
     return exportFunctionCallsAndReturns;
   }
@@ -121,5 +130,9 @@ public class WitnessOptions {
 
   boolean exportSourceFileName() {
     return exportSourceFileName;
+  }
+
+  public boolean produceInvariantWitnesses() {
+    return produceInvariantWitnesses;
   }
 }

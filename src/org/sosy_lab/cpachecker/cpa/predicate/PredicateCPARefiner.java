@@ -30,6 +30,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -111,6 +112,19 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
   )
   private boolean useUCBRefinement = false;
 
+  @Option(
+      secure = true,
+      description =
+          "Stop after refining the n-th spurious counterexample and export that. If 0, stop after"
+              + " finding the first spurious counterexample but before refinement. If -1, never"
+              + " stop. If this option is used with a value different from -1, option"
+              + " counterexample.export.alwaysUseImpreciseCounterexamples=true should be set. Then,"
+              + " an actually infeasible counterexample will be handed to export. So this option"
+              + " will also not work with additional counterexample checks or similar, because"
+              + " these may reject the (infeasible) counterexample.")
+  @IntegerOption(min = -1)
+  private int stopAfter = -1;
+
   // statistics
   private final StatInt totalPathLength = new StatInt(StatKind.AVG, "Avg. length of target path (in blocks)"); // measured in blocks
   private final StatTimer totalRefinement = new StatTimer("Time for refinement");
@@ -119,8 +133,13 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
   private final StatTimer errorPathProcessing = new StatTimer("Error path post-processing");
   private final StatTimer getFormulasForPathTime = new StatTimer("Path-formulas extraction");
 
-  private final StatInt totalPrefixes = new StatInt(StatKind.SUM, "Number of infeasible sliced prefixes");
-  private final StatTimer prefixSelectionTime = new StatTimer("Selecting infeasible sliced prefixes");
+  private final StatInt totalPrefixes =
+      new StatInt(StatKind.SUM, "Number of infeasible sliced prefixes");
+  private final StatTimer prefixSelectionTime =
+      new StatTimer("Selecting infeasible sliced prefixes");
+
+  /** Number of performed refinements */
+  private int refinements = 0;
 
   // the previously analyzed counterexample to detect repeated counterexamples
   private final Set<ImmutableList<CFANode>> lastErrorPaths = new HashSet<>();
@@ -161,7 +180,6 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
       final RefinementStrategy pStrategy)
       throws InvalidConfigurationException {
     pConfig.inject(this, PredicateCPARefiner.class);
-
     logger = pLogger;
     blockFormulaStrategy = pBlockFormulaStrategy;
     solver = pSolver;
@@ -243,18 +261,23 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     totalRefinement.start();
 
     try {
-      final ImmutableList<CFANode> errorPath =
+      refinements++;
+      BlockFormulas formulas;
+      final boolean repeatedCounterexample;
+      List<ARGState> abstractionStatesTrace;
+      boolean branchingOccurred;
+      ImmutableList<CFANode> errorPath =
           allStatesTrace.asStatesList().stream()
               .map(AbstractStates::extractLocation)
               .filter(x -> x != null)
               .collect(ImmutableList.toImmutableList());
-      final boolean repeatedCounterexample = lastErrorPaths.contains(errorPath);
+      repeatedCounterexample = lastErrorPaths.contains(errorPath);
       lastErrorPaths.add(errorPath);
 
       Set<ARGState> elementsOnPath = extractElementsOnPath(allStatesTrace);
       // No branches/merges in path, it is precise.
       // We don't need to care about creating extra predicates for branching etc.
-      boolean branchingOccurred = true;
+      branchingOccurred = true;
       if (elementsOnPath.size() == allStatesTrace.size()
           && !containsBranchingInPath(elementsOnPath)) {
         elementsOnPath = ImmutableSet.of();
@@ -263,17 +286,15 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
 
       // create path with all abstraction location elements (excluding the initial element)
       // the last element is the element corresponding to the error location
-      final List<ARGState> abstractionStatesTrace = filterAbstractionStates(allStatesTrace);
+      abstractionStatesTrace = filterAbstractionStates(allStatesTrace);
       totalPathLength.setNextValue(abstractionStatesTrace.size());
 
       logger.log(Level.ALL, "Abstraction trace is", abstractionStatesTrace);
 
-      BlockFormulas formulas =
-          createFormulasOnPath(allStatesTrace, abstractionStatesTrace);
+      formulas = createFormulasOnPath(allStatesTrace, abstractionStatesTrace);
       if (!formulas.hasBranchingFormula()) {
         formulas = formulas.withBranchingFormula(pfmgr.buildBranchingFormula(elementsOnPath));
       }
-
       // find new invariants (this is a noop if no invariants should be used/generated)
       invariantsManager.findInvariants(allStatesTrace, abstractionStatesTrace, pfmgr, solver);
 
@@ -282,7 +303,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
               allStatesTrace, abstractionStatesTrace, formulas, repeatedCounterexample);
 
       // if error is spurious refine
-      if (counterexample.isSpurious()) {
+      if (counterexample.isSpurious() && (stopAfter < 0 || refinements <= stopAfter)) {
         logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
 
         boolean trackFurtherCEX =
