@@ -156,6 +156,7 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
 
         cfaMutator
             .calcPossibleMutations()
+            .parallel()
             .filter(
                 (Mutation mutation) -> {
                   try {
@@ -213,7 +214,6 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
 
     ConfigurableProgramAnalysis cpa = coreComponents.createCPA(mutatedCFA, specification);
     GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
-    // TODO add a proper check
     Algorithm algo =
             coreComponents.createAlgorithm(cpa, mutatedCFA, specification);
     ReachedSet reached =

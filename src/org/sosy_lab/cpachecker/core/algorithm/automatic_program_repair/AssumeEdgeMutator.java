@@ -23,13 +23,13 @@ public class AssumeEdgeMutator extends EdgeMutator {
     final CAssumeEdge edgeToMutate =
         (CAssumeEdge)
             CorrespondingEdgeProvider.findCorrespondingEdge(pOriginalEdge, getClonedCFA());
-    final CAssumeEdge reverseConditionEdgeToMutate =
-        CorrespondingEdgeProvider.findCorrespondingAssumeEdge(edgeToMutate);
-    assumeEdgeAggregate = new AssumeEdgeAggregate(edgeToMutate, reverseConditionEdgeToMutate);
+    final CAssumeEdge oppositeConditionEdgeToMutate =
+        CorrespondingEdgeProvider.findCorrespondingOppositeAssumeEdge(edgeToMutate);
+    assumeEdgeAggregate = new AssumeEdgeAggregate(edgeToMutate, oppositeConditionEdgeToMutate);
   }
 
   /** Returns a new assume edge with a different expression. */
-  public AssumeEdgeAggregate replaceExpressionInLoopConditionAggregate(
+  public AssumeEdgeAggregate replaceExpressionInAssumeEdgeAggregate(
       CExpression newExpression) {
     CAssumeEdge originalAssumeEdge = assumeEdgeAggregate.getCondition();
     CAssumeEdge originalReverseAssumeEdge = assumeEdgeAggregate.getOppositeCondition();

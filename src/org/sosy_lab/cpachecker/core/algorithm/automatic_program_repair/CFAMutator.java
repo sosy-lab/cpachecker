@@ -70,7 +70,7 @@ public class CFAMutator {
   }
 
   /* EDGES  */
-  private Stream<AssumeEdgeMutation> generateAssumeEdgeMutations(CAssumeEdge originalAssumeEdge) {
+  private Stream<Mutation> generateAssumeEdgeMutations(CAssumeEdge originalAssumeEdge) {
     return ExpressionMutator.calcMutationsFor(originalAssumeEdge.getExpression(), cfa)
         .map(
             alternativeExpression -> {
@@ -78,7 +78,7 @@ public class CFAMutator {
                     new AssumeEdgeMutator(cfa, config, logger, originalAssumeEdge);
                 return new AssumeEdgeMutation(
                     originalAssumeEdge,
-                    edgeMutator.replaceExpressionInLoopConditionAggregate(alternativeExpression),
+                    edgeMutator.replaceExpressionInAssumeEdgeAggregate(alternativeExpression),
                     edgeMutator.getClonedCFA());
             });
   }

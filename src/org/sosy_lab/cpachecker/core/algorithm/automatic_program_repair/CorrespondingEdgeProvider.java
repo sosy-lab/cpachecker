@@ -73,7 +73,7 @@ public class CorrespondingEdgeProvider {
    * assume edge that contains the opposite condition. If this edge is not present an exception is
    * thrown because this state is illegal.
    */
-  public static CAssumeEdge findCorrespondingAssumeEdge(CAssumeEdge originalEdge) {
+  public static CAssumeEdge findCorrespondingOppositeAssumeEdge(CAssumeEdge originalEdge) {
     CFANode predecessorNode = originalEdge.getPredecessor();
     CAssumeEdge correspondingAssumeEdge = null;
 
