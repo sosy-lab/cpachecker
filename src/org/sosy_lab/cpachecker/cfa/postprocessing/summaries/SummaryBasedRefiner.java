@@ -72,7 +72,10 @@ public class SummaryBasedRefiner implements Refiner, StatisticsProvider {
     if (secondRefiner instanceof StatisticsProvider) {
       ((StatisticsProvider) secondRefiner).collectStatistics(pStatsCollection);
     }
-    pStatsCollection.add(stats);
+
+    if (!pStatsCollection.contains(stats)) {
+      pStatsCollection.add(stats);
+    }
   }
 
   @Override
