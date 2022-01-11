@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.summaries;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -33,7 +34,10 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 public class SummaryInformation {
 
   private Map<StrategiesEnum, CFANode> strategiesToNodes = new HashMap<>();
-  private Map<CFANode, StrategiesEnum> nodesToStrategies = new HashMap<>();
+  // TODO: Refactor the nodes with incoming strategies to also consider Multiple incoming
+  // strategies. This should only happen with the base strategy so it is currently not a constraint
+  private Map<CFANode, StrategiesEnum> nodesWithIncomingStrategies = new HashMap<>();
+  private Map<CFANode, Set<StrategiesEnum>> nodesWithOutgoingStrategies = new HashMap<>();
   private Map<CFANode, GhostCFA> startNodeGhostCFAToGhostCFA = new HashMap<>();
   private Map<CFANode, GhostCFA> startNodeOriginalCFAToGhostCFA = new HashMap<>();
   private Map<CFANode, Map<String, CExpression>> variableDeclarations = new HashMap<>();
@@ -55,7 +59,15 @@ public class SummaryInformation {
 
   public void addNodeForStrategy(StrategiesEnum strategy, CFANode node) {
     strategiesToNodes.put(strategy, node);
-    nodesToStrategies.put(node, strategy);
+    nodesWithIncomingStrategies.put(node, strategy);
+    for (CFAEdge e : node.getEnteringEdges()) {
+      Set<StrategiesEnum> set = new HashSet<>();
+      if (nodesWithOutgoingStrategies.containsKey(e.getPredecessor())) {
+        set.addAll(nodesWithOutgoingStrategies.get(e.getPredecessor()));
+      }
+      set.add(strategy);
+      nodesWithOutgoingStrategies.put(e.getPredecessor(), set);
+    }
   }
 
   public void addGhostCFA(GhostCFA ghostCFA) {
@@ -70,15 +82,15 @@ public class SummaryInformation {
   }
 
   public StrategiesEnum getStrategyForEdge(CFAEdge edge) {
-    if (nodesToStrategies.get(edge.getPredecessor()) == StrategiesEnum.BASE) {
-      return nodesToStrategies.get(edge.getSuccessor());
+    if (nodesWithIncomingStrategies.get(edge.getPredecessor()) == StrategiesEnum.BASE) {
+      return nodesWithIncomingStrategies.get(edge.getSuccessor());
     } else {
-      return nodesToStrategies.get(edge.getPredecessor());
+      return nodesWithIncomingStrategies.get(edge.getPredecessor());
     }
   }
 
   public StrategiesEnum getStrategyForNode(CFANode node) {
-    return nodesToStrategies.get(node);
+    return nodesWithIncomingStrategies.get(node);
   }
 
   public Map<String, CExpression> getVariableDeclarationsForNode(CFANode node) {
@@ -151,5 +163,38 @@ public class SummaryInformation {
 
   public void setTransferStrategy(StrategyDependencyInterface pSummaryTransferStrategy) {
     this.summaryTransferStrategy = pSummaryTransferStrategy;
+  }
+
+  public Set<CFANode> getDistinctNodesWithStrategies(Set<StrategiesEnum> ignoreStrategies) {
+    Set<CFANode> nodes = new HashSet<>();
+    for (Entry<CFANode, StrategiesEnum> e : this.nodesWithIncomingStrategies.entrySet()) {
+      if (!ignoreStrategies.contains(e.getValue())) {
+        if (e.getKey().getNumEnteringEdges() == 1) {
+          // The predecessor Nodes are those for which the Strategies are calculated with the
+          // entering
+          // function
+          nodes.add(e.getKey().getEnteringEdge(0).getPredecessor());
+        }
+      }
+    }
+    return nodes;
+  }
+
+  public Set<CFANode> getDistinctNodesWithStrategiesWithoutDissallowed(
+      Set<StrategiesEnum> pIgnoreStrategies) {
+    Set<CFANode> nodes = new HashSet<>();
+    for (Entry<CFANode, StrategiesEnum> e : this.nodesWithIncomingStrategies.entrySet()) {
+      Set<StrategiesEnum> ignoreStrategies = new HashSet<>(pIgnoreStrategies);
+      ignoreStrategies.addAll(this.getUnallowedStrategiesForNode(e.getKey()));
+      if (!ignoreStrategies.contains(e.getValue())) {
+        if (e.getKey().getNumEnteringEdges() == 1) {
+          // The predecessor Nodes are those for which the Strategies are calculated with the
+          // entering
+          // function
+          nodes.add(e.getKey().getEnteringEdge(0).getPredecessor());
+        }
+      }
+    }
+    return nodes;
   }
 }

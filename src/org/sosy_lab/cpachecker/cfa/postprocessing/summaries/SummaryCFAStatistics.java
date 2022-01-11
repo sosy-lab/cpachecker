@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.summaries;
 
 import java.io.PrintStream;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -21,7 +22,6 @@ public class SummaryCFAStatistics implements Statistics {
 
   private Map<StrategiesEnum, Integer> usedStrategies = new HashMap<>();
 
-  @SuppressWarnings("unused")
   private SummaryInformation summaryInformation;
 
   public SummaryCFAStatistics(
@@ -37,10 +37,18 @@ public class SummaryCFAStatistics implements Statistics {
     pOut.println("CFA summaries statistics:");
     pOut.println("    Used Strategies on the CFA:");
     for (Entry<StrategiesEnum, Integer> e : this.usedStrategies.entrySet()) {
-      pOut.printf("        %-30s : %d%n", e.getKey(), e.getValue());
+      pOut.printf("        %-30s: %d%n", e.getKey(), e.getValue());
     }
+
+    Set<StrategiesEnum> ignoredStrategies = new HashSet<>();
+    ignoredStrategies.add(StrategiesEnum.BASE);
+    int distinctNodesWithStrategies =
+        summaryInformation.getDistinctNodesWithStrategies(ignoredStrategies).size();
+
+    pOut.printf("    %-30s: %d%n", "Distinct Nodes with Strategies", distinctNodesWithStrategies);
+
     pOut.printf(
-        "    %-30s : %d%n",
+        "    %-30s: %d%n",
         "Total strategies used",
         this.usedStrategies.values().stream().mapToInt(Integer::intValue).sum());
   }
