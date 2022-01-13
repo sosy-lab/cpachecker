@@ -370,7 +370,7 @@ public class ReachingDefTransferRelation implements TransferRelation {
     if (pOld.getGlobalReachingDefinitions().containsKey(pVarName)) {
       return pOld.addGlobalReachDef(pVarName, pDefStart, pDefEnd);
     } else {
-      assert (pOld.getLocalReachingDefinitions().containsKey(pVarName));
+      assert pOld.getLocalReachingDefinitions().containsKey(pVarName);
       return pOld.addLocalReachDef(pVarName, pDefStart, pDefEnd);
     }
   }

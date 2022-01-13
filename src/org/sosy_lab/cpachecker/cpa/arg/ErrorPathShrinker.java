@@ -396,7 +396,7 @@ public final class ErrorPathShrinker {
                       .getTruthAssumption());
 
             }
-            return (isEqualVarName && isEqualOp);
+            return isEqualVarName && isEqualOp;
           }
         }
       }

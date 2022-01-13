@@ -15,8 +15,9 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 public final class ArrayAbstractionResult {
 
   /**
-   * The status of an array abstraction result which contains information about its success and
-   * precision.
+   * The status of an array abstraction result which contains information about whether the array
+   * abstraction is even applicable and, if arrays were indeed abstracted, the precision of the
+   * transformation (precise or imprecise).
    */
   public enum Status {
 
@@ -26,8 +27,11 @@ public final class ArrayAbstractionResult {
     /** The array abstraction succeeded but the result is imprecise. */
     IMPRECISE,
 
-    /** The array abstraction didn't succeed. */
-    FAILED;
+    /**
+     * It' wasn't possible to apply the array abstraction to the original CFA, so the transformed
+     * CFA is equal to the original CFA.
+     */
+    UNCHANGED;
   }
 
   private final Status status;
@@ -47,8 +51,8 @@ public final class ArrayAbstractionResult {
     transformedLoops = pTransformedLoops;
   }
 
-  static ArrayAbstractionResult createFailed(CFA pCfa) {
-    return new ArrayAbstractionResult(Status.FAILED, pCfa, ImmutableSet.of(), ImmutableSet.of());
+  static ArrayAbstractionResult createUnchanged(CFA pCfa) {
+    return new ArrayAbstractionResult(Status.UNCHANGED, pCfa, ImmutableSet.of(), ImmutableSet.of());
   }
 
   /**

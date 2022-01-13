@@ -11,8 +11,8 @@ package org.sosy_lab.cpachecker.util.arrayabstraction;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.math.BigInteger;
-import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -252,8 +252,8 @@ final class TransformableArray {
   public static ImmutableSet<TransformableArray> findTransformableArrays(CFA pCfa) {
 
     Set<CDeclarationEdge> unproblematicArrayDeclarationEdges =
-        new HashSet<>(findArrayDeclarationEdges(pCfa));
-    Set<CDeclarationEdge> relevantArrayDeclarationEdges = new HashSet<>();
+        new LinkedHashSet<>(findArrayDeclarationEdges(pCfa));
+    Set<CDeclarationEdge> relevantArrayDeclarationEdges = new LinkedHashSet<>();
 
     for (CFANode node : pCfa.getAllNodes()) {
       for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {

@@ -292,8 +292,8 @@ public class ARGState extends AbstractSerializableSingleWrapperState
   }
 
   void deleteChild(ARGState child) {
-    assert (children.contains(child));
-    assert (child.parents.contains(this));
+    assert children.contains(child);
+    assert child.parents.contains(this);
     children.remove(child);
     child.parents.remove(this);
   }
@@ -362,7 +362,7 @@ public class ARGState extends AbstractSerializableSingleWrapperState
   }
 
   public boolean isOlderThan(ARGState other) {
-    return (stateId < other.stateId);
+    return stateId < other.stateId;
   }
 
   @Override
@@ -471,14 +471,14 @@ public class ARGState extends AbstractSerializableSingleWrapperState
 
     // clear children
     for (ARGState child : children) {
-      assert (child.parents.contains(this));
+      assert child.parents.contains(this);
       child.parents.remove(this);
     }
     children.clear();
 
     // clear parents
     for (ARGState parent : parents) {
-      assert (parent.children.contains(this));
+      assert parent.children.contains(this);
       parent.children.remove(this);
     }
     parents.clear();

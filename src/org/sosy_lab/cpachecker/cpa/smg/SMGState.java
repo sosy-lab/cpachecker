@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.smg;
 
+import static java.util.Collections.singletonList;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Preconditions;
@@ -226,16 +228,15 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   /**
    * Makes SMGState create a new object and put it into the global namespace
    *
-   * Keeps consistency: yes
+   * <p>Keeps consistency: yes
    *
    * @param pTypeSize Size of the type of the new global variable
    * @param pVarName Name of the global variable
    * @return Newly created object
-   *
-   * @throws SMGInconsistentException when resulting SMGState is inconsistent
-   * and the checks are enabled
+   * @throws SMGInconsistentException when resulting SMGState is inconsistent and the checks are
+   *     enabled
    */
-  public SMGObject addGlobalVariable(long pTypeSize, String pVarName)
+  public SMGRegion addGlobalVariable(long pTypeSize, String pVarName)
       throws SMGInconsistentException {
     SMGRegion new_object = new SMGRegion(pTypeSize, pVarName);
 
@@ -280,7 +281,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
    * @throws SMGInconsistentException when resulting SMGState is inconsistent
    * and the checks are enabled
    */
-  public Optional<SMGRegion> addAnonymousVariable(int pTypeSize)
+  public Optional<SMGRegion> addAnonymousVariable(long pTypeSize)
       throws SMGInconsistentException {
     if (heap.getStackFrames().isEmpty()) {
       return Optional.empty();
@@ -402,6 +403,40 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
             ? "no parent, initial state"
             : "parent [" + getPredecessorId() + "]";
     return String.format("SMGState [%d] <-- %s: %s", getId(), parent, heap);
+  }
+
+  public List<SMGAddressValueAndState> getPointerFromAddress(SMGAddress pAddress)
+      throws SMGInconsistentException {
+    if (pAddress.isUnknown()) {
+      return singletonList(SMGAddressValueAndState.of(this));
+    }
+    SMGObject target = pAddress.getObject();
+    SMGExplicitValue offset = pAddress.getOffset();
+    if (target instanceof SMGRegion) {
+      SMGValue address = getAddress((SMGRegion) target, offset.getAsLong());
+      if (address == null) {
+        return singletonList(
+            SMGAddressValueAndState.of(
+                this, new SMGEdgePointsTo(SMGKnownSymValue.of(), target, offset.getAsLong())));
+      }
+      return getPointerFromValue(address);
+    }
+    if (target == SMGNullObject.INSTANCE) {
+      // TODO return NULL_POINTER instead of new object?
+      return singletonList(
+          SMGAddressValueAndState.of(
+              this, new SMGEdgePointsTo(SMGZeroValue.INSTANCE, target, offset.getAsLong())));
+    }
+    if (target.isAbstract()) {
+      performConsistencyCheck(SMGRuntimeCheck.HALF);
+      SMGKnownSymbolicValue symbolicValue = SMGKnownSymValue.of();
+      heap.addValue(symbolicValue);
+      return handleMaterilisation(
+          new SMGEdgePointsTo(symbolicValue, target, offset.getAsLong(), SMGTargetSpecifier.FIRST),
+          ((SMGAbstractObject) target));
+    }
+
+    throw new AssertionError("Abstraction " + target + " was not materialised.");
   }
 
   /**
@@ -1869,7 +1904,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   @Override
   public SMGState withUnknownDereference() {
     // TODO: accurate define SMG change on unknown dereference with predicate knowledge
-    if (options.isHandleUnknownDereferenceAsSafe() && isTrackPredicatesEnabled()) {
+    if (options.isHandleUnknownDereferenceAsSafe() && isTrackErrorPredicatesEnabled()) {
       // doesn't stop analysis on unknown dereference
       return this;
     }
@@ -1926,6 +1961,14 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     return options.trackPredicates();
   }
 
+  public boolean isTrackErrorPredicatesEnabled() {
+    return options.trackErrorPredicates();
+  }
+
+  public boolean isCrashOnUnknownEnabled() {
+    return options.crashOnUnknown();
+  }
+
   public void addPredicateRelation(
       SMGValue pV1,
       SMGType pSMGType1,
@@ -1971,7 +2014,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       SMGType pSymbolicSMGType,
       SMGExplicitValue pExplicitValue,
       CFAEdge pEdge) {
-    if (isTrackPredicatesEnabled()) {
+    if (isTrackErrorPredicatesEnabled()) {
       logger.log(Level.FINER, "Add Error Predicate: SymValue  ",
           pSymbolicValue, " ; ExplValue", " ",
           pExplicitValue, "; on edge: ", pEdge);
@@ -2275,7 +2318,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   }
 
   public void unknownWrite() {
-    if (!isTrackPredicatesEnabled()) {
+    if (!isTrackErrorPredicatesEnabled()) {
       heap.clearValues();
     }
   }

@@ -138,7 +138,7 @@ public final class UsagePrecision implements WrapperPrecision, AdjustablePrecisi
       UsagePrecision otherPrecision = (UsagePrecision) pOtherPrecision;
       wrappedOtherPrecision = (AdjustablePrecision) otherPrecision.wrappedPrecision;
       // The precision is not modified
-      assert (this.localStatistics.equals(otherPrecision.localStatistics));
+      assert this.localStatistics.equals(otherPrecision.localStatistics);
     } else {
       wrappedOtherPrecision = pOtherPrecision;
     }

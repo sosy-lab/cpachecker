@@ -134,7 +134,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
 
     lockDescription = parser.parseLockInfo();
     annotatedFunctions = parser.parseAnnotatedFunctions();
-    assert (annotatedFunctions != null);
+    assert annotatedFunctions != null;
 
     stats = new LockStatistics();
   }

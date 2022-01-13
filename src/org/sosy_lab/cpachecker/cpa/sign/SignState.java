@@ -194,21 +194,21 @@ public class SignState implements Serializable, LatticeAbstractState<SignState>,
       if (CheckTypesOfStringsUtil.isSIGN(parts.get(0))) {
         SIGN value = SIGN.valueOf(parts.get(0));
         SIGN varName = getSignForVariable(parts.get(1));
-        return (varName.covers(value));
+        return varName.covers(value);
       }
 
       // pProperty = varName <= value
       else if (CheckTypesOfStringsUtil.isSIGN(parts.get(1))){
         SIGN varName = getSignForVariable(parts.get(0));
         SIGN value = SIGN.valueOf(parts.get(1));
-        return (value.covers(varName));
+        return value.covers(varName);
       }
 
       // pProperty = varName1 <= varName2
       else {
         SIGN varName1 = getSignForVariable(parts.get(0));
         SIGN varName2 = getSignForVariable(parts.get(1));
-        return (varName2.covers(varName1));
+        return varName2.covers(varName1);
       }
     }
 
