@@ -134,7 +134,7 @@ public class SMGCPA
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new SMGTransferRelation(options, machineModel, shutdownNotifier);
+    return new SMGTransferRelation(logger, options, machineModel, shutdownNotifier);
   }
 
   @Override

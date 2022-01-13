@@ -73,9 +73,9 @@ import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.util.SyntacticBlock;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.util.FunctionBlock;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.util.StatementBlock;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.util.SyntacticBlock;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -101,13 +101,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Parsers.EclipseCParserOptions;
@@ -154,7 +154,7 @@ class CFAFunctionBuilder extends ASTVisitor {
   private final CBinaryExpressionBuilder binExprBuilder;
 
   // Data structures for handling goto
-  private final Map<String, CLabelNode> labelMap = new HashMap<>();
+  private final Map<String, CFALabelNode> labelMap = new HashMap<>();
   private final Multimap<String, Pair<CFANode, FileLocation>> gotoLabelNeeded = ArrayListMultimap.create();
 
   // Data structures for handling function declarations
@@ -319,7 +319,7 @@ class CFAFunctionBuilder extends ASTVisitor {
    */
   private int handleSimpleDeclaration(final IASTSimpleDeclaration sd) {
 
-    assert (!locStack.isEmpty()) : "not in a function's scope";
+    assert !locStack.isEmpty() : "not in a function's scope";
 
     CFANode prevNode = locStack.pop();
 
@@ -518,7 +518,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
       Set<CFANode> reachableNodes = CFATraversal.dfs().collectNodesReachableFrom(cfa);
 
-      for (CLabelNode n : labelMap.values()) {
+      for (CFALabelNode n : labelMap.values()) {
         if (!reachableNodes.contains(n)) {
           logDeadLabel(n);
 
@@ -539,7 +539,7 @@ class CFAFunctionBuilder extends ASTVisitor {
   /**
    * @category declarations
    */
-  private void logDeadLabel(CLabelNode n) {
+  private void logDeadLabel(CFALabelNode n) {
     Level level = Level.INFO;
     if (n.getLabel().matches("(switch|while|ldv)_(\\d+$|\\d+_[a-z0-9]+|[a-z0-9]+___\\d+)")) {
       // don't mention dead code produced by CIL/LDV on normal log levels
@@ -724,7 +724,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       labelName = localLabel.getName();
     }
 
-    CLabelNode labelNode = new CLabelNode(cfa.getFunction(), labelName);
+    CFALabelNode labelNode = new CFALabelNode(cfa.getFunction(), labelName);
     locStack.push(labelNode);
 
     if (localLabel == null) {
@@ -1864,8 +1864,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     // fall-through (case before has no "break")
     final CFANode oldNode = locStack.pop();
-    if (oldNode.getNumEnteringEdges() > 0
-            || oldNode instanceof CLabelNode) {
+    if (oldNode.getNumEnteringEdges() > 0 || oldNode instanceof CFALabelNode) {
       final BlankEdge blankEdge =
           new BlankEdge("", onlyFirstLine(fileLocation), oldNode, caseNode, "fall through");
       addToCFA(blankEdge);
@@ -2017,7 +2016,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     // hack: use label node to mark node as reachable
     // (otherwise the following edges won't get added because it has
     // no incoming edges
-    CLabelNode caseNode = new CLabelNode(cfa.getFunction(), "__switch__default__");
+    CFALabelNode caseNode = new CFALabelNode(cfa.getFunction(), "__switch__default__");
 
     // Update switchDefaultStack with the new node
     final CFANode oldDefaultNode = switchDefaultStack.pop();

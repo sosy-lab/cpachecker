@@ -8,27 +8,25 @@
 
 extern int __VERIFIER_nondet_int();
 
-void bubblesort(int array[], int length) {
-	int tmp = 0;
+int main(){
 
-	for (int i = 0; i < length ; i++) {
-		for (int j = 1; j < length - i ; j++) {
-			if (array[j] > array[j+1]) {
-                		tmp = array[j];
-              			array[j] = array[j+1];
-              			array[j+1] = tmp;
+    int first = 5;
+    int second = 4;
+    int third = 6;
+    int a[] = {first,second,third};
+    int length = 3;
+
+    int tmp = 0;
+
+	for (int i = 0; i < length; i++) {
+		for (int j = 1; j < length - i ; j++) { // FIX: j = 0
+			if (a[j] > a[j+1]) {
+                		tmp = a[j];
+              			a[j] = a[j+1];
+              			a[j+1] = tmp;
           		}
       		}
    	}
-}
-
-int main(){
-
-	int first = __VERIFIER_nondet_int();
-	int second = __VERIFIER_nondet_int();
-	int third = __VERIFIER_nondet_int();
-	int a[] = {first,second,third};
-	bubblesort(a, 3);
 
 	//POST-CONDITION check if array a is sorted
 	if(a[0] <= a[1] && a[1] <= a[2]) {
@@ -36,7 +34,6 @@ int main(){
 	} else {
 		goto ERROR;
 	}
-
 
 EXIT: return 0;
 ERROR: return 1;

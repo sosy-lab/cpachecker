@@ -210,7 +210,7 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
     }
 
     FileLocation location = pEdge.getFileLocation();
-    assert (location != null) : "should be filtered";
+    assert location != null : "should be filtered";
     builder.addDataElementChild(result, KeyDef.ORIGINFILE, location.getFileName().toString());
     builder.addDataElementChild(
         result, KeyDef.STARTLINE, Integer.toString(location.getStartingLineInOrigin()));

@@ -34,7 +34,7 @@ public class UsageInfoSet extends TreeSet<UsageInfo> {
     while (iterator.hasNext()) {
       UsageInfo uinfo = iterator.next();
       AbstractState keyState = uinfo.getKeyState();
-      assert (keyState != null);
+      assert keyState != null;
       if (UsageState.get(keyState).equals(pUstate)) {
         iterator.remove();
         changed = true;

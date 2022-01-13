@@ -44,7 +44,6 @@ import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
@@ -101,7 +100,7 @@ public class PredicateToValuePrecisionConverter implements Statistics {
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private final CFA cfa;
-  private static final CFANode dummyNode = new CFANode(CFunctionDeclaration.DUMMY);
+  private static final CFANode dummyNode = CFANode.newDummyCFANode();
   private final CFAEdge dummyEdge;
 
   @Option(
@@ -450,6 +449,10 @@ public class PredicateToValuePrecisionConverter implements Statistics {
                     && (relevantProperties.isEmpty()
                         || pRelevantEdges.contains(node.getStatement().orElse(dummyEdge))))
         .toList();
+  }
+
+  public boolean collectedStats() {
+    return conversionTime.getNumberOfIntervals() > 0;
   }
 
   @Override

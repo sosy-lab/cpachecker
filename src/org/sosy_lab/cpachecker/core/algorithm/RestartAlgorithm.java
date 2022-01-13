@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
@@ -95,7 +94,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
 
       String text = "Statistics for algorithm " + noOfAlgorithmsUsed + " of " + noOfAlgorithms;
       out.println(text);
-      out.println(Strings.repeat("=", text.length()));
+      out.println("=".repeat(text.length()));
 
       printSubStatistics(out, result, reached);
       out.println();

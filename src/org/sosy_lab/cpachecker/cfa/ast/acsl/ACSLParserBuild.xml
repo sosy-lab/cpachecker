@@ -17,7 +17,7 @@
     <property name="parser.source" value="ACSLParser.cup"/>
     <property name="scanner.target" value="ACSLScanner"/>
     <property name="parser.target" value="ACSLParser"/>
-    <property name="symbols.target" value="sym"/>
+    <property name="symbols.target" value="ACSLSymbols"/>
 
     <import file="${basedir}/build/build-parser.xml"/>
 </project>

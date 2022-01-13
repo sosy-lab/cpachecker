@@ -71,7 +71,7 @@ public class AssumptionAutomatonGenerator {
   }
 
   public void writeAutomaton(final ARGState root, final List<ARGState> incompleteNodes) throws CPAException {
-    assert(notCovered(incompleteNodes));
+    assert notCovered(incompleteNodes);
 
     try (Writer w = IO.openOutputFile(assumptionsFile, Charset.defaultCharset())) {
       logger.log(Level.FINEST, "Write assumption automaton to file ", assumptionsFile);

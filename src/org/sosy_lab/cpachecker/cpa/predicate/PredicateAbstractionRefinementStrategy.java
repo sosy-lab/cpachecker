@@ -148,14 +148,15 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
   @FileOption(Type.OUTPUT_FILE)
   private PathTemplate dumpPredicatesFile = PathTemplate.ofFormatString("refinement%04d-predicates.prec");
 
-  private int refinementCount = 0; // this is modulo restartAfterRefinements
+  protected int refinementCount = 0; // this is modulo restartAfterRefinements
 
   private boolean atomicPredicates = false;
 
   protected final LogManager logger;
+  protected final PredicateAbstractionManager predAbsMgr;
+
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
-  private final PredicateAbstractionManager predAbsMgr;
   private final FormulaMeasuring formulaMeasuring;
   private final PredicateMapWriter precisionWriter;
 
@@ -165,7 +166,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
 
   private StatTimer predicateCreation = new StatTimer(StatKind.SUM, "Predicate creation");
   private StatTimer precisionUpdate = new StatTimer(StatKind.SUM, "Precision update");
-  private StatTimer argUpdate = new StatTimer(StatKind.SUM, "ARG update");
+  protected StatTimer argUpdate = new StatTimer(StatKind.SUM, "ARG update");
   private StatTimer itpSimplification = new StatTimer(StatKind.SUM, "Itp simplification with BDDs");
 
   private StatInt simplifyDeltaConjunctions = new StatInt(StatKind.SUM, "Conjunctions Delta");
@@ -242,7 +243,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
   }
 
   @Override
-  protected final void startRefinementOfPath() {
+  protected void startRefinementOfPath() {
     checkState(newPredicates == null);
     // needs to be a fully deterministic data structure,
     // thus a Multimap based on a LinkedHashMap
@@ -253,7 +254,6 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
   @Override
   protected final boolean performRefinementForState(BooleanFormula pInterpolant, ARGState interpolationPoint)
       throws InterruptedException {
-    checkState(newPredicates != null);
     checkArgument(!bfmgr.isTrue(pInterpolant));
 
     predicateCreation.start();
@@ -263,11 +263,31 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
     Collection<AbstractionPredicate> localPreds = convertInterpolant(pInterpolant, blockFormula);
     for (CFANode loc : AbstractStates.extractLocations(interpolationPoint)) {
       int locInstance = predicateState.getAbstractionLocationsOnPath().get(loc);
-      newPredicates.putAll(new LocationInstance(loc, locInstance), localPreds);
+      storePredicates(new LocationInstance(loc, locInstance), localPreds);
     }
     predicateCreation.stop();
 
     return false;
+  }
+
+  /**
+   * see {@link PredicateAbstractionRefinementStrategy#storePredicates(LocationInstance, Collection)
+   * storeNewPredicates(LocationInstance, Collection)}
+   */
+  protected void storePredicates(LocationInstance pLocInstance, AbstractionPredicate pPredicate) {
+    storePredicates(pLocInstance, ImmutableSet.of(pPredicate));
+  }
+
+  /**
+   * Store interpolants in a dedicated collection.
+   *
+   * @param pLocInstance The {@link LocationInstance} in which the predicates hold.
+   * @param pPredicates The {@link AbstractionPredicate} retrieved from a spurious counterexample.
+   */
+  protected void storePredicates(
+      LocationInstance pLocInstance, Collection<AbstractionPredicate> pPredicates) {
+    checkState(newPredicates != null);
+    newPredicates.putAll(pLocInstance, pPredicates);
   }
 
   /**
@@ -389,7 +409,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
       for (CFANode loc : extractLocations(pUnreachableState)) {
         int locInstance =
             getPredicateState(pUnreachableState).getAbstractionLocationsOnPath().get(loc);
-        newPredicates.put(new LocationInstance(loc, locInstance), predAbsMgr.makeFalsePredicate());
+        storePredicates(new LocationInstance(loc, locInstance), predAbsMgr.makeFalsePredicate());
       }
       pAffectedStates.add(pUnreachableState);
     }
@@ -399,7 +419,11 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
     PredicatePrecision targetStatePrecision = extractPredicatePrecision(reached.getPrecision(reached.getLastState()));
 
     ARGState refinementRoot =
-        getRefinementRoot(pAffectedStates, pRepeatedCounterexample, reached, targetStatePrecision);
+        getRefinementRoot(
+            pAffectedStates,
+            pRepeatedCounterexample,
+            reached,
+            targetStatePrecision.getLocalPredicates());
 
     // now create new precision
     precisionUpdate.start();
@@ -428,14 +452,14 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
     return Pair.of(newPrecision, refinementRoot);
   }
 
-  private ARGState getRefinementRoot(
+  protected ARGState getRefinementRoot(
       List<ARGState> pAffectedStates,
       boolean pRepeatedCounterexample,
       UnmodifiableReachedSet reached,
-      PredicatePrecision targetStatePrecision)
+      ImmutableSetMultimap<CFANode, AbstractionPredicate> pTargetStatePredicates)
       throws RefinementFailedException {
     ARGState refinementRoot =
-        getPivotState(pAffectedStates, targetStatePrecision, pRepeatedCounterexample);
+        getPivotState(pAffectedStates, pTargetStatePredicates, pRepeatedCounterexample);
 
     // check whether we should restart
     refinementCount++;
@@ -539,7 +563,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
 
   private ARGState getPivotState(
       List<ARGState> pAffectedStates,
-      PredicatePrecision targetStatePrecision,
+      ImmutableSetMultimap<CFANode, AbstractionPredicate> pTargetStatePredicates,
       boolean pRepeatedCounterexample)
       throws RefinementFailedException {
     // We have two different strategies for the pivot state: set it to
@@ -550,14 +574,17 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
     // best to use strategy one iff newPredicatesFound.
     // TODO right now this works only with location-specific predicates, not with other values of
     // cpa.predicate.precision.sharing
-    boolean newPredicatesFound = false;
-    for (Map.Entry<LocationInstance, AbstractionPredicate> entry : newPredicates.entries()) {
-      if (!targetStatePrecision
-          .getLocalPredicates()
-          .containsEntry(entry.getKey().getLocation(), entry.getValue())) {
-        newPredicatesFound = true;
-        break;
+    boolean newPredicatesFound;
+    if (newPredicates != null) {
+      newPredicatesFound = false;
+      for (Map.Entry<LocationInstance, AbstractionPredicate> entry : newPredicates.entries()) {
+        if (!pTargetStatePredicates.containsEntry(entry.getKey().getLocation(), entry.getValue())) {
+          newPredicatesFound = true;
+          break;
+        }
       }
+    } else {
+      newPredicatesFound = true;
     }
 
     ARGState firstInterpolationPoint = pAffectedStates.get(0);

@@ -85,7 +85,7 @@ public class BlockedCFAReducer implements BlockComputer {
    * with pNode as the root-node.
    */
   private void incSummarizationsOnNode(ReducedNode pNode, int pIncBy) {
-    assert (reductionThreshold > 0);
+    assert reductionThreshold > 0;
     pNode.incSummarizations(pIncBy);
   }
 
@@ -140,8 +140,8 @@ public class BlockedCFAReducer implements BlockComputer {
         for (ReducedEdge f: vLeavingEdges) {
           ReducedNode w = f.getPointsTo();
 
-          assert (u != v);
-          assert (v != w);
+          assert u != v;
+          assert v != w;
 
           ReducedEdge sumEdge = new ReducedEdge(w);
           sumEdge.addEdge(e);
@@ -376,9 +376,9 @@ public class BlockedCFAReducer implements BlockComputer {
    */
   @Override
   public ImmutableSet<CFANode> computeAbstractionNodes(final CFA pCfa) {
-    assert (pCfa != null);
-    assert (this.inliningStack.isEmpty());
-    assert (this.functionCallSeq == 0);
+    assert pCfa != null;
+    assert this.inliningStack.isEmpty();
+    assert this.functionCallSeq == 0;
 
     this.functionCallSeq = 0;
     ReducedFunction reducedProgram = inlineAndSummarize(pCfa.getMainFunction(), pCfa);

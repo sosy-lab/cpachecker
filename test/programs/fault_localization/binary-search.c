@@ -26,7 +26,7 @@ int main(){
 		}
 	  
 		// ignore left half   
-		if (arr[m] > x)  
+		if (arr[m] > x) // FIX: arr[m] < x
 			l = m + 1;  	  
 		// ignore right half  
 		else 

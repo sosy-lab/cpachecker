@@ -69,7 +69,7 @@ public class TestTargetMinimizerEssential {
 
     Queue<CFANode> waitlist = new ArrayDeque<>();
     // start with function entry point
-    origCFANodeToCopyMap.put(pEntryNode, CFANode.newDummyCFANode(""));
+    origCFANodeToCopyMap.put(pEntryNode, CFANode.newDummyCFANode());
     waitlist.add(pEntryNode);
     origNodesCopied.add(pEntryNode);
     while (!waitlist.isEmpty()) {
