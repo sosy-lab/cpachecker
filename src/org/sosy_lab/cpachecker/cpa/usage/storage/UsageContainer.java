@@ -132,7 +132,7 @@ public class UsageContainer {
 
   public void forceAddNewUsages(TemporaryUsageStorage storage) {
     //This is a case of 'abort'-functions
-    assert (unsafeUsages == -1);
+    assert unsafeUsages == -1;
     copyUsages(storage);
   }
 

@@ -82,7 +82,8 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
 
   // Set of functions that may not appear in the source code
   // the value of the map entry is the explanation for the user
-  private static final ImmutableMap<String, String> UNSUPPORTED_FUNCTIONS = ImmutableMap.of();
+  private static final ImmutableMap<String, String> UNSUPPORTED_FUNCTIONS =
+      ImmutableMap.of("memcpy", "memcpy", "memmove", "memmove", "memset", "memset");
 
   private static final CollectVarsVisitor<CompoundInterval> COLLECT_VARS_VISITOR = new CollectVarsVisitor<>();
 

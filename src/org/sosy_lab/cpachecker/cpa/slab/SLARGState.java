@@ -235,14 +235,14 @@ public class SLARGState extends ARGState
 
     // copy children
     for (ARGState child : new ArrayList<>(getChildren())) {
-      assert (child.getParents().contains(this)) : "Inconsistent ARG at " + this;
+      assert child.getParents().contains(this) : "Inconsistent ARG at " + this;
       ((SLARGState) child)
           .addParent((SLARGState) replacement, new EdgeSet(this.getEdgeSetToChild(child)));
       child.removeParent(this);
     }
 
     for (ARGState parent : new ArrayList<>(getParents())) {
-      assert (parent.getChildren().contains(this)) : "Inconsistent ARG at " + this;
+      assert parent.getChildren().contains(this) : "Inconsistent ARG at " + this;
       ((SLARGState) replacement)
           .addParent(
               (SLARGState) parent, new EdgeSet(((SLARGState) parent).getEdgeSetToChild(this)));

@@ -50,6 +50,10 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/benchmarks/Termination-MainHeap.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
   </tasks>
+  <tasks name="Termination-BitVectors">
+    <includesfile>../programs/benchmarks/Termination-BitVectors.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
+  </tasks>
   <tasks name="Termination-Other">
     <includesfile>../programs/benchmarks/Termination-Other.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>

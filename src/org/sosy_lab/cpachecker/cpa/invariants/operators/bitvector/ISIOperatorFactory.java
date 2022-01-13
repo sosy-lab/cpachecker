@@ -390,7 +390,7 @@ enum ISIOperatorFactory {
            * containsNegative() parts, because otherwise this interval would
            * have to be [0, 0] which is covered in a previous early-return-case.
            */
-          assert (moduloRange != null || posRange != null);
+          assert moduloRange != null || posRange != null;
           if (moduloRange == null) {
             moduloRange = posRange;
           } else if (posRange != null) {

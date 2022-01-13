@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-
 public class ApronRequirementsTranslator extends CartesianRequirementsTranslator<ApronState> {
 
   private Pair<ApronState, Collection<String>> stateToRequiredVars;
@@ -227,7 +226,7 @@ public class ApronRequirementsTranslator extends CartesianRequirementsTranslator
     } else if (pCst instanceof MpfrScalar) {
       value = ((MpfrScalar) pCst).get().doubleValue(Mpfr.RNDN);
     } else {
-      assert (pCst instanceof MpqScalar);
+      assert pCst instanceof MpqScalar;
       value = ((MpqScalar) pCst).get().doubleValue();
     }
     if (DoubleMath.isMathematicalInteger(value)) {

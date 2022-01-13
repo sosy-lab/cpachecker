@@ -238,12 +238,12 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
 
             } else if (provideCEXInfoFromCEXCheck) {
               improveCounterexampleInformation(pErrorState, counterexampleFromCheck.orElseThrow());
-              assert (pErrorPathStates.containsAll(
+              assert pErrorPathStates.containsAll(
                   pErrorState
                       .getCounterexampleInformation()
                       .orElseThrow()
                       .getTargetPath()
-                      .asStatesList()));
+                      .asStatesList());
             }
         }
       }
