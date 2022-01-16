@@ -14,7 +14,8 @@ public abstract class OctagonNumericValue<T extends Number> implements Comparabl
   protected T value;
 
   protected OctagonNumericValue (T val) {
-    assert (val instanceof Double || val instanceof Long) : "currently only doubles and longs are supported";
+    assert val instanceof Double || val instanceof Long
+        : "currently only doubles and longs are supported";
     value = val;
   }
 

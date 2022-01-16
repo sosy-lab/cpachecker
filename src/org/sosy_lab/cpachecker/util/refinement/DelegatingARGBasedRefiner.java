@@ -88,12 +88,12 @@ public final class DelegatingARGBasedRefiner implements ARGBasedRefiner, Statist
       } catch (RefinementFailedException e) {
         // ignore and try the next refiner
         if (i == refiners.size() - 1) {
-          logger.logf(
-              Level.WARNING,
-              "refinement %d of %d reported repeated counterexample, "
-                  + "exiting refiner and possibly using cex from previous refiner",
-              i + 1,
-              refiners.size());
+          // If the last refinement fails, report the failed refinement to the outside.
+          // We could also report a previous counterexample from a previous refinement step to the
+          // outside.
+          // But refinement almost exclusively fails for spurious counterexamples, so the chance
+          // would be high that we report an imprecise, actually infeasible counterexample then.
+          throw e;
         } else {
           logger.logf(
               Level.FINE,
@@ -117,25 +117,29 @@ public final class DelegatingARGBasedRefiner implements ARGBasedRefiner, Statist
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(new Statistics() {
+    pStatsCollection.add(
+        new Statistics() {
 
-      @Override
-      public String getName() {
-        return DelegatingARGBasedRefiner.class.getSimpleName();
-      }
+          @Override
+          public String getName() {
+            return DelegatingARGBasedRefiner.class.getSimpleName();
+          }
 
-      @Override
-      public void printStatistics(final PrintStream pOut, final Result pResult, final UnmodifiableReachedSet pReached) {
-        StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut);
+          @Override
+          public void printStatistics(
+              final PrintStream pOut, final Result pResult, final UnmodifiableReachedSet pReached) {
+            StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut);
 
-        for (int i = 0; i < refiners.size(); i++) {
-          pOut.println(String.format("Analysis %d (%s):", i + 1, refiners.get(i).getClass().getSimpleName()));
-          writer.beginLevel().put(totalRefinementsSelected.get(i));
-          writer.beginLevel().put(totalRefinementsFinished.get(i));
-          writer.spacer();
-        }
-      }
-    });
+            for (int i = 0; i < refiners.size(); i++) {
+              pOut.println(
+                  String.format(
+                      "Analysis %d (%s):", i + 1, refiners.get(i).getClass().getSimpleName()));
+              writer.beginLevel().put(totalRefinementsSelected.get(i));
+              writer.beginLevel().put(totalRefinementsFinished.get(i));
+              writer.spacer();
+            }
+          }
+        });
 
     for (ARGBasedRefiner refiner : refiners) {
       if (refiner instanceof StatisticsProvider) {

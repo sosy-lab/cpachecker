@@ -15,7 +15,6 @@ import java.util.HashMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -27,7 +26,7 @@ public class PackageSanityTest extends AbstractPackageSanityTests {
         LogManagerWithoutDuplicates.class,
         new LogManagerWithoutDuplicates(LogManager.createTestLogManager()));
     setDefault(Configuration.class, Configuration.defaultConfiguration());
-    setDefault(CFANode.class, new CFANode(CFunctionDeclaration.DUMMY));
+    setDefault(CFANode.class, CFANode.newDummyCFANode());
 
     setDefault(VariableOrField.class, VariableOrField.unknown());
     setDefault(Partition.class, new Partition(new HashMap<>(), HashBasedTable.create()));

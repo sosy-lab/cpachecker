@@ -137,7 +137,7 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
       ARGState currentState = iterator.getAbstractState();
 
       if(iterator.getIndex() == 0) {
-        assert(isAbstractionState(currentState));
+        assert isAbstractionState(currentState);
       }
 
       // only compute prefixes at abstraction states

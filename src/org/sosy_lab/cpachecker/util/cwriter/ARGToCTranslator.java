@@ -455,7 +455,7 @@ public class ARGToCTranslator {
   }
 
   private void pushToWaitlist(Deque<ARGEdge> pWaitlist, ARGState pCurrentElement, ARGState pChild, CFAEdge pEdgeToChild, CompoundStatement pCurrentBlock) {
-    assert (!pChild.isDestroyed());
+    assert !pChild.isDestroyed();
     pWaitlist.push(new ARGEdge(pCurrentElement, pChild, pEdgeToChild, pCurrentBlock));
   }
 

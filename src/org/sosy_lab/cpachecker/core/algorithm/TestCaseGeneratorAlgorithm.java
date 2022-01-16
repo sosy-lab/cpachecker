@@ -74,7 +74,12 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
   @Option(secure = true, name = "progress", description = "defines how progress is computed")
   private ProgressComputation progressType = ProgressComputation.RELATIVE_TOTAL;
 
-
+  @Option(
+      secure = true,
+      name = "mutants",
+      description =
+          "how many mutated test cases should be additionally generated (disabled if <= 0)")
+  private int numMutations = 0;
 
   private final Algorithm algorithm;
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
@@ -109,6 +114,8 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
         ((TestTargetTransferRelation) testTargetCpa.getTransferRelation()).getTestTargets();
 
     exporter = new TestCaseExporter(pCfa, logger, pConfig);
+
+    numMutations = Math.max(numMutations, 0);
 
     if (pSpec.getProperties().size() == 1) {
       specProp = pSpec.getProperties().iterator().next();
@@ -156,7 +163,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
         ignoreTargetState = false;
 
         assert ARGUtils.checkARG(pReached);
-        assert (from(pReached).filter(AbstractStates::isTargetState).isEmpty());
+        assert from(pReached).filter(AbstractStates::isTargetState).isEmpty();
 
         AlgorithmStatus status = AlgorithmStatus.UNSOUND_AND_IMPRECISE;
         try {
@@ -203,7 +210,8 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
 
                 if (status.isPrecise()) {
                   CounterexampleInfo cexInfo = ARGUtils.tryGetOrCreateCounterexampleInformation(argState, cpa, assumptionToEdgeAllocator).orElseThrow();
-                  exporter.writeTestCaseFiles(cexInfo, Optional.ofNullable(specProp));
+                  exporter.writeTestCaseFilesAndMutations(
+                      cexInfo, Optional.ofNullable(specProp), numMutations);
 
                   logger.log(Level.FINE, "Removing test target: " + targetEdge);
                   testTargets.remove(targetEdge);

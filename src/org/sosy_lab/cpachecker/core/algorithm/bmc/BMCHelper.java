@@ -118,7 +118,8 @@ public final class BMCHelper {
   private static BooleanFormula assertAt(
       AbstractState pState, FormulaInContext pInvariant, FormulaManagerView pFMGR, boolean pForce)
       throws CPATransferException, InterruptedException {
-    PredicateAbstractState pas = AbstractStates.extractStateByType(pState, PredicateAbstractState.class);
+    PredicateAbstractState pas =
+        AbstractStates.extractStateByType(pState, PredicateAbstractState.class);
     PathFormula pathFormula = pas.getPathFormula();
     BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
     BooleanFormula stateFormula = pathFormula.getFormula();
@@ -204,13 +205,18 @@ public final class BMCHelper {
       throws InterruptedException {
     Preconditions.checkArgument(!pReachedSet.isEmpty());
     CFANode initialLocation = extractLocation(pReachedSet.getFirstState());
-    for (AdjustableConditionCPA conditionCPA : CPAs.asIterable(pCPA).filter(AdjustableConditionCPA.class)) {
+    for (AdjustableConditionCPA conditionCPA :
+        CPAs.asIterable(pCPA).filter(AdjustableConditionCPA.class)) {
       if (conditionCPA instanceof ReachedSetAdjustingCPA) {
         ((ReachedSetAdjustingCPA) conditionCPA).adjustReachedSet(pReachedSet);
       } else {
         pReachedSet.clear();
-        pLogger.log(Level.WARNING, "Completely clearing the reached set after condition adjustment due to " + conditionCPA.getClass()
-            + ". This may drastically impede the efficiency of iterative deepening. Implement ReachedSetAdjustingCPA to avoid this problem.");
+        pLogger.log(
+            Level.WARNING,
+            "Completely clearing the reached set after condition adjustment due to "
+                + conditionCPA.getClass()
+                + ". This may drastically impede the efficiency of iterative deepening. Implement"
+                + " ReachedSetAdjustingCPA to avoid this problem.");
         break;
       }
     }
@@ -221,7 +227,8 @@ public final class BMCHelper {
     }
   }
 
-  public static Set<CFANode> getLoopHeads(CFA pCFA, TargetLocationProvider pTargetLocationProvider) {
+  public static Set<CFANode> getLoopHeads(
+      CFA pCFA, TargetLocationProvider pTargetLocationProvider) {
     if (pCFA.getLoopStructure().isPresent()
         && pCFA.getLoopStructure().orElseThrow().getAllLoops().isEmpty()) {
       return ImmutableSet.of();
@@ -234,13 +241,15 @@ public final class BMCHelper {
       return loopHeads;
     }
     LoopStructure loopStructure = pCFA.getLoopStructure().orElseThrow();
-    return from(loopStructure.getAllLoops()).transformAndConcat(pLoop -> {
-        if (Sets.intersection(pLoop.getLoopNodes(), loopHeads).isEmpty()) {
-          return ImmutableSet.of();
-        }
-        return pLoop.getLoopHeads();
-      }
-    ).toSet();
+    return from(loopStructure.getAllLoops())
+        .transformAndConcat(
+            pLoop -> {
+              if (Sets.intersection(pLoop.getLoopNodes(), loopHeads).isEmpty()) {
+                return ImmutableSet.of();
+              }
+              return pLoop.getLoopHeads();
+            })
+        .toSet();
   }
 
   public static FluentIterable<AbstractState> filterIterationsBetween(
@@ -278,9 +287,13 @@ public final class BMCHelper {
     return filterIterationsBetween(pStates, pIteration, pIteration, pLoopHeads);
   }
 
-  private static int convertIteration(int pIteration, AbstractState state, Set<CFANode> pLoopHeads) {
+  private static int convertIteration(
+      int pIteration, AbstractState state, Set<CFANode> pLoopHeads) {
     if (pIteration == Integer.MAX_VALUE) {
-      throw new IllegalArgumentException(String.format("The highest supported value for an iteration count is %d, which is exceeded by %d", Integer.MAX_VALUE - 1, pIteration));
+      throw new IllegalArgumentException(
+          String.format(
+              "The highest supported value for an iteration count is %d, which is exceeded by %d",
+              Integer.MAX_VALUE - 1, pIteration));
     }
     /*
      * We want to consider as an "iteration" i
@@ -395,6 +408,5 @@ public final class BMCHelper {
 
     BooleanFormula getFormulaInContext(PathFormula pContext)
         throws CPATransferException, InterruptedException;
-
   }
 }

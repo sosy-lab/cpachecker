@@ -510,8 +510,12 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     } else {
       infeasible = isInfeasibleEdge(startState, endState, segmentList);
       // Assert that mustBeInfeasible => infeasible holds:
-      assert (!mustBeInfeasible || infeasible) : "Edge " + startState.getStateId() + " -> "
-          + endState.getStateId() + " must be infeasible!";
+      assert !mustBeInfeasible || infeasible
+          : "Edge "
+              + startState.getStateId()
+              + " -> "
+              + endState.getStateId()
+              + " must be infeasible!";
     }
 
     assert !(startState instanceof SLARGState)

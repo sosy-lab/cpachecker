@@ -21,7 +21,7 @@ public final class GeneralStructureFieldIdentifier extends StructureFieldIdentif
   public GeneralStructureFieldIdentifier(
       String pNm, /*String fType,*/ CType type, int pDereference, AbstractIdentifier own) {
     super(pNm, /*fType,*/ type, pDereference, own);
-    assert (type != null) : "Creating GeneralStructureFieldIdentifier with null field";
+    assert type != null : "Creating GeneralStructureFieldIdentifier with null field";
   }
 
   @Override

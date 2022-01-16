@@ -323,7 +323,7 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
 
       Specification spec = getSpecification();
       if (usesParallelCompositionOfProgramAndCondition()) {
-        assert (assumptionAutomaton != null);
+        assert assumptionAutomaton != null;
         spec =
             spec.withAdditionalSpecificationFile(
                 ImmutableSet.of(getAssumptionGuider(), assumptionAutomaton),

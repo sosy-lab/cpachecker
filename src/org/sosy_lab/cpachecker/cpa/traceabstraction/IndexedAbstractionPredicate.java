@@ -46,7 +46,15 @@ class IndexedAbstractionPredicate implements Comparable<IndexedAbstractionPredic
 
   @Override
   public int compareTo(IndexedAbstractionPredicate pOther) {
-    return Integer.compare(index, pOther.index);
+    int result = Integer.compare(index, pOther.index);
+    if (result == 0 && !predicate.equals(pOther.predicate)) {
+      throw new AssertionError(
+          String.format(
+              "IndexedAbstractionPredicates that have the same indices should be equal%nThis: %s%nOther: %s",
+              this, pOther));
+    }
+
+    return result;
   }
 
   @Override

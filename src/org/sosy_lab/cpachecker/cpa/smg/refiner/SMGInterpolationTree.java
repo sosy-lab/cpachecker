@@ -366,7 +366,8 @@ public class SMGInterpolationTree {
       if (initialInterpolant == null) {
         initialInterpolant = interpolantManager.createInitialInterpolant();
 
-        assert (interpolants.size() == 0) : "initial interpolant was null after initial interpolation!";
+        assert interpolants.size() == 0
+            : "initial interpolant was null after initial interpolation!";
       }
 
       return initialInterpolant;
@@ -459,7 +460,7 @@ public class SMGInterpolationTree {
             .append("\n");
       }
 
-      assert (!current.getKey().isTarget());
+      assert !current.getKey().isTarget();
     }
     result.append("}");
 

@@ -265,8 +265,9 @@ public class IntervalAnalysisState
 
       } else if (functionExit.getEntryNode().getReturnVariable().isPresent() &&
           functionExit.getEntryNode().getReturnVariable().get().getQualifiedName().equals(trackedVar)) {
-        assert (!rebuildState.contains(trackedVar)) :
-                "calling function should not contain return-variable of called function: " + trackedVar;
+        assert !rebuildState.contains(trackedVar)
+            : "calling function should not contain return-variable of called function: "
+                + trackedVar;
         if (this.contains(trackedVar)) {
           rebuildState = rebuildState.addInterval(trackedVar, this.getInterval(trackedVar), -1);
         }
@@ -336,7 +337,7 @@ public class IntervalAnalysisState
       else {
         Interval iv1 = getInterval(parts.get(0));
         Interval iv2 = getInterval(parts.get(1));
-        return (iv1.contains(iv2));
+        return iv1.contains(iv2);
       }
 
     // pProperty = value1 <= varName <= value2
