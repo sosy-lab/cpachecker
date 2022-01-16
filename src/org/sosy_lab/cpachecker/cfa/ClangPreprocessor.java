@@ -80,7 +80,11 @@ public class ClangPreprocessor extends Preprocessor {
 
   @Override
   protected String getDumpFileOfFile(String file) {
-    return file.replaceFirst("(\\.c|\\.i)$", ".ll");
+    String llvmSuffix = ".ll";
+    if (Files.getFileExtension(file).isEmpty()) {
+      return file + llvmSuffix;
+    }
+    return file.replaceFirst("(\\.c|\\.i)$", llvmSuffix);
   }
 
   private String extractVersionNumberFromLlvmJ() {
