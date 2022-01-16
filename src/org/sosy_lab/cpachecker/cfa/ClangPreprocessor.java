@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.base.Strings;
 import com.google.common.io.Files;
 import java.nio.file.Path;
 import java.util.logging.Level;
@@ -60,6 +61,9 @@ public class ClangPreprocessor extends Preprocessor {
       logger.log(Level.FINE, "Assuming language C for preprocessing with clang");
     }
     String result = preprocess0(file);
+    if (Strings.isNullOrEmpty(result)) {
+      throw new CParserException("Clang could not preprocess the given file.");
+    }
     return getAndWriteDumpFile(result, file, dumpDirectory);
   }
 
