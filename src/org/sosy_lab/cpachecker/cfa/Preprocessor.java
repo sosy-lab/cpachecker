@@ -40,7 +40,7 @@ public abstract class Preprocessor {
   @FileOption(Type.OUTPUT_DIRECTORY)
   private Path dumpDirectory = Path.of("preprocessed");
 
-  private final LogManager logger;
+  protected final LogManager logger;
 
   protected Preprocessor(Configuration config, LogManager pLogger)
       throws InvalidConfigurationException {

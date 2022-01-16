@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.io.Files;
 import java.nio.file.Path;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -56,7 +57,7 @@ public class ClangPreprocessor extends Preprocessor {
     checkNotNull(dumpDirectory, "Using the clang preprocessor requires a dump directory.");
     if (Files.getFileExtension(file.toString()).isEmpty()) {
       assumeLanguageC();
-      // TODO log?
+      logger.log(Level.FINE, "Assuming language C for preprocessing with clang");
     }
     String result = preprocess0(file);
     return getAndWriteDumpFile(result, file, dumpDirectory);
