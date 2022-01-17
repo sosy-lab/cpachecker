@@ -158,8 +158,8 @@ SPDX-License-Identifier: Apache-2.0
         <dependency org="com.google.code.findbugs" name="jsr305" rev="3.0.2" conf="runtime->default; contrib->sources"/>
 
         <!-- Checkstyle -->
-        <dependency org="com.github.sevntu-checkstyle" name="sevntu-checks" rev="1.40.0" conf="checkstyle->default"/>
-        <dependency org="com.puppycrawl.tools" name="checkstyle" rev="9.1" conf="checkstyle->default"/>
+        <dependency org="com.github.sevntu-checkstyle" name="sevntu-checks" rev="1.41.0" conf="checkstyle->default"/>
+        <dependency org="com.puppycrawl.tools" name="checkstyle" rev="9.2.1" conf="checkstyle->default"/>
 
         <!-- VerifierCloud -->
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>
