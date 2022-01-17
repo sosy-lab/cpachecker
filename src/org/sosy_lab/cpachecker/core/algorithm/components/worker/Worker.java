@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.components.worker;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Connection;
@@ -25,8 +24,6 @@ public abstract class Worker implements Runnable {
   protected Connection connection;
 
   protected boolean finished;
-
-  protected static final Optional<Message> noResponse = Optional.empty();
 
   protected Worker(LogManager pLogger) {
     logger = pLogger;

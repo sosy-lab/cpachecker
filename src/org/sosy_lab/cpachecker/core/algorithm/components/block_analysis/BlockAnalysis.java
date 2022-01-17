@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
-import org.sosy_lab.cpachecker.core.algorithm.components.distributed_cpa.DistributedCPA;
+import org.sosy_lab.cpachecker.core.algorithm.components.distributed_cpa.DistributedCompositeCPA;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Payload;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -60,7 +60,7 @@ public abstract class BlockAnalysis {
   protected final Algorithm algorithm;
   protected final ReachedSet reachedSet;
   protected final ConfigurableProgramAnalysis cpa;
-  protected final DistributedCPA distributedCPA;
+  protected final DistributedCompositeCPA distributedCompositeCPA;
 
   protected final Precision emptyPrecision;
 
@@ -99,8 +99,8 @@ public abstract class BlockAnalysis {
     block = pBlock;
     logger = pLogger;
 
-    distributedCPA = new DistributedCPA(pId, block, pTypeMap, emptyPrecision, pDirection);
-    distributedCPA.setParentCPA(CPAs.retrieveCPA(cpa, CompositeCPA.class));
+    distributedCompositeCPA = new DistributedCompositeCPA(pId, block, pTypeMap, emptyPrecision, pDirection);
+    distributedCompositeCPA.setParentCPA(CPAs.retrieveCPA(cpa, CompositeCPA.class));
   }
 
   public Optional<CFANode> abstractStateToLocation(AbstractState state) {
@@ -137,13 +137,13 @@ public abstract class BlockAnalysis {
       throws InterruptedException, CPAException {
     if (receivedPostConditions.isEmpty()) {
       return new ARGState(
-          distributedCPA.getInitialState(node, StateSpacePartition.getDefaultPartition()), null);
+          distributedCompositeCPA.getInitialState(node, StateSpacePartition.getDefaultPartition()), null);
     }
     List<AbstractState> states = new ArrayList<>();
     for (Payload receivedPostCondition : receivedPostConditions) {
-      states.add(distributedCPA.translate(receivedPostCondition));
+      states.add(distributedCompositeCPA.translate(receivedPostCondition, node));
     }
-    return new ARGState(distributedCPA.combine(states), null);
+    return new ARGState(distributedCompositeCPA.combine(states), null);
   }
 
   public List<AbstractState> extractBlockEntryPoints(
@@ -163,8 +163,8 @@ public abstract class BlockAnalysis {
     return compositeStates;
   }
 
-  public DistributedCPA getDistributedCPA() {
-    return distributedCPA;
+  public DistributedCompositeCPA getDistributedCPA() {
+    return distributedCompositeCPA;
   }
 
   public Algorithm getAlgorithm() {
@@ -232,8 +232,8 @@ public abstract class BlockAnalysis {
                   "States need to have a location but this one does not:" + targetState);
             }
             reportedOriginalViolation = true;
-            Payload initial = distributedCPA.translate(
-                distributedCPA.getInitialState(targetNode.orElseThrow(),
+            Payload initial = distributedCompositeCPA.translate(
+                distributedCompositeCPA.getInitialState(targetNode.orElseThrow(),
                     StateSpacePartition.getDefaultPartition()));
             answers.add(Message.newErrorConditionMessage(block.getId(),
                 targetNode.orElseThrow().getNodeNumber(), initial, true));
@@ -246,8 +246,8 @@ public abstract class BlockAnalysis {
       List<AbstractState> compositeStates =
           extractBlockEntryPoints(reachedSet, block.getLastNode(), startState);
       if (!compositeStates.isEmpty()) {
-        AbstractState combined = distributedCPA.combine(compositeStates);
-        Payload result = distributedCPA.translate(combined);
+        AbstractState combined = distributedCompositeCPA.combine(compositeStates);
+        Payload result = distributedCompositeCPA.translate(combined);
         Message response =
             Message.newBlockPostCondition(block.getId(), block.getLastNode().getNodeNumber(),
                 result, messages.size() == block.getPredecessors().size() && messages.stream()
@@ -291,7 +291,7 @@ public abstract class BlockAnalysis {
           states = extractBlockEntryPoints(reachedSet, block.getStartNode(), startState);
       return ImmutableSet.of(
           Message.newErrorConditionMessage(block.getId(), block.getStartNode().getNodeNumber(),
-              distributedCPA.translate(distributedCPA.combine(states)), false));
+              distributedCompositeCPA.translate(distributedCompositeCPA.combine(states)), false));
     }
   }
 

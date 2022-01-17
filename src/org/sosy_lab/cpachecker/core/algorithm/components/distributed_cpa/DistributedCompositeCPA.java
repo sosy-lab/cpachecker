@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
@@ -28,14 +29,14 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class DistributedCPA extends AbstractDistributedCPA {
+public class DistributedCompositeCPA extends AbstractDistributedCPA {
 
   private final Map<Class<? extends ConfigurableProgramAnalysis>, Class<? extends AbstractDistributedCPA>>
       lookup;
 
   private final Map<Class<? extends ConfigurableProgramAnalysis>, AbstractDistributedCPA> registered;
 
-  public DistributedCPA(
+  public DistributedCompositeCPA(
       String pId,
       BlockNode pNode, SSAMap pTypeMap, Precision pPrecision, AnalysisDirection pDirection) throws CPAException {
     super(pId, pNode, pTypeMap, pPrecision, pDirection);
@@ -45,17 +46,17 @@ public class DistributedCPA extends AbstractDistributedCPA {
   }
 
   @Override
-  public AbstractState translate(Payload pPayload) throws InterruptedException {
+  public AbstractState translate(Payload pPayload, CFANode pLocation) throws InterruptedException {
     CompositeCPA compositeCPA = (CompositeCPA) parentCPA;
     List<AbstractState> states = new ArrayList<>();
     for (ConfigurableProgramAnalysis wrappedCPA : compositeCPA.getWrappedCPAs()) {
       if (registered.containsKey(wrappedCPA.getClass())) {
         AbstractDistributedCPA entry = registered.get(wrappedCPA.getClass());
         if (pPayload.containsKey(wrappedCPA.getClass().getName())) {
-          states.add(entry.translate(pPayload));
+          states.add(entry.translate(pPayload, pLocation));
         }
       } else {
-        states.add(wrappedCPA.getInitialState(getStartNode(), StateSpacePartition.getDefaultPartition()));
+        states.add(wrappedCPA.getInitialState(pLocation, StateSpacePartition.getDefaultPartition()));
       }
     }
     return new CompositeState(states);

@@ -46,7 +46,7 @@ public abstract class AbstractDistributedCPA implements ConfigurableProgramAnaly
     precision = pPrecision;
   }
 
-  public abstract AbstractState translate(Payload pPayload) throws InterruptedException;
+  public abstract AbstractState translate(Payload pPayload, CFANode location) throws InterruptedException;
 
   public abstract Payload translate(AbstractState pState);
 

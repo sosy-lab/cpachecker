@@ -211,8 +211,11 @@ public class ComponentAnalysis implements Algorithm {
       Components components = builder.addVisualizationWorker(tree).build();
 
       // run all workers
+      List<Thread> threads = new ArrayList<>();
       for (Worker worker : components.getWorkers()) {
-        new Thread(worker).start();
+        Thread thread = new Thread(worker);
+        thread.start();
+        threads.add(thread);
       }
 
       Connection mainThreadConnection = components.getAdditionalConnections().get(0);
@@ -242,6 +245,10 @@ public class ComponentAnalysis implements Algorithm {
 
       if (!faults.isEmpty()) {
         logger.log(Level.INFO, "Found faults:\n" + Joiner.on("\n").join(faults));
+      }
+
+      for (Thread thread : threads) {
+        thread.interrupt();
       }
 
       // print result

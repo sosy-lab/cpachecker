@@ -57,11 +57,11 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
   }
 
   @Override
-  public AbstractState translate(Payload pPayload) throws InterruptedException {
+  public AbstractState translate(Payload pPayload, CFANode pLocation) throws InterruptedException {
     String formula = extractFormulaString(pPayload);
     return PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
         getPathFormula(formula),
-        (PredicateAbstractState) getInitialState(getStartNode(),
+        (PredicateAbstractState) getInitialState(pLocation,
             StateSpacePartition.getDefaultPartition()));
   }
 

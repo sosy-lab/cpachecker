@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.core.algorithm.components.block_analysis.BlockAna
 import org.sosy_lab.cpachecker.core.algorithm.components.block_analysis.BlockAnalysis.BackwardAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.components.block_analysis.BlockAnalysis.ForwardAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
-import org.sosy_lab.cpachecker.core.algorithm.components.distributed_cpa.DistributedCPA;
+import org.sosy_lab.cpachecker.core.algorithm.components.distributed_cpa.DistributedCompositeCPA;
 import org.sosy_lab.cpachecker.core.algorithm.components.distributed_cpa.MessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageType;
@@ -140,7 +140,7 @@ public class AnalysisWorker extends Worker {
 
   private Collection<Message> processErrorCondition(Message message)
       throws SolverException, InterruptedException, CPAException {
-    DistributedCPA distributed = backwardAnalysis.getDistributedCPA();
+    DistributedCompositeCPA distributed = backwardAnalysis.getDistributedCPA();
     MessageProcessing processing = distributed.stopBackward(message);
     if(processing.end()) {
       return processing;
@@ -161,7 +161,7 @@ public class AnalysisWorker extends Worker {
   // return pre-condition
   protected Collection<Message> backwardAnalysis(CFANode pStartNode, MessageProcessing pMessageProcessing)
       throws CPAException, InterruptedException, SolverException {
-    assert pMessageProcessing.size() == 1;
+    assert pMessageProcessing.size() == 1 : "BackwardAnalysis can only be based on one message";
     Collection<Message> messages =
         backwardAnalysis.analyze(pMessageProcessing.toPayloadCollection(), pStartNode);
     status = backwardAnalysis.getStatus();

@@ -130,7 +130,7 @@ public class FaultLocalizationWorker extends AnalysisWorker {
     Message message = pMessageProcessing.stream().findFirst().orElseThrow();
     try {
       DistributedPredicateCPA dpcpa = (DistributedPredicateCPA) backwardAnalysis.getDistributedCPA().getDistributedAnalysis(PredicateCPA.class);
-      PredicateAbstractState state = (PredicateAbstractState) dpcpa.translate(message.getPayload());
+      PredicateAbstractState state = (PredicateAbstractState) dpcpa.translate(message.getPayload(), pStartNode);
       Set<Fault> faults = performFaultLocalization(state.getPathFormula());
       if (faults.isEmpty()) {
         return responses;

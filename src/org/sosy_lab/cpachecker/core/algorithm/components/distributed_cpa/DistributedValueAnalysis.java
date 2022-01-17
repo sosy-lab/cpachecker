@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.components.distributed_cpa;
 
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
@@ -32,7 +33,7 @@ public class DistributedValueAnalysis extends AbstractDistributedCPA {
   }
 
   @Override
-  public AbstractState translate(Payload pPayload) throws InterruptedException {
+  public AbstractState translate(Payload pPayload, CFANode pLocation) throws InterruptedException {
     return null;
   }
 
