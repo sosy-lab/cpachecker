@@ -54,21 +54,6 @@ public class LlvmParserWithClang extends LlvmParser {
     return parseSingleFile(filename);
   }
 
-  private ParseResult parseSingleFile(final Path pFilename)
-      throws ParserException, InterruptedException {
-
-    if (preprocessor.getDumpDirectory() != null) {
-      // Writing to the output directory is possible.
-      return parse0(pFilename, preprocessor.getDumpDirectory());
-    }
-
-    try (DeleteOnCloseDir tempDir = TempFile.createDeleteOnCloseDir("clang-results")) {
-      return parse0(pFilename, tempDir.toPath());
-    } catch (IOException e) {
-      throw new CParserException("Could not write clang output to file " + e.getMessage(), e);
-    }
-  }
-
   @Override
   public ParseResult parseString(final String pFilename, final String pCode)
       throws ParserException, InterruptedException {
@@ -85,6 +70,21 @@ public class LlvmParserWithClang extends LlvmParser {
       return parseSingleFile(tempFile);
     } catch (IOException e) {
       throw new CParserException("Could not write clang input to file " + e.getMessage(), e);
+    }
+  }
+
+  private ParseResult parseSingleFile(final Path pFilename)
+      throws ParserException, InterruptedException {
+
+    if (preprocessor.getDumpDirectory() != null) {
+      // Writing to the output directory is possible.
+      return parse0(pFilename, preprocessor.getDumpDirectory());
+    }
+
+    try (DeleteOnCloseDir tempDir = TempFile.createDeleteOnCloseDir("clang-results")) {
+      return parse0(pFilename, tempDir.toPath());
+    } catch (IOException e) {
+      throw new CParserException("Could not write clang output to file " + e.getMessage(), e);
     }
   }
 

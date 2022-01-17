@@ -11,11 +11,13 @@ package org.sosy_lab.cpachecker.cfa;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import com.google.common.io.MoreFiles;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -33,13 +35,21 @@ import org.sosy_lab.cpachecker.util.test.TestDataTools;
 @RunWith(Parameterized.class)
 public class LlvmParserWithClangTest {
 
-  @Parameters(name = "{0}")
-  public static List<Object> testcases() {
-    return ImmutableList.of(
-        "test/programs/llvm/switch-case.c", "test/programs/simple/globalVariableInitialValue-1.c");
+  @Parameters(name = "{0} with file name {1}")
+  public static List<Object[]> testcases() {
+    List<String> testFiles =
+        ImmutableList.of(
+            "test/programs/llvm/switch-case.c",
+            "test/programs/simple/globalVariableInitialValue-1.c");
+    List<String> fileNames = ImmutableList.of("test.c", "test", "");
+    List<List<String>> testcases = Lists.cartesianProduct(testFiles, fileNames);
+    return testcases.stream().map(List::toArray).collect(Collectors.toList());
   }
 
   @Parameter(0)
+  public String testFile;
+
+  @Parameter(1)
   public String fileName;
 
   // two parsers needed, as otherwise there is a problem with the already running parseTimer
@@ -60,9 +70,9 @@ public class LlvmParserWithClangTest {
   @Test
   public void compareStringParsingAndFileParsing()
       throws ParserException, InterruptedException, InvalidConfigurationException, IOException {
-    ParseResult fileResult = fileParser.parseFiles(ImmutableList.of(fileName));
-    String code = MoreFiles.asCharSource(Path.of(fileName), Charset.defaultCharset()).read();
-    ParseResult stringResult = stringParser.parseString("test.c", code);
+    ParseResult fileResult = fileParser.parseFiles(ImmutableList.of(testFile));
+    String code = MoreFiles.asCharSource(Path.of(testFile), Charset.defaultCharset()).read();
+    ParseResult stringResult = stringParser.parseString(fileName, code);
     assertThat(stringResult.isEmpty()).isEqualTo(fileResult.isEmpty());
     assertThat(stringResult.getCFANodes()).hasSize(fileResult.getCFANodes().size());
     assertThat(stringResult.getFunctions().keySet())
