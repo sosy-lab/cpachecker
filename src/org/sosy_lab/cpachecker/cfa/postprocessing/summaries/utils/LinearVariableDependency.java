@@ -86,23 +86,32 @@ public class LinearVariableDependency {
     this.dependencies = newDependencies;
   }
 
-  public void modifyDependency(
+  public boolean modifyDependency(
       ALiteralExpression pNumericalExpression, ABinaryOperator operator) {
     if (operator == CBinaryExpression.BinaryOperator.PLUS
         || operator == JBinaryExpression.BinaryOperator.PLUS) {
       // TODO generalize Integer to Number
-      this.numericalValue =
-          (ALiteralExpression)
-              new AExpressionFactory()
-                  .from(
-                      ((BigInteger) this.numericalValue.getValue())
-                          .add((BigInteger) pNumericalExpression.getValue()),
-                      TypeFactory.getMostGeneralType(
-                          this.numericalValue.getExpressionType(),
-                          pNumericalExpression.getExpressionType()))
-                  .build();
+      if (this.numericalValue.getValue() instanceof BigInteger
+          && pNumericalExpression.getValue() instanceof BigInteger) {
+        this.numericalValue =
+            (ALiteralExpression)
+                new AExpressionFactory()
+                    .from(
+                        ((BigInteger) this.numericalValue.getValue())
+                            .add((BigInteger) pNumericalExpression.getValue()),
+                        TypeFactory.getMostGeneralType(
+                            this.numericalValue.getExpressionType(),
+                            pNumericalExpression.getExpressionType()))
+                    .build();
+        return true;
+      } else {
+        return false;
+      }
+
     } else if (operator == CBinaryExpression.BinaryOperator.MINUS
         || operator == JBinaryExpression.BinaryOperator.MINUS) {
+      if (this.numericalValue.getValue() instanceof BigInteger
+          && pNumericalExpression.getValue() instanceof BigInteger) {
       this.numericalValue =
           (ALiteralExpression)
               new AExpressionFactory()
@@ -113,13 +122,22 @@ public class LinearVariableDependency {
                           this.numericalValue.getExpressionType(),
                           pNumericalExpression.getExpressionType()))
                   .build();
+      return true;
+      } else {
+        return false;
+      }
     } else {
       this.numericalValue = null;
+      return false;
     }
   }
 
   public boolean modifyDependency(
       AVariableDeclaration pVariable, AExpression weight, ABinaryOperator operator) {
+    if (weight == null || pVariable == null) {
+      return false;
+    }
+
     if (this.dependencies.containsKey(pVariable)) {
       if (operator == CBinaryExpression.BinaryOperator.PLUS
           || operator == CBinaryExpression.BinaryOperator.MINUS
@@ -153,11 +171,15 @@ public class LinearVariableDependency {
         || operator == CBinaryExpression.BinaryOperator.MINUS
         || operator == JBinaryExpression.BinaryOperator.PLUS
         || operator == JBinaryExpression.BinaryOperator.MINUS) {
-      this.modifyDependency(pLinearVariableDependency.numericalValue, operator);
+      if (!this.modifyDependency(pLinearVariableDependency.numericalValue, operator)) {
+        return false;
+      }
 
       for (Entry<AVariableDeclaration, AExpression> e :
           pLinearVariableDependency.dependencies.entrySet()) {
-        this.modifyDependency(e.getKey(), e.getValue(), operator);
+        if (!this.modifyDependency(e.getKey(), e.getValue(), operator)) {
+          return false;
+        }
       }
       return true;
     } else if (operator == CBinaryExpression.BinaryOperator.MULTIPLY
