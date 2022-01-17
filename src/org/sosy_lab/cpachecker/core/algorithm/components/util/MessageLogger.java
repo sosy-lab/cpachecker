@@ -15,9 +15,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
@@ -55,6 +53,9 @@ public class MessageLogger {
 
   public synchronized void log(Message pMessage)
       throws IOException, SolverException, InterruptedException {
+    if (entries.get(pMessage.getUniqueBlockId()) == null) {
+      return;
+    }
     Map<String, Object> messageToJSON = new HashMap<>();
     messageToJSON.put("type", pMessage.getType().name());
     messageToJSON.put("timestamp", pMessage.getTimestamp());
