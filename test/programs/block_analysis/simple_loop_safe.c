@@ -8,11 +8,10 @@
 
 int main() {
     int x = 0;
-    int y = 5;
-    while (x != y) {
+    while (x != 100) {
         x++;
     }
-    if (x == y)
+    if (x != 100)
         goto ERROR;
     return 0;
 ERROR: return 1;
