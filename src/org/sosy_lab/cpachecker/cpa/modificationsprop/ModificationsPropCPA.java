@@ -102,8 +102,9 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
 
   @Option(
       secure = true,
-      description = "Switch on/off to form the union of variable sets at identical location pairs")
-  private boolean variableSetMerge = true;
+      description =
+          "Switch on/off to form the union of variable sets at identical location pairs. Set cpa.automaton.deleteDoubleEdges as well!")
+  private boolean variableSetMerge = false;
 
   @Option(
       secure = true,

@@ -53,6 +53,8 @@ import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWra
  */
 public class AutomatonTransferRelation implements TransferRelation {
 
+  private boolean variableSetMerge;
+
   private final ControlAutomatonCPA cpa;
   private final LogManager logger;
   private final MachineModel machineModel;
@@ -68,7 +70,8 @@ public class AutomatonTransferRelation implements TransferRelation {
       ControlAutomatonCPA pCpa,
       LogManager pLogger,
       MachineModel pMachineModel,
-      AutomatonStatistics pStats) {
+      AutomatonStatistics pStats,
+      boolean pVariableSetMerge) {
     this.cpa = pCpa;
     this.logger = pLogger;
     this.machineModel = pMachineModel;
@@ -79,6 +82,7 @@ public class AutomatonTransferRelation implements TransferRelation {
     actionTime = pStats.actionTime.getNewTimer();
     totalStrengthenTime = pStats.totalStrengthenTime.getNewTimer();
     automatonSuccessors = pStats.automatonSuccessors;
+    variableSetMerge = pVariableSetMerge;
   }
 
   @Override
@@ -89,7 +93,8 @@ public class AutomatonTransferRelation implements TransferRelation {
 
     if (pElement instanceof AutomatonUnknownState) {
       // the last CFA edge could not be processed properly
-      // (strengthen was not called on the AutomatonUnknownState or the strengthen operation had not enough information to determine a new following state.)
+      // (strengthen was not called on the AutomatonUnknownState or the strengthen operation had not
+      // enough information to determine a new following state.)
       return ImmutableSet.of(cpa.getTopState());
     }
 
@@ -114,7 +119,7 @@ public class AutomatonTransferRelation implements TransferRelation {
         // happens only inside MultiEdges,
         // here we have no chance (because strengthen is called only at the end of the edge),
         // so we just stay in the previous state
-        pElement = ((AutomatonUnknownState)pElement).getPreviousState();
+        pElement = ((AutomatonUnknownState) pElement).getPreviousState();
       }
 
       return getFollowStates(pElement, null, pCfaEdge, false, pPrecision);
@@ -163,7 +168,8 @@ public class AutomatonTransferRelation implements TransferRelation {
     }
 
     ImmutableSet.Builder<AutomatonState> lSuccessors = ImmutableSet.builderWithExpectedSize(2);
-    AutomatonExpressionArguments exprArgs = new AutomatonExpressionArguments(state, state.getVars(), otherElements, edge, logger);
+    AutomatonExpressionArguments exprArgs =
+        new AutomatonExpressionArguments(state, state.getVars(), otherElements, edge, logger);
     boolean edgeMatched = false;
     int failedMatches = 0;
     boolean nonDetState = state.getInternalState().isNonDetState();
@@ -175,7 +181,21 @@ public class AutomatonTransferRelation implements TransferRelation {
     List<Pair<AutomatonTransition, Map<Integer, AAstNode>>> transitionsToBeTaken =
         new ArrayList<>(2);
 
-    for (AutomatonTransition t : state.getInternalState().getTransitions().reverse()) {
+    final ImmutableList<AutomatonTransition> transitions;
+    if (variableSetMerge) {
+      List<AutomatonTransition> tmpTransitions = new ArrayList<>();
+      for (AutomatonTransition t : state.getInternalState().getTransitions()) {
+        if (!t.getFollowStateName().equals("__TRUE")) {
+          tmpTransitions.removeIf(el -> el.getTrigger().equals(t.getTrigger()));
+        }
+        tmpTransitions.add(t);
+      }
+      transitions = new ImmutableList.Builder<AutomatonTransition>().addAll(tmpTransitions).build();
+    } else {
+      transitions = state.getInternalState().getTransitions();
+    }
+
+    for (AutomatonTransition t : transitions) {
       exprArgs.clearTransitionVariables();
 
       matchTime.start();

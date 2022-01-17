@@ -1356,6 +1356,12 @@ cpa.arg.witness.revertThreadFunctionRenaming = false
 # reached. Use -1 to disable this limit.
 cpa.automaton.breakOnTargetState = 1
 
+# Whether to delete double edges if several match on same trigger.Always
+# takes the last one only (except for those leading to __TRUE)presuming this
+# to be the most abstract one.Necessary for differential analysis if
+# varSetMerge is true.
+cpa.automaton.deleteDoubleEdges = false
+
 # export automaton to file
 cpa.automaton.dotExport = false
 
@@ -3521,8 +3527,8 @@ differential.program = no default value
 differential.stopOnPointers = false
 
 # Switch on/off to form the union of variable sets at identical location
-# pairs
-differential.variableSetMerge = true
+# pairs. Set cpa.automaton.deleteDoubleEdges as well!
+differential.variableSetMerge = false
 
 # Enable to use lazy refinement in current analysis instead of restarting
 # from root after each refinement.
