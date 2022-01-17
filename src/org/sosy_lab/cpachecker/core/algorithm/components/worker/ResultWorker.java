@@ -17,7 +17,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
@@ -53,7 +52,6 @@ public class ResultWorker extends Worker {
       throws InterruptedException, CPAException, IOException, SolverException {
     String senderId = pMessage.getUniqueBlockId();
     MessageType type = pMessage.getType();
-    logger.log(Level.INFO, pMessage);
     if (!nodeMap.containsKey(senderId)) {
       return ImmutableSet.of();
     }

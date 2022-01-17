@@ -73,7 +73,6 @@ public class RootWorker extends Worker {
   @Override
   public void run() {
     try {
-      working.add(this);
       broadcast(ImmutableSet.of(
           Message.newBlockPostCondition(root.getId(), root.getLastNode().getNodeNumber(),
               analysis.getBmgr().makeTrue(), analysis.getFmgr(), true)));

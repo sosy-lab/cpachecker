@@ -145,7 +145,7 @@ public class AnalysisWorker extends Worker {
    * @param fmgr the FormulaManager that is responsible for converting the formula string
    * @return a boolean formula representing the string formula
    */
-  private BooleanFormula parse(String formula, SSAMapBuilder pBuilder, FormulaManagerView fmgr) {
+  protected final BooleanFormula parse(String formula, SSAMapBuilder pBuilder, FormulaManagerView fmgr) {
     BooleanFormula parsed = fmgr.parse(formula);
     for (String variable : fmgr.extractVariables(parsed).keySet()) {
       Pair<String, OptionalInt> variableIndexPair = FormulaManagerView.parseName(variable);
@@ -164,7 +164,6 @@ public class AnalysisWorker extends Worker {
   @Override
   public Collection<Message> processMessage(Message message)
       throws InterruptedException, CPAException, IOException, SolverException {
-    working.add(this);
     switch (message.getType()) {
       case ERROR_CONDITION:
         return processErrorCondition(message);
@@ -176,7 +175,7 @@ public class AnalysisWorker extends Worker {
       case ERROR_CONDITION_UNREACHABLE:
         return ImmutableSet.of();
       default:
-        throw new AssertionError("Message type " + message.getType() + " does not exist");
+        throw new AssertionError("MessageType " + message.getType() + " does not exist");
     }
   }
 
@@ -191,16 +190,26 @@ public class AnalysisWorker extends Worker {
     }
     CFANode node = optionalCFANode.orElseThrow();
     if (node.equals(block.getStartNode())) {
-      receivedPostConditions.put(message.getUniqueBlockId(), message);
+      if (!message.getUniqueBlockId().equals(block.getId()) || fullPath) {
+        receivedPostConditions.put(message.getUniqueBlockId(), message);
+      }
       lastPreConditionBasedOnAllPredecessors = receivedPostConditions.size() == block.getPredecessors()
           .size();
       Collection<Message> messages = forwardAnalysis(node);
-      messages.stream().filter(m -> m.getType() == MessageType.BLOCK_POSTCONDITION).forEach(toSend -> {
-        lastPreConditionMessage = Optional.of(toSend);
-      });
+      messages.stream().filter(m -> m.getType() == MessageType.BLOCK_POSTCONDITION).forEach(toSend -> lastPreConditionMessage = Optional.of(toSend));
       return messages;
     }
     return ImmutableSet.of();
+  }
+
+  protected PathFormula payloadToPathFormula(String pPostCondition) {
+    SSAMapBuilder builder = SSAMap.emptySSAMap().builder();
+    PathFormulaManagerImpl manager = backwardAnalysis.getPathFormulaManager();
+    BooleanFormula formula = parse(pPostCondition, builder, backwardAnalysis.getFmgr());
+    formula = backwardAnalysis.getFmgr().uninstantiate(formula);
+    PathFormula pathFormula = manager.makeAnd(manager.makeEmptyPathFormulaWithContext(builder.build(),
+        PointerTargetSet.emptyPointerTargetSet()), formula);
+    return pathFormula;
   }
 
   private Collection<Message> processErrorCondition(Message message)
@@ -226,13 +235,7 @@ public class AnalysisWorker extends Worker {
           }
         }
       }
-      SSAMapBuilder builder = SSAMap.emptySSAMap().builder();
-      PathFormulaManagerImpl manager = backwardAnalysis.getPathFormulaManager();
-      BooleanFormula formula = parse(message.getPayload(), builder, backwardAnalysis.getFmgr());
-      formula = backwardAnalysis.getFmgr().uninstantiate(formula);
-      PathFormula pathFormula = manager.makeAnd(manager.makeEmptyPathFormulaWithContext(builder.build(),
-          PointerTargetSet.emptyPointerTargetSet()), formula);
-      return backwardAnalysis(node, pathFormula);
+      return backwardAnalysis(node, payloadToPathFormula(message.getPayload()));
     }
     return ImmutableSet.of();
   }
@@ -245,8 +248,9 @@ public class AnalysisWorker extends Worker {
             forwardAnalysis.getPathFormulaManager()), pStartNode);
     for (Message message : messages) {
       if (message.getType() == MessageType.BLOCK_POSTCONDITION) {
+        int self = block.getPredecessors().contains(block) ? 1 : 0;
         fullPath =
-            fullPath || receivedPostConditions.size() == block.getPredecessors().size()
+            fullPath || receivedPostConditions.size() == block.getPredecessors().size() - self
                 && receivedPostConditions.values()
                 .stream().allMatch(m -> Boolean.parseBoolean(m.getAdditionalInformation()));
         message.setAdditionalInformation(Boolean.toString(fullPath));
@@ -268,7 +272,6 @@ public class AnalysisWorker extends Worker {
   @Override
   public void run() {
     try {
-      working.add(this);
       List<Message> initialMessages = ImmutableList.copyOf(forwardAnalysis(block.getStartNode()));
       if (initialMessages.size() == 1) {
         Message message = initialMessages.get(0);

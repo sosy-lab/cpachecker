@@ -38,14 +38,15 @@ public class TimeoutWorker extends Worker {
       public void run() {
         try {
           broadcast(ImmutableSet.of(Message.newResultMessage("timeout", 0, Result.UNKNOWN)));
+          shutdown();
         } catch (IOException pE) {
           logger.log(Level.SEVERE, "Cannot broadcast timeout message properly because of", pE);
           logger.log(Level.INFO, "Trying to send timeout message one last time...");
           shouldScheduleTimer = false;
-          run();
+          TimeoutWorker.this.run();
         } catch (InterruptedException pE) {
           shouldScheduleTimer = false;
-          run();
+          TimeoutWorker.this.run();
         }
       }
     };
