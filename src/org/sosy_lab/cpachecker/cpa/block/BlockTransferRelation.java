@@ -65,7 +65,7 @@ public abstract class BlockTransferRelation implements TransferRelation {
   }
 
   protected boolean shouldComputeSuccessor(BlockState pBlockState) {
-    boolean isTargetLoopHead = pBlockState.isTarget() && pBlockState.getLocationNode().equals(targetNode);
+    boolean isTargetLoopHead = pBlockState.getLocationNode().equals(targetNode);
     if (isTargetLoopHead) {
       if (first) {
         return first = false;

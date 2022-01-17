@@ -9,9 +9,12 @@
 package org.sosy_lab.cpachecker.core.algorithm.components.decomposition;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -28,6 +31,8 @@ public class BlockNode {
 
   private final Set<BlockNode> predecessors;
   private final Set<BlockNode> successors;
+
+  private final Map<Integer, CFANode> idToNodeMap;
 
   private final String id;
   private final String code;
@@ -64,9 +69,20 @@ public class BlockNode {
     successors = new HashSet<>();
 
     nodesInBlock = new LinkedHashSet<>(pNodesInBlock);
+    idToNodeMap = generateIdToNodeMap(nodesInBlock);
     id = pId;
 
     code = computeCode(pNodesInBlock);
+  }
+
+  private ImmutableMap<Integer, CFANode> generateIdToNodeMap(Set<CFANode> nodes) {
+    Map<Integer, CFANode> nodeMap = new HashMap<>();
+    nodes.forEach(n -> nodeMap.put(n.getNodeNumber(), n));
+    return ImmutableMap.copyOf(nodeMap);
+  }
+
+  public CFANode getNodeWithNumber(int number) {
+    return idToNodeMap.get(number);
   }
 
   private String computeCode(Set<CFANode> pNodes) {
@@ -87,6 +103,10 @@ public class BlockNode {
       }
     }
     return codeLines.toString();
+  }
+
+  public boolean isCircular() {
+    return lastNode.equals(startNode) && !isEmpty() && !isRoot();
   }
 
   public boolean isEmpty() {

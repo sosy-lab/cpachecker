@@ -22,10 +22,11 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.components.block_analysis.BlockAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.components.block_analysis.BlockAnalysis.NoopAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.components.distributed_cpa.MessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class RootWorker extends Worker {
@@ -38,9 +39,9 @@ public class RootWorker extends Worker {
     super(pLogger);
     root = pNode;
     if (!root.isRoot() || !root.isEmpty() || !root.getLastNode().equals(root.getStartNode())) {
-      throw new AssertionError("Root nodes must be empty and do not have predecessors: " + pNode);
+      throw new AssertionError("Root nodes must be empty and does not have predecessors: " + pNode);
     }
-    analysis = new NoopAnalysis(pId, logger, pNode, pCfa, AnalysisDirection.FORWARD, pSpecification, pConfiguration, pShutdownManager);
+    analysis = new NoopAnalysis(pId, logger, pNode, pCfa, SSAMap.emptySSAMap(), AnalysisDirection.FORWARD, pSpecification, pConfiguration, pShutdownManager);
   }
 
   @Override
@@ -51,12 +52,11 @@ public class RootWorker extends Worker {
         if (pMessage.getTargetNodeNumber() == root.getLastNode().getNodeNumber()
             && root.getSuccessors().stream()
             .anyMatch(block -> block.getId().equals(pMessage.getUniqueBlockId()))) {
-          BooleanFormula formula = analysis.getFmgr().parse(pMessage.getPayload());
-          if (analysis.getSolver().isUnsat(formula)) {
-            return ImmutableSet.of(Message.newErrorConditionUnreachableMessage(root.getId()));
-          } else {
-            return ImmutableSet.of(Message.newResultMessage(root.getId(), 0, Result.FALSE));
+          MessageProcessing processing = analysis.getDistributedCPA().stopBackward(pMessage);
+          if (processing.end()) {
+            return processing;
           }
+          return ImmutableSet.of(Message.newResultMessage(root.getId(), root.getLastNode().getNodeNumber(), Result.FALSE));
         }
         return ImmutableSet.of();
       case FOUND_RESULT:
@@ -73,9 +73,10 @@ public class RootWorker extends Worker {
   @Override
   public void run() {
     try {
-      broadcast(ImmutableSet.of(
-          Message.newBlockPostCondition(root.getId(), root.getLastNode().getNodeNumber(),
-              analysis.getBmgr().makeTrue(), analysis.getFmgr(), true)));
+      Message firstMessage = Message.newBlockPostCondition(root.getId(), root.getLastNode().getNodeNumber(),
+          analysis.getDistributedCPA().encode(ImmutableSet.of(analysis.getDistributedCPA().getTop(root.getStartNode()))), true);
+      analysis.getDistributedCPA().setFirstMessage(firstMessage);
+      broadcast(ImmutableSet.of(firstMessage));
       super.run();
     } catch (InterruptedException | IOException pE) {
       logger.log(Level.SEVERE, "Worker run into an error: %s", pE);

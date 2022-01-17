@@ -113,8 +113,8 @@ public class ComponentsBuilder {
     return this;
   }
 
-  public ComponentsBuilder addVisualizationWorker(BlockTree pBlockTree, Solver pSolver) {
-    workers.add(new VisualizationWorker(logger, pBlockTree, pSolver));
+  public ComponentsBuilder addVisualizationWorker(BlockTree pBlockTree) {
+    workers.add(new VisualizationWorker(logger, pBlockTree));
     return this;
   }
 

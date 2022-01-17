@@ -91,6 +91,7 @@ public class BlockOperatorDecomposer implements CFADecomposer {
         // successorOfCurrNode is a successor of lastCFANode
         CFANode successorOfCurrNode = nodeEntry.getNode();
         if (operator.isBlockEnd(successorOfCurrNode, 0)) {
+          // alternative: if (successorOfCurrNode.getNumEnteringEdges() > 1 || successorOfCurrNode.getNumLeavingEdges() > 1) {
           // if successorOfCurrNode is a block end, create a new BlockNode that starts with
           // lastCFANode and ends with
           // successorOfCurrNode. Additionally, tell the BlockNode which nodes are part of the

@@ -17,10 +17,8 @@ import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockTree;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
-import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.components.util.MessageLogger;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class VisualizationWorker extends Worker {
@@ -28,10 +26,15 @@ public class VisualizationWorker extends Worker {
   private final Multimap<String, Message> messages;
   private final MessageLogger messageLogger;
 
-  protected VisualizationWorker(LogManager pLogger, BlockTree pTree, Solver pSolver) {
+  protected VisualizationWorker(LogManager pLogger, BlockTree pTree) {
     super(pLogger);
     messages = ArrayListMultimap.create();
-    messageLogger = new MessageLogger(pTree, pSolver);
+    messageLogger = new MessageLogger(pTree);
+    try {
+      messageLogger.logTree();
+    } catch (IOException pE) {
+      logger.log(Level.WARNING, "Logger was not able to print the tree to a file because of " + pE);
+    }
   }
 
   @Override
@@ -41,6 +44,7 @@ public class VisualizationWorker extends Worker {
     logger.log(Level.ALL, pMessage);
     switch (pMessage.getType()) {
       case ERROR_CONDITION:
+        logger.log(Level.INFO, pMessage);
       case BLOCK_POSTCONDITION:
       case ERROR_CONDITION_UNREACHABLE:
         messageLogger.log(pMessage);
@@ -59,4 +63,5 @@ public class VisualizationWorker extends Worker {
     }
     return ImmutableSet.of();
   }
+
 }

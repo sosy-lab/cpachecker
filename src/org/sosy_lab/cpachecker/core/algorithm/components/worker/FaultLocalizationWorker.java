@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.components.worker;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -20,7 +19,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
 import java.util.Set;
-import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -28,10 +26,12 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.components.distributed_cpa.DistributedPredicateCPA;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageType;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.EdgeTypeScoring;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaEntryList;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.Selector.Factory;
@@ -39,12 +39,16 @@ import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiabi
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula.SelectorTraceWithKnownConditions;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula.TraceFormulaOptions;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.unsat.OriginalMaxSatAlgorithm;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
+import org.sosy_lab.cpachecker.util.faultlocalization.FaultRankingUtils;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -61,10 +65,16 @@ public class FaultLocalizationWorker extends AnalysisWorker {
   private final FormulaContext context;
   private final TraceFormulaOptions options;
   private final BooleanFormulaManagerView bmgr;
+  private final PredicateCPA predicateCPA;
 
   private Fault minimalFault;
 
   private final List<CFAEdge> errorPath;
+
+  private enum Strategy {
+    DISJUNCTION,
+    CONJUNCTION
+  }
 
   FaultLocalizationWorker(
       String pId,
@@ -77,16 +87,26 @@ public class FaultLocalizationWorker extends AnalysisWorker {
       SSAMap pTypeMap)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     super(pId, pBlock, pLogger, pCFA, pSpecification, pConfiguration, pShutdownManager, pTypeMap);
+    predicateCPA = backwardAnalysis.getDistributedCPA().getOriginalCPA(PredicateCPA.class);
+    if (predicateCPA == null) {
+      throw new InvalidConfigurationException(this.getClass().getCanonicalName() + " needs PredicateCPA to be activated.");
+    }
     context = new FormulaContext(
-        backwardAnalysis.getSolver(),
-        backwardAnalysis.getPathFormulaManager(),
+        predicateCPA.getSolver(),
+        new PathFormulaManagerImpl(
+            predicateCPA.getSolver().getFormulaManager(),
+            pConfiguration,
+            pLogger,
+            pShutdownManager.getNotifier(),
+            pCFA,
+            AnalysisDirection.FORWARD),
         pCFA,
         pLogger,
         pConfiguration,
         pShutdownManager.getNotifier()
     );
     options = new TraceFormulaOptions(pConfiguration);
-    bmgr = backwardAnalysis.getFmgr().getBooleanFormulaManager();
+    bmgr = predicateCPA.getSolver().getFormulaManager().getBooleanFormulaManager();
     errorPath = new ArrayList<>();
     minimalFault = new Fault();
 
@@ -102,36 +122,33 @@ public class FaultLocalizationWorker extends AnalysisWorker {
     } while (!currNode.equals(pBlock.getLastNode()));
   }
 
-  public Collection<Message> processMessage(Message pMessage)
-      throws InterruptedException, IOException,
-             SolverException, CPAException {
-    if (pMessage.getType() == MessageType.FOUND_RESULT
-        && Result.valueOf(pMessage.getPayload()) == Result.FALSE) {
-      if (!minimalFault.isEmpty()) {
-        logger.log(Level.INFO, getBlockId() + ": " + minimalFault);
-      }
-    }
-    return super.processMessage(pMessage);
-  }
-
   @Override
-  protected Collection<Message> backwardAnalysis(CFANode pStartNode, PathFormula pFormula)
-      throws CPAException, SolverException, InterruptedException {
-    Set<Message> responses = new HashSet<>(super.backwardAnalysis(pStartNode, pFormula));
+  protected Collection<Message> backwardAnalysis(CFANode pStartNode, Message pMessage)
+      throws CPAException, InterruptedException, SolverException {
+    Set<Message> responses = new HashSet<>(super.backwardAnalysis(pStartNode, pMessage));
     try {
-      Set<Fault> faults = performFaultLocalization(pFormula);
+      DistributedPredicateCPA dpcpa = (DistributedPredicateCPA) backwardAnalysis.getDistributedCPA().getDistributedAnalysis(PredicateCPA.class);
+      PredicateAbstractState state = dpcpa.safeDecode(ImmutableSet.of(pMessage.getPayload()), predicateCPA.getInitialState(block.getNodeWithNumber(pMessage.getTargetNodeNumber()), StateSpacePartition.getDefaultPartition()));
+      Set<Fault> faults = performFaultLocalization(state.getPathFormula());
       if (faults.isEmpty()) {
         return responses;
       }
-      minimalFault = faults.stream().min(Comparator.comparingInt(f -> f.size())).orElseThrow();
+      List<Fault> ranked = FaultRankingUtils.rank(new EdgeTypeScoring(), faults);
+      // get the smallest fault with the highest score
+      minimalFault = ranked.stream().min(Comparator.comparingInt(Fault::size).thenComparingDouble(f -> 1d / f.getScore())).orElseThrow();
+      responses.stream().filter(m -> m.getType() == MessageType.ERROR_CONDITION).forEach(m -> m.getPayload().put("faultlocalization", minimalFault.toString()));
     } catch (IOException pE) {
       throw new CPAException("IO Exception", pE);
+    } catch (TraceFormulaUnsatisfiableException pE) {
+      // current block does most likely not lead to an error
+      return responses;
     }
     return responses;
   }
 
   public Set<Fault> performFaultLocalization(PathFormula pPostCondition)
-      throws CPATransferException, InterruptedException, SolverException, IOException {
+      throws CPATransferException, InterruptedException, SolverException, IOException,
+             TraceFormulaUnsatisfiableException {
     TraceFormula tf = createTraceFormula(pPostCondition);
     if (!tf.isCalculationPossible()) {
       return ImmutableSet.of();
@@ -140,7 +157,8 @@ public class FaultLocalizationWorker extends AnalysisWorker {
   }
 
   public TraceFormula createTraceFormula(PathFormula pPostCondition)
-      throws CPATransferException, InterruptedException, IOException, SolverException {
+      throws CPATransferException, InterruptedException, IOException, SolverException,
+             TraceFormulaUnsatisfiableException {
     PathFormulaManagerImpl pathFormulaManager = context.getManager();
     FormulaEntryList entries = new FormulaEntryList();
     PathFormula current = pPostCondition;
@@ -176,9 +194,13 @@ public class FaultLocalizationWorker extends AnalysisWorker {
     }
     Map<String, Integer> minimalIndices = new HashMap<>();
     Map<String, BooleanFormula> minimalFormulas = new HashMap<>();
-    try (ProverEnvironment prover = backwardAnalysis.getSolver().newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+    try (ProverEnvironment prover = predicateCPA.getSolver().newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       prover.push(current.getFormula());
-      Preconditions.checkArgument(!prover.isUnsat(), "a model has to be existent");
+      if (prover.isUnsat()) {
+        throw new TraceFormulaUnsatisfiableException(
+            "The trace formula is unsatisfiable, the path cannot be traversed. "
+                + current.getFormula());
+      }
       for (ValueAssignment modelAssignment : prover.getModelAssignments()) {
         Pair<String, OptionalInt> pair = FormulaManagerView.parseName(modelAssignment.getName());
         int newVal = minimalIndices.merge(pair.getFirst(), pair.getSecond().orElse(-2), Integer::max);
@@ -188,7 +210,27 @@ public class FaultLocalizationWorker extends AnalysisWorker {
       }
     }
     BooleanFormula precondition = bmgr.and(minimalFormulas.values());
-    return new SelectorTraceWithKnownConditions(context, options, entries, precondition,
-        bmgr.isTrue(pPostCondition.getFormula()) ? pPostCondition.getFormula() : bmgr.not(pPostCondition.getFormula()), errorPath);
+    return new SelectorTraceWithKnownConditions(context, options, entries, precondition, transformPostCondition(pPostCondition.getFormula(), Strategy.CONJUNCTION), errorPath);
+  }
+
+  private BooleanFormula transformPostCondition(BooleanFormula pPostCondition, Strategy pStrategy) {
+    if (bmgr.isTrue(pPostCondition)) {
+      return pPostCondition;
+    }
+    switch (pStrategy) {
+      case DISJUNCTION:
+        return bmgr.not(pPostCondition);
+      case CONJUNCTION:
+        return bmgr.toConjunctionArgs(pPostCondition, true).stream().map(f -> bmgr.not(f)).collect(bmgr.toConjunction());
+      default:
+        throw new AssertionError("Unknown Strategy: " + pStrategy);
+    }
+  }
+
+  private static class TraceFormulaUnsatisfiableException extends Exception {
+
+    public TraceFormulaUnsatisfiableException(String pMessage) {
+      super(pMessage);
+    }
   }
 }

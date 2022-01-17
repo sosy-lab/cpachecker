@@ -27,8 +27,6 @@ import java.io.PrintWriter;
 import java.util.Collection;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class Message implements Comparable<Message> {
 
@@ -55,30 +53,18 @@ public class Message implements Comparable<Message> {
   private final int targetNodeNumber;
   private final String uniqueBlockId;
   private final MessageType type;
-  private final String payload;
+  private final Payload payload;
   private final long timestamp;
-  private String additionalInformation;
-
-  //Serialize
-  private Message(
-      MessageType pType,
-      String pUniqueBlockId,
-      int pTargetNodeNumber,
-      String pPayload) {
-    this(pType, pUniqueBlockId, pTargetNodeNumber, pPayload, "");
-  }
 
   private Message(
       MessageType pType,
       String pUniqueBlockId,
       int pTargetNodeNumber,
-      String pPayload,
-      String pAdditionalInformation) {
+      Payload pPayload) {
     targetNodeNumber = pTargetNodeNumber;
     type = pType;
     payload = pPayload;
     uniqueBlockId = pUniqueBlockId;
-    additionalInformation = pAdditionalInformation;
     timestamp = System.currentTimeMillis();
   }
 
@@ -88,13 +74,11 @@ public class Message implements Comparable<Message> {
       String pUniqueBlockId,
       int pTargetNodeNumber,
       long pTimestamp,
-      String pPayload,
-      String pAdditionalInformation) {
+      Payload pPayload) {
     targetNodeNumber = pTargetNodeNumber;
     type = pType;
     payload = pPayload;
     uniqueBlockId = pUniqueBlockId;
-    additionalInformation = pAdditionalInformation;
     timestamp = pTimestamp;
   }
 
@@ -102,7 +86,7 @@ public class Message implements Comparable<Message> {
     return targetNodeNumber;
   }
 
-  public String getPayload() {
+  public Payload getPayload() {
     return payload;
   }
 
@@ -114,16 +98,8 @@ public class Message implements Comparable<Message> {
     return uniqueBlockId;
   }
 
-  public String getAdditionalInformation() {
-    return additionalInformation;
-  }
-
   public long getTimestamp() {
     return timestamp;
-  }
-
-  public void setAdditionalInformation(String pAdditionalInformation) {
-    additionalInformation = pAdditionalInformation;
   }
 
   @Override
@@ -133,7 +109,6 @@ public class Message implements Comparable<Message> {
         ", uniqueBlockId='" + uniqueBlockId + '\'' +
         ", type=" + type +
         ", payload='" + payload + '\'' +
-        ", additionalInformation='" + additionalInformation + '\'' +
         '}';
   }
 
@@ -145,37 +120,36 @@ public class Message implements Comparable<Message> {
     Message message = (Message) pO;
     return targetNodeNumber == message.targetNodeNumber && uniqueBlockId.equals(
         message.uniqueBlockId)
-        && type == message.type && payload.equals(message.payload) && Objects.equals(
-        additionalInformation, message.additionalInformation);
+        && type == message.type && payload.equals(message.payload);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(targetNodeNumber, uniqueBlockId, type, payload, additionalInformation);
+    return Objects.hash(targetNodeNumber, uniqueBlockId, type, payload);
   }
 
   public static Message newBlockPostCondition(
       String pUniqueBlockId,
       int pTargetNodeNumber,
-      BooleanFormula pPayload,
-      FormulaManagerView pFmgr,
-      boolean fullPath) {
+      Payload pPayload,
+      boolean full) {
+    pPayload.put("full", Boolean.toString(full));
     return new Message(MessageType.BLOCK_POSTCONDITION, pUniqueBlockId, pTargetNodeNumber,
-        pFmgr.dumpFormula(pPayload).toString(), Boolean.toString(fullPath));
+        pPayload);
   }
 
   public static Message newErrorConditionMessage(
       String pUniqueBlockId,
       int pTargetNodeNumber,
-      BooleanFormula pPayload,
-      FormulaManagerView pFmgr,
+      Payload pPayload,
       boolean first) {
+    pPayload.put("first", Boolean.toString(first));
     return new Message(MessageType.ERROR_CONDITION, pUniqueBlockId, pTargetNodeNumber,
-        pFmgr.dumpFormula(pPayload).toString(), Boolean.toString(first));
+        pPayload);
   }
 
   public static Message newErrorConditionUnreachableMessage(String pUniqueBlockId) {
-    return new Message(MessageType.ERROR_CONDITION_UNREACHABLE, pUniqueBlockId, 0, "");
+    return new Message(MessageType.ERROR_CONDITION_UNREACHABLE, pUniqueBlockId, 0, Payload.empty());
   }
 
   public static Message newResultMessage(
@@ -183,17 +157,18 @@ public class Message implements Comparable<Message> {
       int pTargetNodeNumber,
       Result pResult
   ) {
-    return new Message(MessageType.FOUND_RESULT, pUniqueBlockId, pTargetNodeNumber, pResult.name());
+    return new Message(MessageType.FOUND_RESULT, pUniqueBlockId, pTargetNodeNumber, Payload.builder().addEntry("result", pResult.name()).build());
   }
 
   public static Message newErrorMessage(String pUniqueBlockId, Exception pException) {
     ByteArrayOutputStream arrayWriter = new ByteArrayOutputStream();
     PrintWriter printer = new PrintWriter(new ByteArrayOutputStream());
     pException.printStackTrace(printer);
-    return new Message(MessageType.ERROR, pUniqueBlockId, 0, arrayWriter.toString());
+    return new Message(MessageType.ERROR, pUniqueBlockId, 0,
+       Payload.builder().addEntry("exception", arrayWriter.toString()).build());
   }
 
-  public static Collection<Message> makeBroadcastReady(Message ... pMessages) {
+  public static Collection<Message> makeBroadcastReady(Message... pMessages) {
     return ImmutableSet.copyOf(pMessages);
   }
 
@@ -241,10 +216,9 @@ public class Message implements Comparable<Message> {
       String uniqueBlockId = node.get("uniqueBlockId").asText();
       int nodeNumber = node.get("targetNodeNumber").asInt();
       MessageType type = MessageType.valueOf(node.get("type").asText());
-      String payload = node.get("payload").asText();
-      String additionalInfo = node.get("additionalInformation").asText();
+      Payload payload = Payload.from(node.get("payload").asText());
       long timestamp = node.get("timestamp").asLong();
-      return new Message(type, uniqueBlockId, nodeNumber, timestamp, payload, additionalInfo);
+      return new Message(type, uniqueBlockId, nodeNumber, timestamp, payload);
     }
   }
 
@@ -264,8 +238,7 @@ public class Message implements Comparable<Message> {
       pJsonGenerator.writeStringField("uniqueBlockId", pMessage.getUniqueBlockId());
       pJsonGenerator.writeNumberField("targetNodeNumber", pMessage.getTargetNodeNumber());
       pJsonGenerator.writeStringField("type", pMessage.getType().name());
-      pJsonGenerator.writeStringField("payload", pMessage.getPayload());
-      pJsonGenerator.writeStringField("additionalInformation", pMessage.getAdditionalInformation());
+      pJsonGenerator.writeStringField("payload", pMessage.getPayload().toJSONString());
       pJsonGenerator.writeNumberField("timestamp", pMessage.getTimestamp());
       pJsonGenerator.writeEndObject();
     }

@@ -8,11 +8,13 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.components;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -41,6 +43,7 @@ import org.sosy_lab.cpachecker.core.algorithm.components.exchange.memory.InMemor
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.network.NetworkConnectionProvider;
 import org.sosy_lab.cpachecker.core.algorithm.components.worker.ComponentsBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.components.worker.ComponentsBuilder.Components;
+import org.sosy_lab.cpachecker.core.algorithm.components.worker.FaultLocalizationWorker;
 import org.sosy_lab.cpachecker.core.algorithm.components.worker.Worker;
 import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -105,6 +108,16 @@ public class ComponentAnalysis implements Algorithm {
     cfa = pCfa;
     shutdownManager = pShutdownManager;
     specification = pSpecification;
+    checkConfig();
+  }
+
+  private void checkConfig() throws InvalidConfigurationException {
+    if (workerType == WorkerType.FAULT_LOCALIZATION
+        && decompositionType != DecompositionType.BLOCK_OPERATOR) {
+      throw new InvalidConfigurationException(
+          FaultLocalizationWorker.class.getCanonicalName() + " needs decomposition with type "
+              + DecompositionType.BLOCK_OPERATOR + " but got " + decompositionType);
+    }
   }
 
   private CFADecomposer getDecomposer() throws InvalidConfigurationException {
@@ -195,7 +208,7 @@ public class ComponentAnalysis implements Algorithm {
       }
       builder = builder.addResultCollectorWorker(blocks);
       builder = builder.addTimeoutWorker(900000);
-      Components components = builder.addVisualizationWorker(tree, solver).build();
+      Components components = builder.addVisualizationWorker(tree).build();
 
       // run all workers
       for (Worker worker : components.getWorkers()) {
@@ -204,17 +217,31 @@ public class ComponentAnalysis implements Algorithm {
 
       Connection mainThreadConnection = components.getAdditionalConnections().get(0);
 
+      Set<String> faults = new HashSet<>();
       // Wait for result
       Result result;
       while (true) {
         Message m = mainThreadConnection.read();
+        if (m.getType() == MessageType.ERROR_CONDITION && m.getPayload().containsKey("faultlocalization")) {
+          faults.add(m.getPayload().get("faultlocalization"));
+        }
         if (m.getType() == MessageType.FOUND_RESULT) {
-          result = Result.valueOf(m.getPayload());
+          result = Result.valueOf(m.getPayload().get("result"));
+          while(!mainThreadConnection.isEmpty()) {
+            m = mainThreadConnection.read();
+            if (m.getType() == MessageType.ERROR_CONDITION && m.getPayload().containsKey("faultlocalization")) {
+              faults.add(m.getPayload().get("faultlocalization"));
+            }
+          }
           break;
         }
         if (m.getType() == MessageType.ERROR) {
-          throw new CPAException(m.getPayload());
+          throw new CPAException(m.getPayload().toJSONString());
         }
+      }
+
+      if (!faults.isEmpty()) {
+        logger.log(Level.INFO, "Found faults:\n" + Joiner.on("\n").join(faults));
       }
 
       // print result
