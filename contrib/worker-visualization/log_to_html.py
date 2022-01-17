@@ -86,9 +86,13 @@ def html_for_message(message, block_log):
 def html_dict_to_html_table(all_messages, block_logs: dict):
     first_timestamp = int(all_messages[0]["timestamp"])
     timestamp_to_message = {}
+    sorted_keys = list(sorted(block_logs.keys(), key=lambda x: int(x[1::])))
+    index_dict = {}
+    for index in enumerate(sorted_keys):
+        index_dict[index[1]] = index[0]
     for message in all_messages:
-        timestamp_to_message.setdefault(message["timestamp"] - first_timestamp, [""] * len(block_logs))[int(message["from"][1::])] = message
-    headers = ["time"] + list(sorted(block_logs.keys(), key=lambda x: int(x[1::])))
+        timestamp_to_message.setdefault(message["timestamp"] - first_timestamp, [""] * len(block_logs))[index_dict[message["from"]]] = message
+    headers = ["time"] + sorted_keys
     table = Airium()
     with table.table(klass="worker"):
         # header
