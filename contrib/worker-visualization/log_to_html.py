@@ -160,7 +160,7 @@ def main(argv=None):
             ).replace("/*CSS*/", css.read())
             with open(output_path("report.html"), "w+") as new_html:
                 new_html.write(text)
-    visualize(block_logs)
+    visualize(parse_jsons(output_path("blocks.json")))
     webbrowser.open(output_path("report.html"))
 
 
