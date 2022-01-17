@@ -15,7 +15,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 import org.sosy_lab.common.configuration.Configuration;
@@ -24,7 +23,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaEntryList.PreconditionEntry;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.LabeledCounterexample.FormulaLabel;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.LabeledCounterexample.LabeledFormula;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -148,7 +146,7 @@ public abstract class TraceFormula {
     context.getLogger().log(Level.FINEST, "tftrace=" + trace);
   }
 
-  private TraceFormula(FormulaContext pContext, TraceFormulaOptions pTraceFormulaOptions, BooleanFormula pPrecondition, Optional<BooleanFormula> pPostcondition, FormulaEntryList pList, List<CFAEdge> pEdges) {
+  private TraceFormula(FormulaContext pContext, TraceFormulaOptions pTraceFormulaOptions, BooleanFormula pPrecondition, BooleanFormula pPostcondition, FormulaEntryList pList, List<CFAEdge> pEdges) {
     selectorFactory = new Selector.Factory();
     edges = pEdges;
     options = pTraceFormulaOptions;
@@ -156,8 +154,8 @@ public abstract class TraceFormula {
     bmgr = context.getSolver().getFormulaManager().getBooleanFormulaManager();
     entries = pList;
     precondition = pPrecondition;
-    if (pPostcondition.isPresent()) {
-      postcondition = pPostcondition.orElseThrow();
+    if (!bmgr.isTrue(pPostcondition)) {
+      postcondition = pPostcondition;
     } else {
       postcondition = calculatePostCondition();
     }
@@ -398,7 +396,7 @@ public abstract class TraceFormula {
         TraceFormulaOptions pTraceFormulaOptions,
         FormulaEntryList pPath,
         BooleanFormula pPreCondition,
-        Optional<BooleanFormula> pPostCondition,
+        BooleanFormula pPostCondition,
         List<CFAEdge> pEdges)
     {
       super(pFormulaContext, pTraceFormulaOptions, pPreCondition, pPostCondition, pPath, new ArrayList<>(pEdges));
