@@ -16,7 +16,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 
@@ -28,8 +27,8 @@ public class GivenSizeDecomposer implements CFADecomposer {
 
   /**
    * A decomposer that merges as many parts as possible to maybe reach the desired number of blocks
-   * @param pConfiguration user configuration
    * @param pDecomposer parent decomposer
+   * @param pDesiredNumber desired number of blocks
    * @throws InvalidConfigurationException thrown if configuration is invalid
    */
   public GivenSizeDecomposer(CFADecomposer pDecomposer, int pDesiredNumber)
@@ -42,6 +41,7 @@ public class GivenSizeDecomposer implements CFADecomposer {
   public BlockTree cut(CFA cfa) {
     BlockTree tree = decomposer.cut(cfa);
     Set<BlockNode> nodes = new HashSet<>(tree.getDistinctNodes());
+    nodes.remove(tree.getRoot());
     Multimap<String, BlockNode> compatibleBlocks = ArrayListMultimap.create();
     nodes.forEach(n -> compatibleBlocks.put("N" + n.getStartNode().getNodeNumber() + "N" + n.getLastNode(), n));
     for (String key : ImmutableSet.copyOf(compatibleBlocks.keySet())) {
@@ -69,6 +69,9 @@ public class GivenSizeDecomposer implements CFADecomposer {
       }
       BlockNode node = potentialNode.orElseThrow();
       alreadyFound.add(node);
+      if (node.isRoot()) {
+        continue;
+      }
       List<BlockNode> successors = new ArrayList<>(node.getSuccessors());
       assert successors.size() == 1;
       BlockNode singleSuccessor = successors.get(0);
