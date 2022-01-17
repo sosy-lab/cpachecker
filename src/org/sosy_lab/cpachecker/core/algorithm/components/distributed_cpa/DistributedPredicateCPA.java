@@ -9,57 +9,77 @@
 package org.sosy_lab.cpachecker.core.algorithm.components.distributed_cpa;
 
 import com.google.common.base.Preconditions;
-import java.util.Collection;
+import com.google.common.base.Splitter;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Payload;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class DistributedPredicateCPA extends AbstractDistributedCPA<PredicateCPA, PredicateAbstractState> {
+public class DistributedPredicateCPA extends AbstractDistributedCPA {
 
-  private final PredicateAbstractStateTransformer transformer;
   private final ConcurrentHashMap<String, Message> receivedErrorConditions;
   private final ConcurrentHashMap<String, Message> receivedPostConditions;
+  private int executionCounter;
 
   private Message lastOwnPostConditionMessage;
 
   public DistributedPredicateCPA(String pWorkerId, BlockNode pNode, SSAMap pTypeMap, Precision pPrecision, AnalysisDirection pDirection) throws
                                                                                                                    CPAException {
     super(pWorkerId, pNode, pTypeMap, pPrecision, pDirection);
-    transformer = new PredicateAbstractStateTransformer(pWorkerId, direction, pTypeMap);
     receivedErrorConditions = new ConcurrentHashMap<>();
     receivedPostConditions = new ConcurrentHashMap<>();
   }
 
   @Override
-  public Payload encode(Collection<PredicateAbstractState> statesAtBlockEntry) {
-    return transformer.encode(statesAtBlockEntry, parentCPA.getSolver().getFormulaManager());
+  public AbstractState translate(Payload pPayload) throws InterruptedException {
+    String formula = extractFormulaString(pPayload);
+    return PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
+        getPathFormula(formula),
+        (PredicateAbstractState) getInitialState(getStartNode(),
+            StateSpacePartition.getDefaultPartition()));
   }
 
   @Override
-  public PredicateAbstractState decode(Collection<Payload> messages, PredicateAbstractState previousState) {
-    return transformer.decode(messages.stream().map(this::extractFormulaString).collect(Collectors.toList()), previousState, parentCPA.getPathFormulaManager(), parentCPA.getSolver()
-        .getFormulaManager());
+  public Payload translate(AbstractState pState) {
+    String formula = getSolver().getFormulaManager().dumpFormula(uninstantiate(((PredicateAbstractState) pState).getPathFormula()).getFormula()).toString();
+    return Payload.builder().addEntry(parentCPA.getClass().getName(), formula).build();
   }
 
+  public Solver getSolver() {
+    return ((PredicateCPA) parentCPA).getSolver();
+  }
+
+
   private String extractFormulaString(Payload pPayload) {
-    String formula = pPayload.get(getParentCPAClass().getName());
+    String formula = pPayload.get(parentCPA.getClass().getName());
     if (formula == null) {
-      FormulaManagerView fmgr = parentCPA.getSolver().getFormulaManager();
+      FormulaManagerView fmgr = getSolver().getFormulaManager();
       return fmgr.dumpFormula(fmgr.getBooleanFormulaManager().makeTrue()).toString();
     }
     return formula;
@@ -80,10 +100,10 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA<PredicateCPA
       // under-approximating ?
       receivedErrorConditions.put(message.getUniqueBlockId(), message);
       // can the error condition be denied?
-      Solver solver = parentCPA.getSolver();
+      Solver solver = getSolver();
       FormulaManagerView fmgr = solver.getFormulaManager();
       BooleanFormula messageFormula = fmgr.parse(extractFormulaString(message.getPayload()));
-      if (parentCPA.getSolver().isUnsat(messageFormula)) {
+      if (solver.isUnsat(messageFormula)) {
         return MessageProcessing.stopWith(Message.newErrorConditionUnreachableMessage(block.getId()));
       }
       if (receivedPostConditions.size() == block.getPredecessors().size()) {
@@ -98,15 +118,33 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA<PredicateCPA
           }
         }
       }
-      return MessageProcessing.proceed();
+      return MessageProcessing.proceedWith(message);
     }
     return MessageProcessing.stop();
+  }
+
+  @Override
+  public boolean doesOperateOn(Class<? extends AbstractState> pClass) {
+    return PredicateAbstractState.class.isAssignableFrom(pClass);
   }
 
   @Override
   public void setFirstMessage(Message pFirstMessage) {
     lastOwnPostConditionMessage = pFirstMessage;
     super.setFirstMessage(pFirstMessage);
+  }
+
+  @Override
+  public AbstractState combine(
+      AbstractState pState1, AbstractState pState2) throws InterruptedException {
+    PredicateAbstractState state1 = (PredicateAbstractState) pState1;
+    PredicateAbstractState state2 = (PredicateAbstractState) pState2;
+    PathFormulaManager manager = ((PredicateCPA) parentCPA).getPathFormulaManager();
+    PathFormula newFormula = manager.makeOr(uninstantiate(state1.getPathFormula()), uninstantiate(state2.getPathFormula()));
+    return PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
+        newFormula,
+        state1,
+        state2.getPreviousAbstractionState());
   }
 
   @Override
@@ -126,13 +164,74 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA<PredicateCPA
     return MessageProcessing.proceedWith(receivedPostConditions.values());
   }
 
-  @Override
-  public Class<PredicateCPA> getParentCPAClass() {
-    return PredicateCPA.class;
+  private PathFormula getPathFormula(String formula) {
+    PathFormulaManager manager = ((PredicateCPA) parentCPA).getPathFormulaManager();
+    FormulaManagerView fmgr = getSolver().getFormulaManager();
+    if (formula.isEmpty()) {
+      return manager.makeEmptyPathFormula();
+    }
+    SSAMapBuilder mapBuilder = SSAMap.emptySSAMap().builder();
+    BooleanFormula parsed = parse(formula, mapBuilder, fmgr);
+    parsed = fmgr.uninstantiate(parsed);
+    return manager.makeAnd(manager.makeEmptyPathFormulaWithContext(mapBuilder.build(),
+        PointerTargetSet.emptyPointerTargetSet()), parsed);
   }
 
-  @Override
-  public Class<PredicateAbstractState> getAbstractStateClass() {
-    return PredicateAbstractState.class;
+  /**
+   * pBuilder will be modified
+   * @param formula formula to be parsed
+   * @param pBuilder SSAMapBuilder storing information about the returned formula
+   * @param fmgr the FormulaManager that is responsible for converting the formula string
+   * @return a boolean formula representing the string formula
+   */
+  private BooleanFormula parse(String formula, SSAMapBuilder pBuilder, FormulaManagerView fmgr) {
+    BooleanFormula parsed = fmgr.parse(formula);
+    for (String variable : fmgr.extractVariables(parsed).keySet()) {
+      Pair<String, OptionalInt> variableIndexPair = FormulaManagerView.parseName(variable);
+      if (!variable.contains(".") && variableIndexPair.getSecond().isPresent()) {
+        String variableName = variableIndexPair.getFirst();
+        if (variableName != null) {
+          pBuilder.setIndex(variableName, typeMap.getType(variableName),
+              variableIndexPair.getSecond()
+                  .orElse(1));
+        }
+      }
+    }
+    return parsed;
   }
+
+  private PathFormula uninstantiate(PathFormula pPathFormula) {
+    executionCounter++;
+    FormulaManagerView fmgr = getSolver().getFormulaManager();
+    BooleanFormula booleanFormula = pPathFormula.getFormula();
+    SSAMap ssaMap = pPathFormula.getSsa();
+    Map<String, Formula> variableToFormula = fmgr.extractVariables(booleanFormula);
+    Map<Formula, Formula> substitutions = new HashMap<>();
+    SSAMapBuilder builder = SSAMap.emptySSAMap().builder();
+    for (Entry<String, Formula> stringFormulaEntry : variableToFormula.entrySet()) {
+      String name = stringFormulaEntry.getKey();
+      Formula formula = stringFormulaEntry.getValue();
+
+      List<String> nameAndIndex = Splitter.on("@").limit(2).splitToList(name);
+      if (nameAndIndex.size() < 2 || nameAndIndex.get(1).isEmpty() || name.contains(".")) {
+        substitutions.put(formula, fmgr.makeVariable(fmgr.getFormulaType(formula), name));
+        continue;
+      }
+      name = nameAndIndex.get(0);
+      int index = Integer.parseInt(nameAndIndex.get(1));
+      int highestIndex = ssaMap.getIndex(name);
+      if (index != highestIndex) {
+        substitutions.put(formula, fmgr.makeVariable(fmgr.getFormulaType(formula),
+            name + "." + id + "E" + executionCounter + direction.name().charAt(0) + index));
+      } else {
+        substitutions.put(formula, fmgr.makeVariable(fmgr.getFormulaType(formula), name));
+        builder = builder.setIndex(name, ssaMap.getType(name), 1);
+      }
+    }
+    PathFormulaManager manager = ((PredicateCPA) parentCPA).getPathFormulaManager();
+    SSAMap ssaMapFinal = builder.build();
+    return manager.makeAnd(manager.makeEmptyPathFormulaWithContext(ssaMapFinal,
+        PointerTargetSet.emptyPointerTargetSet()), fmgr.uninstantiate(fmgr.substitute(booleanFormula, substitutions)));
+  }
+
 }

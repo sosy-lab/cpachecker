@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Payload;
 
 public class MessageProcessing extends ForwardingCollection<Message> {
 
@@ -27,6 +28,10 @@ public class MessageProcessing extends ForwardingCollection<Message> {
 
   public boolean end() {
     return end;
+  }
+
+  public Collection<Payload> toPayloadCollection() {
+    return messages.stream().map(m -> m.getPayload()).collect(ImmutableList.toImmutableList());
   }
 
   public MessageProcessing merge(MessageProcessing pProcessing, boolean removeDuplicates) {

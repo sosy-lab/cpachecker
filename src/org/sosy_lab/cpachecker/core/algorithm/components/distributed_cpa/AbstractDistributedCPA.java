@@ -8,28 +8,32 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.components.distributed_cpa;
 
-import com.google.common.collect.ImmutableList;
-import java.util.Collection;
+import java.util.ArrayList;
+import java.util.List;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Payload;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public abstract class AbstractDistributedCPA<T extends ConfigurableProgramAnalysis, S extends AbstractState> {
+public abstract class AbstractDistributedCPA implements ConfigurableProgramAnalysis{
 
   protected final BlockNode block;
   protected final SSAMap typeMap;
   protected final AnalysisDirection direction;
   protected  final String id;
-  protected T parentCPA;
+  protected ConfigurableProgramAnalysis parentCPA;
   protected Message firstMessage;
   protected Precision precision;
 
@@ -42,37 +46,16 @@ public abstract class AbstractDistributedCPA<T extends ConfigurableProgramAnalys
     precision = pPrecision;
   }
 
-  public abstract Payload encode(Collection<S> statesAtBlockEntry);
+  public abstract AbstractState translate(Payload pPayload) throws InterruptedException;
 
-  public abstract S decode(Collection<Payload> messages, S previousAbstractState);
+  public abstract Payload translate(AbstractState pState);
 
   public abstract MessageProcessing stopForward(Message newMessage);
 
   public abstract MessageProcessing stopBackward(Message newMessage)
       throws SolverException, InterruptedException;
 
-  public abstract Class<T> getParentCPAClass();
-
-  public abstract Class<S> getAbstractStateClass();
-
-  public Payload safeEncode(Collection<AbstractState> pStatesAtBlockEntry) {
-    return encode(transform(pStatesAtBlockEntry));
-  }
-
-  public S safeDecode(Collection<Payload> messages, AbstractState previousAbstractState) {
-    return decode(messages, transform(previousAbstractState));
-  }
-
-  private Collection<S> transform(Collection<AbstractState> pAbstractStates) {
-    return pAbstractStates.stream().map(this::transform).collect(ImmutableList.toImmutableList());
-  }
-
-  private S transform(AbstractState pAbstractStates) {
-    if (!getAbstractStateClass().isAssignableFrom(pAbstractStates.getClass())) {
-      throw new AssertionError("expected " + getAbstractStateClass() + " but got " + pAbstractStates.getClass());
-    }
-    return getAbstractStateClass().cast(pAbstractStates);
-  }
+  public abstract boolean doesOperateOn(Class<? extends AbstractState> pClass);
 
   public void setFirstMessage(Message pFirstMessage) {
     if (firstMessage != null) {
@@ -81,26 +64,67 @@ public abstract class AbstractDistributedCPA<T extends ConfigurableProgramAnalys
     firstMessage = pFirstMessage;
   }
 
-  public void setParentCPA(T pParentCPA) throws CPAException {
+  public void setParentCPA(ConfigurableProgramAnalysis pParentCPA) throws CPAException {
     parentCPA = pParentCPA;
-  }
-
-  public void safeSetParentCPA(ConfigurableProgramAnalysis pCPA) throws CPAException {
-    if (!getParentCPAClass().equals(pCPA.getClass())) {
-      throw new AssertionError("expected " + getParentCPAClass() + " but got " + pCPA.getClass());
-    }
-    setParentCPA(getParentCPAClass().cast(pCPA));
-  }
-
-  public S getTop(CFANode pNode) throws InterruptedException {
-    return getAbstractStateClass().cast(parentCPA.getInitialState(pNode, StateSpacePartition.getDefaultPartition()));
   }
 
   public AnalysisDirection getDirection() {
     return direction;
   }
 
-  public T getParentCPA() {
+  public ConfigurableProgramAnalysis getParentCPA() {
     return parentCPA;
+  }
+
+  public abstract AbstractState combine(AbstractState pState1, AbstractState pState2)
+      throws InterruptedException;
+
+  public final AbstractState combine(List<AbstractState> pStates)
+      throws InterruptedException, CPAException {
+    if (pStates.size() < 1) {
+      throw new AssertionError("Merging requires at least one state: " + pStates);
+    }
+    if (pStates.size() == 1) {
+      return pStates.get(0);
+    }
+
+    List<AbstractState> ordered = new ArrayList<>(pStates);
+    AbstractState state = ordered.remove(0);
+
+    for (AbstractState abstractState : ordered) {
+      state = combine(state, abstractState);
+    }
+
+    return state;
+  }
+
+  @Override
+  public MergeOperator getMergeOperator() {
+    return parentCPA.getMergeOperator();
+  }
+
+  @Override
+  public StopOperator getStopOperator() {
+    return parentCPA.getStopOperator();
+  }
+
+  @Override
+  public AbstractDomain getAbstractDomain() {
+    return parentCPA.getAbstractDomain();
+  }
+
+  @Override
+  public TransferRelation getTransferRelation() {
+    return parentCPA.getTransferRelation();
+  }
+
+  @Override
+  public AbstractState getInitialState(
+      CFANode node, StateSpacePartition partition) throws InterruptedException {
+    return parentCPA.getInitialState(node, partition);
+  }
+
+  public CFANode getStartNode() {
+    return direction == AnalysisDirection.FORWARD ? block.getStartNode() : block.getLastNode();
   }
 }

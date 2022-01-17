@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.core.algorithm.components.block_analysis.BlockAna
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.components.distributed_cpa.MessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -74,7 +75,7 @@ public class RootWorker extends Worker {
   public void run() {
     try {
       Message firstMessage = Message.newBlockPostCondition(root.getId(), root.getLastNode().getNodeNumber(),
-          analysis.getDistributedCPA().encode(ImmutableSet.of(analysis.getDistributedCPA().getTop(root.getStartNode()))), true);
+          analysis.getDistributedCPA().translate(analysis.getDistributedCPA().getInitialState(root.getStartNode(), StateSpacePartition.getDefaultPartition())), true);
       analysis.getDistributedCPA().setFirstMessage(firstMessage);
       broadcast(ImmutableSet.of(firstMessage));
       super.run();

@@ -14,8 +14,10 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownManager;
@@ -132,21 +134,23 @@ public abstract class BlockAnalysis {
   }
 
   protected ARGState getStartState(Collection<Payload> receivedPostConditions, CFANode node)
-      throws InterruptedException {
-    CompositeState compositeState =
-        extractCompositeStateFromAbstractState(getInitialStateFor(node));
-    return new ARGState(distributedCPA.decode(receivedPostConditions, compositeState), null);
+      throws InterruptedException, CPAException {
+    if (receivedPostConditions.isEmpty()) {
+      return new ARGState(
+          distributedCPA.getInitialState(node, StateSpacePartition.getDefaultPartition()), null);
+    }
+    List<AbstractState> states = new ArrayList<>();
+    for (Payload receivedPostCondition : receivedPostConditions) {
+      states.add(distributedCPA.translate(receivedPostCondition));
+    }
+    return new ARGState(distributedCPA.combine(states), null);
   }
 
-  private AbstractState getInitialStateFor(CFANode pNode) throws InterruptedException {
-    return cpa.getInitialState(pNode, StateSpacePartition.getDefaultPartition());
-  }
-
-  public Set<CompositeState> extractBlockEntryPoints(
+  public List<AbstractState> extractBlockEntryPoints(
       ReachedSet pReachedSet,
       CFANode targetNode,
       AbstractState startState) {
-    Set<CompositeState> compositeStates = new HashSet<>();
+    List<AbstractState> compositeStates = new ArrayList<>();
     for (AbstractState abstractState : pReachedSet) {
       if (abstractState.equals(startState)) {
         continue;
@@ -193,9 +197,11 @@ public abstract class BlockAnalysis {
         Configuration pConfiguration,
         ShutdownManager pShutdownManager)
         throws CPAException, InterruptedException, InvalidConfigurationException, IOException {
-      super(pId, pLogger, pBlock, pCFA, pTypeMap, AnalysisDirection.FORWARD, pSpecification, pConfiguration,
+      super(pId, pLogger, pBlock, pCFA, pTypeMap, AnalysisDirection.FORWARD, pSpecification,
+          pConfiguration,
           pShutdownManager);
-      relation = (BlockTransferRelation) CPAs.retrieveCPA(cpa, BlockCPA.class).getTransferRelation();
+      relation =
+          (BlockTransferRelation) CPAs.retrieveCPA(cpa, BlockCPA.class).getTransferRelation();
     }
 
     @Override
@@ -226,20 +232,26 @@ public abstract class BlockAnalysis {
                   "States need to have a location but this one does not:" + targetState);
             }
             reportedOriginalViolation = true;
-            Payload empty = distributedCPA.encode(ImmutableSet.of(extractCompositeStateFromAbstractState(getStartState(ImmutableSet.of(), targetNode.orElseThrow()))));
+            Payload initial = distributedCPA.translate(
+                distributedCPA.getInitialState(targetNode.orElseThrow(),
+                    StateSpacePartition.getDefaultPartition()));
             answers.add(Message.newErrorConditionMessage(block.getId(),
-                targetNode.orElseThrow().getNodeNumber(), empty, true));
+                targetNode.orElseThrow().getNodeNumber(), initial, true));
             break;
           }
         }
       }
 
       // find all states with location at the end, make formula
-      Set<CompositeState> compositeStates = extractBlockEntryPoints(reachedSet, block.getLastNode(), startState);
-      Payload result = distributedCPA.encode(compositeStates);
+      List<AbstractState> compositeStates =
+          extractBlockEntryPoints(reachedSet, block.getLastNode(), startState);
       if (!compositeStates.isEmpty()) {
-        Message response = Message.newBlockPostCondition(block.getId(), block.getLastNode().getNodeNumber(),
-            result, messages.size() == block.getPredecessors().size() && messages.stream().allMatch(m -> Boolean.parseBoolean(m.get("full"))));
+        AbstractState combined = distributedCPA.combine(compositeStates);
+        Payload result = distributedCPA.translate(combined);
+        Message response =
+            Message.newBlockPostCondition(block.getId(), block.getLastNode().getNodeNumber(),
+                result, messages.size() == block.getPredecessors().size() && messages.stream()
+                    .allMatch(m -> Boolean.parseBoolean(m.get("full"))));
         answers.add(response);
       }
       return answers;
@@ -275,11 +287,11 @@ public abstract class BlockAnalysis {
       AbstractState startState = getStartState(messages, node);
       reachedSet.add(startState, emptyPrecision);
       status = algorithm.run(reachedSet);
-      Set<CompositeState>
+      List<AbstractState>
           states = extractBlockEntryPoints(reachedSet, block.getStartNode(), startState);
       return ImmutableSet.of(
           Message.newErrorConditionMessage(block.getId(), block.getStartNode().getNodeNumber(),
-              distributedCPA.encode(states), false));
+              distributedCPA.translate(distributedCPA.combine(states)), false));
     }
   }
 

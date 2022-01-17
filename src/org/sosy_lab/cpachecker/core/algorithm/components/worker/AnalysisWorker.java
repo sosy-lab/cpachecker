@@ -145,7 +145,7 @@ public class AnalysisWorker extends Worker {
     if(processing.end()) {
       return processing;
     }
-    return backwardAnalysis(block.getNodeWithNumber(message.getTargetNodeNumber()), message);
+    return backwardAnalysis(block.getNodeWithNumber(message.getTargetNodeNumber()), processing);
   }
 
   // return post condition
@@ -159,10 +159,11 @@ public class AnalysisWorker extends Worker {
   }
 
   // return pre-condition
-  protected Collection<Message> backwardAnalysis(CFANode pStartNode, Message pMessage)
+  protected Collection<Message> backwardAnalysis(CFANode pStartNode, MessageProcessing pMessageProcessing)
       throws CPAException, InterruptedException, SolverException {
+    assert pMessageProcessing.size() == 1;
     Collection<Message> messages =
-        backwardAnalysis.analyze(ImmutableSet.of(pMessage.getPayload()), pStartNode);
+        backwardAnalysis.analyze(pMessageProcessing.toPayloadCollection(), pStartNode);
     status = backwardAnalysis.getStatus();
     return messages;
   }

@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.components.distributed_cpa.DistributedPredicateCPA;
+import org.sosy_lab.cpachecker.core.algorithm.components.distributed_cpa.MessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.EdgeTypeScoring;
@@ -39,7 +40,6 @@ import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiabi
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula.SelectorTraceWithKnownConditions;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula.TraceFormulaOptions;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.unsat.OriginalMaxSatAlgorithm;
-import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -123,12 +123,14 @@ public class FaultLocalizationWorker extends AnalysisWorker {
   }
 
   @Override
-  protected Collection<Message> backwardAnalysis(CFANode pStartNode, Message pMessage)
+  protected Collection<Message> backwardAnalysis(CFANode pStartNode, MessageProcessing pMessageProcessing)
       throws CPAException, InterruptedException, SolverException {
-    Set<Message> responses = new HashSet<>(super.backwardAnalysis(pStartNode, pMessage));
+    Set<Message> responses = new HashSet<>(super.backwardAnalysis(pStartNode, pMessageProcessing));
+    // super backward analysis ensures exactly one entry in pMessage
+    Message message = pMessageProcessing.stream().findFirst().orElseThrow();
     try {
       DistributedPredicateCPA dpcpa = (DistributedPredicateCPA) backwardAnalysis.getDistributedCPA().getDistributedAnalysis(PredicateCPA.class);
-      PredicateAbstractState state = dpcpa.safeDecode(ImmutableSet.of(pMessage.getPayload()), predicateCPA.getInitialState(block.getNodeWithNumber(pMessage.getTargetNodeNumber()), StateSpacePartition.getDefaultPartition()));
+      PredicateAbstractState state = (PredicateAbstractState) dpcpa.translate(message.getPayload());
       Set<Fault> faults = performFaultLocalization(state.getPathFormula());
       if (faults.isEmpty()) {
         return responses;

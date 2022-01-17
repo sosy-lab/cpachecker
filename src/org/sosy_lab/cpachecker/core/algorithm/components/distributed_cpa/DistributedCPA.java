@@ -8,15 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.components.distributed_cpa;
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Multimap;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
@@ -24,6 +20,7 @@ import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Payload;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -31,14 +28,12 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class DistributedCPA extends AbstractDistributedCPA<CompositeCPA, CompositeState> {
+public class DistributedCPA extends AbstractDistributedCPA {
 
-  private final Map<Class<? extends ConfigurableProgramAnalysis>, Class<? extends AbstractDistributedCPA<?, ?>>>
+  private final Map<Class<? extends ConfigurableProgramAnalysis>, Class<? extends AbstractDistributedCPA>>
       lookup;
 
-  private final Map<Class<? extends AbstractState>, Class<? extends ConfigurableProgramAnalysis>> lookupState;
-
-  private final Map<Class<? extends ConfigurableProgramAnalysis>, AbstractDistributedCPA<? extends ConfigurableProgramAnalysis, ? extends AbstractState>> registered;
+  private final Map<Class<? extends ConfigurableProgramAnalysis>, AbstractDistributedCPA> registered;
 
   public DistributedCPA(
       String pId,
@@ -47,7 +42,38 @@ public class DistributedCPA extends AbstractDistributedCPA<CompositeCPA, Composi
     lookup = new ConcurrentHashMap<>();
     lookup.put(PredicateCPA.class, DistributedPredicateCPA.class);
     registered = new ConcurrentHashMap<>();
-    lookupState = new ConcurrentHashMap<>();
+  }
+
+  @Override
+  public AbstractState translate(Payload pPayload) throws InterruptedException {
+    CompositeCPA compositeCPA = (CompositeCPA) parentCPA;
+    List<AbstractState> states = new ArrayList<>();
+    for (ConfigurableProgramAnalysis wrappedCPA : compositeCPA.getWrappedCPAs()) {
+      if (registered.containsKey(wrappedCPA.getClass())) {
+        AbstractDistributedCPA entry = registered.get(wrappedCPA.getClass());
+        if (pPayload.containsKey(wrappedCPA.getClass().getName())) {
+          states.add(entry.translate(pPayload));
+        }
+      } else {
+        states.add(wrappedCPA.getInitialState(getStartNode(), StateSpacePartition.getDefaultPartition()));
+      }
+    }
+    return new CompositeState(states);
+  }
+
+  @Override
+  public Payload translate(AbstractState pState) {
+    CompositeState compositeState = (CompositeState) pState;
+    Payload payload = Payload.empty();
+    for (AbstractState wrappedState : compositeState.getWrappedStates()) {
+      for (AbstractDistributedCPA value : registered.values()) {
+        if (value.doesOperateOn(wrappedState.getClass())) {
+          payload.putAll(value.translate(wrappedState));
+          break;
+        }
+      }
+    }
+    return payload;
   }
 
   public void register(Class<? extends ConfigurableProgramAnalysis> clazz)
@@ -56,68 +82,20 @@ public class DistributedCPA extends AbstractDistributedCPA<CompositeCPA, Composi
     if (registered.containsKey(clazz)) {
       return;
     }
-    Class<? extends AbstractDistributedCPA<?, ?>> cpaClass = lookup.get(clazz);
+    Class<? extends AbstractDistributedCPA> cpaClass = lookup.get(clazz);
     if (cpaClass == null) {
       return;
     }
-    AbstractDistributedCPA<?, ?> cpa = cpaClass.getConstructor(String.class, BlockNode.class, SSAMap.class, Precision.class, AnalysisDirection.class).newInstance(id, block, typeMap, precision, direction);
+    AbstractDistributedCPA cpa =
+        cpaClass.getConstructor(String.class, BlockNode.class, SSAMap.class, Precision.class,
+            AnalysisDirection.class).newInstance(id, block, typeMap, precision, direction);
     registered.put(clazz, cpa);
-    lookupState.put(cpa.getAbstractStateClass(), cpa.getParentCPAClass());
-  }
-
-  @Override
-  public Payload encode(Collection<CompositeState> statesAtBlockEntry) {
-    Multimap<Class<? extends ConfigurableProgramAnalysis>, AbstractState> states = ArrayListMultimap.create();
-    for (CompositeState compositeState : statesAtBlockEntry) {
-      for (AbstractState state : compositeState.getWrappedStates()) {
-        Class<?> superClasses = state.getClass();
-        while (superClasses != null) {
-          if (lookupState.containsKey(superClasses)) {
-            if (registered.containsKey(lookupState.get(superClasses))) {
-              states.put(lookupState.get(superClasses), state);
-              break;
-            }
-          }
-          superClasses = superClasses.getSuperclass();
-        }
-      }
-    }
-    Payload result = Payload.empty();
-    for (Class<? extends ConfigurableProgramAnalysis> aClass : states.keySet()) {
-      result.putAll(registered.get(aClass).safeEncode(states.get(aClass)));
-    }
-    return result;
-  }
-
-  @Override
-  public CompositeState decode(
-      Collection<Payload> messages, CompositeState previousAbstractState) {
-    List<AbstractState> states = new ArrayList<>();
-    boolean found = false;
-    for (AbstractState state : previousAbstractState.getWrappedStates()) {
-      Class<?> superClasses = state.getClass();
-      while (superClasses != null) {
-        if (lookupState.containsKey(superClasses)) {
-          if (registered.containsKey(lookupState.get(superClasses))) {
-            states.add(registered.get(lookupState.get(superClasses)).safeDecode(messages, state));
-            found = true;
-            break;
-          }
-        }
-        superClasses = superClasses.getSuperclass();
-      }
-      if (!found) {
-        states.add(state);
-      }
-      found = false;
-    }
-    return new CompositeState(states);
   }
 
   @Override
   public MessageProcessing stopForward(Message newMessage) {
     MessageProcessing processing = MessageProcessing.proceed();
-    for (AbstractDistributedCPA<? extends ConfigurableProgramAnalysis, ? extends AbstractState> value : registered.values()) {
+    for (AbstractDistributedCPA value : registered.values()) {
       processing = processing.merge(value.stopForward(newMessage), true);
     }
     return processing;
@@ -126,7 +104,7 @@ public class DistributedCPA extends AbstractDistributedCPA<CompositeCPA, Composi
   @Override
   public MessageProcessing stopBackward(Message newMessage) throws SolverException, InterruptedException {
     MessageProcessing processing = MessageProcessing.proceed();
-    for (AbstractDistributedCPA<? extends ConfigurableProgramAnalysis, ? extends AbstractState> value : registered.values()) {
+    for (AbstractDistributedCPA value : registered.values()) {
       processing = processing.merge(value.stopBackward(newMessage), true);
     }
     return processing;
@@ -136,36 +114,58 @@ public class DistributedCPA extends AbstractDistributedCPA<CompositeCPA, Composi
     return pCPA.cast(registered.get(pCPA).getParentCPA());
   }
 
-  public <T extends ConfigurableProgramAnalysis> AbstractDistributedCPA<?, ?> getDistributedAnalysis(Class<T> pCPA) {
+  public <T extends ConfigurableProgramAnalysis> AbstractDistributedCPA getDistributedAnalysis(Class<T> pCPA) {
     return registered.get(pCPA);
   }
 
   @Override
-  public void setParentCPA(CompositeCPA cpa) throws CPAException{
+  public void setParentCPA(ConfigurableProgramAnalysis cpa) throws CPAException{
     super.setParentCPA(cpa);
-    for (ConfigurableProgramAnalysis wrappedCPA : cpa.getWrappedCPAs()) {
+    CompositeCPA compositeCPA = (CompositeCPA) cpa;
+    for (ConfigurableProgramAnalysis wrappedCPA : compositeCPA.getWrappedCPAs()) {
       try {
         register(wrappedCPA.getClass());
       } catch (NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException pE) {
         throw new CPAException("Could not create distributed CPA for " + wrappedCPA);
       }
     }
-    for (ConfigurableProgramAnalysis wrappedCPA : cpa.getWrappedCPAs()) {
-      AbstractDistributedCPA<?, ?> analysis = registered.get(wrappedCPA.getClass());
+    for (ConfigurableProgramAnalysis wrappedCPA : compositeCPA.getWrappedCPAs()) {
+      AbstractDistributedCPA analysis = registered.get(wrappedCPA.getClass());
       if (analysis == null) {
         continue;
       }
-      analysis.safeSetParentCPA(wrappedCPA);
+      analysis.setParentCPA(wrappedCPA);
     }
   }
 
   @Override
-  public CompositeState getTop(CFANode pNode) throws InterruptedException {
-    List<AbstractState> states = new ArrayList<>();
-    for (AbstractDistributedCPA<? extends ConfigurableProgramAnalysis, ? extends AbstractState> value : registered.values()) {
-      states.add(value.getTop(pNode));
+  public AbstractState combine(
+      AbstractState pState1, AbstractState pState2) throws InterruptedException {
+    CompositeState state1 = (CompositeState) pState1;
+    CompositeState state2 = (CompositeState) pState2;
+
+    if (state1.getWrappedStates().size() != state2.getWrappedStates().size()) {
+      throw new AssertionError("CompositeStates have to have the same size");
     }
-    return new CompositeState(states);
+    List<AbstractState> combined = new ArrayList<>();
+    for (int i = 0; i < state1.getWrappedStates().size(); i++) {
+      boolean found = false;
+      AbstractState state1I = state1.get(i);
+      AbstractState state2I = state2.get(i);
+      for (AbstractDistributedCPA value : registered.values()) {
+        if (value.doesOperateOn(state1I.getClass()) && value.doesOperateOn(state2I.getClass())) {
+          combined.add(value.combine(state1I, state2I));
+          found = true;
+          break;
+        }
+      }
+      // merge sep
+      if (!found) {
+        combined.add(state2I);
+      }
+    }
+
+    return new CompositeState(combined);
   }
 
   @Override
@@ -174,12 +174,7 @@ public class DistributedCPA extends AbstractDistributedCPA<CompositeCPA, Composi
   }
 
   @Override
-  public Class<CompositeCPA> getParentCPAClass() {
-    return CompositeCPA.class;
-  }
-
-  @Override
-  public Class<CompositeState> getAbstractStateClass() {
-    return CompositeState.class;
+  public boolean doesOperateOn(Class<? extends AbstractState> pClass) {
+    return pClass.equals(CompositeState.class);
   }
 }

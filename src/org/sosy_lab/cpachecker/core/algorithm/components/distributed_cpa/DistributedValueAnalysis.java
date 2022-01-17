@@ -8,25 +8,18 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.components.distributed_cpa;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map.Entry;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Payload;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class DistributedValueAnalysis extends AbstractDistributedCPA<ValueAnalysisCPA, ValueAnalysisState> {
+public class DistributedValueAnalysis extends AbstractDistributedCPA {
 
   public DistributedValueAnalysis(
       String pId,
@@ -39,28 +32,12 @@ public class DistributedValueAnalysis extends AbstractDistributedCPA<ValueAnalys
   }
 
   @Override
-  public Payload encode(Collection<ValueAnalysisState> statesAtBlockEntry) {
-    if (statesAtBlockEntry.isEmpty()) {
-      return Payload.empty();
-    }
-    List<ValueAnalysisState> states = new ArrayList<>(statesAtBlockEntry);
-    AbstractState first = states.remove(0);
-    for (ValueAnalysisState valueAnalysisState : statesAtBlockEntry) {
-      try {
-        first = parentCPA.getMergeOperator().merge(first, valueAnalysisState, precision);
-      } catch (CPAException | InterruptedException pE) {
-        return Payload.builder().addEntry("exception", pE.toString()).build();
-      }
-    }
-    for (Entry<MemoryLocation, ValueAndType> constant : ((ValueAnalysisState) first).getConstants()) {
-
-    }
+  public AbstractState translate(Payload pPayload) throws InterruptedException {
     return null;
   }
 
   @Override
-  public ValueAnalysisState decode(
-      Collection<Payload> messages, ValueAnalysisState previousAbstractState) {
+  public Payload translate(AbstractState pState) {
     return null;
   }
 
@@ -78,12 +55,14 @@ public class DistributedValueAnalysis extends AbstractDistributedCPA<ValueAnalys
   }
 
   @Override
-  public Class<ValueAnalysisCPA> getParentCPAClass() {
-    return ValueAnalysisCPA.class;
+  public boolean doesOperateOn(Class<? extends AbstractState> pClass) {
+    return pClass.equals(ValueAnalysisState.class);
   }
 
   @Override
-  public Class<ValueAnalysisState> getAbstractStateClass() {
-    return ValueAnalysisState.class;
+  public AbstractState combine(
+      AbstractState pState1, AbstractState pState2) throws InterruptedException {
+    return null;
   }
+
 }
