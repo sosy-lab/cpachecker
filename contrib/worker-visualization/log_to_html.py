@@ -16,6 +16,12 @@ from airium import Airium
 from pathlib import Path
 
 
+def output_path(name):
+    output = "../../output/block_analysis/"
+    Path(Path(__file__).parent / output).mkdir(parents=True, exist_ok=True)
+    return str(Path(__file__).parent / output / name)
+
+
 def relative_path(name):
     return str(Path(__file__).parent / name)
 
@@ -130,9 +136,10 @@ def visualize(block_logs):
         if "successors" in block_logs[key]:
             for successor in block_logs[key]["successors"]:
                 g.add_edge(key, successor)
-    nx.drawing.nx_pydot.write_dot(g, "graph.dot")
-    (graph,) = pydot.graph_from_dot_file('graph.dot')
-    graph.write_png('graph.png')
+
+    nx.drawing.nx_pydot.write_dot(g, output_path("graph.dot"))
+    (graph,) = pydot.graph_from_dot_file(output_path('graph.dot'))
+    graph.write_png(output_path('graph.png'))
 
 
 def main(argv=None):
@@ -147,13 +154,14 @@ def main(argv=None):
         return
     all_messages = list(sorted(all_messages, key=lambda entry: (entry["timestamp"], entry["from"][1::])))
     with open(relative_path("table.html")) as html:
-        text = html.read().replace(
-            "<!--<<<TABLE>>><!-->", html_dict_to_html_table(all_messages, block_logs)
-        )
-        with open(relative_path("report.html"), "w+") as new_html:
-            new_html.write(text)
+        with open(relative_path("table.css")) as css:
+            text = html.read().replace(
+                "<!--<<<TABLE>>><!-->", html_dict_to_html_table(all_messages, block_logs)
+            ).replace("/*CSS*/", css.read())
+            with open(output_path("report.html"), "w+") as new_html:
+                new_html.write(text)
     visualize(block_logs)
-    webbrowser.open(relative_path("report.html"))
+    webbrowser.open(output_path("report.html"))
 
 
 if __name__ == "__main__":
