@@ -156,6 +156,12 @@ public class HavocStrategy extends AbstractLoopStrategy {
 
     Loop loopStructure = loopStructureMaybe.orElseThrow();
 
+    // Function calls may change global variables, or have assert statements, which cannot be
+    // considered
+    if (loopStructure.containsUserDefinedFunctionCalls()) {
+      return Optional.empty();
+    }
+
     Set<AVariableDeclaration> modifiedVariables = loopStructure.getModifiedVariables();
 
     Optional<AExpression> loopBoundExpressionMaybe = loopStructure.getBound();

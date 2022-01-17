@@ -15,7 +15,6 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.SummaryStrategyRefin
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
-import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.util.CPAs;
 
@@ -30,7 +29,7 @@ public abstract class SummaryValueRefiner implements Refiner {
     logger = argCpa.getLogger();
 
     return new SummaryBasedRefiner(
-        AbstractARGBasedRefiner.forARGBasedRefiner(ValueAnalysisRefiner.create0(pCpa), pCpa),
+        ValueAnalysisRefiner.create(pCpa),
         new SummaryStrategyRefiner(logger, pCpa, argCpa.getCfa()),
         logger,
         pCpa,

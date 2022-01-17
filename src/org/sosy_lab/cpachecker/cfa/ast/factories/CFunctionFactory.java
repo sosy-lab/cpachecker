@@ -95,4 +95,27 @@ public class CFunctionFactory {
         nondetFunctionName,
         new ArrayList<CParameterDeclaration>());
   }
+
+  public boolean isUserDefined(CFunctionCallExpression pFunctionCall) {
+    CType functionReturnType = pFunctionCall.getDeclaration().getType().getReturnType();
+    String nonDetFunctionWithType = this.getNondetFunctionName(functionReturnType);
+    if (nonDetFunctionWithType == null) {
+      // TODO: Improve recognition of assert functions. Which may be wrongly detected because of
+      // shadowing
+      if (pFunctionCall.getDeclaration().getOrigName() == "assert"
+          && pFunctionCall.getDeclaration().getName() == "assert"
+          && pFunctionCall.getDeclaration().isGlobal()
+          && pFunctionCall.getDeclaration().getParameters().size() == 1
+          && pFunctionCall.getDeclaration().getParameters().get(0).getQualifiedName()
+              == "assert::arg") {
+        return false;
+      } else {
+        return true;
+      }
+    } else if (nonDetFunctionWithType == pFunctionCall.getDeclaration().getOrigName()) {
+      return false;
+    } else {
+      return false;
+    }
+  }
 }

@@ -47,6 +47,8 @@ import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
@@ -54,6 +56,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.factories.AExpressionFactory;
+import org.sosy_lab.cpachecker.cfa.ast.factories.AFunctionFactory;
 import org.sosy_lab.cpachecker.cfa.ast.visitors.AggregateConstantsVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.visitors.LinearVariableDependencyVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.visitors.OnlyConstantVariableIncrementsVisitor;
@@ -565,9 +568,14 @@ public final class LoopStructure implements Serializable {
           ARightHandSide rightHandSide = assign.getRightHandSide();
           if (assign instanceof AExpressionAssignmentStatement) {
             if (leftHandSide instanceof AIdExpression) {
-              LinearVariableDependency linearVariableDependency =
-                  new LinearVariableDependency(
-                      (AVariableDeclaration) ((AIdExpression) leftHandSide).getDeclaration());
+              LinearVariableDependency linearVariableDependency;
+              if (((AIdExpression) leftHandSide).getDeclaration() instanceof AVariableDeclaration) {
+                linearVariableDependency =
+                    new LinearVariableDependency(
+                        (AVariableDeclaration) ((AIdExpression) leftHandSide).getDeclaration());
+              } else {
+                return Optional.empty();
+              }
               Optional<LinearVariableDependency> dependencies =  Optional.empty();
               if (rightHandSide instanceof AExpression) {
                 try {
@@ -702,6 +710,21 @@ public final class LoopStructure implements Serializable {
     public Integer amountOfInnerAssumeEdges() {
       this.computeSets();
       return Integer.valueOf(this.innerAssumeEdges.size());
+    }
+
+    public boolean containsUserDefinedFunctionCalls() {
+      for (CFAEdge e : this.getInnerLoopEdges()) {
+        if (e instanceof AStatementEdge) {
+          if (((AStatementEdge) e).getStatement() instanceof AFunctionCallStatement) {
+            AFunctionCallExpression functionCall =
+                ((AFunctionCallStatement) ((AStatementEdge) e).getStatement()).getFunctionCallExpression();
+            if (new AFunctionFactory().isUserDefined(functionCall)) {
+              return true;
+            }
+          }
+        }
+      }
+      return false;
     }
   }
 
