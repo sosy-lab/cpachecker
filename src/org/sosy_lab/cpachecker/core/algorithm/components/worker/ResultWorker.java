@@ -16,6 +16,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -41,7 +42,7 @@ public class ResultWorker extends Worker {
     nodeMap = new HashMap<>();
     pNodes.forEach(node -> nodeMap.put(node.getId(), node));
     messageReceived = new HashSet<>();
-    expectAnswer = new HashMap<>();
+    expectAnswer = new ConcurrentHashMap<>();
     nodeMap.keySet().forEach(id -> expectAnswer.put(id, 0));
     numWorkers = pNodes.size();
     violationOrigins = new HashSet<>();
@@ -52,6 +53,7 @@ public class ResultWorker extends Worker {
       throws InterruptedException, CPAException, IOException, SolverException {
     String senderId = pMessage.getUniqueBlockId();
     MessageType type = pMessage.getType();
+    logger.log(Level.INFO, pMessage);
     if (!nodeMap.containsKey(senderId)) {
       return ImmutableSet.of();
     }
@@ -83,10 +85,6 @@ public class ResultWorker extends Worker {
   }
 
   private Collection<Message> response(int numViolationsBefore, Message pMessage) {
-    if (expectAnswer.values().stream().anyMatch(i -> i < 0)) {
-      logger.log(Level.SEVERE, pMessage + " caused: Map with expected answers contains negative values: " + expectAnswer);
-      return ImmutableSet.of(Message.newErrorMessage(pMessage.getUniqueBlockId(), new CPAException(pMessage + " caused: Map with expected answers contains negative values: " + expectAnswer)));
-    }
     boolean onlyOriginViolations = true;
     for (Entry<String, Integer> stringIntegerEntry : expectAnswer.entrySet()) {
       if (violationOrigins.contains(stringIntegerEntry.getKey())) {
@@ -95,9 +93,11 @@ public class ResultWorker extends Worker {
         onlyOriginViolations &= stringIntegerEntry.getValue() == 0;
       }
     }
+    // negative values can occur as it is not guaranteed that messages are processed in the same way on all workers
     finished =
         messageReceived.size() == numWorkers && numViolationsBefore == violationOrigins.size()
-            && (expectAnswer.values().stream().mapToInt(i -> i).sum() == 0
+            // that's why we use allMatch
+            && (expectAnswer.values().stream().allMatch(i -> i == 0)
             || onlyOriginViolations);
     if (finished) {
       return ImmutableSet.of(Message.newResultMessage(pMessage.getUniqueBlockId(), 0, Result.TRUE));

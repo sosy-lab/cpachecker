@@ -25,13 +25,10 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.components.block_analysis.BlockAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.components.block_analysis.BlockAnalysis.BackwardAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.components.block_analysis.BlockAnalysis.ForwardAnalysis;
-import org.sosy_lab.cpachecker.core.algorithm.components.block_analysis.BlockAnalysis.NoOpAnalysis;
-import org.sosy_lab.cpachecker.core.algorithm.components.block_analysis.BlockAnalysis.SatCheckAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageType;
@@ -104,18 +101,11 @@ public class AnalysisWorker extends Worker {
         Configuration.builder().copyFrom(pConfiguration).setOption("CompositeCPA.cpas",
             "cpa.location.LocationCPA, cpa.block.BlockCPA, cpa.predicate.PredicateCPA").build();
 
-    forwardAnalysis =
-        block.isRoot() ? new NoOpAnalysis(pId, pLogger, pBlock, pCFA, AnalysisDirection.FORWARD,
-            pSpecification,
-            forwardConfiguration,
-            pShutdownManager) :
-        new ForwardAnalysis(pId, pLogger, pBlock, pCFA, pSpecification,
+    forwardAnalysis = new ForwardAnalysis(pId, pLogger, pBlock, pCFA, pSpecification,
             forwardConfiguration,
             pShutdownManager);
 
-    backwardAnalysis = block.isRoot() ? new SatCheckAnalysis(pId, pLogger, pBlock, pCFA,
-        AnalysisDirection.BACKWARD, backwardSpecification,
-        backwardConfiguration, pShutdownManager) : new BackwardAnalysis(pId, pLogger, pBlock, pCFA,
+    backwardAnalysis = new BackwardAnalysis(pId, pLogger, pBlock, pCFA,
         backwardSpecification,
         backwardConfiguration, pShutdownManager);
 
@@ -160,7 +150,6 @@ public class AnalysisWorker extends Worker {
     for (String variable : fmgr.extractVariables(parsed).keySet()) {
       Pair<String, OptionalInt> variableIndexPair = FormulaManagerView.parseName(variable);
       if (!variable.contains(".") && variableIndexPair.getSecond().isPresent()) {
-        //TODO find correct type
         String variableName = variableIndexPair.getFirst();
         if (variableName != null) {
           pBuilder.setIndex(variableName, typeMap.getType(variableName),

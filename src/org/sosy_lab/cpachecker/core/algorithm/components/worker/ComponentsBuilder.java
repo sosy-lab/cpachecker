@@ -48,8 +48,7 @@ public class ComponentsBuilder {
       CFA pCFA,
       Specification pSpecification,
       Configuration pConfiguration,
-      ShutdownManager pShutdownManager,
-      BlockTree pTree) throws InvalidConfigurationException {
+      ShutdownManager pShutdownManager) throws InvalidConfigurationException {
     logger = pLogger;
     cfa = pCFA;
     configuration = Configuration.builder().copyFrom(pConfiguration).build();
@@ -57,7 +56,7 @@ public class ComponentsBuilder {
     specification = pSpecification;
     connectionProviderClass = NetworkConnectionProvider.class;
     workers = new ArrayList<>();
-    monitor = new Monitor(logger, pTree.getDistinctNodes().size());
+    monitor = new Monitor(logger, 1);
   }
 
   private String nextId(String pAdditionalIdentifier) {
@@ -161,6 +160,12 @@ public class ComponentsBuilder {
     }
     C connectionProvider = clazz.getDeclaredConstructor().newInstance();
     return connectionProvider.createConnections(numberConnections);
+  }
+
+  public ComponentsBuilder addRootWorker(BlockNode pNode)
+      throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
+    workers.add(new RootWorker(nextId(pNode.getId()), pNode, logger, cfa, specification, configuration, shutdownManager));
+    return this;
   }
 
   public static class Components {

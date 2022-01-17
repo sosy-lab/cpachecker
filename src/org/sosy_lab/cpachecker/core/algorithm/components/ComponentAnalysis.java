@@ -85,10 +85,13 @@ public class ComponentAnalysis implements Algorithm {
   private DecompositionType decompositionType = DecompositionType.BLOCK_OPERATOR;
 
   @Option(description = "how to send messages")
-  private ConnectionType connectionType = ConnectionType.IN_MEMORY;
+  private ConnectionType connectionType = ConnectionType.NETWORK;
 
   @Option(description = "which worker to use")
   private WorkerType workerType = WorkerType.DEFAULT;
+
+  @Option(description = "desired number of BlockNodes")
+  private int desiredNumberOfBlocks = 10;
 
   public ComponentAnalysis(
       Configuration pConfig,
@@ -109,7 +112,7 @@ public class ComponentAnalysis implements Algorithm {
       case BLOCK_OPERATOR:
         return new BlockOperatorDecomposer(configuration);
       case GIVEN_SIZE:
-        return new GivenSizeDecomposer(configuration, new BlockOperatorDecomposer(configuration));
+        return new GivenSizeDecomposer(new BlockOperatorDecomposer(configuration), desiredNumberOfBlocks);
       default:
         throw new AssertionError("Unknown DecompositionType: " + decompositionType);
     }
@@ -148,6 +151,10 @@ public class ComponentAnalysis implements Algorithm {
     try {
       CFADecomposer decomposer = getDecomposer();
       BlockTree tree = decomposer.cut(cfa);
+      Collection<BlockNode> removed = tree.removeEmptyBlocks();
+      if (!removed.isEmpty()) {
+        logger.log(Level.INFO, "Removed " + removed.size() + " empty BlockNodes from the tree.");
+      }
       if (tree.isEmpty()) {
         // empty program
         return AlgorithmStatus.SOUND_AND_PRECISE;
@@ -176,11 +183,15 @@ public class ComponentAnalysis implements Algorithm {
 
 
       ComponentsBuilder builder =
-          new ComponentsBuilder(logger, cfa, specification, configuration, shutdownManager, tree);
+          new ComponentsBuilder(logger, cfa, specification, configuration, shutdownManager);
       builder = builder.withConnectionType(getConnectionProvider())
           .createAdditionalConnections(1);
       for (BlockNode distinctNode : blocks) {
-        builder = analysisWorker(builder, distinctNode, map);
+        if (distinctNode.isRoot()) {
+          builder = builder.addRootWorker(distinctNode);
+        } else {
+          builder = analysisWorker(builder, distinctNode, map);
+        }
       }
       builder = builder.addResultCollectorWorker(blocks);
       builder = builder.addTimeoutWorker(900000);

@@ -90,7 +90,7 @@ public class BlockNode {
   }
 
   public boolean isEmpty() {
-    return nodesInBlock.size() > 1;
+    return nodesInBlock.size() == 1;
   }
 
   private void linkSuccessor(BlockNode node) {

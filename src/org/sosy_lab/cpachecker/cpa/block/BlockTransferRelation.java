@@ -68,11 +68,9 @@ public abstract class BlockTransferRelation implements TransferRelation {
     boolean isTargetLoopHead = pBlockState.isTarget() && pBlockState.getLocationNode().equals(targetNode);
     if (isTargetLoopHead) {
       if (first) {
-        first = false;
-        return false;
+        return first = false;
       }
-      first = true;
-      return true;
+      return first = true;
     }
     return true;
   }

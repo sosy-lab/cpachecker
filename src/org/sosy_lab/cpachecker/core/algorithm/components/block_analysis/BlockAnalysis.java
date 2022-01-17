@@ -29,7 +29,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
@@ -382,11 +381,9 @@ public abstract class BlockAnalysis {
     }
   }
 
-  public static class NoOpAnalysis extends BlockAnalysis {
+  public static class NoopAnalysis extends BlockAnalysis {
 
-    private boolean hasSentFirstMessage;
-
-    public NoOpAnalysis(
+    public NoopAnalysis(
         String pId,
         LogManager pLogger,
         BlockNode pBlock,
@@ -404,38 +401,6 @@ public abstract class BlockAnalysis {
     public Collection<Message> analyze(
         PathFormula condition, CFANode node)
         throws CPAException, InterruptedException, SolverException {
-      if (hasSentFirstMessage) {
-        return ImmutableSet.of();
-      }
-      hasSentFirstMessage = true;
-      return ImmutableSet.of(Message.newBlockPostCondition(block.getId(), node.getNodeNumber(), bmgr.makeTrue(), fmgr, true));
-    }
-  }
-
-  public static class SatCheckAnalysis extends BlockAnalysis {
-
-    public SatCheckAnalysis(
-        String pId,
-        LogManager pLogger,
-        BlockNode pBlock,
-        CFA pCFA,
-        AnalysisDirection pDirection,
-        Specification pSpecification,
-        Configuration pConfiguration,
-        ShutdownManager pShutdownManager)
-        throws CPAException, InterruptedException, InvalidConfigurationException, IOException {
-      super(pId, pLogger, pBlock, pCFA, pDirection, pSpecification, pConfiguration,
-          pShutdownManager);
-    }
-
-    @Override
-    public Collection<Message> analyze(
-        PathFormula condition, CFANode node)
-        throws CPAException, InterruptedException, SolverException {
-      if (!solver.isUnsat(condition.getFormula())) {
-        return ImmutableSet.of(Message.newResultMessage(block.getId(), block.getStartNode().getNodeNumber(),
-            Result.FALSE));
-      }
       return ImmutableSet.of();
     }
   }

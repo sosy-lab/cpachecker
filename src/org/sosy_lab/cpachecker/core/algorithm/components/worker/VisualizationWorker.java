@@ -17,6 +17,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockTree;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.components.util.MessageLogger;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -37,15 +38,20 @@ public class VisualizationWorker extends Worker {
   public Collection<Message> processMessage(Message pMessage)
       throws InterruptedException, IOException, SolverException, CPAException {
     messages.put(pMessage.getUniqueBlockId(), pMessage);
-    logger.log(Level.INFO, pMessage);
+    logger.log(Level.ALL, pMessage);
     switch (pMessage.getType()) {
       case ERROR_CONDITION:
       case BLOCK_POSTCONDITION:
-        messageLogger.log(pMessage);
       case ERROR_CONDITION_UNREACHABLE:
+        messageLogger.log(pMessage);
         break;
       case FOUND_RESULT:
       case ERROR:
+        messageLogger.log(pMessage);
+        while (!connection.isEmpty()) {
+          Message message = connection.read();
+          messageLogger.log(message);
+        }
         shutdown();
         break;
       default:

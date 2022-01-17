@@ -78,4 +78,24 @@ public class BlockTree {
     }
     throw new AssertionError("Blocks must be in one line to be merged");
   }
+
+  public ImmutableSet<BlockNode> removeEmptyBlocks() {
+    Set<BlockNode> removed = new HashSet<>();
+    ImmutableSet<BlockNode> nodes = getDistinctNodes();
+    for (BlockNode node : nodes) {
+      if (node.isRoot() || !node.isEmpty()) {
+        continue;
+      }
+      Set<BlockNode> predecessors = node.getPredecessors();
+      Set<BlockNode> successors = node.getSuccessors();
+      for (BlockNode predecessor : predecessors) {
+        for (BlockNode successor : successors) {
+          factory.linkSuccessor(predecessor, successor);
+        }
+      }
+      factory.removeNode(node);
+      removed.add(node);
+    }
+    return ImmutableSet.copyOf(removed);
+  }
 }

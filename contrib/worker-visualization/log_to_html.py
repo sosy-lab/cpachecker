@@ -7,12 +7,12 @@
 
 import argparse
 import json
-import os
-import glob
 import sys
 import webbrowser
-from airium import Airium
+import networkx as nx
+import pydot
 
+from airium import Airium
 from pathlib import Path
 
 
@@ -44,14 +44,26 @@ def html_for_message(message, block_log):
 
     predecessors = ["none"] if "predecessors" not in infos else infos["predecessors"]
     successors = ["none"] if "successors" not in infos else infos["successors"]
-    result = message["payload"]
+    result = message["payload"] if message["payload"] else "no contents available"
     direction = message["type"]
+    arrow = "-"
+    senders = ["all"]
+    receivers = ["all"]
+    if direction == "BLOCK_POSTCONDITION":
+        receivers = successors
+        senders = predecessors
+        arrow = "&darr;"
+    elif direction == "ERROR_CONDITION":
+        receivers = predecessors
+        senders = successors
+        arrow = "&uarr;"
+    elif direction == "ERROR_CONDITION_UNREACHABLE":
+        receivers = ["all"]
+        senders = successors
+        arrow = "&uarr;"
+    elif direction == "FOUND_RESULT":
+        senders = [message["from"]]
 
-    is_forward = direction == "BLOCK_POSTCONDITION"
-    senders = predecessors if is_forward else successors
-    receivers = successors if is_forward else predecessors
-    condition_name = "precondition" if is_forward else "postcondition"
-    arrow = "<big>" + ("&darr;" if is_forward else "&uarr;") + "</big>"
     code = "\n".join([x for x in infos["code"] if x])
 
     with div.div(title=code):
@@ -65,7 +77,7 @@ def html_for_message(message, block_log):
                 div(f"React to message from <strong>{sender}</strong>:")
         with div.p():
             receiver = ", ".join(receivers)
-            div(f"Calculated new {condition_name} for <strong>{receiver}</strong>")
+            div(f"Calculated new {direction} message for <strong>{receiver}</strong>")
         div.textarea(_t=result)
 
     return str(div)
@@ -85,6 +97,11 @@ def html_dict_to_html_table(all_messages, block_logs: dict):
                 table.th(_t=f'{key}')
 
         # row values
+        type_to_klass = {
+            "BLOCK_POSTCONDITION": "precondition",
+            "ERROR_CONDITION": "postcondition",
+            "ERROR_CONDITION_UNREACHABLE": "postcondition"
+        }
         for timestamp in timestamp_to_message:
             with table.tr():
                 table.td(_t=str(timestamp))
@@ -93,10 +110,25 @@ def html_dict_to_html_table(all_messages, block_logs: dict):
                     if not msg:
                         table.td()
                     else:
-                        klass = "postcondition" if msg["type"] == "ERROR_CONDITION" else "precondition"
+                        klass = type_to_klass[msg["type"]] if msg["type"] in type_to_klass else "normal"
                         table.td(klass=klass, _t=html_for_message(msg, block_logs))
 
     return str(table)
+
+
+def visualize(block_logs):
+    g = nx.DiGraph()
+    for key in block_logs:
+        code = "\n".join(c for c in block_logs[key]["code"] if c)
+        label = key + ":\n" + code if code else key
+        g.add_node(key, shape="box", label=label)
+    for key in block_logs:
+        if "successors" in block_logs[key]:
+            for successor in block_logs[key]["successors"]:
+                g.add_edge(key, successor)
+    nx.drawing.nx_pydot.write_dot(g, "graph.dot")
+    (graph,) = pydot.graph_from_dot_file('graph.dot')
+    graph.write_png('graph.png')
 
 
 def main(argv=None):
@@ -105,7 +137,8 @@ def main(argv=None):
     block_logs = parse_jsons(args.file)
     all_messages = []
     for key in block_logs:
-        all_messages += block_logs[key]["messages"]
+        if "messages" in block_logs[key]:
+            all_messages += block_logs[key]["messages"]
     if not all_messages:
         return
     all_messages = list(sorted(all_messages, key=lambda entry: (entry["timestamp"], entry["from"][1::])))
@@ -115,6 +148,7 @@ def main(argv=None):
         )
         with open(relative_path("report.html"), "w+") as new_html:
             new_html.write(text)
+    visualize(block_logs)
     webbrowser.open(relative_path("report.html"))
 
 
