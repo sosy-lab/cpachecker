@@ -319,6 +319,10 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
     }
     AExpression loopBoundExpression = loopBoundExpressionMaybe.orElseThrow();
 
+    if (loopStructure.containsFunctionCalls()) {
+      return Optional.empty();
+    }
+
     Optional<AExpression> iterationsMaybe = this.loopIterations(loopBoundExpression, loopStructure);
 
     if (iterationsMaybe.isEmpty()) {

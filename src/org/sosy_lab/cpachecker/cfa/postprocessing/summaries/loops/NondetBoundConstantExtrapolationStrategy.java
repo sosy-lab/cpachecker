@@ -162,6 +162,10 @@ public class NondetBoundConstantExtrapolationStrategy extends ConstantExtrapolat
     }
     Loop loopStructure = loopStructureMaybe.orElseThrow();
 
+    if (loopStructure.containsFunctionCalls()) {
+      return Optional.empty();
+    }
+
     if (!loopStructure.hasOnlyConstantVariableModifications()
         || loopStructure.amountOfInnerAssumeEdges() != 1) {
       return Optional.empty();

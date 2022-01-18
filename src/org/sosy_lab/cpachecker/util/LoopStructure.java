@@ -726,6 +726,17 @@ public final class LoopStructure implements Serializable {
       }
       return false;
     }
+
+    public boolean containsFunctionCalls() {
+      for (CFAEdge e : this.getInnerLoopEdges()) {
+        if (e instanceof AStatementEdge) {
+          if (((AStatementEdge) e).getStatement() instanceof AFunctionCallStatement) {
+            return true;
+          }
+          }
+      }
+      return false;
+    }
   }
 
   private final ImmutableListMultimap<String, Loop> loops;
