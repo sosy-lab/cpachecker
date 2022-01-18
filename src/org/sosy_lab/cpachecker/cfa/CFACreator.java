@@ -238,17 +238,16 @@ public class CFACreator {
       secure = true,
       description =
           "Strategies to be used in the generation of the CFA, to summarize some parts of it.")
-  private Set<StrategiesEnum> strategies =
-      new HashSet<>(
-          Arrays.asList(
-              StrategiesEnum.LOOPCONSTANTEXTRAPOLATION,
-              // StrategiesEnum.LoopLinearExtrapolation,
-              StrategiesEnum.NONDETBOUNDCONSTANTEXTRAPOLATION,
-              // StrategiesEnum.LoopAcceleration, // TODO Not yet implemented
-              StrategiesEnum.NAIVELOOPACCELERATION,
-              StrategiesEnum.HAVOCSTRATEGY
-              // ,StrategiesEnum.LoopUnrolling
-              ));
+  private List<StrategiesEnum> strategies =
+      Arrays.asList(
+          StrategiesEnum.LOOPCONSTANTEXTRAPOLATION,
+          // StrategiesEnum.LoopLinearExtrapolation,
+          StrategiesEnum.NONDETBOUNDCONSTANTEXTRAPOLATION,
+          // StrategiesEnum.LoopAcceleration, // TODO Not yet implemented
+          StrategiesEnum.NAIVELOOPACCELERATION,
+          StrategiesEnum.HAVOCSTRATEGY
+          // ,StrategiesEnum.LoopUnrolling
+          );
 
   @Option(
       secure = true,
@@ -655,7 +654,7 @@ public class CFACreator {
               logger,
               shutdownNotifier,
               cfa,
-              strategies,
+              new HashSet<>(strategies),
               useCompilerForSummary,
               maxUnrollingsStrategy,
               maxIterationsSummaries,

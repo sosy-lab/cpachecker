@@ -867,9 +867,8 @@ cfa.summaries.maxUnrollingsStrategy = 100
 
 # Strategies to be used in the generation of the CFA, to summarize some parts
 # of it.
-cfa.summaries.strategies = new HashSet<>(
-          Arrays.asList(
-              StrategiesEnum.LOOPCONSTANTEXTRAPOLATION,
+cfa.summaries.strategies = Arrays.asList(
+          StrategiesEnum.LOOPCONSTANTEXTRAPOLATION,
 
 # Use a Compilr for the execution of the C Code, if this option is set to
 # false an Interpreter in java is used.
