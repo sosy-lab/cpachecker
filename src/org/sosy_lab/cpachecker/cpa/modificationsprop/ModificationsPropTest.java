@@ -36,6 +36,7 @@ public class ModificationsPropTest {
   private static final String PROP_REACH_PROPERTY = "differential.badstateProperties";
   private static final String PROP_PREPROCESSING = "differential.performPreprocessing";
   private static final String PROP_DECLARATION_IGNORE = "differential.ignoreDeclarations";
+  private static final String PROP_MERGE = "differential.variableSetMerge";
   private static final String PROP_SPEC = "specification";
   private static final String PROP_ENTRY = "analysis.entryFunction";
   private static final String VAL_ENTRY = "main";
@@ -52,6 +53,7 @@ public class ModificationsPropTest {
             PROP_ORIGINAL_PROGRAM, OLD_UNSEC,
             PROP_REACH_PROPERTY, REACH_PROPERTY,
             PROP_PREPROCESSING, TRUE,
+            PROP_MERGE, FALSE,
             PROP_ENTRY, VAL_ENTRY);
 
     TestResults results = CPATestRunner.run(getProperties(CONFIG_FILE, prop), OLD_SEC);
@@ -62,6 +64,7 @@ public class ModificationsPropTest {
             PROP_ORIGINAL_PROGRAM, OLD_SEC,
             PROP_REACH_PROPERTY, REACH_PROPERTY,
             PROP_PREPROCESSING, TRUE,
+            PROP_MERGE, FALSE,
             PROP_SPEC, REACH_PROPERTY,
             PROP_DECLARATION_IGNORE, FALSE,
             PROP_ENTRY, VAL_ENTRY);
@@ -76,6 +79,7 @@ public class ModificationsPropTest {
             PROP_ORIGINAL_PROGRAM, OLD_UNSEC,
             PROP_REACH_PROPERTY, DEFAULT_PROPERTY,
             PROP_PREPROCESSING, TRUE,
+            PROP_MERGE, FALSE,
             PROP_SPEC, DEFAULT_PROPERTY,
             PROP_DECLARATION_IGNORE, FALSE);
 
@@ -88,6 +92,7 @@ public class ModificationsPropTest {
             PROP_REACH_PROPERTY, DEFAULT_PROPERTY,
             PROP_PREPROCESSING, TRUE,
             PROP_SPEC, DEFAULT_PROPERTY,
+            PROP_MERGE, FALSE,
             PROP_DECLARATION_IGNORE, FALSE);
 
     results = CPATestRunner.run(getProperties(CONFIG_FILE, prop), OLD_UNSEC);
@@ -102,6 +107,7 @@ public class ModificationsPropTest {
             PROP_ORIGINAL_PROGRAM, PROGRAM_ORIGINAL,
             PROP_REACH_PROPERTY, REACH_PROPERTY,
             PROP_PREPROCESSING, FALSE,
+            PROP_MERGE, FALSE,
             PROP_SPEC, REACH_PROPERTY,
             PROP_DECLARATION_IGNORE, FALSE,
             PROP_ENTRY, VAL_ENTRY);
@@ -119,6 +125,7 @@ public class ModificationsPropTest {
             PROP_ORIGINAL_PROGRAM, FCTCALL_ORIGINAL,
             PROP_REACH_PROPERTY, REACH_PROPERTY,
             PROP_PREPROCESSING, TRUE,
+            PROP_MERGE, FALSE,
             PROP_SPEC, REACH_PROPERTY,
             PROP_DECLARATION_IGNORE, TRUE,
             PROP_ENTRY, VAL_ENTRY);
@@ -131,6 +138,7 @@ public class ModificationsPropTest {
             PROP_ORIGINAL_PROGRAM, FCTCALL_ORIGINAL,
             PROP_REACH_PROPERTY, REACH_PROPERTY,
             PROP_PREPROCESSING, TRUE,
+            PROP_MERGE, FALSE,
             PROP_SPEC, REACH_PROPERTY,
             PROP_DECLARATION_IGNORE, FALSE,
             PROP_ENTRY, VAL_ENTRY);
@@ -147,6 +155,7 @@ public class ModificationsPropTest {
             PROP_ORIGINAL_PROGRAM, PROGRAM_MODIFIED,
             PROP_REACH_PROPERTY, REACH_PROPERTY,
             PROP_PREPROCESSING, TRUE,
+            PROP_MERGE, FALSE,
             PROP_SPEC, REACH_PROPERTY,
             PROP_DECLARATION_IGNORE, FALSE,
             PROP_ENTRY, VAL_ENTRY);
