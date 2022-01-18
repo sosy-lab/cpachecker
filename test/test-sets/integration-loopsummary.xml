@@ -25,15 +25,6 @@ SPDX-License-Identifier: Apache-2.0
     <propertyfile>../config/properties/unreach-call.prp</propertyfile>
   </rundefinition>
 
-  <rundefinition name="reachsafety-svcomp-loopsummary">
-    <option name="-config">config/svcomp22--summaries.properties</option>
-    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
-  </rundefinition>
-  <rundefinition name="reachsafety-svcomp-plain">
-    <option name="-config">config/svcomp22.properties</option>
-    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
-  </rundefinition>
-
   <rundefinition name="nooverflow-pred-loopsummary">
     <option name="-config">config/loopsummary/predicateAnalysis-loopsummary--overflow.properties</option>
     <propertyfile>../config/properties/no-overflow.prp</propertyfile>
