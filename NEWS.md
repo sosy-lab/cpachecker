@@ -13,7 +13,7 @@ Changes from CPAchecker 2.1 to CPAchecker development version
 * CPAchecker can be used as abstract model explorer
   and precision refiner for component-based CEGAR
   (cf. "Decomposing Software Verification into Off-the-Shelf Components:
-  An Application to CEGAR", Proc. ICSE, 2021, to be released).
+  An Application to CEGAR", Proc. ICSE, 2022, to be released).
 
 Changes from CPAchecker 2.0 to CPAchecker 2.1
 ---------------------------------------------
