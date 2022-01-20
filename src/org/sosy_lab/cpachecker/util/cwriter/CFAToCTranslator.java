@@ -355,7 +355,7 @@ public class CFAToCTranslator {
         } else {
           // must be else-branch, second in list
           assert ifAndElseEdge.get(1) == currentEdge;
-          cond = "else ";
+          cond = "else";
         }
 
         // create a new block starting with this condition
