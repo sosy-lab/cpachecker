@@ -21,7 +21,7 @@ public class SimpleMutation extends Mutation {
     super(pSuspiciousEdge, pCFA);
     newEdge = pNewEdge;
 
-    exchangeEdge(newEdge);
+    exchangeEdge(newEdge, suspiciousEdge);
   }
 
   @Override

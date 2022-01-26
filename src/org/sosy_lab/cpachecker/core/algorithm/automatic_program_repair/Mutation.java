@@ -27,6 +27,40 @@ public abstract class Mutation {
     suspiciousEdge = pSuspiciousEdge;
   }
 
+  /**
+   * The given edge will be inserted into the cfa by replacing the leaving edges of the predecessor
+   * edges and the entering edges of the successor edge.
+   */
+  public static void exchangeEdge(CFAEdge edgeToInsert, CFAEdge edgeToReplace) {
+
+    final CFANode predecessorNode = edgeToInsert.getPredecessor();
+    final CFANode successorNode = edgeToInsert.getSuccessor();
+
+    for (CFAEdge leavingEdge : CFAUtils.leavingEdges(predecessorNode)) {
+      if (areEdgesEqual(leavingEdge, edgeToReplace)) {
+        predecessorNode.removeLeavingEdge(leavingEdge);
+        predecessorNode.addLeavingEdge(edgeToInsert);
+      }
+    }
+
+    for (CFAEdge enteringEdge : CFAUtils.enteringEdges(successorNode)) {
+      if (areEdgesEqual(enteringEdge, edgeToReplace)) {
+        successorNode.removeEnteringEdge(enteringEdge);
+        successorNode.addEnteringEdge(edgeToInsert);
+      }
+    }
+  }
+
+  private static boolean areEdgesEqual(CFAEdge edge1, CFAEdge edge2) {
+
+    boolean areLineNumbersEqual = edge1.getLineNumber() == edge2.getLineNumber();
+
+    String code1 = edge1.getCode();
+    String code2 = edge2.getCode();
+
+    return code1.equals(code2) && areLineNumbersEqual;
+  }
+
   public CFA getCFA() {
     return cfa;
   }
@@ -35,29 +69,5 @@ public abstract class Mutation {
 
   public CFAEdge getSuspiciousEdge() {
     return suspiciousEdge;
-  }
-
-  /**
-   * The given edge will be inserted into the cfa by replacing the leaving edges of the predecessor
-   * edges and the entering edges of the successor edge.
-   */
-  public static void exchangeEdge(CFAEdge edgeToInsert) {
-
-    final CFANode predecessorNode = edgeToInsert.getPredecessor();
-    final CFANode successorNode = edgeToInsert.getSuccessor();
-
-    for (CFAEdge leavingEdge : CFAUtils.leavingEdges(predecessorNode)) {
-      if (leavingEdge.getLineNumber() == edgeToInsert.getLineNumber()) {
-        predecessorNode.removeLeavingEdge(leavingEdge);
-        predecessorNode.addLeavingEdge(edgeToInsert);
-      }
-    }
-
-    for (CFAEdge enteringEdge : CFAUtils.enteringEdges(successorNode)) {
-      if (enteringEdge.getLineNumber() == edgeToInsert.getLineNumber()) {
-        successorNode.removeEnteringEdge(enteringEdge);
-        successorNode.addEnteringEdge(edgeToInsert);
-      }
-    }
   }
 }

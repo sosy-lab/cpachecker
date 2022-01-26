@@ -24,8 +24,10 @@ public class AssumeEdgeMutation extends Mutation {
     super(pSuspiciousEdge, pCFA);
     assumeEdgeAggregate = pAssumeEdgeAggregate;
 
-    exchangeEdge(assumeEdgeAggregate.getCondition());
-    exchangeEdge(assumeEdgeAggregate.getOppositeCondition());
+    exchangeEdge(assumeEdgeAggregate.getCondition(), suspiciousEdge);
+    exchangeEdge(
+        assumeEdgeAggregate.getOppositeCondition(),
+        CorrespondingEdgeProvider.findCorrespondingOppositeAssumeEdge(pSuspiciousEdge));
   }
 
   @Override

@@ -25,17 +25,20 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
  */
 public class FunctionCallMutation extends Mutation {
   private final FunctionCallEdgeAggregate functionCallEdgeAggregate;
+  private final FunctionCallEdgeAggregate originalFunctionCallEdgeAggregate;
 
   public FunctionCallMutation(
-      CFAEdge pSuspiciousEdge, FunctionCallEdgeAggregate pFunctionCallEdgeAggregate, CFA pCFA) {
+      CFAEdge pSuspiciousEdge, FunctionCallEdgeAggregate pFunctionCallEdgeAggregate, FunctionCallEdgeAggregate pOriginalFunctionCallEdgeAggregate, CFA pCFA) {
     super(pSuspiciousEdge, pCFA);
 
     functionCallEdgeAggregate = pFunctionCallEdgeAggregate;
+    originalFunctionCallEdgeAggregate = pOriginalFunctionCallEdgeAggregate;
+
     exchangeEdges(
         ImmutableList.of(
             functionCallEdgeAggregate.getSummaryEdge(),
             functionCallEdgeAggregate.getFunctionCallEdge(),
-            functionCallEdgeAggregate.getFunctionReturnEdge()));
+            functionCallEdgeAggregate.getFunctionReturnEdge()), originalFunctionCallEdgeAggregate);
   }
 
   @Override
@@ -54,23 +57,29 @@ public class FunctionCallMutation extends Mutation {
     }
   }
 
-  public static void exchangeEdges(List<CFAEdge> edgesToInsert) {
-    edgesToInsert.forEach(edge -> exchangeFunctionEdge(edge));
+  public static void exchangeEdges(List<CFAEdge> edgesToInsert, FunctionCallEdgeAggregate originalFunctionCallEdgeAggregate) {
+    edgesToInsert.forEach(edge -> exchangeFunctionEdge(edge, originalFunctionCallEdgeAggregate));
   }
 
-  private static void exchangeFunctionEdge(CFAEdge edgeToInsert) {
-    exchangeEdge(edgeToInsert);
+  private static void exchangeFunctionEdge(CFAEdge edgeToInsert, FunctionCallEdgeAggregate originalFunctionCallEdgeAggregate) {
     CFunctionSummaryEdge newSummaryEdge;
+    CFAEdge originalEdge;
+
     if (edgeToInsert instanceof CFunctionCallEdge) {
       newSummaryEdge = ((CFunctionCallEdge) edgeToInsert).getSummaryEdge();
+      originalEdge = originalFunctionCallEdgeAggregate.getFunctionCallEdge();
     } else if (edgeToInsert instanceof CFunctionReturnEdge) {
       newSummaryEdge = ((CFunctionReturnEdge) edgeToInsert).getSummaryEdge();
+      originalEdge = originalFunctionCallEdgeAggregate.getFunctionReturnEdge();
     } else if (edgeToInsert instanceof CFunctionSummaryEdge) {
       newSummaryEdge = (CFunctionSummaryEdge) edgeToInsert;
+      originalEdge = originalFunctionCallEdgeAggregate.getSummaryEdge();
     } else {
       throw new RuntimeException(
           "Must provide either FunctionCallEdge, FunctionReturnEdge or CallToReturnEdge");
     }
+
+    exchangeEdge(edgeToInsert, originalEdge);
 
     final CFANode predecessorNode = edgeToInsert.getPredecessor();
     final CFANode successorNode = edgeToInsert.getSuccessor();

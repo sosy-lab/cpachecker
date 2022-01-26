@@ -74,12 +74,12 @@ public class CFAMutator {
     return ExpressionMutator.calcMutationsFor(originalAssumeEdge.getExpression(), cfa)
         .map(
             alternativeExpression -> {
-                final AssumeEdgeMutator edgeMutator =
-                    new AssumeEdgeMutator(cfa, config, logger, originalAssumeEdge);
-                return new AssumeEdgeMutation(
-                    originalAssumeEdge,
-                    edgeMutator.replaceExpressionInAssumeEdgeAggregate(alternativeExpression),
-                    edgeMutator.getClonedCFA());
+              final AssumeEdgeMutator edgeMutator =
+                  new AssumeEdgeMutator(cfa, config, logger, originalAssumeEdge);
+              return new AssumeEdgeMutation(
+                  originalAssumeEdge,
+                  edgeMutator.replaceExpressionInAssumeEdgeAggregate(alternativeExpression),
+                  edgeMutator.getClonedCFA());
             });
   }
 
@@ -114,20 +114,23 @@ public class CFAMutator {
   }
 
   private Stream<FunctionCallMutation> generateFunctionCallMutations(
-      FunctionCallEdgeAggregate functionCallAggregate) {
-    CStatement functionCall = functionCallAggregate.getFunctionCall();
+      FunctionCallEdgeAggregate originalFunctionCallAggregate) {
+    CStatement functionCall = originalFunctionCallAggregate.getFunctionCall();
 
     return StatementMutator.calcMutationsFor(functionCall, cfa)
         .map(
             newFunctionCallStatement -> {
               CFunctionCall newFunctionCall = (CFunctionCall) newFunctionCallStatement;
               FunctionCallMutator functionCallMutator =
-                  new FunctionCallMutator(cfa, config, logger, functionCallAggregate);
+                  new FunctionCallMutator(cfa, config, logger, originalFunctionCallAggregate);
               FunctionCallEdgeAggregate newFunctionCallEdgeAggregate =
                   functionCallMutator.replaceFunctionCall(newFunctionCall);
 
               return new FunctionCallMutation(
-                  originalEdge, newFunctionCallEdgeAggregate, functionCallMutator.getClonedCFA());
+                  originalEdge,
+                  newFunctionCallEdgeAggregate,
+                  originalFunctionCallAggregate,
+                  functionCallMutator.getClonedCFA());
             });
   }
 

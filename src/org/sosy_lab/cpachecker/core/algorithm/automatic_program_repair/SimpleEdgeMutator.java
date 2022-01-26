@@ -12,11 +12,9 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 
@@ -27,18 +25,6 @@ public class SimpleEdgeMutator extends EdgeMutator {
       CFA cfa, Configuration config, LogManager logger, CFAEdge pOriginalEdge) {
     super(cfa, config, logger);
     edgeToMutate = CorrespondingEdgeProvider.findCorrespondingEdge(pOriginalEdge, getClonedCFA());
-  }
-
-  /** Returns a new assume edge with a different expression. */
-  public CAssumeEdge replaceExpressionInAssumeEdge(CExpression newExpression) {
-    CAssumeEdge originalAssumeEdge = (CAssumeEdge) edgeToMutate;
-    return new CAssumeEdge(
-        newExpression.toASTString(),
-        originalAssumeEdge.getFileLocation(),
-        originalAssumeEdge.getPredecessor(),
-        originalAssumeEdge.getSuccessor(),
-        newExpression,
-        originalAssumeEdge.getTruthAssumption());
   }
 
   /** Returns a new statement edge with a different expression. */
