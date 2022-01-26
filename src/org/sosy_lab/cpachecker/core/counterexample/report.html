@@ -177,9 +177,9 @@ with considerably less effort -->
             <input type="checkbox" checked id="toggle_error_path" ng-click="toggleErrorPathSection($event)">
             <span class="slider round"></span>
           </label>
-          <li class="nav-item" style="padding:10px;" id="toggle_button_error_path_placeholder">
-            <span class="badge badge-warning" style="font-size: 1.1em" data-toggle="tooltip" data-placement="top" title="Toggle slider to show/hide error path section">Show Error Path Section</span>
-          </li>
+        </li>
+        <li class="nav-item" style="padding:10px;" id="toggle_button_error_path_placeholder">
+          <span class="badge badge-warning" style="font-size: 1.1em" data-toggle="tooltip" data-placement="top" title="Toggle slider to show/hide error path section">Show Error Path Section</span>
         </li>
         <li class="nav-item" ng-class="{active: tabIsSet(1)}" data-toggle="tooltip" data-placement="top" title="Shows CFA (Control flow Automation) of the Program">
           <a class="nav-link active" data-toggle="pill" href ng-click="setTab(1)" id="set-tab-1">CFA</a>
@@ -243,7 +243,6 @@ with considerably less effort -->
               <i class="fas fa-sync"></i>
             </button>
           </div>
-          </ul>
         </nav>
       </div>
 
@@ -257,7 +256,8 @@ with considerably less effort -->
               ng-change="displayARG()"></select>
           </div>
           <div class="nav-item">
-            <strong>Mouse Wheel Zoom</strong>
+            <label>
+              <strong>Mouse Wheel Zoom</strong>
             </label>
             <span class="button-checkbox">
               <button class="btn btn-outline-secondary" id="arg-zoom-button" type="button" data-color="primary" ng-click="argZoomControl()">

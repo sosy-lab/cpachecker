@@ -131,8 +131,8 @@ Generated on 2021-07-27 14:26:46 by CPAchecker 2.0.1-svn / predicateAnalysis    
 				<li class="nav-item" id="toggle_button_error_path">
 					<label class="switch" style="margin-top:5px" data-toggle="tooltip" data-placement="bottom" title="Toggle slider to show/hide error path section">
 						<input type="checkbox" checked id="toggle_error_path" ng-click="toggleErrorPathSection($event)"> <span class="slider round"></span> </label>
-					<li class="nav-item" style="padding:10px;" id="toggle_button_error_path_placeholder"> <span class="badge badge-warning" style="font-size: 1.1em" data-toggle="tooltip" data-placement="top" title="Toggle slider to show/hide error path section">Show Error Path Section</span> </li>
 				</li>
+					<li class="nav-item" style="padding:10px;" id="toggle_button_error_path_placeholder"> <span class="badge badge-warning" style="font-size: 1.1em" data-toggle="tooltip" data-placement="top" title="Toggle slider to show/hide error path section">Show Error Path Section</span> </li>
 				<li class="nav-item" ng-class="{active: tabIsSet(1)}" data-toggle="tooltip" data-placement="top" title="Shows CFA (Control flow Automation) of the Program"> <a class="nav-link active" data-toggle="pill" href ng-click="setTab(1)" id="set-tab-1">CFA</a> </li>
 				<li class="nav-item" ng-class="{active: tabIsSet(2)}" data-toggle="tooltip" data-placement="top" title="Shows ARG (Abstract Reachability Graph) of the Program"> <a class="nav-link" data-toggle="pill" href ng-click="setTab(2)" id="set-tab-2">ARG</a> </li>
 				<li class="nav-item" ng-class="{active: tabIsSet(3)}" data-toggle="tooltip" data-placement="top" title="Click here for source code of the program"> <a class="nav-link" data-toggle="pill" href ng-click="setTab(3)" id="set-tab-3">Source</a> </li>
@@ -164,7 +164,6 @@ Generated on 2021-07-27 14:26:46 by CPAchecker 2.0.1-svn / predicateAnalysis    
 						<input type="text" aria-label="Split Threshold" id="cfa-split-threshold">
 						<button class="btn btn-outline-secondary" type="button" ng-click="redraw()" data-toggle="tooltip" data-placement="top" title="Refresh Split Threshold"> <i class="fas fa-sync"></i> </button>
 					</div>
-					</ul>
 				</nav>
 			</div>
 			<div id="arg-toolbar" ng-controller="ARGToolbarController">
@@ -173,7 +172,7 @@ Generated on 2021-07-27 14:26:46 by CPAchecker 2.0.1-svn / predicateAnalysis    
 						<label> <strong>Displayed ARG</strong> </label>
 						<select class="btn btn-outline-secondary selectpicker" ng-options="s as s for s in argSelections" ng-model="$root.displayedARG" ng-change="displayARG()"></select>
 					</div>
-					<div class="nav-item"> <strong>Mouse Wheel Zoom</strong> </label> <span class="button-checkbox">
+					<div class="nav-item"> <label> <strong>Mouse Wheel Zoom</strong> </label> <span class="button-checkbox">
 													<button class="btn btn-outline-secondary" id="arg-zoom-button" type="button" data-color="primary" ng-click="argZoomControl()">
 														<i class="far fa-square"></i>
 													</button>
@@ -424,7 +423,7 @@ Generated on 2021-07-27 14:26:46 by CPAchecker 2.0.1-svn / predicateAnalysis    
 					<thead class="thead-light">
 						<tr>
 							<th scope="col">Statistics Name</th>
-							<th scope="col">Statistics Value</th scope="col">
+							<th scope="col">Statistics Value</th>
 							<th>Additional Value</th>
 						</tr>
 					</thead>
