@@ -89,6 +89,9 @@ public final class CIdExpression extends AIdExpression implements CLeftHandSide 
 
     if (getDeclaration() == null) {
       return other.getDeclaration() == null;
+    } else if(other.getDeclaration() == null){
+      return getDeclaration() == null;
+      // add else clause for other.declaration == null
     } else {
       return Objects.equals(getDeclaration().getQualifiedName(), other.getDeclaration().getQualifiedName());
     }
