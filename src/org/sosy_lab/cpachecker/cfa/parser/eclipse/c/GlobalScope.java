@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.eclipse.cdt.core.dom.ast.IType;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
@@ -102,7 +103,7 @@ class GlobalScope extends AbstractScope {
   }
 
   @Override
-  public CFunctionDeclaration lookupFunction(String name) {
+  public @Nullable CFunctionDeclaration lookupFunction(String name) {
     CFunctionDeclaration result = functions.get(checkNotNull(name));
     if (result == null) {
       result = fallbackScope.lookupFunction(name);
@@ -111,7 +112,7 @@ class GlobalScope extends AbstractScope {
   }
 
   @Override
-  public CComplexType lookupType(String name) {
+  public @Nullable CComplexType lookupType(String name) {
     checkNotNull(name);
 
     CComplexTypeDeclaration declaration;
@@ -158,7 +159,7 @@ class GlobalScope extends AbstractScope {
     return fallbackScope.lookupTypedef(name);
   }
 
-  public CTypeDefDeclaration lookupTypedefForTypename(final String name) {
+  public @Nullable CTypeDefDeclaration lookupTypedefForTypename(final String name) {
     for (CTypeDefDeclaration d : typedefs.values()) {
       if (d.getType() instanceof CComplexType
           && ((CComplexType)d.getType()).getName().equals(name)) {
