@@ -89,8 +89,8 @@ public class ReportGenerator {
   private static final Splitter LINE_SPLITTER = Splitter.on('\n');
 
   private static final String HTML_TEMPLATE = "report.html";
-  private static final String CSS_TEMPLATE = "build/bundle.css";
-  private static final String JS_TEMPLATE = "build/bundle.js";
+  private static final String CSS_TEMPLATE = "build/main.css";
+  private static final String JS_TEMPLATE = "build/main.js";
   private static final String WORKER_DATA_TEMPLATE = "build/workerData.js";
   private static final String VENDOR_CSS_TEMPLATE = "build/vendors.css";
   private static final String VENDOR_JS_TEMPLATE = "build/vendors.js";

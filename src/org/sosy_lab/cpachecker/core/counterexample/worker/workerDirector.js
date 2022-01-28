@@ -7,6 +7,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { argWorkerData, cfaWorkerData } from "workerData";
+import { Buffer } from "buffer";
 
 const pako = require("pako");
 
