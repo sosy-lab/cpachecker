@@ -199,9 +199,6 @@ public class ARGStopJoin implements StopOperator, ForcedCoveringStopOperator {
   public Collection<AbstractState> getCoveringStates(
       AbstractState pElement, Collection<AbstractState> pReachedSet, Precision pPrecision)
       throws CPAException, InterruptedException {
-    throw new AssertionError(
-        "Class "
-            + getClass().getSimpleName()
-            + " does not support this function. It should not be called.");
+    throw new UnsupportedOperationException();
   }
 }
