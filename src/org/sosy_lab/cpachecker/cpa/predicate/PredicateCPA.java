@@ -94,7 +94,7 @@ public class PredicateCPA
   @Option(
     secure = true,
     name = "stop",
-    values = {"SEP", "SEPPCC", "SEPNAA"},
+    values = {"SEP", "SEPPCC", "SEPNAA", "JOIN"},
     toUppercase = true,
     description = "which stop operator to use for predicate cpa (usually SEP should be used in analysis). "
         + "SEPNAA works the same as SEP, except that it Never stops At Abstraction states. "
@@ -264,11 +264,13 @@ public class PredicateCPA
   public StopOperator getStopOperator() {
     switch (stopType) {
       case "SEP":
-        return new PredicateStopOperator(getAbstractDomain());
+        return new PredicateStopSepOperator(getAbstractDomain());
       case "SEPPCC":
         return new PredicatePCCStopOperator(pathFormulaManager, getPredicateManager(), solver);
       case "SEPNAA":
         return new PredicateNeverAtAbstractionStopOperator(getAbstractDomain());
+      case "JOIN":
+        return new PredicateStopJoinOperator(getAbstractDomain());
       default:
         throw new AssertionError("Update list of allowed stop operators");
     }
