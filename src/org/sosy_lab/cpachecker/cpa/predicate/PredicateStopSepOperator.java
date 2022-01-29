@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
@@ -45,6 +46,6 @@ class PredicateStopSepOperator extends StopSepOperator implements ForcedCovering
         return Collections.singleton(reachedState);
       }
     }
-    return Collections.emptySet();
+    return ImmutableSet.of();
   }
 }

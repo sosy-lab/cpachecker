@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.composite;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -51,7 +52,7 @@ class CompositeStopSepOperator extends CompositeStopOperator {
         return Collections.singleton(e);
       }
     }
-    return Collections.emptySet();
+    return ImmutableSet.of();
   }
 
   private boolean stop(

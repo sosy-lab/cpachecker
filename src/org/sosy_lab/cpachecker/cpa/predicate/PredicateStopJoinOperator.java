@@ -8,8 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
-import java.util.Collections;
 import org.sosy_lab.cpachecker.core.defaults.StopJoinOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -43,6 +43,6 @@ class PredicateStopJoinOperator extends StopJoinOperator implements ForcedCoveri
     if (stop(pElement, pReachedSet, pPrecision)) {
       return pReachedSet;
     }
-    return Collections.emptySet();
+    return ImmutableSet.of();
   }
 }

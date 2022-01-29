@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.composite;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -43,7 +44,7 @@ class CompositeStopJoinOperator extends CompositeStopOperator {
     if (stopJoin(pElement, reachedSubSet, pPrecision)) {
       return reachedSubSet;
     } else {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
   }
 
