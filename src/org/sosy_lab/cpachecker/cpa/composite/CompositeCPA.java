@@ -113,7 +113,7 @@ public final class CompositeCPA
     @Override
     public <T> CPAFactory set(T pObject, Class<T> pClass) throws UnsupportedOperationException {
       if (pClass.equals(CFA.class)) {
-        cfa = (CFA)pObject;
+        cfa = (CFA) pObject;
       }
       return super.set(pObject, pClass);
     }
@@ -220,8 +220,7 @@ public final class CompositeCPA
       ImmutableList<SimplePrecisionAdjustment> simplePrecisionAdjustments =
           (ImmutableList<SimplePrecisionAdjustment>)
               (ImmutableList<? extends PrecisionAdjustment>) precisionAdjustments;
-      return new CompositeSimplePrecisionAdjustment(
-          simplePrecisionAdjustments);
+      return new CompositeSimplePrecisionAdjustment(simplePrecisionAdjustments);
 
     } else {
       return new CompositePrecisionAdjustment(precisionAdjustments);
@@ -242,7 +241,8 @@ public final class CompositeCPA
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) throws InterruptedException {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
+      throws InterruptedException {
     Preconditions.checkNotNull(pNode);
 
     ImmutableList.Builder<AbstractState> initialStates = ImmutableList.builder();
@@ -254,7 +254,8 @@ public final class CompositeCPA
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition partition) throws InterruptedException {
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition partition)
+      throws InterruptedException {
     Preconditions.checkNotNull(pNode);
 
     ImmutableList.Builder<Precision> initialPrecisions = ImmutableList.builder();
@@ -280,7 +281,7 @@ public final class CompositeCPA
       if (pType.isAssignableFrom(cpa.getClass())) {
         return pType.cast(cpa);
       } else if (cpa instanceof WrapperCPA) {
-        T result = ((WrapperCPA)cpa).retrieveWrappedCpa(pType);
+        T result = ((WrapperCPA) cpa).retrieveWrappedCpa(pType);
         if (result != null) {
           return result;
         }
@@ -295,12 +296,15 @@ public final class CompositeCPA
   }
 
   @Override
-  public boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
+  public boolean areAbstractSuccessors(
+      AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors)
+      throws CPATransferException, InterruptedException {
     return getTransferRelation().areAbstractSuccessors(pElement, pCfaEdge, pSuccessors, cpas);
   }
 
   @Override
-  public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException, InterruptedException {
+  public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement)
+      throws CPAException, InterruptedException {
     return getStopOperator().isCoveredBy(pElement, pOtherElement, cpas);
   }
 
