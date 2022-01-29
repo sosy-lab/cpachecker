@@ -96,6 +96,14 @@ public class ARGCPA extends AbstractSingleWrapperCPA
           "Enable reduction for nested abstract states when entering or leaving a block abstraction for BAM. The reduction can lead to a higher cache-hit-rate for BAM and a faster sub-analysis for blocks.")
   private boolean enableStateReduction = true;
 
+  @Option(
+      secure = true,
+      name = "stop",
+      values = {"SEP", "JOIN"},
+      toUppercase = true,
+      description = "Which stop operator to use")
+  private String stopType = "SEP";
+
   private final LogManager logger;
 
   private final ARGStatistics stats;
@@ -138,12 +146,24 @@ public class ARGCPA extends AbstractSingleWrapperCPA
 
   @Override
   public ForcedCoveringStopOperator getStopOperator() {
-    return new ARGStopSep(
-        getWrappedCpa().getStopOperator(),
-        logger,
-        inCPAEnabledAnalysis,
-        keepCoveredStatesInReached,
-        coverTargetStates);
+    switch (stopType) {
+      case "SEP":
+        return new ARGStopSep(
+            getWrappedCpa().getStopOperator(),
+            logger,
+            inCPAEnabledAnalysis,
+            keepCoveredStatesInReached,
+            coverTargetStates);
+      case "JOIN":
+        return new ARGStopJoin(
+            getWrappedCpa().getStopOperator(),
+            logger,
+            inCPAEnabledAnalysis,
+            keepCoveredStatesInReached,
+            coverTargetStates);
+      default:
+        throw new AssertionError("Update list of allowed stop operators");
+    }
   }
 
   @Override

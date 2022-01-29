@@ -1302,6 +1302,10 @@ cpa.arg.refinements.file = "ARGRefinements.dot"
 # entries/exits
 cpa.arg.simplifiedARG.file = "ARGSimplified.dot"
 
+# test
+cpa.arg.stop = "SEP"
+  allowed values: [SEP, JOIN]
+
 # translate final ARG into C program
 cpa.arg.translateToC = false
 
