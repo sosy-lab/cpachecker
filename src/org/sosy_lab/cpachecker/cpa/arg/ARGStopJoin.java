@@ -11,8 +11,12 @@ package org.sosy_lab.cpachecker.cpa.arg;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -101,36 +105,55 @@ public class ARGStopJoin implements StopOperator, ForcedCoveringStopOperator {
 
     // Now do the usual coverage checks
 
-    Collection<AbstractState> mayCoverCandidates = getMayCoverCandidates(argElement, pReached);
+    // TODO: should switch to normal stop-sep process instead of returning false
+    // make sure that the StopOp implements ForcedCoveringStopOperator#getCoveringStates
+    if (!(wrappedStop instanceof ForcedCoveringStopOperator)) {
+      return false;
+    }
+    ForcedCoveringStopOperator stopOp = (ForcedCoveringStopOperator) wrappedStop;
+
+    Collection<ARGState> mayCoverCandidates = getMayCoverCandidates(argElement, pReached);
     if (mayCoverCandidates.isEmpty()) {
       return false;
     }
 
     List<AbstractState> mayCoverWrappedStates = new ArrayList<>(mayCoverCandidates.size());
-    for (AbstractState candidate : mayCoverCandidates) {
-      mayCoverWrappedStates.add(((ARGState) candidate).getWrappedState());
+    for (ARGState candidate : mayCoverCandidates) {
+      mayCoverWrappedStates.add(candidate.getWrappedState());
     }
 
-    if (wrappedStop.stop(argElement.getWrappedState(), mayCoverWrappedStates, pPrecision)) {
-
-      // Currently, an arbitrary state is set as the covering state
-      // TODO: change the covering relation from 1-to-1 to 1-to-n
-
-      argElement.setCovered((ARGState) mayCoverCandidates.iterator().next());
-
-      // if this option is true, we always return false here on purpose
-      return !keepCoveredStatesInReached;
+    Collection<AbstractState> coveringAbsStates =
+        stopOp.getCoveringStates(argElement.getWrappedState(), mayCoverWrappedStates, pPrecision);
+    if (coveringAbsStates.isEmpty()) {
+      return false;
     }
-    return false;
+
+    Map<AbstractState, ARGState> stateMap = new LinkedHashMap<>(mayCoverWrappedStates.size());
+    for (ARGState argState : mayCoverCandidates) {
+      AbstractState absState = argState.getWrappedState();
+      stateMap.put(absState, argState);
+    }
+
+    Set<ARGState> coveringARGStates = new LinkedHashSet<>(coveringAbsStates.size());
+    for (AbstractState absState : coveringAbsStates) {
+      coveringARGStates.add(stateMap.get(absState));
+    }
+
+    argElement.setCovered(coveringARGStates);
+    return !keepCoveredStatesInReached;
   }
 
   /** Retrieve the set of may-cover candidate states. */
-  private Collection<AbstractState> getMayCoverCandidates(
+  private Collection<ARGState> getMayCoverCandidates(
       ARGState pElement, Collection<AbstractState> pReached) {
-    List<AbstractState> candidates = new ArrayList<>();
+    List<ARGState> candidates = new ArrayList<>();
     for (AbstractState reachedState : pReached) {
       ARGState argState = (ARGState) reachedState;
       if (!argState.mayCover()) {
+        continue;
+      }
+      if (argState.isCovered()) {
+        // TODO: newly added constraint, check validity
         continue;
       }
       if (Objects.equals(pElement, argState)) {
@@ -143,7 +166,7 @@ public class ARGStopJoin implements StopOperator, ForcedCoveringStopOperator {
         // one of its children (because they are all newer than pElement).
         continue;
       }
-      candidates.add(reachedState);
+      candidates.add(argState);
     }
     return candidates;
   }

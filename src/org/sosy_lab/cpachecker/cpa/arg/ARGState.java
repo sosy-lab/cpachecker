@@ -51,7 +51,7 @@ public class ARGState extends AbstractSerializableSingleWrapperState
   private final Collection<ARGState> children = new ArrayList<>(1);
   private final Collection<ARGState> parents = new ArrayList<>(1);
 
-  private ARGState mCoveredBy = null;
+  private Set<ARGState> mCoveredBy = null;
   private Set<ARGState> mCoveredByThis = null; // lazy initialization because rarely needed
 
   // boolean which keeps track of which elements have already had their successors computed
@@ -219,23 +219,32 @@ public class ARGState extends AbstractSerializableSingleWrapperState
   // coverage
 
   public void setCovered(@NonNull ARGState pCoveredBy) {
+    checkNotNull(pCoveredBy);
+    setCovered(ImmutableSet.of(pCoveredBy));
+  }
+
+  public void setCovered(@NonNull Set<ARGState> pCoveredBy) {
     checkState(!isCovered(), "Cannot cover already covered element %s", this);
     checkNotNull(pCoveredBy);
-    checkArgument(pCoveredBy.mayCover, "Trying to cover with non-covering element %s", pCoveredBy);
-
-    mCoveredBy = pCoveredBy;
-    if (pCoveredBy.mCoveredByThis == null) {
-      // lazy initialization because rarely needed
-      pCoveredBy.mCoveredByThis = new LinkedHashSet<>(2);
+    for (ARGState covering : pCoveredBy) {
+      checkArgument(covering.mayCover, "Trying to cover with non-covering element %s", covering);
     }
-    pCoveredBy.mCoveredByThis.add(this);
+    mCoveredBy = pCoveredBy;
+    for (ARGState covering : pCoveredBy) {
+      if (covering.mCoveredByThis == null) {
+        // lazy initialization because rarely needed
+        covering.mCoveredByThis = new LinkedHashSet<>(2);
+      }
+      covering.mCoveredByThis.add(this);
+    }
   }
 
   public void uncover() {
     assert isCovered();
-    assert mCoveredBy.mCoveredByThis.contains(this);
-
-    mCoveredBy.mCoveredByThis.remove(this);
+    for (ARGState covering : mCoveredBy) {
+      assert covering.mCoveredByThis.contains(this);
+      covering.mCoveredByThis.remove(this);
+    }
     mCoveredBy = null;
   }
 
@@ -246,7 +255,15 @@ public class ARGState extends AbstractSerializableSingleWrapperState
 
   public ARGState getCoveringState() {
     checkState(isCovered());
-    return mCoveredBy;
+    checkState(
+        mCoveredBy.size() == 1,
+        "This method should be called only when 1-to-1 coverage relation is used.");
+    return mCoveredBy.iterator().next();
+  }
+
+  public Set<ARGState> getCoveringStates() {
+    checkState(isCovered());
+    return Collections.unmodifiableSet(mCoveredBy);
   }
 
   public Set<ARGState> getCoveredByThis() {
@@ -389,7 +406,7 @@ public class ARGState extends AbstractSerializableSingleWrapperState
 
       if (mCoveredBy != null) {
         sb.append(", Covered by: ");
-        sb.append(mCoveredBy.stateId);
+        sb.append(stateIdsOf(getCoveringStates()));
       } else {
         sb.append(", Covering: ");
         sb.append(stateIdsOf(getCoveredByThis()));
@@ -446,17 +463,22 @@ public class ARGState extends AbstractSerializableSingleWrapperState
    */
   private void clearCoverageRelation() {
     if (isCovered()) {
-      assert mCoveredBy.mCoveredByThis.contains(this);
-
-      mCoveredBy.mCoveredByThis.remove(this);
+      for (ARGState covering : mCoveredBy) {
+        assert covering.mCoveredByThis.contains(this);
+        covering.mCoveredByThis.remove(this);
+      }
       mCoveredBy = null;
     }
 
     if (mCoveredByThis != null) {
       for (ARGState covered : mCoveredByThis) {
+        for (ARGState otherCovering : covered.mCoveredBy) {
+          assert otherCovering.mCoveredByThis.contains(covered);
+          otherCovering.mCoveredByThis.remove(covered);
+        }
         covered.mCoveredBy = null;
       }
-      mCoveredByThis.clear();
+      assert mCoveredByThis.isEmpty();
       mCoveredByThis = null;
     }
   }
@@ -520,8 +542,9 @@ public class ARGState extends AbstractSerializableSingleWrapperState
       }
 
       for (ARGState covered : mCoveredByThis) {
-        assert this.equals(covered.mCoveredBy) : "Inconsistent coverage relation at " + this;
-        covered.mCoveredBy = replacement;
+        assert covered.mCoveredBy.contains(this) : "Inconsistent coverage relation at " + this;
+        covered.mCoveredBy.remove(this);
+        covered.mCoveredBy.add(replacement);
         replacement.mCoveredByThis.add(covered);
       }
 
