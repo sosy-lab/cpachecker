@@ -64,6 +64,14 @@ public final class CompositeCPA
 
   @Option(
       secure = true,
+      name = "stop",
+      values = {"SEP", "JOIN"},
+      toUppercase = true,
+      description = "Which stop operator to use")
+  private String stopType = "SEP";
+
+  @Option(
+      secure = true,
       description =
           "inform Composite CPA if it is run in a CPA enabled analysis because then it must "
               + "behave differently during merge.")
@@ -207,7 +215,14 @@ public final class CompositeCPA
 
   @Override
   public CompositeStopOperator getStopOperator() {
-    return new CompositeStopOperator(getStopOperators());
+    switch (stopType) {
+      case "SEP":
+        return new CompositeStopSepOperator(getStopOperators());
+      case "JOIN":
+        return new CompositeStopJoinOperator(getStopOperators());
+      default:
+        throw new AssertionError("Update list of allowed stop operators");
+    }
   }
 
   @Override
