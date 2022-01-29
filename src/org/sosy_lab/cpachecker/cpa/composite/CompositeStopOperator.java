@@ -2,16 +2,13 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
 package org.sosy_lab.cpachecker.cpa.composite;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import com.google.common.collect.ImmutableList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -22,53 +19,12 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-class CompositeStopOperator implements StopOperator, ForcedCoveringStopOperator {
+abstract class CompositeStopOperator implements ForcedCoveringStopOperator {
 
-  private final ImmutableList<StopOperator> stopOperators;
+  protected final ImmutableList<StopOperator> stopOperators;
 
-  CompositeStopOperator(ImmutableList<StopOperator> stopOperators) {
+  protected CompositeStopOperator(ImmutableList<StopOperator> stopOperators) {
     this.stopOperators = stopOperators;
-  }
-
-  @Override
-  public boolean stop(AbstractState element, Collection<AbstractState> reached, Precision precision)
-      throws CPAException, InterruptedException {
-    CompositeState compositeState = (CompositeState) element;
-    CompositePrecision compositePrecision = (CompositePrecision) precision;
-
-    for (AbstractState e : reached) {
-      if (stop(compositeState, (CompositeState) e, compositePrecision)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  private boolean stop(
-      CompositeState compositeState,
-      CompositeState compositeReachedState,
-      CompositePrecision compositePrecision)
-      throws CPAException, InterruptedException {
-    List<AbstractState> compositeElements = compositeState.getWrappedStates();
-    checkArgument(
-        compositeElements.size() == stopOperators.size(),
-        "State with wrong number of component states given");
-    List<AbstractState> compositeReachedStates = compositeReachedState.getWrappedStates();
-
-    List<Precision> compositePrecisions = compositePrecision.getWrappedPrecisions();
-
-    for (int idx = 0; idx < compositeElements.size(); idx++) {
-      StopOperator stopOp = stopOperators.get(idx);
-
-      AbstractState absElem1 = compositeElements.get(idx);
-      AbstractState absElem2 = compositeReachedStates.get(idx);
-      Precision prec = compositePrecisions.get(idx);
-
-      if (!stopOp.stop(absElem1, Collections.singleton(absElem2), prec)) {
-        return false;
-      }
-    }
-    return true;
   }
 
   boolean isCoveredBy(

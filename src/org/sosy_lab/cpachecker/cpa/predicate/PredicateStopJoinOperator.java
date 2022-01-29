@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import java.util.Collection;
+import java.util.Collections;
 import org.sosy_lab.cpachecker.core.defaults.StopJoinOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -32,5 +34,15 @@ class PredicateStopJoinOperator extends StopJoinOperator implements ForcedCoveri
     // it says only that we can try to cover it.
     return ((PredicateAbstractState) pElement).isAbstractionState()
         && ((PredicateAbstractState) pReachedState).isAbstractionState();
+  }
+
+  @Override
+  public Collection<AbstractState> getCoveringStates(
+      AbstractState pElement, Collection<AbstractState> pReachedSet, Precision pPrecision)
+      throws CPAException, InterruptedException {
+    if (stop(pElement, pReachedSet, pPrecision)) {
+      return pReachedSet;
+    }
+    return Collections.emptySet();
   }
 }

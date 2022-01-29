@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
+public class ARGStopSep implements ForcedCoveringStopOperator {
 
   private final boolean keepCoveredStatesInReached;
   private final boolean inCPAEnabledAnalysis;
@@ -42,11 +42,13 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
   }
 
   @Override
-  public boolean stop(AbstractState pElement,
-      Collection<AbstractState> pReached, Precision pPrecision) throws CPAException, InterruptedException {
+  public boolean stop(
+      AbstractState pElement, Collection<AbstractState> pReached, Precision pPrecision)
+      throws CPAException, InterruptedException {
 
-    ARGState argElement = (ARGState)pElement;
-    assert !argElement.isCovered() : "Passing element to stop which is already covered: " + argElement;
+    ARGState argElement = (ARGState) pElement;
+    assert !argElement.isCovered()
+        : "Passing element to stop which is already covered: " + argElement;
 
     // First check if we can take a shortcut:
     // If the new state was merged into an existing element,
@@ -60,7 +62,10 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
       if (pReached.contains(mergedWith)) {
         // we do this single check first as it should return true in most of the cases
 
-        if (wrappedStop.stop(argElement.getWrappedState(), Collections.singleton(mergedWith.getWrappedState()), pPrecision)) {
+        if (wrappedStop.stop(
+            argElement.getWrappedState(),
+            Collections.singleton(mergedWith.getWrappedState()),
+            pPrecision)) {
           // merged and covered
           if (inCPAEnabledAnalysis) {
             argElement.setCovered(mergedWith);
@@ -80,7 +85,10 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
 
       } else {
         // unexpected case, not sure if it this possible
-        logger.log(Level.FINEST, "Element was merged into an element that's not in the reached set, merged-with element is", mergedWith);
+        logger.log(
+            Level.FINEST,
+            "Element was merged into an element that's not in the reached set, merged-with element is",
+            mergedWith);
       }
     }
 
@@ -98,7 +106,7 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
     }
 
     for (AbstractState reachedState : pReached) {
-      ARGState argReachedState = (ARGState)reachedState;
+      ARGState argReachedState = (ARGState) reachedState;
       if (stop(argElement, argReachedState, pPrecision)) {
         if (parent != null && argReachedState.getParents().contains(parent)) {
           // if the covering state has the same parent as the covered state
@@ -113,11 +121,10 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
       }
     }
     return false;
-
   }
 
   private boolean stop(ARGState pElement, ARGState pReachedState, Precision pPrecision)
-                                                      throws CPAException, InterruptedException {
+      throws CPAException, InterruptedException {
 
     if (!pReachedState.mayCover()) {
       return false;
@@ -136,7 +143,8 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
     AbstractState wrappedState = pElement.getWrappedState();
     AbstractState wrappedReachedState = pReachedState.getWrappedState();
 
-    boolean stop = wrappedStop.stop(wrappedState, Collections.singleton(wrappedReachedState), pPrecision);
+    boolean stop =
+        wrappedStop.stop(wrappedState, Collections.singleton(wrappedReachedState), pPrecision);
 
     if (stop) {
       pElement.setCovered(pReachedState);
@@ -145,13 +153,15 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
   }
 
   @Override
-  public boolean isForcedCoveringPossible(AbstractState pElement, AbstractState pReachedState, Precision pPrecision) throws CPAException, InterruptedException {
+  public boolean isForcedCoveringPossible(
+      AbstractState pElement, AbstractState pReachedState, Precision pPrecision)
+      throws CPAException, InterruptedException {
     if (!(wrappedStop instanceof ForcedCoveringStopOperator)) {
       return false;
     }
 
-    ARGState element = (ARGState)pElement;
-    ARGState reachedState = (ARGState)pReachedState;
+    ARGState element = (ARGState) pElement;
+    ARGState reachedState = (ARGState) pReachedState;
 
     if (reachedState.isCovered() || !reachedState.mayCover()) {
       return false;
@@ -161,7 +171,18 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
       return false;
     }
 
-    return ((ForcedCoveringStopOperator)wrappedStop).isForcedCoveringPossible(
-        element.getWrappedState(), reachedState.getWrappedState(), pPrecision);
+    return ((ForcedCoveringStopOperator) wrappedStop)
+        .isForcedCoveringPossible(
+            element.getWrappedState(), reachedState.getWrappedState(), pPrecision);
+  }
+
+  @Override
+  public Collection<AbstractState> getCoveringStates(
+      AbstractState pElement, Collection<AbstractState> pReachedSet, Precision pPrecision)
+      throws CPAException, InterruptedException {
+    throw new AssertionError(
+        "Class "
+            + getClass().getSimpleName()
+            + " does not support this function. It should not be called.");
   }
 }
