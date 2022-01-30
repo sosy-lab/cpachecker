@@ -130,9 +130,9 @@ public class FaultLocalizationWorker extends AnalysisWorker {
   }
 
   @Override
-  protected Collection<Message> backwardAnalysis(CFANode pStartNode, MessageProcessing pMessageProcessing)
+  protected Collection<Message> backwardAnalysis(MessageProcessing pMessageProcessing)
       throws CPAException, InterruptedException, SolverException {
-    Set<Message> responses = new HashSet<>(super.backwardAnalysis(pStartNode, pMessageProcessing));
+    Set<Message> responses = new HashSet<>(super.backwardAnalysis(pMessageProcessing));
     Message currentResult = responses.stream().findFirst().orElseThrow();
     // super backward analysis ensures exactly one entry in pMessageProcessing
     Message message = pMessageProcessing.stream().findFirst().orElseThrow();
@@ -141,7 +141,7 @@ public class FaultLocalizationWorker extends AnalysisWorker {
       if (message.getPayload().containsKey(POSTCONDITION_KEY)) {
         actualPost = dpcpa.getPathFormula(message.getPayload().get(POSTCONDITION_KEY)).getFormula();
       }
-      PredicateAbstractState state = (PredicateAbstractState) dpcpa.deserialize(message.getPayload(), pStartNode);
+      PredicateAbstractState state = (PredicateAbstractState) dpcpa.deserialize(message);
       TraceFormula tf = createTraceFormula(state.getPathFormula());
       Set<Fault> faults = performFaultLocalization(tf);
       actualPost = actualPost == null ? tf.getPostConditionStatement() : actualPost;

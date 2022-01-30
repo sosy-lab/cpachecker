@@ -262,7 +262,7 @@ public class ComponentAnalysis implements Algorithm {
       }
 
       for (Thread thread : threads) {
-        thread.interrupt();
+        //thread.interrupt();
       }
       for (Worker worker : components.getWorkers()) {
         worker.shutdown();

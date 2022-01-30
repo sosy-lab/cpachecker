@@ -49,19 +49,18 @@ public class DistributedCompositeCPA extends AbstractDistributedCPA {
   }
 
   @Override
-  public AbstractState deserialize(Payload pPayload, CFANode pLocation)
+  public AbstractState deserialize(Message pMessage)
       throws InterruptedException {
+    CFANode location = block.getNodeWithNumber(pMessage.getTargetNodeNumber());
     CompositeCPA compositeCPA = (CompositeCPA) parentCPA;
     List<AbstractState> states = new ArrayList<>();
     for (ConfigurableProgramAnalysis wrappedCPA : compositeCPA.getWrappedCPAs()) {
       if (registered.containsKey(wrappedCPA.getClass())) {
         AbstractDistributedCPA entry = registered.get(wrappedCPA.getClass());
-        if (pPayload.containsKey(wrappedCPA.getClass().getName())) {
-          states.add(entry.deserialize(pPayload, pLocation));
-        }
+        states.add(entry.deserialize(pMessage));
       } else {
         states.add(
-            wrappedCPA.getInitialState(pLocation, StateSpacePartition.getDefaultPartition()));
+            wrappedCPA.getInitialState(location, StateSpacePartition.getDefaultPartition()));
       }
     }
     return new CompositeState(states);

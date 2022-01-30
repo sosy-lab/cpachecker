@@ -10,12 +10,15 @@ package org.sosy_lab.cpachecker.core.algorithm.components.distributed_cpa;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
@@ -45,6 +48,7 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
 
   private final ConcurrentHashMap<String, Message> receivedErrorConditions;
   private final ConcurrentHashMap<String, Message> receivedPostConditions;
+  private final ConcurrentHashMap<String, Boolean> circularPredecessors;
   private final Map<Formula, Formula> substitutions;
   private int executionCounter;
 
@@ -55,6 +59,7 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
     super(pWorkerId, pNode, pTypeMap, pPrecision, pDirection);
     receivedErrorConditions = new ConcurrentHashMap<>();
     receivedPostConditions = new ConcurrentHashMap<>();
+    circularPredecessors = new ConcurrentHashMap<>();
     substitutions = new HashMap<>();
   }
 
@@ -63,11 +68,11 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
   }
 
   @Override
-  public AbstractState deserialize(Payload pPayload, CFANode pLocation) throws InterruptedException {
-    String formula = extractFormulaString(pPayload);
+  public AbstractState deserialize(Message pMessage) throws InterruptedException {
+    String formula = extractFormulaString(pMessage.getPayload());
     return PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
         getPathFormula(formula),
-        (PredicateAbstractState) getInitialState(pLocation,
+        (PredicateAbstractState) getInitialState(block.getNodeWithNumber(pMessage.getTargetNodeNumber()),
             StateSpacePartition.getDefaultPartition()));
   }
 
@@ -167,8 +172,14 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
       return MessageProcessing.stop();
     }
     receivedPostConditions.put(message.getUniqueBlockId(), message);
+    Set<String> visited = new HashSet<>(Splitter.on(",").splitToList(message.getPayload().getOrDefault(Payload.VISITED, "")));
+    if (visited.contains(block.getId())) {
+      circularPredecessors.put(message.getUniqueBlockId(), visited.contains("B0"));
+    }
     if (receivedPostConditions.values().size() == block.getPredecessors().size()) {
-      return MessageProcessing.proceedWith(receivedPostConditions.values());
+      List<Message> messages = receivedPostConditions.values().stream().filter(m -> circularPredecessors.getOrDefault(m.getUniqueBlockId(), true)).collect(
+          ImmutableList.toImmutableList());
+      return MessageProcessing.proceedWith(messages);
     } else {
       return MessageProcessing.proceed();
     }

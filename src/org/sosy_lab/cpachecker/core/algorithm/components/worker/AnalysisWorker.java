@@ -15,13 +15,11 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.components.block_analysis.BlockAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.components.block_analysis.BlockAnalysis.BackwardAnalysis;
@@ -31,6 +29,7 @@ import org.sosy_lab.cpachecker.core.algorithm.components.distributed_cpa.Distrib
 import org.sosy_lab.cpachecker.core.algorithm.components.distributed_cpa.MessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageType;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Payload;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -83,7 +82,7 @@ public class AnalysisWorker extends Worker {
 
     Configuration forwardConfiguration =
         Configuration.builder().copyFrom(pConfiguration).setOption("CompositeCPA.cpas",
-                "cpa.location.LocationCPA, cpa.block.BlockCPA, cpa.predicate.PredicateCPA, cpa.value.ValueAnalysisCPA")
+                "cpa.location.LocationCPA, cpa.block.BlockCPA, cpa.predicate.PredicateCPA")
             .setOption("cpa.predicate.blk.alwaysAtJoin", "false")
             .setOption("cpa.predicate.blk.alwaysAtBranch", "false")
             .setOption("cpa.predicate.blk.alwaysAtProgramExit", "false")
@@ -93,7 +92,7 @@ public class AnalysisWorker extends Worker {
             .build();
 
     // otherwise, error in finding ARGPaths
-    if (true || block.isCircular()) {
+    if (true || block.isSelfCircular()) {
       backwardConfiguration = Configuration.builder().copyFrom(backwardConfiguration)
           .setOption("cpa.predicate.merge", "SEP").build();
       forwardConfiguration = Configuration.builder().copyFrom(forwardConfiguration)
@@ -135,7 +134,7 @@ public class AnalysisWorker extends Worker {
     if (processing.end()) {
       return processing;
     }
-    return forwardAnalysis(processing, block.getNodeWithNumber(message.getTargetNodeNumber()));
+    return forwardAnalysis(processing);
   }
 
   private Collection<Message> processErrorCondition(Message message)
@@ -145,25 +144,24 @@ public class AnalysisWorker extends Worker {
     if(processing.end()) {
       return processing;
     }
-    return backwardAnalysis(block.getNodeWithNumber(message.getTargetNodeNumber()), processing);
+    return backwardAnalysis(processing);
   }
 
   // return post condition
-  private Collection<Message> forwardAnalysis(Collection<Message> pPostConditionMessages, CFANode pStartNode)
+  private Collection<Message> forwardAnalysis(Collection<Message> pPostConditionMessages)
       throws CPAException, InterruptedException, SolverException {
     Collection<Message> messages =
-        forwardAnalysis.analyze(pPostConditionMessages.stream().map(Message::getPayload).collect(
-            Collectors.toList()), pStartNode);
+        forwardAnalysis.analyze(pPostConditionMessages);
     status = forwardAnalysis.getStatus();
     return messages;
   }
 
   // return pre-condition
-  protected Collection<Message> backwardAnalysis(CFANode pStartNode, MessageProcessing pMessageProcessing)
+  protected Collection<Message> backwardAnalysis(MessageProcessing pMessageProcessing)
       throws CPAException, InterruptedException, SolverException {
     assert pMessageProcessing.size() == 1 : "BackwardAnalysis can only be based on one message";
     Collection<Message> messages =
-        backwardAnalysis.analyze(pMessageProcessing.toPayloadCollection(), pStartNode);
+        backwardAnalysis.analyze(pMessageProcessing);
     status = backwardAnalysis.getStatus();
     return messages;
   }
@@ -171,8 +169,10 @@ public class AnalysisWorker extends Worker {
   @Override
   public void run() {
     try {
-      if (!block.isCircular() && !block.getPredecessors().isEmpty()) {
-        List<Message> initialMessages = ImmutableList.copyOf(forwardAnalysis(ImmutableSet.of(), block.getStartNode()));
+      if (!block.isSelfCircular() && !block.getPredecessors().isEmpty()) {
+        List<Message> initialMessages = ImmutableList.copyOf(forwardAnalysis(ImmutableSet.of(
+            Message.newBlockPostCondition("", block.getStartNode().getNodeNumber(), Payload.empty(),
+                false, ImmutableSet.of()))));
         if (initialMessages.size() == 1) {
           Message message = initialMessages.get(0);
           if (message.getType() == MessageType.BLOCK_POSTCONDITION) {

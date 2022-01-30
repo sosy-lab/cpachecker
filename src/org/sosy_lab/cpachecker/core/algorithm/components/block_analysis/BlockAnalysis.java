@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -135,16 +136,11 @@ public abstract class BlockAnalysis {
     return (CompositeState) argState.getWrappedState();
   }
 
-  protected ARGState getStartState(Collection<Payload> receivedPostConditions, CFANode node)
+  protected ARGState getStartState(Collection<Message> receivedPostConditions)
       throws InterruptedException, CPAException {
-    if (receivedPostConditions.isEmpty()) {
-      return new ARGState(
-          distributedCompositeCPA.getInitialState(node, StateSpacePartition.getDefaultPartition()),
-          null);
-    }
     List<AbstractState> states = new ArrayList<>();
-    for (Payload receivedPostCondition : receivedPostConditions) {
-      states.add(distributedCompositeCPA.deserialize(receivedPostCondition, node));
+    for (Message receivedPostCondition : receivedPostConditions) {
+      states.add(distributedCompositeCPA.deserialize(receivedPostCondition));
     }
     return new ARGState(distributedCompositeCPA.combine(states), null);
   }
@@ -182,17 +178,17 @@ public abstract class BlockAnalysis {
     return status;
   }
 
-  public Set<String> visitedBlocks(Collection<Payload> pPayloads) {
+  public Set<String> visitedBlocks(Collection<Message> pPayloads) {
     Set<String> visitedBlocks = new HashSet<>();
-    for (Payload message : pPayloads) {
-      visitedBlocks.addAll(Splitter.on(",").splitToList(message.getOrDefault(Payload.VISITED, "")));
+    for (Message message : pPayloads) {
+      visitedBlocks.addAll(Splitter.on(",").splitToList(message.getPayload().getOrDefault(Payload.VISITED, "")));
     }
     visitedBlocks.remove("");
     visitedBlocks.add(block.getId());
     return visitedBlocks;
   }
 
-  public abstract Collection<Message> analyze(Collection<Payload> messages, CFANode node)
+  public abstract Collection<Message> analyze(Collection<Message> messages)
       throws CPAException, InterruptedException, SolverException;
 
   public static class ForwardAnalysis extends BlockAnalysis {
@@ -218,11 +214,11 @@ public abstract class BlockAnalysis {
     }
 
     @Override
-    public Collection<Message> analyze(Collection<Payload> messages, CFANode node)
+    public Collection<Message> analyze(Collection<Message> messages)
         throws CPAException, InterruptedException {
       relation.init(block);
       reachedSet.clear();
-      AbstractState startState = getStartState(messages, node);
+      AbstractState startState = getStartState(messages);
       reachedSet.add(startState, emptyPrecision);
       status = algorithm.run(reachedSet);
       Set<ARGState> targetStates = from(reachedSet).filter(AbstractStates::isTargetState)
@@ -265,7 +261,7 @@ public abstract class BlockAnalysis {
         Message response =
             Message.newBlockPostCondition(block.getId(), block.getLastNode().getNodeNumber(),
                 result, messages.size() == block.getPredecessors().size() && messages.stream()
-                    .allMatch(m -> Boolean.parseBoolean(m.get(Payload.FULL_PATH))),
+                    .allMatch(m -> Boolean.parseBoolean(m.getPayload().get(Payload.FULL_PATH))),
                 visitedBlocks(messages));
         answers.add(response);
       }
@@ -295,15 +291,20 @@ public abstract class BlockAnalysis {
     }
 
     @Override
-    public Collection<Message> analyze(Collection<Payload> messages, CFANode node)
+    public Collection<Message> analyze(Collection<Message> messages)
         throws CPAException, InterruptedException, SolverException {
       relation.init(block);
       reachedSet.clear();
-      AbstractState startState = getStartState(messages, node);
+      AbstractState startState = getStartState(messages);
       reachedSet.add(startState, emptyPrecision);
       status = algorithm.run(reachedSet);
       List<AbstractState>
           states = extractBlockEntryPoints(reachedSet, block.getStartNode(), startState);
+      if (states.isEmpty()) {
+        // should not happen
+        logger.log(Level.SEVERE, "Cannot reach block start?", reachedSet);
+        return ImmutableSet.of(Message.newErrorConditionUnreachableMessage(block.getId()));
+      }
       return ImmutableSet.of(
           Message.newErrorConditionMessage(block.getId(), block.getStartNode().getNodeNumber(),
               distributedCompositeCPA.serialize(distributedCompositeCPA.combine(states)), false,
@@ -330,7 +331,7 @@ public abstract class BlockAnalysis {
 
     @Override
     public Collection<Message> analyze(
-        Collection<Payload> condition, CFANode node)
+        Collection<Message> condition)
         throws CPAException, InterruptedException, SolverException {
       return ImmutableSet.of();
     }

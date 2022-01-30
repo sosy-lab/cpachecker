@@ -56,18 +56,23 @@ public abstract class Worker implements Runnable {
   public void run() {
     try {
       while (!finished) {
-        finished = Thread.currentThread().isInterrupted();
         broadcast(processMessage(nextMessage()));
+        finished |= Thread.currentThread().isInterrupted();
       }
     } catch (CPAException | InterruptedException | IOException | SolverException pE) {
       logger.log(Level.SEVERE, pE);
+      throw new AssertionError(pE);
+/*      try {
+        broadcast(ImmutableList.of(Message.newErrorMessage(getId(), pE)));
+      } catch (IOException | InterruptedException pEx) {
+        logger.log(Level.SEVERE, pE);
+      }*/
     }
   }
 
   public synchronized void shutdown() throws IOException {
     finished = true;
     connection.close();
-    Thread.currentThread().interrupt();
   }
 
   public final String getId() {

@@ -30,6 +30,9 @@ import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 
+/**
+ * Immutable communication entity for the actor model
+ */
 public class Message implements Comparable<Message> {
 
   @Override
@@ -55,6 +58,7 @@ public class Message implements Comparable<Message> {
   private final int targetNodeNumber;
   private final String uniqueBlockId;
   private final MessageType type;
+  // forwards an immutable hashmap
   private final Payload payload;
   private final long timestamp;
 
@@ -182,7 +186,7 @@ public class Message implements Comparable<Message> {
     return new Message(MessageType.FOUND_RESULT, pUniqueBlockId, pTargetNodeNumber, payload);
   }
 
-  public static Message newErrorMessage(String pUniqueBlockId, Exception pException) {
+  public static Message newErrorMessage(String pUniqueBlockId, Throwable pException) {
     ByteArrayOutputStream arrayWriter = new ByteArrayOutputStream();
     PrintWriter printer = new PrintWriter(new ByteArrayOutputStream());
     pException.printStackTrace(printer);

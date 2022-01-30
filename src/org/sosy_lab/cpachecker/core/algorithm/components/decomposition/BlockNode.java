@@ -105,7 +105,7 @@ public class BlockNode {
     return codeLines.toString();
   }
 
-  public boolean isCircular() {
+  public boolean isSelfCircular() {
     return lastNode.equals(startNode) && !isEmpty() && !isRoot();
   }
 

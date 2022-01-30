@@ -51,7 +51,7 @@ public abstract class AbstractDistributedCPA implements ConfigurableProgramAnaly
     precision = pPrecision;
   }
 
-  public abstract AbstractState deserialize(Payload pPayload, CFANode location)
+  public abstract AbstractState deserialize(Message pPayload)
       throws InterruptedException;
 
   public abstract Payload serialize(AbstractState pState);
@@ -72,8 +72,10 @@ public abstract class AbstractDistributedCPA implements ConfigurableProgramAnaly
 
   public final AbstractState combine(List<AbstractState> pStates)
       throws InterruptedException, CPAException {
-    if (pStates.size() < 1) {
-      throw new AssertionError("Merging requires at least one state: " + pStates);
+    if (pStates.isEmpty()) {
+      return getInitialState(
+          direction == AnalysisDirection.FORWARD ? block.getStartNode() : block.getLastNode(),
+          StateSpacePartition.getDefaultPartition());
     }
     if (pStates.size() == 1) {
       return pStates.get(0);
