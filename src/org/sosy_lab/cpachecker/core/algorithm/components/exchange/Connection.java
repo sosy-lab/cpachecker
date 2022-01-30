@@ -22,7 +22,9 @@ public interface Connection extends Closeable {
 
   int size();
 
-  boolean isEmpty();
+  default boolean isEmpty() {
+    return size() == 0;
+  }
 
 /*
    * Get all messages with a certain type
