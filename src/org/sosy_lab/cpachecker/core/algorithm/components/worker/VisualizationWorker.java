@@ -25,7 +25,7 @@ public class VisualizationWorker extends Worker {
   private final MessageLogger messageLogger;
 
   protected VisualizationWorker(LogManager pLogger, BlockTree pTree) {
-    super(pLogger);
+    super("visualization-worker", pLogger);
     messageLogger = new MessageLogger(pTree);
     try {
       messageLogger.logTree();

@@ -45,6 +45,7 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
 
   private final ConcurrentHashMap<String, Message> receivedErrorConditions;
   private final ConcurrentHashMap<String, Message> receivedPostConditions;
+  private final Map<Formula, Formula> substitutions;
   private int executionCounter;
 
   private Message lastOwnPostConditionMessage;
@@ -54,10 +55,15 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
     super(pWorkerId, pNode, pTypeMap, pPrecision, pDirection);
     receivedErrorConditions = new ConcurrentHashMap<>();
     receivedPostConditions = new ConcurrentHashMap<>();
+    substitutions = new HashMap<>();
+  }
+
+  public Map<Formula, Formula> getSubstitutions() {
+    return new HashMap<>(substitutions);
   }
 
   @Override
-  public AbstractState translate(Payload pPayload, CFANode pLocation) throws InterruptedException {
+  public AbstractState deserialize(Payload pPayload, CFANode pLocation) throws InterruptedException {
     String formula = extractFormulaString(pPayload);
     return PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
         getPathFormula(formula),
@@ -66,7 +72,7 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
   }
 
   @Override
-  public Payload translate(AbstractState pState) {
+  public Payload serialize(AbstractState pState) {
     String formula = getSolver().getFormulaManager().dumpFormula(uninstantiate(((PredicateAbstractState) pState).getPathFormula()).getFormula()).toString();
     return Payload.builder().addEntry(parentCPA.getClass().getName(), formula).build();
   }
@@ -86,7 +92,7 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
   }
 
   @Override
-  public MessageProcessing stopBackward(Message message) throws SolverException, InterruptedException {
+  public MessageProcessing proceedBackward(Message message) throws SolverException, InterruptedException {
     Preconditions.checkArgument(message.getType() == MessageType.ERROR_CONDITION,
         "can only process messages with type %s", MessageType.ERROR_CONDITION);
     Optional<CFANode> optionalCFANode = block.getNodesInBlock().stream()
@@ -148,7 +154,7 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
   }
 
   @Override
-  public MessageProcessing stopForward(Message message) {
+  public MessageProcessing proceedForward(Message message) {
     Preconditions.checkArgument(message.getType() == MessageType.BLOCK_POSTCONDITION,
         "can only process messages with type %s", MessageType.BLOCK_POSTCONDITION);
     Optional<CFANode> optionalCFANode = block.getNodesInBlock().stream()
@@ -161,10 +167,14 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
       return MessageProcessing.stop();
     }
     receivedPostConditions.put(message.getUniqueBlockId(), message);
-    return MessageProcessing.proceedWith(receivedPostConditions.values());
+    if (receivedPostConditions.values().size() == block.getPredecessors().size()) {
+      return MessageProcessing.proceedWith(receivedPostConditions.values());
+    } else {
+      return MessageProcessing.proceed();
+    }
   }
 
-  private PathFormula getPathFormula(String formula) {
+  public PathFormula getPathFormula(String formula) {
     PathFormulaManager manager = ((PredicateCPA) parentCPA).getPathFormulaManager();
     FormulaManagerView fmgr = getSolver().getFormulaManager();
     if (formula.isEmpty()) {
@@ -206,7 +216,7 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
     BooleanFormula booleanFormula = pPathFormula.getFormula();
     SSAMap ssaMap = pPathFormula.getSsa();
     Map<String, Formula> variableToFormula = fmgr.extractVariables(booleanFormula);
-    Map<Formula, Formula> substitutions = new HashMap<>();
+    substitutions.clear();
     SSAMapBuilder builder = SSAMap.emptySSAMap().builder();
     for (Entry<String, Formula> stringFormulaEntry : variableToFormula.entrySet()) {
       String name = stringFormulaEntry.getKey();
@@ -224,7 +234,7 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
         substitutions.put(formula, fmgr.makeVariable(fmgr.getFormulaType(formula),
             name + "." + id + "E" + executionCounter + direction.name().charAt(0) + index));
       } else {
-        substitutions.put(formula, fmgr.makeVariable(fmgr.getFormulaType(formula), name));
+        substitutions.put(formula, fmgr.makeVariable(fmgr.getFormulaType(formula), name, 1));
         builder = builder.setIndex(name, ssaMap.getType(name), 1);
       }
     }

@@ -27,18 +27,23 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public abstract class AbstractDistributedCPA implements ConfigurableProgramAnalysis{
+public abstract class AbstractDistributedCPA implements ConfigurableProgramAnalysis {
 
   protected final BlockNode block;
   protected final SSAMap typeMap;
   protected final AnalysisDirection direction;
-  protected  final String id;
+  protected final String id;
   protected ConfigurableProgramAnalysis parentCPA;
   protected Message firstMessage;
   protected Precision precision;
 
-  public AbstractDistributedCPA(String pId, BlockNode pNode, SSAMap pTypeMap, Precision pPrecision, AnalysisDirection pDirection) throws
-                                                                                                            CPAException {
+  public AbstractDistributedCPA(
+      String pId,
+      BlockNode pNode,
+      SSAMap pTypeMap,
+      Precision pPrecision,
+      AnalysisDirection pDirection) throws
+                                    CPAException {
     block = pNode;
     typeMap = pTypeMap;
     direction = pDirection;
@@ -46,13 +51,20 @@ public abstract class AbstractDistributedCPA implements ConfigurableProgramAnaly
     precision = pPrecision;
   }
 
-  public abstract AbstractState translate(Payload pPayload, CFANode location) throws InterruptedException;
+  public abstract AbstractState deserialize(Payload pPayload, CFANode location)
+      throws InterruptedException;
 
-  public abstract Payload translate(AbstractState pState);
+  public abstract Payload serialize(AbstractState pState);
 
-  public abstract MessageProcessing stopForward(Message newMessage);
+  public MessageProcessing proceed(Message newMessage)
+      throws SolverException, InterruptedException {
+    return direction == AnalysisDirection.FORWARD ? proceedForward(newMessage)
+                                                  : proceedBackward(newMessage);
+  }
 
-  public abstract MessageProcessing stopBackward(Message newMessage)
+  protected abstract MessageProcessing proceedForward(Message newMessage);
+
+  protected abstract MessageProcessing proceedBackward(Message newMessage)
       throws SolverException, InterruptedException;
 
   public abstract boolean doesOperateOn(Class<? extends AbstractState> pClass);

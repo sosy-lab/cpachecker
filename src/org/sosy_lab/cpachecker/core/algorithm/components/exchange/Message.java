@@ -82,6 +82,11 @@ public class Message implements Comparable<Message> {
     timestamp = pTimestamp;
   }
 
+  public static Message replacePayload(Message pMessage, Payload pPayload) {
+    return new Message(pMessage.getType(), pMessage.getUniqueBlockId(),
+        pMessage.getTargetNodeNumber(), pMessage.getTimestamp(), pPayload);
+  }
+
   public int getTargetNodeNumber() {
     return targetNodeNumber;
   }
@@ -133,9 +138,9 @@ public class Message implements Comparable<Message> {
       int pTargetNodeNumber,
       Payload pPayload,
       boolean full) {
-    pPayload.put("full", Boolean.toString(full));
+    Payload newPayload = Payload.builder().putAll(pPayload).addEntry(Payload.FULL_PATH, Boolean.toString(full)).build();
     return new Message(MessageType.BLOCK_POSTCONDITION, pUniqueBlockId, pTargetNodeNumber,
-        pPayload);
+        newPayload);
   }
 
   public static Message newErrorConditionMessage(
@@ -143,9 +148,9 @@ public class Message implements Comparable<Message> {
       int pTargetNodeNumber,
       Payload pPayload,
       boolean first) {
-    pPayload.put("first", Boolean.toString(first));
+    Payload newPayload = Payload.builder().putAll(pPayload).addEntry(Payload.FIRST, Boolean.toString(first)).build();
     return new Message(MessageType.ERROR_CONDITION, pUniqueBlockId, pTargetNodeNumber,
-        pPayload);
+        newPayload);
   }
 
   public static Message newErrorConditionUnreachableMessage(String pUniqueBlockId) {
@@ -157,7 +162,7 @@ public class Message implements Comparable<Message> {
       int pTargetNodeNumber,
       Result pResult
   ) {
-    return new Message(MessageType.FOUND_RESULT, pUniqueBlockId, pTargetNodeNumber, Payload.builder().addEntry("result", pResult.name()).build());
+    return new Message(MessageType.FOUND_RESULT, pUniqueBlockId, pTargetNodeNumber, Payload.builder().addEntry(Payload.RESULT, pResult.name()).build());
   }
 
   public static Message newErrorMessage(String pUniqueBlockId, Exception pException) {
@@ -165,7 +170,7 @@ public class Message implements Comparable<Message> {
     PrintWriter printer = new PrintWriter(new ByteArrayOutputStream());
     pException.printStackTrace(printer);
     return new Message(MessageType.ERROR, pUniqueBlockId, 0,
-       Payload.builder().addEntry("exception", arrayWriter.toString()).build());
+       Payload.builder().addEntry(Payload.EXCEPTION, arrayWriter.toString()).build());
   }
 
   public static Collection<Message> makeBroadcastReady(Message... pMessages) {

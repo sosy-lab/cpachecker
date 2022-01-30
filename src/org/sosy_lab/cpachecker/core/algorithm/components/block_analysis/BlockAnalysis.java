@@ -141,7 +141,7 @@ public abstract class BlockAnalysis {
     }
     List<AbstractState> states = new ArrayList<>();
     for (Payload receivedPostCondition : receivedPostConditions) {
-      states.add(distributedCompositeCPA.translate(receivedPostCondition, node));
+      states.add(distributedCompositeCPA.deserialize(receivedPostCondition, node));
     }
     return new ARGState(distributedCompositeCPA.combine(states), null);
   }
@@ -232,7 +232,7 @@ public abstract class BlockAnalysis {
                   "States need to have a location but this one does not:" + targetState);
             }
             reportedOriginalViolation = true;
-            Payload initial = distributedCompositeCPA.translate(
+            Payload initial = distributedCompositeCPA.serialize(
                 distributedCompositeCPA.getInitialState(targetNode.orElseThrow(),
                     StateSpacePartition.getDefaultPartition()));
             answers.add(Message.newErrorConditionMessage(block.getId(),
@@ -247,11 +247,11 @@ public abstract class BlockAnalysis {
           extractBlockEntryPoints(reachedSet, block.getLastNode(), startState);
       if (!compositeStates.isEmpty()) {
         AbstractState combined = distributedCompositeCPA.combine(compositeStates);
-        Payload result = distributedCompositeCPA.translate(combined);
+        Payload result = distributedCompositeCPA.serialize(combined);
         Message response =
             Message.newBlockPostCondition(block.getId(), block.getLastNode().getNodeNumber(),
                 result, messages.size() == block.getPredecessors().size() && messages.stream()
-                    .allMatch(m -> Boolean.parseBoolean(m.get("full"))));
+                    .allMatch(m -> Boolean.parseBoolean(m.get(Payload.FULL_PATH))));
         answers.add(response);
       }
       return answers;
@@ -291,7 +291,7 @@ public abstract class BlockAnalysis {
           states = extractBlockEntryPoints(reachedSet, block.getStartNode(), startState);
       return ImmutableSet.of(
           Message.newErrorConditionMessage(block.getId(), block.getStartNode().getNodeNumber(),
-              distributedCompositeCPA.translate(distributedCompositeCPA.combine(states)), false));
+              distributedCompositeCPA.serialize(distributedCompositeCPA.combine(states)), false));
     }
   }
 

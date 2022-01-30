@@ -144,6 +144,7 @@ public class NetworkReceiver implements Closeable {
 
   @Override
   public void close() throws IOException {
+    selector.close();
     receiverThread.interrupt();
   }
 }

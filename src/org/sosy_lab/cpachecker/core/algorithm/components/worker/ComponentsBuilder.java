@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.core.algorithm.components.worker.MonitoredAnalysi
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 public class ComponentsBuilder {
 

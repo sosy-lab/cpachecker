@@ -13,12 +13,19 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.MapType;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 import com.google.common.collect.ForwardingMap;
+import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import org.sosy_lab.common.JSON;
 
 public class Payload extends ForwardingMap<String, String> {
+
+  public static final String FULL_PATH = "full";
+  public static final String FIRST = "first";
+  public static final String EXCEPTION = "exception";
+  public static final String RESULT = "result";
+  public static final String FAULT_LOCALIZATION = "fl";
 
   private final Map<String, String> delegate;
 
@@ -35,11 +42,7 @@ public class Payload extends ForwardingMap<String, String> {
   }
 
   public static Payload empty() {
-    return new Payload();
-  }
-
-  public Payload() {
-    delegate = new HashMap<>();
+    return new Payload(ImmutableMap.of());
   }
 
   public String toJSONString() throws IOException {
@@ -49,7 +52,7 @@ public class Payload extends ForwardingMap<String, String> {
   }
 
   public Payload(Map<String, String> pDelegate) {
-    delegate = new HashMap<>(pDelegate);
+    delegate = ImmutableMap.copyOf(pDelegate);
   }
 
   @Override
@@ -59,10 +62,10 @@ public class Payload extends ForwardingMap<String, String> {
 
   public static class PayloadBuilder {
 
-    private final Payload payload;
+    private final Map<String, String> payload;
 
     public PayloadBuilder() {
-      payload = new Payload();
+      payload = new HashMap<>();
     }
 
     public PayloadBuilder addEntry(String key, String value) {
@@ -75,8 +78,13 @@ public class Payload extends ForwardingMap<String, String> {
       return this;
     }
 
+    public PayloadBuilder putAll(Map<String, String> pMap) {
+      payload.putAll(pMap);
+      return this;
+    }
+
     public Payload build() {
-      return payload;
+      return new Payload(payload);
     }
 
   }

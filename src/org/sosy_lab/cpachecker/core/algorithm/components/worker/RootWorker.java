@@ -37,7 +37,7 @@ public class RootWorker extends Worker {
 
   public RootWorker(String pId, BlockNode pNode, LogManager pLogger, CFA pCfa, Specification pSpecification, Configuration pConfiguration, ShutdownManager pShutdownManager)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
-    super(pLogger);
+    super("root-worker", pLogger);
     root = pNode;
     if (!root.isRoot() || !root.isEmpty() || !root.getLastNode().equals(root.getStartNode())) {
       throw new AssertionError("Root nodes must be empty and does not have predecessors: " + pNode);
@@ -53,7 +53,7 @@ public class RootWorker extends Worker {
         if (pMessage.getTargetNodeNumber() == root.getLastNode().getNodeNumber()
             && root.getSuccessors().stream()
             .anyMatch(block -> block.getId().equals(pMessage.getUniqueBlockId()))) {
-          MessageProcessing processing = analysis.getDistributedCPA().stopBackward(pMessage);
+          MessageProcessing processing = analysis.getDistributedCPA().proceedBackward(pMessage);
           if (processing.end()) {
             return processing;
           }
@@ -75,7 +75,7 @@ public class RootWorker extends Worker {
   public void run() {
     try {
       Message firstMessage = Message.newBlockPostCondition(root.getId(), root.getLastNode().getNodeNumber(),
-          analysis.getDistributedCPA().translate(analysis.getDistributedCPA().getInitialState(root.getStartNode(), StateSpacePartition.getDefaultPartition())), true);
+          analysis.getDistributedCPA().serialize(analysis.getDistributedCPA().getInitialState(root.getStartNode(), StateSpacePartition.getDefaultPartition())), true);
       analysis.getDistributedCPA().setFirstMessage(firstMessage);
       broadcast(ImmutableSet.of(firstMessage));
       super.run();

@@ -33,23 +33,23 @@ public class DistributedValueAnalysis extends AbstractDistributedCPA {
   }
 
   @Override
-  public AbstractState translate(Payload pPayload, CFANode pLocation) throws InterruptedException {
+  public AbstractState deserialize(Payload pPayload, CFANode pLocation) throws InterruptedException {
     return null;
   }
 
   @Override
-  public Payload translate(AbstractState pState) {
+  public Payload serialize(AbstractState pState) {
     return null;
   }
 
   @Override
-  public MessageProcessing stopForward(Message newMessage) {
+  public MessageProcessing proceedForward(Message newMessage) {
     // continue if in block
     return null;
   }
 
   @Override
-  public MessageProcessing stopBackward(Message newMessage)
+  public MessageProcessing proceedBackward(Message newMessage)
       throws SolverException, InterruptedException {
     // full Path variable values dont match
     return null;

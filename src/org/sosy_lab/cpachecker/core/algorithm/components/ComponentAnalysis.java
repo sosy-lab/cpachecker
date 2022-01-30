@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.ConnectionProvider;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageType;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Payload;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.memory.InMemoryConnectionProvider;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.network.NetworkConnectionProvider;
 import org.sosy_lab.cpachecker.core.algorithm.components.worker.ComponentsBuilder;
@@ -213,7 +214,7 @@ public class ComponentAnalysis implements Algorithm {
       // run all workers
       List<Thread> threads = new ArrayList<>();
       for (Worker worker : components.getWorkers()) {
-        Thread thread = new Thread(worker);
+        Thread thread = new Thread(worker, worker.getId());
         thread.start();
         threads.add(thread);
       }
@@ -225,15 +226,15 @@ public class ComponentAnalysis implements Algorithm {
       Result result;
       while (true) {
         Message m = mainThreadConnection.read();
-        if (m.getType() == MessageType.ERROR_CONDITION && m.getPayload().containsKey("faultlocalization")) {
-          faults.add(m.getPayload().get("faultlocalization"));
+        if (m.getType() == MessageType.ERROR_CONDITION && m.getPayload().containsKey(Payload.FAULT_LOCALIZATION)) {
+          faults.add(m.getPayload().get(Payload.FAULT_LOCALIZATION));
         }
         if (m.getType() == MessageType.FOUND_RESULT) {
-          result = Result.valueOf(m.getPayload().get("result"));
+          result = Result.valueOf(m.getPayload().get(Payload.RESULT));
           while(!mainThreadConnection.isEmpty()) {
             m = mainThreadConnection.read();
-            if (m.getType() == MessageType.ERROR_CONDITION && m.getPayload().containsKey("faultlocalization")) {
-              faults.add(m.getPayload().get("faultlocalization"));
+            if (m.getType() == MessageType.ERROR_CONDITION && m.getPayload().containsKey(Payload.FAULT_LOCALIZATION)) {
+              faults.add(m.getPayload().get(Payload.FAULT_LOCALIZATION));
             }
           }
           break;
@@ -250,6 +251,10 @@ public class ComponentAnalysis implements Algorithm {
       for (Thread thread : threads) {
         thread.interrupt();
       }
+      for (Worker worker : components.getWorkers()) {
+        worker.shutdown();
+      }
+      mainThreadConnection.close();
 
       // print result
       if (result == Result.FALSE) {

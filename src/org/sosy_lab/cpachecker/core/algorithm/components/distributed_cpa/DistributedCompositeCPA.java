@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Payload;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Payload.PayloadBuilder;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -34,11 +35,13 @@ public class DistributedCompositeCPA extends AbstractDistributedCPA {
   private final Map<Class<? extends ConfigurableProgramAnalysis>, Class<? extends AbstractDistributedCPA>>
       lookup;
 
-  private final Map<Class<? extends ConfigurableProgramAnalysis>, AbstractDistributedCPA> registered;
+  private final Map<Class<? extends ConfigurableProgramAnalysis>, AbstractDistributedCPA>
+      registered;
 
   public DistributedCompositeCPA(
       String pId,
-      BlockNode pNode, SSAMap pTypeMap, Precision pPrecision, AnalysisDirection pDirection) throws CPAException {
+      BlockNode pNode, SSAMap pTypeMap, Precision pPrecision, AnalysisDirection pDirection)
+      throws CPAException {
     super(pId, pNode, pTypeMap, pPrecision, pDirection);
     lookup = new ConcurrentHashMap<>();
     lookup.put(PredicateCPA.class, DistributedPredicateCPA.class);
@@ -46,35 +49,37 @@ public class DistributedCompositeCPA extends AbstractDistributedCPA {
   }
 
   @Override
-  public AbstractState translate(Payload pPayload, CFANode pLocation) throws InterruptedException {
+  public AbstractState deserialize(Payload pPayload, CFANode pLocation)
+      throws InterruptedException {
     CompositeCPA compositeCPA = (CompositeCPA) parentCPA;
     List<AbstractState> states = new ArrayList<>();
     for (ConfigurableProgramAnalysis wrappedCPA : compositeCPA.getWrappedCPAs()) {
       if (registered.containsKey(wrappedCPA.getClass())) {
         AbstractDistributedCPA entry = registered.get(wrappedCPA.getClass());
         if (pPayload.containsKey(wrappedCPA.getClass().getName())) {
-          states.add(entry.translate(pPayload, pLocation));
+          states.add(entry.deserialize(pPayload, pLocation));
         }
       } else {
-        states.add(wrappedCPA.getInitialState(pLocation, StateSpacePartition.getDefaultPartition()));
+        states.add(
+            wrappedCPA.getInitialState(pLocation, StateSpacePartition.getDefaultPartition()));
       }
     }
     return new CompositeState(states);
   }
 
   @Override
-  public Payload translate(AbstractState pState) {
+  public Payload serialize(AbstractState pState) {
     CompositeState compositeState = (CompositeState) pState;
-    Payload payload = Payload.empty();
+    PayloadBuilder payload = new PayloadBuilder();
     for (AbstractState wrappedState : compositeState.getWrappedStates()) {
       for (AbstractDistributedCPA value : registered.values()) {
         if (value.doesOperateOn(wrappedState.getClass())) {
-          payload.putAll(value.translate(wrappedState));
+          payload = payload.putAll(value.serialize(wrappedState));
           break;
         }
       }
     }
-    return payload;
+    return payload.build();
   }
 
   public void register(Class<? extends ConfigurableProgramAnalysis> clazz)
@@ -94,19 +99,20 @@ public class DistributedCompositeCPA extends AbstractDistributedCPA {
   }
 
   @Override
-  public MessageProcessing stopForward(Message newMessage) {
+  public MessageProcessing proceedForward(Message newMessage) {
     MessageProcessing processing = MessageProcessing.proceed();
     for (AbstractDistributedCPA value : registered.values()) {
-      processing = processing.merge(value.stopForward(newMessage), true);
+      processing = processing.merge(value.proceedForward(newMessage), true);
     }
     return processing;
   }
 
   @Override
-  public MessageProcessing stopBackward(Message newMessage) throws SolverException, InterruptedException {
+  public MessageProcessing proceedBackward(Message newMessage)
+      throws SolverException, InterruptedException {
     MessageProcessing processing = MessageProcessing.proceed();
     for (AbstractDistributedCPA value : registered.values()) {
-      processing = processing.merge(value.stopBackward(newMessage), true);
+      processing = processing.merge(value.proceedBackward(newMessage), true);
     }
     return processing;
   }
@@ -120,7 +126,7 @@ public class DistributedCompositeCPA extends AbstractDistributedCPA {
   }
 
   @Override
-  public void setParentCPA(ConfigurableProgramAnalysis cpa) throws CPAException{
+  public void setParentCPA(ConfigurableProgramAnalysis cpa) throws CPAException {
     super.setParentCPA(cpa);
     CompositeCPA compositeCPA = (CompositeCPA) cpa;
     for (ConfigurableProgramAnalysis wrappedCPA : compositeCPA.getWrappedCPAs()) {

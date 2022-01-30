@@ -25,8 +25,11 @@ public abstract class Worker implements Runnable {
 
   protected boolean finished;
 
-  protected Worker(LogManager pLogger) {
+  protected final String id;
+
+  protected Worker(String pId, LogManager pLogger) {
     logger = pLogger;
+    id = pId;
   }
 
   /**
@@ -61,10 +64,14 @@ public abstract class Worker implements Runnable {
     }
   }
 
-  public void shutdown() throws IOException {
+  public synchronized void shutdown() throws IOException {
     finished = true;
     connection.close();
     Thread.currentThread().interrupt();
+  }
+
+  public final String getId() {
+    return id;
   }
 
   final void setConnection(Connection pConnection) {

@@ -55,7 +55,7 @@ public class AnalysisWorker extends Worker {
       ShutdownManager pShutdownManager,
       SSAMap pTypeMap)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
-    super(pLogger);
+    super("analysis-worker-" + pBlock.getId(), pLogger);
     block = pBlock;
 
     Configuration backwardConfiguration = Configuration.builder()
@@ -131,7 +131,7 @@ public class AnalysisWorker extends Worker {
 
   private Collection<Message> processBlockPostCondition(Message message)
       throws CPAException, InterruptedException, SolverException {
-    MessageProcessing processing = forwardAnalysis.getDistributedCPA().stopForward(message);
+    MessageProcessing processing = forwardAnalysis.getDistributedCPA().proceed(message);
     if (processing.end()) {
       return processing;
     }
@@ -141,7 +141,7 @@ public class AnalysisWorker extends Worker {
   private Collection<Message> processErrorCondition(Message message)
       throws SolverException, InterruptedException, CPAException {
     DistributedCompositeCPA distributed = backwardAnalysis.getDistributedCPA();
-    MessageProcessing processing = distributed.stopBackward(message);
+    MessageProcessing processing = distributed.proceed(message);
     if(processing.end()) {
       return processing;
     }

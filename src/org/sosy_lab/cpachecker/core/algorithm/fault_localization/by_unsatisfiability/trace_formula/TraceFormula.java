@@ -42,7 +42,7 @@ public abstract class TraceFormula {
   protected final Selector.Factory selectorFactory;
 
   protected BooleanFormulaManager bmgr;
-  protected BooleanFormula postcondition;
+  protected BooleanFormula postConditionStatement;
   protected BooleanFormula precondition;
   protected BooleanFormula trace;
 
@@ -140,7 +140,7 @@ public abstract class TraceFormula {
     bmgr = context.getSolver().getFormulaManager().getBooleanFormulaManager();
     calculateEntries();
     precondition = calculatePrecondition();
-    postcondition = calculatePostCondition();
+    postConditionStatement = calculatePostCondition();
     trace = calculateTrace();
     // logs for unit tests
     context.getLogger().log(Level.FINEST, "tftrace=" + trace);
@@ -155,19 +155,23 @@ public abstract class TraceFormula {
     entries = pList;
     precondition = pPrecondition;
     if (!bmgr.isTrue(pPostcondition)) {
-      postcondition = pPostcondition;
+      postConditionStatement = pPostcondition;
     } else {
-      postcondition = calculatePostCondition();
+      postConditionStatement = calculatePostCondition();
     }
     trace = calculateTrace();
   }
 
   public boolean isCalculationPossible() throws SolverException, InterruptedException {
-    return !context.getSolver().isUnsat(bmgr.and(postcondition, precondition));
+    return !context.getSolver().isUnsat(bmgr.and(getPostCondition(), precondition));
   }
 
-  public BooleanFormula getPostcondition() {
-    return postcondition;
+  public BooleanFormula getPostCondition() {
+    return bmgr.not(postConditionStatement);
+  }
+
+  public BooleanFormula getPostConditionStatement() {
+    return postConditionStatement;
   }
 
   public BooleanFormula getPrecondition() {
@@ -179,7 +183,7 @@ public abstract class TraceFormula {
   }
 
   public BooleanFormula getTraceFormula() {
-    return bmgr.and(precondition, trace, postcondition);
+    return bmgr.and(precondition, trace, getPostCondition());
   }
 
   public FormulaEntryList getEntries() {
@@ -285,7 +289,7 @@ public abstract class TraceFormula {
         }
       }
     }
-    return bmgr.not(postCond);
+    return postCond;
   }
 
   /** Calculate the boolean formulas for every edge including the SSA-maps and the selectors. */

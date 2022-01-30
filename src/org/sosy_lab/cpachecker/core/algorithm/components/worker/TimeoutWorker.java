@@ -29,7 +29,7 @@ public class TimeoutWorker extends Worker {
   private final TimerTask task;
 
   protected TimeoutWorker(LogManager pLogger, long pMillis) {
-    super(pLogger);
+    super("timeout-worker", pLogger);
     waitTime = pMillis;
     shouldScheduleTimer = true;
     timer = new Timer();
@@ -87,7 +87,7 @@ public class TimeoutWorker extends Worker {
   }
 
   @Override
-  public void shutdown() throws IOException {
+  public synchronized void shutdown() throws IOException {
     timer.cancel();
     timer.purge();
     super.shutdown();

@@ -17,14 +17,12 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockTree;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
@@ -92,8 +90,7 @@ public class MessageLogger {
     Payload p = pMessage.getPayload();
     String message = p.get(PredicateCPA.class.getName());
     if (message != null) {
-      p = new Payload(p);
-      p.put(PredicateCPA.class.getName(), BooleanFormulaParser.parse(fmgr.parse(message)).toString());
+      p = Payload.builder().putAll(p).addEntry(PredicateCPA.class.getName(), BooleanFormulaParser.parse(fmgr.parse(message)).toString()).build();
     }
     messageToJSON.put("payload", p.toJSONString());
     entries.get(pMessage.getUniqueBlockId()).put("messages", messageToJSON);
