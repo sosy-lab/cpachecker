@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.arg;
 
+import de.uni_freiburg.informatik.ultimate.util.datastructures.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -139,7 +140,7 @@ public class ARGStopJoin implements StopOperator, ForcedCoveringStopOperator {
       coveringARGStates.add(stateMap.get(absState));
     }
 
-    argElement.setCovered(coveringARGStates);
+    argElement.setCovered(ImmutableSet.copyOf(coveringARGStates));
     return !keepCoveredStatesInReached;
   }
 

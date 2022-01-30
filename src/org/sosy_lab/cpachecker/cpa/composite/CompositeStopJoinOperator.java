@@ -42,7 +42,7 @@ class CompositeStopJoinOperator extends CompositeStopOperator {
       throws CPAException, InterruptedException {
     Collection<AbstractState> reachedSubSet = getStopSepStates(pElement, pReachedSet, pPrecision);
     if (stopJoin(pElement, reachedSubSet, pPrecision)) {
-      return reachedSubSet;
+      return ImmutableSet.copyOf(reachedSubSet);
     } else {
       return ImmutableSet.of();
     }

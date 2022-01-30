@@ -543,8 +543,13 @@ public class ARGState extends AbstractSerializableSingleWrapperState
 
       for (ARGState covered : mCoveredByThis) {
         assert covered.mCoveredBy.contains(this) : "Inconsistent coverage relation at " + this;
-        covered.mCoveredBy.remove(this);
-        covered.mCoveredBy.add(replacement);
+
+        // replace the covering state
+        Set<ARGState> coveringStates = new LinkedHashSet<>(covered.mCoveredBy);
+        coveringStates.remove(this);
+        coveringStates.add(replacement);
+        covered.mCoveredBy = ImmutableSet.copyOf(coveringStates);
+
         replacement.mCoveredByThis.add(covered);
       }
 

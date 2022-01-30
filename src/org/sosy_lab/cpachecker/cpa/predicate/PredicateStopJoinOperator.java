@@ -41,7 +41,7 @@ class PredicateStopJoinOperator extends StopJoinOperator implements ForcedCoveri
       AbstractState pElement, Collection<AbstractState> pReachedSet, Precision pPrecision)
       throws CPAException, InterruptedException {
     if (stop(pElement, pReachedSet, pPrecision)) {
-      return pReachedSet;
+      return ImmutableSet.copyOf(pReachedSet);
     }
     return ImmutableSet.of();
   }
