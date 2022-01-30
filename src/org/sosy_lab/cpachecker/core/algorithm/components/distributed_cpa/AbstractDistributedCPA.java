@@ -56,16 +56,38 @@ public abstract class AbstractDistributedCPA implements ConfigurableProgramAnaly
 
   public abstract Payload serialize(AbstractState pState);
 
+  protected abstract MessageProcessing proceedForward(Message newMessage);
+
+  protected abstract MessageProcessing proceedBackward(Message newMessage)
+      throws SolverException, InterruptedException;
+
+  public abstract AbstractState combine(AbstractState pState1, AbstractState pState2)
+      throws InterruptedException;
+
   public MessageProcessing proceed(Message newMessage)
       throws SolverException, InterruptedException {
     return direction == AnalysisDirection.FORWARD ? proceedForward(newMessage)
                                                   : proceedBackward(newMessage);
   }
 
-  protected abstract MessageProcessing proceedForward(Message newMessage);
+  public final AbstractState combine(List<AbstractState> pStates)
+      throws InterruptedException, CPAException {
+    if (pStates.size() < 1) {
+      throw new AssertionError("Merging requires at least one state: " + pStates);
+    }
+    if (pStates.size() == 1) {
+      return pStates.get(0);
+    }
 
-  protected abstract MessageProcessing proceedBackward(Message newMessage)
-      throws SolverException, InterruptedException;
+    List<AbstractState> ordered = new ArrayList<>(pStates);
+    AbstractState state = ordered.remove(0);
+
+    for (AbstractState abstractState : ordered) {
+      state = combine(state, abstractState);
+    }
+
+    return state;
+  }
 
   public abstract boolean doesOperateOn(Class<? extends AbstractState> pClass);
 
@@ -86,28 +108,6 @@ public abstract class AbstractDistributedCPA implements ConfigurableProgramAnaly
 
   public ConfigurableProgramAnalysis getParentCPA() {
     return parentCPA;
-  }
-
-  public abstract AbstractState combine(AbstractState pState1, AbstractState pState2)
-      throws InterruptedException;
-
-  public final AbstractState combine(List<AbstractState> pStates)
-      throws InterruptedException, CPAException {
-    if (pStates.size() < 1) {
-      throw new AssertionError("Merging requires at least one state: " + pStates);
-    }
-    if (pStates.size() == 1) {
-      return pStates.get(0);
-    }
-
-    List<AbstractState> ordered = new ArrayList<>(pStates);
-    AbstractState state = ordered.remove(0);
-
-    for (AbstractState abstractState : ordered) {
-      state = combine(state, abstractState);
-    }
-
-    return state;
   }
 
   @Override
