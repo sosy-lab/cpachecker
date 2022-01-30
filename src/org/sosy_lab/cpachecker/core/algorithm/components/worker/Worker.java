@@ -47,6 +47,7 @@ public abstract class Worker implements Runnable {
 
   public void broadcast(Collection<Message> pMessage) throws IOException, InterruptedException {
     Objects.requireNonNull(connection, "Connection cannot be null.");
+    pMessage.forEach(m -> logger.log(Level.INFO, m));
     for (Message message : pMessage) {
       connection.write(message);
     }

@@ -18,6 +18,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.sosy_lab.cpachecker.cfa.blocks.Block;
+import org.sosy_lab.cpachecker.cfa.blocks.builder.ReferencedVariablesCollector;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -28,6 +30,7 @@ public class BlockNode {
   private final CFANode startNode;
   private final CFANode lastNode;
   private final Set<CFANode> nodesInBlock;
+  private final Block block;
 
   private final Set<BlockNode> predecessors;
   private final Set<BlockNode> successors;
@@ -62,6 +65,8 @@ public class BlockNode {
               + pLastNode
               + ").");
     }
+
+    block = new Block(new ReferencedVariablesCollector(pNodesInBlock).getVars(), ImmutableSet.of(pStartNode), ImmutableSet.of(pLastNode), pNodesInBlock);
     startNode = pStartNode;
     lastNode = pLastNode;
 
@@ -140,6 +145,10 @@ public class BlockNode {
 
   public CFANode getLastNode() {
     return lastNode;
+  }
+
+  public Block getBlock() {
+    return block;
   }
 
   public Set<CFANode> getNodesInBlock() {

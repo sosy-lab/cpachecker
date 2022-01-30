@@ -13,6 +13,7 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -27,6 +28,8 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.blocks.BlockToDotWriter;
+import org.sosy_lab.cpachecker.cfa.blocks.builder.BlockPartitioningBuilder;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
@@ -168,6 +171,7 @@ public class ComponentAnalysis implements Algorithm {
     try {
       CFADecomposer decomposer = getDecomposer();
       BlockTree tree = decomposer.cut(cfa);
+      // drawBlockDot(tree);
       Collection<BlockNode> removed = tree.removeEmptyBlocks();
       if (!removed.isEmpty()) {
         logger.log(Level.INFO, "Removed " + removed.size() + " empty BlockNodes from the tree.");
@@ -215,11 +219,10 @@ public class ComponentAnalysis implements Algorithm {
       Components components = builder.addVisualizationWorker(tree).build();
 
       // run all workers
-      List<Thread> threads = new ArrayList<>();
       for (Worker worker : components.getWorkers()) {
         Thread thread = new Thread(worker, worker.getId());
+        thread.setDaemon(true);
         thread.start();
-        threads.add(thread);
       }
 
       Connection mainThreadConnection = components.getAdditionalConnections().get(0);
@@ -261,9 +264,6 @@ public class ComponentAnalysis implements Algorithm {
                     Collectors.toSet())));
       }
 
-      for (Thread thread : threads) {
-        //thread.interrupt();
-      }
       for (Worker worker : components.getWorkers()) {
         worker.shutdown();
       }
@@ -289,6 +289,14 @@ public class ComponentAnalysis implements Algorithm {
     } finally {
       logger.log(Level.INFO, "Block analysis finished.");
     }
+  }
+
+  private void drawBlockDot(BlockTree tree) {
+    BlockPartitioningBuilder builder = new BlockPartitioningBuilder();
+    for (BlockNode distinctNode : tree.getDistinctNodes()) {
+      builder.addBlock(distinctNode.getNodesInBlock(), distinctNode.getStartNode());
+    }
+    new BlockToDotWriter(builder.build(cfa)).dump(Path.of("./output/hahahah.dot"), logger);
   }
 
 }
