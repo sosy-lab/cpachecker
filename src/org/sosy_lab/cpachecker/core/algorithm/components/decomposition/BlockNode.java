@@ -37,8 +37,6 @@ public class BlockNode {
   private final String id;
   private final String code;
 
-  private boolean blankEdgesOnly;
-
   /**
    * Represents a sub graph of the CFA beginning at <code>pStartNode</code> and ending at <code>
    * pLastNode</code>.
@@ -74,7 +72,6 @@ public class BlockNode {
     idToNodeMap = generateIdToNodeMap(nodesInBlock);
     id = pId;
 
-    blankEdgesOnly = true;
     code = computeCode(pNodesInBlock);
   }
 
@@ -93,9 +90,6 @@ public class BlockNode {
     for (CFANode node : pNodes) {
       for (CFAEdge leavingEdge : CFAUtils.leavingEdges(node)) {
         if (pNodes.contains(leavingEdge.getSuccessor())) {
-          if (leavingEdge.getEdgeType() != CFAEdgeType.BlankEdge) {
-            blankEdgesOnly = false;
-          }
           if (leavingEdge.getCode().isBlank()) {
             continue;
           }
@@ -116,7 +110,7 @@ public class BlockNode {
   }
 
   public boolean isEmpty() {
-    return nodesInBlock.size() == 1 || blankEdgesOnly;
+    return nodesInBlock.size() == 1;
   }
 
   private void linkSuccessor(BlockNode node) {
