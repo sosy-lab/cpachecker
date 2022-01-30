@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.components.util;
+package org.sosy_lab.cpachecker.core.algorithm.components.visualization;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ArrayListMultimap;

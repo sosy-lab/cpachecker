@@ -9,4 +9,4 @@
 /**
  * Provide useful util functions for block analysis
  */
-package org.sosy_lab.cpachecker.core.algorithm.components.util;
+package org.sosy_lab.cpachecker.core.algorithm.components.visualization;

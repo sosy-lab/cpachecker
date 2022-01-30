@@ -16,7 +16,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockTree;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageType;
-import org.sosy_lab.cpachecker.core.algorithm.components.util.MessageLogger;
+import org.sosy_lab.cpachecker.core.algorithm.components.visualization.MessageLogger;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
 
