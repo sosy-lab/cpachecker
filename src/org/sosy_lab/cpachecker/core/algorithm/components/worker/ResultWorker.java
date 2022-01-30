@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.components.worker;
 
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.Collection;
@@ -22,6 +23,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageType;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Payload;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -98,7 +100,9 @@ public class ResultWorker extends Worker {
             && (expectAnswer.values().stream().allMatch(i -> i == 0)
             || onlyOriginViolations);
     if (finished) {
-      return ImmutableSet.of(Message.newResultMessage(pMessage.getUniqueBlockId(), 0, Result.TRUE));
+      return ImmutableSet.of(Message.newResultMessage(pMessage.getUniqueBlockId(), 0, Result.TRUE,
+          new HashSet<>(Splitter.on(",")
+              .splitToList(pMessage.getPayload().getOrDefault(Payload.VISITED, "")))));
     }
     return ImmutableSet.of();
   }

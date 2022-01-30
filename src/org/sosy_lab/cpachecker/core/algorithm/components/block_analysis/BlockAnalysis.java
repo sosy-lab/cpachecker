@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -99,7 +100,8 @@ public abstract class BlockAnalysis {
     block = pBlock;
     logger = pLogger;
 
-    distributedCompositeCPA = new DistributedCompositeCPA(pId, block, pTypeMap, emptyPrecision, pDirection);
+    distributedCompositeCPA =
+        new DistributedCompositeCPA(pId, block, pTypeMap, emptyPrecision, pDirection);
     distributedCompositeCPA.setParentCPA(CPAs.retrieveCPA(cpa, CompositeCPA.class));
   }
 
@@ -137,7 +139,8 @@ public abstract class BlockAnalysis {
       throws InterruptedException, CPAException {
     if (receivedPostConditions.isEmpty()) {
       return new ARGState(
-          distributedCompositeCPA.getInitialState(node, StateSpacePartition.getDefaultPartition()), null);
+          distributedCompositeCPA.getInitialState(node, StateSpacePartition.getDefaultPartition()),
+          null);
     }
     List<AbstractState> states = new ArrayList<>();
     for (Payload receivedPostCondition : receivedPostConditions) {
@@ -177,6 +180,16 @@ public abstract class BlockAnalysis {
 
   public AlgorithmStatus getStatus() {
     return status;
+  }
+
+  public Set<String> visitedBlocks(Collection<Payload> pPayloads) {
+    Set<String> visitedBlocks = new HashSet<>();
+    for (Payload message : pPayloads) {
+      visitedBlocks.addAll(Splitter.on(",").splitToList(message.getOrDefault(Payload.VISITED, "")));
+    }
+    visitedBlocks.remove("");
+    visitedBlocks.add(block.getId());
+    return visitedBlocks;
   }
 
   public abstract Collection<Message> analyze(Collection<Payload> messages, CFANode node)
@@ -236,7 +249,8 @@ public abstract class BlockAnalysis {
                 distributedCompositeCPA.getInitialState(targetNode.orElseThrow(),
                     StateSpacePartition.getDefaultPartition()));
             answers.add(Message.newErrorConditionMessage(block.getId(),
-                targetNode.orElseThrow().getNodeNumber(), initial, true));
+                targetNode.orElseThrow().getNodeNumber(), initial, true,
+                ImmutableSet.of(block.getId())));
             break;
           }
         }
@@ -251,7 +265,8 @@ public abstract class BlockAnalysis {
         Message response =
             Message.newBlockPostCondition(block.getId(), block.getLastNode().getNodeNumber(),
                 result, messages.size() == block.getPredecessors().size() && messages.stream()
-                    .allMatch(m -> Boolean.parseBoolean(m.get(Payload.FULL_PATH))));
+                    .allMatch(m -> Boolean.parseBoolean(m.get(Payload.FULL_PATH))),
+                visitedBlocks(messages));
         answers.add(response);
       }
       return answers;
@@ -291,7 +306,8 @@ public abstract class BlockAnalysis {
           states = extractBlockEntryPoints(reachedSet, block.getStartNode(), startState);
       return ImmutableSet.of(
           Message.newErrorConditionMessage(block.getId(), block.getStartNode().getNodeNumber(),
-              distributedCompositeCPA.serialize(distributedCompositeCPA.combine(states)), false));
+              distributedCompositeCPA.serialize(distributedCompositeCPA.combine(states)), false,
+              visitedBlocks(messages)));
     }
   }
 

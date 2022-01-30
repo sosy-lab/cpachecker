@@ -20,12 +20,14 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Collection;
 import java.util.Objects;
+import java.util.Set;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 
 public class Message implements Comparable<Message> {
@@ -137,8 +139,12 @@ public class Message implements Comparable<Message> {
       String pUniqueBlockId,
       int pTargetNodeNumber,
       Payload pPayload,
-      boolean full) {
-    Payload newPayload = Payload.builder().putAll(pPayload).addEntry(Payload.FULL_PATH, Boolean.toString(full)).build();
+      boolean pFull,
+      Set<String> pVisited) {
+    Payload newPayload =
+        Payload.builder().putAll(pPayload).addEntry(Payload.FULL_PATH, Boolean.toString(pFull))
+            .addEntry(Payload.VISITED,
+                Joiner.on(",").join(pVisited)).build();
     return new Message(MessageType.BLOCK_POSTCONDITION, pUniqueBlockId, pTargetNodeNumber,
         newPayload);
   }
@@ -147,8 +153,13 @@ public class Message implements Comparable<Message> {
       String pUniqueBlockId,
       int pTargetNodeNumber,
       Payload pPayload,
-      boolean first) {
-    Payload newPayload = Payload.builder().putAll(pPayload).addEntry(Payload.FIRST, Boolean.toString(first)).build();
+      boolean pFirst,
+      Set<String> pVisited) {
+    Payload newPayload =
+        Payload.builder().putAll(pPayload).addEntry(Payload.FIRST, Boolean.toString(pFirst))
+            .addEntry(Payload.VISITED,
+                Joiner.on(",").join(pVisited))
+            .build();
     return new Message(MessageType.ERROR_CONDITION, pUniqueBlockId, pTargetNodeNumber,
         newPayload);
   }
@@ -160,9 +171,15 @@ public class Message implements Comparable<Message> {
   public static Message newResultMessage(
       String pUniqueBlockId,
       int pTargetNodeNumber,
-      Result pResult
+      Result pResult,
+      Set<String> pVisited
   ) {
-    return new Message(MessageType.FOUND_RESULT, pUniqueBlockId, pTargetNodeNumber, Payload.builder().addEntry(Payload.RESULT, pResult.name()).build());
+    Payload payload =
+        Payload.builder().addEntry(Payload.RESULT, pResult.name())
+            .addEntry(Payload.VISITED,
+                Joiner.on(",").join(pVisited))
+            .build();
+    return new Message(MessageType.FOUND_RESULT, pUniqueBlockId, pTargetNodeNumber, payload);
   }
 
   public static Message newErrorMessage(String pUniqueBlockId, Exception pException) {

@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.components;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -18,6 +19,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -126,7 +128,8 @@ public class ComponentAnalysis implements Algorithm {
       case BLOCK_OPERATOR:
         return new BlockOperatorDecomposer(configuration);
       case GIVEN_SIZE:
-        return new GivenSizeDecomposer(new BlockOperatorDecomposer(configuration), desiredNumberOfBlocks);
+        return new GivenSizeDecomposer(new BlockOperatorDecomposer(configuration),
+            desiredNumberOfBlocks);
       default:
         throw new AssertionError("Unknown DecompositionType: " + decompositionType);
     }
@@ -221,20 +224,24 @@ public class ComponentAnalysis implements Algorithm {
 
       Connection mainThreadConnection = components.getAdditionalConnections().get(0);
 
-      Set<String> faults = new HashSet<>();
+      Set<Message> faults = new HashSet<>();
       // Wait for result
+      Message resultMessage;
       Result result;
       while (true) {
         Message m = mainThreadConnection.read();
-        if (m.getType() == MessageType.ERROR_CONDITION && m.getPayload().containsKey(Payload.FAULT_LOCALIZATION)) {
-          faults.add(m.getPayload().get(Payload.FAULT_LOCALIZATION));
+        if (m.getType() == MessageType.ERROR_CONDITION && m.getPayload()
+            .containsKey(Payload.FAULT_LOCALIZATION)) {
+          faults.add(m);
         }
         if (m.getType() == MessageType.FOUND_RESULT) {
+          resultMessage = m;
           result = Result.valueOf(m.getPayload().get(Payload.RESULT));
-          while(!mainThreadConnection.isEmpty()) {
+          while (!mainThreadConnection.isEmpty()) {
             m = mainThreadConnection.read();
-            if (m.getType() == MessageType.ERROR_CONDITION && m.getPayload().containsKey(Payload.FAULT_LOCALIZATION)) {
-              faults.add(m.getPayload().get(Payload.FAULT_LOCALIZATION));
+            if (m.getType() == MessageType.ERROR_CONDITION && m.getPayload()
+                .containsKey(Payload.FAULT_LOCALIZATION)) {
+              faults.add(m);
             }
           }
           break;
@@ -244,8 +251,14 @@ public class ComponentAnalysis implements Algorithm {
         }
       }
 
-      if (!faults.isEmpty()) {
-        logger.log(Level.INFO, "Found faults:\n" + Joiner.on("\n").join(faults));
+      Set<String> visitedBlocks = new HashSet<>(Splitter.on(",")
+          .splitToList(resultMessage.getPayload().getOrDefault(Payload.VISITED, "")));
+      faults.removeIf(m -> !(visitedBlocks.contains(m.getUniqueBlockId())));
+      if (!faults.isEmpty() && result == Result.FALSE) {
+        logger.log(Level.INFO, "Found faults:\n" + Joiner.on("\n").join(
+            faults.stream().map(m -> m.getPayload().getOrDefault(Payload.FAULT_LOCALIZATION, ""))
+                .collect(
+                    Collectors.toSet())));
       }
 
       for (Thread thread : threads) {
