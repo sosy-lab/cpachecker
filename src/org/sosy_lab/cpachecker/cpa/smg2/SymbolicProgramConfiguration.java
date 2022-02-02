@@ -32,14 +32,41 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.smg.util.SMGandValue;
 
+/**
+ * This class models the memory with its global/heap/stack variables. Its idea is that we handle
+ * only SMG specific stuff here, and have already transformed all CPA and C (or other) specific
+ * stuff. This class splits the values by types, the values in themselfs are value ranges or
+ * addresses. Also, we handle (in)equality for the value analysis here, as this is more delicate
+ * than just ==, <, > etc. see proveInequality() for more info. Variable ranges are needed for the
+ * abstraction (join of SMGs) to succeed more often. The abstraction might however merge SMG objects
+ * and value ranges making read and equality non trivial.
+ */
 public class SymbolicProgramConfiguration {
 
+  /** The SMG modelling this memory image. */
   private final SMG smg;
+
+  /** Mapping of all global variables to their SMGObjects. Use the value mapping to get values. */
   private final PersistentMap<String, SMGObject> globalVariableMapping;
+
+  /* The stack of stackFrames.
+   * (Each function call creates a new one that has to be popd once the function is returned/ends)
+   */
   private final PersistentStack<StackFrame> stackVariableMapping;
+
+  /* (SMG)Objects on the heap. */
   private final PersistentSet<SMGObject> heapObjects;
+
+  /* Set of external (SMG)Objects allocated. */
   private PersistentSet<SMGObject> externalObjectAllocation;
 
+  /**
+   * Maps the symbolic value ranges to their abstract SMG counterparts. (SMGs use only abstract, but
+   * unique values. Such that a SMGValue with id 1 is always equal only with a SMGValue with id 1.
+   * We need symbolic value ranges for the values analysis. Concrete values would ruin abstraction
+   * capabilities. The only exception are addresses, hence why they are seperate) TODO: use
+   * SymbolicRegionManager or smth like it in a changed implementation of the value.
+   */
   private final PersistentBiMap<CValue, SMGValue> valueMapping;
 
   private SymbolicProgramConfiguration(
@@ -84,25 +111,53 @@ public class SymbolicProgramConfiguration {
         emptyMap.putAndCopy(CValue.zero(), SMGValue.zeroValue()));
   }
 
-  public PersistentMap<String, SMGObject> getGolbalVariableToSmgObjectMap() {
+  /**
+   * @return The global variable mapping in a {@link PersistentMap} from String to the {@link
+   *     SMGObject}.
+   */
+  public PersistentMap<String, SMGObject> getGlobalVariableToSmgObjectMap() {
     return globalVariableMapping;
   }
 
+  /** Returns the SMG that models the memory used in this {@link SymbolicProgramConfiguration}. */
   public SMG getSmg() {
     return smg;
   }
 
+  /**
+   * Returns the size of the pointer used for the SMG of this {@link SymbolicProgramConfiguration}.
+   */
   public BigInteger getSizeOfPointer() {
     return smg.getSizeOfPointer();
   }
 
+  /**
+   * Tries to check for inequality of 2 {@link SMGValue}s used in the SMG of this {@link
+   * SymbolicProgramConfiguration}. This does NOT check the (concrete) CValues of the entered
+   * values, but only if they refer to the same memory location in the SMG or not! TODO: remove
+   * CValues and replace by symbolic value ranges.
+   *
+   * @param pValue1 A {@link SMGValue} to be check for inequality with pValue2.
+   * @param pValue2 A {@link SMGValue} to be check for inequality with pValue1.
+   * @return True if the 2 {@link SMGValue}s are not equal, false if they are equal.
+   */
   public boolean proveInequality(SMGValue pValue1, SMGValue pValue2) {
+    // Can this be solved without creating a new SMGProveNequality every time?
+    // TODO: Since we need to rework the values anyway, make a new class for this.
     SMGProveNequality nequality = new SMGProveNequality(smg);
     return nequality.proveInequality(pValue1, pValue2);
   }
 
-  public SymbolicProgramConfiguration
-      copyAndAddGlobalObject(SMGObject pNewObject, String pVarName) {
+  /**
+   * Copies this {@link SymbolicProgramConfiguration} and adds the mapping from the variable
+   * identifier pVarName to the {@link SMGObject} pNewObject.
+   *
+   * @param pNewObject - The {@link SMGObject} that the variable is mapped to.
+   * @param pVarName - The variable identifier that the {@link SMGObject} is mapped to.
+   * @return The copied SPC with the global object added.
+   */
+  public SymbolicProgramConfiguration copyAndAddGlobalObject(
+      SMGObject pNewObject, String pVarName) {
     return of(
         smg.copyAndAddObject(pNewObject),
         globalVariableMapping.putAndCopy(pVarName, pNewObject),
@@ -112,10 +167,22 @@ public class SymbolicProgramConfiguration {
         valueMapping);
   }
 
+  /**
+   * @return The stack of {@link StackFrame}s modeling the function stacks of this {@link
+   *     SymbolicProgramConfiguration}.
+   */
   public PersistentStack<StackFrame> getStackFrames() {
     return stackVariableMapping;
   }
 
+  /**
+   * Copies this {@link SymbolicProgramConfiguration} and addsthe stack object given with the
+   * variable name given to it.
+   *
+   * @param pNewObject the new stack object.
+   * @param pVarName the name of the added stack object.
+   * @return Copy of this SPC with the stack variable mapping added.
+   */
   public SymbolicProgramConfiguration copyAndAddStackObject(SMGObject pNewObject, String pVarName) {
     StackFrame currentFrame = stackVariableMapping.peek();
     PersistentStack<StackFrame> tmpStack = stackVariableMapping.popAndCopy();
@@ -129,8 +196,18 @@ public class SymbolicProgramConfiguration {
         valueMapping);
   }
 
-  public SymbolicProgramConfiguration
-      copyAndAddStackFrame(CFunctionDeclaration pFunctionDefinition, MachineModel model) {
+  /**
+   * Copies this {@link SymbolicProgramConfiguration} and adds a {@link StackFrame} based on the
+   * entered model and function definition. More information on StackFrames can be found in the
+   * Stackframe class.
+   *
+   * @param pFunctionDefinition - The {@link CFunctionDeclaration} that the {@link StackFrame} will
+   *     be based upon.
+   * @param model - The {@link MachineModel} the new {@link StackFrame} be based upon.
+   * @return The SPC copy with the new {@link StackFrame}.
+   */
+  public SymbolicProgramConfiguration copyAndAddStackFrame(
+      CFunctionDeclaration pFunctionDefinition, MachineModel model) {
     return of(
         smg,
         globalVariableMapping,
@@ -140,6 +217,12 @@ public class SymbolicProgramConfiguration {
         valueMapping);
   }
 
+  /**
+   * Copies this {@link SymbolicProgramConfiguration} and removes the global variable given.
+   *
+   * @param pIdentifier - String identifier of the global variable to remove.
+   * @return Copy of the SPC with the global variable removed.
+   */
   public SymbolicProgramConfiguration copyAndRemoveGlobalVariable(String pIdentifier) {
     Optional<SMGObject> objToRemove = Optional.ofNullable(globalVariableMapping.get(pIdentifier));
     if (objToRemove.isEmpty()) {
@@ -157,6 +240,12 @@ public class SymbolicProgramConfiguration {
         valueMapping);
   }
 
+  /**
+   * Copies this {@link SymbolicProgramConfiguration} and removes the stack variable given.
+   *
+   * @param pIdentifier - String identifier for the variable to be removed.
+   * @return Copy of the SPC with the variable removed.
+   */
   public SymbolicProgramConfiguration copyAndRemoveStackVariable(String pIdentifier) {
     // If a stack variable becomes out of scope, there are not more than one frames which could
     // contain the variable
@@ -205,9 +294,9 @@ public class SymbolicProgramConfiguration {
    * Remove a top stack frame from the SMG, along with all objects in it, and any edges leading
    * from/to it.
    *
-   * TODO: A test case with (invalid) passing of an address of a dropped frame object outside, and
-   * working with them. For that, we should probably keep those as invalid, so we can spot such bug.
-   *
+   * <p>TODO: A test case with (invalid) passing of an address of a dropped frame object outside,
+   * and working with them. For that, we should probably keep those as invalid, so we can spot such
+   * bugs.
    */
   public SymbolicProgramConfiguration copyAndDropStackFrame() {
     StackFrame frame = stackVariableMapping.peek();
@@ -225,12 +314,18 @@ public class SymbolicProgramConfiguration {
         valueMapping);
   }
 
-  public SymbolicProgramConfiguration
-      copyAndPruneUnreachable(Collection<SMGObject> pUnreachableObjects) {
+  /**
+   * Copies this {@link SymbolicProgramConfiguration} and returns a new SPC with all entered
+   * unreachable SMGObjects pruned.
+   *
+   * @param pUnreachableObjects The SMGObjects to be pruned.
+   * @return The new SPC without the entered SMGObjects.
+   */
+  public SymbolicProgramConfiguration copyAndPruneUnreachable(
+      Collection<SMGObject> pUnreachableObjects) {
     Collection<SMGObject> visibleObjects =
-        FluentIterable
-            .concat(
-                getGolbalVariableToSmgObjectMap().values(),
+        FluentIterable.concat(
+                globalVariableMapping.values(),
                 FluentIterable.from(stackVariableMapping)
                     .transformAndConcat(stackFrame -> stackFrame.getAllObjects()))
             .toSet();
@@ -256,10 +351,19 @@ public class SymbolicProgramConfiguration {
         valueMapping);
   }
 
+  /** @return {@link SMGObject} reserved for the return value of the current StackFrame. */
   public Optional<SMGObject> getReturnObjectForCurrentStackFrame() {
     return stackVariableMapping.peek().getReturnObject();
   }
 
+  /**
+   * Copies the {@link SymbolicProgramConfiguration} and puts the mapping for the cValue to the
+   * smgValue (and vice versa) into the returned copy.
+   *
+   * @param cValue {@link CValue} that is mapped to the entered smgValue.
+   * @param smgValue {@link SMGValue} that is mapped to the entered cValue.
+   * @return A copy of this SPC with the value mapping added.
+   */
   public SymbolicProgramConfiguration copyAndPutValue(CValue cValue, SMGValue smgValue) {
     return of(
         smg,
@@ -270,14 +374,39 @@ public class SymbolicProgramConfiguration {
         valueMapping.putAndCopy(cValue, smgValue));
   }
 
+  /**
+   * Returns an {@link Optional} that may be empty if no {@link SMGValue} for the entered {@link
+   * CValue} exists in the value mapping. If a mapping exists, it returns the {@link SMGValue} for
+   * the entered {@link CValue} inside the Optional.
+   *
+   * @param cValue The {@link CValue} you want the potential {@link SMGValue} for.
+   * @return {@link Optional} that contains the {@link SMGValue} for the entered {@link CValue} if
+   *     it exists, empty else.
+   */
   public Optional<SMGValue> getValue(CValue cValue) {
     return Optional.ofNullable(valueMapping.get(cValue));
   }
 
+  /**
+   * Copies this {@link SymbolicProgramConfiguration} and creates a mapping of a {@link CValue} to a
+   * newly created {@link SMGValue}.
+   *
+   * @param cValue The {@link CValue} you want to create a new, symbolic {@link SMGValue} for and
+   *     map them to each other.
+   * @return The new SPC with the new {@link SMGValue} and the value mapping from the entered {@link
+   *     CValue} to the new {@link SMGValue}.
+   */
   public SymbolicProgramConfiguration copyAndCreateValue(CValue cValue) {
     return copyAndPutValue(cValue, SMGValue.of());
   }
 
+  /**
+   * Copies this {@link SymbolicProgramConfiguration} and adds the {@link SMGObject} pObject to it
+   * before returning the new SPC.
+   *
+   * @param pObject The {@link SMGObject} you want to add to the SPC.
+   * @return The new SPC with the {@link SMGObject} added.
+   */
   public SymbolicProgramConfiguration copyAndAddExternalObject(SMGObject pObject) {
     return of(
         smg,
@@ -288,6 +417,14 @@ public class SymbolicProgramConfiguration {
         valueMapping);
   }
 
+  /**
+   * Tries to search for a variable that is currently visible in the current {@link StackFrame} and
+   * in the global variables and returns the variable if found. If it is not found, the {@link
+   * Optional} will be empty.
+   *
+   * @param pName Name of the variable you want to search for as a {@link String}.
+   * @return {@link Optional} that contains the variable if found, but is empty if not found.
+   */
   public Optional<SMGObject> getObjectForVisibleVariable(String pName) {
 
     // First look in stack frame
@@ -304,6 +441,13 @@ public class SymbolicProgramConfiguration {
     return Optional.empty();
   }
 
+  /**
+   * Returns <code>true</code> if the entered {@link SMGObject} is externally allocated.
+   *
+   * @param pObject The {@link SMGObject} you want to know if its externally allocated or not.
+   * @return <code>true</code> if the entered pObject is externally allocated, <code>false</code> if
+   *     not.
+   */
   public boolean isObjectExternallyAllocated(SMGObject pObject) {
     return externalObjectAllocation.contains(pObject);
   }
@@ -322,7 +466,8 @@ public class SymbolicProgramConfiguration {
    * Reads the explicit value written in a memory chunk represented as SMGRegion object at a certain
    * offset with a given size. This memory chunk can ever be a covered by exactly one
    * SMGHasValueEdge or multiple of them. If the memory chunk to be read does not fit a single edge,
-   * the resulting value is computed bitwise.
+   * the resulting value is computed bitwise. TODO: this most likely will fail the second we use
+   * abstraction and SMGs are joined.
    *
    * @param pObject - the SMGRegion
    * @param pFieldOffset - the offset
@@ -425,4 +570,9 @@ public class SymbolicProgramConfiguration {
 
   }
 
+  /** Copy SPC and add a pointer to an object at a specified offset. */
+  public void addPointer() {}
+
+  /** Write value into the SMG at the specified offset in bits with the size given in bits. */
+  public void writeValue() {}
 }
