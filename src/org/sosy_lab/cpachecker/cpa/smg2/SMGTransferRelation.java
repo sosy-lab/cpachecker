@@ -229,6 +229,47 @@ public class SMGTransferRelation
     return null;
   }
 
+  @SuppressWarnings("unused")
+  public SMGState assignFieldToState(
+      SMGState currentState,
+      CFAEdge cfaEdge,
+      SMGObject memoryOfField,
+      BigInteger valueOffset,
+      SMGValue pValue,
+      CType rValueType)
+      throws UnrecognizedCodeException {
+
+    // TODO: getSizeof() method does not cover variable array length in C. Develop ideas for that!
+    // For variable length stuff we need to read the SMG (for values) but also information from the
+    // CFAEdge to determin which SMG object to read correctly! So this method needs to be
+    // re-thought.
+
+    BigInteger valueSize = machineModel.getSizeof(rValueType);
+
+    // write values depending on the type of values
+    if (valueOffset.compareTo(BigInteger.ZERO) < 0
+        || memoryOfField.getSize().compareTo(valueOffset.add(valueSize)) < 0) {
+      // Out of range does not mean failure just yet, it might be that
+      // Log out of range info
+      logOutOfRangeInformation(cfaEdge, memoryOfField, valueOffset, valueSize);
+
+      if (memoryOfField.isZero()) {
+        // Try to dereference a null pointer / all null pointers should be out of range
+        return currentState.withNullPointerDereferenceWhenWriting(memoryOfField);
+      } else {
+        // Non null memory object but out of range write
+        return currentState.withOutOfRangeWrite(memoryOfField, valueOffset, valueSize, pValue);
+      }
+    } else if (SMGCPAValueExpressionEvaluator.isStructOrUnionType(rValueType)) {
+      // Write the struct
+      // return assignStruct(currentState, memoryOfField, fieldOffset, rValueType, value, cfaEdge);
+    } else {
+      // Write non-struct value
+      // return writeValue(currentState, memoryOfField, fieldOffset, rValueType, value, cfaEdge);
+    }
+    return null;
+  }
+
   /**
    * TODO: move this. Structs get a seperate assignment method because we need to potentially copy
    * from one struct to another. TODO: Do we have to do more? They might have pointers in them.
