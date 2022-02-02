@@ -71,14 +71,27 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
 
   private SMGState(
       MachineModel pMachineModel,
-      SymbolicProgramConfiguration heapSPC,
+      SymbolicProgramConfiguration spc,
       LogManager logManager,
       SMGOptions opts) {
-    memoryModel = heapSPC;
+    memoryModel = spc;
     machineModel = pMachineModel;
     logger = logManager;
     options = opts;
     errorInfo = SMGErrorInfo.of();
+  }
+
+  private SMGState(
+      MachineModel pMachineModel,
+      SymbolicProgramConfiguration spc,
+      LogManager logManager,
+      SMGOptions opts,
+      SMGErrorInfo errorInf) {
+    memoryModel = spc;
+    machineModel = pMachineModel;
+    logger = logManager;
+    options = opts;
+    errorInfo = errorInf;
   }
 
   public static SMGState of(MachineModel pMachineModel, LogManager logManager, SMGOptions opts) {
@@ -96,6 +109,14 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
           LogManager logManager,
           SMGOptions opts) {
     return new SMGState(pMachineModel, heapSPC, logManager, opts);
+  }
+
+  public static SMGState of(MachineModel pMachineModel, SymbolicProgramConfiguration pSPC, LogManager logManager, SMGOptions opts, SMGErrorInfo pErrorInfo) {
+    return new SMGState(
+        pMachineModel,
+        pSPC,
+        logManager,
+        opts, pErrorInfo);
   }
 
   public SMGState withViolationsOf(SMGState pOther) {
@@ -246,6 +267,10 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
     }
 
     return retState;
+  }
+
+  private SMGState copyAndReplaceMemoryModel(SymbolicProgramConfiguration newSPC) {
+    return of(machineModel, newSPC, logger, options, errorInfo);
   }
 
   private SMGState copyAndPruneVariable(MemoryLocation pMemoryLocation) {
@@ -433,6 +458,11 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
       return CValueAndSMGState.ofUnknown(newState);
     }
     return CValueAndSMGState.of(memoryModel.readValue(pObject, pFieldOffset, pSizeofInBits), this);
+  }
+
+  public SMGState writeValue(SMGObject object, BigInteger offset, BigInteger sizeInBits, SMGValue value) {
+    // TODO: decide if we need more checks here
+    return copyAndReplaceMemoryModel(memoryModel.writeValue(object, offset, sizeInBits, value));
   }
 
 }
