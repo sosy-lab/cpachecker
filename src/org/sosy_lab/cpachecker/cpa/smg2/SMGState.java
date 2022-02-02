@@ -34,7 +34,14 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.smg.join.SMGJoinSPC;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-
+/**
+ * Class holding the SPC (SymbolicProgramConfiguration = memory model) for heap, global
+ * variables/constants and the stack. Also provides methods to manipulate the SMG; meaning
+ * adding/pruning/reading and memory error/leak handling. This class is meant to represent the
+ * CPAState, while the memory state is represented by the SPC. This class therefore hands down
+ * write/read and other memory operations. It is expected that in the SPC no CPA specific stuff is
+ * handled.
+ */
 public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryableState, Graphable {
 
   // Properties:
@@ -53,7 +60,9 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   private static final Pattern externalAllocationRecursivePattern =
       Pattern.compile("^(r_)(\\d+)(_.*)$");
 
-  private final SymbolicProgramConfiguration heap;
+  // All memory models (SMGs) (heap/global/stack)
+  private final SymbolicProgramConfiguration memoryModel;
+
   private final MachineModel machineModel;
   private final LogManager logger;
   private SMGErrorInfo errorInfo;
@@ -64,7 +73,7 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
       SymbolicProgramConfiguration heapSPC,
       LogManager logManager,
       SMGOptions opts) {
-    heap = heapSPC;
+    memoryModel = heapSPC;
     machineModel = pMachineModel;
     logger = logManager;
     options = opts;
@@ -92,7 +101,7 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
     if (errorInfo.equals(pOther.errorInfo)) {
       return this;
     }
-    SMGState result = new SMGState(machineModel, heap, logger, options);
+    SMGState result = new SMGState(machineModel, memoryModel, logger, options);
     result.errorInfo = result.errorInfo.mergeWith(pOther.errorInfo);
     return result;
   }
@@ -109,7 +118,8 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
    */
   public SMGState copyAndAddGlobalVariable(int pTypeSize, String pVarName) {
     SMGObject newObject = SMGObject.of(0, BigInteger.valueOf(pTypeSize), BigInteger.ZERO);
-    return of(machineModel, heap.copyAndAddGlobalObject(newObject, pVarName), logger, options);
+    return of(
+        machineModel, memoryModel.copyAndAddGlobalObject(newObject, pVarName), logger, options);
   }
 
   /**
@@ -122,11 +132,12 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
    * @return Newly created object
    */
   public SMGState copyAndAddLocalVariable(int pTypeSize, String pVarName) {
-    if (heap.getStackFrames().isEmpty()) {
+    if (memoryModel.getStackFrames().isEmpty()) {
       return this;
     }
     SMGObject newObject = SMGObject.of(0, BigInteger.valueOf(pTypeSize), BigInteger.ZERO);
-    return of(machineModel, heap.copyAndAddStackObject(newObject, pVarName), logger, options);
+    return of(
+        machineModel, memoryModel.copyAndAddStackObject(newObject, pVarName), logger, options);
   }
 
   /**
@@ -145,14 +156,14 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   /**
    * Copy SMGState and adds a new frame for the function.
    *
-   * Keeps consistency: yes
+   * <p>Keeps consistency: yes
    *
    * @param pFunctionDefinition A function for which to create a new stack frame
    */
-  public SMGState opyAndAddStackFrame(CFunctionDeclaration pFunctionDefinition) {
+  public SMGState copyAndAddStackFrame(CFunctionDeclaration pFunctionDefinition) {
     return of(
         machineModel,
-        heap.copyAndAddStackFrame(pFunctionDefinition, machineModel),
+        memoryModel.copyAndAddStackFrame(pFunctionDefinition, machineModel),
         logger,
         options);
   }
@@ -174,9 +185,12 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
     return "SMG2CPA";
   }
 
+  /*
+   * Join 2 SMGStates and as a consequence its SMGs as far as possible.
+   */
   @Override
   public SMGState join(SMGState pOther) throws CPAException, InterruptedException {
-    SMGJoinSPC joinSPC = new SMGJoinSPC(heap, pOther.heap);
+    SMGJoinSPC joinSPC = new SMGJoinSPC(memoryModel, pOther.memoryModel);
     if (!(joinSPC.getStatus() == SMGJoinStatus.INCOMPARABLE && joinSPC.isDefined())) {
       return pOther;
     }
@@ -189,8 +203,6 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
     return false;
   }
 
-
-
   public boolean hasMemoryErrors() {
     return errorInfo.hasMemoryErrors();
   }
@@ -199,10 +211,14 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
     return errorInfo.hasMemoryLeak();
   }
 
+  /*
+   * Check non-equality of the 2 entered SMGValues. Never use == or equals on them!
+   */
   public boolean areNonEqual(SMGValue pValue1, SMGValue pValue2) {
-    return heap.proveInequality(pValue1, pValue2);
+    return memoryModel.proveInequality(pValue1, pValue2);
   }
 
+  /** Logs the error entered using the states logger. */
   private void logMemoryError(String pMessage, boolean pUndefinedBehavior) {
     if (options.isMemoryErrorTarget()) {
       logger.log(Level.FINE, pMessage);
@@ -242,7 +258,7 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   private SMGState copyAndPruneGlobalVariable(MemoryLocation pMemoryLocation) {
     return of(
         machineModel,
-        heap.copyAndRemoveGlobalVariable(pMemoryLocation.getIdentifier()),
+        memoryModel.copyAndRemoveGlobalVariable(pMemoryLocation.getIdentifier()),
         logger,
         options);
   }
@@ -250,30 +266,32 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   private SMGState copyAndPruneFunctionStackVariable(MemoryLocation pMemoryLocation) {
     return of(
         machineModel,
-        heap.copyAndRemoveStackVariable(pMemoryLocation.getIdentifier()),
+        memoryModel.copyAndRemoveStackVariable(pMemoryLocation.getIdentifier()),
         logger,
         options);
   }
 
   public SMGState dropStackFrame() {
-    return of(
-        machineModel,
-        heap.copyAndDropStackFrame(),
-        logger,
-        options);
+    return of(machineModel, memoryModel.copyAndDropStackFrame(), logger, options);
   }
 
+  /*
+   * Copy the current state and prune all unreachable SMGObjects. Used for example after a function return with the stack. TODO: this might get complicated with merge later.
+   */
   public SMGState copyAndPruneUnreachable() {
     Collection<SMGObject> unreachableObjects = new HashSet<>();
-    SymbolicProgramConfiguration newHeap = heap.copyAndPruneUnreachable(unreachableObjects);
+    SymbolicProgramConfiguration newHeap = memoryModel.copyAndPruneUnreachable(unreachableObjects);
     if (unreachableObjects.isEmpty()) {
       return this;
     }
     return this.copyWithMemLeak(newHeap, unreachableObjects);
   }
 
-  private SMGState
-      copyWithMemLeak(SymbolicProgramConfiguration newHeap, Collection<SMGObject> leakedObjects) {
+  /*
+   * Copy the state with an error attached. This method is used for memory leaks, meaning its a non fatal error.
+   */
+  private SMGState copyWithMemLeak(
+      SymbolicProgramConfiguration newHeap, Collection<SMGObject> leakedObjects) {
     String leakedObjectsLabels =
         leakedObjects.stream().map(Object::toString).collect(Collectors.joining(","));
     String errorMSG = "Memory leak of " + leakedObjectsLabels + " is detected.";
@@ -285,29 +303,41 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
     return copyWithErrorInfo(newHeap, newErrorInfo);
   }
 
-  public SMGState copyWithErrorInfo(SymbolicProgramConfiguration newHeap, SMGErrorInfo pErrorInfo) {
-    SMGState copy = of(machineModel, newHeap, logger, options);
+  /**
+   * Returns a copy of this {@link SMGState} with the entered SPC and {@link SMGErrorInfo} added.
+   *
+   * @param newMemoryModel the new {@link SymbolicProgramConfiguration} for the state. May be the
+   *     same as the old one.
+   * @param pErrorInfo The new {@link SMGErrorInfo} tied to the returned state.
+   * @return a copy of the {@link SMGState} this is based on with the newly entered SPC and error
+   *     info.
+   */
+  public SMGState copyWithErrorInfo(
+      SymbolicProgramConfiguration newMemoryModel, SMGErrorInfo pErrorInfo) {
+    SMGState copy = of(machineModel, newMemoryModel, logger, options);
     copy.errorInfo = pErrorInfo;
     return copy;
   }
 
-  public SymbolicProgramConfiguration getHeap() {
-    return heap;
+  /** @return memory model, including Heap, stack and global vars. */
+  public SymbolicProgramConfiguration getMemoryModel() {
+    return memoryModel;
   }
 
+  /**
+   * @param cValue the {@link CValue} you want the {@link SMGValue} for.
+   * @return The {@link SMGValue} if it exists, en empty Optional else.
+   */
   public Optional<SMGValue> getSMGValueForCValue(CValue cValue) {
-    return getHeap().getValue(cValue);
+    return memoryModel.getValue(cValue);
   }
 
+  /** @return a copy of the current state with the mapping of the CValue to the SMGValue entered. */
   public SMGState copyAndAddValue(CValue pValue, SMGValue pSmgValueRep) {
-    if (getHeap().getValue(pValue).isPresent()) {
+    if (memoryModel.getValue(pValue).isPresent()) {
       return this;
     } else {
-      return of(
-          machineModel,
-          heap.copyAndPutValue(pValue, pSmgValueRep),
-          logger,
-          options);
+      return of(machineModel, memoryModel.copyAndPutValue(pValue, pSmgValueRep), logger, options);
     }
   }
 
@@ -325,17 +355,18 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
 
   /**
    * Determines the SMGRegion object which is pointed by a given CValue address representation.
-   * Return Null Object if there is no such existing address.
+   * Return Null SMGObject if there is no such existing address. (will result in null deref later)
+   * TODO: do we need unknown derefs here?
    *
    * @param pValue - the given CValue representation of the address.
    * @return the SMGObject which the address points to, or SMGObject.nullInstance() if there is no
-   *         such.
+   *     such.
    */
   public SMGObject getPointsToTarget(CValue pValue) {
     Optional<SMGValue> addressOptional = getSMGValueForCValue(pValue);
     if (addressOptional.isPresent()) {
       Optional<SMGPointsToEdge> pointerEdgeOptional =
-          heap.getSmg().getPTEdge(addressOptional.orElseThrow());
+          memoryModel.getSmg().getPTEdge(addressOptional.orElseThrow());
       if (pointerEdgeOptional.isPresent()) {
         return pointerEdgeOptional.orElseThrow().pointsTo();
       }
@@ -343,14 +374,18 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
     return SMGObject.nullInstance();
   }
 
-  public CValueAndSMGState
-      readValue(SMGObject pObject, BigInteger pFieldOffset, BigInteger pSizeofInBits) {
-    if (!heap.isObjectValid(pObject) && !heap.isObjectExternallyAllocated(pObject)) {
-      SMGState newState = copyWithErrorInfo(heap, errorInfo.withObject(pObject)
-          .withErrorMessage(HAS_INVALID_READS));
+  /*
+   * Reads the value at the specified offset and size (in bits) in the object given. Might fail as invalid read if the object read from is invalid. Returns a copy of the state with the read value.
+   */
+  public CValueAndSMGState readValue(
+      SMGObject pObject, BigInteger pFieldOffset, BigInteger pSizeofInBits) {
+    if (!memoryModel.isObjectValid(pObject) && !memoryModel.isObjectExternallyAllocated(pObject)) {
+      SMGState newState =
+          copyWithErrorInfo(
+              memoryModel, errorInfo.withObject(pObject).withErrorMessage(HAS_INVALID_READS));
       return CValueAndSMGState.ofUnknown(newState);
     }
-    return CValueAndSMGState.of(getHeap().readValue(pObject, pFieldOffset, pSizeofInBits), this);
+    return CValueAndSMGState.of(memoryModel.readValue(pObject, pFieldOffset, pSizeofInBits), this);
   }
 
 }
