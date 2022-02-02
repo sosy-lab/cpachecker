@@ -290,5 +290,25 @@ public class SMGCPAValueExpressionEvaluator
     return machineModel.getSizeofInBits(pExpression.getExpressionType());
   }
 
+  // TODO: revisit this and decide if we want to split structs and unions because of the data
+  // reinterpretation because unions will most likely not work with SMG join!
+  /*
+   * Structs and Union types are treated essentially the same in the SMGs. Note: Both can
+   * contain methods. Unions can have data reinterpretations based on type.
+   * This should be used to not confuse enums with structs/unions.
+   */
+  public static boolean isStructOrUnionType(CType rValueType) {
 
+    if (rValueType instanceof CElaboratedType) {
+      CElaboratedType type = (CElaboratedType) rValueType;
+      return type.getKind() != CComplexType.ComplexTypeKind.ENUM;
+    }
+
+    if (rValueType instanceof CCompositeType) {
+      CCompositeType type = (CCompositeType) rValueType;
+      return type.getKind() != CComplexType.ComplexTypeKind.ENUM;
+    }
+
+    return false;
+  }
 }
