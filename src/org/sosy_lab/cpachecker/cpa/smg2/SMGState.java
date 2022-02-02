@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.smg2;
 
 import java.math.BigInteger;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -301,6 +302,52 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
             .withInvalidObjects(leakedObjects);
     logMemoryError(errorMSG, true);
     return copyWithErrorInfo(newHeap, newErrorInfo);
+  }
+
+  /**
+   * @param nullObject the {@link SMGObject} that is null and was tried to be dereferenced.
+   * @return A new SMGState with the error info.
+   */
+  public SMGState withNullPointerDereferenceWhenWriting(SMGObject nullObject) {
+    // TODO: maybe return more useful information instead of the SMGObject.
+    String errorMSG =
+        "Null pointer dereference on read of object with the intent to write to: "
+            + nullObject
+            + ".";
+    SMGErrorInfo newErrorInfo =
+        errorInfo
+            .withProperty(Property.INVALID_READ)
+            .withErrorMessage(errorMSG)
+            .withInvalidObjects(Collections.singleton(nullObject));
+    // Log the error in the logger
+    logMemoryError(errorMSG, true);
+    return copyWithErrorInfo(memoryModel, newErrorInfo);
+  }
+
+  /**
+   * Copy and Update state with an error resulting from trying to write outside of the range of the
+   * {@link SMGObject}. Returns an updated state with the error in it.
+   *
+   * @param objectWrittenTo the {@link SMGObject} that should have been written to.
+   * @param writeOffset The offset in bits where you want to write the {@link SMGValue} to.
+   * @param writeSize the size of the {@link SMGValue} in bits.
+   * @param pValue the {@link SMGValue} you wanted to write.
+   * @return A new SMGState with the error info.
+   */
+  public SMGState withOutOfRangeWrite(
+      SMGObject objectWrittenTo, BigInteger writeOffset, BigInteger writeSize, SMGValue pValue) {
+    String errorMSG =
+        String.format(
+            "Try writing value %d with size %d at offset %d bit to object %d.",
+            pValue, writeSize, writeOffset, objectWrittenTo);
+    SMGErrorInfo newErrorInfo =
+        errorInfo
+            .withProperty(Property.INVALID_WRITE)
+            .withErrorMessage(errorMSG)
+            .withInvalidObjects(Collections.singleton(objectWrittenTo));
+    // Log the error in the logger
+    logMemoryError(errorMSG, true);
+    return copyWithErrorInfo(memoryModel, newErrorInfo);
   }
 
   /**
