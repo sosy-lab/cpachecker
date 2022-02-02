@@ -11,11 +11,13 @@ package org.sosy_lab.cpachecker.cpa.smg2;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.collect.ImmutableSet;
+import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -224,4 +226,19 @@ public class SMGTransferRelation
     return null;
   }
 
+  /** Logs attempts to write outside of the objects field size. */
+  private void logOutOfRangeInformation(
+      CFAEdge cfaEdge, SMGObject memoryOfField, BigInteger valueOffset, BigInteger valueSize) {
+    // TODO: Does this work with DLS?
+    logger.log(
+        Level.INFO,
+        () ->
+            String.format(
+                "%s: Attempting to write %d bytes at offset %d into a field with size %d bytes: %s",
+                cfaEdge.getFileLocation(),
+                valueSize,
+                valueOffset,
+                memoryOfField.getSize(),
+                cfaEdge.getRawStatement()));
+  }
 }
