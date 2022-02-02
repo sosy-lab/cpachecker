@@ -75,8 +75,6 @@ public class SMGTransferRelation
     });
   }
 
-
-
   @SuppressWarnings("unused")
   private SMGState checkAndSetErrorRelation(SMGState pPrunedState) {
     // TODO Auto-generated method stub
@@ -108,33 +106,61 @@ public class SMGTransferRelation
     return pCfaEdge.getSuccessor().getNumLeavingEdges() == 0;
   }
 
+  /* (non-Javadoc)
+   * Returns a collection of SMGStates that are the successors of the handled edge.
+   * This method will
+   * If there is no returned data, the current state is the successor state.
+   * If there is returned data we assign the returned statement to the field of the state,
+   * returning the successor states.
+   * This assignment is further explained in its method.
+   * In the case that this is an entry function, there is no function return edge,
+   * meaning we have to check for memory leaks!
+   * This means that every successor-state has to be checked for memory that is not freed
+   * (if the option for that is enabled) and then the unreachables need to be pruned.
+   * Similar to this, we need to handle leaks at any program exit point (abort, etc.).
+   * TODO: how to do this?
+   * Is it sufficient to check the successor states with the exception of the returned stuff?
+   */
   @Override
   protected Collection<SMGState> handleReturnStatementEdge(CReturnStatementEdge returnEdge)
       throws CPATransferException {
+    // First get the (SMG)Object that is returned if possible
     Optional<SMGObject> returnObjectOptional =
-        state.getHeap().getReturnObjectForCurrentStackFrame();
+        state.getMemoryModel().getReturnObjectForCurrentStackFrame();
     Collection<SMGState> successors = Collections.singleton(state);
-    if(returnObjectOptional.isPresent()) {
+    // If there is an (SMG)Object returned, assign it to the successor state
+    if (returnObjectOptional.isPresent()) {
       successors =
           assignStatementToField(state, returnObjectOptional.orElseThrow(), returnEdge);
     }
 
+    // Handle entry function return (check for mem leaks)
     if (isEntryFunction(returnEdge)) {
       return handleReturnEntryFunction(successors);
     }
     return successors;
   }
 
-  @SuppressWarnings("unused")
-  private Collection<SMGState>
-      assignStatementToField(
-      SMGState pState,
-      SMGObject pRegion,
-          CReturnStatementEdge pReturnEdge)
-          throws CPATransferException {
+  /**
+   * Evaluates the value of the given expression (i.e. a return statement) and assigns the value to
+   * given state at the given region.
+   *
+   * @param pState - The current {@link SMGState}.
+   * @param pRegion - The {@link SMGObject} that is the return object on the heap of the function
+   *     just returned.
+   * @param pReturnEdge - The {@link CReturnStatementEdge} that models the return of the function
+   *     that just returned.
+   * @return A collection of {@link SMGState}s that represents the successor states.
+   * @throws CPATransferException is thrown if TODO:?
+   */
+  private Collection<SMGState> assignStatementToField(
+      SMGState pState, SMGObject pRegion, CReturnStatementEdge pReturnEdge)
+      throws CPATransferException {
+    // If there is no concrete value use 0 as that is the C default value
     CExpression returnExp = pReturnEdge.getExpression().orElse(CIntegerLiteralExpression.ZERO);
     SMGCPAValueExpressionEvaluator valueExpressionVisitor =
         new SMGCPAValueExpressionEvaluator(machineModel, logger);
+    // TODO: the rest, because this makes no sense
     return valueExpressionVisitor.evaluateValues(pState, pReturnEdge, returnExp);
   }
 
@@ -186,7 +212,6 @@ public class SMGTransferRelation
     return null;
 
   }
-
 
   @Override
   public Collection<? extends AbstractState> strengthen(
