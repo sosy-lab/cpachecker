@@ -11,12 +11,15 @@ package org.sosy_lab.cpachecker.cpa.smg2.util.value;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.Collection;
+import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
@@ -47,23 +50,36 @@ public class SMGCPAValueExpressionEvaluator
     machineModel = pMachineModel;
   }
 
-
-
   private Value throwUnsupportedOperationException(String methodNameString) {
     throw new AssertionError("The operation " + methodNameString + " is not yet supported.");
   }
 
+  /**
+   * Read the values and save the mapping of concrete (C values) to symbolic (SMGValues) values.
+   *
+   * <p>TODO: what is exactly needed here?
+   */
   public Collection<SMGState> evaluateValues(
-      SMGState pState,
-      CFAEdge cfaEdge,
-      CRightHandSide rValue)
-      throws CPATransferException {
+      SMGState pState, CFAEdge cfaEdge, CRightHandSide rValue) throws CPATransferException {
+    CType expType = TypeUtils.getRealExpressionType(rValue);
+    // TODO: Is the CFAEdge always a CReturnStatementEdge?
+    Optional<CAssignment> returnAssignment = ((CReturnStatementEdge) cfaEdge).asAssignment();
+    if (returnAssignment.isPresent()) {
+      expType = returnAssignment.orElseThrow().getLeftHandSide().getExpressionType();
+    }
+
     return null;
   }
 
-  public Collection<CValueAndSMGState>
-      evaluateExpressionValue(SMGState smgState, CFAEdge cfaEdge, CRightHandSide rValue)
-          throws CPATransferException {
+  /**
+   * Evaluates the given value with the help of the edge on the current state and returns a new
+   * state and the evaluated value. The state may change due to reading the value and the value may
+   * be concrete values, an list (arrays etc.) of values or addresses of value/pointers/structs etc.
+   *
+   * <p>TODO: what is exactly needed here?
+   */
+  public Collection<CValueAndSMGState> evaluateExpressionValue(
+      SMGState smgState, CFAEdge cfaEdge, CRightHandSide rValue) throws CPATransferException {
     if (isAddressType(rValue.getExpressionType())) {
       /*
        * expressions with Array Types as result are transformed. a = &(a[0])
@@ -71,7 +87,8 @@ public class SMGCPAValueExpressionEvaluator
 
       /*
        * expressions with structs or unions as result will be evaluated to their addresses. The
-       * address can be used e.g. to copy the struct.
+       * address can be used e.g. to copy the struct.If the address is not in the SMG,
+       * it is entered. If the address is unknown, it + its value are entered symbolicly.
        */
       return evaluateAddress(smgState, cfaEdge, rValue);
     } else {
@@ -80,8 +97,9 @@ public class SMGCPAValueExpressionEvaluator
     }
   }
 
-  private Collection<CValueAndSMGState>
-      evaluateAddress(SMGState pSmgState, CFAEdge pCfaEdge, CRightHandSide pRValue) {
+  /** Evaluates the input address and returns the ? for it. */
+  private Collection<CValueAndSMGState> evaluateAddress(
+      SMGState pSmgState, CFAEdge pCfaEdge, CRightHandSide pRValue) {
     // TODO Auto-generated method stub
     return null;
   }
@@ -108,9 +126,10 @@ public class SMGCPAValueExpressionEvaluator
     return null;
   }
 
+  /** Evaluates the input address and returns the SMGValue/Object for it. */
   @Override
-  public Collection<CValueAndSMGState>
-      evaluateAddress(SMGState pInitialSmgState, CExpression pOperand) {
+  public Collection<CValueAndSMGState> evaluateAddress(
+      SMGState pInitialSmgState, CExpression pOperand) {
     // TODO Auto-generated method stub
     return null;
   }
@@ -122,14 +141,17 @@ public class SMGCPAValueExpressionEvaluator
     return null;
   }
 
+  /** Creates the SMGValue/Object for an address not yet encountered. */
   @Override
-  public Collection<CValueAndSMGState>
-      createAddress(SMGState pState, CValue pValue) {
+  public Collection<CValueAndSMGState> createAddress(SMGState pState, CValue pValue) {
     // TODO Auto-generated method stub
     return null;
   }
 
-
+  /*
+   * Read the object form the address provided in the CValue and the value from the object from the info in the CExpression.
+   * Read is tricky once we use abstraction as the SMGs might be merged. In that case accurate read offsets and sizes are important!
+   */
   @Override
   public CValueAndSMGState readValue(SMGState pState, CValue value, CExpression pExp) {
     return readValue(pState, pState.getPointsToTarget(value), value, pExp);
@@ -173,9 +195,12 @@ public class SMGCPAValueExpressionEvaluator
         machineModel.getSizeofInBits(type));
   }
 
+  /*
+   * Get the address value of the entered field.
+   */
   @Override
-  public Collection<CValueAndSMGState>
-      getAddressOfField(SMGState pInitialSmgState, CFieldReference pExpression) {
+  public Collection<CValueAndSMGState> getAddressOfField(
+      SMGState pInitialSmgState, CFieldReference pExpression) {
     CExpression fieldOwner = pExpression.getFieldOwner();
     CType ownerType = TypeUtils.getRealExpressionType(fieldOwner);
     return evaluateAddress(pInitialSmgState, fieldOwner).stream().map(addressAndState -> {
@@ -260,6 +285,8 @@ public class SMGCPAValueExpressionEvaluator
   @Override
   public BigInteger getBitSizeof(SMGState pInitialSmgState, CExpression pExpression) {
     // TODO check why old implementation did not use machineModel
+    // Because in abstracted SMGs we might need the current SMG to get the correct type info.
+    // TODO: rework because of that.
     return machineModel.getSizeofInBits(pExpression.getExpressionType());
   }
 
