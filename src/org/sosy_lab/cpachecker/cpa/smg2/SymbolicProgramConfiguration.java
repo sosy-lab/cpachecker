@@ -358,7 +358,7 @@ public class SymbolicProgramConfiguration {
 
   /**
    * Copies the {@link SymbolicProgramConfiguration} and puts the mapping for the cValue to the
-   * smgValue (and vice versa) into the returned copy.
+   * smgValue (and vice versa) into the returned copy. Note: the value is not yet added to the SMG!
    *
    * @param cValue {@link CValue} that is mapped to the entered smgValue.
    * @param smgValue {@link SMGValue} that is mapped to the entered cValue.
@@ -414,6 +414,23 @@ public class SymbolicProgramConfiguration {
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation.addAndCopy(pObject),
+        valueMapping);
+  }
+
+  /**
+   * Copies this {@link SymbolicProgramConfiguration} and replaces the SMG with a new one. Meant for
+   * read/write operations. The SMG has to be a successor of the old one.
+   *
+   * @param pSMG the new {@link SMG} that replaces the old one but is an successor of the old one.
+   * @return The new SPC with the new {@link SMG}.
+   */
+  private SymbolicProgramConfiguration copyAndReplaceSMG(SMG pSMG) {
+    return of(
+        pSMG,
+        globalVariableMapping,
+        stackVariableMapping,
+        heapObjects,
+        externalObjectAllocation,
         valueMapping);
   }
 
@@ -573,6 +590,14 @@ public class SymbolicProgramConfiguration {
   /** Copy SPC and add a pointer to an object at a specified offset. */
   public void addPointer() {}
 
-  /** Write value into the SMG at the specified offset in bits with the size given in bits. */
-  public void writeValue() {}
+  /**
+   * Write value into the SMG at the specified offset in bits with the size given in bits. This
+   * assumes that the SMGValue is already correctly mapped, but will insert it into the SMG.
+   */
+  public SymbolicProgramConfiguration writeValue(
+      SMGObject pObject, BigInteger pFieldOffset, BigInteger pSizeofInBits, SMGValue pValue) {
+    // Adding the value should be save here, if its already added no harm is done
+    SMG newSMG = smg.copyAndAddValue(pValue);
+    return copyAndReplaceSMG(newSMG.writeValue(pObject, pFieldOffset, pSizeofInBits, pValue));
+  }
 }
