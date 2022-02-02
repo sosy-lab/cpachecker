@@ -39,12 +39,15 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAValueExpressionEvaluator;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 
 public class SMGTransferRelation
     extends ForwardingTransferRelation<Collection<SMGState>, SMGState, SMGPrecision> {
@@ -224,6 +227,30 @@ public class SMGTransferRelation
       throws CPATransferException, InterruptedException {
 
     return null;
+  }
+
+  /**
+   * TODO: move this. Structs get a seperate assignment method because we need to potentially copy
+   * from one struct to another. TODO: Do we have to do more? They might have pointers in them.
+   * (might even have methods)
+   *
+   */
+  @SuppressWarnings("unused")
+  private SMGState assignStruct(
+      SMGState pNewState,
+      SMGObject pMemoryOfField,
+      long pFieldOffset,
+      CType pRValueType,
+      SMGValue pValue,
+      CFAEdge pCfaEdge)
+      throws UnrecognizedCodeException {
+    // If the value is a known address of a struct do:
+    // Get the object for the (value address) struct
+    // Write the information of the struct at the value address into the new struct at the given
+    // offset/size
+    // (I don't know if writeValue() is good, or a dedicated copy method would be better)
+
+    return pNewState;
   }
 
   /** Logs attempts to write outside of the objects field size. */
