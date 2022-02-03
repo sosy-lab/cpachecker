@@ -33,12 +33,16 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.exceptions.NoException;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaToCVisitor;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
-/**
- * This is a utility class for common operations on {@link ExpressionTree}s
- */
+/** This is a utility class for common operations on {@link ExpressionTree}s */
 public final class ExpressionTrees {
+
+  private static final String FUNCTION_DELIMITER = "::";
 
   @SuppressWarnings("unchecked")
   public static <LeafType> ExpressionTree<LeafType> getTrue() {
@@ -503,6 +507,46 @@ public final class ExpressionTrees {
           }
         };
     return pSource.accept(converter);
+  }
+
+  /**
+   * Builds an expression tree for the given {@link BooleanFormula}. If the formula is invalid, i.e.
+   * a literal/variable from another method is present (not in scope), the expression tree
+   * representing true is returned.
+   *
+   * <p>Hint: This method can be used to get a C-like assumptions from a boolean formula, obtained
+   * using the toStrng() method of the expression tree
+   *
+   * @param formula the formula to transform
+   * @param fMgr the formula manger having the formula "in scope"
+   * @param location to determine the current method for checking the scope.
+   * @return the expression tree representing the formula.
+   */
+  public static ExpressionTree<Object> fromFormula(
+      BooleanFormula formula, FormulaManagerView fMgr, CFANode location)
+      throws InterruptedException {
+
+    BooleanFormula inv = formula;
+    String prefix = location.getFunctionName() + FUNCTION_DELIMITER;
+
+    inv =
+        fMgr.filterLiterals(
+            inv,
+            e -> {
+              for (String name : fMgr.extractVariableNames(e)) {
+                if (name.contains(FUNCTION_DELIMITER) && !name.startsWith(prefix)) {
+                  return false;
+                }
+              }
+              return true;
+            });
+
+    FormulaToCVisitor v = new FormulaToCVisitor(fMgr);
+    boolean isValid = fMgr.visit(inv, v);
+    if (isValid) {
+      return LeafExpression.of(v.getString());
+    }
+    return ExpressionTrees.getTrue();
   }
 
   /**

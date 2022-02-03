@@ -28,14 +28,13 @@ import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.cpa.arg.Splitable;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-/**
- * AbstractState for Symbolic Predicate Abstraction CPA
- */
+/** AbstractState for Symbolic Predicate Abstraction CPA */
 public abstract class PredicateAbstractState
     implements AbstractState, Partitionable, Serializable, Splitable {
 
@@ -127,7 +126,10 @@ public abstract class PredicateAbstractState
     @Override
     public ExpressionTree<Object> getFormulaApproximation(
         FunctionEntryNode pFunctionScope, CFANode pLocation) throws InterruptedException {
-      return super.abstractionFormula.asExpressionTree(pLocation);
+      return ExpressionTrees.fromFormula(
+          super.abstractionFormula.asFormula(),
+          super.abstractionFormula.getFormulaManager(),
+          pLocation);
     }
 
     @Override

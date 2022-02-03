@@ -65,10 +65,8 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
-import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaToCVisitor;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
@@ -78,7 +76,7 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
  */
 @Options(prefix="assumptions")
 public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvider {
-  private static final String FUNCTION_DELIMITER = "::";
+
   @Option(secure=true, name="export", description="write collected assumptions to file")
   private boolean exportAssumptions = true;
 
@@ -559,39 +557,14 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
           bmgr.and(assumptionState.getAssumption(), assumptionState.getStopFormula());
       if (!bmgr.isTrue(assumption)) {
         writer.append("ASSUME {");
-        escape(parseAssumptionToString(assumption, fmgr, pCFANode), writer);
+        try {
+          escape(ExpressionTrees.fromFormula(assumption, fmgr, pCFANode).toString(), writer);
+        } catch (InterruptedException e) {
+          // TODO: Discuss if this is a reasonable behaviour (using true as assumption)
+          writer.append("true");
+        }
         writer.append("} ");
       }
-    }
-  }
-
-  private static String parseAssumptionToString(
-      BooleanFormula pAssumption, FormulaManagerView fMgr, CFANode pLocation) {
-    try {
-      BooleanFormula inv = pAssumption;
-      String prefix = pLocation.getFunctionName() + FUNCTION_DELIMITER;
-
-      inv =
-          fMgr.filterLiterals(
-              inv,
-              e -> {
-                for (String name : fMgr.extractVariableNames(e)) {
-                  if (name.contains(FUNCTION_DELIMITER) && !name.startsWith(prefix)) {
-                    return false;
-                  }
-                }
-                return true;
-              });
-
-      FormulaToCVisitor v = new FormulaToCVisitor(fMgr);
-      boolean isValid = fMgr.visit(inv, v);
-      if (isValid) {
-        return LeafExpression.of(v.getString()).toString();
-      }
-      return ExpressionTrees.getTrue().toString(); // no new invariant
-    } catch (InterruptedException pE) {
-      // TODO: Add logging ?
-      return ExpressionTrees.getTrue().toString(); // no new invariant
     }
   }
 
