@@ -16,18 +16,19 @@ import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
 /**
- * A visitor for creating modified copies of abstract syntax tree (AST) nodes by applying a user
- * defined node substitution.
+ * A visitor for creating modified copies of abstract syntax tree (AST) nodes by applying a custom
+ * node substitution.
  *
- * <p>A substitution is a {@link Function} that maps original nodes to substitute nodes. If the
- * substitution function returns an instance of {@link CAstNode}, the returned instance is used as a
- * substitute. Otherwise, if {@code null} is returned, the node is not substituted and its children
- * are recursively visited and check for substitution.
+ * <p>A substitution is used to replace specific nodes of an AST and is specified as a {@link
+ * Function} that maps nodes to their respective substitutes. If a substitution returns an instance
+ * of {@link CAstNode} for a node, the returned instance is used as a substitute. Otherwise, if
+ * {@code null} is returned, the node is not substituted and its children are recursively visited
+ * and checked for substitution.
  *
- * <p>Modified AST nodes are created by calling {@link CAstNode#accept(CAstNodeVisitor)}:
+ * <p>Modified AST node copies are created by calling {@link CAstNode#accept(CAstNodeVisitor)}:
  *
  * <pre>{@code
- * CAstNode modifiedAstNode = originalAstNode.accept(substitutingVisitor);
+ * CAstNode modifiedAstNodeCopy = originalAstNode.accept(substitutingVisitor);
  * }</pre>
  */
 public final class SubstitutingCAstNodeVisitor
@@ -38,10 +39,11 @@ public final class SubstitutingCAstNodeVisitor
   /**
    * Creates a {@code SubstitutingCAstNodeVisitor} instance for a specified substitution.
    *
-   * @param pSubstitution The substitution function that maps original nodes to substitute nodes. If
-   *     the substitution function returns an instance of {@link CAstNode}, the returned instance is
-   *     used as a substitute. Otherwise, if {@code null} is returned, the node is not substituted
-   *     and its children are recursively visited and check for substitution.
+   * @param pSubstitution The substitution, specified as a {@link Function}, that maps nodes to
+   *     their respective substitutes. If a substitution returns an instance of {@link CAstNode} for
+   *     a node, the returned instance is used as a substitute. Otherwise, if {@code null} is
+   *     returned, the node is not substituted and its children are recursively visited and checked
+   *     for substitution.
    * @throws NullPointerException if {@code pSubstitution == null}
    */
   public SubstitutingCAstNodeVisitor(Function<CAstNode, CAstNode> pSubstitution) {
@@ -50,7 +52,7 @@ public final class SubstitutingCAstNodeVisitor
 
   /**
    * Returns the substitute for a specified {@link CAstNode}, or, if the substitution function
-   * returns {@code null}, the value returned by the specified supplier.
+   * returns {@code null}, the value returned by the specified default supplier.
    */
   private CAstNode substitute(CAstNode pCAstNode, Supplier<CAstNode> pDefaultSupplier) {
 
