@@ -344,15 +344,13 @@ public class SMGTransferRelation
   private void logOutOfRangeInformation(
       CFAEdge cfaEdge, SMGObject memoryOfField, BigInteger valueOffset, BigInteger valueSize) {
     // TODO: Does this work with DLS?
-    logger.log(
+    logger.logf(
         Level.INFO,
-        () ->
-            String.format(
-                "%s: Attempting to write %d bytes at offset %d into a field with size %d bytes: %s",
-                cfaEdge.getFileLocation(),
-                valueSize,
-                valueOffset,
-                memoryOfField.getSize(),
-                cfaEdge.getRawStatement()));
+        "%s, Out of range: Attempting to write %d bytes at offset %d into a field with size %d bytes: %s",
+        cfaEdge.getFileLocation(),
+        valueSize,
+        valueOffset,
+        memoryOfField.getSize(),
+        cfaEdge.getRawStatement());
   }
 }
