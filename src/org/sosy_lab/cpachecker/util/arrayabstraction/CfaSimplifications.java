@@ -300,8 +300,8 @@ final class CfaSimplifications {
             //   t_initial  : initial target value before entering the loop
             //   t_step     : target value update step
             //
-            //                 |     calculate loop iteration     |
-            //                 |                                  |
+            //               |-----------  calculate loop iteration  -----------|
+            //               |                                                  |
             // t_initial + ( ( ( ( index - ix_initial ) / ix_step ) + ix_adjust ) * t_step )
 
             // edge permutations => ix_adjust:
