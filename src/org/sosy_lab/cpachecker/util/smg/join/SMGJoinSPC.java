@@ -58,12 +58,12 @@ public class SMGJoinSPC extends SMGAbstractJoin {
 
     // step 2 and 3 loop over all variables and apply joinSubSMGS on
     // global heap mapping
-    for (Map.Entry<String, SMGObject> variableAndObject : inputSPC1.getGolbalVariableToSmgObjectMap()
-        .entrySet()) {
+    for (Map.Entry<String, SMGObject> variableAndObject :
+        inputSPC1.getGlobalVariableToSmgObjectMap().entrySet()) {
       SMGObject destObject =
           joinVariable(
               variableAndObject.getValue(),
-              inputSPC2.getGolbalVariableToSmgObjectMap().get(variableAndObject.getKey()));
+              inputSPC2.getGlobalVariableToSmgObjectMap().get(variableAndObject.getKey()));
       resultGolbalMapping.put(variableAndObject.getKey(), destObject);
       if (status.equals(SMGJoinStatus.INCOMPARABLE)) {
         return;
@@ -162,8 +162,8 @@ public class SMGJoinSPC extends SMGAbstractJoin {
   }
 
   private void checkVariableRanges() {
-    Set<String> spc1Variables = inputSPC1.getGolbalVariableToSmgObjectMap().keySet();
-    Set<String> spc2Variables = inputSPC2.getGolbalVariableToSmgObjectMap().keySet();
+    Set<String> spc1Variables = inputSPC1.getGlobalVariableToSmgObjectMap().keySet();
+    Set<String> spc2Variables = inputSPC2.getGlobalVariableToSmgObjectMap().keySet();
     checkArgument(
         spc1Variables.containsAll(spc2Variables),
         "Variable ranges are not equal.");

@@ -176,7 +176,7 @@ public class SMGCPA
     if (pNode instanceof CFunctionEntryNode) {
       CFunctionEntryNode functionNode = (CFunctionEntryNode) pNode;
       try {
-        initState = initState.opyAndAddStackFrame(functionNode.getFunctionDefinition());
+        initState = initState.copyAndAddStackFrame(functionNode.getFunctionDefinition());
         // initState.performConsistencyCheck(SMGRuntimeCheck.FULL);
       } catch (SMGInconsistencyException exc) {
         throw new AssertionError(exc);
