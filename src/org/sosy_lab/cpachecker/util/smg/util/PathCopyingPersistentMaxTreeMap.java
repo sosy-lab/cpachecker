@@ -14,9 +14,7 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Verify.verify;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.UnmodifiableIterator;
 import com.google.errorprone.annotations.Immutable;
@@ -35,9 +33,11 @@ import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.stream.Collector;
+import java.util.stream.StreamSupport;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
@@ -601,7 +601,7 @@ public final class PathCopyingPersistentMaxTreeMap<K extends Comparable<K>, V>
   private static <K extends Comparable<K>, V> Optional<K> getMaxSecondaryKey(
       Node<K, V> node1, Node<K, V> node2) {
     if (node1 == null && node2 == null) {
-      return Optional.absent();
+      return Optional.empty();
     }
     if (node1 == null) {
       return Optional.of(node2.getMax());
@@ -928,14 +928,12 @@ public final class PathCopyingPersistentMaxTreeMap<K extends Comparable<K>, V>
     return EntryInOrderIterator.create(root);
   }
 
-  // TODO: this is shit; redo better
+  // TODO: Is this fine or would ImmutableSet.Builder be better?
   public Set<V> getValuesSet() {
-    Iterator<Entry<K, V>> iterator = entryIterator();
-    Builder<V> set = ImmutableSet.builder();
-    while (iterator.hasNext()) {
-      set.add(iterator.next().getValue());
-    }
-    return set.build();
+    Iterable<Entry<K, V>> iterable = () -> entryIterator();
+    return StreamSupport.stream(iterable.spliterator(), false)
+        .map(n -> n.getValue())
+        .collect(ImmutableSet.toImmutableSet());
   }
 
   public Iterator<Entry<K, V>> descendingEntryIterator() {
@@ -982,7 +980,7 @@ public final class PathCopyingPersistentMaxTreeMap<K extends Comparable<K>, V>
    *   offset = lessEqualsMax
    */
   public ImmutableSet<V> filterByOverlappingZeroEdges(K largerEqualsKey, K lessEqualsMax) {
-    Builder<V> setBuilder = ImmutableSet.builder();
+    ImmutableSet.Builder<V> setBuilder = ImmutableSet.builder();
     filterByThingy1(largerEqualsKey, lessEqualsMax, SMGValue.zeroValue(), root, setBuilder);
     return setBuilder.build();
   }
@@ -992,7 +990,7 @@ public final class PathCopyingPersistentMaxTreeMap<K extends Comparable<K>, V>
       K offset,
       Object valueEqualityConstraint,
       Node<K, V> node,
-      Builder<V> builder) {
+      ImmutableSet.Builder<V> builder) {
     if (node == null) {
       return;
     }
@@ -1046,16 +1044,13 @@ public final class PathCopyingPersistentMaxTreeMap<K extends Comparable<K>, V>
    *   offset = lessEqualsMax
    */
   public ImmutableSet<V> filterByOverlappingNonZeroEdges(K largerEqualsKey, K lessEqualsMax) {
-    Builder<V> setBuilder = ImmutableSet.builder();
+    ImmutableSet.Builder<V> setBuilder = ImmutableSet.builder();
     filterByThingy2(largerEqualsKey, lessEqualsMax, root, setBuilder);
     return setBuilder.build();
   }
 
   private void filterByThingy2(
-      K offSetPlusSize,
-      K offset,
-      Node<K, V> node,
-      Builder<V> builder) {
+      K offSetPlusSize, K offset, Node<K, V> node, ImmutableSet.Builder<V> builder) {
     if (node == null) {
       return;
     }
