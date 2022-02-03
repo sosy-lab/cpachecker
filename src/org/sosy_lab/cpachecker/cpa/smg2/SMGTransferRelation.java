@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -226,6 +227,51 @@ public class SMGTransferRelation
       Precision pPrecision)
       throws CPATransferException, InterruptedException {
 
+    return null;
+  }
+
+  /*
+   * Handles any form of assignments. Takes the C/CFA arguments, transforms them into SMG arguments (reads SMG, gets SMG representatives of C values/objects or creates them if they are unknown) and then assigns them to the SMG counterparts, updating the state in the process.
+   */
+  @SuppressWarnings("unused")
+  private List<SMGState> handleAssignment(
+      SMGState pState, CFAEdge cfaEdge, CExpression lValue, CRightHandSide rValue)
+      throws CPATransferException {
+    /* old/ just reference
+    List<SMGState> result = new ArrayList<>(4);
+    LValueAssignmentVisitor visitor =
+        expressionEvaluator.getLValueAssignmentVisitor(cfaEdge, pState);
+    // Create ?visitor
+    // For all values in lValue do:
+    //  Get the SMGState, SMGValue etc.
+    //  Get the correct type (bit size) for the value
+    //  If the object to be assigned to ?
+    for (SMGAddressAndState addressOfFieldAndState : lValue.accept(visitor)) {
+      SMGAddress addressOfField = addressOfFieldAndState.getObject();
+      pState = addressOfFieldAndState.getSmgState();
+
+      CType fieldType = TypeUtils.getRealExpressionType(lValue);
+
+      if (addressOfField.isUnknown()) {
+        // Check for dereference errors in rValue
+        List<SMGState> newStates =
+            asSMGStateList(readValueToBeAssiged(pState.copyOf(), cfaEdge, rValue));
+        newStates.forEach(smgState -> smgState.unknownWrite());
+        result.addAll(newStates);
+      } else {
+        result.addAll(
+            assignFieldToState(
+                pState.copyOf(),
+                cfaEdge,
+                addressOfField.getObject(),
+                addressOfField.getOffset().getAsLong(),
+                fieldType,
+                rValue));
+      }
+    }
+
+    return result;
+    */
     return null;
   }
 
