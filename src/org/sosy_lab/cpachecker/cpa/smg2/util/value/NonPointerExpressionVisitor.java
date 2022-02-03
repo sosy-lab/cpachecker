@@ -194,7 +194,7 @@ public class NonPointerExpressionVisitor
       SMGState smgState = initialSmgState;
 
       Optional<SMGObject> variableObjectOptional =
-          smgState.getHeap().getObjectForVisibleVariable(idExpression.getName());
+          smgState.getMemoryModel().getObjectForVisibleVariable(idExpression.getName());
 
       if (variableObjectOptional.isPresent()) {
         // Witness validation cannot compute an assignment for some cases.
