@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -105,18 +106,11 @@ public class SMGCPAValueExpressionEvaluator
   }
 
   public static boolean isAddressType(CType cType) {
-    if (cType instanceof CElaboratedType) {
-      CElaboratedType type = (CElaboratedType) cType;
-      return type.getKind() != CComplexType.ComplexTypeKind.ENUM;
-    }
-
-    if (cType instanceof CCompositeType) {
-      CCompositeType type = (CCompositeType) cType;
-      return type.getKind() != CComplexType.ComplexTypeKind.ENUM;
-    }
-    return cType instanceof CPointerType
-        || cType instanceof CArrayType
-        || cType instanceof CFunctionType;
+    CType type = getCanonicalType(cType);
+    return type instanceof CPointerType
+        || type instanceof CArrayType
+        || type instanceof CFunctionType
+        || isStructOrUnionType(type);
   }
 
   @Override
@@ -282,6 +276,7 @@ public class SMGCPAValueExpressionEvaluator
     return readValue(pSmgState, pVariableObject, CValue.zero(), pExpression);
   }
 
+  /** TODO: Move all type related stuff into its own class once i rework getBitSizeOf */
   @Override
   public BigInteger getBitSizeof(SMGState pInitialSmgState, CExpression pExpression) {
     // TODO check why old implementation did not use machineModel
@@ -310,5 +305,18 @@ public class SMGCPAValueExpressionEvaluator
     }
 
     return false;
+  }
+
+  // Get canonical type information
+  public static CType getCanonicalType(CType type) {
+    return type.getCanonicalType();
+  }
+
+  public static CType getCanonicalType(CSimpleDeclaration decl) {
+    return getCanonicalType(decl.getType());
+  }
+
+  public static CType getCanonicalType(CRightHandSide exp) {
+    return getCanonicalType(exp.getExpressionType());
   }
 }
