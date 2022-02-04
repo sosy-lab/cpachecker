@@ -64,6 +64,7 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -556,14 +557,17 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       BooleanFormula assumption =
           bmgr.and(assumptionState.getAssumption(), assumptionState.getStopFormula());
       if (!bmgr.isTrue(assumption)) {
-        writer.append("ASSUME {");
         try {
-          escape(ExpressionTrees.fromFormula(assumption, fmgr, pCFANode).toString(), writer);
+          ExpressionTree<Object> assumptionTree =
+              ExpressionTrees.fromFormula(assumption, fmgr, pCFANode);
+          // At this point, we know that the InterruptedException is not thrown,
+          // hence, we can continue
+          writer.append("ASSUME {");
+          escape(assumptionTree.toString(), writer);
+          writer.append("} ");
         } catch (InterruptedException e) {
-          // TODO: Discuss if this is a reasonable behaviour (using true as assumption)
-          writer.append("true");
+        //Nothing to do here, as we simply ignore this assumption if it is not parsable
         }
-        writer.append("} ");
       }
     }
   }
