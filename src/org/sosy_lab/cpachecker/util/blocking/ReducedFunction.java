@@ -26,8 +26,8 @@ class ReducedFunction {
   private final ReducedNode exitNode;
 
   public ReducedFunction(ReducedNode pEntryNode, ReducedNode pExitNode) {
-    assert (pEntryNode != null);
-    assert (pExitNode != null);
+    assert pEntryNode != null;
+    assert pExitNode != null;
 
     this.cfaEdges = HashBasedTable.create();
     this.activeNodes = HashMultiset.create();
@@ -58,7 +58,7 @@ class ReducedFunction {
   }
 
   public void removeEdge(ReducedNode pFrom, ReducedNode pTo, ReducedEdge pEdge) {
-    assert (cfaEdges.contains(pFrom, pTo));
+    assert cfaEdges.contains(pFrom, pTo);
     assert (activeNodes.count(pFrom) > 0);
     assert (activeNodes.count(pTo) > 0);
     assert (pEdge.getPointsTo() == pTo);

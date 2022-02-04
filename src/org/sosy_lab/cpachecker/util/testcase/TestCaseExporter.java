@@ -111,7 +111,7 @@ public class TestCaseExporter {
       description = "Do not output values for variables that are not initialized when declared")
   private boolean excludeInitialization = false;
 
-  @Option(secure = true, description = "Random seed for test case mutation")
+  @Option(secure = true, description = "Random seed for mutation of test cases")
   private long mutationSeed = 0;
 
   private static int testsWritten = 0;
@@ -140,6 +140,30 @@ public class TestCaseExporter {
 
   private static String printLineSeparated(List<String> pValues) {
     return Joiner.on("\n").join(pValues);
+  }
+
+  public void writeTestCaseFiles(final List<String> pInputs, Optional<Property> pSpec) {
+    if (areTestsEnabled()) {
+
+      if (testHarnessFile != null) {
+        // TODO writeTestCase(getTestCaseFiles(testHarnessFile, 1), targetPath, pCex,
+        // FormatType.HARNESS, pSpec);
+      }
+
+      if (testValueFile != null) {
+        writeTestCase(testValueFile.getPath(id.getFreshId()), pInputs, FormatType.PLAIN, pSpec);
+      }
+
+      if (testXMLFile != null) {
+        Path testCaseFile = testXMLFile.getPath(id.getFreshId());
+        if (isFirstTest()) {
+          writeTestCase(
+              testCaseFile.resolveSibling("metadata.xml"), pInputs, FormatType.METADATA, pSpec);
+        }
+        writeTestCase(testCaseFile, pInputs, FormatType.XML, pSpec);
+      }
+      increaseTestsWritten();
+    }
   }
 
   public void writeTestCaseFiles(final CounterexampleInfo pCex, Optional<Property> pSpec) {
@@ -203,21 +227,22 @@ public class TestCaseExporter {
     final Predicate<? super ARGState> relevantStates = Predicates.in(pTargetPath.getStateSet());
     final BiPredicate<ARGState, ARGState> relevantEdges =
         BiPredicates.pairIn(ImmutableSet.copyOf(pTargetPath.getStatePairs()));
-    try {
-      Optional<String> testOutput;
-      Optional<List<String>> origTestInputs, nextInputs;
-      if (type == FormatType.PLAIN || type == FormatType.XML) {
-        origTestInputs =
-            getInputNondetValuesOrdered(rootState, relevantStates, relevantEdges, pCexInfo);
-      } else {
-        origTestInputs = Optional.empty();
-      }
-      nextInputs = origTestInputs;
 
-      if (zipTestCases) {
-        try (FileSystem zipFS = openZipFS()) {
-          for (Path pFile : pTestCaseFiles) {
-            Path fileName = pFile.getFileName();
+    if (type == FormatType.PLAIN || type == FormatType.XML) {
+      Optional<List<String>> origInputs =
+          getInputNondetValuesOrdered(rootState, relevantStates, relevantEdges, pCexInfo);
+      if (origInputs.isPresent()) {
+        writeTestCase(pTestCaseFiles, origInputs.orElseThrow(), type, pSpec);
+      }
+    } else if (type == FormatType.METADATA) {
+      writeTestCase(pTestCaseFiles, new ArrayList<>(), type, pSpec);
+    } else {
+      try {
+        Preconditions.checkNotNull(pTestCaseFiles);
+        Preconditions.checkArgument(!pTestCaseFiles.isEmpty());
+        if (zipTestCases) {
+          try (FileSystem zipFS = openZipFS()) {
+            Path fileName = pTestCaseFiles.get(0).getFileName();
             Path testFile =
                 zipFS.getPath(
                     fileName != null ? fileName.toString() : id.getFreshId() + "test.txt");
@@ -234,34 +259,12 @@ public class TestCaseExporter {
                   harnessExporter.writeHarness(
                       writer, rootState, relevantStates, relevantEdges, pCexInfo);
                   break;
-                case METADATA:
-                  XMLTestCaseExport.writeXMLMetadata(
-                      writer, cfa, pSpec.orElse(null), producerString);
-                  break;
-                case PLAIN:
-                  testOutput = inputListToFormattedString(nextInputs, TestCaseExporter::printLineSeparated);
-                  if (testOutput.isPresent()) {
-                    writer.write(testOutput.orElseThrow());
-                  }
-                  break;
-                case XML:
-                  testOutput = inputListToFormattedString(nextInputs, XMLTestCaseExport.XML_TEST_CASE);
-                  if (testOutput.isPresent()) {
-                    writer.write(testOutput.orElseThrow());
-                  }
-                  break;
                 default:
                   throw new AssertionError("Unknown test case format.");
               }
             }
-            if (origTestInputs.isEmpty()) {
-              break;
-            }
-            nextInputs = mutateInputValues(origTestInputs);
           }
-        }
-      } else {
-        for (Path pFile : pTestCaseFiles) {
+        } else {
           Object content = null;
 
           switch (type) {
@@ -272,6 +275,90 @@ public class TestCaseExporter {
                           harnessExporter.writeHarness(
                               appendable, rootState, relevantStates, relevantEdges, pCexInfo);
               break;
+            default:
+              throw new AssertionError("Unknown test case format.");
+          }
+          IO.writeFile(pTestCaseFiles.get(0), Charset.defaultCharset(), content);
+        }
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write test case to file");
+      }
+    }
+  }
+
+  private void writeTestCase(
+      final Path testCase,
+      final List<String> pInputs,
+      final FormatType pType,
+      final Optional<Property> pSpec) {
+    if (isFirstTest() && pType.equals(FormatType.XML)) {
+      List<Path> metadataFile = new ArrayList<>();
+      metadataFile.add(testCase.resolveSibling("metadata.xml"));
+      writeTestCase(metadataFile, new ArrayList<>(), FormatType.METADATA, pSpec);
+    }
+    List<Path> testCaseList = new ArrayList<>();
+    testCaseList.add(testCase);
+    writeTestCase(testCaseList, pInputs, pType, pSpec);
+    increaseTestsWritten();
+  }
+
+  private void writeTestCase(
+      final List<Path> pTestCaseFiles,
+      List<String> pOrigInputs,
+      final FormatType pType,
+      final Optional<Property> pSpec) {
+    Preconditions.checkArgument(
+        pType.equals(FormatType.PLAIN)
+            || pType.equals(FormatType.XML)
+            || pType.equals(FormatType.METADATA));
+    try {
+      List<String> nextInputs = pOrigInputs;
+
+      if (zipTestCases) {
+        try (FileSystem zipFS = openZipFS()) {
+          for (Path pFile : pTestCaseFiles) {
+            Path fileName = pFile.getFileName();
+            Path testFile =
+                zipFS.getPath(
+                    fileName != null ? fileName.toString() : id.getFreshId() + "test.txt");
+            try (Writer writer =
+                new OutputStreamWriter(
+                    zipFS
+                        .provider()
+                        .newOutputStream(
+                            testFile, StandardOpenOption.CREATE, StandardOpenOption.WRITE),
+                    Charset.defaultCharset())) {
+
+              switch (pType) {
+                case PLAIN:
+                  writer.write(
+                      inputListToFormattedString(nextInputs, TestCaseExporter::printLineSeparated));
+                  break;
+                case METADATA:
+                  XMLTestCaseExport.writeXMLMetadata(
+                      writer, cfa, pSpec.orElse(null), producerString);
+                  break;
+                case XML:
+                  writer.write(
+                      inputListToFormattedString(nextInputs, XMLTestCaseExport.XML_TEST_CASE));
+                  break;
+                default:
+                  throw new AssertionError("Unknown test case format.");
+              }
+            }
+            nextInputs = mutateInputValues(pOrigInputs);
+          }
+        }
+      } else {
+        for (Path pFile : pTestCaseFiles) {
+          Object content = null;
+
+          switch (pType) {
+            case PLAIN:
+              String plainOutput =
+                  inputListToFormattedString(nextInputs, TestCaseExporter::printLineSeparated);
+              content = (Appender) appendable -> appendable.append(plainOutput);
+              break;
             case METADATA:
               content =
                   (Appender)
@@ -279,32 +366,16 @@ public class TestCaseExporter {
                           XMLTestCaseExport.writeXMLMetadata(
                               appendable, cfa, pSpec.orElse(null), producerString);
               break;
-            case PLAIN:
-              Optional<String> nextTestOutputPlain =
-                  inputListToFormattedString(nextInputs, TestCaseExporter::printLineSeparated);
-              if (nextTestOutputPlain.isPresent()) {
-                content =
-                    (Appender) appendable -> appendable.append(nextTestOutputPlain.orElseThrow());
-              }
-              break;
             case XML:
-              Optional<String> nextTestOutputXML =
+              String xmlOutput =
                   inputListToFormattedString(nextInputs, XMLTestCaseExport.XML_TEST_CASE);
-              if (nextTestOutputXML.isPresent()) {
-                content =
-                    (Appender) appendable -> appendable.append(nextTestOutputXML.orElseThrow());
-              }
+              content = (Appender) appendable -> appendable.append(xmlOutput);
               break;
             default:
               throw new AssertionError("Unknown test case format.");
           }
-          if (content != null) {
-            IO.writeFile(pFile, Charset.defaultCharset(), content);
-          }
-          if (origTestInputs.isEmpty()) {
-            break;
-          }
-          nextInputs = mutateInputValues(origTestInputs);
+          IO.writeFile(pFile, Charset.defaultCharset(), content);
+          nextInputs = mutateInputValues(pOrigInputs);
         }
       }
     } catch (IOException e) {
@@ -370,47 +441,38 @@ public class TestCaseExporter {
     return Optional.empty();
   }
 
-  private Optional<List<String>> mutateInputValues(final Optional<List<String>> origInputs) {
-    if(origInputs.isPresent()) {
-      List<String> newInput = new ArrayList<>(origInputs.orElseThrow());
-      double prob, origVal;
-      int val;
-      for (int i = 0; i < newInput.size(); i++) {
-        try {
-          origVal = Double.parseDouble(newInput.get(i));
-          prob = randomGen.nextDouble();
-          if (prob < 0.02) {
-            val = Integer.MIN_VALUE; // MIN
-          } else if (prob < 0.04) {
-            val = Integer.MAX_VALUE; // MAX
-          } else if (prob < 0.19) {
-            val = 0; // 0
-          } else if (prob < 0.34) {
-            val = (int) -origVal; // negate
-          } else if (prob < 0.49) { // random
-            val = randomGen.nextInt();
-          } else {
-            continue;
-          }
-          newInput.set(i, String.valueOf(val));
-        } catch (NumberFormatException e) {
+  private List<String> mutateInputValues(final List<String> origInputs) {
+    List<String> newInput = new ArrayList<>(origInputs);
+    double prob, origVal;
+    int val;
+    for (int i = 0; i < newInput.size(); i++) {
+      try {
+        origVal = Double.parseDouble(newInput.get(i));
+        prob = randomGen.nextDouble();
+        if (prob < 0.02) {
+          val = Integer.MIN_VALUE; // MIN
+        } else if (prob < 0.04) {
+          val = Integer.MAX_VALUE; // MAX
+        } else if (prob < 0.19) {
+          val = 0; // 0
+        } else if (prob < 0.34) {
+          val = (int) -origVal; // negate
+        } else if (prob < 0.49) { // random
+          val = randomGen.nextInt();
+        } else {
           continue;
         }
-      }
-      if (!origInputs.orElseThrow().equals(newInput)) {
-        return Optional.of(newInput);
+        newInput.set(i, String.valueOf(val));
+      } catch (NumberFormatException e) {
+        continue;
       }
     }
-    return Optional.empty();
+    return newInput;
   }
 
-  private Optional<String> inputListToFormattedString(
-      final Optional<List<String>> inputs, final TestValuesToFormat formatter) {
-    if (inputs.isPresent()) {
-      return Optional.of(formatter.convertToOutput(inputs.orElseThrow()));
-    } else {
-      return Optional.empty();
-    }
+  private String inputListToFormattedString(
+      final List<String> inputs, final TestValuesToFormat formatter) {
+    return formatter.convertToOutput(inputs);
   }
 
   private Multimap<ARGState, CFAEdgeWithAssumptions> getValueMap(

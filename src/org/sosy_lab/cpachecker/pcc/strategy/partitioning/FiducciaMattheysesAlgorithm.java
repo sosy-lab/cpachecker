@@ -122,7 +122,7 @@ public class FiducciaMattheysesAlgorithm {
       Map<Integer, Long> pGain,
       long pNewGain) {
     boolean success = pBucket.get(pGain.get(pNode)).removeFirstOccurrence(pNode);
-    assert(success);
+    assert success;
     if(!pBucket.containsKey(pNewGain)) {
       pBucket.put(pNewGain, new ArrayDeque<Integer>());
     }

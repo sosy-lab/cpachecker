@@ -137,7 +137,7 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
       throws InterruptedException, CPATransferException {
 
     Collection<AbstractState> results;
-    assert (pPrecision instanceof UsagePrecision);
+    assert pPrecision instanceof UsagePrecision;
 
     CFANode node = extractLocation(pElement);
     results = new ArrayList<>(node.getNumLeavingEdges());

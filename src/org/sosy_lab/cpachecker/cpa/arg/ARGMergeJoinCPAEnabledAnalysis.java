@@ -156,7 +156,7 @@ public class ARGMergeJoinCPAEnabledAnalysis implements MergeOperator {
         child = current.getChildren().iterator().next();
         current.deleteChild(child);
 
-        assert (child.getParents().isEmpty());
+        assert child.getParents().isEmpty();
         // relink or delete child
         if (!child.getCoveredByThis().isEmpty()) {
           // relink child in ARG to parent of first covered element
@@ -265,7 +265,7 @@ public class ARGMergeJoinCPAEnabledAnalysis implements MergeOperator {
     ARGState covered;
     do {
       covered = coveredElems.next();
-      assert (covered.getCoveredByThis().isEmpty());
+      assert covered.getCoveredByThis().isEmpty();
       if (covered.getParents().isEmpty() || subtreeNodes.contains(covered)) {
         covered = null;
       }

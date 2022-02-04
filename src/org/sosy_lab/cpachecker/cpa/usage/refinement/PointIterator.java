@@ -45,7 +45,7 @@ public class PointIterator extends GenericIterator<SingleIdentifier, Pair<UsageI
   protected void init(SingleIdentifier id) {
     AbstractUsagePointSet pointSet = container.getUsages(id);
 
-    assert (pointSet instanceof UnrefinedUsagePointSet);
+    assert pointSet instanceof UnrefinedUsagePointSet;
 
     currentUsagePointSet = (UnrefinedUsagePointSet)pointSet;
     firstPointIterator = currentUsagePointSet.getPointIterator();
