@@ -8,9 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2.util.value;
 
-import edu.umd.cs.findbugs.annotations.Nullable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 
 /**
