@@ -87,7 +87,11 @@ public class CValue implements Comparable<CValue> {
       return other.isUnknown() ? 0 : -1;
     } else if (isAddressValue()) {
       if (other.isAddressValue()) {
-        return address.compareTo(other.getAddress()) + offset.compareTo(other.getOffset());
+        int compareAddresses = address.compareTo(other.getAddress());
+        if (compareAddresses == 0) {
+          return offset.compareTo(other.getOffset());
+        }
+        return compareAddresses;
       }
     } else if (isDecimalValue()) {
       if (other.isDecimalValue()) {
