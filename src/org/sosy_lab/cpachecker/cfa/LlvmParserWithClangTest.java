@@ -17,7 +17,6 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -43,7 +42,7 @@ public class LlvmParserWithClangTest {
             "test/programs/simple/globalVariableInitialValue-1.c");
     List<String> fileNames = ImmutableList.of("test.c", "test", "");
     List<List<String>> testcases = Lists.cartesianProduct(testFiles, fileNames);
-    return testcases.stream().map(List::toArray).collect(Collectors.toList());
+    return testcases.stream().map(List::toArray).collect(ImmutableList.toImmutableList());
   }
 
   @Parameter(0)
