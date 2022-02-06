@@ -570,6 +570,7 @@ public class SymbolicProgramConfiguration {
    * @return the concatenation of returnValue with the bits of readValue which are in the memory
    *     chunk
    */
+  @SuppressWarnings("unused")
   private Value bitwiseReadValue(
       BigInteger fieldOffset,
       BigInteger edgeOffset,
