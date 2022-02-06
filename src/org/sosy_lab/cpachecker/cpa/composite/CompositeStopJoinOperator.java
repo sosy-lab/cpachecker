@@ -10,19 +10,24 @@ package org.sosy_lab.cpachecker.cpa.composite;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Multimap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import org.sosy_lab.cpachecker.core.defaults.StopJoinOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ForcedCoveringStopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
+/** TODO: add description */
 class CompositeStopJoinOperator extends CompositeStopOperator {
 
   CompositeStopJoinOperator(ImmutableList<StopOperator> stopOperators) {
@@ -41,11 +46,7 @@ class CompositeStopJoinOperator extends CompositeStopOperator {
       AbstractState pElement, Collection<AbstractState> pReachedSet, Precision pPrecision)
       throws CPAException, InterruptedException {
     Collection<AbstractState> reachedSubSet = getStopSepStates(pElement, pReachedSet, pPrecision);
-    if (stopJoin(pElement, reachedSubSet, pPrecision)) {
-      return ImmutableSet.copyOf(reachedSubSet);
-    } else {
-      return ImmutableSet.of();
-    }
+    return ImmutableSet.copyOf(getStopJoinStates(pElement, reachedSubSet, pPrecision));
   }
 
   private Collection<AbstractState> getStopSepStates(
@@ -92,6 +93,65 @@ class CompositeStopJoinOperator extends CompositeStopOperator {
       }
     }
     return true;
+  }
+
+  private boolean retrieveCoveringStatesPossible() {
+    for (StopOperator op : stopOperators) {
+      if ((op instanceof StopJoinOperator) && !(op instanceof ForcedCoveringStopOperator)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private Collection<AbstractState> getStopJoinStates(
+      AbstractState element, Collection<AbstractState> reached, Precision precision)
+      throws CPAException, InterruptedException {
+    // TODO: the code here is similar to stopJoin, consider refactor to reduce redundancy
+    if (reached.isEmpty()) {
+      return ImmutableSet.of();
+    }
+
+    boolean retrievalPossible = retrieveCoveringStatesPossible();
+    Set<AbstractState> reachedSubSet =
+        retrievalPossible ? new LinkedHashSet<>(reached.size()) : new LinkedHashSet<>(reached);
+    List<AbstractState> compositeElements = ((CompositeState) element).getWrappedStates();
+    List<Precision> compositePrecisions = ((CompositePrecision) precision).getWrappedPrecisions();
+
+    for (int idx = 0; idx < compositeElements.size(); idx++) {
+      StopOperator stopOp = stopOperators.get(idx);
+      if (!(stopOp instanceof StopJoinOperator)) {
+        continue;
+      }
+
+      // Mapping of composite state to component state
+      Multimap<AbstractState, AbstractState> stateMap = ArrayListMultimap.create(reached.size(), 1);
+      List<AbstractState> absElems = new ArrayList<>();
+      for (AbstractState v : reached) {
+        AbstractState k = ((CompositeState) v).get(idx);
+        absElems.add(k);
+        stateMap.put(k, v);
+      }
+
+      AbstractState absElem = compositeElements.get(idx);
+      Precision prec = compositePrecisions.get(idx);
+
+      if (retrievalPossible) {
+        assert stopOp instanceof ForcedCoveringStopOperator;
+        Collection<AbstractState> currentCoveringStates =
+            ((ForcedCoveringStopOperator) stopOp).getCoveringStates(absElem, absElems, prec);
+        if (currentCoveringStates.isEmpty()) {
+          return ImmutableSet.of();
+        }
+        for (AbstractState k : currentCoveringStates) {
+          reachedSubSet.addAll(stateMap.get(k));
+        }
+      } else if (!stopOp.stop(absElem, absElems, prec)) {
+        return ImmutableSet.of();
+      }
+    }
+
+    return reachedSubSet;
   }
 
   private boolean stopJoin(

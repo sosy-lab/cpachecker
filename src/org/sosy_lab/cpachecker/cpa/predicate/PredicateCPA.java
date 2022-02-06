@@ -104,7 +104,7 @@ public class PredicateCPA
   @Option(
       secure = true,
       name = "stop",
-      values = {"SEP", "SEPPCC", "SEPNAA", "JOIN"},
+      values = {"SEP", "SEPPCC", "SEPNAA", "JOIN", "JOINMC"},
       toUppercase = true,
       description =
           "which stop operator to use for predicate cpa (usually SEP should be used in analysis). "
@@ -284,7 +284,9 @@ public class PredicateCPA
       case "SEPNAA":
         return new PredicateNeverAtAbstractionStopOperator(getAbstractDomain());
       case "JOIN":
-        return new PredicateStopJoinOperator(getAbstractDomain());
+        return new PredicateStopJoinOperator(getAbstractDomain(), false);
+      case "JOINMC":
+        return new PredicateStopJoinOperator(getAbstractDomain(), true);
       default:
         throw new AssertionError("Update list of allowed stop operators");
     }

@@ -2583,7 +2583,7 @@ cpa.predicate.solver.ufCheckingProver.maxIterationNum = 5
 # Abstraction states. SEPNAA is used in bmc-IMC.properties for config
 # bmc-incremental-ABEl to keep exploring covered states.
 cpa.predicate.stop = "SEP"
-  allowed values: [SEP, SEPPCC, SEPNAA, JOIN]
+  allowed values: [SEP, SEPPCC, SEPNAA, JOIN, JOINMC]
 
 # Use formula reporting states for strengthening.
 cpa.predicate.strengthenWithFormulaReportingStates = false
