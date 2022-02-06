@@ -91,6 +91,7 @@ public class NonPointerExpressionVisitor
    * @param addresses - the collection of addresses
    * @return List of CValue and SMGState mapping for dereferenced addresses.
    */
+  @SuppressWarnings("unused")
   private List<ValueAndSMGState> dereference(
       CExpression pOperand, CType pExpType, Collection<ValueAndSMGState> addresses) {
     return null;
@@ -130,6 +131,7 @@ public class NonPointerExpressionVisitor
    * @param addresses - the collection of addresses
    * @return List of Value and SMGState mapping for subscribed addresses.
    */
+  @SuppressWarnings("unused")
   private List<ValueAndSMGState> readAddressValueAndState(
       Collection<ValueAndSMGState> addresses, CExpression expression) {
     return null;
@@ -248,6 +250,7 @@ public class NonPointerExpressionVisitor
    * @param pValue - the Integer value derived by the value analysis.
    * @return list of CValue and state mappings.
    */
+  @SuppressWarnings("unused")
   private List<ValueAndSMGState> valueAndStatesForIntValue(BigInteger pValue) {
     return null; /*
                      Value value = Value.valueOf(pValue);
