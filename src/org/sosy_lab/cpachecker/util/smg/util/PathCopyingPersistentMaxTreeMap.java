@@ -16,6 +16,7 @@ import static com.google.common.base.Verify.verify;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Streams;
 import com.google.common.collect.UnmodifiableIterator;
 import com.google.errorprone.annotations.Immutable;
 import com.google.errorprone.annotations.Var;
@@ -37,7 +38,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.stream.Collector;
-import java.util.stream.StreamSupport;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
@@ -583,8 +583,8 @@ public final class PathCopyingPersistentMaxTreeMap<K extends Comparable<K>, V>
   private static <K extends Comparable<K>, V> K getMaxSecondaryKey(
       Node<K, V> node1, Node<K, V> node2, Node<K, V> node3) {
     Optional<K> temp = getMaxSecondaryKey(node1, node2);
-    if (temp.isPresent() && temp.get().compareTo(node3.getMax()) >= 0) {
-      return temp.get();
+    if (temp.isPresent() && temp.orElseThrow().compareTo(node3.getMax()) >= 0) {
+      return temp.orElseThrow();
     }
     return node3.getMax();
   }
@@ -592,8 +592,8 @@ public final class PathCopyingPersistentMaxTreeMap<K extends Comparable<K>, V>
   private static <K extends Comparable<K>, V> K getMaxSecondaryKey(
       Node<K, V> node1, Node<K, V> node2, K max3) {
     Optional<K> temp = getMaxSecondaryKey(node1, node2);
-    if (temp.isPresent() && temp.get().compareTo(max3) >= 0) {
-      return temp.get();
+    if (temp.isPresent() && temp.orElseThrow().compareTo(max3) >= 0) {
+      return temp.orElseThrow();
     }
     return max3;
   }
@@ -931,9 +931,8 @@ public final class PathCopyingPersistentMaxTreeMap<K extends Comparable<K>, V>
   // TODO: Is this fine or would ImmutableSet.Builder be better?
   public Set<V> getValuesSet() {
     Iterable<Entry<K, V>> iterable = () -> entryIterator();
-    return StreamSupport.stream(iterable.spliterator(), false)
-        .map(n -> n.getValue())
-        .collect(ImmutableSet.toImmutableSet());
+
+    return Streams.stream(iterable).map(n -> n.getValue()).collect(ImmutableSet.toImmutableSet());
   }
 
   public Iterator<Entry<K, V>> descendingEntryIterator() {
@@ -1829,8 +1828,7 @@ public final class PathCopyingPersistentMaxTreeMap<K extends Comparable<K>, V>
     if (pCurrent == null) {
       return "";
     }
-    String thisNode =
-        "(max: " + pCurrent.getMax() + "; Value: " + pCurrent.getValue().toString() + ")";
+    String thisNode = "(max: " + pCurrent.getMax() + "; Value: " + pCurrent.getValue() + ")";
     return toString(pCurrent.left) + thisNode + toString(pCurrent.right);
   }
 
@@ -1838,8 +1836,7 @@ public final class PathCopyingPersistentMaxTreeMap<K extends Comparable<K>, V>
     if (pCurrent == null) {
       return "";
     }
-    String thisNode =
-        "(max: " + pCurrent.getMax() + "; Value: " + pCurrent.getValue().toString() + ")";
+    String thisNode = "(max: " + pCurrent.getMax() + "; Value: " + pCurrent.getValue() + ")";
     return printer(pCurrent.left) + thisNode + printer(pCurrent.right);
   }
 }
