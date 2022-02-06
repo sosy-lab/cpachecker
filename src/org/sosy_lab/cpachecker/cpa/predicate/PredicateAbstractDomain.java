@@ -117,4 +117,19 @@ public class PredicateAbstractDomain implements AbstractDomain {
         PredicateAbstractState.mkAbstractionState(null, joinedFormula, null);
     return joinedState;
   }
+
+  public boolean hasIntersection(AbstractState pElement1, AbstractState pElement2)
+      throws CPAException, InterruptedException {
+    PredicateAbstractState e1 = (PredicateAbstractState) pElement1;
+    PredicateAbstractState e2 = (PredicateAbstractState) pElement2;
+    if (!e1.isAbstractionState() || !e2.isAbstractionState()) {
+      throw new UnsupportedOperationException(
+          "This operation is only supported when the 2 input states are both AbstractionStates.");
+    }
+    try {
+      return !mgr.unsat(e1.getAbstractionFormula(), e2.getAbstractionFormula());
+    } catch (SolverException e) {
+      throw new CPAException("Solver Exception", e);
+    }
+  }
 }
