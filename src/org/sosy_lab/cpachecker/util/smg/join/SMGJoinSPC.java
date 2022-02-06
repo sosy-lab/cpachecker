@@ -15,6 +15,7 @@ package org.sosy_lab.cpachecker.util.smg.join;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.collect.HashBiMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
@@ -22,7 +23,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
-import org.sosy_lab.cpachecker.cpa.smg.util.PersistentBiMap;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentStack;
 import org.sosy_lab.cpachecker.cpa.smg2.StackFrame;
@@ -113,14 +113,13 @@ public class SMGJoinSPC extends SMGAbstractJoin {
 
     // step 5
     resultSPC =
-        SymbolicProgramConfiguration
-            .of(
-                destSMG,
-                PathCopyingPersistentTreeMap.copyOf(resultGolbalMapping),
-                resultStackMapping,
-                PersistentSet.of(),
-                PersistentSet.of(),
-                PersistentBiMap.of());
+        SymbolicProgramConfiguration.of(
+            destSMG,
+            PathCopyingPersistentTreeMap.copyOf(resultGolbalMapping),
+            resultStackMapping,
+            PersistentSet.of(),
+            PersistentSet.of(),
+            HashBiMap.create());
   }
 
 
