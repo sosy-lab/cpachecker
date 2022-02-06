@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.smg2.util.value;
 
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 
 public class ValueAndSMGState {
 
@@ -23,6 +24,11 @@ public class ValueAndSMGState {
 
   public static ValueAndSMGState of(Value pValue, SMGState pState) {
     return new ValueAndSMGState(pValue, pState);
+  }
+
+  /** Returns the entered state with an newly created unknown vlaue. */
+  public static ValueAndSMGState ofUnknownValue(SMGState pState) {
+    return new ValueAndSMGState(UnknownValue.getInstance(), pState);
   }
 
   public Value getValue() {
