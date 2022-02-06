@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2.util.value;
 
-import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Optional;
@@ -32,9 +31,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
-import org.sosy_lab.cpachecker.cpa.smg2.util.CTypeAndCValue;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSMGState;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 @SuppressWarnings("unused")
 public class SMGCPAValueExpressionEvaluator
     implements AddressEvaluator {
+  // TODO: why does this implement a interface that just defines the methods in this very class?
 
   private final LogManagerWithoutDuplicates logger;
   private final MachineModel machineModel;
@@ -81,7 +82,7 @@ public class SMGCPAValueExpressionEvaluator
    *
    * <p>TODO: what is exactly needed here?
    */
-  public Collection<CValueAndSMGState> evaluateExpressionValue(
+  public Collection<ValueAndSMGState> evaluateExpressionValue(
       SMGState smgState, CFAEdge cfaEdge, CRightHandSide rValue) throws CPATransferException {
     if (isAddressType(rValue.getExpressionType())) {
       /*
@@ -96,12 +97,13 @@ public class SMGCPAValueExpressionEvaluator
       return evaluateAddress(smgState, cfaEdge, rValue);
     } else {
       // derive value
-      return rValue.accept(new NonPointerExpressionVisitor(smgState, this));
+      // return rValue.accept(new NonPointerExpressionVisitor(smgState, this));
+      return null;
     }
   }
 
   /** Evaluates the input address and returns the ? for it. */
-  private Collection<CValueAndSMGState> evaluateAddress(
+  private Collection<ValueAndSMGState> evaluateAddress(
       SMGState pSmgState, CFAEdge pCfaEdge, CRightHandSide pRValue) {
     // TODO Auto-generated method stub
     return null;
@@ -116,30 +118,30 @@ public class SMGCPAValueExpressionEvaluator
   }
 
   @Override
-  public Collection<CValueAndSMGState>
-      evaluateArraySubscriptAddress(SMGState pInitialSmgState, CExpression pExp) {
+  public Collection<ValueAndSMGState> evaluateArraySubscriptAddress(
+      SMGState pInitialSmgState, CExpression pExp) {
     // TODO Auto-generated method stub
     return null;
   }
 
   /** Evaluates the input address and returns the SMGValue/Object for it. */
   @Override
-  public Collection<CValueAndSMGState> evaluateAddress(
+  public Collection<ValueAndSMGState> evaluateAddress(
       SMGState pInitialSmgState, CExpression pOperand) {
     // TODO Auto-generated method stub
     return null;
   }
 
   @Override
-  public Collection<CValueAndSMGState>
-      evaluateArrayAddress(SMGState pInitialSmgState, CExpression pOperand) {
+  public Collection<ValueAndSMGState> evaluateArrayAddress(
+      SMGState pInitialSmgState, CExpression pOperand) {
     // TODO Auto-generated method stub
     return null;
   }
 
   /** Creates the SMGValue/Object for an address not yet encountered. */
   @Override
-  public Collection<CValueAndSMGState> createAddress(SMGState pState, CValue pValue) {
+  public Collection<ValueAndSMGState> createAddress(SMGState pState, Value pValue) {
     // TODO Auto-generated method stub
     return null;
   }
@@ -159,21 +161,23 @@ public class SMGCPAValueExpressionEvaluator
   }
 
   /*
-   * Read the object form the address provided in the CValue and the value from the object from the info in the CExpression.
+   * Read the object form the address provided in the Value and the value from the object from the info in the CExpression.
    * Read is tricky once we use abstraction as the SMGs might be merged. In that case accurate read offsets and sizes are important!
    */
   @Override
-  public CValueAndSMGState readValue(SMGState pState, CValue value, CExpression pExp) {
+  public ValueAndSMGState readValue(SMGState pState, Value value, CExpression pExp) {
     return readValue(pState, pState.getPointsToTarget(value), value, pExp);
   }
 
-  public CValueAndSMGState
-      readValue(SMGState pState, SMGObject object, CValue value, CExpression pExpression) {
-    if (value.isUnknown() || object.isZero()) {
-      return CValueAndSMGState.ofUnknown(pState);
+  public ValueAndSMGState readValue(
+      SMGState pState, SMGObject object, Value value, CExpression pExpression) {
+    if (!value.isExplicitlyKnown() || object.isZero()) {
+      // TODO: Error handling for this!
+      return ValueAndSMGState.ofUnknownValue(pState);
     }
 
-    BigInteger fieldOffset = value.getExplicitValue();
+    // TODO: visitor for type?
+    BigInteger fieldOffset = value.asNumericValue().bigInteger();
 
     // FIXME Does not work with variable array length.
     boolean doesNotFitIntoObject =
@@ -195,7 +199,7 @@ public class SMGCPAValueExpressionEvaluator
               + object
               + ".");
 
-      return CValueAndSMGState.ofUnknown(pState);
+      return ValueAndSMGState.ofUnknownValue(pState);
     }
     CType type = TypeUtils.getRealExpressionType(pExpression);
 
@@ -209,35 +213,46 @@ public class SMGCPAValueExpressionEvaluator
    * Get the address value of the entered field.
    */
   @Override
-  public Collection<CValueAndSMGState> getAddressOfField(
+  public Collection<ValueAndSMGState> getAddressOfField(
       SMGState pInitialSmgState, CFieldReference pExpression) {
     CExpression fieldOwner = pExpression.getFieldOwner();
     CType ownerType = TypeUtils.getRealExpressionType(fieldOwner);
-    return evaluateAddress(pInitialSmgState, fieldOwner).stream().map(addressAndState -> {
-      CValue addressCValue = addressAndState.getValue();
-      SMGState state = addressAndState.getState();
-      String fieldName = pExpression.getFieldName();
-      CTypeAndCValue field = getField(ownerType, fieldName);
-      if (field.getValue().isUnknown() || addressCValue.isUnknown()) {
-        if (pExpression.isPointerDereference()) {
-          state = handleUnknownDereference(state).getState();
-        }
-        CValue fieldOffset = field.getValue().add(addressCValue);
-        return CValueAndSMGState.of(fieldOffset, state);
-      }
+    // TODO: rework this method because of 2 reasons: 1. its not understandable and documented and
+    // 2. because fields are linked by pointsToEdges, meaning we need only the address fo the
+    // general field (SMGObject) and the PointsToEdge holds the offsets, meaning we have to check
+    // those! Calculating the address + offset as a numeric value is pointless.
+    /*
+    return evaluateAddress(pInitialSmgState, fieldOwner)
+        .stream()
+        .map(
+            addressAndState -> {
+              Value addressValue = addressAndState.getValue();
+              SMGState state = addressAndState.getState();
+              String fieldName = pExpression.getFieldName();
+              CTypeAndValue field = getField(ownerType, fieldName);
+              if (field.getValue().isUnknown() || addressValue.isUnknown()) {
+                if (pExpression.isPointerDereference()) {
+                  state = handleUnknownDereference(state).getState();
+                }
+                Value fieldOffset = field.getValue().add(addressValue);
+                return ValueAndSMGState.of(fieldOffset, state);
+              }
 
-      return CValueAndSMGState.ofUnknown(state);
-    }).collect(ImmutableSet.toImmutableSet());
+              return ValueAndSMGState.ofUnknownValue(state);
+            })
+        .collect(ImmutableSet.toImmutableSet());
+        */
+    return null;
   }
 
-  private CTypeAndCValue getField(CType pType, String pFieldName) {
+  private CTypeAndValue getField(CType pType, String pFieldName) {
 
     if (pType instanceof CElaboratedType) {
 
       CType realType = ((CElaboratedType) pType).getRealType();
 
       if (realType == null) {
-        return CTypeAndCValue.withUnknownValue(pType);
+        return CTypeAndValue.ofUnknownValue(pType);
       }
 
       return getField(realType, pFieldName);
@@ -260,36 +275,37 @@ public class SMGCPAValueExpressionEvaluator
     throw new AssertionError("Unknown CType found: " + pType);
   }
 
-  private CTypeAndCValue getField(CCompositeType pOwnerType, String pFieldName) {
+  private CTypeAndValue getField(CCompositeType pOwnerType, String pFieldName) {
     CType resultType = pOwnerType;
 
     BigInteger offset = machineModel.getFieldOffsetInBits(pOwnerType, pFieldName);
 
+    // TODO: i need to look at this
     for (CCompositeTypeMemberDeclaration typeMember : pOwnerType.getMembers()) {
       if (typeMember.getName().equals(pFieldName)) {
         resultType = typeMember.getType();
       }
     }
 
-    final CValue cValue;
+    final Value value;
     if (!resultType.equals(pOwnerType)) {
-      cValue = CValue.valueOf(offset);
+      value = new NumericValue(offset);
       resultType = TypeUtils.getRealExpressionType(resultType);
     } else {
-      cValue = CValue.getUnknownValue();
+      value = UnknownValue.getInstance();
     }
-    return CTypeAndCValue.of(resultType, cValue);
+    return CTypeAndValue.of(resultType, value);
   }
 
   @Override
-  public CValueAndSMGState handleUnknownDereference(SMGState pInitialSmgState) {
-    return CValueAndSMGState.ofUnknown(pInitialSmgState);
+  public ValueAndSMGState handleUnknownDereference(SMGState pInitialSmgState) {
+    return ValueAndSMGState.ofUnknownValue(pInitialSmgState);
   }
 
   @Override
-  public CValueAndSMGState
-      readValue(SMGState pSmgState, SMGObject pVariableObject, CExpression pExpression) {
-    return readValue(pSmgState, pVariableObject, CValue.zero(), pExpression);
+  public ValueAndSMGState readValue(
+      SMGState pSmgState, SMGObject pVariableObject, CExpression pExpression) {
+    return readValue(pSmgState, pVariableObject, new NumericValue(0), pExpression);
   }
 
   /** TODO: Move all type related stuff into its own class once i rework getBitSizeOf */

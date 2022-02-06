@@ -27,9 +27,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGErrorInfo.Property;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSMGState;
-import org.sosy_lab.cpachecker.cpa.smg2.util.value.CValue;
-import org.sosy_lab.cpachecker.cpa.smg2.util.value.CValueAndSMGState;
+import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
@@ -399,10 +399,10 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   }
 
   /**
-   * @param cValue the {@link CValue} you want the {@link SMGValue} for.
+   * @param cValue the {@link Value} you want the {@link SMGValue} for.
    * @return The {@link SMGValue} if it exists, en empty Optional else.
    */
-  public Optional<SMGValue> getSMGValueForCValue(CValue cValue) {
+  public Optional<SMGValue> getSMGValueForValue(Value cValue) {
     return memoryModel.getValue(cValue);
   }
 
@@ -435,22 +435,22 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   }
 
   @SuppressWarnings("unused")
-  public SMGState addElementToCurrentChain(CValueAndSMGState pResult) {
+  public SMGState addElementToCurrentChain(ValueAndSMGState pResult) {
     // TODO Auto-generated method stub
     return null;
   }
 
   /**
-   * Determines the SMGRegion object which is pointed by a given CValue address representation.
+   * Determines the SMGRegion object which is pointed by a given Value address representation.
    * Return Null SMGObject if there is no such existing address. (will result in null deref later)
    * TODO: do we need unknown derefs here?
    *
-   * @param pValue - the given CValue representation of the address.
+   * @param pValue - the given Value representation of the address.
    * @return the SMGObject which the address points to, or SMGObject.nullInstance() if there is no
    *     such.
    */
-  public SMGObject getPointsToTarget(CValue pValue) {
-    Optional<SMGValue> addressOptional = getSMGValueForCValue(pValue);
+  public SMGObject getPointsToTarget(Value pValue) {
+    Optional<SMGValue> addressOptional = getSMGValueForValue(pValue);
     if (addressOptional.isPresent()) {
       Optional<SMGPointsToEdge> pointerEdgeOptional =
           memoryModel.getSmg().getPTEdge(addressOptional.orElseThrow());
@@ -464,15 +464,15 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   /*
    * Reads the value at the specified offset and size (in bits) in the object given. Might fail as invalid read if the object read from is invalid. Returns a copy of the state with the read value.
    */
-  public CValueAndSMGState readValue(
+  public ValueAndSMGState readValue(
       SMGObject pObject, BigInteger pFieldOffset, BigInteger pSizeofInBits) {
     if (!memoryModel.isObjectValid(pObject) && !memoryModel.isObjectExternallyAllocated(pObject)) {
       SMGState newState =
           copyWithErrorInfo(
               memoryModel, errorInfo.withObject(pObject).withErrorMessage(HAS_INVALID_READS));
-      return CValueAndSMGState.ofUnknown(newState);
+      return ValueAndSMGState.of(UnknownValue.getInstance(), newState);
     }
-    return CValueAndSMGState.of(memoryModel.readValue(pObject, pFieldOffset, pSizeofInBits), this);
+    return ValueAndSMGState.of(memoryModel.readValue(pObject, pFieldOffset, pSizeofInBits), this);
   }
 
   public SMGState writeValue(SMGObject object, BigInteger offset, BigInteger sizeInBits, SMGValue value) {

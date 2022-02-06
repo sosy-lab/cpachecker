@@ -384,12 +384,12 @@ public class SymbolicProgramConfiguration {
 
   /**
    * Returns an {@link Optional} that may be empty if no {@link SMGValue} for the entered {@link
-   * CValue} exists in the value mapping. If a mapping exists, it returns the {@link SMGValue} for
-   * the entered {@link CValue} inside the Optional.
+   * Value} exists in the value mapping. If a mapping exists, it returns the {@link SMGValue} for
+   * the entered {@link Value} inside the Optional.
    *
-   * @param cValue The {@link CValue} you want the potential {@link SMGValue} for.
-   * @return {@link Optional} that contains the {@link SMGValue} for the entered {@link CValue} if
-   *     it exists, empty else.
+   * @param cValue The {@link Value} you want the potential {@link SMGValue} for.
+   * @return {@link Optional} that contains the {@link SMGValue} for the entered {@link Value} if it
+   *     exists, empty else.
    */
   public Optional<SMGValue> getValue(Value cValue) {
     // TODO: map the returned value using the SPC mapping!
@@ -397,13 +397,13 @@ public class SymbolicProgramConfiguration {
   }
 
   /**
-   * Copies this {@link SymbolicProgramConfiguration} and creates a mapping of a {@link CValue} to a
+   * Copies this {@link SymbolicProgramConfiguration} and creates a mapping of a {@link Value} to a
    * newly created {@link SMGValue}.
    *
-   * @param cValue The {@link CValue} you want to create a new, symbolic {@link SMGValue} for and
-   *     map them to each other.
+   * @param cValue The {@link Value} you want to create a new, symbolic {@link SMGValue} for and map
+   *     them to each other.
    * @return The new SPC with the new {@link SMGValue} and the value mapping from the entered {@link
-   *     CValue} to the new {@link SMGValue}.
+   *     Value} to the new {@link SMGValue}.
    */
   public SymbolicProgramConfiguration copyAndCreateValue(Value cValue) {
     return copyAndPutValue(cValue, SMGValue.of());
@@ -566,8 +566,8 @@ public class SymbolicProgramConfiguration {
    * @param fieldSize - the size of the memory chunk to be read
    * @param edgeSize - the size of the edge covering the chunk
    * @param readValue - the value which is represented by the edge
-   * @param returnCValue - the CValue bits which were already read with previous edges
-   * @return the concatenation of returnCValue with the bits of readValue which are in the memory
+   * @param returnValue - the Value bits which were already read with previous edges
+   * @return the concatenation of returnValue with the bits of readValue which are in the memory
    *     chunk
    */
   private Value bitwiseReadValue(
@@ -576,7 +576,7 @@ public class SymbolicProgramConfiguration {
       BigInteger fieldSize,
       BigInteger edgeSize,
       Value readValue,
-      Value returnCValue) {
+      Value returnValue) {
     // TODO handle little and big endian here
 
     return null;
