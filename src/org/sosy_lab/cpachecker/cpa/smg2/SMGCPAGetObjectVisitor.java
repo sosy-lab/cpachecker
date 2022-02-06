@@ -34,11 +34,14 @@ public class SMGCPAGetObjectVisitor
   // TODO: remove CPAException and use more specific exceptions
 
   // The evaluator translates C expressions into the SMG counterparts and vice versa.
+  @SuppressWarnings("unused")
   private final SMGCPAValueExpressionEvaluator evaluator;
 
+  @SuppressWarnings("unused")
   private final SMGState state;
 
   /** This edge is only to be used for debugging/logging! */
+  @SuppressWarnings("unused")
   private final CFAEdge cfaEdge;
 
   public SMGCPAGetObjectVisitor(

@@ -159,6 +159,7 @@ public class SMGTransferRelation
    * @return A collection of {@link SMGState}s that represents the successor states.
    * @throws CPATransferException is thrown if TODO:?
    */
+  @SuppressWarnings("unused")
   private Collection<SMGState> assignStatementToField(
       SMGState pState, SMGObject pRegion, CReturnStatementEdge pReturnEdge)
       throws CPATransferException {
@@ -202,6 +203,10 @@ public class SMGTransferRelation
   protected Collection<SMGState>
       handleAssumption(CAssumeEdge cfaEdge, CExpression expression, boolean truthAssumption)
           throws CPATransferException, InterruptedException {
+    // Assumptions are essentially all value analysis in nature. We get the values from the SMGs
+    // though.
+    // Assumptions are for example all comparisons like ==, !=, <.... and should always be a
+    // CBinaryExpression
     return null;
   }
 

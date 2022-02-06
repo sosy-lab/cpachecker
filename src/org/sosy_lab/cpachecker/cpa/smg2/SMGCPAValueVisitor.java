@@ -49,11 +49,14 @@ public class SMGCPAValueVisitor
   // TODO: remove CPAException and use more specific exceptions
 
   // The evaluator translates C expressions into the SMG counterparts and vice versa.
+  @SuppressWarnings("unused")
   private final SMGCPAValueExpressionEvaluator evaluator;
 
+  @SuppressWarnings("unused")
   private final SMGState state;
 
   /** This edge is only to be used for debugging/logging! */
+  @SuppressWarnings("unused")
   private final CFAEdge cfaEdge;
 
   public SMGCPAValueVisitor(
@@ -134,6 +137,7 @@ public class SMGCPAValueVisitor
     return visitDefault(e);
   }
 
+  @SuppressWarnings("unused")
   @Override
   public List<SMGValueAndSMGState> visit(CCharLiteralExpression e) throws CPATransferException {
     // Simple character expression
@@ -153,6 +157,7 @@ public class SMGCPAValueVisitor
     return visitDefault(e);
   }
 
+  @SuppressWarnings("unused")
   @Override
   public List<SMGValueAndSMGState> visit(CFloatLiteralExpression e) throws CPATransferException {
     // Floating point value expression
@@ -165,6 +170,7 @@ public class SMGCPAValueVisitor
     return visitDefault(e);
   }
 
+  @SuppressWarnings("unused")
   @Override
   public List<SMGValueAndSMGState> visit(CIntegerLiteralExpression e) throws CPATransferException {
     // Simple int expression
