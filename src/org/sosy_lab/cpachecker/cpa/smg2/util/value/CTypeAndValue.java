@@ -26,7 +26,8 @@ public class CTypeAndValue {
     return new CTypeAndValue(pType, pValue);
   }
 
-  public static CTypeAndValue ofUnknown(CType pType) {
+  /** Returns the tuple with the entered type and a new unknown value. */
+  public static CTypeAndValue ofUnknownValue(CType pType) {
     return of(pType, UnknownValue.getInstance());
   }
 
