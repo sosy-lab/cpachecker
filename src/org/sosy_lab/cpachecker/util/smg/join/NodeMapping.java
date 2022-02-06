@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.smg.join;
 
 import com.google.common.collect.ImmutableSet;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -43,7 +44,7 @@ public class NodeMapping {
    * to update the mapping and not chain gets.
    */
   public void replaceValueMapping(SMGValue oldTarget, SMGValue newTarget) {
-    for (Entry<SMGValue, SMGValue> entry : valueMap.entrySet()) {
+    for (Entry<SMGValue, SMGValue> entry : new ArrayList<>(valueMap.entrySet())) {
       if (entry.getValue().equals(oldTarget)) {
         valueMap.put(entry.getKey(), newTarget);
       }
@@ -55,7 +56,7 @@ public class NodeMapping {
    * to update the mapping and not chain gets.
    */
   public void replaceObjectMapping(SMGObject oldTarget, SMGObject newTarget) {
-    for (Entry<SMGObject, SMGObject> entry : objectMap.entrySet()) {
+    for (Entry<SMGObject, SMGObject> entry : new ArrayList<>(objectMap.entrySet())) {
       if (entry.getValue().equals(oldTarget)) {
         objectMap.put(entry.getKey(), newTarget);
       }
