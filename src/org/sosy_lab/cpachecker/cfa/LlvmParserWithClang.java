@@ -21,7 +21,7 @@ import org.sosy_lab.common.io.TempFile.DeleteOnCloseDir;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.parser.llvm.LlvmParser;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.exceptions.CParserException;
+import org.sosy_lab.cpachecker.exceptions.ClangParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /**
@@ -69,7 +69,7 @@ public class LlvmParserWithClang extends LlvmParser {
       IO.writeFile(tempFile, Charset.defaultCharset(), pCode);
       return parseSingleFile(tempFile);
     } catch (IOException e) {
-      throw new CParserException("Could not write clang input to file " + e.getMessage(), e);
+      throw new ClangParserException("Could not write clang input to file " + e.getMessage(), e);
     }
   }
 
@@ -84,7 +84,7 @@ public class LlvmParserWithClang extends LlvmParser {
     try (DeleteOnCloseDir tempDir = TempFile.createDeleteOnCloseDir("clang-results")) {
       return parse0(pFilename, tempDir.toPath());
     } catch (IOException e) {
-      throw new CParserException("Could not write clang output to file " + e.getMessage(), e);
+      throw new ClangParserException("Could not write clang output to file " + e.getMessage(), e);
     }
   }
 

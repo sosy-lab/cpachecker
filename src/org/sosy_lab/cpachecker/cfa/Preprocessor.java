@@ -29,7 +29,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.exceptions.CParserException;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 @Options(prefix = "parser")
 public abstract class Preprocessor {
@@ -58,7 +58,7 @@ public abstract class Preprocessor {
    * @param file The file to preprocess.
    * @return The preprocessed file.
    */
-  public String preprocess(Path file) throws CParserException, InterruptedException {
+  public String preprocess(Path file) throws ParserException, InterruptedException {
     String result = preprocess0(file);
     getAndWriteDumpFile(result, file);
     return result;
@@ -69,7 +69,7 @@ public abstract class Preprocessor {
   }
 
   @SuppressWarnings("JdkObsolete") // buffer is accessed from several threads
-  protected String preprocess0(Path file) throws CParserException, InterruptedException {
+  protected String preprocess0(Path file) throws ParserException, InterruptedException {
     // create command line
     List<String> argList =
         Lists.newArrayList(
@@ -85,7 +85,8 @@ public abstract class Preprocessor {
       logger.log(Level.FINE, () -> getCapitalizedName() + " finished");
 
       if (exitCode != 0) {
-        throw new CParserException(getCapitalizedName() + " failed with exit code " + exitCode);
+        return throwCorrespondingParserException(
+            getCapitalizedName() + " failed with exit code " + exitCode);
       }
 
       if (executor.errorOutputCount > 0) {
@@ -104,7 +105,7 @@ public abstract class Preprocessor {
       return executor.buffer.toString();
 
     } catch (IOException e) {
-      throw new CParserException(getCapitalizedName() + " failed", e);
+      return throwCorrespondingParserException(getCapitalizedName() + " failed", e);
     }
   }
 
@@ -137,6 +138,11 @@ public abstract class Preprocessor {
   protected abstract String getName();
 
   protected abstract String getCommandLine();
+
+  protected abstract String throwCorrespondingParserException(String pMsg) throws ParserException;
+
+  protected abstract String throwCorrespondingParserException(String pMsg, Throwable pCause)
+      throws ParserException;
 
   protected abstract boolean dumpResults();
 

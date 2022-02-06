@@ -13,6 +13,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.exceptions.CParserException;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 @Options(prefix = "parser")
 public class CPreprocessor extends Preprocessor {
@@ -43,6 +45,17 @@ public class CPreprocessor extends Preprocessor {
   @Override
   protected String getCommandLine() {
     return preprocessor;
+  }
+
+  @Override
+  protected String throwCorrespondingParserException(String pMsg) throws ParserException {
+    throw new CParserException(pMsg);
+  }
+
+  @Override
+  protected String throwCorrespondingParserException(String pMsg, Throwable pCause)
+      throws ParserException {
+    throw new CParserException(pMsg, pCause);
   }
 
   @Override

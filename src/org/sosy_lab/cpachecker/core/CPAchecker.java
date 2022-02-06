@@ -48,7 +48,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACheck;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
-import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -422,10 +421,20 @@ public class CPAchecker {
       logger.logUserException(Level.SEVERE, e, "Parsing failed");
       StringBuilder msg = new StringBuilder();
       msg.append("Please make sure that the code can be compiled by a compiler.\n");
-      if (e.getLanguage() == Language.C) {
-        msg.append(
-            "If the code was not preprocessed, please use a C preprocessor\n"
-                + "or specify the -preprocess command-line argument.\n");
+      switch (e.getLanguage()) {
+        case C:
+          msg.append(
+              "If the code was not preprocessed, please use a C preprocessor\n"
+                  + "or specify the -preprocess command-line argument.\n");
+          break;
+        case LLVM:
+          msg.append(
+              "If you want to use the LLVM frontend, please make sure that\n"
+                  + "the code can be compiled by clang or input LLVM code directly.\n");
+          break;
+        default:
+          // do not log additional messages
+          break;
       }
       msg.append(
           "If the error still occurs, please send this error message\n"

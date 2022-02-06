@@ -20,7 +20,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.exceptions.CParserException;
+import org.sosy_lab.cpachecker.exceptions.ClangParserException;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.llvm_j.binding.LLVMLibrary;
 
 @Options(prefix = "parser")
@@ -54,7 +55,7 @@ public class ClangPreprocessor extends Preprocessor {
    * @return The path denoting the dump file.
    */
   public Path preprocessAndGetDumpedFile(Path file, Path dumpDirectory)
-      throws CParserException, InterruptedException {
+      throws ParserException, InterruptedException {
     checkNotNull(dumpDirectory, "Using the clang preprocessor requires a dump directory.");
     if (Files.getFileExtension(file.toString()).isEmpty()) {
       assumeLanguageC();
@@ -62,7 +63,7 @@ public class ClangPreprocessor extends Preprocessor {
     }
     String result = preprocess0(file);
     if (Strings.isNullOrEmpty(result)) {
-      throw new CParserException("Clang could not preprocess the given file.");
+      throw new ClangParserException("Clang could not preprocess the given file.");
     }
     return getAndWriteDumpFile(result, file, dumpDirectory);
   }
@@ -75,6 +76,17 @@ public class ClangPreprocessor extends Preprocessor {
   @Override
   protected String getCommandLine() {
     return clang;
+  }
+
+  @Override
+  protected String throwCorrespondingParserException(String pMsg) throws ParserException {
+    throw new ClangParserException(pMsg);
+  }
+
+  @Override
+  protected String throwCorrespondingParserException(String pMsg, Throwable pCause)
+      throws ParserException {
+    throw new ClangParserException(pMsg, pCause);
   }
 
   @Override
