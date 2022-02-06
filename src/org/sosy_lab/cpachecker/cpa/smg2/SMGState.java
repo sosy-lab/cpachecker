@@ -26,8 +26,10 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGErrorInfo.Property;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.CValue;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.CValueAndSMGState;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
@@ -404,12 +406,25 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
     return memoryModel.getValue(cValue);
   }
 
-  /** @return a copy of the current state with the mapping of the CValue to the SMGValue entered. */
-  public SMGState copyAndAddValue(CValue pValue, SMGValue pSmgValueRep) {
-    if (memoryModel.getValue(pValue).isPresent()) {
-      return this;
+  /**
+   * Add the {@link Value} mapping if it was not mapped to a {@link SMGValue}, if it was already
+   * present the state is unchanged and the known {@link SMGValue} returned. The {@link SMGValue} is
+   * not added to the SPC yet, writeValue() will do that.
+   *
+   * @param pValue the {@link Value} you want to add to the SPC.
+   * @return a copy of the current {@link SMGState} with the mapping of the {@link Value} to its
+   *     {@link SMGValue} entered if it was not mapped, if it was already present the state is
+   *     unchanged and the known {@link SMGValue} returned.
+   */
+  public SMGValueAndSMGState copyAndAddValue(Value pValue) {
+    Optional<SMGValue> maybeValue = memoryModel.getValue(pValue);
+    if (maybeValue.isPresent()) {
+      return SMGValueAndSMGState.of(this, maybeValue.orElseThrow());
     } else {
-      return of(machineModel, memoryModel.copyAndPutValue(pValue, pSmgValueRep), logger, options);
+      SMGValue newSMGValue = SMGValue.of();
+      return SMGValueAndSMGState.of(
+          of(machineModel, memoryModel.copyAndPutValue(pValue, newSMGValue), logger, options),
+          newSMGValue);
     }
   }
 
