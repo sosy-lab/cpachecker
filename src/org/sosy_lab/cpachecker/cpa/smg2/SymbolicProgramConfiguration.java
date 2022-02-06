@@ -8,7 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
+import com.google.common.collect.BiMap;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import java.math.BigInteger;
@@ -20,11 +22,13 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cpa.smg.util.PersistentBiMap;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentStack;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectsAndValues;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.CValue;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.util.smg.SMG;
 import org.sosy_lab.cpachecker.util.smg.SMGProveNequality;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
@@ -64,10 +68,12 @@ public class SymbolicProgramConfiguration {
    * Maps the symbolic value ranges to their abstract SMG counterparts. (SMGs use only abstract, but
    * unique values. Such that a SMGValue with id 1 is always equal only with a SMGValue with id 1.
    * We need symbolic value ranges for the values analysis. Concrete values would ruin abstraction
-   * capabilities. The only exception are addresses, hence why they are seperate) TODO: use
-   * SymbolicRegionManager or smth like it in a changed implementation of the value.
+   * capabilities. The only exception are addresses, hence why they are seperate) . IMportant: this
+   * mapping is only part of the total mapping! You NEED to map the SMGValue using the mapping of
+   * the SPC! TODO: use SymbolicRegionManager or smth like it in a changed implementation of the
+   * value. TODO: map the SMGValues using the SPC mapping or decide on a new mapping idea
    */
-  private final PersistentBiMap<CValue, SMGValue> valueMapping;
+  private final BiMap<Value, SMGValue> valueMapping;
 
   private SymbolicProgramConfiguration(
       SMG pSmg,
@@ -75,7 +81,7 @@ public class SymbolicProgramConfiguration {
       PersistentStack<StackFrame> pStackVariableMapping,
       PersistentSet<SMGObject> pHeapObjects,
       PersistentSet<SMGObject> pExternalObjectAllocation,
-      PersistentBiMap<CValue, SMGValue> pValueMapping) {
+      BiMap<Value, SMGValue> pValueMapping) {
     globalVariableMapping = pGlobalVariableMapping;
     stackVariableMapping = pStackVariableMapping;
     smg = pSmg;
@@ -90,7 +96,7 @@ public class SymbolicProgramConfiguration {
       PersistentStack<StackFrame> pStackVariableMapping,
       PersistentSet<SMGObject> pHeapObjects,
       PersistentSet<SMGObject> pExternalObjectAllocation,
-      PersistentBiMap<CValue, SMGValue> pValueMapping) {
+      BiMap<Value, SMGValue> pValueMapping) {
     return new SymbolicProgramConfiguration(
         pSmg,
         pGlobalVariableMapping,
@@ -101,14 +107,15 @@ public class SymbolicProgramConfiguration {
   }
 
   public static SymbolicProgramConfiguration of(BigInteger sizeOfPtr) {
-    PersistentBiMap<CValue, SMGValue> emptyMap = PersistentBiMap.of();
+    BiMap<Value, SMGValue> emptyMap = HashBiMap.create();
+    emptyMap.put(new NumericValue(0), SMGValue.zeroValue());
     return new SymbolicProgramConfiguration(
         new SMG(sizeOfPtr),
         PathCopyingPersistentTreeMap.of(),
         PersistentStack.of(),
         PersistentSet.of(),
         PersistentSet.of(),
-        emptyMap.putAndCopy(CValue.zero(), SMGValue.zeroValue()));
+        emptyMap);
   }
 
   /**
@@ -364,14 +371,15 @@ public class SymbolicProgramConfiguration {
    * @param smgValue {@link SMGValue} that is mapped to the entered cValue.
    * @return A copy of this SPC with the value mapping added.
    */
-  public SymbolicProgramConfiguration copyAndPutValue(CValue cValue, SMGValue smgValue) {
+  public SymbolicProgramConfiguration copyAndPutValue(Value cValue, SMGValue smgValue) {
+    valueMapping.put(cValue, smgValue);
     return of(
         smg,
         globalVariableMapping,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
-        valueMapping.putAndCopy(cValue, smgValue));
+        valueMapping);
   }
 
   /**
@@ -383,7 +391,8 @@ public class SymbolicProgramConfiguration {
    * @return {@link Optional} that contains the {@link SMGValue} for the entered {@link CValue} if
    *     it exists, empty else.
    */
-  public Optional<SMGValue> getValue(CValue cValue) {
+  public Optional<SMGValue> getValue(Value cValue) {
+    // TODO: map the returned value using the SPC mapping!
     return Optional.ofNullable(valueMapping.get(cValue));
   }
 
@@ -396,7 +405,7 @@ public class SymbolicProgramConfiguration {
    * @return The new SPC with the new {@link SMGValue} and the value mapping from the entered {@link
    *     CValue} to the new {@link SMGValue}.
    */
-  public SymbolicProgramConfiguration copyAndCreateValue(CValue cValue) {
+  public SymbolicProgramConfiguration copyAndCreateValue(Value cValue) {
     return copyAndPutValue(cValue, SMGValue.of());
   }
 
@@ -491,9 +500,9 @@ public class SymbolicProgramConfiguration {
    * @param pSizeofInBits - the size of the chunk
    * @return the explicit value written in the defined memory chunk
    */
-  public CValue readValue(SMGObject pObject, BigInteger pFieldOffset, BigInteger pSizeofInBits) {
+  public Value readValue(SMGObject pObject, BigInteger pFieldOffset, BigInteger pSizeofInBits) {
     if (!isObjectValid(pObject) && !isObjectExternallyAllocated(pObject)) {
-      return CValue.getUnknownValue();
+      return new UnknownValue();
     }
     // This call to readValue might create a new SMGValue, but here we are only interested in
     // existing values, that exactly matches offset and size.
@@ -506,14 +515,14 @@ public class SymbolicProgramConfiguration {
     // A memory chunk might by covered by one or more has value edges
     Collection<SMGHasValueEdge> overlappingEdges =
         smg.getOverlappingEdges(pObject, pFieldOffset, pSizeofInBits);
-    CValue returnValue = CValue.zero();
+    Value returnValue = new NumericValue(0);
 
     // smg.getOverlappingEdges is already sorted by offset
     for (SMGHasValueEdge edge : overlappingEdges) {
       smgValue = edge.hasValue();
       // if one block is unknown explicit value computations fails
       if (!valueMapping.containsValue(smgValue)) {
-        return CValue.getUnknownValue();
+        return new UnknownValue();
       }
       // bitwise computation of the return value
       returnValue =
@@ -530,7 +539,7 @@ public class SymbolicProgramConfiguration {
       }
     }
     // if there are no overlapping edges or if the chunk is not fully covered
-    return CValue.getUnknownValue();
+    return new UnknownValue();
   }
 
   /**
@@ -559,17 +568,20 @@ public class SymbolicProgramConfiguration {
    * @param readValue - the value which is represented by the edge
    * @param returnCValue - the CValue bits which were already read with previous edges
    * @return the concatenation of returnCValue with the bits of readValue which are in the memory
-   *         chunk
+   *     chunk
    */
-  private CValue bitwiseReadValue(
+  private Value bitwiseReadValue(
       BigInteger fieldOffset,
       BigInteger edgeOffset,
       BigInteger fieldSize,
       BigInteger edgeSize,
-      CValue readValue,
-      CValue returnCValue) {
+      Value readValue,
+      Value returnCValue) {
     // TODO handle little and big endian here
 
+    return null;
+    // TODO: decide if i want to repair this or throw it out. I doubt this works after joins
+    /*
     // Edge may start "before" the chunk to be read. Cut off the bits to left of the chunk.
     int leftBitsToBeCutOff = fieldOffset.subtract(edgeOffset).intValue();
     readValue = readValue.shiftRight(leftBitsToBeCutOff);
@@ -583,8 +595,8 @@ public class SymbolicProgramConfiguration {
     }
 
     // concatenate the resulting bits with the already computed bit value
-    return returnCValue.concat(readValue);
-
+    // return returnCValue.concat(readValue);
+    */
   }
 
   /** Copy SPC and add a pointer to an object at a specified offset. */
