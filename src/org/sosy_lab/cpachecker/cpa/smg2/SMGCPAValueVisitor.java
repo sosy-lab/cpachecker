@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
+import com.google.common.collect.ImmutableList;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.List;
@@ -33,7 +34,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAValueExpressionEvaluator;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 
 /**
  * This visitor visits values mostly on the right hand side to get values (SMG or not) (but also on
@@ -177,9 +180,13 @@ public class SMGCPAValueVisitor
     BigInteger value = e.getValue();
 
     // If the value is == 0 we return the zero value without checking as this one always exists.
+    if (value.compareTo(BigInteger.ZERO) == 0) {
+      return ImmutableList.of(SMGValueAndSMGState.of(state, SMGValue.zeroValue()));
+    }
+
     // Check if the value exists already, if it does, return that, else create a new one and return
-    // that one.
-    return visitDefault(e);
+    // that one. createNewValueAndMap() does both!
+    return ImmutableList.of(evaluator.createNewValueAndMap(new NumericValue(value), state));
   }
 
   @Override
