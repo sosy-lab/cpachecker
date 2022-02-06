@@ -103,14 +103,9 @@ public class LlvmTypeConverter {
         return new CPointerType(isConst, isVolatile, getCType(pLlvmType.getElementType(), isUnsigned));
 
       case Vector:
-        CIntegerLiteralExpression vectorLength =
-            new CIntegerLiteralExpression(
-                FileLocation.DUMMY,
-                ARRAY_LENGTH_TYPE,
-                BigInteger.valueOf(pLlvmType.getVectorSize()));
+        throw new UnsupportedOperationException(
+            "LLVM program contains vector types, but they are not supported by CPAchecker, yet.");
 
-        return new CArrayType(
-            isConst, isVolatile, getCType(pLlvmType.getElementType(), isUnsigned), vectorLength);
       case Label:
       case Metadata:
       case X86_MMX:
