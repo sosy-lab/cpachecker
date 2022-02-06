@@ -94,8 +94,8 @@ public abstract class Preprocessor {
             MoreStrings.lazyString(
                 () ->
                     getCapitalizedName()
-                        + " returned successfully, but printed warnings. Please check the log"
-                        + " above!"));
+                        + " returned successfully, but printed warnings/errors. Please check the"
+                        + " log above!"));
       }
 
       if (executor.buffer == null) {
@@ -126,7 +126,7 @@ public abstract class Preprocessor {
         logger.logf(
             Level.WARNING,
             "Cannot dump result of preprocessing file %s, because path is outside the current"
-                + " directory and the result would end up outside the output directory.",
+                + " directory and the result would end up outside the output/temporary directory.",
             file);
       }
       return dumpFile;
