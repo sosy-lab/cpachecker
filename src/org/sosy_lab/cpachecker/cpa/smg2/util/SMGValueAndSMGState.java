@@ -22,6 +22,10 @@ public class SMGValueAndSMGState {
     value = pValue;
   }
 
+  public static SMGValueAndSMGState of(SMGState pState, SMGValue pValue) {
+    return new SMGValueAndSMGState(pState, pValue);
+  }
+
   public SMGState getSMGState() {
     return state;
   }
