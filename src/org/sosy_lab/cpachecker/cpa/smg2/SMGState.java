@@ -363,8 +363,8 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
       SMGObject objectWrittenTo, BigInteger writeOffset, BigInteger writeSize, SMGValue pValue) {
     String errorMSG =
         String.format(
-            "Try writing value %d with size %d at offset %d bit to object %d.",
-            pValue, writeSize, writeOffset, objectWrittenTo);
+            "Try writing value %s with size %d at offset %d bit to object sized %d bit.",
+            pValue.toString(), writeSize, writeOffset, objectWrittenTo.getSize());
     SMGErrorInfo newErrorInfo =
         errorInfo
             .withProperty(Property.INVALID_WRITE)
