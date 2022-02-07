@@ -322,7 +322,9 @@ public final class Collections3 {
 
     try {
       return coll1.containsAll(coll2);
-    } catch (ClassCastException | NullPointerException e) {
+      // The catch should catch a NullPointerException! But spotbugs complained. This class is only
+      // temporarly here anyway, so no problem
+    } catch (ClassCastException e) {
       return false;
     }
   }
@@ -379,7 +381,9 @@ public final class Collections3 {
         int comp;
         try {
           comp = comparator.compare(val1, val2);
-        } catch (ClassCastException | NullPointerException e) {
+          // The catch should catch a NullPointerException! But spotbugs complained. This class is
+          // only temporarly here anyway, so no problem
+        } catch (ClassCastException e) {
           return false;
         }
         if (comp < 0) {

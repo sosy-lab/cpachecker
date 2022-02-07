@@ -10,16 +10,13 @@ package org.sosy_lab.cpachecker.cpa.smg2.util.value;
 
 import java.math.BigInteger;
 import java.util.Collection;
-import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
@@ -65,13 +62,14 @@ public class SMGCPAValueExpressionEvaluator
    */
   public Collection<SMGState> evaluateValues(
       SMGState pState, CFAEdge cfaEdge, CRightHandSide rValue) throws CPATransferException {
-    CType expType = TypeUtils.getRealExpressionType(rValue);
-    // TODO: Is the CFAEdge always a CReturnStatementEdge?
-    Optional<CAssignment> returnAssignment = ((CReturnStatementEdge) cfaEdge).asAssignment();
-    if (returnAssignment.isPresent()) {
-      expType = returnAssignment.orElseThrow().getLeftHandSide().getExpressionType();
-    }
-
+    /*
+        CType expType = TypeUtils.getRealExpressionType(rValue);
+        // TODO: Is the CFAEdge always a CReturnStatementEdge?
+        Optional<CAssignment> returnAssignment = ((CReturnStatementEdge) cfaEdge).asAssignment();
+        if (returnAssignment.isPresent()) {
+          expType = returnAssignment.orElseThrow().getLeftHandSide().getExpressionType();
+        }
+    */
     return null;
   }
 
@@ -215,8 +213,8 @@ public class SMGCPAValueExpressionEvaluator
   @Override
   public Collection<ValueAndSMGState> getAddressOfField(
       SMGState pInitialSmgState, CFieldReference pExpression) {
-    CExpression fieldOwner = pExpression.getFieldOwner();
-    CType ownerType = TypeUtils.getRealExpressionType(fieldOwner);
+    // CExpression fieldOwner = pExpression.getFieldOwner();
+    // CType ownerType = TypeUtils.getRealExpressionType(fieldOwner);
     // TODO: rework this method because of 2 reasons: 1. its not understandable and documented and
     // 2. because fields are linked by pointsToEdges, meaning we need only the address fo the
     // general field (SMGObject) and the PointsToEdge holds the offsets, meaning we have to check

@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.smg2;
 
 import com.google.common.collect.ImmutableList;
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
@@ -144,7 +143,7 @@ public class SMGCPAValueVisitor
   @Override
   public List<SMGValueAndSMGState> visit(CCharLiteralExpression e) throws CPATransferException {
     // Simple character expression
-    char value = e.getCharacter();
+    // char value = e.getCharacter();
 
     // If the value is == 0 we return the zero value without checking as this one always exists.
     // Check if the value exists already, if it does, return that, else create a new one and return
@@ -164,7 +163,7 @@ public class SMGCPAValueVisitor
   @Override
   public List<SMGValueAndSMGState> visit(CFloatLiteralExpression e) throws CPATransferException {
     // Floating point value expression
-    BigDecimal value = e.getValue();
+    // BigDecimal value = e.getValue();
 
     // If the value is == 0 we return the zero value without checking as this one always exists.
     // Check if the value exists already, if it does, return that, else create a new one and return
