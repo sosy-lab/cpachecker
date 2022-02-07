@@ -79,14 +79,13 @@ public class ClangPreprocessor extends Preprocessor {
   }
 
   @Override
-  protected String throwCorrespondingParserException(String pMsg) throws ParserException {
-    throw new ClangParserException(pMsg);
+  protected ParserException createCorrespondingParserException(String pMsg) {
+    return new ClangParserException(pMsg);
   }
 
   @Override
-  protected String throwCorrespondingParserException(String pMsg, Throwable pCause)
-      throws ParserException {
-    throw new ClangParserException(pMsg, pCause);
+  protected ParserException createCorrespondingParserException(String pMsg, Throwable pCause) {
+    return new ClangParserException(pMsg, pCause);
   }
 
   @Override

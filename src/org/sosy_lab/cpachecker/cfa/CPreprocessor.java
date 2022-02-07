@@ -48,14 +48,13 @@ public class CPreprocessor extends Preprocessor {
   }
 
   @Override
-  protected String throwCorrespondingParserException(String pMsg) throws ParserException {
-    throw new CParserException(pMsg);
+  protected ParserException createCorrespondingParserException(String pMsg) {
+    return new CParserException(pMsg);
   }
 
   @Override
-  protected String throwCorrespondingParserException(String pMsg, Throwable pCause)
-      throws ParserException {
-    throw new CParserException(pMsg, pCause);
+  protected ParserException createCorrespondingParserException(String pMsg, Throwable pCause) {
+    return new CParserException(pMsg, pCause);
   }
 
   @Override

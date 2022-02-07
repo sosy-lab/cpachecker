@@ -85,7 +85,7 @@ public abstract class Preprocessor {
       logger.log(Level.FINE, () -> getCapitalizedName() + " finished");
 
       if (exitCode != 0) {
-        return throwCorrespondingParserException(
+        throw createCorrespondingParserException(
             getCapitalizedName() + " failed with exit code " + exitCode);
       }
 
@@ -105,7 +105,7 @@ public abstract class Preprocessor {
       return executor.buffer.toString();
 
     } catch (IOException e) {
-      return throwCorrespondingParserException(getCapitalizedName() + " failed", e);
+      throw createCorrespondingParserException(getCapitalizedName() + " failed", e);
     }
   }
 
@@ -139,10 +139,10 @@ public abstract class Preprocessor {
 
   protected abstract String getCommandLine();
 
-  protected abstract String throwCorrespondingParserException(String pMsg) throws ParserException;
+  protected abstract ParserException createCorrespondingParserException(String pMsg);
 
-  protected abstract String throwCorrespondingParserException(String pMsg, Throwable pCause)
-      throws ParserException;
+  protected abstract ParserException createCorrespondingParserException(
+      String pMsg, Throwable pCause);
 
   protected abstract boolean dumpResults();
 
