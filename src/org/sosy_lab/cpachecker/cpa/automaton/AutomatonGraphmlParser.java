@@ -877,6 +877,8 @@ public class AutomatonGraphmlParser {
         .toSet();
   }
 
+  @SuppressWarnings("AlreadyChecked")
+  // https://gitlab.com/sosy-lab/software/cpachecker/-/commit/e64d586f55d3019a368ccfa227651b90cae363bf#note_821937465
   private Optional<String> getFunction(
       @SuppressWarnings("unused") AutomatonGraphmlParserState pGraphmlParserState,
       GraphMLThread pThread,

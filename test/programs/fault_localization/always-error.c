@@ -6,8 +6,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-extern int __VERIFIER_nondet_int();
-
 // Lets FL produce an empty results set because there are no assertions.
 int main() {
 	int i = 0;

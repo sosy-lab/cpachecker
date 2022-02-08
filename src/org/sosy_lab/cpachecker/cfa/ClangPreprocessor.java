@@ -12,6 +12,7 @@ package org.sosy_lab.cpachecker.cfa;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.nio.file.Path;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -50,7 +51,7 @@ public class ClangPreprocessor extends Preprocessor {
    * @param dumpDirectory The required dump directory where the dump file will be written to.
    * @return The path denoting the dump file.
    */
-  public Path preprocessAndGetDumpedFile(Path file, Path dumpDirectory)
+  public @Nullable Path preprocessAndGetDumpedFile(Path file, Path dumpDirectory)
       throws CParserException, InterruptedException {
     checkNotNull(dumpDirectory, "Using the clang preprocessor requires a dump directory.");
     String result = preprocess0(file);
