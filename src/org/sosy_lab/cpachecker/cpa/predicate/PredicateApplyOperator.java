@@ -19,7 +19,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
@@ -120,7 +119,7 @@ public class PredicateApplyOperator implements ApplyOperator {
     } else {
       return name;
     }
-  };
+  }
 
   private class ExpressionTransformer
       implements CRightHandSideVisitor<Pair<CExpression, Boolean>, NoException> {
@@ -446,9 +445,10 @@ public class PredicateApplyOperator implements ApplyOperator {
       return !solver.isUnsat(f);
 
     } catch (SolverException | InterruptedException e) {
-      Preconditions.checkArgument(false);
+      // Solver exception or timeout.
+      // To be conservative, consider as compatible
+      return true;
     }
-    return false;
   }
 
   @Override
