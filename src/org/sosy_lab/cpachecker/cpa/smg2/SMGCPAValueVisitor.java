@@ -115,13 +115,6 @@ public class SMGCPAValueVisitor
   }
 
   @Override
-  public List<SMGValueAndSMGState> visit(CComplexCastExpression e) throws CPATransferException {
-    // TODO: do we need those?
-    // Cast for complex numbers?
-    return visitDefault(e);
-  }
-
-  @Override
   public List<SMGValueAndSMGState> visit(CFieldReference e) throws CPATransferException {
     // Get the object holding the field (should be struct/union)
     // I most likely need the CFAEdge for that
@@ -153,14 +146,6 @@ public class SMGCPAValueVisitor
     // Check if the value exists already, if it does, return that, else create a new one and return
     // that one. createNewValueAndMap() does both!
     return ImmutableList.of(evaluator.createNewValueAndMap(new NumericValue(value), state));
-  }
-
-  @Override
-  public List<SMGValueAndSMGState> visit(CImaginaryLiteralExpression e)
-      throws CPATransferException {
-    // TODO: do we even need those?
-    // Imaginary part for complex numbers
-    return visitDefault(e);
   }
 
   @SuppressWarnings("unused")
@@ -240,6 +225,21 @@ public class SMGCPAValueVisitor
     // https://gcc.gnu.org/onlinedocs/gcc/Labels-as-Values.html
     // Returns a address to a function
 
+    return visitDefault(e);
+  }
+
+  @Override
+  public List<SMGValueAndSMGState> visit(CImaginaryLiteralExpression e)
+      throws CPATransferException {
+    // TODO: do we even need those?
+    // Imaginary part for complex numbers
+    return visitDefault(e);
+  }
+
+  @Override
+  public List<SMGValueAndSMGState> visit(CComplexCastExpression e) throws CPATransferException {
+    // TODO: do we need those?
+    // Cast for complex numbers?
     return visitDefault(e);
   }
 }
