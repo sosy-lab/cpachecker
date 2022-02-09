@@ -143,13 +143,16 @@ public class SMGCPAValueVisitor
   @SuppressWarnings("unused")
   @Override
   public List<SMGValueAndSMGState> visit(CCharLiteralExpression e) throws CPATransferException {
-    // Simple character expression
-    // char value = e.getCharacter();
+    // Simple character expression; We use the numeric value
+    int value = Character.getNumericValue(e.getCharacter());
 
     // If the value is == 0 we return the zero value without checking as this one always exists.
+    if (value == 0) {
+      return ImmutableList.of(SMGValueAndSMGState.of(state, SMGValue.zeroValue()));
+    }
     // Check if the value exists already, if it does, return that, else create a new one and return
-    // that one.
-    return visitDefault(e);
+    // that one. createNewValueAndMap() does both!
+    return ImmutableList.of(evaluator.createNewValueAndMap(new NumericValue(value), state));
   }
 
   @Override
