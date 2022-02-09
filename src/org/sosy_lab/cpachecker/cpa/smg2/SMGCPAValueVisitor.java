@@ -12,6 +12,8 @@ import com.google.common.collect.ImmutableList;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.List;
+import java.util.logging.Level;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -62,17 +64,30 @@ public class SMGCPAValueVisitor
   @SuppressWarnings("unused")
   private final CFAEdge cfaEdge;
 
+  private final LogManagerWithoutDuplicates logger;
+
   public SMGCPAValueVisitor(
-      SMGCPAValueExpressionEvaluator pEvaluator, SMGState currentState, CFAEdge edge) {
+      SMGCPAValueExpressionEvaluator pEvaluator,
+      SMGState currentState,
+      CFAEdge edge,
+      LogManagerWithoutDuplicates pLogger) {
     evaluator = pEvaluator;
     state = currentState;
     cfaEdge = edge;
+    logger = pLogger;
   }
 
   @Override
   protected List<SMGValueAndSMGState> visitDefault(CExpression pExp) throws CPATransferException {
-    // Just get a default value
-    return null;
+    // Just get a default value and log
+    logger.logf(
+        Level.INFO,
+        "%s, Default value: CExpression %d could not be recognized and the default value %d was used for its value. Related CFAEdge: %s",
+        cfaEdge.getFileLocation(),
+        pExp,
+        SMGValue.zeroValue(),
+        cfaEdge.getRawStatement());
+    return ImmutableList.of(SMGValueAndSMGState.of(state, SMGValue.zeroValue()));
   }
 
   @Override
