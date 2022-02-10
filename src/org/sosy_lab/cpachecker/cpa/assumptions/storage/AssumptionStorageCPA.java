@@ -65,7 +65,7 @@ public class AssumptionStorageCPA
     CtoFormulaConverter converter = new CtoFormulaConverter(options, formulaManager, cfa.getMachineModel(), cfa.getVarClassification(), logger, pShutdownNotifier, typeHandler, AnalysisDirection.FORWARD);
     BooleanFormulaManagerView bfmgr = formulaManager.getBooleanFormulaManager();
     topState = new AssumptionStorageState(formulaManager, bfmgr.makeTrue(), bfmgr.makeTrue());
-    transferRelation = new AssumptionStorageTransferRelation(converter, formulaManager, topState);
+    transferRelation = new AssumptionStorageTransferRelation(converter, formulaManager, topState, config);
   }
 
   public FormulaManagerView getFormulaManager() {

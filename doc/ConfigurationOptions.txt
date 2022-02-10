@@ -1364,6 +1364,10 @@ cpa.arg.witness.removeInsufficientEdges = true
 # Verification witness: Revert escaping/renaming of functions for threads?
 cpa.arg.witness.revertThreadFunctionRenaming = false
 
+# If it is enabled, assumptions are extracted from the value analysis
+# states,if the ValueAnalyssi loads TESTCOMP-testcases.
+cpa.assumptionStorage.extractAssumptionsFromValueAnalysisState = false
+
 # signal the analysis to break in case the given number of error state is
 # reached. Use -1 to disable this limit.
 cpa.automaton.breakOnTargetState = 1
