@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentStack;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectsAndValues;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSPC;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.CValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -503,6 +504,22 @@ public class SymbolicProgramConfiguration {
   }
 
   /**
+   * The exact read method as specified by the original SMG paper! My guess is that a lot of other
+   * forms of read (more exact reads) are not possible once we use join/abstration.
+   *
+   * @param pObject the {@link SMGObject} read.
+   * @param pFieldOffset {@link BigInteger} offset.
+   * @param pSizeofInBits {@link BigInteger} sizeInBits.
+   * @return {@link SMGValueAndSPC} tuple for the copy of the SPC with the value read and the {@link
+   *     SMGValue} read from it.
+   */
+  public SMGValueAndSPC readValue(
+      SMGObject pObject, BigInteger pFieldOffset, BigInteger pSizeofInBits) {
+    SMGandValue newSMGAndValue = smg.readValue(pObject, pFieldOffset, pSizeofInBits);
+    return SMGValueAndSPC.of(newSMGAndValue.getValue(), copyAndReplaceSMG(newSMGAndValue.getSMG()));
+  }
+
+  /**
    * Reads the explicit value written in a memory chunk represented as SMGRegion object at a certain
    * offset with a given size. This memory chunk can ever be a covered by exactly one
    * SMGHasValueEdge or multiple of them. If the memory chunk to be read does not fit a single edge,
@@ -514,7 +531,8 @@ public class SymbolicProgramConfiguration {
    * @param pSizeofInBits - the size of the chunk
    * @return the explicit value written in the defined memory chunk
    */
-  public Value readValue(SMGObject pObject, BigInteger pFieldOffset, BigInteger pSizeofInBits) {
+  public Value readValuePrecise(
+      SMGObject pObject, BigInteger pFieldOffset, BigInteger pSizeofInBits) {
     if (!isObjectValid(pObject) && !isObjectExternallyAllocated(pObject)) {
       return new UnknownValue();
     }
