@@ -477,8 +477,16 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
     return SMGObject.nullInstance();
   }
 
-  /*
-   * Reads the value at the specified offset and size (in bits) in the object given. Might fail as invalid read if the object read from is invalid. Returns a copy of the state with the read value.
+  /**
+   * Read the value in the {@link SMGObject} at the position specified by the offset and size.
+   * Checks for validity of the object and if its externally allocated and may fail because of that.
+   * The read {@link SMGValue} will be translated into a {@link Value}. If the Value is known, the
+   * known value is used, unknown else.
+   *
+   * @param pObject {@link SMGObject} where to read. May not be 0.
+   * @param pFieldOffset {@link BigInteger} offset.
+   * @param pSizeofInBits {@link BigInteger} sizeInBits.
+   * @return The {@link Value} read and the {@link SMGState} after the read.
    */
   public ValueAndSMGState readValue(
       SMGObject pObject, BigInteger pFieldOffset, BigInteger pSizeofInBits) {
