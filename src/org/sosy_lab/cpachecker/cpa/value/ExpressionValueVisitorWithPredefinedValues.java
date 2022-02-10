@@ -8,11 +8,11 @@
 
 package org.sosy_lab.cpachecker.cpa.value;
 
-import com.ibm.icu.lang.UCharacter;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -72,8 +72,7 @@ public class ExpressionValueVisitorWithPredefinedValues extends ExpressionValueV
     super(pState, pFunctionName, pMachineModel, pLogger);
     this.logger = pLogger;
     this.numReturnedValues = pAtomicInteger;
-
-    valuesFromFile = pValuesFromFile;
+    if (Objects.nonNull(pValuesFromFile)) valuesFromFile = pValuesFromFile;
   }
 
   @Override
@@ -133,18 +132,15 @@ public class ExpressionValueVisitorWithPredefinedValues extends ExpressionValueV
         return BooleanValue.valueOf(!pStringValueForNumber.equals("0"));
       }
       if (type.equals(CNumericTypes.CHAR) || type.equals(CNumericTypes.SIGNED_CHAR)) {
-        logger.logf(Level.INFO, "Parsing a char, it is +%s+", pStringValueForNumber);
         if (pStringValueForNumber.startsWith("'")
             && pStringValueForNumber.length() == 3
             && pStringValueForNumber.substring(2).equals("'")) {
           // String has the form 'c'
           final int unicodeNumericValue =pStringValueForNumber.charAt(1);
-          logger.logf(Level.INFO, "Parsing a char, returning %s", unicodeNumericValue);
           return new NumericValue(unicodeNumericValue);
         } else if (pStringValueForNumber.length() == 1 && isInt(pStringValueForNumber)) {
-          // String is a number
-          final int unicodeNumericValue = pStringValueForNumber.charAt(0);
-          logger.logf(Level.INFO, "Parsing a char, returning %s", unicodeNumericValue);
+          // String is a number, hence parse as integer
+          final int unicodeNumericValue = Integer.parseInt(pStringValueForNumber);
           return new NumericValue(unicodeNumericValue);
 
         } else {
