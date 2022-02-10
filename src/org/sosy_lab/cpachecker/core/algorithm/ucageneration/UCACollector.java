@@ -305,7 +305,7 @@ public class UCACollector {
           AssumptionStorageState assumptionChild =
               AbstractStates.extractStateByType(child, AssumptionStorageState.class);
           AssumptionCollectorAlgorithm.addAssumption(
-              descriptionForInnerMultiEdges, assumptionChild, false);
+              descriptionForInnerMultiEdges, assumptionChild, false, AbstractStates.extractLocation(child));
           AssumptionCollectorAlgorithm.finishTransition(
               descriptionForInnerMultiEdges,
               child,
@@ -327,7 +327,7 @@ public class UCACollector {
 
           AssumptionStorageState assumptionChild =
               AbstractStates.extractStateByType(child, AssumptionStorageState.class);
-          AssumptionCollectorAlgorithm.addAssumption(sb, assumptionChild, false);
+          AssumptionCollectorAlgorithm.addAssumption(sb, assumptionChild, false, AbstractStates.extractLocation(child));
           if (pLastStates.contains(child)) {
             sb.append(NAME_OF_NEWTESTINPUT_STATE);
           } else {

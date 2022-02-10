@@ -24,6 +24,7 @@ import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
@@ -45,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.ucageneration.UCACollector;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -73,27 +75,30 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
 /**
- * Outer algorithm to collect all invariants generated during
- * the analysis, and report them to the user
+ * Outer algorithm to collect all invariants generated during the analysis, and report them to the
+ * user
  */
-@Options(prefix="assumptions")
+@Options(prefix = "assumptions")
 public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvider {
   private static final String FUNCTION_DELIMITER = "::";
-  @Option(secure=true, name="export", description="write collected assumptions to file")
+
+  @Option(secure = true, name = "export", description = "write collected assumptions to file")
   private boolean exportAssumptions = true;
 
   @Option(
       secure = true,
       name = "export.location",
-      description = "export assumptions collected per location"
-  )
+      description = "export assumptions collected per location")
   private boolean exportLocationAssumptions = true;
 
-  @Option(secure=true, name="file", description="write collected assumptions to file")
+  @Option(secure = true, name = "file", description = "write collected assumptions to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path assumptionsFile = Path.of("assumptions.txt");
 
-  @Option(secure=true, name="automatonFile", description="write collected assumptions as automaton to file")
+  @Option(
+      secure = true,
+      name = "automatonFile",
+      description = "write collected assumptions as automaton to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path assumptionAutomatonFile = Path.of("AssumptionAutomaton.txt");
 
@@ -112,19 +117,37 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
   @Option(
       secure = true,
-      description = "compress the produced assumption automaton using GZIP compression."
-  )
+      description = "compress the produced assumption automaton using GZIP compression.")
   private boolean compressAutomaton = false;
 
-  @Option(secure=true, description="Add a threshold to the automaton, after so many branches on a path the automaton will be ignored (0 to disable)")
-  @IntegerOption(min=0)
+  @Option(
+      secure = true,
+      description =
+          "Add a threshold to the automaton, after so many branches on a path the automaton will be ignored (0 to disable)")
+  @IntegerOption(min = 0)
   private int automatonBranchingThreshold = 0;
 
-  @Option(secure=true, description="If it is enabled, automaton does not add assumption which is considered to continue path with corresponding this edge.")
+  @Option(
+      secure = true,
+      description =
+          "If it is enabled, automaton does not add assumption which is considered to continue path with corresponding this edge.")
   private boolean automatonIgnoreAssumptions = false;
 
-  @Option(secure=true, description="If it is enabled, check if a state that should lead to false state indeed has successors.")
+  @Option(
+      secure = true,
+      description =
+          "If it is enabled, check if a state that should lead to false state indeed has successors.")
   private boolean removeNonExploredWithoutSuccessors = false;
+
+  @Option(
+      secure = true,
+      name = "transformUCA",
+      description = "Generate additionally a universal condition automaton")
+  private boolean transformUCA = true;
+
+  @Option(secure = true, description = "write collected assumptions as automaton to file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path ucaFile = Path.of("UniversalConditionAutomaton.txt");
 
   private final LogManager logger;
   private final Algorithm innerAlgorithm;
@@ -139,9 +162,10 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
   // statistics
   private int automatonStates = 0;
+  private int universalConditionAutomaton = 0;
 
   private final ConfigurableProgramAnalysis cpa;
-
+  private final UCACollector ucaCollector;
   private final ShutdownNotifier shutdownNotifier;
 
   public AssumptionCollectorAlgorithm(
@@ -166,9 +190,10 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     this.formulaManager = asCpa.getFormulaManager();
     this.bfmgr = formulaManager.getBooleanFormulaManager();
     this.exceptionAssumptions = new AssumptionWithLocation(formulaManager);
-    this.cpa=pCpa;
-    this.cfa=cfa;
-    this.config=config;
+    this.cpa = pCpa;
+    this.cfa = cfa;
+    this.config = config;
+    ucaCollector = new UCACollector(algo, pCpa, config, logger, cfa, pShutdownNotifier);
   }
 
   @Override
@@ -223,9 +248,9 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         // TODO: handle CounterexampleAnalysisFailed similar to RefinementFailedException
         // TODO: handle other kinds of CPAException?
 
-//      } catch (CPAException e) {
-//        // TODO is it really wise to swallow exceptions here?
-//        logger.log(Level.FINER, "Dumping assumptions due to: " + e.toString());
+        //      } catch (CPAException e) {
+        //        // TODO is it really wise to swallow exceptions here?
+        //        logger.log(Level.FINER, "Dumping assumptions due to: " + e.toString());
       }
     } while (restartCPA);
 
@@ -247,7 +272,8 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       } else {
         // get stored assumption
 
-        AssumptionStorageState e = AbstractStates.extractStateByType(state, AssumptionStorageState.class);
+        AssumptionStorageState e =
+            AbstractStates.extractStateByType(state, AssumptionStorageState.class);
         BooleanFormula assumption = bfmgr.and(e.getAssumption(), e.getStopFormula());
 
         if (!bfmgr.isTrue(assumption)) {
@@ -265,10 +291,9 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     return result;
   }
 
-  /**
-   * Add a given assumption for the location and state of a state.
-   */
-  private void addAssumption(AssumptionWithLocation invariant, BooleanFormula assumption, AbstractState state) {
+  /** Add a given assumption for the location and state of a state. */
+  private void addAssumption(
+      AssumptionWithLocation invariant, BooleanFormula assumption, AbstractState state) {
     BooleanFormula dataRegion = AbstractStates.extractReportedFormulas(formulaManager, state);
 
     CFANode loc = extractLocation(state);
@@ -276,9 +301,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     invariant.add(loc, bfmgr.or(assumption, bfmgr.not(dataRegion)));
   }
 
-  /**
-   * Create an assumption that is sufficient to exclude an abstract state
-   */
+  /** Create an assumption that is sufficient to exclude an abstract state */
   private void addAvoidingAssumptions(AssumptionWithLocation invariant, AbstractState state) {
     addAssumption(invariant, bfmgr.makeFalse(), state);
   }
@@ -297,13 +320,12 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     // A covered state is always replaced by its covering state.
     Set<ARGState> relevantStates = new TreeSet<>();
     for (AbstractState state : reached) {
-      ARGState e = (ARGState)state;
-      AssumptionStorageState asmptState = AbstractStates.extractStateByType(e, AssumptionStorageState.class);
+      ARGState e = (ARGState) state;
+      AssumptionStorageState asmptState =
+          AbstractStates.extractStateByType(e, AssumptionStorageState.class);
 
       boolean hasFalseAssumption =
-          e.isTarget()
-              || asmptState.isStop()
-              || exceptionStates.contains(e.getStateId());
+          e.isTarget() || asmptState.isStop() || exceptionStates.contains(e.getStateId());
 
       boolean isRelevant = !asmptState.isAssumptionTrue();
 
@@ -327,14 +349,20 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       }
     }
 
-    automatonStates += writeAutomaton(output, (ARGState) firstState, relevantStates, falseAssumptionStates,
-        automatonBranchingThreshold, automatonIgnoreAssumptions);
-
+    automatonStates +=
+        writeAutomaton(
+            output,
+            (ARGState) firstState,
+            relevantStates,
+            falseAssumptionStates,
+            automatonBranchingThreshold,
+            automatonIgnoreAssumptions);
   }
 
   private Automaton constructAutomatonFromFile() throws InvalidConfigurationException {
 
-    Scope scope = cfa.getLanguage() == Language.C ? new CProgramScope(cfa, logger) : DummyScope.getInstance();
+    Scope scope =
+        cfa.getLanguage() == Language.C ? new CProgramScope(cfa, logger) : DummyScope.getInstance();
 
     List<Automaton> lst =
         AutomatonParser.parseAutomatonFile(
@@ -347,37 +375,50 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
             shutdownNotifier);
 
     if (lst.isEmpty()) {
-      throw new InvalidConfigurationException("Could not find automata in the file " + assumptionAutomatonFile.toAbsolutePath());
+      throw new InvalidConfigurationException(
+          "Could not find automata in the file " + assumptionAutomatonFile.toAbsolutePath());
     } else if (lst.size() > 1) {
-      throw new InvalidConfigurationException("Found " + lst.size()
-          + " automata in the File " + assumptionAutomatonFile.toAbsolutePath()
-          + " The CPA can only handle ONE Automaton!");
+      throw new InvalidConfigurationException(
+          "Found "
+              + lst.size()
+              + " automata in the File "
+              + assumptionAutomatonFile.toAbsolutePath()
+              + " The CPA can only handle ONE Automaton!");
     }
 
     return lst.get(0);
   }
 
   private void writeAutomatonToDot(Automaton automaton) {
-    try (Writer w = IO.openOutputFile(assumptionAutomatonDotFile, Charset.defaultCharset())){
+    try (Writer w = IO.openOutputFile(assumptionAutomatonDotFile, Charset.defaultCharset())) {
       automaton.writeDotFile(w);
     } catch (IOException e) {
       logger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
     }
   }
 
-  private Set<AbstractState> getFalseAssumptionStates(UnmodifiableReachedSet pReached) {
+  public Set<AbstractState> getFalseAssumptionStates(UnmodifiableReachedSet pReached) {
+    return AssumptionCollectorAlgorithm.getFalseAssumptionStates(
+        pReached, removeNonExploredWithoutSuccessors, cpa);
+  }
+
+  public static Set<AbstractState> getFalseAssumptionStates(
+      UnmodifiableReachedSet pReached,
+      boolean pRemoveNonExploredWithoutSuccessors,
+      ConfigurableProgramAnalysis pCpa) {
+
     Set<AbstractState> falseAssumptionStates;
-    if (removeNonExploredWithoutSuccessors) {
+    if (pRemoveNonExploredWithoutSuccessors) {
       falseAssumptionStates = Sets.newHashSetWithExpectedSize(pReached.getWaitlist().size());
       for (AbstractState state : pReached.getWaitlist()) {
         try {
-          if (!cpa.getTransferRelation()
+          if (!pCpa.getTransferRelation()
               .getAbstractSuccessors(state, pReached.getPrecision(state))
               .isEmpty()) {
             falseAssumptionStates.add(state);
-            if(state instanceof ARGState) {
+            if (state instanceof ARGState) {
               ARGState argState = (ARGState) state;
-              while(!argState.getChildren().isEmpty()) {
+              while (!argState.getChildren().isEmpty()) {
                 argState.getChildren().iterator().next().removeFromARG();
               }
             }
@@ -541,11 +582,10 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     }
     sb.append("END AUTOMATON\n");
 
-
     return numProducedStates;
   }
 
-  private static void addAssumption(
+  public static void addAssumption(
       final Appendable writer,
       final AssumptionStorageState assumptionState,
       boolean ignoreAssumptions,
@@ -595,8 +635,13 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     }
   }
 
-  private static void finishTransition(final Appendable writer, final ARGState child, final Set<ARGState> relevantStates,
-                                       final Set<AbstractState> falseAssumptionStates, final String actionOnFinalEdges, final boolean branching)
+  public static void finishTransition(
+      final Appendable writer,
+      final ARGState child,
+      final Set<ARGState> relevantStates,
+      final Set<AbstractState> falseAssumptionStates,
+      final String actionOnFinalEdges,
+      final boolean branching)
       throws IOException {
     if (falseAssumptionStates.contains(child)) {
       writer.append(actionOnFinalEdges + "GOTO __FALSE");
@@ -612,15 +657,14 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     }
   }
 
-
   /**
-   * This method transitively finds all parents of a given state and adds
-   * them to a given set.
+   * This method transitively finds all parents of a given state and adds them to a given set.
    * Covering nodes are considered to be parents of the covered nodes.
+   *
    * @param s the ARGSTate whose parents should be found
    * @param parentSet the set of ARGStates the parents should be added to
    */
-  private static void findAllParents(ARGState s, Set<ARGState> parentSet) {
+  public static void findAllParents(ARGState s, Set<ARGState> parentSet) {
     Deque<ARGState> toAdd = new ArrayDeque<>();
     toAdd.add(s);
     while (!toAdd.isEmpty()) {
@@ -640,7 +684,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     }
   }
 
-  private static void escape(String s, Appendable appendTo) throws IOException {
+  public static void escape(String s, Appendable appendTo) throws IOException {
     for (int i = 0; i < s.length(); i++) {
       char c = s.charAt(i);
       switch (c) {
@@ -668,7 +712,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     if (innerAlgorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider)innerAlgorithm).collectStatistics(pStatsCollection);
+      ((StatisticsProvider) innerAlgorithm).collectStatistics(pStatsCollection);
     }
     pStatsCollection.add(new AssumptionCollectionStatistics());
   }
@@ -729,6 +773,46 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
             } catch (InvalidConfigurationException e) {
               logger.logfUserException(Level.WARNING, e, "Could not write to DOT File");
             }
+          }
+          if (transformUCA && Objects.nonNull(ucaFile)) {
+            // Generate a universal condition automaton for the output
+            if (!compressAutomaton) {
+              try (Writer w = IO.openOutputFile(ucaFile, Charset.defaultCharset())) {
+                ucaCollector.produceUniversalConditionAutomaton(w, pReached, exceptionStates);
+              } catch (IOException e) {
+                logger.logUserException(Level.WARNING, e, "Could not write uca to file");
+              } catch (CPAException e) {
+                logger.logUserException(
+                    Level.WARNING,
+                    e,
+                    "Could not write uca to file, as no error location is discovered");
+              }
+            } else {
+              ucaFile = ucaFile.resolveSibling(ucaFile.getFileName() + ".gz");
+              try {
+                IO.writeGZIPFile(
+                    ucaFile,
+                    Charset.defaultCharset(),
+                    (Appender)
+                        appendable -> {
+                          try {
+                            ucaCollector.produceUniversalConditionAutomaton(
+                                appendable, pReached, exceptionStates);
+                          } catch (CPAException e) {
+                            logger.logUserException(
+                                Level.WARNING,
+                                e,
+                                "Could not write uca to file, as no error location is discovered");
+                          }
+                        });
+              } catch (IOException e) {
+                logger.logUserException(Level.WARNING, e, "Could not write uca to file");
+              }
+            }
+            put(
+                out,
+                "Number of states in UniversalConditionAutomaton",
+                universalConditionAutomaton);
           }
         }
       }
