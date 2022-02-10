@@ -329,7 +329,7 @@ public class UCACollector {
               AbstractStates.extractStateByType(child, AssumptionStorageState.class);
           AssumptionCollectorAlgorithm.addAssumption(sb, assumptionChild, false, AbstractStates.extractLocation(child));
           if (pLastStates.contains(child)) {
-            sb.append(NAME_OF_NEWTESTINPUT_STATE);
+            sb.append(String.format("GOTO %s",NAME_OF_NEWTESTINPUT_STATE));
           } else {
             AssumptionCollectorAlgorithm.finishTransition(
                 sb, child, relevantStates, falseAssumptionStates, actionOnFinalEdges, branching);
@@ -341,7 +341,7 @@ public class UCACollector {
       sb.append(descriptionForInnerMultiEdges);
     }
     sb.append(String.format("STATE %s :\n", NAME_OF_NEWTESTINPUT_STATE));
-    sb.append("    TRUE -> ASSUME GOTO __FALSE;\n\n");
+    sb.append("    TRUE -> GOTO __FALSE;\n\n");
 
     sb.append("END AUTOMATON\n");
 
