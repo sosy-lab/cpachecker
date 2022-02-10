@@ -3579,6 +3579,9 @@ heuristicSelection.recursionConfig = no default value
 # Configuration for programs with a single loop.
 heuristicSelection.singleLoopConfig = no default value
 
+# toggle asserting targets at every iteration
+imc.assertTargetsAtEveryIteration = false
+
 # toggle checking forward conditions
 imc.checkForwardConditions = true
 

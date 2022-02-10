@@ -70,6 +70,9 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   @Option(secure = true, description = "toggle removing unreachable stop states in ARG")
   private boolean removeUnreachableStopStates = false;
 
+  @Option(secure = true, description = "toggle asserting targets at every iteration")
+  private boolean assertTargetsAtEveryIteration = false;
+
   private final ConfigurableProgramAnalysis cpa;
 
   private final Algorithm algorithm;
@@ -166,7 +169,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
 
     logger.log(Level.FINE, "Performing interpolation-based model checking");
-    PartitionedFormulas partitionedFormulas = new PartitionedFormulas(bfmgr, logger, false);
+    PartitionedFormulas partitionedFormulas =
+        new PartitionedFormulas(bfmgr, logger, assertTargetsAtEveryIteration);
     InterpolationManager<T> itpMgr =
         new InterpolationManager<>(bfmgr, itpProver, itpDeriveDirection);
     do {
