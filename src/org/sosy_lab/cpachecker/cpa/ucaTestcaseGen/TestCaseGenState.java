@@ -12,12 +12,13 @@ import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.charset.Charset;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.io.IO;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.ucageneration.UCACollector;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
@@ -28,18 +29,24 @@ public class TestCaseGenState
     implements LatticeAbstractState<TestCaseGenState>, Serializable, Graphable {
 
   private static final long serialVersionUID = -7715698130885640052L;
+  private final LogManager logger;
 
   private List<TestcaseEntry> entries;
   private Optional<AutomatonState> automatonState;
 
-  public TestCaseGenState() {
+  public TestCaseGenState(LogManager pLogger) {
     this.entries = Lists.newArrayList();
     automatonState = Optional.empty();
+    this.logger = pLogger;
   }
 
-  private TestCaseGenState(List<TestcaseEntry> pEntries, Optional<AutomatonState> pAutomatonState) {
+  private TestCaseGenState(
+      List<TestcaseEntry> pEntries,
+      Optional<AutomatonState> pAutomatonState,
+      LogManager pLogger) {
     this.automatonState = pAutomatonState;
     this.entries = pEntries;
+    this.logger = pLogger;
   }
 
   public void setAutomatonState(Optional<AutomatonState> pAutomatonState) {
@@ -52,12 +59,13 @@ public class TestCaseGenState
 
   public TestCaseGenState copy() {
     return new TestCaseGenState(
-        entries.stream().map(e -> e.copy()).collect(Collectors.toList()), automatonState);
+        entries.stream().map(e -> e.copy()).collect(Collectors.toList()), automatonState, logger);
   }
 
   @Override
-  public TestCaseGenState join(TestCaseGenState other) throws CPAException, InterruptedException {
-    throw new CPAException("Merging of TestCaseGenStates is not supported!");
+  public TestCaseGenState join(TestCaseGenState other) throws InterruptedException {
+    logger.log(Level.WARNING, "Merging of TestCaseGenStates is not supported! Returning the other state");
+    return other;
   }
 
   @Override

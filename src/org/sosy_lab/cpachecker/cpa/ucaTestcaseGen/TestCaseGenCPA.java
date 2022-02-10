@@ -28,13 +28,16 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
 public class TestCaseGenCPA extends AbstractCPA implements ProofCheckerCPA {
 
 
+  private final LogManager logger;
+
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(TestCaseGenCPA.class);
   }
 
-  private TestCaseGenCPA(LogManager logger, Configuration pConfiguration)
+  private TestCaseGenCPA(LogManager pLogger, Configuration pConfiguration)
       throws InvalidConfigurationException {
-    super(DelegateAbstractDomain.getInstance(), new TestCaseGenTransferRelation(logger,pConfiguration));
+    super(DelegateAbstractDomain.getInstance(), new TestCaseGenTransferRelation(pLogger,pConfiguration));
+        this.logger = pLogger;
   }
 
   @Override
@@ -49,6 +52,6 @@ public class TestCaseGenCPA extends AbstractCPA implements ProofCheckerCPA {
 
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
-    return new TestCaseGenState();
+    return new TestCaseGenState(logger);
   }
 }
