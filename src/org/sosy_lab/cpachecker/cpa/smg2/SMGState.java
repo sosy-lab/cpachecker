@@ -377,8 +377,8 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   }
 
   /**
-   * Copy and Update state with an error resulting from trying to write outside of the range of the
-   * {@link SMGObject}. Returns an updated state with the error in it.
+   * Copy and update this {@link SMGState} with an error resulting from trying to write outside of
+   * the range of the {@link SMGObject}. Returns an updated state with the error in it.
    *
    * @param objectWrittenTo the {@link SMGObject} that should have been written to.
    * @param writeOffset The offset in bits where you want to write the {@link SMGValue} to.
@@ -397,6 +397,31 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
             .withProperty(Property.INVALID_WRITE)
             .withErrorMessage(errorMSG)
             .withInvalidObjects(Collections.singleton(objectWrittenTo));
+    // Log the error in the logger
+    logMemoryError(errorMSG, true);
+    return copyWithErrorInfo(memoryModel, newErrorInfo);
+  }
+
+  /**
+   * Copy and update this {@link SMGState} with an error resulting from trying to read outside of
+   * the range of the {@link SMGObject}. Returns an updated state with the error in it.
+   *
+   * @param objectRead the {@link SMGObject} that should have been read.
+   * @param readOffset The offset in bits as {@link BigInteger} where you want to read.
+   * @param readSize the size of the type in bits to read as {@link BigInteger}.
+   * @return A new SMGState with the error info.
+   */
+  public SMGState withOutOfRangeRead(
+      SMGObject objectRead, BigInteger readOffset, BigInteger readSize) {
+    String errorMSG =
+        String.format(
+            "Try reading object %s with size %d bits at offset %d bit with read tpe size %d bit.",
+            objectRead, objectRead.getSize(), readSize, readOffset);
+    SMGErrorInfo newErrorInfo =
+        errorInfo
+            .withProperty(Property.INVALID_READ)
+            .withErrorMessage(errorMSG)
+            .withInvalidObjects(Collections.singleton(objectRead));
     // Log the error in the logger
     logMemoryError(errorMSG, true);
     return copyWithErrorInfo(memoryModel, newErrorInfo);
