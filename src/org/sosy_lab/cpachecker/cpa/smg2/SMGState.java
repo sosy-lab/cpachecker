@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGErrorInfo.Property;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSMGState;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSPC;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
@@ -496,7 +497,23 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
               memoryModel, errorInfo.withObject(pObject).withErrorMessage(HAS_INVALID_READS));
       return ValueAndSMGState.of(UnknownValue.getInstance(), newState);
     }
-    return ValueAndSMGState.of(memoryModel.readValue(pObject, pFieldOffset, pSizeofInBits), this);
+    SMGValueAndSPC valueAndNewSPC = memoryModel.readValue(pObject, pFieldOffset, pSizeofInBits);
+    // Try to translate the SMGValue to a Value or create a new mapping (the same read on the same
+    // object/offset/size yields the same SMGValue, so it should return the same Value)
+    SMGState newState = copyAndReplaceMemoryModel(valueAndNewSPC.getSPC());
+    // Only use the new state for changes!
+    SMGValue readSMGValue = valueAndNewSPC.getSMGValue();
+    Optional<Value> maybeValue = newState.getMemoryModel().getValueFromSMGValue(readSMGValue);
+    if (maybeValue.isPresent()) {
+      // The Value to the SMGValue is already known, use it
+      return ValueAndSMGState.of(maybeValue.orElseThrow(), newState);
+    }
+    // If there is no Value for the SMGValue, we need to create it as an unknown, map it and return
+    Value unknownValue = UnknownValue.getInstance();
+    return ValueAndSMGState.of(
+        unknownValue,
+        copyAndReplaceMemoryModel(
+            newState.getMemoryModel().copyAndPutValue(unknownValue, readSMGValue)));
   }
 
   public SMGState writeValue(SMGObject object, BigInteger offset, BigInteger sizeInBits, SMGValue value) {
