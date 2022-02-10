@@ -332,6 +332,9 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   }
 
   /**
+   * The error sais invlid read as the point that fails is the read of the {@link SMGObject} before
+   * writing!
+   *
    * @param nullObject the {@link SMGObject} that is null and was tried to be dereferenced.
    * @return A new SMGState with the error info.
    */
@@ -339,6 +342,26 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
     // TODO: maybe return more useful information instead of the SMGObject.
     String errorMSG =
         "Null pointer dereference on read of object with the intent to write to: "
+            + nullObject
+            + ".";
+    SMGErrorInfo newErrorInfo =
+        errorInfo
+            .withProperty(Property.INVALID_READ)
+            .withErrorMessage(errorMSG)
+            .withInvalidObjects(Collections.singleton(nullObject));
+    // Log the error in the logger
+    logMemoryError(errorMSG, true);
+    return copyWithErrorInfo(memoryModel, newErrorInfo);
+  }
+
+  /**
+   * @param nullObject the {@link SMGObject} that is null and was tried to be dereferenced.
+   * @return A new SMGState with the error info.
+   */
+  public SMGState withNullPointerDereferenceWhenReading(SMGObject nullObject) {
+    getPointsToTarget(pValue)
+    String errorMSG =
+        "Null pointer dereference on read of object with the intent to read it: "
             + nullObject
             + ".";
     SMGErrorInfo newErrorInfo =
@@ -399,11 +422,24 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   }
 
   /**
-   * @param cValue the {@link Value} you want the {@link SMGValue} for.
+   * @param value the {@link Value} you want the {@link SMGValue} for.
    * @return The {@link SMGValue} if it exists, en empty Optional else.
    */
-  public Optional<SMGValue> getSMGValueForValue(Value cValue) {
-    return memoryModel.getValue(cValue);
+  public Optional<SMGValue> getSMGValueForValue(Value value) {
+    return memoryModel.getSMGValue(value);
+  }
+
+  /**
+   * Use this only for debug purposes or anything in this class! Don't export the SMGValues.
+   *
+   * @param smgValue the {@link SMGValue} you want the {@link Value} for.
+   * @return The {@link Value} if it exists, en empty Optional else.
+   * (The Optional should basically never be empty! The only exception
+   *  is the SMGValue == 0, that may exist without counterpart.)
+   */
+  private Optional<Value> getValueForSMGValue(SMGValue smgValue) {
+    // TODO: check that the optional is only empty for SMGValue == 0?
+    return memoryModel.getValue(smgValue);
   }
 
   /**
