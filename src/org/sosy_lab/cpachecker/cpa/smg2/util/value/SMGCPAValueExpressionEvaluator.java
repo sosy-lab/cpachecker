@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.smg2.util.value;
 
 import java.math.BigInteger;
 import java.util.Collection;
+import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -27,12 +28,14 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGSizeOfVisitor;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 
@@ -335,6 +338,29 @@ public class SMGCPAValueExpressionEvaluator
     }
 
     return false;
+  }
+
+  private BigInteger getBitSizeofType(
+      CFAEdge edge, CType pType, SMGState pState, Optional<CExpression> pExpression)
+      throws UnrecognizedCodeException {
+    // We don't really care about volatility in C
+    // Incomplete types can make problems when calculating the size as they might not have all
+    // information to get the size in bits
+
+    // The reason why we need a dedicated visitor and not use MachineModel is inside the visitor
+    SMGSizeOfVisitor v = new SMGSizeOfVisitor(this, edge, pState, pExpression);
+
+    // We multiply with char size as it is 8 bit ;D
+    try {
+      return pType.accept(v).multiply(BigInteger.valueOf(machineModel.getSizeofCharInBits()));
+    } catch (IllegalArgumentException e) {
+      logger.logDebugException(e);
+      throw new UnrecognizedCodeException("Could not resolve type.", edge);
+    }
+  }
+
+  public MachineModel getMachineModel() {
+    return machineModel;
   }
 
   // Get canonical type information
