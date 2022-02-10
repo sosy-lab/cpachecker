@@ -23,7 +23,7 @@ public class SMGValueAndSPC {
     spc = pSPC;
   }
 
-  public SMGValueAndSPC of(SMGValue pValue, SymbolicProgramConfiguration pSPC) {
+  public static SMGValueAndSPC of(SMGValue pValue, SymbolicProgramConfiguration pSPC) {
     Preconditions.checkNotNull(pValue);
     Preconditions.checkNotNull(pSPC);
     return new SMGValueAndSPC(pValue, pSPC);
