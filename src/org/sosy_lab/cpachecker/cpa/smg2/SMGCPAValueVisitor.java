@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -34,7 +35,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAValueExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
@@ -50,8 +50,8 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
  * state is important.
  */
 public class SMGCPAValueVisitor
-    extends DefaultCExpressionVisitor<List<SMGValueAndSMGState>, CPATransferException>
-    implements CRightHandSideVisitor<List<SMGValueAndSMGState>, CPATransferException> {
+    extends DefaultCExpressionVisitor<List<ValueAndSMGState>, CPATransferException>
+    implements CRightHandSideVisitor<List<ValueAndSMGState>, CPATransferException> {
 
   // TODO: remove CPAException and use more specific exceptions
 
@@ -80,7 +80,7 @@ public class SMGCPAValueVisitor
   }
 
   @Override
-  protected List<SMGValueAndSMGState> visitDefault(CExpression pExp) throws CPATransferException {
+  protected List<ValueAndSMGState> visitDefault(CExpression pExp) throws CPATransferException {
     // Just get a default value and log
     logger.logf(
         Level.INFO,
@@ -89,18 +89,18 @@ public class SMGCPAValueVisitor
         pExp,
         SMGValue.zeroValue(),
         cfaEdge.getRawStatement());
-    return ImmutableList.of(SMGValueAndSMGState.of(state, SMGValue.zeroValue()));
+    return ImmutableList.of(ValueAndSMGState.of(new NumericValue(0), state));
   }
 
   @Override
-  public List<SMGValueAndSMGState> visit(CFunctionCallExpression pIastFunctionCallExpression)
+  public List<ValueAndSMGState> visit(CFunctionCallExpression pIastFunctionCallExpression)
       throws CPATransferException {
     // TODO: investigate whats possible here.
     return null;
   }
 
   @Override
-  public List<SMGValueAndSMGState> visit(CArraySubscriptExpression e) throws CPATransferException {
+  public List<ValueAndSMGState> visit(CArraySubscriptExpression e) throws CPATransferException {
     // Array subscript is default Java array usage. Example: array[5]
     // In C this can be translated to *(array + 5). Note: this is commutative!
     // TODO: how to handle *(array++) etc.? This case equals *(array + 1). Would the ++ case come
@@ -109,18 +109,26 @@ public class SMGCPAValueVisitor
     // The expression is split into array and subscript expression
     // Use the array expression in the visitor again to get the array address
     CExpression arrayExpr = e.getArrayExpression();
-    ValueAndSMGState arrayValueAndState = arrayExpr.accept(this);
+    List<ValueAndSMGState> arrayValueAndStates = arrayExpr.accept(this);
+    // We know that there can only be 1 return value for the array address
+    Preconditions.checkArgument(arrayValueAndStates.size() == 1);
+    ValueAndSMGState arrayValueAndState = arrayValueAndStates.get(0);
 
     // Evaluate the subscript as far as possible
     CExpression subscriptExpr = e.getSubscriptExpression();
-    ValueAndSMGState subscriptValueAndState =
+    List<ValueAndSMGState> subscriptValueAndStates =
         subscriptExpr.accept(
             new SMGCPAValueVisitor(evaluator, arrayValueAndState.getState(), cfaEdge, logger));
+
+    // We know that there can only be 1 return value for the subscript
+    Preconditions.checkArgument(subscriptValueAndStates.size() == 1);
+    ValueAndSMGState subscriptValueAndState = subscriptValueAndStates.get(0);
+
     Value subscriptValue = subscriptValueAndState.getValue();
     SMGState newState = subscriptValueAndState.getState();
     // If the subscript is a unknown value, we can't read anything and return unknown
     if (!subscriptValue.isNumericValue()) {
-      return ValueAndSMGState.ofUnknownValue(newState);
+      return ImmutableList.of(ValueAndSMGState.ofUnknownValue(newState));
     }
     // Calculate the offset out of the subscript value and the type
     BigInteger typeSizeInBits =
@@ -129,11 +137,12 @@ public class SMGCPAValueVisitor
         typeSizeInBits.multiply(subscriptValue.asNumericValue().bigInteger());
 
     // Get the value from the array and return the value + state
-    return evaluator.readValue(newState, subscriptValue, subscriptOffset, typeSizeInBits);
+    return ImmutableList.of(
+        evaluator.readValue(newState, subscriptValue, subscriptOffset, typeSizeInBits));
   }
 
   @Override
-  public List<SMGValueAndSMGState> visit(CBinaryExpression e) throws CPATransferException {
+  public List<ValueAndSMGState> visit(CBinaryExpression e) throws CPATransferException {
     // TODO: remove from this class, move to a dedicated
     // From assumption edge
     // binary expression, examples: +, -, *, /, ==, !=, < ....
@@ -145,7 +154,7 @@ public class SMGCPAValueVisitor
   }
 
   @Override
-  public List<SMGValueAndSMGState> visit(CCastExpression e) throws CPATransferException {
+  public List<ValueAndSMGState> visit(CCastExpression e) throws CPATransferException {
     // Casts are not trivial with SMGs as there might be type reinterpretation used inside the SMGs,
     // but this should be taken care of by the SMGCPAValueExpressionEvaluator.
     // Get the type and value from the nested expression (might be SMG) and cast the value
@@ -153,7 +162,7 @@ public class SMGCPAValueVisitor
   }
 
   @Override
-  public List<SMGValueAndSMGState> visit(CFieldReference e) throws CPATransferException {
+  public List<ValueAndSMGState> visit(CFieldReference e) throws CPATransferException {
     // Get the object holding the field (should be struct/union)
     // I most likely need the CFAEdge for that
     // Read the value of the field from the object
@@ -162,7 +171,7 @@ public class SMGCPAValueVisitor
   }
 
   @Override
-  public List<SMGValueAndSMGState> visit(CIdExpression e) throws CPATransferException {
+  public List<ValueAndSMGState> visit(CIdExpression e) throws CPATransferException {
     // essentially variables
     // Either CEnumerator, CVariableDeclaration, CParameterDeclaration
     // Could also be a type/function declaration, decide if we need those.
@@ -173,58 +182,45 @@ public class SMGCPAValueVisitor
 
   @SuppressWarnings("unused")
   @Override
-  public List<SMGValueAndSMGState> visit(CCharLiteralExpression e) throws CPATransferException {
+  public List<ValueAndSMGState> visit(CCharLiteralExpression e) throws CPATransferException {
     // Simple character expression; We use the numeric value
     int value = Character.getNumericValue(e.getCharacter());
 
-    // If the value is == 0 we return the zero value without checking as this one always exists.
-    if (value == 0) {
-      return ImmutableList.of(SMGValueAndSMGState.of(state, SMGValue.zeroValue()));
-    }
-    // Check if the value exists already, if it does, return that, else create a new one and return
-    // that one. createNewValueAndMap() does both!
-    return ImmutableList.of(evaluator.createNewValueAndMap(new NumericValue(value), state));
+    // We simply return the Value, as if a mapping to SMGValue is needed only after Value is written
+    // into the memory, but when writing a mapping is created anyway
+    return ImmutableList.of(ValueAndSMGState.of(new NumericValue(value), state));
   }
 
   @SuppressWarnings("unused")
   @Override
-  public List<SMGValueAndSMGState> visit(CFloatLiteralExpression e) throws CPATransferException {
+  public List<ValueAndSMGState> visit(CFloatLiteralExpression e) throws CPATransferException {
     // Floating point value expression
     BigDecimal value = e.getValue();
 
-    // If the value is == 0 we return the zero value without checking as this one always exists.
-    if (value.compareTo(BigDecimal.ZERO) == 0) {
-      return ImmutableList.of(SMGValueAndSMGState.of(state, SMGValue.zeroValue()));
-    }
-    // Check if the value exists already, if it does, return that, else create a new one and return
-    // that one. createNewValueAndMap() does both!
-    return ImmutableList.of(evaluator.createNewValueAndMap(new NumericValue(value), state));
+    // We simply return the Value, as if a mapping to SMGValue is needed only after Value is written
+    // into the memory, but when writing a mapping is created anyway
+    return ImmutableList.of(ValueAndSMGState.of(new NumericValue(value), state));
   }
 
   @SuppressWarnings("unused")
   @Override
-  public List<SMGValueAndSMGState> visit(CIntegerLiteralExpression e) throws CPATransferException {
+  public List<ValueAndSMGState> visit(CIntegerLiteralExpression e) throws CPATransferException {
     // Simple int expression
     BigInteger value = e.getValue();
 
-    // If the value is == 0 we return the zero value without checking as this one always exists.
-    if (value.compareTo(BigInteger.ZERO) == 0) {
-      return ImmutableList.of(SMGValueAndSMGState.of(state, SMGValue.zeroValue()));
-    }
-
-    // Check if the value exists already, if it does, return that, else create a new one and return
-    // that one. createNewValueAndMap() does both!
-    return ImmutableList.of(evaluator.createNewValueAndMap(new NumericValue(value), state));
+    // We simply return the Value, as if a mapping to SMGValue is needed only after Value is written
+    // into the memory, but when writing a mapping is created anyway
+    return ImmutableList.of(ValueAndSMGState.of(new NumericValue(value), state));
   }
 
   @Override
-  public List<SMGValueAndSMGState> visit(CStringLiteralExpression e) throws CPATransferException {
+  public List<ValueAndSMGState> visit(CStringLiteralExpression e) throws CPATransferException {
     // Either split the String into chars or simply assign in as a single big value
     return visitDefault(e);
   }
 
   @Override
-  public List<SMGValueAndSMGState> visit(CTypeIdExpression e) throws CPATransferException {
+  public List<ValueAndSMGState> visit(CTypeIdExpression e) throws CPATransferException {
     // Operators:
     // sizeOf, typeOf and
     // _Alignof or alignof = the number of bytes between successive addresses, essentially a fancy
@@ -235,7 +231,7 @@ public class SMGCPAValueVisitor
   }
 
   @Override
-  public List<SMGValueAndSMGState> visit(CUnaryExpression e) throws CPATransferException {
+  public List<ValueAndSMGState> visit(CUnaryExpression e) throws CPATransferException {
     // Unary expression types like & (address of operator), sizeOf(), ++, - (unary minus), --, !
     // (not)
     // Split up into their operators, handle each. Most are not that difficult.
@@ -246,7 +242,7 @@ public class SMGCPAValueVisitor
   }
 
   @Override
-  public List<SMGValueAndSMGState> visit(CPointerExpression e) throws CPATransferException {
+  public List<ValueAndSMGState> visit(CPointerExpression e) throws CPATransferException {
     // Pointers can be a multitude of things in C
     // Get the operand of the pointer, get the type of that and then split into the different cases
     // to handle them
@@ -257,7 +253,7 @@ public class SMGCPAValueVisitor
   }
 
   @Override
-  public List<SMGValueAndSMGState> visit(CAddressOfLabelExpression e) throws CPATransferException {
+  public List<ValueAndSMGState> visit(CAddressOfLabelExpression e) throws CPATransferException {
     // && expression
     // This is not in the C standard, just gcc
     // https://gcc.gnu.org/onlinedocs/gcc/Labels-as-Values.html
@@ -267,15 +263,14 @@ public class SMGCPAValueVisitor
   }
 
   @Override
-  public List<SMGValueAndSMGState> visit(CImaginaryLiteralExpression e)
-      throws CPATransferException {
+  public List<ValueAndSMGState> visit(CImaginaryLiteralExpression e) throws CPATransferException {
     // TODO: do we even need those?
     // Imaginary part for complex numbers
     return visitDefault(e);
   }
 
   @Override
-  public List<SMGValueAndSMGState> visit(CComplexCastExpression e) throws CPATransferException {
+  public List<ValueAndSMGState> visit(CComplexCastExpression e) throws CPATransferException {
     // TODO: do we need those?
     // Cast for complex numbers?
     return visitDefault(e);
