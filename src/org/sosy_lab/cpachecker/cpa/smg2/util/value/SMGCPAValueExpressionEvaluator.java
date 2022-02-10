@@ -170,7 +170,45 @@ public class SMGCPAValueExpressionEvaluator
     return readValue(pState, pState.getPointsToTarget(value), value, pExp);
   }
 
+  /**
+   * Read the value present in the supplied {@link SMGObject} at the offset with the size (type
+   * size) given.
+   *
+   * @param pState current {@link SMGState}.
+   * @param value the {@link Value} for the address of the memory to be read.
+   * @param pOffset the offset as {@link BigInteger} in bits where to start reading in the object.
+   * @param pSizeInBits the size of the type to read in bits as {@link BigInteger}.
+   * @return {@link ValueAndSMGState} tuple for the read {@link Value} and the new {@link SMGState}.
+   */
   public ValueAndSMGState readValue(
+      SMGState pState, Value value, BigInteger pOffset, BigInteger pSizeInBits) {
+    // This is the most general read that should be used in the end by all read methods in this
+    // class!
+
+    // Get the SMGObject for the value
+    SMGObject object = pState.getPointsToTarget(value);
+    // The object may be null if no such object exists, check and log if 0
+    if (object.isZero()) {
+      SMGState newState = pState.withNullPointerDereferenceWhenReading(object);
+      // TODO: The analysis should stop in this case!
+      return ValueAndSMGState.ofUnknownValue(newState);
+    }
+
+    // Check that the offset and offset + size actually fit into the SMGObject
+    boolean doesNotFitIntoObject =
+        pOffset.compareTo(BigInteger.ZERO) < 0
+            || pOffset.add(pSizeInBits).compareTo(object.getSize()) > 0;
+
+    if (doesNotFitIntoObject) {
+      // Field does not fit size of declared Memory
+      return ValueAndSMGState.ofUnknownValue(
+          pState.withOutOfRangeRead(object, pOffset, pSizeInBits));
+    }
+    // The read in SMGState checks for validity and external allocation
+    return pState.readValue(object, pOffset, pSizeInBits);
+  }
+
+  private ValueAndSMGState readValue(
       SMGState pState, SMGObject object, Value value, CExpression pExpression) {
     if (!value.isExplicitlyKnown() || object.isZero()) {
       // TODO: Error handling for this!
@@ -298,8 +336,13 @@ public class SMGCPAValueExpressionEvaluator
     return CTypeAndValue.of(resultType, value);
   }
 
+  /*
+   * Unknown dereference is different to null dereference in that the object that is dereferenced actually exists, but its unknown.
+   * We simply return an unknown value and log it.
+   */
   @Override
   public ValueAndSMGState handleUnknownDereference(SMGState pInitialSmgState) {
+
     return ValueAndSMGState.ofUnknownValue(pInitialSmgState);
   }
 
