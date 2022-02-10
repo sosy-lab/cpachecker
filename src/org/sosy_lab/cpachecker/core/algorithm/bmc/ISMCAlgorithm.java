@@ -20,7 +20,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.bmc.InterpolationHelper.ItpDeriveDirection;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.InterpolationManager.ItpDeriveDirection;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
@@ -150,6 +150,7 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * The main method for interpolation-sequence based model checking.
    *
    * @param pReachedSet Abstract Reachability Graph (ARG)
+   * @param itpProver the prover with interpolation enabled
    * @return {@code AlgorithmStatus.UNSOUND_AND_PRECISE} if an error location is reached, i.e.,
    *     unsafe; {@code AlgorithmStatus.SOUND_AND_PRECISE} if a fixed point is derived, i.e., safe.
    */
@@ -176,6 +177,8 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     logger.log(Level.FINE, "Performing interpolation-sequence based model checking");
     // initialize the reachability vector
     List<BooleanFormula> reachVector = new ArrayList<>();
+    InterpolationManager<T> itpMgr =
+        new InterpolationManager<>(bfmgr, itpProver, itpDeriveDirection);
     do {
       /* note: an exact copy from IMCAlgorithm -- START */
       // Unroll
@@ -234,8 +237,9 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       if (interpolation
           && maxLoopIterations > 1
           && !AbstractStates.getTargetStates(pReachedSet).isEmpty()) {
+
         List<BooleanFormula> partitionedFormulas = collectFormulas(pReachedSet);
-        List<BooleanFormula> itpSequence = getInterpolationSequence(itpProver, partitionedFormulas);
+        List<BooleanFormula> itpSequence = getInterpolationSequence(itpMgr, partitionedFormulas);
         updateReachabilityVector(reachVector, itpSequence);
 
         if (reachFixedPoint(reachVector)) {
@@ -286,47 +290,22 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   /**
-   * A helper method to derive an interpolation sequence.
+   * A helper method to derive an interpolation sequence. TODO: update description
    *
-   * @param itpProver the prover with interpolation enabled
    * @param pFormulas the list of formulas to derive interpolants from, the conjunction of all
    *     formulas must be unsatisfiable
    * @throws InterruptedException On shutdown request.
    */
   private <T> List<BooleanFormula> getInterpolationSequence(
-      InterpolatingProverEnvironment<T> itpProver, List<BooleanFormula> pFormulas)
+      InterpolationManager<T> itpMgr, List<BooleanFormula> pFormulas)
       throws InterruptedException, SolverException {
     // TODO: consider using the methods that generates interpolation sequence in ImpactAlgorithm
     // should be something like: imgr.buildCounterexampleTrace(formulas)
-
     logger.log(Level.FINE, "Extracting interpolation-sequence");
-
-    // push formulas
-    List<T> pushedFormulas = new ArrayList<>();
-    for (int i = 0; i < pFormulas.size(); ++i) {
-      pushedFormulas.add(itpProver.push(pFormulas.get(i)));
-    }
-    if (!itpProver.isUnsat()) {
-      throw new AssertionError("The formula must be UNSAT to retrieve the interpolant.");
-    }
-
-    // generate ITP sequence
-    List<BooleanFormula> itpSequence = new ArrayList<>();
-    for (int i = 1; i < pFormulas.size(); ++i) {
-      List<T> formulaA = pushedFormulas.subList(0, i);
-      List<T> formulaB = pushedFormulas.subList(i, pFormulas.size());
-
-      BooleanFormula interpolant =
-          InterpolationHelper.getInterpolantFrom(
-              bfmgr, itpProver, itpDeriveDirection, formulaA, formulaB);
-      itpSequence.add(fmgr.uninstantiate(interpolant)); // uninstantiate the formula
-    }
-
-    // pop formulas
-    for (int i = 0; i < pFormulas.size(); ++i) {
-      itpProver.pop();
-    }
-
+    itpMgr.push(pFormulas);
+    List<BooleanFormula> itpSequence =
+        itpMgr.getInterpolationSequence(0, pFormulas.size() - 1, false);
+    itpMgr.popAll();
     logger.log(Level.ALL, "Interpolation sequence:", itpSequence);
     return itpSequence;
   }
@@ -342,13 +321,12 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     logger.log(Level.FINE, "Updating reachability vector");
 
     assert reachVector.size() + 1 == itpSequence.size();
-
+    reachVector.add(bfmgr.makeTrue());
     for (int i = 0; i < reachVector.size(); ++i) {
       BooleanFormula image = reachVector.get(i);
-      BooleanFormula itp = itpSequence.get(i);
+      BooleanFormula itp = fmgr.uninstantiate(itpSequence.get(i));
       reachVector.set(i, bfmgr.and(image, itp));
     }
-    reachVector.add(itpSequence.get(itpSequence.size() - 1));
     logger.log(Level.ALL, "Updated reachability vector:", reachVector);
   }
 
