@@ -391,7 +391,7 @@ public class SymbolicProgramConfiguration {
    * @return {@link Optional} that contains the {@link SMGValue} for the entered {@link Value} if it
    *     exists, empty else.
    */
-  public Optional<SMGValue> getSMGValue(Value cValue) {
+  public Optional<SMGValue> getSMGValueFromValue(Value cValue) {
     // TODO: map the returned value using the SPC mapping!
     return Optional.ofNullable(valueMapping.get(cValue));
   }
@@ -405,7 +405,7 @@ public class SymbolicProgramConfiguration {
    * @return {@link Optional} that contains the {@link Value} for the entered {@link SMGValue} if it
    *     exists, empty else.
    */
-  public Optional<Value> getValue(SMGValue smgValue) {
+  public Optional<Value> getValueFromSMGValue(SMGValue smgValue) {
     // TODO: map the input value using the SPC mapping!
     return Optional.ofNullable(valueMapping.inverse().get(smgValue));
   }
