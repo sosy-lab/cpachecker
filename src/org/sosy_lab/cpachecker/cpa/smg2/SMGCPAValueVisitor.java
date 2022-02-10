@@ -84,7 +84,7 @@ public class SMGCPAValueVisitor
     // Just get a default value and log
     logger.logf(
         Level.INFO,
-        "%s, Default value: CExpression %d could not be recognized and the default value %d was used for its value. Related CFAEdge: %s",
+        "%s, Default value: CExpression %s could not be recognized and the default value %s was used for its value. Related CFAEdge: %s",
         cfaEdge.getFileLocation(),
         pExp,
         SMGValue.zeroValue(),
@@ -184,7 +184,7 @@ public class SMGCPAValueVisitor
   @Override
   public List<ValueAndSMGState> visit(CCharLiteralExpression e) throws CPATransferException {
     // Simple character expression; We use the numeric value
-    int value = Character.getNumericValue(e.getCharacter());
+    int value = e.getCharacter();
 
     // We simply return the Value, as if a mapping to SMGValue is needed only after Value is written
     // into the memory, but when writing a mapping is created anyway
