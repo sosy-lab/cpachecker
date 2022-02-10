@@ -60,7 +60,7 @@ public class CPATestRunner {
     return new TestResults(stringLogHandler.getLog(), results);
   }
 
-  public static TestResults runAndPrintStatistics(
+  public static TestResults runAndPrintStatisticsAndOutput(
       Configuration config,
       String pSourceCodeFilePath,
       Level logLevel
@@ -79,6 +79,7 @@ public class CPATestRunner {
 
     PrintStream stream = new NullPrintStream();
     results.printStatistics(stream);
+    results.writeOutputFiles();
     logger.flush();
     return new TestResults(stringLogHandler.getLog(), results);
   }
