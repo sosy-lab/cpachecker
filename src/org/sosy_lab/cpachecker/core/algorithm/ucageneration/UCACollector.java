@@ -16,6 +16,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -509,7 +510,7 @@ public class UCACollector {
     }
 
     // Fill the map to be able to iterate over the nodes
-    Map<AutomatonState, Set<UCAEdge>> nodesToEdges = Maps.newHashMap();
+    Map<AutomatonState, Set<UCAEdge>> nodesToEdges = new HashMap<>();
     edgesToAdd.forEach(
         e -> {
           if (nodesToEdges.containsKey(e.getSource())) {

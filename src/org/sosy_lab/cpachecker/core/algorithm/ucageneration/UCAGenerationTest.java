@@ -349,7 +349,7 @@ public class UCAGenerationTest {
 
   private static void validateUca2VioWit(Testcases pFilename, PathTemplate pOutputFile) {
 
-    Map<Integer, List<String>> testcaseID2Assertions = Maps.newHashMap();
+    Map<Integer, List<String>> testcaseID2Assertions = new HashMap<>();
     if (pFilename == Testcases.SUM_T2) {
       testcaseID2Assertions.put(1, Lists.newArrayList("19", "23", "9"));
 
