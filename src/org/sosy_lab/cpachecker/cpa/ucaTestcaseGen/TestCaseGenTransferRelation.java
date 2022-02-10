@@ -8,13 +8,13 @@
 
 package org.sosy_lab.cpachecker.cpa.ucaTestcaseGen;
 
+import com.google.common.base.Throwables;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.junit.internal.Throwables;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -83,7 +83,7 @@ public class TestCaseGenTransferRelation extends SingleEdgeTransferRelation {
           tcState.dumpToTestcase(this.exportPath.getPath(this.numberOfTestcases));
         } catch (IOException pE) {
           logger.logf(Level.WARNING, "Unable to generate a testcase for %s due to %s", tcState.toString(),
-              Throwables.getStacktrace(pE));
+              Throwables.getStackTraceAsString(pE));
         }
         numberOfTestcases = numberOfTestcases +1;
         return Collections.emptyList();

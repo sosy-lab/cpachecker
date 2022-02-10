@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.ucaTestcaseGen;
 
-import com.google.common.base.Objects;
+import java.util.Objects;
 import java.util.Optional;
 
 public class TestcaseEntry {
@@ -61,18 +61,17 @@ public class TestcaseEntry {
     if (this == pO) {
       return true;
     }
-    if (pO == null || !(pO instanceof  TestcaseEntry)) {
+    if (pO == null || !(pO instanceof  TestcaseEntry)){
       return false;
     }
     TestcaseEntry that = (TestcaseEntry) pO;
-    return Objects.equal(value, that.value)
-        && Objects.equal(variable, that.variable)
-        && Objects.equal(type, that.type);
+    return Objects.equals(value, that.value) && Objects.equals(variable,
+        that.variable) && Objects.equals(type, that.type);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(value, variable, type);
+    return Objects.hash(value, variable, type);
   }
 
   public String getValue() {

@@ -26,7 +26,6 @@ import java.util.Optional;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.annotation.Nonnull;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -390,7 +389,7 @@ public class UCAGenerationTest {
     assertThat(getAllAssumptionsForT(content)).containsExactlyElementsIn(expectedAssumptions);
   }
 
-  @Nonnull
+
   private static List<String> getAllAssumptionsForT(List<String> content) {
     return content.stream()
         .filter(s -> s.contains("t = __VERIFIER_nondet_") && s.contains("-> ASSUME {( t =="))

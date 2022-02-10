@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.value;
 
-import com.google.common.base.Objects;
+import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -57,19 +57,19 @@ public class ValueAnalysisStateWithSavedValue extends ValueAnalysisState {
     if (this == pO) {
       return true;
     }
-    if (pO == null || !( pO instanceof  ValueAnalysisStateWithSavedValue)) {
+    if (pO == null || !(pO instanceof  ValueAnalysisStateWithSavedValue)) {
       return false;
     }
     if (!super.equals(pO)) {
       return false;
     }
     ValueAnalysisStateWithSavedValue that = (ValueAnalysisStateWithSavedValue) pO;
-    return Objects.equal(valueFromLastIteration, that.valueFromLastIteration);
+    return Objects.equals(valueFromLastIteration, that.valueFromLastIteration);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(super.hashCode(), valueFromLastIteration);
+    return Objects.hash(super.hashCode(), valueFromLastIteration);
   }
 
   public Optional<Value> getValueFromLastIteration() {

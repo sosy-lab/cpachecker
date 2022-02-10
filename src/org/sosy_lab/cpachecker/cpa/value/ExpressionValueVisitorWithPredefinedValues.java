@@ -72,7 +72,7 @@ public class ExpressionValueVisitorWithPredefinedValues extends ExpressionValueV
     super(pState, pFunctionName, pMachineModel, pLogger);
     this.logger = pLogger;
     this.numReturnedValues = pAtomicInteger;
-    if (Objects.nonNull(pValuesFromFile)) valuesFromFile = pValuesFromFile;
+    if (Objects.nonNull(pValuesFromFile)) {valuesFromFile = pValuesFromFile;}
   }
 
   @Override
