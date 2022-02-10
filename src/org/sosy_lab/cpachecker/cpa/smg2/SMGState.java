@@ -339,7 +339,7 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
    * @return A new SMGState with the error info.
    */
   public SMGState withNullPointerDereferenceWhenWriting(SMGObject nullObject) {
-    // TODO: maybe return more useful information instead of the SMGObject.
+    // Get the SMGValue and Value that lead to this null pointer dereference
     String errorMSG =
         "Null pointer dereference on read of object with the intent to write to: "
             + nullObject
@@ -359,7 +359,8 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
    * @return A new SMGState with the error info.
    */
   public SMGState withNullPointerDereferenceWhenReading(SMGObject nullObject) {
-    getPointsToTarget(pValue)
+    // getValueForSMGValue(pValue)
+    // Get the SMGValue and Value that lead to this null pointer dereference
     String errorMSG =
         "Null pointer dereference on read of object with the intent to read it: "
             + nullObject
@@ -422,27 +423,6 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   }
 
   /**
-   * @param value the {@link Value} you want the {@link SMGValue} for.
-   * @return The {@link SMGValue} if it exists, en empty Optional else.
-   */
-  public Optional<SMGValue> getSMGValueForValue(Value value) {
-    return memoryModel.getSMGValue(value);
-  }
-
-  /**
-   * Use this only for debug purposes or anything in this class! Don't export the SMGValues.
-   *
-   * @param smgValue the {@link SMGValue} you want the {@link Value} for.
-   * @return The {@link Value} if it exists, en empty Optional else.
-   * (The Optional should basically never be empty! The only exception
-   *  is the SMGValue == 0, that may exist without counterpart.)
-   */
-  private Optional<Value> getValueForSMGValue(SMGValue smgValue) {
-    // TODO: check that the optional is only empty for SMGValue == 0?
-    return memoryModel.getValue(smgValue);
-  }
-
-  /**
    * Add the {@link Value} mapping if it was not mapped to a {@link SMGValue}, if it was already
    * present the state is unchanged and the known {@link SMGValue} returned. The {@link SMGValue} is
    * not added to the SPC yet, writeValue() will do that.
@@ -453,7 +433,7 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
    *     unchanged and the known {@link SMGValue} returned.
    */
   public SMGValueAndSMGState copyAndAddValue(Value pValue) {
-    Optional<SMGValue> maybeValue = memoryModel.getValue(pValue);
+    Optional<SMGValue> maybeValue = memoryModel.getSMGValueFromValue(pValue);
     if (maybeValue.isPresent()) {
       return SMGValueAndSMGState.of(this, maybeValue.orElseThrow());
     } else {
@@ -486,7 +466,7 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
    *     such.
    */
   public SMGObject getPointsToTarget(Value pValue) {
-    Optional<SMGValue> addressOptional = getSMGValueForValue(pValue);
+    Optional<SMGValue> addressOptional = memoryModel.getSMGValueFromValue(pValue);
     if (addressOptional.isPresent()) {
       Optional<SMGPointsToEdge> pointerEdgeOptional =
           memoryModel.getSmg().getPTEdge(addressOptional.orElseThrow());
