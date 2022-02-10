@@ -30,14 +30,12 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGSizeOfVisitor;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
-import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 
 @SuppressWarnings("unused")
 public class SMGCPAValueExpressionEvaluator
@@ -145,20 +143,6 @@ public class SMGCPAValueExpressionEvaluator
   public Collection<ValueAndSMGState> createAddress(SMGState pState, Value pValue) {
     // TODO Auto-generated method stub
     return null;
-  }
-
-  /**
-   * Checks whether or not the {@link Value} already exists in the mapping and returns the mapped
-   * {@link SMGValue} if it does. Else, create a new {@link SMGValue}, map it to the entered value
-   * entered into this function and return it + the {@link SMGState} with the value mapping. The
-   * SMGValue is not entered into the SMG, this has to be done when writing the value to it!
-   *
-   * @param pValue the value for the {@link SMGValue}.
-   * @param state the current {@link SMGState}
-   * @return the {@link SMGValue} created + the {@link SMGState} with the mapping of the value.
-   */
-  public SMGValueAndSMGState createNewValueAndMap(Value pValue, SMGState state) {
-    return state.copyAndAddValue(pValue);
   }
 
   /*
