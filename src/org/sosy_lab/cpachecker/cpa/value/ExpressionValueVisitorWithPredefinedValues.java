@@ -10,8 +10,10 @@ package org.sosy_lab.cpachecker.cpa.value;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
+import javax.swing.text.html.Option;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -30,6 +32,8 @@ public class ExpressionValueVisitorWithPredefinedValues extends ExpressionValueV
   private LogManagerWithoutDuplicates logger;
   private Map<Integer, String> valuesFromFile = new HashMap<>();
   private boolean lastRequestSuccessful = true;
+
+  private boolean  lastRequestedValue = false;
 
   public ExpressionValueVisitorWithPredefinedValues(
       ValueAnalysisState pState,
@@ -87,6 +91,8 @@ public class ExpressionValueVisitorWithPredefinedValues extends ExpressionValueV
               Level.FINER,
               "Returning value at position %d, for statement " + pExp.toASTString() + " that is: ",
               value);
+          lastRequestedValue =true;
+
           return value;
         } else {
           lastRequestSuccessful = false;
@@ -94,6 +100,22 @@ public class ExpressionValueVisitorWithPredefinedValues extends ExpressionValueV
       }
     }
     return super.evaluate(pExp, pTargetType);
+  }
+
+  /**
+   *
+   * @return true, if the value used in the last request was  loaded from the testcomp-testcase
+   */
+  public boolean isLastRequestedValuePresent() {
+    return lastRequestedValue;
+  }
+
+
+
+  @Override
+  public void reset() {
+    super.reset();
+    this.lastRequestedValue =false;
   }
 
   private Value computeNumericalValue(CFunctionCallExpression call, String pStringValueForNumber) {

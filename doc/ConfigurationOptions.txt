@@ -160,6 +160,7 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -572,17 +573,21 @@ assumptions.export.location = true
 # write collected assumptions to file
 assumptions.file = "assumptions.txt"
 
+# Generate uca for testcomp testcase
+assumptions.genUCA4Testcase = false
+
+# Generate uca for violation witness
+assumptions.genUCA4ViolationWitness = false
+
 # If it is enabled, check if a state that should lead to false state indeed
 # has successors.
 assumptions.removeNonExploredWithoutSuccessors = false
 
 # Generate additionally a universal condition automaton
-# Generate uca for violation witness
 assumptions.transformUCA = true
-assumptions.transformUCA = false
 
 # write collected assumptions as automaton to file
-assumptions.uca = "UniversalConditionAutomaton.txt"
+assumptions.ucaFile = "UniversalConditionAutomaton.txt"
 
 # comma-separated list of files with specifications that should be used 
 # in a backwards analysis; used if the analysis starts at the target states!

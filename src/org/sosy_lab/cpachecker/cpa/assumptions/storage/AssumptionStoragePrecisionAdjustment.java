@@ -45,7 +45,7 @@ public class AssumptionStoragePrecisionAdjustment implements PrecisionAdjustment
       throws CPAException, InterruptedException {
     AssumptionStorageState state = (AssumptionStorageState) pState;
     CFAEdge edge = getEdge(pOtherStates);
-    return Optional.of(transferRelation.strengthen(state.reset(), pOtherStates, edge));
+    return Optional.of(transferRelation.strengthen(state, pOtherStates, edge));
   }
 
   private CFAEdge getEdge(Iterable<AbstractState> pStates) {

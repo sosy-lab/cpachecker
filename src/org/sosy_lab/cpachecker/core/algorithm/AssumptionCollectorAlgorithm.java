@@ -319,7 +319,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       output.append("Cannot dump assumption as automaton if ARGCPA is not used.");
     }
 
-    Set<AbstractState> falseAssumptionStates = getFalseAssumptionStates(reached);
+    Set<AbstractState> falseAssumptionStates = getFalseAssumptionStates(reached, removeNonExploredWithoutSuccessors,cpa);
 
     // scan reached set for all relevant states with an assumption
     // Invariant: relevantStates does not contain any covered state.
@@ -394,13 +394,13 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     }
   }
 
-  private Set<AbstractState> getFalseAssumptionStates(UnmodifiableReachedSet pReached) {
+  public static Set<AbstractState> getFalseAssumptionStates(UnmodifiableReachedSet pReached, boolean pRemoveNonExploredWithoutSuccessors, ConfigurableProgramAnalysis pCpa) {
     Set<AbstractState> falseAssumptionStates;
-    if (removeNonExploredWithoutSuccessors) {
+    if (pRemoveNonExploredWithoutSuccessors) {
       falseAssumptionStates = Sets.newHashSetWithExpectedSize(pReached.getWaitlist().size());
       for (AbstractState state : pReached.getWaitlist()) {
         try {
-          if (!cpa.getTransferRelation()
+          if (!pCpa.getTransferRelation()
               .getAbstractSuccessors(state, pReached.getPrecision(state))
               .isEmpty()) {
             falseAssumptionStates.add(state);
@@ -570,7 +570,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   }
 
 
-  private static void addAssumption(
+  public static void addAssumption(
       final Appendable writer,
       final AssumptionStorageState assumptionState,
       boolean ignoreAssumptions)
@@ -589,8 +589,13 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   }
 
 
-  private static void finishTransition(final Appendable writer, final ARGState child, final Set<ARGState> relevantStates,
-      final Set<AbstractState> falseAssumptionStates, final String actionOnFinalEdges, final boolean branching)
+  public static void finishTransition(
+      final Appendable writer,
+      final ARGState child,
+      final Set<ARGState> relevantStates,
+      final Set<AbstractState> falseAssumptionStates,
+      final String actionOnFinalEdges,
+      final boolean branching)
       throws IOException {
     if (falseAssumptionStates.contains(child)) {
       writer.append(actionOnFinalEdges + "GOTO __FALSE");
@@ -614,7 +619,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
    * @param s the ARGSTate whose parents should be found
    * @param parentSet the set of ARGStates the parents should be added to
    */
-  private static void findAllParents(ARGState s, Set<ARGState> parentSet) {
+  public static void findAllParents(ARGState s, Set<ARGState> parentSet) {
     Deque<ARGState> toAdd = new ArrayDeque<>();
     toAdd.add(s);
     while (!toAdd.isEmpty()) {
@@ -735,7 +740,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
             // Generate a universal condition automaton for the output
             if (!compressAutomaton) {
               try (Writer w = IO.openOutputFile(ucaFile, Charset.defaultCharset())) {
-                ucaCollector.produceUniversalConditionAutomaton(w, pReached);
+                ucaCollector.produceUniversalConditionAutomaton(w, pReached, exceptionStates);
               } catch (IOException e) {
                 logger.logUserException(Level.WARNING, e, "Could not write uca to file");
               } catch (CPAException e) {
@@ -753,7 +758,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
                     (Appender)
                         appendable -> {
                           try {
-                            ucaCollector.produceUniversalConditionAutomaton(appendable, pReached);
+                            ucaCollector.produceUniversalConditionAutomaton(appendable, pReached, exceptionStates);
                           } catch (CPAException e) {
                             logger.logUserException(
                                 Level.WARNING,
