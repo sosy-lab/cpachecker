@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.ucaTestcaseGen;
 
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
@@ -86,7 +87,7 @@ public class TestCaseGenTransferRelation extends SingleEdgeTransferRelation {
               Throwables.getStackTraceAsString(pE));
         }
         numberOfTestcases = numberOfTestcases +1;
-        return Collections.emptyList();
+        return ImmutableList.of();
       }
       return Collections.singleton(tcState.copy());
     }

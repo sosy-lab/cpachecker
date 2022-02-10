@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.assumptions.storage;
 
+import static org.sosy_lab.java_smt.api.FormulaType.getSinglePrecisionFloatingPointType;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigDecimal;
@@ -69,18 +71,18 @@ public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelatio
       CtoFormulaConverter pConverter,
       FormulaManagerView pFormulaManager,
       AbstractState pTopState,
-      Configuration pConfig) throws InvalidConfigurationException {
+      Configuration pConfig)
+      throws InvalidConfigurationException {
     pConfig.inject(this);
     converter = pConverter;
     formulaManager = pFormulaManager;
     topStateSet = Collections.singleton(pTopState);
-
   }
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge) {
-    AssumptionStorageState element = (AssumptionStorageState)pElement;
+    AssumptionStorageState element = (AssumptionStorageState) pElement;
 
     // If we must stop, then let's stop by returning an empty set
     if (element.isStop()) {
@@ -94,7 +96,7 @@ public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelatio
   public Collection<? extends AbstractState> strengthen(
       AbstractState el, Iterable<AbstractState> others, CFAEdge edge, Precision p)
       throws CPATransferException, InterruptedException {
-    AssumptionStorageState asmptStorageElem = (AssumptionStorageState)el;
+    AssumptionStorageState asmptStorageElem = (AssumptionStorageState) el;
     return Collections.singleton(strengthen(asmptStorageElem, others, edge));
   }
 
@@ -119,21 +121,23 @@ public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelatio
 
     for (AbstractState element : AbstractStates.asFlatIterable(pOthers)) {
       if (element instanceof AssumptionReportingState) {
-        List<CExpression> assumptions = ((AssumptionReportingState)element).getAssumptions();
+        List<CExpression> assumptions = ((AssumptionReportingState) element).getAssumptions();
         for (CExpression inv : assumptions) {
-          BooleanFormula invFormula = converter.makePredicate(inv, pEdge, function, SSAMap.emptySSAMap().builder());
+          BooleanFormula invFormula =
+              converter.makePredicate(inv, pEdge, function, SSAMap.emptySSAMap().builder());
           assumption = bfmgr.and(assumption, formulaManager.uninstantiate(invFormula));
         }
       }
 
       if (element instanceof AvoidanceReportingState) {
-        AvoidanceReportingState e = (AvoidanceReportingState)element;
+        AvoidanceReportingState e = (AvoidanceReportingState) element;
 
         if (e.mustDumpAssumptionForAvoidance()) {
           stopFormula = bfmgr.or(stopFormula, e.getReasonFormula(formulaManager));
           stop = true;
         }
-      } else if (extractAssumptionsFromValueAnalysisState && element instanceof ValueAnalysisStateWithSavedValue
+      } else if (extractAssumptionsFromValueAnalysisState
+          && element instanceof ValueAnalysisStateWithSavedValue
           && ((ValueAnalysisStateWithSavedValue) element).getValueFromLastIteration().isPresent()) {
         // We have a AssumptionStorage State and we added an value of the testcomp testcase, hence
         // store this as assumption
@@ -143,20 +147,20 @@ public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelatio
         ALeftHandSide lhs = CFAEdgeUtils.getLeftHandSide(pEdge);
         if (lhs instanceof CIdExpression) {
           CIdExpression idExpr = (CIdExpression) lhs;
-        if (curValue instanceof NumericValue) {
+          if (curValue instanceof NumericValue) {
             Pair<Formula, Formula> formulaAndNumber =
                 getVariableAndNumFormula((NumericValue) curValue, idExpr.getName());
             BooleanFormula addAssumption =
                 formulaManager.makeEqual(formulaAndNumber.getFirst(), formulaAndNumber.getSecond());
             assumption = bfmgr.and(addAssumption, assumption);
+          } else if (curValue instanceof BooleanValue) {
+            BooleanFormulaManagerView bmgr = formulaManager.getBooleanFormulaManager();
+            BooleanFormula var = bmgr.makeVariable(idExpr.getName());
+            BooleanFormula addAssumption =
+                formulaManager.makeEqual(
+                    var, ((BooleanValue) curValue).isTrue() ? bmgr.makeTrue() : bmgr.makeFalse());
+            assumption = bfmgr.and(addAssumption, assumption);
           }
-        else if (curValue instanceof BooleanValue) {
-          BooleanFormulaManagerView bmgr = formulaManager.getBooleanFormulaManager();
-          BooleanFormula var = bmgr.makeVariable(idExpr.getName());
-          BooleanFormula addAssumption =
-              formulaManager.makeEqual(var, ((BooleanValue)curValue).isTrue()? bmgr.makeTrue() : bmgr.makeFalse());
-          assumption = bfmgr.and(addAssumption, assumption);
-        }
         }
       }
     }
@@ -173,8 +177,7 @@ public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelatio
   }
 
   private Pair<Formula, Formula> getVariableAndNumFormula(
-      NumericValue pNumValue,
-      String nameOfVar) {
+      NumericValue pNumValue, String nameOfVar) {
     Number num = pNumValue.getNumber();
     final IntegerFormulaManagerView intmgr = formulaManager.getIntegerFormulaManager();
     final FloatingPointFormulaManagerView fpmgr = formulaManager.getFloatingPointFormulaManager();
@@ -182,12 +185,14 @@ public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelatio
       IntegerFormula var = intmgr.makeVariable(nameOfVar);
       return Pair.of(var, intmgr.makeNumber((Long) num));
     } else {
+      final FloatingPointType singlePrecisionFloatingPointType =
+          getSinglePrecisionFloatingPointType();
       if (num instanceof Float) {
-        FloatingPointFormula var = fpmgr.makeVariable(nameOfVar,  FloatingPointType.getSinglePrecisionFloatingPointType());
-        return Pair.of(var, fpmgr.makeNumber((Float) num,  FloatingPointType.getSinglePrecisionFloatingPointType()));
+        FloatingPointFormula var = fpmgr.makeVariable(nameOfVar, singlePrecisionFloatingPointType);
+        return Pair.of(var, fpmgr.makeNumber((Float) num, singlePrecisionFloatingPointType));
       } else if (num instanceof Rational) {
-        FloatingPointFormula var = fpmgr.makeVariable(nameOfVar,  FloatingPointType.getSinglePrecisionFloatingPointType());
-        return Pair.of(var, fpmgr.makeNumber((Rational) num,  FloatingPointType.getSinglePrecisionFloatingPointType()));
+        FloatingPointFormula var = fpmgr.makeVariable(nameOfVar, singlePrecisionFloatingPointType);
+        return Pair.of(var, fpmgr.makeNumber((Rational) num, singlePrecisionFloatingPointType));
       } else if (num instanceof BigDecimal) {
         IntegerFormula var = intmgr.makeVariable(nameOfVar);
         return Pair.of(var, intmgr.makeNumber((BigDecimal) num));

@@ -16,10 +16,7 @@ public class TestcaseEntry {
   private Optional<String> variable;
   private Optional<String> type;
 
-  public TestcaseEntry(
-      String pValue,
-      Optional<String> pVariable,
-      Optional<String> pType) {
+  public TestcaseEntry(String pValue, Optional<String> pVariable, Optional<String> pType) {
     value = pValue;
     variable = pVariable;
     type = pType;
@@ -27,30 +24,35 @@ public class TestcaseEntry {
 
   @Override
   public String toString() {
-    return "TestcaseEntry{" +
-        "value='" + value + '\'' +
-        ", variable=" + variable +
-        ", type=" + type +
-        '}';
+    return "TestcaseEntry{"
+        + "value='"
+        + value
+        + '\''
+        + ", variable="
+        + variable
+        + ", type="
+        + type
+        + '}';
   }
 
-  public TestcaseEntry copy(){
+  public TestcaseEntry copy() {
     return new TestcaseEntry(this.value, this.variable, this.type);
   }
 
   /**
-   * Generate a string of the form <input variable="y" type="unsigned char">254</input>
-   * if variable and type are set.
-   * Otherwise, they are not set
+   * Generate a string of the form <input variable="y" type="unsigned char">254</input> if variable
+   * and type are set. Otherwise, they are not set
+   *
    * @return the parsed string
    */
-  public String toXMLTestcaseLine(){
-   StringBuilder sb = new StringBuilder();
+  public String toXMLTestcaseLine() {
+    StringBuilder sb = new StringBuilder();
     sb.append("<input ");
-    if (this.variable.isPresent()){
-      sb.append(String.format("variable=\"%s\" ", variable.get()));
-    }if (this.type.isPresent()){
-      sb.append(String.format("type=\"%s\"", type.get()));
+    if (this.variable.isPresent()) {
+      sb.append(String.format("variable=\"%s\" ", variable.orElseThrow()));
+    }
+    if (this.type.isPresent()) {
+      sb.append(String.format("type=\"%s\"", type.orElseThrow()));
     }
     sb.append(String.format(">%s</input>", value));
     return sb.toString();
@@ -61,12 +63,13 @@ public class TestcaseEntry {
     if (this == pO) {
       return true;
     }
-    if (pO == null || !(pO instanceof  TestcaseEntry)){
+    if (!(pO instanceof TestcaseEntry)) {
       return false;
     }
     TestcaseEntry that = (TestcaseEntry) pO;
-    return Objects.equals(value, that.value) && Objects.equals(variable,
-        that.variable) && Objects.equals(type, that.type);
+    return Objects.equals(value, that.value)
+        && Objects.equals(variable, that.variable)
+        && Objects.equals(type, that.type);
   }
 
   @Override

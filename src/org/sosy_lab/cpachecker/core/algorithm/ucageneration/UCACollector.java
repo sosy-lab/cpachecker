@@ -414,7 +414,7 @@ public class UCACollector {
       if (!parentsWithOtherAutomatonState.isEmpty()) {
         for (Pair<ARGState, AutomatonState> parentPair : parentsWithOtherAutomatonState) {
           // Create the edge
-          CFAEdge edge = getEdge(parentPair, argState);
+          CFAEdge edge = this.getEdge(parentPair, argState);
           edgesToAdd.add(new UCAEdge(parentPair.getSecond(), currentAutomatonState, edge));
           // Check, if the parent node has any other outgoing edges, they have to be added aswell
           for (CFAEdge otherEdge :
@@ -580,13 +580,6 @@ public class UCACollector {
       return source;
     }
 
-    public Optional<AutomatonState> getTarget() {
-      return target;
-    }
-
-    public CFAEdge getEdge() {
-      return edge;
-    }
 
     @Override
     public boolean equals(Object o) {

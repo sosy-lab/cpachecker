@@ -57,7 +57,7 @@ public class ValueAnalysisStateWithSavedValue extends ValueAnalysisState {
     if (this == pO) {
       return true;
     }
-    if (pO == null || !(pO instanceof  ValueAnalysisStateWithSavedValue)) {
+    if (!(pO instanceof ValueAnalysisStateWithSavedValue)) {
       return false;
     }
     if (!super.equals(pO)) {

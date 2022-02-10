@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -35,7 +36,7 @@ public class TestCaseGenState
   private Optional<AutomatonState> automatonState;
 
   public TestCaseGenState(LogManager pLogger) {
-    this.entries = Lists.newArrayList();
+    this.entries = new ArrayList<>();
     automatonState = Optional.empty();
     this.logger = pLogger;
   }
@@ -87,7 +88,7 @@ public class TestCaseGenState
     return String.format(
         "[%s], \n ++%s++",
         entries.stream().map(e -> e.getValue()).collect(Collectors.joining(",")),
-        this.automatonState.isPresent() ? this.automatonState.get().getInternalStateName() : "");
+        this.automatonState.isPresent() ? this.automatonState.orElseThrow().getInternalStateName() : "");
   }
 
   @Override
