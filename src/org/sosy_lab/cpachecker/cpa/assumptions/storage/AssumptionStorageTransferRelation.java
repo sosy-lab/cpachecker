@@ -60,8 +60,6 @@ public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelatio
               + "if the ValueAnalyssi loads TESTCOMP-testcases.")
   private boolean extractAssumptionsFromValueAnalysisState = false;
 
-  public static final FloatingPointType PRECISION =
-      FloatingPointType.getSinglePrecisionFloatingPointType();
   private final CtoFormulaConverter converter;
   private final FormulaManagerView formulaManager;
 
@@ -185,11 +183,11 @@ public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelatio
       return Pair.of(var, intmgr.makeNumber((Long) num));
     } else {
       if (num instanceof Float) {
-        FloatingPointFormula var = fpmgr.makeVariable(nameOfVar, PRECISION);
-        return Pair.of(var, fpmgr.makeNumber((Float) num, PRECISION));
+        FloatingPointFormula var = fpmgr.makeVariable(nameOfVar,  FloatingPointType.getSinglePrecisionFloatingPointType());
+        return Pair.of(var, fpmgr.makeNumber((Float) num,  FloatingPointType.getSinglePrecisionFloatingPointType()));
       } else if (num instanceof Rational) {
-        FloatingPointFormula var = fpmgr.makeVariable(nameOfVar, PRECISION);
-        return Pair.of(var, fpmgr.makeNumber((Rational) num, PRECISION));
+        FloatingPointFormula var = fpmgr.makeVariable(nameOfVar,  FloatingPointType.getSinglePrecisionFloatingPointType());
+        return Pair.of(var, fpmgr.makeNumber((Rational) num,  FloatingPointType.getSinglePrecisionFloatingPointType()));
       } else if (num instanceof BigDecimal) {
         IntegerFormula var = intmgr.makeVariable(nameOfVar);
         return Pair.of(var, intmgr.makeNumber((BigDecimal) num));

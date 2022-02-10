@@ -430,19 +430,19 @@ public class UCAGenerationTest {
       pathTemplate = Optional.empty();
       optionForOutput = pOptionForOutput;
     }
-
+    @SuppressWarnings("unused")
     public void setUcaInput(Optional<String> pUcaInput) {
       ucaInput = pUcaInput;
     }
-
+    @SuppressWarnings("unused")
     public void setTestcase(Optional<String> pTestcase) {
       testcase = pTestcase;
     }
-
+  @SuppressWarnings("unused")
     public void setWitness(Optional<String> pWitness) {
       witness = pWitness;
     }
-
+    @SuppressWarnings("unused")
     public void setPathTemplate(Optional<String> pPathTemplate) {
       pathTemplate = pPathTemplate;
     }
