@@ -276,7 +276,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
     while (itpMgr.isUnsat()) {
       logger.log(Level.ALL, "The current image is", currentImage);
-      assert formulas.getNumLoops() + 2 == itpMgr.getSolverStackSize();
+      assert formulas.getNumLoops() + 2 == itpMgr.getNumPushedFormulas();
       BooleanFormula interpolant = itpMgr.getInterpolantAt(formulas.getNumLoops() - 1, true);
       logger.log(Level.ALL, "The interpolant is", interpolant);
       interpolant = fmgr.instantiate(fmgr.uninstantiate(interpolant), formulas.getPrefixSsaMap());

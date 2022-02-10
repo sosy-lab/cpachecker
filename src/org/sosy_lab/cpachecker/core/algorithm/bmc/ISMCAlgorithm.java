@@ -252,10 +252,8 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   /**
-   * A helper method to derive an interpolation sequence. TODO: update description
+   * A helper method to derive an interpolation sequence.
    *
-   * @param pFormulas the list of formulas to derive interpolants from, the conjunction of all
-   *     formulas must be unsatisfiable
    * @throws InterruptedException On shutdown request.
    */
   private <T> List<BooleanFormula> getInterpolationSequence(
@@ -268,9 +266,9 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     itpMgr.push(pFormulas.getLoopFormulas());
     itpMgr.push(pFormulas.getAssertionFormula());
 
-    assert pFormulas.getNumLoops() + 2 == itpMgr.getSolverStackSize();
+    assert pFormulas.getNumLoops() + 2 == itpMgr.getNumPushedFormulas();
     List<BooleanFormula> itpSequence =
-        itpMgr.getInterpolationSequence(1, pFormulas.getNumLoops() + 1, false);
+        itpMgr.getInterpolationSequence(1, pFormulas.getNumLoops() + 1);
     itpMgr.popAll();
     logger.log(Level.ALL, "Interpolation sequence:", itpSequence);
     return itpSequence;

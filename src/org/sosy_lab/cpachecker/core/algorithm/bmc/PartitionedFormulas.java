@@ -23,11 +23,19 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
- * This class wraps three formulas used in interpolation in order to avoid long parameter lists.
- * These formulas are: prefixFormula (from root to the first LH), loopFormula (from the first LH to
- * the second LH), and suffixFormula (from the second LH to targets). Note that prefixFormula is a
- * {@link PathFormula} as we need its {@link SSAMap} to update the SSA indices of derived
- * interpolants. TODO: update description
+ * This class provides a unified formula representation for {@link IMCAlgorithm} and {@link
+ * ISMCAlgorithm}. It stores the following formulas.
+ *
+ * <ul>
+ *   <li>{@link PartitionedFormulas#prefixFormula} (*I): the block formula from root to the first
+ *       loop head along with its SSA indices {@link PartitionedFormulas#prefixSsaMap}.
+ *   <li>{@link PartitionedFormulas#loopFormulas} (T1, T2, ..., Tn): the block formulas between each
+ *       pair of loop heads.
+ *   <li>{@link PartitionedFormulas#targetAssertion} (&not;P): the block formula from the last to
+ *       head to the target state. If {@link PartitionedFormulas#assertAllTargets} is set to true,
+ *       the assertion formulas at every loop iterations are recorded and their disjunction is used;
+ *       otherwise, only the assertion at the last iteration is kept.
+ * </ul>
  */
 class PartitionedFormulas {
   private final BooleanFormulaManagerView bfmgr;
@@ -52,29 +60,34 @@ class PartitionedFormulas {
     targetAssertion = bfmgr.makeFalse();
   }
 
+  /** Return the number of stored loop formulas. */
   int getNumLoops() {
     return loopFormulas.size();
   }
 
+  /** Return the SSA map of the prefix path formula. */
   SSAMap getPrefixSsaMap() {
     return prefixSsaMap;
   }
 
+  /** Return the prefix formula (I) that describes the initial state set. */
   BooleanFormula getPrefixFormula() {
     return prefixFormula;
   }
 
+  /** Return the collected loop formulas (T1, T2, ..., Tn). */
   List<BooleanFormula> getLoopFormulas() {
     return ImmutableList.copyOf(loopFormulas);
   }
 
+  /** Return the target assertion formula (&not;P). */
   BooleanFormula getAssertionFormula() {
     return targetAssertion;
   }
 
   /**
-   * A helper method to collect formulas needed by ISMC and IMC algorithm. It assumes every target
-   * state after the loop has the same abstraction-state path to root. TODO: update description
+   * A helper method to collect and store formulas from the abstract reachability graph. It assumes
+   * every target state after the loop has the same abstraction-state path to root.
    *
    * @param reachedSet Abstract Reachability Graph
    */

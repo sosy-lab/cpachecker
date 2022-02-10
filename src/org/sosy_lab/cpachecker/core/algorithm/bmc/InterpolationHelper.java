@@ -41,11 +41,8 @@ import org.sosy_lab.java_smt.api.SolverException;
  * loop heads represent the transition formula of a complete loop. An ARG under this setting has a
  * sequence of abstraction states whose locations are the unique loop head.
  *
- * <p>TODO: update description, perhaps also change the class name
- *
  * <p>This class implements methods to check if an ARG has the required shape and collect formulas
- * from such ARGs. It also provides a method to derive interpolants from unsatisfiable path
- * formulas, considering different derivation directions.
+ * from such ARGs.
  */
 public final class InterpolationHelper {
   /**
