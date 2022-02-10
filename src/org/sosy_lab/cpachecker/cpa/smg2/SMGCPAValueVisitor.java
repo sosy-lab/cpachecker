@@ -36,7 +36,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAValueExpressionEvaluator;
+import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 
@@ -104,9 +106,30 @@ public class SMGCPAValueVisitor
     // TODO: how to handle *(array++) etc.? This case equals *(array + 1). Would the ++ case come
     // from an assignment edge?
 
-    // Get the value from the array and return the value + state
+    // The expression is split into array and subscript expression
+    // Use the array expression in the visitor again to get the array address
+    CExpression arrayExpr = e.getArrayExpression();
+    ValueAndSMGState arrayValueAndState = arrayExpr.accept(this);
 
-    return visitDefault(e);
+    // Evaluate the subscript as far as possible
+    CExpression subscriptExpr = e.getSubscriptExpression();
+    ValueAndSMGState subscriptValueAndState =
+        subscriptExpr.accept(
+            new SMGCPAValueVisitor(evaluator, arrayValueAndState.getState(), cfaEdge, logger));
+    Value subscriptValue = subscriptValueAndState.getValue();
+    SMGState newState = subscriptValueAndState.getState();
+    // If the subscript is a unknown value, we can't read anything and return unknown
+    if (!subscriptValue.isNumericValue()) {
+      return ValueAndSMGState.ofUnknownValue(newState);
+    }
+    // Calculate the offset out of the subscript value and the type
+    BigInteger typeSizeInBits =
+        evaluator.getBitSizeof(subscriptValueAndState.getState(), subscriptExpr);
+    BigInteger subscriptOffset =
+        typeSizeInBits.multiply(subscriptValue.asNumericValue().bigInteger());
+
+    // Get the value from the array and return the value + state
+    return evaluator.readValue(newState, subscriptValue, subscriptOffset, typeSizeInBits);
   }
 
   @Override
