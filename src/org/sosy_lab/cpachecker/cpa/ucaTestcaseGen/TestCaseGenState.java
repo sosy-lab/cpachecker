@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.ucaTestcaseGen;
 
-import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.charset.Charset;

@@ -94,6 +94,7 @@ public class UCAGenerationTest {
     try {
       logger = BasicLogManager.create(Configuration.defaultConfiguration());
     } catch (InvalidConfigurationException pE) {
+      logger.log(Level.INFO, Throwables.getStackTraceAsString(pE));
     }
   }
 
