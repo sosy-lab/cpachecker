@@ -3049,6 +3049,9 @@ cpa.statistics.statisticsCPAFile = no default value
 # 'org.sosy_lab.cpachecker.', this prefix can be omitted.
 cpa.termination.refiner = no default value
 
+# Filename format for Testcase TEST-COMP output dumps
+cpa.testcasegen.exportPath = "output/testcase-%d.xml"
+
 # Simple thread analysis from theory paper
 cpa.thread.simpleMode = false
 

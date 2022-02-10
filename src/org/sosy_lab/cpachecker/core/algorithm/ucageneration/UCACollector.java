@@ -57,16 +57,16 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 @Options(prefix = "assumptions")
 public class UCACollector {
 
-  private static final String NAME_OF_WITNESS_AUTOMATON = "WitnessAutomaton";
-  private static final String NAME_OF_TEMP_STATE = "__qTEMP";
-  private static final String NAME_OF_ERROR_STATE = "__qERROR";
+  public static final String NAME_OF_WITNESS_AUTOMATON = "WitnessAutomaton";
+  public static final String NAME_OF_TEMP_STATE = "__qTEMP";
+  public static final String NAME_OF_ERROR_STATE = "__qERROR";
 
   @SuppressWarnings("unused")
-  private static final String NAME_OF_FINAL_STATE = "__qFINAL";
+  public static final String NAME_OF_FINAL_STATE = "__qFINAL";
 
+
+  public static final String NAME_OF_NEWTESTINPUT_STATE = "__qNEWTEST";
   @SuppressWarnings("unused")
-  private static final String NAME_OF_NEWTESTINPUT_STATE = "__qNEWTEST";
-
   private final ShutdownNotifier shutdownNotifier;
 
   @Option(
@@ -82,12 +82,15 @@ public class UCACollector {
   private boolean genUCA4Testcase = false;
 
   private final LogManager logger;
+  @SuppressWarnings("unused")
   private final Algorithm innerAlgorithm;
+  @SuppressWarnings("unused")
   private final FormulaManagerView formulaManager;
-  private final AssumptionWithLocation exceptionAssumptions;
-  private final BooleanFormulaManager bfmgr;
+
+  @SuppressWarnings("unused")
   private final CFA cfa;
   private final ConfigurableProgramAnalysis cpa;
+  @SuppressWarnings("unused")
   private final Configuration config;
 
   private int universalConditionAutomaton = 0;
@@ -109,8 +112,8 @@ public class UCACollector {
         CPAs.retrieveCPAOrFail(pCpa, AssumptionStorageCPA.class, AssumptionStorageCPA.class);
 
     this.formulaManager = asCpa.getFormulaManager();
-    this.bfmgr = formulaManager.getBooleanFormulaManager();
-    this.exceptionAssumptions = new AssumptionWithLocation(formulaManager);
+
+
     this.cpa = pCpa;
     this.cfa = pCfa;
     this.config = pConfig;
@@ -216,7 +219,7 @@ public class UCACollector {
    *
    * @param sb Where to write the String into.
    * @param pInitialState The initial state of the automaton.
-   * @param pLastState
+   * @param pLastStates the set of last states that should be replaced with the NAME_OF_NEWTESTINPUT_STATE
    * @param relevantStates A set with all states with non-trivial assumptions (all others will have
    *     assumption TRUE).
    * @param falseAssumptionStates A set with all states with the assumption FALSE
