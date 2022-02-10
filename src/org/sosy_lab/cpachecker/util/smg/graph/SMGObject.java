@@ -13,7 +13,10 @@ import org.sosy_lab.common.UniqueIdGenerator;
 
 public class SMGObject implements SMGNode, Comparable<SMGObject> {
 
+  // The id generator has to be first because it needs to be initialized first!
   private static final UniqueIdGenerator U_ID_GENERATOR = new UniqueIdGenerator();
+
+  // Static 0 instance. Always present in the SMGs
   private static final SMGObject NULL_OBJECT = new SMGObject(0, BigInteger.ZERO, BigInteger.ZERO);
 
   private int nestingLevel;
@@ -40,6 +43,7 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
     id = pId;
   }
 
+  /** Returns the static 0 {@link SMGObject} instance. */
   public static SMGObject nullInstance() {
     return NULL_OBJECT;
   }
@@ -81,6 +85,7 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
     return id;
   }
 
+  /** @return true if the checked {@link SMGObject} is the null instance. */
   public boolean isZero() {
     return equals(NULL_OBJECT);
   }
