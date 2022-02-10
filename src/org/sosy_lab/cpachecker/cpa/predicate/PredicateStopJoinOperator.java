@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.Set;
 import org.sosy_lab.cpachecker.core.defaults.StopJoinOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -48,10 +49,15 @@ class PredicateStopJoinOperator extends StopJoinOperator implements ForcedCoveri
       AbstractState pElement, Collection<AbstractState> pReachedSet, Precision pPrecision)
       throws CPAException, InterruptedException {
     if (minimizeCovering) {
-      Collection<AbstractState> reachedSubSet = new LinkedHashSet<>(pReachedSet.size());
+      Collection<AbstractState> reachedSubset = new LinkedHashSet<>(pReachedSet.size());
       AbstractState joinedState = null;
       for (Iterator<AbstractState> it = pReachedSet.iterator(); it.hasNext(); ) {
         AbstractState state = it.next();
+
+        // check single-state coverage
+        if (domain.isLessOrEqual(pElement, state)) {
+          return ImmutableSet.of(state);
+        }
 
         // check intersection
         if (!domain.hasIntersection(pElement, state)) {
@@ -63,11 +69,11 @@ class PredicateStopJoinOperator extends StopJoinOperator implements ForcedCoveri
           continue;
         }
         joinedState = (joinedState == null) ? state : domain.join(state, joinedState);
-        reachedSubSet.add(state);
+        reachedSubset.add(state);
 
-        // check coverage
+        // check joined-state coverage
         if (domain.isLessOrEqual(pElement, joinedState)) {
-          return ImmutableSet.copyOf(reachedSubSet);
+          return ImmutableSet.copyOf(compactCoveringStateSet(pElement, reachedSubset, pPrecision));
         }
       }
     } else if (stop(pElement, pReachedSet, pPrecision)) {
@@ -75,5 +81,25 @@ class PredicateStopJoinOperator extends StopJoinOperator implements ForcedCoveri
     }
 
     return ImmutableSet.of();
+  }
+
+  private Set<AbstractState> compactCoveringStateSet(
+      AbstractState pElement, Collection<AbstractState> pCoveringSet, Precision pPrecision)
+      throws CPAException, InterruptedException {
+    Set<AbstractState> droppedSet = new LinkedHashSet<>();
+    for (AbstractState s : pCoveringSet) {
+      Set<AbstractState> coveringSubset = new LinkedHashSet<>(pCoveringSet);
+      coveringSubset.removeAll(droppedSet);
+      coveringSubset.remove(s);
+
+      // if removing the state does not affect the coverage, drop it
+      if (stop(pElement, coveringSubset, pPrecision)) {
+        droppedSet.add(s);
+      }
+    }
+
+    Set<AbstractState> compactSet = new LinkedHashSet<>(pCoveringSet);
+    compactSet.removeAll(droppedSet);
+    return compactSet;
   }
 }
