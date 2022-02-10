@@ -8,9 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
-import com.google.common.collect.FluentIterable;
-import java.util.ArrayList;
-import java.util.List;
+import com.google.common.collect.Lists;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -21,22 +19,18 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.InterpolationManager.ItpDeriveDirection;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.specification.Specification;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -172,6 +166,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
 
     logger.log(Level.FINE, "Performing interpolation-based model checking");
+    PartitionedFormulas partitionedFormulas =
+        new org.sosy_lab.cpachecker.core.algorithm.bmc.PartitionedFormulas(bfmgr, logger, false);
     InterpolationManager<T> itpMgr =
         new InterpolationManager<>(bfmgr, itpProver, itpDeriveDirection);
     do {
@@ -228,12 +224,10 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       if (interpolation
           && maxLoopIterations > 1
           && !AbstractStates.getTargetStates(pReachedSet).isEmpty()) {
-        logger.log(Level.FINE, "Collecting prefix, loop, and suffix formulas");
-        PartitionedFormulas formulas = collectFormulas(pReachedSet);
-        formulas.printCollectedFormulas(logger);
+        partitionedFormulas.update(pReachedSet);
 
         logger.log(Level.FINE, "Computing fixed points by interpolation");
-        if (reachFixedPointByInterpolation(itpMgr, formulas)) {
+        if (reachFixedPointByInterpolation(itpMgr, partitionedFormulas)) {
           InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
           InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
               pReachedSet, finalFixedPoint, predAbsMgr, pfmgr);
@@ -260,57 +254,6 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   /**
-   * A helper method to collect formulas needed by IMC algorithm. It assumes every target state
-   * after the loop has the same abstraction-state path to root.
-   *
-   * @param pReachedSet Abstract Reachability Graph
-   */
-  private PartitionedFormulas collectFormulas(final ReachedSet pReachedSet) {
-    PathFormula prefixFormula = InterpolationHelper.makeFalsePathFormula(pfmgr, bfmgr);
-    BooleanFormula loopFormula = bfmgr.makeTrue();
-    BooleanFormula tailFormula = bfmgr.makeTrue();
-    FluentIterable<AbstractState> targetStatesAfterLoop =
-        InterpolationHelper.getTargetStatesAfterLoop(pReachedSet);
-    if (!targetStatesAfterLoop.isEmpty()) {
-      // Initialize prefix, loop, and tail using the first target state after the loop
-      List<ARGState> abstractionStates =
-          InterpolationHelper.getAbstractionStatesToRoot(targetStatesAfterLoop.get(0)).toList();
-      prefixFormula = buildPrefixFormula(abstractionStates);
-      loopFormula = buildLoopFormula(abstractionStates);
-      tailFormula = buildTailFormula(abstractionStates);
-    }
-    return new PartitionedFormulas(
-        prefixFormula,
-        loopFormula,
-        bfmgr.and(
-            tailFormula,
-            InterpolationHelper.createDisjunctionFromStates(bfmgr, targetStatesAfterLoop)));
-  }
-
-  private PathFormula buildPrefixFormula(final List<ARGState> pAbstractionStates) {
-    return InterpolationHelper.getPredicateAbstractionBlockFormula(pAbstractionStates.get(1));
-  }
-
-  private BooleanFormula buildLoopFormula(final List<ARGState> pAbstractionStates) {
-    return pAbstractionStates.size() > 3
-        ? InterpolationHelper.getPredicateAbstractionBlockFormula(pAbstractionStates.get(2))
-            .getFormula()
-        : bfmgr.makeTrue();
-  }
-
-  private BooleanFormula buildTailFormula(final List<ARGState> pAbstractionStates) {
-    List<BooleanFormula> blockFormulas = new ArrayList<>();
-    if (pAbstractionStates.size() > 4) {
-      for (int i = 3; i < pAbstractionStates.size() - 1; ++i) {
-        blockFormulas.add(
-            InterpolationHelper.getPredicateAbstractionBlockFormula(pAbstractionStates.get(i))
-                .getFormula());
-      }
-    }
-    return bfmgr.and(blockFormulas);
-  }
-
-  /**
    * The method to iteratively compute fixed points by interpolation.
    *
    * @return {@code true} if a fixed point is reached, i.e., property is proved; {@code false} if
@@ -320,20 +263,20 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private <T> boolean reachFixedPointByInterpolation(
       InterpolationManager<T> itpMgr, final PartitionedFormulas formulas)
       throws InterruptedException, SolverException {
-    BooleanFormula prefixBooleanFormula = formulas.prefixFormula.getFormula();
-    SSAMap prefixSsaMap = formulas.prefixFormula.getSsa();
-    logger.log(Level.ALL, "The SSA map is", prefixSsaMap);
-    BooleanFormula currentImage = prefixBooleanFormula;
+    logger.log(Level.ALL, "The SSA map is", formulas.getPrefixSsaMap());
+    BooleanFormula currentImage = formulas.getPrefixFormula();
 
-    itpMgr.push(formulas.suffixFormula);
-    itpMgr.push(formulas.loopFormula);
+    // push formulas
+    itpMgr.push(formulas.getAssertionFormula());
+    itpMgr.push(Lists.reverse(formulas.getLoopFormulas()));
     itpMgr.push(currentImage);
 
     while (itpMgr.isUnsat()) {
       logger.log(Level.ALL, "The current image is", currentImage);
-      BooleanFormula interpolant = itpMgr.getInterpolantAt(0, true);
+      assert formulas.getNumLoops() + 2 == itpMgr.getSolverStackSize();
+      BooleanFormula interpolant = itpMgr.getInterpolantAt(formulas.getNumLoops() - 1, true);
       logger.log(Level.ALL, "The interpolant is", interpolant);
-      interpolant = fmgr.instantiate(fmgr.uninstantiate(interpolant), prefixSsaMap);
+      interpolant = fmgr.instantiate(fmgr.uninstantiate(interpolant), formulas.getPrefixSsaMap());
       logger.log(Level.ALL, "After changing SSA", interpolant);
       if (solver.implies(interpolant, currentImage)) {
         logger.log(Level.INFO, "The current image reaches a fixed point");
@@ -344,6 +287,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       itpMgr.pop();
       itpMgr.push(currentImage);
     }
+    itpMgr.popAll();
     logger.log(Level.FINE, "The overapproximation is unsafe, going back to BMC phase");
     return false;
   }
@@ -354,32 +298,5 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         "Class "
             + getClass().getSimpleName()
             + " does not support this function. It should not be called.");
-  }
-
-  /**
-   * This class wraps three formulas used in interpolation in order to avoid long parameter lists.
-   * These formulas are: prefixFormula (from root to the first LH), loopFormula (from the first LH
-   * to the second LH), and suffixFormula (from the second LH to targets). Note that prefixFormula
-   * is a {@link PathFormula} as we need its {@link SSAMap} to update the SSA indices of derived
-   * interpolants.
-   */
-  private static class PartitionedFormulas {
-
-    private final PathFormula prefixFormula;
-    private final BooleanFormula loopFormula;
-    private final BooleanFormula suffixFormula;
-
-    public void printCollectedFormulas(LogManager pLogger) {
-      pLogger.log(Level.ALL, "Prefix:", prefixFormula.getFormula());
-      pLogger.log(Level.ALL, "Loop:", loopFormula);
-      pLogger.log(Level.ALL, "Suffix:", suffixFormula);
-    }
-
-    public PartitionedFormulas(
-        PathFormula pPrefixFormula, BooleanFormula pLoopFormula, BooleanFormula pSuffixFormula) {
-      prefixFormula = pPrefixFormula;
-      loopFormula = pLoopFormula;
-      suffixFormula = pSuffixFormula;
-    }
   }
 }

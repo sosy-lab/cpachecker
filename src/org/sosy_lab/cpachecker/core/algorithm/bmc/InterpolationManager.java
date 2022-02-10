@@ -63,6 +63,10 @@ public class InterpolationManager<T> {
     satStatus = Satisfiability.UNKNOWN;
   }
 
+  int getSolverStackSize() {
+    return pushedFormulas.size();
+  }
+
   void push(BooleanFormula formula) throws InterruptedException {
     push(ImmutableList.of(formula));
   }
@@ -153,6 +157,11 @@ public class InterpolationManager<T> {
         : getInterpolantFrom(formulaA, formulaB);
   }
 
+  /** TODO: update description */
+  BooleanFormula getInterpolantAt(int pos) throws SolverException, InterruptedException {
+    return getInterpolantAt(pos, false);
+  }
+
   /**
    * A helper method to derive an interpolation sequence. TODO: update description
    *
@@ -165,5 +174,15 @@ public class InterpolationManager<T> {
       itpSequence.add(getInterpolantAt(i, reverse));
     }
     return itpSequence;
+  }
+
+  /**
+   * A helper method to derive an interpolation sequence. TODO: update description
+   *
+   * @throws InterruptedException On shutdown request.
+   */
+  List<BooleanFormula> getInterpolationSequence(int fromIndex, int toIndex)
+      throws SolverException, InterruptedException {
+    return getInterpolationSequence(fromIndex, toIndex, false);
   }
 }

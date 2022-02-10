@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
-import com.google.common.collect.FluentIterable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -21,13 +20,11 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.InterpolationManager.ItpDeriveDirection;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.specification.Specification;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -177,6 +174,7 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     logger.log(Level.FINE, "Performing interpolation-sequence based model checking");
     // initialize the reachability vector
     List<BooleanFormula> reachVector = new ArrayList<>();
+    PartitionedFormulas partitionedFormulas = new PartitionedFormulas(bfmgr, logger, false);
     InterpolationManager<T> itpMgr =
         new InterpolationManager<>(bfmgr, itpProver, itpDeriveDirection);
     do {
@@ -237,8 +235,7 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       if (interpolation
           && maxLoopIterations > 1
           && !AbstractStates.getTargetStates(pReachedSet).isEmpty()) {
-
-        List<BooleanFormula> partitionedFormulas = collectFormulas(pReachedSet);
+        partitionedFormulas.update(pReachedSet);
         List<BooleanFormula> itpSequence = getInterpolationSequence(itpMgr, partitionedFormulas);
         updateReachabilityVector(reachVector, itpSequence);
 
@@ -255,41 +252,6 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   /**
-   * A helper method to collect formulas needed by ISMC algorithm. It assumes every target state
-   * after the loop has the same abstraction-state path to root.
-   *
-   * @param pReachedSet Abstract Reachability Graph
-   */
-  private List<BooleanFormula> collectFormulas(final ReachedSet pReachedSet) {
-    logger.log(Level.FINE, "Collecting BMC-partitioning formulas");
-    FluentIterable<AbstractState> targetStatesAfterLoop =
-        InterpolationHelper.getTargetStatesAfterLoop(pReachedSet);
-    List<ARGState> abstractionStates =
-        InterpolationHelper.getAbstractionStatesToRoot(targetStatesAfterLoop.get(0)).toList();
-
-    List<BooleanFormula> formulas = new ArrayList<>();
-    for (int i = 2; i < abstractionStates.size() - 1; ++i) {
-      // TR(V_k, V_k+1)
-      BooleanFormula transitionRelation =
-          InterpolationHelper.getPredicateAbstractionBlockFormula(abstractionStates.get(i))
-              .getFormula();
-      if (i == 2) {
-        // INIT(V_0) ^ TR(V_0, V_1)
-        BooleanFormula initialCondition =
-            InterpolationHelper.getPredicateAbstractionBlockFormula(abstractionStates.get(1))
-                .getFormula();
-        transitionRelation = bfmgr.and(initialCondition, transitionRelation);
-      }
-      formulas.add(transitionRelation);
-    }
-
-    // ~P
-    formulas.add(InterpolationHelper.createDisjunctionFromStates(bfmgr, targetStatesAfterLoop));
-    logger.log(Level.ALL, "Partitioned formulas:", formulas);
-    return formulas;
-  }
-
-  /**
    * A helper method to derive an interpolation sequence. TODO: update description
    *
    * @param pFormulas the list of formulas to derive interpolants from, the conjunction of all
@@ -297,14 +259,18 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * @throws InterruptedException On shutdown request.
    */
   private <T> List<BooleanFormula> getInterpolationSequence(
-      InterpolationManager<T> itpMgr, List<BooleanFormula> pFormulas)
+      InterpolationManager<T> itpMgr, PartitionedFormulas pFormulas)
       throws InterruptedException, SolverException {
     // TODO: consider using the methods that generates interpolation sequence in ImpactAlgorithm
     // should be something like: imgr.buildCounterexampleTrace(formulas)
     logger.log(Level.FINE, "Extracting interpolation-sequence");
-    itpMgr.push(pFormulas);
+    itpMgr.push(pFormulas.getPrefixFormula());
+    itpMgr.push(pFormulas.getLoopFormulas());
+    itpMgr.push(pFormulas.getAssertionFormula());
+
+    assert pFormulas.getNumLoops() + 2 == itpMgr.getSolverStackSize();
     List<BooleanFormula> itpSequence =
-        itpMgr.getInterpolationSequence(0, pFormulas.size() - 1, false);
+        itpMgr.getInterpolationSequence(1, pFormulas.getNumLoops() + 1, false);
     itpMgr.popAll();
     logger.log(Level.ALL, "Interpolation sequence:", itpSequence);
     return itpSequence;
