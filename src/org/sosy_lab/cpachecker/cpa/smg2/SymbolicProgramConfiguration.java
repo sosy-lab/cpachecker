@@ -397,6 +397,20 @@ public class SymbolicProgramConfiguration {
   }
 
   /**
+   * Returns an {@link Optional} that may be empty if no {@link Value} for the entered {@link
+   * SMGValue} exists in the value mapping. If a mapping exists, it returns the {@link Value} for
+   * the entered {@link SMGValue} inside the Optional. Reverse method of getValue();
+   *
+   * @param smgValue The {@link SMGValue} you want the potential {@link Value} for.
+   * @return {@link Optional} that contains the {@link Value} for the entered {@link SMGValue} if it
+   *     exists, empty else.
+   */
+  public Optional<Value> getSMGValue(SMGValue smgValue) {
+    // TODO: map the input value using the SPC mapping!
+    return Optional.ofNullable(valueMapping.inverse().get(smgValue));
+  }
+
+  /**
    * Copies this {@link SymbolicProgramConfiguration} and creates a mapping of a {@link Value} to a
    * newly created {@link SMGValue}.
    *
