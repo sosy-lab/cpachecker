@@ -421,6 +421,7 @@ public class ValueAnalysisState
   }
 
   @Override
+  @SuppressWarnings("EqualsGetClass")
   public boolean equals(Object other) {
     if (this == other) {
       return true;
@@ -429,7 +430,6 @@ public class ValueAnalysisState
     if (other == null) {
       return false;
     }
-
     if (!getClass().equals(other.getClass())) {
       return false;
     }
