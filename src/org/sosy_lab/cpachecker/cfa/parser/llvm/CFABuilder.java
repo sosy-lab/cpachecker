@@ -29,6 +29,7 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.TreeMap;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
@@ -311,7 +312,7 @@ public class CFABuilder {
    *
    * @return the entry basic block (as a {@link CFALabelNode}).
    */
-  private CFALabelNode iterateOverBasicBlocks(
+  private @Nullable CFALabelNode iterateOverBasicBlocks(
       final Function pFunction,
       final FunctionEntryNode pEntryNode,
       final NavigableMap<Integer, BasicBlockInfo> pBasicBlocks,
@@ -487,7 +488,7 @@ public class CFABuilder {
 
     CFANode prevNode = newNode(pFunction);
     CFANode firstNode = prevNode;
-    CFANode curNode = null;
+    @Nullable CFANode curNode = null;
 
     for (Value i : pItem) {
       if (i.isDbgInfoIntrinsic() || i.isDbgDeclareInst()) {
@@ -575,7 +576,7 @@ public class CFABuilder {
       } else {
 
         // process this basic block
-        List<CAstNode> expressions = visitInstruction(i, funcName, pFileName);
+        @Nullable List<CAstNode> expressions = visitInstruction(i, funcName, pFileName);
         if (expressions == null) {
           curNode = newNode(pFunction);
           addEdge(new BlankEdge(i.toString(), FileLocation.DUMMY, prevNode, curNode, "noop"));
@@ -677,7 +678,7 @@ public class CFABuilder {
     }
   }
 
-  private List<CAstNode> visitInstruction(
+  private @Nullable List<CAstNode> visitInstruction(
       final Value pItem, final String pFunctionName, final String pFileName) throws LLVMException {
     assert pItem.isInstruction();
 

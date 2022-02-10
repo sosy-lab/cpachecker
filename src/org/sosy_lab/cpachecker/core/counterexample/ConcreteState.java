@@ -142,7 +142,7 @@ public final class ConcreteState {
    * @param address return the concrete value, that is stored at this address.
    * @return the concrete value at the given address of the given expression.
    */
-  public Object getValueFromMemory(CRightHandSide exp, Address address) {
+  public @Nullable Object getValueFromMemory(CRightHandSide exp, Address address) {
 
     String memoryName = memoryNameAllocator.getMemoryName(exp);
 

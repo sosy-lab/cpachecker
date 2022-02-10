@@ -61,7 +61,7 @@ public abstract class AbstractSerializableSingleWrapperState
   }
 
   @Override
-  public Object getPartitionKey() {
+  public @Nullable Object getPartitionKey() {
     if (wrappedState instanceof Partitionable) {
       return ((Partitionable)wrappedState).getPartitionKey();
     } else {
@@ -70,7 +70,7 @@ public abstract class AbstractSerializableSingleWrapperState
   }
 
   @Override
-  public Comparable<?> getPseudoPartitionKey() {
+  public @Nullable Comparable<?> getPseudoPartitionKey() {
     if (wrappedState instanceof PseudoPartitionable) {
       return ((PseudoPartitionable) wrappedState).getPseudoPartitionKey();
     } else {
@@ -79,7 +79,7 @@ public abstract class AbstractSerializableSingleWrapperState
   }
 
   @Override
-  public Object getPseudoHashCode() {
+  public @Nullable Object getPseudoHashCode() {
     if (wrappedState instanceof PseudoPartitionable) {
       return ((PseudoPartitionable) wrappedState).getPseudoHashCode();
     } else {

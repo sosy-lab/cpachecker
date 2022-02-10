@@ -425,7 +425,8 @@ public class FormulaManagerView {
     return wrappingHandler.unwrap(f);
   }
 
-  public Path formatFormulaOutputFile(String function, int call, String formula, int index) {
+  public @Nullable Path formatFormulaOutputFile(
+      String function, int call, String formula, int index) {
     if (formulaDumpFile == null) {
       return null;
     }
@@ -433,7 +434,7 @@ public class FormulaManagerView {
     return formulaDumpFile.getPath(function, call, formula, index);
   }
 
-  public void dumpFormulaToFile(BooleanFormula f, Path outputFile) {
+  public void dumpFormulaToFile(BooleanFormula f, @Nullable Path outputFile) {
     if (outputFile != null) {
       try {
         IO.writeFile(outputFile, Charset.defaultCharset(), this.dumpFormula(f));
@@ -2126,7 +2127,7 @@ public class FormulaManagerView {
     final Map<Formula, BigInteger> cache = new HashMap<>();
     final Deque<Formula> waitlist = new ArrayDeque<>();
 
-    final FormulaVisitor<BigInteger> countingVisitor =
+    final FormulaVisitor<@Nullable BigInteger> countingVisitor =
         new DefaultFormulaVisitor<>() {
           @Override
           protected BigInteger visitDefault(Formula pF) {
@@ -2134,7 +2135,7 @@ public class FormulaManagerView {
           }
 
           @Override
-          public BigInteger visitFunction(
+          public @Nullable BigInteger visitFunction(
               Formula pF, List<Formula> args, FunctionDeclaration<?> decl) {
             assert !args.isEmpty();
             switch (decl.getKind()) {
@@ -2164,7 +2165,7 @@ public class FormulaManagerView {
     waitlist.push(f);
     while (!waitlist.isEmpty()) {
       Formula formula = waitlist.pop();
-      BigInteger count = visit(formula, countingVisitor);
+      @Nullable BigInteger count = visit(formula, countingVisitor);
       if (count != null) {
         cache.put(formula, count);
       }

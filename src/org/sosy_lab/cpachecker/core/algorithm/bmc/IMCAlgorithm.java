@@ -166,8 +166,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
 
     logger.log(Level.FINE, "Performing interpolation-based model checking");
-    PartitionedFormulas partitionedFormulas =
-        new org.sosy_lab.cpachecker.core.algorithm.bmc.PartitionedFormulas(bfmgr, logger, false);
+    PartitionedFormulas partitionedFormulas = new PartitionedFormulas(bfmgr, logger, false);
     InterpolationManager<T> itpMgr =
         new InterpolationManager<>(bfmgr, itpProver, itpDeriveDirection);
     do {
