@@ -145,6 +145,10 @@ public class SMGCPAValueExpressionEvaluator
     return null;
   }
 
+  public SMGState addValueToState(SMGState pState, Value value) {
+    return pState.copyAndAddValue(value).getSMGState();
+  }
+
   /*
    * Read the object form the address provided in the Value and the value from the object from the info in the CExpression.
    * Read is tricky once we use abstraction as the SMGs might be merged. In that case accurate read offsets and sizes are important!
