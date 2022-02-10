@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE testcase PUBLIC "+//IDN sosy-lab.org//DTD test-format testcase 1.1//EN" "https://sosy-lab.org/test-format/testcase-1.1.dtd">
+<testcase>
+  <input variable="t" type="int">2</input>
+  <input variable="t" type="int">3</input>
+  <input variable="t" type="int">4</input>
+  <input variable="t" type="int">5</input>
+  <input variable="t" type="int">6</input>
+  <input variable="t" type="int">7</input>
+  <input variable="t" type="int">8</input>
+  <input variable="t" type="int">9</input>
+  <input variable="t" type="int">0</input>
+</testcase>  
+

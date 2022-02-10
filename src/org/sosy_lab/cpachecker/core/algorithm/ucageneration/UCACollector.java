@@ -261,9 +261,9 @@ public class UCACollector {
         continue;
       }
       if (pLastStates.contains(s)) {
-        sb.append(String.format("STATE USEFIRST %s :\n", NAME_OF_NEWTESTINPUT_STATE));
+        sb.append(String.format("STATE USEALL %s :\n", NAME_OF_NEWTESTINPUT_STATE));
       } else {
-        sb.append("STATE USEFIRST ARG" + s.getStateId() + " :\n");
+        sb.append("STATE USEALL ARG" + s.getStateId() + " :\n");
       }
       numProducedStates++;
 
@@ -297,7 +297,7 @@ public class UCACollector {
             }
 
             descriptionForInnerMultiEdges.append(
-                "STATE USEFIRST ARG" + s.getStateId() + "M" + multiEdgeID + " :\n");
+                "STATE USEALL ARG" + s.getStateId() + "M" + multiEdgeID + " :\n");
             numProducedStates++;
             descriptionForInnerMultiEdges.append("    MATCH \"");
             AssumptionCollectorAlgorithm.escape(
@@ -526,7 +526,7 @@ public class UCACollector {
             .sorted(Comparator.comparing(this::getName))
             .collect(Collectors.toList())) {
 
-      sb.append(String.format("STATE USEFIRST %s :\n", getName(currentState)));
+      sb.append(String.format("STATE USEALL %s :\n", getName(currentState)));
       numProducedStates++;
 
       for (UCAEdge edge : nodesToEdges.get(currentState)) {

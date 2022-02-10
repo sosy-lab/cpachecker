@@ -1,0 +1,269 @@
+OBSERVER AUTOMATON AssumptionAutomaton
+
+INITIAL STATE ARG0;
+
+STATE __TRUE :
+    TRUE -> GOTO __TRUE;
+
+STATE __FALSE :
+    TRUE -> ASSUME {false} GOTO __FALSE;
+
+STATE USEALL ARG0 :
+    MATCH "" -> GOTO ARG1;
+
+STATE USEALL ARG1 :
+    MATCH "extern void abort(void);" -> GOTO ARG2;
+
+STATE USEALL ARG2 :
+    MATCH "extern void __assert_fail(const char *, const char *, unsigned int, const char *) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__noreturn__));" -> GOTO ARG3;
+
+STATE USEALL ARG3 :
+    MATCH "void reach_error()" -> GOTO ARG4;
+
+STATE USEALL ARG4 :
+    MATCH "void assume_abort_if_not(int cond)" -> GOTO ARG5;
+
+STATE USEALL ARG5 :
+    MATCH "void __VERIFIER_assert(int cond)" -> GOTO ARG6;
+
+STATE USEALL ARG6 :
+    MATCH "unsigned int __VERIFIER_nondet_uint();" -> GOTO ARG7;
+
+STATE USEALL ARG7 :
+    MATCH "int main()" -> GOTO ARG8;
+
+STATE USEALL ARG8 :
+    MATCH "" -> GOTO ARG9;
+
+STATE USEALL ARG9 :
+    MATCH "int x=0;" -> GOTO ARG10;
+
+STATE USEALL ARG10 :
+    MATCH "int y =0;" -> GOTO ARG11;
+
+STATE USEALL ARG11 :
+    MATCH "int t = __VERIFIER_nondet_uint();" -> GOTO ARG12;
+
+STATE USEALL ARG12 :
+    MATCH "int t = __VERIFIER_nondet_uint();" -> ASSUME {( t == 2 )} GOTO ARG14;
+
+STATE USEALL ARG14 :
+    MATCH "" -> GOTO ARG15;
+
+STATE USEALL ARG15 :
+    MATCH "[t != 0]" -> GOTO ARG16;
+
+STATE USEALL ARG16 :
+    MATCH "x ++;" -> GOTO ARG17;
+
+STATE USEALL ARG17 :
+    MATCH "x ++;" -> GOTO ARG18;
+
+STATE USEALL ARG18 :
+    MATCH "x ++;" -> GOTO ARG19;
+
+STATE USEALL ARG19 :
+    MATCH "y++;" -> GOTO ARG20;
+
+STATE USEALL ARG20 :
+    MATCH "y++;" -> GOTO ARG21;
+
+STATE USEALL ARG21 :
+    MATCH "y++;" -> GOTO ARG22;
+
+STATE USEALL ARG22 :
+    MATCH "t = __VERIFIER_nondet_uint();" -> ASSUME {( t == 3 )} GOTO ARG24;
+
+STATE USEALL ARG24 :
+    MATCH "" -> GOTO ARG25;
+
+STATE USEALL ARG25 :
+    MATCH "[t != 0]" -> GOTO ARG26;
+
+STATE USEALL ARG26 :
+    MATCH "x ++;" -> GOTO ARG27;
+
+STATE USEALL ARG27 :
+    MATCH "x ++;" -> GOTO ARG28;
+
+STATE USEALL ARG28 :
+    MATCH "x ++;" -> GOTO ARG29;
+
+STATE USEALL ARG29 :
+    MATCH "y++;" -> GOTO ARG30;
+
+STATE USEALL ARG30 :
+    MATCH "y++;" -> GOTO ARG31;
+
+STATE USEALL ARG31 :
+    MATCH "y++;" -> GOTO ARG32;
+
+STATE USEALL ARG32 :
+    MATCH "t = __VERIFIER_nondet_uint();" -> ASSUME {( t == 4 )} GOTO ARG34;
+
+STATE USEALL ARG34 :
+    MATCH "" -> GOTO ARG35;
+
+STATE USEALL ARG35 :
+    MATCH "[t != 0]" -> GOTO ARG36;
+
+STATE USEALL ARG36 :
+    MATCH "x ++;" -> GOTO ARG37;
+
+STATE USEALL ARG37 :
+    MATCH "x ++;" -> GOTO ARG38;
+
+STATE USEALL ARG38 :
+    MATCH "x ++;" -> GOTO ARG39;
+
+STATE USEALL ARG39 :
+    MATCH "y++;" -> GOTO ARG40;
+
+STATE USEALL ARG40 :
+    MATCH "y++;" -> GOTO ARG41;
+
+STATE USEALL ARG41 :
+    MATCH "y++;" -> GOTO ARG42;
+
+STATE USEALL ARG42 :
+    MATCH "t = __VERIFIER_nondet_uint();" -> ASSUME {( t == 5 )} GOTO ARG44;
+
+STATE USEALL ARG44 :
+    MATCH "" -> GOTO ARG45;
+
+STATE USEALL ARG45 :
+    MATCH "[t != 0]" -> GOTO ARG46;
+
+STATE USEALL ARG46 :
+    MATCH "x ++;" -> GOTO ARG47;
+
+STATE USEALL ARG47 :
+    MATCH "x ++;" -> GOTO ARG48;
+
+STATE USEALL ARG48 :
+    MATCH "x ++;" -> GOTO ARG49;
+
+STATE USEALL ARG49 :
+    MATCH "y++;" -> GOTO ARG50;
+
+STATE USEALL ARG50 :
+    MATCH "y++;" -> GOTO ARG51;
+
+STATE USEALL ARG51 :
+    MATCH "y++;" -> GOTO ARG52;
+
+STATE USEALL ARG52 :
+    MATCH "t = __VERIFIER_nondet_uint();" -> ASSUME {( t == 6 )} GOTO ARG54;
+
+STATE USEALL ARG54 :
+    MATCH "" -> GOTO ARG55;
+
+STATE USEALL ARG55 :
+    MATCH "[t != 0]" -> GOTO ARG56;
+
+STATE USEALL ARG56 :
+    MATCH "x ++;" -> GOTO ARG57;
+
+STATE USEALL ARG57 :
+    MATCH "x ++;" -> GOTO ARG58;
+
+STATE USEALL ARG58 :
+    MATCH "x ++;" -> GOTO ARG59;
+
+STATE USEALL ARG59 :
+    MATCH "y++;" -> GOTO ARG60;
+
+STATE USEALL ARG60 :
+    MATCH "y++;" -> GOTO ARG61;
+
+STATE USEALL ARG61 :
+    MATCH "y++;" -> GOTO ARG62;
+
+STATE USEALL ARG62 :
+    MATCH "t = __VERIFIER_nondet_uint();" -> ASSUME {( t == 7 )} GOTO ARG64;
+
+STATE USEALL ARG64 :
+    MATCH "" -> GOTO ARG65;
+
+STATE USEALL ARG65 :
+    MATCH "[t != 0]" -> GOTO ARG66;
+
+STATE USEALL ARG66 :
+    MATCH "x ++;" -> GOTO ARG67;
+
+STATE USEALL ARG67 :
+    MATCH "x ++;" -> GOTO ARG68;
+
+STATE USEALL ARG68 :
+    MATCH "x ++;" -> GOTO ARG69;
+
+STATE USEALL ARG69 :
+    MATCH "y++;" -> GOTO ARG70;
+
+STATE USEALL ARG70 :
+    MATCH "y++;" -> GOTO ARG71;
+
+STATE USEALL ARG71 :
+    MATCH "y++;" -> GOTO ARG72;
+
+STATE USEALL ARG72 :
+    MATCH "t = __VERIFIER_nondet_uint();" -> ASSUME {( t == 8 )} GOTO ARG74;
+
+STATE USEALL ARG74 :
+    MATCH "" -> GOTO ARG75;
+
+STATE USEALL ARG75 :
+    MATCH "[t != 0]" -> GOTO ARG76;
+
+STATE USEALL ARG76 :
+    MATCH "x ++;" -> GOTO ARG77;
+
+STATE USEALL ARG77 :
+    MATCH "x ++;" -> GOTO ARG78;
+
+STATE USEALL ARG78 :
+    MATCH "x ++;" -> GOTO ARG79;
+
+STATE USEALL ARG79 :
+    MATCH "y++;" -> GOTO ARG80;
+
+STATE USEALL ARG80 :
+    MATCH "y++;" -> GOTO ARG81;
+
+STATE USEALL ARG81 :
+    MATCH "y++;" -> GOTO ARG82;
+
+STATE USEALL ARG82 :
+    MATCH "t = __VERIFIER_nondet_uint();" -> ASSUME {( t == 9 )} GOTO ARG84;
+
+STATE USEALL ARG84 :
+    MATCH "" -> GOTO ARG85;
+
+STATE USEALL ARG85 :
+    MATCH "[t != 0]" -> GOTO ARG86;
+
+STATE USEALL ARG86 :
+    MATCH "x ++;" -> GOTO ARG87;
+
+STATE USEALL ARG87 :
+    MATCH "x ++;" -> GOTO ARG88;
+
+STATE USEALL ARG88 :
+    MATCH "x ++;" -> GOTO ARG89;
+
+STATE USEALL ARG89 :
+    MATCH "y++;" -> GOTO ARG90;
+
+STATE USEALL ARG90 :
+    MATCH "y++;" -> GOTO ARG91;
+
+STATE USEALL ARG91 :
+    MATCH "y++;" -> GOTO ARG92;
+
+STATE USEALL ARG92 :
+    MATCH "t = __VERIFIER_nondet_uint();" -> ASSUME {( t == 0 )} GOTO __qNEWTEST;
+
+STATE __qNEWTEST :
+    TRUE -> GOTO __FALSE;
+
+END AUTOMATON

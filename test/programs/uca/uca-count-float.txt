@@ -1,0 +1,80 @@
+OBSERVER AUTOMATON AssumptionAutomaton
+
+INITIAL STATE ARG0;
+
+STATE __TRUE :
+    TRUE -> GOTO __TRUE;
+
+STATE __FALSE :
+    TRUE -> ASSUME {false} GOTO __FALSE;
+
+STATE USEALL ARG0 :
+    MATCH "" -> GOTO ARG1;
+
+STATE USEALL ARG1 :
+    MATCH "extern void abort(void);" -> GOTO ARG2;
+
+STATE USEALL ARG2 :
+    MATCH "extern void __assert_fail(const char *, const char *, unsigned int, const char *) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__noreturn__));" -> GOTO ARG3;
+
+STATE USEALL ARG3 :
+    MATCH "void reach_error()" -> GOTO ARG4;
+
+STATE USEALL ARG4 :
+    MATCH "void assume_abort_if_not(int cond)" -> GOTO ARG5;
+
+STATE USEALL ARG5 :
+    MATCH "void __VERIFIER_assert(int cond)" -> GOTO ARG6;
+
+STATE USEALL ARG6 :
+    MATCH "float __VERIFIER_nondet_float();" -> GOTO ARG7;
+
+STATE USEALL ARG7 :
+    MATCH "int main()" -> GOTO ARG8;
+
+STATE USEALL ARG8 :
+    MATCH "" -> GOTO ARG9;
+
+STATE USEALL ARG9 :
+    MATCH "int x=0;" -> GOTO ARG10;
+
+STATE USEALL ARG10 :
+    MATCH "int y =0;" -> GOTO ARG11;
+
+STATE USEALL ARG11 :
+    MATCH "float t = __VERIFIER_nondet_float();" -> GOTO ARG12;
+
+STATE USEALL ARG12 :
+    MATCH "float t = __VERIFIER_nondet_float();" -> ASSUME {( t == 8.5 )} GOTO ARG14;
+
+STATE USEALL ARG14 :
+    MATCH "" -> GOTO ARG15;
+
+STATE USEALL ARG15 :
+    MATCH "[t != 10.5]" -> GOTO ARG16;
+
+STATE USEALL ARG16 :
+    MATCH "x ++;" -> GOTO ARG17;
+
+STATE USEALL ARG17 :
+    MATCH "x ++;" -> GOTO ARG18;
+
+STATE USEALL ARG18 :
+    MATCH "x ++;" -> GOTO ARG19;
+
+STATE USEALL ARG19 :
+    MATCH "y++;" -> GOTO ARG20;
+
+STATE USEALL ARG20 :
+    MATCH "y++;" -> GOTO ARG21;
+
+STATE USEALL ARG21 :
+    MATCH "y++;" -> GOTO ARG22;
+
+STATE USEALL ARG22 :
+    MATCH "t = __VERIFIER_nondet_float();" -> ASSUME {( t == 10.5 )} GOTO __qNEWTEST;
+
+STATE __qNEWTEST :
+    TRUE -> GOTO __FALSE;
+
+END AUTOMATON

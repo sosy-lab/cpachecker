@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
@@ -142,9 +143,12 @@ public class TestCaseGenTransferRelation extends SingleEdgeTransferRelation {
     String value = "";
     if (pLiteral instanceof CIntegerLiteralExpression) {
       value = ((CIntegerLiteralExpression) pLiteral).getValue().toString();
-    } else if (pLiteral instanceof CCharLiteralExpression) {
-      value = String.format("'%s'", ((CCharLiteralExpression) pLiteral).getCharacter());
-    } else {
+    } else if (pLiteral instanceof CFloatLiteralExpression) {
+      value = ((CFloatLiteralExpression) pLiteral).getValue().toString();
+    }else if (pLiteral instanceof CCharLiteralExpression) {
+      value = String.valueOf(((CCharLiteralExpression) pLiteral).getCharacter());
+    }
+    else {
       // TODO: Add parsing for floats, imaginary numbers and strings
       logger.logf(
           Level.WARNING, "Dont know how to parse %s of type %s", pLiteral, pLiteral.getClass());

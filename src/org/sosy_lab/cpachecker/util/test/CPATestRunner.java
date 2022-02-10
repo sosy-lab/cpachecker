@@ -9,8 +9,10 @@
 package org.sosy_lab.cpachecker.util.test;
 
 import com.google.common.collect.ImmutableList;
+import java.io.PrintStream;
 import java.util.Map;
 import java.util.logging.Level;
+import org.apache.commons.io.output.NullPrintStream;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.BasicLogManager;
@@ -57,4 +59,28 @@ public class CPATestRunner {
     logger.flush();
     return new TestResults(stringLogHandler.getLog(), results);
   }
+
+  public static TestResults runAndPrintStatistics(
+      Configuration config,
+      String pSourceCodeFilePath,
+      Level logLevel
+   ) throws Exception {
+    StringBuildingLogHandler stringLogHandler = new StringBuildingLogHandler();
+    stringLogHandler.setLevel(logLevel);
+    stringLogHandler.setFormatter(ConsoleLogFormatter.withoutColors());
+    LogManager logger = BasicLogManager.createWithHandler(stringLogHandler);
+
+
+
+    ShutdownManager shutdownManager = ShutdownManager.create();
+    CPAchecker cpaChecker = new CPAchecker(config, logger, shutdownManager);
+    CPAcheckerResult results = cpaChecker.run(ImmutableList.of(pSourceCodeFilePath));
+
+
+    PrintStream stream = new NullPrintStream();
+    results.printStatistics(stream);
+    logger.flush();
+    return new TestResults(stringLogHandler.getLog(), results);
+  }
+
 }
