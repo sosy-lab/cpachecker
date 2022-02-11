@@ -56,8 +56,10 @@ public class AnalysisWorker extends Worker {
     super("analysis-worker-" + pBlock.getId(), pLogger);
     block = pBlock;
 
+    String withAbstraction = false ? "-with-abstraction" : "";
+
     Configuration fileConfig =
-        Configuration.builder().loadFromFile("config/predicateAnalysis-block-backward.properties")
+        Configuration.builder().loadFromFile("config/predicateAnalysis-block-backward" + withAbstraction + ".properties")
             .build();
     ConfigString backward = new ConfigString();
     fileConfig.inject(backward);
@@ -76,7 +78,7 @@ public class AnalysisWorker extends Worker {
     Configuration forwardConfiguration =
         Configuration.builder()
             .copyFrom(pConfiguration)
-            .loadFromFile("config/predicateAnalysis-block-forward.properties")
+            .loadFromFile("config/predicateAnalysis-block-forward" + withAbstraction + ".properties")
             .setOption("CompositeCPA.cpas", forward.cpas + ", cpa.block.BlockCPA")
             .build();
 
@@ -172,7 +174,7 @@ public class AnalysisWorker extends Worker {
 
   @Options(prefix = "CompositeCPA")
   private static class ConfigString {
-    @Option(description = "test")
-    private String cpas;
+    @Option(description = "Read config")
+    private String cpas = "";
   }
 }

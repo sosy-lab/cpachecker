@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -40,6 +41,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -70,6 +72,8 @@ public abstract class BlockAnalysis {
   protected final BlockNode block;
   protected final LogManager logger;
 
+  protected AlgorithmStatus status;
+
   public BlockAnalysis(
       String pId,
       LogManager pLogger,
@@ -93,6 +97,8 @@ public abstract class BlockAnalysis {
     algorithm = parts.getFirst();
     cpa = parts.getSecond();
     reachedSet = parts.getThird();
+
+    status = AlgorithmStatus.SOUND_AND_PRECISE;
 
     assert reachedSet != null : "BlockAnalysis requires the initial reachedSet";
     initialPrecision = reachedSet.getPrecision(Objects.requireNonNull(reachedSet.getFirstState()));
@@ -144,23 +150,6 @@ public abstract class BlockAnalysis {
     return new ARGState(distributedCompositeCPA.combine(states), null);
   }
 
-  public List<AbstractState> extractBlockEntryPoints(
-      ReachedSet pReachedSet,
-      CFANode targetNode,
-      AbstractState startState) {
-    List<AbstractState> compositeStates = new ArrayList<>();
-    for (AbstractState abstractState : pReachedSet) {
-      if (abstractState.equals(startState)) {
-        continue;
-      }
-      Optional<CFANode> optionalLocation = abstractStateToLocation(abstractState);
-      if (optionalLocation.isPresent() && optionalLocation.orElseThrow().equals(targetNode)) {
-        compositeStates.add(extractCompositeStateFromAbstractState(abstractState));
-      }
-    }
-    return compositeStates;
-  }
-
   public DistributedCompositeCPA getDistributedCPA() {
     return distributedCompositeCPA;
   }
@@ -186,6 +175,48 @@ public abstract class BlockAnalysis {
 
   public abstract Collection<Message> analyze(Collection<Message> messages)
       throws CPAException, InterruptedException, SolverException;
+
+  protected Set<ARGState> findReachableTargetStatesInBlock(AbstractState startState, BlockTransferRelation relation)
+      throws CPAException, InterruptedException {
+    relation.init(block);
+    reachedSet.clear();
+    reachedSet.add(startState, initialPrecision);
+
+    // find all target states in block, except target states that are only reachable from another target state
+    while (reachedSet.hasWaitingState()) {
+      AbstractStates.getTargetStates(reachedSet).forEach(reachedSet::removeOnlyFromWaitlist);
+      status = status.update(algorithm.run(reachedSet));
+    }
+
+    return from(reachedSet).filter(AbstractStates::isTargetState)
+        .filter(ARGState.class).filter(s -> !startState.equals(s)).copyInto(new HashSet<>());
+  }
+
+  protected Set<ARGState> extractBlockTargetStates(Set<ARGState> targetStates) {
+    Set<ARGState> blockTargetStates = new HashSet<>();
+    for (ARGState targetState : targetStates) {
+      for (TargetInformation targetInformation : targetState.getTargetInformation()) {
+        if (targetInformation instanceof BlockEntryReachedTargetInformation) {
+          blockTargetStates.add(targetState);
+          break;
+        }
+      }
+    }
+    return blockTargetStates;
+  }
+
+  protected Set<ARGState> extractViolations(Set<ARGState> targetStates) {
+    Set<ARGState> violationStates = new HashSet<>();
+    for (ARGState targetState : targetStates) {
+      for (TargetInformation targetInformation : targetState.getTargetInformation()) {
+        if (!(targetInformation instanceof BlockEntryReachedTargetInformation)) {
+          violationStates.add(targetState);
+          break;
+        }
+      }
+    }
+    return violationStates;
+  }
 
   public static class ForwardAnalysis extends BlockAnalysis {
 
@@ -214,56 +245,37 @@ public abstract class BlockAnalysis {
     @Override
     public Collection<Message> analyze(Collection<Message> messages)
         throws CPAException, InterruptedException {
-      relation.init(block);
-      reachedSet.clear();
-      AbstractState startState = getStartState(messages);
-      reachedSet.add(startState, initialPrecision);
-      AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
-
-      // find all target states in block, except target states that are only reachable from another target state
-      while (reachedSet.hasWaitingState()) {
-        AbstractStates.getTargetStates(reachedSet).forEach(reachedSet::removeOnlyFromWaitlist);
-        status = algorithm.run(reachedSet);
-      }
-
-      Set<ARGState> targetStates = from(reachedSet).filter(AbstractStates::isTargetState)
-          .filter(ARGState.class).copyInto(new HashSet<>());
+      ARGState startState = getStartState(messages);
+      Set<ARGState> targetStates = findReachableTargetStatesInBlock(startState, relation);
       if (targetStates.isEmpty()) {
-        throw new AssertionError("At least one target state has to exist at final location");
+        // if final node is not reachable, do not broadcast anything.
+        // in case abstraction is enabled, this might occur since we abstract at block end
+        // TODO: Maybe even shutdown workers only listening to this worker??
+        return ImmutableSet.of();
       }
+
       Set<Message> answers = new HashSet<>();
       if (!reportedOriginalViolation) {
-        for (ARGState targetState : targetStates) {
-          // see if target states actual report errors or only the information that the block end is reached
-          int numBlockEntryInfos = from(targetState.getTargetInformation()).filter(
-              BlockEntryReachedTargetInformation.class).size();
-          if (targetState.getTargetInformation().size() > numBlockEntryInfos
-              || targetState.getTargetInformation().isEmpty()) {
-            Optional<CFANode> targetNode =
-                abstractStateToLocation(targetState);
-            if (targetNode.isEmpty()) {
-              throw new AssertionError(
-                  "States need to have a location but this one does not:" + targetState);
-            }
-            // we only need to report error locations once since every new report of an already found location would only cause redundant work
-            reportedOriginalViolation = true;
-            Payload initial = distributedCompositeCPA.serialize(
-                distributedCompositeCPA.getInitialState(targetNode.orElseThrow(),
-                    StateSpacePartition.getDefaultPartition()));
-            initial = Payload.builder().putAll(initial).addEntry(Payload.STATUS,
-                    status.wasPropertyChecked() + "," + status.isSound() + "," + status.isPrecise())
-                .build();
-            answers.add(Message.newErrorConditionMessage(block.getId(),
-                targetNode.orElseThrow().getNodeNumber(), initial, true,
-                ImmutableSet.of(block.getId())));
-            reachedSet.remove(targetState);
-          }
+        Set<ARGState> violations = extractViolations(targetStates);
+        if (!violations.isEmpty()) {
+          // we only need to report error locations once
+          // since every new report of an already found location would only cause redundant work
+          reportedOriginalViolation = true;
+          answers.addAll(createErrorConditionMessages(violations));
         }
       }
 
+      Set<ARGState> blockEntries = extractBlockTargetStates(targetStates);
+      answers.addAll(createBlockPostConditionMessage(messages, blockEntries));
       // find all states with location at the end, make formula
-      List<AbstractState> compositeStates =
-          extractBlockEntryPoints(reachedSet, block.getLastNode(), startState);
+      return answers;
+    }
+
+    private Collection<Message> createBlockPostConditionMessage(Collection<Message> messages, Set<ARGState> blockEntries)
+        throws CPAException, InterruptedException {
+      List<AbstractState> compositeStates = blockEntries.stream().map(this::extractCompositeStateFromAbstractState).collect(
+          ImmutableList.toImmutableList());
+      Set<Message> answers = new HashSet<>();
       if (!compositeStates.isEmpty()) {
         AbstractState combined = distributedCompositeCPA.combine(compositeStates);
         Payload result = distributedCompositeCPA.serialize(combined);
@@ -276,6 +288,29 @@ public abstract class BlockAnalysis {
                     .allMatch(m -> Boolean.parseBoolean(m.getPayload().get(Payload.FULL_PATH))),
                 visitedBlocks(messages));
         answers.add(response);
+      }
+      return answers;
+    }
+
+    private Collection<Message> createErrorConditionMessages(Set<ARGState> violations)
+        throws InterruptedException {
+      Set<Message> answers = new HashSet<>();
+      for (ARGState targetState : violations) {
+        Optional<CFANode> targetNode =
+            abstractStateToLocation(targetState);
+        if (targetNode.isEmpty()) {
+          throw new AssertionError(
+              "States need to have a location but this one does not:" + targetState);
+        }
+        Payload initial = distributedCompositeCPA.serialize(
+            distributedCompositeCPA.getInitialState(targetNode.orElseThrow(),
+                StateSpacePartition.getDefaultPartition()));
+        initial = Payload.builder().putAll(initial).addEntry(Payload.STATUS,
+                status.wasPropertyChecked() + "," + status.isSound() + "," + status.isPrecise())
+            .build();
+        answers.add(Message.newErrorConditionMessage(block.getId(),
+            targetNode.orElseThrow().getNodeNumber(), initial, true,
+            ImmutableSet.of(block.getId())));
       }
       return answers;
     }
@@ -306,15 +341,13 @@ public abstract class BlockAnalysis {
     @Override
     public Collection<Message> analyze(Collection<Message> messages)
         throws CPAException, InterruptedException, SolverException {
-      relation.init(block);
-      reachedSet.clear();
-      AbstractState startState = getStartState(messages);
-      reachedSet.add(startState, initialPrecision);
-      AlgorithmStatus status = algorithm.run(reachedSet);
-      List<AbstractState>
-          states = extractBlockEntryPoints(reachedSet, block.getStartNode(), startState);
+      ARGState startState = getStartState(messages);
+      Set<ARGState> targetStates = findReachableTargetStatesInBlock(startState, relation);
+      List<AbstractState> states =
+          targetStates.stream().map(this::extractCompositeStateFromAbstractState)
+              .collect(ImmutableList.toImmutableList());
       if (states.isEmpty()) {
-        // should not happen
+        // should only happen if abstraction is activated
         logger.log(Level.SEVERE, "Cannot reach block start?", reachedSet);
         return ImmutableSet.of(Message.newErrorConditionUnreachableMessage(block.getId()));
       }
