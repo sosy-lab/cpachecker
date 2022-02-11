@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.components.distributed_cpa;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -65,7 +66,8 @@ public abstract class AbstractDistributedCPA implements ConfigurableProgramAnaly
 
   public abstract Payload serialize(AbstractState pState);
 
-  protected abstract MessageProcessing proceedForward(Message newMessage);
+  protected abstract MessageProcessing proceedForward(Message newMessage)
+      throws InterruptedException, SolverException;
 
   protected abstract MessageProcessing proceedBackward(Message newMessage)
       throws SolverException, InterruptedException;

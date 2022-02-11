@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.components.distributed_cpa;
 
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,6 +26,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -46,6 +48,7 @@ public class DistributedCompositeCPA extends AbstractDistributedCPA {
     super(pId, pNode, pTypeMap, pPrecision, pDirection);
     lookup = new ConcurrentHashMap<>();
     lookup.put(PredicateCPA.class, DistributedPredicateCPA.class);
+    lookup.put(CallstackCPA.class, DistributedCallstackCPA.class);
     registered = new ConcurrentHashMap<>();
   }
 
@@ -100,7 +103,8 @@ public class DistributedCompositeCPA extends AbstractDistributedCPA {
   }
 
   @Override
-  public MessageProcessing proceedForward(Message newMessage) {
+  public MessageProcessing proceedForward(Message newMessage)
+      throws SolverException, InterruptedException {
     MessageProcessing processing = MessageProcessing.proceed();
     for (AbstractDistributedCPA value : registered.values()) {
       processing = processing.merge(value.proceedForward(newMessage), true);

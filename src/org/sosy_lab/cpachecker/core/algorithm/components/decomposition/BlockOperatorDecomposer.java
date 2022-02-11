@@ -20,8 +20,10 @@ import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode.BlockNodeFactory;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
@@ -42,7 +44,7 @@ public class BlockOperatorDecomposer implements CFADecomposer {
     // start with the first node of the CFA
     CFANode startNode = cfa.getMainFunction();
 
-    BlockNodeFactory nodeFactory = new BlockNodeFactory();
+    BlockNodeFactory nodeFactory = new BlockNodeFactory(cfa);
 
     // create the root node of the tree consisting of the entry node only
     BlockNode root =
@@ -141,7 +143,24 @@ public class BlockOperatorDecomposer implements CFADecomposer {
         }
       }
     }
-    return new BlockTree(root, nodeFactory);
+    BlockTree tree = new BlockTree(root, nodeFactory);
+    for (BlockNode distinctNode : tree.getDistinctNodes()) {
+      for (CFAEdge cfaEdge : distinctNode.getEdgesInBlock()) {
+        if (cfaEdge instanceof CStatementEdge) {
+          CStatementEdge statementEdge = (CStatementEdge) cfaEdge;
+          if (statementEdge.getStatement() instanceof CFunctionCallStatement) {
+            CFunctionCallStatement functionCallStatement = (CFunctionCallStatement) statementEdge.getStatement();
+            if (functionCallStatement.getFunctionCallExpression().getDeclaration().toString().equals("void abort();")) {
+              for (BlockNode blockNode : new HashSet<>(distinctNode.getSuccessors())) {
+                nodeFactory.unlinkSuccessor(distinctNode, blockNode);
+              }
+              break;
+            }
+          }
+        }
+      }
+    }
+    return tree;
   }
 
   private static class Entry {

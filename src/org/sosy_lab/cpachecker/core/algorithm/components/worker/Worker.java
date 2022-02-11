@@ -71,7 +71,7 @@ public abstract class Worker implements Runnable, StatisticsProvider {
    * @return the current message to be processed
    * @throws InterruptedException thrown if thread is interrupted
    */
-  public Message nextMessage() throws InterruptedException {
+  public Message nextMessage() throws InterruptedException, SolverException {
     return connection.read();
   }
 

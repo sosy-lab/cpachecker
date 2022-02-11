@@ -9,12 +9,14 @@
 package org.sosy_lab.cpachecker.core.algorithm.components;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -27,9 +29,11 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockToDotWriter;
 import org.sosy_lab.cpachecker.cfa.blocks.builder.BlockPartitioningBuilder;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockOperatorDecomposer;
+import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockOperatorDecomposer2;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockTree;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.CFADecomposer;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.GivenSizeDecomposer;
@@ -46,18 +50,25 @@ import org.sosy_lab.cpachecker.core.algorithm.components.exchange.observer.Statu
 import org.sosy_lab.cpachecker.core.algorithm.components.worker.ComponentsBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.components.worker.ComponentsBuilder.Components;
 import org.sosy_lab.cpachecker.core.algorithm.components.worker.FaultLocalizationWorker;
+import org.sosy_lab.cpachecker.core.algorithm.components.worker.RootWorker;
 import org.sosy_lab.cpachecker.core.algorithm.components.worker.Worker;
 import org.sosy_lab.cpachecker.core.algorithm.components.worker.Worker.WorkerOptions;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.statistics.StatInt;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 @Options(prefix = "components")
-public class ComponentAnalysis implements Algorithm {
+public class ComponentAnalysis implements Algorithm, StatisticsProvider, Statistics {
 
   private final Configuration configuration;
   private final LogManager logger;
@@ -65,6 +76,11 @@ public class ComponentAnalysis implements Algorithm {
   private final ShutdownManager shutdownManager;
   private final Specification specification;
   private final WorkerOptions options;
+
+  private Connection mainThreadConnection;
+  private Worker rootWorker;
+
+  private final StatInt numberWorkers = new StatInt(StatKind.MAX, "number of workers");
 
   @Option(description = "algorithm to decompose the CFA")
   private DecompositionType decompositionType = DecompositionType.BLOCK_OPERATOR;
@@ -84,7 +100,6 @@ public class ComponentAnalysis implements Algorithm {
 
   @Option(description = "whether to use daemon threads for workers")
   private boolean daemon = true;
-
 
   private enum DecompositionType {
     BLOCK_OPERATOR,
@@ -218,15 +233,20 @@ public class ComponentAnalysis implements Algorithm {
       builder = builder.addTimeoutWorker(maxWallTime, options);
       Components components = builder.addVisualizationWorker(tree, options).build();
 
+      numberWorkers.setNextValue(components.getWorkers().size());
+
       // run workers
       for (Worker worker : components.getWorkers()) {
+        if (worker instanceof RootWorker) {
+          rootWorker = worker;
+        }
         Thread thread = new Thread(worker, worker.getId());
         thread.setDaemon(daemon);
         thread.start();
       }
 
       // listen to messages
-      Connection mainThreadConnection = components.getAdditionalConnections().get(0);
+      mainThreadConnection = components.getAdditionalConnections().get(0);
       if (workerType == WorkerType.FAULT_LOCALIZATION) {
         listener.register(new FaultLocalizationMessageObserver(logger, mainThreadConnection));
       }
@@ -277,6 +297,29 @@ public class ComponentAnalysis implements Algorithm {
       builder.addBlock(distinctNode.getNodesInBlock(), distinctNode.getStartNode());
     }
     new BlockToDotWriter(builder.build(cfa)).dump(Path.of("./output/blocks.dot"), logger);
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> statsCollection) {
+    if (rootWorker != null){
+      rootWorker.collectStatistics(statsCollection);
+    }
+    if (mainThreadConnection != null) {
+      mainThreadConnection.collectStatistics(statsCollection);
+    }
+    statsCollection.add(this);
+  }
+
+  @Override
+  public void printStatistics(
+      PrintStream out, Result result, UnmodifiableReachedSet reached) {
+    StatisticsWriter.writingStatisticsTo(out)
+        .put(numberWorkers);
+  }
+
+  @Override
+  public @Nullable String getName() {
+    return "Block Statistics";
   }
 
 }

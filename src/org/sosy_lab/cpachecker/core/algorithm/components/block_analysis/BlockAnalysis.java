@@ -257,15 +257,15 @@ public abstract class BlockAnalysis {
       }
 
       Set<Message> answers = new HashSet<>();
-      if (!reportedOriginalViolation) {
-        Set<ARGState> violations = extractViolations(targetStates);
-        if (!violations.isEmpty()) {
-          // we only need to report error locations once
-          // since every new report of an already found location would only cause redundant work
-          reportedOriginalViolation = true;
-          answers.addAll(createErrorConditionMessages(violations));
-        }
+      // if (!reportedOriginalViolation) {
+      Set<ARGState> violations = extractViolations(targetStates);
+      if (!violations.isEmpty()) {
+        // we only need to report error locations once
+        // since every new report of an already found location would only cause redundant work
+        reportedOriginalViolation = true;
+        answers.addAll(createErrorConditionMessages(violations));
       }
+      // }
 
       Set<ARGState> blockEntries = extractBlockTargetStates(targetStates);
       answers.addAll(createBlockPostConditionMessage(messages, blockEntries));

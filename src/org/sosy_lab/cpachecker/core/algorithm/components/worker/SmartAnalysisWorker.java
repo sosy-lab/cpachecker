@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.Messag
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.UpdatedTypeMap;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.java_smt.api.SolverException;
 
 public class SmartAnalysisWorker extends AnalysisWorker {
 
@@ -46,7 +47,7 @@ public class SmartAnalysisWorker extends AnalysisWorker {
   }
 
   @Override
-  public Message nextMessage() throws InterruptedException {
+  public Message nextMessage() throws InterruptedException, SolverException {
     if (!smartQueue.isEmpty()) {
       return smartQueue.take();
     }

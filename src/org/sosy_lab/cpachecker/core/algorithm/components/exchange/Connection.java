@@ -10,9 +10,12 @@ package org.sosy_lab.cpachecker.core.algorithm.components.exchange;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.Collection;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageType;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 
-public interface Connection extends Closeable {
+public interface Connection extends Closeable, StatisticsProvider {
 
   /**
    * Wait for an incoming Message and return it.
@@ -68,4 +71,8 @@ public interface Connection extends Closeable {
    */
   void write(Message message) throws IOException, InterruptedException;
 
+  @Override
+  default void collectStatistics(Collection<Statistics> statsCollection) {
+
+  }
 }

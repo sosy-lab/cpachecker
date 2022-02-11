@@ -15,6 +15,7 @@ import org.sosy_lab.cpachecker.core.algorithm.components.exchange.CleverMessageQ
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageType;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 
 public class NetworkConnection implements Connection {
 
@@ -60,5 +61,10 @@ public class NetworkConnection implements Connection {
   @Override
   public void close() throws IOException {
     receiver.close();
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> statsCollection) {
+    sender.stream().findFirst().orElseThrow().collectStatistics(statsCollection);
   }
 }

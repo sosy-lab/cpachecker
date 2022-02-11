@@ -84,9 +84,14 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
     PredicateAbstractState state = ((PredicateAbstractState) pState);
     PathFormula pathFormula;
     if (state.isAbstractionState()) {
-      pathFormula =
-          pmgr.makeEmptyPathFormulaWithContextFrom(state.getAbstractionFormula().getBlockFormula());
-      pathFormula = pmgr.makeAnd(pathFormula, state.getAbstractionFormula().asFormula());
+      if (state.getAbstractionFormula().isTrue()) {
+        pathFormula = state.getAbstractionFormula().getBlockFormula();
+      } else {
+        pathFormula =
+            pmgr.makeEmptyPathFormulaWithContextFrom(
+                state.getAbstractionFormula().getBlockFormula());
+        pathFormula = pmgr.makeAnd(pathFormula, state.getAbstractionFormula().asFormula());
+      }
     } else {
       pathFormula = state.getPathFormula();
     }
@@ -186,7 +191,8 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
   }
 
   @Override
-  public MessageProcessing proceedForward(Message message) {
+  public MessageProcessing proceedForward(Message message)
+      throws InterruptedException, SolverException {
     Preconditions.checkArgument(message.getType() == MessageType.BLOCK_POSTCONDITION,
         "can only process messages with type %s", MessageType.BLOCK_POSTCONDITION);
     Optional<CFANode> optionalCFANode = block.getNodesInBlock().stream()
@@ -196,6 +202,10 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
     }
     CFANode node = optionalCFANode.orElseThrow();
     if (!node.equals(block.getStartNode())) {
+      return MessageProcessing.stop();
+    }
+    PredicateAbstractState state = (PredicateAbstractState) deserialize(message);
+    if (getSolver().isUnsat(state.getPathFormula().getFormula())) {
       return MessageProcessing.stop();
     }
     receivedPostConditions.put(message.getUniqueBlockId(), message);

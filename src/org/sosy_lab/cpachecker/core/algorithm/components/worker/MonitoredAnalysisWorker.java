@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.UpdatedTypeMap;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.java_smt.api.SolverException;
 
 public class MonitoredAnalysisWorker extends AnalysisWorker {
 
@@ -46,7 +47,7 @@ public class MonitoredAnalysisWorker extends AnalysisWorker {
   }
 
   @Override
-  public Message nextMessage() throws InterruptedException {
+  public Message nextMessage() throws InterruptedException, SolverException {
     Message next = super.nextMessage();
     monitor.blockAcquire(block);
     return next;

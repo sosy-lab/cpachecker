@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.components.decomposition;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -17,7 +15,9 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.builder.ReferencedVariablesCollector;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -54,7 +54,8 @@ public class BlockNode {
       @NonNull CFANode pStartNode,
       @NonNull CFANode pLastNode,
       @NonNull Set<CFANode> pNodesInBlock,
-      @NonNull Set<CFAEdge> pEdgesInBlock) {
+      @NonNull Set<CFAEdge> pEdgesInBlock,
+      @NonNull Map<Integer, CFANode> pIdToNodeMap) {
     // pNodesInBlock is a set allowing to represent branches.
     if (!pNodesInBlock.contains(pStartNode) || !pNodesInBlock.contains(pLastNode)) {
       throw new AssertionError(
@@ -77,16 +78,10 @@ public class BlockNode {
 
     nodesInBlock = new LinkedHashSet<>(pNodesInBlock);
     edgesInBlock = new LinkedHashSet<>(pEdgesInBlock);
-    idToNodeMap = generateIdToNodeMap(nodesInBlock);
+    idToNodeMap = pIdToNodeMap;
     id = pId;
 
     code = computeCode();
-  }
-
-  private ImmutableMap<Integer, CFANode> generateIdToNodeMap(Set<CFANode> nodes) {
-    Map<Integer, CFANode> nodeMap = new HashMap<>();
-    nodes.forEach(n -> nodeMap.put(n.getNodeNumber(), n));
-    return ImmutableMap.copyOf(nodeMap);
   }
 
   public CFANode getNodeWithNumber(int number) {
@@ -113,20 +108,17 @@ public class BlockNode {
   }
 
   public boolean isEmpty() {
-    return nodesInBlock.size() == 1;
+    return edgesInBlock.isEmpty();
   }
 
   private void linkSuccessor(BlockNode node) {
-    addSuccessors(node);
-    node.addPredecessors(this);
+    successors.add(node);
+    node.predecessors.add(this);
   }
 
-  private void addPredecessors(BlockNode... pred) {
-    predecessors.addAll(ImmutableList.copyOf(pred));
-  }
-
-  private void addSuccessors(BlockNode... succ) {
-    successors.addAll(ImmutableList.copyOf(succ));
+  private void unlinkSuccessor(BlockNode pNodeSuccessor) {
+    successors.remove(pNodeSuccessor);
+    pNodeSuccessor.predecessors.remove(this);
   }
 
   public Set<BlockNode> getPredecessors() {
@@ -197,22 +189,35 @@ public class BlockNode {
   public static class BlockNodeFactory {
 
     private int blockCount;
+    private Map<Integer, CFANode> idToNodeMap;
+
+    public BlockNodeFactory(CFA pCfa) {
+      idToNodeMap = pCfa.getAllNodes().stream().collect(Collectors.toMap(n -> n.getNodeNumber(), n -> n));
+    }
 
     public BlockNode makeBlock(
         CFANode pStartNode,
         CFANode pEndNode,
         Set<CFANode> pNodesInBlock,
         Set<CFAEdge> pEdges) {
-      return new BlockNode("B" + blockCount++, pStartNode, pEndNode, pNodesInBlock, pEdges);
+      return new BlockNode("B" + blockCount++, pStartNode, pEndNode, pNodesInBlock, pEdges, new HashMap<>(idToNodeMap));
     }
 
     public void linkSuccessor(BlockNode pNode, BlockNode pNodeSuccessor) {
       pNode.linkSuccessor(pNodeSuccessor);
     }
 
+    public void unlinkSuccessor(BlockNode pNode, BlockNode pNodeSuccessor) {
+      pNode.unlinkSuccessor(pNodeSuccessor);
+    }
+
     public void removeNode(BlockNode pNode) {
       pNode.predecessors.forEach(p -> p.successors.remove(pNode));
       pNode.successors.forEach(p -> p.predecessors.remove(pNode));
+    }
+
+    public BlockNode copy(BlockNode pNode) {
+      return new BlockNode("B" + blockCount++, pNode.startNode, pNode.lastNode, pNode.nodesInBlock, pNode.edgesInBlock, new HashMap<>(idToNodeMap));
     }
 
   }

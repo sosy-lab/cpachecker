@@ -95,7 +95,7 @@ public class ResultWorker extends Worker {
     finished =
         messageReceived.size() == numWorkers
             && expectAnswer.values().stream().allMatch(i -> i == 0);
-    if (finished) {
+    if (finished && false) {
       return ImmutableSet.of(Message.newResultMessage(pMessage.getUniqueBlockId(), 0, Result.TRUE,
           new HashSet<>(Splitter.on(",")
               .splitToList(pMessage.getPayload().getOrDefault(Payload.VISITED, "")))));
