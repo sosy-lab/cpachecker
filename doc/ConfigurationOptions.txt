@@ -160,8 +160,12 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
+
+# Read config
+CompositeCPA.cpas = ""
 
 # Refiner that SlicingDelegatingRefiner should delegate to
 SlicingDelegatingRefiner.refiner = no default value
@@ -903,10 +907,13 @@ components.decompositionType = BLOCK_OPERATOR
   enum:     [BLOCK_OPERATOR, GIVEN_SIZE]
 
 # desired number of BlockNodes
-components.desiredNumberOfBlocks = 4
+components.desiredNumberOfBlocks = 10
 
 # maximal overall wall-time for parallel analysis
 components.maxWallTime = 15 * 60s
+
+# whether to spawn util worker
+components.spawnUtilWorkers = true
 
 # which worker to use
 components.workerType = DEFAULT
@@ -4686,3 +4693,12 @@ witness.validation.termination.terminatingStatements = "config/specification/Ter
 # When validating a violation witness, use this configuration file instead of
 # the current one.
 witness.validation.violation.config = no default value
+
+# whether analysis worker abstract at block entries or exits
+worker.abstractAtTargetLocation = false
+
+# whether analysis worker store circular post conditions
+worker.doStoreCircularPostConditions = false
+
+# forces the precondition of fault localization workers to be true
+worker.faultLocalizationPreconditionAlwaysTrue = false
