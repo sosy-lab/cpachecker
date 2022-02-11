@@ -8,12 +8,12 @@
 
 package org.sosy_lab.cpachecker.cpa.ucaTestcaseGen;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Optional;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
@@ -134,7 +134,7 @@ public class TestCaseGenTransferRelation extends SingleEdgeTransferRelation {
             }
           }
         }
-        testcaseStae.setAutomatonState(Optional.of(autoState));
+        testcaseStae.setAutomatonState(            java.util.Optional.of(autoState));
       }
     }
     return Collections.singleton(testcaseStae);

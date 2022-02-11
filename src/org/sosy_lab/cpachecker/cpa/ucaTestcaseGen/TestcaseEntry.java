@@ -8,10 +8,13 @@
 
 package org.sosy_lab.cpachecker.cpa.ucaTestcaseGen;
 
+import com.google.common.base.Optional;
+import java.io.Serializable;
 import java.util.Objects;
-import java.util.Optional;
 
-public class TestcaseEntry {
+public class TestcaseEntry implements Serializable {
+
+  private static final long serialVersionUID = -7715698130885655052L;
   private String value;
   private Optional<String> variable;
   private Optional<String> type;
@@ -49,10 +52,10 @@ public class TestcaseEntry {
     StringBuilder sb = new StringBuilder();
     sb.append("<input ");
     if (this.variable.isPresent()) {
-      sb.append(String.format("variable=\"%s\" ", variable.orElseThrow()));
+      sb.append(String.format("variable=\"%s\" ", variable.get()));
     }
     if (this.type.isPresent()) {
-      sb.append(String.format("type=\"%s\"", type.orElseThrow()));
+      sb.append(String.format("type=\"%s\"", type.get()));
     }
     sb.append(String.format(">%s</input>", value));
     return sb.toString();
