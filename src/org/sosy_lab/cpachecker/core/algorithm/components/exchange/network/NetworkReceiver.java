@@ -16,9 +16,12 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.CompressedMessageConverter;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageConverter;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageType;
 
@@ -39,7 +42,7 @@ public class NetworkReceiver implements Closeable {
   ) throws IOException {
     listenAddress = pAddress;
     sharedQueue = pSharedQueue;
-    converter = new MessageConverter();
+    converter = new CompressedMessageConverter();
     selector = Selector.open();
     ServerSocketChannel serverChannel = ServerSocketChannel.open();
     serverChannel.configureBlocking(false);
@@ -120,14 +123,16 @@ public class NetworkReceiver implements Closeable {
         return false;
       }
 
-      StringBuilder builder = new StringBuilder();
+      List<Byte> readBytes = new ArrayList<>();
 
       do {
         if (numRead > 0) {
           buffer.flip();
           byte[] read = new byte[numRead];
           buffer.get(read, 0, numRead);
-          builder.append(new String(read));
+          for (byte b : read) {
+            readBytes.add(b);
+          }
           buffer.compact();
         }
         if (numRead != BUFFER_SIZE) {
@@ -136,7 +141,11 @@ public class NetworkReceiver implements Closeable {
         numRead = channel.read(buffer);
       } while (true);
 
-      Message received = converter.jsonToMessage(builder.toString());
+      byte[] bytes = new byte[readBytes.size()];
+      for (int i = 0; i < readBytes.size(); i++) {
+        bytes[i] = readBytes.get(i);
+      }
+      Message received = converter.jsonToMessage(bytes);
       sharedQueue.add(received);
       return received.getType() == MessageType.FOUND_RESULT;
     } catch (Exception pE) {

@@ -26,9 +26,12 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.Set;
+import java.util.zip.DataFormatException;
 import java.util.zip.Deflater;
 import java.util.zip.Inflater;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -218,12 +221,12 @@ public class Message implements Comparable<Message> {
       mapper.registerModule(deserializer);
     }
 
-    public String messageToJson(Message pMessage) throws JsonProcessingException {
-      return mapper.writeValueAsString(pMessage).replace("\n", " ");
+    public byte[] messageToJson(Message pMessage) throws JsonProcessingException {
+      return mapper.writeValueAsString(pMessage).replace("\n", " ").getBytes(StandardCharsets.UTF_8);
     }
 
-    public Message jsonToMessage(String pJSON) throws JsonProcessingException {
-      return mapper.readValue(pJSON, Message.class);
+    public Message jsonToMessage(byte[] pBytes) throws JsonProcessingException {
+      return mapper.readValue(new String(pBytes, StandardCharsets.UTF_8), Message.class);
     }
 
   }
@@ -232,6 +235,61 @@ public class Message implements Comparable<Message> {
 
     public CompressedMessageConverter() {
       super();
+    }
+
+    @Override
+    public byte[] messageToJson(Message pMessage) throws JsonProcessingException {
+      byte[] toCompress = super.messageToJson(pMessage);
+      byte[] output = new byte[toCompress.length * 2];
+      //Compresses the data
+      Deflater deflater = new Deflater();
+      deflater.setInput(toCompress);
+      deflater.finish();
+      int compressedSize = deflater.deflate(output);
+
+      byte[] prefix = ("c" + toCompress.length + " ").getBytes(StandardCharsets.UTF_8);
+      byte[] toSend = new byte[prefix.length + compressedSize];
+
+      int i = 0;
+      for (byte b : prefix) {
+        toSend[i] = b;
+        i++;
+      }
+      for (int j = 0; j < compressedSize; j++) {
+        toSend[i] = output[j];
+        i++;
+      }
+
+      return toSend;
+    }
+
+    @Override
+    public Message jsonToMessage(byte[] pBytes) throws JsonProcessingException {
+      // if not compressed do default
+      try {
+        int split = 0;
+        byte[] curr = new byte[pBytes.length];
+        String currString = "";
+        for (byte aByte : pBytes) {
+          curr[split] = aByte;
+          split++;
+          currString = StandardCharsets.UTF_8.decode(ByteBuffer.wrap(Arrays.copyOfRange(curr, 0, split))).toString();
+          if (currString.startsWith("c") && currString.endsWith(" ")) {
+            break;
+          }
+        }
+        int size = Integer.parseInt(currString.trim().substring(1));
+        byte[] toDecompress = Arrays.copyOfRange(pBytes, split, pBytes.length);
+
+        Inflater i = new Inflater();
+        ByteBuffer buffer = ByteBuffer.allocate(size);
+        i.setInput(toDecompress);
+        int org_size = i.inflate(buffer);
+        assert org_size == size : "Data lost";
+        return super.jsonToMessage(buffer.array());
+      } catch (DataFormatException e) {
+        throw new AssertionError("Cannot decompress message: " + Arrays.toString(pBytes));
+      }
     }
 
   }

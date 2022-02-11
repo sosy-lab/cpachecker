@@ -13,6 +13,7 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.CompressedMessageConverter;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageConverter;
 
 public class NetworkSender {
@@ -25,14 +26,13 @@ public class NetworkSender {
   }
 
   public NetworkSender(InetSocketAddress pAddress) throws IOException {
-    converter = new MessageConverter();
+    converter = new CompressedMessageConverter();
     address = pAddress;
   }
 
   public void send(Message pMessage) throws IOException {
     SocketChannel client = SocketChannel.open(address);
-    String json = converter.messageToJson(pMessage);
-    byte[] message = json.getBytes();
+    byte[] message = converter.messageToJson(pMessage);
     ByteBuffer buffer = ByteBuffer.wrap(message);
     client.write(buffer);
     client.close();
