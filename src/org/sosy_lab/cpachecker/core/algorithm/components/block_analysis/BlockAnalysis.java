@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.cpa.block.BlockTransferRelation;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -184,8 +185,8 @@ public abstract class BlockAnalysis {
 
     // find all target states in block, except target states that are only reachable from another target state
     while (reachedSet.hasWaitingState()) {
-      AbstractStates.getTargetStates(reachedSet).forEach(reachedSet::removeOnlyFromWaitlist);
       status = status.update(algorithm.run(reachedSet));
+      AbstractStates.getTargetStates(reachedSet).forEach(reachedSet::removeOnlyFromWaitlist);
     }
 
     return from(reachedSet).filter(AbstractStates::isTargetState)
@@ -287,6 +288,7 @@ public abstract class BlockAnalysis {
                 result, messages.size() == block.getPredecessors().size() && messages.stream()
                     .allMatch(m -> Boolean.parseBoolean(m.getPayload().get(Payload.FULL_PATH))),
                 visitedBlocks(messages));
+        distributedCompositeCPA.setLatestOwnPostConditionMessage(response);
         answers.add(response);
       }
       return answers;
@@ -349,7 +351,7 @@ public abstract class BlockAnalysis {
       if (states.isEmpty()) {
         // should only happen if abstraction is activated
         logger.log(Level.SEVERE, "Cannot reach block start?", reachedSet);
-        return ImmutableSet.of(Message.newErrorConditionUnreachableMessage(block.getId()));
+        return ImmutableSet.of(Message.newErrorConditionUnreachableMessage(block.getId(), "backwards analysis cannot reach target at block entry"));
       }
       Payload payload = distributedCompositeCPA.serialize(distributedCompositeCPA.combine(states));
       payload = Payload.builder().putAll(payload).addEntry(Payload.STATUS,

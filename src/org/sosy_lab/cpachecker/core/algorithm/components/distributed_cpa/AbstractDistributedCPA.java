@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.components.distributed_cpa;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
@@ -37,6 +38,11 @@ public abstract class AbstractDistributedCPA implements ConfigurableProgramAnaly
   protected Message firstMessage;
   protected Precision precision;
 
+  protected final ConcurrentHashMap<String, Message> receivedErrorConditions;
+  protected final ConcurrentHashMap<String, Message> receivedPostConditions;
+
+  protected Message latestOwnPostConditionMessage;
+
   public AbstractDistributedCPA(
       String pId,
       BlockNode pNode,
@@ -49,6 +55,9 @@ public abstract class AbstractDistributedCPA implements ConfigurableProgramAnaly
     direction = pDirection;
     id = pId;
     precision = pPrecision;
+
+    receivedErrorConditions = new ConcurrentHashMap<>();
+    receivedPostConditions = new ConcurrentHashMap<>();
   }
 
   public abstract AbstractState deserialize(Message pPayload)
@@ -138,7 +147,28 @@ public abstract class AbstractDistributedCPA implements ConfigurableProgramAnaly
     return parentCPA.getInitialState(node, partition);
   }
 
+  public void synchronizeKnowledge(AbstractDistributedCPA pDCPA) {
+    assert pDCPA.getClass().equals(getClass()) :
+        "Can only synchronize knowledge between equal classes of DCPAs but got " + pDCPA.getClass()
+            + " and " + getClass();
+    assert pDCPA.direction != direction
+        : "Can only exchange data from DCPAs operating in distinct directions (cannot override values)";
+    if (direction == AnalysisDirection.FORWARD) {
+      receivedErrorConditions.clear();
+      receivedErrorConditions.putAll(pDCPA.receivedErrorConditions);
+    }
+    if (direction == AnalysisDirection.BACKWARD) {
+      receivedPostConditions.clear();
+      receivedPostConditions.putAll(pDCPA.receivedPostConditions);
+      latestOwnPostConditionMessage = pDCPA.latestOwnPostConditionMessage;
+    }
+  }
+
   public CFANode getStartNode() {
     return direction == AnalysisDirection.FORWARD ? block.getStartNode() : block.getLastNode();
+  }
+
+  public void setLatestOwnPostConditionMessage(Message m) {
+    latestOwnPostConditionMessage = m;
   }
 }

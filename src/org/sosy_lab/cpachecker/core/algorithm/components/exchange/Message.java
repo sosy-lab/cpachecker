@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.BooleanFormula;
 
 /**
  * Immutable communication entity for the actor model
@@ -123,8 +124,8 @@ public class Message implements Comparable<Message> {
         newPayload);
   }
 
-  public static Message newErrorConditionUnreachableMessage(String pUniqueBlockId) {
-    return new Message(MessageType.ERROR_CONDITION_UNREACHABLE, pUniqueBlockId, 0, Payload.empty());
+  public static Message newErrorConditionUnreachableMessage(String pUniqueBlockId, String denied) {
+    return new Message(MessageType.ERROR_CONDITION_UNREACHABLE, pUniqueBlockId, 0, Payload.builder().addEntry(Payload.REASON, denied).build());
   }
 
   public static Message newResultMessage(

@@ -131,6 +131,7 @@ public class AnalysisWorker extends Worker {
   // return post condition
   private Collection<Message> forwardAnalysis(Collection<Message> pPostConditionMessages)
       throws CPAException, InterruptedException, SolverException {
+    forwardAnalysis.getDistributedCPA().synchronizeKnowledge(backwardAnalysis.getDistributedCPA());
     return forwardAnalysis.analyze(pPostConditionMessages);
   }
 
@@ -138,6 +139,7 @@ public class AnalysisWorker extends Worker {
   protected Collection<Message> backwardAnalysis(MessageProcessing pMessageProcessing)
       throws CPAException, InterruptedException, SolverException {
     assert pMessageProcessing.size() == 1 : "BackwardAnalysis can only be based on one message";
+    backwardAnalysis.getDistributedCPA().synchronizeKnowledge(forwardAnalysis.getDistributedCPA());
     return backwardAnalysis.analyze(pMessageProcessing);
   }
 
@@ -152,6 +154,7 @@ public class AnalysisWorker extends Worker {
           Message message = initialMessages.get(0);
           if (message.getType() == MessageType.BLOCK_POSTCONDITION) {
             forwardAnalysis.getDistributedCPA().setFirstMessage(message);
+            backwardAnalysis.getDistributedCPA().setFirstMessage(message);
           }
         }
         broadcast(initialMessages);

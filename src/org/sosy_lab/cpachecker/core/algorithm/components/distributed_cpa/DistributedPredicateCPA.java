@@ -46,13 +46,9 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 public class DistributedPredicateCPA extends AbstractDistributedCPA {
 
-  private final ConcurrentHashMap<String, Message> receivedErrorConditions;
-  private final ConcurrentHashMap<String, Message> receivedPostConditions;
   private final ConcurrentHashMap<String, Boolean> circularPredecessors;
   private final Map<Formula, Formula> substitutions;
   private int executionCounter;
-
-  private Message lastOwnPostConditionMessage;
 
   public DistributedPredicateCPA(
       String pWorkerId,
@@ -62,8 +58,6 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
       AnalysisDirection pDirection) throws
                                     CPAException {
     super(pWorkerId, pNode, pTypeMap, pPrecision, pDirection);
-    receivedErrorConditions = new ConcurrentHashMap<>();
-    receivedPostConditions = new ConcurrentHashMap<>();
     circularPredecessors = new ConcurrentHashMap<>();
     substitutions = new HashMap<>();
   }
@@ -140,21 +134,23 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
       BooleanFormula messageFormula = fmgr.parse(extractFormulaString(message.getPayload()));
       if (solver.isUnsat(messageFormula)) {
         return MessageProcessing.stopWith(
-            Message.newErrorConditionUnreachableMessage(block.getId()));
+            Message.newErrorConditionUnreachableMessage(block.getId(), "unsat-formula: " + messageFormula.toString()));
       }
       if (receivedPostConditions.size() == block.getPredecessors().size()) {
-        if (lastOwnPostConditionMessage != null) {
-          if (solver.isUnsat(fmgr.getBooleanFormulaManager().and(messageFormula,
-              fmgr.parse(extractFormulaString(lastOwnPostConditionMessage.getPayload()))))) {
+        if (latestOwnPostConditionMessage != null) {
+          BooleanFormula check = fmgr.getBooleanFormulaManager().and(messageFormula,
+              fmgr.parse(extractFormulaString(latestOwnPostConditionMessage.getPayload())));
+          if (solver.isUnsat(check)) {
             return MessageProcessing.stopWith(
-                Message.newErrorConditionUnreachableMessage(block.getId()));
+                Message.newErrorConditionUnreachableMessage(block.getId(), "unsat-with-last-post: " + check));
           }
         }
         if (firstMessage != null) {
-          if (solver.isUnsat(fmgr.getBooleanFormulaManager()
-              .and(messageFormula, fmgr.parse(extractFormulaString(firstMessage.getPayload()))))) {
+          BooleanFormula check = fmgr.getBooleanFormulaManager()
+              .and(messageFormula, fmgr.parse(extractFormulaString(firstMessage.getPayload())));
+          if (solver.isUnsat(check)) {
             return MessageProcessing.stopWith(
-                Message.newErrorConditionUnreachableMessage(block.getId()));
+                Message.newErrorConditionUnreachableMessage(block.getId(), "unsat-with-first-post: " + check));
           }
         }
       }
@@ -170,7 +166,7 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
 
   @Override
   public void setFirstMessage(Message pFirstMessage) {
-    lastOwnPostConditionMessage = pFirstMessage;
+    latestOwnPostConditionMessage = pFirstMessage;
     super.setFirstMessage(pFirstMessage);
   }
 
@@ -287,6 +283,15 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
     return manager.makeAnd(manager.makeEmptyPathFormulaWithContext(ssaMapFinal,
             PointerTargetSet.emptyPointerTargetSet()),
         fmgr.uninstantiate(fmgr.substitute(booleanFormula, substitutions)));
+  }
+
+  @Override
+  public void synchronizeKnowledge(AbstractDistributedCPA pDCPA) {
+    super.synchronizeKnowledge(pDCPA);
+    if (direction == AnalysisDirection.BACKWARD) {
+      DistributedPredicateCPA predicate = (DistributedPredicateCPA) pDCPA;
+      latestOwnPostConditionMessage = predicate.latestOwnPostConditionMessage;
+    }
   }
 
 }

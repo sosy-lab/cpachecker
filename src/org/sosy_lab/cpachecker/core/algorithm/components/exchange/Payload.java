@@ -28,6 +28,7 @@ public class Payload extends ForwardingMap<String, String> {
   public static final String FAULT_LOCALIZATION = "fl";
   public static final String VISITED = "visited";
   public static final String STATUS = "status";
+  public static final String REASON = "reason";
 
   private final Map<String, String> delegate;
 

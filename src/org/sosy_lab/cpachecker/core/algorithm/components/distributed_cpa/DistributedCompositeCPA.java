@@ -12,6 +12,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
@@ -175,6 +176,17 @@ public class DistributedCompositeCPA extends AbstractDistributedCPA {
   }
 
   @Override
+  public void synchronizeKnowledge(AbstractDistributedCPA pDCPA) {
+    super.synchronizeKnowledge(pDCPA);
+    DistributedCompositeCPA distributed = (DistributedCompositeCPA) pDCPA;
+    for (Entry<Class<? extends ConfigurableProgramAnalysis>, AbstractDistributedCPA> entry : registered.entrySet()) {
+      if (distributed.registered.containsKey(entry.getKey())) {
+        entry.getValue().synchronizeKnowledge(distributed.registered.get(entry.getKey()));
+      }
+    }
+  }
+
+  @Override
   public void setFirstMessage(Message pFirstMessage) {
     registered.values().forEach(cpa -> cpa.setFirstMessage(pFirstMessage));
   }
@@ -182,5 +194,11 @@ public class DistributedCompositeCPA extends AbstractDistributedCPA {
   @Override
   public boolean doesOperateOn(Class<? extends AbstractState> pClass) {
     return pClass.equals(CompositeState.class);
+  }
+
+  @Override
+  public void setLatestOwnPostConditionMessage(Message m) {
+    super.setLatestOwnPostConditionMessage(m);
+    registered.values().forEach(dcpa -> dcpa.setLatestOwnPostConditionMessage(m));
   }
 }
