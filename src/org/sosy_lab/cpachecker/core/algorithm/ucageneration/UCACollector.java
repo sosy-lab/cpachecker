@@ -12,6 +12,7 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.arg.ARGUtils.getUncoveredChildrenView;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.io.IOException;
@@ -190,7 +191,7 @@ public class UCACollector {
       lastStates =
           potentialLastStates.stream()
               .filter(s -> hasNoSuccessor(s, relevantStates))
-              .collect(Collectors.toSet());
+              .collect(ImmutableSet.toImmutableSet());
     } else {
       lastStates = Sets.newHashSet((ARGState) reached.getLastState());
     }
