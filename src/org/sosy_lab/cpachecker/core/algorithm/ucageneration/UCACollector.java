@@ -372,7 +372,7 @@ public class UCACollector {
     // and the root node
 
     final ARGState argRoot = (ARGState) reached.getFirstState();
-    AutomatonState rootState = getWitnessAutomatonState(argRoot).get();
+    AutomatonState rootState = getWitnessAutomatonState(argRoot).orElseThrow();
 
     Set<UCAEdge> edgesToAdd = new HashSet<>();
 
@@ -388,7 +388,7 @@ public class UCACollector {
             String.format("Cannot export state %s, as no AutomatonState is present", s));
         continue;
       }
-      AutomatonState currentAutomatonState = automatonStateOpt.get();
+      AutomatonState currentAutomatonState = automatonStateOpt.orElseThrow();
       @Nullable ARGState argState = AbstractStates.extractStateByType(s, ARGState.class);
       if (Objects.isNull(argState)) {
         logger.log(
@@ -404,12 +404,12 @@ public class UCACollector {
         // If parent node has a automaton state and this is differnt to the one of the
         // child, add the child to statesWithNewAutomatonState
         if (parentAutomatonState.isPresent()
-            && !parentAutomatonState.get().equals(currentAutomatonState)
+            && !parentAutomatonState.orElseThrow().equals(currentAutomatonState)
             && // automaton state is not already present in  parentsWithOtherAutomatonState
             parentsWithOtherAutomatonState.stream()
                 .map(pair -> pair.getSecond())
-                .noneMatch(state -> state.equals(parentAutomatonState.get()))) {
-          parentsWithOtherAutomatonState.add(Pair.of(parent, parentAutomatonState.get()));
+                .noneMatch(state -> state.equals(parentAutomatonState.orElseThrow()))) {
+          parentsWithOtherAutomatonState.add(Pair.of(parent, parentAutomatonState.orElseThrow()));
         }
       }
       if (!parentsWithOtherAutomatonState.isEmpty()) {
@@ -450,8 +450,8 @@ public class UCACollector {
                 })
             .stream()
             .findFirst();
-    if (target.isPresent() && target.get() instanceof AutomatonState) {
-      return Optional.of((AutomatonState) target.get());
+    if (target.isPresent() && target.orElseThrow() instanceof AutomatonState) {
+      return Optional.of((AutomatonState) target.orElseThrow());
     }
     return Optional.empty();
   }
@@ -574,7 +574,7 @@ public class UCACollector {
     }
 
     public String getTargetName() {
-      return this.target.isPresent() ? getName(target.get()) : NAME_OF_TEMP_STATE;
+      return this.target.isPresent() ? getName(target.orElseThrow()) : NAME_OF_TEMP_STATE;
     }
 
     public AutomatonState getSource() {

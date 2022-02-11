@@ -278,7 +278,7 @@ public class UCAGenerationTest {
       spec = specificationFileForWitnesses;
     }
     if (witness.isPresent()) {
-      spec = String.format("%s,%s", spec, witness.get());
+      spec = String.format("%s,%s", spec, witness.orElseThrow());
     } else if (pGenerationConfig == UCAGenerationConfig.UCA2VIOWIT) {
       spec = "";
     }
@@ -623,7 +623,7 @@ public class UCAGenerationTest {
             testcase,
             witness,
             optionForOutput,
-            pathTemplate.get());
+            pathTemplate.orElseThrow());
       } else {
         UCAGenerationTest.performTest(
             programFile,
