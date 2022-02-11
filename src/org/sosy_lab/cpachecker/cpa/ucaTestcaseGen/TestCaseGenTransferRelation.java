@@ -47,7 +47,7 @@ public class TestCaseGenTransferRelation extends SingleEdgeTransferRelation {
       secure = true,
       description = "Filename format for Testcase TEST-COMP output dumps")
   @FileOption(Type.OUTPUT_FILE)
-  private final PathTemplate exportPath = PathTemplate.ofFormatString("output/testcase-%d.xml");
+  private PathTemplate exportPath = PathTemplate.ofFormatString("output/testcase-%d.xml");
 
   int numberOfTestcases =0;
 
