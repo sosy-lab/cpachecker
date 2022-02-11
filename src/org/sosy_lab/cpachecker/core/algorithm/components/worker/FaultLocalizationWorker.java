@@ -74,7 +74,7 @@ public class FaultLocalizationWorker extends AnalysisWorker {
 
   FaultLocalizationWorker(
       String pId,
-      WorkerOptions pOptions,
+      AnalysisOptions pOptions,
       BlockNode pBlock,
       LogManager pLogger,
       CFA pCFA,
@@ -217,7 +217,7 @@ public class FaultLocalizationWorker extends AnalysisWorker {
       intId++;
     }
     BooleanFormula precondition = bmgr.makeTrue();
-    if (!workerOptions.faultLocalizationPreconditionAlwaysTrue) {
+    if (!analysisOptions.isFaultLocalizationPreconditionAlwaysTrue()) {
       Map<String, Integer> minimalIndices = new HashMap<>();
       Map<String, BooleanFormula> minimalFormulas = new HashMap<>();
       try (ProverEnvironment prover = predicateCPA.getSolver()

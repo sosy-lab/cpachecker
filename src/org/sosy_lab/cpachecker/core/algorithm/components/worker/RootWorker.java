@@ -41,7 +41,7 @@ public class RootWorker extends Worker {
 
   public RootWorker(
       String pId,
-      WorkerOptions pOptions,
+      AnalysisOptions pOptions,
       BlockNode pNode,
       LogManager pLogger,
       CFA pCfa,

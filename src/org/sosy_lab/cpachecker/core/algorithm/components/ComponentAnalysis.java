@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockOperatorDecomposer;
-import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockOperatorDecomposer2;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockTree;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.CFADecomposer;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.GivenSizeDecomposer;
@@ -52,7 +51,7 @@ import org.sosy_lab.cpachecker.core.algorithm.components.worker.ComponentsBuilde
 import org.sosy_lab.cpachecker.core.algorithm.components.worker.FaultLocalizationWorker;
 import org.sosy_lab.cpachecker.core.algorithm.components.worker.RootWorker;
 import org.sosy_lab.cpachecker.core.algorithm.components.worker.Worker;
-import org.sosy_lab.cpachecker.core.algorithm.components.worker.Worker.WorkerOptions;
+import org.sosy_lab.cpachecker.core.algorithm.components.worker.AnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -75,7 +74,7 @@ public class ComponentAnalysis implements Algorithm, StatisticsProvider, Statist
   private final CFA cfa;
   private final ShutdownManager shutdownManager;
   private final Specification specification;
-  private final WorkerOptions options;
+  private final AnalysisOptions options;
 
   private Connection mainThreadConnection;
   private Worker rootWorker;
@@ -130,7 +129,7 @@ public class ComponentAnalysis implements Algorithm, StatisticsProvider, Statist
     cfa = pCfa;
     shutdownManager = pShutdownManager;
     specification = pSpecification;
-    options = new WorkerOptions(configuration);
+    options = new AnalysisOptions(configuration);
     checkConfig();
   }
 

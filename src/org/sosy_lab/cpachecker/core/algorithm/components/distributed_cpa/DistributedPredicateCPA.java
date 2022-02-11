@@ -10,9 +10,8 @@ package org.sosy_lab.cpachecker.core.algorithm.components.distributed_cpa;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableList;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -27,6 +26,7 @@ import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Payload;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.UpdatedTypeMap;
+import org.sosy_lab.cpachecker.core.algorithm.components.worker.AnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -47,8 +47,8 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 public class DistributedPredicateCPA extends AbstractDistributedCPA {
 
-  private final ConcurrentHashMap<String, Boolean> circularPredecessors;
   private final Map<Formula, Formula> substitutions;
+  private final Set<String> circular;
   private int executionCounter;
 
   public DistributedPredicateCPA(
@@ -56,11 +56,12 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
       BlockNode pNode,
       UpdatedTypeMap pTypeMap,
       Precision pPrecision,
-      AnalysisDirection pDirection) throws
+      AnalysisDirection pDirection,
+      AnalysisOptions pOptions) throws
                                     CPAException {
-    super(pWorkerId, pNode, pTypeMap, pPrecision, pDirection);
-    circularPredecessors = new ConcurrentHashMap<>();
+    super(pWorkerId, pNode, pTypeMap, pPrecision, pDirection, pOptions);
     substitutions = new HashMap<>();
+    circular = Collections.newSetFromMap(new ConcurrentHashMap<>());
   }
 
   public Map<Formula, Formula> getSubstitutions() {
@@ -138,7 +139,7 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
       if (solver.isUnsat(messageFormula)) {
         return MessageProcessing.stopWith(
             Message.newErrorConditionUnreachableMessage(block.getId(),
-                "unsat-formula: " + messageFormula.toString()));
+                "unsat-formula: " + messageFormula));
       }
       if (receivedPostConditions.size() == block.getPredecessors().size()) {
         if (latestOwnPostConditionMessage != null) {
@@ -208,19 +209,27 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
     if (getSolver().isUnsat(state.getPathFormula().getFormula())) {
       return MessageProcessing.stop();
     }
-    receivedPostConditions.put(message.getUniqueBlockId(), message);
-    Set<String> visited = new HashSet<>(
-        Splitter.on(",").splitToList(message.getPayload().getOrDefault(Payload.VISITED, "")));
-    if (visited.contains(block.getId())) {
-      circularPredecessors.put(message.getUniqueBlockId(), visited.contains("B0"));
-    }
-    if (receivedPostConditions.values().size() == block.getPredecessors().size()) {
-      List<Message> messages = receivedPostConditions.values().stream()
-          .filter(m -> circularPredecessors.getOrDefault(m.getUniqueBlockId(), true)).collect(
-              ImmutableList.toImmutableList());
-      return MessageProcessing.proceedWith(messages);
+    storePostCondition(message);
+    if (receivedPostConditions.size() == block.getPredecessors().size()
+        || receivedPostConditions.size() == circular.size() + block.getPredecessors().size()) {
+      return MessageProcessing.proceedWith(receivedPostConditions.values());
     } else {
-      return MessageProcessing.proceed();
+      // would equal initial message
+      return MessageProcessing.stop();
+    }
+  }
+
+  private void storePostCondition(Message pMessage) {
+    Payload payload = pMessage.getPayload();
+    if (analysisOptions.doStoreCircularPostConditions() && Splitter.on(",")
+        .splitToList(payload.getOrDefault(Payload.VISITED, "")).stream()
+        .anyMatch(s -> s.equals(block.getId()))) {
+      if (Boolean.parseBoolean(payload.get(Payload.FULL_PATH))) {
+        receivedPostConditions.put(pMessage.getUniqueBlockId(), pMessage);
+      }
+      circular.add(pMessage.getUniqueBlockId());
+    } else {
+      receivedPostConditions.put(pMessage.getUniqueBlockId(), pMessage);
     }
   }
 

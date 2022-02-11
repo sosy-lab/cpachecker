@@ -13,10 +13,6 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.logging.Level;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
@@ -30,26 +26,12 @@ public abstract class Worker implements Runnable, StatisticsProvider {
 
   protected final LogManager logger;
   protected final String id;
-  protected final WorkerOptions workerOptions;
+  protected final AnalysisOptions analysisOptions;
 
   protected Connection connection;
   protected boolean finished;
 
   protected final static WorkerStatistics stats = new WorkerStatistics();
-
-  @Options(prefix = "worker")
-  public static class WorkerOptions {
-
-    @Option(description = "forces the precondition of fault localization workers to be true")
-    boolean faultLocalizationPreconditionAlwaysTrue = false;
-
-    @Option(description = "whether analysis worker abstract at block entries or exits")
-    boolean abstractAtTargetLocation = false;
-
-    public WorkerOptions(Configuration pConfig) throws InvalidConfigurationException {
-      pConfig.inject(this);
-    }
-  }
 
   /**
    * Abstract definition of a Worker.
@@ -58,10 +40,10 @@ public abstract class Worker implements Runnable, StatisticsProvider {
    * @param pId     the id of the worker
    * @param pLogger a logger to log messages
    */
-  protected Worker(String pId, LogManager pLogger, WorkerOptions pOptions) {
+  protected Worker(String pId, LogManager pLogger, AnalysisOptions pOptions) {
     logger = pLogger;
     id = pId;
-    workerOptions = pOptions;
+    analysisOptions = pOptions;
   }
 
   /**
@@ -82,7 +64,7 @@ public abstract class Worker implements Runnable, StatisticsProvider {
   public void broadcast(Collection<Message> pMessage) throws IOException, InterruptedException {
     Objects.requireNonNull(connection, "Connection cannot be null.");
     pMessage.forEach(m -> {
-      logger.log(Level.ALL, m);
+      logger.log(Level.INFO, m);
       stats.sentMessages.inc();
     });
     for (Message message : pMessage) {
@@ -98,7 +80,7 @@ public abstract class Worker implements Runnable, StatisticsProvider {
         finished |= Thread.currentThread().isInterrupted();
       }
     } catch (CPAException | InterruptedException | IOException | SolverException pE) {
-      logger.log(Level.SEVERE, pE);
+      // throw new AssertionError(pE);
       try {
         // result unknown if error occurs
         broadcast(ImmutableList.of(Message.newErrorMessage(getId(), pE)));

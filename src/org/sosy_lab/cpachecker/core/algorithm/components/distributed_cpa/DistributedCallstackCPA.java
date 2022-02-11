@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Payload;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.UpdatedTypeMap;
+import org.sosy_lab.cpachecker.core.algorithm.components.worker.AnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -35,8 +36,9 @@ public class DistributedCallstackCPA extends AbstractDistributedCPA {
       BlockNode pNode,
       UpdatedTypeMap pTypeMap,
       Precision pPrecision,
-      AnalysisDirection pDirection) throws CPAException {
-    super(pId, pNode, pTypeMap, pPrecision, pDirection);
+      AnalysisDirection pDirection,
+      AnalysisOptions pOptions) throws CPAException {
+    super(pId, pNode, pTypeMap, pPrecision, pDirection, pOptions);
   }
 
   @Override

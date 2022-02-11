@@ -32,7 +32,7 @@ public class SmartAnalysisWorker extends AnalysisWorker {
 
   SmartAnalysisWorker(
       String pId,
-      WorkerOptions pOptions,
+      AnalysisOptions pOptions,
       BlockNode pBlock,
       LogManager pLogger,
       CFA pCFA,

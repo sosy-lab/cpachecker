@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.components.distributed_cpa;
 
-import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,6 +21,7 @@ import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Payload;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Payload.PayloadBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.UpdatedTypeMap;
+import org.sosy_lab.cpachecker.core.algorithm.components.worker.AnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -43,9 +43,9 @@ public class DistributedCompositeCPA extends AbstractDistributedCPA {
 
   public DistributedCompositeCPA(
       String pId,
-      BlockNode pNode, UpdatedTypeMap pTypeMap, Precision pPrecision, AnalysisDirection pDirection)
+      BlockNode pNode, UpdatedTypeMap pTypeMap, Precision pPrecision, AnalysisDirection pDirection, AnalysisOptions pOptions)
       throws CPAException {
-    super(pId, pNode, pTypeMap, pPrecision, pDirection);
+    super(pId, pNode, pTypeMap, pPrecision, pDirection, pOptions);
     lookup = new ConcurrentHashMap<>();
     lookup.put(PredicateCPA.class, DistributedPredicateCPA.class);
     lookup.put(CallstackCPA.class, DistributedCallstackCPA.class);
@@ -97,8 +97,9 @@ public class DistributedCompositeCPA extends AbstractDistributedCPA {
     }
     AbstractDistributedCPA cpa =
         cpaClass.getConstructor(String.class, BlockNode.class, UpdatedTypeMap.class,
-            Precision.class,
-            AnalysisDirection.class).newInstance(id, block, typeMap, precision, direction);
+                Precision.class,
+                AnalysisDirection.class, AnalysisOptions.class)
+            .newInstance(id, block, typeMap, precision, direction, analysisOptions);
     registered.put(clazz, cpa);
   }
 

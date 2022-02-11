@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.components.distributed_cpa;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -18,6 +17,7 @@ import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Payload;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.UpdatedTypeMap;
+import org.sosy_lab.cpachecker.core.algorithm.components.worker.AnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -35,6 +35,7 @@ public abstract class AbstractDistributedCPA implements ConfigurableProgramAnaly
   protected final UpdatedTypeMap typeMap;
   protected final AnalysisDirection direction;
   protected final String id;
+  protected final AnalysisOptions analysisOptions;
   protected ConfigurableProgramAnalysis parentCPA;
   protected Message firstMessage;
   protected Precision precision;
@@ -49,13 +50,15 @@ public abstract class AbstractDistributedCPA implements ConfigurableProgramAnaly
       BlockNode pNode,
       UpdatedTypeMap pTypeMap,
       Precision pPrecision,
-      AnalysisDirection pDirection) throws
+      AnalysisDirection pDirection,
+      AnalysisOptions pOptions) throws
                                     CPAException {
     block = pNode;
     typeMap = pTypeMap;
     direction = pDirection;
     id = pId;
     precision = pPrecision;
+    analysisOptions = pOptions;
 
     receivedErrorConditions = new ConcurrentHashMap<>();
     receivedPostConditions = new ConcurrentHashMap<>();

@@ -30,7 +30,7 @@ public class MonitoredAnalysisWorker extends AnalysisWorker {
 
   MonitoredAnalysisWorker(
       String pId,
-      WorkerOptions pOptions,
+      AnalysisOptions pOptions,
       BlockNode pBlock,
       LogManager pLogger,
       CFA pCFA,

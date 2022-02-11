@@ -81,24 +81,28 @@ public class MessageLogger {
 
   public synchronized void log(Message pMessage)
       throws IOException, SolverException, InterruptedException {
-    if (entries.get(pMessage.getUniqueBlockId()) == null) {
-      return;
+    try {
+      if (entries.get(pMessage.getUniqueBlockId()) == null) {
+        return;
+      }
+      Map<String, Object> messageToJSON = new HashMap<>();
+      messageToJSON.put("type", pMessage.getType().name());
+      messageToJSON.put("timestamp", pMessage.getTimestamp());
+      messageToJSON.put("from", pMessage.getUniqueBlockId());
+      Payload p = pMessage.getPayload();
+      String message = p.get(PredicateCPA.class.getName());
+      if (message != null) {
+        p = Payload.builder().putAll(p).addEntry(PredicateCPA.class.getName(),
+            BooleanFormulaParser.parse(fmgr.parse(message)).toString()).build();
+      }
+      messageToJSON.put("payload", p.toJSONString());
+      entries.get(pMessage.getUniqueBlockId()).put("messages", messageToJSON);
+      Map<String, Map<String, Collection<Object>>> converted = new HashMap<>();
+      entries.forEach((k, v) -> converted.put(k, v.asMap()));
+      JSON.writeJSONString(converted, reportFile);
+    } catch (Exception e) {
+      // dont produce errors as analysis remains valid.
     }
-    Map<String, Object> messageToJSON = new HashMap<>();
-    messageToJSON.put("type", pMessage.getType().name());
-    messageToJSON.put("timestamp", pMessage.getTimestamp());
-    messageToJSON.put("from", pMessage.getUniqueBlockId());
-    Payload p = pMessage.getPayload();
-    String message = p.get(PredicateCPA.class.getName());
-    if (message != null) {
-      p = Payload.builder().putAll(p).addEntry(PredicateCPA.class.getName(),
-          BooleanFormulaParser.parse(fmgr.parse(message)).toString()).build();
-    }
-    messageToJSON.put("payload", p.toJSONString());
-    entries.get(pMessage.getUniqueBlockId()).put("messages", messageToJSON);
-    Map<String, Map<String, Collection<Object>>> converted = new HashMap<>();
-    entries.forEach((k, v) -> converted.put(k, v.asMap()));
-    JSON.writeJSONString(converted, reportFile);
   }
 
 }

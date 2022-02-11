@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -45,7 +46,7 @@ public class AnalysisWorker extends Worker {
 
   AnalysisWorker(
       String pId,
-      WorkerOptions pOptions,
+      AnalysisOptions pOptions,
       BlockNode pBlock,
       LogManager pLogger,
       CFA pCFA,
@@ -57,7 +58,7 @@ public class AnalysisWorker extends Worker {
     super("analysis-worker-" + pBlock.getId(), pLogger, pOptions);
     block = pBlock;
 
-    String withAbstraction = workerOptions.abstractAtTargetLocation ? "-with-abstraction" : "";
+    String withAbstraction = analysisOptions.doAbstractAtTargetLocations() ? "-with-abstraction" : "";
 
     Configuration fileConfig =
         Configuration.builder().loadFromFile(
@@ -155,8 +156,9 @@ public class AnalysisWorker extends Worker {
         List<Message> initialMessages = ImmutableList.copyOf(forwardAnalysis(ImmutableSet.of(
             Message.newBlockPostCondition("", block.getStartNode().getNodeNumber(), Payload.empty(),
                 false, ImmutableSet.of()))));
-        if (initialMessages.size() == 1) {
-          Message message = initialMessages.get(0);
+        Optional<Message> optionalMessage = initialMessages.stream().filter(m -> m.getType() == MessageType.BLOCK_POSTCONDITION).findAny();
+        if (optionalMessage.isPresent()) {
+          Message message = optionalMessage.orElseThrow();
           if (message.getType() == MessageType.BLOCK_POSTCONDITION) {
             forwardAnalysis.getDistributedCPA().setFirstMessage(message);
             backwardAnalysis.getDistributedCPA().setFirstMessage(message);

@@ -28,7 +28,7 @@ public class TimeoutWorker extends Worker {
   private final TimerTask task;
   private boolean shouldScheduleTimer;
 
-  protected TimeoutWorker(LogManager pLogger, TimeSpan pTimeSpan, WorkerOptions pOptions) {
+  protected TimeoutWorker(LogManager pLogger, TimeSpan pTimeSpan, AnalysisOptions pOptions) {
     super("timeout-worker", pLogger, pOptions);
     waitTime = pTimeSpan.asMillis();
     shouldScheduleTimer = true;
