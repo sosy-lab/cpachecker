@@ -907,7 +907,7 @@ components.decompositionType = BLOCK_OPERATOR
   enum:     [BLOCK_OPERATOR, GIVEN_SIZE]
 
 # desired number of BlockNodes
-components.desiredNumberOfBlocks = 10
+components.desiredNumberOfBlocks = 5
 
 # maximal overall wall-time for parallel analysis
 components.maxWallTime = 15 * 60s
