@@ -75,6 +75,7 @@ public class ResultWorker extends Worker {
         expectAnswer.merge(senderId, -1, Integer::sum);
         return response(pMessage);
       case FOUND_RESULT:
+        // fall through
       case ERROR:
         shutdown();
         return ImmutableSet.of();

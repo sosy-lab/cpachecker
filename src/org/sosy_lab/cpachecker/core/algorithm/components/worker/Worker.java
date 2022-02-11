@@ -64,7 +64,7 @@ public abstract class Worker implements Runnable, StatisticsProvider {
   public void broadcast(Collection<Message> pMessage) throws IOException, InterruptedException {
     Objects.requireNonNull(connection, "Connection cannot be null.");
     pMessage.forEach(m -> {
-      logger.log(Level.INFO, m);
+      logger.log(Level.ALL, m);
       stats.sentMessages.inc();
     });
     for (Message message : pMessage) {
@@ -80,20 +80,24 @@ public abstract class Worker implements Runnable, StatisticsProvider {
         finished |= Thread.currentThread().isInterrupted();
       }
     } catch (CPAException | InterruptedException | IOException | SolverException pE) {
-      // throw new AssertionError(pE);
-      try {
+      throw new AssertionError(pE);
+/*      try {
         // result unknown if error occurs
         broadcast(ImmutableList.of(Message.newErrorMessage(getId(), pE)));
       } catch (IOException | InterruptedException pEx) {
         // in case broadcast fails, throw unchecked exception.
         throw new AssertionError(pE);
-      }
+      }*/
     }
   }
 
   public synchronized void shutdown() throws IOException {
     finished = true;
     connection.close();
+  }
+
+  public boolean hasPendingMessages() {
+    return !connection.isEmpty();
   }
 
   public final String getId() {

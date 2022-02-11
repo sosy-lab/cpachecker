@@ -105,8 +105,10 @@ public class AnalysisWorker extends Worker {
       case BLOCK_POSTCONDITION:
         return processBlockPostCondition(message);
       case ERROR:
+        // fall through
       case FOUND_RESULT:
         shutdown();
+        // fall through
       case ERROR_CONDITION_UNREACHABLE:
         return ImmutableSet.of();
       default:

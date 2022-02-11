@@ -76,8 +76,7 @@ public class ComponentAnalysis implements Algorithm, StatisticsProvider, Statist
   private final Specification specification;
   private final AnalysisOptions options;
 
-  private Connection mainThreadConnection;
-  private Worker rootWorker;
+  private Collection<Statistics> statsCollection;
 
   private final StatInt numberWorkers = new StatInt(StatKind.MAX, "number of workers");
 
@@ -99,6 +98,9 @@ public class ComponentAnalysis implements Algorithm, StatisticsProvider, Statist
 
   @Option(description = "whether to use daemon threads for workers")
   private boolean daemon = true;
+
+  @Option(description = "whether to spawn util worker")
+  private boolean spawnUtilWorkers = true;
 
   private enum DecompositionType {
     BLOCK_OPERATOR,
@@ -229,15 +231,20 @@ public class ComponentAnalysis implements Algorithm, StatisticsProvider, Statist
         }
       }
       builder = builder.addResultCollectorWorker(blocks, options);
-      builder = builder.addTimeoutWorker(maxWallTime, options);
-      Components components = builder.addVisualizationWorker(tree, options).build();
+
+      if (spawnUtilWorkers) {
+        builder = builder.addTimeoutWorker(maxWallTime, options);
+        builder = builder.addVisualizationWorker(tree, options);
+      }
+
+      Components components = builder.build();
 
       numberWorkers.setNextValue(components.getWorkers().size());
 
       // run workers
       for (Worker worker : components.getWorkers()) {
         if (worker instanceof RootWorker) {
-          rootWorker = worker;
+          worker.collectStatistics(statsCollection);
         }
         Thread thread = new Thread(worker, worker.getId());
         thread.setDaemon(daemon);
@@ -245,7 +252,8 @@ public class ComponentAnalysis implements Algorithm, StatisticsProvider, Statist
       }
 
       // listen to messages
-      mainThreadConnection = components.getAdditionalConnections().get(0);
+      Connection mainThreadConnection = components.getAdditionalConnections().get(0);
+      mainThreadConnection.collectStatistics(statsCollection);
       if (workerType == WorkerType.FAULT_LOCALIZATION) {
         listener.register(new FaultLocalizationMessageObserver(logger, mainThreadConnection));
       }
@@ -299,14 +307,9 @@ public class ComponentAnalysis implements Algorithm, StatisticsProvider, Statist
   }
 
   @Override
-  public void collectStatistics(Collection<Statistics> statsCollection) {
-    if (rootWorker != null) {
-      rootWorker.collectStatistics(statsCollection);
-    }
-    if (mainThreadConnection != null) {
-      mainThreadConnection.collectStatistics(statsCollection);
-    }
-    statsCollection.add(this);
+  public void collectStatistics(Collection<Statistics> pStatisticsCollection) {
+    statsCollection = pStatisticsCollection;
+    pStatisticsCollection.add(this);
   }
 
   @Override

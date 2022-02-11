@@ -225,7 +225,6 @@ public abstract class BlockAnalysis {
   public static class ForwardAnalysis extends BlockAnalysis {
 
     private final BlockTransferRelation relation;
-    private boolean reportedOriginalViolation;
 
     public ForwardAnalysis(
         String pId,
@@ -265,7 +264,6 @@ public abstract class BlockAnalysis {
       if (!violations.isEmpty()) {
         // we only need to report error locations once
         // since every new report of an already found location would only cause redundant work
-        reportedOriginalViolation = true;
         answers.addAll(createErrorConditionMessages(violations));
       }
       // }
@@ -357,7 +355,7 @@ public abstract class BlockAnalysis {
               .collect(ImmutableList.toImmutableList());
       if (states.isEmpty()) {
         // should only happen if abstraction is activated
-        logger.log(Level.SEVERE, "Cannot reach block start?", reachedSet);
+        logger.log(Level.ALL, "Cannot reach block start?", reachedSet);
         return ImmutableSet.of(Message.newErrorConditionUnreachableMessage(block.getId(),
             "backwards analysis cannot reach target at block entry"));
       }

@@ -58,15 +58,20 @@ public class TimeoutWorker extends Worker {
       Message pMessage) throws InterruptedException, IOException, SolverException, CPAException {
     switch (pMessage.getType()) {
       case ERROR:
+        // fall through
       case FOUND_RESULT:
         shutdown();
+        // fall through
       case ERROR_CONDITION:
+        // fall through
       case ERROR_CONDITION_UNREACHABLE:
+        // fall through
       case BLOCK_POSTCONDITION:
+        // fall through
         break;
       default:
         throw new AssertionError(
-            "Unknown type of " + pMessage.getType().getClass() + ": " + pMessage.getType());
+            "Unknown type of " + pMessage.getType().getDeclaringClass() + ": " + pMessage.getType());
     }
     return ImmutableSet.of();
   }

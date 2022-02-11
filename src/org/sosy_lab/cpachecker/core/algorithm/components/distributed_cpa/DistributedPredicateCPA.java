@@ -12,6 +12,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -49,6 +50,7 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
 
   private final Map<Formula, Formula> substitutions;
   private final Set<String> circular;
+  private final Set<String> unsatPredecessors;
   private int executionCounter;
 
   public DistributedPredicateCPA(
@@ -62,6 +64,7 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
     super(pWorkerId, pNode, pTypeMap, pPrecision, pDirection, pOptions);
     substitutions = new HashMap<>();
     circular = Collections.newSetFromMap(new ConcurrentHashMap<>());
+    unsatPredecessors = new HashSet<>();
   }
 
   public Map<Formula, Formula> getSubstitutions() {
@@ -128,8 +131,8 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
       return MessageProcessing.stop();
     }
     CFANode node = optionalCFANode.orElseThrow();
-    if (node.equals(block.getLastNode()) || !node.equals(block.getLastNode()) && !node.equals(
-        block.getStartNode()) && block.getNodesInBlock().contains(node)) {
+    if (node.equals(block.getLastNode()) || (!node.equals(block.getLastNode()) && !node.equals(
+        block.getStartNode()) && block.getNodesInBlock().contains(node))) {
       // under-approximating ?
       receivedErrorConditions.put(message.getUniqueBlockId(), message);
       // can the error condition be denied?
@@ -207,11 +210,14 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
     }
     PredicateAbstractState state = (PredicateAbstractState) deserialize(message);
     if (getSolver().isUnsat(state.getPathFormula().getFormula())) {
+      receivedPostConditions.remove(message.getUniqueBlockId());
+      unsatPredecessors.add(message.getUniqueBlockId());
       return MessageProcessing.stop();
     }
+    unsatPredecessors.remove(message.getUniqueBlockId());
     storePostCondition(message);
-    if (receivedPostConditions.size() == block.getPredecessors().size()
-        || receivedPostConditions.size() == circular.size() + block.getPredecessors().size()) {
+    if (receivedPostConditions.size() == (block.getPredecessors().size() + unsatPredecessors.size())
+        || receivedPostConditions.size() == circular.size() + block.getPredecessors().size() + unsatPredecessors.size()) {
       return MessageProcessing.proceedWith(receivedPostConditions.values());
     } else {
       // would equal initial message
