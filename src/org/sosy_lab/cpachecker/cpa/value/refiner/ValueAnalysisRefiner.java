@@ -107,7 +107,7 @@ public class ValueAnalysisRefiner
    */
   private BasisStrategy basisStrategy = BasisStrategy.SUBGRAPH;
 
-  private enum BasisStrategy {
+  private static enum BasisStrategy {
     ALL,
     SUBGRAPH,
     TARGET,

@@ -74,7 +74,7 @@ public class RedundantRequirementsValueAnalysisStateImplementation extends
       constant = Integer.parseInt(pVarOrConst);
       return new NumericValue(constant);
     } catch (NumberFormatException e) {
-      MemoryLocation memLoc = MemoryLocation.parseExtendedQualifiedName(pVarOrConst);
+      MemoryLocation memLoc = MemoryLocation.valueOf(pVarOrConst);
       if (pAbstractState.contains(memLoc)) {
         return pAbstractState.getValueFor(memLoc);
       }

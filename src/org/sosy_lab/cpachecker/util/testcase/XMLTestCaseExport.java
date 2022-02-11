@@ -17,7 +17,7 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.core.specification.Property;
+import org.sosy_lab.cpachecker.core.specification.SpecificationProperty;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 
 public class XMLTestCaseExport {
@@ -27,7 +27,7 @@ public class XMLTestCaseExport {
   public static void writeXMLMetadata(
       final Appendable pWriter,
       final CFA pCfa,
-      final @Nullable Property pProp,
+      final @Nullable SpecificationProperty pProp,
       final String producerString)
       throws IOException {
 
@@ -49,7 +49,7 @@ public class XMLTestCaseExport {
 
     if (pProp != null) {
       pWriter.append("\t<specification>");
-      pWriter.append(pProp.toFullString(pCfa));
+      pWriter.append(pProp.toString());
       pWriter.append("</specification>\n");
     } else {
       pWriter.append("\t<specification/>\n");

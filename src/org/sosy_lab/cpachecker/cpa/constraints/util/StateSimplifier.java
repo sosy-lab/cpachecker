@@ -12,6 +12,7 @@ import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -96,7 +97,15 @@ public class StateSimplifier {
   public void removeTrivialConstraints(final ConstraintsState pState) {
     int sizeBefore = pState.size();
 
-    pState.removeIf(this::isTrivial);
+    Iterator<Constraint> it = pState.iterator();
+
+    while (it.hasNext()) {
+      Constraint currConstraint = it.next();
+
+      if (isTrivial(currConstraint)) {
+        it.remove();
+      }
+    }
 
     stats.removedTrivial.setNextValue(sizeBefore - pState.size());
   }

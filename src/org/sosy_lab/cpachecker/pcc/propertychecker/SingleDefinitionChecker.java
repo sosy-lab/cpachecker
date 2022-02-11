@@ -36,7 +36,7 @@ public class SingleDefinitionChecker implements PropertyChecker {
   private ProgramDefinitionPoint point;
 
   public SingleDefinitionChecker(String varWithSingleDef) {
-    varDefName = MemoryLocation.parseExtendedQualifiedName(varWithSingleDef);
+    varDefName = MemoryLocation.valueOf(varWithSingleDef);
   }
 
   @Override
@@ -112,7 +112,7 @@ public class SingleDefinitionChecker implements PropertyChecker {
           && ((CDeclarationEdge) edge).getDeclaration() instanceof CVariableDeclaration
           && ((CVariableDeclaration) ((CDeclarationEdge) edge).getDeclaration()).getInitializer()
               != null
-          && MemoryLocation.forDeclaration(((CDeclarationEdge) edge).getDeclaration())
+          && MemoryLocation.valueOf(((CDeclarationEdge) edge).getDeclaration().getQualifiedName())
               .equals(varDefName)) {
         return true;
       }

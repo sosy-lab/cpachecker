@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.templates;
 
+import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
@@ -20,10 +21,12 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -42,8 +45,18 @@ public final class TemplateToFormulaConversionManager {
       new BlankEdge(
           "",
           FileLocation.DUMMY,
-          CFANode.newDummyCFANode("dummy-1"),
-          CFANode.newDummyCFANode("dummy-2"),
+          new CFANode(
+              new CFunctionDeclaration(
+                  FileLocation.DUMMY,
+                  CFunctionType.NO_ARGS_VOID_FUNCTION,
+                  "dummy-1",
+                  ImmutableList.of())),
+          new CFANode(
+              new CFunctionDeclaration(
+                  FileLocation.DUMMY,
+                  CFunctionType.NO_ARGS_VOID_FUNCTION,
+                  "dummy-2",
+                  ImmutableList.of())),
           "Dummy Edge");
 
   private final Map<ToFormulaCacheKey, Formula> toFormulaCache =

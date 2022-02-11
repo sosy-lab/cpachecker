@@ -133,7 +133,9 @@ public class BestFirstWeightedBalancedGraphPartitioner implements WeightedBalanc
 
     @Override
     public String toString() {
-      return node + "[Prio:" + priority + "]";
+      StringBuilder s = new StringBuilder(node.toString());
+      s.append("[Prio:").append(priority).append("]");
+      return s.toString();
     }
   }
 

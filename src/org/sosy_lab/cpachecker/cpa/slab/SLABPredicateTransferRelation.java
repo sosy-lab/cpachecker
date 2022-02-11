@@ -14,6 +14,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.SymbolicLocationsUtility;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -21,8 +23,8 @@ public class SLABPredicateTransferRelation implements TransferRelation {
 
   private final SymbolicLocationsUtility symbolicLocationsUtility;
 
-  public SLABPredicateTransferRelation(SymbolicLocationsUtility pSymbolicLocationsUtility) {
-    symbolicLocationsUtility = pSymbolicLocationsUtility;
+  public SLABPredicateTransferRelation(PredicateCPA pPredicateCpa, Specification pSpecification) {
+    symbolicLocationsUtility = new SymbolicLocationsUtility(pPredicateCpa, pSpecification);
   }
 
   @Override

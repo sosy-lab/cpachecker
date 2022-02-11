@@ -47,7 +47,7 @@ public final class TestTargetReductionUtils {
     Set<CFANode> toExplore = Sets.newHashSetWithExpectedSize(pTestTargets.size() + 1);
     Deque<CFANode> waitlist = new ArrayDeque<>();
 
-    origCFANodeToCopyMap.put(pEntryNode, CFANode.newDummyCFANode());
+    origCFANodeToCopyMap.put(pEntryNode, CFANode.newDummyCFANode(""));
     toExplore.add(pEntryNode);
     origCFANodeToCopyMap.put(pEntryNode.getExitNode(), CFANode.newDummyCFANode(""));
     successorNodes.add(pEntryNode.getExitNode());

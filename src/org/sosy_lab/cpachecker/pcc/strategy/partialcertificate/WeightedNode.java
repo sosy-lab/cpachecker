@@ -31,6 +31,8 @@ public class WeightedNode {
    */
   @Override
   public String toString() {
-    return nodeNumber + "(W:" + weight + ")";
+    StringBuilder s = new StringBuilder();
+    s.append(nodeNumber).append("(W:").append(weight).append(")");
+    return s.toString();
   }
 }

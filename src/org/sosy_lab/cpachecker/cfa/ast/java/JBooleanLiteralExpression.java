@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+
 import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
@@ -16,11 +17,9 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 /**
  * This class represents the boolean literal AST node type.
  *
- * </pre>
  * BooleanLiteral:
  *   true
  *   false
- * <pre>
  *
  */
 public final class JBooleanLiteralExpression extends ALiteralExpression
@@ -29,7 +28,7 @@ public final class JBooleanLiteralExpression extends ALiteralExpression
   private static final long serialVersionUID = 1623276041882984116L;
   private final boolean value;
 
-  public JBooleanLiteralExpression(FileLocation pFileLocation, boolean pValue) {
+  public JBooleanLiteralExpression(FileLocation pFileLocation,  boolean pValue) {
     super(pFileLocation, JSimpleType.getBoolean());
     value = pValue;
   }
@@ -49,7 +48,7 @@ public final class JBooleanLiteralExpression extends ALiteralExpression
     if (value) {
       return "true";
     } else {
-      return "false";
+      return"false";
     }
   }
 
@@ -78,7 +77,8 @@ public final class JBooleanLiteralExpression extends ALiteralExpression
       return true;
     }
 
-    if (!(obj instanceof JBooleanLiteralExpression) || !super.equals(obj)) {
+    if (!(obj instanceof JBooleanLiteralExpression)
+        || !super.equals(obj)) {
       return false;
     }
 
@@ -86,4 +86,5 @@ public final class JBooleanLiteralExpression extends ALiteralExpression
 
     return other.value == value;
   }
+
 }

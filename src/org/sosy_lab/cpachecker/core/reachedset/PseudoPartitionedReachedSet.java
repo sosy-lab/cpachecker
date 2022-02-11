@@ -21,7 +21,6 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PseudoPartitionable;
@@ -44,6 +43,8 @@ import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
  */
 public class PseudoPartitionedReachedSet extends DefaultReachedSet {
 
+  private static final long serialVersionUID = 1L;
+
   /**
    * the main storage: row/first key: the partition key, same as in {@link PartitionedReachedSet},
    * column/second key: the pseudo-partition, see {@link PseudoPartitionable}.
@@ -54,9 +55,8 @@ public class PseudoPartitionedReachedSet extends DefaultReachedSet {
   private final HashBasedTable<Optional<Object>, Comparable<?>, SetMultimap<Object, AbstractState>>
       partitionedReached = HashBasedTable.create(1, 1);
 
-  public PseudoPartitionedReachedSet(
-      ConfigurableProgramAnalysis pCpa, WaitlistFactory waitlistFactory) {
-    super(pCpa, waitlistFactory);
+  public PseudoPartitionedReachedSet(WaitlistFactory waitlistFactory) {
+    super(waitlistFactory);
   }
 
   @Override

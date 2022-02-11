@@ -95,8 +95,8 @@ public class CustomInstruction {
 
   private final CFANode ciStartNode;
   private final Set<CFANode> ciEndNodes;
-  private final ImmutableList<String> inputVariables;
-  private final ImmutableList<String> outputVariables;
+  private final List<String> inputVariables;
+  private final List<String> outputVariables;
   private final ShutdownNotifier shutdownNotifier;
 
   /**
@@ -112,8 +112,8 @@ public class CustomInstruction {
   public CustomInstruction(
       final CFANode pCIStartNode,
       final Set<CFANode> pCIEndNodes,
-      final ImmutableList<String> pInputVariables,
-      final ImmutableList<String> pOutputVariables,
+      final List<String> pInputVariables,
+      final List<String> pOutputVariables,
       final ShutdownNotifier pShutdownNotifier) {
 
       ciStartNode = pCIStartNode;
@@ -133,14 +133,13 @@ public class CustomInstruction {
 
     sb.append("(");
     if (!inputVariables.isEmpty()) {
-      Joiner.on(", ").appendTo(sb, Iterables.transform(inputVariables, CIUtils::getSMTName));
+      Joiner.on(", ").appendTo(sb, Iterables.transform(inputVariables, CIUtils.GET_SMTNAME));
     }
 
     sb.append(") -> (");
 
     if (!outputVariables.isEmpty()) {
-      Joiner.on(", ")
-          .appendTo(sb, Iterables.transform(outputVariables, CIUtils::getSMTNameWithIndex));
+      Joiner.on(", ").appendTo(sb, Iterables.transform(outputVariables, CIUtils.GET_SMTNAME_WITH_INDEX));
     }
     sb.append(")");
 
@@ -642,11 +641,7 @@ public class CustomInstruction {
           throws AppliedCustomInstructionParsingFailedException {
 
     if (ciEdge.getExpression().isPresent() && aciEdge.getExpression().isPresent()){
-      ciEdge
-          .getExpression()
-          .orElseThrow()
-          .accept(
-              new StructureComparisonVisitor(aciEdge.getExpression().orElseThrow(), ciVarToAciVar));
+      ciEdge.getExpression().get().accept(new StructureComparisonVisitor(aciEdge.getExpression().get(), ciVarToAciVar));
 
     } else if ((!ciEdge.getExpression().isPresent() && aciEdge.getExpression().isPresent())
           ||(ciEdge.getExpression().isPresent() && !aciEdge.getExpression().isPresent()) ){

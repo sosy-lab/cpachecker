@@ -8,16 +8,16 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.residualprogram;
 
-import java.util.ArrayList;
 import java.util.Deque;
+import org.sosy_lab.cpachecker.core.algorithm.residualprogram.TestGoalToConditionConverterAlgorithm.LeafStates;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.residualprogram.TestGoalToConditionConverterAlgorithm.LeafStates;
+import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -55,8 +55,8 @@ public class LeafGoalStrategy implements IGoalFindingStrategy {
 
       var label = state.getLocationNode();
 
-      if (label instanceof CFALabelNode) {
-        var lbl = (CFALabelNode) label;
+      if (label instanceof CLabelNode) {
+        var lbl = (CLabelNode) label;
         if (lbl.getLabel().matches("^GOAL_[0-9]+$")) {
           if (coveredGoals.contains(lbl.getLabel())) {
             leafGoals.get(LeafStates.COVERED).add(label);

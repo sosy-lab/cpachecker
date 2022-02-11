@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
  */
 public class RefinementFailedException extends CPAException {
 
-  public enum Reason {
+  public static enum Reason {
     InterpolationFailed("Interpolation failed"),
     InvariantRefinementFailed("Could not find invariant"),
     StaticRefinementFailed("Static refinement failed"),
@@ -34,7 +34,7 @@ public class RefinementFailedException extends CPAException {
 
     private final String humanReableReason;
 
-    Reason(String pHumanReableReason) {
+    private Reason(String pHumanReableReason) {
       humanReableReason = pHumanReableReason;
     }
 

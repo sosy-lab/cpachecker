@@ -113,14 +113,14 @@ import org.sosy_lab.java_smt.api.SolverException;
 abstract class AbstractBMCAlgorithm
     implements StatisticsProvider, ConditionAdjustmentEventSubscriber {
 
-  protected static boolean isStopState(AbstractState state) {
+  protected static final boolean isStopState(AbstractState state) {
     AssumptionStorageState assumptionState =
         AbstractStates.extractStateByType(state, AssumptionStorageState.class);
     return assumptionState != null && assumptionState.isStop();
   }
 
   /** Filters out states that were detected as irrelevant for reachability */
-  protected static boolean isRelevantForReachability(AbstractState state) {
+  protected static final boolean isRelevantForReachability(AbstractState state) {
     return AbstractStates.extractStateByType(state, ReachabilityState.class)
         != ReachabilityState.IRRELEVANT_TO_TARGET;
   }
@@ -257,7 +257,7 @@ abstract class AbstractBMCAlgorithm
       CPABuilder builder =
           new CPABuilder(
               pConfig, stepCaseLogger, pShutdownManager.getNotifier(), pReachedSetFactory);
-      stepCaseCPA = builder.buildCPAs(cfa, pSpecification, AggregatedReachedSets.empty());
+      stepCaseCPA = builder.buildCPAs(cfa, pSpecification, new AggregatedReachedSets());
       stepCaseAlgorithm =
           CPAAlgorithm.create(stepCaseCPA, stepCaseLogger, pConfig, pShutdownManager.getNotifier());
     } else {
@@ -357,7 +357,9 @@ abstract class AbstractBMCAlgorithm
     Map<SymbolicCandiateInvariant, BmcResult> checkedClauses = new HashMap<>();
 
     if (!candidateGenerator.produceMoreCandidates()) {
-      reachedSet.clearWaitlist();
+      for (AbstractState state : ImmutableList.copyOf(reachedSet.getWaitlist())) {
+        reachedSet.removeOnlyFromWaitlist(state);
+      }
       return AlgorithmStatus.SOUND_AND_PRECISE;
     }
 

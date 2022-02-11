@@ -74,10 +74,10 @@ public class ExpressionTransformer {
 
   private MemoryLocation getMemoryLocation(ASimpleDeclaration pDeclaration) {
     if (pDeclaration instanceof ADeclaration && ((ADeclaration) pDeclaration).isGlobal()) {
-      return MemoryLocation.parseExtendedQualifiedName(pDeclaration.getName());
+      return MemoryLocation.valueOf(pDeclaration.getName());
 
     } else {
-      return MemoryLocation.forLocalVariable(functionName, pDeclaration.getName());
+      return MemoryLocation.valueOf(functionName, pDeclaration.getName());
     }
   }
 

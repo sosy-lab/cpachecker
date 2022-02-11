@@ -101,11 +101,11 @@ public class ApronRequirementsTranslator extends CartesianRequirementsTranslator
         + pRequirement.getRealVariableToIndexMap().size());
 
     for (MemoryLocation mem : pRequirement.getIntegerVariableToIndexMap()) {
-      result.add(mem.getExtendedQualifiedName());
+      result.add(mem.getAsSimpleString());
     }
 
     for (MemoryLocation mem : pRequirement.getRealVariableToIndexMap()) {
-      result.add(mem.getExtendedQualifiedName());
+      result.add(mem.getAsSimpleString());
     }
 
     return result;

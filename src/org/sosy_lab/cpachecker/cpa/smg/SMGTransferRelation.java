@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.smg;
 
 import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -23,7 +24,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
@@ -155,7 +154,7 @@ public class SMGTransferRelation
     List<SMGState> successors = new ArrayList<>();
     for (SMGState s : pSuccessors) {
       for (CSimpleDeclaration variable : edge.getSuccessor().getOutOfScopeVariables()) {
-        s.forgetStackVariable(MemoryLocation.forDeclaration(variable));
+        s.forgetStackVariable(MemoryLocation.valueOf(variable.getQualifiedName()));
       }
       successors.add(checkAndSetErrorRelation(s));
     }
@@ -208,11 +207,11 @@ public class SMGTransferRelation
     SMGObject tmpFieldMemory = smgState.getHeap().getFunctionReturnObject();
     if (tmpFieldMemory != null) {
       // value 0 is the default return value in C
-      CExpression returnExp = returnEdge.getExpression().orElse(CIntegerLiteralExpression.ZERO);
+      CExpression returnExp = returnEdge.getExpression().or(CIntegerLiteralExpression.ZERO);
       CType expType = TypeUtils.getRealExpressionType(returnExp);
       Optional<CAssignment> returnAssignment = returnEdge.asAssignment();
       if (returnAssignment.isPresent()) {
-        expType = returnAssignment.orElseThrow().getLeftHandSide().getExpressionType();
+        expType = returnAssignment.get().getLeftHandSide().getExpressionType();
       }
       successors = assignFieldToState(smgState, returnEdge, tmpFieldMemory, 0, expType, returnExp);
     } else {
@@ -366,12 +365,8 @@ public class SMGTransferRelation
       String varName = paramDecl.get(i).getName();
       CType cParamType = TypeUtils.getRealExpressionType(paramDecl.get(i));
 
-      // workaround for casting
-      if (exp instanceof CCastExpression) {
-        exp = ((CCastExpression) exp).getOperand();
-      }
-      // handle string argument
-      if (exp instanceof CStringLiteralExpression) {
+     // handle string argument
+     if(exp instanceof CStringLiteralExpression) {
        CStringLiteralExpression strExp = (CStringLiteralExpression) exp;
        cParamType =  strExp.transformTypeToArrayType();
         // 1. create region and save string as char array
@@ -393,7 +388,7 @@ public class SMGTransferRelation
      }
 
      // If parameter is a array, convert to pointer
-     final long size;
+     final int size;
      if (cParamType instanceof CArrayType) {
        size = machineModel.getSizeofPtrInBits();
      } else {
@@ -484,7 +479,7 @@ public class SMGTransferRelation
 
       SMGRegion newObject = values.get(i).getFirst();
       SMGValue symbolicValue = values.get(i).getSecond();
-      long typeSize = expressionEvaluator.getBitSizeof(callEdge, cParamType, newState);
+      int typeSize = expressionEvaluator.getBitSizeof(callEdge, cParamType, newState);
 
       newState.addLocalVariable(typeSize, varName, newObject);
 
@@ -931,7 +926,7 @@ public class SMGTransferRelation
      *  already processed the declaration, we do nothing.
      */
     if (newObject == null && (!isExtern || options.getAllocateExternalVariables())) {
-      long typeSize = expressionEvaluator.getBitSizeof(pEdge, cType, pState);
+      int typeSize = expressionEvaluator.getBitSizeof(pEdge, cType, pState);
 
       // Handle incomplete type of extern variables as externally allocated
       if (options.isHandleIncompleteExternalVariableAsExternalAllocation()
@@ -942,7 +937,8 @@ public class SMGTransferRelation
       if (pVarDecl.isGlobal()) {
         newObject = pState.addGlobalVariable(typeSize, varName);
       } else {
-        Optional<SMGObject> addedLocalVariable = pState.addLocalVariable(typeSize, varName);
+        java.util.Optional<SMGObject> addedLocalVariable =
+            pState.addLocalVariable(typeSize, varName);
         if (!addedLocalVariable.isPresent()) {
           throw new SMGInconsistentException("Cannot add a local variable to an empty stack.");
         }
@@ -996,33 +992,22 @@ public class SMGTransferRelation
       CInitializer pInitializer)
       throws CPATransferException {
 
-    if (pInitializer instanceof CInitializerExpression) {
-      CExpression expression = ((CInitializerExpression) pInitializer).getExpression();
-      // string literal handling
-      if (expression instanceof CStringLiteralExpression) {
-        return handleStringInitializer(
-            pNewState,
-            pVarDecl,
-            pEdge,
-            pNewObject,
-            pOffset,
-            pLValueType,
-            pInitializer.getFileLocation(),
-            (CStringLiteralExpression) expression);
-      } else if (expression instanceof CCastExpression) {
-        // handle casting on initialization like 'char *str = (char *)"string";'
-        return handleCastInitializer(
-            pNewState,
-            pVarDecl,
-            pEdge,
-            pNewObject,
-            pOffset,
-            pLValueType,
-            pInitializer.getFileLocation(),
-            (CCastExpression) expression);
-      } else {
-        return assignFieldToState(pNewState, pEdge, pNewObject, pOffset, pLValueType, expression);
-      }
+    //string literal handling
+    if (pInitializer instanceof CInitializerExpression && ((CInitializerExpression) pInitializer).getExpression() instanceof CStringLiteralExpression){
+      return handleStringInitializer(
+          pNewState,
+          pVarDecl,
+          pEdge,
+          pNewObject,
+          pOffset,
+          pLValueType,
+          pInitializer.getFileLocation(),
+          (CStringLiteralExpression) ((CInitializerExpression) pInitializer).getExpression());
+
+    } else if (pInitializer instanceof CInitializerExpression) {
+        return assignFieldToState(pNewState, pEdge, pNewObject,
+            pOffset, pLValueType,
+            ((CInitializerExpression) pInitializer).getExpression());
     } else if (pInitializer instanceof CInitializerList) {
       CInitializerList pNewInitializer = ((CInitializerList) pInitializer);
       CType realCType = pLValueType.getCanonicalType();
@@ -1055,41 +1040,6 @@ public class SMGTransferRelation
     }
   }
 
-  private List<SMGState> handleCastInitializer(
-      SMGState pNewState,
-      CVariableDeclaration pVarDecl,
-      CFAEdge pEdge,
-      SMGObject pNewObject,
-      long pOffset,
-      CType pLValueType,
-      FileLocation pFileLocation,
-      CCastExpression pExpression)
-      throws CPATransferException {
-    CExpression expression = pExpression.getOperand();
-    if (expression instanceof CStringLiteralExpression) {
-      return handleStringInitializer(
-          pNewState,
-          pVarDecl,
-          pEdge,
-          pNewObject,
-          pOffset,
-          pLValueType,
-          pFileLocation,
-          (CStringLiteralExpression) expression);
-    } else if (expression instanceof CCastExpression) {
-      return handleCastInitializer(
-          pNewState,
-          pVarDecl,
-          pEdge,
-          pNewObject,
-          pOffset,
-          pLValueType,
-          pFileLocation,
-          (CCastExpression) expression);
-    } else {
-      return assignFieldToState(pNewState, pEdge, pNewObject, pOffset, pLValueType, expression);
-    }
-  }
   /*
    * Handle string literal expression initializer:
    * if a string initializer nested in struct type:
@@ -1118,11 +1068,12 @@ public class SMGTransferRelation
 
     // handle string initializer nested in struct type or assign string to pointer
     if (realCType instanceof CCompositeType || pLValueType instanceof CPointerType) {
-      // create a new global region for string literal expression
-      SMGObject region =
-          pNewState.addGlobalVariable(
-              machineModel.getSizeofCharInBits() * (pExpression.getContentString().length() + 1),
-              pExpression.getContentString() + "ID" + SMGCPA.getNewValue());
+      // create a new region for string expression
+      SMGRegion region =
+          pNewState
+              .addAnonymousVariable(
+                  machineModel.getSizeofCharInBits() * (pExpression.getValue().length() + 1))
+              .orElseThrow();
       CInitializerExpression initializer = new CInitializerExpression(pExpression.getFileLocation(), pExpression);
       CType cParamType = pExpression.transformTypeToArrayType();
       CVariableDeclaration decl = new CVariableDeclaration(pFileLocation, false, CStorageClass.AUTO, cParamType, region.getLabel(), region.getLabel(), region.getLabel(), initializer);
@@ -1231,7 +1182,7 @@ public class SMGTransferRelation
     if (pVarDecl.isGlobal()) {
       List<Pair<SMGState, Long>> result = new ArrayList<>();
 
-      long sizeOfType = expressionEvaluator.getBitSizeof(pEdge, pLValueType, pNewState);
+      int sizeOfType = expressionEvaluator.getBitSizeof(pEdge, pLValueType, pNewState);
 
       SMGState newState =
           expressionEvaluator.writeValue(
@@ -1324,7 +1275,7 @@ public class SMGTransferRelation
 
     CType elementType = pLValueType.getType();
 
-    long sizeOfElementType = expressionEvaluator.getBitSizeof(pEdge, elementType, pNewState);
+    int sizeOfElementType = expressionEvaluator.getBitSizeof(pEdge, elementType, pNewState);
 
     List<SMGState> newStates = new ArrayList<>(4);
     newStates.add(pNewState);
@@ -1336,7 +1287,7 @@ public class SMGTransferRelation
 
       for (SMGState newState : newStates) {
         if (!options.isGCCZeroLengthArray() || pLValueType.getLength() != null) {
-          long sizeOfType = expressionEvaluator.getBitSizeof(pEdge, pLValueType, pNewState);
+          int sizeOfType = expressionEvaluator.getBitSizeof(pEdge, pLValueType, pNewState);
           newState =
               expressionEvaluator.writeValue(
                   newState,

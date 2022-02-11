@@ -76,6 +76,21 @@ public class Ltl2BuechiConverter {
         hoaAutomaton, pEntryFunction, pConfig, pLogger, pMachineModel, pScope, pShutdownNotifier);
   }
 
+  /**
+   * Produces an {@link Automaton} from a ltl-property without the necessity of specifying a logger,
+   * machine-model and scope.
+   *
+   * <p>This method is mainly used for testing / debugging the transformation of ltl properties to
+   * automatons outside of CPAchecker.
+   */
+  static Automaton convertFormula(LabelledFormula pFormula)
+      throws InterruptedException, LtlParseException {
+    checkNotNull(pFormula);
+
+    StoredAutomaton hoaAutomaton = new Ltl2BuechiConverter(pFormula).createHoaAutomaton();
+    return BuechiConverterUtils.convertFromHOAFormat(hoaAutomaton);
+  }
+
   public static String getNameOfExecutable() {
     return EXECUTABLE.getToolName();
   }

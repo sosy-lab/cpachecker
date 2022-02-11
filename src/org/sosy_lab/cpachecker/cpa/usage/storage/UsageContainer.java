@@ -350,17 +350,17 @@ public class UsageContainer {
     StatInt refinedUsages = new StatInt(StatKind.SUM, "Total amount of refined usages");
     StatCounter failedUsages = new StatCounter("Total amount of failed usages");
 
-    final int generalUnrefinedSize = unrefinedIds.size();
+    final int generalUnrefinedSize = unrefinedIds.keySet().size();
     for (UnrefinedUsagePointSet uset : unrefinedIds.values()) {
       unrefinedUsages.setNextValue(uset.size());
       topUsagePoints.setNextValue(uset.getNumberOfTopUsagePoints());
     }
 
-    final int generalRefinedSize = refinedIds.size();
+    final int generalRefinedSize = refinedIds.keySet().size();
     refinedIds.forEach(
         (id, rset) -> refinedUsages.setNextValue(rset.size()));
 
-    final int generalFailedSize = failedIds.size();
+    final int generalFailedSize = failedIds.keySet().size();
     for (RefinedUsagePointSet uset : failedIds.values()) {
       Pair<UsageInfo, UsageInfo> pair = uset.getUnsafePair();
       if (pair.getFirst().isLooped()) {

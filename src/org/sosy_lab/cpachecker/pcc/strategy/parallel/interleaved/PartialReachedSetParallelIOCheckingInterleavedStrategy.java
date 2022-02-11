@@ -34,7 +34,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -80,8 +79,7 @@ public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends Abst
   }
 
   @Override
-  public void constructInternalProofRepresentation(
-      final UnmodifiableReachedSet pReached, final ConfigurableProgramAnalysis pCpa)
+  public void constructInternalProofRepresentation(final UnmodifiableReachedSet pReached)
       throws InvalidConfigurationException {
     throw new InvalidConfigurationException(
         "Interleaved proof reading and checking strategies do not  support internal PCC with result check algorithm");
@@ -181,12 +179,9 @@ public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends Abst
   }
 
   @Override
-  protected void writeProofToStream(
-      final ObjectOutputStream pOut,
-      final UnmodifiableReachedSet pReached,
-      final ConfigurableProgramAnalysis pCpa)
+  protected void writeProofToStream(final ObjectOutputStream pOut, final UnmodifiableReachedSet pReached)
       throws IOException, InvalidConfigurationException, InterruptedException {
-    ioHelper.constructInternalProofRepresentation(pReached, pCpa);
+    ioHelper.constructInternalProofRepresentation(pReached);
 
     // write meta data
     ioHelper.writeMetadata(pOut, pReached.size(), ioHelper.getNumPartitions());

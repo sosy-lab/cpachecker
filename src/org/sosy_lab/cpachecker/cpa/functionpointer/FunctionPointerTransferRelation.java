@@ -8,11 +8,11 @@
 
 package org.sosy_lab.cpachecker.cpa.functionpointer;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -408,7 +408,7 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
       throws UnrecognizedCodeException {
 
     if (returnStatement.isPresent()) {
-      handleAssignment(pNewState, returnStatement.orElseThrow(), pCfaEdge);
+      handleAssignment(pNewState, returnStatement.get(), pCfaEdge);
     }
   }
 
@@ -425,8 +425,7 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
       if (varName != null) {
         Optional<CVariableDeclaration> returnValue = pFunctionReturnEdge.getFunctionEntry().getReturnVariable();
         if (returnValue.isPresent()) {
-          FunctionPointerTarget target =
-              pNewState.getTarget(returnValue.orElseThrow().getQualifiedName());
+          FunctionPointerTarget target = pNewState.getTarget(returnValue.get().getQualifiedName());
           pNewState.setTarget(varName, target);
         } else {
           pNewState.setTarget(varName, UnknownTarget.getInstance());

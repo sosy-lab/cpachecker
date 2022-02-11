@@ -171,7 +171,8 @@ public class FaultReportWriter {
       String htmlId,
       List<? extends FaultInfo> infos,
       boolean useOrderedList){
-    List<? extends FaultInfo> copy = ImmutableList.sortedCopyOf(infos);
+    List<? extends FaultInfo> copy = new ArrayList<>(infos);
+    Collections.sort(copy);
     String listType = useOrderedList? "ol":"ul";
     String id = "";
     if(!htmlId.isEmpty()){

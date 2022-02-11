@@ -13,13 +13,12 @@ import static com.google.common.collect.FluentIterable.from;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.function.BiConsumer;
-import java.util.stream.Stream;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
-import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
@@ -31,8 +30,6 @@ public interface UnmodifiableReachedSet extends Iterable<AbstractState> {
 
   @Override
   Iterator<AbstractState> iterator();
-
-  Stream<AbstractState> stream();
 
   Collection<Precision> getPrecisions();
 
@@ -113,27 +110,28 @@ public interface UnmodifiableReachedSet extends Iterable<AbstractState> {
   int size();
 
   /**
-   * Detect whether this reached set contains a reached target.
+   * Detect whether this reached set contains a property violation.
    *
    * <p>In some cases (like checking for race conditions) this is not the same as checking each
-   * state individually for a target.
+   * state individually for a property violation.
+   *
+   * @return Is any property violated
    */
-  default boolean wasTargetReached() {
-    return from(this).anyMatch(AbstractStates::isTargetState);
+  default boolean hasViolatedProperties() {
+    return from(asCollection()).anyMatch(AbstractStates::isTargetState);
   }
 
   /**
-   * Return a set of information about the targets in this reached set, if {@link
-   * #wasTargetReached()} returns true.
+   * Return the set of violated properties in this reached set, of {@link #hasViolatedProperties()}
+   * returns true.
    *
-   * @return A set of {@link TargetInformation} instances, may be empty if no precise information is
-   *     available.
+   * @return A set of violated properties, may be emtpy if no precise information is available.
    */
-  default Collection<TargetInformation> getTargetInformation() {
-    return from(this)
+  default Collection<Property> getViolatedProperties() {
+    return from(asCollection())
         .filter(AbstractStates::isTargetState)
         .filter(Targetable.class)
-        .transformAndConcat(Targetable::getTargetInformation)
+        .transformAndConcat(Targetable::getViolatedProperties)
         .toSet();
   }
 }

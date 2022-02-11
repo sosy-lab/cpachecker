@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 public class Mod2AbstractionVisitor
     extends DefaultNumeralFormulaVisitor<CompoundInterval, Mod2AbstractionVisitor.Type> {
 
-  public enum Type {
+  public static enum Type {
     EVEN,
 
     ODD,

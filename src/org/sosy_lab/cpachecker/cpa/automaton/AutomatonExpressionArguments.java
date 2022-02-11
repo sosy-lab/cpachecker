@@ -116,7 +116,7 @@ class AutomatonExpressionArguments {
 
   AAstNode getTransitionVariable(int key) {
     // this is the variable adressed with $<key> in the automaton definition
-    return this.transitionVariables.get(key);
+    return this.transitionVariables.get(Integer.valueOf(key));
   }
 
   void putTransitionVariable(int key, AAstNode value) {

@@ -24,14 +24,12 @@ interface EdgeAppender {
       CFAEdge pEdge,
       Optional<Collection<ARGState>> pFromState,
       Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
-      CFAEdgeWithAdditionalInfo pAdditionalInfo)
-      throws InterruptedException;
+      CFAEdgeWithAdditionalInfo pAdditionalInfo);
 
   void appendNewEdgeToSink(
       String pFrom,
       CFAEdge pEdge,
       Optional<Collection<ARGState>> pFromState,
       Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
-      CFAEdgeWithAdditionalInfo pAdditionalInfo)
-      throws InterruptedException;
+      CFAEdgeWithAdditionalInfo pAdditionalInfo);
 }

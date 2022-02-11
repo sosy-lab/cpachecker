@@ -561,11 +561,11 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
       }
     }
 
-    Iterable<SMGEdgeHasValue> fields = SMGUtils.getFieldsofThisValue(pValue, pInputSMG);
+    SMGHasValueEdges fields = SMGUtils.getFieldsofThisValue(pValue, pInputSMG);
 
     Set<SMGEdgeHasValueTemplate> fieldsTemplate = pMatStep.getFieldsOfValue(pValueTemplate);
 
-    if (Iterables.size(fields) != fieldsTemplate.size()) {
+    if(fields.size() != fieldsTemplate.size()) {
       return false;
     }
 

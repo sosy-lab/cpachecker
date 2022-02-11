@@ -11,7 +11,13 @@ package org.sosy_lab.cpachecker.cpa.invariants;
 
 public interface OverflowEventHandler {
 
-  OverflowEventHandler EMPTY = () -> {};
+  static OverflowEventHandler EMPTY = new OverflowEventHandler() {
+
+    @Override
+    public void signedOverflow() {
+      // Do nothing
+    }
+  };
 
   void signedOverflow();
 

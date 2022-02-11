@@ -18,6 +18,7 @@ import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 import org.sosy_lab.common.Optionals;
@@ -33,6 +34,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.NestingAlgorithm;
@@ -90,7 +92,6 @@ public class Explainer extends NestingAlgorithm {
   private PredicateCPA cpa;
 
   private final ExplainerAlgorithmStatistics stats;
-  private final CFA cfa;
 
   public Explainer(
       Configuration pConfig,
@@ -99,9 +100,8 @@ public class Explainer extends NestingAlgorithm {
       Specification pSpecification,
       CFA pCfa)
       throws InvalidConfigurationException {
-    super(pConfig, pLogger, pShutdownNotifier, pSpecification);
+    super(pConfig, pLogger, pShutdownNotifier, pSpecification, pCfa);
     pConfig.inject(this);
-    cfa = pCfa;
     stats = new ExplainerAlgorithmStatistics(pLogger);
   }
 
@@ -114,7 +114,7 @@ public class Explainer extends NestingAlgorithm {
 
     try {
       ShutdownManager shutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
-      secondAlg = createAlgorithm(firstStepConfig, cfa, shutdownManager, reached);
+      secondAlg = createAlgorithm(firstStepConfig, cfa.getMainFunction(), shutdownManager, reached);
       cpa = CPAs.retrieveCPAOrFail(secondAlg.getSecond(), PredicateCPA.class, Explainer.class);
     } catch (IOException pE) {
       throw new AssertionError(pE);
@@ -263,20 +263,19 @@ public class Explainer extends NestingAlgorithm {
 
   private Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> createAlgorithm(
       Path singleConfigFileName,
-      CFA pCfa,
+      CFANode mainFunction,
       ShutdownManager singleShutdownManager,
       ReachedSet currentReached)
       throws InvalidConfigurationException, CPAException, IOException, InterruptedException {
     AggregatedReachedSets aggregateReached;
     if (currentReached != null) {
-      aggregateReached = AggregatedReachedSets.singleton(currentReached);
+      aggregateReached = new AggregatedReachedSets(Collections.singleton(currentReached));
     } else {
-      aggregateReached = AggregatedReachedSets.empty();
+      aggregateReached = new AggregatedReachedSets();
     }
     return super.createAlgorithm(
         singleConfigFileName,
-        pCfa.getMainFunction(),
-        pCfa,
+        mainFunction,
         singleShutdownManager,
         aggregateReached,
         ImmutableSet.of("analysis.algorithm.faultLocalization.by_distance"),

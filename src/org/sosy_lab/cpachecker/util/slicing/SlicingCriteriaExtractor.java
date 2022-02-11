@@ -31,7 +31,7 @@ public interface SlicingCriteriaExtractor {
    * @throws InterruptedException if a shutdown is requested and this is detected with the help of
    *     the <code>pShutdownNotifier</code>
    */
-  Set<CFAEdge> getSlicingCriteria(
+  public Set<CFAEdge> getSlicingCriteria(
       CFA pCfa, Specification pError, ShutdownNotifier pShutdownNotifier, LogManager pLogger)
       throws InterruptedException;
 }

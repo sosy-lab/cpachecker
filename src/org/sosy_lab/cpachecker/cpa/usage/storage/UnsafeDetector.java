@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 public class UnsafeDetector {
 
-  public enum UnsafeMode {
+  public static enum UnsafeMode {
     RACE,
     DEADLOCKCIRCULAR,
     DEADLOCKDISPATCH

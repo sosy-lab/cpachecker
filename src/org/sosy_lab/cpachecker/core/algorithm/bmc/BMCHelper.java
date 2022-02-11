@@ -14,13 +14,13 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -93,7 +93,17 @@ public final class BMCHelper {
       boolean pForce)
       throws CPATransferException, InterruptedException {
     return assertAt(
-        pStates, pContext -> pInvariant.getFormula(pFMGR, pPFMGR, pContext), pFMGR, pForce);
+        pStates,
+        new FormulaInContext() {
+
+          @Override
+          public BooleanFormula getFormulaInContext(PathFormula pContext)
+              throws CPATransferException, InterruptedException {
+            return pInvariant.getFormula(pFMGR, pPFMGR, pContext);
+          }
+        },
+        pFMGR,
+        pForce);
   }
 
   public static BooleanFormula assertAt(
@@ -229,7 +239,7 @@ public final class BMCHelper {
     final Set<CFANode> loopHeads =
         pTargetLocationProvider.tryGetAutomatonTargetLocations(
             pCFA.getMainFunction(),
-            Specification.fromAutomata(ImmutableList.of(Automata.getLoopHeadTargetAutomaton())));
+            Specification.fromAutomata(Collections.singleton(Automata.getLoopHeadTargetAutomaton())));
     if (!pCFA.getLoopStructure().isPresent()) {
       return loopHeads;
     }

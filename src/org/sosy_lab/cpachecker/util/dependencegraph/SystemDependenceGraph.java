@@ -1100,7 +1100,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
       N node = graphNode.getNode();
 
       if (node.getId() == nodes.size()) {
-
+        
         nodes.add(node);
         graphNodes.add(graphNode);
 
@@ -1583,7 +1583,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
      * @param pNode the visited node
      * @return a {@link VisitResult} to guide the SDG traversal
      */
-    VisitResult visitNode(N pNode);
+    public VisitResult visitNode(N pNode);
 
     /**
      * Accepts visited edges during system dependence graph traversal.
@@ -1596,7 +1596,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
      * @param pSuccessor the successor of the visited edge
      * @return a {@link VisitResult} to guide the SDG traversal
      */
-    VisitResult visitEdge(EdgeType pType, N pPredecessor, N pSuccessor);
+    public VisitResult visitEdge(EdgeType pType, N pPredecessor, N pSuccessor);
   }
 
   /**

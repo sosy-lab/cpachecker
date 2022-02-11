@@ -247,8 +247,7 @@ public class PredicateManager {
       final CFANode location,
       final int size,
       final VariableTrackingPrecision precision) {
-    if (precision != null
-        && !precision.isTracking(MemoryLocation.fromQualifiedName(varName), varType, location)) {
+    if (precision != null && !precision.isTracking(MemoryLocation.valueOf(varName), varType, location)) {
       return null;
     }
     if (!(varType.getCanonicalType() instanceof CSimpleType)) {

@@ -13,6 +13,7 @@ import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JInterfaceType;
 
+
 class ASTTypeConverter extends TypeConverter {
 
   private final Scope scope;

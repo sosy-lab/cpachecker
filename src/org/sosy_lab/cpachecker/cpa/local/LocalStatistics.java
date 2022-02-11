@@ -58,7 +58,7 @@ public class LocalStatistics implements Statistics {
       MoreFiles.createParentDirectories(outputFileName);
       try (Writer writer = Files.newBufferedWriter(outputFileName, Charset.defaultCharset())) {
         logger.log(Level.FINE, "Write precision to " + outputFileName);
-        for (AbstractState state : pReached) {
+        for (AbstractState state : pReached.asCollection()) {
           CFANode node = AbstractStates.extractLocation(state);
           LocalState lState = AbstractStates.extractStateByType(state, LocalState.class);
           if (!reachedStatistics.containsKey(node)) {

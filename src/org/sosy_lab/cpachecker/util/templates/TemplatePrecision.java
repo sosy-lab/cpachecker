@@ -456,7 +456,7 @@ public class TemplatePrecision implements Precision {
       case ReturnStatementEdge:
         CReturnStatementEdge e = (CReturnStatementEdge) edge;
         if (e.getExpression().isPresent()) {
-          return expressionToTemplate(e.getExpression().orElseThrow());
+          return expressionToTemplate(e.getExpression().get());
         }
         break;
       case FunctionCallEdge:

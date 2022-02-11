@@ -27,22 +27,28 @@ public enum ISCOperatorFactory {
    * The addition operator for adding scalar values to intervals.
    */
   public Operator<BitVectorInterval, BigInteger, CompoundBitVectorInterval> getAdd(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return (pFirstOperand, pSecondOperand) ->
-        CompoundBitVectorInterval.of(
-            ISIOperatorFactory.INSTANCE
-                .getAdd(pAllowSignedWrapAround, pOverflowEventHandler)
-                .apply(pFirstOperand, pSecondOperand));
+    return new Operator<>() {
+
+      @Override
+      public CompoundBitVectorInterval apply(BitVectorInterval pFirstOperand, BigInteger pSecondOperand) {
+        return CompoundBitVectorInterval.of(ISIOperatorFactory.INSTANCE.getAdd(pAllowSignedWrapAround, pOverflowEventHandler).apply(pFirstOperand, pSecondOperand));
+      }
+
+    };
   }
 
   /**
    * The division operator for dividing intervals by scalar values.
    */
   public Operator<BitVectorInterval, BigInteger, CompoundBitVectorInterval> getDivide(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return (pFirstOperand, pSecondOperand) ->
-        CompoundBitVectorInterval.of(
-            ISIOperatorFactory.INSTANCE
-                .getDivide(pAllowSignedWrapAround, pOverflowEventHandler)
-                .apply(pFirstOperand, pSecondOperand));
+      return new Operator<>() {
+
+      @Override
+      public CompoundBitVectorInterval apply(BitVectorInterval pFirstOperand, BigInteger pSecondOperand) {
+        return CompoundBitVectorInterval.of(ISIOperatorFactory.INSTANCE.getDivide(pAllowSignedWrapAround, pOverflowEventHandler).apply(pFirstOperand, pSecondOperand));
+      }
+
+    };
   }
 
   /**
@@ -164,33 +170,42 @@ public enum ISCOperatorFactory {
    */
   public Operator<BitVectorInterval, BigInteger, CompoundBitVectorInterval> getMultiply(
       final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return (pFirstOperand, pSecondOperand) ->
-        CompoundBitVectorInterval.of(
-            ISIOperatorFactory.INSTANCE
-                .getMultiply(pAllowSignedWrapAround, pOverflowEventHandler)
-                .apply(pFirstOperand, pSecondOperand));
+    return new Operator<>() {
+
+      @Override
+      public CompoundBitVectorInterval apply(BitVectorInterval pFirstOperand, BigInteger pSecondOperand) {
+        return CompoundBitVectorInterval.of(ISIOperatorFactory.INSTANCE.getMultiply(pAllowSignedWrapAround, pOverflowEventHandler).apply(pFirstOperand, pSecondOperand));
+      }
+
+    };
   }
 
   /**
    * The left shift operator for left shifting intervals by scalar values.
    */
   public Operator<BitVectorInterval, BigInteger, CompoundBitVectorInterval> getShiftLeft(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return (pFirstOperand, pSecondOperand) ->
-        CompoundBitVectorInterval.of(
-            ISIOperatorFactory.INSTANCE
-                .getShiftLeft(pAllowSignedWrapAround, pOverflowEventHandler)
-                .apply(pFirstOperand, pSecondOperand));
+    return new Operator<>() {
+
+      @Override
+      public CompoundBitVectorInterval apply(BitVectorInterval pFirstOperand, BigInteger pSecondOperand) {
+        return CompoundBitVectorInterval.of(ISIOperatorFactory.INSTANCE.getShiftLeft(pAllowSignedWrapAround, pOverflowEventHandler).apply(pFirstOperand, pSecondOperand));
+      }
+
+    };
   }
 
   /**
    * The right shift operator for right shifting intervals by scalar values.
    */
   public Operator<BitVectorInterval, BigInteger, CompoundBitVectorInterval> getShiftRight(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return (pFirstOperand, pSecondOperand) ->
-        CompoundBitVectorInterval.of(
-            ISIOperatorFactory.INSTANCE
-                .getShiftRight(pAllowSignedWrapAround, pOverflowEventHandler)
-                .apply(pFirstOperand, pSecondOperand));
+      return new Operator<>() {
+
+      @Override
+      public CompoundBitVectorInterval apply(BitVectorInterval pFirstOperand, BigInteger pSecondOperand) {
+        return CompoundBitVectorInterval.of(ISIOperatorFactory.INSTANCE.getShiftRight(pAllowSignedWrapAround, pOverflowEventHandler).apply(pFirstOperand, pSecondOperand));
+      }
+
+    };
   }
 
 }

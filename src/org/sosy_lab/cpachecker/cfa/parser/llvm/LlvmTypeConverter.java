@@ -134,19 +134,19 @@ public class LlvmTypeConverter {
     String structName = getStructName(pStructType);
     String origName = structName;
 
-    if (typeCache.containsKey(pStructType.hashCode())) {
+    if (typeCache.containsKey(pStructType.type().hashCode())) {
       return new CElaboratedType(
           false,
           false,
           ComplexTypeKind.STRUCT,
           structName,
           origName,
-          (CComplexType) typeCache.get(pStructType.hashCode()));
+          (CComplexType) typeCache.get(pStructType.type().hashCode()));
     }
 
     CCompositeType cStructType =
         new CCompositeType(isConst, isVolatile, ComplexTypeKind.STRUCT, structName, origName);
-    typeCache.put(pStructType.hashCode(), cStructType);
+    typeCache.put(pStructType.type().hashCode(), cStructType);
 
     List<TypeRef> memberTypes = pStructType.getStructElementTypes();
     List<CCompositeTypeMemberDeclaration> members = new ArrayList<>(memberTypes.size());

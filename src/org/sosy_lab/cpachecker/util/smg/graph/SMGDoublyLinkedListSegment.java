@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.util.smg.graph;
 
 import java.math.BigInteger;
 
-public class SMGDoublyLinkedListSegment extends SMGObject {
+public class SMGDoublyLinkedListSegment extends SMGListSegment {
 
   private final int minLength;
   private final BigInteger headOffset;
@@ -18,15 +18,16 @@ public class SMGDoublyLinkedListSegment extends SMGObject {
   private final BigInteger prevOffset;
 
 
-  public SMGDoublyLinkedListSegment(
+  protected SMGDoublyLinkedListSegment(
       int pNestingLevel,
       BigInteger pSize,
       BigInteger pOffset,
+      boolean pValid,
       BigInteger pPrevOffset,
       BigInteger pNextOffset,
       int pMinLength,
       BigInteger pHeadOffset) {
-    super(pNestingLevel, pSize, pOffset);
+    super(pNestingLevel, pSize, pOffset, pValid);
     this.minLength = pMinLength;
     this.headOffset = pHeadOffset;
     this.nextOffset = pNextOffset;
@@ -57,30 +58,6 @@ public class SMGDoublyLinkedListSegment extends SMGObject {
   @Override
   public int hashCode() {
     return super.hashCode();
-  }
-
-  @Override
-  public SMGObject copyWithNewLevel(int newLevel) {
-    return new SMGDoublyLinkedListSegment(
-        newLevel,
-        getSize(),
-        getOffset(),
-        prevOffset,
-        nextOffset,
-        minLength,
-        headOffset);
-  }
-
-  @Override
-  public SMGObject freshCopy() {
-    return new SMGDoublyLinkedListSegment(
-        getNestingLevel(),
-        getSize(),
-        getOffset(),
-        prevOffset,
-        nextOffset,
-        minLength,
-        headOffset);
   }
 
 }

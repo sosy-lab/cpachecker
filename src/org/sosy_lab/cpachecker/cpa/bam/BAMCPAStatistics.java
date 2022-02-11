@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer;
 
 /** Prints some BAM related statistics */
 @Options(prefix = "cpa.bam")
-@SuppressWarnings("deprecation")
 class BAMCPAStatistics implements Statistics {
 
   // stats about refinement

@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.base.Predicates.in;
 import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
@@ -27,7 +28,6 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
@@ -237,9 +237,11 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
       final ARGState child1 = usedChildren.get(0);
       s2s.putAll(current, s2s.get(child1));
 
+      final Collection<String> iVars = new LinkedHashSet<>();
       // vars from latest important child,
       // we have to copy them, there could be another parent somewhere else
-      return new LinkedHashSet<>(s2v.get(child1));
+      iVars.addAll(s2v.get(child1));
+      return iVars;
 
     } else {
       // there can be several children --> collect their vars and join them
@@ -257,7 +259,8 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
           newVars = oldVars;
         } else {
           // copy oldVars, they will be used later for a second parent
-          newVars = new LinkedHashSet<>(oldVars);
+          newVars = new LinkedHashSet<>();
+          newVars.addAll(oldVars);
         }
 
         // do the hard work
@@ -452,7 +455,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
       return false;
 
     } else {
-      return handleAssignment(edge.asAssignment().orElseThrow(), importantVars);
+      return handleAssignment(edge.asAssignment().get(), importantVars);
     }
   }
 
@@ -475,7 +478,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
         if (importantVars.remove(((CIdExpression) lhs).getDeclaration().getQualifiedName())) {
           Optional<CVariableDeclaration> returnVar = edge.getFunctionEntry().getReturnVariable();
           if (returnVar.isPresent()) {
-            importantVars.add(returnVar.orElseThrow().getQualifiedName());
+            importantVars.add(returnVar.get().getQualifiedName());
             return true;
           }
         }

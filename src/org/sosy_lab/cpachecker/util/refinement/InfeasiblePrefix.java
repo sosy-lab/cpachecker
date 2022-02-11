@@ -69,7 +69,7 @@ public class InfeasiblePrefix {
     List<Set<String>> simpleInterpolantSequence = new ArrayList<>();
     for (ValueAnalysisInterpolant itp : pInterpolantSequence) {
       simpleInterpolantSequence.add(
-          transformedImmutableSetCopy(itp.getMemoryLocations(), MemoryLocation::getExtendedQualifiedName));
+          transformedImmutableSetCopy(itp.getMemoryLocations(), MemoryLocation::getAsSimpleString));
     }
 
     return new InfeasiblePrefix(pInfeasiblePrefix, simpleInterpolantSequence);

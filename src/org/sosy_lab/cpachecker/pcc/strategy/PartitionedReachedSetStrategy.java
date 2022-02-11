@@ -27,7 +27,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PartitioningCheckingHelper;
@@ -38,6 +37,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitionChecker;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningIOHelper;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningUtils;
+
 
 public class PartitionedReachedSetStrategy extends AbstractStrategy {
 
@@ -128,17 +128,16 @@ public class PartitionedReachedSetStrategy extends AbstractStrategy {
   }
 
   @Override
-  public void constructInternalProofRepresentation(
-      UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa)
+  public void constructInternalProofRepresentation(UnmodifiableReachedSet pReached)
       throws InvalidConfigurationException, InterruptedException {
-    ioHelper.constructInternalProofRepresentation(pReached, pCpa);
+    ioHelper.constructInternalProofRepresentation(pReached);
+
   }
 
   @Override
-  protected void writeProofToStream(
-      ObjectOutputStream pOut, UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa)
-      throws IOException, InvalidConfigurationException, InterruptedException {
-    ioHelper.writeProof(pOut, pReached, pCpa);
+  protected void writeProofToStream(ObjectOutputStream pOut, UnmodifiableReachedSet pReached) throws IOException,
+      InvalidConfigurationException, InterruptedException {
+    ioHelper.writeProof(pOut, pReached);
   }
 
   @Override

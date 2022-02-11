@@ -11,11 +11,12 @@ package org.sosy_lab.cpachecker.cpa.invariants;
 
 public interface TypeInfo {
 
-  boolean isSigned();
+  public boolean isSigned();
 
-  Number getMinValue();
+  public Number getMinValue();
 
-  Number getMaxValue();
+  public Number getMaxValue();
 
-  String abbrev();
+  public String abbrev();
+
 }

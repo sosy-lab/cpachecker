@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.interfaces.pcc;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
 
@@ -24,7 +23,6 @@ public interface PartialReachedConstructionAlgorithm {
    * @return a subset of <code>pReached</code>
    * @throws InvalidConfigurationException if abstract state format does not match expectations for construction
    */
-  AbstractState[] computePartialReachedSet(
-      UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa)
-      throws InvalidConfigurationException;
+  AbstractState[] computePartialReachedSet(UnmodifiableReachedSet pReached) throws InvalidConfigurationException;
+
 }

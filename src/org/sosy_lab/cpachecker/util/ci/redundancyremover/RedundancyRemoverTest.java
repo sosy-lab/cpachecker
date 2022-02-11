@@ -316,17 +316,17 @@ public class RedundancyRemoverTest {
 
     ValueAnalysisState valState1 = new ValueAnalysisState(machineModel);
     NumericValue val1 = new NumericValue(1L);
-    valState1.assignConstant(MemoryLocation.forIdentifier("1"), val1, CNumericTypes.INT);
+    valState1.assignConstant(MemoryLocation.valueOf("1"), val1, CNumericTypes.INT);
     //    Truth.assertThat(valueImpl.getAbstractValue(valState1, "1")).isEqualTo(val1); // TODO
 
     ValueAnalysisState valState2 = new ValueAnalysisState(machineModel);
     NumericValue val2 = new NumericValue(7L);
-    valState2.assignConstant(MemoryLocation.forIdentifier("x"), val2, CNumericTypes.INT);
+    valState2.assignConstant(MemoryLocation.valueOf("x"), val2, CNumericTypes.INT);
     Truth.assertThat(valueImpl.getAbstractValue(valState2, "x")).isEqualTo(val2);
 
     ValueAnalysisState valState3 = new ValueAnalysisState(machineModel);
     Value val3 = Value.UnknownValue.getInstance();
-    valState3.assignConstant(MemoryLocation.forIdentifier("y"), val3, CNumericTypes.INT);
+    valState3.assignConstant(MemoryLocation.valueOf("y"), val3, CNumericTypes.INT);
     Truth.assertThat(valueImpl.getAbstractValue(valState3, "y")).isEqualTo(val3);
   }
 

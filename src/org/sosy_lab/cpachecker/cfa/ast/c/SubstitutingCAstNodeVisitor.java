@@ -26,7 +26,10 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, No
     if (pExpr1 != null) {
       return pExpr1;
     }
-    return pExpr2;
+    if (pExpr2 != null) {
+      return pExpr2;
+    }
+    return null;
   }
 
   @Override

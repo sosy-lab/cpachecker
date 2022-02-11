@@ -9,6 +9,8 @@
 package org.sosy_lab.cpachecker.cpa.monitor;
 
 import com.google.common.base.Preconditions;
+import java.io.IOException;
+import java.io.NotSerializableException;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -19,10 +21,24 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
-/** Keeps track of the resources spent on a path. */
+/**
+ * Keeps track of the resources spent on a path.
+ */
 public class MonitorState extends AbstractSingleWrapperState implements AvoidanceReportingState {
 
-  enum TimeoutState implements AbstractState {
+  private static final long serialVersionUID = 0xDEADBEEF;
+
+  /**
+   * javadoc to remove unused parameter warning
+   *
+   * @param out the output stream
+   */
+  @SuppressWarnings("UnusedVariable") // parameter required by API
+  private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+    throw new NotSerializableException();
+  }
+
+  static enum TimeoutState implements AbstractState {
     INSTANCE;
 
     @Override

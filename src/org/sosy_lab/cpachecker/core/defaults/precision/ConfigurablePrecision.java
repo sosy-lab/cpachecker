@@ -25,11 +25,14 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 @Options(prefix = "precision")
 public class ConfigurablePrecision extends VariableTrackingPrecision {
+
+  private static final long serialVersionUID = 1L;
 
   @Option(
     secure = true,
@@ -98,7 +101,7 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
   )
   private boolean trackIrrelevantVariables = true;
 
-  private final Optional<VariableClassification> vc;
+  private transient Optional<VariableClassification> vc;
   private final Class<? extends ConfigurableProgramAnalysis> cpaClass;
 
   ConfigurablePrecision(
@@ -146,10 +149,15 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
     }
 
     if (pVariable.isReference()) {
-      MemoryLocation owner = pVariable.getReferenceStart();
-      return isInTrackedVarClass(owner.getExtendedQualifiedName());
+      MemoryLocation owner;
+      if (pVariable.isOnFunctionStack()) {
+        owner = MemoryLocation.valueOf(pVariable.getFunctionName(), pVariable.getIdentifier());
+      } else {
+        owner = MemoryLocation.valueOf(pVariable.getIdentifier());
+      }
+      return isInTrackedVarClass(owner.getAsSimpleString());
     } else {
-      return isInTrackedVarClass(pVariable.getExtendedQualifiedName());
+      return isInTrackedVarClass(pVariable.getAsSimpleString());
     }
   }
 
@@ -311,5 +319,11 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
         .add("trackFloatVariables", trackFloatVariables)
         .add("trackAddressedVariables", trackAddressedVariables)
         .toString();
+  }
+
+  @SuppressWarnings("UnusedVariable") // parameter is required by API
+  private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
+    in.defaultReadObject();
+    vc = GlobalInfo.getInstance().getCFAInfo().orElseThrow().getCFA().getVarClassification();
   }
 }

@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+
 public interface JStatementVisitor<R, X extends Exception> {
 
   R visit(JExpressionAssignmentStatement pAExpressionAssignmentStatement) throws X;

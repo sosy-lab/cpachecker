@@ -143,7 +143,7 @@ public class CBinaryExpressionBuilderTest {
     checkCalculation(op, S_LONG_INT, U_LONG_LONG_INT, U_LONG_LONG_INT);
 
     checkCalculation(op, U_LONG_INT, U_LONG_INT, U_LONG_INT);
-    if (machineModel == MachineModel.LINUX64 || machineModel == MachineModel.ARM64) {
+    if (machineModel == MachineModel.LINUX64) {
       checkCalculation(op, U_LONG_INT, S_LONG_LONG_INT, U_LONG_LONG_INT); // !!!!
     } else {
       checkCalculation(op, U_LONG_INT, S_LONG_LONG_INT, S_LONG_LONG_INT);

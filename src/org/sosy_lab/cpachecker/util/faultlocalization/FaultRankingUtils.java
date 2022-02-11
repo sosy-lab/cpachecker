@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.faultlocalization;
 
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
@@ -58,7 +59,8 @@ public class FaultRankingUtils {
       }
       rankedList.add(fault);
     }
-    return ImmutableList.sortedCopyOf(rankedList);
+    Collections.sort(rankedList);
+    return ImmutableList.copyOf(rankedList);
   }
 
 

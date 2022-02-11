@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.model.java;
 
-import java.util.Optional;
+import com.google.common.base.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
@@ -19,30 +19,31 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 
 public class JReturnStatementEdge extends AReturnStatementEdge {
 
+
   private static final long serialVersionUID = -6303184113368127372L;
 
-  public JReturnStatementEdge(
-      String pRawStatement,
-      JReturnStatement pRawAST,
-      FileLocation pFileLocation,
-      CFANode pPredecessor,
-      FunctionExitNode pSuccessor) {
+  public JReturnStatementEdge(String pRawStatement, JReturnStatement pRawAST,
+      FileLocation pFileLocation, CFANode pPredecessor, FunctionExitNode pSuccessor) {
 
     super(pRawStatement, pRawAST, pFileLocation, pPredecessor, pSuccessor);
+
   }
 
-  @Override
-  public JReturnStatement getReturnStatement() {
-    return (JReturnStatement) returnStatement;
-  }
-
+  @SuppressWarnings("unchecked") // safe because Optional is covariant
   @Override
   public Optional<JExpression> getExpression() {
-    return getReturnStatement().getReturnValue();
+    return (Optional<JExpression>)rawAST.getReturnValue();
+  }
+
+  @SuppressWarnings("unchecked") // safe because Optional is covariant
+  @Override
+  public Optional<JAssignment> asAssignment() {
+    return (Optional<JAssignment>)super.asAssignment();
   }
 
   @Override
-  public Optional<JAssignment> asAssignment() {
-    return getReturnStatement().asAssignment();
+  public Optional<JReturnStatement> getRawAST() {
+    return Optional.of((JReturnStatement)rawAST);
   }
+
 }

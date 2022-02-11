@@ -13,7 +13,11 @@ import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 
-/** This class represents a reference to an enum constant. */
+/**
+ * This class represents a reference to an enum constant.
+ *
+ *
+ */
 public final class JEnumConstantExpression extends AbstractExpression implements JExpression {
 
   // TODO Change the representation of the constantName from String to JIdExpression
@@ -21,8 +25,7 @@ public final class JEnumConstantExpression extends AbstractExpression implements
   private static final long serialVersionUID = 253114542568695975L;
   private final String constantName;
 
-  public JEnumConstantExpression(
-      FileLocation pFileLocation, JClassType pType, String pConstantName) {
+  public JEnumConstantExpression(FileLocation pFileLocation, JClassType pType, String pConstantName) {
     super(pFileLocation, pType);
 
     constantName = pConstantName;
@@ -67,7 +70,8 @@ public final class JEnumConstantExpression extends AbstractExpression implements
       return true;
     }
 
-    if (!(obj instanceof JEnumConstantExpression) || !super.equals(obj)) {
+    if (!(obj instanceof JEnumConstantExpression)
+        || !super.equals(obj)) {
       return false;
     }
 
@@ -75,4 +79,6 @@ public final class JEnumConstantExpression extends AbstractExpression implements
 
     return Objects.equals(other.constantName, constantName);
   }
+
+
 }

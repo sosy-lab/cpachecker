@@ -244,7 +244,7 @@ public class ControlAutomatonCPA
 
   public AutomatonState buildInitStateForAutomaton(Automaton pAutomaton) {
     AutomatonInternalState initState = pAutomaton.getInitialState();
-    AutomatonTargetInformation safetyProp = null;
+    AutomatonSafetyProperty safetyProp = null;
     if (initState.isTarget()) {
       for (AutomatonTransition t : initState.getTransitions()) {
         if (t.getFollowState().isTarget()) {
@@ -254,9 +254,9 @@ public class ControlAutomatonCPA
                   .collect(MoreCollectors.toOptional());
           safetyProp =
               assumptionOpt.isPresent()
-                  ? new AutomatonTargetInformation(
+                  ? new AutomatonSafetyProperty(
                       pAutomaton, t, assumptionOpt.orElseThrow().toASTString())
-                  : new AutomatonTargetInformation(pAutomaton, t);
+                  : new AutomatonSafetyProperty(pAutomaton, t);
           break;
         }
       }

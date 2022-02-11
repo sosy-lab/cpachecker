@@ -9,8 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.unsat;
 
 import com.google.common.base.VerifyException;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -78,11 +77,13 @@ public class ModifiedMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
         .getLogger()
         .log(
             Level.FINEST,
-            "tfresult=" +
-                FluentIterable.from(hard)
-                    .transformAndConcat(ImmutableList::copyOf)
-                    .transform(fc -> fc.correspondingEdge().getFileLocation()
-                        .getStartingLineInOrigin()).toSortedList(Integer::compareTo));
+            "tfresult="
+                + Arrays.toString(
+                    hard.stream()
+                        .flatMap(Collection::stream)
+                        .map(fc -> fc.correspondingEdge().getFileLocation().getStartingLineInOrigin())
+                        .sorted()
+                        .toArray()));
     return hard;
   }
 

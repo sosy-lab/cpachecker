@@ -152,7 +152,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     final CType targetType = lhs.getExpressionType();
 
     // next line is a shortcut, not necessary
-    if (!precision.isTracking(MemoryLocation.fromQualifiedName(varName), targetType, successor)) {
+    if (!precision.isTracking(MemoryLocation.valueOf(varName), targetType, successor)) {
       return state;
     }
 
@@ -357,8 +357,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
     // handle assignments like "y = f(x);"
     if (summaryExpr instanceof CFunctionCallAssignmentStatement) {
-      final String returnVar =
-          fnkCall.getFunctionEntry().getReturnVariable().orElseThrow().getQualifiedName();
+      final String returnVar = fnkCall.getFunctionEntry().getReturnVariable().get().getQualifiedName();
       CFunctionCallAssignmentStatement cAssignment = (CFunctionCallAssignmentStatement) summaryExpr;
       CExpression lhs = cAssignment.getLeftHandSide();
       final int size = bvComputer.getBitsize(partition, lhs.getExpressionType());
@@ -396,10 +395,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     String returnVar = "";
 
     if (cfaEdge.getExpression().isPresent()) {
-      returnVar =
-          ((CIdExpression) cfaEdge.asAssignment().orElseThrow().getLeftHandSide())
-              .getDeclaration()
-              .getQualifiedName();
+      returnVar = ((CIdExpression)cfaEdge.asAssignment().get().getLeftHandSide()).getDeclaration().getQualifiedName();
       final Partition partition = varClass.getPartitionForEdge(cfaEdge);
       final CType functionReturnType = ((CFunctionDeclaration) cfaEdge.getSuccessor().getEntryNode()
               .getFunctionDefinition()).getType().getReturnType();
@@ -408,7 +404,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       final Region[] regRHS =
           bvComputer.evaluateVectorExpression(
               partition,
-              cfaEdge.getExpression().orElseThrow(),
+              cfaEdge.getExpression().get(),
               functionReturnType,
               cfaEdge.getSuccessor(),
               precision);
@@ -595,7 +591,9 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     MemoryLocation target = null;
     ALeftHandSide leftHandSide = CFAEdgeUtils.getLeftHandSide(cfaEdge);
     if (leftHandSide instanceof CIdExpression) {
-      target = MemoryLocation.forDeclaration(((CIdExpression) leftHandSide).getDeclaration());
+      target =
+          MemoryLocation.valueOf(
+              ((CIdExpression) leftHandSide).getDeclaration().getQualifiedName());
     } else if (leftHandSide instanceof CPointerExpression) {
       ExplicitLocationSet explicitSet =
           getLocationsForLhs(pPointerInfo, (CPointerExpression) leftHandSide);
@@ -615,7 +613,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     ARightHandSide rightHandSide = CFAEdgeUtils.getRightHandSide(cfaEdge);
     if (rightHandSide instanceof CIdExpression) {
       CIdExpression idExpr = (CIdExpression) rightHandSide;
-      value = MemoryLocation.forDeclaration(idExpr.getDeclaration());
+      value = MemoryLocation.valueOf(idExpr.getDeclaration().getQualifiedName());
       valueType = idExpr.getDeclaration().getType();
     } else if (rightHandSide instanceof CPointerExpression) {
       CPointerExpression ptrExpr = (CPointerExpression) rightHandSide;
@@ -633,11 +631,11 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
     final Region[] rhs =
         predmgr.createPredicate(
-            target.getExtendedQualifiedName(), valueType, cfaEdge.getSuccessor(), size, precision);
+            target.getAsSimpleString(), valueType, cfaEdge.getSuccessor(), size, precision);
 
     final Region[] evaluation =
         predmgr.createPredicate(
-            value.getExtendedQualifiedName(), valueType, cfaEdge.getSuccessor(), size, precision);
+            value.getAsSimpleString(), valueType, cfaEdge.getSuccessor(), size, precision);
     BDDState newState = state.forget(rhs);
     return newState.addAssignment(rhs, evaluation);
   }

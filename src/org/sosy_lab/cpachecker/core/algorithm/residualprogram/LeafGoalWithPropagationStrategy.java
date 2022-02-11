@@ -19,8 +19,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.TestGoalToConditionConverterAlgorithm.LeafStates;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -66,9 +66,9 @@ public class LeafGoalWithPropagationStrategy implements IGoalFindingStrategy {
               .collect(ImmutableList.toImmutableList());
 
       if (nodes.get(NodeStates.VIRGIN).containsAll(childrenNodes)
-          && node instanceof CFALabelNode
-          && ((CFALabelNode) node).getLabel().matches("^GOAL_[0-9]+$")) {
-        if (coveredGoals.contains(((CFALabelNode) node).getLabel())) {
+          && node instanceof CLabelNode && ((CLabelNode) node).getLabel()
+          .matches("^GOAL_[0-9]+$")) {
+        if (coveredGoals.contains(((CLabelNode) node).getLabel())) {
           nodes.get(NodeStates.COVERED).add(node);
         } else {
           nodes.get(NodeStates.UNCOVERED).add(node);

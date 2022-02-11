@@ -95,7 +95,9 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateI
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.EdgeFormulaNegation;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -253,7 +255,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
         pReachedSetFactory,
         pAsync,
         candidateGenerator,
-        AggregatedReachedSets.empty());
+        new AggregatedReachedSets());
   }
 
   private KInductionInvariantGenerator(
@@ -462,9 +464,10 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
       shutdownManager.getNotifier().shutdownIfNecessary();
 
       try {
-        ReachedSet reachedSet =
-            reachedSetFactory.createAndInitialize(
-                cpa, initialLocation, StateSpacePartition.getDefaultPartition());
+        ReachedSet reachedSet = reachedSetFactory.create();
+        AbstractState initialState = cpa.getInitialState(initialLocation, StateSpacePartition.getDefaultPartition());
+        Precision initialPrecision = cpa.getInitialPrecision(initialLocation, StateSpacePartition.getDefaultPartition());
+        reachedSet.add(initialState, initialPrecision);
         algorithm.run(reachedSet);
         return Pair.of(
             algorithm.getCurrentInvariants(), algorithm.getCurrentInvariantsAsExpressionTree());
@@ -605,7 +608,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
     algorithm.adjustmentRefused(pCpa);
   }
 
-  private interface CfaCandidateInvariantExtractorFactory {
+  private static interface CfaCandidateInvariantExtractorFactory {
 
     Iterable<CandidateInvariant> create(
         CFA pCfa,
@@ -615,8 +618,9 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
         throws InvalidConfigurationException;
   }
 
-  private enum CfaCandidateInvariantExtractorFactories
+  private static enum CfaCandidateInvariantExtractorFactories
       implements CfaCandidateInvariantExtractorFactory {
+
     NONE {
 
       @Override

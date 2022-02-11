@@ -11,8 +11,8 @@ package org.sosy_lab.cpachecker.util.automaton;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.io.MoreFiles;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
@@ -25,8 +25,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.CPAchecker;
-import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.core.specification.SpecificationProperty;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 
 public class VerificationTaskMetaData {
@@ -81,11 +81,23 @@ public class VerificationTaskMetaData {
    */
   public List<Path> getNonPropertySpecificationFiles() throws IOException {
     classifyAutomataFiles();
-    return nonWitnessAutomatonFiles;
+    Set<Path> pathsAssociatedWithPropertyFiles =
+        FluentIterable.from(getProperties())
+            .transform(SpecificationProperty::getInternalSpecificationPath)
+            .filter(Optional::isPresent)
+            .transform(Optional::get)
+            .toSet();
+    return FluentIterable.from(nonWitnessAutomatonFiles)
+        .filter(p -> !pathsAssociatedWithPropertyFiles.contains(p))
+        .toList();
   }
 
-  /** Return the properties considered for this verification task. */
-  public Set<Property> getProperties() {
+  /**
+   * The specification properties considered for this verification task.
+   *
+   * @return the specification properties considered for this verification task.
+   */
+  public Set<SpecificationProperty> getProperties() {
     return specification.getProperties();
   }
 
@@ -97,19 +109,17 @@ public class VerificationTaskMetaData {
     return producerString;
   }
 
-  private void classifyAutomataFiles() throws IOException {
+  private final void classifyAutomataFiles() throws IOException {
     if (nonWitnessAutomatonFiles == null) {
       assert witnessAutomatonFiles == null;
       ImmutableList.Builder<Path> nonWitnessAutomatonFilesBuilder = ImmutableList.builder();
       ImmutableList.Builder<Path> witnessAutomatonFilesBuilder = ImmutableList.builder();
-      Set<Path> specs = transformedImmutableSetCopy(specification.getFiles(), Path::normalize);
+      Set<Path> specs = transformedImmutableSetCopy(specification.getSpecFiles(), Path::normalize);
       for (Path path : specs) {
-        if (!MoreFiles.getFileExtension(path).equals("prp")) {
-          if (AutomatonGraphmlParser.isGraphmlAutomaton(path)) {
-            witnessAutomatonFilesBuilder.add(path);
-          } else {
-            nonWitnessAutomatonFilesBuilder.add(path);
-          }
+        if (AutomatonGraphmlParser.isGraphmlAutomaton(path)) {
+          witnessAutomatonFilesBuilder.add(path);
+        } else {
+          nonWitnessAutomatonFilesBuilder.add(path);
         }
       }
       Optional<Path> correctnessWitness =

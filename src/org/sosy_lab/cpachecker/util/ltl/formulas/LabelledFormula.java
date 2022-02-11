@@ -13,8 +13,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Objects;
+import org.sosy_lab.cpachecker.core.specification.Property;
 
-public final class LabelledFormula {
+public final class LabelledFormula implements Property {
 
   public static LabelledFormula of(LtlFormula pFormula, List<Literal> pList) {
     return new LabelledFormula(pFormula, pList);

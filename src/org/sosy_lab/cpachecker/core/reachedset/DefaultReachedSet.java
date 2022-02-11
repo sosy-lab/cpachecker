@@ -13,6 +13,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.Serializable;
 import java.util.AbstractCollection;
 import java.util.Collection;
 import java.util.Collections;
@@ -21,11 +24,9 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
-import java.util.stream.Stream;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.waitlist.AbstractSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
@@ -34,33 +35,24 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatValue;
 
 /** Basic implementation of ReachedSet. It does not group states by location or any other key. */
-class DefaultReachedSet implements ReachedSet {
+class DefaultReachedSet implements ReachedSet, Serializable {
 
-  private final ConfigurableProgramAnalysis cpa;
+  private static final long serialVersionUID = 1L;
+
   private final Map<AbstractState, Precision> reached;
-  private final Set<AbstractState> unmodifiableReached;
+  private transient Set<AbstractState> unmodifiableReached;
   private @Nullable AbstractState lastState = null;
   private @Nullable AbstractState firstState = null;
   private final Waitlist waitlist;
 
-  DefaultReachedSet(ConfigurableProgramAnalysis pCpa, WaitlistFactory waitlistFactory) {
-    cpa = checkNotNull(pCpa);
+  DefaultReachedSet(WaitlistFactory waitlistFactory) {
     reached = new LinkedHashMap<>();
     unmodifiableReached = Collections.unmodifiableSet(reached.keySet());
     waitlist = waitlistFactory.createWaitlistInstance();
   }
 
   @Override
-  public void add(AbstractState state, Precision precision) {
-    add(state, precision, /*updateWaitlist=*/ true);
-  }
-
-  @Override
-  public void addNoWaitlist(AbstractState state, Precision precision) {
-    add(state, precision, /*updateWaitlist=*/ false);
-  }
-
-  private void add(AbstractState state, Precision precision, boolean updateWaitlist) {
+  public void add(AbstractState state, Precision precision) throws IllegalArgumentException {
     Preconditions.checkNotNull(state);
     Preconditions.checkNotNull(precision);
 
@@ -72,9 +64,7 @@ class DefaultReachedSet implements ReachedSet {
 
     if (previousPrecision == null) {
       // State wasn't already in the reached set.
-      if (updateWaitlist) {
-        waitlist.add(state);
-      }
+      waitlist.add(state);
       lastState = state;
 
     } else {
@@ -172,11 +162,6 @@ class DefaultReachedSet implements ReachedSet {
   }
 
   @Override
-  public void clearWaitlist() {
-    waitlist.clear();
-  }
-
-  @Override
   public Set<AbstractState> asCollection() {
     return unmodifiableReached;
   }
@@ -184,11 +169,6 @@ class DefaultReachedSet implements ReachedSet {
   @Override
   public Iterator<AbstractState> iterator() {
     return unmodifiableReached.iterator();
-  }
-
-  @Override
-  public Stream<AbstractState> stream() {
-    return reached.keySet().stream();
   }
 
   @Override
@@ -306,8 +286,9 @@ class DefaultReachedSet implements ReachedSet {
     }
   }
 
-  @Override
-  public ConfigurableProgramAnalysis getCPA() {
-    return cpa;
+  @SuppressWarnings("UnusedVariable") // parameter is required by API
+  private void readObject(ObjectInputStream s) throws IOException, ClassNotFoundException {
+    s.defaultReadObject();
+    unmodifiableReached = Collections.unmodifiableSet(reached.keySet());
   }
 }

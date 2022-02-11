@@ -74,7 +74,7 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
 
   private final Collection<Statistics> stats = new ArrayList<>();
 
-  private static boolean isStop(AbstractState e) {
+  private static final boolean isStop(AbstractState e) {
     AssumptionStorageState ass = AbstractStates.extractStateByType(e, AssumptionStorageState.class);
     return ass != null && ass.isStop();
   }
@@ -319,7 +319,7 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
       Configuration config = configBuilder.build();
 
       CoreComponentsFactory coreComponents =
-          new CoreComponentsFactory(config, logger, shutdown, AggregatedReachedSets.empty());
+          new CoreComponentsFactory(config, logger, shutdown, new AggregatedReachedSets());
 
       Specification spec = getSpecification();
       if (usesParallelCompositionOfProgramAndCondition()) {
@@ -334,7 +334,7 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
       }
       ConfigurableProgramAnalysis cpa = coreComponents.createCPA(cfa, spec);
 
-      ReachedSet reached = coreComponents.createReachedSet(cpa);
+      ReachedSet reached = coreComponents.createReachedSet();
       reached.add(cpa.getInitialState(mainFunction, StateSpacePartition.getDefaultPartition()),
           cpa.getInitialPrecision(mainFunction, StateSpacePartition.getDefaultPartition()));
 

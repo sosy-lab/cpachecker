@@ -64,9 +64,4 @@ public class SMGKnownSymValue extends SMGKnownValue implements SMGKnownSymbolicV
   public BigInteger getId() {
     return getValue();
   }
-
-  @Override
-  public String toString() {
-    return "Sym_" + super.toString();
-  }
 }

@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -298,14 +297,14 @@ public class ReachingDefTransferRelation implements TransferRelation {
 
   private ImmutableSet<MemoryLocation> getParameters(CFunctionEntryNode pNode) {
     return Collections3.transformedImmutableSetCopy(
-        pNode.getFunctionParameters(), x -> MemoryLocation.forDeclaration(x));
+        pNode.getFunctionParameters(), x -> MemoryLocation.valueOf(x.getQualifiedName()));
   }
 
   private ReachingDefState handleReturnStatement(
       CReturnStatementEdge pCfaEdge, ReachingDefState pState) {
-    Optional<CAssignment> asAssignment = pCfaEdge.asAssignment();
+    com.google.common.base.Optional<CAssignment> asAssignment = pCfaEdge.asAssignment();
     if (asAssignment.isPresent()) {
-      CAssignment assignment = asAssignment.orElseThrow();
+      CAssignment assignment = asAssignment.get();
       return handleStatement(pState, pCfaEdge, assignment);
     } else {
       return pState;
@@ -399,7 +398,7 @@ public class ReachingDefTransferRelation implements TransferRelation {
       CVariableDeclaration dec = (CVariableDeclaration) edge.getDeclaration();
       // If there is no initialization at the declaration,
       // we still keep the declaration as a non-deterministic, first definition.
-      MemoryLocation var = MemoryLocation.forDeclaration(dec);
+      MemoryLocation var = MemoryLocation.valueOf(dec.getQualifiedName());
       if (dec.isGlobal()) {
         return pState.addGlobalReachDef(var, edge.getPredecessor(), edge.getSuccessor());
       } else {

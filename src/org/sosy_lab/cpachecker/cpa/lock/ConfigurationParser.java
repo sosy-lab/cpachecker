@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.lock;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.CharMatcher;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -65,7 +64,7 @@ public class ConfigurationParser {
 
       tmpString = config.getProperty(lockName + ".variable");
       if (tmpString != null) {
-        tmpString = CharMatcher.whitespace().removeFrom(tmpString);
+        tmpString = tmpString.replaceAll("\\s", "");
         Splitter.on(",")
             .splitToList(tmpString)
             .forEach(k -> variableEffects.put(k, LockIdentifier.of(lockName)));
@@ -88,7 +87,7 @@ public class ConfigurationParser {
     String tmpString = config.getProperty(lockName + "." + target);
     if (tmpString != null) {
 
-      tmpString = CharMatcher.whitespace().removeFrom(tmpString);
+      tmpString = tmpString.replaceAll("\\s", "");
       return from(Splitter.on(",").splitToList(tmpString))
           .toMap(
               f ->
@@ -137,7 +136,7 @@ public class ConfigurationParser {
 
     String property = config.getProperty("annotate." + function + "." + target);
     if (property != null) {
-      property = CharMatcher.whitespace().removeFrom(property);
+      property = property.replaceAll("\\s", "");
       List<String> lockNames = Splitter.on(",").splitToList(property);
       LockIdentifier parsedId;
       for (String fullName : lockNames) {

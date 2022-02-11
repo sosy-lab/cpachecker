@@ -473,7 +473,7 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
       Configuration singleConfig = innerConfigBuilder.build();
       CoreComponentsFactory coreComponents =
           new CoreComponentsFactory(
-              singleConfig, logger, shutdownManager.getNotifier(), AggregatedReachedSets.empty());
+              singleConfig, logger, shutdownManager.getNotifier(), new AggregatedReachedSets());
 
       return coreComponents.createAlgorithm(cpa, cfa, specification);
     } catch (InvalidConfigurationException e) {

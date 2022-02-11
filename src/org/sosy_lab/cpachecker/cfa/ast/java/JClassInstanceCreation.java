@@ -14,26 +14,28 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 
 /**
+ *
  * This class represents the class instance creation expression AST node type.
  *
- * <pre>{@code
  * ClassInstanceCreation:
  *       [ Expression . ]
  *           new [ < Type { , Type } > ]
  *           Type ( [ Expression { , Expression } ] )
  *           [ AnonymousClassDeclaration ]
- * }</pre>
  *
- * The functionname is in most cases a {@link JIdExpression}.
+ *  The functionname is in most cases a {@link JIdExpression}.
  *
- * <p>Not all node arragements will represent legal Java constructs. In particular, it is nonsense
- * if the functionname does not contain a {@link JIdExpression}.
+ *  Not all node arragements will represent legal Java constructs.
+ *  In particular, it is nonsense if the functionname does not contain a {@link JIdExpression}.
+ *
+ *
+ *
  */
 public class JClassInstanceCreation extends JMethodInvocationExpression implements JRightHandSide {
 
   // TODO refactor to be either abstract or final
 
-  // TODO Type Variables , AnonymousClassDeclaration
+  //TODO Type Variables , AnonymousClassDeclaration
 
   private static final long serialVersionUID = -8480398251628288918L;
 
@@ -65,7 +67,12 @@ public class JClassInstanceCreation extends JMethodInvocationExpression implemen
 
   @Override
   public String toASTString(boolean pQualified) {
-    return "new " + getExpressionType().toASTString(getFunctionNameExpression().toASTString(pQualified));
+
+    StringBuilder astString = new StringBuilder("new ");
+    astString.append(
+        getExpressionType().toASTString(getFunctionNameExpression().toASTString(pQualified)));
+
+    return astString.toString();
   }
 
   @Override

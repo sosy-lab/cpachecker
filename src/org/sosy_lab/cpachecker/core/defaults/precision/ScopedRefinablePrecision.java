@@ -24,6 +24,9 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class ScopedRefinablePrecision extends RefinablePrecision {
+
+  private static final long serialVersionUID = 1L;
+
   /**
    * the collection that determines which variables are tracked within a specific scope
    */
@@ -62,11 +65,11 @@ public class ScopedRefinablePrecision extends RefinablePrecision {
         if (!functionName.equals(previousScope)) {
           writer.write("\n" + functionName + ":\n");
         }
-        writer.write(variable.getExtendedQualifiedName() + "\n");
+        writer.write(variable.serialize() + "\n");
 
         previousScope = functionName;
       } else {
-        globals.add(variable.getExtendedQualifiedName());
+        globals.add(variable.serialize());
       }
     }
 

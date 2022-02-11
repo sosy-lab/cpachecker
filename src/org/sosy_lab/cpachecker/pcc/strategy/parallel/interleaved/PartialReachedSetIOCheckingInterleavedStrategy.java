@@ -36,7 +36,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -74,8 +73,7 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
   }
 
   @Override
-  public void constructInternalProofRepresentation(
-      final UnmodifiableReachedSet pReached, final ConfigurableProgramAnalysis pCpa)
+  public void constructInternalProofRepresentation(final UnmodifiableReachedSet pReached)
       throws InvalidConfigurationException {
     throw new InvalidConfigurationException(
         "Interleaved proof reading and checking strategies do not  support internal PCC with result check algorithm");
@@ -147,13 +145,10 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
   }
 
   @Override
-  protected void writeProofToStream(
-      final ObjectOutputStream pOut,
-      final UnmodifiableReachedSet pReached,
-      final ConfigurableProgramAnalysis pCpa)
+  protected void writeProofToStream(final ObjectOutputStream pOut, final UnmodifiableReachedSet pReached)
       throws IOException, InvalidConfigurationException, InterruptedException {
     Pair<PartialReachedSetDirectedGraph, List<Set<Integer>>> partitioning =
-        ioHelper.computePartialReachedSetAndPartition(pReached, pCpa);
+        ioHelper.computePartialReachedSetAndPartition(pReached);
 
     ioHelper.writeMetadata(pOut, pReached.size(), partitioning.getSecond().size());
     for (Set<Integer> partition : partitioning.getSecond()) {

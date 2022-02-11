@@ -18,7 +18,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
-import org.sosy_lab.cpachecker.cpa.bam.AbstractBAMCPA;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCache.BAMCacheEntry;
 
 public class BAMDataManagerSynchronized implements BAMDataManager {
@@ -26,11 +25,8 @@ public class BAMDataManagerSynchronized implements BAMDataManager {
   private final BAMDataManager manager;
 
   public BAMDataManagerSynchronized(
-      AbstractBAMCPA pBamCpa,
-      BAMCache pCache,
-      ReachedSetFactory pReachedsetFactory,
-      LogManager pLogger) {
-    manager = new BAMDataManagerImpl(pBamCpa, pCache, pReachedsetFactory, pLogger);
+      BAMCache pCache, ReachedSetFactory pReachedsetFactory, LogManager pLogger) {
+    manager = new BAMDataManagerImpl(pCache, pReachedsetFactory, pLogger);
   }
 
   @Override

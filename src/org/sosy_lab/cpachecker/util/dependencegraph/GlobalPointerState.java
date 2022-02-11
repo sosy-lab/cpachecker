@@ -81,7 +81,7 @@ abstract class GlobalPointerState {
       VariableClassification variableClassification = optVariableClassification.orElseThrow();
 
       for (String variableName : variableClassification.getAddressedVariables()) {
-        addressedVariables.add(MemoryLocation.fromQualifiedName(variableName));
+        addressedVariables.add(MemoryLocation.valueOf(variableName));
       }
     }
 
@@ -312,7 +312,7 @@ abstract class GlobalPointerState {
         reachedFactory = new ReachedSetFactory(config, pLogger);
         cpa =
             new CPABuilder(config, pLogger, pShutdownNotifier, reachedFactory)
-                .buildCPAs(pCfa, Specification.alwaysSatisfied(), AggregatedReachedSets.empty());
+                .buildCPAs(pCfa, Specification.alwaysSatisfied(), new AggregatedReachedSets());
         algorithm = CPAAlgorithm.create(cpa, pLogger, config, pShutdownNotifier);
 
       } catch (InvalidConfigurationException ex) {
@@ -320,9 +320,14 @@ abstract class GlobalPointerState {
         return null;
       }
 
-      ReachedSet reached =
-          reachedFactory.createAndInitialize(
-              cpa, pCfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
+      ReachedSet reached = reachedFactory.create();
+
+      AbstractState initialState =
+          cpa.getInitialState(pCfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
+      Precision initialPrecision =
+          cpa.getInitialPrecision(
+              pCfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
+      reached.add(initialState, initialPrecision);
 
       algorithm.run(reached);
       assert !reached.hasWaitingState()

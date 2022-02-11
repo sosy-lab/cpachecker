@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 
 public final class LocalState implements LatticeAbstractState<LocalState> {
 
-  public enum DataType {
+  public static enum DataType {
     LOCAL,
     GLOBAL;
 

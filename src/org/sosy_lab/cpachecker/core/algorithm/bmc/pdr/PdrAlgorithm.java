@@ -270,7 +270,9 @@ public class PdrAlgorithm implements Algorithm {
     // Successfully proven invariants are removed from the set.
     final CandidateGenerator candidateGenerator = getCandidateInvariants();
     if (!candidateGenerator.produceMoreCandidates()) {
-      rawBmcReachedSet.clearWaitlist();
+      for (AbstractState state : ImmutableList.copyOf(rawBmcReachedSet.getWaitlist())) {
+        rawBmcReachedSet.removeOnlyFromWaitlist(state);
+      }
       return AlgorithmStatus.SOUND_AND_PRECISE;
     }
 
@@ -952,7 +954,7 @@ public class PdrAlgorithm implements Algorithm {
   }
 
   private PartialTransitionRelation createPartialTransitionRelation(CFANode predecessorLocation) {
-    return createPartialTransitionRelation(predecessorLocation, reachedSetFactory.create(cpa));
+    return createPartialTransitionRelation(predecessorLocation, reachedSetFactory.create());
   }
 
   private PartialTransitionRelation createPartialTransitionRelation(

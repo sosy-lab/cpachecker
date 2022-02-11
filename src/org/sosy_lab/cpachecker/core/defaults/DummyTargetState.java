@@ -13,6 +13,7 @@ import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 
 /**
@@ -23,25 +24,25 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable;
  */
 public final class DummyTargetState implements AbstractState, Targetable, Partitionable {
 
-  private final ImmutableSet<TargetInformation> properties;
+  private final ImmutableSet<Property> properties;
 
-  private DummyTargetState(ImmutableSet<TargetInformation> pProperties) {
+  private DummyTargetState(ImmutableSet<Property> pProperties) {
     properties = pProperties;
   }
 
-  public static DummyTargetState withTargetInofmration(TargetInformation pProp) {
+  public static DummyTargetState withSingleProperty(Property pProp) {
     return new DummyTargetState(ImmutableSet.of(pProp));
   }
 
-  public static DummyTargetState withSimpleTargetInformation(String pPropText) {
-    return withTargetInofmration(SimpleTargetInformation.create(pPropText));
+  public static DummyTargetState withSingleProperty(String pPropText) {
+    return withSingleProperty(NamedProperty.create(pPropText));
   }
 
-  public static DummyTargetState withoutTargetInformation() {
+  public static DummyTargetState withoutProperty() {
     return new DummyTargetState(ImmutableSet.of());
   }
 
-  public static DummyTargetState withTargetInformation(Iterable<TargetInformation> pProperties) {
+  public static DummyTargetState withProperties(Iterable<Property> pProperties) {
     return new DummyTargetState(ImmutableSet.copyOf(pProperties));
   }
 
@@ -69,7 +70,7 @@ public final class DummyTargetState implements AbstractState, Targetable, Partit
   }
 
   @Override
-  public Set<TargetInformation> getTargetInformation() {
+  public Set<Property> getViolatedProperties() {
     return properties;
   }
 

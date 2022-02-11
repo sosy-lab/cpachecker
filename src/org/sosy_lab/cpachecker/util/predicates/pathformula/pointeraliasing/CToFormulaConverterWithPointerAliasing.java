@@ -713,7 +713,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    */
   @Override
   protected BooleanFormula makeReturn(
-      final Optional<CAssignment> assignment,
+      final com.google.common.base.Optional<CAssignment> assignment,
       final CReturnStatementEdge returnEdge,
       final String function,
       final SSAMapBuilder ssa,
@@ -725,9 +725,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
     if (assignment.isPresent()) {
       final CVariableDeclaration returnVariableDeclaraton =
-          ((CFunctionEntryNode) returnEdge.getSuccessor().getEntryNode())
-              .getReturnVariable()
-              .orElseThrow();
+          ((CFunctionEntryNode) returnEdge.getSuccessor().getEntryNode()).getReturnVariable().get();
 
       declareSharedBase(
           returnVariableDeclaraton,

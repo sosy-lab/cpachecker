@@ -10,14 +10,14 @@ package org.sosy_lab.cpachecker.cpa.usage;
 
 public interface CompatibleNode extends CompatibleState {
 
-  boolean cover(CompatibleNode node);
+  public boolean cover(CompatibleNode node);
 
-  default boolean hasEmptyLockSet() {
+  public default boolean hasEmptyLockSet() {
     return true;
   }
 
   @Override
-  default CompatibleNode getCompatibleNode() {
+  public default CompatibleNode getCompatibleNode() {
     return this;
   }
 }

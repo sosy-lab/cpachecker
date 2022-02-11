@@ -9,10 +9,10 @@
 package org.sosy_lab.cpachecker.cfa.model;
 
 
-import java.io.Serializable;
-import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import com.google.common.base.Optional;
+import java.io.Serializable;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 
 public interface CFAEdge extends Serializable {
 
@@ -22,8 +22,7 @@ public interface CFAEdge extends Serializable {
 
   CFANode getSuccessor();
 
-  Optional<AAstNode> getRawAST();
-
+  Optional<? extends AAstNode> getRawAST();
   int getLineNumber();
 
   FileLocation getFileLocation();

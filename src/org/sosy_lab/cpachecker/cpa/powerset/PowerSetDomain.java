@@ -67,15 +67,18 @@ public class PowerSetDomain implements AbstractDomain {
     return state1.isMergedInto(state2) || isCoverage(state1, state2);
   }
 
-  private boolean isCoverage(final PowerSetState pCovered, final PowerSetState pCovering)
-      throws CPAException, InterruptedException {
+  private boolean isCoverage(final PowerSetState pCovered, final PowerSetState pCovering) {
     if (prec == null) { return false; }
     Collection<AbstractState> coverSet = pCovering.getWrappedStates();
-    for (AbstractState state : pCovered.getWrappedStates()) {
+    try {
+      for (AbstractState state : pCovered.getWrappedStates()) {
 
-      if (!coverSet.contains(state) && !stop.stop(state, coverSet, prec)) {
-        return false;
+        if (!coverSet.contains(state) && !stop.stop(state, coverSet, prec)) {
+          return false;
+        }
       }
+    } catch (CPAException | InterruptedException e) {
+      return false;
     }
     return true;
   }

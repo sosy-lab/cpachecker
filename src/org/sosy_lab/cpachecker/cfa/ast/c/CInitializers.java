@@ -541,7 +541,7 @@ public final class CInitializers {
                 pInput -> {
                   CExpression index =
                       new CIntegerLiteralExpression(
-                          loc, CNumericTypes.INT, BigInteger.valueOf(pInput));
+                          loc, CNumericTypes.INT, BigInteger.valueOf(pInput.longValue()));
 
                   return new CArraySubscriptExpression(loc, elementType, currentSubobject, index);
                 })

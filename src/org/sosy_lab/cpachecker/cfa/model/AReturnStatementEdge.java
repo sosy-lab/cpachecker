@@ -8,9 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.model;
 
-import java.util.Optional;
+import com.google.common.base.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -18,17 +17,13 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 public class AReturnStatementEdge extends AbstractCFAEdge {
 
   private static final long serialVersionUID = -6181479727890105919L;
-  protected final AReturnStatement returnStatement;
+  protected final AReturnStatement rawAST;
 
-  protected AReturnStatementEdge(
-      String pRawStatement,
-      AReturnStatement pReturnStatement,
-      FileLocation pFileLocation,
-      CFANode pPredecessor,
-      FunctionExitNode pSuccessor) {
+  protected AReturnStatementEdge(String pRawStatement, AReturnStatement pRawAST,
+      FileLocation pFileLocation, CFANode pPredecessor, FunctionExitNode pSuccessor) {
 
     super(pRawStatement, pFileLocation, pPredecessor, pSuccessor);
-    returnStatement = pReturnStatement;
+    rawAST = pRawAST;
   }
 
   @Override
@@ -36,27 +31,23 @@ public class AReturnStatementEdge extends AbstractCFAEdge {
     return CFAEdgeType.ReturnStatementEdge;
   }
 
-  public AReturnStatement getReturnStatement() {
-    return returnStatement;
-  }
-
   public Optional<? extends AExpression> getExpression() {
-    return returnStatement.getReturnValue();
+    return rawAST.getReturnValue();
   }
 
   /** See {@link AReturnStatement#asAssignment()}. */
   public Optional<? extends AAssignment> asAssignment() {
-    return returnStatement.asAssignment();
+    return rawAST.asAssignment();
   }
 
   @Override
-  public Optional<AAstNode> getRawAST() {
-    return Optional.of(returnStatement);
+  public Optional<? extends AReturnStatement> getRawAST() {
+    return Optional.of(rawAST);
   }
 
   @Override
   public String getCode() {
-    return returnStatement.toASTString();
+    return rawAST.toASTString();
   }
 
   @Override

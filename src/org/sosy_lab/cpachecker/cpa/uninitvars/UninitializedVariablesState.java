@@ -29,11 +29,7 @@ public class UninitializedVariablesState implements AbstractQueryableState, Seri
 
   private final Collection<Triple<Integer, String, String>> warnings;
 
-  enum ElementProperty {
-    UNINITIALIZED_RETURN_VALUE,
-    UNINITIALIZED_VARIABLE_USED
-  }
-
+  static enum ElementProperty {UNINITIALIZED_RETURN_VALUE, UNINITIALIZED_VARIABLE_USED}
   private Set<ElementProperty> properties = EnumSet.noneOf(ElementProperty.class); // emptySet
 
   public UninitializedVariablesState(String entryFunction) {

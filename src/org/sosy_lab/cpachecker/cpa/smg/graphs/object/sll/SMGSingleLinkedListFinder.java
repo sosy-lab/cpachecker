@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
@@ -135,7 +136,7 @@ public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
       Set<Long> typeSizesOfThisObject = new HashSet<>();
 
       for (SMGEdgePointsTo edge : SMGUtils.getPointerToThisObject(pObject, pSmg)) {
-        Iterable<SMGEdgeHasValue> hves =
+        SMGHasValueEdges hves =
             pSmg.getHVEdges(
                 SMGEdgeHasValueFilter.valueFilter(edge.getValue())
                     .filterBySize(pSmg.getSizeofPtrInBits()));
@@ -198,13 +199,13 @@ public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
 
       // TODO At the moment, we still demand that a value is found at prev or next.
 
-      Iterable<SMGEdgeHasValue> nextObjectNextPointer =
+      SMGHasValueEdges nextObjectNextPointer =
           pSmg.getHVEdges(
               SMGEdgeHasValueFilter.objectFilter(nextObject)
                   .filterAtOffset(nfo)
                   .filterBySize(pSmg.getSizeofPtrInBits()));
 
-      if (Iterables.size(nextObjectNextPointer) != 1) {
+      if (nextObjectNextPointer.size() != 1) {
         return;
       }
 
@@ -290,10 +291,9 @@ public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
         /* Nothing besides the one link from the prev object pointer may
          * point to the next object in a sll
          */
-        Iterable<SMGEdgeHasValue> prevs =
-            pSmg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(pte.getValue()));
+        SMGHasValueEdges prevs = pSmg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(pte.getValue()));
 
-        if (Iterables.size(prevs) != 1) {
+        if (prevs.size() != 1) {
           return;
         }
       }

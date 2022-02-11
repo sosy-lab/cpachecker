@@ -61,8 +61,7 @@ enum GraphBuilder {
         Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
         Map<ARGState, CFAEdgeWithAdditionalInfo> pAdditionalInfo,
         Iterable<Pair<ARGState, Iterable<ARGState>>> pARGEdges,
-        EdgeAppender pEdgeAppender)
-        throws InterruptedException {
+        EdgeAppender pEdgeAppender) {
       int multiEdgeCount = 0;
       for (Pair<ARGState, Iterable<ARGState>> argEdges : pARGEdges) {
         ARGState s = argEdges.getFirst();
@@ -179,8 +178,7 @@ enum GraphBuilder {
         Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
         Map<ARGState, CFAEdgeWithAdditionalInfo> pAdditionalInfo,
         Iterable<Pair<ARGState, Iterable<ARGState>>> pARGEdges,
-        EdgeAppender pEdgeAppender)
-        throws InterruptedException {
+        EdgeAppender pEdgeAppender) {
 
       // normally there is only one node per state, thus we assume that there is only one root-node
       final CFANode rootNode = Iterables.getOnlyElement(AbstractStates.extractLocations(pRootState));
@@ -243,8 +241,7 @@ enum GraphBuilder {
         Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
         Map<ARGState, CFAEdgeWithAdditionalInfo> pAdditionalInfo,
         Iterable<Pair<ARGState, Iterable<ARGState>>> pARGEdges,
-        EdgeAppender pEdgeAppender)
-        throws InterruptedException {
+        EdgeAppender pEdgeAppender) {
 
       // normally there is only one node per state, thus we assume that there is only one root-node
       final CFANode rootNode = Iterables.getOnlyElement(AbstractStates.extractLocations(pRootState));
@@ -313,8 +310,7 @@ enum GraphBuilder {
       EdgeAppender pEdgeAppender,
       CFAEdge pEdge,
       Optional<Collection<ARGState>> pStates,
-      Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap)
-      throws InterruptedException {
+      Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap) {
 
     String sourceId = pEdge.getPredecessor().toString();
     String targetId = pEdge.getSuccessor().toString();
@@ -335,6 +331,5 @@ enum GraphBuilder {
       Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
       Map<ARGState, CFAEdgeWithAdditionalInfo> pAdditionalInfo,
       Iterable<Pair<ARGState, Iterable<ARGState>>> pARGEdges,
-      EdgeAppender pEdgeAppender)
-      throws InterruptedException;
+      EdgeAppender pEdgeAppender);
 }

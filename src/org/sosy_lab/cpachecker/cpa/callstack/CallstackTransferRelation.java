@@ -110,7 +110,8 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
           // regular function call:
           //    add the called function to the current stack
 
-          return ImmutableSet.of(new CallstackState(e, calledFunction, callerNode));
+          return Collections.singleton(
+              new CallstackState(e, calledFunction, callerNode));
         }
       }
 

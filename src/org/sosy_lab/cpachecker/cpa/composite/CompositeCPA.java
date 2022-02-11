@@ -10,15 +10,12 @@ package org.sosy_lab.cpachecker.cpa.composite;
 
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.List;
-import java.util.function.Supplier;
-import org.sosy_lab.common.collect.Collections3;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -42,34 +39,30 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-@Options(prefix = "cpa.composite")
-public final class CompositeCPA
-    implements StatisticsProvider, WrapperCPA, ConfigurableProgramAnalysisWithBAM, ProofChecker {
+public class CompositeCPA implements StatisticsProvider, WrapperCPA, ConfigurableProgramAnalysisWithBAM, ProofChecker {
 
-  @Option(
-      secure = true,
-      toUppercase = true,
-      values = {"PLAIN", "AGREE"},
-      description =
-          "which composite merge operator to use (plain or agree)\n"
-              + "Both delegate to the component cpas, but agree only allows "
-              + "merging if all cpas agree on this. This is probably what you want.")
-  private String merge = "AGREE";
+  @Options(prefix="cpa.composite")
+  private static class CompositeOptions {
+    @Option(secure=true, toUppercase=true, values={"PLAIN", "AGREE"},
+        description="which composite merge operator to use (plain or agree)\n"
+          + "Both delegate to the component cpas, but agree only allows "
+          + "merging if all cpas agree on this. This is probably what you want.")
+    private String merge = "AGREE";
 
-  @Option(
-      secure = true,
-      description =
-          "inform Composite CPA if it is run in a CPA enabled analysis because then it must "
-              + "behave differently during merge.")
-  private boolean inCPAEnabledAnalysis = false;
+    @Option(secure=true,
+    description="inform Composite CPA if it is run in a CPA enabled analysis because then it must "
+      + "behave differently during merge.")
+    private boolean inCPAEnabledAnalysis = false;
 
-  @Option(
+    @Option(
       secure = true,
       description =
           "By enabling this option the CompositeTransferRelation"
@@ -79,8 +72,10 @@ public final class CompositeCPA
               + " chain. Strengthening is still computed after every edge."
               + " The main difference is that while this option is enabled not every ARGState may"
               + " have a single edge connecting to the child/parent ARGState but it may instead"
-              + " be a list.")
-  private boolean aggregateBasicBlocks = false;
+              + " be a list."
+    )
+    private boolean aggregateBasicBlocks = false;
+  }
 
   private static class CompositeCPAFactory extends AbstractCPAFactory {
 
@@ -91,7 +86,20 @@ public final class CompositeCPA
     public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException {
       Preconditions.checkState(cpas != null, "CompositeCPA needs wrapped CPAs!");
       Preconditions.checkState(cfa != null, "CompositeCPA needs CFA information!");
-      return new CompositeCPA(getConfiguration(), cfa, cpas);
+
+      CompositeOptions options = new CompositeOptions();
+      getConfiguration().inject(options);
+
+      boolean mergeSep =
+          !from(cpas)
+              .filter(cpa -> cpa.getMergeOperator() != MergeSepOperator.getInstance())
+              .isEmpty();
+      if (!mergeSep && options.inCPAEnabledAnalysis && !options.merge.equals("AGREE")) {
+        throw new InvalidConfigurationException(
+            "Merge PLAIN is currently not supported in predicated analysis");
+      }
+
+      return new CompositeCPA(cfa, cpas, options);
     }
 
     @Override
@@ -125,106 +133,103 @@ public final class CompositeCPA
 
   private final ImmutableList<ConfigurableProgramAnalysis> cpas;
   private final CFA cfa;
-  private final Supplier<MergeOperator> mergeSupplier;
+  private final CompositeOptions options;
 
   private CompositeCPA(
-      Configuration config, CFA pCfa, ImmutableList<ConfigurableProgramAnalysis> cpas)
-      throws InvalidConfigurationException {
-    config.inject(this);
+      CFA pCfa,
+      ImmutableList<ConfigurableProgramAnalysis> cpas,
+      CompositeOptions pOptions) {
     this.cfa = pCfa;
     this.cpas = cpas;
-    mergeSupplier = buildMergeOperatorSupplier();
+    this.options = pOptions;
   }
 
   @Override
   public AbstractDomain getAbstractDomain() {
-    return new CompositeDomain(
-        transformedImmutableListCopy(cpas, ConfigurableProgramAnalysis::getAbstractDomain));
+    ImmutableList.Builder<AbstractDomain> domains = ImmutableList.builder();
+    for (ConfigurableProgramAnalysis cpa : cpas) {
+      domains.add(cpa.getAbstractDomain());
+    }
+    return new CompositeDomain(domains.build());
   }
 
   @Override
   public CompositeTransferRelation getTransferRelation() {
+    ImmutableList.Builder<TransferRelation> transferRelations = ImmutableList.builder();
+    for (ConfigurableProgramAnalysis cpa : cpas) {
+      transferRelations.add(cpa.getTransferRelation());
+    }
     return new CompositeTransferRelation(
-        transformedImmutableListCopy(cpas, ConfigurableProgramAnalysis::getTransferRelation),
-        cfa,
-        aggregateBasicBlocks);
+        transferRelations.build(), cfa, options.aggregateBasicBlocks);
   }
 
   @Override
   public MergeOperator getMergeOperator() {
-    return mergeSupplier.get();
-  }
-
-  /**
-   * Build a function that lazily instantiates a merge operator with fresh wrapped merge operators
-   * from the CPAs.
-   */
-  private Supplier<MergeOperator> buildMergeOperatorSupplier()
-      throws InvalidConfigurationException {
-    if (cpas.stream()
-        .map(ConfigurableProgramAnalysis::getMergeOperator)
-        .allMatch(mergeOp -> mergeOp == MergeSepOperator.getInstance())) {
-      return () -> MergeSepOperator.getInstance();
+    ImmutableList.Builder<MergeOperator> mergeOperators = ImmutableList.builder();
+    boolean mergeSep = true;
+    for (ConfigurableProgramAnalysis sp : cpas) {
+      MergeOperator merge = sp.getMergeOperator();
+      if (merge != MergeSepOperator.getInstance()) {
+        mergeSep = false;
+      }
+      mergeOperators.add(merge);
     }
 
-    switch (merge) {
-      case "AGREE":
-        if (inCPAEnabledAnalysis) {
-          PredicateCPA predicateCPA =
-              Collections3.filterByClass(cpas.stream(), PredicateCPA.class)
-                  .findFirst()
-                  .orElseThrow(
-                      () ->
-                          new InvalidConfigurationException(
-                              "Option 'cpa.composite.inCPAEnabledAnalysis' needs PredicateCPA"));
-          return () ->
-              new CompositeMergeAgreeCPAEnabledAnalysisOperator(
-                  getMergeOperators(), getStopOperators(), predicateCPA.getPredicateManager());
+    if (mergeSep) {
+      return MergeSepOperator.getInstance();
+    } else {
+      if (options.inCPAEnabledAnalysis) {
+        if (options.merge.equals("AGREE")) {
+          Optional<PredicateCPA> predicateCPA = from(cpas).filter(PredicateCPA.class).first();
+          Preconditions.checkState(
+              predicateCPA.isPresent(), "Option 'inCPAEnabledAnalysis' needs PredicateCPA");
+          PredicateAbstractionManager abmgr = predicateCPA.get().getPredicateManager();
+          return new CompositeMergeAgreeCPAEnabledAnalysisOperator(
+              mergeOperators.build(), getStopOperator().getStopOperators(), abmgr);
         } else {
-          return () -> new CompositeMergeAgreeOperator(getMergeOperators(), getStopOperators());
+          throw new AssertionError("Merge PLAIN is currently not supported in predicated analysis");
         }
-
-      case "PLAIN":
-        if (inCPAEnabledAnalysis) {
-          throw new InvalidConfigurationException(
-              "Merge PLAIN is currently not supported for CompositeCPA in predicated analysis");
+      } else {
+        if (options.merge.equals("AGREE")) {
+          return new CompositeMergeAgreeOperator(
+              mergeOperators.build(), getStopOperator().getStopOperators());
+        } else if (options.merge.equals("PLAIN")) {
+          return new CompositeMergePlainOperator(mergeOperators.build());
         } else {
-          return () -> new CompositeMergePlainOperator(getMergeOperators());
+          throw new AssertionError();
         }
-
-      default:
-        throw new AssertionError();
+      }
     }
-  }
-
-  private ImmutableList<MergeOperator> getMergeOperators() {
-    return transformedImmutableListCopy(cpas, ConfigurableProgramAnalysis::getMergeOperator);
-  }
-
-  private ImmutableList<StopOperator> getStopOperators() {
-    return transformedImmutableListCopy(cpas, ConfigurableProgramAnalysis::getStopOperator);
   }
 
   @Override
   public CompositeStopOperator getStopOperator() {
-    return new CompositeStopOperator(getStopOperators());
+    ImmutableList.Builder<StopOperator> stopOps = ImmutableList.builder();
+    for (ConfigurableProgramAnalysis cpa : cpas) {
+      stopOps.add(cpa.getStopOperator());
+    }
+    return new CompositeStopOperator(stopOps.build());
   }
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    ImmutableList<PrecisionAdjustment> precisionAdjustments =
-        transformedImmutableListCopy(cpas, ConfigurableProgramAnalysis::getPrecisionAdjustment);
-
-    if (precisionAdjustments.stream().allMatch(prec -> prec instanceof SimplePrecisionAdjustment)) {
-      @SuppressWarnings("unchecked") // cast is safe because we just checked this
-      ImmutableList<SimplePrecisionAdjustment> simplePrecisionAdjustments =
-          (ImmutableList<SimplePrecisionAdjustment>)
-              (ImmutableList<? extends PrecisionAdjustment>) precisionAdjustments;
-      return new CompositeSimplePrecisionAdjustment(
-          simplePrecisionAdjustments);
-
+    ImmutableList.Builder<PrecisionAdjustment> precisionAdjustments = ImmutableList.builder();
+    ImmutableList.Builder<SimplePrecisionAdjustment> simplePrecisionAdjustments =
+        ImmutableList.builder();
+    boolean simplePrec = true;
+    for (ConfigurableProgramAnalysis sp : cpas) {
+      PrecisionAdjustment prec = sp.getPrecisionAdjustment();
+      if (prec instanceof SimplePrecisionAdjustment) {
+        simplePrecisionAdjustments.add((SimplePrecisionAdjustment) prec);
+      } else {
+        simplePrec = false;
+      }
+      precisionAdjustments.add(prec);
+    }
+    if (simplePrec) {
+      return new CompositeSimplePrecisionAdjustment(simplePrecisionAdjustments.build());
     } else {
-      return new CompositePrecisionAdjustment(precisionAdjustments);
+      return new CompositePrecisionAdjustment(precisionAdjustments.build());
     }
   }
 
@@ -266,9 +271,11 @@ public final class CompositeCPA
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    from(cpas)
-        .filter(StatisticsProvider.class)
-        .forEach(cpa -> cpa.collectStatistics(pStatsCollection));
+    for (ConfigurableProgramAnalysis cpa: cpas) {
+      if (cpa instanceof StatisticsProvider) {
+        ((StatisticsProvider)cpa).collectStatistics(pStatsCollection);
+      }
+    }
   }
 
   @Override

@@ -9,19 +9,20 @@
 package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
 import java.util.Collection;
-import java.util.Optional;
+
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
+import java.util.Optional;
+
 public interface InvariantProvider {
 
   ExpressionTree<Object> provideInvariantFor(
-      CFAEdge pCFAEdge, Optional<? extends Collection<? extends ARGState>> pStates)
-      throws InterruptedException;
+      CFAEdge pCFAEdge, Optional<? extends Collection<? extends ARGState>> pStates);
 
-  enum TrueInvariantProvider implements InvariantProvider {
+  static enum TrueInvariantProvider implements InvariantProvider {
     INSTANCE;
 
     @Override

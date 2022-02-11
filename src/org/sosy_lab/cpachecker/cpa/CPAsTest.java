@@ -62,13 +62,11 @@ import org.sosy_lab.cpachecker.cpa.flowdep.FlowDependenceCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.monitor.MonitorCPA;
 import org.sosy_lab.cpachecker.cpa.powerset.PowerSetCPA;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.singleSuccessorCompactor.SingleSuccessorCompactorCPA;
 import org.sosy_lab.cpachecker.cpa.slab.SLABCPA;
 import org.sosy_lab.cpachecker.cpa.slab.SLABPredicateWrappingCPA;
 import org.sosy_lab.cpachecker.cpa.slicing.SlicingCPA;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationCPA;
-import org.sosy_lab.cpachecker.cpa.traceabstraction.TraceAbstractionCPA;
 import org.sosy_lab.cpachecker.cpa.usage.UsageCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -106,6 +104,7 @@ public class CPAsTest {
     cpas.remove(FlowDependenceCPA.class);
     cpas.remove(SlicingCPA.class);
     cpas.remove(SLABCPA.class);
+    cpas.remove(SLABPredicateWrappingCPA.class);
 
     cpas.remove(ARGReplayCPA.class); // needs ARG to be replayed
     cpas.remove(ABECPA.class); // Shouldn't be used by itself.
@@ -166,51 +165,38 @@ public class CPAsTest {
   public void instantiate()
       throws ReflectiveOperationException, InvalidConfigurationException, CPAException {
     Method factoryMethod = cpaClass.getMethod("factory");
-    final CPAFactory factory = (CPAFactory) factoryMethod.invoke(null);
 
-    final AggregatedReachedSets aggregatedReachedSets = AggregatedReachedSets.empty();
-    final ReachedSetFactory reachedSetFactory = new ReachedSetFactory(config, logManager);
+    Optional<ConfigurableProgramAnalysis> childCPA = createChildCpaIfNecessary(cpaClass);
 
-    Optional<CPAFactory> childCPA = getChildCpaFactoryIfNecessary(cpaClass);
-    if (childCPA.isPresent()) {
-      factory.setChild(createCpa(childCPA.orElseThrow(), aggregatedReachedSets, reachedSetFactory));
-    }
+    CPAFactory factory = (CPAFactory) factoryMethod.invoke(null);
+    childCPA.ifPresent(factory::setChild);
     try {
-      cpa = createCpa(factory, aggregatedReachedSets, reachedSetFactory);
+      cpa =
+          factory
+              .setLogger(logManager)
+              .setConfiguration(config)
+              .setShutdownNotifier(shutdownNotifier)
+              .set(new ReachedSetFactory(config, logManager), ReachedSetFactory.class)
+              .set(cfa, CFA.class)
+              .set(Specification.alwaysSatisfied(), Specification.class)
+              .set(new AggregatedReachedSets(), AggregatedReachedSets.class)
+              .createInstance();
     } catch (LinkageError e) {
       assumeNoException(e);
       throw new AssertionError(e);
     }
   }
 
-  private Optional<CPAFactory> getChildCpaFactoryIfNecessary(Class<?> pCpaClass) {
+  private Optional<ConfigurableProgramAnalysis> createChildCpaIfNecessary(Class<?> pCpaClass)
+      throws InvalidConfigurationException, CPAException {
     if (pCpaClass.equals(TerminationCPA.class)) {
-      return Optional.of(LocationCPA.factory());
-
-    } else if (pCpaClass.equals(SLABPredicateWrappingCPA.class)
-        || pCpaClass.equals(TraceAbstractionCPA.class)) {
-      return Optional.of(PredicateCPA.factory());
+      return Optional.of(
+          LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance());
 
     } else {
       return Optional.empty();
     }
   }
-
-  private ConfigurableProgramAnalysis createCpa(
-      CPAFactory factory,
-      AggregatedReachedSets aggregatedReachedSets,
-      ReachedSetFactory reachedSetFactory)
-      throws InvalidConfigurationException, CPAException {
-    return factory
-        .setLogger(logManager)
-        .setConfiguration(config)
-        .setShutdownNotifier(shutdownNotifier)
-        .set(reachedSetFactory, ReachedSetFactory.class)
-        .set(cfa, CFA.class)
-        .set(Specification.alwaysSatisfied(), Specification.class)
-        .set(aggregatedReachedSets, AggregatedReachedSets.class)
-        .createInstance();
-    }
 
   @Test
   public void getInitialState() throws InterruptedException {

@@ -117,8 +117,9 @@ public class CallstackTransferRelationBackwards extends CallstackTransferRelatio
         CallstackState nextStackState = e.getPreviousState();
         if (nextStackState == null) {
           // BACKWARDS: The analysis might start somewhere in the call tree (and we might have not predecessor state)
-          result =
-              ImmutableSet.of(new CallstackState(null, nextAnalysisFunction, nextAnalysisLoc));
+          result = Collections.singleton(
+              new CallstackState(null, nextAnalysisFunction, nextAnalysisLoc)
+          );
 
           // This if clause is needed to check if the correct FunctionCallEdge is taken.
           // Consider a method which is called from different other methods, then

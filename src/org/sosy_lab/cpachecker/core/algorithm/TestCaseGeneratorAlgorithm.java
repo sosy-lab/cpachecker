@@ -27,19 +27,21 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.defaults.PropertyTargetInformation;
+import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.specification.Property;
-import org.sosy_lab.cpachecker.core.specification.Property.CommonCoverageProperty;
+import org.sosy_lab.cpachecker.core.specification.Property.CommonCoverageType;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.core.specification.SpecificationProperty;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.testtargets.CoverFunction;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetCPA;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetProvider;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetState;
@@ -82,7 +84,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private Set<CFAEdge> testTargets;
-  private final Property specProp;
+  private final SpecificationProperty specProp;
   private final TestCaseExporter exporter;
   private double progress = 0;
 
@@ -113,7 +115,10 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     if (pSpec.getProperties().size() == 1) {
       specProp = pSpec.getProperties().iterator().next();
       Preconditions.checkArgument(
-          specProp.isCoverage(), "Property %s not supported for test generation", specProp);
+          specProp.getProperty() instanceof CommonCoverageType
+              || specProp.getProperty() instanceof CoverFunction,
+          "Property %s not supported for test generation",
+          specProp.getProperty());
     } else {
       specProp = null;
     }
@@ -209,7 +214,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
                   testTargets.remove(targetEdge);
 
                   if (shouldReportCoveredErrorCallAsError()) {
-                    addErrorStateWithTargetInformation(pReached);
+                    addErrorStateWithViolatedProperty(pReached);
                     shouldReturnFalse = true;
                   }
                   progress++;
@@ -265,26 +270,31 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
 
   private void cleanUpIfNoTestTargetsRemain(final ReachedSet pReached) {
     if (testTargets.isEmpty()) {
-      pReached.clearWaitlist();
+      List<AbstractState> waitlist = new ArrayList<>(pReached.getWaitlist());
+      for (AbstractState state : waitlist) {
+        pReached.removeOnlyFromWaitlist(state);
+      }
     }
   }
 
-  private void addErrorStateWithTargetInformation(final ReachedSet pReached) {
+  private void addErrorStateWithViolatedProperty(final ReachedSet pReached) {
     Preconditions.checkState(shouldReportCoveredErrorCallAsError());
     pReached.add(
         new DummyErrorState(pReached.getLastState()) {
           private static final long serialVersionUID = 5522643115974481914L;
 
           @Override
-          public Set<TargetInformation> getTargetInformation() {
-            return PropertyTargetInformation.singleton(specProp);
+          public Set<Property> getViolatedProperties() {
+            return NamedProperty.singleton(specProp.getProperty().toString());
           }
         },
         SingletonPrecision.getInstance());
   }
 
   private boolean shouldReportCoveredErrorCallAsError() {
-    return reportCoveredErrorCallAsError && CommonCoverageProperty.COVERAGE_ERROR.equals(specProp);
+    return reportCoveredErrorCallAsError
+        && specProp != null
+        && specProp.getProperty().equals(CommonCoverageType.COVERAGE_ERROR);
   }
 
   @Override
