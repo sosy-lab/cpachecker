@@ -28,7 +28,8 @@ public class NetworkReceiver implements Closeable {
   private final InetSocketAddress listenAddress;
   private final BlockingQueue<Message> sharedQueue;
   private final MessageConverter converter;
-  private final Thread receiverThread;
+
+  private boolean finished;
 
   private static final int BUFFER_SIZE = 1024;
 
@@ -46,7 +47,7 @@ public class NetworkReceiver implements Closeable {
     // retrieve server socket and bind to port
     serverChannel.socket().bind(listenAddress);
     serverChannel.register(selector, SelectionKey.OP_ACCEPT);
-    receiverThread = new Thread(() -> {
+    Thread receiverThread = new Thread(() -> {
       try {
         startServer();
       } catch (IOException pE) {
@@ -54,6 +55,7 @@ public class NetworkReceiver implements Closeable {
         Thread.currentThread().interrupt();
       }
     });
+    receiverThread.setDaemon(true);
     receiverThread.start();
   }
 
@@ -63,7 +65,7 @@ public class NetworkReceiver implements Closeable {
 
   // create server channel
   public void startServer() throws IOException {
-    while (true) {
+    while (!finished) {
       // wait for events
       selector.select();
 
@@ -145,6 +147,6 @@ public class NetworkReceiver implements Closeable {
   @Override
   public void close() throws IOException {
     selector.close();
-    receiverThread.interrupt();
+    finished = true;
   }
 }

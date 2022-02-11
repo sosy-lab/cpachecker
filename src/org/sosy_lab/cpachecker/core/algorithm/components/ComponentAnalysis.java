@@ -8,19 +8,15 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.components;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -33,7 +29,6 @@ import org.sosy_lab.cpachecker.cfa.blocks.builder.BlockPartitioningBuilder;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockOperatorDecomposer;
@@ -42,23 +37,20 @@ import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.CFADecomp
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.GivenSizeDecomposer;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.ConnectionProvider;
-import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
-import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageType;
-import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Payload;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.memory.InMemoryConnectionProvider;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.network.NetworkConnectionProvider;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.observer.ErrorMessageObserver;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.observer.FaultLocalizationMessageObserver;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.observer.MessageListener;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.observer.ResultMessageObserver;
 import org.sosy_lab.cpachecker.core.algorithm.components.worker.ComponentsBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.components.worker.ComponentsBuilder.Components;
 import org.sosy_lab.cpachecker.core.algorithm.components.worker.FaultLocalizationWorker;
 import org.sosy_lab.cpachecker.core.algorithm.components.worker.Worker;
-import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -168,7 +160,11 @@ public class ComponentAnalysis implements Algorithm {
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
     logger.log(Level.INFO, "Starting block analysis...");
+    MessageListener listener = new MessageListener();
+    listener.register(new ResultMessageObserver(reachedSet));
+    listener.register(new ErrorMessageObserver());
     try {
+      // create block tree and reduce to relevant parts
       CFADecomposer decomposer = getDecomposer();
       BlockTree tree = decomposer.cut(cfa);
       // drawBlockDot(tree);
@@ -177,32 +173,14 @@ public class ComponentAnalysis implements Algorithm {
         logger.log(Level.INFO, "Removed " + removed.size() + " empty BlockNodes from the tree.");
       }
       if (tree.isEmpty()) {
-        // empty program
         return AlgorithmStatus.SOUND_AND_PRECISE;
       }
 
-      // create run
+      // create type map (maps variables to their type)
+      SSAMap map = getTypeMap();
+
+      // create workers
       Collection<BlockNode> blocks = tree.getDistinctNodes();
-
-      Set<CFANode> allNodes = ImmutableSet.copyOf(cfa.getAllNodes());
-      List<CFAEdge> blockEdges = new ArrayList<>();
-      for (CFANode cfaNode : allNodes) {
-        CFAUtils.leavingEdges(cfaNode).filter(edge -> allNodes.contains(edge.getSuccessor()))
-            .copyInto(blockEdges);
-      }
-
-      Solver solver = Solver.create(configuration, logger, shutdownManager.getNotifier());
-      PathFormulaManagerImpl manager =
-          new PathFormulaManagerImpl(
-              solver.getFormulaManager(),
-              configuration,
-              logger,
-              shutdownManager.getNotifier(),
-              cfa,
-              AnalysisDirection.FORWARD);
-      SSAMap map = manager.makeFormulaForPath(blockEdges).getSsa();
-
-
       ComponentsBuilder builder =
           new ComponentsBuilder(logger, cfa, specification, configuration, shutdownManager);
       builder = builder.withConnectionType(getConnectionProvider())
@@ -218,70 +196,33 @@ public class ComponentAnalysis implements Algorithm {
       builder = builder.addTimeoutWorker(900000);
       Components components = builder.addVisualizationWorker(tree).build();
 
-      // run all workers
+      // run workers
       for (Worker worker : components.getWorkers()) {
         Thread thread = new Thread(worker, worker.getId());
         thread.setDaemon(true);
         thread.start();
       }
 
+      // listen to messages
       Connection mainThreadConnection = components.getAdditionalConnections().get(0);
+      if (workerType == WorkerType.FAULT_LOCALIZATION) {
+        listener.register(new FaultLocalizationMessageObserver(logger, mainThreadConnection));
+      }
 
-      Set<Message> faults = new HashSet<>();
-      // Wait for result
-      Message resultMessage;
-      Result result;
+      // wait for result
       while (true) {
-        Message m = mainThreadConnection.read();
-        if (m.getType() == MessageType.ERROR_CONDITION && m.getPayload()
-            .containsKey(Payload.FAULT_LOCALIZATION)) {
-          faults.add(m);
-        }
-        if (m.getType() == MessageType.FOUND_RESULT) {
-          resultMessage = m;
-          result = Result.valueOf(m.getPayload().get(Payload.RESULT));
-          while (!mainThreadConnection.isEmpty()) {
-            m = mainThreadConnection.read();
-            if (m.getType() == MessageType.ERROR_CONDITION && m.getPayload()
-                .containsKey(Payload.FAULT_LOCALIZATION)) {
-              faults.add(m);
-            }
-          }
+        if (listener.publish(mainThreadConnection.read())) {
           break;
         }
-        if (m.getType() == MessageType.ERROR) {
-          throw new CPAException(m.getPayload().toJSONString());
-        }
       }
 
-      Set<String> visitedBlocks = new HashSet<>(Splitter.on(",")
-          .splitToList(resultMessage.getPayload().getOrDefault(Payload.VISITED, "")));
-      faults.removeIf(m -> !(visitedBlocks.contains(m.getUniqueBlockId())));
-      if (!faults.isEmpty() && result == Result.FALSE) {
-        logger.log(Level.INFO, "Found faults:\n" + Joiner.on("\n").join(
-            faults.stream().map(m -> m.getPayload().getOrDefault(Payload.FAULT_LOCALIZATION, ""))
-                .collect(
-                    Collectors.toSet())));
-      }
-
+      // finish and shutdown
+      listener.finish();
       for (Worker worker : components.getWorkers()) {
         worker.shutdown();
       }
       mainThreadConnection.close();
 
-      // print result
-      if (result == Result.FALSE) {
-        ARGState state = (ARGState) reachedSet.getFirstState();
-        CompositeState cState = (CompositeState) state.getWrappedState();
-        Precision initialPrecision = reachedSet.getPrecision(state);
-        List<AbstractState> states = new ArrayList<>(cState.getWrappedStates());
-        states.add(DummyTargetState.withoutTargetInformation());
-        reachedSet.add(new ARGState(new CompositeState(states), null), initialPrecision);
-      }
-      if (result == Result.TRUE) {
-        reachedSet.clear();
-      }
-      // TODO?????
       return AlgorithmStatus.SOUND_AND_PRECISE;
     } catch (InvalidConfigurationException | IOException | InvocationTargetException | InstantiationException | IllegalAccessException | NoSuchMethodException pE) {
       logger.log(Level.SEVERE, "Block analysis stopped due to ", pE);
@@ -289,6 +230,27 @@ public class ComponentAnalysis implements Algorithm {
     } finally {
       logger.log(Level.INFO, "Block analysis finished.");
     }
+  }
+
+  private SSAMap getTypeMap()
+      throws InvalidConfigurationException, CPATransferException, InterruptedException {
+    Set<CFANode> allNodes = ImmutableSet.copyOf(cfa.getAllNodes());
+    List<CFAEdge> blockEdges = new ArrayList<>();
+    for (CFANode cfaNode : allNodes) {
+      CFAUtils.leavingEdges(cfaNode).filter(edge -> allNodes.contains(edge.getSuccessor()))
+          .copyInto(blockEdges);
+    }
+
+    Solver solver = Solver.create(configuration, logger, shutdownManager.getNotifier());
+    PathFormulaManagerImpl manager =
+        new PathFormulaManagerImpl(
+            solver.getFormulaManager(),
+            configuration,
+            logger,
+            shutdownManager.getNotifier(),
+            cfa,
+            AnalysisDirection.FORWARD);
+    return manager.makeFormulaForPath(blockEdges).getSsa();
   }
 
   private void drawBlockDot(BlockTree tree) {

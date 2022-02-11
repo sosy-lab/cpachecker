@@ -42,11 +42,11 @@ public class Message implements Comparable<Message> {
 
   // ORDER BY PRIORITY:
   public enum MessageType {
-    FOUND_RESULT(1),
-    ERROR_CONDITION(2),
-    ERROR_CONDITION_UNREACHABLE(2),
+    FOUND_RESULT(0),
+    ERROR_CONDITION(1),
+    ERROR_CONDITION_UNREACHABLE(1),
     BLOCK_POSTCONDITION(2),
-    ERROR(1);
+    ERROR(0);
 
     private final int priority;
 

@@ -75,12 +75,6 @@ public class FaultLocalizationWorker extends AnalysisWorker {
 
   private final List<CFAEdge> errorPath;
 
-  private enum Strategy {
-    DISJUNCTION,
-    CONJUNCTION,
-    SMART
-  }
-
   FaultLocalizationWorker(
       String pId,
       BlockNode pBlock,
@@ -228,10 +222,10 @@ public class FaultLocalizationWorker extends AnalysisWorker {
       }
     }
     BooleanFormula precondition = bmgr.and(minimalFormulas.values());
-    return new SelectorTraceWithKnownConditions(context, options, entries, precondition, transformPostCondition(pPostCondition.getFormula(), Strategy.SMART), errorPath);
+    return new SelectorTraceWithKnownConditions(context, options, entries, precondition, transformPostCondition(pPostCondition.getFormula()), errorPath);
   }
 
-  private BooleanFormula transformPostCondition(BooleanFormula pPostCondition, Strategy pStrategy) {
+  private BooleanFormula transformPostCondition(BooleanFormula pPostCondition) {
     if (bmgr.isTrue(pPostCondition)) {
       return pPostCondition;
     }
@@ -239,21 +233,16 @@ public class FaultLocalizationWorker extends AnalysisWorker {
     if (actualPost != null) {
       postConds.addAll(bmgr.toConjunctionArgs(actualPost, true));
     }
-    switch (pStrategy) {
-      case DISJUNCTION:
-        return pPostCondition;
-      case CONJUNCTION:
-        return bmgr.not(bmgr.toConjunctionArgs(pPostCondition, true).stream().map(f -> bmgr.not(f)).collect(bmgr.toConjunction()));
-      case SMART:
-        return bmgr.not(bmgr.toConjunctionArgs(pPostCondition, true).stream().map(f -> {
-          if (postConds.contains(f)) {
-            return bmgr.not(f);
-          }
-          return f;
-        }).collect(bmgr.toConjunction()));
-      default:
-        throw new AssertionError("Unknown Strategy: " + pStrategy);
+    Set<BooleanFormula> negate = new HashSet<>();
+    BooleanFormula formula = bmgr.makeTrue();
+    for (BooleanFormula f : bmgr.toConjunctionArgs(pPostCondition, true)) {
+      if (postConds.contains(f)) {
+        negate.add(f);
+      } else {
+        formula = bmgr.and(formula, f);
+      }
     }
+    return bmgr.not(bmgr.and(formula, bmgr.not(bmgr.and(negate))));
   }
 
   private static class TraceFormulaUnsatisfiableException extends Exception {
