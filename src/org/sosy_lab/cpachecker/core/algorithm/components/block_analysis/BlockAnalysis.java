@@ -210,6 +210,7 @@ public abstract class BlockAnalysis {
               .getTransferRelation();
     }
 
+
     @Override
     public Collection<Message> analyze(Collection<Message> messages)
         throws CPAException, InterruptedException {
@@ -217,16 +218,23 @@ public abstract class BlockAnalysis {
       reachedSet.clear();
       AbstractState startState = getStartState(messages);
       reachedSet.add(startState, initialPrecision);
-      AlgorithmStatus status = algorithm.run(reachedSet);
+      AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
+
+      // find all target states in block, except target states that are only reachable from another target state
+      while (reachedSet.hasWaitingState()) {
+        AbstractStates.getTargetStates(reachedSet).forEach(reachedSet::removeOnlyFromWaitlist);
+        status = algorithm.run(reachedSet);
+      }
+
       Set<ARGState> targetStates = from(reachedSet).filter(AbstractStates::isTargetState)
           .filter(ARGState.class).copyInto(new HashSet<>());
       if (targetStates.isEmpty()) {
         throw new AssertionError("At least one target state has to exist at final location");
       }
-      // find violations for potential backward analysis
       Set<Message> answers = new HashSet<>();
       if (!reportedOriginalViolation) {
         for (ARGState targetState : targetStates) {
+          // see if target states actual report errors or only the information that the block end is reached
           int numBlockEntryInfos = from(targetState.getTargetInformation()).filter(
               BlockEntryReachedTargetInformation.class).size();
           if (targetState.getTargetInformation().size() > numBlockEntryInfos
@@ -237,6 +245,7 @@ public abstract class BlockAnalysis {
               throw new AssertionError(
                   "States need to have a location but this one does not:" + targetState);
             }
+            // we only need to report error locations once since every new report of an already found location would only cause redundant work
             reportedOriginalViolation = true;
             Payload initial = distributedCompositeCPA.serialize(
                 distributedCompositeCPA.getInitialState(targetNode.orElseThrow(),

@@ -50,7 +50,7 @@ public class RootWorker extends Worker {
     super("root-worker", pLogger);
     root = pNode;
     if (!root.isRoot() || !root.isEmpty() || !root.getLastNode().equals(root.getStartNode())) {
-      throw new AssertionError("Root nodes must be empty and does not have predecessors: " + pNode);
+      throw new AssertionError("Root nodes must be empty and do not have predecessors: " + pNode);
     }
     analysis =
         new NoopAnalysis(pId, logger, pNode, pCfa, SSAMap.emptySSAMap(), AnalysisDirection.FORWARD,

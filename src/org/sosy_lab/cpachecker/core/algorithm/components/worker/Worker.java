@@ -33,7 +33,7 @@ public abstract class Worker implements Runnable {
 
   /**
    * Get the next message from the connection.
-   * Note that the connection must have a blocking read()
+   * Note that the connection requires a blocking read()
    *
    * @return the current message to be processed
    * @throws InterruptedException thrown if thread is interrupted
