@@ -78,7 +78,14 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
 
   @Override
   public Payload serialize(AbstractState pState) {
-    String formula = getSolver().getFormulaManager().dumpFormula(uninstantiate(((PredicateAbstractState) pState).getPathFormula()).getFormula()).toString();
+    PredicateAbstractState state = ((PredicateAbstractState) pState);
+    PathFormula pathFormula;
+    if (state.isAbstractionState()) {
+      pathFormula = state.getAbstractionFormula().getBlockFormula();
+    } else {
+      pathFormula = state.getPathFormula();
+    }
+    String formula = getSolver().getFormulaManager().dumpFormula(uninstantiate(pathFormula).getFormula()).toString();
     return Payload.builder().addEntry(parentCPA.getClass().getName(), formula).build();
   }
 

@@ -69,8 +69,6 @@ public abstract class BlockAnalysis {
   protected final BlockNode block;
   protected final LogManager logger;
 
-  protected AlgorithmStatus status;
-
   public BlockAnalysis(
       String pId,
       LogManager pLogger,
@@ -96,7 +94,6 @@ public abstract class BlockAnalysis {
     reachedSet = parts.getThird();
 
     emptyPrecision = reachedSet.getPrecision(reachedSet.getFirstState());
-    status = AlgorithmStatus.NO_PROPERTY_CHECKED;
 
     block = pBlock;
     logger = pLogger;
@@ -174,10 +171,6 @@ public abstract class BlockAnalysis {
     return emptyPrecision;
   }
 
-  public AlgorithmStatus getStatus() {
-    return status;
-  }
-
   public Set<String> visitedBlocks(Collection<Message> pPayloads) {
     Set<String> visitedBlocks = new HashSet<>();
     for (Message message : pPayloads) {
@@ -220,13 +213,12 @@ public abstract class BlockAnalysis {
       reachedSet.clear();
       AbstractState startState = getStartState(messages);
       reachedSet.add(startState, emptyPrecision);
-      status = algorithm.run(reachedSet);
+      AlgorithmStatus status = algorithm.run(reachedSet);
       Set<ARGState> targetStates = from(reachedSet).filter(AbstractStates::isTargetState)
           .filter(ARGState.class).copyInto(new HashSet<>());
-      /*if (targetStates.isEmpty()) {
+      if (targetStates.isEmpty()) {
         throw new AssertionError("At least one target state has to exist (block start)");
-      }*/
-
+      }
       // find violations for potential backward analysis
       Set<Message> answers = new HashSet<>();
       if (!reportedOriginalViolation) {
@@ -297,7 +289,7 @@ public abstract class BlockAnalysis {
       reachedSet.clear();
       AbstractState startState = getStartState(messages);
       reachedSet.add(startState, emptyPrecision);
-      status = algorithm.run(reachedSet);
+      AlgorithmStatus status = algorithm.run(reachedSet);
       List<AbstractState>
           states = extractBlockEntryPoints(reachedSet, block.getStartNode(), startState);
       if (states.isEmpty()) {
@@ -305,9 +297,12 @@ public abstract class BlockAnalysis {
         logger.log(Level.SEVERE, "Cannot reach block start?", reachedSet);
         return ImmutableSet.of(Message.newErrorConditionUnreachableMessage(block.getId()));
       }
+      Payload payload = distributedCompositeCPA.serialize(distributedCompositeCPA.combine(states));
+      payload = Payload.builder().putAll(payload).addEntry(Payload.STATUS,
+          status.wasPropertyChecked() + "," + status.isSound() + "," + status.isPrecise()).build();
       return ImmutableSet.of(
           Message.newErrorConditionMessage(block.getId(), block.getStartNode().getNodeNumber(),
-              distributedCompositeCPA.serialize(distributedCompositeCPA.combine(states)), false,
+              payload, false,
               visitedBlocks(messages)));
     }
   }

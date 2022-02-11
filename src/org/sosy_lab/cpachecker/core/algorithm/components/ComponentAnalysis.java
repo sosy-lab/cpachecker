@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.core.algorithm.components.exchange.observer.Error
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.observer.FaultLocalizationMessageObserver;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.observer.MessageListener;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.observer.ResultMessageObserver;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.observer.StatusObserver;
 import org.sosy_lab.cpachecker.core.algorithm.components.worker.ComponentsBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.components.worker.ComponentsBuilder.Components;
 import org.sosy_lab.cpachecker.core.algorithm.components.worker.FaultLocalizationWorker;
@@ -163,6 +164,7 @@ public class ComponentAnalysis implements Algorithm {
     MessageListener listener = new MessageListener();
     listener.register(new ResultMessageObserver(reachedSet));
     listener.register(new ErrorMessageObserver());
+    listener.register(new StatusObserver());
     try {
       // create block tree and reduce to relevant parts
       CFADecomposer decomposer = getDecomposer();
@@ -211,6 +213,7 @@ public class ComponentAnalysis implements Algorithm {
 
       // wait for result
       while (true) {
+        // breaks if one observer wants to finish.
         if (listener.publish(mainThreadConnection.read())) {
           break;
         }
@@ -223,7 +226,7 @@ public class ComponentAnalysis implements Algorithm {
       }
       mainThreadConnection.close();
 
-      return AlgorithmStatus.SOUND_AND_PRECISE;
+      return listener.getObserver(StatusObserver.class).getStatus();
     } catch (InvalidConfigurationException | IOException | InvocationTargetException | InstantiationException | IllegalAccessException | NoSuchMethodException pE) {
       logger.log(Level.SEVERE, "Block analysis stopped due to ", pE);
       throw new CPAException("Component Analysis run into an error.", pE);

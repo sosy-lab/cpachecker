@@ -8,8 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.components.exchange.observer;
 
+import com.google.common.collect.FluentIterable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -43,5 +45,14 @@ public class MessageListener {
     for (MessageObserver messageObserver : observerList) {
       messageObserver.finish();
     }
+  }
+
+  public <T extends MessageObserver> T getObserver(Class<T> clazz) {
+    for (MessageObserver messageObserver : observerList) {
+      if (messageObserver.getClass().equals(clazz)) {
+        return clazz.cast(messageObserver);
+      }
+    }
+    throw new NoSuchElementException("No observer found with class " + clazz);
   }
 }

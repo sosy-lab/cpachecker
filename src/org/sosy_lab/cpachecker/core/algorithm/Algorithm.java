@@ -57,7 +57,7 @@ public interface Algorithm {
     public static final AlgorithmStatus UNSOUND_AND_IMPRECISE =
         new AlgorithmStatus(true, false, false);
 
-    private AlgorithmStatus(boolean pPropertyChecked, boolean pIsSound, boolean pIsPrecise) {
+    public AlgorithmStatus(boolean pPropertyChecked, boolean pIsSound, boolean pIsPrecise) {
       propertyChecked = pPropertyChecked;
       isSound = pIsSound && pPropertyChecked;
       isPrecise = pIsPrecise && pPropertyChecked;

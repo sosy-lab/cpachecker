@@ -85,7 +85,7 @@ public class BlockState
 
   @Override
   public boolean isTarget() {
-    return !forward && targetNode.equals(node);
+    return targetNode.equals(node);
   }
 
 }

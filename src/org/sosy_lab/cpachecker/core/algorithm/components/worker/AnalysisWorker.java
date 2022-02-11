@@ -42,8 +42,6 @@ public class AnalysisWorker extends Worker {
   protected final BlockAnalysis forwardAnalysis;
   protected final BlockAnalysis backwardAnalysis;
 
-  private AlgorithmStatus status;
-
   AnalysisWorker(
       String pId,
       BlockNode pBlock,
@@ -106,8 +104,6 @@ public class AnalysisWorker extends Worker {
     backwardAnalysis = new BackwardAnalysis(pId, pLogger, pBlock, pCFA,
         pTypeMap, backwardSpecification,
         backwardConfiguration, pShutdownManager);
-
-    status = AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 
   @Override
@@ -150,20 +146,14 @@ public class AnalysisWorker extends Worker {
   // return post condition
   private Collection<Message> forwardAnalysis(Collection<Message> pPostConditionMessages)
       throws CPAException, InterruptedException, SolverException {
-    Collection<Message> messages =
-        forwardAnalysis.analyze(pPostConditionMessages);
-    status = forwardAnalysis.getStatus();
-    return messages;
+    return forwardAnalysis.analyze(pPostConditionMessages);
   }
 
   // return pre-condition
   protected Collection<Message> backwardAnalysis(MessageProcessing pMessageProcessing)
       throws CPAException, InterruptedException, SolverException {
     assert pMessageProcessing.size() == 1 : "BackwardAnalysis can only be based on one message";
-    Collection<Message> messages =
-        backwardAnalysis.analyze(pMessageProcessing);
-    status = backwardAnalysis.getStatus();
-    return messages;
+    return backwardAnalysis.analyze(pMessageProcessing);
   }
 
   @Override
@@ -195,10 +185,6 @@ public class AnalysisWorker extends Worker {
   @Override
   public String toString() {
     return "Worker{" + "block=" + block + ", finished=" + finished + '}';
-  }
-
-  public AlgorithmStatus getStatus() {
-    return status;
   }
 
 }

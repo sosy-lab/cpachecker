@@ -119,7 +119,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
   private boolean shouldComputeAbstraction(
       AbstractState fullState, CFANode location, PredicateAbstractState predicateState) {
-    if (!abstractAtTargetState) {
+    if (abstractAtTargetState) {
       return false;
     }
     if (predicateState.isAbstractionState()) {
