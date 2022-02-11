@@ -17,15 +17,19 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageType;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public abstract class Worker implements Runnable {
+public abstract class Worker implements Runnable, StatisticsProvider {
 
   protected final LogManager logger;
   protected final String id;
   protected Connection connection;
   protected boolean finished;
+
+  protected static WorkerStatistics stats = new WorkerStatistics();
 
   /**
    * Abstract definition of a Worker.
@@ -55,7 +59,10 @@ public abstract class Worker implements Runnable {
 
   public void broadcast(Collection<Message> pMessage) throws IOException, InterruptedException {
     Objects.requireNonNull(connection, "Connection cannot be null.");
-    pMessage.forEach(m -> logger.log(Level.INFO, m));
+    pMessage.forEach(m -> {
+      logger.log(Level.ALL, m);
+      stats.sentMessages.inc();
+    });
     for (Message message : pMessage) {
       connection.write(message);
     }
@@ -93,6 +100,11 @@ public abstract class Worker implements Runnable {
     connection = pConnection;
     connection.setOrdering(MessageType.FOUND_RESULT, MessageType.ERROR, MessageType.ERROR_CONDITION,
         MessageType.ERROR_CONDITION_UNREACHABLE, MessageType.BLOCK_POSTCONDITION);
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> statsCollection) {
+    statsCollection.add(stats);
   }
 
 }
