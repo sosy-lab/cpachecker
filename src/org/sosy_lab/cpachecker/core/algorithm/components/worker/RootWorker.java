@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode
 import org.sosy_lab.cpachecker.core.algorithm.components.distributed_cpa.MessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Payload;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.UpdatedTypeMap;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -54,7 +55,7 @@ public class RootWorker extends Worker {
       throw new AssertionError("Root nodes must be empty and do not have predecessors: " + pNode);
     }
     analysis =
-        new NoopAnalysis(pId, logger, pNode, pCfa, SSAMap.emptySSAMap(), AnalysisDirection.FORWARD,
+        new NoopAnalysis(pId, logger, pNode, pCfa, new UpdatedTypeMap(SSAMap.emptySSAMap()), AnalysisDirection.FORWARD,
             pSpecification, pConfiguration, pShutdownManager);
   }
 

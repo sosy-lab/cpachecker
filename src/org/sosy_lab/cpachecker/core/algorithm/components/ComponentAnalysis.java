@@ -8,16 +8,13 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.components;
 
-import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -29,8 +26,6 @@ import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockToDotWriter;
 import org.sosy_lab.cpachecker.cfa.blocks.builder.BlockPartitioningBuilder;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
@@ -40,6 +35,7 @@ import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.CFADecomp
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.GivenSizeDecomposer;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.ConnectionProvider;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.UpdatedTypeMap;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.memory.InMemoryConnectionProvider;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.network.NetworkConnectionProvider;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.observer.ErrorMessageObserver;
@@ -56,7 +52,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -149,7 +144,7 @@ public class ComponentAnalysis implements Algorithm {
     }
   }
 
-  private ComponentsBuilder analysisWorker(ComponentsBuilder pBuilder, BlockNode pNode, SSAMap pMap)
+  private ComponentsBuilder analysisWorker(ComponentsBuilder pBuilder, BlockNode pNode, UpdatedTypeMap pMap)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     switch (workerType) {
       case DEFAULT:
@@ -199,7 +194,8 @@ public class ComponentAnalysis implements Algorithm {
       }
 
       // create type map (maps variables to their type)
-      SSAMap map = getTypeMap();
+      SSAMap ssaMap = getTypeMap(tree);
+      UpdatedTypeMap map = new UpdatedTypeMap(ssaMap);
 
       // create workers
       Collection<BlockNode> blocks = tree.getDistinctNodes();
@@ -255,15 +251,8 @@ public class ComponentAnalysis implements Algorithm {
     }
   }
 
-  private SSAMap getTypeMap()
+  private SSAMap getTypeMap(BlockTree pTree)
       throws InvalidConfigurationException, CPATransferException, InterruptedException {
-    Set<CFANode> allNodes = ImmutableSet.copyOf(cfa.getAllNodes());
-    List<CFAEdge> blockEdges = new ArrayList<>();
-    for (CFANode cfaNode : allNodes) {
-      CFAUtils.leavingEdges(cfaNode).filter(edge -> allNodes.contains(edge.getSuccessor()))
-          .copyInto(blockEdges);
-    }
-
     Solver solver = Solver.create(configuration, logger, shutdownManager.getNotifier());
     PathFormulaManagerImpl manager =
         new PathFormulaManagerImpl(
@@ -273,7 +262,8 @@ public class ComponentAnalysis implements Algorithm {
             shutdownManager.getNotifier(),
             cfa,
             AnalysisDirection.FORWARD);
-    return manager.makeFormulaForPath(blockEdges).getSsa();
+    return manager.makeFormulaForPath(pTree.getDistinctNodes().stream().flatMap(m -> m.getEdgesInBlock().stream()).collect(
+        Collectors.toList())).getSsa();
   }
 
   private void drawBlockDot(BlockTree tree) {
@@ -281,7 +271,7 @@ public class ComponentAnalysis implements Algorithm {
     for (BlockNode distinctNode : tree.getDistinctNodes()) {
       builder.addBlock(distinctNode.getNodesInBlock(), distinctNode.getStartNode());
     }
-    new BlockToDotWriter(builder.build(cfa)).dump(Path.of("./output/hahahah.dot"), logger);
+    new BlockToDotWriter(builder.build(cfa)).dump(Path.of("./output/blocks.dot"), logger);
   }
 
 }

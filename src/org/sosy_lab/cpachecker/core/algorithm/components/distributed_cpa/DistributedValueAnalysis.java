@@ -12,6 +12,7 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Payload;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.UpdatedTypeMap;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -24,7 +25,7 @@ public class DistributedValueAnalysis extends AbstractDistributedCPA {
   public DistributedValueAnalysis(
       String pId,
       BlockNode pNode,
-      SSAMap pTypeMap,
+      UpdatedTypeMap pTypeMap,
       Precision pPrecision,
       AnalysisDirection pDirection)
       throws CPAException {

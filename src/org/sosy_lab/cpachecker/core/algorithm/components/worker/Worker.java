@@ -35,14 +35,16 @@ public abstract class Worker implements Runnable, StatisticsProvider {
   protected Connection connection;
   protected boolean finished;
 
-  protected static WorkerStatistics stats = new WorkerStatistics();
-
+  protected final static WorkerStatistics stats = new WorkerStatistics();
 
   @Options(prefix = "worker")
   public static class WorkerOptions {
 
     @Option(description = "forces the precondition of fault localization workers to be true")
     boolean faultLocalizationPreconditionAlwaysTrue = false;
+
+    @Option(description = "whether analysis worker abstract at block entries or exits")
+    boolean abstractAtTargetLocation = false;
 
     public WorkerOptions(Configuration pConfig) throws InvalidConfigurationException {
       pConfig.inject(this);

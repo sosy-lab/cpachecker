@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode
 import org.sosy_lab.cpachecker.core.algorithm.components.distributed_cpa.DistributedCompositeCPA;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Payload;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.UpdatedTypeMap;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -57,7 +58,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Triple;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public abstract class BlockAnalysis {
@@ -79,7 +79,7 @@ public abstract class BlockAnalysis {
       LogManager pLogger,
       BlockNode pBlock,
       CFA pCFA,
-      SSAMap pTypeMap,
+      UpdatedTypeMap pTypeMap,
       AnalysisDirection pDirection,
       Specification pSpecification,
       Configuration pConfiguration,
@@ -228,7 +228,7 @@ public abstract class BlockAnalysis {
         LogManager pLogger,
         BlockNode pBlock,
         CFA pCFA,
-        SSAMap pTypeMap,
+        UpdatedTypeMap pTypeMap,
         Specification pSpecification,
         Configuration pConfiguration,
         ShutdownManager pShutdownManager)
@@ -326,7 +326,7 @@ public abstract class BlockAnalysis {
         LogManager pLogger,
         BlockNode pBlock,
         CFA pCFA,
-        SSAMap pTypeMap,
+        UpdatedTypeMap pTypeMap,
         Specification pSpecification,
         Configuration pConfiguration,
         ShutdownManager pShutdownManager)
@@ -369,7 +369,7 @@ public abstract class BlockAnalysis {
         LogManager pLogger,
         BlockNode pBlock,
         CFA pCFA,
-        SSAMap pTypeMap,
+        UpdatedTypeMap pTypeMap,
         AnalysisDirection pDirection,
         Specification pSpecification,
         Configuration pConfiguration,

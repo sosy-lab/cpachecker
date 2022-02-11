@@ -16,6 +16,7 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Payload;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.UpdatedTypeMap;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -25,13 +26,12 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public abstract class AbstractDistributedCPA implements ConfigurableProgramAnalysis {
 
   protected final BlockNode block;
-  protected final SSAMap typeMap;
+  protected final UpdatedTypeMap typeMap;
   protected final AnalysisDirection direction;
   protected final String id;
   protected ConfigurableProgramAnalysis parentCPA;
@@ -46,7 +46,7 @@ public abstract class AbstractDistributedCPA implements ConfigurableProgramAnaly
   public AbstractDistributedCPA(
       String pId,
       BlockNode pNode,
-      SSAMap pTypeMap,
+      UpdatedTypeMap pTypeMap,
       Precision pPrecision,
       AnalysisDirection pDirection) throws
                                     CPAException {

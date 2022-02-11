@@ -80,7 +80,7 @@ public class BlockNode {
     idToNodeMap = generateIdToNodeMap(nodesInBlock);
     id = pId;
 
-    code = computeCode(pNodesInBlock);
+    code = computeCode();
   }
 
   private ImmutableMap<Integer, CFANode> generateIdToNodeMap(Set<CFANode> nodes) {
@@ -93,19 +93,16 @@ public class BlockNode {
     return idToNodeMap.get(number);
   }
 
-  private String computeCode(Set<CFANode> pNodes) {
+  private String computeCode() {
     StringBuilder codeLines = new StringBuilder();
     for (CFAEdge leavingEdge: edgesInBlock) {
-      if (pNodes.contains(leavingEdge.getSuccessor())) {
-        if (leavingEdge.getCode().isBlank()) {
-          continue;
-        }
-        if (leavingEdge.getEdgeType().equals(CFAEdgeType.AssumeEdge)) {
-          codeLines.append("[").append(leavingEdge.getCode()).append("]\n");
-        } else {
-          codeLines.append(leavingEdge.getCode()).append("\n");
-        }
-        break;
+      if (leavingEdge.getCode().isBlank()) {
+        continue;
+      }
+      if (leavingEdge.getEdgeType().equals(CFAEdgeType.AssumeEdge)) {
+        codeLines.append("[").append(leavingEdge.getCode()).append("]\n");
+      } else {
+        codeLines.append(leavingEdge.getCode()).append("\n");
       }
     }
     return codeLines.toString();

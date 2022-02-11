@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Payload;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Payload.PayloadBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.UpdatedTypeMap;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -28,7 +29,6 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class DistributedCompositeCPA extends AbstractDistributedCPA {
@@ -41,7 +41,7 @@ public class DistributedCompositeCPA extends AbstractDistributedCPA {
 
   public DistributedCompositeCPA(
       String pId,
-      BlockNode pNode, SSAMap pTypeMap, Precision pPrecision, AnalysisDirection pDirection)
+      BlockNode pNode, UpdatedTypeMap pTypeMap, Precision pPrecision, AnalysisDirection pDirection)
       throws CPAException {
     super(pId, pNode, pTypeMap, pPrecision, pDirection);
     lookup = new ConcurrentHashMap<>();
@@ -93,7 +93,7 @@ public class DistributedCompositeCPA extends AbstractDistributedCPA {
       return;
     }
     AbstractDistributedCPA cpa =
-        cpaClass.getConstructor(String.class, BlockNode.class, SSAMap.class, Precision.class,
+        cpaClass.getConstructor(String.class, BlockNode.class, UpdatedTypeMap.class, Precision.class,
             AnalysisDirection.class).newInstance(id, block, typeMap, precision, direction);
     registered.put(clazz, cpa);
   }

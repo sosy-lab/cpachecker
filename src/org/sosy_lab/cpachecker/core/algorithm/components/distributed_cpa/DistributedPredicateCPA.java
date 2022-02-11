@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Payload;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.UpdatedTypeMap;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -53,7 +54,7 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
   public DistributedPredicateCPA(
       String pWorkerId,
       BlockNode pNode,
-      SSAMap pTypeMap,
+      UpdatedTypeMap pTypeMap,
       Precision pPrecision,
       AnalysisDirection pDirection) throws
                                     CPAException {
@@ -83,16 +84,12 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
     PredicateAbstractState state = ((PredicateAbstractState) pState);
     PathFormula pathFormula;
     if (state.isAbstractionState()) {
-      // formula before abstraction
-      if (fmgr.getBooleanFormulaManager().isTrue(state.getAbstractionFormula().asFormula())) {
-        pathFormula = state.getAbstractionFormula().getBlockFormula();
-      } else {
-        pathFormula = pmgr.makeEmptyPathFormulaWithContextFrom(state.getAbstractionFormula().getBlockFormula());
-        pathFormula = pmgr.makeAnd(pathFormula, state.getAbstractionFormula().asFormula());
-      }
+      pathFormula = pmgr.makeEmptyPathFormulaWithContextFrom(state.getAbstractionFormula().getBlockFormula());
+      pathFormula = pmgr.makeAnd(pathFormula, state.getAbstractionFormula().asFormula());
     } else {
       pathFormula = state.getPathFormula();
     }
+    typeMap.merge(pathFormula.getSsa());
     String formula =
         fmgr.dumpFormula(uninstantiate(pathFormula).getFormula())
             .toString();
@@ -241,7 +238,7 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
       if (!variable.contains(".") && variableIndexPair.getSecond().isPresent()) {
         String variableName = variableIndexPair.getFirst();
         if (variableName != null) {
-          pBuilder.setIndex(variableName, typeMap.getType(variableName),
+          pBuilder.setIndex(variableName, typeMap.get(variableName),
               variableIndexPair.getSecond()
                   .orElse(1));
         }

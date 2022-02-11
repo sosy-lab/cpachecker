@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.core.algorithm.components.distributed_cpa.Message
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Payload;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.UpdatedTypeMap;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -52,12 +53,12 @@ public class AnalysisWorker extends Worker {
       Specification pSpecification,
       Configuration pConfiguration,
       ShutdownManager pShutdownManager,
-      SSAMap pTypeMap)
+      UpdatedTypeMap pTypeMap)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     super("analysis-worker-" + pBlock.getId(), pLogger, pOptions);
     block = pBlock;
 
-    String withAbstraction = false ? "-with-abstraction" : "";
+    String withAbstraction = workerOptions.abstractAtTargetLocation ? "-with-abstraction" : "";
 
     Configuration fileConfig =
         Configuration.builder().loadFromFile("config/predicateAnalysis-block-backward" + withAbstraction + ".properties")

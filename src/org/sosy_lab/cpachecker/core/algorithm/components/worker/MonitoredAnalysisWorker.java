@@ -19,6 +19,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.UpdatedTypeMap;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -37,7 +38,7 @@ public class MonitoredAnalysisWorker extends AnalysisWorker {
       Configuration pConfiguration,
       ShutdownManager pShutdownManager,
       Monitor pMonitor,
-      SSAMap pMap)
+      UpdatedTypeMap pMap)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     super(pId, pOptions, pBlock, pLogger, pCFA, pSpecification,
         pConfiguration,
