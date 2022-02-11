@@ -15,10 +15,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
@@ -33,7 +31,6 @@ public class ResultWorker extends Worker {
   private final Map<String, BlockNode> nodeMap;
   private final Set<String> messageReceived;
   private final Map<String, Integer> expectAnswer;
-  private final Set<String> violationOrigins;
   private final int numWorkers;
 
   ResultWorker(
@@ -47,7 +44,6 @@ public class ResultWorker extends Worker {
     expectAnswer = new ConcurrentHashMap<>();
     nodeMap.keySet().forEach(id -> expectAnswer.put(id, 0));
     numWorkers = pNodes.size();
-    violationOrigins = new HashSet<>();
   }
 
   @Override
@@ -55,51 +51,49 @@ public class ResultWorker extends Worker {
       throws InterruptedException, CPAException, IOException, SolverException {
     String senderId = pMessage.getUniqueBlockId();
     MessageType type = pMessage.getType();
+
+    // not an analysis-worker
     if (!nodeMap.containsKey(senderId)) {
       return ImmutableSet.of();
     }
-    int numViolationsBefore = violationOrigins.size();
-    messageReceived.add(senderId);
+
     switch (type) {
       case ERROR_CONDITION:
         boolean newPostCondition = Boolean.parseBoolean(pMessage.getPayload().get("first"));
         if (newPostCondition) {
+          // we need a block to first send an own error condition or the first BLOCKPOSTCONDITION
+          messageReceived.add(senderId);
           expectAnswer.merge(senderId, 1, Integer::sum);
-          violationOrigins.add(senderId);
         } else {
           expectAnswer.merge(senderId, -1, Integer::sum);
           nodeMap.get(senderId).getPredecessors()
               .forEach(b -> expectAnswer.merge(b.getId(), 1, Integer::sum));
         }
-        return response(numViolationsBefore, pMessage);
+        return response(pMessage);
       case ERROR_CONDITION_UNREACHABLE:
         expectAnswer.merge(senderId, -1, Integer::sum);
-        return response(numViolationsBefore, pMessage);
+        return response(pMessage);
       case FOUND_RESULT:
       case ERROR:
         shutdown();
+        return ImmutableSet.of();
       case BLOCK_POSTCONDITION:
+        // we need a block to first send an own error condition or the first BLOCKPOSTCONDITION
+        messageReceived.add(senderId);
         return ImmutableSet.of();
       default:
         throw new AssertionError(type + " does not exist");
     }
   }
 
-  private Collection<Message> response(int numViolationsBefore, Message pMessage) {
-    boolean onlyOriginViolations = true;
-    for (Entry<String, Integer> stringIntegerEntry : expectAnswer.entrySet()) {
-      if (violationOrigins.contains(stringIntegerEntry.getKey())) {
-        onlyOriginViolations &= stringIntegerEntry.getValue() == 1;
-      } else {
-        onlyOriginViolations &= stringIntegerEntry.getValue() == 0;
-      }
-    }
-    // negative values can occur as it is not guaranteed that messages are processed in the same way on all workers
+  private Collection<Message> response(Message pMessage) {
+    // negative values can occur as it is not guaranteed
+    // that messages are processed in the same way on all workers
+    // that's why we use allMatch
+    // to ensure we do not forget an error location, we need every worker to send an initial message
     finished =
-        messageReceived.size() == numWorkers && numViolationsBefore == violationOrigins.size()
-            // that's why we use allMatch
-            && (expectAnswer.values().stream().allMatch(i -> i == 0)
-            || onlyOriginViolations);
+        messageReceived.size() == numWorkers
+            && expectAnswer.values().stream().allMatch(i -> i == 0);
     if (finished) {
       return ImmutableSet.of(Message.newResultMessage(pMessage.getUniqueBlockId(), 0, Result.TRUE,
           new HashSet<>(Splitter.on(",")
