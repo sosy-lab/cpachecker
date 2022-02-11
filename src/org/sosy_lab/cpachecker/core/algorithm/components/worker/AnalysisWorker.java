@@ -64,7 +64,7 @@ public class AnalysisWorker extends Worker {
             "cpa.location.LocationCPABackwards, cpa.block.BlockCPABackward, cpa.callstack.CallstackCPA, cpa.functionpointer.FunctionPointerCPA, cpa.predicate.PredicateCPA")
         .setOption("backwardSpecification", "config/specification/MainEntry.spc")
         .setOption("specification", "config/specification/MainEntry.spc")
-        .setOption("cpa.predicate.abstractAtTargetState", "false")
+        .setOption("cpa.predicate.abstractAtTargetState", "true")
         .setOption("cpa.predicate.blk.alwaysAtJoin", "false")
         .setOption("cpa.predicate.blk.alwaysAtBranch", "false")
         .setOption("cpa.predicate.blk.alwaysAtProgramExit", "false")

@@ -94,6 +94,7 @@ public class NetworkReceiver implements Closeable {
         }
       }
     }
+    selector.close();
   }
 
   //accept a connection made to this channel's socket
@@ -155,7 +156,6 @@ public class NetworkReceiver implements Closeable {
 
   @Override
   public void close() throws IOException {
-    selector.close();
     finished = true;
   }
 }

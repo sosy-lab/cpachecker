@@ -15,6 +15,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -28,9 +29,9 @@ public class TimeoutWorker extends Worker {
   private final Timer timer;
   private final TimerTask task;
 
-  protected TimeoutWorker(LogManager pLogger, long pMillis) {
+  protected TimeoutWorker(LogManager pLogger, TimeSpan pTimeSpan) {
     super("timeout-worker", pLogger);
-    waitTime = pMillis;
+    waitTime = pTimeSpan.asMillis();
     shouldScheduleTimer = true;
     timer = new Timer();
     task = new TimerTask() {

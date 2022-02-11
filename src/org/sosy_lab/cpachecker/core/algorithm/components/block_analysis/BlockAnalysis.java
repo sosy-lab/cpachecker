@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -64,7 +65,7 @@ public abstract class BlockAnalysis {
   protected final ConfigurableProgramAnalysis cpa;
   protected final DistributedCompositeCPA distributedCompositeCPA;
 
-  protected final Precision emptyPrecision;
+  protected final Precision initialPrecision;
 
   protected final BlockNode block;
   protected final LogManager logger;
@@ -93,13 +94,14 @@ public abstract class BlockAnalysis {
     cpa = parts.getSecond();
     reachedSet = parts.getThird();
 
-    emptyPrecision = reachedSet.getPrecision(reachedSet.getFirstState());
+    assert reachedSet != null : "BlockAnalysis requires the initial reachedSet";
+    initialPrecision = reachedSet.getPrecision(Objects.requireNonNull(reachedSet.getFirstState()));
 
     block = pBlock;
     logger = pLogger;
 
     distributedCompositeCPA =
-        new DistributedCompositeCPA(pId, block, pTypeMap, emptyPrecision, pDirection);
+        new DistributedCompositeCPA(pId, block, pTypeMap, initialPrecision, pDirection);
     distributedCompositeCPA.setParentCPA(CPAs.retrieveCPA(cpa, CompositeCPA.class));
   }
 
@@ -167,8 +169,8 @@ public abstract class BlockAnalysis {
     return algorithm;
   }
 
-  public Precision getEmptyPrecision() {
-    return emptyPrecision;
+  public Precision getInitialPrecision() {
+    return initialPrecision;
   }
 
   public Set<String> visitedBlocks(Collection<Message> pPayloads) {
@@ -203,7 +205,7 @@ public abstract class BlockAnalysis {
           pConfiguration,
           pShutdownManager);
       relation =
-          (BlockTransferRelation) CPAs.retrieveCPA(cpa, BlockCPA.class).getTransferRelation();
+          (BlockTransferRelation) Objects.requireNonNull(CPAs.retrieveCPA(cpa, BlockCPA.class)).getTransferRelation();
     }
 
     @Override
@@ -212,7 +214,7 @@ public abstract class BlockAnalysis {
       relation.init(block);
       reachedSet.clear();
       AbstractState startState = getStartState(messages);
-      reachedSet.add(startState, emptyPrecision);
+      reachedSet.add(startState, initialPrecision);
       AlgorithmStatus status = algorithm.run(reachedSet);
       Set<ARGState> targetStates = from(reachedSet).filter(AbstractStates::isTargetState)
           .filter(ARGState.class).copyInto(new HashSet<>());
@@ -236,6 +238,8 @@ public abstract class BlockAnalysis {
             Payload initial = distributedCompositeCPA.serialize(
                 distributedCompositeCPA.getInitialState(targetNode.orElseThrow(),
                     StateSpacePartition.getDefaultPartition()));
+            initial = Payload.builder().putAll(initial).addEntry(Payload.STATUS,
+                status.wasPropertyChecked() + "," + status.isSound() + "," + status.isPrecise()).build();
             answers.add(Message.newErrorConditionMessage(block.getId(),
                 targetNode.orElseThrow().getNodeNumber(), initial, true,
                 ImmutableSet.of(block.getId())));
@@ -250,6 +254,8 @@ public abstract class BlockAnalysis {
       if (!compositeStates.isEmpty()) {
         AbstractState combined = distributedCompositeCPA.combine(compositeStates);
         Payload result = distributedCompositeCPA.serialize(combined);
+        result = Payload.builder().putAll(result).addEntry(Payload.STATUS,
+            status.wasPropertyChecked() + "," + status.isSound() + "," + status.isPrecise()).build();
         Message response =
             Message.newBlockPostCondition(block.getId(), block.getLastNode().getNodeNumber(),
                 result, messages.size() == block.getPredecessors().size() && messages.stream()
@@ -278,7 +284,8 @@ public abstract class BlockAnalysis {
       super(pId, pLogger, pBlock, pCFA, pTypeMap, AnalysisDirection.BACKWARD, pSpecification,
           pConfiguration,
           pShutdownManager);
-      relation = (BlockTransferRelation) CPAs.retrieveCPA(cpa, BlockCPABackward.class)
+      relation = (BlockTransferRelation) Objects.requireNonNull(
+              CPAs.retrieveCPA(cpa, BlockCPABackward.class))
           .getTransferRelation();
     }
 
@@ -288,7 +295,7 @@ public abstract class BlockAnalysis {
       relation.init(block);
       reachedSet.clear();
       AbstractState startState = getStartState(messages);
-      reachedSet.add(startState, emptyPrecision);
+      reachedSet.add(startState, initialPrecision);
       AlgorithmStatus status = algorithm.run(reachedSet);
       List<AbstractState>
           states = extractBlockEntryPoints(reachedSet, block.getStartNode(), startState);

@@ -16,13 +16,16 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockToDotWriter;
 import org.sosy_lab.cpachecker.cfa.blocks.builder.BlockPartitioningBuilder;
@@ -94,6 +97,10 @@ public class ComponentAnalysis implements Algorithm {
 
   @Option(description = "desired number of BlockNodes")
   private int desiredNumberOfBlocks = 10;
+
+  @Option(description = "maximal overall wall-time for parallel analysis")
+  @TimeSpanOption(codeUnit = TimeUnit.MILLISECONDS, min = 0)
+  private TimeSpan maxWallTime = TimeSpan.ofSeconds(15 * 60);
 
   public ComponentAnalysis(
       Configuration pConfig,
@@ -195,7 +202,7 @@ public class ComponentAnalysis implements Algorithm {
         }
       }
       builder = builder.addResultCollectorWorker(blocks);
-      builder = builder.addTimeoutWorker(900000);
+      builder = builder.addTimeoutWorker(maxWallTime);
       Components components = builder.addVisualizationWorker(tree).build();
 
       // run workers

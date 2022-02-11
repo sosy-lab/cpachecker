@@ -18,6 +18,7 @@ import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockTree;
@@ -107,7 +108,7 @@ public class ComponentsBuilder {
     return this;
   }
 
-  public ComponentsBuilder addTimeoutWorker(long pTimeout) {
+  public ComponentsBuilder addTimeoutWorker(TimeSpan pTimeout) {
     workers.add(new TimeoutWorker(logger, pTimeout));
     return this;
   }
