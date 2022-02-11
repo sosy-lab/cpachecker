@@ -178,6 +178,8 @@ public abstract class BlockAnalysis {
   public abstract Collection<Message> analyze(Collection<Message> messages)
       throws CPAException, InterruptedException, SolverException;
 
+  public abstract Collection<Message> initialAnalysis() throws InterruptedException, CPAException;
+
   protected Set<ARGState> findReachableTargetStatesInBlock(
       AbstractState startState,
       BlockTransferRelation relation)
@@ -274,6 +276,18 @@ public abstract class BlockAnalysis {
       return answers;
     }
 
+    @Override
+    public Collection<Message> initialAnalysis() throws InterruptedException, CPAException {
+      Message initial = Message.newBlockPostCondition("", block.getStartNode().getNodeNumber(), Payload.empty(),
+          false, true, ImmutableSet.of());
+      Collection<Message> result = analyze(ImmutableSet.of(initial));
+      if (result.isEmpty()) {
+        return ImmutableSet.of(Message.newBlockPostCondition("", block.getStartNode().getNodeNumber(), Payload.empty(),
+            false, false, ImmutableSet.of()));
+      }
+      return result;
+    }
+
     private Collection<Message> createBlockPostConditionMessage(
         Collection<Message> messages,
         Set<ARGState> blockEntries)
@@ -368,6 +382,12 @@ public abstract class BlockAnalysis {
               payload, false,
               visitedBlocks(messages)));
     }
+
+    @Override
+    public Collection<Message> initialAnalysis() throws InterruptedException, CPAException {
+      // current approach does not need an initial backward analysis.
+      throw new AssertionError("Initial backward analysis is not implemented yet.");
+    }
   }
 
   public static class NoopAnalysis extends BlockAnalysis {
@@ -392,6 +412,16 @@ public abstract class BlockAnalysis {
         Collection<Message> condition)
         throws CPAException, InterruptedException, SolverException {
       return ImmutableSet.of();
+    }
+
+    @Override
+    public Collection<Message> initialAnalysis() throws InterruptedException, CPAException {
+      return ImmutableSet.of(
+          Message.newBlockPostCondition(block.getId(), block.getLastNode().getNodeNumber(),
+              distributedCompositeCPA.serialize(
+                  distributedCompositeCPA.getInitialState(block.getStartNode(),
+                      StateSpacePartition.getDefaultPartition())), true, true,
+              ImmutableSet.of(block.getId())));
     }
   }
 }

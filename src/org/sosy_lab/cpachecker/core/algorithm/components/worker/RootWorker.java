@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.core.algorithm.components.distributed_cpa.Message
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Payload;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.UpdatedTypeMap;
-import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -95,17 +94,16 @@ public class RootWorker extends Worker {
   @Override
   public void run() {
     try {
-      Message firstMessage =
-          Message.newBlockPostCondition(root.getId(), root.getLastNode().getNodeNumber(),
-              analysis.getDistributedCPA().serialize(analysis.getDistributedCPA()
-                  .getInitialState(root.getStartNode(), StateSpacePartition.getDefaultPartition())),
-              true, true, ImmutableSet.of(root.getId()));
+      Collection<Message> initial = analysis.initialAnalysis();
+      // guaranteed to be existent
+      Message firstMessage = initial.stream().findFirst().orElseThrow();
       analysis.getDistributedCPA().setFirstMessage(firstMessage);
       broadcast(ImmutableSet.of(firstMessage));
       super.run();
-    } catch (InterruptedException | IOException pE) {
+    } catch (InterruptedException | IOException | CPAException pE) {
       logger.log(Level.SEVERE, "Worker run into an error: %s", pE);
       logger.log(Level.SEVERE, "Stopping analysis...");
+      throw new AssertionError(pE);
     }
   }
 }

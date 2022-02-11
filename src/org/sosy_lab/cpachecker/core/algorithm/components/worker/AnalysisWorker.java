@@ -8,12 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.components.worker;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
@@ -31,7 +29,6 @@ import org.sosy_lab.cpachecker.core.algorithm.components.distributed_cpa.Distrib
 import org.sosy_lab.cpachecker.core.algorithm.components.distributed_cpa.MessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageType;
-import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Payload;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.UpdatedTypeMap;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -157,9 +154,7 @@ public class AnalysisWorker extends Worker {
   public void run() {
     try {
       if (!block.isSelfCircular() && !block.getPredecessors().isEmpty()) {
-        List<Message> initialMessages = ImmutableList.copyOf(forwardAnalysis(ImmutableSet.of(
-            Message.newBlockPostCondition("", block.getStartNode().getNodeNumber(), Payload.empty(),
-                false, true, ImmutableSet.of()))));
+        Collection<Message> initialMessages = forwardAnalysis.initialAnalysis();
         Optional<Message> optionalMessage =
             initialMessages.stream().filter(m -> m.getType() == MessageType.BLOCK_POSTCONDITION)
                 .findAny();
@@ -173,7 +168,7 @@ public class AnalysisWorker extends Worker {
         broadcast(initialMessages);
       }
       super.run();
-    } catch (CPAException | InterruptedException | IOException | SolverException pE) {
+    } catch (CPAException | InterruptedException | IOException pE) {
       logger.log(Level.SEVERE, "Worker run into an error: %s", pE);
       logger.log(Level.SEVERE, "Stopping analysis...");
     }
