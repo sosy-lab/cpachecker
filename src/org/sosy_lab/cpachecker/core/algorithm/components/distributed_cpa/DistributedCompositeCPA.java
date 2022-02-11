@@ -93,7 +93,8 @@ public class DistributedCompositeCPA extends AbstractDistributedCPA {
       return;
     }
     AbstractDistributedCPA cpa =
-        cpaClass.getConstructor(String.class, BlockNode.class, UpdatedTypeMap.class, Precision.class,
+        cpaClass.getConstructor(String.class, BlockNode.class, UpdatedTypeMap.class,
+            Precision.class,
             AnalysisDirection.class).newInstance(id, block, typeMap, precision, direction);
     registered.put(clazz, cpa);
   }

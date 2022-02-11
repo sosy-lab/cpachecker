@@ -54,7 +54,8 @@ public abstract class Worker implements Runnable, StatisticsProvider {
   /**
    * Abstract definition of a Worker.
    * All workers enter the same routine of receiving and producing messages.
-   * @param pId the id of the worker
+   *
+   * @param pId     the id of the worker
    * @param pLogger a logger to log messages
    */
   protected Worker(String pId, LogManager pLogger, WorkerOptions pOptions) {

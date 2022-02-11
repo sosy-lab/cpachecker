@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Payload;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.UpdatedTypeMap;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class AnalysisWorker extends Worker {
@@ -61,7 +60,8 @@ public class AnalysisWorker extends Worker {
     String withAbstraction = workerOptions.abstractAtTargetLocation ? "-with-abstraction" : "";
 
     Configuration fileConfig =
-        Configuration.builder().loadFromFile("config/predicateAnalysis-block-backward" + withAbstraction + ".properties")
+        Configuration.builder().loadFromFile(
+                "config/predicateAnalysis-block-backward" + withAbstraction + ".properties")
             .build();
     ConfigString backward = new ConfigString();
     fileConfig.inject(backward);
@@ -80,7 +80,8 @@ public class AnalysisWorker extends Worker {
     Configuration forwardConfiguration =
         Configuration.builder()
             .copyFrom(pConfiguration)
-            .loadFromFile("config/predicateAnalysis-block-forward" + withAbstraction + ".properties")
+            .loadFromFile(
+                "config/predicateAnalysis-block-forward" + withAbstraction + ".properties")
             .setOption("CompositeCPA.cpas", forward.cpas + ", cpa.block.BlockCPA")
             .build();
 

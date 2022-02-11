@@ -28,6 +28,7 @@ public class CleverMessageQueue extends ForwardingBlockingQueue<Message> {
 
   /**
    * Mimics a blocking queue but changes the blocking method <code>take</code> to prioritize messages
+   *
    * @param pQueue the queue to forward
    */
   public CleverMessageQueue(BlockingQueue<Message> pQueue) {
@@ -80,7 +81,8 @@ public class CleverMessageQueue extends ForwardingBlockingQueue<Message> {
     MessageType[] currentOrdering = ordering;
     if (current == SKIP) {
       current = 0;
-      currentOrdering = new MessageType[] {MessageType.ERROR, MessageType.FOUND_RESULT, MessageType.BLOCK_POSTCONDITION, MessageType.ERROR_CONDITION, MessageType.ERROR_CONDITION_UNREACHABLE};
+      currentOrdering =
+          new MessageType[]{MessageType.ERROR, MessageType.FOUND_RESULT, MessageType.BLOCK_POSTCONDITION, MessageType.ERROR_CONDITION, MessageType.ERROR_CONDITION_UNREACHABLE};
     }
     for (MessageType messageType : currentOrdering) {
       Optional<Message> m = firstOfType(messageType);

@@ -176,7 +176,9 @@ public abstract class BlockAnalysis {
   public abstract Collection<Message> analyze(Collection<Message> messages)
       throws CPAException, InterruptedException, SolverException;
 
-  protected Set<ARGState> findReachableTargetStatesInBlock(AbstractState startState, BlockTransferRelation relation)
+  protected Set<ARGState> findReachableTargetStatesInBlock(
+      AbstractState startState,
+      BlockTransferRelation relation)
       throws CPAException, InterruptedException {
     relation.init(block);
     reachedSet.clear();
@@ -271,10 +273,13 @@ public abstract class BlockAnalysis {
       return answers;
     }
 
-    private Collection<Message> createBlockPostConditionMessage(Collection<Message> messages, Set<ARGState> blockEntries)
+    private Collection<Message> createBlockPostConditionMessage(
+        Collection<Message> messages,
+        Set<ARGState> blockEntries)
         throws CPAException, InterruptedException {
-      List<AbstractState> compositeStates = blockEntries.stream().map(this::extractCompositeStateFromAbstractState).collect(
-          ImmutableList.toImmutableList());
+      List<AbstractState> compositeStates =
+          blockEntries.stream().map(this::extractCompositeStateFromAbstractState).collect(
+              ImmutableList.toImmutableList());
       Set<Message> answers = new HashSet<>();
       if (!compositeStates.isEmpty()) {
         AbstractState combined = distributedCompositeCPA.combine(compositeStates);
@@ -350,7 +355,8 @@ public abstract class BlockAnalysis {
       if (states.isEmpty()) {
         // should only happen if abstraction is activated
         logger.log(Level.SEVERE, "Cannot reach block start?", reachedSet);
-        return ImmutableSet.of(Message.newErrorConditionUnreachableMessage(block.getId(), "backwards analysis cannot reach target at block entry"));
+        return ImmutableSet.of(Message.newErrorConditionUnreachableMessage(block.getId(),
+            "backwards analysis cannot reach target at block entry"));
       }
       Payload payload = distributedCompositeCPA.serialize(distributedCompositeCPA.combine(states));
       payload = Payload.builder().putAll(payload).addEntry(Payload.STATUS,

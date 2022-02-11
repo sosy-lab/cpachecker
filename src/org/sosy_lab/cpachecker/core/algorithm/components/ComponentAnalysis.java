@@ -121,6 +121,7 @@ public class ComponentAnalysis implements Algorithm {
 
   /**
    * Currently, fault localization worker require linear blocks
+   *
    * @throws InvalidConfigurationException if configuration for block analysis is invalid
    */
   private void checkConfig() throws InvalidConfigurationException {
@@ -144,7 +145,10 @@ public class ComponentAnalysis implements Algorithm {
     }
   }
 
-  private ComponentsBuilder analysisWorker(ComponentsBuilder pBuilder, BlockNode pNode, UpdatedTypeMap pMap)
+  private ComponentsBuilder analysisWorker(
+      ComponentsBuilder pBuilder,
+      BlockNode pNode,
+      UpdatedTypeMap pMap)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     switch (workerType) {
       case DEFAULT:
@@ -262,8 +266,9 @@ public class ComponentAnalysis implements Algorithm {
             shutdownManager.getNotifier(),
             cfa,
             AnalysisDirection.FORWARD);
-    return manager.makeFormulaForPath(pTree.getDistinctNodes().stream().flatMap(m -> m.getEdgesInBlock().stream()).collect(
-        Collectors.toList())).getSsa();
+    return manager.makeFormulaForPath(
+        pTree.getDistinctNodes().stream().flatMap(m -> m.getEdgesInBlock().stream()).collect(
+            Collectors.toList())).getSsa();
   }
 
   private void drawBlockDot(BlockTree tree) {

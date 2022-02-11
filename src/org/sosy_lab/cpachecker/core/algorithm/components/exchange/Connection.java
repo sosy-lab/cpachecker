@@ -24,12 +24,14 @@ public interface Connection extends Closeable {
 
   /**
    * Returns the size of pending messages
+   *
    * @return size of pending messages
    */
   int size();
 
   /**
    * Indicates if pending messages exist
+   *
    * @return true, if no pending messages exist, false otherwise
    */
   default boolean isEmpty() {

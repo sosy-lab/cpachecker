@@ -95,7 +95,7 @@ public class BlockNode {
 
   private String computeCode() {
     StringBuilder codeLines = new StringBuilder();
-    for (CFAEdge leavingEdge: edgesInBlock) {
+    for (CFAEdge leavingEdge : edgesInBlock) {
       if (leavingEdge.getCode().isBlank()) {
         continue;
       }
@@ -198,7 +198,11 @@ public class BlockNode {
 
     private int blockCount;
 
-    public BlockNode makeBlock(CFANode pStartNode, CFANode pEndNode, Set<CFANode> pNodesInBlock, Set<CFAEdge> pEdges) {
+    public BlockNode makeBlock(
+        CFANode pStartNode,
+        CFANode pEndNode,
+        Set<CFANode> pNodesInBlock,
+        Set<CFAEdge> pEdges) {
       return new BlockNode("B" + blockCount++, pStartNode, pEndNode, pNodesInBlock, pEdges);
     }
 

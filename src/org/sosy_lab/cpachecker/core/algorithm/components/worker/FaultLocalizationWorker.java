@@ -52,7 +52,6 @@ import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRankingUtils;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -84,7 +83,8 @@ public class FaultLocalizationWorker extends AnalysisWorker {
       ShutdownManager pShutdownManager,
       UpdatedTypeMap pTypeMap)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
-    super(pId, pOptions, pBlock, pLogger, pCFA, pSpecification, pConfiguration, pShutdownManager, pTypeMap);
+    super(pId, pOptions, pBlock, pLogger, pCFA, pSpecification, pConfiguration, pShutdownManager,
+        pTypeMap);
     predicateCPA = backwardAnalysis.getDistributedCPA().getOriginalCPA(PredicateCPA.class);
     Configuration config = Configuration.builder().copyFrom(pConfiguration)
         .setOption("cpa.predicate.handlePointerAliasing", "false").build();
@@ -140,7 +140,9 @@ public class FaultLocalizationWorker extends AnalysisWorker {
       PredicateAbstractState state = (PredicateAbstractState) dpcpa.deserialize(message);
       TraceFormula tf = createTraceFormula(state.getPathFormula());
       Set<Fault> faults = performFaultLocalization(tf);
-      actualPost = (actualPost == null || dpcpa.getSolver().getFormulaManager().getBooleanFormulaManager().isTrue(actualPost)) ? tf.getPostConditionStatement() : actualPost;
+      actualPost =
+          (actualPost == null || dpcpa.getSolver().getFormulaManager().getBooleanFormulaManager()
+              .isTrue(actualPost)) ? tf.getPostConditionStatement() : actualPost;
       actualPost = fmgr.substitute(actualPost, dpcpa.getSubstitutions());
       Payload updated = Payload.builder().putAll(currentResult.getPayload())
           .addEntry(POSTCONDITION_KEY, fmgr.dumpFormula(actualPost).toString()).build();

@@ -84,7 +84,8 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
     PredicateAbstractState state = ((PredicateAbstractState) pState);
     PathFormula pathFormula;
     if (state.isAbstractionState()) {
-      pathFormula = pmgr.makeEmptyPathFormulaWithContextFrom(state.getAbstractionFormula().getBlockFormula());
+      pathFormula =
+          pmgr.makeEmptyPathFormulaWithContextFrom(state.getAbstractionFormula().getBlockFormula());
       pathFormula = pmgr.makeAnd(pathFormula, state.getAbstractionFormula().asFormula());
     } else {
       pathFormula = state.getPathFormula();
@@ -131,7 +132,8 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
       BooleanFormula messageFormula = fmgr.parse(extractFormulaString(message.getPayload()));
       if (solver.isUnsat(messageFormula)) {
         return MessageProcessing.stopWith(
-            Message.newErrorConditionUnreachableMessage(block.getId(), "unsat-formula: " + messageFormula.toString()));
+            Message.newErrorConditionUnreachableMessage(block.getId(),
+                "unsat-formula: " + messageFormula.toString()));
       }
       if (receivedPostConditions.size() == block.getPredecessors().size()) {
         if (latestOwnPostConditionMessage != null) {
@@ -139,7 +141,8 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
               fmgr.parse(extractFormulaString(latestOwnPostConditionMessage.getPayload())));
           if (solver.isUnsat(check)) {
             return MessageProcessing.stopWith(
-                Message.newErrorConditionUnreachableMessage(block.getId(), "unsat-with-last-post: " + check));
+                Message.newErrorConditionUnreachableMessage(block.getId(),
+                    "unsat-with-last-post: " + check));
           }
         }
         if (firstMessage != null) {
@@ -147,7 +150,8 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
               .and(messageFormula, fmgr.parse(extractFormulaString(firstMessage.getPayload())));
           if (solver.isUnsat(check)) {
             return MessageProcessing.stopWith(
-                Message.newErrorConditionUnreachableMessage(block.getId(), "unsat-with-first-post: " + check));
+                Message.newErrorConditionUnreachableMessage(block.getId(),
+                    "unsat-with-first-post: " + check));
           }
         }
       }

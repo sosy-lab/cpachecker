@@ -58,7 +58,8 @@ public class BlockTree {
     nodesInBlock.addAll(pNode2.getNodesInBlock());
     Set<CFAEdge> edgesInBlock = new LinkedHashSet<>(pNode1.getEdgesInBlock());
     edgesInBlock.addAll(pNode2.getEdgesInBlock());
-    BlockNode merged = factory.makeBlock(pNode1.getStartNode(), pNode2.getLastNode(), nodesInBlock, edgesInBlock);
+    BlockNode merged =
+        factory.makeBlock(pNode1.getStartNode(), pNode2.getLastNode(), nodesInBlock, edgesInBlock);
     pNode1.getPredecessors().forEach(n -> factory.linkSuccessor(n, merged));
     pNode2.getPredecessors().forEach(n -> factory.linkSuccessor(n, merged));
     pNode1.getSuccessors().forEach(n -> factory.linkSuccessor(merged, n));
@@ -76,7 +77,8 @@ public class BlockTree {
         Set<CFAEdge> edgesInBlock = new LinkedHashSet<>(pNode1.getEdgesInBlock());
         edgesInBlock.addAll(pNode2.getEdgesInBlock());
         BlockNode merged =
-            factory.makeBlock(pNode1.getStartNode(), pNode2.getLastNode(), nodesInBlock, edgesInBlock);
+            factory.makeBlock(pNode1.getStartNode(), pNode2.getLastNode(), nodesInBlock,
+                edgesInBlock);
         pNode1.getPredecessors().forEach(n -> factory.linkSuccessor(n, merged));
         pNode2.getSuccessors().forEach(n -> factory.linkSuccessor(merged, n));
         factory.removeNode(pNode1);
