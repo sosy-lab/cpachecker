@@ -143,7 +143,7 @@ public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelatio
         // store this as assumption
         // Firstly, get the value from the current state:
         Value curValue =
-            ((ValueAnalysisStateWithSavedValue) element).getValueFromLastIteration().get();
+            ((ValueAnalysisStateWithSavedValue) element).getValueFromLastIteration().orElseThrow();
         ALeftHandSide lhs = CFAEdgeUtils.getLeftHandSide(pEdge);
         if (lhs instanceof CIdExpression) {
           CIdExpression idExpr = (CIdExpression) lhs;
