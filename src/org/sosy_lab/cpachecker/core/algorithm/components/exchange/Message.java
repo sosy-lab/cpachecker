@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.components.exchange;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.ObjectCodec;
 import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.databind.DeserializationContext;
@@ -21,45 +20,21 @@ import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableSet;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Objects;
 import java.util.Set;
-import java.util.zip.DataFormatException;
-import java.util.zip.Deflater;
-import java.util.zip.Inflater;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 
 /**
  * Immutable communication entity for the actor model
  */
 public class Message implements Comparable<Message> {
-
-  @Override
-  public int compareTo(Message o) {
-    return Integer.compare(type.priority, o.getType().priority);
-  }
-
-  // ORDER BY PRIORITY:
-  public enum MessageType {
-    FOUND_RESULT(0),
-    ERROR_CONDITION(1),
-    ERROR_CONDITION_UNREACHABLE(1),
-    BLOCK_POSTCONDITION(2),
-    ERROR(0);
-
-    private final int priority;
-
-    MessageType(int pPriority) {
-      priority = pPriority;
-    }
-  }
 
   private final int targetNodeNumber;
   private final String uniqueBlockId;
@@ -97,52 +72,6 @@ public class Message implements Comparable<Message> {
   public static Message replacePayload(Message pMessage, Payload pPayload) {
     return new Message(pMessage.getType(), pMessage.getUniqueBlockId(),
         pMessage.getTargetNodeNumber(), pMessage.getTimestamp(), pPayload);
-  }
-
-  public int getTargetNodeNumber() {
-    return targetNodeNumber;
-  }
-
-  public Payload getPayload() {
-    return payload;
-  }
-
-  public MessageType getType() {
-    return type;
-  }
-
-  public String getUniqueBlockId() {
-    return uniqueBlockId;
-  }
-
-  public long getTimestamp() {
-    return timestamp;
-  }
-
-  @Override
-  public String toString() {
-    return "Message{" +
-        "targetNodeNumber=" + targetNodeNumber +
-        ", uniqueBlockId='" + uniqueBlockId + '\'' +
-        ", type=" + type +
-        ", payload='" + payload + '\'' +
-        '}';
-  }
-
-  @Override
-  public boolean equals(Object pO) {
-    if (!(pO instanceof Message)) {
-      return false;
-    }
-    Message message = (Message) pO;
-    return targetNodeNumber == message.targetNodeNumber && uniqueBlockId.equals(
-        message.uniqueBlockId)
-        && type == message.type && payload.equals(message.payload);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(targetNodeNumber, uniqueBlockId, type, payload);
   }
 
   public static Message newBlockPostCondition(
@@ -197,11 +126,73 @@ public class Message implements Comparable<Message> {
     PrintWriter printer = new PrintWriter(new ByteArrayOutputStream());
     pException.printStackTrace(printer);
     return new Message(MessageType.ERROR, pUniqueBlockId, 0,
-       Payload.builder().addEntry(Payload.EXCEPTION, arrayWriter.toString()).build());
+        Payload.builder().addEntry(Payload.EXCEPTION, arrayWriter.toString()).build());
   }
 
-  public static Collection<Message> makeBroadcastReady(Message... pMessages) {
-    return ImmutableSet.copyOf(pMessages);
+  @Override
+  public int compareTo(Message o) {
+    return Integer.compare(type.priority, o.getType().priority);
+  }
+
+  public int getTargetNodeNumber() {
+    return targetNodeNumber;
+  }
+
+  public Payload getPayload() {
+    return payload;
+  }
+
+  public MessageType getType() {
+    return type;
+  }
+
+  public String getUniqueBlockId() {
+    return uniqueBlockId;
+  }
+
+  public long getTimestamp() {
+    return timestamp;
+  }
+
+  @Override
+  public String toString() {
+    return "Message{" +
+        "targetNodeNumber=" + targetNodeNumber +
+        ", uniqueBlockId='" + uniqueBlockId + '\'' +
+        ", type=" + type +
+        ", payload='" + payload + '\'' +
+        '}';
+  }
+
+  @Override
+  public boolean equals(Object pO) {
+    if (!(pO instanceof Message)) {
+      return false;
+    }
+    Message message = (Message) pO;
+    return targetNodeNumber == message.targetNodeNumber && uniqueBlockId.equals(
+        message.uniqueBlockId)
+        && type == message.type && payload.equals(message.payload);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(targetNodeNumber, uniqueBlockId, type, payload);
+  }
+
+  // ORDER BY PRIORITY:
+  public enum MessageType {
+    FOUND_RESULT(0),
+    ERROR_CONDITION(1),
+    ERROR_CONDITION_UNREACHABLE(1),
+    BLOCK_POSTCONDITION(2),
+    ERROR(0);
+
+    private final int priority;
+
+    MessageType(int pPriority) {
+      priority = pPriority;
+    }
   }
 
   public static class MessageConverter {
@@ -221,11 +212,12 @@ public class Message implements Comparable<Message> {
       mapper.registerModule(deserializer);
     }
 
-    public byte[] messageToJson(Message pMessage) throws JsonProcessingException {
-      return mapper.writeValueAsString(pMessage).replace("\n", " ").getBytes(StandardCharsets.UTF_8);
+    public byte[] messageToJson(Message pMessage) throws IOException {
+      return mapper.writeValueAsString(pMessage).replace("\n", " ")
+          .getBytes(StandardCharsets.UTF_8);
     }
 
-    public Message jsonToMessage(byte[] pBytes) throws JsonProcessingException {
+    public Message jsonToMessage(byte[] pBytes) throws IOException {
       return mapper.readValue(new String(pBytes, StandardCharsets.UTF_8), Message.class);
     }
 
@@ -238,8 +230,14 @@ public class Message implements Comparable<Message> {
     }
 
     @Override
-    public byte[] messageToJson(Message pMessage) throws JsonProcessingException {
-      byte[] toCompress = super.messageToJson(pMessage);
+    public byte[] messageToJson(Message pMessage) throws IOException {
+      byte[] message = super.messageToJson(pMessage);
+      ByteArrayOutputStream output = new ByteArrayOutputStream();
+      GZIPOutputStream writer = new GZIPOutputStream(output);
+      writer.write(message);
+      writer.close();
+      return output.toByteArray();
+    /*  byte[] toCompress = super.messageToJson(pMessage);
       byte[] output = new byte[toCompress.length * 2];
       //Compresses the data
       Deflater deflater = new Deflater();
@@ -260,20 +258,26 @@ public class Message implements Comparable<Message> {
         i++;
       }
 
-      return toSend;
+      return toSend;*/
     }
 
     @Override
-    public Message jsonToMessage(byte[] pBytes) throws JsonProcessingException {
+    public Message jsonToMessage(byte[] pBytes) throws IOException {
       // if not compressed do default
-      try {
+      GZIPInputStream reader = new GZIPInputStream(new ByteArrayInputStream(pBytes));
+      byte[] response = reader.readAllBytes();
+      reader.close();
+      return super.jsonToMessage(response);
+      /*try {
         int split = 0;
         byte[] curr = new byte[pBytes.length];
         String currString = "";
         for (byte aByte : pBytes) {
           curr[split] = aByte;
           split++;
-          currString = StandardCharsets.UTF_8.decode(ByteBuffer.wrap(Arrays.copyOfRange(curr, 0, split))).toString();
+          currString =
+              StandardCharsets.UTF_8.decode(ByteBuffer.wrap(Arrays.copyOfRange(curr, 0, split)))
+                  .toString();
           if (currString.startsWith("c") && currString.endsWith(" ")) {
             break;
           }
@@ -289,7 +293,7 @@ public class Message implements Comparable<Message> {
         return super.jsonToMessage(buffer.array());
       } catch (DataFormatException e) {
         throw new AssertionError("Cannot decompress message: " + Arrays.toString(pBytes));
-      }
+      }*/
     }
 
   }

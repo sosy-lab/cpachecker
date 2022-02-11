@@ -64,13 +64,14 @@ public class AnalysisWorker extends Worker {
             "cpa.location.LocationCPABackwards, cpa.block.BlockCPABackward, cpa.callstack.CallstackCPA, cpa.functionpointer.FunctionPointerCPA, cpa.predicate.PredicateCPA")
         .setOption("backwardSpecification", "config/specification/MainEntry.spc")
         .setOption("specification", "config/specification/MainEntry.spc")
-        .setOption("cpa.predicate.abstractAtTargetState", "true")
+        .setOption("cpa.predicate.abstractAtTargetState", "false")
         .setOption("cpa.predicate.blk.alwaysAtJoin", "false")
         .setOption("cpa.predicate.blk.alwaysAtBranch", "false")
         .setOption("cpa.predicate.blk.alwaysAtProgramExit", "false")
         .setOption("cpa.predicate.blk.alwaysAfterThreshold", "false")
         .setOption("cpa.predicate.blk.alwaysAtLoops", "false")
         .setOption("cpa.predicate.blk.alwaysAtFunctions", "false")
+        .setOption("analysis.algorithm.CEGAR", "false")
         .build();
 
     Specification backwardSpecification =
@@ -86,6 +87,9 @@ public class AnalysisWorker extends Worker {
             .setOption("cpa.predicate.blk.alwaysAfterThreshold", "false")
             .setOption("cpa.predicate.blk.alwaysAtLoops", "false")
             .setOption("cpa.predicate.blk.alwaysAtFunctions", "false")
+            .setOption("cpa.predicate.abstractAtTargetState", "false")
+            .setOption("analysis.algorithm.CEGAR", "false")
+            .setOption("analysis.stopAfterError", "false")
             .build();
 
     forwardAnalysis = new ForwardAnalysis(pId, pLogger, pBlock, pCFA, pTypeMap, pSpecification,
@@ -128,7 +132,7 @@ public class AnalysisWorker extends Worker {
       throws SolverException, InterruptedException, CPAException {
     DistributedCompositeCPA distributed = backwardAnalysis.getDistributedCPA();
     MessageProcessing processing = distributed.proceed(message);
-    if(processing.end()) {
+    if (processing.end()) {
       return processing;
     }
     return backwardAnalysis(processing);

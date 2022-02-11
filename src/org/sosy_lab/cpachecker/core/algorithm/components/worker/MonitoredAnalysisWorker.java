@@ -46,7 +46,7 @@ public class MonitoredAnalysisWorker extends AnalysisWorker {
 
   @Override
   public Message nextMessage() throws InterruptedException {
-    Message next =  super.nextMessage();
+    Message next = super.nextMessage();
     monitor.blockAcquire(block);
     return next;
   }

@@ -63,7 +63,7 @@ public class ResultWorker extends Worker {
       case ERROR_CONDITION:
         boolean newPostCondition = Boolean.parseBoolean(pMessage.getPayload().get("first"));
         if (newPostCondition) {
-          expectAnswer.merge(senderId,1, Integer::sum);
+          expectAnswer.merge(senderId, 1, Integer::sum);
           violationOrigins.add(senderId);
         } else {
           expectAnswer.merge(senderId, -1, Integer::sum);

@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.components.exchange.observer;
 
-import com.google.common.collect.FluentIterable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -29,6 +28,7 @@ public class MessageListener {
 
   /**
    * Publishes a message to all registered observers and returns true if a listener wants to stop.
+   *
    * @param pMessage message to be processed
    * @return true, if listener should stop listening
    * @throws CPAException wrapper exception

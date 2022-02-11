@@ -32,10 +32,12 @@ public class StatusObserver implements MessageObserver {
   public boolean process(Message pMessage) throws CPAException {
     if (pMessage.getPayload().containsKey(Payload.STATUS)) {
       String statusString = pMessage.getPayload().get(Payload.STATUS);
-      List<Boolean> properties = Splitter.on(",").splitToStream(statusString).map(Boolean::parseBoolean).collect(
-          ImmutableList.toImmutableList());
+      List<Boolean> properties =
+          Splitter.on(",").splitToStream(statusString).map(Boolean::parseBoolean).collect(
+              ImmutableList.toImmutableList());
       assert properties.size() == 3 : "Wrong status message" + pMessage;
-      statusMap.put(pMessage.getUniqueBlockId(), new AlgorithmStatus(properties.get(0), properties.get(1), properties.get(2)));
+      statusMap.put(pMessage.getUniqueBlockId(),
+          new AlgorithmStatus(properties.get(0), properties.get(1), properties.get(2)));
     }
     return false;
   }
@@ -46,6 +48,7 @@ public class StatusObserver implements MessageObserver {
 
   @Override
   public void finish() throws InterruptedException, CPAException {
-    status = statusMap.values().stream().reduce(AlgorithmStatus::update).orElse(AlgorithmStatus.NO_PROPERTY_CHECKED);
+    status = statusMap.values().stream().reduce(AlgorithmStatus::update)
+        .orElse(AlgorithmStatus.NO_PROPERTY_CHECKED);
   }
 }

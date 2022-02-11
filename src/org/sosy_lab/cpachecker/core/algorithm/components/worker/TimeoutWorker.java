@@ -24,10 +24,9 @@ import org.sosy_lab.java_smt.api.SolverException;
 public class TimeoutWorker extends Worker {
 
   private final long waitTime;
-
-  private boolean shouldScheduleTimer;
   private final Timer timer;
   private final TimerTask task;
+  private boolean shouldScheduleTimer;
 
   protected TimeoutWorker(LogManager pLogger, TimeSpan pTimeSpan) {
     super("timeout-worker", pLogger);
@@ -38,7 +37,8 @@ public class TimeoutWorker extends Worker {
       @Override
       public void run() {
         try {
-          broadcast(ImmutableSet.of(Message.newResultMessage("timeout", 0, Result.UNKNOWN, ImmutableSet.of())));
+          broadcast(ImmutableSet.of(
+              Message.newResultMessage("timeout", 0, Result.UNKNOWN, ImmutableSet.of())));
           shutdown();
         } catch (IOException pE) {
           logger.log(Level.SEVERE, "Cannot broadcast timeout message properly because of", pE);
@@ -65,7 +65,8 @@ public class TimeoutWorker extends Worker {
       case BLOCK_POSTCONDITION:
         break;
       default:
-        throw new AssertionError("Unknown type of " + pMessage.getType().getClass() + ": " + pMessage.getType());
+        throw new AssertionError(
+            "Unknown type of " + pMessage.getType().getClass() + ": " + pMessage.getType());
     }
     return ImmutableSet.of();
   }
@@ -80,7 +81,8 @@ public class TimeoutWorker extends Worker {
     } else {
       // if the timer encounters a problem with sending the timeout message try it one last time...
       try {
-        broadcast(ImmutableSet.of(Message.newResultMessage("timeout", 0, Result.UNKNOWN, ImmutableSet.of())));
+        broadcast(ImmutableSet.of(
+            Message.newResultMessage("timeout", 0, Result.UNKNOWN, ImmutableSet.of())));
       } catch (IOException | InterruptedException pE) {
         logger.log(Level.SEVERE, "TimeoutWorker failed to send message.", pE);
       }

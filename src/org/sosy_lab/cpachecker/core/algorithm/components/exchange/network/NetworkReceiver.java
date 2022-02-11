@@ -27,14 +27,12 @@ import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.Messag
 
 public class NetworkReceiver implements Closeable {
 
+  private static final int BUFFER_SIZE = 1024;
   private final Selector selector;
   private final InetSocketAddress listenAddress;
   private final BlockingQueue<Message> sharedQueue;
   private final MessageConverter converter;
-
   private boolean finished;
-
-  private static final int BUFFER_SIZE = 1024;
 
   NetworkReceiver(
       BlockingQueue<Message> pSharedQueue,

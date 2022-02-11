@@ -26,20 +26,6 @@ public class MessageProcessing extends ForwardingCollection<Message> {
     end = pEnd;
   }
 
-  public boolean end() {
-    return end;
-  }
-
-  public Collection<Payload> toPayloadCollection() {
-    return messages.stream().map(m -> m.getPayload()).collect(ImmutableList.toImmutableList());
-  }
-
-  public MessageProcessing merge(MessageProcessing pProcessing, boolean removeDuplicates) {
-    Collection<Message> copy = removeDuplicates ? new HashSet<>(messages) : new ArrayList<>(messages);
-    copy.addAll(pProcessing);
-    return new MessageProcessing(copy, end || pProcessing.end);
-  }
-
   public static MessageProcessing proceed() {
     return new MessageProcessing(ImmutableList.of(), false);
   }
@@ -62,6 +48,21 @@ public class MessageProcessing extends ForwardingCollection<Message> {
 
   public static MessageProcessing stopWith(Message... pMessages) {
     return new MessageProcessing(ImmutableList.copyOf(pMessages), true);
+  }
+
+  public boolean end() {
+    return end;
+  }
+
+  public Collection<Payload> toPayloadCollection() {
+    return messages.stream().map(m -> m.getPayload()).collect(ImmutableList.toImmutableList());
+  }
+
+  public MessageProcessing merge(MessageProcessing pProcessing, boolean removeDuplicates) {
+    Collection<Message> copy =
+        removeDuplicates ? new HashSet<>(messages) : new ArrayList<>(messages);
+    copy.addAll(pProcessing);
+    return new MessageProcessing(copy, end || pProcessing.end);
   }
 
   @Override

@@ -44,10 +44,10 @@ public class BlockNode {
    * Represents a sub graph of the CFA beginning at <code>pStartNode</code> and ending at <code>
    * pLastNode</code>.
    *
-   * @param pStartNode the root node of the block
-   * @param pLastNode the final node of the block
+   * @param pStartNode    the root node of the block
+   * @param pLastNode     the final node of the block
    * @param pNodesInBlock all nodes that are part of the sub graph including the root node and the
-   *     last node.
+   *                      last node.
    */
   private BlockNode(
       @NonNull String pId,
@@ -66,7 +66,8 @@ public class BlockNode {
               + ").");
     }
 
-    block = new Block(new ReferencedVariablesCollector(pNodesInBlock).getVars(), ImmutableSet.of(pStartNode), ImmutableSet.of(pLastNode), pNodesInBlock);
+    block = new Block(new ReferencedVariablesCollector(pNodesInBlock).getVars(),
+        ImmutableSet.of(pStartNode), ImmutableSet.of(pLastNode), pNodesInBlock);
     startNode = pStartNode;
     lastNode = pLastNode;
 

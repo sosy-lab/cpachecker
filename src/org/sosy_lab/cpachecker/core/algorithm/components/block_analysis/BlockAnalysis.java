@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
 import org.sosy_lab.cpachecker.cpa.block.BlockCPABackward;
-import org.sosy_lab.cpachecker.cpa.block.BlockStartReachedTargetInformation;
+import org.sosy_lab.cpachecker.cpa.block.BlockEntryReachedTargetInformation;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.cpa.block.BlockTransferRelation;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
@@ -176,7 +176,8 @@ public abstract class BlockAnalysis {
   public Set<String> visitedBlocks(Collection<Message> pPayloads) {
     Set<String> visitedBlocks = new HashSet<>();
     for (Message message : pPayloads) {
-      visitedBlocks.addAll(Splitter.on(",").splitToList(message.getPayload().getOrDefault(Payload.VISITED, "")));
+      visitedBlocks.addAll(
+          Splitter.on(",").splitToList(message.getPayload().getOrDefault(Payload.VISITED, "")));
     }
     visitedBlocks.remove("");
     visitedBlocks.add(block.getId());
@@ -205,7 +206,8 @@ public abstract class BlockAnalysis {
           pConfiguration,
           pShutdownManager);
       relation =
-          (BlockTransferRelation) Objects.requireNonNull(CPAs.retrieveCPA(cpa, BlockCPA.class)).getTransferRelation();
+          (BlockTransferRelation) Objects.requireNonNull(CPAs.retrieveCPA(cpa, BlockCPA.class))
+              .getTransferRelation();
     }
 
     @Override
@@ -218,16 +220,17 @@ public abstract class BlockAnalysis {
       AlgorithmStatus status = algorithm.run(reachedSet);
       Set<ARGState> targetStates = from(reachedSet).filter(AbstractStates::isTargetState)
           .filter(ARGState.class).copyInto(new HashSet<>());
-/*      if (targetStates.isEmpty()) {
-        throw new AssertionError("At least one target state has to exist (block start)");
-      }*/
+      if (targetStates.isEmpty()) {
+        throw new AssertionError("At least one target state has to exist at final location");
+      }
       // find violations for potential backward analysis
       Set<Message> answers = new HashSet<>();
       if (!reportedOriginalViolation) {
         for (ARGState targetState : targetStates) {
-          int startInfos = from(targetState.getTargetInformation()).filter(
-              BlockStartReachedTargetInformation.class).size();
-          if (targetState.getTargetInformation().size() > startInfos) {
+          int numBlockEntryInfos = from(targetState.getTargetInformation()).filter(
+              BlockEntryReachedTargetInformation.class).size();
+          if (targetState.getTargetInformation().size() > numBlockEntryInfos
+              || targetState.getTargetInformation().isEmpty()) {
             Optional<CFANode> targetNode =
                 abstractStateToLocation(targetState);
             if (targetNode.isEmpty()) {
@@ -239,11 +242,11 @@ public abstract class BlockAnalysis {
                 distributedCompositeCPA.getInitialState(targetNode.orElseThrow(),
                     StateSpacePartition.getDefaultPartition()));
             initial = Payload.builder().putAll(initial).addEntry(Payload.STATUS,
-                status.wasPropertyChecked() + "," + status.isSound() + "," + status.isPrecise()).build();
+                    status.wasPropertyChecked() + "," + status.isSound() + "," + status.isPrecise())
+                .build();
             answers.add(Message.newErrorConditionMessage(block.getId(),
                 targetNode.orElseThrow().getNodeNumber(), initial, true,
                 ImmutableSet.of(block.getId())));
-            break;
           }
         }
       }
@@ -255,7 +258,8 @@ public abstract class BlockAnalysis {
         AbstractState combined = distributedCompositeCPA.combine(compositeStates);
         Payload result = distributedCompositeCPA.serialize(combined);
         result = Payload.builder().putAll(result).addEntry(Payload.STATUS,
-            status.wasPropertyChecked() + "," + status.isSound() + "," + status.isPrecise()).build();
+                status.wasPropertyChecked() + "," + status.isSound() + "," + status.isPrecise())
+            .build();
         Message response =
             Message.newBlockPostCondition(block.getId(), block.getLastNode().getNodeNumber(),
                 result, messages.size() == block.getPredecessors().size() && messages.stream()

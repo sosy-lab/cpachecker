@@ -63,23 +63,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 @Options(prefix = "components")
 public class ComponentAnalysis implements Algorithm {
 
-  private enum DecompositionType {
-    BLOCK_OPERATOR,
-    GIVEN_SIZE
-  }
-
-  private enum ConnectionType {
-    NETWORK,
-    IN_MEMORY
-  }
-
-  private enum WorkerType {
-    DEFAULT,
-    SMART,
-    MONITORED,
-    FAULT_LOCALIZATION
-  }
-
   private final Configuration configuration;
   private final LogManager logger;
   private final CFA cfa;
@@ -96,11 +79,31 @@ public class ComponentAnalysis implements Algorithm {
   private WorkerType workerType = WorkerType.DEFAULT;
 
   @Option(description = "desired number of BlockNodes")
-  private int desiredNumberOfBlocks = 10;
+  private int desiredNumberOfBlocks = 4;
 
   @Option(description = "maximal overall wall-time for parallel analysis")
   @TimeSpanOption(codeUnit = TimeUnit.MILLISECONDS, min = 0)
   private TimeSpan maxWallTime = TimeSpan.ofSeconds(15 * 60);
+
+  @Option(description = "whether to use daemon threads for workers")
+  private boolean daemon = true;
+
+  private enum DecompositionType {
+    BLOCK_OPERATOR,
+    GIVEN_SIZE
+  }
+
+  private enum ConnectionType {
+    NETWORK,
+    IN_MEMORY
+  }
+
+  private enum WorkerType {
+    DEFAULT,
+    SMART,
+    MONITORED,
+    FAULT_LOCALIZATION
+  }
 
   public ComponentAnalysis(
       Configuration pConfig,
@@ -176,7 +179,9 @@ public class ComponentAnalysis implements Algorithm {
       // create block tree and reduce to relevant parts
       CFADecomposer decomposer = getDecomposer();
       BlockTree tree = decomposer.cut(cfa);
-      // drawBlockDot(tree);
+      logger.logf(Level.INFO, "Decomposed CFA in %d blocks using the %s.",
+          tree.getDistinctNodes().size(), decomposer.getClass().getCanonicalName());
+      //drawBlockDot(tree);
       Collection<BlockNode> removed = tree.removeEmptyBlocks();
       if (!removed.isEmpty()) {
         logger.log(Level.INFO, "Removed " + removed.size() + " empty BlockNodes from the tree.");
@@ -208,7 +213,7 @@ public class ComponentAnalysis implements Algorithm {
       // run workers
       for (Worker worker : components.getWorkers()) {
         Thread thread = new Thread(worker, worker.getId());
-        thread.setDaemon(true);
+        thread.setDaemon(daemon);
         thread.start();
       }
 

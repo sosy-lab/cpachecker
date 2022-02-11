@@ -16,6 +16,7 @@ public interface Connection extends Closeable {
 
   /**
    * Wait for an incoming Message and return it.
+   *
    * @return current Message to process
    * @throws InterruptedException if thread is interrupted.
    */
@@ -31,7 +32,7 @@ public interface Connection extends Closeable {
     throw new AssertionError("This implementation does not support custom orderings");
   }
 
-/*
+  /*
    * Get all messages with a certain type
    * @param pType filter messages with this type
    * @return collection of messages with type pType
@@ -40,8 +41,9 @@ public interface Connection extends Closeable {
 
   /**
    * Write and broadcast a message to all connections
+   *
    * @param message Message to broadcast
-   * @throws IOException if write operation fails
+   * @throws IOException          if write operation fails
    * @throws InterruptedException if thread is interrupted
    */
   void write(Message message) throws IOException, InterruptedException;

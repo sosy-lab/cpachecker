@@ -26,12 +26,10 @@ import org.sosy_lab.cpachecker.cpa.block.BlockTransferRelation.ForwardBlockTrans
 
 public class BlockCPA extends AbstractCPA {
 
-  private final CFA cfa;
   private BlockNode blockNode;
 
-  public BlockCPA(CFA pCFA) {
+  public BlockCPA() {
     super("sep", "sep", new BlockDomain(), new ForwardBlockTransferRelation());
-    cfa = pCFA;
   }
 
   public void init(BlockNode pBlockNode) {
@@ -50,12 +48,11 @@ public class BlockCPA extends AbstractCPA {
   @Override
   public AbstractState getInitialState(
       CFANode node, StateSpacePartition partition) throws InterruptedException {
-    CFANode target = blockNode == null ? cfa.getMainFunction() : blockNode.getStartNode();
-    return new BlockState(node, target, AnalysisDirection.FORWARD, BlockStateType.INITIAL);
+    return new BlockState(node, blockNode, AnalysisDirection.FORWARD, BlockStateType.INITIAL);
   }
 
   public static BlockCPA create(CFA pCFA, Configuration pConfig)
       throws InvalidConfigurationException {
-    return new BlockCPA(pCFA);
+    return new BlockCPA();
   }
 }

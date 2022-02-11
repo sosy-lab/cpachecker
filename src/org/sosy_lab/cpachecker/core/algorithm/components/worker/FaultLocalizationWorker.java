@@ -62,18 +62,15 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 public class FaultLocalizationWorker extends AnalysisWorker {
 
+  private final static String POSTCONDITION_KEY = "fl-post";
   private final FormulaContext context;
   private final TraceFormulaOptions options;
   private final BooleanFormulaManagerView bmgr;
   private final FormulaManagerView fmgr;
   private final PredicateCPA predicateCPA;
-
-  private final static String POSTCONDITION_KEY = "fl-post";
-
+  private final List<CFAEdge> errorPath;
   private Fault minimalFault;
   private BooleanFormula actualPost;
-
-  private final List<CFAEdge> errorPath;
 
   FaultLocalizationWorker(
       String pId,
@@ -87,9 +84,11 @@ public class FaultLocalizationWorker extends AnalysisWorker {
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     super(pId, pBlock, pLogger, pCFA, pSpecification, pConfiguration, pShutdownManager, pTypeMap);
     predicateCPA = backwardAnalysis.getDistributedCPA().getOriginalCPA(PredicateCPA.class);
-    Configuration config = Configuration.builder().copyFrom(pConfiguration).setOption("cpa.predicate.handlePointerAliasing", "false").build();
+    Configuration config = Configuration.builder().copyFrom(pConfiguration)
+        .setOption("cpa.predicate.handlePointerAliasing", "false").build();
     if (predicateCPA == null) {
-      throw new InvalidConfigurationException(this.getClass().getCanonicalName() + " needs PredicateCPA to be activated.");
+      throw new InvalidConfigurationException(
+          this.getClass().getCanonicalName() + " needs PredicateCPA to be activated.");
     }
     context = new FormulaContext(
         predicateCPA.getSolver(),
@@ -131,7 +130,8 @@ public class FaultLocalizationWorker extends AnalysisWorker {
     // super backward analysis ensures exactly one entry in pMessageProcessing
     Message message = pMessageProcessing.stream().findFirst().orElseThrow();
     try {
-      DistributedPredicateCPA dpcpa = (DistributedPredicateCPA) backwardAnalysis.getDistributedCPA().getDistributedAnalysis(PredicateCPA.class);
+      DistributedPredicateCPA dpcpa = (DistributedPredicateCPA) backwardAnalysis.getDistributedCPA()
+          .getDistributedAnalysis(PredicateCPA.class);
       if (message.getPayload().containsKey(POSTCONDITION_KEY)) {
         actualPost = dpcpa.getPathFormula(message.getPayload().get(POSTCONDITION_KEY)).getFormula();
       }
@@ -140,15 +140,20 @@ public class FaultLocalizationWorker extends AnalysisWorker {
       Set<Fault> faults = performFaultLocalization(tf);
       actualPost = actualPost == null ? tf.getPostConditionStatement() : actualPost;
       actualPost = fmgr.substitute(actualPost, dpcpa.getSubstitutions());
-      Payload updated = Payload.builder().putAll(currentResult.getPayload()).addEntry(POSTCONDITION_KEY, fmgr.dumpFormula(actualPost).toString()).build();
+      Payload updated = Payload.builder().putAll(currentResult.getPayload())
+          .addEntry(POSTCONDITION_KEY, fmgr.dumpFormula(actualPost).toString()).build();
       currentResult = Message.replacePayload(currentResult, updated);
       if (faults.isEmpty()) {
         return ImmutableSet.of(currentResult);
       }
       List<Fault> ranked = FaultRankingUtils.rank(new EdgeTypeScoring(), faults);
       // get the smallest fault with the highest score
-      minimalFault = ranked.stream().min(Comparator.comparingInt(Fault::size).thenComparingDouble(f -> 1d / f.getScore())).orElseThrow();
-      updated = Payload.builder().putAll(currentResult.getPayload()).addEntry(Payload.FAULT_LOCALIZATION, getBlockId() + ": " + minimalFault.toString()).build();
+      minimalFault = ranked.stream()
+          .min(Comparator.comparingInt(Fault::size).thenComparingDouble(f -> 1d / f.getScore()))
+          .orElseThrow();
+      updated = Payload.builder().putAll(currentResult.getPayload())
+          .addEntry(Payload.FAULT_LOCALIZATION, getBlockId() + ": " + minimalFault.toString())
+          .build();
       currentResult = Message.replacePayload(currentResult, updated);
     } catch (IOException pE) {
       throw new CPAException("IO Exception", pE);
@@ -206,7 +211,8 @@ public class FaultLocalizationWorker extends AnalysisWorker {
     }
     Map<String, Integer> minimalIndices = new HashMap<>();
     Map<String, BooleanFormula> minimalFormulas = new HashMap<>();
-    try (ProverEnvironment prover = predicateCPA.getSolver().newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+    try (ProverEnvironment prover = predicateCPA.getSolver()
+        .newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       prover.push(current.getFormula());
       if (prover.isUnsat()) {
         throw new TraceFormulaUnsatisfiableException(
@@ -215,14 +221,16 @@ public class FaultLocalizationWorker extends AnalysisWorker {
       }
       for (ValueAssignment modelAssignment : prover.getModelAssignments()) {
         Pair<String, OptionalInt> pair = FormulaManagerView.parseName(modelAssignment.getName());
-        int newVal = minimalIndices.merge(pair.getFirst(), pair.getSecond().orElse(-2), Integer::max);
+        int newVal =
+            minimalIndices.merge(pair.getFirst(), pair.getSecond().orElse(-2), Integer::max);
         if (newVal == pair.getSecond().orElse(-2)) {
           minimalFormulas.put(pair.getFirst(), modelAssignment.getAssignmentAsFormula());
         }
       }
     }
     BooleanFormula precondition = bmgr.and(minimalFormulas.values());
-    return new SelectorTraceWithKnownConditions(context, options, entries, precondition, transformPostCondition(pPostCondition.getFormula()), errorPath);
+    return new SelectorTraceWithKnownConditions(context, options, entries, precondition,
+        transformPostCondition(pPostCondition.getFormula()), errorPath);
   }
 
   private BooleanFormula transformPostCondition(BooleanFormula pPostCondition) {

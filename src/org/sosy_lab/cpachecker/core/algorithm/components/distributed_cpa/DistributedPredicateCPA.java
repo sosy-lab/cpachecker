@@ -54,8 +54,13 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
 
   private Message lastOwnPostConditionMessage;
 
-  public DistributedPredicateCPA(String pWorkerId, BlockNode pNode, SSAMap pTypeMap, Precision pPrecision, AnalysisDirection pDirection) throws
-                                                                                                                   CPAException {
+  public DistributedPredicateCPA(
+      String pWorkerId,
+      BlockNode pNode,
+      SSAMap pTypeMap,
+      Precision pPrecision,
+      AnalysisDirection pDirection) throws
+                                    CPAException {
     super(pWorkerId, pNode, pTypeMap, pPrecision, pDirection);
     receivedErrorConditions = new ConcurrentHashMap<>();
     receivedPostConditions = new ConcurrentHashMap<>();
@@ -72,7 +77,8 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
     String formula = extractFormulaString(pMessage.getPayload());
     return PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
         getPathFormula(formula),
-        (PredicateAbstractState) getInitialState(block.getNodeWithNumber(pMessage.getTargetNodeNumber()),
+        (PredicateAbstractState) getInitialState(
+            block.getNodeWithNumber(pMessage.getTargetNodeNumber()),
             StateSpacePartition.getDefaultPartition()));
   }
 
@@ -85,7 +91,9 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
     } else {
       pathFormula = state.getPathFormula();
     }
-    String formula = getSolver().getFormulaManager().dumpFormula(uninstantiate(pathFormula).getFormula()).toString();
+    String formula =
+        getSolver().getFormulaManager().dumpFormula(uninstantiate(pathFormula).getFormula())
+            .toString();
     return Payload.builder().addEntry(parentCPA.getClass().getName(), formula).build();
   }
 
@@ -104,7 +112,8 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
   }
 
   @Override
-  public MessageProcessing proceedBackward(Message message) throws SolverException, InterruptedException {
+  public MessageProcessing proceedBackward(Message message)
+      throws SolverException, InterruptedException {
     Preconditions.checkArgument(message.getType() == MessageType.ERROR_CONDITION,
         "can only process messages with type %s", MessageType.ERROR_CONDITION);
     Optional<CFANode> optionalCFANode = block.getNodesInBlock().stream()
@@ -122,17 +131,22 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
       FormulaManagerView fmgr = solver.getFormulaManager();
       BooleanFormula messageFormula = fmgr.parse(extractFormulaString(message.getPayload()));
       if (solver.isUnsat(messageFormula)) {
-        return MessageProcessing.stopWith(Message.newErrorConditionUnreachableMessage(block.getId()));
+        return MessageProcessing.stopWith(
+            Message.newErrorConditionUnreachableMessage(block.getId()));
       }
       if (receivedPostConditions.size() == block.getPredecessors().size()) {
         if (lastOwnPostConditionMessage != null) {
-          if (solver.isUnsat(fmgr.getBooleanFormulaManager().and(messageFormula, fmgr.parse(extractFormulaString(lastOwnPostConditionMessage.getPayload()))))) {
-            return MessageProcessing.stopWith(Message.newErrorConditionUnreachableMessage(block.getId()));
+          if (solver.isUnsat(fmgr.getBooleanFormulaManager().and(messageFormula,
+              fmgr.parse(extractFormulaString(lastOwnPostConditionMessage.getPayload()))))) {
+            return MessageProcessing.stopWith(
+                Message.newErrorConditionUnreachableMessage(block.getId()));
           }
         }
         if (firstMessage != null) {
-          if (solver.isUnsat(fmgr.getBooleanFormulaManager().and(messageFormula, fmgr.parse(extractFormulaString(firstMessage.getPayload()))))) {
-            return MessageProcessing.stopWith(Message.newErrorConditionUnreachableMessage(block.getId()));
+          if (solver.isUnsat(fmgr.getBooleanFormulaManager()
+              .and(messageFormula, fmgr.parse(extractFormulaString(firstMessage.getPayload()))))) {
+            return MessageProcessing.stopWith(
+                Message.newErrorConditionUnreachableMessage(block.getId()));
           }
         }
       }
@@ -158,7 +172,8 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
     PredicateAbstractState state1 = (PredicateAbstractState) pState1;
     PredicateAbstractState state2 = (PredicateAbstractState) pState2;
     PathFormulaManager manager = ((PredicateCPA) parentCPA).getPathFormulaManager();
-    PathFormula newFormula = manager.makeOr(uninstantiate(state1.getPathFormula()), uninstantiate(state2.getPathFormula()));
+    PathFormula newFormula = manager.makeOr(uninstantiate(state1.getPathFormula()),
+        uninstantiate(state2.getPathFormula()));
     return PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
         newFormula,
         state1,
@@ -179,13 +194,15 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
       return MessageProcessing.stop();
     }
     receivedPostConditions.put(message.getUniqueBlockId(), message);
-    Set<String> visited = new HashSet<>(Splitter.on(",").splitToList(message.getPayload().getOrDefault(Payload.VISITED, "")));
+    Set<String> visited = new HashSet<>(
+        Splitter.on(",").splitToList(message.getPayload().getOrDefault(Payload.VISITED, "")));
     if (visited.contains(block.getId())) {
       circularPredecessors.put(message.getUniqueBlockId(), visited.contains("B0"));
     }
     if (receivedPostConditions.values().size() == block.getPredecessors().size()) {
-      List<Message> messages = receivedPostConditions.values().stream().filter(m -> circularPredecessors.getOrDefault(m.getUniqueBlockId(), true)).collect(
-          ImmutableList.toImmutableList());
+      List<Message> messages = receivedPostConditions.values().stream()
+          .filter(m -> circularPredecessors.getOrDefault(m.getUniqueBlockId(), true)).collect(
+              ImmutableList.toImmutableList());
       return MessageProcessing.proceedWith(messages);
     } else {
       return MessageProcessing.proceed();
@@ -207,9 +224,10 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
 
   /**
    * pBuilder will be modified
-   * @param formula formula to be parsed
+   *
+   * @param formula  formula to be parsed
    * @param pBuilder SSAMapBuilder storing information about the returned formula
-   * @param fmgr the FormulaManager that is responsible for converting the formula string
+   * @param fmgr     the FormulaManager that is responsible for converting the formula string
    * @return a boolean formula representing the string formula
    */
   private BooleanFormula parse(String formula, SSAMapBuilder pBuilder, FormulaManagerView fmgr) {
@@ -259,7 +277,8 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
     PathFormulaManager manager = ((PredicateCPA) parentCPA).getPathFormulaManager();
     SSAMap ssaMapFinal = builder.build();
     return manager.makeAnd(manager.makeEmptyPathFormulaWithContext(ssaMapFinal,
-        PointerTargetSet.emptyPointerTargetSet()), fmgr.uninstantiate(fmgr.substitute(booleanFormula, substitutions)));
+            PointerTargetSet.emptyPointerTargetSet()),
+        fmgr.uninstantiate(fmgr.substitute(booleanFormula, substitutions)));
   }
 
 }

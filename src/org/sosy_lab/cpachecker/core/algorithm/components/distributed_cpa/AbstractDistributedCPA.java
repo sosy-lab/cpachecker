@@ -100,16 +100,16 @@ public abstract class AbstractDistributedCPA implements ConfigurableProgramAnaly
     firstMessage = pFirstMessage;
   }
 
-  public void setParentCPA(ConfigurableProgramAnalysis pParentCPA) throws CPAException {
-    parentCPA = pParentCPA;
-  }
-
   public AnalysisDirection getDirection() {
     return direction;
   }
 
   public ConfigurableProgramAnalysis getParentCPA() {
     return parentCPA;
+  }
+
+  public void setParentCPA(ConfigurableProgramAnalysis pParentCPA) throws CPAException {
+    parentCPA = pParentCPA;
   }
 
   @Override

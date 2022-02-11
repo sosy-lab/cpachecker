@@ -18,6 +18,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
+import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
@@ -37,20 +38,26 @@ public class BlockState
   }
 
   private final Set<TargetInformation> targetInformation;
-  private final CFANode targetNode;
+  private final BlockNode targetNode;
+  private final CFANode targetCFANode;
   private final CFANode node;
   private final AnalysisDirection direction;
   private final BlockStateType type;
 
-  public BlockState(CFANode pNode, CFANode pTargetNode, AnalysisDirection pDirection, BlockStateType pType) {
+  public BlockState(CFANode pNode, BlockNode pTargetNode, AnalysisDirection pDirection, BlockStateType pType) {
     node = pNode;
     targetNode = pTargetNode;
     targetInformation = new HashSet<>();
     direction = pDirection;
     type = pType;
+    targetCFANode = direction == AnalysisDirection.FORWARD ? targetNode.getLastNode() : targetNode.getStartNode();
     if (isTarget()) {
-      targetInformation.add(new BlockStartReachedTargetInformation(pTargetNode));
+      targetInformation.add(new BlockEntryReachedTargetInformation(targetCFANode));
     }
+  }
+
+  public BlockStateType getType() {
+    return type;
   }
 
   @Override
@@ -99,18 +106,18 @@ public class BlockState
       return false;
     }
     BlockState that = (BlockState) pO;
-    return direction == that.direction && Objects.equals(targetNode, that.targetNode)
+    return direction == that.direction && Objects.equals(targetCFANode, that.targetCFANode)
         && Objects.equals(node, that.node) && type == that.type;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(targetNode, node, direction, type);
+    return Objects.hash(targetCFANode, node, direction, type);
   }
 
   @Override
   public boolean isTarget() {
-    return direction == AnalysisDirection.BACKWARD && targetNode.equals(node);
+    return targetCFANode.equals(node);
   }
 
 }

@@ -48,7 +48,8 @@ public class MessageLogger {
     tree = pTree;
     pTree.getDistinctNodes().forEach(n -> entries.put(n.getId(), createInitialMap(n)));
     try {
-      fmgr = Solver.create(Configuration.defaultConfiguration(), LogManager.createNullLogManager(), ShutdownNotifier.createDummy()).getFormulaManager();
+      fmgr = Solver.create(Configuration.defaultConfiguration(), LogManager.createNullLogManager(),
+          ShutdownNotifier.createDummy()).getFormulaManager();
     } catch (InvalidConfigurationException pE) {
       fmgr = null;
     }
@@ -90,7 +91,8 @@ public class MessageLogger {
     Payload p = pMessage.getPayload();
     String message = p.get(PredicateCPA.class.getName());
     if (message != null) {
-      p = Payload.builder().putAll(p).addEntry(PredicateCPA.class.getName(), BooleanFormulaParser.parse(fmgr.parse(message)).toString()).build();
+      p = Payload.builder().putAll(p).addEntry(PredicateCPA.class.getName(),
+          BooleanFormulaParser.parse(fmgr.parse(message)).toString()).build();
     }
     messageToJSON.put("payload", p.toJSONString());
     entries.get(pMessage.getUniqueBlockId()).put("messages", messageToJSON);

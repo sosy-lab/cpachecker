@@ -31,6 +31,10 @@ public class Payload extends ForwardingMap<String, String> {
 
   private final Map<String, String> delegate;
 
+  public Payload(Map<String, String> pDelegate) {
+    delegate = ImmutableMap.copyOf(pDelegate);
+  }
+
   public static Payload from(String json) throws JsonProcessingException {
     TypeFactory factory = TypeFactory.defaultInstance();
     MapType type = factory.constructMapType(HashMap.class, String.class, String.class);
@@ -51,10 +55,6 @@ public class Payload extends ForwardingMap<String, String> {
     StringBuilder builder = new StringBuilder();
     JSON.writeJSONString(delegate, builder);
     return builder.toString();
-  }
-
-  public Payload(Map<String, String> pDelegate) {
-    delegate = ImmutableMap.copyOf(pDelegate);
   }
 
   @Override

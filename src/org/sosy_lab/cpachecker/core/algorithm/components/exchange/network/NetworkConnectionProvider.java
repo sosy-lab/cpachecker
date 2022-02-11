@@ -12,7 +12,6 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.PriorityBlockingQueue;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.CleverMessageQueue;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.ConnectionProvider;
 

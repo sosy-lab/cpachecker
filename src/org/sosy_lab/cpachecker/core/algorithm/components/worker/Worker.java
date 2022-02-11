@@ -22,11 +22,9 @@ import org.sosy_lab.java_smt.api.SolverException;
 public abstract class Worker implements Runnable {
 
   protected final LogManager logger;
-  protected Connection connection;
-
-  protected boolean finished;
-
   protected final String id;
+  protected Connection connection;
+  protected boolean finished;
 
   protected Worker(String pId, LogManager pLogger) {
     logger = pLogger;
@@ -36,6 +34,7 @@ public abstract class Worker implements Runnable {
   /**
    * Get the next message from the connection.
    * Note that the connection must have a blocking read()
+   *
    * @return the current message to be processed
    * @throws InterruptedException thrown if thread is interrupted
    */
@@ -43,8 +42,9 @@ public abstract class Worker implements Runnable {
     return connection.read();
   }
 
-  public abstract Collection<Message> processMessage(Message pMessage) throws InterruptedException, IOException,
-                                                                            SolverException, CPAException;
+  public abstract Collection<Message> processMessage(Message pMessage)
+      throws InterruptedException, IOException,
+             SolverException, CPAException;
 
   public void broadcast(Collection<Message> pMessage) throws IOException, InterruptedException {
     Objects.requireNonNull(connection, "Connection cannot be null.");

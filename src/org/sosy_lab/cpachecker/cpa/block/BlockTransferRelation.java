@@ -99,7 +99,7 @@ public abstract class BlockTransferRelation implements TransferRelation {
         if (!shouldComputeSuccessor(blockState)) {
           return ImmutableSet.of();
         }
-        BlockState successor = new BlockState(cfaEdge.getSuccessor(), targetNode, AnalysisDirection.FORWARD, getType(cfaEdge.getSuccessor()));
+        BlockState successor = new BlockState(cfaEdge.getSuccessor(), bNode, AnalysisDirection.FORWARD, getType(cfaEdge.getSuccessor()));
         return ImmutableList.of(successor);
       }
 
@@ -116,7 +116,7 @@ public abstract class BlockTransferRelation implements TransferRelation {
       }
 
       CFANode node = blockState.getLocationNode();
-      return CFAUtils.successorsOf(node).filter(n -> nodes.contains(n)).transform(n -> new BlockState(n, targetNode, AnalysisDirection.FORWARD, getType(n))).toList();
+      return CFAUtils.successorsOf(node).filter(n -> nodes.contains(n)).transform(n -> new BlockState(n, bNode, AnalysisDirection.FORWARD, getType(n))).toList();
     }
   }
 
@@ -144,7 +144,7 @@ public abstract class BlockTransferRelation implements TransferRelation {
         if (!shouldComputeSuccessor(blockState)) {
           return ImmutableSet.of();
         }
-        BlockState successor = new BlockState(cfaEdge.getPredecessor(), targetNode, AnalysisDirection.BACKWARD, getType(
+        BlockState successor = new BlockState(cfaEdge.getPredecessor(), bNode, AnalysisDirection.BACKWARD, getType(
             cfaEdge.getPredecessor()));
         return ImmutableList.of(successor);
       }
@@ -164,7 +164,7 @@ public abstract class BlockTransferRelation implements TransferRelation {
 
       CFANode node = blockState.getLocationNode();
       FluentIterable<CFANode> predecessors = CFAUtils.predecessorsOf(node);
-      return predecessors.filter(n -> nodes.contains(n)).transform(n -> new BlockState(n, targetNode, AnalysisDirection.BACKWARD, getType(n))).toList();
+      return predecessors.filter(n -> nodes.contains(n)).transform(n -> new BlockState(n, bNode, AnalysisDirection.BACKWARD, getType(n))).toList();
     }
   }
 

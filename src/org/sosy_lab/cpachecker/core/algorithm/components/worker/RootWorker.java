@@ -72,7 +72,7 @@ public class RootWorker extends Worker {
           return ImmutableSet.of(
               Message.newResultMessage(root.getId(), root.getLastNode().getNodeNumber(),
                   Result.FALSE, new HashSet<>(Splitter.on(",")
-                  .splitToList(pMessage.getPayload().getOrDefault(Payload.VISITED, "")))));
+                      .splitToList(pMessage.getPayload().getOrDefault(Payload.VISITED, "")))));
         }
         return ImmutableSet.of();
       case FOUND_RESULT:
