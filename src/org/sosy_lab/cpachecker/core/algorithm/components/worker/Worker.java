@@ -15,6 +15,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageType;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -82,6 +83,8 @@ public abstract class Worker implements Runnable {
 
   final void setConnection(Connection pConnection) {
     connection = pConnection;
+    connection.setOrdering(MessageType.FOUND_RESULT, MessageType.ERROR, MessageType.ERROR_CONDITION,
+        MessageType.ERROR_CONDITION_UNREACHABLE, MessageType.BLOCK_POSTCONDITION);
   }
 
 }

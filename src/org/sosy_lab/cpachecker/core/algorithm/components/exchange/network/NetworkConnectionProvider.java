@@ -13,6 +13,7 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.PriorityBlockingQueue;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.CleverMessageQueue;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.ConnectionProvider;
 
 public class NetworkConnectionProvider implements ConnectionProvider<NetworkConnection> {
@@ -24,7 +25,7 @@ public class NetworkConnectionProvider implements ConnectionProvider<NetworkConn
     int startPort = 8080;
     String address = "localhost";
     for (int i = 0; i < numConnections; i++) {
-      receivers.add(new NetworkReceiver(new PriorityBlockingQueue<>(),
+      receivers.add(new NetworkReceiver(new CleverMessageQueue(),
           new InetSocketAddress(address, startPort++)));
     }
     List<NetworkConnection> connections = new ArrayList<>();

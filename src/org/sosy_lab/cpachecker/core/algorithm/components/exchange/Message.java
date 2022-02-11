@@ -25,9 +25,12 @@ import com.google.common.collect.ImmutableSet;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.Set;
+import java.util.zip.Deflater;
+import java.util.zip.Inflater;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 
 /**
@@ -221,6 +224,14 @@ public class Message implements Comparable<Message> {
 
     public Message jsonToMessage(String pJSON) throws JsonProcessingException {
       return mapper.readValue(pJSON, Message.class);
+    }
+
+  }
+
+  public static class CompressedMessageConverter extends MessageConverter {
+
+    public CompressedMessageConverter() {
+      super();
     }
 
   }

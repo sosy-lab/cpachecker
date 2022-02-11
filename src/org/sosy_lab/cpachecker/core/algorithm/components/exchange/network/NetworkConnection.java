@@ -11,8 +11,10 @@ package org.sosy_lab.cpachecker.core.algorithm.components.exchange.network;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.concurrent.BlockingQueue;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.CleverMessageQueue;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageType;
 
 public class NetworkConnection implements Connection {
 
@@ -45,6 +47,13 @@ public class NetworkConnection implements Connection {
   public void write(Message message) throws IOException {
     for (NetworkSender messageSender : sender) {
       messageSender.send(message);
+    }
+  }
+
+  @Override
+  public void setOrdering(MessageType... pOrdering) {
+    if (sharedQueue instanceof CleverMessageQueue) {
+      ((CleverMessageQueue) sharedQueue).setOrdering(pOrdering);
     }
   }
 

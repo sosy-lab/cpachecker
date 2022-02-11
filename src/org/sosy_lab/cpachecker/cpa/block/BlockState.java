@@ -11,11 +11,13 @@ package org.sosy_lab.cpachecker.cpa.block;
 import com.google.common.collect.ImmutableSet;
 import java.io.Serializable;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
@@ -28,16 +30,24 @@ public class BlockState
 
   private static final long serialVersionUID = 3805801L;
 
+  enum BlockStateType {
+    INITIAL,
+    MID,
+    FINAL
+  }
+
   private final Set<TargetInformation> targetInformation;
   private final CFANode targetNode;
   private final CFANode node;
-  private final boolean forward;
+  private final AnalysisDirection direction;
+  private final BlockStateType type;
 
-  public BlockState(CFANode pNode, CFANode pTargetNode, boolean pForward) {
+  public BlockState(CFANode pNode, CFANode pTargetNode, AnalysisDirection pDirection, BlockStateType pType) {
     node = pNode;
     targetNode = pTargetNode;
     targetInformation = new HashSet<>();
-    forward = pForward;
+    direction = pDirection;
+    type = pType;
     if (isTarget()) {
       targetInformation.add(new BlockStartReachedTargetInformation(pTargetNode));
     }
@@ -84,8 +94,23 @@ public class BlockState
   }
 
   @Override
+  public boolean equals(Object pO) {
+    if (!(pO instanceof BlockState)) {
+      return false;
+    }
+    BlockState that = (BlockState) pO;
+    return direction == that.direction && Objects.equals(targetNode, that.targetNode)
+        && Objects.equals(node, that.node) && type == that.type;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(targetNode, node, direction, type);
+  }
+
+  @Override
   public boolean isTarget() {
-    return targetNode.equals(node);
+    return direction == AnalysisDirection.BACKWARD && targetNode.equals(node);
   }
 
 }

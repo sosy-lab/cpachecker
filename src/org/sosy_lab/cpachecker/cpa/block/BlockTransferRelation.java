@@ -18,10 +18,12 @@ import java.util.Collection;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.block.BlockState.BlockStateType;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -29,19 +31,9 @@ public abstract class BlockTransferRelation implements TransferRelation {
 
   protected ImmutableSet<CFAEdge> edges;
   protected ImmutableSet<CFANode> nodes;
-  protected BlockStateFactory factory;
   protected CFANode targetNode;
   protected BlockNode bNode;
   private boolean first;
-
-  /**
-   * This transfer relation produces successors iff an edge between two nodes exists in the CFA
-   * and it is part of the block
-   * @param pFactory factory for location states
-   */
-  public BlockTransferRelation(BlockStateFactory pFactory) {
-    factory = pFactory;
-  }
 
   public void init(BlockNode pBlockNode) {
     edges = validEdgesIn(pBlockNode);
@@ -88,11 +80,12 @@ public abstract class BlockTransferRelation implements TransferRelation {
     /**
      * This transfer relation produces successors iff an edge between two nodes exists in the CFA
      * and it is part of the block
-     *
-     * @param pFactory factory for location states
      */
-    public ForwardBlockTransferRelation(BlockStateFactory pFactory) {
-      super(pFactory);
+    public ForwardBlockTransferRelation() {
+    }
+
+    private BlockStateType getType(CFANode pNode) {
+      return pNode.equals(bNode.getLastNode()) ? BlockStateType.MID : BlockStateType.FINAL;
     }
 
     @Override
@@ -106,7 +99,8 @@ public abstract class BlockTransferRelation implements TransferRelation {
         if (!shouldComputeSuccessor(blockState)) {
           return ImmutableSet.of();
         }
-        return ImmutableList.of(factory.getState(cfaEdge.getSuccessor()));
+        BlockState successor = new BlockState(cfaEdge.getSuccessor(), targetNode, AnalysisDirection.FORWARD, getType(cfaEdge.getSuccessor()));
+        return ImmutableList.of(successor);
       }
 
       return ImmutableList.of();
@@ -122,26 +116,20 @@ public abstract class BlockTransferRelation implements TransferRelation {
       }
 
       CFANode node = blockState.getLocationNode();
-      return CFAUtils.successorsOf(node).filter(n -> nodes.contains(n)).transform(n -> factory.getState(n)).toList();
+      return CFAUtils.successorsOf(node).filter(n -> nodes.contains(n)).transform(n -> new BlockState(n, targetNode, AnalysisDirection.FORWARD, getType(n))).toList();
     }
   }
 
   static class BackwardBlockTransferRelation extends BlockTransferRelation {
 
-    /**
-     * This transfer relation produces successors iff an edge between two nodes exists in the CFA
-     * and it is part of the block
-     *
-     * @param pFactory factory for location states
-     */
-    public BackwardBlockTransferRelation(BlockStateFactory pFactory) {
-      super(pFactory);
-    }
-
     @Override
     public void init(BlockNode pBlockNode) {
       super.init(pBlockNode);
       targetNode = pBlockNode.getStartNode();
+    }
+
+    private BlockStateType getType(CFANode pNode) {
+      return pNode.equals(bNode.getStartNode()) ? BlockStateType.MID : BlockStateType.FINAL;
     }
 
     @Override
@@ -156,7 +144,9 @@ public abstract class BlockTransferRelation implements TransferRelation {
         if (!shouldComputeSuccessor(blockState)) {
           return ImmutableSet.of();
         }
-        return ImmutableList.of(factory.getState(cfaEdge.getPredecessor()));
+        BlockState successor = new BlockState(cfaEdge.getPredecessor(), targetNode, AnalysisDirection.BACKWARD, getType(
+            cfaEdge.getPredecessor()));
+        return ImmutableList.of(successor);
       }
 
       return ImmutableSet.of();
@@ -174,7 +164,7 @@ public abstract class BlockTransferRelation implements TransferRelation {
 
       CFANode node = blockState.getLocationNode();
       FluentIterable<CFANode> predecessors = CFAUtils.predecessorsOf(node);
-      return predecessors.filter(n -> nodes.contains(n)).transform(n -> factory.getState(n)).toList();
+      return predecessors.filter(n -> nodes.contains(n)).transform(n -> new BlockState(n, targetNode, AnalysisDirection.BACKWARD, getType(n))).toList();
     }
   }
 

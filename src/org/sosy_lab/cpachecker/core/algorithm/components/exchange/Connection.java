@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.components.exchange;
 
 import java.io.Closeable;
 import java.io.IOException;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageType;
 
 public interface Connection extends Closeable {
 
@@ -24,6 +25,10 @@ public interface Connection extends Closeable {
 
   default boolean isEmpty() {
     return size() == 0;
+  }
+
+  default void setOrdering(MessageType... pOrdering) {
+    throw new AssertionError("This implementation does not support custom orderings");
   }
 
 /*

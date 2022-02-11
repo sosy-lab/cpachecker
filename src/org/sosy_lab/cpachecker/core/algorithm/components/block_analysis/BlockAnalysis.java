@@ -216,9 +216,9 @@ public abstract class BlockAnalysis {
       AlgorithmStatus status = algorithm.run(reachedSet);
       Set<ARGState> targetStates = from(reachedSet).filter(AbstractStates::isTargetState)
           .filter(ARGState.class).copyInto(new HashSet<>());
-      if (targetStates.isEmpty()) {
+/*      if (targetStates.isEmpty()) {
         throw new AssertionError("At least one target state has to exist (block start)");
-      }
+      }*/
       // find violations for potential backward analysis
       Set<Message> answers = new HashSet<>();
       if (!reportedOriginalViolation) {

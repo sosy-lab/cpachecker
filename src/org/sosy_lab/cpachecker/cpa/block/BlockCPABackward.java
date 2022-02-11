@@ -21,19 +21,21 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.block.BlockState.BlockStateType;
 import org.sosy_lab.cpachecker.cpa.block.BlockTransferRelation.BackwardBlockTransferRelation;
 
 public class BlockCPABackward extends AbstractCPA {
 
-  private final BlockStateFactory factory;
+  private final CFA cfa;
+  private BlockNode blockNode;
 
-  public BlockCPABackward(BlockStateFactory pStateFactory) {
-    super("join", "sep", new BackwardBlockTransferRelation(pStateFactory));
-    factory = pStateFactory;
+  public BlockCPABackward(CFA pCFA) {
+    super("sep", "sep", new BlockDomain(), new BackwardBlockTransferRelation());
+    cfa = pCFA;
   }
 
   public void init(BlockNode pBlockNode) {
-    factory.setBlock(pBlockNode);
+    blockNode = pBlockNode;
     TransferRelation relation = getTransferRelation();
     checkState(relation instanceof BackwardBlockTransferRelation, "Expected %s but got %s",
         BackwardBlockTransferRelation.class, relation.getClass());
@@ -47,11 +49,12 @@ public class BlockCPABackward extends AbstractCPA {
   @Override
   public AbstractState getInitialState(
       CFANode node, StateSpacePartition partition) throws InterruptedException {
-    return factory.getState(node);
+    CFANode target = blockNode == null ? cfa.getMainFunction() : blockNode.getLastNode();
+    return new BlockState(node, target, AnalysisDirection.BACKWARD, BlockStateType.INITIAL);
   }
 
   public static BlockCPABackward create(CFA pCFA, Configuration pConfig)
       throws InvalidConfigurationException {
-    return new BlockCPABackward(new BlockStateFactory(pCFA, AnalysisDirection.BACKWARD, pConfig));
+    return new BlockCPABackward(pCFA);
   }
 }

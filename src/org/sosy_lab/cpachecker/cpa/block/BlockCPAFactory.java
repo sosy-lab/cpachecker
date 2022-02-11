@@ -26,7 +26,7 @@ class BlockCPAFactory extends AbstractCPAFactory {
   }
 
   @Override
-  public <T> org.sosy_lab.cpachecker.cpa.block.BlockCPAFactory set(T pObject, Class<T> pClass) {
+  public <T> BlockCPAFactory set(T pObject, Class<T> pClass) {
     if (CFA.class.isAssignableFrom(pClass)) {
       cfa = (CFA)pObject;
     } else {

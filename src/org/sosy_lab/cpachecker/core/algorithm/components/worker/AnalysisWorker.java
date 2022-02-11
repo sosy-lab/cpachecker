@@ -20,7 +20,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.components.block_analysis.BlockAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.components.block_analysis.BlockAnalysis.BackwardAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.components.block_analysis.BlockAnalysis.ForwardAnalysis;
@@ -88,14 +87,6 @@ public class AnalysisWorker extends Worker {
             .setOption("cpa.predicate.blk.alwaysAtLoops", "false")
             .setOption("cpa.predicate.blk.alwaysAtFunctions", "false")
             .build();
-
-    // otherwise, error in finding ARGPaths
-    if (true || block.isSelfCircular()) {
-      backwardConfiguration = Configuration.builder().copyFrom(backwardConfiguration)
-          .setOption("cpa.predicate.merge", "SEP").build();
-      forwardConfiguration = Configuration.builder().copyFrom(forwardConfiguration)
-          .setOption("cpa.predicate.merge", "SEP").build();
-    }
 
     forwardAnalysis = new ForwardAnalysis(pId, pLogger, pBlock, pCFA, pTypeMap, pSpecification,
         forwardConfiguration,

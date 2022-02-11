@@ -11,8 +11,10 @@ package org.sosy_lab.cpachecker.core.algorithm.components.exchange.memory;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.CleverMessageQueue;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageType;
 
 public class InMemoryConnection implements Connection {
 
@@ -43,6 +45,13 @@ public class InMemoryConnection implements Connection {
   public void write(Message message) throws IOException, InterruptedException {
     for (BlockingQueue<Message> messages : out) {
       messages.put(message);
+    }
+  }
+
+  @Override
+  public void setOrdering(MessageType... pOrdering) {
+    if (in instanceof CleverMessageQueue) {
+      ((CleverMessageQueue) in).setOrdering(pOrdering);
     }
   }
 
