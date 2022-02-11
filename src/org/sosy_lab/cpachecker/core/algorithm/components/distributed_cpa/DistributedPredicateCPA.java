@@ -220,8 +220,7 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
     }
     unsatPredecessors.remove(message.getUniqueBlockId());
     storePostCondition(message);
-    if (receivedPostConditions.size() == (block.getPredecessors().size() + unsatPredecessors.size())
-        || receivedPostConditions.size() == circular.size() + block.getPredecessors().size() + unsatPredecessors.size()) {
+    if (receivedPostConditions.size() == (block.getPredecessors().size() + unsatPredecessors.size())) {
       return MessageProcessing.proceedWith(receivedPostConditions.values());
     } else {
       // would equal initial message
@@ -238,8 +237,11 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
         .anyMatch(s -> s.equals(block.getId()))) {
       if (Boolean.parseBoolean(payload.get(Payload.FULL_PATH))) {
         receivedPostConditions.put(pMessage.getUniqueBlockId(), toStore);
+        circular.remove(pMessage.getUniqueBlockId());
+      } else {
+        circular.add(pMessage.getUniqueBlockId());
+        receivedPostConditions.remove(pMessage.getUniqueBlockId());
       }
-      circular.add(pMessage.getUniqueBlockId());
     } else {
       receivedPostConditions.put(pMessage.getUniqueBlockId(), toStore);
     }

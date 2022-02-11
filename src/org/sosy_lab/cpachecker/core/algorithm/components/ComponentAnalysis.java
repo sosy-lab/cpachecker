@@ -138,11 +138,17 @@ public class ComponentAnalysis implements Algorithm, StatisticsProvider, Statist
    * @throws InvalidConfigurationException if configuration for block analysis is invalid
    */
   private void checkConfig() throws InvalidConfigurationException {
-    if (workerType == WorkerType.FAULT_LOCALIZATION
-        && decompositionType != DecompositionType.BLOCK_OPERATOR) {
-      throw new InvalidConfigurationException(
-          FaultLocalizationWorker.class.getCanonicalName() + " needs decomposition with type "
-              + DecompositionType.BLOCK_OPERATOR + " but got " + decompositionType);
+    if (workerType == WorkerType.FAULT_LOCALIZATION) {
+      if (decompositionType != DecompositionType.BLOCK_OPERATOR) {
+        throw new InvalidConfigurationException(
+            FaultLocalizationWorker.class.getCanonicalName() + " needs decomposition with type "
+                + DecompositionType.BLOCK_OPERATOR + " but got " + decompositionType);
+      }
+    } else {
+      if (options.isFaultLocalizationPreconditionAlwaysTrue()) {
+        throw new InvalidConfigurationException(
+            "Unused option: faultLocalizationPreconditionAlwaysTrue. Fault localization is deactivated");
+      }
     }
   }
 
