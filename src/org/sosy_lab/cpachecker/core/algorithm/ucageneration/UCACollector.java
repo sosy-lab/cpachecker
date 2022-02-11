@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.ucageneration;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.arg.ARGUtils.getUncoveredChildrenView;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.io.IOException;
@@ -373,7 +374,7 @@ public class UCACollector {
     final ARGState argRoot = (ARGState) reached.getFirstState();
     AutomatonState rootState = getWitnessAutomatonState(argRoot).get();
 
-    Set<UCAEdge> edgesToAdd = Sets.newHashSet();
+    Set<UCAEdge> edgesToAdd = new HashSet<>();
 
     // Next, filter the reached set fo all states, that have a different automaton
     // state compared to their predecessors, as these are the states that need to be stored in
@@ -522,7 +523,7 @@ public class UCACollector {
     for (final AutomatonState currentState :
         nodesToEdges.keySet().stream()
             .sorted(Comparator.comparing(this::getName))
-            .collect(Collectors.toList())) {
+            .collect(ImmutableList.toImmutableList())) {
 
       sb.append(String.format("STATE USEALL %s :\n", getName(currentState)));
       numProducedStates++;
@@ -582,22 +583,21 @@ public class UCACollector {
 
 
     @Override
-    public boolean equals(Object o) {
-      if (this == o) {
+    public boolean equals(Object pO) {
+      if (this == pO) {
         return true;
       }
-      if (o == null || !(o instanceof UCAEdge)) {
+      if (! (pO instanceof  UCAEdge)) {
         return false;
       }
-      UCAEdge ucaEdge = (UCAEdge) o;
-      return com.google.common.base.Objects.equal(source, ucaEdge.source)
-          && com.google.common.base.Objects.equal(target, ucaEdge.target)
-          && com.google.common.base.Objects.equal(edge, ucaEdge.edge);
+      UCAEdge ucaEdge = (UCAEdge) pO;
+      return Objects.equals(source, ucaEdge.source) && Objects.equals(target,
+          ucaEdge.target) && Objects.equals(edge, ucaEdge.edge);
     }
 
     @Override
     public int hashCode() {
-      return com.google.common.base.Objects.hashCode(source, target, edge);
+      return Objects.hash(source, target, edge);
     }
 
     @Override

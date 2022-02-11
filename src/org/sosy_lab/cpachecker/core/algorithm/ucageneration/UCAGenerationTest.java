@@ -13,12 +13,14 @@ import static com.google.common.truth.Truth.assertWithMessage;
 
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -323,7 +325,7 @@ public class UCAGenerationTest {
   }
 
   private static void validateViowit2UCA(Testcases pFilename, Path pOutputFile) throws IOException {
-    List<String> expectedEdgesToQTemp = Lists.newArrayList();
+    List<String> expectedEdgesToQTemp = new ArrayList<>();
     if (pFilename == Testcases.SUM_T2) {
       expectedEdgesToQTemp = Lists.newArrayList("[!(!(cond))]", "[!(n <= SIZE)]", "[l < n]");
     } else {
@@ -333,7 +335,7 @@ public class UCAGenerationTest {
     assertThat(Files.exists(pOutputFile)).isTrue();
     List<String> content;
     try (Stream<String> stream = Files.lines(pOutputFile)) {
-      content = stream.collect(Collectors.toList());
+      content = stream.collect(ImmutableList.toImmutableList());
     }
     assertThat(content).isNotEmpty();
 
@@ -344,7 +346,7 @@ public class UCAGenerationTest {
     return content.stream()
         .filter(s -> s.contains("-> GOTO __qTEMP;"))
         .map(s -> s.substring(s.indexOf("MATCH \"") + "MATCH \"".length(), s.indexOf("\" -> GOTO")))
-        .collect(Collectors.toList());
+        .collect(ImmutableList.toImmutableList());
   }
 
   private static void validateUca2VioWit(Testcases pFilename, PathTemplate pOutputFile) {
@@ -486,7 +488,7 @@ public class UCAGenerationTest {
       assertThat(Files.exists(currentFile)).isTrue();
       List<String> content;
       try (Stream<String> stream = Files.lines(currentFile)) {
-        content = stream.map(l -> l.trim()).collect(Collectors.toList());
+        content = stream.map(l -> l.trim()).collect(ImmutableList.toImmutableList());
       }
       assertThat(content).isNotEmpty();
       if (testcaseID2Assertions.containsKey(i)) {
@@ -538,7 +540,7 @@ public class UCAGenerationTest {
     assertThat(Files.exists(pOutputFile)).isTrue();
     List<String> content;
     try (Stream<String> stream = Files.lines(pOutputFile)) {
-      content = stream.collect(Collectors.toList());
+      content = stream.collect(ImmutableList.toImmutableList());
     }
     assertThat(content).isNotEmpty();
 
@@ -549,7 +551,7 @@ public class UCAGenerationTest {
     return content.stream()
         .filter(s -> s.contains("t = __VERIFIER_nondet_") && s.contains("-> ASSUME {( t =="))
         .map(s -> s.substring(s.lastIndexOf("("), s.lastIndexOf(")") + 1))
-        .collect(Collectors.toList());
+        .collect(ImmutableList.toImmutableList());
   }
 
   private static Configuration getProperties(
@@ -571,7 +573,7 @@ public class UCAGenerationTest {
     private Optional<String> ucaInput;
     private Optional<String> testcase;
     private Optional<String> witness;
-    private final Map<String, String> overrideOptionsBuilder = Maps.newHashMap();
+    private final Map<String, String> overrideOptionsBuilder = new HashMap<>();
     private final String optionForOutput;
     private Optional<String> pathTemplate;
 

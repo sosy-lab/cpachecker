@@ -58,8 +58,9 @@ public class TestCaseGenState
   }
 
   public TestCaseGenState copy() {
-    return new TestCaseGenState(
-        entries.stream().map(e -> e.copy()).collect(Collectors.toList()), automatonState, logger);
+    List<TestcaseEntry> copied = new ArrayList<>();
+    entries.stream().forEach(e -> copied.add(e.copy()));
+    return new TestCaseGenState(copied, automatonState, logger);
   }
 
   @Override
