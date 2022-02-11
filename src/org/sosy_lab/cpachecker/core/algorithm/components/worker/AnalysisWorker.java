@@ -18,6 +18,8 @@ import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.components.block_analysis.BlockAnalysis;
@@ -54,42 +56,28 @@ public class AnalysisWorker extends Worker {
     super("analysis-worker-" + pBlock.getId(), pLogger);
     block = pBlock;
 
+    Configuration fileConfig =
+        Configuration.builder().loadFromFile("config/predicateAnalysis-block-backward.properties")
+            .build();
+    ConfigString backward = new ConfigString();
+    fileConfig.inject(backward);
+
     Configuration backwardConfiguration = Configuration.builder()
-        .copyFrom(pConfiguration)
-        .loadFromFile(
-            "config/includes/predicateAnalysisBackward.properties")
-        .clearOption("analysis.initialStatesFor")
-        .setOption("analysis.initialStatesFor", "TARGET")
-        .setOption("CompositeCPA.cpas",
-            "cpa.location.LocationCPABackwards, cpa.block.BlockCPABackward, cpa.callstack.CallstackCPA, cpa.functionpointer.FunctionPointerCPA, cpa.predicate.PredicateCPA")
-        .setOption("backwardSpecification", "config/specification/MainEntry.spc")
-        .setOption("specification", "config/specification/MainEntry.spc")
-        .setOption("cpa.predicate.abstractAtTargetState", "false")
-        .setOption("cpa.predicate.blk.alwaysAtJoin", "false")
-        .setOption("cpa.predicate.blk.alwaysAtBranch", "false")
-        .setOption("cpa.predicate.blk.alwaysAtProgramExit", "false")
-        .setOption("cpa.predicate.blk.alwaysAfterThreshold", "false")
-        .setOption("cpa.predicate.blk.alwaysAtLoops", "false")
-        .setOption("cpa.predicate.blk.alwaysAtFunctions", "false")
-        .setOption("analysis.algorithm.CEGAR", "false")
+        .copyFrom(fileConfig)
+        .setOption("CompositeCPA.cpas", "cpa.block.BlockCPABackward, " + backward.cpas)
         .build();
 
     Specification backwardSpecification =
         Specification.fromFiles(ImmutableSet.of(Path.of("config/specification/MainEntry.spc")),
             pCFA, backwardConfiguration, logger, pShutdownManager.getNotifier());
 
+    ConfigString forward = new ConfigString();
+    pConfiguration.inject(forward);
     Configuration forwardConfiguration =
-        Configuration.builder().copyFrom(pConfiguration).setOption("CompositeCPA.cpas",
-                "cpa.location.LocationCPA, cpa.block.BlockCPA, cpa.predicate.PredicateCPA")
-            .setOption("cpa.predicate.blk.alwaysAtJoin", "false")
-            .setOption("cpa.predicate.blk.alwaysAtBranch", "false")
-            .setOption("cpa.predicate.blk.alwaysAtProgramExit", "false")
-            .setOption("cpa.predicate.blk.alwaysAfterThreshold", "false")
-            .setOption("cpa.predicate.blk.alwaysAtLoops", "false")
-            .setOption("cpa.predicate.blk.alwaysAtFunctions", "false")
-            .setOption("cpa.predicate.abstractAtTargetState", "false")
-            .setOption("analysis.algorithm.CEGAR", "false")
-            .setOption("analysis.stopAfterError", "false")
+        Configuration.builder()
+            .copyFrom(pConfiguration)
+            .loadFromFile("config/predicateAnalysis-block-forward.properties")
+            .setOption("CompositeCPA.cpas", forward.cpas + ", cpa.block.BlockCPA")
             .build();
 
     forwardAnalysis = new ForwardAnalysis(pId, pLogger, pBlock, pCFA, pTypeMap, pSpecification,
@@ -182,4 +170,9 @@ public class AnalysisWorker extends Worker {
     return "Worker{" + "block=" + block + ", finished=" + finished + '}';
   }
 
+  @Options(prefix = "CompositeCPA")
+  private static class ConfigString {
+    @Option(description = "test")
+    private String cpas;
+  }
 }

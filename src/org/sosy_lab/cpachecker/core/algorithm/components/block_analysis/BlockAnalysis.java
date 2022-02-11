@@ -256,6 +256,7 @@ public abstract class BlockAnalysis {
             answers.add(Message.newErrorConditionMessage(block.getId(),
                 targetNode.orElseThrow().getNodeNumber(), initial, true,
                 ImmutableSet.of(block.getId())));
+            reachedSet.remove(targetState);
           }
         }
       }
