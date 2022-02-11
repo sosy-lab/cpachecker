@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -384,7 +383,7 @@ public class UCAGenerationTest {
         NodeList nodes = doc.getElementsByTagName("node");
         assertThat(edges.getLength()).isEqualTo(numberEdges.get(i));
         assertThat(nodes.getLength()).isEqualTo(numberNodes.get(i));
-        List<Element> edgesToSInk = Lists.newArrayList();
+        List<Element> edgesToSInk = new ArrayList<>();
         for (int j = 0; j < edges.getLength(); j++) {
           Node edge = edges.item(j);
           if (edge.getNodeType() == Node.ELEMENT_NODE) {
@@ -422,7 +421,7 @@ public class UCAGenerationTest {
   private static void validateUca2Test(Testcases pFilename, PathTemplate pOutputFile)
       throws IOException {
 
-    Map<Integer, List<String>> testcaseID2Assertions = Maps.newHashMap();
+    Map<Integer, List<String>> testcaseID2Assertions = new HashMap<>();
     if (pFilename == Testcases.COUNT) {
       testcaseID2Assertions.put(
           0,
@@ -516,7 +515,7 @@ public class UCAGenerationTest {
   }
 
   private static void validateTest2UCA(Testcases pFilename, Path pOutputFile) throws IOException {
-    List<String> expectedAssumptions = Lists.newArrayList();
+    List<String> expectedAssumptions = new ArrayList<>();
     if (pFilename == Testcases.COUNT) {
       expectedAssumptions =
           Lists.newArrayList(

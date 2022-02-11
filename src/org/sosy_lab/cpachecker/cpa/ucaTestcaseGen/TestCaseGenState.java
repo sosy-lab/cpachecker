@@ -31,7 +31,7 @@ public class TestCaseGenState
   private static final long serialVersionUID = -7715698130885640052L;
   private final LogManager logger;
 
-  private List<TestcaseEntry> entries;
+  private final List<TestcaseEntry> entries;
   private Optional<AutomatonState> automatonState;
 
   public TestCaseGenState(LogManager pLogger) {
@@ -59,7 +59,7 @@ public class TestCaseGenState
 
   public TestCaseGenState copy() {
     List<TestcaseEntry> copied = new ArrayList<>();
-    entries.stream().forEach(e -> copied.add(e.copy()));
+    entries.forEach(e -> copied.add(e.copy()));
     return new TestCaseGenState(copied, automatonState, logger);
   }
 
