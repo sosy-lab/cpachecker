@@ -23,9 +23,6 @@ public class CleverMessageQueue extends ForwardingBlockingQueue<Message> {
 
   private final MessageType[] ordering;
 
-  private static final int SKIP = 5;
-  private int current;
-
   /**
    * Mimics a blocking queue but changes the blocking method <code>take</code> to prioritize messages
    *
@@ -35,7 +32,6 @@ public class CleverMessageQueue extends ForwardingBlockingQueue<Message> {
     queue = pQueue;
     messages = ArrayListMultimap.create();
     ordering = MessageType.values();
-    current = 0;
   }
 
   public CleverMessageQueue() {
@@ -73,23 +69,17 @@ public class CleverMessageQueue extends ForwardingBlockingQueue<Message> {
    */
   @Override
   public Message take() throws InterruptedException {
-    current++;
     // empty pending messages (non blocking)
-    while (!queue.isEmpty()) {
+    return queue.take();
+/*    while (!queue.isEmpty()) {
       moveToMap(queue.take());
     }
-    MessageType[] currentOrdering = ordering;
-    if (current == SKIP) {
-      current = 0;
-      currentOrdering =
-          new MessageType[]{MessageType.ERROR, MessageType.FOUND_RESULT, MessageType.BLOCK_POSTCONDITION, MessageType.ERROR_CONDITION, MessageType.ERROR_CONDITION_UNREACHABLE};
-    }
-    for (MessageType messageType : currentOrdering) {
+    for (MessageType messageType : ordering) {
       Optional<Message> m = firstOfType(messageType);
       if (m.isPresent()) {
         return m.orElseThrow();
       }
     }
-    return queue.take();
+    return queue.take();*/
   }
 }

@@ -192,7 +192,8 @@ public class BlockNode {
     private Map<Integer, CFANode> idToNodeMap;
 
     public BlockNodeFactory(CFA pCfa) {
-      idToNodeMap = pCfa.getAllNodes().stream().collect(Collectors.toMap(n -> n.getNodeNumber(), n -> n));
+      idToNodeMap =
+          pCfa.getAllNodes().stream().collect(Collectors.toMap(n -> n.getNodeNumber(), n -> n));
     }
 
     public BlockNode makeBlock(
@@ -200,7 +201,8 @@ public class BlockNode {
         CFANode pEndNode,
         Set<CFANode> pNodesInBlock,
         Set<CFAEdge> pEdges) {
-      return new BlockNode("B" + blockCount++, pStartNode, pEndNode, pNodesInBlock, pEdges, new HashMap<>(idToNodeMap));
+      return new BlockNode("B" + blockCount++, pStartNode, pEndNode, pNodesInBlock, pEdges,
+          new HashMap<>(idToNodeMap));
     }
 
     public void linkSuccessor(BlockNode pNode, BlockNode pNodeSuccessor) {
@@ -217,7 +219,8 @@ public class BlockNode {
     }
 
     public BlockNode copy(BlockNode pNode) {
-      return new BlockNode("B" + blockCount++, pNode.startNode, pNode.lastNode, pNode.nodesInBlock, pNode.edgesInBlock, new HashMap<>(idToNodeMap));
+      return new BlockNode("B" + blockCount++, pNode.startNode, pNode.lastNode, pNode.nodesInBlock,
+          pNode.edgesInBlock, new HashMap<>(idToNodeMap));
     }
 
   }

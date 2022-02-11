@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.core.algorithm.components.distributed_cpa.Distrib
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Payload;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.UpdatedTypeMap;
+import org.sosy_lab.cpachecker.core.algorithm.components.worker.AnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -83,7 +84,8 @@ public abstract class BlockAnalysis {
       AnalysisDirection pDirection,
       Specification pSpecification,
       Configuration pConfiguration,
-      ShutdownManager pShutdownManager)
+      ShutdownManager pShutdownManager,
+      AnalysisOptions pOptions)
       throws CPAException, InterruptedException, InvalidConfigurationException, IOException {
     Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> parts =
         AlgorithmFactory.createAlgorithm(pLogger, pSpecification, pCFA, pConfiguration,
@@ -107,7 +109,7 @@ public abstract class BlockAnalysis {
     logger = pLogger;
 
     distributedCompositeCPA =
-        new DistributedCompositeCPA(pId, block, pTypeMap, initialPrecision, pDirection);
+        new DistributedCompositeCPA(pId, block, pTypeMap, initialPrecision, pDirection, pOptions);
     distributedCompositeCPA.setParentCPA(CPAs.retrieveCPA(cpa, CompositeCPA.class));
   }
 
@@ -233,11 +235,12 @@ public abstract class BlockAnalysis {
         UpdatedTypeMap pTypeMap,
         Specification pSpecification,
         Configuration pConfiguration,
-        ShutdownManager pShutdownManager)
+        ShutdownManager pShutdownManager,
+        AnalysisOptions pOptions)
         throws CPAException, InterruptedException, InvalidConfigurationException, IOException {
       super(pId, pLogger, pBlock, pCFA, pTypeMap, AnalysisDirection.FORWARD, pSpecification,
           pConfiguration,
-          pShutdownManager);
+          pShutdownManager, pOptions);
       relation =
           (BlockTransferRelation) Objects.requireNonNull(CPAs.retrieveCPA(cpa, BlockCPA.class))
               .getTransferRelation();
@@ -334,11 +337,11 @@ public abstract class BlockAnalysis {
         UpdatedTypeMap pTypeMap,
         Specification pSpecification,
         Configuration pConfiguration,
-        ShutdownManager pShutdownManager)
+        ShutdownManager pShutdownManager, AnalysisOptions pOptions)
         throws CPAException, InterruptedException, InvalidConfigurationException, IOException {
       super(pId, pLogger, pBlock, pCFA, pTypeMap, AnalysisDirection.BACKWARD, pSpecification,
           pConfiguration,
-          pShutdownManager);
+          pShutdownManager, pOptions);
       relation = (BlockTransferRelation) Objects.requireNonNull(
               CPAs.retrieveCPA(cpa, BlockCPABackward.class))
           .getTransferRelation();
@@ -379,10 +382,10 @@ public abstract class BlockAnalysis {
         AnalysisDirection pDirection,
         Specification pSpecification,
         Configuration pConfiguration,
-        ShutdownManager pShutdownManager)
+        ShutdownManager pShutdownManager, AnalysisOptions pOptions)
         throws CPAException, InterruptedException, InvalidConfigurationException, IOException {
       super(pId, pLogger, pBlock, pCFA, pTypeMap, pDirection, pSpecification, pConfiguration,
-          pShutdownManager);
+          pShutdownManager, pOptions);
     }
 
     @Override

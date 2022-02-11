@@ -58,7 +58,7 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
       Precision pPrecision,
       AnalysisDirection pDirection,
       AnalysisOptions pOptions) throws
-                                    CPAException {
+                                CPAException {
     super(pWorkerId, pNode, pTypeMap, pPrecision, pDirection, pOptions);
     substitutions = new HashMap<>();
     circular = Collections.newSetFromMap(new ConcurrentHashMap<>());

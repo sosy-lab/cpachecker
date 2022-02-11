@@ -46,12 +46,12 @@ import org.sosy_lab.cpachecker.core.algorithm.components.exchange.observer.Fault
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.observer.MessageListener;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.observer.ResultMessageObserver;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.observer.StatusObserver;
+import org.sosy_lab.cpachecker.core.algorithm.components.worker.AnalysisOptions;
 import org.sosy_lab.cpachecker.core.algorithm.components.worker.ComponentsBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.components.worker.ComponentsBuilder.Components;
 import org.sosy_lab.cpachecker.core.algorithm.components.worker.FaultLocalizationWorker;
 import org.sosy_lab.cpachecker.core.algorithm.components.worker.RootWorker;
 import org.sosy_lab.cpachecker.core.algorithm.components.worker.Worker;
-import org.sosy_lab.cpachecker.core.algorithm.components.worker.AnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -300,7 +300,7 @@ public class ComponentAnalysis implements Algorithm, StatisticsProvider, Statist
 
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
-    if (rootWorker != null){
+    if (rootWorker != null) {
       rootWorker.collectStatistics(statsCollection);
     }
     if (mainThreadConnection != null) {

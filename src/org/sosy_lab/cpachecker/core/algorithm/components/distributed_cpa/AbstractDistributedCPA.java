@@ -52,7 +52,7 @@ public abstract class AbstractDistributedCPA implements ConfigurableProgramAnaly
       Precision pPrecision,
       AnalysisDirection pDirection,
       AnalysisOptions pOptions) throws
-                                    CPAException {
+                                CPAException {
     block = pNode;
     typeMap = pTypeMap;
     direction = pDirection;

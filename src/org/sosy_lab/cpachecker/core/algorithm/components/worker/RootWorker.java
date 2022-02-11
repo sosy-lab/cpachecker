@@ -57,7 +57,7 @@ public class RootWorker extends Worker {
     analysis =
         new NoopAnalysis(pId, logger, pNode, pCfa, new UpdatedTypeMap(SSAMap.emptySSAMap()),
             AnalysisDirection.FORWARD,
-            pSpecification, pConfiguration, pShutdownManager);
+            pSpecification, pConfiguration, pShutdownManager, pOptions);
   }
 
   @Override

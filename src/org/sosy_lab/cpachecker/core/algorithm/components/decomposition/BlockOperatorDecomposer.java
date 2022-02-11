@@ -149,8 +149,10 @@ public class BlockOperatorDecomposer implements CFADecomposer {
         if (cfaEdge instanceof CStatementEdge) {
           CStatementEdge statementEdge = (CStatementEdge) cfaEdge;
           if (statementEdge.getStatement() instanceof CFunctionCallStatement) {
-            CFunctionCallStatement functionCallStatement = (CFunctionCallStatement) statementEdge.getStatement();
-            if (functionCallStatement.getFunctionCallExpression().getDeclaration().toString().equals("void abort();")) {
+            CFunctionCallStatement functionCallStatement =
+                (CFunctionCallStatement) statementEdge.getStatement();
+            if (functionCallStatement.getFunctionCallExpression().getDeclaration().toString()
+                .equals("void abort();")) {
               for (BlockNode blockNode : new HashSet<>(distinctNode.getSuccessors())) {
                 nodeFactory.unlinkSuccessor(distinctNode, blockNode);
               }

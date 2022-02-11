@@ -43,17 +43,20 @@ public class DistributedCallstackCPA extends AbstractDistributedCPA {
 
   @Override
   public AbstractState deserialize(Message pPayload) throws InterruptedException {
-    Payload payload =  pPayload.getPayload();
-    if (direction == AnalysisDirection.FORWARD || !payload.containsKey(parentCPA.getClass().getName())) {
-      return getInitialState(block.getNodeWithNumber(pPayload.getTargetNodeNumber()), StateSpacePartition.getDefaultPartition());
+    Payload payload = pPayload.getPayload();
+    if (direction == AnalysisDirection.FORWARD || !payload.containsKey(
+        parentCPA.getClass().getName())) {
+      return getInitialState(block.getNodeWithNumber(pPayload.getTargetNodeNumber()),
+          StateSpacePartition.getDefaultPartition());
     }
     String callstackJSON = payload.get(parentCPA.getClass().getName());
     List<String> parts = Splitter.on(DELIMITER).splitToList(callstackJSON);
     CallstackState previous = null;
     for (String part : parts) {
       List<String> properties = Splitter.on(".").limit(2).splitToList(part);
-      previous = new CallstackState(previous, properties.get(1), block.getNodeWithNumber(Integer.parseInt(
-          properties.get(0))));
+      previous =
+          new CallstackState(previous, properties.get(1), block.getNodeWithNumber(Integer.parseInt(
+              properties.get(0))));
     }
     return previous;
   }
@@ -64,8 +67,8 @@ public class DistributedCallstackCPA extends AbstractDistributedCPA {
       return Payload.empty();
     }
     CallstackState curr = (CallstackState) pState;
-    List<String> states =  new LinkedList<>();
-    while(curr != null) {
+    List<String> states = new LinkedList<>();
+    while (curr != null) {
       states.add(curr.getCallNode().getNodeNumber() + "." + curr.getCurrentFunction());
       curr = curr.getPreviousState();
     }

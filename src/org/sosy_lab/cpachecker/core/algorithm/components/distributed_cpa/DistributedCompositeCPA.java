@@ -43,7 +43,11 @@ public class DistributedCompositeCPA extends AbstractDistributedCPA {
 
   public DistributedCompositeCPA(
       String pId,
-      BlockNode pNode, UpdatedTypeMap pTypeMap, Precision pPrecision, AnalysisDirection pDirection, AnalysisOptions pOptions)
+      BlockNode pNode,
+      UpdatedTypeMap pTypeMap,
+      Precision pPrecision,
+      AnalysisDirection pDirection,
+      AnalysisOptions pOptions)
       throws CPAException {
     super(pId, pNode, pTypeMap, pPrecision, pDirection, pOptions);
     lookup = new ConcurrentHashMap<>();

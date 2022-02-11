@@ -58,7 +58,8 @@ public class AnalysisWorker extends Worker {
     super("analysis-worker-" + pBlock.getId(), pLogger, pOptions);
     block = pBlock;
 
-    String withAbstraction = analysisOptions.doAbstractAtTargetLocations() ? "-with-abstraction" : "";
+    String withAbstraction =
+        analysisOptions.doAbstractAtTargetLocations() ? "-with-abstraction" : "";
 
     Configuration fileConfig =
         Configuration.builder().loadFromFile(
@@ -88,11 +89,11 @@ public class AnalysisWorker extends Worker {
 
     forwardAnalysis = new ForwardAnalysis(pId, pLogger, pBlock, pCFA, pTypeMap, pSpecification,
         forwardConfiguration,
-        pShutdownManager);
+        pShutdownManager, pOptions);
 
     backwardAnalysis = new BackwardAnalysis(pId, pLogger, pBlock, pCFA,
         pTypeMap, backwardSpecification,
-        backwardConfiguration, pShutdownManager);
+        backwardConfiguration, pShutdownManager, pOptions);
   }
 
   @Override
@@ -156,7 +157,9 @@ public class AnalysisWorker extends Worker {
         List<Message> initialMessages = ImmutableList.copyOf(forwardAnalysis(ImmutableSet.of(
             Message.newBlockPostCondition("", block.getStartNode().getNodeNumber(), Payload.empty(),
                 false, ImmutableSet.of()))));
-        Optional<Message> optionalMessage = initialMessages.stream().filter(m -> m.getType() == MessageType.BLOCK_POSTCONDITION).findAny();
+        Optional<Message> optionalMessage =
+            initialMessages.stream().filter(m -> m.getType() == MessageType.BLOCK_POSTCONDITION)
+                .findAny();
         if (optionalMessage.isPresent()) {
           Message message = optionalMessage.orElseThrow();
           if (message.getType() == MessageType.BLOCK_POSTCONDITION) {
