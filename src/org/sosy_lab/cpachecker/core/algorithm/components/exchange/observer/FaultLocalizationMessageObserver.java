@@ -67,6 +67,11 @@ public class FaultLocalizationMessageObserver implements MessageObserver {
           faults.stream().map(m -> m.getPayload().getOrDefault(Payload.FAULT_LOCALIZATION, ""))
               .collect(
                   Collectors.toSet())));
+    } else {
+      logger.log(
+          Level.INFO,
+          "It seems like no block changes the value of the variables in the pre-condition. Most likely"
+              + " the variables in your post-condition never change their value.");
     }
   }
 }

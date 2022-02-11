@@ -15,7 +15,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.Collection;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
@@ -36,24 +35,11 @@ public abstract class BlockTransferRelation implements TransferRelation {
   private boolean first;
 
   public void init(BlockNode pBlockNode) {
-    edges = validEdgesIn(pBlockNode);
+    edges = ImmutableSet.copyOf(pBlockNode.getEdgesInBlock());
     nodes = ImmutableSet.copyOf(pBlockNode.getNodesInBlock());
     targetNode = pBlockNode.getLastNode();
     first = false;
     bNode = pBlockNode;
-  }
-
-  private ImmutableSet<CFAEdge> validEdgesIn(BlockNode pBlockNode) {
-    ImmutableSet.Builder<CFAEdge> setBuilder = ImmutableSet.builder();
-    Set<CFANode> nodesInBlock = pBlockNode.getNodesInBlock();
-    for(CFANode node: nodesInBlock) {
-      for(CFAEdge edge: CFAUtils.allLeavingEdges(node)) {
-        if (nodesInBlock.contains(edge.getSuccessor())) {
-          setBuilder.add(edge);
-        }
-      }
-    }
-    return setBuilder.build();
   }
 
   protected boolean shouldComputeSuccessor(BlockState pBlockState) {

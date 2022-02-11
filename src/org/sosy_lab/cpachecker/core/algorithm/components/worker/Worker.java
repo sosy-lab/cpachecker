@@ -13,6 +13,10 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.logging.Level;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
@@ -26,10 +30,24 @@ public abstract class Worker implements Runnable, StatisticsProvider {
 
   protected final LogManager logger;
   protected final String id;
+  protected final WorkerOptions workerOptions;
+
   protected Connection connection;
   protected boolean finished;
 
   protected static WorkerStatistics stats = new WorkerStatistics();
+
+
+  @Options(prefix = "worker")
+  public static class WorkerOptions {
+
+    @Option(description = "forces the precondition of fault localization workers to be true")
+    boolean faultLocalizationPreconditionAlwaysTrue = false;
+
+    public WorkerOptions(Configuration pConfig) throws InvalidConfigurationException {
+      pConfig.inject(this);
+    }
+  }
 
   /**
    * Abstract definition of a Worker.
@@ -37,9 +55,10 @@ public abstract class Worker implements Runnable, StatisticsProvider {
    * @param pId the id of the worker
    * @param pLogger a logger to log messages
    */
-  protected Worker(String pId, LogManager pLogger) {
+  protected Worker(String pId, LogManager pLogger, WorkerOptions pOptions) {
     logger = pLogger;
     id = pId;
+    workerOptions = pOptions;
   }
 
   /**

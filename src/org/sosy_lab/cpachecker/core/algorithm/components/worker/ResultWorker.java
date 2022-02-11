@@ -35,9 +35,10 @@ public class ResultWorker extends Worker {
 
   ResultWorker(
       LogManager pLogger,
-      Collection<BlockNode> pNodes
+      Collection<BlockNode> pNodes,
+      WorkerOptions pOptions
   ) {
-    super("result-worker", pLogger);
+    super("result-worker", pLogger, pOptions);
     nodeMap = new HashMap<>();
     pNodes.forEach(node -> nodeMap.put(node.getId(), node));
     messageReceived = new HashSet<>();

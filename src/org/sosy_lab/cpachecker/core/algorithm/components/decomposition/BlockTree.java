@@ -13,6 +13,7 @@ import java.util.ArrayDeque;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode.BlockNodeFactory;
 
@@ -55,7 +56,9 @@ public class BlockTree {
     }
     Set<CFANode> nodesInBlock = new LinkedHashSet<>(pNode1.getNodesInBlock());
     nodesInBlock.addAll(pNode2.getNodesInBlock());
-    BlockNode merged = factory.makeBlock(pNode1.getStartNode(), pNode2.getLastNode(), nodesInBlock);
+    Set<CFAEdge> edgesInBlock = new LinkedHashSet<>(pNode1.getEdgesInBlock());
+    edgesInBlock.addAll(pNode2.getEdgesInBlock());
+    BlockNode merged = factory.makeBlock(pNode1.getStartNode(), pNode2.getLastNode(), nodesInBlock, edgesInBlock);
     pNode1.getPredecessors().forEach(n -> factory.linkSuccessor(n, merged));
     pNode2.getPredecessors().forEach(n -> factory.linkSuccessor(n, merged));
     pNode1.getSuccessors().forEach(n -> factory.linkSuccessor(merged, n));
@@ -70,8 +73,10 @@ public class BlockTree {
       if (pNode2.getPredecessors().contains(pNode1)) {
         Set<CFANode> nodesInBlock = new LinkedHashSet<>(pNode1.getNodesInBlock());
         nodesInBlock.addAll(pNode2.getNodesInBlock());
+        Set<CFAEdge> edgesInBlock = new LinkedHashSet<>(pNode1.getEdgesInBlock());
+        edgesInBlock.addAll(pNode2.getEdgesInBlock());
         BlockNode merged =
-            factory.makeBlock(pNode1.getStartNode(), pNode2.getLastNode(), nodesInBlock);
+            factory.makeBlock(pNode1.getStartNode(), pNode2.getLastNode(), nodesInBlock, edgesInBlock);
         pNode1.getPredecessors().forEach(n -> factory.linkSuccessor(n, merged));
         pNode2.getSuccessors().forEach(n -> factory.linkSuccessor(merged, n));
         factory.removeNode(pNode1);

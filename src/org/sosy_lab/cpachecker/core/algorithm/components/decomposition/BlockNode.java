@@ -23,13 +23,13 @@ import org.sosy_lab.cpachecker.cfa.blocks.builder.ReferencedVariablesCollector;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class BlockNode {
 
   private final CFANode startNode;
   private final CFANode lastNode;
   private final Set<CFANode> nodesInBlock;
+  private final Set<CFAEdge> edgesInBlock;
   private final Block block;
 
   private final Set<BlockNode> predecessors;
@@ -53,7 +53,8 @@ public class BlockNode {
       @NonNull String pId,
       @NonNull CFANode pStartNode,
       @NonNull CFANode pLastNode,
-      @NonNull Set<CFANode> pNodesInBlock) {
+      @NonNull Set<CFANode> pNodesInBlock,
+      @NonNull Set<CFAEdge> pEdgesInBlock) {
     // pNodesInBlock is a set allowing to represent branches.
     if (!pNodesInBlock.contains(pStartNode) || !pNodesInBlock.contains(pLastNode)) {
       throw new AssertionError(
@@ -75,6 +76,7 @@ public class BlockNode {
     successors = new HashSet<>();
 
     nodesInBlock = new LinkedHashSet<>(pNodesInBlock);
+    edgesInBlock = new LinkedHashSet<>(pEdgesInBlock);
     idToNodeMap = generateIdToNodeMap(nodesInBlock);
     id = pId;
 
@@ -93,19 +95,17 @@ public class BlockNode {
 
   private String computeCode(Set<CFANode> pNodes) {
     StringBuilder codeLines = new StringBuilder();
-    for (CFANode node : pNodes) {
-      for (CFAEdge leavingEdge : CFAUtils.leavingEdges(node)) {
-        if (pNodes.contains(leavingEdge.getSuccessor())) {
-          if (leavingEdge.getCode().isBlank()) {
-            continue;
-          }
-          if (leavingEdge.getEdgeType().equals(CFAEdgeType.AssumeEdge)) {
-            codeLines.append("[").append(leavingEdge.getCode()).append("]\n");
-          } else {
-            codeLines.append(leavingEdge.getCode()).append("\n");
-          }
-          break;
+    for (CFAEdge leavingEdge: edgesInBlock) {
+      if (pNodes.contains(leavingEdge.getSuccessor())) {
+        if (leavingEdge.getCode().isBlank()) {
+          continue;
         }
+        if (leavingEdge.getEdgeType().equals(CFAEdgeType.AssumeEdge)) {
+          codeLines.append("[").append(leavingEdge.getCode()).append("]\n");
+        } else {
+          codeLines.append(leavingEdge.getCode()).append("\n");
+        }
+        break;
       }
     }
     return codeLines.toString();
@@ -156,6 +156,10 @@ public class BlockNode {
     return ImmutableSet.copyOf(nodesInBlock);
   }
 
+  public Set<CFAEdge> getEdgesInBlock() {
+    return edgesInBlock;
+  }
+
   @Override
   public boolean equals(Object pO) {
     if (!(pO instanceof BlockNode)) {
@@ -197,8 +201,8 @@ public class BlockNode {
 
     private int blockCount;
 
-    public BlockNode makeBlock(CFANode pStartNode, CFANode pEndNode, Set<CFANode> pNodesInBlock) {
-      return new BlockNode("B" + blockCount++, pStartNode, pEndNode, pNodesInBlock);
+    public BlockNode makeBlock(CFANode pStartNode, CFANode pEndNode, Set<CFANode> pNodesInBlock, Set<CFAEdge> pEdges) {
+      return new BlockNode("B" + blockCount++, pStartNode, pEndNode, pNodesInBlock, pEdges);
     }
 
     public void linkSuccessor(BlockNode pNode, BlockNode pNodeSuccessor) {

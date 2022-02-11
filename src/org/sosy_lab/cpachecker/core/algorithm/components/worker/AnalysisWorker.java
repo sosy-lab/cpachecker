@@ -45,6 +45,7 @@ public class AnalysisWorker extends Worker {
 
   AnalysisWorker(
       String pId,
+      WorkerOptions pOptions,
       BlockNode pBlock,
       LogManager pLogger,
       CFA pCFA,
@@ -53,7 +54,7 @@ public class AnalysisWorker extends Worker {
       ShutdownManager pShutdownManager,
       SSAMap pTypeMap)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
-    super("analysis-worker-" + pBlock.getId(), pLogger);
+    super("analysis-worker-" + pBlock.getId(), pLogger, pOptions);
     block = pBlock;
 
     String withAbstraction = false ? "-with-abstraction" : "";

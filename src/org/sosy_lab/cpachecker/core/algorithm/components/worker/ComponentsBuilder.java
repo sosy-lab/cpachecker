@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.ConnectionProvider;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.network.NetworkConnectionProvider;
 import org.sosy_lab.cpachecker.core.algorithm.components.worker.MonitoredAnalysisWorker.Monitor;
+import org.sosy_lab.cpachecker.core.algorithm.components.worker.Worker.WorkerOptions;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -100,52 +101,51 @@ public class ComponentsBuilder {
     return this;
   }
 
-  public ComponentsBuilder addAnalysisWorker(BlockNode pNode, SSAMap pTypeMap)
+  public ComponentsBuilder addAnalysisWorker(BlockNode pNode, SSAMap pTypeMap, WorkerOptions pOptions)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     workers.add(
-        new AnalysisWorker(nextId(pNode.getId()), pNode, logger, cfa, specification, configuration,
+        new AnalysisWorker(nextId(pNode.getId()), pOptions, pNode, logger, cfa, specification, configuration,
             shutdownManager, pTypeMap));
     return this;
   }
 
-  public ComponentsBuilder addSmartAnalysisWorker(BlockNode pNode, SSAMap pTypeMap)
+  public ComponentsBuilder addSmartAnalysisWorker(BlockNode pNode, SSAMap pTypeMap, WorkerOptions pOptions)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     workers.add(
-        new SmartAnalysisWorker(nextId(pNode.getId()), pNode, logger, cfa, specification,
-            configuration,
+        new SmartAnalysisWorker(nextId(pNode.getId()), pOptions, pNode, logger, cfa, specification, configuration,
             shutdownManager, pTypeMap));
     return this;
   }
 
-  public ComponentsBuilder addMonitoredAnalysisWorker(BlockNode pNode, SSAMap pMap)
+  public ComponentsBuilder addMonitoredAnalysisWorker(BlockNode pNode, SSAMap pMap, WorkerOptions pOptions)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     workers.add(
-        new MonitoredAnalysisWorker(nextId(pNode.getId()), pNode, logger, cfa, specification,
+        new MonitoredAnalysisWorker(nextId(pNode.getId()), pOptions, pNode, logger, cfa, specification,
             configuration,
             shutdownManager, monitor, pMap));
     return this;
   }
 
-  public ComponentsBuilder addFaultLocalizationWorker(BlockNode pNode, SSAMap pTypeMap)
+  public ComponentsBuilder addFaultLocalizationWorker(BlockNode pNode, SSAMap pTypeMap, WorkerOptions pOptions)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     workers.add(
-        new FaultLocalizationWorker(nextId(pNode.getId()), pNode, logger, cfa, specification,
+        new FaultLocalizationWorker(nextId(pNode.getId()), pOptions, pNode, logger, cfa, specification,
             configuration, shutdownManager, pTypeMap));
     return this;
   }
 
-  public ComponentsBuilder addResultCollectorWorker(Collection<BlockNode> nodes) {
-    workers.add(new ResultWorker(logger, nodes));
+  public ComponentsBuilder addResultCollectorWorker(Collection<BlockNode> nodes, WorkerOptions pOptions) {
+    workers.add(new ResultWorker(logger, nodes, pOptions));
     return this;
   }
 
-  public ComponentsBuilder addTimeoutWorker(TimeSpan pTimeout) {
-    workers.add(new TimeoutWorker(logger, pTimeout));
+  public ComponentsBuilder addTimeoutWorker(TimeSpan pTimeout, WorkerOptions pOptions) {
+    workers.add(new TimeoutWorker(logger, pTimeout, pOptions));
     return this;
   }
 
-  public ComponentsBuilder addVisualizationWorker(BlockTree pBlockTree) {
-    workers.add(new VisualizationWorker(logger, pBlockTree));
+  public ComponentsBuilder addVisualizationWorker(BlockTree pBlockTree, WorkerOptions pOptions) {
+    workers.add(new VisualizationWorker(logger, pBlockTree, pOptions));
     return this;
   }
 
@@ -165,10 +165,10 @@ public class ComponentsBuilder {
     return new Components(workers, excessConnections);
   }
 
-  public ComponentsBuilder addRootWorker(BlockNode pNode)
+  public ComponentsBuilder addRootWorker(BlockNode pNode, WorkerOptions pOptions)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     workers.add(
-        new RootWorker(nextId(pNode.getId()), pNode, logger, cfa, specification, configuration,
+        new RootWorker(nextId(pNode.getId()), pOptions, pNode, logger, cfa, specification, configuration,
             shutdownManager));
     return this;
   }

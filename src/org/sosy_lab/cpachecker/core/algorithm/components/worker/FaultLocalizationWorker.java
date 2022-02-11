@@ -74,6 +74,7 @@ public class FaultLocalizationWorker extends AnalysisWorker {
 
   FaultLocalizationWorker(
       String pId,
+      WorkerOptions pOptions,
       BlockNode pBlock,
       LogManager pLogger,
       CFA pCFA,
@@ -82,7 +83,7 @@ public class FaultLocalizationWorker extends AnalysisWorker {
       ShutdownManager pShutdownManager,
       SSAMap pTypeMap)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
-    super(pId, pBlock, pLogger, pCFA, pSpecification, pConfiguration, pShutdownManager, pTypeMap);
+    super(pId, pOptions, pBlock, pLogger, pCFA, pSpecification, pConfiguration, pShutdownManager, pTypeMap);
     predicateCPA = backwardAnalysis.getDistributedCPA().getOriginalCPA(PredicateCPA.class);
     Configuration config = Configuration.builder().copyFrom(pConfiguration)
         .setOption("cpa.predicate.handlePointerAliasing", "false").build();
@@ -138,7 +139,7 @@ public class FaultLocalizationWorker extends AnalysisWorker {
       PredicateAbstractState state = (PredicateAbstractState) dpcpa.deserialize(message);
       TraceFormula tf = createTraceFormula(state.getPathFormula());
       Set<Fault> faults = performFaultLocalization(tf);
-      actualPost = actualPost == null ? tf.getPostConditionStatement() : actualPost;
+      actualPost = (actualPost == null || dpcpa.getSolver().getFormulaManager().getBooleanFormulaManager().isTrue(actualPost)) ? tf.getPostConditionStatement() : actualPost;
       actualPost = fmgr.substitute(actualPost, dpcpa.getSubstitutions());
       Payload updated = Payload.builder().putAll(currentResult.getPayload())
           .addEntry(POSTCONDITION_KEY, fmgr.dumpFormula(actualPost).toString()).build();
@@ -212,26 +213,32 @@ public class FaultLocalizationWorker extends AnalysisWorker {
       oldFormula = current.getFormula();
       intId++;
     }
-    Map<String, Integer> minimalIndices = new HashMap<>();
-    Map<String, BooleanFormula> minimalFormulas = new HashMap<>();
-    try (ProverEnvironment prover = predicateCPA.getSolver()
-        .newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-      prover.push(current.getFormula());
-      if (prover.isUnsat()) {
-        throw new TraceFormulaUnsatisfiableException(
-            "The trace formula is unsatisfiable, the path cannot be traversed. "
-                + current.getFormula());
-      }
-      for (ValueAssignment modelAssignment : prover.getModelAssignments()) {
-        Pair<String, OptionalInt> pair = FormulaManagerView.parseName(modelAssignment.getName());
-        int newVal =
-            minimalIndices.merge(pair.getFirst(), pair.getSecond().orElse(-2), Integer::max);
-        if (newVal == pair.getSecond().orElse(-2)) {
-          minimalFormulas.put(pair.getFirst(), modelAssignment.getAssignmentAsFormula());
+    BooleanFormula precondition = bmgr.makeTrue();
+    if (!workerOptions.faultLocalizationPreconditionAlwaysTrue) {
+      Map<String, Integer> minimalIndices = new HashMap<>();
+      Map<String, BooleanFormula> minimalFormulas = new HashMap<>();
+      try (ProverEnvironment prover = predicateCPA.getSolver()
+          .newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+        prover.push(current.getFormula());
+        if (prover.isUnsat()) {
+          throw new TraceFormulaUnsatisfiableException(
+              "The trace formula is unsatisfiable, the path cannot be traversed. "
+                  + current.getFormula());
+        }
+        for (ValueAssignment modelAssignment : prover.getModelAssignments()) {
+          Pair<String, OptionalInt> pair = FormulaManagerView.parseName(modelAssignment.getName());
+          if (pair.getFirst().contains(".")) {
+            continue;
+          }
+          int newVal =
+              minimalIndices.merge(pair.getFirst(), pair.getSecond().orElse(-2), Integer::max);
+          if (newVal == pair.getSecond().orElse(-2)) {
+            minimalFormulas.put(pair.getFirst(), modelAssignment.getAssignmentAsFormula());
+          }
         }
       }
+      precondition = bmgr.and(minimalFormulas.values());
     }
-    BooleanFormula precondition = bmgr.and(minimalFormulas.values());
     return new SelectorTraceWithKnownConditions(context, options, entries, precondition,
         transformPostCondition(pPostCondition.getFormula()), errorPath);
   }

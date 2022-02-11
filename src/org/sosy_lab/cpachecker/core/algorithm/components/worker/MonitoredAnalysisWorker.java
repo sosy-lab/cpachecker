@@ -29,6 +29,7 @@ public class MonitoredAnalysisWorker extends AnalysisWorker {
 
   MonitoredAnalysisWorker(
       String pId,
+      WorkerOptions pOptions,
       BlockNode pBlock,
       LogManager pLogger,
       CFA pCFA,
@@ -38,7 +39,7 @@ public class MonitoredAnalysisWorker extends AnalysisWorker {
       Monitor pMonitor,
       SSAMap pMap)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
-    super(pId, pBlock, pLogger, pCFA, pSpecification,
+    super(pId, pOptions, pBlock, pLogger, pCFA, pSpecification,
         pConfiguration,
         pShutdownManager, pMap);
     monitor = pMonitor;

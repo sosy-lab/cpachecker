@@ -31,6 +31,7 @@ public class SmartAnalysisWorker extends AnalysisWorker {
 
   SmartAnalysisWorker(
       String pId,
+      WorkerOptions pOptions,
       BlockNode pBlock,
       LogManager pLogger,
       CFA pCFA,
@@ -39,7 +40,7 @@ public class SmartAnalysisWorker extends AnalysisWorker {
       ShutdownManager pShutdownManager,
       SSAMap pTypeMap)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
-    super(pId, pBlock, pLogger, pCFA, pSpecification, pConfiguration, pShutdownManager, pTypeMap);
+    super(pId, pOptions, pBlock, pLogger, pCFA, pSpecification, pConfiguration, pShutdownManager, pTypeMap);
     smartQueue = new PriorityBlockingQueue<>();
   }
 

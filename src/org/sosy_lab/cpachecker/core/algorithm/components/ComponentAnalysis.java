@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.core.algorithm.components.worker.ComponentsBuilde
 import org.sosy_lab.cpachecker.core.algorithm.components.worker.ComponentsBuilder.Components;
 import org.sosy_lab.cpachecker.core.algorithm.components.worker.FaultLocalizationWorker;
 import org.sosy_lab.cpachecker.core.algorithm.components.worker.Worker;
+import org.sosy_lab.cpachecker.core.algorithm.components.worker.Worker.WorkerOptions;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -68,6 +69,7 @@ public class ComponentAnalysis implements Algorithm {
   private final CFA cfa;
   private final ShutdownManager shutdownManager;
   private final Specification specification;
+  private final WorkerOptions options;
 
   @Option(description = "algorithm to decompose the CFA")
   private DecompositionType decompositionType = DecompositionType.BLOCK_OPERATOR;
@@ -87,6 +89,7 @@ public class ComponentAnalysis implements Algorithm {
 
   @Option(description = "whether to use daemon threads for workers")
   private boolean daemon = true;
+
 
   private enum DecompositionType {
     BLOCK_OPERATOR,
@@ -117,6 +120,7 @@ public class ComponentAnalysis implements Algorithm {
     cfa = pCfa;
     shutdownManager = pShutdownManager;
     specification = pSpecification;
+    options = new WorkerOptions(configuration);
     checkConfig();
   }
 
@@ -149,13 +153,13 @@ public class ComponentAnalysis implements Algorithm {
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     switch (workerType) {
       case DEFAULT:
-        return pBuilder.addAnalysisWorker(pNode, pMap);
+        return pBuilder.addAnalysisWorker(pNode, pMap, options);
       case SMART:
-        return pBuilder.addSmartAnalysisWorker(pNode, pMap);
+        return pBuilder.addSmartAnalysisWorker(pNode, pMap, options);
       case MONITORED:
-        return pBuilder.addMonitoredAnalysisWorker(pNode, pMap);
+        return pBuilder.addMonitoredAnalysisWorker(pNode, pMap, options);
       case FAULT_LOCALIZATION:
-        return pBuilder.addFaultLocalizationWorker(pNode, pMap);
+        return pBuilder.addFaultLocalizationWorker(pNode, pMap, options);
       default:
         throw new AssertionError("Unknown WorkerType: " + workerType);
     }
@@ -205,14 +209,14 @@ public class ComponentAnalysis implements Algorithm {
           .createAdditionalConnections(1);
       for (BlockNode distinctNode : blocks) {
         if (distinctNode.isRoot()) {
-          builder = builder.addRootWorker(distinctNode);
+          builder = builder.addRootWorker(distinctNode, options);
         } else {
           builder = analysisWorker(builder, distinctNode, map);
         }
       }
-      builder = builder.addResultCollectorWorker(blocks);
-      builder = builder.addTimeoutWorker(maxWallTime);
-      Components components = builder.addVisualizationWorker(tree).build();
+      builder = builder.addResultCollectorWorker(blocks, options);
+      builder = builder.addTimeoutWorker(maxWallTime, options);
+      Components components = builder.addVisualizationWorker(tree, options).build();
 
       // run workers
       for (Worker worker : components.getWorkers()) {

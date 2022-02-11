@@ -20,6 +20,7 @@ import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode.BlockNodeFactory;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -44,7 +45,8 @@ public class BlockOperatorDecomposer implements CFADecomposer {
     BlockNodeFactory nodeFactory = new BlockNodeFactory();
 
     // create the root node of the tree consisting of the entry node only
-    BlockNode root = nodeFactory.makeBlock(startNode, startNode, ImmutableSet.of(startNode));
+    BlockNode root =
+        nodeFactory.makeBlock(startNode, startNode, ImmutableSet.of(startNode), ImmutableSet.of());
 
     // the stack stores all block ends (i.e., operator.isBlockEnd(node) == true)
     ArrayDeque<CFANode> blockEnds = new ArrayDeque<>();
@@ -80,8 +82,10 @@ public class BlockOperatorDecomposer implements CFADecomposer {
       // additionally, we want to store any node that is between start -> end of a BlockNode,
       // so we use the class Entry to track the current node and the nodes in between.
       final CFANode currentRootNode = lastCFANode;
-      CFAUtils.successorsOf(lastCFANode).transform(
-              succ -> new Entry(succ, new LinkedHashSet<>(ImmutableList.of(currentRootNode, succ))))
+      CFAUtils.leavingEdges(lastCFANode).transform(
+              edge -> new Entry(edge.getSuccessor(),
+                  new LinkedHashSet<>(ImmutableList.of(currentRootNode, edge.getSuccessor())),
+                  new LinkedHashSet<>(ImmutableList.of(edge))))
           .copyInto(toSearch);
 
       // if toSearch is empty, all successor nodes of lastCFANode have reached the block end
@@ -89,7 +93,7 @@ public class BlockOperatorDecomposer implements CFADecomposer {
         // look at the top entry
         Entry nodeEntry = toSearch.pop();
         // successorOfCurrNode is a successor of lastCFANode
-        CFANode successorOfCurrNode = nodeEntry.getNode();
+        CFANode successorOfCurrNode = nodeEntry.node;
         if (operator.isBlockEnd(successorOfCurrNode, 0)) {
           // alternative: if (successorOfCurrNode.getNumEnteringEdges() > 1 || successorOfCurrNode.getNumLeavingEdges() > 1) {
           // if successorOfCurrNode is a block end, create a new BlockNode that starts with
@@ -98,7 +102,8 @@ public class BlockOperatorDecomposer implements CFADecomposer {
           // block.
           blockEnds.push(successorOfCurrNode);
           BlockNode childBlockNode =
-              nodeFactory.makeBlock(lastCFANode, successorOfCurrNode, nodeEntry.getSeen());
+              nodeFactory.makeBlock(lastCFANode, successorOfCurrNode, nodeEntry.seen,
+                  nodeEntry.seenEdges);
 
           // every previous block that ends with lastCFANode is now linked to the new BlockNode that
           // starts with lastCFANode.
@@ -122,9 +127,16 @@ public class BlockOperatorDecomposer implements CFADecomposer {
         } else {
           // if successorOfCurrNode is not a block end, all successors must be added to the block
           for (CFANode successor : CFAUtils.successorsOf(successorOfCurrNode)) {
-            Set<CFANode> seen = new LinkedHashSet<>(nodeEntry.getSeen());
+            Set<CFANode> seen = new LinkedHashSet<>(nodeEntry.seen);
+            Set<CFAEdge> seenEdge = new LinkedHashSet<>(nodeEntry.seenEdges);
             seen.add(successor);
-            toSearch.add(new Entry(successor, seen));
+            for (CFAEdge leavingEdge : CFAUtils.leavingEdges(successorOfCurrNode)) {
+              if (leavingEdge.getSuccessor().equals(successor)) {
+                seenEdge.add(leavingEdge);
+                break;
+              }
+            }
+            toSearch.add(new Entry(successor, seen, seenEdge));
           }
         }
       }
@@ -135,18 +147,12 @@ public class BlockOperatorDecomposer implements CFADecomposer {
   private static class Entry {
     private final CFANode node;
     private final Set<CFANode> seen;
+    private final Set<CFAEdge> seenEdges;
 
-    public Entry(CFANode pNode, Set<CFANode> pSeen) {
+    public Entry(CFANode pNode, Set<CFANode> pSeen, Set<CFAEdge> pSeenEdges) {
       node = pNode;
       seen = new LinkedHashSet<>(pSeen);
-    }
-
-    public CFANode getNode() {
-      return node;
-    }
-
-    public Set<CFANode> getSeen() {
-      return seen;
+      seenEdges = new LinkedHashSet<>(pSeenEdges);
     }
 
     @Override

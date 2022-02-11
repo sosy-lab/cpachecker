@@ -40,6 +40,7 @@ public class RootWorker extends Worker {
 
   public RootWorker(
       String pId,
+      WorkerOptions pOptions,
       BlockNode pNode,
       LogManager pLogger,
       CFA pCfa,
@@ -47,7 +48,7 @@ public class RootWorker extends Worker {
       Configuration pConfiguration,
       ShutdownManager pShutdownManager)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
-    super("root-worker", pLogger);
+    super("root-worker", pLogger, pOptions);
     root = pNode;
     if (!root.isRoot() || !root.isEmpty() || !root.getLastNode().equals(root.getStartNode())) {
       throw new AssertionError("Root nodes must be empty and do not have predecessors: " + pNode);
