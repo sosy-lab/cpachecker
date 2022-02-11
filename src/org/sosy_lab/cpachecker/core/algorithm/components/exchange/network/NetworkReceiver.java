@@ -65,7 +65,7 @@ public class NetworkReceiver implements Closeable {
 
   // create server channel
   public void startServer() throws IOException {
-    while (!finished) {
+    while (!finished && selector.isOpen()) {
       // wait for events
       selector.select();
 
