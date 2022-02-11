@@ -237,28 +237,6 @@ public class Message implements Comparable<Message> {
       writer.write(message);
       writer.close();
       return output.toByteArray();
-    /*  byte[] toCompress = super.messageToJson(pMessage);
-      byte[] output = new byte[toCompress.length * 2];
-      //Compresses the data
-      Deflater deflater = new Deflater();
-      deflater.setInput(toCompress);
-      deflater.finish();
-      int compressedSize = deflater.deflate(output);
-
-      byte[] prefix = ("c" + toCompress.length + " ").getBytes(StandardCharsets.UTF_8);
-      byte[] toSend = new byte[prefix.length + compressedSize];
-
-      int i = 0;
-      for (byte b : prefix) {
-        toSend[i] = b;
-        i++;
-      }
-      for (int j = 0; j < compressedSize; j++) {
-        toSend[i] = output[j];
-        i++;
-      }
-
-      return toSend;*/
     }
 
     @Override
@@ -268,32 +246,6 @@ public class Message implements Comparable<Message> {
       byte[] response = reader.readAllBytes();
       reader.close();
       return super.jsonToMessage(response);
-      /*try {
-        int split = 0;
-        byte[] curr = new byte[pBytes.length];
-        String currString = "";
-        for (byte aByte : pBytes) {
-          curr[split] = aByte;
-          split++;
-          currString =
-              StandardCharsets.UTF_8.decode(ByteBuffer.wrap(Arrays.copyOfRange(curr, 0, split)))
-                  .toString();
-          if (currString.startsWith("c") && currString.endsWith(" ")) {
-            break;
-          }
-        }
-        int size = Integer.parseInt(currString.trim().substring(1));
-        byte[] toDecompress = Arrays.copyOfRange(pBytes, split, pBytes.length);
-
-        Inflater i = new Inflater();
-        ByteBuffer buffer = ByteBuffer.allocate(size);
-        i.setInput(toDecompress);
-        int org_size = i.inflate(buffer);
-        assert org_size == size : "Data lost";
-        return super.jsonToMessage(buffer.array());
-      } catch (DataFormatException e) {
-        throw new AssertionError("Cannot decompress message: " + Arrays.toString(pBytes));
-      }*/
     }
 
   }
