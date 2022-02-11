@@ -891,6 +891,27 @@ cinvariants.prefix = no default value
 # Attempt to simplify the invariant before exporting [may be very expensive].
 cinvariants.simplify = false
 
+# how to send messages
+components.connectionType = NETWORK
+  enum:     [NETWORK, IN_MEMORY]
+
+# whether to use daemon threads for workers
+components.daemon = true
+
+# algorithm to decompose the CFA
+components.decompositionType = BLOCK_OPERATOR
+  enum:     [BLOCK_OPERATOR, GIVEN_SIZE]
+
+# desired number of BlockNodes
+components.desiredNumberOfBlocks = 4
+
+# maximal overall wall-time for parallel analysis
+components.maxWallTime = 15 * 60s
+
+# which worker to use
+components.workerType = DEFAULT
+  enum:     [DEFAULT, SMART, MONITORED, FAULT_LOCALIZATION]
+
 # If adaptTimeLimits is set and all configurations support progress reports,
 # in each cycle the time limits per configuration are newly calculated based
 # on the progress
@@ -1975,6 +1996,9 @@ cpa.predicate.abs.predicateOrdering.method = CHRONOLOGICAL
 # use caching of abstractions
 # use caching of region to formula conversions
 cpa.predicate.abs.useCache = true
+
+# if the predicate precision adjustment should abstract at target states
+cpa.predicate.abstractAtTargetState = true
 
 # DEPRECATED: whether to use Boolean (false) or Cartesian (true) abstraction
 cpa.predicate.abstraction.cartesian = false
