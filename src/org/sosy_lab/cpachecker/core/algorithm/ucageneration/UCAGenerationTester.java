@@ -49,7 +49,7 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
-public class UCAGenerationTest {
+public class UCAGenerationTester {
 
   private static final long TIMEOUT = 900000;
 
@@ -613,7 +613,7 @@ public class UCAGenerationTest {
 
     public void performTest() throws Exception {
       if (pathTemplate.isPresent()) {
-        UCAGenerationTest.performTest(
+        UCAGenerationTester.performTest(
             programFile,
             generationConfig,
             overrideOptionsBuilder,
@@ -623,7 +623,7 @@ public class UCAGenerationTest {
             optionForOutput,
             pathTemplate.orElseThrow());
       } else {
-        UCAGenerationTest.performTest(
+        UCAGenerationTester.performTest(
             programFile,
             generationConfig,
             overrideOptionsBuilder,
