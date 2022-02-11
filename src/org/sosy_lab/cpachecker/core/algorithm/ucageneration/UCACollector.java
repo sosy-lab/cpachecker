@@ -12,7 +12,6 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.arg.ARGUtils.getUncoveredChildrenView;
 
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.util.Comparator;
