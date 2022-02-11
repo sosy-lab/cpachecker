@@ -120,6 +120,10 @@ public class ComponentAnalysis implements Algorithm {
     checkConfig();
   }
 
+  /**
+   * Currently, fault localization worker require linear blocks
+   * @throws InvalidConfigurationException if configuration for block analysis is invalid
+   */
   private void checkConfig() throws InvalidConfigurationException {
     if (workerType == WorkerType.FAULT_LOCALIZATION
         && decompositionType != DecompositionType.BLOCK_OPERATOR) {
@@ -226,7 +230,7 @@ public class ComponentAnalysis implements Algorithm {
       // wait for result
       while (true) {
         // breaks if one observer wants to finish.
-        if (listener.publish(mainThreadConnection.read())) {
+        if (listener.process(mainThreadConnection.read())) {
           break;
         }
       }

@@ -18,7 +18,7 @@ public class ErrorMessageObserver implements MessageObserver {
   @Override
   public boolean process(Message pMessage) throws CPAException {
     if (pMessage.getType() == MessageType.ERROR) {
-      throw new CPAException(pMessage.getPayload().get(Payload.EXCEPTION));
+      throw new CPAException(pMessage.getPayload().getOrDefault(Payload.EXCEPTION, "unknown"));
     }
     return false;
   }

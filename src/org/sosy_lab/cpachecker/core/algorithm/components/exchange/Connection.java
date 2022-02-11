@@ -22,12 +22,30 @@ public interface Connection extends Closeable {
    */
   Message read() throws InterruptedException;
 
+  /**
+   * Returns the size of pending messages
+   * @return size of pending messages
+   */
   int size();
 
+  /**
+   * Indicates if pending messages exist
+   * @return true, if no pending messages exist, false otherwise
+   */
   default boolean isEmpty() {
     return size() == 0;
   }
 
+  /**
+   * If a queue supports on the fly ordering of message types, the desired ordering can be set here.
+   * If available, <code>read</code> returns messages by their type in the given order.
+   *
+   * Example:
+   * pOrdering = [A, B, C]
+   * read will first return all pending messages of type A, then B, then C
+   *
+   * @param pOrdering an array of MessageTypes.
+   */
   default void setOrdering(MessageType... pOrdering) {
     throw new AssertionError("This implementation does not support custom orderings");
   }
@@ -40,7 +58,7 @@ public interface Connection extends Closeable {
   Collection<Message> readType(MessageType pType);*/
 
   /**
-   * Write and broadcast a message to all connections
+   * Write and broadcast a message to all connections including itself
    *
    * @param message Message to broadcast
    * @throws IOException          if write operation fails

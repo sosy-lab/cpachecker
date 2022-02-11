@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.components.exchange.observer;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
@@ -37,6 +38,7 @@ public class FaultLocalizationMessageObserver implements MessageObserver {
   }
 
   @Override
+  @CanIgnoreReturnValue
   public boolean process(Message pMessage) throws CPAException {
     if (pMessage.getType() == MessageType.ERROR_CONDITION && pMessage.getPayload()
         .containsKey(Payload.FAULT_LOCALIZATION)) {

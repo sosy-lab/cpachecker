@@ -33,6 +33,8 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 
 /**
  * Immutable communication entity for the actor model
+ * Messages cannot be created with the constructor as they have to contain different information depending on their type.
+ * Therefore, this class provides static methods to create messages of a certain type.
  */
 public class Message implements Comparable<Message> {
 
@@ -43,6 +45,14 @@ public class Message implements Comparable<Message> {
   private final Payload payload;
   private final long timestamp;
 
+  /**
+   * A message is the interface of communication of {@link org.sosy_lab.cpachecker.core.algorithm.components.worker.Worker}
+   *
+   * @param pType             the type of the message
+   * @param pUniqueBlockId    the id of the worker/block that sends this message
+   * @param pTargetNodeNumber the location from which this message originated from
+   * @param pPayload          a map that will be transformed into JSON.
+   */
   private Message(
       MessageType pType,
       String pUniqueBlockId,
@@ -52,6 +62,7 @@ public class Message implements Comparable<Message> {
     type = pType;
     payload = pPayload;
     uniqueBlockId = pUniqueBlockId;
+    // when the message was created
     timestamp = System.currentTimeMillis();
   }
 
@@ -66,9 +77,18 @@ public class Message implements Comparable<Message> {
     type = pType;
     payload = pPayload;
     uniqueBlockId = pUniqueBlockId;
+    // the deserialization does not change the timestamp
     timestamp = pTimestamp;
   }
 
+  /**
+   * Copy {@code pMessage} and replace its payload with {@code pPayload}.
+   * The message {@code pMessage} remains unchanged.
+   *
+   * @param pMessage message to copy
+   * @param pPayload new payload
+   * @return new message that is a copy of {@code pMessage} with a new payload {@code pPayload}
+   */
   public static Message replacePayload(Message pMessage, Payload pPayload) {
     return new Message(pMessage.getType(), pMessage.getUniqueBlockId(),
         pMessage.getTargetNodeNumber(), pMessage.getTimestamp(), pPayload);
@@ -225,6 +245,9 @@ public class Message implements Comparable<Message> {
 
   public static class CompressedMessageConverter extends MessageConverter {
 
+    /**
+     * Mimics a MessageConverter but it zips messages.
+     */
     public CompressedMessageConverter() {
       super();
     }

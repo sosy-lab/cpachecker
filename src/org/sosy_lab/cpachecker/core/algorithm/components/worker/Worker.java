@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.components.worker;
 
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Objects;
@@ -26,6 +27,12 @@ public abstract class Worker implements Runnable {
   protected Connection connection;
   protected boolean finished;
 
+  /**
+   * Abstract definition of a Worker.
+   * All workers enter the same routine of receiving and producing messages.
+   * @param pId the id of the worker
+   * @param pLogger a logger to log messages
+   */
   protected Worker(String pId, LogManager pLogger) {
     logger = pLogger;
     id = pId;
@@ -63,12 +70,13 @@ public abstract class Worker implements Runnable {
       }
     } catch (CPAException | InterruptedException | IOException | SolverException pE) {
       logger.log(Level.SEVERE, pE);
-      throw new AssertionError(pE);
-/*      try {
+      try {
+        // result unknown if error occurs
         broadcast(ImmutableList.of(Message.newErrorMessage(getId(), pE)));
       } catch (IOException | InterruptedException pEx) {
-        logger.log(Level.SEVERE, pE);
-      }*/
+        // in case broadcast fails, throw unchecked exception.
+        throw new AssertionError(pE);
+      }
     }
   }
 

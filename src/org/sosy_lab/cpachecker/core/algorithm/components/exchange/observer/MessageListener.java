@@ -14,7 +14,7 @@ import java.util.NoSuchElementException;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class MessageListener {
+public class MessageListener implements MessageObserver {
 
   private final List<MessageObserver> observerList;
 
@@ -33,7 +33,8 @@ public class MessageListener {
    * @return true, if listener should stop listening
    * @throws CPAException wrapper exception
    */
-  public boolean publish(Message pMessage) throws CPAException {
+  @Override
+  public boolean process(Message pMessage) throws CPAException {
     boolean finish = false;
     for (MessageObserver messageObserver : observerList) {
       finish |= messageObserver.process(pMessage);
@@ -41,6 +42,7 @@ public class MessageListener {
     return finish;
   }
 
+  @Override
   public void finish() throws CPAException, InterruptedException {
     for (MessageObserver messageObserver : observerList) {
       messageObserver.finish();

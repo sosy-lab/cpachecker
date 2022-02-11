@@ -23,6 +23,10 @@ public class CleverMessageQueue extends ForwardingBlockingQueue<Message> {
 
   private final MessageType[] ordering;
 
+  /**
+   * Mimics a blocking queue but changes the blocking method <code>take</code> to prioritize messages
+   * @param pQueue the queue to forward
+   */
   public CleverMessageQueue(BlockingQueue<Message> pQueue) {
     queue = pQueue;
     messages = ArrayListMultimap.create();
@@ -56,6 +60,12 @@ public class CleverMessageQueue extends ForwardingBlockingQueue<Message> {
     return Optional.empty();
   }
 
+  /**
+   * Returns the next message to be processed.
+   * The method sorts all new messages of the underlying blocking queue by their type in a multimap.
+   * As long as entries are present in the multimap, simply return them by the defined ordering
+   * If no message is present, wait for one by calling the take method of the underlying blocking queue.
+   */
   @Override
   public Message take() throws InterruptedException {
     while (!queue.isEmpty()) {

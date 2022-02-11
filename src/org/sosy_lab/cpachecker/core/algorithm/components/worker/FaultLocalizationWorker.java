@@ -188,6 +188,9 @@ public class FaultLocalizationWorker extends AnalysisWorker {
         continue;
       }
       BooleanFormula newFormula = current.getFormula();
+      if (bmgr.isFalse(newFormula)) {
+        throw new TraceFormulaUnsatisfiableException("The post-condition is not reachable");
+      }
       List<BooleanFormula> parts = new ArrayList<>(bmgr.toConjunctionArgs(newFormula, false));
       BooleanFormula correctPart = null;
       if (parts.size() == 1 && bmgr.isTrue(oldFormula)) {

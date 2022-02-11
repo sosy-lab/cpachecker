@@ -86,7 +86,6 @@ public class ResultWorker extends Worker {
   }
 
   private Collection<Message> response(int numViolationsBefore, Message pMessage) {
-    logger.log(Level.INFO, pMessage);
     boolean onlyOriginViolations = true;
     for (Entry<String, Integer> stringIntegerEntry : expectAnswer.entrySet()) {
       if (violationOrigins.contains(stringIntegerEntry.getKey())) {
