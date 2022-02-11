@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.components;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
-import java.nio.file.Path;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -26,8 +25,6 @@ import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.blocks.BlockToDotWriter;
-import org.sosy_lab.cpachecker.cfa.blocks.builder.BlockPartitioningBuilder;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -90,7 +87,7 @@ public class ComponentAnalysis implements Algorithm, StatisticsProvider, Statist
   private WorkerType workerType = WorkerType.DEFAULT;
 
   @Option(description = "desired number of BlockNodes")
-  private int desiredNumberOfBlocks = 4;
+  private int desiredNumberOfBlocks = 5;
 
   @Option(description = "maximal overall wall-time for parallel analysis")
   @TimeSpanOption(codeUnit = TimeUnit.MILLISECONDS, min = 0)
@@ -296,14 +293,6 @@ public class ComponentAnalysis implements Algorithm, StatisticsProvider, Statist
     return manager.makeFormulaForPath(
         pTree.getDistinctNodes().stream().flatMap(m -> m.getEdgesInBlock().stream()).collect(
             Collectors.toList())).getSsa();
-  }
-
-  private void drawBlockDot(BlockTree tree) {
-    BlockPartitioningBuilder builder = new BlockPartitioningBuilder();
-    for (BlockNode distinctNode : tree.getDistinctNodes()) {
-      builder.addBlock(distinctNode.getNodesInBlock(), distinctNode.getStartNode());
-    }
-    new BlockToDotWriter(builder.build(cfa)).dump(Path.of("./output/blocks.dot"), logger);
   }
 
   @Override

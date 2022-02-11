@@ -76,7 +76,7 @@ public abstract class AbstractDistributedCPA implements ConfigurableProgramAnaly
       throws SolverException, InterruptedException;
 
   public abstract AbstractState combine(AbstractState pState1, AbstractState pState2)
-      throws InterruptedException;
+      throws InterruptedException, CPAException;
 
   public MessageProcessing proceed(Message newMessage)
       throws SolverException, InterruptedException {

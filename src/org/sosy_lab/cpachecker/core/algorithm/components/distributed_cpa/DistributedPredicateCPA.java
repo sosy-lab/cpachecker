@@ -208,6 +208,10 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
     if (!node.equals(block.getStartNode())) {
       return MessageProcessing.stop();
     }
+    if (!Boolean.parseBoolean(message.getPayload().getOrDefault(Payload.REACHABLE, Boolean.toString(true)))) {
+      unsatPredecessors.add(message.getUniqueBlockId());
+      return MessageProcessing.stop();
+    }
     PredicateAbstractState state = (PredicateAbstractState) deserialize(message);
     if (getSolver().isUnsat(state.getPathFormula().getFormula())) {
       receivedPostConditions.remove(message.getUniqueBlockId());
@@ -227,15 +231,17 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
 
   private void storePostCondition(Message pMessage) {
     Payload payload = pMessage.getPayload();
+    Message toStore = Message.replacePayload(pMessage,
+        Payload.builder().putAll(payload).remove(Payload.SMART).build());
     if (analysisOptions.doStoreCircularPostConditions() && Splitter.on(",")
         .splitToList(payload.getOrDefault(Payload.VISITED, "")).stream()
         .anyMatch(s -> s.equals(block.getId()))) {
       if (Boolean.parseBoolean(payload.get(Payload.FULL_PATH))) {
-        receivedPostConditions.put(pMessage.getUniqueBlockId(), pMessage);
+        receivedPostConditions.put(pMessage.getUniqueBlockId(), toStore);
       }
       circular.add(pMessage.getUniqueBlockId());
     } else {
-      receivedPostConditions.put(pMessage.getUniqueBlockId(), pMessage);
+      receivedPostConditions.put(pMessage.getUniqueBlockId(), toStore);
     }
   }
 

@@ -54,6 +54,7 @@ public class NetworkReceiver implements Closeable {
       } catch (IOException pE) {
         sharedQueue.add(Message.newErrorMessage("own", pE));
         Thread.currentThread().interrupt();
+        throw new AssertionError(pE);
       }
     });
     receiverThread.setDaemon(true);

@@ -99,11 +99,15 @@ public class Message implements Comparable<Message> {
       int pTargetNodeNumber,
       Payload pPayload,
       boolean pFull,
+      boolean pReachable,
       Set<String> pVisited) {
     Payload newPayload =
-        Payload.builder().putAll(pPayload).addEntry(Payload.FULL_PATH, Boolean.toString(pFull))
+        Payload.builder().putAll(pPayload)
+            .addEntry(Payload.FULL_PATH, Boolean.toString(pFull))
             .addEntry(Payload.VISITED,
-                Joiner.on(",").join(pVisited)).build();
+                Joiner.on(",").join(pVisited))
+            .addEntry(Payload.REACHABLE, Boolean.toString(pReachable))
+            .build();
     return new Message(MessageType.BLOCK_POSTCONDITION, pUniqueBlockId, pTargetNodeNumber,
         newPayload);
   }
@@ -187,13 +191,16 @@ public class Message implements Comparable<Message> {
 
   @Override
   public boolean equals(Object pO) {
-    if (!(pO instanceof Message)) {
+    if (this == pO) {
+      return true;
+    }
+    if (pO == null || getClass() != pO.getClass()) {
       return false;
     }
     Message message = (Message) pO;
-    return targetNodeNumber == message.targetNodeNumber && uniqueBlockId.equals(
-        message.uniqueBlockId)
-        && type == message.type && payload.equals(message.payload);
+    return targetNodeNumber == message.targetNodeNumber && Objects.equals(uniqueBlockId,
+        message.uniqueBlockId) && type == message.type && Objects.equals(payload,
+        message.payload);
   }
 
   @Override

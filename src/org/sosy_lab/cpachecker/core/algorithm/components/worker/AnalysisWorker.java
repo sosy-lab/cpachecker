@@ -74,7 +74,8 @@ public class AnalysisWorker extends Worker {
         .build();
 
     Specification backwardSpecification =
-        Specification.fromFiles(ImmutableSet.of(Path.of("config/specification/MainEntry.spc")),
+        Specification.fromFiles(ImmutableSet.of(Path.of("config/specification/MainEntry.spc"),
+                Path.of("config/specification/TerminatingFunctions.spc")),
             pCFA, backwardConfiguration, logger, pShutdownManager.getNotifier());
 
     ConfigString forward = new ConfigString();
@@ -158,7 +159,7 @@ public class AnalysisWorker extends Worker {
       if (!block.isSelfCircular() && !block.getPredecessors().isEmpty()) {
         List<Message> initialMessages = ImmutableList.copyOf(forwardAnalysis(ImmutableSet.of(
             Message.newBlockPostCondition("", block.getStartNode().getNodeNumber(), Payload.empty(),
-                false, ImmutableSet.of()))));
+                false, true, ImmutableSet.of()))));
         Optional<Message> optionalMessage =
             initialMessages.stream().filter(m -> m.getType() == MessageType.BLOCK_POSTCONDITION)
                 .findAny();

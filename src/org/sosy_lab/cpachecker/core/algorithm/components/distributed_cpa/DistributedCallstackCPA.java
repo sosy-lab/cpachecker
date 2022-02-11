@@ -30,7 +30,6 @@ public class DistributedCallstackCPA extends AbstractDistributedCPA {
 
   private static final String DELIMITER = ",  ";
 
-
   public DistributedCallstackCPA(
       String pId,
       BlockNode pNode,
@@ -44,8 +43,7 @@ public class DistributedCallstackCPA extends AbstractDistributedCPA {
   @Override
   public AbstractState deserialize(Message pPayload) throws InterruptedException {
     Payload payload = pPayload.getPayload();
-    if (direction == AnalysisDirection.FORWARD || !payload.containsKey(
-        parentCPA.getClass().getName())) {
+    if (!payload.containsKey(parentCPA.getClass().getName())) {
       return getInitialState(block.getNodeWithNumber(pPayload.getTargetNodeNumber()),
           StateSpacePartition.getDefaultPartition());
     }
@@ -63,9 +61,6 @@ public class DistributedCallstackCPA extends AbstractDistributedCPA {
 
   @Override
   public Payload serialize(AbstractState pState) {
-    if (direction == AnalysisDirection.FORWARD) {
-      return Payload.empty();
-    }
     CallstackState curr = (CallstackState) pState;
     List<String> states = new LinkedList<>();
     while (curr != null) {
@@ -90,8 +85,8 @@ public class DistributedCallstackCPA extends AbstractDistributedCPA {
 
   @Override
   public AbstractState combine(
-      AbstractState pState1, AbstractState pState2) throws InterruptedException {
-    return pState2;
+      AbstractState pState1, AbstractState pState2) throws InterruptedException, CPAException {
+    return getMergeOperator().merge(pState1, pState2, precision);
   }
 
   @Override

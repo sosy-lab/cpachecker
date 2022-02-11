@@ -29,6 +29,8 @@ public class Payload extends ForwardingMap<String, String> {
   public static final String VISITED = "visited";
   public static final String STATUS = "status";
   public static final String REASON = "reason";
+  public static final String REACHABLE = "reach";
+  public static final String SMART = "smart";
 
   private final Map<String, String> delegate;
 
@@ -83,6 +85,11 @@ public class Payload extends ForwardingMap<String, String> {
 
     public PayloadBuilder putAll(Map<String, String> pMap) {
       payload.putAll(pMap);
+      return this;
+    }
+
+    public PayloadBuilder remove(String pKey) {
+      payload.remove(pKey);
       return this;
     }
 

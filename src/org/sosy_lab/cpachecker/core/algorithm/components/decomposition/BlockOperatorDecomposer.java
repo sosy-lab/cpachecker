@@ -143,26 +143,7 @@ public class BlockOperatorDecomposer implements CFADecomposer {
         }
       }
     }
-    BlockTree tree = new BlockTree(root, nodeFactory);
-    for (BlockNode distinctNode : tree.getDistinctNodes()) {
-      for (CFAEdge cfaEdge : distinctNode.getEdgesInBlock()) {
-        if (cfaEdge instanceof CStatementEdge) {
-          CStatementEdge statementEdge = (CStatementEdge) cfaEdge;
-          if (statementEdge.getStatement() instanceof CFunctionCallStatement) {
-            CFunctionCallStatement functionCallStatement =
-                (CFunctionCallStatement) statementEdge.getStatement();
-            if (functionCallStatement.getFunctionCallExpression().getDeclaration().toString()
-                .equals("void abort();")) {
-              for (BlockNode blockNode : new HashSet<>(distinctNode.getSuccessors())) {
-                nodeFactory.unlinkSuccessor(distinctNode, blockNode);
-              }
-              break;
-            }
-          }
-        }
-      }
-    }
-    return tree;
+    return new BlockTree(root, nodeFactory);
   }
 
   private static class Entry {

@@ -99,7 +99,7 @@ public class RootWorker extends Worker {
           Message.newBlockPostCondition(root.getId(), root.getLastNode().getNodeNumber(),
               analysis.getDistributedCPA().serialize(analysis.getDistributedCPA()
                   .getInitialState(root.getStartNode(), StateSpacePartition.getDefaultPartition())),
-              true, ImmutableSet.of(root.getId()));
+              true, true, ImmutableSet.of(root.getId()));
       analysis.getDistributedCPA().setFirstMessage(firstMessage);
       broadcast(ImmutableSet.of(firstMessage));
       super.run();

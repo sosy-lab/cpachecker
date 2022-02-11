@@ -80,14 +80,14 @@ public abstract class Worker implements Runnable, StatisticsProvider {
         finished |= Thread.currentThread().isInterrupted();
       }
     } catch (CPAException | InterruptedException | IOException | SolverException pE) {
-      throw new AssertionError(pE);
-/*      try {
-        // result unknown if error occurs
+      try {
+        // result unknown if error occurs, terminate other workers.
         broadcast(ImmutableList.of(Message.newErrorMessage(getId(), pE)));
       } catch (IOException | InterruptedException pEx) {
         // in case broadcast fails, throw unchecked exception.
-        throw new AssertionError(pE);
-      }*/
+      }
+      // error messages dont print stack trace... this worker terminates
+      throw new AssertionError(pE);
     }
   }
 

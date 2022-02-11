@@ -110,6 +110,12 @@ public class DistributedCompositeCPA extends AbstractDistributedCPA {
   @Override
   public MessageProcessing proceedForward(Message newMessage)
       throws SolverException, InterruptedException {
+    if (receivedPostConditions.containsKey(newMessage.getUniqueBlockId())) {
+      if (receivedPostConditions.get(newMessage.getUniqueBlockId()).equals(newMessage)) {
+        return MessageProcessing.stop();
+      }
+    }
+    receivedPostConditions.put(newMessage.getUniqueBlockId(), newMessage);
     MessageProcessing processing = MessageProcessing.proceed();
     for (AbstractDistributedCPA value : registered.values()) {
       processing = processing.merge(value.proceedForward(newMessage), true);
@@ -156,8 +162,8 @@ public class DistributedCompositeCPA extends AbstractDistributedCPA {
   }
 
   @Override
-  public AbstractState combine(
-      AbstractState pState1, AbstractState pState2) throws InterruptedException {
+  public AbstractState combine(AbstractState pState1, AbstractState pState2)
+      throws InterruptedException, CPAException {
     CompositeState state1 = (CompositeState) pState1;
     CompositeState state2 = (CompositeState) pState2;
 

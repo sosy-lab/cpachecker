@@ -17,6 +17,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
+import java.util.stream.Collectors;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
@@ -58,12 +60,13 @@ public class ResultWorker extends Worker {
       return ImmutableSet.of();
     }
 
+    messageReceived.add(senderId);
+
     switch (type) {
       case ERROR_CONDITION:
         boolean newPostCondition = Boolean.parseBoolean(pMessage.getPayload().get("first"));
         if (newPostCondition) {
           // we need a block to first send an own error condition or the first BLOCKPOSTCONDITION
-          messageReceived.add(senderId);
           expectAnswer.merge(senderId, 1, Integer::sum);
         } else {
           expectAnswer.merge(senderId, -1, Integer::sum);
@@ -81,7 +84,6 @@ public class ResultWorker extends Worker {
         return ImmutableSet.of();
       case BLOCK_POSTCONDITION:
         // we need a block to first send an own error condition or the first BLOCKPOSTCONDITION
-        messageReceived.add(senderId);
         return ImmutableSet.of();
       default:
         throw new AssertionError(type + " does not exist");
@@ -93,6 +95,8 @@ public class ResultWorker extends Worker {
     // that messages are processed in the same way on all workers
     // that's why we use allMatch
     // to ensure we do not forget an error location, we need every worker to send an initial message
+    logger.log(Level.ALL,"Waiting for answers: ", expectAnswer.entrySet().stream().filter(e -> e.getValue() != 0).collect(
+        Collectors.toMap(e -> e.getKey(), e-> e.getValue())) + "-" + messageReceived.size() + "/" + numWorkers);
     finished =
         messageReceived.size() == numWorkers
             && expectAnswer.values().stream().allMatch(i -> i == 0);

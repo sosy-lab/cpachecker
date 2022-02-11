@@ -283,6 +283,9 @@ public abstract class BlockAnalysis {
               ImmutableList.toImmutableList());
       Set<Message> answers = new HashSet<>();
       if (!compositeStates.isEmpty()) {
+        boolean fullPath = messages.size() == block.getPredecessors().size() && messages.stream()
+            .allMatch(m -> Boolean.parseBoolean(m.getPayload().get(Payload.FULL_PATH)));
+        Set<String> visited = visitedBlocks(messages);
         AbstractState combined = distributedCompositeCPA.combine(compositeStates);
         Payload result = distributedCompositeCPA.serialize(combined);
         result = Payload.builder().putAll(result).addEntry(Payload.STATUS,
@@ -290,9 +293,7 @@ public abstract class BlockAnalysis {
             .build();
         Message response =
             Message.newBlockPostCondition(block.getId(), block.getLastNode().getNodeNumber(),
-                result, messages.size() == block.getPredecessors().size() && messages.stream()
-                    .allMatch(m -> Boolean.parseBoolean(m.getPayload().get(Payload.FULL_PATH))),
-                visitedBlocks(messages));
+                result, fullPath, true, visited);
         distributedCompositeCPA.setLatestOwnPostConditionMessage(response);
         answers.add(response);
       }
