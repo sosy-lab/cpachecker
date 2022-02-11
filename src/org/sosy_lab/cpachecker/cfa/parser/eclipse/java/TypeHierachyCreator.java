@@ -36,10 +36,9 @@ import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 
 /**
- * This Visitor Iterates the Compilation Unit for top-level Type Declarations,
- * converts them into types, and inserts them into a type Hierarchy.
- * Through bindings of the parser, every super type is converted and inserted
- * as well.
+ * This Visitor Iterates the Compilation Unit for top-level Type Declarations, converts them into
+ * types, and inserts them into a type Hierarchy. Through bindings of the parser, every super type
+ * is converted and inserted as well.
  */
 class TypeHierachyCreator extends ASTVisitor {
 
@@ -56,20 +55,18 @@ class TypeHierachyCreator extends ASTVisitor {
   /** FileName of File, which was parsed into the currently visited Compilation Unit. */
   private Path fileOfCU;
 
-  /**
-   * Used for propagating errors due to wrong naming of files of classes.
-   *
-   */
+  /** Used for propagating errors due to wrong naming of files of classes. */
   private boolean classNameException = false;
+
   private String className;
   private String expectedName;
 
-/**
- * Creates the visitor. The created types are stored in the type table.
- *
- * @param pLogger Logger logging progress.
- * @param pTypeTable The type table of the type hierarchy, to be filled with the created types
- */
+  /**
+   * Creates the visitor. The created types are stored in the type table.
+   *
+   * @param pLogger Logger logging progress.
+   * @param pTypeTable The type table of the type hierarchy, to be filled with the created types
+   */
   public TypeHierachyCreator(LogManager pLogger, THTypeTable pTypeTable) {
     logger = pLogger;
     typeTable = pTypeTable;
@@ -103,9 +100,13 @@ class TypeHierachyCreator extends ASTVisitor {
 
       if (classNameException) {
         throw new JParserException(
-          "The top-level class " + className + " is not declared within a file " +
-              "with the expected filename " + expectedName +
-              ".\n It is instead declared in " + fileOfCU);
+            "The top-level class "
+                + className
+                + " is not declared within a file "
+                + "with the expected filename "
+                + expectedName
+                + ".\n It is instead declared in "
+                + fileOfCU);
       }
     }
 
@@ -128,7 +129,7 @@ class TypeHierachyCreator extends ASTVisitor {
 
     VariableDeclarationFragment vdf = (VariableDeclarationFragment) fD.fragments().get(FIRST);
 
-    //TODO Add declaring class to JFielddeclaration
+    // TODO Add declaring class to JFielddeclaration
     IVariableBinding variableBinding = vdf.resolveBinding();
     checkNotNull(variableBinding);
 
@@ -202,9 +203,7 @@ class TypeHierachyCreator extends ASTVisitor {
     final ITypeBinding classBinding = pDeclaration.resolveBinding();
 
     checkNotNull(classBinding);
-    checkArgument(classBinding.isClass()
-               || classBinding.isEnum()
-               || classBinding.isInterface());
+    checkArgument(classBinding.isClass() || classBinding.isEnum() || classBinding.isInterface());
 
     final THTypeConverter typeConverter = new THTypeConverter(typeTable);
     final JClassOrInterfaceType classType = typeConverter.convertClassOrInterfaceType(classBinding);

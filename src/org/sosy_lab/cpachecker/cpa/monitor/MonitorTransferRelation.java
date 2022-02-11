@@ -256,8 +256,8 @@ public class MonitorTransferRelation extends SingleEdgeTransferRelation {
     return wrappedSuccessors.build();
   }
 
-  private static interface TransferCallable extends Callable<Collection<? extends AbstractState>> {
+  private interface TransferCallable extends Callable<Collection<? extends AbstractState>> {
     @Override
-    public Collection<? extends AbstractState> call() throws CPATransferException, InterruptedException;
+    Collection<? extends AbstractState> call() throws CPATransferException, InterruptedException;
   }
 }

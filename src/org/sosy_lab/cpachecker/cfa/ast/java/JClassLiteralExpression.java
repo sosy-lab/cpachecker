@@ -19,8 +19,15 @@ import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 /**
- * public class JClassLiteral { ClassLiteral: TypeName {[ ]} . class NumericType {[ ]} . class
- * boolean {[ ]} . class void . class
+ *
+ *
+ * <pre>
+ * ClassLiteral:
+ *   TypeName {[ ]} . class
+ *   NumericType {[ ]} . class
+ *   boolean {[ ]} . class
+ *   void . class
+ * </pre>
  */
 public class JClassLiteralExpression extends ALiteralExpression implements JLiteralExpression {
 

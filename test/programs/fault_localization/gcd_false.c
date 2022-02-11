@@ -6,10 +6,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-extern int __VERIFIER_nondet_int();
-
 int isDivisible(int number, int divisor) {
-	while(!(number < 0)) {
+	while(!(number < 0)) { // FIX: while(number > 0) or while(!(number <= 0))
 		number -= divisor;
 	}
 	return 0 == number;
@@ -45,6 +43,8 @@ int main(){
 	int number1 = 12;
 	int number2 = 8;
 
+        // "tmp" variables are a weakness of FL
+        // because setting result to the correct value will always work.
 	int result = gcd(number1, number2);
 
 	// There is no positive whole number solution for negative values or 0

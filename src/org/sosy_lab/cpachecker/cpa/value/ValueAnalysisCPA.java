@@ -11,19 +11,15 @@ package org.sosy_lab.cpachecker.cpa.value;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.SetMultimap;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -32,7 +28,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
@@ -53,10 +48,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecisionBootstrapper.InitialPredicatesOptions;
-import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapParser;
-import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecisionAdjustment.PrecAdjustmentOptions;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecisionAdjustment.PrecAdjustmentStatistics;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation.ValueTransferOptions;
@@ -66,13 +57,8 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAnalysisPrecision
 import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAnalysisPrecisionAdjustment.SymbolicStatistics;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAssigner;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
-import org.sosy_lab.cpachecker.util.predicates.regions.SymbolicRegionManager;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
 
@@ -141,6 +127,7 @@ public class ValueAnalysisCPA extends AbstractCPA
   private final ValueTransferOptions transferOptions;
   private final PrecAdjustmentOptions precisionAdjustmentOptions;
   private final PrecAdjustmentStatistics precisionAdjustmentStatistics;
+  private final PredicateToValuePrecisionConverter predToValPrec;
 
   private SymbolicStatistics symbolicStats;
 
@@ -153,6 +140,8 @@ public class ValueAnalysisCPA extends AbstractCPA
     this.cfa              = cfa;
 
     config.inject(this, ValueAnalysisCPA.class);
+
+    predToValPrec = new PredicateToValuePrecisionConverter(config, logger, pShutdownNotifier, cfa);
 
     precision           = initializePrecision(config, cfa);
     statistics          = new ValueAnalysisCPAStatistics(this, config);
@@ -198,23 +187,10 @@ public class ValueAnalysisCPA extends AbstractCPA
       // refine precision with increment from the newly gained variable tracking precision
       // otherwise return empty precision if given predicate precision is empty
 
-      try (Solver solver = Solver.create(pConfig, this.logger, this.shutdownNotifier)) {
-        FormulaManagerView formulaManager = solver.getFormulaManager();
-
-        RegionManager regionManager = new SymbolicRegionManager(solver);
-        AbstractionManager abstractionManager =
-            new AbstractionManager(regionManager, pConfig, logger, solver);
-
-        PredicatePrecision predPrec = parsePredPrecFile(pCfa, formulaManager, abstractionManager);
-
-        if (!predPrec.isEmpty()) {
-          initialPrecision =
-              initialPrecision.withIncrement(
-                  convertPredPrecToVariableTrackingPrec(predPrec, formulaManager));
-        }
-      }
+      initialPrecision =
+          initialPrecision.withIncrement(
+              predToValPrec.convertPredPrecToVariableTrackingPrec(initialPredicatePrecisionFile));
     }
-
     if (initialPrecisionFile != null) {
       // create precision with empty, refinable component precision
       // refine the refinable component precision with increment from file
@@ -224,47 +200,7 @@ public class ValueAnalysisCPA extends AbstractCPA
     return initialPrecision;
   }
 
-  private PredicatePrecision parsePredPrecFile(
-      final CFA pCfa, final FormulaManagerView pFMgr, final AbstractionManager abstractionManager) {
 
-    // create managers for the predicate map parser for parsing the predicates from the given
-    // predicate precision file
-
-    PredicateMapParser mapParser =
-        new PredicateMapParser(
-            pCfa, this.logger, pFMgr, abstractionManager, new InitialPredicatesOptions());
-
-    try {
-      return mapParser.parsePredicates(initialPredicatePrecisionFile);
-    } catch (IOException | PredicateParsingFailedException e) {
-      logger.logUserException(
-          Level.WARNING,
-          e,
-          "Could not read precision from file named " + initialPredicatePrecisionFile);
-      return PredicatePrecision.empty();
-    }
-  }
-
-  private Multimap<CFANode, MemoryLocation> convertPredPrecToVariableTrackingPrec(
-      final PredicatePrecision pPredPrec, final FormulaManagerView pFMgr) {
-    Collection<AbstractionPredicate> predicates = new HashSet<>();
-
-    predicates.addAll(pPredPrec.getLocalPredicates().values());
-    predicates.addAll(pPredPrec.getGlobalPredicates());
-    predicates.addAll(pPredPrec.getFunctionPredicates().values());
-
-    SetMultimap<CFANode, MemoryLocation> trackedVariables = HashMultimap.create();
-    CFANode dummyNode = new CFANode(CFunctionDeclaration.DUMMY);
-
-    // Get the variables from the predicate precision
-    for (AbstractionPredicate pred : predicates) {
-      for (String var : pFMgr.extractVariables(pred.getSymbolicAtom()).keySet()) {
-        trackedVariables.put(dummyNode, MemoryLocation.valueOf(var));
-      }
-    }
-
-    return trackedVariables;
-  }
 
   private Multimap<CFANode, MemoryLocation> restoreMappingFromFile(CFA pCfa) {
     Multimap<CFANode, MemoryLocation> mapping = HashMultimap.create();
@@ -276,8 +212,7 @@ public class ValueAnalysisCPA extends AbstractCPA
       return mapping;
     }
 
-    Map<Integer, CFANode> idToCfaNode = createMappingForCFANodes(pCfa);
-    final Pattern CFA_NODE_PATTERN = Pattern.compile("N([0-9][0-9]*)");
+    Map<Integer, CFANode> idToCfaNode = CFAUtils.getMappingFromNodeIDsToCFANodes(pCfa);
 
     CFANode location = getDefaultLocation(idToCfaNode);
     for (String currentLine : contents) {
@@ -286,13 +221,13 @@ public class ValueAnalysisCPA extends AbstractCPA
 
       } else if(currentLine.endsWith(":")) {
         String scopeSelectors = currentLine.substring(0, currentLine.indexOf(":"));
-        Matcher matcher = CFA_NODE_PATTERN.matcher(scopeSelectors);
+        Matcher matcher = CFAUtils.CFA_NODE_NAME_PATTERN.matcher(scopeSelectors);
         if (matcher.matches()) {
           location = idToCfaNode.get(Integer.parseInt(matcher.group(1)));
         }
 
       } else {
-        mapping.put(location, MemoryLocation.valueOf(currentLine));
+        mapping.put(location, MemoryLocation.parseExtendedQualifiedName(currentLine));
       }
     }
 
@@ -303,18 +238,12 @@ public class ValueAnalysisCPA extends AbstractCPA
     return idToCfaNode.values().iterator().next();
   }
 
-  private Map<Integer, CFANode> createMappingForCFANodes(CFA pCfa) {
-    Map<Integer, CFANode> idToNodeMap = new HashMap<>();
-    for (CFANode n : pCfa.getAllNodes()) {
-      idToNodeMap.put(n.getNodeNumber(), n);
-    }
-    return idToNodeMap;
-  }
-
   public void injectRefinablePrecision() throws InvalidConfigurationException {
 
     // replace the full precision with an empty, refinable precision
-    if (initialPrecisionFile == null && !refineablePrecisionSet) {
+    if (initialPrecisionFile == null
+        && initialPredicatePrecisionFile == null
+        && !refineablePrecisionSet) {
       precision = VariableTrackingPrecision.createRefineablePrecision(config, precision);
       refineablePrecisionSet = true;
     }
@@ -396,6 +325,9 @@ public class ValueAnalysisCPA extends AbstractCPA
       pStatsCollection.add(symbolicStats);
     }
     pStatsCollection.add(constraintsStrengthenOperator);
+    if (predToValPrec.collectedStats()) {
+      pStatsCollection.add(predToValPrec);
+    }
     writer.collectStatistics(pStatsCollection);
   }
 

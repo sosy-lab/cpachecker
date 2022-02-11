@@ -6,12 +6,10 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-extern int __VERIFIER_nondet_int();
-
 int main(){
 	
 	int x = -2;
-	x++;
+	x++; // FIX: x = x + 7
 	if (x < 2) {
 		if (x < 0) {
 			if (x < 3)

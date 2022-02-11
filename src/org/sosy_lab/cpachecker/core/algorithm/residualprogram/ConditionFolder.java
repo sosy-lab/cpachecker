@@ -55,7 +55,7 @@ public abstract class ConditionFolder {
   }
 
   private interface MergeUpdateFunction {
-    public void updateAfterMerging(ARGState merged, ARGState mergedInto);
+    void updateAfterMerging(ARGState merged, ARGState mergedInto);
   }
 
   private static class LoopInfo {
@@ -386,7 +386,7 @@ public abstract class ConditionFolder {
           if (!oldARGToFoldedState.containsKey(child)) {
             if (shouldFold(locChild) && folderStatesFoldIDToFoldedARGState.containsKey(foldIDChild)) {
               foldedNode = folderStatesFoldIDToFoldedARGState.get(foldIDChild);
-              assert (Objects.equals(locChild, AbstractStates.extractLocation(foldedNode)));
+              assert Objects.equals(locChild, AbstractStates.extractLocation(foldedNode));
             } else {
               foldedNode = null;
               newState = oldARGToFoldedState.get(oldState);

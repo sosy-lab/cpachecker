@@ -16,7 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
-
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -57,11 +57,11 @@ public class LlvmTypeConverter {
     logger = pLogger;
   }
 
-  public CType getCType(final TypeRef pLlvmType) {
+  public @Nullable CType getCType(final TypeRef pLlvmType) {
       return getCType(pLlvmType, /* isUnsigned = */ false);
   }
 
-  public CType getCType(final TypeRef pLlvmType, final boolean isUnsigned) {
+  public @Nullable CType getCType(final TypeRef pLlvmType, final boolean isUnsigned) {
     final boolean isConst = false;
     final boolean isVolatile = false;
     TypeKind typeKind = pLlvmType.getTypeKind();
@@ -134,19 +134,19 @@ public class LlvmTypeConverter {
     String structName = getStructName(pStructType);
     String origName = structName;
 
-    if (typeCache.containsKey(pStructType.type().hashCode())) {
+    if (typeCache.containsKey(pStructType.hashCode())) {
       return new CElaboratedType(
           false,
           false,
           ComplexTypeKind.STRUCT,
           structName,
           origName,
-          (CComplexType) typeCache.get(pStructType.type().hashCode()));
+          (CComplexType) typeCache.get(pStructType.hashCode()));
     }
 
     CCompositeType cStructType =
         new CCompositeType(isConst, isVolatile, ComplexTypeKind.STRUCT, structName, origName);
-    typeCache.put(pStructType.type().hashCode(), cStructType);
+    typeCache.put(pStructType.hashCode(), cStructType);
 
     List<TypeRef> memberTypes = pStructType.getStructElementTypes();
     List<CCompositeTypeMemberDeclaration> members = new ArrayList<>(memberTypes.size());

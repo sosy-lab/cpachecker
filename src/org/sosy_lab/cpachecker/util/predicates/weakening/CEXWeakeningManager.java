@@ -195,7 +195,7 @@ public class CEXWeakeningManager {
 
       private boolean shouldAbstract(BooleanFormula f) {
         Boolean out = m.evaluate(bfmgr.not(f));
-        return (out != null && out);
+        return out != null && out;
       }
 
       private Optional<BooleanFormula> findSelector(List<BooleanFormula> orOperands) {

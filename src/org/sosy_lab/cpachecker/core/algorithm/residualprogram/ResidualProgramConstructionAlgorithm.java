@@ -189,7 +189,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
     ARGState argRoot = (ARGState) pReachedSet.getFirstState();
 
     CFANode mainFunction = AbstractStates.extractLocation(argRoot);
-    assert (mainFunction != null);
+    assert mainFunction != null;
 
     if (pReachedSet.hasWaitingState()) {
       logger.log(Level.SEVERE, "Analysis run to get structure of residual program is incomplete. ",
@@ -266,7 +266,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
       Configuration config = configBuilder.build();
 
       CoreComponentsFactory coreComponents =
-          new CoreComponentsFactory(config, logger, shutdown, new AggregatedReachedSets());
+          new CoreComponentsFactory(config, logger, shutdown, AggregatedReachedSets.empty());
 
       final Specification constrSpec =
           spec.withAdditionalSpecificationFile(
@@ -274,7 +274,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
 
       ConfigurableProgramAnalysis cpa = coreComponents.createCPA(cfa, constrSpec);
 
-      ReachedSet reached = coreComponents.createReachedSet();
+      ReachedSet reached = coreComponents.createReachedSet(cpa);
       reached.add(cpa.getInitialState(mainFunction, StateSpacePartition.getDefaultPartition()),
           cpa.getInitialPrecision(mainFunction, StateSpacePartition.getDefaultPartition()));
 
@@ -347,7 +347,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
     }
     String mainFunction = AbstractStates.extractLocation(pArgRoot).getFunctionName();
     if (!translator.addsIncludeDirectives()) {
-      assert (isValidResidualProgram(mainFunction));
+      assert isValidResidualProgram(mainFunction);
     }
     return true;
   }

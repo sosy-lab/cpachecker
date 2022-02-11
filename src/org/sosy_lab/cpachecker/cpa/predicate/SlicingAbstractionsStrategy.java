@@ -204,8 +204,9 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     // we only split if the state has actually changed
     ARGState newState;
     if (stateChanged
-        && (!optimizeSlicing || !mayShortcutSlicing
-            || SlicingAbstractionsUtils.calculateIncomingSegments(s).keySet().size() > 1)) {
+        && (!optimizeSlicing
+            || !mayShortcutSlicing
+            || SlicingAbstractionsUtils.calculateIncomingSegments(s).size() > 1)) {
       mayShortcutSlicing = false;
       //splitting the state:
       newState = s.forkWithReplacements(Collections.singleton(copiedPredicateState));
@@ -509,8 +510,12 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     } else {
       infeasible = isInfeasibleEdge(startState, endState, segmentList);
       // Assert that mustBeInfeasible => infeasible holds:
-      assert (!mustBeInfeasible || infeasible) : "Edge " + startState.getStateId() + " -> "
-          + endState.getStateId() + " must be infeasible!";
+      assert !mustBeInfeasible || infeasible
+          : "Edge "
+              + startState.getStateId()
+              + " -> "
+              + endState.getStateId()
+              + " must be infeasible!";
     }
 
     assert !(startState instanceof SLARGState)

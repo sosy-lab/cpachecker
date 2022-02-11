@@ -38,6 +38,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -402,7 +403,7 @@ public class LiveVariables {
       throw new AssertionError("Unhandled case statement: " + config.evaluationStrategy);
     }
 
-    final ResourceLimitChecker limitChecker;
+    final @Nullable ResourceLimitChecker limitChecker;
     final ShutdownNotifier shutdownNotifier;
     if (!config.partwiseLivenessCheckTime.isEmpty()) {
       ShutdownManager liveVarsShutdown = ShutdownManager.createWithParent(pShutdownNotifier);
@@ -417,7 +418,7 @@ public class LiveVariables {
 
     Optional<AnalysisParts> parts =
         getNecessaryAnalysisComponents(cfa, logger, shutdownNotifier, config.evaluationStrategy);
-    Multimap<CFANode, Wrapper<ASimpleDeclaration>> liveVariables = null;
+    @Nullable Multimap<CFANode, Wrapper<ASimpleDeclaration>> liveVariables = null;
 
     // create live variables
     if (parts.isPresent()) {
@@ -464,12 +465,12 @@ public class LiveVariables {
       FROM_EQUIV_WRAPPER_TO_STRING =
           Functions.compose(ASimpleDeclaration::getQualifiedName, FROM_EQUIV_WRAPPER);
 
-  private static Multimap<CFANode, Wrapper<ASimpleDeclaration>> addLiveVariablesFromCFA(
+  private static @Nullable Multimap<CFANode, Wrapper<ASimpleDeclaration>> addLiveVariablesFromCFA(
       final CFA pCfa,
       final LogManager logger,
       AnalysisParts analysisParts,
-      EvaluationStrategy evaluationStrategy
-  ) throws IllegalArgumentException, InterruptedException {
+      EvaluationStrategy evaluationStrategy)
+      throws IllegalArgumentException, InterruptedException {
 
     Optional<LoopStructure> loopStructure = pCfa.getLoopStructure();
 
@@ -563,12 +564,12 @@ public class LiveVariables {
       ReachedSetFactory reachedFactory = new ReachedSetFactory(config, logger);
       ConfigurableProgramAnalysis cpa =
           new CPABuilder(config, logger, shutdownNotifier, reachedFactory)
-              .buildCPAs(cfa, Specification.alwaysSatisfied(), new AggregatedReachedSets());
+              .buildCPAs(cfa, Specification.alwaysSatisfied(), AggregatedReachedSets.empty());
       Algorithm algorithm = CPAAlgorithm.create(cpa,
                                                 logger,
                                                 config,
                                                 shutdownNotifier);
-      ReachedSet reached = reachedFactory.create();
+      ReachedSet reached = reachedFactory.create(cpa);
       return Optional.of(new AnalysisParts(cpa, algorithm, reached));
 
     } catch (InvalidConfigurationException | CPAException e) {

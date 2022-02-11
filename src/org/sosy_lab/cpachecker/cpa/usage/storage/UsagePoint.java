@@ -10,10 +10,10 @@ package org.sosy_lab.cpachecker.cpa.usage.storage;
 
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleNode;
@@ -35,12 +35,12 @@ public final class UsagePoint implements Comparable<UsagePoint> {
   public boolean addCoveredUsage(UsagePoint newChild) {
     if (!coveredUsages.contains(newChild)) {
 
-      Optional<UsagePoint> usage = from(coveredUsages)
-                         .firstMatch(u -> u.covers(newChild));
+      Optional<UsagePoint> usage =
+          coveredUsages.stream().filter(u -> u.covers(newChild)).findFirst();
 
       if (usage.isPresent()) {
-        assert !usage.get().equals(newChild);
-        return usage.get().addCoveredUsage(newChild);
+        assert !usage.orElseThrow().equals(newChild);
+        return usage.orElseThrow().addCoveredUsage(newChild);
       }
       return coveredUsages.add(newChild);
     }

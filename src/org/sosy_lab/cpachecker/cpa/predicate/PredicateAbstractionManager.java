@@ -91,7 +91,7 @@ public class PredicateAbstractionManager {
 
   private static final Set<Integer> noAbstractionReuse = ImmutableSet.of();
 
-  static enum AbstractionType {
+  enum AbstractionType {
     CARTESIAN,
     CARTESIAN_BY_WEAKENING,
     BOOLEAN,
@@ -1096,9 +1096,8 @@ public class PredicateAbstractionManager {
       final Collection<AbstractionPredicate> predicates,
       final AbstractionFormula result,
       int pCurrentAbstractionId) {
-    Path dumpFile;
-
-    dumpFile = fmgr.formatFormulaOutputFile("abstraction", pCurrentAbstractionId, "input", 0);
+    @Nullable Path dumpFile =
+        fmgr.formatFormulaOutputFile("abstraction", pCurrentAbstractionId, "input", 0);
     fmgr.dumpFormulaToFile(f, dumpFile);
 
     dumpFile =

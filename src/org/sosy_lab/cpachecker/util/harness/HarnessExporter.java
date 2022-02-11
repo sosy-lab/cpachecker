@@ -642,7 +642,6 @@ public class HarnessExporter {
           Collections.singletonList(tmpDeclaration),
           new CUnaryExpression(FileLocation.DUMMY, pType, var, UnaryOperator.AMPER));
     }
-    assert !pIsGlobal;
     ExpressionTestValue pointerValue =
         assignMallocToTmpVariable(pTargetSize, pType.getType(), false);
     return ExpressionTestValue.of(pointerValue.getAuxiliaryStatements(), pointerValue.getValue());
@@ -759,7 +758,7 @@ public class HarnessExporter {
             FileLocation.DUMMY,
             type,
             "malloc",
-            Collections.singletonList(
+            ImmutableList.of(
                 new CParameterDeclaration(
                     FileLocation.DUMMY, CPointerType.POINTER_TO_VOID, "size")));
     return new CFunctionCallExpression(
@@ -784,7 +783,7 @@ public class HarnessExporter {
     return addValue(pTestVector, pFunctionDeclaration, value);
   }
 
-  private static final AExpression getDummyValue(Type pType) {
+  private static AExpression getDummyValue(Type pType) {
     if (pType instanceof CType) {
       if (canInitialize(pType)) {
         CInitializer initializer = CDefaults.forType((CType) pType, FileLocation.DUMMY);
@@ -798,7 +797,7 @@ public class HarnessExporter {
     return new JIntegerLiteralExpression(FileLocation.DUMMY, BigInteger.ZERO);
   }
 
-  private static final AInitializer getDummyInitializer(Type pType) {
+  private static AInitializer getDummyInitializer(Type pType) {
     if (pType instanceof CType) {
       if (canInitialize(pType)) {
         return CDefaults.forType((CType) pType, FileLocation.DUMMY);

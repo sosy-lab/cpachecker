@@ -408,7 +408,7 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
       }
 
     } else if (pEdge instanceof CReturnStatementEdge) { // ReturnStatementEdge
-      CExpression exp = ((CReturnStatementEdge) pEdge).getExpression().orNull();
+      CExpression exp = ((CReturnStatementEdge) pEdge).getExpression().orElse(null);
       if (exp != null) {
         usedVars = exp.accept(visitor);
       } else {

@@ -13,6 +13,7 @@ import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.html.HtmlEscapers.htmlEscaper;
 import static java.util.logging.Level.WARNING;
 
+import com.google.common.base.CharMatcher;
 import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicates;
@@ -88,8 +89,11 @@ public class ReportGenerator {
   private static final Splitter LINE_SPLITTER = Splitter.on('\n');
 
   private static final String HTML_TEMPLATE = "report.html";
-  private static final String CSS_TEMPLATE = "report.css";
-  private static final String JS_TEMPLATE = "report.js";
+  private static final String CSS_TEMPLATE = "build/main.css";
+  private static final String JS_TEMPLATE = "build/main.js";
+  private static final String WORKER_DATA_TEMPLATE = "build/workerData.js";
+  private static final String VENDOR_CSS_TEMPLATE = "build/vendors.css";
+  private static final String VENDOR_JS_TEMPLATE = "build/vendors.js";
 
   private final Configuration config;
   private final LogManager logger;
@@ -238,6 +242,9 @@ public class ReportGenerator {
                     argWitnessExporter.getProofInvariantProvider()));
       } catch (InvalidConfigurationException e) {
         logger.logUserException(Level.WARNING, e, "Could not generate witness for witness view");
+      } catch (InterruptedException e) {
+        logger.logUserException(
+            Level.WARNING, e, "Could not generate witness for witness view due to interruption");
       }
     }
   }
@@ -289,6 +296,21 @@ public class ReportGenerator {
     }
   }
 
+  private void insertJsFile(
+      Writer writer,
+      String file)
+      throws IOException {
+        try (BufferedReader reader =
+            Resources.asCharSource(Resources.getResource(getClass(), file), Charsets.UTF_8)
+                .openBufferedStream();) {
+          String line;
+          while (null != (line = reader.readLine())) {
+              writer.write(line);
+              writer.write('\n');
+          }
+        }
+      }
+
   private void insertJs(
       Writer writer,
       CFA cfa,
@@ -296,24 +318,14 @@ public class ReportGenerator {
       DOTBuilder2 dotBuilder,
       @Nullable CounterexampleInfo counterExample)
       throws IOException {
-    try (BufferedReader reader =
-        Resources.asCharSource(Resources.getResource(getClass(), JS_TEMPLATE), Charsets.UTF_8)
-            .openBufferedStream();) {
-      String line;
-      while (null != (line = reader.readLine())) {
-        if (line.contains("CFA_JSON_INPUT")) {
-          insertCfaJson(writer, cfa, dotBuilder, counterExample);
-        } else if (line.contains("ARG_JSON_INPUT")) {
-          insertArgJson(writer);
-        } else if (line.contains("SOURCE_FILES")) {
-          insertSourceFileNames(writer, allInputFiles);
-        } else {
-          writer.write(line);
-          writer.write('\n');
-        }
+        insertCfaJson(writer, cfa, dotBuilder, counterExample);
+        insertArgJson(writer);
+        insertSourceFileNames(writer, allInputFiles);
+
+        insertJsFile(writer, WORKER_DATA_TEMPLATE);
+        insertJsFile(writer, VENDOR_JS_TEMPLATE);
+        insertJsFile(writer, JS_TEMPLATE);
       }
-    }
-  }
 
   private void insertCfaJson(
       Writer writer, CFA cfa, DOTBuilder2 dotBuilder, @Nullable CounterexampleInfo counterExample)
@@ -360,6 +372,7 @@ public class ReportGenerator {
     writer.write(",\n");
     dotBuilder.writeCfaInfo(writer);
     writer.write("\n}\n");
+    writer.write("window.cfaJson = cfaJson;\n");
   }
 
   private void insertArgJson(Writer writer) throws IOException {
@@ -386,13 +399,19 @@ public class ReportGenerator {
       writer.write("\n");
     }
     writer.write("}\n");
+    writer.write("window.argJson = argJson;\n");
+  }
+
+  private void insertCssFile(Writer writer, String file) throws IOException {
+    writer.write("<style>\n");
+    Resources.asCharSource(Resources.getResource(getClass(), file), Charsets.UTF_8)
+        .copyTo(writer);
+    writer.write("</style>");
   }
 
   private void insertCss(Writer writer) throws IOException {
-    writer.write("<style>\n");
-    Resources.asCharSource(Resources.getResource(getClass(), CSS_TEMPLATE), Charsets.UTF_8)
-        .copyTo(writer);
-    writer.write("</style>");
+    insertCssFile(writer, CSS_TEMPLATE);
+    insertCssFile(writer, VENDOR_CSS_TEMPLATE);
   }
 
   private void insertMetaTags(Writer writer) throws IOException {
@@ -449,7 +468,8 @@ public class ReportGenerator {
                     + "</td><td>"
                     + htmlEscaper().escape(splitLineAnotherValue.get(0))
                     + "</td><td>"
-                    + htmlEscaper().escape(splitLineAnotherValue.get(1).replaceAll("[()]", ""))
+                    + htmlEscaper()
+                        .escape(CharMatcher.anyOf("()").removeFrom(splitLineAnotherValue.get(1)))
                     + "</td></tr>\n";
             writer.write(line);
           } else {
@@ -574,7 +594,7 @@ public class ReportGenerator {
           writer.write("</td><td>");
           writer.write(htmlEscaper().escape(splitLine.get(1)));
           writer.write("</td><td>");
-          writer.write(htmlEscaper().escape(splitLine.get(2)).replaceAll(":", "<br>"));
+          writer.write(htmlEscaper().escape(splitLine.get(2)).replace(":", "<br>"));
           writer.write("</td><td>");
           writer.write(htmlEscaper().escape(splitLine.get(3)));
 
@@ -602,6 +622,7 @@ public class ReportGenerator {
     writer.write("var sourceFiles = ");
     JSON.writeJSONString(allSourceFiles, writer);
     writer.write(";\n");
+    writer.write("window.sourceFiles = sourceFiles;\n");
   }
 
   /** Returns ordered set of input files that were relevant for this verification run. */
@@ -630,7 +651,7 @@ public class ReportGenerator {
 
   /** Build ARG data for all ARG states in the reached set. */
   private void buildArgGraphData(UnmodifiableReachedSet reached) {
-    for (AbstractState entry : reached.asCollection()) {
+    for (AbstractState entry : reached) {
       int parentStateId = ((ARGState) entry).getStateId();
       for (CFANode node : AbstractStates.extractLocations(entry)) {
         if (!argNodes.containsKey(parentStateId)) {
@@ -816,9 +837,9 @@ public class ReportGenerator {
   // Similar to the getEdgeText method in DOTBuilder2
   private static String getEdgeText(CFAEdge edge) {
     return edge.getDescription()
-        .replaceAll("\\\"", "\\\\\\\"")
-        .replaceAll("\n", " ")
+        .replace("\"", "\\\"")
+        .replace('\n', ' ')
         .replaceAll("\\s+", " ")
-        .replaceAll(" ;", ";");
+        .replace(" ;", ";");
   }
 }

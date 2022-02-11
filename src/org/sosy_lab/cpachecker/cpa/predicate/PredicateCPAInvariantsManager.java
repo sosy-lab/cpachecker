@@ -180,28 +180,27 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
   private boolean dumpInvariantGenerationAutomata = false;
 
   @Option(
-    secure = true,
-    deprecatedName = "useInvariantsForAbstraction",
-    description =
-        "Strengthen the pathformula during abstraction with invariants if some are generated. Invariants"
-            + " do not need to be generated with the PredicateCPA they can also be given from outside."
-  )
+      secure = true,
+      deprecatedName = "useInvariantsForAbstraction",
+      description =
+          "Strengthen the pathformula during abstraction with invariants if some are generated."
+              + " Invariants do not need to be generated with the PredicateCPA they can also be"
+              + " given from outside.")
   private boolean appendToPathFormula = false;
 
   @Option(
-    secure = true,
-    description =
-        "Strengthen the abstraction formula during abstraction with invariants if some are generated. Invariants"
-            + " do not need to be generated with the PredicateCPA they can also be given from outside."
-  )
+      secure = true,
+      description =
+          "Strengthen the abstraction formula during abstraction with invariants if some are"
+              + " generated. Invariants do not need to be generated with the PredicateCPA they can"
+              + " also be given from outside.")
   private boolean appendToAbstractionFormula = false;
 
   @Option(
-    secure = true,
-    description =
-        "Add computed invariants to the precision. Invariants"
-            + " do not need to be generated with the PredicateCPA they can also be given from outside."
-  )
+      secure = true,
+      description =
+          "Add computed invariants to the precision. Invariants do not need to be generated with"
+              + " the PredicateCPA they can also be given from outside.")
   private boolean addToPrecision = false;
 
   @Option(
@@ -735,7 +734,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
       throws CPAException, InterruptedException {
 
     invGen.start(cfa.getMainFunction());
-    InvariantSupplier invSup = new FormulaInvariantsSupplier(invGen.get());
+    InvariantSupplier invSup = invGen.getSupplier();
 
     // we do only want to use invariants that can be used to make the program safe
     if (!useStrongInvariantsOnly || invGen.isProgramSafe()) {
@@ -880,7 +879,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
       return true;
     }
 
-    private final List<CandidateInvariant> getLocationCandidateInvariant(InfeasiblePrefix pInput) {
+    private List<CandidateInvariant> getLocationCandidateInvariant(InfeasiblePrefix pInput) {
       List<BooleanFormula> interpolants;
       try {
         List<BooleanFormula> pathFormula = pInput.getPathFormulae();

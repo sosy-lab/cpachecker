@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.counterexample;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
@@ -26,6 +25,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -494,7 +494,7 @@ public class AssumptionToEdgeAllocator {
 
       CSimpleDeclaration cDcl = (CSimpleDeclaration) dcl;
       CType dclType = cDcl.getType();
-      Object value = getValueObject(cDcl, pFunctionName, pConcreteState);
+      @Nullable Object value = getValueObject(cDcl, pFunctionName, pConcreteState);
 
       if (value == null) {
         return ImmutableList.of();
@@ -630,7 +630,8 @@ public class AssumptionToEdgeAllocator {
     }
   }
 
-  private Object getValueObject(CSimpleDeclaration pDcl, String pFunctionName, ConcreteState pConcreteState) {
+  private @Nullable Object getValueObject(
+      CSimpleDeclaration pDcl, String pFunctionName, ConcreteState pConcreteState) {
     return new LModelValueVisitor(pFunctionName, pConcreteState).handleVariableDeclaration(pDcl);
   }
 
@@ -652,8 +653,8 @@ public class AssumptionToEdgeAllocator {
   }
 
   //TODO Move to Utility?
-  private FieldReference getFieldReference(CFieldReference pIastFieldReference,
-      String pFunctionName) {
+  private @Nullable FieldReference getFieldReference(
+      CFieldReference pIastFieldReference, String pFunctionName) {
 
     List<String> fieldNameList = new ArrayList<>();
     CFieldReference reference = pIastFieldReference;
@@ -678,7 +679,7 @@ public class AssumptionToEdgeAllocator {
     }
   }
 
-  private class LModelValueVisitor implements CLeftHandSideVisitor<Object, NoException> {
+  private class LModelValueVisitor implements CLeftHandSideVisitor<@Nullable Object, NoException> {
 
     private final String functionName;
     private final AddressValueVisitor addressVisitor;
@@ -694,7 +695,7 @@ public class AssumptionToEdgeAllocator {
       return addressVisitor.getAddress(dcl);
     }
 
-    private Number evaluateNumericalValue(CExpression exp) {
+    private @Nullable Number evaluateNumericalValue(CExpression exp) {
 
       Value addressV;
       try {
@@ -728,7 +729,7 @@ public class AssumptionToEdgeAllocator {
     }
 
     @Override
-    public Object visit(CArraySubscriptExpression pIastArraySubscriptExpression) {
+    public @Nullable Object visit(CArraySubscriptExpression pIastArraySubscriptExpression) {
 
       Address valueAddress = evaluateAddress(pIastArraySubscriptExpression);
       if (valueAddress.isUnknown()) {
@@ -749,7 +750,7 @@ public class AssumptionToEdgeAllocator {
     }
 
     @Override
-    public Object visit(CFieldReference pIastFieldReference) {
+    public @Nullable Object visit(CFieldReference pIastFieldReference) {
 
       Address address = evaluateAddress(pIastFieldReference);
       if (address.isUnknown()) {
@@ -766,7 +767,7 @@ public class AssumptionToEdgeAllocator {
         return address.getAddressValue();
       }
 
-      Object value = concreteState.getValueFromMemory(pIastFieldReference, address);
+      @Nullable Object value = concreteState.getValueFromMemory(pIastFieldReference, address);
       if (value == null) {
         return lookupReference(pIastFieldReference);
       }
@@ -774,7 +775,7 @@ public class AssumptionToEdgeAllocator {
       return value;
     }
 
-    private Object lookupReference(CFieldReference pIastFieldReference) {
+    private @Nullable Object lookupReference(CFieldReference pIastFieldReference) {
 
       /* Fieldreferences are sometimes represented as variables,
          e.g a.b.c in main is main::a$b$c */
@@ -816,7 +817,7 @@ public class AssumptionToEdgeAllocator {
         return address.getAddressValue();
       }
 
-      Object value = concreteState.getValueFromMemory(pCIdExpression, address);
+      @Nullable Object value = concreteState.getValueFromMemory(pCIdExpression, address);
 
       if (value == null) {
         return lookupVariable(dcl);
@@ -825,8 +826,7 @@ public class AssumptionToEdgeAllocator {
       return value;
     }
 
-    @Nullable
-    private Object handleVariableDeclaration(CSimpleDeclaration pDcl) {
+    private @Nullable Object handleVariableDeclaration(CSimpleDeclaration pDcl) {
 
       // These declarations don't evaluate to a value //TODO Assumption
       if (pDcl instanceof CFunctionDeclaration || pDcl instanceof CTypeDeclaration) { return null; }
@@ -835,7 +835,7 @@ public class AssumptionToEdgeAllocator {
       return this.visit(representingIdExpression);
     }
 
-    private Object lookupVariable(CSimpleDeclaration pVarDcl) {
+    private @Nullable Object lookupVariable(CSimpleDeclaration pVarDcl) {
       IDExpression varName = getIDExpression(pVarDcl);
 
       if (concreteState.hasValueForLeftHandSide(varName)) {
@@ -859,7 +859,7 @@ public class AssumptionToEdgeAllocator {
     }
 
     @Override
-    public Object visit(CPointerExpression pPointerExpression) {
+    public @Nullable Object visit(CPointerExpression pPointerExpression) {
 
       /*Quick jump to the necessary method.
        * the address of a dereference is the evaluation of its operand*/
@@ -968,7 +968,7 @@ public class AssumptionToEdgeAllocator {
           return lookupReferenceAddress(pIastFieldReference);
         }
 
-        Address address = fieldOwnerAddress.addOffset(fieldOffset.get());
+        Address address = fieldOwnerAddress.addOffset(fieldOffset.orElseThrow());
         if (address.isUnknown()) {
           return lookupReferenceAddress(pIastFieldReference);
         }
@@ -1395,14 +1395,14 @@ public class AssumptionToEdgeAllocator {
         return ExplicitValueLiteral.valueOf(new BigDecimal(val), pType);
 
       } else if (pValue instanceof Double) {
-        double doubleValue = ((Double)pValue).doubleValue();
+        double doubleValue = ((Double) pValue);
         if (Double.isInfinite(doubleValue) || Double.isNaN(doubleValue)) {
           // TODO return correct value
           return UnknownValueLiteral.getInstance();
         }
         return ExplicitValueLiteral.valueOf(BigDecimal.valueOf(doubleValue), pType);
       } else if (pValue instanceof Float) {
-        float floatValue = ((Float)pValue).floatValue();
+        float floatValue = ((Float) pValue);
         if (Float.isInfinite(floatValue) || Double.isNaN(floatValue)) {
           // TODO return correct value
           return UnknownValueLiteral.getInstance();
@@ -1592,7 +1592,7 @@ public class AssumptionToEdgeAllocator {
           Optional<BigInteger> memberOffset = bitsToByte(memberBitOffset.getValue(), machineModel);
           // TODO this looses values of bit fields
           if (memberOffset.isPresent()) {
-            handleMemberField(memberType, address.addOffset(memberOffset.get()));
+            handleMemberField(memberType, address.addOffset(memberOffset.orElseThrow()));
           }
         }
       }
@@ -1618,7 +1618,7 @@ public class AssumptionToEdgeAllocator {
             subExp.getFileLocation(), expectedType, pType.getName(), subExp,
             isPointerDeref);
 
-        Object fieldValue;
+        @Nullable Object fieldValue;
 
         // Arrays and structs are represented as addresses
         if (expectedType instanceof CArrayType
@@ -1706,7 +1706,7 @@ public class AssumptionToEdgeAllocator {
         CArraySubscriptExpression arraySubscript =
             new CArraySubscriptExpression(subExpression.getFileLocation(), pExpectedType, subExpression, litExp);
 
-        Object concreteValue;
+        @Nullable Object concreteValue;
 
         if (isStructOrUnionType(pExpectedType) || pExpectedType instanceof CArrayType) {
           // Arrays and structs are represented as addresses
@@ -1764,7 +1764,7 @@ public class AssumptionToEdgeAllocator {
 
         CPointerExpression pointerExp = new CPointerExpression(subExpression.getFileLocation(), expectedType, subExpression);
 
-        Object concreteValue;
+        @Nullable Object concreteValue;
 
         if (isStructOrUnionType(expectedType) || expectedType instanceof CArrayType) {
           // Arrays and structs are represented as addresses
@@ -2101,7 +2101,7 @@ public class AssumptionToEdgeAllocator {
     if (ownerType instanceof CElaboratedType) {
       CType realType = ((CElaboratedType) ownerType).getRealType();
       if (realType == null) {
-        return Optional.absent();
+        return Optional.empty();
       }
 
       return getFieldOffset(realType.getCanonicalType(), fieldName, pMachineModel);
@@ -2128,6 +2128,6 @@ public class AssumptionToEdgeAllocator {
     if (divAndRemainder[1].equals(BigInteger.ZERO)) {
       return Optional.of(divAndRemainder[0]);
     }
-    return Optional.absent();
+    return Optional.empty();
   }
 }

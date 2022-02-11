@@ -32,15 +32,15 @@ import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSerializableSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithDummyLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-public class ARGState extends AbstractSingleWrapperState
-    implements Comparable<ARGState>, Graphable, Splitable{
+public class ARGState extends AbstractSerializableSingleWrapperState
+    implements Comparable<ARGState>, Graphable, Splitable {
 
   private static final long serialVersionUID = 2608287648397165040L;
 
@@ -292,8 +292,8 @@ public class ARGState extends AbstractSingleWrapperState
   }
 
   void deleteChild(ARGState child) {
-    assert (children.contains(child));
-    assert (child.parents.contains(this));
+    assert children.contains(child);
+    assert child.parents.contains(this);
     children.remove(child);
     child.parents.remove(this);
   }
@@ -362,7 +362,7 @@ public class ARGState extends AbstractSingleWrapperState
   }
 
   public boolean isOlderThan(ARGState other) {
-    return (stateId < other.stateId);
+    return stateId < other.stateId;
   }
 
   @Override
@@ -471,14 +471,14 @@ public class ARGState extends AbstractSingleWrapperState
 
     // clear children
     for (ARGState child : children) {
-      assert (child.parents.contains(this));
+      assert child.parents.contains(this);
       child.parents.remove(this);
     }
     children.clear();
 
     // clear parents
     for (ARGState parent : parents) {
-      assert (parent.children.contains(this));
+      assert parent.children.contains(this);
       parent.children.remove(this);
     }
     parents.clear();

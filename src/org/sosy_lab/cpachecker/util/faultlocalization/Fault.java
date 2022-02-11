@@ -98,8 +98,7 @@ public class Fault extends ForwardingSet<FaultContribution> implements Comparabl
 
   @Override
   public String toString(){
-    List<FaultInfo> copy = new ArrayList<>(infos);
-    Collections.sort(copy);
+    List<FaultInfo> copy = ImmutableList.sortedCopyOf(infos);
 
     StringBuilder out = new StringBuilder("Error suspected on line(s): "
         + listDistinctLinesAndJoin()

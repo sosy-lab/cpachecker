@@ -6,8 +6,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-extern int __VERIFIER_nondet_int();
-
 int main(){
 
 	//calculate 10%3 manually
@@ -16,7 +14,7 @@ int main(){
 
 	while(a >= 0) 
 		a -= b;
-	a = -a - b;
+	a = -a - b; // FIX: a = - (-a - b) or a = a + b
 
 	//POST-CONDITION check if manual computation is right (10%3 = 1)
 	if(a!=1)

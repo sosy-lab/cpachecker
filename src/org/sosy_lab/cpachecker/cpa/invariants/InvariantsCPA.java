@@ -69,10 +69,8 @@ import org.sosy_lab.cpachecker.core.interfaces.conditions.ReachedSetAdjustingCPA
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.BooleanFormula;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.CollectVarsVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CompoundIntervalFormulaManager;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.NumeralFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.AcceptAllVariableSelection;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.AcceptSpecifiedVariableSelection;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.VariableSelection;
@@ -89,11 +87,6 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
  * This is a CPA for collecting simple invariants about integer variables.
  */
 public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdjustingCPA, StatisticsProvider {
-
-  /**
-   * A formula visitor for collecting the variables contained in a formula.
-   */
-  private static final CollectVarsVisitor<CompoundInterval> COLLECT_VARS_VISITOR = new CollectVarsVisitor<>();
 
   @Options(prefix="cpa.invariants")
   public static class InvariantsOptions {
@@ -314,7 +307,6 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
     // Collect relevant edges and guess that information might be interesting
     Set<CFAEdge> relevantEdges = new LinkedHashSet<>();
-    Set<NumeralFormula<CompoundInterval>> interestingPredicates = new LinkedHashSet<>();
     Set<MemoryLocation> interestingVariables;
     synchronized (this.currentInterestingVariables) {
       interestingVariables = new LinkedHashSet<>(this.currentInterestingVariables);
@@ -358,17 +350,6 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
       variableSelection = new AcceptSpecifiedVariableSelection<>(relevantVariables);
     } else {
       variableSelection = new AcceptAllVariableSelection<>();
-    }
-
-    // Remove predicates from the collection of interesting predicates that are already covered by the set of interesting variables
-    Iterator<NumeralFormula<CompoundInterval>> interestingPredicateIterator = interestingPredicates.iterator();
-    while (interestingPredicateIterator.hasNext()) {
-      NumeralFormula<CompoundInterval> interestingPredicate = interestingPredicateIterator.next();
-      List<MemoryLocation> containedUninterestingVariables = new ArrayList<>(interestingPredicate.accept(COLLECT_VARS_VISITOR));
-      containedUninterestingVariables.removeAll(interestingVariables);
-      if (containedUninterestingVariables.size() <= 1) {
-        interestingPredicateIterator.remove();
-      }
     }
 
     relevantVariableLimitReached = interestingVariableLimit < 0 || interestingVariableLimit > interestingVariables.size();
@@ -601,7 +582,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     }
   }
 
-  public static interface ConditionAdjuster {
+  public interface ConditionAdjuster {
 
     boolean adjustConditions();
 
@@ -611,7 +592,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
   }
 
-  private static interface ValueIncreasingAdjuster extends ConditionAdjuster {
+  private interface ValueIncreasingAdjuster extends ConditionAdjuster {
 
     int getInc();
 
@@ -748,12 +729,12 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
         previousTimeSpan = timer.getLengthOfLastInterval();
       }
       timer.start();
-      boolean result = inner.adjustConditions();
-      if (!result) {
+      if (inner.adjustConditions()) {
+        return true;
+      } else {
         this.innerAdjusters.remove(inner);
         return adjustConditions();
       }
-      return result;
     }
 
     @Override
