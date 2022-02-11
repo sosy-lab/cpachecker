@@ -8,13 +8,13 @@
 
 package org.sosy_lab.cpachecker.cpa.ucaTestcaseGen;
 
+import com.google.common.base.Optional;
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.io.IO;
@@ -36,14 +36,12 @@ public class TestCaseGenState
 
   public TestCaseGenState(LogManager pLogger) {
     this.entries = new ArrayList<>();
-    automatonState = Optional.empty();
+    automatonState = Optional.absent();
     this.logger = pLogger;
   }
 
   private TestCaseGenState(
-      List<TestcaseEntry> pEntries,
-      Optional<AutomatonState> pAutomatonState,
-      LogManager pLogger) {
+      List<TestcaseEntry> pEntries, Optional<AutomatonState> pAutomatonState, LogManager pLogger) {
     this.automatonState = pAutomatonState;
     this.entries = pEntries;
     this.logger = pLogger;
@@ -65,7 +63,8 @@ public class TestCaseGenState
 
   @Override
   public TestCaseGenState join(TestCaseGenState other) throws InterruptedException {
-    logger.log(Level.WARNING, "Merging of TestCaseGenStates is not supported! Returning the other state");
+    logger.log(
+        Level.WARNING, "Merging of TestCaseGenStates is not supported! Returning the other state");
     return other;
   }
 
@@ -88,41 +87,49 @@ public class TestCaseGenState
     return String.format(
         "[%s], \n ++%s++",
         entries.stream().map(e -> e.getValue()).collect(Collectors.joining(",")),
-        this.automatonState.isPresent() ? this.automatonState.orElseThrow().getInternalStateName() : "");
+        this.automatonState.isPresent() ? this.automatonState.get().getInternalStateName() : "");
   }
 
   @Override
   public boolean shouldBeHighlighted() {
-    return this.automatonState.map(pAutomatonState -> pAutomatonState
-        .getInternalStateName()
-        .equals(UCACollector.NAME_OF_NEWTESTINPUT_STATE)).orElse(false);
+    if (this.automatonState.isPresent()) {
+      return this.automatonState
+          .get()
+          .getInternalStateName()
+          .equals(UCACollector.NAME_OF_NEWTESTINPUT_STATE);
+    }
+    return false;
   }
 
   public boolean isNewTestCaseState() {
-    return this.automatonState.map(pAutomatonState -> pAutomatonState
-        .getInternalStateName()
-        .equals(UCACollector.NAME_OF_NEWTESTINPUT_STATE)).orElse(false);
+    if (this.automatonState.isPresent()) {
+      return this.automatonState
+          .get()
+          .getInternalStateName()
+          .equals(UCACollector.NAME_OF_NEWTESTINPUT_STATE);
+    }
+    return false;
   }
 
   /**
    * Dumps the currently stored testcase to a file using the Testcomp testcase format. The result
-   * will look similar to:
-   * <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-   *   <!DOCTYPE testcase PUBLIC "+//IDN sosy-lab.org//DTD test-format testcase 1.1//EN" "https://sosy-lab.org/test-format/testcase-1.1.dtd">
-   * <testcase>
-   *   <input variable="x" type="int">1023</input>
-   * <input variable="y" type="unsigned char">254</input> </testcase>
+   * will look similar to: <?xml version="1.0" encoding="UTF-8" standalone="no"?> <!DOCTYPE testcase
+   * PUBLIC "+//IDN sosy-lab.org//DTD test-format testcase 1.1//EN"
+   * "https://sosy-lab.org/test-format/testcase-1.1.dtd"> <testcase> <input variable="x"
+   * type="int">1023</input> <input variable="y" type="unsigned char">254</input> </testcase>
+   *
    * @param pPath the path to store the testcase at
    */
   public void dumpToTestcase(Path pPath) throws IOException {
     StringBuilder sb = new StringBuilder();
     sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>");
     sb.append(System.lineSeparator());
-    sb.append("<!DOCTYPE testcase PUBLIC \"+//IDN sosy-lab.org//DTD test-format testcase 1.1//EN\" \"https://sosy-lab.org/test-format/testcase-1.1.dtd\">");
+    sb.append(
+        "<!DOCTYPE testcase PUBLIC \"+//IDN sosy-lab.org//DTD test-format testcase 1.1//EN\" \"https://sosy-lab.org/test-format/testcase-1.1.dtd\">");
     sb.append(System.lineSeparator());
     sb.append("<testcase>");
     sb.append(System.lineSeparator());
-    for(TestcaseEntry entry: entries){
+    for (TestcaseEntry entry : entries) {
       sb.append(entry.toXMLTestcaseLine());
       sb.append(System.lineSeparator());
     }

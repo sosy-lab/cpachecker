@@ -47,7 +47,7 @@ public class TestCaseGenTransferRelation extends SingleEdgeTransferRelation {
       secure = true,
       description = "Filename format for Testcase TEST-COMP output dumps")
   @FileOption(Type.OUTPUT_FILE)
-  private PathTemplate exportPath = PathTemplate.ofFormatString("output/testcase-%d.xml");
+  private final PathTemplate exportPath = PathTemplate.ofFormatString("output/testcase-%d.xml");
 
   int numberOfTestcases =0;
 
@@ -134,7 +134,7 @@ public class TestCaseGenTransferRelation extends SingleEdgeTransferRelation {
             }
           }
         }
-        testcaseStae.setAutomatonState(            java.util.Optional.of(autoState));
+        testcaseStae.setAutomatonState(Optional.of(autoState));
       }
     }
     return Collections.singleton(testcaseStae);
