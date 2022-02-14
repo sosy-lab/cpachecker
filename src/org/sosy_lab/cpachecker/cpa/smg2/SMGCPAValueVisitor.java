@@ -275,8 +275,8 @@ public class SMGCPAValueVisitor
     // Either split the String into chars or simply assign in as a single big value
     String string = e.getContentString();
     ImmutableList.Builder<ValueAndSMGState> builder = ImmutableList.builder();
-    for (char c : string.toCharArray()) {
-      builder.add(ValueAndSMGState.of(new NumericValue((int) c), state));
+    for (int i = 0; i < string.length(); i++) {
+      builder.add(ValueAndSMGState.of(new NumericValue((int) string.charAt(i)), state));
     }
 
     return builder.build();
