@@ -97,6 +97,16 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
     errorInfo = errorInf;
   }
 
+  /**
+   * Creates a new, empty {@link SMGState} with the {@link SMGOptions} given. The {@link
+   * SymbolicProgramConfiguration} and {@link SMGErrorInfo} inside are new and empty as well.
+   *
+   * @param pMachineModel the {@link MachineModel} used to determin the size of types.
+   * @param logManager {@link LogManager} to log important information.
+   * @param opts {@link SMGOptions} to be used.
+   * @return a newly created {@link SMGState} with a new and emtpy {@link
+   *     SymbolicProgramConfiguration} inside.
+   */
   public static SMGState of(MachineModel pMachineModel, LogManager logManager, SMGOptions opts) {
     return new SMGState(
         pMachineModel,
@@ -105,16 +115,41 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
         opts);
   }
 
-  public static SMGState
-      of(
-          MachineModel pMachineModel,
-          SymbolicProgramConfiguration heapSPC,
-          LogManager logManager,
-          SMGOptions opts) {
+  /**
+   * Creates a new {@link SMGState} out of the parameters, but also creates a new, empty {@link
+   * SMGErrorInfo} for the new state.
+   *
+   * @param pMachineModel {@link MachineModel} to be used to determine type sizes.
+   * @param heapSPC {@link SymbolicProgramConfiguration} to be used.
+   * @param logManager {@link LogManager} to be used to log information.
+   * @param opts {@link SMGOptions} to be used.
+   * @return new {@link SMGState} out of the parameters with empty {@link SMGErrorInfo}.
+   */
+  public static SMGState of(
+      MachineModel pMachineModel,
+      SymbolicProgramConfiguration heapSPC,
+      LogManager logManager,
+      SMGOptions opts) {
     return new SMGState(pMachineModel, heapSPC, logManager, opts);
   }
 
-  public static SMGState of(MachineModel pMachineModel, SymbolicProgramConfiguration pSPC, LogManager logManager, SMGOptions opts, SMGErrorInfo pErrorInfo) {
+  /**
+   * Creates a new {@link SMGState} out of the parameters given. No new elements are created by
+   * this.
+   *
+   * @param pMachineModel the {@link MachineModel} used to determin the size of types.
+   * @param pSPC the {@link SymbolicProgramConfiguration} to be used in the new state.
+   * @param logManager the {@link LogManager} to be used in the new state.
+   * @param opts {@link SMGOptions} to be used.
+   * @param pErrorInfo the {@link SMGErrorInfo} holding error information.
+   * @return a new {@link SMGState} with the arguments given.
+   */
+  public static SMGState of(
+      MachineModel pMachineModel,
+      SymbolicProgramConfiguration pSPC,
+      LogManager logManager,
+      SMGOptions opts,
+      SMGErrorInfo pErrorInfo) {
     return new SMGState(
         pMachineModel,
         pSPC,

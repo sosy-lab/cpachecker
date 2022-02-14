@@ -91,6 +91,20 @@ public class SymbolicProgramConfiguration {
     valueMapping = pValueMapping;
   }
 
+  /**
+   * Creates a new {@link SymbolicProgramConfiguration} out of the elements given.
+   *
+   * @param pSmg the {@link SMG} of this SPC.
+   * @param pGlobalVariableMapping the global variable map as {@link PersistentMap} mapping {@link
+   *     String} to {@link SMGObject}.
+   * @param pStackVariableMapping the stack variable mappings as a {@link PersistentStack} of {@link
+   *     StackFrame}s.
+   * @param pHeapObjects the heap {@link SMGObject}s on a {@link PersistentStack}.
+   * @param pExternalObjectAllocation externally allocated {@link SMGObject}s on a {@link
+   *     PersistentStack}.
+   * @param pValueMapping {@link BiMap} mapping the {@link Value}s and {@link SMGValue}s.
+   * @return the newly created {@link SymbolicProgramConfiguration}.
+   */
   public static SymbolicProgramConfiguration of(
       SMG pSmg,
       PersistentMap<String, SMGObject> pGlobalVariableMapping,
@@ -107,6 +121,12 @@ public class SymbolicProgramConfiguration {
         pValueMapping);
   }
 
+  /**
+   * Creates a new, empty {@link SymbolicProgramConfiguration} and returns it.
+   *
+   * @param sizeOfPtr the size of the pointers in this new SPC in bits as {@link BigInteger}.
+   * @return The newly created {@link SymbolicProgramConfiguration}.
+   */
   public static SymbolicProgramConfiguration of(BigInteger sizeOfPtr) {
     BiMap<Value, SMGValue> emptyMap = HashBiMap.create();
     emptyMap.put(new NumericValue(0), SMGValue.zeroValue());
