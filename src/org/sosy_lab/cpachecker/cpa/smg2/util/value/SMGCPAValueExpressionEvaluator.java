@@ -346,7 +346,14 @@ public class SMGCPAValueExpressionEvaluator
     // TODO check why old implementation did not use machineModel
     // Because in abstracted SMGs we might need the current SMG to get the correct type info.
     // TODO: rework because of that.
-    return machineModel.getSizeofInBits(pExpression.getExpressionType());
+    return getBitSizeof(pInitialSmgState, pExpression.getExpressionType());
+  }
+
+  public BigInteger getBitSizeof(SMGState pInitialSmgState, CType pType) {
+    // TODO check why old implementation did not use machineModel
+    // Because in abstracted SMGs we might need the current SMG to get the correct type info.
+    // TODO: rework because of that.
+    return machineModel.getSizeofInBits(pType);
   }
 
   // TODO: revisit this and decide if we want to split structs and unions because of the data
