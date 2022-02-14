@@ -172,6 +172,13 @@ public class SMGCPAValueVisitor
     return visitDefault(e);
   }
 
+  /**
+   * TODO: this currently only casts values. What happens if i try smth like this:
+   *
+   * <p>int array[] = ...;
+   *
+   * <p>char * bla = (char *) array;
+   */
   @Override
   public List<ValueAndSMGState> visit(CCastExpression e) throws CPATransferException {
     // Casts are not trivial within SMGs as there might be type reinterpretation used inside the SMGs,
@@ -181,41 +188,48 @@ public class SMGCPAValueVisitor
     CType targetType = e.getExpressionType();
     // We know that there will be only 1 value as a return here
     List<ValueAndSMGState> valuesAndStates = e.getOperand().accept(this);
-    Preconditions.checkArgument(valuesAndStates.size() == 1);
-    ValueAndSMGState valueAndState = valuesAndStates.get(0);
-    Value value = valueAndState.getValue();
-    SMGState currentState = valueAndState.getState();
-    MachineModel machineModel = evaluator.getMachineModel();
+    // it might be that we cast a value with more than 1 return value (Strings)
+    // The most up to date state is the last state (even if currently there is no case in which the
+    // states would be different)
+    SMGState currentState = valuesAndStates.get(valuesAndStates.size() - 1).getState();
+    ImmutableList.Builder<ValueAndSMGState> builder = new ImmutableList.Builder<>();
+    for (ValueAndSMGState valueAndState : valuesAndStates) {
+      // We don't take the state from these!
+      Value value = valueAndState.getValue();
+      MachineModel machineModel = evaluator.getMachineModel();
 
-    // TODO: cast arrays etc.
+      if (!value.isExplicitlyKnown()) {
+        builder.add(
+            ValueAndSMGState.of(
+                castSymbolicValue(value, targetType, Optional.of(machineModel)), currentState));
+        continue;
+      }
 
-    if (!value.isExplicitlyKnown()) {
-      return ImmutableList.of(
-          ValueAndSMGState.of(
-              castSymbolicValue(value, targetType, Optional.of(machineModel)), currentState));
+      // We only use numeric/symbolic/unknown values anyway and we can't cast unknowns
+      if (!value.isNumericValue()) {
+        logger.logf(
+            Level.FINE, "Can not cast C value %s to %s", value.toString(), targetType.toString());
+        builder.add(ValueAndSMGState.of(value, state));
+        continue;
+      }
+      NumericValue numericValue = (NumericValue) value;
+
+      CType type = targetType.getCanonicalType();
+      final int size;
+      if (type instanceof CSimpleType) {
+        size = evaluator.getBitSizeof(currentState, type).intValue();
+      } else if (type instanceof CBitFieldType) {
+        size = ((CBitFieldType) type).getBitFieldSize();
+        type = ((CBitFieldType) type).getType();
+      } else {
+        builder.add(ValueAndSMGState.of(value, state));
+        continue;
+      }
+
+      builder.add(
+          ValueAndSMGState.of(castNumeric(numericValue, type, machineModel, size), currentState));
     }
-
-    // We only use numeric/symbolic/unknown values anyway and we can't cast unknowns
-    if (!value.isNumericValue()) {
-      logger.logf(
-          Level.FINE, "Can not cast C value %s to %s", value.toString(), targetType.toString());
-      return ImmutableList.of(ValueAndSMGState.of(value, state));
-    }
-    NumericValue numericValue = (NumericValue) value;
-
-    CType type = targetType.getCanonicalType();
-    final int size;
-    if (type instanceof CSimpleType) {
-      size = evaluator.getBitSizeof(currentState, type).intValue();
-    } else if (type instanceof CBitFieldType) {
-      size = ((CBitFieldType) type).getBitFieldSize();
-      type = ((CBitFieldType) type).getType();
-    } else {
-      return ImmutableList.of(ValueAndSMGState.of(value, state));
-    }
-
-    return ImmutableList.of(
-        ValueAndSMGState.of(castNumeric(numericValue, type, machineModel, size), currentState));
+    return builder.build();
   }
 
   @Override
