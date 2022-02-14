@@ -13,7 +13,9 @@ import com.google.common.collect.ImmutableList;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -35,10 +37,19 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAValueExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue.NegativeNaN;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 
@@ -155,10 +166,48 @@ public class SMGCPAValueVisitor
 
   @Override
   public List<ValueAndSMGState> visit(CCastExpression e) throws CPATransferException {
-    // Casts are not trivial with SMGs as there might be type reinterpretation used inside the SMGs,
-    // but this should be taken care of by the SMGCPAValueExpressionEvaluator.
+    // Casts are not trivial within SMGs as there might be type reinterpretation used inside the SMGs,
+    // but this should be taken care of by the SMGCPAValueExpressionEvaluator and no longer be a problem here!
     // Get the type and value from the nested expression (might be SMG) and cast the value
-    return visitDefault(e);
+    // Also most of this code is taken from the value analysis CPA and modified
+    CType targetType = e.getExpressionType();
+    // We know that there will be only 1 value as a return here
+    List<ValueAndSMGState> valuesAndStates = e.getOperand().accept(this);
+    Preconditions.checkArgument(valuesAndStates.size() == 1);
+    ValueAndSMGState valueAndState = valuesAndStates.get(0);
+    Value value = valueAndState.getValue();
+    SMGState currentState = valueAndState.getState();
+    MachineModel machineModel = evaluator.getMachineModel();
+
+    // TODO: cast arrays etc.
+
+    if (!value.isExplicitlyKnown()) {
+      return ImmutableList.of(
+          ValueAndSMGState.of(
+              castSymbolicValue(value, targetType, Optional.of(machineModel)), currentState));
+    }
+
+    // We only use numeric/symbolic/unknown values anyway and we can't cast unknowns
+    if (!value.isNumericValue()) {
+      logger.logf(
+          Level.FINE, "Can not cast C value %s to %s", value.toString(), targetType.toString());
+      return ImmutableList.of(ValueAndSMGState.of(value, state));
+    }
+    NumericValue numericValue = (NumericValue) value;
+
+    CType type = targetType.getCanonicalType();
+    final int size;
+    if (type instanceof CSimpleType) {
+      size = evaluator.getBitSizeof(currentState, type).intValue();
+    } else if (type instanceof CBitFieldType) {
+      size = ((CBitFieldType) type).getBitFieldSize();
+      type = ((CBitFieldType) type).getType();
+    } else {
+      return ImmutableList.of(ValueAndSMGState.of(value, state));
+    }
+
+    return ImmutableList.of(
+        ValueAndSMGState.of(castNumeric(numericValue, type, machineModel, size), currentState));
   }
 
   @Override
@@ -274,5 +323,173 @@ public class SMGCPAValueVisitor
     // TODO: do we need those?
     // Cast for complex numbers?
     return visitDefault(e);
+  }
+
+  // ++++++++++++++++++++ Below this point casting helper methods
+
+  /** Taken from the value analysis CPA and modified. Casts symbolic {@link Value}s. */
+  private Value castSymbolicValue(
+      Value pValue, Type pTargetType, Optional<MachineModel> pMachineModel) {
+    final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
+
+    if (pValue instanceof SymbolicValue && pTargetType instanceof CSimpleType) {
+      return factory.cast((SymbolicValue) pValue, pTargetType, pMachineModel);
+    }
+
+    // If the value is not symbolic, just return it.
+    return pValue;
+  }
+
+  /** Taken from the value analysis CPA. TODO: check that all casts are correct and add missing. */
+  private Value castNumeric(
+      @NonNull final NumericValue numericValue,
+      final CType type,
+      final MachineModel machineModel,
+      final int size) {
+
+    if (!(type instanceof CSimpleType)) {
+      return numericValue;
+    }
+
+    final CSimpleType st = (CSimpleType) type;
+
+    switch (st.getType()) {
+      case BOOL:
+        return convertToBool(numericValue);
+      case INT128:
+      case INT:
+      case CHAR:
+        {
+          if (isNan(numericValue)) {
+            // result of conversion of NaN to integer is undefined
+            return UnknownValue.getInstance();
+
+          } else if ((numericValue.getNumber() instanceof Float
+                  || numericValue.getNumber() instanceof Double)
+              && Math.abs(numericValue.doubleValue() - numericValue.longValue()) >= 1) {
+            // if number is a float and float can not be exactly represented as integer, the
+            // result of the conversion of float to integer is undefined
+            return UnknownValue.getInstance();
+        }
+
+        final BigInteger valueToCastAsInt;
+        if (numericValue.getNumber() instanceof BigInteger) {
+          valueToCastAsInt = numericValue.bigInteger();
+        } else if (numericValue.getNumber() instanceof BigDecimal) {
+          valueToCastAsInt = numericValue.bigDecimalValue().toBigInteger();
+        } else {
+          valueToCastAsInt = BigInteger.valueOf(numericValue.longValue());
+        }
+          final boolean targetIsSigned = machineModel.isSigned(st);
+
+          final BigInteger maxValue = BigInteger.ONE.shiftLeft(size); // 2^size
+          BigInteger result = valueToCastAsInt.remainder(maxValue); // shrink to number of bits
+
+          BigInteger signedUpperBound;
+          BigInteger signedLowerBound;
+          if (targetIsSigned) {
+            // signed value must be put in interval [-(maxValue/2), (maxValue/2)-1]
+            // upper bound maxValue / 2 - 1
+            signedUpperBound = maxValue.divide(BigInteger.valueOf(2)).subtract(BigInteger.ONE);
+            // lower bound -maxValue / 2
+            signedLowerBound = maxValue.divide(BigInteger.valueOf(2)).negate();
+          } else {
+            signedUpperBound = maxValue.subtract(BigInteger.ONE);
+            signedLowerBound = BigInteger.ZERO;
+          }
+
+          if (isGreaterThan(result, signedUpperBound)) {
+            // if result overflows, let it 'roll around' and add overflow to lower bound
+            result = result.subtract(maxValue);
+          } else if (isLessThan(result, signedLowerBound)) {
+            result = result.add(maxValue);
+          }
+
+          return new NumericValue(result);
+        }
+
+      case FLOAT:
+      case DOUBLE:
+      case FLOAT128:
+        {
+          // TODO: look more closely at the INT/CHAR cases, especially at the loggedEdges stuff
+          // TODO: check for overflow(source larger than the highest number we can store in target
+          // etc.)
+
+          // casting to DOUBLE, if value is INT or FLOAT. This is sound, if we would also do this
+          // cast in C.
+          Value result;
+
+          final int bitPerByte = machineModel.getSizeofCharInBits();
+
+          if (isNan(numericValue) || isInfinity(numericValue)) {
+            result = numericValue;
+        } else if (size == machineModel.getSizeofFloat128() * 8) {
+          result = new NumericValue(numericValue.bigDecimalValue());
+        } else if (size == machineModel.getSizeofLongDouble() * bitPerByte) {
+
+            if (numericValue.bigDecimalValue().doubleValue() == numericValue.doubleValue()) {
+              result = new NumericValue(numericValue.doubleValue());
+            } else if (numericValue.bigDecimalValue().floatValue() == numericValue.floatValue()) {
+              result = new NumericValue(numericValue.floatValue());
+            } else {
+              result = UnknownValue.getInstance();
+            }
+          } else {
+            throw new AssertionError("Unhandled floating point type: " + type);
+          }
+        return result;
+        }
+
+      default:
+        throw new AssertionError("Unhandled type: " + type);
+    }
+  }
+
+  /** Taken from the value analysis CPA. */
+  private Value convertToBool(final NumericValue pValue) {
+    Number n = pValue.getNumber();
+    if (isBooleanFalseRepresentation(n)) {
+      return new NumericValue(0);
+    } else {
+      return new NumericValue(1);
+    }
+  }
+
+  /** Taken from the value analysis CPA. */
+  private boolean isBooleanFalseRepresentation(final Number n) {
+    return ((n instanceof Float || n instanceof Double) && 0 == n.doubleValue())
+        || (n instanceof BigInteger && BigInteger.ZERO.equals(n))
+        || (n instanceof BigDecimal && ((BigDecimal) n).compareTo(BigDecimal.ZERO) == 0)
+        || 0 == n.longValue();
+  }
+
+  /** Taken from the value analysis CPA. */
+  private boolean isNan(NumericValue pValue) {
+    Number n = pValue.getNumber();
+    return n.equals(Float.NaN) || n.equals(Double.NaN) || NegativeNaN.VALUE.equals(n);
+  }
+
+  /** Taken from the value analysis CPA. */
+  private boolean isInfinity(NumericValue pValue) {
+    Number n = pValue.getNumber();
+    return n.equals(Double.POSITIVE_INFINITY)
+        || n.equals(Double.NEGATIVE_INFINITY)
+        || n.equals(Float.POSITIVE_INFINITY)
+        || n.equals(Float.NEGATIVE_INFINITY);
+  }
+
+  /**
+   * Returns whether first integer is greater than second integer. Taken from the value analysis CPA
+   */
+  private boolean isGreaterThan(BigInteger i1, BigInteger i2) {
+    return i1.compareTo(i2) > 0;
+  }
+
+  /**
+   * Returns whether first integer is less than second integer. Taken from the value analysis CPA
+   */
+  private boolean isLessThan(BigInteger i1, BigInteger i2) {
+    return i1.compareTo(i2) < 0;
   }
 }
