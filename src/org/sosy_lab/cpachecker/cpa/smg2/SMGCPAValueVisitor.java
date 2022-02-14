@@ -12,6 +12,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -39,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -51,6 +54,9 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue.NegativeNaN;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
+import org.sosy_lab.cpachecker.util.BuiltinFunctions;
+import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 
 /**
@@ -106,8 +112,10 @@ public class SMGCPAValueVisitor
   @Override
   public List<ValueAndSMGState> visit(CFunctionCallExpression pIastFunctionCallExpression)
       throws CPATransferException {
-    // TODO: investigate whats possible here.
-    return null;
+
+    Value functionValue = handleFunctions(pIastFunctionCallExpression);
+
+    return ImmutableList.of(ValueAndSMGState.of(functionValue, state));
   }
 
   @Override
@@ -498,4 +506,692 @@ public class SMGCPAValueVisitor
   private boolean isLessThan(BigInteger i1, BigInteger i2) {
     return i1.compareTo(i2) < 0;
   }
+
+  // +++++++++++++++++++ Below this point methods for handling functions
+
+  private boolean isUnspecifiedType(CType pType) {
+    return pType instanceof CSimpleType
+        && ((CSimpleType) pType).getType() == CBasicType.UNSPECIFIED;
+  }
+
+  private Value fmin(Number pOp1, Number pOp2) {
+    if (Double.isNaN(pOp1.doubleValue())
+        || (Double.isInfinite(pOp1.doubleValue()) && pOp1.doubleValue() > 0)
+        || (Double.isInfinite(pOp2.doubleValue()) && pOp2.doubleValue() < 0)) {
+      return new NumericValue(pOp2);
+    }
+    if (Double.isNaN(pOp2.doubleValue())
+        || (Double.isInfinite(pOp2.doubleValue()) && pOp2.doubleValue() > 0)
+        || (Double.isInfinite(pOp1.doubleValue()) && pOp1.doubleValue() < 0)) {
+      return new NumericValue(pOp1);
+    }
+
+    final BigDecimal op1bd;
+    final BigDecimal op2bd;
+
+    if (pOp1 instanceof BigDecimal) {
+      op1bd = (BigDecimal) pOp1;
+    } else {
+      op1bd = BigDecimal.valueOf(pOp1.doubleValue());
+    }
+    if (pOp2 instanceof BigDecimal) {
+      op2bd = (BigDecimal) pOp2;
+    } else {
+      op2bd = BigDecimal.valueOf(pOp2.doubleValue());
+    }
+
+    if (op1bd.compareTo(op2bd) < 0) {
+      return new NumericValue(op1bd);
+    }
+    return new NumericValue(op2bd);
+  }
+
+  private Value fdim(Number pOp1, Number pOp2, String pFunctionName) {
+    if (Double.isNaN(pOp1.doubleValue()) || Double.isNaN(pOp2.doubleValue())) {
+      return new NumericValue(Double.NaN);
+    }
+
+    if (Double.isInfinite(pOp1.doubleValue())) {
+      if (Double.isInfinite(pOp2.doubleValue())) {
+        if (pOp1.doubleValue() > pOp2.doubleValue()) {
+          return new NumericValue(pOp1.doubleValue() - pOp2.doubleValue());
+        }
+        return new NumericValue(0.0);
+      }
+      if (pOp1.doubleValue() < 0) {
+        return new NumericValue(0.0);
+      }
+      return new NumericValue(pOp1);
+    }
+    if (Double.isInfinite(pOp2.doubleValue())) {
+      if (pOp2.doubleValue() < 0) {
+        return new NumericValue(Double.NaN);
+      }
+      return new NumericValue(0.0);
+    }
+
+    final BigDecimal op1bd;
+    final BigDecimal op2bd;
+
+    if (pOp1 instanceof BigDecimal) {
+      op1bd = (BigDecimal) pOp1;
+    } else {
+      op1bd = BigDecimal.valueOf(pOp1.doubleValue());
+    }
+    if (pOp2 instanceof BigDecimal) {
+      op2bd = (BigDecimal) pOp2;
+    } else {
+      op2bd = BigDecimal.valueOf(pOp2.doubleValue());
+    }
+    if (op1bd.compareTo(op2bd) > 0) {
+      BigDecimal difference = op1bd.subtract(op2bd);
+
+      CSimpleType type = BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(pFunctionName);
+      BigDecimal maxValue;
+      switch (type.getType()) {
+        case FLOAT:
+          maxValue = BigDecimal.valueOf(Float.MAX_VALUE);
+          break;
+        case DOUBLE:
+          maxValue = BigDecimal.valueOf(Double.MAX_VALUE);
+          break;
+        default:
+          return Value.UnknownValue.getInstance();
+      }
+      if (difference.compareTo(maxValue) > 0) {
+        return new NumericValue(Double.POSITIVE_INFINITY);
+      }
+      return new NumericValue(difference);
+    }
+    return new NumericValue(0.0);
+  }
+
+  private Optional<Boolean> isNegative(Number pNumber) {
+    if (pNumber instanceof BigDecimal) {
+      return Optional.of(((BigDecimal) pNumber).signum() < 0);
+    } else if (pNumber instanceof Float) {
+      float number = pNumber.floatValue();
+      if (Float.isNaN(number)) {
+        return Optional.of(false);
+      }
+      return Optional.of(number < 0 || 1 / number < 0);
+    } else if (pNumber instanceof Double) {
+      double number = pNumber.doubleValue();
+      if (Double.isNaN(number)) {
+        return Optional.of(false);
+      }
+      return Optional.of(number < 0 || 1 / number < 0);
+    } else if (pNumber instanceof NegativeNaN) {
+      return Optional.of(true);
+    }
+    return Optional.empty();
+  }
+
+  private Value fmax(Number pOp1, Number pOp2) {
+    if (Double.isNaN(pOp1.doubleValue())
+        || (Double.isInfinite(pOp1.doubleValue()) && pOp1.doubleValue() < 0)
+        || (Double.isInfinite(pOp2.doubleValue()) && pOp2.doubleValue() > 0)) {
+      return new NumericValue(pOp2);
+    }
+    if (Double.isNaN(pOp2.doubleValue())
+        || (Double.isInfinite(pOp2.doubleValue()) && pOp2.doubleValue() < 0)
+        || (Double.isInfinite(pOp1.doubleValue()) && pOp1.doubleValue() > 0)) {
+      return new NumericValue(pOp1);
+    }
+
+    final BigDecimal op1bd;
+    final BigDecimal op2bd;
+
+    if (pOp1 instanceof BigDecimal) {
+      op1bd = (BigDecimal) pOp1;
+    } else {
+      op1bd = BigDecimal.valueOf(pOp1.doubleValue());
+    }
+    if (pOp2 instanceof BigDecimal) {
+      op2bd = (BigDecimal) pOp2;
+    } else {
+      op2bd = BigDecimal.valueOf(pOp2.doubleValue());
+    }
+
+    if (op1bd.compareTo(op2bd) > 0) {
+      return new NumericValue(op1bd);
+    }
+    return new NumericValue(op2bd);
+  }
+
+  private Value handleFunctions(CFunctionCallExpression pIastFunctionCallExpression)
+      throws CPATransferException {
+    CExpression functionNameExp = pIastFunctionCallExpression.getFunctionNameExpression();
+
+    // We only handle builtin functions
+    if (functionNameExp instanceof CIdExpression) {
+      String calledFunctionName = ((CIdExpression) functionNameExp).getName();
+
+      if (BuiltinFunctions.isBuiltinFunction(calledFunctionName)) {
+        CType functionType = BuiltinFunctions.getFunctionType(calledFunctionName);
+
+        if (isUnspecifiedType(functionType)) {
+          // unsupported formula
+          return Value.UnknownValue.getInstance();
+        }
+
+        List<CExpression> parameterExpressions =
+            pIastFunctionCallExpression.getParameterExpressions();
+        List<Value> parameterValues = new ArrayList<>(parameterExpressions.size());
+
+        for (CExpression currParamExp : parameterExpressions) {
+          // Here we expect only 1 result value
+          List<ValueAndSMGState> newValuesAndStates = currParamExp.accept(this);
+          Preconditions.checkArgument(newValuesAndStates.size() == 1);
+          Value newValue = newValuesAndStates.get(0).getValue();
+
+          parameterValues.add(newValue);
+        }
+
+        if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(calledFunctionName)) {
+          /*
+           * Problem: this method needs a AbstractExpressionValueVisitor as input (the this)
+           * but this class is not correctly abstracted such that i can inherit it here
+           * (because it essentially is the same except for 1 method that would need to be
+           * abstract)
+           *
+           * return BuiltinOverflowFunctions.evaluateFunctionCall(
+           *   pIastFunctionCallExpression, this, evaluator.getMachineModel(), logger);
+           */
+          return UnknownValue.getInstance();
+        } else if (BuiltinFloatFunctions.matchesAbsolute(calledFunctionName)) {
+          assert parameterValues.size() == 1;
+
+          final CType parameterType = parameterExpressions.get(0).getExpressionType();
+          final Value parameter = parameterValues.get(0);
+
+          if (parameterType instanceof CSimpleType && !((CSimpleType) parameterType).isSigned()) {
+            return parameter;
+
+          } else if (parameter.isExplicitlyKnown()) {
+            assert parameter.isNumericValue();
+            final double absoluteValue = Math.abs(((NumericValue) parameter).doubleValue());
+
+            // absolute value for INT_MIN is undefined behaviour, so we do not bother handling it
+            // in any specific way
+            return new NumericValue(absoluteValue);
+          }
+
+        } else if (BuiltinFloatFunctions.matchesHugeVal(calledFunctionName)
+            || BuiltinFloatFunctions.matchesInfinity(calledFunctionName)) {
+
+          assert parameterValues.isEmpty();
+          if (BuiltinFloatFunctions.matchesHugeValFloat(calledFunctionName)
+              || BuiltinFloatFunctions.matchesInfinityFloat(calledFunctionName)) {
+
+            return new NumericValue(Float.POSITIVE_INFINITY);
+
+          } else {
+            assert BuiltinFloatFunctions.matchesInfinityDouble(calledFunctionName)
+                    || BuiltinFloatFunctions.matchesInfinityLongDouble(calledFunctionName)
+                    || BuiltinFloatFunctions.matchesHugeValDouble(calledFunctionName)
+                    || BuiltinFloatFunctions.matchesHugeValLongDouble(calledFunctionName)
+                : " Unhandled builtin function for infinity: " + calledFunctionName;
+
+            return new NumericValue(Double.POSITIVE_INFINITY);
+          }
+
+        } else if (BuiltinFloatFunctions.matchesNaN(calledFunctionName)) {
+          assert parameterValues.isEmpty() || parameterValues.size() == 1;
+
+          if (BuiltinFloatFunctions.matchesNaNFloat(calledFunctionName)) {
+            return new NumericValue(Float.NaN);
+          } else {
+            assert BuiltinFloatFunctions.matchesNaNDouble(calledFunctionName)
+                    || BuiltinFloatFunctions.matchesNaNLongDouble(calledFunctionName)
+                : "Unhandled builtin function for NaN: " + calledFunctionName;
+
+            return new NumericValue(Double.NaN);
+          }
+        } else if (BuiltinFloatFunctions.matchesIsNaN(calledFunctionName)) {
+          if (parameterValues.size() == 1) {
+            Value value = parameterValues.get(0);
+            if (value.isExplicitlyKnown()) {
+              NumericValue numericValue = value.asNumericValue();
+              CSimpleType paramType =
+                  BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName);
+              switch (paramType.getType()) {
+                case FLOAT:
+                  return Float.isNaN(numericValue.floatValue())
+                      ? new NumericValue(1)
+                      : new NumericValue(0);
+                case DOUBLE:
+                  return Double.isNaN(numericValue.doubleValue())
+                      ? new NumericValue(1)
+                      : new NumericValue(0);
+                default:
+                  break;
+              }
+            }
+          }
+        } else if (BuiltinFloatFunctions.matchesIsInfinity(calledFunctionName)) {
+          if (parameterValues.size() == 1) {
+            Value value = parameterValues.get(0);
+            if (value.isExplicitlyKnown()) {
+              NumericValue numericValue = value.asNumericValue();
+              CSimpleType paramType =
+                  BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName);
+              switch (paramType.getType()) {
+                case FLOAT:
+                  return Float.isInfinite(numericValue.floatValue())
+                      ? new NumericValue(1)
+                      : new NumericValue(0);
+                case DOUBLE:
+                  return Double.isInfinite(numericValue.doubleValue())
+                      ? new NumericValue(1)
+                      : new NumericValue(0);
+                default:
+                  break;
+              }
+            }
+          }
+        } else if (BuiltinFloatFunctions.matchesFinite(calledFunctionName)) {
+          if (parameterValues.size() == 1) {
+            Value value = parameterValues.get(0);
+            if (value.isExplicitlyKnown()) {
+              NumericValue numericValue = value.asNumericValue();
+              CSimpleType paramType =
+                  BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName);
+              switch (paramType.getType()) {
+                case FLOAT:
+                  return Float.isInfinite(numericValue.floatValue())
+                      ? new NumericValue(0)
+                      : new NumericValue(1);
+                case DOUBLE:
+                  return Double.isInfinite(numericValue.doubleValue())
+                      ? new NumericValue(0)
+                      : new NumericValue(1);
+                default:
+                  break;
+              }
+            }
+          }
+        } else if (BuiltinFloatFunctions.matchesFloor(calledFunctionName)) {
+          if (parameterValues.size() == 1) {
+            Value parameter = parameterValues.get(0);
+
+            if (parameter.isExplicitlyKnown()) {
+              assert parameter.isNumericValue();
+              Number number = parameter.asNumericValue().getNumber();
+              if (number instanceof BigDecimal) {
+                return new NumericValue(((BigDecimal) number).setScale(0, RoundingMode.FLOOR));
+              } else if (number instanceof Float) {
+                return new NumericValue(Math.floor(number.floatValue()));
+              } else if (number instanceof Double) {
+                return new NumericValue(Math.floor(number.doubleValue()));
+              } else if (number instanceof NumericValue.NegativeNaN) {
+                return parameter;
+              }
+            }
+          }
+        } else if (BuiltinFloatFunctions.matchesCeil(calledFunctionName)) {
+          if (parameterValues.size() == 1) {
+            Value parameter = parameterValues.get(0);
+
+            if (parameter.isExplicitlyKnown()) {
+              assert parameter.isNumericValue();
+              Number number = parameter.asNumericValue().getNumber();
+              if (number instanceof BigDecimal) {
+                return new NumericValue(((BigDecimal) number).setScale(0, RoundingMode.CEILING));
+              } else if (number instanceof Float) {
+                return new NumericValue(Math.ceil(number.floatValue()));
+              } else if (number instanceof Double) {
+                return new NumericValue(Math.ceil(number.doubleValue()));
+              } else if (number instanceof NumericValue.NegativeNaN) {
+                return parameter;
+              }
+            }
+          }
+        } else if (BuiltinFloatFunctions.matchesRound(calledFunctionName)
+            || BuiltinFloatFunctions.matchesLround(calledFunctionName)
+            || BuiltinFloatFunctions.matchesLlround(calledFunctionName)) {
+          if (parameterValues.size() == 1) {
+            Value parameter = parameterValues.get(0);
+            if (parameter.isExplicitlyKnown()) {
+              assert parameter.isNumericValue();
+              Number number = parameter.asNumericValue().getNumber();
+              if (number instanceof BigDecimal) {
+                return new NumericValue(((BigDecimal) number).setScale(0, RoundingMode.HALF_UP));
+              } else if (number instanceof Float) {
+                float f = number.floatValue();
+                if (0 == f || Float.isInfinite(f)) {
+                  return parameter;
+                }
+                return new NumericValue(Math.round(f));
+              } else if (number instanceof Double) {
+                double d = number.doubleValue();
+                if (0 == d || Double.isInfinite(d)) {
+                  return parameter;
+                }
+                return new NumericValue(Math.round(d));
+              } else if (number instanceof NumericValue.NegativeNaN) {
+                return parameter;
+              }
+            }
+          }
+        } else if (BuiltinFloatFunctions.matchesTrunc(calledFunctionName)) {
+          if (parameterValues.size() == 1) {
+            Value parameter = parameterValues.get(0);
+            if (parameter.isExplicitlyKnown()) {
+              assert parameter.isNumericValue();
+              Number number = parameter.asNumericValue().getNumber();
+              if (number instanceof BigDecimal) {
+                return new NumericValue(((BigDecimal) number).setScale(0, RoundingMode.DOWN));
+              } else if (number instanceof Float) {
+                float f = number.floatValue();
+                if (0 == f || Float.isInfinite(f) || Float.isNaN(f)) {
+                  // +/-0.0 and +/-INF and +/-NaN are returned unchanged
+                  return parameter;
+                }
+                return new NumericValue(
+                    BigDecimal.valueOf(number.floatValue())
+                        .setScale(0, RoundingMode.DOWN)
+                        .floatValue());
+              } else if (number instanceof Double) {
+                double d = number.doubleValue();
+                if (0 == d || Double.isInfinite(d) || Double.isNaN(d)) {
+                  // +/-0.0 and +/-INF and +/-NaN are returned unchanged
+                  return parameter;
+                }
+                return new NumericValue(
+                    BigDecimal.valueOf(number.doubleValue())
+                        .setScale(0, RoundingMode.DOWN)
+                        .doubleValue());
+              } else if (number instanceof NumericValue.NegativeNaN) {
+                return parameter;
+              }
+            }
+          }
+        } else if (BuiltinFloatFunctions.matchesFdim(calledFunctionName)) {
+          if (parameterValues.size() == 2) {
+            Value operand1 = parameterValues.get(0);
+            Value operand2 = parameterValues.get(1);
+            if (operand1.isExplicitlyKnown() && operand2.isExplicitlyKnown()) {
+
+              assert operand1.isNumericValue();
+              assert operand2.isNumericValue();
+
+              Number op1 = operand1.asNumericValue().getNumber();
+              Number op2 = operand2.asNumericValue().getNumber();
+
+              Value result = fdim(op1, op2, calledFunctionName);
+              if (!Value.UnknownValue.getInstance().equals(result)) {
+                return result;
+              }
+            }
+          }
+        } else if (BuiltinFloatFunctions.matchesFmax(calledFunctionName)) {
+          if (parameterValues.size() == 2) {
+            Value operand1 = parameterValues.get(0);
+            Value operand2 = parameterValues.get(1);
+            if (operand1.isExplicitlyKnown() && operand2.isExplicitlyKnown()) {
+
+              assert operand1.isNumericValue();
+              assert operand2.isNumericValue();
+
+              Number op1 = operand1.asNumericValue().getNumber();
+              Number op2 = operand2.asNumericValue().getNumber();
+
+              return fmax(op1, op2);
+            }
+          }
+        } else if (BuiltinFloatFunctions.matchesFmin(calledFunctionName)) {
+          if (parameterValues.size() == 2) {
+            Value operand1 = parameterValues.get(0);
+            Value operand2 = parameterValues.get(1);
+            if (operand1.isExplicitlyKnown() && operand2.isExplicitlyKnown()) {
+
+              assert operand1.isNumericValue();
+              assert operand2.isNumericValue();
+
+              Number op1 = operand1.asNumericValue().getNumber();
+              Number op2 = operand2.asNumericValue().getNumber();
+
+              return fmin(op1, op2);
+            }
+          }
+        } else if (BuiltinFloatFunctions.matchesSignbit(calledFunctionName)) {
+          if (parameterValues.size() == 1) {
+            Value parameter = parameterValues.get(0);
+
+            if (parameter.isExplicitlyKnown()) {
+              assert parameter.isNumericValue();
+              Number number = parameter.asNumericValue().getNumber();
+              Optional<Boolean> isNegative = isNegative(number);
+              if (isNegative.isPresent()) {
+                return new NumericValue(isNegative.orElseThrow() ? 1 : 0);
+              }
+            }
+          }
+        } else if (BuiltinFloatFunctions.matchesCopysign(calledFunctionName)) {
+          if (parameterValues.size() == 2) {
+            Value target = parameterValues.get(0);
+            Value source = parameterValues.get(1);
+            if (target.isExplicitlyKnown() && source.isExplicitlyKnown()) {
+              assert target.isNumericValue();
+              assert source.isNumericValue();
+              Number targetNumber = target.asNumericValue().getNumber();
+              Number sourceNumber = source.asNumericValue().getNumber();
+              Optional<Boolean> sourceNegative = isNegative(sourceNumber);
+              Optional<Boolean> targetNegative = isNegative(targetNumber);
+              if (sourceNegative.isPresent() && targetNegative.isPresent()) {
+                if (sourceNegative.orElseThrow().equals(targetNegative.orElseThrow())) {
+                  return new NumericValue(targetNumber);
+                }
+                return target.asNumericValue().negate();
+              }
+            }
+          }
+        } else if (BuiltinFloatFunctions.matchesFloatClassify(calledFunctionName)) {
+
+          if (parameterValues.size() == 1) {
+            Value value = parameterValues.get(0);
+            if (value.isExplicitlyKnown()) {
+              NumericValue numericValue = value.asNumericValue();
+              CSimpleType paramType =
+                  BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName);
+              switch (paramType.getType()) {
+                case FLOAT:
+                  {
+                    float v = numericValue.floatValue();
+                    if (Float.isNaN(v)) {
+                      return new NumericValue(0);
+                    }
+                    if (Float.isInfinite(v)) {
+                      return new NumericValue(1);
+                    }
+                    if (v == 0.0) {
+                      return new NumericValue(2);
+                    }
+                    if (Float.toHexString(v).startsWith("0x0.")) {
+                      return new NumericValue(3);
+                    }
+                    return new NumericValue(4);
+                  }
+                case DOUBLE:
+                  {
+                    double v = numericValue.doubleValue();
+                    if (Double.isNaN(v)) {
+                      return new NumericValue(0);
+                    }
+                    if (Double.isInfinite(v)) {
+                      return new NumericValue(1);
+                    }
+                    if (v == 0.0) {
+                      return new NumericValue(2);
+                    }
+                    if (Double.toHexString(v).startsWith("0x0.")) {
+                      return new NumericValue(3);
+                    }
+                    return new NumericValue(4);
+                  }
+                default:
+                  break;
+              }
+            }
+          }
+        } else if (BuiltinFloatFunctions.matchesModf(calledFunctionName)) {
+          if (parameterValues.size() == 2) {
+            Value value = parameterValues.get(0);
+            if (value.isExplicitlyKnown()) {
+              NumericValue numericValue = value.asNumericValue();
+              CSimpleType paramType =
+                  BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName);
+              switch (paramType.getType()) {
+                case FLOAT:
+                  {
+                    long integralPart = (long) numericValue.floatValue();
+                    float fractionalPart = numericValue.floatValue() - integralPart;
+                    return new NumericValue(fractionalPart);
+                  }
+                case DOUBLE:
+                  {
+                    long integralPart = (long) numericValue.doubleValue();
+                    double fractionalPart = numericValue.doubleValue() - integralPart;
+                    return new NumericValue(fractionalPart);
+                  }
+                default:
+                  break;
+              }
+            }
+          }
+        } else if (BuiltinFloatFunctions.matchesFremainder(calledFunctionName)) {
+          if (parameterValues.size() == 2) {
+            Value numer = parameterValues.get(0);
+            Value denom = parameterValues.get(1);
+            if (numer.isExplicitlyKnown() && denom.isExplicitlyKnown()) {
+              NumericValue numerValue = numer.asNumericValue();
+              NumericValue denomValue = denom.asNumericValue();
+              switch (BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName)
+                  .getType()) {
+                case FLOAT:
+                  {
+                    float num = numerValue.floatValue();
+                    float den = denomValue.floatValue();
+                    if (Float.isNaN(num) || Float.isNaN(den) || Float.isInfinite(num) || den == 0) {
+                      return new NumericValue(Float.NaN);
+                    }
+                    return new NumericValue((float) Math.IEEEremainder(num, den));
+                  }
+                case DOUBLE:
+                  {
+                    double num = numerValue.doubleValue();
+                    double den = denomValue.doubleValue();
+                    if (Double.isNaN(num)
+                        || Double.isNaN(den)
+                        || Double.isInfinite(num)
+                        || den == 0) {
+                      return new NumericValue(Double.NaN);
+                    }
+                    return new NumericValue(Math.IEEEremainder(num, den));
+                  }
+                default:
+                  break;
+              }
+            }
+          }
+        } else if (BuiltinFloatFunctions.matchesFmod(calledFunctionName)) {
+          if (parameterValues.size() == 2) {
+            Value numer = parameterValues.get(0);
+            Value denom = parameterValues.get(1);
+            if (numer.isExplicitlyKnown() && denom.isExplicitlyKnown()) {
+              NumericValue numerValue = numer.asNumericValue();
+              NumericValue denomValue = denom.asNumericValue();
+              switch (BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName)
+                  .getType()) {
+                case FLOAT:
+                  {
+                    float num = numerValue.floatValue();
+                    float den = denomValue.floatValue();
+                    if (Float.isNaN(num) || Float.isNaN(den) || Float.isInfinite(num) || den == 0) {
+                      return new NumericValue(Float.NaN);
+                    }
+                    if (num == 0 && den != 0) {
+                      // keep the sign on +0 and -0
+                      return numer;
+                    }
+                    // TODO computations on float/double are imprecise! Use epsilon environment?
+                    return new NumericValue(num % den);
+                  }
+                case DOUBLE:
+                  {
+                    double num = numerValue.doubleValue();
+                    double den = denomValue.doubleValue();
+                    if (Double.isNaN(num)
+                        || Double.isNaN(den)
+                        || Double.isInfinite(num)
+                        || den == 0) {
+                      return new NumericValue(Double.NaN);
+                    }
+                    if (num == 0 && den != 0) {
+                      // keep the sign on +0 and -0
+                      return numer;
+                    }
+                    // TODO computations on float/double are imprecise! Use epsilon environment?
+                    return new NumericValue(num % den);
+                  }
+                default:
+                  break;
+              }
+            }
+          }
+        } else if (BuiltinFloatFunctions.matchesIsgreater(calledFunctionName)) {
+          Value op1 = parameterValues.get(0);
+          Value op2 = parameterValues.get(1);
+          if (op1.isExplicitlyKnown() && op2.isExplicitlyKnown()) {
+            double num1 = op1.asNumericValue().doubleValue();
+            double num2 = op2.asNumericValue().doubleValue();
+            return new NumericValue(num1 > num2 ? 1 : 0);
+          }
+        } else if (BuiltinFloatFunctions.matchesIsgreaterequal(calledFunctionName)) {
+          Value op1 = parameterValues.get(0);
+          Value op2 = parameterValues.get(1);
+          if (op1.isExplicitlyKnown() && op2.isExplicitlyKnown()) {
+            double num1 = op1.asNumericValue().doubleValue();
+            double num2 = op2.asNumericValue().doubleValue();
+            return new NumericValue(num1 >= num2 ? 1 : 0);
+          }
+        } else if (BuiltinFloatFunctions.matchesIsless(calledFunctionName)) {
+          Value op1 = parameterValues.get(0);
+          Value op2 = parameterValues.get(1);
+          if (op1.isExplicitlyKnown() && op2.isExplicitlyKnown()) {
+            double num1 = op1.asNumericValue().doubleValue();
+            double num2 = op2.asNumericValue().doubleValue();
+            return new NumericValue(num1 < num2 ? 1 : 0);
+          }
+        } else if (BuiltinFloatFunctions.matchesIslessequal(calledFunctionName)) {
+          Value op1 = parameterValues.get(0);
+          Value op2 = parameterValues.get(1);
+          if (op1.isExplicitlyKnown() && op2.isExplicitlyKnown()) {
+            double num1 = op1.asNumericValue().doubleValue();
+            double num2 = op2.asNumericValue().doubleValue();
+            return new NumericValue(num1 <= num2 ? 1 : 0);
+          }
+        } else if (BuiltinFloatFunctions.matchesIslessgreater(calledFunctionName)) {
+          Value op1 = parameterValues.get(0);
+          Value op2 = parameterValues.get(1);
+          if (op1.isExplicitlyKnown() && op2.isExplicitlyKnown()) {
+            double num1 = op1.asNumericValue().doubleValue();
+            double num2 = op2.asNumericValue().doubleValue();
+            return new NumericValue(num1 > num2 || num1 < num2 ? 1 : 0);
+          }
+        } else if (BuiltinFloatFunctions.matchesIsunordered(calledFunctionName)) {
+          Value op1 = parameterValues.get(0);
+          Value op2 = parameterValues.get(1);
+          if (op1.isExplicitlyKnown() && op2.isExplicitlyKnown()) {
+            double num1 = op1.asNumericValue().doubleValue();
+            double num2 = op2.asNumericValue().doubleValue();
+            return new NumericValue(Double.isNaN(num1) || Double.isNaN(num2) ? 1 : 0);
+          }
+        }
+      }
+    }
+    return UnknownValue.getInstance();
+  }
+
 }
