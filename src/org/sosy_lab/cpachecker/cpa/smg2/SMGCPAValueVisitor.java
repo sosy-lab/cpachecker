@@ -464,6 +464,7 @@ public class SMGCPAValueVisitor
               result = UnknownValue.getInstance();
             }
           } else {
+            // TODO: Think of floating point types!
             throw new AssertionError("Unhandled floating point type: " + type);
           }
         return result;
