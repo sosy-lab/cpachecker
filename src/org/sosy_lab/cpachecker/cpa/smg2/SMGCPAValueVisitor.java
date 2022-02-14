@@ -265,7 +265,13 @@ public class SMGCPAValueVisitor
   @Override
   public List<ValueAndSMGState> visit(CStringLiteralExpression e) throws CPATransferException {
     // Either split the String into chars or simply assign in as a single big value
-    return visitDefault(e);
+    String string = e.getContentString();
+    ImmutableList.Builder<ValueAndSMGState> builder = ImmutableList.builder();
+    for (char c : string.toCharArray()) {
+      builder.add(ValueAndSMGState.of(new NumericValue((int) c), state));
+    }
+
+    return builder.build();
   }
 
   @Override
