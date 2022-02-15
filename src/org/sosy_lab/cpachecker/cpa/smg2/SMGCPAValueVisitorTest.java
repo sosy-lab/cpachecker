@@ -248,6 +248,48 @@ public class SMGCPAValueVisitorTest {
     }
   }
 
+  /*
+   * Test casting of unsigned int concrete values.
+   * Assuming Linux 64bit. If signed/unsigned is missing signed is assumed.
+   * Tests for casting of values:
+   * unsigned int to char
+   * unsigned int to signed short
+   * unsigned int to unsigned short
+   * unsigned int to signed int
+   * unsigned int to unsigned int
+   * unsigned int to signed long
+   * unsigned int to unsigned long
+   *
+   * Some types (long double etc.) are left out but could be added later.
+   */
+  @Test
+  public void castUnsignedIntTest() throws CPATransferException {
+    // 0, 1, max value signed int, double max v signed, max unsigned
+    long[] testShorts =
+        new long[] {0, 1, Integer.MAX_VALUE, Integer.MAX_VALUE * 2, Integer.MAX_VALUE * 2 + 1};
+
+    for (CType typeToTest : BIT_FIELD_TYPES) {
+      for (long testShort : testShorts) {
+        CCastExpression castExpression =
+            new CCastExpression(
+                FileLocation.DUMMY,
+                typeToTest,
+                new CIntegerLiteralExpression(
+                    FileLocation.DUMMY, UNSIGNED_SHORT_TYPE, BigInteger.valueOf(testShort)));
+
+        List<ValueAndSMGState> result = castExpression.accept(visitor);
+        // Chars are translated into their numeric values by the value analysis
+        // Also, the numeric value is max 255, therefore every datatype should be able to hold that!
+        Value value = result.get(0).getValue();
+
+        assertThat(value).isInstanceOf(NumericValue.class);
+        // Check the returned value. It should be == for all except char
+        assertThat(value.asNumericValue().bigInteger())
+            .isEqualTo(convertToType(BigInteger.valueOf(testShort), typeToTest));
+      }
+    }
+  }
+
   /**
    * Assuming that the input is a signed value that may be smaller or bigger than the type entered.
    */
