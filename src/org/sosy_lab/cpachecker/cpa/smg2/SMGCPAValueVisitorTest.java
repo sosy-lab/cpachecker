@@ -129,7 +129,6 @@ public class SMGCPAValueVisitorTest {
     // Min value, -1, 0, 1, max value and overflow by 1, and 2
     short[] testShorts = new short[] {Short.MIN_VALUE, -1, 0, 1, Short.MAX_VALUE};
 
-    // TODO: ask someone smarter than me if all numbers are CIntegerLiteralExpression
     for (CType typeToTest : BIT_FIELD_TYPES) {
       for (short testShort : testShorts) {
         CCastExpression castExpression =
@@ -138,6 +137,34 @@ public class SMGCPAValueVisitorTest {
                 typeToTest,
                 new CIntegerLiteralExpression(
                     FileLocation.DUMMY, SHORT_TYPE, BigInteger.valueOf(testShort)));
+
+        List<ValueAndSMGState> result = castExpression.accept(visitor);
+        // Chars are translated into their numeric values by the value analysis
+        // Also, the numeric value is max 255, therefore every datatype should be able to hold that!
+        Value value = result.get(0).getValue();
+
+        assertThat(value).isInstanceOf(NumericValue.class);
+        // Check the returned value. It should be == for all except char
+        assertThat(value.asNumericValue().bigInteger())
+            .isEqualTo(convertToType(BigInteger.valueOf(testShort), typeToTest));
+      }
+    }
+  }
+
+  @Test
+  public void castUnsignedShortTest() throws CPATransferException {
+    // Min value, -1, 0, 1, max value and overflow by 1, and 2
+    int[] testShorts =
+        new int[] {0, 1, Short.MAX_VALUE, Short.MAX_VALUE * 2, Short.MAX_VALUE * 2 + 1};
+
+    for (CType typeToTest : BIT_FIELD_TYPES) {
+      for (int testShort : testShorts) {
+        CCastExpression castExpression =
+            new CCastExpression(
+                FileLocation.DUMMY,
+                typeToTest,
+                new CIntegerLiteralExpression(
+                    FileLocation.DUMMY, UNSIGNED_SHORT_TYPE, BigInteger.valueOf(testShort)));
 
         List<ValueAndSMGState> result = castExpression.accept(visitor);
         // Chars are translated into their numeric values by the value analysis
