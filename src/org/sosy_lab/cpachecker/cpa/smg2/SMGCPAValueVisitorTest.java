@@ -265,17 +265,22 @@ public class SMGCPAValueVisitorTest {
   @Test
   public void castUnsignedIntTest() throws CPATransferException {
     // 0, 1, max value signed int, double max v signed, max unsigned
-    long[] testValues =
-        new long[] {0, 1, Integer.MAX_VALUE, Integer.MAX_VALUE * 2, Integer.MAX_VALUE * 2 + 1};
+    BigInteger[] testValues =
+        new BigInteger[] {
+          BigInteger.valueOf(0),
+          BigInteger.valueOf(1),
+          BigInteger.valueOf(Integer.MAX_VALUE),
+          BigInteger.valueOf(Integer.MAX_VALUE).multiply(BigInteger.TWO),
+          BigInteger.valueOf(Integer.MAX_VALUE).multiply(BigInteger.TWO).add(BigInteger.ONE)
+        };
 
     for (CType typeToTest : BIT_FIELD_TYPES) {
-      for (long testValue : testValues) {
+      for (BigInteger testValue : testValues) {
         CCastExpression castExpression =
             new CCastExpression(
                 FileLocation.DUMMY,
                 typeToTest,
-                new CIntegerLiteralExpression(
-                    FileLocation.DUMMY, UNSIGNED_INT_TYPE, BigInteger.valueOf(testValue)));
+                new CIntegerLiteralExpression(FileLocation.DUMMY, UNSIGNED_INT_TYPE, testValue));
 
         List<ValueAndSMGState> result = castExpression.accept(visitor);
         // Chars are translated into their numeric values by the value analysis
@@ -285,7 +290,7 @@ public class SMGCPAValueVisitorTest {
         assertThat(value).isInstanceOf(NumericValue.class);
         // Check the returned value. It should be == for all except char
         assertThat(value.asNumericValue().bigInteger())
-            .isEqualTo(convertToType(BigInteger.valueOf(testValue), typeToTest));
+            .isEqualTo(convertToType(testValue, typeToTest));
       }
     }
   }
@@ -353,8 +358,8 @@ public class SMGCPAValueVisitorTest {
           BigInteger.valueOf(0),
           BigInteger.valueOf(1),
           BigInteger.valueOf(Long.MAX_VALUE),
-          BigInteger.valueOf(Long.MAX_VALUE * 2),
-          BigInteger.valueOf(Long.MAX_VALUE * 2 + 1)
+          BigInteger.valueOf(Long.MAX_VALUE).multiply(BigInteger.TWO),
+          BigInteger.valueOf(Long.MAX_VALUE).multiply(BigInteger.TWO).add(BigInteger.ONE)
         };
 
     for (CType typeToTest : BIT_FIELD_TYPES) {
