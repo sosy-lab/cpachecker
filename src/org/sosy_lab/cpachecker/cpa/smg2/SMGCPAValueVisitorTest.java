@@ -45,9 +45,9 @@ public class SMGCPAValueVisitorTest {
   private static final CType SHORT_TYPE = CNumericTypes.SHORT_INT;
   private static final CType UNSIGNED_SHORT_TYPE = CNumericTypes.UNSIGNED_SHORT_INT;
   private static final CType INT_TYPE = CNumericTypes.INT;
-  private static final CType UNISGNED_INT_TYPE = CNumericTypes.UNSIGNED_INT;
+  private static final CType UNSIGNED_INT_TYPE = CNumericTypes.UNSIGNED_INT;
   private static final CType LONG_TYPE = CNumericTypes.LONG_INT;
-  private static final CType UNISGNED_LONG_TYPE = CNumericTypes.UNSIGNED_LONG_INT;
+  private static final CType UNSIGNED_LONG_TYPE = CNumericTypes.UNSIGNED_LONG_INT;
 
   // Float/Double is currently not supported by SMG2
   @SuppressWarnings("unused")
@@ -62,9 +62,9 @@ public class SMGCPAValueVisitorTest {
         SHORT_TYPE,
         UNSIGNED_SHORT_TYPE,
         INT_TYPE,
-        UNISGNED_INT_TYPE,
+        UNSIGNED_INT_TYPE,
         LONG_TYPE,
-        UNISGNED_LONG_TYPE
+        UNSIGNED_LONG_TYPE
       };
 
   @Before
@@ -233,7 +233,7 @@ public class SMGCPAValueVisitorTest {
                 FileLocation.DUMMY,
                 typeToTest,
                 new CIntegerLiteralExpression(
-                    FileLocation.DUMMY, UNSIGNED_SHORT_TYPE, BigInteger.valueOf(testShort)));
+                    FileLocation.DUMMY, INT_TYPE, BigInteger.valueOf(testShort)));
 
         List<ValueAndSMGState> result = castExpression.accept(visitor);
         // Chars are translated into their numeric values by the value analysis
@@ -275,7 +275,48 @@ public class SMGCPAValueVisitorTest {
                 FileLocation.DUMMY,
                 typeToTest,
                 new CIntegerLiteralExpression(
-                    FileLocation.DUMMY, UNSIGNED_SHORT_TYPE, BigInteger.valueOf(testShort)));
+                    FileLocation.DUMMY, UNSIGNED_INT_TYPE, BigInteger.valueOf(testShort)));
+
+        List<ValueAndSMGState> result = castExpression.accept(visitor);
+        // Chars are translated into their numeric values by the value analysis
+        // Also, the numeric value is max 255, therefore every datatype should be able to hold that!
+        Value value = result.get(0).getValue();
+
+        assertThat(value).isInstanceOf(NumericValue.class);
+        // Check the returned value. It should be == for all except char
+        assertThat(value.asNumericValue().bigInteger())
+            .isEqualTo(convertToType(BigInteger.valueOf(testShort), typeToTest));
+      }
+    }
+  }
+
+  /*
+   * Test casting of signed long concrete values.
+   * Assuming Linux 64bit. If signed/unsigned is missing signed is assumed.
+   * Tests for casting of values:
+   * signed long to char
+   * signed long to signed short
+   * signed long to unsigned short
+   * signed long to signed int
+   * signed long to unsigned int
+   * signed long to signed long
+   * signed long to unsigned long
+   *
+   * Some types (long double etc.) are left out but could be added later.
+   */
+  @Test
+  public void castSignedLongTest() throws CPATransferException {
+    // min value, -1,  0, 1, max value
+    long[] testShorts = new long[] {Long.MIN_VALUE, -1, 0, 1, Long.MAX_VALUE};
+
+    for (CType typeToTest : BIT_FIELD_TYPES) {
+      for (long testShort : testShorts) {
+        CCastExpression castExpression =
+            new CCastExpression(
+                FileLocation.DUMMY,
+                typeToTest,
+                new CIntegerLiteralExpression(
+                    FileLocation.DUMMY, LONG_TYPE, BigInteger.valueOf(testShort)));
 
         List<ValueAndSMGState> result = castExpression.accept(visitor);
         // Chars are translated into their numeric values by the value analysis
@@ -309,11 +350,11 @@ public class SMGCPAValueVisitorTest {
       return BigInteger.valueOf(value.shortValue());
     } else if (type == INT_TYPE) {
       return BigInteger.valueOf(value.intValue());
-    } else if (type == UNISGNED_INT_TYPE) {
+    } else if (type == UNSIGNED_INT_TYPE) {
       return BigInteger.valueOf(Integer.toUnsignedLong(value.intValue()));
     } else if (type == LONG_TYPE) {
       return BigInteger.valueOf(value.longValue());
-    } else if (type == UNISGNED_LONG_TYPE) {
+    } else if (type == UNSIGNED_LONG_TYPE) {
       BigInteger longValue = BigInteger.valueOf(value.longValue());
       if (longValue.signum() < 0) {
         return longValue.add(BigInteger.ONE.shiftLeft(64));
