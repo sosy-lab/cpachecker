@@ -24,7 +24,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAValueExpressionEvaluator;
@@ -34,6 +33,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 // TODO: run with more machine models
+/* Test all SMGCPAValueVisitor visits. Some will be tested indirectly, for example value creation. */
 public class SMGCPAValueVisitorTest {
 
   private LogManagerWithoutDuplicates logger;
@@ -43,14 +43,11 @@ public class SMGCPAValueVisitorTest {
 
   private static final CType CHAR_TYPE = CNumericTypes.CHAR;
   private static final CType SHORT_TYPE = CNumericTypes.SHORT_INT;
-  private static final CType UNSIGNED_SHORT_TYPE =
-      new CBitFieldType(CNumericTypes.UNSIGNED_SHORT_INT, 2 * 8);
-  private static final CType INT_TYPE = new CBitFieldType(CNumericTypes.INT, 4 * 8);
-  private static final CType UNISGNED_INT_TYPE =
-      new CBitFieldType(CNumericTypes.UNSIGNED_INT, 4 * 8);
-  private static final CType LONG_TYPE = new CBitFieldType(CNumericTypes.LONG_INT, 8 * 8);
-  private static final CType UNISGNED_LONG_TYPE =
-      new CBitFieldType(CNumericTypes.UNSIGNED_LONG_INT, 8 * 8);
+  private static final CType UNSIGNED_SHORT_TYPE = CNumericTypes.UNSIGNED_SHORT_INT;
+  private static final CType INT_TYPE = CNumericTypes.INT;
+  private static final CType UNISGNED_INT_TYPE = CNumericTypes.UNSIGNED_INT;
+  private static final CType LONG_TYPE = CNumericTypes.LONG_INT;
+  private static final CType UNISGNED_LONG_TYPE = CNumericTypes.UNSIGNED_LONG_INT;
 
   // Float/Double is currently not supported by SMG2
   @SuppressWarnings("unused")
