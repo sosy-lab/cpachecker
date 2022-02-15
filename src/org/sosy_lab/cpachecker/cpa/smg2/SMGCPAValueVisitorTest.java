@@ -124,9 +124,23 @@ public class SMGCPAValueVisitorTest {
 
   }
 
+  /*
+   * Test casting of signed short concrete values.
+   * Assuming Linux 64bit. If signed/unsigned is missing signed is assumed.
+   * Tests for casting of values:
+   * signed short to char
+   * signed short to signed short
+   * signed short to unsigned short
+   * signed short to signed int
+   * signed short to unsigned int
+   * signed short to signed long
+   * signed short to unsigned long
+   *
+   * Some types (long double etc.) are left out but could be added later.
+   */
   @Test
   public void castSignedShortTest() throws CPATransferException {
-    // Min value, -1, 0, 1, max value and overflow by 1, and 2
+    // Min value, -1, 0, 1, max value
     short[] testShorts = new short[] {Short.MIN_VALUE, -1, 0, 1, Short.MAX_VALUE};
 
     for (CType typeToTest : BIT_FIELD_TYPES) {
@@ -151,11 +165,66 @@ public class SMGCPAValueVisitorTest {
     }
   }
 
+  /*
+   * Test casting of unsigned short concrete values.
+   * Assuming Linux 64bit. If signed/unsigned is missing signed is assumed.
+   * Tests for casting of values:
+   * unsigned short to char
+   * unsigned short to signed short
+   * unsigned short to unsigned short
+   * unsigned short to signed int
+   * unsigned short to unsigned int
+   * unsigned short to signed long
+   * unsigned short to unsigned long
+   *
+   * Some types (long double etc.) are left out but could be added later.
+   */
   @Test
   public void castUnsignedShortTest() throws CPATransferException {
-    // Min value, -1, 0, 1, max value and overflow by 1, and 2
+    // 0, 1, max value signed short, max value signed short * 2, max value unsigned short
     int[] testShorts =
         new int[] {0, 1, Short.MAX_VALUE, Short.MAX_VALUE * 2, Short.MAX_VALUE * 2 + 1};
+
+    for (CType typeToTest : BIT_FIELD_TYPES) {
+      for (int testShort : testShorts) {
+        CCastExpression castExpression =
+            new CCastExpression(
+                FileLocation.DUMMY,
+                typeToTest,
+                new CIntegerLiteralExpression(
+                    FileLocation.DUMMY, UNSIGNED_SHORT_TYPE, BigInteger.valueOf(testShort)));
+
+        List<ValueAndSMGState> result = castExpression.accept(visitor);
+        // Chars are translated into their numeric values by the value analysis
+        // Also, the numeric value is max 255, therefore every datatype should be able to hold that!
+        Value value = result.get(0).getValue();
+
+        assertThat(value).isInstanceOf(NumericValue.class);
+        // Check the returned value. It should be == for all except char
+        assertThat(value.asNumericValue().bigInteger())
+            .isEqualTo(convertToType(BigInteger.valueOf(testShort), typeToTest));
+      }
+    }
+  }
+
+  /*
+   * Test casting of signed int concrete values.
+   * Assuming Linux 64bit. If signed/unsigned is missing signed is assumed.
+   * Tests for casting of values:
+   * signed int to char
+   * signed int to signed short
+   * signed int to unsigned short
+   * signed int to signed int
+   * signed int to unsigned int
+   * signed int to signed long
+   * signed int to unsigned long
+   *
+   * Some types (long double etc.) are left out but could be added later.
+   */
+  @Test
+  public void castSignedIntTest() throws CPATransferException {
+    // Min value, -1, 0, 1, max value
+    int[] testShorts = new int[] {Integer.MIN_VALUE, -1, 0, 1, Integer.MAX_VALUE};
 
     for (CType typeToTest : BIT_FIELD_TYPES) {
       for (int testShort : testShorts) {
