@@ -426,13 +426,13 @@ public class CParserUtils {
     ParseResult parseResult;
     try {
       parseResult =
-          pCParser.parseString(Path.of("<expr>"), testCode, new CSourceOriginMapping(), pScope);
+          pCParser.parseString(Path.of("#expr#"), testCode, new CSourceOriginMapping(), pScope);
     } catch (CParserException e) {
       assumeCode = tryFixACSL(assumeCode, pResultFunction, pScope);
       testCode = String.format(formatString, assumeCode);
       try {
         parseResult =
-            pCParser.parseString(Path.of("<expr>"), testCode, new CSourceOriginMapping(), pScope);
+            pCParser.parseString(Path.of("#expr#"), testCode, new CSourceOriginMapping(), pScope);
       } catch (CParserException e2) {
         throw new InvalidAutomatonException(
             "Cannot interpret code as C expression: <" + pAssumeCode + ">", e);
