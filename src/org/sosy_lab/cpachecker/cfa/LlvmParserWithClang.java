@@ -61,7 +61,7 @@ public class LlvmParserWithClang extends LlvmParser {
   }
 
   @Override
-  public ParseResult parseString(final String pFilename, final String pCode) {
+  public ParseResult parseString(final Path pFilename, final String pCode) {
     // TODO
     throw new UnsupportedOperationException();
   }
