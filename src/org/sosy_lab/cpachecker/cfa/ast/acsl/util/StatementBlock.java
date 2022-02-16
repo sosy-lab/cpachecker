@@ -59,12 +59,12 @@ public class StatementBlock implements SyntacticBlock {
   }
 
   @Override
-  public Set<CFAEdge> getEnteringEdges() {
+  public Iterable<CFAEdge> getEnteringEdges() {
     return enteringEdges;
   }
 
   @Override
-  public Set<CFAEdge> getLeavingEdges() {
+  public Iterable<CFAEdge> getLeavingEdges() {
     return leavingEdges;
   }
 

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.io.FileReader;
 import java.io.IOException;
@@ -273,8 +274,8 @@ parser code {:
       CFAEdge next = blockStructure.getNextEdge(block, loc);
       if (next == null) {
         // assertion is at very end of block (after every leaving edge)
-        Set<CFAEdge> edges = blockStructure.getPrevEdges(block, loc);
-        if (edges.isEmpty()) {
+        Iterable<CFAEdge> edges = blockStructure.getPrevEdges(block, loc);
+        if (Iterables.isEmpty(edges)) {
           // assertion is at beginning of block -> block is empty apart from annotation
           edges = block.getEnteringEdges();
         }
