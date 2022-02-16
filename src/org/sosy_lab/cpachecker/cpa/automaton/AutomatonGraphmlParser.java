@@ -1870,8 +1870,7 @@ public class AutomatonGraphmlParser {
       List<CFAEdge> stateChangingEdges = new ArrayList<>();
       List<CFAEdge> nonStateChangingEdges = new ArrayList<>();
       for (CFANode node : cfa.getAllNodes()) {
-        for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-          CFAEdge edge = node.getLeavingEdge(i);
+        for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
           if (EnumSet.of(CFAEdgeType.BlankEdge, CFAEdgeType.AssumeEdge)
               .contains(edge.getEdgeType())) {
             nonStateChangingEdges.add(edge);

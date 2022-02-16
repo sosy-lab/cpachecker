@@ -14,6 +14,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class FunctionBlock implements SyntacticBlock {
 
@@ -46,18 +47,14 @@ public class FunctionBlock implements SyntacticBlock {
   @Override
   public Set<CFAEdge> getEnteringEdges() {
     Set<CFAEdge> enteringEdges = new HashSet<>();
-    for (int i = 0; i < function.getNumEnteringEdges(); i++) {
-      enteringEdges.add(function.getEnteringEdge(i));
-    }
+    CFAUtils.enteringEdges(function).copyInto(enteringEdges);
     return enteringEdges;
   }
 
   @Override
   public Set<CFAEdge> getLeavingEdges() {
     Set<CFAEdge> leavingEdges = new HashSet<>();
-    for (int i = 0; i < function.getNumLeavingEdges(); i++) {
-      leavingEdges.add(function.getLeavingEdge(i));
-    }
+    CFAUtils.leavingEdges(function).copyInto(leavingEdges);
     return leavingEdges;
   }
 
