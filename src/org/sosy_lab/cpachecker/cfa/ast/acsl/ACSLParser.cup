@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 parser code {:
 
@@ -197,8 +198,7 @@ parser code {:
       // Add function contracts to function exits as well because some clauses have to be
       // evaluated in the post-state
       FunctionExitNode exit = entry.getExitNode();
-      for (int i = 0; i < exit.getNumEnteringEdges(); i++) {
-        CFAEdge currentEdge = exit.getEnteringEdge(i);
+      for (CFAEdge currentEdge : CFAUtils.enteringEdges(exit)) {
         cfaWithLocs.getEdgesToAnnotations().put(currentEdge, annotation.getCopyForPostState());
       }
     }
@@ -221,10 +221,10 @@ parser code {:
       }
     } else {
       // this is a statement contract for a simple statement, e.g. x = 10;
-      for (int i = 0; i < edge.getPredecessor().getNumEnteringEdges(); i++) {
+      for (CFAEdge previousEdge : CFAUtils.enteringEdges(edge.getPredecessor())) {
         cfaWithLocs
             .getEdgesToAnnotations()
-            .put(edge.getPredecessor().getEnteringEdge(i), annotation.getCopyForPreState());
+            .put(previousEdge, annotation.getCopyForPreState());
       }
       cfaWithLocs.getEdgesToAnnotations().put(edge, annotation.getCopyForPostState());
     }
@@ -245,13 +245,12 @@ parser code {:
         if (successor.getNumLeavingEdges() == 1) {
           node = successor.getLeavingEdge(0).getSuccessor();
         }
-        for (int i = 0; i < node.getNumEnteringEdges(); i++) {
-          cfaWithLocs.getEdgesToAnnotations().put(node.getEnteringEdge(i), annotation);
+        for (CFAEdge enteringEdge : CFAUtils.enteringEdges(node)) {
+          cfaWithLocs.getEdgesToAnnotations().put(edge, annotation);
         }
       } else {
         assert edge.getDescription().equals("while") || edge.getDescription().equals("do");
-        for (int i = 0; i < successor.getNumEnteringEdges(); i++) {
-          CFAEdge currentEdge = successor.getEnteringEdge(i);
+        for (CFAEdge currentEdge : CFAUtils.enteringEdges(successor)) {
           cfaWithLocs.getEdgesToAnnotations().put(currentEdge, annotation);
         }
       }
@@ -284,8 +283,7 @@ parser code {:
         }
       } else {
         CFANode node = next.getPredecessor();
-        for (int i = 0; i < node.getNumEnteringEdges(); i++) {
-          CFAEdge currentEdge = node.getEnteringEdge(i);
+        for (CFAEdge currentEdge : CFAUtils.enteringEdges(node)) {
           cfaWithLocs.getEdgesToAnnotations().put(currentEdge, annotation);
         }
       }
