@@ -267,7 +267,7 @@ public class ArrayAbstraction {
             .collect(ImmutableSet.toImmutableSet());
     MemoryLocation loopIndexMemLoc =
         MemoryLocation.forDeclaration(pLoop.getIndex().getVariableDeclaration());
-    
+
     EdgeDefUseData.Extractor defUseDataExtractor = EdgeDefUseData.createExtractor(true);
     for (CFAEdge edge : pLoop.getInnerLoopEdges()) {
 
@@ -586,7 +586,7 @@ public class ArrayAbstraction {
 
         TransformableLoop loop = pLoop.orElseThrow();
         CFAEdge updateIndexEdge = loop.getIndex().getUpdateEdge();
-        
+
         CFAEdge postDominatedEdge = pEdge;
         if (pEdge instanceof CFunctionCallEdge) {
           postDominatedEdge = ((CFunctionCallEdge) pEdge).getSummaryEdge();
