@@ -18,12 +18,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.TestGoalToConditionConverterAlgorithm.LeafStates;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /**
  * Finds all un-/covered goals based on propagation.
@@ -59,11 +59,7 @@ public class LeafGoalWithPropagationStrategy implements IGoalFindingStrategy {
       var node = waitList.removeFirst();
       reachedNodes.add(node);
 
-      var childrenNodes =
-          Stream.iterate(0, n -> n + 1)
-              .limit(node.getNumLeavingEdges())
-              .map(i -> node.getLeavingEdge(i).getSuccessor())
-              .collect(ImmutableList.toImmutableList());
+      ImmutableList<CFANode> childrenNodes = CFAUtils.successorsOf(node).toList();
 
       if (nodes.get(NodeStates.VIRGIN).containsAll(childrenNodes)
           && node instanceof CFALabelNode
@@ -87,12 +83,11 @@ public class LeafGoalWithPropagationStrategy implements IGoalFindingStrategy {
 
       removableNodes.addAll(childrenNodes);
 
-      waitList.addAll(
-          Stream.iterate(0, i -> i + 1)
-              .limit(node.getNumEnteringEdges())
-              .map(i -> node.getEnteringEdge(i).getPredecessor())
+      ImmutableList<CFANode> todoNodes =
+          CFAUtils.predecessorsOf(node)
               .filter(n -> !reachedNodes.contains(n) && !waitList.contains(n))
-              .collect(ImmutableList.toImmutableList()));
+              .toList();
+      waitList.addAll(todoNodes);
     }
 
     nodes.get(NodeStates.COVERED).removeAll(removableNodes);
