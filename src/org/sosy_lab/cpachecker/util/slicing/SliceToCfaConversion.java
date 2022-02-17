@@ -9,20 +9,25 @@
 package org.sosy_lab.cpachecker.util.slicing;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.TreeMultimap;
-import com.google.common.graph.EndpointPair;
 import java.util.NavigableMap;
+import java.util.Optional;
 import java.util.TreeMap;
-import org.sosy_lab.common.collect.Collections3;
+import java.util.function.BiFunction;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CCfaTransformer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CfaMutableNetwork;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -30,7 +35,9 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFASimplifier;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 
 /** Utility class for turning {@link Slice} instances into {@link CFA} instances. */
 final class SliceToCfaConversion {
@@ -39,15 +46,14 @@ final class SliceToCfaConversion {
 
   /** Replaces the specified edge by a no-op blank edge in the specified mutable network. */
   private static void replaceIrrelevantEdge(CfaMutableNetwork pGraph, CFAEdge pEdge) {
-
-    EndpointPair<CFANode> endpoints = pGraph.incidentNodes(pEdge);
-    CFANode nodeU = endpoints.nodeU();
-    CFANode nodeV = endpoints.nodeV();
-
-    pGraph.removeEdge(pEdge);
     CFAEdge replacementEdge =
-        new BlankEdge("", pEdge.getFileLocation(), nodeU, nodeV, "slice-irrelevant");
-    pGraph.addEdge(nodeU, nodeV, replacementEdge);
+        new BlankEdge(
+            "",
+            pEdge.getFileLocation(),
+            pEdge.getPredecessor(),
+            pEdge.getSuccessor(),
+            "slice-irrelevant");
+    pGraph.replace(pEdge, replacementEdge);
   }
 
   /**
@@ -65,12 +71,61 @@ final class SliceToCfaConversion {
    * part of the slice.
    */
   private static boolean isReplaceableEdge(CFAEdge pEdge) {
+
     // Replacing function call/return edges leads to invalid CFAs.
     // Irrelevant assume edges are replaced during CFA simplification, which requires assume edges
     // with conditions instead of blank edges to work properly.
     return !(pEdge instanceof FunctionCallEdge)
         && !(pEdge instanceof FunctionReturnEdge)
         && !(pEdge instanceof AssumeEdge);
+  }
+
+  /**
+   * Returns {@code Optional.of(functionDeclaration)} if the specified edge declares a function.
+   * Otherwise, {@code Optional.empty()} is returned.
+   */
+  private static Optional<AFunctionDeclaration> extractFunctionDeclaration(CFAEdge pEdge) {
+
+    if (pEdge instanceof ADeclarationEdge) {
+      ADeclaration declaration = ((ADeclarationEdge) pEdge).getDeclaration();
+      if (declaration instanceof AFunctionDeclaration) {
+        return Optional.of((AFunctionDeclaration) declaration);
+      }
+    }
+
+    return Optional.empty();
+  }
+
+  /**
+   * Returns a substitution that maps CFA-nodes and their contained AST-nodes to AST-nodes that only
+   * contain parts relevant to the specified slice.
+   */
+  private static BiFunction<CFANode, CAstNode, CAstNode> createNodeSubstitution(
+      Slice pSlice, ImmutableMap<AFunctionDeclaration, ADeclarationEdge> pRelevantFunctions) {
+
+    return (cfaNode, astNode) -> {
+      CFunctionDeclaration relevantFunctionDeclaration =
+          (CFunctionDeclaration)
+              pSlice
+                  .getRelevantAstNode(pRelevantFunctions.get(cfaNode.getFunction()))
+                  .orElseThrow();
+
+      if (astNode instanceof AFunctionDeclaration) {
+        return relevantFunctionDeclaration;
+      }
+
+      if (cfaNode instanceof CFunctionEntryNode && astNode instanceof CVariableDeclaration) {
+
+        if (relevantFunctionDeclaration.getType().getReturnType() != CVoidType.VOID) {
+          return ((CFunctionEntryNode) cfaNode).getReturnVariable().orElseThrow();
+        }
+
+        // return type of function is void, so no return variable exists
+        return null;
+      }
+
+      return astNode;
+    };
   }
 
   /**
@@ -117,16 +172,22 @@ final class SliceToCfaConversion {
   public static CFA convert(Configuration pConfig, LogManager pLogger, Slice pSlice) {
 
     ImmutableSet<CFAEdge> relevantEdges = pSlice.getRelevantEdges();
-    // relevant functions are functions with at least one relevant edge
-    ImmutableSet<AFunctionDeclaration> relevantFunctions =
-        Collections3.transformedImmutableSetCopy(
-            relevantEdges, edge -> edge.getSuccessor().getFunction());
+
+    // relevant functions are functions that contain at least one relevant edge
+    // relevantFunctions: relevant function declaration -> declaration edge of function declaration
+    ImmutableMap<AFunctionDeclaration, ADeclarationEdge> relevantFunctions =
+        relevantEdges.stream()
+            .filter(edge -> extractFunctionDeclaration(edge).isPresent())
+            .collect(
+                ImmutableMap.toImmutableMap(
+                    edge -> extractFunctionDeclaration(edge).orElseThrow(),
+                    edge -> (ADeclarationEdge) edge));
 
     CfaMutableNetwork graph = CfaMutableNetwork.of(pSlice.getOriginalCfa());
 
     ImmutableList<CFAEdge> irrelevantFunctionEdges =
         graph.edges().stream()
-            .filter(edge -> isIrrelevantFunctionEdge(relevantFunctions, edge))
+            .filter(edge -> isIrrelevantFunctionEdge(relevantFunctions.keySet(), edge))
             .collect(ImmutableList.toImmutableList());
     irrelevantFunctionEdges.forEach(graph::removeEdge);
 
@@ -148,7 +209,8 @@ final class SliceToCfaConversion {
             pLogger,
             pSlice.getOriginalCfa(),
             graph,
-            (edge, astNode) -> (CAstNode) pSlice.getRelevantAstNode(edge).orElse(null));
+            (edge, astNode) -> (CAstNode) pSlice.getRelevantAstNode(edge).orElse(null),
+            createNodeSubstitution(pSlice, relevantFunctions));
 
     return createSimplifiedCfa(sliceCfa);
   }
