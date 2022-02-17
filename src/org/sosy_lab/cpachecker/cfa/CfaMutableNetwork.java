@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.graph.EndpointPair;
 import com.google.common.graph.MutableNetwork;
 import com.google.common.graph.NetworkBuilder;
 import java.util.ArrayList;
@@ -129,5 +130,58 @@ public class CfaMutableNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge
     }
 
     addEdge(pNode, pNewSuccessor, pNewOutEdge);
+  }
+
+  /**
+   *
+   *
+   * <pre>{@code
+   * Before:
+   * --- a ---> [pNode] --- b ---->
+   *
+   * After:
+   * --- a ---> [pNewNode] --- b ---->
+   *
+   * }</pre>
+   */
+  public void replace(CFANode pNode, CFANode pNewNode) {
+
+    addNode(pNewNode);
+
+    for (CFAEdge inEdge : ImmutableList.copyOf(inEdges(pNode))) {
+      CFANode nodeU = incidentNodes(inEdge).nodeU();
+      removeEdge(inEdge);
+      addEdge(nodeU, pNewNode, inEdge);
+    }
+
+    for (CFAEdge outEdge : ImmutableList.copyOf(outEdges(pNode))) {
+      CFANode nodeV = incidentNodes(outEdge).nodeV();
+      removeEdge(outEdge);
+      addEdge(pNewNode, nodeV, outEdge);
+    }
+
+    removeNode(pNode);
+  }
+
+  /**
+   *
+   *
+   * <pre>{@code
+   * Before:
+   * --- a ---> [X] --- pEdge ---> [Y] --- b ---->
+   *
+   * After:
+   * --- a ---> [X] --- pNewEdge ---> [Y] --- b ---->
+   *
+   * }</pre>
+   */
+  public void replace(CFAEdge pEdge, CFAEdge pNewEdge) {
+
+    EndpointPair<CFANode> endpoints = incidentNodes(pEdge);
+    CFANode nodeU = endpoints.nodeU();
+    CFANode nodeV = endpoints.nodeV();
+
+    removeEdge(pEdge);
+    addEdge(nodeU, nodeV, pNewEdge);
   }
 }
