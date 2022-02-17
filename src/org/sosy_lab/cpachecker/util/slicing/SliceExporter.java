@@ -59,6 +59,7 @@ public class SliceExporter {
   private PathTemplate exportCriteriaFile =
       PathTemplate.ofFormatString("programSlice.%d.criteria.txt");
 
+  private final Configuration config;
   private final LogManager logger;
   private int exportCount = -1;
   private final CFAToCTranslator translator;
@@ -68,6 +69,7 @@ public class SliceExporter {
     pConfig.inject(this);
 
     translator = new CFAToCTranslator(pConfig);
+    config = pConfig;
     logger = pLogger;
   }
 
@@ -111,7 +113,7 @@ public class SliceExporter {
       Concurrency.newThread(
               "Slice-Exporter",
               () -> {
-                CFA sliceCfa = SliceToCfaConverter.convert(pSlice);
+                CFA sliceCfa = SliceToCfaConverter.convert(config, logger, pSlice);
 
                 Path path = exportToCFile.getPath(exportCount);
 
