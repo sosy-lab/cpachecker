@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.cfa.CfaMutableNetwork;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -51,7 +52,12 @@ final class SliceToCfaConverter {
   }
 
   private static boolean isReplaceableEdge(CFAEdge pEdge) {
-    return !(pEdge instanceof FunctionCallEdge) && !(pEdge instanceof FunctionReturnEdge);
+    // Replacing function call/return edges leads to invalid CFAs.
+    // Irrelevant assume edges are replaced during CFA simplification, which requires assume edges
+    // with conditions instead of blank edges to work properly.
+    return !(pEdge instanceof FunctionCallEdge)
+        && !(pEdge instanceof FunctionReturnEdge)
+        && !(pEdge instanceof AssumeEdge);
   }
 
   private static CFA createSimplifiedCfa(CFA pCfa) {
