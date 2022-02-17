@@ -4249,6 +4249,12 @@ slicing.exportToC.enable = false
 # File template for exported C program slices
 slicing.exportToC.file = "programSlice.%d.c"
 
+# Whether to export program slices as DOT files.
+slicing.exportToDot.enable = true
+
+# File template for exported program slice DOT files.
+slicing.exportToDot.file = "programSlice.%d.dot"
+
 # which type of extractor for slicing criteria to use
 slicing.extractor = ALL
   enum:     [ALL, REDUCER, SYNTAX]
