@@ -11,22 +11,28 @@ package org.sosy_lab.cpachecker.util.slicing;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
@@ -37,7 +43,8 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraph;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph;
-import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.EdgeType;
+import org.sosy_lab.cpachecker.util.slicing.c.CSlice;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
@@ -108,7 +115,8 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
     return abortCallEdges;
   }
 
-  private Multimap<CFAEdge, CSystemDependenceGraph.Node> getNodesPerCfaEdge() {
+  private Function<CFAEdge, Iterable<CSystemDependenceGraph.Node>>
+      createCfaEdgeToSdgNodesFunction() {
 
     Multimap<CFAEdge, CSystemDependenceGraph.Node> nodesPerCfaNode = ArrayListMultimap.create();
 
@@ -119,7 +127,7 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
       }
     }
 
-    return nodesPerCfaNode;
+    return cfaEdge -> nodesPerCfaNode.get(cfaEdge);
   }
 
   @Override
@@ -136,10 +144,11 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
     }
 
     Set<CSystemDependenceGraph.Node> startNodes = new HashSet<>();
-    Multimap<CFAEdge, CSystemDependenceGraph.Node> nodesPerCfaEdge = getNodesPerCfaEdge();
+    Function<CFAEdge, Iterable<CSystemDependenceGraph.Node>> cfaEdgeToSdgNodes =
+        createCfaEdgeToSdgNodesFunction();
 
     for (CFAEdge criteriaEdge : criteriaEdges) {
-      startNodes.addAll(nodesPerCfaEdge.get(criteriaEdge));
+      Iterables.addAll(startNodes, cfaEdgeToSdgNodes.apply(criteriaEdge));
     }
 
     Phase1Visitor phase1Visitor = new Phase1Visitor();
@@ -152,7 +161,7 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
       startNodes.addAll(phase1Visitor.getVisitedSdgNodes());
     } else {
       for (CFAEdge criteriaEdge : relevantEdges) {
-        startNodes.addAll(nodesPerCfaEdge.get(criteriaEdge));
+        Iterables.addAll(startNodes, cfaEdgeToSdgNodes.apply(criteriaEdge));
       }
     }
 
@@ -160,9 +169,16 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
     sdg.traverse(startNodes, sdg.createVisitOnceVisitor(phase2Visitor));
     relevantEdges.addAll(phase2Visitor.getRelevantEdges());
 
+    Set<CSystemDependenceGraph.Node> relevantSdgNodes =
+        Sets.union(phase1Visitor.getVisitedSdgNodes(), phase2Visitor.getVisitedSdgNodes());
     final Slice slice =
-        new StaticSlicerSlice(
-            pCfa, ImmutableSet.copyOf(criteriaEdges), ImmutableSet.copyOf(relevantEdges));
+        new SdgProgramSlice(
+            pCfa,
+            sdg,
+            cfaEdgeToSdgNodes,
+            ImmutableSet.copyOf(relevantSdgNodes),
+            ImmutableSet.copyOf(criteriaEdges),
+            ImmutableSet.copyOf(relevantEdges));
 
     slicingTime.stop();
     sliceCount.inc();
@@ -218,39 +234,189 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
         });
   }
 
-  private static final class StaticSlicerSlice implements Slice {
+  private static final class SdgProgramSlice extends CSlice {
 
-    private final CFA originalCfa;
-    private final ImmutableCollection<CFAEdge> criteriaEdges;
-    private final ImmutableSet<CFAEdge> relevantEdges;
+    private final CSystemDependenceGraph sdg;
+    private final Function<CFAEdge, Iterable<CSystemDependenceGraph.Node>> cfaEdgeToSdgNodes;
+    private final ImmutableSet<CSystemDependenceGraph.Node> relevantSdgNodes;
 
-    private StaticSlicerSlice(
+    private final ImmutableSet<FormalNode> relevantFormalNodes;
+    private final ImmutableSet<ActualNode> relevantActualNodes;
+
+    private SdgProgramSlice(
         CFA pOriginalCfa,
+        CSystemDependenceGraph pSdg,
+        Function<CFAEdge, Iterable<CSystemDependenceGraph.Node>> pCfaEdgeToSdgNodes,
+        ImmutableSet<CSystemDependenceGraph.Node> pRelevantSdgNodes,
         ImmutableCollection<CFAEdge> pCriteriaEdges,
         ImmutableSet<CFAEdge> pRelevantEdges) {
-      originalCfa = pOriginalCfa;
-      criteriaEdges = pCriteriaEdges;
-      relevantEdges = pRelevantEdges;
+      super(pOriginalCfa, pCriteriaEdges, pRelevantEdges);
+
+      sdg = pSdg;
+      cfaEdgeToSdgNodes = pCfaEdgeToSdgNodes;
+      relevantSdgNodes = pRelevantSdgNodes;
+
+      relevantFormalNodes =
+          pRelevantSdgNodes.stream()
+              .filter(SdgProgramSlice::isFormalNode)
+              .map(FormalNode::new)
+              .collect(ImmutableSet.toImmutableSet());
+      relevantActualNodes =
+          pRelevantSdgNodes.stream()
+              .filter(SdgProgramSlice::isActualNode)
+              .map(ActualNode::new)
+              .collect(ImmutableSet.toImmutableSet());
+    }
+
+    private static boolean isFormalNode(CSystemDependenceGraph.Node pNode) {
+      return pNode.getType() == SystemDependenceGraph.NodeType.FORMAL_IN
+          || pNode.getType() == SystemDependenceGraph.NodeType.FORMAL_OUT;
+    }
+
+    private static boolean isActualNode(CSystemDependenceGraph.Node pNode) {
+      return pNode.getType() == SystemDependenceGraph.NodeType.ACTUAL_IN
+          || pNode.getType() == SystemDependenceGraph.NodeType.ACTUAL_OUT;
     }
 
     @Override
-    public CFA getOriginalCfa() {
-      return originalCfa;
+    protected boolean isInitializerRelevant(
+        CFAEdge pEdge, CVariableDeclaration pVariableInitializer) {
+
+      var visitor =
+          new CSystemDependenceGraph.ForwardsVisitor() {
+
+            private boolean outgoingFlowDependency = false;
+
+            @Override
+            public SystemDependenceGraph.VisitResult visitNode(CSystemDependenceGraph.Node pNode) {
+              return relevantSdgNodes.contains(pNode)
+                  ? SystemDependenceGraph.VisitResult.CONTINUE
+                  : SystemDependenceGraph.VisitResult.SKIP;
+            }
+
+            @Override
+            public SystemDependenceGraph.VisitResult visitEdge(
+                SystemDependenceGraph.EdgeType pType,
+                CSystemDependenceGraph.Node pPredecessor,
+                CSystemDependenceGraph.Node pSuccessor) {
+
+              if (relevantSdgNodes.contains(pSuccessor)
+                  && pType == SystemDependenceGraph.EdgeType.FLOW_DEPENDENCY) {
+                outgoingFlowDependency = true;
+              }
+
+              return SystemDependenceGraph.VisitResult.SKIP;
+            }
+          };
+
+      sdg.traverse(
+          Sets.newHashSet(cfaEdgeToSdgNodes.apply(pEdge)), sdg.createVisitOnceVisitor(visitor));
+
+      return visitor.outgoingFlowDependency;
     }
 
     @Override
-    public ImmutableCollection<CFAEdge> getUsedCriteria() {
-      return criteriaEdges;
+    protected boolean isParameterRelevant(
+        CFAEdge pEdge, CParameterDeclaration pCParameterDeclaration) {
+      return relevantFormalNodes.contains(
+          new FormalNode(
+              pEdge.getSuccessor().getFunction(),
+              MemoryLocation.forDeclaration(pCParameterDeclaration)));
     }
 
     @Override
-    public ImmutableSet<CFAEdge> getRelevantEdges() {
-      return relevantEdges;
+    protected boolean isReturnVariableRelevant(
+        CFAEdge pEdge, CVariableDeclaration pVariableDeclaration) {
+      return relevantFormalNodes.contains(
+          new FormalNode(
+              pEdge.getPredecessor().getFunction(),
+              MemoryLocation.forDeclaration(pVariableDeclaration)));
     }
 
     @Override
-    public Optional<AAstNode> getRelevantAstNode(CFAEdge pEdge) {
-      return pEdge.getRawAST();
+    protected boolean isArgumentRelevant(
+        CFAEdge pEdge, CParameterDeclaration pCParameterDeclaration) {
+      return relevantActualNodes.contains(
+          new ActualNode(pEdge, MemoryLocation.forDeclaration(pCParameterDeclaration)));
+    }
+
+    @Override
+    protected boolean isReturnValueRelevant(
+        CFAEdge pEdge, CVariableDeclaration pCVariableDeclaration) {
+      return relevantActualNodes.contains(
+          new ActualNode(pEdge, MemoryLocation.forDeclaration(pCVariableDeclaration)));
+    }
+
+    private static final class FormalNode {
+
+      private final AFunctionDeclaration function;
+      private final MemoryLocation variable;
+
+      private FormalNode(AFunctionDeclaration pFunction, MemoryLocation pVariable) {
+        function = pFunction;
+        variable = pVariable;
+      }
+
+      private FormalNode(CSystemDependenceGraph.Node pNode) {
+        this(pNode.getProcedure().orElseThrow(), pNode.getVariable().orElseThrow());
+      }
+
+      @Override
+      public int hashCode() {
+        return Objects.hash(function, variable);
+      }
+
+      @Override
+      public boolean equals(Object pObject) {
+
+        if (this == pObject) {
+          return true;
+        }
+
+        if (!(pObject instanceof FormalNode)) {
+          return false;
+        }
+
+        FormalNode other = (FormalNode) pObject;
+
+        return Objects.equals(function, other.function) && Objects.equals(variable, other.variable);
+      }
+    }
+
+    private static final class ActualNode {
+
+      private final CFAEdge edge;
+      private final MemoryLocation variable;
+
+      private ActualNode(CFAEdge pEdge, MemoryLocation pVariable) {
+        edge = pEdge;
+        variable = pVariable;
+      }
+
+      private ActualNode(CSystemDependenceGraph.Node pNode) {
+        this(pNode.getStatement().orElseThrow(), pNode.getVariable().orElseThrow());
+      }
+
+      @Override
+      public int hashCode() {
+        return Objects.hash(edge, variable);
+      }
+
+      @Override
+      public boolean equals(Object pObject) {
+
+        if (this == pObject) {
+          return true;
+        }
+
+        if (!(pObject instanceof ActualNode)) {
+          return false;
+        }
+
+        ActualNode other = (ActualNode) pObject;
+
+        return Objects.equals(edge, other.edge) && Objects.equals(variable, other.variable);
+      }
     }
   }
 
@@ -324,18 +490,25 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
   private static final class Phase2Visitor implements CSystemDependenceGraph.BackwardsVisitor {
 
     private final Set<CFAEdge> relevantEdges;
+    private final Set<CSystemDependenceGraph.Node> visitedSdgNodes;
 
     private Phase2Visitor(Set<CFAEdge> pRelevantEdges) {
       relevantEdges = new HashSet<>(pRelevantEdges);
+      visitedSdgNodes = new HashSet<>();
     }
 
     private Set<CFAEdge> getRelevantEdges() {
       return relevantEdges;
     }
 
+    private Set<CSystemDependenceGraph.Node> getVisitedSdgNodes() {
+      return visitedSdgNodes;
+    }
+
     @Override
     public SystemDependenceGraph.VisitResult visitNode(CSystemDependenceGraph.Node pNode) {
 
+      visitedSdgNodes.add(pNode);
       pNode.getStatement().ifPresent(relevantEdges::add);
 
       return SystemDependenceGraph.VisitResult.CONTINUE;
@@ -349,7 +522,7 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
       // don't "ascend" into calling procedures
       if (pSuccessor.getType() == SystemDependenceGraph.NodeType.FORMAL_IN
-          || pType == EdgeType.CALL_EDGE) {
+          || pType == SystemDependenceGraph.EdgeType.CALL_EDGE) {
         return SystemDependenceGraph.VisitResult.SKIP;
       }
 
