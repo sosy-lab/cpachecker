@@ -31,10 +31,12 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFASimplifier;
 
+/** Utility class for turning {@link Slice} instances into {@link CFA} instances. */
 final class SliceToCfaConversion {
 
   private SliceToCfaConversion() {}
 
+  /** Replaces the specified edge by a no-op blank edge in the specified mutable network. */
   private static void replaceIrrelevantEdge(CfaMutableNetwork pGraph, CFAEdge pEdge) {
 
     EndpointPair<CFANode> endpoints = pGraph.incidentNodes(pEdge);
@@ -47,12 +49,20 @@ final class SliceToCfaConversion {
     pGraph.addEdge(nodeU, nodeV, replacementEdge);
   }
 
+  /**
+   * Returns whether the specified edge has at least one endpoint in an irrelevant function (i.e., a
+   * function that contains no edges that are part of the slice).
+   */
   private static boolean isIrrelevantFunctionEdge(
       ImmutableSet<AFunctionDeclaration> pRelevantFunctions, CFAEdge pEdge) {
     return !pRelevantFunctions.contains(pEdge.getPredecessor().getFunction())
         || !pRelevantFunctions.contains(pEdge.getSuccessor().getFunction());
   }
 
+  /**
+   * Returns whether the specified edge should be replaced by a no-op blank edge if the edge is not
+   * part of the slice.
+   */
   private static boolean isReplaceableEdge(CFAEdge pEdge) {
     // Replacing function call/return edges leads to invalid CFAs.
     // Irrelevant assume edges are replaced during CFA simplification, which requires assume edges
@@ -62,6 +72,10 @@ final class SliceToCfaConversion {
         && !(pEdge instanceof AssumeEdge);
   }
 
+  /**
+   * Creates a simplified CFA for the specified CFA using {@link
+   * CFASimplifier#simplifyCFA(MutableCFA)}.
+   */
   private static CFA createSimplifiedCfa(CFA pCfa) {
 
     NavigableMap<String, FunctionEntryNode> functionEntryNodes = new TreeMap<>();
@@ -91,9 +105,18 @@ final class SliceToCfaConversion {
     return mutableSliceCfa.makeImmutableCFA(mutableSliceCfa.getVarClassification());
   }
 
+  /**
+   * Creates a {@link CFA} that matches the specified {@link Slice} as closely as possible.
+   *
+   * @param pConfig the configuration to use
+   * @param pLogger the logger to use during conversion
+   * @param pSlice the slice to create a CFA for
+   * @return the CFA created for the specified slice
+   */
   public static CFA convert(Configuration pConfig, LogManager pLogger, Slice pSlice) {
 
     ImmutableSet<CFAEdge> relevantEdges = pSlice.getRelevantEdges();
+    // relevant functions are functions with at least one relevant edge
     ImmutableSet<AFunctionDeclaration> relevantFunctions =
         relevantEdges.stream()
             .map(edge -> edge.getSuccessor().getFunction())
