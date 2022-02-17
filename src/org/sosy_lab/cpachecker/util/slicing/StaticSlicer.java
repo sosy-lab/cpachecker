@@ -23,6 +23,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
@@ -37,7 +38,6 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraph;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.EdgeType;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
@@ -249,8 +249,8 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
     }
 
     @Override
-    public boolean isRelevantDef(CFAEdge pEdge, MemoryLocation pMemoryLocation) {
-      return true;
+    public Optional<AAstNode> getRelevantAstNode(CFAEdge pEdge) {
+      return pEdge.getRawAST();
     }
   }
 

@@ -586,10 +586,8 @@ final class SliceToCfaConverter {
             relevantMemoryLocations.computeIfAbsent(edge, key -> new HashSet<>());
 
         for (MemoryLocation memoryLocation : originalMemoryLocations.get(declarationEdge)) {
-          if (slice.isRelevantDef(edge, memoryLocation)) {
-            relevantDeclarationMemoryLocations.add(memoryLocation);
-            relevantEdgeMemoryLocations.add(memoryLocation);
-          }
+          relevantDeclarationMemoryLocations.add(memoryLocation);
+          relevantEdgeMemoryLocations.add(memoryLocation);
         }
       }
     }
