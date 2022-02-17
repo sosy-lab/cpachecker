@@ -27,7 +27,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
@@ -240,7 +239,7 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
     private final Function<CFAEdge, Iterable<CSystemDependenceGraph.Node>> cfaEdgeToSdgNodes;
     private final ImmutableSet<CSystemDependenceGraph.Node> relevantSdgNodes;
 
-    private final ImmutableSet<FormalNode> relevantFormalNodes;
+    private final ImmutableSet<MemoryLocation> relevantFormalVariables;
     private final ImmutableSet<ActualNode> relevantActualNodes;
 
     private SdgProgramSlice(
@@ -256,10 +255,10 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
       cfaEdgeToSdgNodes = pCfaEdgeToSdgNodes;
       relevantSdgNodes = pRelevantSdgNodes;
 
-      relevantFormalNodes =
+      relevantFormalVariables =
           pRelevantSdgNodes.stream()
               .filter(SdgProgramSlice::isFormalNode)
-              .map(FormalNode::new)
+              .map(node -> node.getVariable().orElseThrow())
               .collect(ImmutableSet.toImmutableSet());
       relevantActualNodes =
           pRelevantSdgNodes.stream()
@@ -316,21 +315,14 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
     }
 
     @Override
-    protected boolean isParameterRelevant(
-        CFAEdge pEdge, CParameterDeclaration pCParameterDeclaration) {
-      return relevantFormalNodes.contains(
-          new FormalNode(
-              pEdge.getSuccessor().getFunction(),
-              MemoryLocation.forDeclaration(pCParameterDeclaration)));
+    protected boolean isParameterRelevant(CParameterDeclaration pCParameterDeclaration) {
+      return relevantFormalVariables.contains(
+          MemoryLocation.forDeclaration(pCParameterDeclaration));
     }
 
     @Override
-    protected boolean isReturnVariableRelevant(
-        CFAEdge pEdge, CVariableDeclaration pVariableDeclaration) {
-      return relevantFormalNodes.contains(
-          new FormalNode(
-              pEdge.getPredecessor().getFunction(),
-              MemoryLocation.forDeclaration(pVariableDeclaration)));
+    protected boolean isReturnVariableRelevant(CVariableDeclaration pVariableDeclaration) {
+      return relevantFormalVariables.contains(MemoryLocation.forDeclaration(pVariableDeclaration));
     }
 
     @Override
@@ -345,42 +337,6 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
         CFAEdge pEdge, CVariableDeclaration pCVariableDeclaration) {
       return relevantActualNodes.contains(
           new ActualNode(pEdge, MemoryLocation.forDeclaration(pCVariableDeclaration)));
-    }
-
-    private static final class FormalNode {
-
-      private final AFunctionDeclaration function;
-      private final MemoryLocation variable;
-
-      private FormalNode(AFunctionDeclaration pFunction, MemoryLocation pVariable) {
-        function = pFunction;
-        variable = pVariable;
-      }
-
-      private FormalNode(CSystemDependenceGraph.Node pNode) {
-        this(pNode.getProcedure().orElseThrow(), pNode.getVariable().orElseThrow());
-      }
-
-      @Override
-      public int hashCode() {
-        return Objects.hash(function, variable);
-      }
-
-      @Override
-      public boolean equals(Object pObject) {
-
-        if (this == pObject) {
-          return true;
-        }
-
-        if (!(pObject instanceof FormalNode)) {
-          return false;
-        }
-
-        FormalNode other = (FormalNode) pObject;
-
-        return Objects.equals(function, other.function) && Objects.equals(variable, other.variable);
-      }
     }
 
     private static final class ActualNode {

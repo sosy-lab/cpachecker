@@ -67,11 +67,9 @@ public abstract class CSlice implements Slice {
   protected abstract boolean isInitializerRelevant(
       CFAEdge pEdge, CVariableDeclaration pVariableInitializer);
 
-  protected abstract boolean isParameterRelevant(
-      CFAEdge pEdge, CParameterDeclaration pCParameterDeclaration);
+  protected abstract boolean isParameterRelevant(CParameterDeclaration pCParameterDeclaration);
 
-  protected abstract boolean isReturnVariableRelevant(
-      CFAEdge pEdge, CVariableDeclaration pVariableDeclaration);
+  protected abstract boolean isReturnVariableRelevant(CVariableDeclaration pVariableDeclaration);
 
   protected abstract boolean isArgumentRelevant(
       CFAEdge pEdge, CParameterDeclaration pCParameterDeclaration);
@@ -103,8 +101,7 @@ public abstract class CSlice implements Slice {
         return Optional.of(
             getRelevantVariableDeclaration(pEdge, (CVariableDeclaration) declaration));
       } else if (declaration instanceof CFunctionDeclaration) {
-        return Optional.of(
-            getRelevantFunctionDeclaration(pEdge, (CFunctionDeclaration) declaration));
+        return Optional.of(getRelevantFunctionDeclaration((CFunctionDeclaration) declaration));
       }
     } else if (pEdge instanceof CFunctionCallEdge) {
       return Optional.of(
@@ -146,13 +143,13 @@ public abstract class CSlice implements Slice {
   }
 
   private CFunctionDeclaration getRelevantFunctionDeclaration(
-      CFAEdge pEdge, CFunctionDeclaration pFunctionDeclaration) {
+      CFunctionDeclaration pFunctionDeclaration) {
 
     List<CParameterDeclaration> parameterDeclarations = pFunctionDeclaration.getParameters();
 
     ImmutableList<CParameterDeclaration> relevantParameterDeclarations =
         parameterDeclarations.stream()
-            .filter(declaration -> isParameterRelevant(pEdge, declaration))
+            .filter(declaration -> isParameterRelevant(declaration))
             .collect(ImmutableList.toImmutableList());
     ImmutableList<CType> relevantParameterTypes =
         relevantParameterDeclarations.stream()
@@ -164,14 +161,13 @@ public abstract class CSlice implements Slice {
         getFunctionReturnVariableDeclaration(pFunctionDeclaration);
     CType relevantReturnType =
         optReturnVariableDeclaration.isPresent()
-                && isReturnVariableRelevant(pEdge, optReturnVariableDeclaration.orElseThrow())
+                && isReturnVariableRelevant(optReturnVariableDeclaration.orElseThrow())
             ? functionType.getReturnType()
             : CVoidType.VOID;
     boolean relevantTakesVarargs =
         functionType.takesVarArgs()
             && !parameterDeclarations.isEmpty()
-            && isParameterRelevant(
-                pEdge, parameterDeclarations.get(parameterDeclarations.size() - 1));
+            && isParameterRelevant(parameterDeclarations.get(parameterDeclarations.size() - 1));
     CFunctionType relevantFunctionType =
         new CFunctionType(relevantReturnType, relevantParameterTypes, relevantTakesVarargs);
 
@@ -188,7 +184,7 @@ public abstract class CSlice implements Slice {
 
     CFunctionDeclaration functionDeclaration = pFunctionCallExpression.getDeclaration();
     CFunctionDeclaration relevantFunctionDeclaration =
-        getRelevantFunctionDeclaration(pEdge, functionDeclaration);
+        getRelevantFunctionDeclaration(functionDeclaration);
 
     List<CParameterDeclaration> parameterDeclarations = functionDeclaration.getParameters();
     List<CExpression> parameterExpressions = pFunctionCallExpression.getParameterExpressions();
@@ -205,7 +201,7 @@ public abstract class CSlice implements Slice {
       }
 
       // function parameter is relevant but actual argument is not
-      if (isParameterRelevant(pEdge, parameterDeclarations.get(index))) {
+      if (isParameterRelevant(parameterDeclarations.get(index))) {
 
         String someValueVariableName =
             SOME_VALUE_PREFIX
