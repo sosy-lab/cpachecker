@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFASimplifier;
 
-final class SliceToCfaConverter {
+final class SliceToCfaConversion {
 
   private static void replaceIrrelevantEdge(CfaMutableNetwork pGraph, CFAEdge pEdge) {
 
