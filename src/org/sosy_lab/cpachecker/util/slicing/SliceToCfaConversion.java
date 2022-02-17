@@ -33,6 +33,8 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFASimplifier;
 
 final class SliceToCfaConversion {
 
+  private SliceToCfaConversion() {}
+
   private static void replaceIrrelevantEdge(CfaMutableNetwork pGraph, CFAEdge pEdge) {
 
     EndpointPair<CFANode> endpoints = pGraph.incidentNodes(pEdge);
