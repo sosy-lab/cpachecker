@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
@@ -151,10 +152,6 @@ public abstract class CSlice implements Slice {
         parameterDeclarations.stream()
             .filter(declaration -> isParameterRelevant(declaration))
             .collect(ImmutableList.toImmutableList());
-    ImmutableList<CType> relevantParameterTypes =
-        relevantParameterDeclarations.stream()
-            .map(CParameterDeclaration::getType)
-            .collect(ImmutableList.toImmutableList());
 
     CFunctionType functionType = pFunctionDeclaration.getType();
     Optional<CVariableDeclaration> optReturnVariableDeclaration =
@@ -169,7 +166,8 @@ public abstract class CSlice implements Slice {
             && !parameterDeclarations.isEmpty()
             && isParameterRelevant(parameterDeclarations.get(parameterDeclarations.size() - 1));
     CFunctionType relevantFunctionType =
-        new CFunctionType(relevantReturnType, relevantParameterTypes, relevantTakesVarargs);
+        new CFunctionTypeWithNames(
+            relevantReturnType, relevantParameterDeclarations, relevantTakesVarargs);
 
     return new CFunctionDeclaration(
         pFunctionDeclaration.getFileLocation(),
