@@ -549,7 +549,9 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
     // add dependencies for actual-out nodes that use pCause
     EdgeDefUseData defUseDataWithoutParams =
         defUseExtractor.extract(getFunctionCallWithoutParameters(summaryEdge));
-    if (defUseDataWithoutParams.getUses().contains(pCause)) {
+    if (defUseDataWithoutParams.getUses().contains(pCause)
+        || (defUseDataWithoutParams.getDefs().contains(pCause)
+            && pEdgeType == EdgeType.DECLARATION_EDGE)) {
       builder
           .node(NodeType.ACTUAL_OUT, pDefFunction, useEdge, returnVariable)
           .depends(pEdgeType, Optional.of(pCause))
