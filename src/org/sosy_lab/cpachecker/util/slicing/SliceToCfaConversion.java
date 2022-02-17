@@ -14,6 +14,7 @@ import com.google.common.collect.TreeMultimap;
 import com.google.common.graph.EndpointPair;
 import java.util.NavigableMap;
 import java.util.TreeMap;
+import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CCfaTransformer;
@@ -118,9 +119,8 @@ final class SliceToCfaConversion {
     ImmutableSet<CFAEdge> relevantEdges = pSlice.getRelevantEdges();
     // relevant functions are functions with at least one relevant edge
     ImmutableSet<AFunctionDeclaration> relevantFunctions =
-        relevantEdges.stream()
-            .map(edge -> edge.getSuccessor().getFunction())
-            .collect(ImmutableSet.toImmutableSet());
+        Collections3.transformedImmutableSetCopy(
+            relevantEdges, edge -> edge.getSuccessor().getFunction());
 
     CfaMutableNetwork graph = CfaMutableNetwork.of(pSlice.getOriginalCfa());
 
