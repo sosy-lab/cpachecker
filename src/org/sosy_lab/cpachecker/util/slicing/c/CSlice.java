@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -58,17 +57,11 @@ public abstract class CSlice implements Slice {
     criteriaEdges = pCriteriaEdges;
     relevantEdges = pRelevantEdges;
 
-    ImmutableMap.Builder<AFunctionDeclaration, FunctionEntryNode> entryNodesBuilder =
-        ImmutableMap.builder();
-    for (CFAEdge relevantCfaEdge : pCriteriaEdges) {
-      for (CFANode relevantCfaNode :
-          ImmutableList.of(relevantCfaEdge.getPredecessor(), relevantCfaEdge.getSuccessor())) {
-        if (relevantCfaNode instanceof FunctionEntryNode) {
-          entryNodesBuilder.put(relevantCfaNode.getFunction(), (FunctionEntryNode) relevantCfaNode);
-        }
-      }
-    }
-    entryNodes = entryNodesBuilder.build();
+    entryNodes =
+        originalCfa.getAllFunctionHeads().stream()
+            .collect(
+                ImmutableMap.toImmutableMap(
+                    entryNode -> entryNode.getFunction(), entryNode -> entryNode));
   }
 
   protected abstract boolean isInitializerRelevant(
