@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.HandleCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.GeneralIdentifier;
@@ -142,8 +143,7 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
     CFANode node = extractLocation(pElement);
     results = new ArrayList<>(node.getNumLeavingEdges());
 
-    for (int edgeIdx = 0; edgeIdx < node.getNumLeavingEdges(); edgeIdx++) {
-      CFAEdge edge = node.getLeavingEdge(edgeIdx);
+    for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
       results.addAll(getAbstractSuccessorsForEdge(pElement, pPrecision, edge));
     }
     return results;

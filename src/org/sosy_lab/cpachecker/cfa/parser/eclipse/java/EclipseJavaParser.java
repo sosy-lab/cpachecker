@@ -280,7 +280,7 @@ class EclipseJavaParser implements Parser {
   }
 
   @Override
-  public ParseResult parseString(String pFilename, String pCode) throws JParserException {
+  public ParseResult parseString(Path pFilename, String pCode) throws JParserException {
 
     throw new JParserException("Function not yet implemented");
   }

@@ -26,6 +26,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.BiFunction;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -315,7 +316,7 @@ public final class CCfaTransformer {
 
     private CFAEdge toNew(CFAEdge pOldEdge, boolean pBuildSupergraph) {
 
-      CFAEdge newEdge = oldEdgeToNewEdge.get(pOldEdge);
+      @Nullable CFAEdge newEdge = oldEdgeToNewEdge.get(pOldEdge);
       if (newEdge != null) {
         return newEdge;
       }
@@ -324,7 +325,7 @@ public final class CCfaTransformer {
       CFANode newNodeU = toNew(oldEndpoints.nodeU());
       CFANode newNodeV = toNew(oldEndpoints.nodeV());
 
-      CCfaEdgeVisitor<CFAEdge, NoException> transformingEdgeVisitor =
+      CCfaEdgeVisitor<@Nullable CFAEdge, NoException> transformingEdgeVisitor =
           new CCfaEdgeVisitor<>() {
 
             @Override
@@ -384,7 +385,7 @@ public final class CCfaTransformer {
             }
 
             @Override
-            public CFAEdge visit(CFunctionCallEdge pCFunctionCallEdge) {
+            public @Nullable CFAEdge visit(CFunctionCallEdge pCFunctionCallEdge) {
               if (pBuildSupergraph) {
                 return newCFunctionCallEdge(pCFunctionCallEdge, newNodeU, newNodeV);
               } else {
@@ -393,7 +394,7 @@ public final class CCfaTransformer {
             }
 
             @Override
-            public CFAEdge visit(CFunctionReturnEdge pCFunctionReturnEdge) {
+            public @Nullable CFAEdge visit(CFunctionReturnEdge pCFunctionReturnEdge) {
               if (pBuildSupergraph) {
                 return newCFunctionReturnEdge(pCFunctionReturnEdge, newNodeU, newNodeV);
               } else {

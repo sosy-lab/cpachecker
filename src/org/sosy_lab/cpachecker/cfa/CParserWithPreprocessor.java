@@ -32,7 +32,7 @@ class CParserWithPreprocessor implements CParser {
 
   @Override
   public ParseResult parseString(
-      String pFilename, String pCode, CSourceOriginMapping pSourceOriginMapping, Scope pScope) {
+      Path pFilename, String pCode, CSourceOriginMapping pSourceOriginMapping, Scope pScope) {
     // TODO
     throw new UnsupportedOperationException();
   }

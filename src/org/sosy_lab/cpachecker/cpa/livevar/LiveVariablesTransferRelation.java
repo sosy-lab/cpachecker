@@ -215,8 +215,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
         }
       }
 
-      for (int i = 0; i < node.getNumEnteringEdges(); i++) {
-        CFAEdge e = node.getEnteringEdge(i);
+      for (CFAEdge e : CFAUtils.enteringEdges(node)) {
         if (e instanceof ADeclarationEdge) {
           ASimpleDeclaration decl = ((ADeclarationEdge) e).getDeclaration();
           allDecls.add(LIVE_DECL_EQUIVALENCE.wrap(decl));
