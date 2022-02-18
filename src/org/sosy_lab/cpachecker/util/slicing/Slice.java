@@ -10,18 +10,22 @@ package org.sosy_lab.cpachecker.util.slicing;
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableSet;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public interface Slice {
 
   CFA getOriginalCfa();
 
-  ImmutableCollection<CFAEdge> getUsedCriteria();
+  ImmutableCollection<CFAEdge> getSlicingCriteria();
 
   ImmutableSet<CFAEdge> getRelevantEdges();
 
-  Optional<AAstNode> getRelevantAstNode(CFAEdge pEdge);
+  ImmutableSet<ASimpleDeclaration> getRelevantDeclarations();
+
+  boolean isRelevantDef(CFAEdge pEdge, MemoryLocation pMemoryLocation);
+
+  boolean isRelevantUse(CFAEdge pEdge, MemoryLocation pMemoryLocation);
 }

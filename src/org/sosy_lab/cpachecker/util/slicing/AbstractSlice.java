@@ -12,20 +12,82 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
+import java.util.LinkedHashSet;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Predicate;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.AbstractTransformingCAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 
 abstract class AbstractSlice implements Slice {
 
   private final CFA cfa;
-  private final ImmutableSet<CFAEdge> relevantEdges;
   private final ImmutableCollection<CFAEdge> criteria;
+  private final ImmutableSet<CFAEdge> relevantEdges;
+  private final ImmutableSet<ASimpleDeclaration> relevantDeclarations;
 
   AbstractSlice(
-      final CFA pCfa, final Collection<CFAEdge> pRelevantEdges, Collection<CFAEdge> pCriteria) {
+      CFA pCfa,
+      Collection<CFAEdge> pSlicingCriteria,
+      Collection<CFAEdge> pRelevantEdges,
+      Predicate<ASimpleDeclaration> pRelevantDeclarationFilter) {
+
     cfa = pCfa;
     relevantEdges = ImmutableSet.copyOf(pRelevantEdges);
-    criteria = ImmutableList.copyOf(pCriteria);
+    criteria = ImmutableList.copyOf(pSlicingCriteria);
+    relevantDeclarations = computeRelevantDeclarations(pRelevantEdges, pRelevantDeclarationFilter);
+  }
+
+  private static ImmutableSet<ASimpleDeclaration> computeRelevantDeclarations(
+      Collection<CFAEdge> pRelevantEdges,
+      Predicate<ASimpleDeclaration> pRelevantDeclarationFilter) {
+
+    var relevantDeclarationCollectingVisitor =
+        new RelevantDeclarationCollectingVisitor(pRelevantDeclarationFilter);
+    for (CFAEdge relevantEdge : pRelevantEdges) {
+
+      if (relevantEdge instanceof CDeclarationEdge) {
+        ((CDeclarationEdge) relevantEdge)
+            .getDeclaration()
+            .accept(relevantDeclarationCollectingVisitor);
+      }
+
+      CFANode relevantNode = relevantEdge.getSuccessor();
+      if (relevantNode instanceof FunctionEntryNode) {
+        FunctionEntryNode relevantFunctionEntryNode = (FunctionEntryNode) relevantNode;
+        Optional<? extends ASimpleDeclaration> optionalReturnVariable =
+            relevantFunctionEntryNode.getReturnVariable();
+        optionalReturnVariable
+            .filter(returnVariable -> returnVariable instanceof CVariableDeclaration)
+            .map(returnVariable -> (CVariableDeclaration) returnVariable)
+            .ifPresent(
+                returnVariable -> returnVariable.accept(relevantDeclarationCollectingVisitor));
+      }
+    }
+
+    return ImmutableSet.copyOf(relevantDeclarationCollectingVisitor.getRelevantDeclarations());
+  }
+
+  @Override
+  public CFA getOriginalCfa() {
+    return cfa;
+  }
+
+  @Override
+  public ImmutableCollection<CFAEdge> getSlicingCriteria() {
+    return criteria;
   }
 
   @Override
@@ -34,12 +96,76 @@ abstract class AbstractSlice implements Slice {
   }
 
   @Override
-  public ImmutableCollection<CFAEdge> getUsedCriteria() {
-    return criteria;
+  public ImmutableSet<ASimpleDeclaration> getRelevantDeclarations() {
+    return relevantDeclarations;
   }
 
-  @Override
-  public CFA getOriginalCfa() {
-    return cfa;
+  // TODO: don't use TransformingCAstNodeVisitor, use a more appropriate CAstNodeVisitor instead
+  private static final class RelevantDeclarationCollectingVisitor
+      extends AbstractTransformingCAstNodeVisitor<NoException> {
+
+    private final Predicate<ASimpleDeclaration> relevantDeclarationFilter;
+    private Set<ASimpleDeclaration> relevantDeclarations;
+
+    private RelevantDeclarationCollectingVisitor(
+        Predicate<ASimpleDeclaration> pRelevantDeclarationFilter) {
+
+      relevantDeclarationFilter = pRelevantDeclarationFilter;
+      relevantDeclarations = new LinkedHashSet<>();
+    }
+
+    private Set<ASimpleDeclaration> getRelevantDeclarations() {
+      return relevantDeclarations;
+    }
+
+    @Override
+    public CAstNode visit(CVariableDeclaration pCVariableDeclaration) {
+
+      if (relevantDeclarationFilter.test(pCVariableDeclaration)) {
+        relevantDeclarations.add(pCVariableDeclaration);
+      }
+
+      return super.visit(pCVariableDeclaration);
+    }
+
+    @Override
+    public CAstNode visit(CParameterDeclaration pCParameterDeclaration) {
+
+      if (relevantDeclarationFilter.test(pCParameterDeclaration)) {
+        relevantDeclarations.add(pCParameterDeclaration);
+      }
+
+      return super.visit(pCParameterDeclaration);
+    }
+
+    @Override
+    public CAstNode visit(CFunctionDeclaration pCFunctionDeclaration) {
+
+      if (relevantDeclarationFilter.test(pCFunctionDeclaration)) {
+        relevantDeclarations.add(pCFunctionDeclaration);
+      }
+
+      return super.visit(pCFunctionDeclaration);
+    }
+
+    @Override
+    public CAstNode visit(CComplexTypeDeclaration pCComplexTypeDeclaration) {
+
+      if (relevantDeclarationFilter.test(pCComplexTypeDeclaration)) {
+        relevantDeclarations.add(pCComplexTypeDeclaration);
+      }
+
+      return super.visit(pCComplexTypeDeclaration);
+    }
+
+    @Override
+    public CAstNode visit(CTypeDefDeclaration pCTypeDefDeclaration) {
+
+      if (relevantDeclarationFilter.test(pCTypeDefDeclaration)) {
+        relevantDeclarations.add(pCTypeDefDeclaration);
+      }
+
+      return super.visit(pCTypeDefDeclaration);
+    }
   }
 }

@@ -22,11 +22,14 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
@@ -34,6 +37,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -42,7 +49,6 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraph;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph;
-import org.sosy_lab.cpachecker.util.slicing.c.CSlice;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
@@ -233,13 +239,12 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
         });
   }
 
-  private static final class SdgProgramSlice extends CSlice {
+  private static final class SdgProgramSlice extends AbstractSlice {
 
     private final CSystemDependenceGraph sdg;
     private final Function<CFAEdge, Iterable<CSystemDependenceGraph.Node>> cfaEdgeToSdgNodes;
     private final ImmutableSet<CSystemDependenceGraph.Node> relevantSdgNodes;
 
-    private final ImmutableSet<MemoryLocation> relevantFormalVariables;
     private final ImmutableSet<ActualNode> relevantActualNodes;
 
     private SdgProgramSlice(
@@ -249,24 +254,24 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
         ImmutableSet<CSystemDependenceGraph.Node> pRelevantSdgNodes,
         ImmutableCollection<CFAEdge> pCriteriaEdges,
         ImmutableSet<CFAEdge> pRelevantEdges) {
-      super(pOriginalCfa, pCriteriaEdges, pRelevantEdges);
+      super(
+          pOriginalCfa,
+          pCriteriaEdges,
+          pRelevantEdges,
+          createRelevantDeclarationFilter(pRelevantSdgNodes));
 
       sdg = pSdg;
       cfaEdgeToSdgNodes = pCfaEdgeToSdgNodes;
       relevantSdgNodes = pRelevantSdgNodes;
 
-      relevantFormalVariables =
-          pRelevantSdgNodes.stream()
-              .filter(SdgProgramSlice::isFormalNode)
-              .map(node -> node.getVariable().orElseThrow())
-              .collect(ImmutableSet.toImmutableSet());
+
       relevantActualNodes =
           pRelevantSdgNodes.stream()
               .filter(SdgProgramSlice::isActualNode)
               .map(ActualNode::new)
               .collect(ImmutableSet.toImmutableSet());
     }
-
+    
     private static boolean isFormalNode(CSystemDependenceGraph.Node pNode) {
       return pNode.getType() == SystemDependenceGraph.NodeType.FORMAL_IN
           || pNode.getType() == SystemDependenceGraph.NodeType.FORMAL_OUT;
@@ -277,11 +282,28 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
           || pNode.getType() == SystemDependenceGraph.NodeType.ACTUAL_OUT;
     }
 
-    @Override
-    protected boolean isInitializerRelevant(
-        CFAEdge pEdge, CVariableDeclaration pVariableInitializer) {
+    private static Predicate<ASimpleDeclaration> createRelevantDeclarationFilter(
+        ImmutableSet<CSystemDependenceGraph.Node> pRelevantSdgNodes) {
 
-      var visitor =
+      ImmutableSet<MemoryLocation> relevantFormalVariables =
+          pRelevantSdgNodes.stream()
+              .filter(SdgProgramSlice::isFormalNode)
+              .map(node -> node.getVariable().orElseThrow())
+              .collect(ImmutableSet.toImmutableSet());
+
+      return declaration -> {
+        if (declaration instanceof CParameterDeclaration
+            || declaration instanceof CVariableDeclaration) {
+          return relevantFormalVariables.contains(MemoryLocation.forDeclaration(declaration));
+        } else {
+          return true;
+        }
+      };
+    }
+
+    private boolean isInitializerRelevant(CFAEdge pEdge) {
+
+      var sdgVisitor =
           new CSystemDependenceGraph.ForwardsVisitor() {
 
             private boolean outgoingFlowDependency = false;
@@ -309,34 +331,38 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
           };
 
       sdg.traverse(
-          Sets.newHashSet(cfaEdgeToSdgNodes.apply(pEdge)), sdg.createVisitOnceVisitor(visitor));
+          Sets.newHashSet(cfaEdgeToSdgNodes.apply(pEdge)), sdg.createVisitOnceVisitor(sdgVisitor));
 
-      return visitor.outgoingFlowDependency;
+      return sdgVisitor.outgoingFlowDependency;
     }
 
     @Override
-    protected boolean isParameterRelevant(CParameterDeclaration pCParameterDeclaration) {
-      return relevantFormalVariables.contains(
-          MemoryLocation.forDeclaration(pCParameterDeclaration));
+    public boolean isRelevantDef(CFAEdge pEdge, MemoryLocation pMemoryLocation) {
+
+      if (pEdge instanceof CDeclarationEdge) {
+        CDeclaration declaration = ((CDeclarationEdge) pEdge).getDeclaration();
+        if (declaration instanceof CVariableDeclaration) {
+          return isInitializerRelevant(pEdge);
+        }
+      } else if (pEdge instanceof CFunctionCallEdge
+          || pEdge instanceof CFunctionReturnEdge
+          || pEdge instanceof CFunctionSummaryEdge) {
+        return relevantActualNodes.contains(new ActualNode(pEdge, pMemoryLocation));
+      }
+
+      return true;
     }
 
     @Override
-    protected boolean isReturnVariableRelevant(CVariableDeclaration pVariableDeclaration) {
-      return relevantFormalVariables.contains(MemoryLocation.forDeclaration(pVariableDeclaration));
-    }
+    public boolean isRelevantUse(CFAEdge pEdge, MemoryLocation pMemoryLocation) {
 
-    @Override
-    protected boolean isArgumentRelevant(
-        CFAEdge pEdge, CParameterDeclaration pCParameterDeclaration) {
-      return relevantActualNodes.contains(
-          new ActualNode(pEdge, MemoryLocation.forDeclaration(pCParameterDeclaration)));
-    }
+      if (pEdge instanceof CFunctionCallEdge
+          || pEdge instanceof CFunctionReturnEdge
+          || pEdge instanceof CFunctionSummaryEdge) {
+        return relevantActualNodes.contains(new ActualNode(pEdge, pMemoryLocation));
+      }
 
-    @Override
-    protected boolean isReturnValueRelevant(
-        CFAEdge pEdge, CVariableDeclaration pCVariableDeclaration) {
-      return relevantActualNodes.contains(
-          new ActualNode(pEdge, MemoryLocation.forDeclaration(pCVariableDeclaration)));
+      return true;
     }
 
     private static final class ActualNode {

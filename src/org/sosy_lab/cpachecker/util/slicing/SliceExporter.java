@@ -118,7 +118,7 @@ public class SliceExporter {
 
     try (Writer writer = IO.openOutputFile(pPath, Charset.defaultCharset())) {
 
-      for (CFAEdge edge : pSlice.getUsedCriteria()) {
+      for (CFAEdge edge : pSlice.getSlicingCriteria()) {
 
         FileLocation fileLoc = edge.getFileLocation();
         writer.append(String.valueOf(fileLoc.getFileName()));
