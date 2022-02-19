@@ -19,6 +19,7 @@ import java.util.Optional;
 import java.util.TreeMap;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
@@ -61,17 +62,20 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 /** Utility class for turning {@link Slice} instances into {@link CFA} instances. */
 final class SliceToCfaConversion {
 
+  private static final String IRRELEVANT_EDGE_DESCRIPTION = "edge irrelevant for program slice";
+
   private SliceToCfaConversion() {}
 
   /** Replaces the specified edge by a no-op blank edge in the specified mutable network. */
   private static void replaceIrrelevantEdge(CfaMutableNetwork pGraph, CFAEdge pEdge) {
+
     CFAEdge replacementEdge =
         new BlankEdge(
-            "",
+            IRRELEVANT_EDGE_DESCRIPTION,
             pEdge.getFileLocation(),
             pEdge.getPredecessor(),
             pEdge.getSuccessor(),
-            "slice-irrelevant");
+            IRRELEVANT_EDGE_DESCRIPTION);
     pGraph.replace(pEdge, replacementEdge);
   }
 
@@ -81,6 +85,7 @@ final class SliceToCfaConversion {
    */
   private static boolean isIrrelevantFunctionEdge(
       ImmutableSet<AFunctionDeclaration> pRelevantFunctions, CFAEdge pEdge) {
+
     return !pRelevantFunctions.contains(pEdge.getPredecessor().getFunction())
         || !pRelevantFunctions.contains(pEdge.getSuccessor().getFunction());
   }
@@ -103,12 +108,14 @@ final class SliceToCfaConversion {
    * Returns a substitution that maps CFA nodes and their contained AST nodes to AST nodes that only
    * contain parts relevant to the specified slice.
    */
-  private static BiFunction<CFANode, CAstNode, CAstNode> createAstNodeSubstitutionForCfaNodes(
-      Slice pSlice,
-      Function<AFunctionDeclaration, Optional<CVariableDeclaration>> pFunctionToReturnVariable) {
+  private static BiFunction<CFANode, CAstNode, @Nullable CAstNode>
+      createAstNodeSubstitutionForCfaNodes(
+          Slice pSlice,
+          Function<AFunctionDeclaration, Optional<CVariableDeclaration>>
+              pFunctionToReturnVariable) {
 
     var transformingVisitor =
-        new RelevantFunctionDeclarationTransformer(pSlice, pFunctionToReturnVariable);
+        new RelevantFunctionDeclarationTransformingVisitor(pSlice, pFunctionToReturnVariable);
 
     return (cfaNode, astNode) -> {
       CFunctionDeclaration functionDeclaration = (CFunctionDeclaration) cfaNode.getFunction();
@@ -140,14 +147,18 @@ final class SliceToCfaConversion {
   private static BiFunction<CFAEdge, CAstNode, CAstNode> createAstNodeSubstitutionForCfaEdges(
       Slice pSlice,
       Function<AFunctionDeclaration, Optional<CVariableDeclaration>> pFunctionToReturnVariable) {
-    return (edge, astNode) ->
-        astNode.accept(
-            new RelevantCfaEdgeTransformingCAstNodeVisitor(
-                pSlice, pFunctionToReturnVariable, edge));
+
+    return (edge, astNode) -> {
+      var transformingVisitor =
+          new RelevantCAstNodeTransformingVisitor(pSlice, pFunctionToReturnVariable, edge);
+
+      return astNode.accept(transformingVisitor);
+    };
   }
 
   /** Returns the optional return variable for the specified function. */
   private static Optional<CVariableDeclaration> getReturnVariable(FunctionEntryNode pEntryNode) {
+
     return pEntryNode
         .getReturnVariable()
         .map(returnVariable -> (CVariableDeclaration) returnVariable);
@@ -198,12 +209,6 @@ final class SliceToCfaConversion {
 
     ImmutableSet<CFAEdge> relevantEdges = pSlice.getRelevantEdges();
 
-    ImmutableMap<AFunctionDeclaration, Optional<CVariableDeclaration>> functionToReturnVariableMap =
-        pSlice.getOriginalCfa().getAllFunctionHeads().stream()
-            .collect(
-                ImmutableMap.toImmutableMap(
-                    entryNode -> entryNode.getFunction(), SliceToCfaConversion::getReturnVariable));
-
     // relevant functions are functions that contain at least one relevant edge
     ImmutableSet<AFunctionDeclaration> relevantFunctions =
         Collections3.transformedImmutableSetCopy(
@@ -229,6 +234,12 @@ final class SliceToCfaConversion {
             .collect(ImmutableList.toImmutableList());
     irrelevantNodes.forEach(graph::removeNode);
 
+    ImmutableMap<AFunctionDeclaration, Optional<CVariableDeclaration>> functionToReturnVariableMap =
+        pSlice.getOriginalCfa().getAllFunctionHeads().stream()
+            .collect(
+                ImmutableMap.toImmutableMap(
+                    entryNode -> entryNode.getFunction(), SliceToCfaConversion::getReturnVariable));
+
     CFA sliceCfa =
         CCfaTransformer.createCfa(
             pConfig,
@@ -245,14 +256,14 @@ final class SliceToCfaConversion {
    * {@link TransformingCAstNodeVisitor} for creating function declarations that only contain
    * parameters and return values relevant to the specified slice.
    */
-  private static class RelevantFunctionDeclarationTransformer
+  private static class RelevantFunctionDeclarationTransformingVisitor
       extends AbstractTransformingCAstNodeVisitor<NoException> {
 
     private final Slice slice;
     private final Function<AFunctionDeclaration, Optional<CVariableDeclaration>>
         functionToReturnVariable;
 
-    private RelevantFunctionDeclarationTransformer(
+    private RelevantFunctionDeclarationTransformingVisitor(
         Slice pSlice,
         Function<AFunctionDeclaration, Optional<CVariableDeclaration>> pFunctionToReturnVariable) {
 
@@ -303,15 +314,15 @@ final class SliceToCfaConversion {
    * {@link TransformingCAstNodeVisitor} for creating AST nodes that only contain parts that are
    * relevant to the specified slice at the specified CFA edge.
    */
-  private static final class RelevantCfaEdgeTransformingCAstNodeVisitor
-      extends RelevantFunctionDeclarationTransformer {
+  private static final class RelevantCAstNodeTransformingVisitor
+      extends RelevantFunctionDeclarationTransformingVisitor {
 
     private static final String IRRELEVANT_VALUE_PREFIX = "__IRRELEVANT_VALUE_";
 
     private final Slice slice;
     private final CFAEdge edge;
 
-    private RelevantCfaEdgeTransformingCAstNodeVisitor(
+    private RelevantCAstNodeTransformingVisitor(
         Slice pSlice,
         Function<AFunctionDeclaration, Optional<CVariableDeclaration>> pFunctionToReturnVariable,
         CFAEdge pEdge) {
@@ -326,28 +337,20 @@ final class SliceToCfaConversion {
 
       MemoryLocation variableMemLoc = MemoryLocation.forDeclaration(pVariableDeclaration);
       CInitializer initializer = pVariableDeclaration.getInitializer();
+      CInitializer relevantInitializer =
+          initializer != null && slice.isRelevantDef(edge, variableMemLoc)
+              ? (CInitializer) initializer.accept(this)
+              : null;
 
-      if (initializer != null && slice.isRelevantDef(edge, variableMemLoc)) {
-        return new CVariableDeclaration(
-            pVariableDeclaration.getFileLocation(),
-            pVariableDeclaration.isGlobal(),
-            pVariableDeclaration.getCStorageClass(),
-            pVariableDeclaration.getType(),
-            pVariableDeclaration.getName(),
-            pVariableDeclaration.getOrigName(),
-            pVariableDeclaration.getQualifiedName(),
-            (CInitializer) initializer.accept(this));
-      } else {
-        return new CVariableDeclaration(
-            pVariableDeclaration.getFileLocation(),
-            pVariableDeclaration.isGlobal(),
-            pVariableDeclaration.getCStorageClass(),
-            pVariableDeclaration.getType(),
-            pVariableDeclaration.getName(),
-            pVariableDeclaration.getOrigName(),
-            pVariableDeclaration.getQualifiedName(),
-            null);
-      }
+      return new CVariableDeclaration(
+          pVariableDeclaration.getFileLocation(),
+          pVariableDeclaration.isGlobal(),
+          pVariableDeclaration.getCStorageClass(),
+          pVariableDeclaration.getType(),
+          pVariableDeclaration.getName(),
+          pVariableDeclaration.getOrigName(),
+          pVariableDeclaration.getQualifiedName(),
+          relevantInitializer);
     }
 
     @Override
@@ -362,7 +365,7 @@ final class SliceToCfaConversion {
 
       for (int index = 0; index < arguments.size(); index++) {
 
-        CExpression argumentExpression = arguments.get(index);
+        CExpression argument = arguments.get(index);
 
         // varargs can lead to more arguments than parameters
         if (index >= parameters.size()) {
@@ -376,35 +379,35 @@ final class SliceToCfaConversion {
 
           if (slice.isRelevantDef(edge, parameterMemLoc)) { // parameter and argument relevant
 
-            relevantArgumentsBuilder.add((CExpression) argumentExpression.accept(this));
+            relevantArgumentsBuilder.add((CExpression) argument.accept(this));
 
           } else { // parameter relevant and argument not relevant
 
             String irrelevantValueVariableName =
-                IRRELEVANT_VALUE_PREFIX
-                    + edge.getPredecessor().getNodeNumber()
-                    + "_"
-                    + edge.getSuccessor().getNodeNumber()
-                    + "_"
-                    + index;
+                String.format(
+                    "%s%d_%d_%d",
+                    IRRELEVANT_VALUE_PREFIX,
+                    edge.getPredecessor().getNodeNumber(),
+                    edge.getSuccessor().getNodeNumber(),
+                    index);
             var irrelevantValueVariableDeclaration =
                 new CVariableDeclaration(
-                    argumentExpression.getFileLocation(),
+                    argument.getFileLocation(),
                     false,
                     CStorageClass.AUTO,
-                    argumentExpression.getExpressionType(),
+                    argument.getExpressionType(),
                     irrelevantValueVariableName,
                     irrelevantValueVariableName,
                     irrelevantValueVariableName,
                     null);
 
             var irrelevantValueExpression =
-                new CIdExpression(
-                    argumentExpression.getFileLocation(), irrelevantValueVariableDeclaration);
+                new CIdExpression(argument.getFileLocation(), irrelevantValueVariableDeclaration);
             relevantArgumentsBuilder.add(irrelevantValueExpression);
           }
 
         } else { // parameter not relevant
+          
           assert !slice.isRelevantDef(edge, parameterMemLoc)
               : "Argument is relevant but corresponding parameter is not";
         }
