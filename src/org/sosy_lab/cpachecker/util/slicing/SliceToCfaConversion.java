@@ -368,7 +368,12 @@ final class SliceToCfaConversion {
         CExpression argument = arguments.get(index);
 
         // varargs can lead to more arguments than parameters
-        if (index >= parameters.size()) {
+        if (index >= parameters.size()
+            && relevantDeclarations.contains(Iterables.getLast(parameters))) {
+
+          assert functionDeclaration.getType().takesVarArgs();
+
+          relevantArgumentsBuilder.add((CExpression) argument.accept(this));
           continue;
         }
 
