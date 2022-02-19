@@ -180,10 +180,7 @@ public class CfaMutableNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge
   public void replace(CFAEdge pEdge, CFAEdge pNewEdge) {
 
     EndpointPair<CFANode> endpoints = incidentNodes(pEdge);
-    CFANode nodeU = endpoints.nodeU();
-    CFANode nodeV = endpoints.nodeV();
-
     removeEdge(pEdge);
-    addEdge(nodeU, nodeV, pNewEdge);
+    addEdge(endpoints.nodeU(), endpoints.nodeV(), pNewEdge);
   }
 }
