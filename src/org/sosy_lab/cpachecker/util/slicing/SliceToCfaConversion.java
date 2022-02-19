@@ -66,7 +66,7 @@ final class SliceToCfaConversion {
 
   private SliceToCfaConversion() {}
 
-  /** Replaces the specified edge by a no-op blank edge in the specified mutable network. */
+  /** Replaces the specified edge with a no-op blank edge in the specified mutable network. */
   private static void replaceIrrelevantEdge(CfaMutableNetwork pGraph, CFAEdge pEdge) {
 
     CFAEdge replacementEdge =
@@ -91,14 +91,14 @@ final class SliceToCfaConversion {
   }
 
   /**
-   * Returns whether the specified edge should be replaced by a no-op blank edge if the edge is not
-   * part of the slice.
+   * Returns whether the specified edge should be replaced with a no-op blank edge if the edge is
+   * not part of the slice.
    */
   private static boolean isReplaceableEdge(CFAEdge pEdge) {
 
     // Replacing function call/return edges leads to invalid CFAs.
     // Irrelevant assume edges are replaced during CFA simplification, which requires assume edges
-    // with conditions instead of blank edges to work properly.
+    // instead of blank edges to work properly.
     return !(pEdge instanceof FunctionCallEdge)
         && !(pEdge instanceof FunctionReturnEdge)
         && !(pEdge instanceof AssumeEdge);
@@ -156,7 +156,10 @@ final class SliceToCfaConversion {
     };
   }
 
-  /** Returns the optional return variable for the specified function. */
+  /**
+   * Returns the optional return variable (void functions don't have return variables) for the
+   * specified function.
+   */
   private static Optional<CVariableDeclaration> getReturnVariable(FunctionEntryNode pEntryNode) {
 
     return pEntryNode
@@ -204,6 +207,7 @@ final class SliceToCfaConversion {
    * @param pLogger the logger to use during conversion
    * @param pSlice the slice to create a CFA for
    * @return the CFA created for the specified slice
+   * @throws NullPointerException if any parameter is {@code null}
    */
   public static CFA convert(Configuration pConfig, LogManager pLogger, Slice pSlice) {
 
