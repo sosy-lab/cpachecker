@@ -339,22 +339,26 @@ final class SliceToCfaConversion {
     @Override
     public CAstNode visit(CVariableDeclaration pVariableDeclaration) {
 
-      MemoryLocation variableMemLoc = MemoryLocation.forDeclaration(pVariableDeclaration);
+      MemoryLocation memoryLocation = MemoryLocation.forDeclaration(pVariableDeclaration);
       CInitializer initializer = pVariableDeclaration.getInitializer();
-      CInitializer relevantInitializer =
-          initializer != null && slice.isRelevantDef(edge, variableMemLoc)
-              ? (CInitializer) initializer.accept(this)
-              : null;
 
-      return new CVariableDeclaration(
-          pVariableDeclaration.getFileLocation(),
-          pVariableDeclaration.isGlobal(),
-          pVariableDeclaration.getCStorageClass(),
-          pVariableDeclaration.getType(),
-          pVariableDeclaration.getName(),
-          pVariableDeclaration.getOrigName(),
-          pVariableDeclaration.getQualifiedName(),
-          relevantInitializer);
+      if (initializer != null && slice.isRelevantDef(edge, memoryLocation)) {
+        // The variable declaration's initializer expression must be visited during transformation.
+        // Only visitors that prevent infinite recursive visit-calls due to cyclic references
+        // between variable declarations and their initializer expressions should be used.
+        // The superclass implementation prevents these infinite recursive visit-calls.
+        return super.visit(pVariableDeclaration);
+      } else {
+        return new CVariableDeclaration(
+            pVariableDeclaration.getFileLocation(),
+            pVariableDeclaration.isGlobal(),
+            pVariableDeclaration.getCStorageClass(),
+            pVariableDeclaration.getType(),
+            pVariableDeclaration.getName(),
+            pVariableDeclaration.getOrigName(),
+            pVariableDeclaration.getQualifiedName(),
+            null);
+      }
     }
 
     @Override
