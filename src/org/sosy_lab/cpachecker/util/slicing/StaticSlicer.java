@@ -16,7 +16,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.io.PrintStream;
 import java.util.Collection;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
@@ -100,7 +100,7 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
   private static Set<CFAEdge> getAbortCallEdges(CFA pCfa) {
 
-    Set<CFAEdge> abortCallEdges = new HashSet<>();
+    Set<CFAEdge> abortCallEdges = new LinkedHashSet<>();
 
     for (CFANode node : pCfa.getAllNodes()) {
       for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
@@ -141,14 +141,14 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
     slicingTime.start();
 
-    Set<CFAEdge> criteriaEdges = new HashSet<>(pSlicingCriteria);
+    Set<CFAEdge> criteriaEdges = new LinkedHashSet<>(pSlicingCriteria);
 
     // TODO: make this configurable
     if (!criteriaEdges.isEmpty()) {
       criteriaEdges.addAll(getAbortCallEdges(pCfa));
     }
 
-    Set<CSystemDependenceGraph.Node> startNodes = new HashSet<>();
+    Set<CSystemDependenceGraph.Node> startNodes = new LinkedHashSet<>();
     Function<CFAEdge, Iterable<CSystemDependenceGraph.Node>> cfaEdgeToSdgNodes =
         createCfaEdgeToSdgNodesFunction();
 
@@ -158,7 +158,7 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
     Phase1Visitor phase1Visitor = new Phase1Visitor();
     sdg.traverse(startNodes, sdg.createVisitOnceVisitor(phase1Visitor));
-    Set<CFAEdge> relevantEdges = new HashSet<>(phase1Visitor.getRelevantEdges());
+    Set<CFAEdge> relevantEdges = new LinkedHashSet<>(phase1Visitor.getRelevantEdges());
 
     startNodes.clear();
     // phase 2 start with the result from phase 1
@@ -265,7 +265,6 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
       cfaEdgeToSdgNodes = pCfaEdgeToSdgNodes;
       relevantSdgNodes = pRelevantSdgNodes;
 
-
       relevantActualNodes =
           pRelevantSdgNodes.stream()
               .filter(SdgProgramSlice::isActualNode)
@@ -289,7 +288,8 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
       ImmutableSet<MemoryLocation> relevantFormalVariables =
           pRelevantSdgNodes.stream()
               .filter(SdgProgramSlice::isFormalNode)
-              .map(node -> node.getVariable().orElseThrow())
+              .map(node -> node.getVariable())
+              .flatMap(Optional::stream)
               .collect(ImmutableSet.toImmutableSet());
 
       return declaration -> {
@@ -304,10 +304,14 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
     private boolean isInitializerRelevant(CFAEdge pEdge) {
 
-      var sdgVisitor =
+      var declarationEdgeSdgVisitor =
           new CSystemDependenceGraph.ForwardsVisitor() {
 
-            private boolean outgoingFlowDependency = false;
+            private boolean relevantDef = false;
+
+            private boolean isDefRelevant() {
+              return relevantDef;
+            }
 
             @Override
             public SystemDependenceGraph.VisitResult visitNode(CSystemDependenceGraph.Node pNode) {
@@ -324,7 +328,7 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
               if (relevantSdgNodes.contains(pSuccessor)
                   && pType == SystemDependenceGraph.EdgeType.FLOW_DEPENDENCY) {
-                outgoingFlowDependency = true;
+                relevantDef = true;
               }
 
               return SystemDependenceGraph.VisitResult.SKIP;
@@ -332,9 +336,10 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
           };
 
       sdg.traverse(
-          Sets.newHashSet(cfaEdgeToSdgNodes.apply(pEdge)), sdg.createVisitOnceVisitor(sdgVisitor));
+          ImmutableSet.copyOf(cfaEdgeToSdgNodes.apply(pEdge)),
+          sdg.createVisitOnceVisitor(declarationEdgeSdgVisitor));
 
-      return sdgVisitor.outgoingFlowDependency;
+      return declarationEdgeSdgVisitor.isDefRelevant();
     }
 
     @Override
@@ -421,8 +426,8 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
     private final Set<CSystemDependenceGraph.Node> visitedSdgNodes;
 
     private Phase1Visitor() {
-      relevantEdges = new HashSet<>();
-      visitedSdgNodes = new HashSet<>();
+      relevantEdges = new LinkedHashSet<>();
+      visitedSdgNodes = new LinkedHashSet<>();
     }
 
     private Set<CFAEdge> getRelevantEdges() {
@@ -476,8 +481,8 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
     private final Set<CSystemDependenceGraph.Node> visitedSdgNodes;
 
     private Phase2Visitor(Set<CFAEdge> pRelevantEdges) {
-      relevantEdges = new HashSet<>(pRelevantEdges);
-      visitedSdgNodes = new HashSet<>();
+      relevantEdges = new LinkedHashSet<>(pRelevantEdges);
+      visitedSdgNodes = new LinkedHashSet<>();
     }
 
     private Set<CFAEdge> getRelevantEdges() {
