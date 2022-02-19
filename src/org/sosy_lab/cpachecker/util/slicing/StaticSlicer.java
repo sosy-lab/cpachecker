@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.util.slicing;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableSet;
@@ -345,6 +348,11 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
     @Override
     public boolean isRelevantDef(CFAEdge pEdge, MemoryLocation pMemoryLocation) {
 
+      checkNotNull(pEdge, "pEdge must not be null");
+      checkNotNull(pMemoryLocation, "pEdge must not be null");
+      checkArgument(
+          getRelevantEdges().contains(pEdge), "pEdge is not relevant to this program slice");
+
       if (pEdge instanceof CDeclarationEdge) {
         CDeclaration declaration = ((CDeclarationEdge) pEdge).getDeclaration();
         if (declaration instanceof CVariableDeclaration) {
@@ -361,6 +369,11 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
     @Override
     public boolean isRelevantUse(CFAEdge pEdge, MemoryLocation pMemoryLocation) {
+
+      checkNotNull(pEdge, "pEdge must not be null");
+      checkNotNull(pMemoryLocation, "pEdge must not be null");
+      checkArgument(
+          getRelevantEdges().contains(pEdge), "pEdge is not relevant to this program slice");
 
       if (pEdge instanceof CFunctionCallEdge
           || pEdge instanceof CFunctionReturnEdge

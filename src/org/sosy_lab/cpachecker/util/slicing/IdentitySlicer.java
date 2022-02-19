@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.util.slicing;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.List;
@@ -53,11 +56,23 @@ public class IdentitySlicer extends AbstractSlicer {
 
       @Override
       public boolean isRelevantDef(CFAEdge pEdge, MemoryLocation pMemoryLocation) {
+
+        checkNotNull(pEdge, "pEdge must not be null");
+        checkNotNull(pMemoryLocation, "pEdge must not be null");
+        checkArgument(
+            getRelevantEdges().contains(pEdge), "pEdge is not relevant to this program slice");
+
         return true;
       }
 
       @Override
       public boolean isRelevantUse(CFAEdge pEdge, MemoryLocation pMemoryLocation) {
+
+        checkNotNull(pEdge, "pEdge must not be null");
+        checkNotNull(pMemoryLocation, "pEdge must not be null");
+        checkArgument(
+            getRelevantEdges().contains(pEdge), "pEdge is not relevant to this program slice");
+
         return true;
       }
     };
