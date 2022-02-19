@@ -16,6 +16,7 @@ import java.util.LinkedHashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.AbstractTransformingCAstNodeVisitor;
@@ -33,29 +34,30 @@ import org.sosy_lab.cpachecker.exceptions.NoException;
 
 abstract class AbstractSlice implements Slice {
 
-  private final CFA cfa;
-  private final ImmutableCollection<CFAEdge> criteria;
+  private final CFA originalCfa;
+  private final ImmutableCollection<CFAEdge> slicingCriteria;
   private final ImmutableSet<CFAEdge> relevantEdges;
   private final ImmutableSet<ASimpleDeclaration> relevantDeclarations;
 
   AbstractSlice(
-      CFA pCfa,
+      CFA pOriginalCfa,
       Collection<CFAEdge> pSlicingCriteria,
       Collection<CFAEdge> pRelevantEdges,
-      Predicate<ASimpleDeclaration> pRelevantDeclarationFilter) {
+      Set<ASimpleDeclaration> pRelevantDeclarations) {
 
-    cfa = pCfa;
+    originalCfa = pOriginalCfa;
+    slicingCriteria = ImmutableList.copyOf(pSlicingCriteria);
     relevantEdges = ImmutableSet.copyOf(pRelevantEdges);
-    criteria = ImmutableList.copyOf(pSlicingCriteria);
-    relevantDeclarations = computeRelevantDeclarations(pRelevantEdges, pRelevantDeclarationFilter);
+    relevantDeclarations = ImmutableSet.copyOf(pRelevantDeclarations);
   }
 
-  private static ImmutableSet<ASimpleDeclaration> computeRelevantDeclarations(
+  static ImmutableSet<ASimpleDeclaration> computeRelevantDeclarations(
       Collection<CFAEdge> pRelevantEdges,
       Predicate<ASimpleDeclaration> pRelevantDeclarationFilter) {
 
     var relevantDeclarationCollectingVisitor =
         new RelevantDeclarationCollectingVisitor(pRelevantDeclarationFilter);
+
     for (CFAEdge relevantEdge : pRelevantEdges) {
 
       if (relevantEdge instanceof CDeclarationEdge) {
@@ -64,16 +66,20 @@ abstract class AbstractSlice implements Slice {
             .accept(relevantDeclarationCollectingVisitor);
       }
 
-      CFANode relevantNode = relevantEdge.getSuccessor();
-      if (relevantNode instanceof FunctionEntryNode) {
-        FunctionEntryNode relevantFunctionEntryNode = (FunctionEntryNode) relevantNode;
-        Optional<? extends ASimpleDeclaration> optionalReturnVariable =
-            relevantFunctionEntryNode.getReturnVariable();
-        optionalReturnVariable
-            .filter(returnVariable -> returnVariable instanceof CVariableDeclaration)
-            .map(returnVariable -> (CVariableDeclaration) returnVariable)
-            .ifPresent(
-                returnVariable -> returnVariable.accept(relevantDeclarationCollectingVisitor));
+      for (CFANode relevantNode :
+          ImmutableList.of(relevantEdge.getPredecessor(), relevantEdge.getSuccessor())) {
+        if (relevantNode instanceof FunctionEntryNode) {
+
+          FunctionEntryNode relevantFunctionEntryNode = (FunctionEntryNode) relevantNode;
+          Optional<? extends ASimpleDeclaration> optionalReturnVariable =
+              relevantFunctionEntryNode.getReturnVariable();
+
+          optionalReturnVariable
+              .filter(returnVariable -> returnVariable instanceof CVariableDeclaration)
+              .map(returnVariable -> (CVariableDeclaration) returnVariable)
+              .ifPresent(
+                  returnVariable -> returnVariable.accept(relevantDeclarationCollectingVisitor));
+        }
       }
     }
 
@@ -82,12 +88,12 @@ abstract class AbstractSlice implements Slice {
 
   @Override
   public CFA getOriginalCfa() {
-    return cfa;
+    return originalCfa;
   }
 
   @Override
   public ImmutableCollection<CFAEdge> getSlicingCriteria() {
-    return criteria;
+    return slicingCriteria;
   }
 
   @Override
@@ -118,54 +124,39 @@ abstract class AbstractSlice implements Slice {
       return relevantDeclarations;
     }
 
-    @Override
-    public CAstNode visit(CVariableDeclaration pCVariableDeclaration) {
+    private CAstNode collectDeclarationIfRelevant(
+        ASimpleDeclaration pDeclaration, Supplier<CAstNode> pSuperReturnValueSupplier) {
 
-      if (relevantDeclarationFilter.test(pCVariableDeclaration)) {
-        relevantDeclarations.add(pCVariableDeclaration);
+      if (relevantDeclarationFilter.test(pDeclaration)) {
+        relevantDeclarations.add(pDeclaration);
       }
 
-      return super.visit(pCVariableDeclaration);
+      return pSuperReturnValueSupplier.get();
     }
 
     @Override
-    public CAstNode visit(CParameterDeclaration pCParameterDeclaration) {
-
-      if (relevantDeclarationFilter.test(pCParameterDeclaration)) {
-        relevantDeclarations.add(pCParameterDeclaration);
-      }
-
-      return super.visit(pCParameterDeclaration);
+    public CAstNode visit(CVariableDeclaration pDeclaration) {
+      return collectDeclarationIfRelevant(pDeclaration, () -> super.visit(pDeclaration));
     }
 
     @Override
-    public CAstNode visit(CFunctionDeclaration pCFunctionDeclaration) {
-
-      if (relevantDeclarationFilter.test(pCFunctionDeclaration)) {
-        relevantDeclarations.add(pCFunctionDeclaration);
-      }
-
-      return super.visit(pCFunctionDeclaration);
+    public CAstNode visit(CParameterDeclaration pDeclaration) {
+      return collectDeclarationIfRelevant(pDeclaration, () -> super.visit(pDeclaration));
     }
 
     @Override
-    public CAstNode visit(CComplexTypeDeclaration pCComplexTypeDeclaration) {
-
-      if (relevantDeclarationFilter.test(pCComplexTypeDeclaration)) {
-        relevantDeclarations.add(pCComplexTypeDeclaration);
-      }
-
-      return super.visit(pCComplexTypeDeclaration);
+    public CAstNode visit(CFunctionDeclaration pDeclaration) {
+      return collectDeclarationIfRelevant(pDeclaration, () -> super.visit(pDeclaration));
     }
 
     @Override
-    public CAstNode visit(CTypeDefDeclaration pCTypeDefDeclaration) {
+    public CAstNode visit(CComplexTypeDeclaration pDeclaration) {
+      return collectDeclarationIfRelevant(pDeclaration, () -> super.visit(pDeclaration));
+    }
 
-      if (relevantDeclarationFilter.test(pCTypeDefDeclaration)) {
-        relevantDeclarations.add(pCTypeDefDeclaration);
-      }
-
-      return super.visit(pCTypeDefDeclaration);
+    @Override
+    public CAstNode visit(CTypeDefDeclaration pDeclaration) {
+      return collectDeclarationIfRelevant(pDeclaration, () -> super.visit(pDeclaration));
     }
   }
 }

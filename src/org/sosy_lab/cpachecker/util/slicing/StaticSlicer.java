@@ -258,7 +258,8 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
           pOriginalCfa,
           pCriteriaEdges,
           pRelevantEdges,
-          createRelevantDeclarationFilter(pRelevantSdgNodes));
+          AbstractSlice.computeRelevantDeclarations(
+              pRelevantEdges, createRelevantDeclarationFilter(pRelevantSdgNodes)));
 
       sdg = pSdg;
       cfaEdgeToSdgNodes = pCfaEdgeToSdgNodes;
