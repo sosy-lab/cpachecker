@@ -10,16 +10,13 @@ package org.sosy_lab.cpachecker.core.algorithm.components.distributed_cpa;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
@@ -49,11 +46,9 @@ import org.sosy_lab.java_smt.api.SolverException;
 public class DistributedPredicateCPA extends AbstractDistributedCPA {
 
   private final Map<Formula, Formula> substitutions;
-  private final Set<String> circular;
   private final Set<String> unsatPredecessors;
+  private final Map<String, Message> receivedPostConditions;
   private int executionCounter;
-  private int satCheckCount;
-  private final int max;
 
   public DistributedPredicateCPA(
       String pWorkerId,
@@ -65,9 +60,8 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
                                 CPAException {
     super(pWorkerId, pNode, pTypeMap, pPrecision, pDirection, pOptions);
     substitutions = new HashMap<>();
-    circular = Collections.newSetFromMap(new ConcurrentHashMap<>());
     unsatPredecessors = new HashSet<>();
-    max = Integer.max(pNode.getPredecessors().size(), 1);
+    receivedPostConditions = new HashMap<>();
   }
 
   public Map<Formula, Formula> getSubstitutions() {
@@ -128,48 +122,43 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
       throws SolverException, InterruptedException {
     Preconditions.checkArgument(message.getType() == MessageType.ERROR_CONDITION,
         "can only process messages with type %s", MessageType.ERROR_CONDITION);
-    Optional<CFANode> optionalCFANode = block.getNodesInBlock().stream()
-        .filter(node -> node.getNodeNumber() == message.getTargetNodeNumber()).findAny();
-    if (optionalCFANode.isEmpty()) {
+    CFANode node = block.getNodeWithNumber(message.getTargetNodeNumber());
+    if (!(node.equals(block.getLastNode()) || (!node.equals(block.getLastNode()) && !node.equals(
+        block.getStartNode()) && block.getNodesInBlock().contains(node)))) {
       return MessageProcessing.stop();
     }
-    CFANode node = optionalCFANode.orElseThrow();
-    if (node.equals(block.getLastNode()) || (!node.equals(block.getLastNode()) && !node.equals(
-        block.getStartNode()) && block.getNodesInBlock().contains(node))) {
-      // under-approximating ?
-      receivedErrorConditions.put(message.getUniqueBlockId(), message);
-      // can the error condition be denied?
-      Solver solver = getSolver();
-      FormulaManagerView fmgr = solver.getFormulaManager();
-      BooleanFormula messageFormula = fmgr.parse(extractFormulaString(message.getPayload()));
-      if (solver.isUnsat(messageFormula)) {
-        return MessageProcessing.stopWith(
-            Message.newErrorConditionUnreachableMessage(block.getId(),
-                "unsat-formula: " + messageFormula));
-      }
-      if (receivedPostConditions.size() == block.getPredecessors().size() && shouldDoSatCheck()) {
-        if (latestOwnPostConditionMessage != null) {
-          BooleanFormula check = fmgr.getBooleanFormulaManager().and(messageFormula,
-              fmgr.parse(extractFormulaString(latestOwnPostConditionMessage.getPayload())));
-          if (solver.isUnsat(check)) {
-            return MessageProcessing.stopWith(
-                Message.newErrorConditionUnreachableMessage(block.getId(),
-                    "unsat-with-last-post: " + check));
-          }
-        }
-        if (firstMessage != null) {
-          BooleanFormula check = fmgr.getBooleanFormulaManager()
-              .and(messageFormula, fmgr.parse(extractFormulaString(firstMessage.getPayload())));
-          if (solver.isUnsat(check)) {
-            return MessageProcessing.stopWith(
-                Message.newErrorConditionUnreachableMessage(block.getId(),
-                    "unsat-with-first-post: " + check));
-          }
-        }
-      }
-      return MessageProcessing.proceedWith(message);
+    // can the error condition be denied?
+    Solver solver = getSolver();
+    FormulaManagerView fmgr = solver.getFormulaManager();
+    BooleanFormula messageFormula = fmgr.parse(extractFormulaString(message.getPayload()));
+    if (solver.isUnsat(messageFormula)) {
+      return MessageProcessing.stopWith(
+          Message.newErrorConditionUnreachableMessage(block.getId(),
+              "unsat-formula: " + messageFormula));
     }
-    return MessageProcessing.stop();
+    if (receivedPostConditions.size() <= 3
+        && receivedPostConditions.size() + unsatPredecessors.size() == block.getPredecessors()
+        .size()) {
+      if (latestOwnPostConditionMessage != null) {
+        BooleanFormula check = fmgr.getBooleanFormulaManager().and(messageFormula,
+            fmgr.parse(extractFormulaString(latestOwnPostConditionMessage.getPayload())));
+        if (solver.isUnsat(check)) {
+          return MessageProcessing.stopWith(
+              Message.newErrorConditionUnreachableMessage(block.getId(),
+                  "unsat-with-last-post: " + check));
+        }
+      }
+      if (firstMessage != null) {
+        BooleanFormula check = fmgr.getBooleanFormulaManager()
+            .and(messageFormula, fmgr.parse(extractFormulaString(firstMessage.getPayload())));
+        if (solver.isUnsat(check)) {
+          return MessageProcessing.stopWith(
+              Message.newErrorConditionUnreachableMessage(block.getId(),
+                  "unsat-with-first-post: " + check));
+        }
+      }
+    }
+    return MessageProcessing.proceedWith(message);
   }
 
   @Override
@@ -181,10 +170,6 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
   public void setFirstMessage(Message pFirstMessage) {
     latestOwnPostConditionMessage = pFirstMessage;
     super.setFirstMessage(pFirstMessage);
-  }
-
-  private boolean shouldDoSatCheck() {
-    return satCheckCount++ % max == 0;
   }
 
   @Override
@@ -206,13 +191,8 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
       throws InterruptedException, SolverException {
     Preconditions.checkArgument(message.getType() == MessageType.BLOCK_POSTCONDITION,
         "can only process messages with type %s", MessageType.BLOCK_POSTCONDITION);
-    Optional<CFANode> optionalCFANode = block.getNodesInBlock().stream()
-        .filter(node -> node.getNodeNumber() == message.getTargetNodeNumber()).findAny();
-    if (optionalCFANode.isEmpty()) {
-      return MessageProcessing.stop();
-    }
-    CFANode node = optionalCFANode.orElseThrow();
-    if (!node.equals(block.getStartNode())) {
+    CFANode node = block.getNodeWithNumber(message.getTargetNodeNumber());
+    if (!block.getStartNode().equals(node)) {
       return MessageProcessing.stop();
     }
     if (!Boolean.parseBoolean(
@@ -229,13 +209,7 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
     unsatPredecessors.remove(message.getUniqueBlockId());
     storePostCondition(message);
     // check if every predecessor contains the full path (root node)
-    boolean fullPathAvailable = receivedPostConditions.values().stream().allMatch(
-        m -> Boolean.parseBoolean(m.getPayload().getOrDefault(Payload.FULL_PATH, "false")));
-    int numNonCircularPredecessors = block.getPredecessors().size() + unsatPredecessors.size();
-    if (receivedPostConditions.size() == numNonCircularPredecessors ||
-        // if this block is part of its own precondition, wait until the exact post-condition is available (full path)
-        (receivedPostConditions.size() == numNonCircularPredecessors + circular.size()
-            && fullPathAvailable)) {
+    if (receivedPostConditions.size() + unsatPredecessors.size() == block.getPredecessors().size()) {
       return MessageProcessing.proceedWith(receivedPostConditions.values());
     } else {
       // would equal initial message that has already been or will be processed by other workers
@@ -252,9 +226,7 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
         .anyMatch(s -> s.equals(block.getId()))) {
       if (Boolean.parseBoolean(payload.get(Payload.FULL_PATH))) {
         receivedPostConditions.put(pMessage.getUniqueBlockId(), toStore);
-        circular.remove(pMessage.getUniqueBlockId());
       } else {
-        circular.add(pMessage.getUniqueBlockId());
         receivedPostConditions.remove(pMessage.getUniqueBlockId());
       }
     } else {
@@ -337,9 +309,13 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
   @Override
   public void synchronizeKnowledge(AbstractDistributedCPA pDCPA) {
     super.synchronizeKnowledge(pDCPA);
+    DistributedPredicateCPA predicate = (DistributedPredicateCPA) pDCPA;
     if (direction == AnalysisDirection.BACKWARD) {
-      DistributedPredicateCPA predicate = (DistributedPredicateCPA) pDCPA;
       latestOwnPostConditionMessage = predicate.latestOwnPostConditionMessage;
+      unsatPredecessors.clear();
+      unsatPredecessors.addAll(predicate.unsatPredecessors);
+      receivedPostConditions.clear();
+      receivedPostConditions.putAll(predicate.receivedPostConditions);
     }
   }
 

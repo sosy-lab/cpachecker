@@ -278,12 +278,13 @@ public abstract class BlockAnalysis {
 
     @Override
     public Collection<Message> initialAnalysis() throws InterruptedException, CPAException {
-      Message initial = Message.newBlockPostCondition("", block.getStartNode().getNodeNumber(), Payload.empty(),
+      Message initial = Message.newBlockPostCondition(block.getId(), block.getStartNode().getNodeNumber(), Payload.empty(),
           false, true, ImmutableSet.of());
       Collection<Message> result = analyze(ImmutableSet.of(initial));
       if (result.isEmpty()) {
-        return ImmutableSet.of(Message.newBlockPostCondition("", block.getStartNode().getNodeNumber(), Payload.empty(),
-            false, false, ImmutableSet.of()));
+        // full path = true as no predecessor can ever change unreachability of block exit
+        return ImmutableSet.of(Message.newBlockPostCondition(block.getId(), block.getStartNode().getNodeNumber(), Payload.empty(),
+            true, false, ImmutableSet.of()));
       }
       return result;
     }

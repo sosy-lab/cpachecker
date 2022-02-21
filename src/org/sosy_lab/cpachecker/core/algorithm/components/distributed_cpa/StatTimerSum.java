@@ -44,7 +44,7 @@ public class StatTimerSum extends StatTimer {
 
   @Override
   public String toString() {
-    return getConsumedTime().formatAs(TimeUnit.MINUTES);
+    return getConsumedTime().formatAs(TimeUnit.MINUTES) + " (" + getConsumedTime().formatAs(TimeUnit.SECONDS) + ")";
   }
 
   @Override

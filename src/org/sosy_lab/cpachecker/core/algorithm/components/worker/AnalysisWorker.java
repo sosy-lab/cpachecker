@@ -170,20 +170,18 @@ public class AnalysisWorker extends Worker {
   @Override
   public void run() {
     try {
-      if (!block.isSelfCircular() && !block.getPredecessors().isEmpty()) {
-        Collection<Message> initialMessages = forwardAnalysis.initialAnalysis();
-        Optional<Message> optionalMessage =
-            initialMessages.stream().filter(m -> m.getType() == MessageType.BLOCK_POSTCONDITION)
-                .findAny();
-        if (optionalMessage.isPresent()) {
-          Message message = optionalMessage.orElseThrow();
-          if (message.getType() == MessageType.BLOCK_POSTCONDITION) {
-            forwardAnalysis.getDistributedCPA().setFirstMessage(message);
-            backwardAnalysis.getDistributedCPA().setFirstMessage(message);
-          }
+      Collection<Message> initialMessages = forwardAnalysis.initialAnalysis();
+      Optional<Message> optionalMessage =
+          initialMessages.stream().filter(m -> m.getType() == MessageType.BLOCK_POSTCONDITION)
+              .findAny();
+      if (optionalMessage.isPresent()) {
+        Message message = optionalMessage.orElseThrow();
+        if (message.getType() == MessageType.BLOCK_POSTCONDITION) {
+          forwardAnalysis.getDistributedCPA().setFirstMessage(message);
+          backwardAnalysis.getDistributedCPA().setFirstMessage(message);
         }
-        broadcast(initialMessages);
       }
+      broadcast(initialMessages);
       super.run();
     } catch (CPAException | InterruptedException | IOException pE) {
       logger.log(Level.SEVERE, "Worker run into an error: %s", pE);

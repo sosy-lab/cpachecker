@@ -125,13 +125,6 @@ public class DistributedCompositeCPA extends AbstractDistributedCPA {
   public MessageProcessing proceedForward(Message newMessage)
       throws SolverException, InterruptedException {
     forwardProceed.start();
-    if (receivedPostConditions.containsKey(newMessage.getUniqueBlockId())) {
-      if (receivedPostConditions.get(newMessage.getUniqueBlockId()).equals(newMessage)) {
-        forwardProceed.stop();
-        return MessageProcessing.stop();
-      }
-    }
-    receivedPostConditions.put(newMessage.getUniqueBlockId(), newMessage);
     MessageProcessing processing = MessageProcessing.proceed();
     for (AbstractDistributedCPA value : registered.values()) {
       processing = processing.merge(value.proceedForward(newMessage), true);

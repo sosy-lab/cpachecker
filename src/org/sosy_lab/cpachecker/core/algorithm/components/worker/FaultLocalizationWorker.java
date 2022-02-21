@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode
 import org.sosy_lab.cpachecker.core.algorithm.components.distributed_cpa.DistributedPredicateCPA;
 import org.sosy_lab.cpachecker.core.algorithm.components.distributed_cpa.MessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Payload;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.UpdatedTypeMap;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.EdgeTypeScoring;
@@ -54,6 +55,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
@@ -71,6 +73,8 @@ public class FaultLocalizationWorker extends AnalysisWorker {
   private final List<CFAEdge> errorPath;
   private Fault minimalFault;
   private BooleanFormula actualPost;
+
+  private final StatTimer maxSatTimer;
 
   FaultLocalizationWorker(
       String pId,
@@ -112,6 +116,7 @@ public class FaultLocalizationWorker extends AnalysisWorker {
     errorPath = new ArrayList<>();
     minimalFault = new Fault();
 
+    // block.getEdgesInBlock does currently not guarantee correct order
     CFANode currNode = pBlock.getStartNode();
     do {
       for (CFAEdge leavingEdge : CFAUtils.leavingEdges(currNode)) {
@@ -122,16 +127,25 @@ public class FaultLocalizationWorker extends AnalysisWorker {
         }
       }
     } while (!currNode.equals(pBlock.getLastNode()));
+
+    maxSatTimer = new StatTimer("Max Sat Timer");
+    stats.faultLocalizationTime.register(maxSatTimer);
   }
 
   @Override
   protected Collection<Message> backwardAnalysis(MessageProcessing pMessageProcessing)
       throws CPAException, InterruptedException, SolverException {
-    Set<Message> responses = new HashSet<>(super.backwardAnalysis(pMessageProcessing));
+    Collection<Message> responses = super.backwardAnalysis(pMessageProcessing);
+    assert responses.size() == 1 : "Every backward analysis must result in exactly one message: " + responses;
     Message currentResult = responses.stream().findFirst().orElseThrow();
+    // early return for non error condition messages;
+    if (currentResult.getType() != MessageType.ERROR_CONDITION) {
+      return responses;
+    }
     // super backward analysis ensures exactly one entry in pMessageProcessing
-    Message message = pMessageProcessing.stream().findFirst().orElseThrow();
     try {
+      maxSatTimer.start();
+      Message message = pMessageProcessing.stream().findFirst().orElseThrow();
       DistributedPredicateCPA dpcpa = (DistributedPredicateCPA) backwardAnalysis.getDistributedCPA()
           .getDistributedAnalysis(PredicateCPA.class);
       if (message.getPayload().containsKey(POSTCONDITION_KEY)) {
@@ -164,6 +178,8 @@ public class FaultLocalizationWorker extends AnalysisWorker {
     } catch (TraceFormulaUnsatisfiableException pE) {
       // current block does most likely not lead to an error
       return responses;
+    } finally {
+      maxSatTimer.stop();
     }
     return ImmutableSet.of(currentResult);
   }

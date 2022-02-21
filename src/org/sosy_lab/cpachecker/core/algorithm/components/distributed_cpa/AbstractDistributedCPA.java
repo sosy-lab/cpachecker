@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.components.distributed_cpa;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
@@ -40,9 +39,6 @@ public abstract class AbstractDistributedCPA implements ConfigurableProgramAnaly
   protected Message firstMessage;
   protected Precision precision;
 
-  protected final ConcurrentHashMap<String, Message> receivedErrorConditions;
-  protected final ConcurrentHashMap<String, Message> receivedPostConditions;
-
   protected Message latestOwnPostConditionMessage;
 
   public AbstractDistributedCPA(
@@ -59,9 +55,6 @@ public abstract class AbstractDistributedCPA implements ConfigurableProgramAnaly
     id = pId;
     precision = pPrecision;
     analysisOptions = pOptions;
-
-    receivedErrorConditions = new ConcurrentHashMap<>();
-    receivedPostConditions = new ConcurrentHashMap<>();
   }
 
   public abstract AbstractState deserialize(Message pPayload)
@@ -158,13 +151,7 @@ public abstract class AbstractDistributedCPA implements ConfigurableProgramAnaly
             + " and " + getClass();
     assert pDCPA.direction != direction
         : "Can only exchange data from DCPAs operating in distinct directions (cannot override values)";
-    if (direction == AnalysisDirection.FORWARD) {
-      receivedErrorConditions.clear();
-      receivedErrorConditions.putAll(pDCPA.receivedErrorConditions);
-    }
     if (direction == AnalysisDirection.BACKWARD) {
-      receivedPostConditions.clear();
-      receivedPostConditions.putAll(pDCPA.receivedPostConditions);
       latestOwnPostConditionMessage = pDCPA.latestOwnPostConditionMessage;
     }
   }

@@ -189,7 +189,7 @@ public class BlockNode {
   public static class BlockNodeFactory {
 
     private int blockCount;
-    private Map<Integer, CFANode> idToNodeMap;
+    private final Map<Integer, CFANode> idToNodeMap;
 
     public BlockNodeFactory(CFA pCfa) {
       idToNodeMap =

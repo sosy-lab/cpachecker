@@ -30,6 +30,7 @@ public class WorkerStatistics implements Statistics {
   final StatTimerSum proceedDeserializeTime = new StatTimerSum("Time for deserialize");
   final StatTimerSum forwardTimer = new StatTimerSum("Time for forward analysis");
   final StatTimerSum backwardTimer = new StatTimerSum("Time for backward analysis");
+  final StatTimerSum faultLocalizationTime = new StatTimerSum("Time for fault localization");
 
   @Override
   public void printStatistics(
@@ -44,7 +45,8 @@ public class WorkerStatistics implements Statistics {
         .put(proceedSerializeTime)
         .put(proceedDeserializeTime)
         .put(forwardTimer)
-        .put(backwardTimer);
+        .put(backwardTimer)
+        .put(faultLocalizationTime);
   }
 
   @Override
