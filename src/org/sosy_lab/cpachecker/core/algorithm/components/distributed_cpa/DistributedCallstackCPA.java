@@ -10,8 +10,8 @@ package org.sosy_lab.cpachecker.core.algorithm.components.distributed_cpa;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
@@ -47,7 +47,10 @@ public class DistributedCallstackCPA extends AbstractDistributedCPA {
       return getInitialState(block.getNodeWithNumber(pPayload.getTargetNodeNumber()),
           StateSpacePartition.getDefaultPartition());
     }
-    String callstackJSON = payload.get(parentCPA.getClass().getName());
+    String callstackJSON = payload.getOrDefault(parentCPA.getClass().getName(), "");
+    if (callstackJSON.isBlank()) {
+      return getInitialState(block.getNodeWithNumber(pPayload.getTargetNodeNumber()), StateSpacePartition.getDefaultPartition());
+    }
     List<String> parts = Splitter.on(DELIMITER).splitToList(callstackJSON);
     CallstackState previous = null;
     for (String part : parts) {
@@ -62,7 +65,7 @@ public class DistributedCallstackCPA extends AbstractDistributedCPA {
   @Override
   public Payload serialize(AbstractState pState) {
     CallstackState curr = (CallstackState) pState;
-    List<String> states = new LinkedList<>();
+    List<String> states = new ArrayList<>();
     while (curr != null) {
       states.add(curr.getCallNode().getNodeNumber() + "." + curr.getCurrentFunction());
       curr = curr.getPreviousState();
@@ -87,6 +90,9 @@ public class DistributedCallstackCPA extends AbstractDistributedCPA {
   public AbstractState combine(
       AbstractState pState1, AbstractState pState2) throws InterruptedException, CPAException {
     if (direction == AnalysisDirection.FORWARD) {
+      if (pState1.equals(pState2)) {
+        return pState1;
+      }
       return getInitialState(block.getStartNode(), StateSpacePartition.getDefaultPartition());
     }
     throw new AssertionError("BackwardAnalysis should never combine two callstack states");

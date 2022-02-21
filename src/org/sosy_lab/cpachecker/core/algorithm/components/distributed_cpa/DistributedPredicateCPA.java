@@ -52,6 +52,8 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
   private final Set<String> circular;
   private final Set<String> unsatPredecessors;
   private int executionCounter;
+  private int satCheckCount;
+  private final int max;
 
   public DistributedPredicateCPA(
       String pWorkerId,
@@ -65,6 +67,7 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
     substitutions = new HashMap<>();
     circular = Collections.newSetFromMap(new ConcurrentHashMap<>());
     unsatPredecessors = new HashSet<>();
+    max = Integer.max(pNode.getPredecessors().size(), 1);
   }
 
   public Map<Formula, Formula> getSubstitutions() {
@@ -144,7 +147,7 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
             Message.newErrorConditionUnreachableMessage(block.getId(),
                 "unsat-formula: " + messageFormula));
       }
-      if (receivedPostConditions.size() == block.getPredecessors().size()) {
+      if (receivedPostConditions.size() == block.getPredecessors().size() && shouldDoSatCheck()) {
         if (latestOwnPostConditionMessage != null) {
           BooleanFormula check = fmgr.getBooleanFormulaManager().and(messageFormula,
               fmgr.parse(extractFormulaString(latestOwnPostConditionMessage.getPayload())));
@@ -178,6 +181,10 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
   public void setFirstMessage(Message pFirstMessage) {
     latestOwnPostConditionMessage = pFirstMessage;
     super.setFirstMessage(pFirstMessage);
+  }
+
+  private boolean shouldDoSatCheck() {
+    return satCheckCount++ % max == 0;
   }
 
   @Override

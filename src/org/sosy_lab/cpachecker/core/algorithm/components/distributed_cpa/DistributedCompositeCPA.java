@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
+import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
@@ -61,6 +62,7 @@ public class DistributedCompositeCPA extends AbstractDistributedCPA {
     lookup = new ConcurrentHashMap<>();
     lookup.put(PredicateCPA.class, DistributedPredicateCPA.class);
     lookup.put(CallstackCPA.class, DistributedCallstackCPA.class);
+    lookup.put(FunctionPointerCPA.class, DistributedFunctionPointerCPA.class);
     registered = new ConcurrentHashMap<>();
   }
 

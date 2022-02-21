@@ -374,13 +374,16 @@ public abstract class BlockAnalysis {
         return ImmutableSet.of(Message.newErrorConditionUnreachableMessage(block.getId(),
             "backwards analysis cannot reach target at block entry"));
       }
-      Payload payload = distributedCompositeCPA.serialize(distributedCompositeCPA.combine(states));
-      payload = Payload.builder().putAll(payload).addEntry(Payload.STATUS,
-          status.wasPropertyChecked() + "," + status.isSound() + "," + status.isPrecise()).build();
-      return ImmutableSet.of(
-          Message.newErrorConditionMessage(block.getId(), block.getStartNode().getNodeNumber(),
-              payload, false,
-              visitedBlocks(messages)));
+      Set<Message> responses = new HashSet<>();
+      for (AbstractState state : states) {
+        Payload payload = distributedCompositeCPA.serialize(state);
+        payload = Payload.builder().putAll(payload).addEntry(Payload.STATUS,
+            status.wasPropertyChecked() + "," + status.isSound() + "," + status.isPrecise()).build();
+        responses.add(Message.newErrorConditionMessage(block.getId(), block.getStartNode().getNodeNumber(),
+            payload, false,
+            visitedBlocks(messages)));
+      }
+      return responses;
     }
 
     @Override
