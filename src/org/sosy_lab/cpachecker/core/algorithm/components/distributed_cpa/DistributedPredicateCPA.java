@@ -139,7 +139,7 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
                 "unsat-formula: " + messageFormula));
       }
     }
-    if (latestOwnPostConditionMessage != null && receivedPostConditions.size() <= 3
+    if (latestOwnPostConditionMessage != null && (receivedPostConditions.size() <= 3 || analysisOptions.checkEveryErrorConditionForUnsatisfiability())
         && receivedPostConditions.size() + unsatPredecessors.size() == block.getPredecessors()
         .size()) {
       Solver solver = getSolver();

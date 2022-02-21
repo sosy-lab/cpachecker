@@ -17,7 +17,7 @@ import org.sosy_lab.common.configuration.Options;
 public class AnalysisOptions {
 
   @Option(description = "forces the precondition of fault localization workers to be true")
-  private boolean faultLocalizationPreconditionAlwaysTrue = false;
+  private boolean flPreconditionAlwaysTrue = false;
 
   @Option(description = "whether analysis worker abstract at block entries or exits")
   private boolean abstractAtTargetLocation = false;
@@ -26,7 +26,7 @@ public class AnalysisOptions {
   private boolean doStoreCircularPostConditions = false;
 
   @Option(description = "whether error conditions are always checked for unsatisfiability")
-  private boolean checkEveryErrorConditionForUnsatisfiability = true;
+  private boolean checkEveryErrorCondition = true;
 
   @Option(description = "loop free programs do not require to deny all possible error messages")
   private boolean sendEveryErrorMessage = false;
@@ -35,8 +35,8 @@ public class AnalysisOptions {
     pConfig.inject(this);
   }
 
-  public boolean isFaultLocalizationPreconditionAlwaysTrue() {
-    return faultLocalizationPreconditionAlwaysTrue;
+  public boolean isFlPreconditionAlwaysTrue() {
+    return flPreconditionAlwaysTrue;
   }
 
   public boolean doAbstractAtTargetLocations() {
@@ -48,7 +48,7 @@ public class AnalysisOptions {
   }
 
   public boolean checkEveryErrorConditionForUnsatisfiability() {
-    return checkEveryErrorConditionForUnsatisfiability;
+    return checkEveryErrorCondition;
   }
 
   public boolean sendEveryErrorMessage() {

@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockOper
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockTree;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.CFADecomposer;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.GivenSizeDecomposer;
+import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.SingleBlockDecomposer;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.ConnectionProvider;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.UpdatedTypeMap;
@@ -102,12 +103,13 @@ public class ComponentAnalysis implements Algorithm, StatisticsProvider, Statist
 
   private enum DecompositionType {
     BLOCK_OPERATOR,
-    GIVEN_SIZE
+    GIVEN_SIZE,
+    SINGLE_BLOCK
   }
 
   private enum ConnectionType {
     NETWORK_NIO_UNSTABLE,
-    NETWORK_CLASSIC_STABLE,
+    NETWORK,
     IN_MEMORY
   }
 
@@ -147,7 +149,7 @@ public class ComponentAnalysis implements Algorithm, StatisticsProvider, Statist
                 + DecompositionType.BLOCK_OPERATOR + " but got " + decompositionType);
       }
     } else {
-      if (options.isFaultLocalizationPreconditionAlwaysTrue()) {
+      if (options.isFlPreconditionAlwaysTrue()) {
         throw new InvalidConfigurationException(
             "Unused option: faultLocalizationPreconditionAlwaysTrue. Fault localization is deactivated");
       }
@@ -161,6 +163,8 @@ public class ComponentAnalysis implements Algorithm, StatisticsProvider, Statist
       case GIVEN_SIZE:
         return new GivenSizeDecomposer(new BlockOperatorDecomposer(configuration),
             desiredNumberOfBlocks);
+      case SINGLE_BLOCK:
+        return new SingleBlockDecomposer();
       default:
         throw new AssertionError("Unknown DecompositionType: " + decompositionType);
     }
@@ -191,7 +195,7 @@ public class ComponentAnalysis implements Algorithm, StatisticsProvider, Statist
         return NetworkConnectionProvider.class;
       case IN_MEMORY:
         return InMemoryConnectionProvider.class;
-      case NETWORK_CLASSIC_STABLE:
+      case NETWORK:
         return ClassicNetworkConnectionProvider.class;
       default:
         throw new AssertionError("Unknown ConnectionType " + connectionType);

@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -24,6 +25,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
@@ -37,6 +39,7 @@ import org.sosy_lab.cpachecker.core.algorithm.components.exchange.UpdatedTypeMap
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.EdgeTypeScoring;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaEntryList;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaEntryList.FormulaEntry;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.Selector.Factory;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula.SelectorTraceWithKnownConditions;
@@ -128,6 +131,8 @@ public class FaultLocalizationWorker extends AnalysisWorker {
       }
     } while (!currNode.equals(pBlock.getLastNode()));
 
+    Collections.reverse(errorPath);
+
     maxSatTimer = new StatTimer("Max Sat Timer");
     stats.faultLocalizationTime.register(maxSatTimer);
   }
@@ -153,6 +158,17 @@ public class FaultLocalizationWorker extends AnalysisWorker {
       }
       PredicateAbstractState state = (PredicateAbstractState) dpcpa.deserialize(message);
       TraceFormula tf = createTraceFormula(state.getPathFormula());
+      if (!tf.isCalculationPossible() && Boolean.parseBoolean(message.getPayload().get(Payload.FIRST))) {
+        for (int i = tf.getEntries().size() - 1; i >= 0; i--) {
+          FormulaEntry entry = tf.getEntries().get(i);
+          if (entry.getSelector().correspondingEdge() instanceof AssumeEdge) {
+            Payload updated = Payload.builder().putAll(currentResult.getPayload())
+                .addEntry(POSTCONDITION_KEY, fmgr.dumpFormula(entry.getAtom()).toString()).build();
+            currentResult = Message.replacePayload(currentResult, updated);
+            return ImmutableSet.of(currentResult);
+          }
+        }
+      }
       Set<Fault> faults = performFaultLocalization(tf);
       actualPost =
           (actualPost == null || dpcpa.getSolver().getFormulaManager().getBooleanFormulaManager()
@@ -233,10 +249,10 @@ public class FaultLocalizationWorker extends AnalysisWorker {
       intId++;
     }
     BooleanFormula precondition = bmgr.makeTrue();
-    if (!analysisOptions.isFaultLocalizationPreconditionAlwaysTrue()) {
+    if (!analysisOptions.isFlPreconditionAlwaysTrue()) {
       Map<String, Integer> minimalIndices = new HashMap<>();
       Map<String, BooleanFormula> minimalFormulas = new HashMap<>();
-      try (ProverEnvironment prover = predicateCPA.getSolver()
+      try (ProverEnvironment prover = context.getSolver()
           .newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
         prover.push(current.getFormula());
         if (prover.isUnsat()) {
