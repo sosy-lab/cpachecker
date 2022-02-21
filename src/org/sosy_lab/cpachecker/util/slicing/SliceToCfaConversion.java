@@ -62,21 +62,21 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 /** Utility class for turning {@link Slice} instances into {@link CFA} instances. */
 final class SliceToCfaConversion {
 
-  private static final String IRRELEVANT_EDGE_DESCRIPTION = "edge irrelevant for program slice";
+  private static final String IRRELEVANT_EDGE_DESCRIPTION = "edge irrelevant to program slice";
 
   private SliceToCfaConversion() {}
 
-  /** Replaces the specified edge with a no-op blank edge in the specified mutable network. */
-  private static void replaceIrrelevantEdge(CfaMutableNetwork pGraph, CFAEdge pEdge) {
-
-    CFAEdge replacementEdge =
-        new BlankEdge(
-            IRRELEVANT_EDGE_DESCRIPTION,
-            pEdge.getFileLocation(),
-            pEdge.getPredecessor(),
-            pEdge.getSuccessor(),
-            IRRELEVANT_EDGE_DESCRIPTION);
-    pGraph.replace(pEdge, replacementEdge);
+  /**
+   * Returns a no-operation blank edge with the same file location and endpoints as the specified
+   * edge.
+   */
+  private static CFAEdge createNoopBlankEdge(CFAEdge pEdge) {
+    return new BlankEdge(
+        IRRELEVANT_EDGE_DESCRIPTION,
+        pEdge.getFileLocation(),
+        pEdge.getPredecessor(),
+        pEdge.getSuccessor(),
+        IRRELEVANT_EDGE_DESCRIPTION);
   }
 
   /**
@@ -230,7 +230,7 @@ final class SliceToCfaConversion {
         graph.edges().stream()
             .filter(edge -> !relevantEdges.contains(edge) && isReplaceableEdge(edge))
             .collect(ImmutableList.toImmutableList());
-    irrelevantEdges.forEach(edge -> replaceIrrelevantEdge(graph, edge));
+    irrelevantEdges.forEach(edge -> graph.replace(edge, createNoopBlankEdge(edge)));
 
     ImmutableList<CFANode> irrelevantNodes =
         graph.nodes().stream()
