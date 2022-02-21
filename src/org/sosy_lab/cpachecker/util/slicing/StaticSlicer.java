@@ -101,9 +101,9 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
     partiallyRelevantEdges = pPartiallyRelevantEdges;
   }
 
-  private static Set<CFAEdge> getAbortCallEdges(CFA pCfa) {
+  private static ImmutableSet<CFAEdge> getAbortCallEdges(CFA pCfa) {
 
-    Set<CFAEdge> abortCallEdges = new LinkedHashSet<>();
+    ImmutableSet.Builder<CFAEdge> abortCallEdgesBuilder = ImmutableSet.builder();
 
     for (CFANode node : pCfa.getAllNodes()) {
       for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
@@ -113,14 +113,14 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
             CFunctionDeclaration declaration =
                 ((CFunctionCallStatement) statement).getFunctionCallExpression().getDeclaration();
             if (declaration != null && declaration.getQualifiedName().equals("abort")) {
-              abortCallEdges.add(edge);
+              abortCallEdgesBuilder.add(edge);
             }
           }
         }
       }
     }
 
-    return abortCallEdges;
+    return abortCallEdgesBuilder.build();
   }
 
   private Function<CFAEdge, Iterable<CSystemDependenceGraph.Node>>
