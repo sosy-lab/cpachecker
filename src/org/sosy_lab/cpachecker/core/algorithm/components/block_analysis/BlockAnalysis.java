@@ -73,6 +73,8 @@ public abstract class BlockAnalysis {
   protected final BlockNode block;
   protected final LogManager logger;
 
+  protected final boolean containsLoops;
+
   protected AlgorithmStatus status;
 
   public BlockAnalysis(
@@ -111,6 +113,7 @@ public abstract class BlockAnalysis {
     distributedCompositeCPA =
         new DistributedCompositeCPA(pId, block, pTypeMap, initialPrecision, pDirection, pOptions);
     distributedCompositeCPA.setParentCPA(CPAs.retrieveCPA(cpa, CompositeCPA.class));
+    containsLoops = pCFA.getAllLoopHeads().isPresent() || pOptions.sendEveryErrorMessage();
   }
 
   public Optional<CFANode> abstractStateToLocation(AbstractState state) {
@@ -134,15 +137,25 @@ public abstract class BlockAnalysis {
     return Optional.empty();
   }
 
-  public CompositeState extractCompositeStateFromAbstractState(AbstractState state) {
-    checkNotNull(state, "state cannot be null");
-    checkState(state instanceof ARGState, "State has to be an ARGState");
-    ARGState argState = (ARGState) state;
-    checkState(argState.getWrappedState() instanceof CompositeState,
+  /**
+   * Returns the wrapped composite state of an ARGState
+   * @param pARGState an ARG state
+   * @return the wrapped composite state, if it does not wrap an ARG state throw an error.
+   */
+  public CompositeState extractCompositeStateFromAbstractState(ARGState pARGState) {
+    checkNotNull(pARGState, "state cannot be null");
+    checkState(pARGState.getWrappedState() instanceof CompositeState,
         "First state must contain a CompositeState");
-    return (CompositeState) argState.getWrappedState();
+    return (CompositeState) pARGState.getWrappedState();
   }
 
+  /**
+   * Calculate the first state based on a collection of messages
+   * @param receivedPostConditions all messages on a block exit or entry point
+   * @return the initial abstract state for the waitlist
+   * @throws InterruptedException thread interrupted
+   * @throws CPAException wrapper exception
+   */
   protected ARGState getStartState(Collection<Message> receivedPostConditions)
       throws InterruptedException, CPAException {
     List<AbstractState> states = new ArrayList<>();
@@ -164,9 +177,14 @@ public abstract class BlockAnalysis {
     return initialPrecision;
   }
 
-  public Set<String> visitedBlocks(Collection<Message> pPayloads) {
+  /**
+   * Find all blocks from which this message contains information
+   * @param pMessages all messages at block entry or exit
+   * @return visited block ids as set of strings
+   */
+  public Set<String> visitedBlocks(Collection<Message> pMessages) {
     Set<String> visitedBlocks = new HashSet<>();
-    for (Message message : pPayloads) {
+    for (Message message : pMessages) {
       visitedBlocks.addAll(
           Splitter.on(",").splitToList(message.getPayload().getOrDefault(Payload.VISITED, "")));
     }
@@ -180,6 +198,15 @@ public abstract class BlockAnalysis {
 
   public abstract Collection<Message> initialAnalysis() throws InterruptedException, CPAException;
 
+  /**
+   * Analyze the code block until all target states in this block are found.
+   * Block entry points (initial and final location are target states, too)
+   * @param startState initial state from a message
+   * @param relation the block transfer relation (has to be resetted if it contains loops)
+   * @return all target states in this code block
+   * @throws CPAException wrapper exception
+   * @throws InterruptedException thread interrupted
+   */
   protected Set<ARGState> findReachableTargetStatesInBlock(
       AbstractState startState,
       BlockTransferRelation relation)
@@ -198,6 +225,11 @@ public abstract class BlockAnalysis {
         .filter(ARGState.class).filter(s -> !startState.equals(s)).copyInto(new HashSet<>());
   }
 
+  /**
+   * Find all error locations in a set of target states
+   * @param targetStates abstract states with target information
+   * @return subset of targetStates where the target information equals {@link BlockEntryReachedTargetInformation}
+   */
   protected Set<ARGState> extractBlockTargetStates(Set<ARGState> targetStates) {
     Set<ARGState> blockTargetStates = new HashSet<>();
     for (ARGState targetState : targetStates) {
@@ -211,6 +243,11 @@ public abstract class BlockAnalysis {
     return blockTargetStates;
   }
 
+  /**
+   * Find all error locations in a set of target states
+   * @param targetStates abstract states with target information
+   * @return subset of targetStates where the target information is some kind of specification violation
+   */
   protected Set<ARGState> extractViolations(Set<ARGState> targetStates) {
     Set<ARGState> violationStates = new HashSet<>();
     for (ARGState targetState : targetStates) {
@@ -227,6 +264,7 @@ public abstract class BlockAnalysis {
   public static class ForwardAnalysis extends BlockAnalysis {
 
     private final BlockTransferRelation relation;
+    private boolean alreadyReportedError;
 
     public ForwardAnalysis(
         String pId,
@@ -245,6 +283,7 @@ public abstract class BlockAnalysis {
       relation =
           (BlockTransferRelation) Objects.requireNonNull(CPAs.retrieveCPA(cpa, BlockCPA.class))
               .getTransferRelation();
+      alreadyReportedError = containsLoops;
     }
 
 
@@ -263,10 +302,11 @@ public abstract class BlockAnalysis {
       Set<Message> answers = new HashSet<>();
       // if (!reportedOriginalViolation) {
       Set<ARGState> violations = extractViolations(targetStates);
-      if (!violations.isEmpty()) {
+      if (!violations.isEmpty() && (!alreadyReportedError || containsLoops)) {
         // we only need to report error locations once
         // since every new report of an already found location would only cause redundant work
         answers.addAll(createErrorConditionMessages(violations));
+        alreadyReportedError = true;
       }
       // }
 
@@ -418,6 +458,12 @@ public abstract class BlockAnalysis {
       return ImmutableSet.of();
     }
 
+    /**
+     * Broadcast one initial message such that successors know that they are connected to the root
+     * @return Message containing the T-element of the underlying composite CPA
+     * @throws InterruptedException thread interrupted
+     * @throws CPAException forwarded exception (wraps internal errors)
+     */
     @Override
     public Collection<Message> initialAnalysis() throws InterruptedException, CPAException {
       return ImmutableSet.of(

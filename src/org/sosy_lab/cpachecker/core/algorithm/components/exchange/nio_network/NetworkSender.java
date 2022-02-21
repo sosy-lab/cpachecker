@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.components.exchange.network;
+package org.sosy_lab.cpachecker.core.algorithm.components.exchange.nio_network;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -15,6 +15,7 @@ import java.nio.channels.SocketChannel;
 import java.util.Collection;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.ConnectionStats;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.CompressedMessageConverter;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageConverter;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -31,7 +32,7 @@ public class NetworkSender implements StatisticsProvider {
   }
 
   public NetworkSender(InetSocketAddress pAddress) throws IOException {
-    converter = new MessageConverter();
+    converter = new CompressedMessageConverter();
     address = pAddress;
   }
 

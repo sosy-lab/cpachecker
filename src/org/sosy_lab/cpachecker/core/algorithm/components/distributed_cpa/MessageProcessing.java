@@ -16,10 +16,18 @@ import java.util.HashSet;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Payload;
 
+/**
+ * Proceed operators need two return a collection of messages and a boolean indicating
+ * whether the analysis should proceed. This class combines these two return types by forwarding
+ * a collection and having an unmodifiable boolean attribute {@code end}.
+ */
 public class MessageProcessing extends ForwardingCollection<Message> {
 
   private final Collection<Message> messages;
   private final boolean end;
+
+  private final static MessageProcessing emptyProceed = new MessageProcessing(ImmutableList.of(), false);
+  private final static MessageProcessing emptyStop = new MessageProcessing(ImmutableList.of(), true);
 
   private MessageProcessing(Collection<Message> pMessages, boolean pEnd) {
     messages = pMessages;
@@ -27,11 +35,11 @@ public class MessageProcessing extends ForwardingCollection<Message> {
   }
 
   public static MessageProcessing proceed() {
-    return new MessageProcessing(ImmutableList.of(), false);
+    return emptyProceed;
   }
 
   public static MessageProcessing stop() {
-    return new MessageProcessing(ImmutableList.of(), true);
+    return emptyStop;
   }
 
   public static MessageProcessing proceedWith(Collection<Message> pMessages) {

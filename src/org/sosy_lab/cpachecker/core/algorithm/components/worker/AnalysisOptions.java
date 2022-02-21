@@ -26,7 +26,10 @@ public class AnalysisOptions {
   private boolean doStoreCircularPostConditions = false;
 
   @Option(description = "whether error conditions are always checked for unsatisfiability")
-  private boolean checkEveryErrorConditionForUnsatisfiability = false;
+  private boolean checkEveryErrorConditionForUnsatisfiability = true;
+
+  @Option(description = "loop free programs do not require to deny all possible error messages")
+  private boolean sendEveryErrorMessage = false;
 
   public AnalysisOptions(Configuration pConfig) throws InvalidConfigurationException {
     pConfig.inject(this);
@@ -46,5 +49,9 @@ public class AnalysisOptions {
 
   public boolean checkEveryErrorConditionForUnsatisfiability() {
     return checkEveryErrorConditionForUnsatisfiability;
+  }
+
+  public boolean sendEveryErrorMessage() {
+    return sendEveryErrorMessage;
   }
 }

@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.components.exchange.network;
+package org.sosy_lab.cpachecker.core.algorithm.components.exchange.nio_network;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -21,6 +21,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.CompressedMessageConverter;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageConverter;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageType;
 
@@ -39,7 +40,7 @@ public class NetworkReceiver implements Closeable {
   ) throws IOException {
     listenAddress = pAddress;
     sharedQueue = pSharedQueue;
-    converter = new MessageConverter();
+    converter = new CompressedMessageConverter();
     selector = Selector.open();
     ServerSocketChannel serverChannel = ServerSocketChannel.open();
     serverChannel.configureBlocking(false);

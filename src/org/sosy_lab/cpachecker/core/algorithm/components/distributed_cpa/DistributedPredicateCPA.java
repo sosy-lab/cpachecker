@@ -86,6 +86,7 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
     PathFormula pathFormula;
     if (state.isAbstractionState()) {
       if (state.getAbstractionFormula().isTrue()) {
+        // fall-back
         pathFormula = state.getAbstractionFormula().getBlockFormula();
       } else {
         pathFormula =

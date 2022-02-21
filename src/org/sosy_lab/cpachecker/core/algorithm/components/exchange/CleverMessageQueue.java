@@ -54,9 +54,9 @@ public class CleverMessageQueue extends ForwardingBlockingQueue<Message> {
 
   private Optional<Message> firstOfType(MessageType pType) {
     if (!messages.get(pType).isEmpty()) {
-      Message m = messages.get(pType).stream().findFirst().orElseThrow();
-      messages.remove(pType, m);
-      return Optional.of(m);
+      Optional<Message> optionalMessage = messages.get(pType).stream().findFirst();
+      messages.remove(pType, optionalMessage.orElseThrow());
+      return optionalMessage;
     }
     return Optional.empty();
   }

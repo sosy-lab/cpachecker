@@ -38,10 +38,10 @@ public class DistributedFunctionPointerCPA extends AbstractDistributedCPA {
   }
 
   @Override
-  public AbstractState deserialize(Message pPayload) throws InterruptedException {
-    String serialized = pPayload.getPayload().getOrDefault(parentCPA.getClass().getName(), "");
+  public AbstractState deserialize(Message pMessage) throws InterruptedException {
+    String serialized = pMessage.getPayload().getOrDefault(parentCPA.getClass().getName(), "");
     if (serialized.isBlank()) {
-      return getInitialState(block.getNodeWithNumber(pPayload.getTargetNodeNumber()), StateSpacePartition.getDefaultPartition());
+      return getInitialState(block.getNodeWithNumber(pMessage.getTargetNodeNumber()), StateSpacePartition.getDefaultPartition());
     }
     FunctionPointerState.Builder builder = FunctionPointerState.createEmptyState().createBuilder();
     for (String s : Splitter.on(", ").splitToList(serialized)) {

@@ -241,12 +241,13 @@ public class Message implements Comparable<Message> {
     }
 
     public byte[] messageToJson(Message pMessage) throws IOException {
-      return mapper.writeValueAsString(pMessage).replace("\n", " ")
-          .getBytes(StandardCharsets.UTF_8);
+      //return mapper.writeValueAsBytes(pMessage);
+      return mapper.writeValueAsBytes(pMessage);
     }
 
     public Message jsonToMessage(byte[] pBytes) throws IOException {
-      return mapper.readValue(new String(pBytes, StandardCharsets.UTF_8), Message.class);
+      //return mapper.readValue(pBytes, Message.class);
+      return mapper.readValue(pBytes, Message.class);
     }
 
   }
@@ -262,9 +263,9 @@ public class Message implements Comparable<Message> {
 
     @Override
     public byte[] messageToJson(Message pMessage) throws IOException {
-      byte[] message = super.messageToJson(pMessage);
       ByteArrayOutputStream output = new ByteArrayOutputStream();
       GZIPOutputStream writer = new GZIPOutputStream(output);
+      byte[] message = super.messageToJson(pMessage);
       writer.write(message);
       writer.close();
       return output.toByteArray();
@@ -272,11 +273,20 @@ public class Message implements Comparable<Message> {
 
     @Override
     public Message jsonToMessage(byte[] pBytes) throws IOException {
-      // if not compressed do default
       GZIPInputStream reader = new GZIPInputStream(new ByteArrayInputStream(pBytes));
-      byte[] response = reader.readAllBytes();
+      ByteArrayOutputStream output = new ByteArrayOutputStream();
+
+      byte[] buf = new byte[4096];
+      while (true) {
+        int n = reader.read(buf);
+        if (n < 0) {
+          break;
+        }
+        output.write(buf, 0, n);
+      }
       reader.close();
-      return super.jsonToMessage(response);
+      byte[] data = output.toByteArray();
+      return super.jsonToMessage(data);
     }
 
   }

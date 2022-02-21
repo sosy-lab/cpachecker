@@ -41,15 +41,15 @@ public class DistributedCallstackCPA extends AbstractDistributedCPA {
   }
 
   @Override
-  public AbstractState deserialize(Message pPayload) throws InterruptedException {
-    Payload payload = pPayload.getPayload();
+  public AbstractState deserialize(Message pMessage) throws InterruptedException {
+    Payload payload = pMessage.getPayload();
     if (!payload.containsKey(parentCPA.getClass().getName())) {
-      return getInitialState(block.getNodeWithNumber(pPayload.getTargetNodeNumber()),
+      return getInitialState(block.getNodeWithNumber(pMessage.getTargetNodeNumber()),
           StateSpacePartition.getDefaultPartition());
     }
     String callstackJSON = payload.getOrDefault(parentCPA.getClass().getName(), "");
     if (callstackJSON.isBlank()) {
-      return getInitialState(block.getNodeWithNumber(pPayload.getTargetNodeNumber()), StateSpacePartition.getDefaultPartition());
+      return getInitialState(block.getNodeWithNumber(pMessage.getTargetNodeNumber()), StateSpacePartition.getDefaultPartition());
     }
     List<String> parts = Splitter.on(DELIMITER).splitToList(callstackJSON);
     CallstackState previous = null;

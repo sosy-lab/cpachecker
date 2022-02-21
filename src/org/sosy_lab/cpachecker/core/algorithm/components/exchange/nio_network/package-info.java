@@ -9,4 +9,4 @@
 /**
  * Implements a network connection using SocketChannels and Selectors
  */
-package org.sosy_lab.cpachecker.core.algorithm.components.exchange.network;
+package org.sosy_lab.cpachecker.core.algorithm.components.exchange.nio_network;

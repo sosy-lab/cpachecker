@@ -41,8 +41,7 @@ public class BlockNode {
   private final String code;
 
   /**
-   * Represents a sub graph of the CFA beginning at <code>pStartNode</code> and ending at <code>
-   * pLastNode</code>.
+   * Represents a sub graph of the CFA beginning at {@code pStartNode} and ending at {@code pLastNode}
    *
    * @param pStartNode    the root node of the block
    * @param pLastNode     the final node of the block
@@ -84,10 +83,19 @@ public class BlockNode {
     code = computeCode();
   }
 
+  /**
+   * Returns the corresponding CFANode for a given node number
+   * @param number id of CFANode
+   * @return CFANode with id {@code number}
+   */
   public CFANode getNodeWithNumber(int number) {
     return idToNodeMap.get(number);
   }
 
+  /**
+   * compute the code that this block contains (for debugging only)
+   * @return code represented by this block
+   */
   private String computeCode() {
     StringBuilder codeLines = new StringBuilder();
     for (CFAEdge leavingEdge : edgesInBlock) {
@@ -111,11 +119,20 @@ public class BlockNode {
     return edgesInBlock.isEmpty();
   }
 
+  /**
+   * Add successor to a node.
+   * The successor thus has a new predecessor
+   * @param node new successor for this
+   */
   private void linkSuccessor(BlockNode node) {
     successors.add(node);
     node.predecessors.add(this);
   }
 
+  /**
+   * Remove successor of this block
+   * @param pNodeSuccessor successor to remove
+   */
   private void unlinkSuccessor(BlockNode pNodeSuccessor) {
     successors.remove(pNodeSuccessor);
     pNodeSuccessor.predecessors.remove(this);
@@ -186,6 +203,7 @@ public class BlockNode {
     return predecessors.isEmpty();
   }
 
+  // blocks are immutable, thus we need a factory for the initial creation
   public static class BlockNodeFactory {
 
     private int blockCount;

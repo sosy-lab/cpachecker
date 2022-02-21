@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockTree
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.ConnectionProvider;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.UpdatedTypeMap;
-import org.sosy_lab.cpachecker.core.algorithm.components.exchange.network.NetworkConnectionProvider;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.nio_network.NetworkConnectionProvider;
 import org.sosy_lab.cpachecker.core.algorithm.components.worker.MonitoredAnalysisWorker.Monitor;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;

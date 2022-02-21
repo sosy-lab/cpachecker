@@ -37,7 +37,8 @@ import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.ConnectionProvider;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.UpdatedTypeMap;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.memory.InMemoryConnectionProvider;
-import org.sosy_lab.cpachecker.core.algorithm.components.exchange.network.NetworkConnectionProvider;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.nio_network.NetworkConnectionProvider;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.classic_network.ClassicNetworkConnectionProvider;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.observer.ErrorMessageObserver;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.observer.FaultLocalizationMessageObserver;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.observer.MessageListener;
@@ -81,7 +82,7 @@ public class ComponentAnalysis implements Algorithm, StatisticsProvider, Statist
   private DecompositionType decompositionType = DecompositionType.BLOCK_OPERATOR;
 
   @Option(description = "how to send messages")
-  private ConnectionType connectionType = ConnectionType.NETWORK;
+  private ConnectionType connectionType = ConnectionType.NETWORK_NIO_UNSTABLE;
 
   @Option(description = "which worker to use")
   private WorkerType workerType = WorkerType.DEFAULT;
@@ -105,7 +106,8 @@ public class ComponentAnalysis implements Algorithm, StatisticsProvider, Statist
   }
 
   private enum ConnectionType {
-    NETWORK,
+    NETWORK_NIO_UNSTABLE,
+    NETWORK_CLASSIC_STABLE,
     IN_MEMORY
   }
 
@@ -185,10 +187,12 @@ public class ComponentAnalysis implements Algorithm, StatisticsProvider, Statist
 
   private Class<? extends ConnectionProvider<?>> getConnectionProvider() {
     switch (connectionType) {
-      case NETWORK:
+      case NETWORK_NIO_UNSTABLE:
         return NetworkConnectionProvider.class;
       case IN_MEMORY:
         return InMemoryConnectionProvider.class;
+      case NETWORK_CLASSIC_STABLE:
+        return ClassicNetworkConnectionProvider.class;
       default:
         throw new AssertionError("Unknown ConnectionType " + connectionType);
     }

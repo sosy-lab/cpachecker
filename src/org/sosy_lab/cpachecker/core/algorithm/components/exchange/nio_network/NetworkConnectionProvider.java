@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.components.exchange.network;
+package org.sosy_lab.cpachecker.core.algorithm.components.exchange.nio_network;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
