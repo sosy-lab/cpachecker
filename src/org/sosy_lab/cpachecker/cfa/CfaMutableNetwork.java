@@ -134,7 +134,15 @@ public class CfaMutableNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge
   }
 
   /**
+   * Replaces a CFA node with a different CFA node in this mutable network.
    *
+   * <p>Only the mutable network is changed by this method. The actual CFA nodes and edges are not
+   * modified. Connections between nodes and edges represented by the CFA nodes and edges themselves
+   * (i.e., defined by {@code CFAEdge#getSuccessor()}, {@code CFANode#getLeavingEdge(int)}, etc.)
+   * and connections represented by the mutable network are going to differ after invoking this
+   * method.
+   *
+   * <p>The mutable network is changed in the following way:
    *
    * <pre>{@code
    * Before:
@@ -165,7 +173,15 @@ public class CfaMutableNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge
   }
 
   /**
+   * Replaces a CFA edge with a different CFA edge in this mutable network.
    *
+   * <p>Only the mutable network is changed by this method. The actual CFA nodes and edges are not
+   * modified. Connections between nodes and edges represented by the CFA nodes and edges themselves
+   * (i.e., defined by {@code CFAEdge#getSuccessor()}, {@code CFANode#getLeavingEdge(int)}, etc.)
+   * and connections represented by the mutable network are going to differ after invoking this
+   * method.
+   *
+   * <p>The mutable network is changed in the following way:
    *
    * <pre>{@code
    * Before:
