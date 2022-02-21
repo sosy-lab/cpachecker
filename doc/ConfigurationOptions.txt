@@ -896,15 +896,15 @@ cinvariants.prefix = no default value
 cinvariants.simplify = false
 
 # how to send messages
-components.connectionType = NETWORK
-  enum:     [NETWORK, IN_MEMORY]
+components.connectionType = NETWORK_NIO_UNSTABLE
+  enum:     [NETWORK_NIO_UNSTABLE, NETWORK_CLASSIC_STABLE, IN_MEMORY]
 
 # whether to use daemon threads for workers
 components.daemon = true
 
 # algorithm to decompose the CFA
 components.decompositionType = BLOCK_OPERATOR
-  enum:     [BLOCK_OPERATOR, GIVEN_SIZE]
+  enum:     [BLOCK_OPERATOR, GIVEN_SIZE, SINGLE_BLOCK]
 
 # desired number of BlockNodes
 components.desiredNumberOfBlocks = 5
@@ -4697,8 +4697,14 @@ witness.validation.violation.config = no default value
 # whether analysis worker abstract at block entries or exits
 worker.abstractAtTargetLocation = false
 
+# whether error conditions are always checked for unsatisfiability
+worker.checkEveryErrorCondition = true
+
 # whether analysis worker store circular post conditions
 worker.doStoreCircularPostConditions = false
 
 # forces the precondition of fault localization workers to be true
-worker.faultLocalizationPreconditionAlwaysTrue = false
+worker.flPreconditionAlwaysTrue = false
+
+# loop free programs do not require to deny all possible error messages
+worker.sendEveryErrorMessage = false
