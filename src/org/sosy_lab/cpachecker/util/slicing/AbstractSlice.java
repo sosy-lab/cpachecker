@@ -106,7 +106,11 @@ abstract class AbstractSlice implements Slice {
     return relevantDeclarations;
   }
 
-  // TODO: don't use TransformingCAstNodeVisitor, use a more appropriate CAstNodeVisitor instead
+  // TODO: don't use TransformingCAstNodeVisitor
+  // This is not an AST node transformation. We just want to find all declarations in an AST node.
+  // Use a more appropriate CAstNodeVisitor instead or implement CAstNodeVisitor directly (be aware
+  // of cyclic references between variable declarations and their initializer expressions that may
+  // lead to infinite recursive calls).
   private static final class RelevantDeclarationCollectingVisitor
       extends AbstractTransformingCAstNodeVisitor<NoException> {
 
