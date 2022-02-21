@@ -33,7 +33,7 @@ public interface Slice {
   ImmutableCollection<CFAEdge> getSlicingCriteria();
 
   /**
-   * Returns a set of all edges contained in this program slice
+   * Returns a set of all edges contained in this program slice.
    *
    * <p>The edges contained in a program slice are called relevant edges. Some edges are only
    * partially relevant to a program slice (e.g., not all function parameters are relevant). These
