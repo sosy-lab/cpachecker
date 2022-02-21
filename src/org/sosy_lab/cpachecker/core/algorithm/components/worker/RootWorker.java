@@ -94,11 +94,9 @@ public class RootWorker extends Worker {
   @Override
   public void run() {
     try {
-      Collection<Message> initial = analysis.initialAnalysis();
-      // guaranteed to be existent
-      Message firstMessage = initial.stream().findFirst().orElseThrow();
-      analysis.getDistributedCPA().setFirstMessage(firstMessage);
-      broadcast(ImmutableSet.of(firstMessage));
+      Collection<Message> initialMessage = analysis.initialAnalysis();
+      analysis.getDistributedCPA().setLatestOwnPostConditionMessage(initialMessage.stream().findAny().orElseThrow());
+      broadcast(initialMessage);
       super.run();
     } catch (InterruptedException | IOException | CPAException pE) {
       logger.log(Level.SEVERE, "Worker run into an error: %s", pE);

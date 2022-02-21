@@ -70,8 +70,8 @@ public class CleverMessageQueue extends ForwardingBlockingQueue<Message> {
   @Override
   public Message take() throws InterruptedException {
     // empty pending messages (non blocking)
-    return queue.take();
-/*    while (!queue.isEmpty()) {
+    //return queue.take();
+    while (!queue.isEmpty()) {
       moveToMap(queue.take());
     }
     for (MessageType messageType : ordering) {
@@ -80,6 +80,6 @@ public class CleverMessageQueue extends ForwardingBlockingQueue<Message> {
         return m.orElseThrow();
       }
     }
-    return queue.take();*/
+    return queue.take();
   }
 }

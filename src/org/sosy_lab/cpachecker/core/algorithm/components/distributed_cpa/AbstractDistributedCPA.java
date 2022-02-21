@@ -36,7 +36,6 @@ public abstract class AbstractDistributedCPA implements ConfigurableProgramAnaly
   protected final String id;
   protected final AnalysisOptions analysisOptions;
   protected ConfigurableProgramAnalysis parentCPA;
-  protected Message firstMessage;
   protected Precision precision;
 
   protected Message latestOwnPostConditionMessage;
@@ -99,13 +98,6 @@ public abstract class AbstractDistributedCPA implements ConfigurableProgramAnaly
   }
 
   public abstract boolean doesOperateOn(Class<? extends AbstractState> pClass);
-
-  public void setFirstMessage(Message pFirstMessage) {
-    if (firstMessage != null) {
-      throw new AssertionError("First message can only be set once: " + firstMessage);
-    }
-    firstMessage = pFirstMessage;
-  }
 
   public AnalysisDirection getDirection() {
     return direction;

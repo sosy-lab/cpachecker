@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.components.distributed_cpa;
 
-import java.sql.Time;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;

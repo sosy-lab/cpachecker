@@ -25,6 +25,9 @@ public class AnalysisOptions {
   @Option(description = "whether analysis worker store circular post conditions")
   private boolean doStoreCircularPostConditions = false;
 
+  @Option(description = "whether error conditions are always checked for unsatisfiability")
+  private boolean checkEveryErrorConditionForUnsatisfiability = false;
+
   public AnalysisOptions(Configuration pConfig) throws InvalidConfigurationException {
     pConfig.inject(this);
   }
@@ -39,5 +42,9 @@ public class AnalysisOptions {
 
   public boolean doStoreCircularPostConditions() {
     return doStoreCircularPostConditions;
+  }
+
+  public boolean checkEveryErrorConditionForUnsatisfiability() {
+    return checkEveryErrorConditionForUnsatisfiability;
   }
 }

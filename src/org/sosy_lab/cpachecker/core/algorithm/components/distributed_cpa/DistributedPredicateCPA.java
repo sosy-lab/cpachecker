@@ -127,35 +127,29 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
         block.getStartNode()) && block.getNodesInBlock().contains(node)))) {
       return MessageProcessing.stop();
     }
-    // can the error condition be denied?
-    Solver solver = getSolver();
-    FormulaManagerView fmgr = solver.getFormulaManager();
-    BooleanFormula messageFormula = fmgr.parse(extractFormulaString(message.getPayload()));
-    if (solver.isUnsat(messageFormula)) {
-      return MessageProcessing.stopWith(
-          Message.newErrorConditionUnreachableMessage(block.getId(),
-              "unsat-formula: " + messageFormula));
+    if (analysisOptions.checkEveryErrorConditionForUnsatisfiability()) {
+      // can the error condition be denied?
+      Solver solver = getSolver();
+      FormulaManagerView fmgr = solver.getFormulaManager();
+      BooleanFormula messageFormula = fmgr.parse(extractFormulaString(message.getPayload()));
+      if (solver.isUnsat(messageFormula)) {
+        return MessageProcessing.stopWith(
+            Message.newErrorConditionUnreachableMessage(block.getId(),
+                "unsat-formula: " + messageFormula));
+      }
     }
-    if (receivedPostConditions.size() <= 3
+    if (latestOwnPostConditionMessage != null && receivedPostConditions.size() <= 3
         && receivedPostConditions.size() + unsatPredecessors.size() == block.getPredecessors()
         .size()) {
-      if (latestOwnPostConditionMessage != null) {
-        BooleanFormula check = fmgr.getBooleanFormulaManager().and(messageFormula,
-            fmgr.parse(extractFormulaString(latestOwnPostConditionMessage.getPayload())));
-        if (solver.isUnsat(check)) {
-          return MessageProcessing.stopWith(
-              Message.newErrorConditionUnreachableMessage(block.getId(),
-                  "unsat-with-last-post: " + check));
-        }
-      }
-      if (firstMessage != null) {
-        BooleanFormula check = fmgr.getBooleanFormulaManager()
-            .and(messageFormula, fmgr.parse(extractFormulaString(firstMessage.getPayload())));
-        if (solver.isUnsat(check)) {
-          return MessageProcessing.stopWith(
-              Message.newErrorConditionUnreachableMessage(block.getId(),
-                  "unsat-with-first-post: " + check));
-        }
+      Solver solver = getSolver();
+      FormulaManagerView fmgr = solver.getFormulaManager();
+      BooleanFormula messageFormula = fmgr.parse(extractFormulaString(message.getPayload()));
+      BooleanFormula check = fmgr.getBooleanFormulaManager().and(messageFormula,
+          fmgr.parse(extractFormulaString(latestOwnPostConditionMessage.getPayload())));
+      if (solver.isUnsat(check)) {
+        return MessageProcessing.stopWith(
+            Message.newErrorConditionUnreachableMessage(block.getId(),
+                "unsat-with-last-post: " + check));
       }
     }
     return MessageProcessing.proceedWith(message);
@@ -164,12 +158,6 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
   @Override
   public boolean doesOperateOn(Class<? extends AbstractState> pClass) {
     return PredicateAbstractState.class.isAssignableFrom(pClass);
-  }
-
-  @Override
-  public void setFirstMessage(Message pFirstMessage) {
-    latestOwnPostConditionMessage = pFirstMessage;
-    super.setFirstMessage(pFirstMessage);
   }
 
   @Override
@@ -209,7 +197,8 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
     unsatPredecessors.remove(message.getUniqueBlockId());
     storePostCondition(message);
     // check if every predecessor contains the full path (root node)
-    if (receivedPostConditions.size() + unsatPredecessors.size() == block.getPredecessors().size()) {
+    if (receivedPostConditions.size() + unsatPredecessors.size() == block.getPredecessors()
+        .size()) {
       return MessageProcessing.proceedWith(receivedPostConditions.values());
     } else {
       // would equal initial message that has already been or will be processed by other workers
@@ -318,5 +307,4 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
       receivedPostConditions.putAll(predicate.receivedPostConditions);
     }
   }
-
 }

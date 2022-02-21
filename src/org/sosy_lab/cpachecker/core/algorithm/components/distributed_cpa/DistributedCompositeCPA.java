@@ -217,11 +217,6 @@ public class DistributedCompositeCPA extends AbstractDistributedCPA {
   }
 
   @Override
-  public void setFirstMessage(Message pFirstMessage) {
-    registered.values().forEach(cpa -> cpa.setFirstMessage(pFirstMessage));
-  }
-
-  @Override
   public boolean doesOperateOn(Class<? extends AbstractState> pClass) {
     return pClass.equals(CompositeState.class);
   }

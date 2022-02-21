@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -29,7 +28,6 @@ import org.sosy_lab.cpachecker.core.algorithm.components.distributed_cpa.Distrib
 import org.sosy_lab.cpachecker.core.algorithm.components.distributed_cpa.MessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.components.distributed_cpa.StatTimerSum.StatTimerType;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
-import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.UpdatedTypeMap;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -150,7 +148,7 @@ public class AnalysisWorker extends Worker {
     forwardAnalysisTime.start();
     forwardAnalysis.getDistributedCPA().synchronizeKnowledge(backwardAnalysis.getDistributedCPA());
     stats.forwardAnalysis.inc();
-    Collection<Message> response = forwardAnalysis.analyze(pPostConditionMessages);;
+    Collection<Message> response = forwardAnalysis.analyze(pPostConditionMessages);
     forwardAnalysisTime.stop();
     return response;
   }
@@ -170,18 +168,7 @@ public class AnalysisWorker extends Worker {
   @Override
   public void run() {
     try {
-      Collection<Message> initialMessages = forwardAnalysis.initialAnalysis();
-      Optional<Message> optionalMessage =
-          initialMessages.stream().filter(m -> m.getType() == MessageType.BLOCK_POSTCONDITION)
-              .findAny();
-      if (optionalMessage.isPresent()) {
-        Message message = optionalMessage.orElseThrow();
-        if (message.getType() == MessageType.BLOCK_POSTCONDITION) {
-          forwardAnalysis.getDistributedCPA().setFirstMessage(message);
-          backwardAnalysis.getDistributedCPA().setFirstMessage(message);
-        }
-      }
-      broadcast(initialMessages);
+      broadcast(forwardAnalysis.initialAnalysis());
       super.run();
     } catch (CPAException | InterruptedException | IOException pE) {
       logger.log(Level.SEVERE, "Worker run into an error: %s", pE);
