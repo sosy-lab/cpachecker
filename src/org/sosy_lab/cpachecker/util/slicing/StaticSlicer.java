@@ -72,10 +72,10 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
  */
 public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
-  private CSystemDependenceGraph sdg;
+  private final CSystemDependenceGraph sdg;
 
-  private StatCounter sliceCount = new StatCounter("Number of slicing procedures");
-  private StatTimer slicingTime = new StatTimer(StatKind.SUM, "Time needed for slicing");
+  private final StatCounter sliceCount = new StatCounter("Number of slicing procedures");
+  private final StatTimer slicingTime = new StatTimer(StatKind.SUM, "Time needed for slicing");
 
   private final StatInt sliceEdgesNumber =
       new StatInt(StatKind.MAX, "Number of relevant slice edges");
