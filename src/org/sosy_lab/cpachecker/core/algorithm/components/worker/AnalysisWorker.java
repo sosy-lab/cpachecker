@@ -27,11 +27,13 @@ import org.sosy_lab.cpachecker.core.algorithm.components.block_analysis.BlockAna
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.components.distributed_cpa.DistributedCompositeCPA;
 import org.sosy_lab.cpachecker.core.algorithm.components.distributed_cpa.MessageProcessing;
+import org.sosy_lab.cpachecker.core.algorithm.components.distributed_cpa.StatTimerSum.StatTimerType;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.UpdatedTypeMap;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class AnalysisWorker extends Worker {
@@ -40,6 +42,9 @@ public class AnalysisWorker extends Worker {
 
   protected final BlockAnalysis forwardAnalysis;
   protected final BlockAnalysis backwardAnalysis;
+
+  private final StatTimer forwardAnalysisTime = new StatTimer("Forward Analysis");
+  private final StatTimer backwardAnalysisTime = new StatTimer("Backward Analysis");
 
   AnalysisWorker(
       String pId,
@@ -92,6 +97,12 @@ public class AnalysisWorker extends Worker {
     backwardAnalysis = new BackwardAnalysis(pId, pLogger, pBlock, pCFA,
         pTypeMap, backwardSpecification,
         backwardConfiguration, pShutdownManager, pOptions);
+
+    addTimer(forwardAnalysis);
+    addTimer(backwardAnalysis);
+
+    stats.forwardTimer.register(forwardAnalysisTime);
+    stats.backwardTimer.register(backwardAnalysisTime);
   }
 
   @Override
@@ -136,18 +147,24 @@ public class AnalysisWorker extends Worker {
   // return post condition
   private Collection<Message> forwardAnalysis(Collection<Message> pPostConditionMessages)
       throws CPAException, InterruptedException, SolverException {
+    forwardAnalysisTime.start();
     forwardAnalysis.getDistributedCPA().synchronizeKnowledge(backwardAnalysis.getDistributedCPA());
     stats.forwardAnalysis.inc();
-    return forwardAnalysis.analyze(pPostConditionMessages);
+    Collection<Message> response = forwardAnalysis.analyze(pPostConditionMessages);;
+    forwardAnalysisTime.stop();
+    return response;
   }
 
   // return pre-condition
   protected Collection<Message> backwardAnalysis(MessageProcessing pMessageProcessing)
       throws CPAException, InterruptedException, SolverException {
     assert pMessageProcessing.size() == 1 : "BackwardAnalysis can only be based on one message";
+    backwardAnalysisTime.start();
     backwardAnalysis.getDistributedCPA().synchronizeKnowledge(forwardAnalysis.getDistributedCPA());
     stats.backwardAnalysis.inc();
-    return backwardAnalysis.analyze(pMessageProcessing);
+    Collection<Message> response = backwardAnalysis.analyze(pMessageProcessing);
+    backwardAnalysisTime.stop();
+    return response;
   }
 
   @Override
@@ -176,6 +193,14 @@ public class AnalysisWorker extends Worker {
 
   public String getBlockId() {
     return block.getId();
+  }
+
+  private void addTimer(BlockAnalysis pBlockAnalysis) {
+    pBlockAnalysis.getDistributedCPA().registerTimer(stats.proceedSerializeTime, StatTimerType.SERIALIZE);
+    pBlockAnalysis.getDistributedCPA().registerTimer(stats.proceedDeserializeTime, StatTimerType.DESERIALIZE);
+    pBlockAnalysis.getDistributedCPA().registerTimer(stats.proceedForwardTime, StatTimerType.PROCEED_F);
+    pBlockAnalysis.getDistributedCPA().registerTimer(stats.proceedBackwardTime, StatTimerType.PROCEED_B);
+    pBlockAnalysis.getDistributedCPA().registerTimer(stats.proceedCombineTime, StatTimerType.COMBINE);
   }
 
   @Override

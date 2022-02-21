@@ -17,6 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.components.distributed_cpa.StatTimerSum.StatTimerType;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Payload;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Payload.PayloadBuilder;
@@ -31,6 +32,7 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class DistributedCompositeCPA extends AbstractDistributedCPA {
@@ -40,6 +42,12 @@ public class DistributedCompositeCPA extends AbstractDistributedCPA {
 
   private final Map<Class<? extends ConfigurableProgramAnalysis>, AbstractDistributedCPA>
       registered;
+
+  private final StatTimer forwardProceed = new StatTimer("Time forward proceed");
+  private final StatTimer backwardProceed = new StatTimer("Time backward proceed");
+  private final StatTimer serializeTimer = new StatTimer("Time serialize");
+  private final StatTimer deserializeTimer = new StatTimer("Time deserialize");
+  private final StatTimer combineTimer = new StatTimer("Time deserialize");
 
   public DistributedCompositeCPA(
       String pId,
@@ -59,6 +67,7 @@ public class DistributedCompositeCPA extends AbstractDistributedCPA {
   @Override
   public AbstractState deserialize(Message pMessage)
       throws InterruptedException {
+    deserializeTimer.start();
     CFANode location = block.getNodeWithNumber(pMessage.getTargetNodeNumber());
     CompositeCPA compositeCPA = (CompositeCPA) parentCPA;
     List<AbstractState> states = new ArrayList<>();
@@ -71,11 +80,13 @@ public class DistributedCompositeCPA extends AbstractDistributedCPA {
             wrappedCPA.getInitialState(location, StateSpacePartition.getDefaultPartition()));
       }
     }
+    deserializeTimer.stop();
     return new CompositeState(states);
   }
 
   @Override
   public Payload serialize(AbstractState pState) {
+    serializeTimer.start();
     CompositeState compositeState = (CompositeState) pState;
     PayloadBuilder payload = new PayloadBuilder();
     for (AbstractState wrappedState : compositeState.getWrappedStates()) {
@@ -86,6 +97,7 @@ public class DistributedCompositeCPA extends AbstractDistributedCPA {
         }
       }
     }
+    serializeTimer.stop();
     return payload.build();
   }
 
@@ -110,8 +122,10 @@ public class DistributedCompositeCPA extends AbstractDistributedCPA {
   @Override
   public MessageProcessing proceedForward(Message newMessage)
       throws SolverException, InterruptedException {
+    forwardProceed.start();
     if (receivedPostConditions.containsKey(newMessage.getUniqueBlockId())) {
       if (receivedPostConditions.get(newMessage.getUniqueBlockId()).equals(newMessage)) {
+        forwardProceed.stop();
         return MessageProcessing.stop();
       }
     }
@@ -120,16 +134,19 @@ public class DistributedCompositeCPA extends AbstractDistributedCPA {
     for (AbstractDistributedCPA value : registered.values()) {
       processing = processing.merge(value.proceedForward(newMessage), true);
     }
+    forwardProceed.stop();
     return processing;
   }
 
   @Override
   public MessageProcessing proceedBackward(Message newMessage)
       throws SolverException, InterruptedException {
+    backwardProceed.start();
     MessageProcessing processing = MessageProcessing.proceed();
     for (AbstractDistributedCPA value : registered.values()) {
       processing = processing.merge(value.proceedBackward(newMessage), true);
     }
+    backwardProceed.stop();
     return processing;
   }
 
@@ -164,10 +181,12 @@ public class DistributedCompositeCPA extends AbstractDistributedCPA {
   @Override
   public AbstractState combine(AbstractState pState1, AbstractState pState2)
       throws InterruptedException, CPAException {
+    combineTimer.start();
     CompositeState state1 = (CompositeState) pState1;
     CompositeState state2 = (CompositeState) pState2;
 
     if (state1.getWrappedStates().size() != state2.getWrappedStates().size()) {
+      combineTimer.stop();
       throw new AssertionError("CompositeStates have to have the same size");
     }
     List<AbstractState> combined = new ArrayList<>();
@@ -187,7 +206,7 @@ public class DistributedCompositeCPA extends AbstractDistributedCPA {
         combined.add(state2I);
       }
     }
-
+    combineTimer.stop();
     return new CompositeState(combined);
   }
 
@@ -217,4 +236,27 @@ public class DistributedCompositeCPA extends AbstractDistributedCPA {
     super.setLatestOwnPostConditionMessage(m);
     registered.values().forEach(dcpa -> dcpa.setLatestOwnPostConditionMessage(m));
   }
+
+  public void registerTimer(StatTimerSum pStatTimerSum, StatTimerType pType) {
+    switch (pType) {
+      case COMBINE:
+        pStatTimerSum.register(combineTimer);
+        break;
+      case SERIALIZE:
+        pStatTimerSum.register(serializeTimer);
+        break;
+      case DESERIALIZE:
+        pStatTimerSum.register(deserializeTimer);
+        break;
+      case PROCEED_F:
+        pStatTimerSum.register(forwardProceed);
+        break;
+      case PROCEED_B:
+        pStatTimerSum.register(backwardProceed);
+        break;
+      default:
+        throw new AssertionError("Unknown type: " + pType);
+    }
+  }
+
 }

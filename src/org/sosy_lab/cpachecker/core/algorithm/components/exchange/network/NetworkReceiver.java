@@ -21,7 +21,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
-import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.CompressedMessageConverter;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageConverter;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageType;
 
@@ -40,7 +39,7 @@ public class NetworkReceiver implements Closeable {
   ) throws IOException {
     listenAddress = pAddress;
     sharedQueue = pSharedQueue;
-    converter = new CompressedMessageConverter();
+    converter = new MessageConverter();
     selector = Selector.open();
     ServerSocketChannel serverChannel = ServerSocketChannel.open();
     serverChannel.configureBlocking(false);

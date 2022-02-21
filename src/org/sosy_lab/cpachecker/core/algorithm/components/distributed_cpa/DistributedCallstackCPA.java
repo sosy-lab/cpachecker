@@ -86,7 +86,10 @@ public class DistributedCallstackCPA extends AbstractDistributedCPA {
   @Override
   public AbstractState combine(
       AbstractState pState1, AbstractState pState2) throws InterruptedException, CPAException {
-    return getMergeOperator().merge(pState1, pState2, precision);
+    if (direction == AnalysisDirection.FORWARD) {
+      return getInitialState(block.getStartNode(), StateSpacePartition.getDefaultPartition());
+    }
+    throw new AssertionError("BackwardAnalysis should never combine two callstack states");
   }
 
   @Override

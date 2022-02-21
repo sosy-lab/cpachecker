@@ -208,7 +208,8 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
     if (!node.equals(block.getStartNode())) {
       return MessageProcessing.stop();
     }
-    if (!Boolean.parseBoolean(message.getPayload().getOrDefault(Payload.REACHABLE, Boolean.toString(true)))) {
+    if (!Boolean.parseBoolean(
+        message.getPayload().getOrDefault(Payload.REACHABLE, Boolean.toString(true)))) {
       unsatPredecessors.add(message.getUniqueBlockId());
       return MessageProcessing.stop();
     }
@@ -220,10 +221,17 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
     }
     unsatPredecessors.remove(message.getUniqueBlockId());
     storePostCondition(message);
-    if (receivedPostConditions.size() == (block.getPredecessors().size() + unsatPredecessors.size())) {
+    // check if every predecessor contains the full path (root node)
+    boolean fullPathAvailable = receivedPostConditions.values().stream().allMatch(
+        m -> Boolean.parseBoolean(m.getPayload().getOrDefault(Payload.FULL_PATH, "false")));
+    int numNonCircularPredecessors = block.getPredecessors().size() + unsatPredecessors.size();
+    if (receivedPostConditions.size() == numNonCircularPredecessors ||
+        // if this block is part of its own precondition, wait until the exact post-condition is available (full path)
+        (receivedPostConditions.size() == numNonCircularPredecessors + circular.size()
+            && fullPathAvailable)) {
       return MessageProcessing.proceedWith(receivedPostConditions.values());
     } else {
-      // would equal initial message
+      // would equal initial message that has already been or will be processed by other workers
       return MessageProcessing.stop();
     }
   }

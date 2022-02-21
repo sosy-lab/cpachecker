@@ -15,7 +15,6 @@ import java.nio.channels.SocketChannel;
 import java.util.Collection;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.ConnectionStats;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
-import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.CompressedMessageConverter;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageConverter;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -32,7 +31,7 @@ public class NetworkSender implements StatisticsProvider {
   }
 
   public NetworkSender(InetSocketAddress pAddress) throws IOException {
-    converter = new CompressedMessageConverter();
+    converter = new MessageConverter();
     address = pAddress;
   }
 
