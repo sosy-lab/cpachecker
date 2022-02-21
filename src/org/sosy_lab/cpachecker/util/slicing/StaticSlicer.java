@@ -60,10 +60,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 /**
- * Static program slicer based on a given system dependence graph.
- *
- * <p>For a given slicing criterion CFA edge g, the slice consists of all CFA edges that influences
- * the values of variables used by g and whether g get executed.
+ * Static program slicer using a given system dependence graph.
  *
  * <p>Implementation detail: this slicing method is based on "Interprocedural Slicing Using
  * Dependence Graphs" (Horwitz et al.).
@@ -164,7 +161,7 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
     Set<CFAEdge> relevantEdges = new LinkedHashSet<>(phase1Visitor.getRelevantEdges());
 
     startNodes.clear();
-    // phase 2 start with the result from phase 1
+    // the second phase depends on the results of the first phase
     if (partiallyRelevantEdges) {
       startNodes.addAll(phase1Visitor.getVisitedSdgNodes());
     } else {
@@ -422,16 +419,12 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
   }
 
   /**
-   * Represents a SDG visitor for slicing phase 1.
+   * SDG visitor for the first phase of interprocedural slicing.
    *
-   * <p>{@code CritP}: all procedures that contain a criteria edges
-   *
-   * <p>{@code CallP}: all procedures that directly or transitively call a procedure in {@code
-   * CritP}
-   *
-   * <p>Phase 1 identifies SDG nodes that can reach any criteria edge and are either from {@code p,
-   * p in CritP}, or from {@code p', p' in CritP}. For a more comprehensive description, see
-   * "Interprocedural Slicing Using Dependence Graphs" (Horwitz et al.).
+   * <p>During the first phase, the SDG is traversed backwards, starting from the criteria edges,
+   * while only calling procedures are visited (don't "descend" into called procedures). For a more
+   * comprehensive description, see "Interprocedural Slicing Using Dependence Graphs" (Horwitz et
+   * al.).
    */
   private static final class Phase1Visitor implements CSystemDependenceGraph.BackwardsVisitor {
 
@@ -476,16 +469,11 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
   }
 
   /**
-   * Represents a SDG visitor for slicing phase 2.
+   * SDG visitor for the second phase of interprocedural slicing.
    *
-   * <p>{@code CritP}: all procedures that contain a criteria edges
-   *
-   * <p>{@code CallP}: all procedures that directly or transitively call a procedure in {@code
-   * CritP}
-   *
-   * <p>Phase 2 identifies SDG nodes that can reach any criteria edge and are from procedures
-   * (transitively) called inside {@code p, p in CritP}, or from procedures called inside {@code p',
-   * p' in CallP}. For a more comprehensive description, see "Interprocedural Slicing Using
+   * <p>During the second phase, the SDG is traversed backwards, starting from the SDG nodes visited
+   * during the first phase, while only called procedures are visited (don't "ascend" into calling
+   * procedures). For a more comprehensive description, see "Interprocedural Slicing Using
    * Dependence Graphs" (Horwitz et al.).
    */
   private static final class Phase2Visitor implements CSystemDependenceGraph.BackwardsVisitor {
