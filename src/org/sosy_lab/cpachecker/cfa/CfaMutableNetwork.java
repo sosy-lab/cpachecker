@@ -11,8 +11,10 @@ package org.sosy_lab.cpachecker.cfa;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.graph.EndpointPair;
 import com.google.common.graph.MutableNetwork;
 import com.google.common.graph.NetworkBuilder;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -129,5 +131,72 @@ public class CfaMutableNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge
     }
 
     addEdge(pNode, pNewSuccessor, pNewOutEdge);
+  }
+
+  /**
+   * Replaces a CFA node with a different CFA node in this mutable network.
+   *
+   * <p>Only the mutable network is changed by this method. The actual CFA nodes and edges are not
+   * modified. Connections between nodes and edges represented by the CFA nodes and edges themselves
+   * (i.e., defined by {@code CFAEdge#getSuccessor()}, {@code CFANode#getLeavingEdge(int)}, etc.)
+   * and connections represented by the mutable network are going to differ after invoking this
+   * method.
+   *
+   * <p>The mutable network is changed in the following way:
+   *
+   * <pre>{@code
+   * Before:
+   * --- a ---> [pNode] --- b ---->
+   *
+   * After:
+   * --- a ---> [pNewNode] --- b ---->
+   *
+   * }</pre>
+   */
+  public void replace(CFANode pNode, CFANode pNewNode) {
+
+    addNode(pNewNode);
+
+    for (CFAEdge inEdge : ImmutableList.copyOf(inEdges(pNode))) {
+      CFANode nodeU = incidentNodes(inEdge).nodeU();
+      removeEdge(inEdge);
+      addEdge(nodeU, pNewNode, inEdge);
+    }
+
+    for (CFAEdge outEdge : ImmutableList.copyOf(outEdges(pNode))) {
+      CFANode nodeV = incidentNodes(outEdge).nodeV();
+      removeEdge(outEdge);
+      addEdge(pNewNode, nodeV, outEdge);
+    }
+
+    removeNode(pNode);
+  }
+
+  /**
+   * Replaces a CFA edge with a different CFA edge in this mutable network.
+   *
+   * <p>Only the mutable network is changed by this method. The actual CFA nodes and edges are not
+   * modified. Connections between nodes and edges represented by the CFA nodes and edges themselves
+   * (i.e., defined by {@code CFAEdge#getSuccessor()}, {@code CFANode#getLeavingEdge(int)}, etc.)
+   * and connections represented by the mutable network are going to differ after invoking this
+   * method.
+   *
+   * <p>The mutable network is changed in the following way:
+   *
+   * <pre>{@code
+   * Before:
+   * --- a ---> [X] --- pEdge ---> [Y] --- b ---->
+   *
+   * After:
+   * --- a ---> [X] --- pNewEdge ---> [Y] --- b ---->
+   *
+   * }</pre>
+   */
+  @SuppressFBWarnings("UC_USELESS_VOID_METHOD") // false positive by SpotBugs
+  public void replace(CFAEdge pEdge, CFAEdge pNewEdge) {
+
+    EndpointPair<CFANode> endpoints = incidentNodes(pEdge);
+    removeEdge(pEdge);
+    addEdge(endpoints.nodeU(), endpoints.nodeV(), pNewEdge);
   }
 }
