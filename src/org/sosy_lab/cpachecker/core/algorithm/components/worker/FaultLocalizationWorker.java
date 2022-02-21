@@ -72,7 +72,6 @@ public class FaultLocalizationWorker extends AnalysisWorker {
   private final TraceFormulaOptions options;
   private final BooleanFormulaManagerView bmgr;
   private final FormulaManagerView fmgr;
-  private final PredicateCPA predicateCPA;
   private final List<CFAEdge> errorPath;
   private Fault minimalFault;
   private BooleanFormula actualPost;
@@ -92,7 +91,7 @@ public class FaultLocalizationWorker extends AnalysisWorker {
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     super(pId, pOptions, pBlock, pLogger, pCFA, pSpecification, pConfiguration, pShutdownManager,
         pTypeMap);
-    predicateCPA = backwardAnalysis.getDistributedCPA().getOriginalCPA(PredicateCPA.class);
+    PredicateCPA predicateCPA = backwardAnalysis.getDistributedCPA().getOriginalCPA(PredicateCPA.class);
     Configuration config = Configuration.builder().copyFrom(pConfiguration)
         .setOption("cpa.predicate.handlePointerAliasing", "false").build();
     if (predicateCPA == null) {
