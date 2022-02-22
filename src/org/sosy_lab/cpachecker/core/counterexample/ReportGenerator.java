@@ -14,7 +14,6 @@ import static com.google.common.html.HtmlEscapers.htmlEscaper;
 import static java.util.logging.Level.WARNING;
 
 import com.google.common.base.CharMatcher;
-import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
@@ -31,6 +30,7 @@ import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
@@ -257,11 +257,11 @@ public class ReportGenerator {
       DOTBuilder2 dotBuilder,
       String statistics) {
 
-    try (
-        BufferedReader reader =
-            Resources.asCharSource(Resources.getResource(getClass(), HTML_TEMPLATE), Charsets.UTF_8)
+    try (BufferedReader reader =
+            Resources.asCharSource(
+                    Resources.getResource(getClass(), HTML_TEMPLATE), StandardCharsets.UTF_8)
                 .openBufferedStream();
-        Writer writer = IO.openOutputFile(reportPath, Charsets.UTF_8)) {
+        Writer writer = IO.openOutputFile(reportPath, StandardCharsets.UTF_8)) {
 
       String line;
       while (null != (line = reader.readLine())) {
@@ -300,9 +300,9 @@ public class ReportGenerator {
       Writer writer,
       String file)
       throws IOException {
-        try (BufferedReader reader =
-            Resources.asCharSource(Resources.getResource(getClass(), file), Charsets.UTF_8)
-                .openBufferedStream();) {
+    try (BufferedReader reader =
+        Resources.asCharSource(Resources.getResource(getClass(), file), StandardCharsets.UTF_8)
+            .openBufferedStream(); ) {
           String line;
           while (null != (line = reader.readLine())) {
               writer.write(line);
@@ -404,7 +404,7 @@ public class ReportGenerator {
 
   private void insertCssFile(Writer writer, String file) throws IOException {
     writer.write("<style>\n");
-    Resources.asCharSource(Resources.getResource(getClass(), file), Charsets.UTF_8)
+    Resources.asCharSource(Resources.getResource(getClass(), file), StandardCharsets.UTF_8)
         .copyTo(writer);
     writer.write("</style>");
   }

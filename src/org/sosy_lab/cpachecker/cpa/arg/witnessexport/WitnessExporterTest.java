@@ -10,13 +10,13 @@ package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
 import static com.google.common.truth.Truth.assertWithMessage;
 
-import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
 import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
@@ -233,7 +233,7 @@ public class WitnessExporterTest {
     invGenConfigFile.toFile().deleteOnExit();
     Files.copy(origInvGenConfigFile, invGenConfigFile);
     List<String> lines = Files.readAllLines(invGenConfigFile);
-    try (Writer writer = IO.openOutputFile(invGenConfigFile, Charsets.UTF_8)) {
+    try (Writer writer = IO.openOutputFile(invGenConfigFile, StandardCharsets.UTF_8)) {
       for (String line : lines) {
         Matcher matcher = PROOF_WITNESS_OPTION_PATTERN.matcher(line);
         if (matcher.matches()) {
