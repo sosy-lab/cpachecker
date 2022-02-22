@@ -23,6 +23,7 @@ import com.google.common.io.MoreFiles;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -380,8 +381,7 @@ public class AutomatonGraphmlCommon {
       for (Path specFile : pVerificationTaskMetaData.getNonPropertySpecificationFiles()) {
         graph.appendChild(
             createDataElement(
-                KeyDef.SPECIFICATION,
-                MoreFiles.asCharSource(specFile, StandardCharsets.UTF_8).read().trim()));
+                KeyDef.SPECIFICATION, Files.readString(specFile, StandardCharsets.UTF_8).trim()));
         ++nSpecs;
       }
 

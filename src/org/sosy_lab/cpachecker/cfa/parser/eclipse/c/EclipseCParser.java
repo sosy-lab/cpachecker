@@ -18,10 +18,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
-import com.google.common.io.MoreFiles;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -118,7 +118,7 @@ class EclipseCParser implements CParser {
   }
 
   private FileContent wrapFile(Path pFileName) throws IOException {
-    String code = MoreFiles.asCharSource(pFileName, Charset.defaultCharset()).read();
+    String code = Files.readString(pFileName, Charset.defaultCharset());
     return wrapCode(pFileName, code);
   }
 
