@@ -126,10 +126,7 @@ public abstract class PredicateAbstractState
     @Override
     public ExpressionTree<Object> getFormulaApproximation(
         FunctionEntryNode pFunctionScope, CFANode pLocation) throws InterruptedException {
-      return ExpressionTrees.fromFormula(
-          super.abstractionFormula.asFormula(),
-          super.abstractionFormula.getFormulaManager(),
-          pLocation);
+     return super.abstractionFormula.asExpressionTree(pLocation);
     }
 
     @Override

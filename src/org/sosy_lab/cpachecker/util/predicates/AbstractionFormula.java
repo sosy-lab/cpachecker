@@ -18,6 +18,9 @@ import java.io.Serializable;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.UniqueIdGenerator;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
@@ -110,8 +113,8 @@ public class AbstractionFormula implements Serializable {
     return pMgr.translateFrom(formula, fMgr);
   }
 
- public FormulaManagerView getFormulaManager(){
-    return fMgr;
+  public ExpressionTree<Object> asExpressionTree(CFANode pLocation) throws InterruptedException {
+    return ExpressionTrees.fromFormula(asFormula(), fMgr, pLocation);
   }
 
   /**
