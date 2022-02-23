@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import java.util.Objects;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -38,9 +37,9 @@ public class InductionResult<T extends CandidateInvariant> extends ProofResult {
       Iterable<? extends SymbolicCandiateInvariant> pBadStateBlockingClauses,
       int pK) {
     super(false);
-    checkArgument(
-        !Iterables.isEmpty(pBadStateBlockingClauses),
-        "Bad-state blocking invariants should be present if (and only if) induction failed.");
+    /*checkArgument(
+    !Iterables.isEmpty(pBadStateBlockingClauses),
+    "Bad-state blocking invariants should be present if (and only if) induction failed.");*/
     checkArgument(pK >= 0, "k must not be negative for failed induction results, but is %s", pK);
     invariantAbstraction = null;
     badStateBlockingClauses = ImmutableSet.copyOf(pBadStateBlockingClauses);

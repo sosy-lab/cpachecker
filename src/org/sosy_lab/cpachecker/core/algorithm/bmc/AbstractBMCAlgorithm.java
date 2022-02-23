@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ConditionAdjustmentEventSubscriber;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariantCombination;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.SingleLocationFormulaInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.SymbolicCandiateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.AbstractInvariantGenerator;
@@ -517,6 +518,14 @@ abstract class AbstractBMCAlgorithm
                   abstractionStrategy, AbstractionBasedLifting.RefinementLAFStrategies.EAGER)
               : StandardLiftings.NO_LIFTING;
 
+      // If the candidate invariant is specified at a certain location, checked keys (i.e.,
+      // loop-bound states) should come from this location.
+      if (candidate instanceof SingleLocationFormulaInvariant) {
+        checkedKeys =
+            getCheckedKeysAtLocation(
+                reachedSet, ((SingleLocationFormulaInvariant) candidate).getLocation());
+      }
+
       InductionResult<CandidateInvariant> inductionResult =
           kInductionProver.check(
               Iterables.concat(confirmedCandidates, Collections.singleton(candidate)),
@@ -588,6 +597,22 @@ abstract class AbstractBMCAlgorithm
    */
   private Set<Object> getCheckedKeys(ReachedSet pReachedSet) {
     return AbstractStates.filterLocations(pReachedSet, getLoopHeads())
+        .transform(s -> AbstractStates.extractStateByType(s, LoopIterationReportingState.class))
+        .transform(LoopIterationReportingState::getPartitionKey)
+        .toSet();
+  }
+
+  /**
+   * Gets all keys of loop-iteration reporting states at the specified location that were reached by
+   * unrolling.
+   *
+   * @param pReachedSet the reached set.
+   * @param pLoc the specified location.
+   * @return all keys of loop-iteration reporting states at the specified location that were reached
+   *     by unrolling.
+   */
+  private Set<Object> getCheckedKeysAtLocation(ReachedSet pReachedSet, CFANode pLoc) {
+    return from(AbstractStates.filterLocation(pReachedSet, pLoc))
         .transform(s -> AbstractStates.extractStateByType(s, LoopIterationReportingState.class))
         .transform(LoopIterationReportingState::getPartitionKey)
         .toSet();

@@ -13,7 +13,6 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.assertAt;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.createFormulaFor;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.filterIteration;
-import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.filterIterationsUpTo;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.unroll;
 
 import com.google.common.base.Suppliers;
@@ -54,6 +53,7 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.FormulaInContext;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.InvariantStrengthening.NextCti;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariantCombination;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.SingleLocationFormulaInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.SymbolicCandiateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.ExpressionTreeSupplier;
@@ -352,6 +352,7 @@ class KInductionProver implements AutoCloseable {
      * it for k iterations.
      */
     Map<CandidateInvariant, BooleanFormula> assertions = new HashMap<>();
+    Set<AbstractState> inductionHypothesis = new HashSet<>();
 
     for (CandidateInvariant candidateInvariant :
         CandidateInvariantCombination.getConjunctiveParts(pPredecessorAssumptions)) {
@@ -377,10 +378,18 @@ class KInductionProver implements AutoCloseable {
           // Build the formula
           predecessorAssertion =
               candidateInvariant.getAssertion(
-                  BMCHelper.filterBmcChecked(
-                      filterIterationsUpTo(reached, pK, loopHeads), pCheckedKeys),
+                  BMCHelper.filterBmcCheckedWithin(
+                      reached, pCheckedKeys, cfa.getLoopStructure().orElseThrow().getAllLoops()),
                   fmgr,
                   pfmgr);
+          // Record the states used in the hypothesis
+          inductionHypothesis.addAll(
+              from(candidateInvariant.filterApplicable(
+                      BMCHelper.filterBmcCheckedWithin(
+                          reached,
+                          pCheckedKeys,
+                          cfa.getLoopStructure().orElseThrow().getAllLoops())))
+                  .toSet());
         }
       }
       BooleanFormula storedAssertion = assertions.get(candidateInvariant);
@@ -416,7 +425,7 @@ class KInductionProver implements AutoCloseable {
                 .toList());
     // Create the successor violation formula
     Multimap<BooleanFormula, BooleanFormula> successorViolationAssertions =
-        getSuccessorViolationAssertions(pCandidateInvariant, pK + 1);
+        getSuccessorViolationAssertions(pCandidateInvariant, pK + 1, inductionHypothesis);
     // Record the successor violation formula to reuse its negation as an
     // assertion in a future induction attempt
     BooleanFormula successorViolation =
@@ -516,7 +525,7 @@ class KInductionProver implements AutoCloseable {
         AssertCandidate assertSuccessorViolation =
             (candidate) -> {
               Multimap<BooleanFormula, BooleanFormula> succViolationAssertions =
-                  getSuccessorViolationAssertions(pCandidateInvariant, pK + 1);
+                  getSuccessorViolationAssertions(pCandidateInvariant, pK + 1, inductionHypothesis);
               // Record the successor violation formula to reuse its negation as an
               // assertion in a future induction attempt
               return BMCHelper.disjoinStateViolationAssertions(bfmgr, succViolationAssertions);
@@ -769,14 +778,23 @@ class KInductionProver implements AutoCloseable {
   }
 
   private Multimap<BooleanFormula, BooleanFormula> getSuccessorViolationAssertions(
-      CandidateInvariant pCandidateInvariant, int pK)
+      CandidateInvariant pCandidateInvariant, int pK, Set<AbstractState> pHypothesis)
       throws CPATransferException, InterruptedException {
     ReachedSet reached = reachedSet.getReachedSet();
 
     ImmutableListMultimap.Builder<BooleanFormula, BooleanFormula> stateViolationAssertionsBuilder =
         ImmutableListMultimap.builder();
-    Iterable<AbstractState> assertionStates =
-        filterIteration(pCandidateInvariant.filterApplicable(reached), pK, loopHeads);
+    Iterable<AbstractState> assertionStates;
+    // If the candidate invariant is specified at a certain location, assertion states are those not
+    // in the induction hypothesis
+    if (pCandidateInvariant instanceof SingleLocationFormulaInvariant) {
+      assertionStates =
+          from(pCandidateInvariant.filterApplicable(reached))
+              .filter(state -> !pHypothesis.contains(state));
+    } else {
+      assertionStates =
+          filterIteration(pCandidateInvariant.filterApplicable(reached), pK, loopHeads);
+    }
 
     for (AbstractState state : assertionStates) {
       Set<AbstractState> stateAsSet = Collections.singleton(state);

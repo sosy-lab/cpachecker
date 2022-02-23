@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.automaton.Automata;
+import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -402,6 +403,54 @@ public final class BMCHelper {
                   AbstractStates.extractStateByType(pArg0, LoopIterationReportingState.class);
               return ls != null && pCheckedKeys.contains(ls.getPartitionKey());
             });
+  }
+
+  /**
+   * Compute all states whose loop-bound state is contained within the checked range of the base
+   * case. For example, if we have two loops and loop-bound state (1,0) was checked by BMC. Then
+   * loop-bound states (0,-1), (1,0), and (0,0) are contained in the checked range, but (0,1) falls
+   * out of the range.
+   *
+   * @param pStates the set of states to consider.
+   * @param pCheckedKeys the loop-bound states checked in the base case.
+   * @param pLoops the loops of the CFA.
+   * @return all states whose loop-bound state is contained within the checked range of the base
+   *     case.
+   */
+  static FluentIterable<AbstractState> filterBmcCheckedWithin(
+      Iterable<AbstractState> pStates, Set<Object> pCheckedKeys, Iterable<Loop> pLoops) {
+    return from(pStates)
+        .filter(
+            pArg0 -> {
+              if (pArg0 == null) {
+                return false;
+              }
+              LoopIterationReportingState ls =
+                  AbstractStates.extractStateByType(pArg0, LoopIterationReportingState.class);
+              if (ls == null) {
+                return false;
+              } else {
+                return isWithinBmcCheckedRange(((LoopBoundState) ls), pCheckedKeys, pLoops);
+              }
+            });
+  }
+
+  private static boolean isWithinBmcCheckedRange(
+      LoopBoundState pLoopBoundState, Set<Object> pCheckedKeys, Iterable<Loop> pLoops) {
+    for (Object key : pCheckedKeys) {
+      LoopBoundState checkedState = (LoopBoundState) key;
+      boolean withinCheckedRange = true;
+      for (Loop loop : pLoops) {
+        if (pLoopBoundState.getIteration(loop) > checkedState.getIteration(loop)) {
+          withinCheckedRange = false;
+          break;
+        }
+      }
+      if (withinCheckedRange) {
+        return true;
+      }
+    }
+    return false;
   }
 
   public interface FormulaInContext {
