@@ -384,12 +384,11 @@ class KInductionProver implements AutoCloseable {
                   pfmgr);
           // Record the states used in the hypothesis
           inductionHypothesis.addAll(
-              from(candidateInvariant.filterApplicable(
+              ImmutableSet.copyOf(candidateInvariant.filterApplicable(
                       BMCHelper.filterBmcCheckedWithin(
                           reached,
                           pCheckedKeys,
-                          cfa.getLoopStructure().orElseThrow().getAllLoops())))
-                  .toSet());
+                          cfa.getLoopStructure().orElseThrow().getAllLoops()))));
         }
       }
       BooleanFormula storedAssertion = assertions.get(candidateInvariant);
