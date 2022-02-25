@@ -18,10 +18,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
-import com.google.common.io.MoreFiles;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -118,7 +118,7 @@ class EclipseCParser implements CParser {
   }
 
   private FileContent wrapFile(Path pFileName) throws IOException {
-    String code = MoreFiles.asCharSource(pFileName, Charset.defaultCharset()).read();
+    String code = Files.readString(pFileName, Charset.defaultCharset());
     return wrapCode(pFileName, code);
   }
 
@@ -191,11 +191,11 @@ class EclipseCParser implements CParser {
   /** This method parses a single string, where no prefix for static variables is needed. */
   @Override
   public ParseResult parseString(
-      String pFileName, String pCode, CSourceOriginMapping sourceOriginMapping, Scope pScope)
+      Path pFileName, String pCode, CSourceOriginMapping sourceOriginMapping, Scope pScope)
       throws CParserException, InterruptedException {
 
     return parseSomething(
-        ImmutableList.of(new FileContentToParse(Path.of(pFileName), pCode)),
+        ImmutableList.of(new FileContentToParse(pFileName, pCode)),
         sourceOriginMapping,
         pScope instanceof CProgramScope ? ((CProgramScope) pScope) : CProgramScope.empty(),
         (fileName, content) -> {

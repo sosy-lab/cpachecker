@@ -19,12 +19,12 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFAWithACSLAnnotations;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLAnnotation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLBuiltinCollectingVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLPredicateToExpressionTreeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLTermToCExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLBuiltinCollectingVisitor;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 
 /**
@@ -80,8 +81,7 @@ public class ACSLCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
     ImmutableSet.Builder<ACSLAnnotation> annotations = ImmutableSet.builder();
-    for (int i = 0; i < node.getNumEnteringEdges(); i++) {
-      CFAEdge edge = node.getEnteringEdge(i);
+    for (CFAEdge edge : CFAUtils.enteringEdges(node)) {
       Collection<ACSLAnnotation> annotationsForEdge = cfa.getEdgesToAnnotations().get(edge);
       if (usePureExpressionsOnly) {
         ACSLBuiltinCollectingVisitor visitor = new ACSLBuiltinCollectingVisitor();

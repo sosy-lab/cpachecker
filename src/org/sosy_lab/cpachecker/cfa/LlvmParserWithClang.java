@@ -61,7 +61,7 @@ public class LlvmParserWithClang extends LlvmParser {
   }
 
   @Override
-  public ParseResult parseString(final String pFilename, final String pCode) {
+  public ParseResult parseString(final Path pFilename, final String pCode) {
     // TODO
     throw new UnsupportedOperationException();
   }
@@ -69,7 +69,7 @@ public class LlvmParserWithClang extends LlvmParser {
   private ParseResult parse0(final Path pFileName, final Path pDumpDirectory)
       throws ParserException, InterruptedException {
     Path dumpedFile = preprocessor.preprocessAndGetDumpedFile(pFileName, pDumpDirectory);
-    return super.parseFile(dumpedFile.toString());
+    return super.parseFile(dumpedFile);
   }
 
   static class Factory {

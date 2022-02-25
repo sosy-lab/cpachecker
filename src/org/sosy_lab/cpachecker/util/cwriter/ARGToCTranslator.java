@@ -356,7 +356,7 @@ public class ARGToCTranslator {
         String cond = "";
 
         if (truthAssumption) {
-          if (truthAssumption == assumeEdge.getTruthAssumption()) {
+          if (assumeEdge.getTruthAssumption()) {
             cond = "if (" + assumeEdge.getExpression().toQualifiedASTString() + ")";
           } else {
             cond = "if (!(" + assumeEdge.getExpression().toQualifiedASTString() + "))";

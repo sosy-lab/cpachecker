@@ -38,6 +38,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.stream.IntStream;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -731,11 +732,11 @@ public final class InterpolationManager {
   }
 
   private void dumpFormulaToFile(String name, BooleanFormula f, int i) {
-    Path dumpFile = formatFormulaOutputFile(name, i);
+    @Nullable Path dumpFile = formatFormulaOutputFile(name, i);
     fmgr.dumpFormulaToFile(f, dumpFile);
   }
 
-  private Path formatFormulaOutputFile(String formula, int index) {
+  private @Nullable Path formatFormulaOutputFile(String formula, int index) {
     return fmgr.formatFormulaOutputFile("interpolation", cexAnalysisTimer.getNumberOfIntervals(), formula, index);
   }
 

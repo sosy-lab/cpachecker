@@ -8,12 +8,18 @@
 
 package org.sosy_lab.cpachecker.util.slicing;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
+import java.util.List;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
@@ -38,13 +44,35 @@ public class IdentitySlicer extends AbstractSlicer {
 
   @Override
   public Slice getSlice0(CFA pCfa, Collection<CFAEdge> pSlicingCriteria) {
-    EdgeCollectingCFAVisitor visitor = new EdgeCollectingCFAVisitor();
-    CFATraversal.dfs().traverseOnce(pCfa.getMainFunction(), visitor);
 
-    return new AbstractSlice(pCfa, visitor.getVisitedEdges(), pSlicingCriteria) {
+    EdgeCollectingCFAVisitor cfaVisitor = new EdgeCollectingCFAVisitor();
+    CFATraversal.dfs().traverseOnce(pCfa.getMainFunction(), cfaVisitor);
+
+    List<CFAEdge> relevantEdges = cfaVisitor.getVisitedEdges();
+    ImmutableSet<ASimpleDeclaration> relevantDeclarations =
+        AbstractSlice.computeRelevantDeclarations(relevantEdges, declaration -> true);
+
+    return new AbstractSlice(pCfa, pSlicingCriteria, relevantEdges, relevantDeclarations) {
 
       @Override
       public boolean isRelevantDef(CFAEdge pEdge, MemoryLocation pMemoryLocation) {
+
+        checkNotNull(pEdge, "pEdge must not be null");
+        checkNotNull(pMemoryLocation, "pEdge must not be null");
+        checkArgument(
+            getRelevantEdges().contains(pEdge), "pEdge is not relevant to this program slice");
+
+        return true;
+      }
+
+      @Override
+      public boolean isRelevantUse(CFAEdge pEdge, MemoryLocation pMemoryLocation) {
+
+        checkNotNull(pEdge, "pEdge must not be null");
+        checkNotNull(pMemoryLocation, "pEdge must not be null");
+        checkArgument(
+            getRelevantEdges().contains(pEdge), "pEdge is not relevant to this program slice");
+
         return true;
       }
     };

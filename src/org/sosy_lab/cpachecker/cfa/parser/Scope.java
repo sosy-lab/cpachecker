@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cfa.parser;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
-
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -43,8 +42,7 @@ public interface Scope {
    * @return returns the declaration for the variable with the given name,
    * or null, if the variable is not visible.
    */
-  @Nullable
-  CSimpleDeclaration lookupVariable(String name);
+  @Nullable CSimpleDeclaration lookupVariable(String name);
 
   /**
    * Returns the declaration of the function with the given name.
@@ -53,14 +51,15 @@ public interface Scope {
    * @return returns the declaration for the function with the given name,
    * or null, if the declaration can't be found.
    */
-  CFunctionDeclaration lookupFunction(String name);
+  @Nullable CFunctionDeclaration lookupFunction(String name);
 
   /**
    * Look up {@link CComplexType}s by their name.
+   *
    * @param name The fully qualified name (e.g., "struct s").
    * @return The CComplexType instance or null.
    */
-  CComplexType lookupType(String name);
+  @Nullable CComplexType lookupType(String name);
 
   /**
    * Look up {@link CType}s by the names of their typedefs.
