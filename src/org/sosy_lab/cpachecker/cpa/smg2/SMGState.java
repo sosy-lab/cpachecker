@@ -19,6 +19,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
@@ -370,6 +371,46 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   // TODO: invalid read/write because of invalidated object/memory
 
   /**
+   * Use of an variable that was not initialized. The value will be unknown, but generally
+   * undefined.
+   *
+   * @param uninitializedExpr the {@link CIdExpression} that is not initialized.
+   * @return A new {@link SMGState} with the error info.
+   */
+  public SMGState withUninitializedVariableUsage(CIdExpression uninitializedExpr) {
+    String errorMSG =
+        "Usage of uninitialized variable: "
+            + uninitializedExpr.getDeclaration().getOrigName()
+            + ". A unknown value was assumed, but behaviour is of this variable is generally undefined.";
+    SMGErrorInfo newErrorInfo =
+        errorInfo
+            .withProperty(Property.INVALID_READ)
+            .withErrorMessage(errorMSG)
+            .withInvalidObjects(Collections.singleton(uninitializedExpr));
+    // Log the error in the logger
+    logMemoryError(errorMSG, true);
+    return copyWithErrorInfo(memoryModel, newErrorInfo);
+  }
+
+  /**
+   * Error for using a not declared variable.
+   *
+   * @param undeclaredExpr the {@link CIdExpression} that is undeclared.
+   * @return A new {@link SMGState} with the error info.
+   */
+  public SMGState withUndeclaredVariableUsage(CIdExpression undeclaredExpr) {
+    String errorMSG = "Usage of undeclared variable: " + undeclaredExpr.getName() + ".";
+    SMGErrorInfo newErrorInfo =
+        errorInfo
+            .withProperty(Property.INVALID_READ)
+            .withErrorMessage(errorMSG)
+            .withInvalidObjects(Collections.singleton(undeclaredExpr));
+    // Log the error in the logger
+    logMemoryError(errorMSG, true);
+    return copyWithErrorInfo(memoryModel, newErrorInfo);
+  }
+
+  /**
    * Error for dereferencing unknown pointer {@link Value} when reading. I.e. int bla = *value; with
    * value being unknown.
    *
@@ -562,6 +603,10 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   public SMGState addElementToCurrentChain(ValueAndSMGState pResult) {
     // TODO Auto-generated method stub
     return null;
+  }
+
+  public SMGErrorInfo getErrorInfo() {
+    return errorInfo;
   }
 
   /**
