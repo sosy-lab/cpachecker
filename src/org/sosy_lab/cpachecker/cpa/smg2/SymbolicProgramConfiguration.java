@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentStack;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectsAndValues;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSPC;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.CValue;
@@ -34,6 +35,8 @@ import org.sosy_lab.cpachecker.util.smg.SMG;
 import org.sosy_lab.cpachecker.util.smg.SMGProveNequality;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.smg.util.SMGandValue;
 
@@ -433,7 +436,8 @@ public class SymbolicProgramConfiguration {
 
   /**
    * Copies this {@link SymbolicProgramConfiguration} and creates a mapping of a {@link Value} to a
-   * newly created {@link SMGValue}.
+   * newly created {@link SMGValue}. This checks if there is a mapping already, and if there exists
+   * a mapping the unchanged SPC will be returned.
    *
    * @param cValue The {@link Value} you want to create a new, symbolic {@link SMGValue} for and map
    *     them to each other.
@@ -441,6 +445,9 @@ public class SymbolicProgramConfiguration {
    *     Value} to the new {@link SMGValue}.
    */
   public SymbolicProgramConfiguration copyAndCreateValue(Value cValue) {
+    if (valueMapping.containsKey(cValue)) {
+      return this;
+    }
     return copyAndPutValue(cValue, SMGValue.of());
   }
 
@@ -652,8 +659,61 @@ public class SymbolicProgramConfiguration {
     */
   }
 
-  /** Copy SPC and add a pointer to an object at a specified offset. */
-  public void addPointer() {}
+  /**
+   * Copy SPC and add a pointer to an object at a specified offset. The target needs to be a region
+   * (not a LIST)! If the mapping Value <-> SMGValue does not exists it is created, else the old
+   * SMGValue is used. If there was a pointer from this SMGValue to an SMGObject it is replaced with
+   * the one given.
+   *
+   * @param address the {@link Value} representing the address to the {@link SMGObject} at the
+   *     specified offset.
+   * @param target the {@link SMGObject} the {@link Value} points to.
+   * @param offsetInBits the offset in the {@link SMGObject} in bits as {@link BigInteger}.
+   * @return a copy of the SPC with the pointer to the {@link SMGObject} and the specified offset
+   *     added.
+   */
+  public SymbolicProgramConfiguration copyAndAddPointerFromAddressToRegion(
+      Value address, SMGObject target, BigInteger offsetInBits) {
+    // If there is no SMGValue for this address we create it, else we use the existing
+    SymbolicProgramConfiguration spc = this.copyAndCreateValue(address);
+    SMGValue smgAddress = spc.getSMGValueFromValue(address).orElseThrow();
+    // Now we create a points-to-edge from this value to the target object at the
+    // specified offset, overriding any existing from this value
+    SMGPointsToEdge pointsToEdge =
+        new SMGPointsToEdge(target, offsetInBits, SMGTargetSpecifier.IS_REGION);
+    return spc.copyAndReplaceSMG(spc.getSmg().copyAndAddPTEdge(pointsToEdge, smgAddress));
+  }
+
+  /**
+   * Tries to dereference the pointer given by the argument {@link Value}. The target may not be a
+   * list. Returns a empty Optional if the dereference fails because the entered {@link Value} is
+   * not known as a pointer. This does not check validity of the Value!
+   *
+   * @param pointer the {@link Value} to dereference.
+   * @return Optional filled with the {@link SMGObjectAndOffset} of the target of the pointer. Empty
+   *     if its not a pointer in the current {@link SymbolicProgramConfiguration}.
+   */
+  public Optional<SMGObjectAndOffset> dereferenceNonListPointer(Value pointer) {
+    if (!isPointer(pointer)) {
+      // Not known or not known as a pointer, return nothing
+      return Optional.empty();
+    }
+    SMGPointsToEdge ptEdge = smg.getPTEdge(valueMapping.get(pointer)).orElseThrow();
+    return Optional.of(SMGObjectAndOffset.of(ptEdge.pointsTo(), ptEdge.getOffset()));
+  }
+
+  /**
+   * Returns true if the value entered is a pointer in the current SPC.
+   *
+   * @param maybePointer {@link Value} that you want to check.
+   * @return true is the entered {@link Value} is a address that points to a memory location. False else.
+   */
+  public boolean isPointer(Value maybePointer) {
+    if (valueMapping.containsKey(maybePointer)) {
+      return smg.isPointer(valueMapping.get(maybePointer));
+    }
+    return false;
+  }
 
   /**
    * Write value into the SMG at the specified offset in bits with the size given in bits. This
