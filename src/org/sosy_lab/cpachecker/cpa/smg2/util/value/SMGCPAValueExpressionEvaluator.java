@@ -15,6 +15,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -30,16 +31,18 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGSizeOfVisitor;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg2.SymbolicProgramConfiguration;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
 
 @SuppressWarnings("unused")
-public class SMGCPAValueExpressionEvaluator
-    implements AddressEvaluator {
+public class SMGCPAValueExpressionEvaluator {
   // TODO: why does this implement a interface that just defines the methods in this very class?
 
   private final LogManagerWithoutDuplicates logger;
@@ -116,22 +119,49 @@ public class SMGCPAValueExpressionEvaluator
         || isStructOrUnionType(type);
   }
 
-  @Override
   public Collection<ValueAndSMGState> evaluateArraySubscriptAddress(
       SMGState pInitialSmgState, CExpression pExp) {
     // TODO Auto-generated method stub
     return null;
   }
 
-  /** Evaluates the input address and returns the SMGValue/Object for it. */
-  @Override
-  public Collection<ValueAndSMGState> evaluateAddress(
-      SMGState pInitialSmgState, CExpression pOperand) {
-    // TODO Auto-generated method stub
-    return null;
+  /**
+   * Returns the offset in bits of the field in a struct/union type expression. Example:
+   * struct.field1 with field 1 being the first field and 4 byte size, struct.field2 being the
+   * second field with 4 bytes. The offset of field 1 would be 0, while the second one would be 4 *
+   * 8.
+   *
+   * @param ownerExprType the {@link CType} of the owner of the field.
+   * @param pFieldName the name of the field.
+   * @return the offset in bits of a the field as a {@link BigInteger}.
+   */
+  public BigInteger getFieldOffset(CType ownerExprType, String pFieldName) {
+    if (ownerExprType instanceof CElaboratedType) {
+
+      // CElaboratedType is either a struct, union or enum. getRealType returns the correct type
+      CType realType = ((CElaboratedType) ownerExprType).getRealType();
+
+      if (realType == null) {
+        // TODO: This is possible, i don't know when however, handle once i find out.
+        throw new AssertionError();
+      }
+
+      return getFieldOffset(realType, pFieldName);
+    } else if (ownerExprType instanceof CCompositeType) {
+
+      // Struct or Union type
+      return machineModel.getFieldOffsetInBits((CCompositeType) ownerExprType, pFieldName);
+    } else if (ownerExprType instanceof CPointerType) {
+
+      // structPointer -> field or (*structPointer).field
+      CType type = getCanonicalType(((CPointerType) ownerExprType).getType());
+
+      return getFieldOffset(type, pFieldName);
+    }
+
+    throw new AssertionError();
   }
 
-  @Override
   public Collection<ValueAndSMGState> evaluateArrayAddress(
       SMGState pInitialSmgState, CExpression pOperand) {
     // TODO Auto-generated method stub
@@ -139,7 +169,6 @@ public class SMGCPAValueExpressionEvaluator
   }
 
   /** Creates the SMGValue/Object for an address not yet encountered. */
-  @Override
   public Collection<ValueAndSMGState> createAddress(SMGState pState, Value pValue) {
     // TODO Auto-generated method stub
     return null;
@@ -149,51 +178,94 @@ public class SMGCPAValueExpressionEvaluator
     return pState.copyAndAddValue(value).getSMGState();
   }
 
-  /*
-   * Read the object form the address provided in the Value and the value from the object from the info in the CExpression.
-   * Read is tricky once we use abstraction as the SMGs might be merged. In that case accurate read offsets and sizes are important!
+  /**
+   * Read the global or stack variable whoes name is given as a {@link String} from the given {@link
+   * SMGState} with the given size in bits as a {@link BigInteger}. The Value might be unknown
+   * either because it was read as unknown or because the variable was not initialized. Note: this
+   * expects that the given {@link CIdExpression} has a not null declaration.
+   *
+   * @param initialState the {@link SMGState} holding the {@link SymbolicProgramConfiguration} where
+   *     the variable should be read from.
+   * @param varName name of the global or stack variable to be read.
+   * @param sizeInBits size of the type to be read.
+   * @param exprForDebug the {@link CIdExpression} from which this variable is read. For debugging
+   *     only.
+   * @return {@link ValueAndSMGState} with the updated {@link SMGState} and the read {@link Value}.
+   *     The Value might be unknown either because it was read as unknown or because the variable
+   *     was not initialized.
    */
-  @Override
-  public ValueAndSMGState readValue(SMGState pState, Value value, CExpression pExp) {
-    return readValue(pState, pState.getPointsToTarget(value), value, pExp);
+  public ValueAndSMGState readStackOrGlobalVariable(
+      SMGState initialState, String varName, BigInteger sizeInBits, CIdExpression exprForDebug) {
+    Optional<SMGObject> maybeObject =
+        initialState.getMemoryModel().getObjectForVisibleVariable(varName);
+    // If there is no object, the variable is not initialized
+    if (maybeObject.isEmpty()) {
+      // Return unknown; but remember that this was uninitialized
+      SMGState errorState = initialState.withUninitializedVariableUsage(exprForDebug);
+      return ValueAndSMGState.ofUnknownValue(initialState);
+    }
+    return initialState.readValue(maybeObject.orElseThrow(), BigInteger.ZERO, sizeInBits);
   }
 
   /**
-   * Read the value present in the supplied {@link SMGObject} at the offset with the size (type
+   * Read the value at the address of the supplied {@link Value} at the offset with the size (type
    * size) given.
    *
    * @param pState current {@link SMGState}.
-   * @param value the {@link Value} for the address of the memory to be read.
+   * @param value the {@link Value} for the address of the memory to be read. This should map to a
+   *     known {@link SMGObject} or a {@link SMGPointsToEdge}.
    * @param pOffset the offset as {@link BigInteger} in bits where to start reading in the object.
    * @param pSizeInBits the size of the type to read in bits as {@link BigInteger}.
    * @return {@link ValueAndSMGState} tuple for the read {@link Value} and the new {@link SMGState}.
    */
-  public ValueAndSMGState readValue(
+  public ValueAndSMGState readValueWithPointerDereference(
       SMGState pState, Value value, BigInteger pOffset, BigInteger pSizeInBits) {
     // This is the most general read that should be used in the end by all read methods in this
     // class!
 
+    SMGState currentState = pState;
+
+    if (value.isUnknown()) {
+      // The value is unknown and therefore does not point to a valid memory location
+      // TODO: The analysis should stop in this case!
+      return ValueAndSMGState.ofUnknownValue(
+          currentState.withUnknownPointerDereferenceWhenReading(value));
+    }
+
     // Get the SMGObject for the value
-    SMGObject object = pState.getPointsToTarget(value);
+    Optional<SMGObjectAndOffset> maybeTargetAndOffset =
+        currentState.getMemoryModel().dereferencePointer(value);
+    if (maybeTargetAndOffset.isEmpty()) {
+      // Not a known pointer
+
+    }
+    SMGObject object = maybeTargetAndOffset.orElseThrow().getSMGObject();
+
     // The object may be null if no such object exists, check and log if 0
     if (object.isZero()) {
-      SMGState newState = pState.withNullPointerDereferenceWhenReading(object);
+      SMGState newState = currentState.withNullPointerDereferenceWhenReading(object);
       // TODO: The analysis should stop in this case!
       return ValueAndSMGState.ofUnknownValue(newState);
     }
 
+    // The offset of the pointer used. (the pointer might point to a offset != 0, the other offset
+    // needs to the added to that!)
+    BigInteger baseOffset = maybeTargetAndOffset.orElseThrow().getOffsetForObject();
+    BigInteger offset = baseOffset.add(pOffset);
+
     // Check that the offset and offset + size actually fit into the SMGObject
     boolean doesNotFitIntoObject =
-        pOffset.compareTo(BigInteger.ZERO) < 0
-            || pOffset.add(pSizeInBits).compareTo(object.getSize()) > 0;
+        offset.compareTo(BigInteger.ZERO) < 0
+            || offset.add(pSizeInBits).compareTo(object.getSize()) > 0;
 
     if (doesNotFitIntoObject) {
       // Field does not fit size of declared Memory
+      // TODO: The analysis should stop in this case!
       return ValueAndSMGState.ofUnknownValue(
-          pState.withOutOfRangeRead(object, pOffset, pSizeInBits));
+          currentState.withOutOfRangeRead(object, offset, pSizeInBits));
     }
     // The read in SMGState checks for validity and external allocation
-    return pState.readValue(object, pOffset, pSizeInBits);
+    return currentState.readValue(object, offset, pSizeInBits);
   }
 
   private ValueAndSMGState readValue(
@@ -239,7 +311,6 @@ public class SMGCPAValueExpressionEvaluator
   /*
    * Get the address value of the entered field.
    */
-  @Override
   public Collection<ValueAndSMGState> getAddressOfField(
       SMGState pInitialSmgState, CFieldReference pExpression) {
     // CExpression fieldOwner = pExpression.getFieldOwner();
@@ -328,20 +399,12 @@ public class SMGCPAValueExpressionEvaluator
    * Unknown dereference is different to null dereference in that the object that is dereferenced actually exists, but its unknown.
    * We simply return an unknown value and log it.
    */
-  @Override
   public ValueAndSMGState handleUnknownDereference(SMGState pInitialSmgState) {
 
     return ValueAndSMGState.ofUnknownValue(pInitialSmgState);
   }
 
-  @Override
-  public ValueAndSMGState readValue(
-      SMGState pSmgState, SMGObject pVariableObject, CExpression pExpression) {
-    return readValue(pSmgState, pVariableObject, new NumericValue(0), pExpression);
-  }
-
   /** TODO: Move all type related stuff into its own class once i rework getBitSizeOf */
-  @Override
   public BigInteger getBitSizeof(SMGState pInitialSmgState, CExpression pExpression) {
     // TODO check why old implementation did not use machineModel
     // Because in abstracted SMGs we might need the current SMG to get the correct type info.
