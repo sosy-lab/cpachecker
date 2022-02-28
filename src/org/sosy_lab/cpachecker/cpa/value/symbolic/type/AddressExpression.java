@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
 import com.google.common.base.Preconditions;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -26,12 +26,12 @@ public class AddressExpression extends SymbolicExpression {
 
   // The address Value should map to somehow to the memory
   private final Value addressValue;
-  private final CType addressType;
+  private final Type addressType;
 
   // The offset may be any Value, but numeric values are prefered
   private final Value offset;
 
-  private AddressExpression(Value pAddress, CType pAddressType, Value pOffsetValue) {
+  private AddressExpression(Value pAddress, Type pAddressType, Value pOffsetValue) {
     Preconditions.checkNotNull(pAddress);
     Preconditions.checkNotNull(pAddressType);
     Preconditions.checkNotNull(pOffsetValue);
@@ -40,11 +40,11 @@ public class AddressExpression extends SymbolicExpression {
     offset = pOffsetValue;
   }
 
-  public static AddressExpression of(Value pAddress, CType pAddressType, Value pOffsetValue) {
+  public static AddressExpression of(Value pAddress, Type pAddressType, Value pOffsetValue) {
     return new AddressExpression(pAddress, pAddressType, pOffsetValue);
   }
 
-  public static AddressExpression withZeroOffset(Value pAddress, CType pStruct) {
+  public static AddressExpression withZeroOffset(Value pAddress, Type pStruct) {
     return new AddressExpression(pAddress, pStruct, new NumericValue(0));
   }
 
@@ -66,7 +66,7 @@ public class AddressExpression extends SymbolicExpression {
   }
 
   @Override
-  public CType getType() {
+  public Type getType() {
     return addressType;
   }
 
