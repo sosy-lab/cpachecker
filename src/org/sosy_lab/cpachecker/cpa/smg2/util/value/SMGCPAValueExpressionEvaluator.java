@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGSizeOfVisitor;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.SymbolicProgramConfiguration;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.PointerExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
@@ -142,7 +143,7 @@ public class SMGCPAValueExpressionEvaluator {
    * @param pFieldName the name of the field.
    * @return the offset in bits of a the field as a {@link BigInteger}.
    */
-  public BigInteger getFieldOffset(CType ownerExprType, String pFieldName) {
+  public BigInteger getFieldOffsetInBits(CType ownerExprType, String pFieldName) {
     if (ownerExprType instanceof CElaboratedType) {
 
       // CElaboratedType is either a struct, union or enum. getRealType returns the correct type
@@ -153,7 +154,7 @@ public class SMGCPAValueExpressionEvaluator {
         throw new AssertionError();
       }
 
-      return getFieldOffset(realType, pFieldName);
+      return getFieldOffsetInBits(realType, pFieldName);
     } else if (ownerExprType instanceof CCompositeType) {
 
       // Struct or Union type
@@ -163,7 +164,7 @@ public class SMGCPAValueExpressionEvaluator {
       // structPointer -> field or (*structPointer).field
       CType type = getCanonicalType(((CPointerType) ownerExprType).getType());
 
-      return getFieldOffset(type, pFieldName);
+      return getFieldOffsetInBits(type, pFieldName);
     }
 
     throw new AssertionError();
@@ -195,25 +196,22 @@ public class SMGCPAValueExpressionEvaluator {
    *     the variable should be read from.
    * @param varName name of the global or stack variable to be read.
    * @param sizeInBits size of the type to be read.
-   * @param exprForDebug the {@link CIdExpression} from which this variable is read. For debugging
-   *     only.
    * @return {@link ValueAndSMGState} with the updated {@link SMGState} and the read {@link Value}.
    *     The Value might be unknown either because it was read as unknown or because the variable
    *     was not initialized.
+   * @throws CPATransferException if the variable is not known in the memory model (SPC)
    */
   public ValueAndSMGState readStackOrGlobalVariable(
-      SMGState initialState,
-      String varName,
-      BigInteger offsetInBits,
-      BigInteger sizeInBits,
-      CIdExpression exprForDebug) {
+      SMGState initialState, String varName, BigInteger offsetInBits, BigInteger sizeInBits)
+      throws CPATransferException {
+
     Optional<SMGObject> maybeObject =
         initialState.getMemoryModel().getObjectForVisibleVariable(varName);
-    // If there is no object, the variable is not initialized
+
     if (maybeObject.isEmpty()) {
-      // Return unknown; but remember that this was uninitialized
-      SMGState errorState = initialState.withUninitializedVariableUsage(exprForDebug);
-      return ValueAndSMGState.ofUnknownValue(initialState);
+      // If there is no object, the variable is not initialized
+      SMGState errorState = initialState.withUninitializedVariableUsage(varName);
+      throw new SMG2Exception(errorState);
     }
     return readValue(initialState, maybeObject.orElseThrow(), offsetInBits, sizeInBits);
   }
