@@ -374,19 +374,19 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
    * Use of an variable that was not initialized. The value will be unknown, but generally
    * undefined.
    *
-   * @param uninitializedExpr the {@link CIdExpression} that is not initialized.
+   * @param uninitializedVariableName the {@link String} that is not initialized.
    * @return A new {@link SMGState} with the error info.
    */
-  public SMGState withUninitializedVariableUsage(CIdExpression uninitializedExpr) {
+  public SMGState withUninitializedVariableUsage(String uninitializedVariableName) {
     String errorMSG =
         "Usage of uninitialized variable: "
-            + uninitializedExpr.getDeclaration().getOrigName()
+            + uninitializedVariableName
             + ". A unknown value was assumed, but behaviour is of this variable is generally undefined.";
     SMGErrorInfo newErrorInfo =
         errorInfo
             .withProperty(Property.INVALID_READ)
             .withErrorMessage(errorMSG)
-            .withInvalidObjects(Collections.singleton(uninitializedExpr));
+            .withInvalidObjects(Collections.singleton(uninitializedVariableName));
     // Log the error in the logger
     logMemoryError(errorMSG, true);
     return copyWithErrorInfo(memoryModel, newErrorInfo);
