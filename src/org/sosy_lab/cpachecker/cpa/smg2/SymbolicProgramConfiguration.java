@@ -686,15 +686,15 @@ public class SymbolicProgramConfiguration {
   }
 
   /**
-   * Tries to dereference the pointer given by the argument {@link Value}. The target may not be a
-   * list. Returns a empty Optional if the dereference fails because the entered {@link Value} is
-   * not known as a pointer. This does not check validity of the Value!
+   * Tries to dereference the pointer given by the argument {@link Value}. Returns a empty Optional
+   * if the dereference fails because the entered {@link Value} is not known as a pointer. This does
+   * not check validity of the Value!
    *
    * @param pointer the {@link Value} to dereference.
    * @return Optional filled with the {@link SMGObjectAndOffset} of the target of the pointer. Empty
    *     if its not a pointer in the current {@link SymbolicProgramConfiguration}.
    */
-  public Optional<SMGObjectAndOffset> dereferenceNonListPointer(Value pointer) {
+  public Optional<SMGObjectAndOffset> dereferencePointer(Value pointer) {
     if (!isPointer(pointer)) {
       // Not known or not known as a pointer, return nothing
       return Optional.empty();
@@ -704,10 +704,12 @@ public class SymbolicProgramConfiguration {
   }
 
   /**
-   * Returns true if the value entered is a pointer in the current SPC.
+   * Returns true if the value entered is a pointer in the current SPC. This checks for the
+   * existence of a known mapping from Value to SMGValue to a SMGPointsToEdge.
    *
    * @param maybePointer {@link Value} that you want to check.
-   * @return true is the entered {@link Value} is a address that points to a memory location. False else.
+   * @return true is the entered {@link Value} is a address that points to a memory location. False
+   *     else.
    */
   public boolean isPointer(Value maybePointer) {
     if (valueMapping.containsKey(maybePointer)) {
