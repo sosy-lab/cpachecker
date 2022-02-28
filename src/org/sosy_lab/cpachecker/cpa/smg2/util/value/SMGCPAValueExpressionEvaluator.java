@@ -260,11 +260,18 @@ public class SMGCPAValueExpressionEvaluator {
     return readValue(currentState, object, offset, pSizeInBits);
   }
 
+  /**
+   * This is the most general read that should be used in the end by all read smg methods in this
+   * class!
+   *
+   * @param currentState the current {@link SMGState}.
+   * @param object the {@link SMGObject} to be read from.
+   * @param offsetInBits the offset in bits as {@link BigInteger}.
+   * @param sizeInBits size of the read value in bits as {@link BigInteger}.
+   * @return {@link ValueAndSMGState} bundeling the most up to date state and the read value.
+   */
   private ValueAndSMGState readValue(
       SMGState currentState, SMGObject object, BigInteger offsetInBits, BigInteger sizeInBits) {
-    // This is the most general read that should be used in the end by all read methods in this
-    // class!
-
     // Check that the offset and offset + size actually fit into the SMGObject
     boolean doesNotFitIntoObject =
         offsetInBits.compareTo(BigInteger.ZERO) < 0
