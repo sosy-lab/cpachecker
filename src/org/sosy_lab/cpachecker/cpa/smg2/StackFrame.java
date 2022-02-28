@@ -114,9 +114,11 @@ public final class StackFrame {
   }
 
   /**
-   * Getter for obtaining an object corresponding to a variable name
+   * Getter for obtaining an object corresponding to a variable name. Note: this is the object in
+   * which the value for the variable is written (or not). You have to read it with the correct
+   * type!
    *
-   * Throws {@link NoSuchElementException} when passed a name not present
+   * <p>Throws {@link NoSuchElementException} when passed a name not present
    *
    * @param pName Variable name
    * @return SMG object corresponding to pName in the frame
