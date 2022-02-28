@@ -48,58 +48,45 @@ class PredicateStopJoinOperator extends StopJoinOperator implements ForcedCoveri
   public Collection<AbstractState> getCoveringStates(
       AbstractState pElement, Collection<AbstractState> pReachedSet, Precision pPrecision)
       throws CPAException, InterruptedException {
-    if (minimizeCovering) {
-      Collection<AbstractState> reachedSubset = new LinkedHashSet<>(pReachedSet.size());
-      AbstractState joinedState = null;
-      for (Iterator<AbstractState> it = pReachedSet.iterator(); it.hasNext(); ) {
-        AbstractState state = it.next();
-
-        // check single-state coverage
-        if (domain.isLessOrEqual(pElement, state)) {
-          return ImmutableSet.of(state);
-        }
-
-        // check intersection
-        if (!domain.hasIntersection(pElement, state)) {
-          continue;
-        }
-
-        // check enlargement
-        if (joinedState != null && domain.isLessOrEqual(state, joinedState)) {
-          continue;
-        }
-        joinedState = (joinedState == null) ? state : domain.join(state, joinedState);
-        reachedSubset.add(state);
-
-        // check joined-state coverage
-        if (domain.isLessOrEqual(pElement, joinedState)) {
-          return ImmutableSet.copyOf(compactCoveringStateSet(pElement, reachedSubset, pPrecision));
-        }
-      }
-    } else if (stop(pElement, pReachedSet, pPrecision)) {
-      return ImmutableSet.copyOf(pReachedSet);
+    if (stop(pElement, pReachedSet, pPrecision)) {
+      return minimizeCovering
+          ? minimizeCoveringStateSet(pElement, pReachedSet)
+          : ImmutableSet.copyOf(pReachedSet);
     }
 
     return ImmutableSet.of();
   }
 
-  private Set<AbstractState> compactCoveringStateSet(
-      AbstractState pElement, Collection<AbstractState> pCoveringSet, Precision pPrecision)
+  private Set<AbstractState> minimizeCoveringStateSet(
+      AbstractState pElement, Collection<AbstractState> pCoveringSet)
       throws CPAException, InterruptedException {
-    Set<AbstractState> droppedSet = new LinkedHashSet<>();
-    for (AbstractState s : pCoveringSet) {
-      Set<AbstractState> coveringSubset = new LinkedHashSet<>(pCoveringSet);
-      coveringSubset.removeAll(droppedSet);
-      coveringSubset.remove(s);
+    Collection<AbstractState> coveringSubset = new LinkedHashSet<>(pCoveringSet.size());
+    AbstractState joinedState = null;
+    for (Iterator<AbstractState> it = pCoveringSet.iterator(); it.hasNext(); ) {
+      AbstractState state = it.next();
 
-      // if removing the state does not affect the coverage, drop it
-      if (stop(pElement, coveringSubset, pPrecision)) {
-        droppedSet.add(s);
+      // check single-state coverage
+      if (domain.isLessOrEqual(pElement, state)) {
+        return ImmutableSet.of(state);
+      }
+
+      // check intersection
+      if (!domain.hasIntersection(pElement, state)) {
+        continue;
+      }
+
+      // check enlargement
+      if (joinedState != null && domain.isLessOrEqual(state, joinedState)) {
+        continue;
+      }
+      joinedState = (joinedState == null) ? state : domain.join(state, joinedState);
+      coveringSubset.add(state);
+
+      // check joined-state coverage
+      if (domain.isLessOrEqual(pElement, joinedState)) {
+        break;
       }
     }
-
-    Set<AbstractState> compactSet = new LinkedHashSet<>(pCoveringSet);
-    compactSet.removeAll(droppedSet);
-    return compactSet;
+    return ImmutableSet.copyOf(coveringSubset);
   }
 }
