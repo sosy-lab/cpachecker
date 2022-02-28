@@ -207,7 +207,7 @@ public class SymbolicProgramConfiguration {
   }
 
   /**
-   * Copies this {@link SymbolicProgramConfiguration} and addsthe stack object given with the
+   * Copies this {@link SymbolicProgramConfiguration} and adds the stack object given with the
    * variable name given to it.
    *
    * @param pNewObject the new stack object.
@@ -430,7 +430,6 @@ public class SymbolicProgramConfiguration {
    *     exists, empty else.
    */
   public Optional<Value> getValueFromSMGValue(SMGValue smgValue) {
-    // TODO: map the input value using the SPC mapping!
     return Optional.ofNullable(valueMapping.inverse().get(smgValue));
   }
 

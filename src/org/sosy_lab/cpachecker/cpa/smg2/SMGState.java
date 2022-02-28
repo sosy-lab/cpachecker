@@ -647,6 +647,7 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
       SMGState newState =
           copyWithErrorInfo(
               memoryModel, errorInfo.withObject(pObject).withErrorMessage(HAS_INVALID_READS));
+      // TODO: does the analysis need to stop here?
       return ValueAndSMGState.of(UnknownValue.getInstance(), newState);
     }
     SMGValueAndSPC valueAndNewSPC = memoryModel.readValue(pObject, pFieldOffset, pSizeofInBits);
