@@ -275,12 +275,13 @@ public class SMGCPAValueVisitor
               SMGCPAValueExpressionEvaluator.getCanonicalType(ownerExpression),
               explicitReference.getFieldName());
 
-      // Get the size of the current field depending on its type; in the case of Strings however we want to use Chars
-      //if (fieldType instanceof CSimpleType) {
-          // TODO: Strings
-      //}
-      BigInteger sizeOfField =
-          evaluator.getBitSizeof(currentState, fieldType);
+      // Get the size of the current field depending on its type; in the case of Strings however we
+      // want to use Chars
+      // if (fieldType instanceof CSimpleType) {
+      // TODO: Strings
+      // }
+
+      BigInteger sizeOfField = evaluator.getBitSizeof(currentState, fieldType);
 
       // This is either a stack/global variable of the form struct.field or a pointer of the form
       // (*structP).field. The later needs a pointer deref
@@ -449,7 +450,8 @@ public class SMGCPAValueVisitor
 
   @Override
   public List<ValueAndSMGState> visit(CPointerExpression e) throws CPATransferException {
-    // This should return a AddressExpression as we always evaluate to the address, but only
+    // This should subavaluate to a AddressExpression in the visit call in the beginning as we
+    // always evaluate to the address, but only
     // dereference and read it if its not a struct/union as those will be dereferenced by the field
     // expression
 
