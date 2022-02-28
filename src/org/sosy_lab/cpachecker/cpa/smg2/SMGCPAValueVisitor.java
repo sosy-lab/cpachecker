@@ -53,7 +53,6 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAValueExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
@@ -267,7 +266,7 @@ public class SMGCPAValueVisitor
     // If the field we want to read is a String, we return each char on its own
     for (ValueAndSMGState valueAndState : structValuesAndStates) {
       // This value is either a AddressValue for pointers i.e. (*struct).field or a general
-      // SymbolicExpression
+      // SymbolicValue
       Value structValue = valueAndState.getValue();
 
       // Now get the offset of the current field
@@ -307,11 +306,11 @@ public class SMGCPAValueVisitor
 
       } else if (ownerExpression instanceof CBinaryExpression
           || ownerExpression instanceof CIdExpression) {
-          // In the non pointer case the Value is some SymbolicExpression with the correct variable
-          // identifier String inside its MemoryLocation
-          Preconditions.checkArgument(structValue instanceof SymbolicExpression);
-          MemoryLocation maybeVariableIdent =
-              ((SymbolicExpression) structValue).getRepresentedLocation().orElseThrow();
+        // In the non pointer case the Value is some SymbolicValue with the correct variable
+        // identifier String inside its MemoryLocation
+        Preconditions.checkArgument(structValue instanceof SymbolicValue);
+        MemoryLocation maybeVariableIdent =
+            ((SymbolicValue) structValue).getRepresentedLocation().orElseThrow();
 
           BigInteger finalFieldOffset = fieldOffset;
           if (maybeVariableIdent.isReference()) {
@@ -337,7 +336,7 @@ public class SMGCPAValueVisitor
     // Could also be a type/function declaration, one if which is malloc.
     // We either read the stack/global variable for non pointer and non struct/unions, or package it
     // in a AddressExpression for pointers
-    // or SymbolicExpression with a memory location and the name of the variable inside of that.
+    // or SymbolicValue with a memory location and the name of the variable inside of that.
 
     CSimpleDeclaration varDecl = e.getDeclaration();
     CType type = SMGCPAValueExpressionEvaluator.getCanonicalType(e.getExpressionType());
