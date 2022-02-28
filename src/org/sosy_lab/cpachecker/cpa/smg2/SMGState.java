@@ -367,9 +367,54 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
     return copyWithErrorInfo(newHeap, newErrorInfo);
   }
 
+  // TODO: invalid read/write because of invalidated object/memory
+
   /**
-   * The error sais invlid read as the point that fails is the read of the {@link SMGObject} before
-   * writing!
+   * Error for dereferencing unknown pointer {@link Value} when reading. I.e. int bla = *value; with
+   * value being unknown.
+   *
+   * @param unknownAddress the {@link Value} that is unknown to the memory model and was tried to be
+   *     dereferenced.
+   * @return A new {@link SMGState} with the error info.
+   */
+  public SMGState withUnknownPointerDereferenceWhenReading(Value unknownAddress) {
+    String errorMSG = "Unknown value pointer dereference for value: " + unknownAddress + ".";
+    SMGErrorInfo newErrorInfo =
+        errorInfo
+            .withProperty(Property.INVALID_READ)
+            .withErrorMessage(errorMSG)
+            .withInvalidObjects(Collections.singleton(unknownAddress));
+    // Log the error in the logger
+    logMemoryError(errorMSG, true);
+    return copyWithErrorInfo(memoryModel, newErrorInfo);
+  }
+
+  /**
+   * Error for dereferencing unknown pointer {@link Value} when reading with intent to write. I.e.
+   * *value = 3; with value being unknown.
+   *
+   * @param unknownAddress the {@link Value} that is unknown to the memory model and was tried to be
+   *     dereferenced.
+   * @return A new {@link SMGState} with the error info.
+   */
+  public SMGState withUnknownPointerDereferenceWhenWriting(Value unknownAddress) {
+    String errorMSG =
+        "Unknown value pointer dereference with intent to write to it for value: "
+            + unknownAddress
+            + ".";
+    SMGErrorInfo newErrorInfo =
+        errorInfo
+            .withProperty(Property.INVALID_READ)
+            .withErrorMessage(errorMSG)
+            .withInvalidObjects(Collections.singleton(unknownAddress));
+    // Log the error in the logger
+    logMemoryError(errorMSG, true);
+    return copyWithErrorInfo(memoryModel, newErrorInfo);
+  }
+
+  /**
+   * The error sais invalid read as the point that fails is the read of the {@link SMGObject} before
+   * writing! I.e. *pointer = ...; With pointer failing to dereference because its pointing to 0.
    *
    * @param nullObject the {@link SMGObject} that is null and was tried to be dereferenced.
    * @return A new SMGState with the error info.
@@ -391,6 +436,8 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   }
 
   /**
+   * I.e. int bla = *pointer; With pointer failing to dereference because its pointing to 0.
+   *
    * @param nullObject the {@link SMGObject} that is null and was tried to be dereferenced.
    * @return A new SMGState with the error info.
    */
