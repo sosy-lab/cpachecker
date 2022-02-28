@@ -518,9 +518,9 @@ abstract class AbstractBMCAlgorithm
                   abstractionStrategy, AbstractionBasedLifting.RefinementLAFStrategies.EAGER)
               : StandardLiftings.NO_LIFTING;
 
-      // If the candidate invariant is specified at a certain location, checked keys (i.e.,
-      // loop-bound states) should come from this location.
-      if (candidate instanceof SingleLocationFormulaInvariant) {
+      // If we are not running KI-PDR and the candidate invariant is specified at a certain
+      // location, checked keys (i.e., loop-bound states) should come from this location.
+      if (!extractCtiBlockingClauses && candidate instanceof SingleLocationFormulaInvariant) {
         checkedKeys =
             getCheckedKeysAtLocation(
                 reachedSet, ((SingleLocationFormulaInvariant) candidate).getLocation());
