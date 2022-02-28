@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2.util;
 
+import com.google.common.base.Preconditions;
 import java.math.BigInteger;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 
@@ -17,9 +18,15 @@ public class SMGObjectAndOffset {
 
   private final BigInteger offset;
 
-  public SMGObjectAndOffset(SMGObject pObject, BigInteger pOffset) {
+  private SMGObjectAndOffset(SMGObject pObject, BigInteger pOffset) {
     object = pObject;
     offset = pOffset;
+  }
+
+  public static SMGObjectAndOffset of(SMGObject pObject, BigInteger pOffset) {
+    Preconditions.checkNotNull(pObject);
+    Preconditions.checkNotNull(pOffset);
+    return new SMGObjectAndOffset(pObject, pOffset);
   }
 
   public SMGObject getSMGObject() {
