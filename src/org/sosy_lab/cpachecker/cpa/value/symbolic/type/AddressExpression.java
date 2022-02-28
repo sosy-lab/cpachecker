@@ -44,8 +44,8 @@ public class AddressExpression extends SymbolicExpression {
     return new AddressExpression(pAddress, pAddressType, pOffsetValue);
   }
 
-  public static AddressExpression withZeroOffset(Value pAddress, Type pStruct) {
-    return new AddressExpression(pAddress, pStruct, new NumericValue(0));
+  public static AddressExpression withZeroOffset(Value pAddress, Type pType) {
+    return new AddressExpression(pAddress, pType, new NumericValue(0));
   }
 
   public AddressExpression copyWithNewOffset(Value pOffsetValue) {
