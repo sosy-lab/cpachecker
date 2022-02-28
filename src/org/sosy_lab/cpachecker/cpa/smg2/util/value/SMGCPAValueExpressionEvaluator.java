@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.SymbolicProgramConfiguration;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.PointerExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
@@ -228,41 +227,30 @@ public class SMGCPAValueExpressionEvaluator {
    * @return {@link ValueAndSMGState} tuple for the read {@link Value} and the new {@link SMGState}.
    */
   public ValueAndSMGState readValueWithPointerDereference(
-      SMGState pState, Value value, BigInteger pOffset, BigInteger pSizeInBits) {
-    // This should hold, but shouldn't be important
-    assert (value instanceof PointerExpression);
-
-    SMGState currentState = pState;
-
-    if (value.isUnknown()) {
-      // The value is unknown and therefore does not point to a valid memory location
-      // TODO: The analysis should stop in this case!
-      return ValueAndSMGState.ofUnknownValue(
-          currentState.withUnknownPointerDereferenceWhenReading(value));
-    }
-
+      SMGState pState, Value value, BigInteger pOffset, BigInteger pSizeInBits)
+      throws SMG2Exception {
     // Get the SMGObject for the value
     Optional<SMGObjectAndOffset> maybeTargetAndOffset =
-        currentState.getMemoryModel().dereferencePointer(value);
+        pState.getMemoryModel().dereferencePointer(value);
     if (maybeTargetAndOffset.isEmpty()) {
-      // Not a known pointer
-
+      // The value is unknown and therefore does not point to a valid memory location
+      SMGState errorState = pState.withUnknownPointerDereferenceWhenReading(value);
+      throw new SMG2Exception(errorState);
     }
     SMGObject object = maybeTargetAndOffset.orElseThrow().getSMGObject();
 
     // The object may be null if no such object exists, check and log if 0
     if (object.isZero()) {
-      SMGState newState = currentState.withNullPointerDereferenceWhenReading(object);
-      // TODO: The analysis should stop in this case!
-      return ValueAndSMGState.ofUnknownValue(newState);
+      SMGState errorState = pState.withNullPointerDereferenceWhenReading(object);
+      throw new SMG2Exception(errorState);
     }
 
     // The offset of the pointer used. (the pointer might point to a offset != 0, the other offset
     // needs to the added to that!)
-    BigInteger baseOffset = maybeTargetAndOffset.orElseThrow().getOffsetForObject();
-    BigInteger offset = baseOffset.add(pOffset);
+    // BigInteger baseOffset = maybeTargetAndOffset.orElseThrow().getOffsetForObject();
+    // BigInteger offset = baseOffset.add(pOffset);
 
-    return readValue(currentState, object, offset, pSizeInBits);
+    return readValue(pState, object, pOffset, pSizeInBits);
   }
 
   /**
@@ -276,17 +264,17 @@ public class SMGCPAValueExpressionEvaluator {
    * @return {@link ValueAndSMGState} bundeling the most up to date state and the read value.
    */
   private ValueAndSMGState readValue(
-      SMGState currentState, SMGObject object, BigInteger offsetInBits, BigInteger sizeInBits) {
+      SMGState currentState, SMGObject object, BigInteger offsetInBits, BigInteger sizeInBits)
+      throws SMG2Exception {
     // Check that the offset and offset + size actually fit into the SMGObject
     boolean doesNotFitIntoObject =
         offsetInBits.compareTo(BigInteger.ZERO) < 0
             || offsetInBits.add(sizeInBits).compareTo(object.getSize()) > 0;
 
     if (doesNotFitIntoObject) {
-      // Field does not fit size of declared Memory
-      // TODO: The analysis should stop in this case!
-      return ValueAndSMGState.ofUnknownValue(
-          currentState.withOutOfRangeRead(object, offsetInBits, sizeInBits));
+      // Field read does not fit size of declared Memory
+      SMGState errorState = currentState.withOutOfRangeRead(object, offsetInBits, sizeInBits);
+      throw new SMG2Exception(errorState);
     }
     // The read in SMGState checks for validity and external allocation
     return currentState.readValue(object, offsetInBits, sizeInBits);
