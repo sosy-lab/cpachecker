@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.smg2.util.value;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Optional;
-import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -33,6 +32,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.SMGSizeOfVisitor;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.SymbolicProgramConfiguration;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.PointerExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
@@ -195,7 +195,11 @@ public class SMGCPAValueExpressionEvaluator {
    *     was not initialized.
    */
   public ValueAndSMGState readStackOrGlobalVariable(
-      SMGState initialState, String varName, BigInteger sizeInBits, CIdExpression exprForDebug) {
+      SMGState initialState,
+      String varName,
+      BigInteger offsetInBits,
+      BigInteger sizeInBits,
+      CIdExpression exprForDebug) {
     Optional<SMGObject> maybeObject =
         initialState.getMemoryModel().getObjectForVisibleVariable(varName);
     // If there is no object, the variable is not initialized
@@ -204,7 +208,7 @@ public class SMGCPAValueExpressionEvaluator {
       SMGState errorState = initialState.withUninitializedVariableUsage(exprForDebug);
       return ValueAndSMGState.ofUnknownValue(initialState);
     }
-    return initialState.readValue(maybeObject.orElseThrow(), BigInteger.ZERO, sizeInBits);
+    return readValue(initialState, maybeObject.orElseThrow(), offsetInBits, sizeInBits);
   }
 
   /**
@@ -220,8 +224,8 @@ public class SMGCPAValueExpressionEvaluator {
    */
   public ValueAndSMGState readValueWithPointerDereference(
       SMGState pState, Value value, BigInteger pOffset, BigInteger pSizeInBits) {
-    // This is the most general read that should be used in the end by all read methods in this
-    // class!
+    // This should hold, but shouldn't be important
+    assert (value instanceof PointerExpression);
 
     SMGState currentState = pState;
 
@@ -253,59 +257,27 @@ public class SMGCPAValueExpressionEvaluator {
     BigInteger baseOffset = maybeTargetAndOffset.orElseThrow().getOffsetForObject();
     BigInteger offset = baseOffset.add(pOffset);
 
+    return readValue(currentState, object, offset, pSizeInBits);
+  }
+
+  private ValueAndSMGState readValue(
+      SMGState currentState, SMGObject object, BigInteger offsetInBits, BigInteger sizeInBits) {
+    // This is the most general read that should be used in the end by all read methods in this
+    // class!
+
     // Check that the offset and offset + size actually fit into the SMGObject
     boolean doesNotFitIntoObject =
-        offset.compareTo(BigInteger.ZERO) < 0
-            || offset.add(pSizeInBits).compareTo(object.getSize()) > 0;
+        offsetInBits.compareTo(BigInteger.ZERO) < 0
+            || offsetInBits.add(sizeInBits).compareTo(object.getSize()) > 0;
 
     if (doesNotFitIntoObject) {
       // Field does not fit size of declared Memory
       // TODO: The analysis should stop in this case!
       return ValueAndSMGState.ofUnknownValue(
-          currentState.withOutOfRangeRead(object, offset, pSizeInBits));
+          currentState.withOutOfRangeRead(object, offsetInBits, sizeInBits));
     }
     // The read in SMGState checks for validity and external allocation
-    return currentState.readValue(object, offset, pSizeInBits);
-  }
-
-  private ValueAndSMGState readValue(
-      SMGState pState, SMGObject object, Value value, CExpression pExpression) {
-    if (!value.isExplicitlyKnown() || object.isZero()) {
-      // TODO: Error handling for this!
-      return ValueAndSMGState.ofUnknownValue(pState);
-    }
-
-    // TODO: visitor for type?
-    BigInteger fieldOffset = value.asNumericValue().bigInteger();
-
-    // FIXME Does not work with variable array length.
-    boolean doesNotFitIntoObject =
-        fieldOffset.compareTo(BigInteger.ZERO) < 0
-            || fieldOffset.add(getBitSizeof(pState, pExpression)).compareTo(object.getSize()) > 0;
-
-    if (doesNotFitIntoObject) {
-      // Field does not fit size of declared Memory
-      logger.log(
-          Level.WARNING,
-          pExpression.getFileLocation() + ":",
-          "Field "
-              + "("
-              + fieldOffset
-              + ", "
-              + pExpression.getExpressionType().toASTString("")
-              + ")"
-              + " does not fit object "
-              + object
-              + ".");
-
-      return ValueAndSMGState.ofUnknownValue(pState);
-    }
-    CType type = TypeUtils.getRealExpressionType(pExpression);
-
-    return pState.readValue(
-            object,
-            fieldOffset,
-        machineModel.getSizeofInBits(type));
+    return currentState.readValue(object, offsetInBits, sizeInBits);
   }
 
   /*
