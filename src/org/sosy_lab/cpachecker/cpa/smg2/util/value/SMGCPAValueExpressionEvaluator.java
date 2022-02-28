@@ -111,6 +111,13 @@ public class SMGCPAValueExpressionEvaluator {
     return null;
   }
 
+  /**
+   * Checks if the {@link CType} is a {@link CPointerType}, {@link CArrayType}, {@link
+   * CFunctionType} or a Struct/Union type and returns true if its one of these. False else.
+   *
+   * @param cType the {@link CType} to check.
+   * @return true if CPointerType, CArrayType, CFunctionType or a Struct/Union type, false else.
+   */
   public static boolean isAddressType(CType cType) {
     CType type = getCanonicalType(cType);
     return type instanceof CPointerType
