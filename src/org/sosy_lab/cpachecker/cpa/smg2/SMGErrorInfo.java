@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
  *
  * <p>This class is immutable.
  */
-class SMGErrorInfo {
+public class SMGErrorInfo {
 
   enum Property {
     INVALID_READ,
