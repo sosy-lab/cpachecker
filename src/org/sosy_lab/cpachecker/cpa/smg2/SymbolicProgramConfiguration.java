@@ -488,7 +488,8 @@ public class SymbolicProgramConfiguration {
   /**
    * Tries to search for a variable that is currently visible in the current {@link StackFrame} and
    * in the global variables and returns the variable if found. If it is not found, the {@link
-   * Optional} will be empty.
+   * Optional} will be empty. Note: this returns the SMGObject in which the value for the variable
+   * is written. Read with the correct type!
    *
    * @param pName Name of the variable you want to search for as a {@link String}.
    * @return {@link Optional} that contains the variable if found, but is empty if not found.
