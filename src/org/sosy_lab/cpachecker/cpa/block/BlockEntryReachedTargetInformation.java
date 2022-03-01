@@ -11,11 +11,11 @@ package org.sosy_lab.cpachecker.cpa.block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
 
-public class BlockStartReachedTargetInformation implements TargetInformation {
+public class BlockEntryReachedTargetInformation implements TargetInformation {
 
   private final CFANode node;
 
-  public BlockStartReachedTargetInformation(CFANode pNode) {
+  public BlockEntryReachedTargetInformation(CFANode pNode) {
     node = pNode;
   }
 

@@ -27,7 +27,8 @@ public class GivenSizeDecomposer implements CFADecomposer {
 
   /**
    * A decomposer that merges as many parts as possible to maybe reach the desired number of blocks
-   * @param pDecomposer parent decomposer
+   *
+   * @param pDecomposer    parent decomposer
    * @param pDesiredNumber desired number of blocks
    * @throws InvalidConfigurationException thrown if configuration is invalid
    */
@@ -40,10 +41,25 @@ public class GivenSizeDecomposer implements CFADecomposer {
   @Override
   public BlockTree cut(CFA cfa) {
     BlockTree tree = decomposer.cut(cfa);
+    int oldSize = tree.getDistinctNodes().size();
+    while (oldSize >= desiredNumberOfBlocks) {
+      mergeTree(tree);
+      int newSize = tree.getDistinctNodes().size();
+      if (newSize == oldSize) {
+        break;
+      }
+      oldSize = newSize;
+    }
+    return tree;
+  }
+
+  private void mergeTree(BlockTree tree) {
     Set<BlockNode> nodes = new HashSet<>(tree.getDistinctNodes());
     nodes.remove(tree.getRoot());
     Multimap<String, BlockNode> compatibleBlocks = ArrayListMultimap.create();
-    nodes.forEach(n -> compatibleBlocks.put("N" + n.getStartNode().getNodeNumber() + "N" + n.getLastNode(), n));
+    nodes.forEach(
+        n -> compatibleBlocks.put("N" + n.getStartNode().getNodeNumber() + "N" + n.getLastNode(),
+            n));
     for (String key : ImmutableSet.copyOf(compatibleBlocks.keySet())) {
       List<BlockNode> mergeNodes = new ArrayList<>(compatibleBlocks.removeAll(key));
       if (nodes.size() <= desiredNumberOfBlocks) {
@@ -62,8 +78,10 @@ public class GivenSizeDecomposer implements CFADecomposer {
       }
     }
     Set<BlockNode> alreadyFound = new HashSet<>();
-    while(desiredNumberOfBlocks < nodes.size()) {
-      Optional<BlockNode> potentialNode = nodes.stream().filter(n -> n.getSuccessors().size() == 1 && !alreadyFound.contains(n)).findAny();
+    while (desiredNumberOfBlocks < nodes.size()) {
+      Optional<BlockNode> potentialNode =
+          nodes.stream().filter(n -> n.getSuccessors().size() == 1 && !alreadyFound.contains(n))
+              .findAny();
       if (potentialNode.isEmpty()) {
         break;
       }
@@ -82,6 +100,5 @@ public class GivenSizeDecomposer implements CFADecomposer {
         nodes.add(merged);
       }
     }
-    return tree;
   }
 }

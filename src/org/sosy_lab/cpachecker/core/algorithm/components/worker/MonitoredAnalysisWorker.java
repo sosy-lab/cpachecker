@@ -19,9 +19,10 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.UpdatedTypeMap;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.java_smt.api.SolverException;
 
 public class MonitoredAnalysisWorker extends AnalysisWorker {
 
@@ -29,6 +30,7 @@ public class MonitoredAnalysisWorker extends AnalysisWorker {
 
   MonitoredAnalysisWorker(
       String pId,
+      AnalysisOptions pOptions,
       BlockNode pBlock,
       LogManager pLogger,
       CFA pCFA,
@@ -36,17 +38,17 @@ public class MonitoredAnalysisWorker extends AnalysisWorker {
       Configuration pConfiguration,
       ShutdownManager pShutdownManager,
       Monitor pMonitor,
-      SSAMap pMap)
+      UpdatedTypeMap pMap)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
-    super(pId, pBlock, pLogger, pCFA, pSpecification,
+    super(pId, pOptions, pBlock, pLogger, pCFA, pSpecification,
         pConfiguration,
         pShutdownManager, pMap);
     monitor = pMonitor;
   }
 
   @Override
-  public Message nextMessage() throws InterruptedException {
-    Message next =  super.nextMessage();
+  public Message nextMessage() throws InterruptedException, SolverException {
+    Message next = super.nextMessage();
     monitor.blockAcquire(block);
     return next;
   }

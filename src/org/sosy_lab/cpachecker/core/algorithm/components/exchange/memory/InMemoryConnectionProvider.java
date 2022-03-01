@@ -13,7 +13,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.PriorityBlockingQueue;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.CleverMessageQueue;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.ConnectionProvider;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 
@@ -23,7 +23,7 @@ public class InMemoryConnectionProvider implements ConnectionProvider<InMemoryCo
   public List<InMemoryConnection> createConnections(int connections) throws IOException {
     List<BlockingQueue<Message>> outs = new ArrayList<>();
     for (int i = 0; i < connections; i++) {
-      outs.add(new PriorityBlockingQueue<>());
+      outs.add(new CleverMessageQueue());
     }
     return outs.stream().map(out -> new InMemoryConnection(out, outs)).collect(
         ImmutableList.toImmutableList());

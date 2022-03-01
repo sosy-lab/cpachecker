@@ -6,13 +6,16 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.components.exchange.network;
+package org.sosy_lab.cpachecker.core.algorithm.components.exchange.nio_network;
 
 import java.io.IOException;
 import java.util.Collection;
 import java.util.concurrent.BlockingQueue;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.CleverMessageQueue;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageType;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 
 public class NetworkConnection implements Connection {
 
@@ -49,7 +52,19 @@ public class NetworkConnection implements Connection {
   }
 
   @Override
+  public void setOrdering(MessageType... pOrdering) {
+    if (sharedQueue instanceof CleverMessageQueue) {
+      ((CleverMessageQueue) sharedQueue).setOrdering(pOrdering);
+    }
+  }
+
+  @Override
   public void close() throws IOException {
     receiver.close();
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> statsCollection) {
+    sender.stream().findFirst().orElseThrow().collectStatistics(statsCollection);
   }
 }

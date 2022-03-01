@@ -18,6 +18,7 @@ public interface ConnectionProvider<T extends Connection> {
 
   /**
    * Create {@code connections} different Connections
+   *
    * @param connections number of connections to generate
    * @return List with {@code connections} Connections
    * @throws IOException if creating the connections fails

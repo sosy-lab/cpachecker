@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.components.exchange.network;
+package org.sosy_lab.cpachecker.core.algorithm.components.exchange.nio_network;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -16,21 +16,23 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.CompressedMessageConverter;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageConverter;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.MessageType;
 
 public class NetworkReceiver implements Closeable {
 
+  private static final int BUFFER_SIZE = 1024;
   private final Selector selector;
   private final InetSocketAddress listenAddress;
   private final BlockingQueue<Message> sharedQueue;
   private final MessageConverter converter;
-  private final Thread receiverThread;
-
-  private static final int BUFFER_SIZE = 1024;
+  private boolean finished;
 
   NetworkReceiver(
       BlockingQueue<Message> pSharedQueue,
@@ -38,7 +40,7 @@ public class NetworkReceiver implements Closeable {
   ) throws IOException {
     listenAddress = pAddress;
     sharedQueue = pSharedQueue;
-    converter = new MessageConverter();
+    converter = new CompressedMessageConverter();
     selector = Selector.open();
     ServerSocketChannel serverChannel = ServerSocketChannel.open();
     serverChannel.configureBlocking(false);
@@ -46,14 +48,16 @@ public class NetworkReceiver implements Closeable {
     // retrieve server socket and bind to port
     serverChannel.socket().bind(listenAddress);
     serverChannel.register(selector, SelectionKey.OP_ACCEPT);
-    receiverThread = new Thread(() -> {
+    Thread receiverThread = new Thread(() -> {
       try {
         startServer();
       } catch (IOException pE) {
         sharedQueue.add(Message.newErrorMessage("own", pE));
         Thread.currentThread().interrupt();
+        throw new AssertionError(pE);
       }
     });
+    receiverThread.setDaemon(true);
     receiverThread.start();
   }
 
@@ -63,7 +67,7 @@ public class NetworkReceiver implements Closeable {
 
   // create server channel
   public void startServer() throws IOException {
-    while (true) {
+    while (!finished && selector.isOpen()) {
       // wait for events
       selector.select();
 
@@ -89,6 +93,7 @@ public class NetworkReceiver implements Closeable {
         }
       }
     }
+    selector.close();
   }
 
   //accept a connection made to this channel's socket
@@ -118,14 +123,16 @@ public class NetworkReceiver implements Closeable {
         return false;
       }
 
-      StringBuilder builder = new StringBuilder();
+      List<Byte> readBytes = new ArrayList<>();
 
       do {
         if (numRead > 0) {
           buffer.flip();
           byte[] read = new byte[numRead];
           buffer.get(read, 0, numRead);
-          builder.append(new String(read));
+          for (byte b : read) {
+            readBytes.add(b);
+          }
           buffer.compact();
         }
         if (numRead != BUFFER_SIZE) {
@@ -134,7 +141,11 @@ public class NetworkReceiver implements Closeable {
         numRead = channel.read(buffer);
       } while (true);
 
-      Message received = converter.jsonToMessage(builder.toString());
+      byte[] bytes = new byte[readBytes.size()];
+      for (int i = 0; i < readBytes.size(); i++) {
+        bytes[i] = readBytes.get(i);
+      }
+      Message received = converter.jsonToMessage(bytes);
       sharedQueue.add(received);
       return received.getType() == MessageType.FOUND_RESULT;
     } catch (Exception pE) {
@@ -144,7 +155,6 @@ public class NetworkReceiver implements Closeable {
 
   @Override
   public void close() throws IOException {
-    selector.close();
-    receiverThread.interrupt();
+    finished = true;
   }
 }

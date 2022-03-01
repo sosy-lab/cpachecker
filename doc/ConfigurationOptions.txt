@@ -159,8 +159,12 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
+
+# Read config
+CompositeCPA.cpas = ""
 
 # Refiner that SlicingDelegatingRefiner should delegate to
 SlicingDelegatingRefiner.refiner = no default value
@@ -863,6 +867,30 @@ cinvariants.prefix = no default value
 
 # Attempt to simplify the invariant before exporting [may be very expensive].
 cinvariants.simplify = false
+
+# how to send messages
+components.connectionType = NETWORK_NIO_UNSTABLE
+  enum:     [NETWORK_NIO_UNSTABLE, NETWORK_CLASSIC_STABLE, IN_MEMORY]
+
+# whether to use daemon threads for workers
+components.daemon = true
+
+# algorithm to decompose the CFA
+components.decompositionType = BLOCK_OPERATOR
+  enum:     [BLOCK_OPERATOR, GIVEN_SIZE, SINGLE_BLOCK]
+
+# desired number of BlockNodes
+components.desiredNumberOfBlocks = 5
+
+# maximal overall wall-time for parallel analysis
+components.maxWallTime = 15 * 60s
+
+# whether to spawn util worker
+components.spawnUtilWorkers = true
+
+# which worker to use
+components.workerType = DEFAULT
+  enum:     [DEFAULT, SMART, MONITORED, FAULT_LOCALIZATION]
 
 # If adaptTimeLimits is set and all configurations support progress reports,
 # in each cycle the time limits per configuration are newly calculated based
@@ -1976,6 +2004,9 @@ cpa.predicate.abs.predicateOrdering.partitions = false
 # use caching of abstractions
 # use caching of region to formula conversions
 cpa.predicate.abs.useCache = true
+
+# if the predicate precision adjustment should abstract at target states
+cpa.predicate.abstractAtTargetState = true
 
 # DEPRECATED: whether to use Boolean (false) or Cartesian (true) abstraction
 cpa.predicate.abstraction.cartesian = false
@@ -4501,3 +4532,18 @@ witness.validation.termination.terminatingStatements = "config/specification/Ter
 # When validating a violation witness, use this configuration file instead of
 # the current one.
 witness.validation.violation.config = no default value
+
+# whether analysis worker abstract at block entries or exits
+worker.abstractAtTargetLocation = false
+
+# whether error conditions are always checked for unsatisfiability
+worker.checkEveryErrorCondition = true
+
+# whether analysis worker store circular post conditions
+worker.doStoreCircularPostConditions = false
+
+# forces the precondition of fault localization workers to be true
+worker.flPreconditionAlwaysTrue = false
+
+# loop free programs do not require to deny all possible error messages
+worker.sendEveryErrorMessage = false

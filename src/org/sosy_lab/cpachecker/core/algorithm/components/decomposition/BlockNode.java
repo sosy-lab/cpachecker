@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.components.decomposition;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -17,19 +15,21 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.builder.ReferencedVariablesCollector;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class BlockNode {
 
   private final CFANode startNode;
   private final CFANode lastNode;
   private final Set<CFANode> nodesInBlock;
+  private final Set<CFAEdge> edgesInBlock;
   private final Block block;
 
   private final Set<BlockNode> predecessors;
@@ -41,19 +41,20 @@ public class BlockNode {
   private final String code;
 
   /**
-   * Represents a sub graph of the CFA beginning at <code>pStartNode</code> and ending at <code>
-   * pLastNode</code>.
+   * Represents a sub graph of the CFA beginning at {@code pStartNode} and ending at {@code pLastNode}
    *
-   * @param pStartNode the root node of the block
-   * @param pLastNode the final node of the block
+   * @param pStartNode    the root node of the block
+   * @param pLastNode     the final node of the block
    * @param pNodesInBlock all nodes that are part of the sub graph including the root node and the
-   *     last node.
+   *                      last node.
    */
   private BlockNode(
       @NonNull String pId,
       @NonNull CFANode pStartNode,
       @NonNull CFANode pLastNode,
-      @NonNull Set<CFANode> pNodesInBlock) {
+      @NonNull Set<CFANode> pNodesInBlock,
+      @NonNull Set<CFAEdge> pEdgesInBlock,
+      @NonNull Map<Integer, CFANode> pIdToNodeMap) {
     // pNodesInBlock is a set allowing to represent branches.
     if (!pNodesInBlock.contains(pStartNode) || !pNodesInBlock.contains(pLastNode)) {
       throw new AssertionError(
@@ -66,7 +67,8 @@ public class BlockNode {
               + ").");
     }
 
-    block = new Block(new ReferencedVariablesCollector(pNodesInBlock).getVars(), ImmutableSet.of(pStartNode), ImmutableSet.of(pLastNode), pNodesInBlock);
+    block = new Block(new ReferencedVariablesCollector(pNodesInBlock).getVars(),
+        ImmutableSet.of(pStartNode), ImmutableSet.of(pLastNode), pNodesInBlock);
     startNode = pStartNode;
     lastNode = pLastNode;
 
@@ -74,37 +76,36 @@ public class BlockNode {
     successors = new HashSet<>();
 
     nodesInBlock = new LinkedHashSet<>(pNodesInBlock);
-    idToNodeMap = generateIdToNodeMap(nodesInBlock);
+    edgesInBlock = new LinkedHashSet<>(pEdgesInBlock);
+    idToNodeMap = pIdToNodeMap;
     id = pId;
 
-    code = computeCode(pNodesInBlock);
+    code = computeCode();
   }
 
-  private ImmutableMap<Integer, CFANode> generateIdToNodeMap(Set<CFANode> nodes) {
-    Map<Integer, CFANode> nodeMap = new HashMap<>();
-    nodes.forEach(n -> nodeMap.put(n.getNodeNumber(), n));
-    return ImmutableMap.copyOf(nodeMap);
-  }
-
+  /**
+   * Returns the corresponding CFANode for a given node number
+   * @param number id of CFANode
+   * @return CFANode with id {@code number}
+   */
   public CFANode getNodeWithNumber(int number) {
     return idToNodeMap.get(number);
   }
 
-  private String computeCode(Set<CFANode> pNodes) {
+  /**
+   * compute the code that this block contains (for debugging only)
+   * @return code represented by this block
+   */
+  private String computeCode() {
     StringBuilder codeLines = new StringBuilder();
-    for (CFANode node : pNodes) {
-      for (CFAEdge leavingEdge : CFAUtils.leavingEdges(node)) {
-        if (pNodes.contains(leavingEdge.getSuccessor())) {
-          if (leavingEdge.getCode().isBlank()) {
-            continue;
-          }
-          if (leavingEdge.getEdgeType().equals(CFAEdgeType.AssumeEdge)) {
-            codeLines.append("[").append(leavingEdge.getCode()).append("]\n");
-          } else {
-            codeLines.append(leavingEdge.getCode()).append("\n");
-          }
-          break;
-        }
+    for (CFAEdge leavingEdge : edgesInBlock) {
+      if (leavingEdge.getCode().isBlank()) {
+        continue;
+      }
+      if (leavingEdge.getEdgeType().equals(CFAEdgeType.AssumeEdge)) {
+        codeLines.append("[").append(leavingEdge.getCode()).append("]\n");
+      } else {
+        codeLines.append(leavingEdge.getCode()).append("\n");
       }
     }
     return codeLines.toString();
@@ -115,20 +116,26 @@ public class BlockNode {
   }
 
   public boolean isEmpty() {
-    return nodesInBlock.size() == 1;
+    return edgesInBlock.isEmpty();
   }
 
+  /**
+   * Add successor to a node.
+   * The successor thus has a new predecessor
+   * @param node new successor for this
+   */
   private void linkSuccessor(BlockNode node) {
-    addSuccessors(node);
-    node.addPredecessors(this);
+    successors.add(node);
+    node.predecessors.add(this);
   }
 
-  private void addPredecessors(BlockNode... pred) {
-    predecessors.addAll(ImmutableList.copyOf(pred));
-  }
-
-  private void addSuccessors(BlockNode... succ) {
-    successors.addAll(ImmutableList.copyOf(succ));
+  /**
+   * Remove successor of this block
+   * @param pNodeSuccessor successor to remove
+   */
+  private void unlinkSuccessor(BlockNode pNodeSuccessor) {
+    successors.remove(pNodeSuccessor);
+    pNodeSuccessor.predecessors.remove(this);
   }
 
   public Set<BlockNode> getPredecessors() {
@@ -153,6 +160,10 @@ public class BlockNode {
 
   public Set<CFANode> getNodesInBlock() {
     return ImmutableSet.copyOf(nodesInBlock);
+  }
+
+  public Set<CFAEdge> getEdgesInBlock() {
+    return edgesInBlock;
   }
 
   @Override
@@ -192,21 +203,42 @@ public class BlockNode {
     return predecessors.isEmpty();
   }
 
+  // blocks are immutable, thus we need a factory for the initial creation
   public static class BlockNodeFactory {
 
     private int blockCount;
+    private final Map<Integer, CFANode> idToNodeMap;
 
-    public BlockNode makeBlock(CFANode pStartNode, CFANode pEndNode, Set<CFANode> pNodesInBlock) {
-      return new BlockNode("B" + blockCount++, pStartNode, pEndNode, pNodesInBlock);
+    public BlockNodeFactory(CFA pCfa) {
+      idToNodeMap =
+          pCfa.getAllNodes().stream().collect(Collectors.toMap(n -> n.getNodeNumber(), n -> n));
+    }
+
+    public BlockNode makeBlock(
+        CFANode pStartNode,
+        CFANode pEndNode,
+        Set<CFANode> pNodesInBlock,
+        Set<CFAEdge> pEdges) {
+      return new BlockNode("B" + blockCount++, pStartNode, pEndNode, pNodesInBlock, pEdges,
+          new HashMap<>(idToNodeMap));
     }
 
     public void linkSuccessor(BlockNode pNode, BlockNode pNodeSuccessor) {
       pNode.linkSuccessor(pNodeSuccessor);
     }
 
+    public void unlinkSuccessor(BlockNode pNode, BlockNode pNodeSuccessor) {
+      pNode.unlinkSuccessor(pNodeSuccessor);
+    }
+
     public void removeNode(BlockNode pNode) {
       pNode.predecessors.forEach(p -> p.successors.remove(pNode));
       pNode.successors.forEach(p -> p.predecessors.remove(pNode));
+    }
+
+    public BlockNode copy(BlockNode pNode) {
+      return new BlockNode("B" + blockCount++, pNode.startNode, pNode.lastNode, pNode.nodesInBlock,
+          pNode.edgesInBlock, new HashMap<>(idToNodeMap));
     }
 
   }
