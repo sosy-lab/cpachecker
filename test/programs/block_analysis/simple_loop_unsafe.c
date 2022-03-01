@@ -1,9 +1,18 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 int main() {
     int x = 0;
-    while (x != 100) {
+    int y = 5;
+    while (x != y) {
         x++;
     }
-    if (x != 100)
+    if (x == y)
         goto ERROR;
     return 0;
 ERROR: return 1;

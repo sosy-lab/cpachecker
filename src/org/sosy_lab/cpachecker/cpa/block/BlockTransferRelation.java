@@ -10,18 +10,18 @@ package org.sosy_lab.cpachecker.cpa.block;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.components.tree.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -30,6 +30,9 @@ public abstract class BlockTransferRelation implements TransferRelation {
   protected ImmutableSet<CFAEdge> edges;
   protected ImmutableSet<CFANode> nodes;
   protected BlockStateFactory factory;
+  protected CFANode targetNode;
+  protected BlockNode bNode;
+  private boolean first;
 
   /**
    * This transfer relation produces successors iff an edge between two nodes exists in the CFA
@@ -43,6 +46,9 @@ public abstract class BlockTransferRelation implements TransferRelation {
   public void init(BlockNode pBlockNode) {
     edges = validEdgesIn(pBlockNode);
     nodes = ImmutableSet.copyOf(pBlockNode.getNodesInBlock());
+    targetNode = pBlockNode.getLastNode();
+    first = false;
+    bNode = pBlockNode;
   }
 
   private ImmutableSet<CFAEdge> validEdgesIn(BlockNode pBlockNode) {
@@ -58,9 +64,22 @@ public abstract class BlockTransferRelation implements TransferRelation {
     return setBuilder.build();
   }
 
+  protected boolean shouldComputeSuccessor(BlockState pBlockState) {
+    boolean isTargetLoopHead = pBlockState.getLocationNode().equals(targetNode);
+    if (isTargetLoopHead) {
+      if (first) {
+        return first = false;
+      }
+      return first = true;
+    }
+    return true;
+  }
+
+  @Override
   public abstract Collection<BlockState> getAbstractSuccessorsForEdge(
       AbstractState element, Precision prec, CFAEdge cfaEdge);
 
+  @Override
   public abstract Collection<BlockState> getAbstractSuccessors(AbstractState element, Precision prec)
       throws CPATransferException;
 
@@ -80,19 +99,29 @@ public abstract class BlockTransferRelation implements TransferRelation {
     public Collection<BlockState> getAbstractSuccessorsForEdge(
         AbstractState element, Precision prec, CFAEdge cfaEdge) {
       checkNotNull(edges, "init method must be called before starting the analysis (edges == null)");
-      CFANode node = ((BlockState) element).getLocationNode();
+      BlockState blockState = (BlockState) element;
 
+      CFANode node = blockState.getLocationNode();
       if (Sets.intersection(ImmutableSet.copyOf(CFAUtils.allLeavingEdges(node)), edges).contains(cfaEdge)) {
-        return Collections.singleton(factory.getState(cfaEdge.getSuccessor()));
+        if (!shouldComputeSuccessor(blockState)) {
+          return ImmutableSet.of();
+        }
+        return ImmutableList.of(factory.getState(cfaEdge.getSuccessor()));
       }
 
-      return ImmutableSet.of();
+      return ImmutableList.of();
     }
 
     @Override
     public Collection<BlockState> getAbstractSuccessors(AbstractState element, Precision prec) throws CPATransferException {
       checkNotNull(nodes, "init method must be called before starting the analysis (nodes == null)");
-      CFANode node = ((BlockState) element).getLocationNode();
+      BlockState blockState = (BlockState) element;
+
+      if (!shouldComputeSuccessor(blockState)) {
+        return ImmutableSet.of();
+      }
+
+      CFANode node = blockState.getLocationNode();
       return CFAUtils.successorsOf(node).filter(n -> nodes.contains(n)).transform(n -> factory.getState(n)).toList();
     }
   }
@@ -110,14 +139,24 @@ public abstract class BlockTransferRelation implements TransferRelation {
     }
 
     @Override
+    public void init(BlockNode pBlockNode) {
+      super.init(pBlockNode);
+      targetNode = pBlockNode.getStartNode();
+    }
+
+    @Override
     public Collection<BlockState> getAbstractSuccessorsForEdge(
         AbstractState element, Precision prec, CFAEdge cfaEdge) {
+
       checkNotNull(edges, "init method must be called before starting the analysis (edges == null)");
+      BlockState blockState = (BlockState) element;
 
-      CFANode node = ((BlockState) element).getLocationNode();
-
+      CFANode node = blockState.getLocationNode();
       if (Sets.intersection(ImmutableSet.copyOf(CFAUtils.allEnteringEdges(node)), edges).contains(cfaEdge)) {
-        return Collections.singleton(factory.getState(cfaEdge.getPredecessor()));
+        if (!shouldComputeSuccessor(blockState)) {
+          return ImmutableSet.of();
+        }
+        return ImmutableList.of(factory.getState(cfaEdge.getPredecessor()));
       }
 
       return ImmutableSet.of();
@@ -125,9 +164,17 @@ public abstract class BlockTransferRelation implements TransferRelation {
 
     @Override
     public Collection<BlockState> getAbstractSuccessors(AbstractState element, Precision prec) throws CPATransferException {
+
       checkNotNull(nodes, "init method must be called before starting the analysis (nodes == null)");
-      CFANode node = ((BlockState) element).getLocationNode();
-      return CFAUtils.predecessorsOf(node).filter(n -> nodes.contains(n)).transform(n -> factory.getState(n)).toList();
+      BlockState blockState = (BlockState) element;
+
+      if (!shouldComputeSuccessor(blockState)) {
+        return ImmutableSet.of();
+      }
+
+      CFANode node = blockState.getLocationNode();
+      FluentIterable<CFANode> predecessors = CFAUtils.predecessorsOf(node);
+      return predecessors.filter(n -> nodes.contains(n)).transform(n -> factory.getState(n)).toList();
     }
   }
 

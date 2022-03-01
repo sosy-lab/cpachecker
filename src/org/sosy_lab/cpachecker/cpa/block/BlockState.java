@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.block;
 
 import com.google.common.collect.ImmutableSet;
 import java.io.Serializable;
+import java.util.HashSet;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -18,19 +19,28 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-public class BlockState implements AbstractStateWithLocation, AbstractQueryableState, Partitionable,
-                                   Serializable {
+public class BlockState
+    implements AbstractStateWithLocation, AbstractQueryableState, Partitionable,
+               Serializable, Targetable {
 
-  protected final CFANode node;
+  private static final long serialVersionUID = 3805801L;
 
-  private static final Set<Property> violatedProperty = ImmutableSet.of(new BlockStartReachedProperty());
+  private final Set<TargetInformation> targetInformation;
+  private final CFANode targetNode;
+  private final CFANode node;
+  private final boolean forward;
 
-  public BlockState(CFANode pNode) {
+  public BlockState(CFANode pNode, CFANode pTargetNode, boolean pForward) {
     node = pNode;
+    targetNode = pTargetNode;
+    targetInformation = new HashSet<>();
+    forward = pForward;
+    if (isTarget()) {
+      targetInformation.add(new BlockStartReachedTargetInformation(pTargetNode));
+    }
   }
 
   @Override
@@ -68,25 +78,14 @@ public class BlockState implements AbstractStateWithLocation, AbstractQueryableS
     return "Location: " + node;
   }
 
-  static class BackwardsBlockState extends BlockState implements Targetable {
+  @Override
+  public @NonNull Set<TargetInformation> getTargetInformation() throws IllegalStateException {
+    return targetInformation;
+  }
 
-    private final CFANode blockStartNode;
-
-    public BackwardsBlockState(final CFANode pLocationNode, final CFANode pStartNode) {
-      super(pLocationNode);
-      blockStartNode = pStartNode;
-    }
-
-    @Override
-    public boolean isTarget() {
-      return blockStartNode.equals(node);
-    }
-
-    @Override
-    public @NonNull Set<Property> getViolatedProperties() throws IllegalStateException {
-      return violatedProperty;
-    }
-
+  @Override
+  public boolean isTarget() {
+    return !forward && targetNode.equals(node);
   }
 
 }

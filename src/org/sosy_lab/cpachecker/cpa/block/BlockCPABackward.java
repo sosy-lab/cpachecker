@@ -15,7 +15,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.algorithm.components.tree.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -33,8 +33,7 @@ public class BlockCPABackward extends AbstractCPA {
   }
 
   public void init(BlockNode pBlockNode) {
-    CFANode startNode = pBlockNode.getStartNode();
-    factory.setStartNode(startNode);
+    factory.setBlock(pBlockNode);
     TransferRelation relation = getTransferRelation();
     checkState(relation instanceof BackwardBlockTransferRelation, "Expected %s but got %s",
         BackwardBlockTransferRelation.class, relation.getClass());
