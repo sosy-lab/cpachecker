@@ -793,7 +793,7 @@ public class PdrAlgorithm implements Algorithm {
     assert pProver.isEmpty();
 
     AssertCandidate assertSinglePredecessor =
-        (p ->
+        p ->
             BMCHelper.assertAt(
                 Collections.singleton(
                     pTransitionRelation
@@ -804,7 +804,7 @@ public class PdrAlgorithm implements Algorithm {
                 p,
                 fmgr,
                 pmgr,
-                true));
+                true);
 
     // TODO this can probably done more efficiently
     // by keeping the assertions and transitions on the stack;
@@ -822,15 +822,15 @@ public class PdrAlgorithm implements Algorithm {
 
     boolean success = pProver.isUnsat();
     if (success) {
-      AssertCandidate assertKPredecessors = (p -> pTransitionRelation.getPredecessorAssertion(p));
+      AssertCandidate assertKPredecessors = p -> pTransitionRelation.getPredecessorAssertion(p);
       AssertCandidate assertSuccessorViolation =
-          (candidate -> {
+          candidate -> {
             Multimap<BooleanFormula, BooleanFormula> succViolationAssertions =
                 pTransitionRelation.getSuccessorViolationAssertions(pCandidateInvariant);
             BooleanFormula succViolation =
                 BMCHelper.disjoinStateViolationAssertions(bfmgr, succViolationAssertions);
             return succViolation;
-          });
+          };
       NextCti nextCti =
           () -> {
             List<ValueAssignment> modelAssignments = pProver.getModelAssignments();

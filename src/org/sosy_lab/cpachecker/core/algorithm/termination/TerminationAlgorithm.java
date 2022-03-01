@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
@@ -435,27 +436,76 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     if (expression instanceof CBinaryExpression) {
       CBinaryExpression binaryExp = (CBinaryExpression) expression;
       BinaryOperator operator = binaryExp.getOperator();
-      switch (operator) {
-        case BINARY_AND:
-        case BINARY_XOR:
-        case BINARY_OR:
-          return true;
-        default:
-          // nothing to do
+
+      if (isBitwiseBinaryOperation(operator)
+          || isMultiplicationWithEqualFactors(operator, binaryExp)) {
+        return true;
       }
+
       return containsBinaryOperation(binaryExp.getOperand1())
           || containsBinaryOperation(binaryExp.getOperand2());
     }
     if (expression instanceof CUnaryExpression) {
       CUnaryExpression unaryExp = (CUnaryExpression) expression;
       UnaryOperator operator = unaryExp.getOperator();
-      // nothing to do
+
       if (operator.equals(UnaryOperator.TILDE)) {
         return true;
       }
       return containsBinaryOperation(unaryExp.getOperand());
     }
     return false;
+  }
+
+  private boolean isBitwiseBinaryOperation(BinaryOperator pOperator) {
+    switch (pOperator) {
+      case BINARY_AND:
+      case BINARY_XOR:
+      case BINARY_OR:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  /**
+   * This method filters out multiplication operations that contain equal factors, since LassoRanker
+   * is not able to compute precise counterexamples for those.
+   *
+   * <p>As an example, the operation (n * m * n <= x) is filtered out due to the factor n being
+   * there twice (multiplied with itself). An operation (n * m * k <= x) is however unproblematic
+   * and therefore left in place.
+   */
+  private boolean isMultiplicationWithEqualFactors(
+      BinaryOperator pOperator, CBinaryExpression pExpression) {
+
+    if (pOperator == BinaryOperator.MULTIPLY) {
+      Set<CIdExpression> factors = new HashSet<>();
+      return containsEqualFactors(pExpression, factors);
+    }
+
+    return false;
+  }
+
+  private boolean containsEqualFactors(CRightHandSide pExpression, Set<CIdExpression> pFactors) {
+    if (pExpression instanceof CIdExpression) {
+      if (!pFactors.add((CIdExpression) pExpression)) {
+        // The expression was not added to the set because there is already one that is equal
+        return true;
+      }
+    }
+
+    boolean equalFactorsFound = false;
+    if (pExpression instanceof CBinaryExpression) {
+
+      CBinaryExpression binaryExpression = (CBinaryExpression) pExpression;
+      if (binaryExpression.getOperator() == BinaryOperator.MULTIPLY) {
+        equalFactorsFound |= containsEqualFactors(binaryExpression.getOperand1(), pFactors);
+        equalFactorsFound |= containsEqualFactors(binaryExpression.getOperand2(), pFactors);
+      }
+    }
+
+    return equalFactorsFound;
   }
 
   private boolean allRelevantVarsArePointers(final Set<CVariableDeclaration> pRelevantVariables) {

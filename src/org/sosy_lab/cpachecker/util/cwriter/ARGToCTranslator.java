@@ -356,7 +356,7 @@ public class ARGToCTranslator {
         String cond = "";
 
         if (truthAssumption) {
-          if (truthAssumption == assumeEdge.getTruthAssumption()) {
+          if (assumeEdge.getTruthAssumption()) {
             cond = "if (" + assumeEdge.getExpression().toQualifiedASTString() + ")";
           } else {
             cond = "if (!(" + assumeEdge.getExpression().toQualifiedASTString() + "))";
@@ -455,7 +455,7 @@ public class ARGToCTranslator {
   }
 
   private void pushToWaitlist(Deque<ARGEdge> pWaitlist, ARGState pCurrentElement, ARGState pChild, CFAEdge pEdgeToChild, CompoundStatement pCurrentBlock) {
-    assert (!pChild.isDestroyed());
+    assert !pChild.isDestroyed();
     pWaitlist.push(new ARGEdge(pCurrentElement, pChild, pEdgeToChild, pCurrentBlock));
   }
 

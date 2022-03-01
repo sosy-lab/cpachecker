@@ -319,7 +319,7 @@ class CFAFunctionBuilder extends ASTVisitor {
    */
   private int handleSimpleDeclaration(final IASTSimpleDeclaration sd) {
 
-    assert (!locStack.isEmpty()) : "not in a function's scope";
+    assert !locStack.isEmpty() : "not in a function's scope";
 
     CFANode prevNode = locStack.pop();
 

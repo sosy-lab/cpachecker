@@ -56,7 +56,7 @@ public class SharedRefiner extends GenericSinglePathRefiner {
       Iterator<LocalState> sharedIterator= successors.iterator();
       if (sharedUsage.getCFANode().equals(edge.getSuccessor())) {
         LocalState usageState = sharedIterator.next();
-        assert (usageState != null);
+        assert usageState != null;
 
         if (usageState.getType(usageId) == LocalState.DataType.LOCAL) {
           result = RefinementResult.createFalse();

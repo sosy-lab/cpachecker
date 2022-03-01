@@ -1924,8 +1924,8 @@ public class CtoFormulaConverter {
 
     int lsb = offset;
     int msb = offset + fieldSize - 1;
-    assert (lsb >= 0);
-    assert (msb >= lsb);
+    assert lsb >= 0;
+    assert msb >= lsb;
     Triple<Integer, Integer, Boolean> msb_Lsb = Triple.of(msb, lsb, signed);
     return msb_Lsb;
   }

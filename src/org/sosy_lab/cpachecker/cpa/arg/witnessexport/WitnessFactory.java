@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
 import static com.google.common.base.Strings.nullToEmpty;
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import static org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.SINK_NODE_ID;
 
@@ -1383,11 +1384,22 @@ class WitnessFactory implements EdgeAppender {
           } else if (!scope.equals(functionName)) {
             return;
           }
+          if (witnessOptions.produceInvariantWitnesses()) {
+            // First, collect all invariants
+            List<ExpressionTree<Object>> iterableList = new ArrayList<>();
+            for (CFAEdge enteringCFAEdge : CFAUtils.enteringEdges(loopHead)) {
+              iterableList.add(
+                  invariantProvider.provideInvariantFor(enteringCFAEdge, Optional.empty()));
+              }
+            // Next,compute the invariant as disjunction
+            loopHeadInvariant = computeInvariantForInvariantWitnesses(iterableList);
+          } else {
           for (CFAEdge enteringCFAEdge : CFAUtils.enteringEdges(loopHead)) {
             loopHeadInvariant =
                 Or.of(
                     loopHeadInvariant,
                     invariantProvider.provideInvariantFor(enteringCFAEdge, Optional.empty()));
+            }
           }
         } else {
           return;
@@ -1400,6 +1412,34 @@ class WitnessFactory implements EdgeAppender {
     if (scope != null) {
       getStateScopes().put(pTarget, scope);
     }
+  }
+
+  /**
+   * Computes a disjunction of the invariant present, where true is ignored. If all elements are
+   * true, true is returned
+   *
+   * @param expressions a collection of expressions
+   * @return the disjunction
+   */
+  private ExpressionTree<Object> computeInvariantForInvariantWitnesses(
+      Iterable<ExpressionTree<Object>> expressions) {
+    ExpressionTree<Object> mergedInvariant = ExpressionTrees.getFalse();
+    boolean trueSkipped = false;
+    for (ExpressionTree<Object> invariant : expressions) {
+
+      if (ExpressionTrees.getTrue().equals(invariant)) {
+        trueSkipped = true;
+      } else {
+        mergedInvariant = Or.of(mergedInvariant, invariant);
+      }
+    }
+    // In case there is only a true present and skipped and no other invariant is present,
+    // we would add false.
+    // Hence, we replace false by true
+    if (trueSkipped && ExpressionTrees.getFalse().equals(mergedInvariant)) {
+      mergedInvariant = ExpressionTrees.getTrue();
+    }
+    return mergedInvariant;
   }
 
   private boolean hasFlagsOrProperties(String pNode) {
@@ -1530,7 +1570,11 @@ class WitnessFactory implements EdgeAppender {
     mergeExpressionTreesIntoFirst(nodeToKeep, nodeToRemove);
 
     // Merge quasi invariant
-    mergeQuasiInvariant(nodeToKeep, nodeToRemove);
+    if (witnessOptions.produceInvariantWitnesses()) {
+      mergeQuasiInvariantForInvariantWitness(nodeToKeep, nodeToRemove);
+    } else {
+      mergeQuasiInvariant(nodeToKeep, nodeToRemove);
+    }
 
     // Merge the violated properties
     violatedProperties.putAll(nodeToKeep, violatedProperties.removeAll(nodeToRemove));
@@ -1619,8 +1663,15 @@ class WitnessFactory implements EdgeAppender {
         && (sourceScope == null || sourceScope.equals(targetScope))
         && enteringEdges.get(source).size() <= 1) {
       ExpressionTree<Object> newSourceTree = ExpressionTrees.getFalse();
+      if (witnessOptions.produceInvariantWitnesses()) {
+        newSourceTree =
+            computeInvariantForInvariantWitnesses(
+                transformedImmutableListCopy(enteringEdges
+                    .get(source), e->getStateInvariant(e.getSource())));
+      } else {
       for (Edge e : enteringEdges.get(source)) {
         newSourceTree = factory.or(newSourceTree, getStateInvariant(e.getSource()));
+        }
       }
       newSourceTree = simplifier.simplify(factory.and(targetTree, newSourceTree));
       stateInvariants.put(source, newSourceTree);
@@ -1657,6 +1708,23 @@ class WitnessFactory implements EdgeAppender {
     }
   }
 
+  /** If one of the two nodes has a quasi invariant that is 'true', the other invariant is used */
+  private void mergeQuasiInvariantForInvariantWitness(
+      final String pNodeToKeep, final String pNodeToRemove) {
+    ExpressionTree<Object> fromToKeep = getQuasiInvariant(pNodeToKeep);
+    ExpressionTree<Object> fromToRemove = getQuasiInvariant(pNodeToRemove);
+    if (ExpressionTrees.getTrue().equals(fromToKeep)) {
+      stateQuasiInvariants.put(pNodeToKeep, fromToRemove);
+    } else if (ExpressionTrees.getTrue().equals(fromToRemove)) {
+      stateQuasiInvariants.put(pNodeToKeep, fromToKeep);
+    } else {
+
+    fromToKeep = factory.or(fromToKeep, fromToRemove);
+    if (!ExpressionTrees.getFalse().equals(fromToKeep)) {
+      stateQuasiInvariants.put(pNodeToKeep, fromToKeep);
+      }
+    }
+  }
 
   private void putEdge(Edge pEdge) {
     assert leavingEdges.size() == enteringEdges.size();
@@ -1738,7 +1806,19 @@ class WitnessFactory implements EdgeAppender {
       stateInvariants.put(pStateId, existingTree);
       return existingTree;
     }
-    ExpressionTree<Object> result = simplifier.simplify(factory.or(prev, other));
+    ExpressionTree<Object> result = null;
+    if (witnessOptions.produceInvariantWitnesses()) {
+      if (ExpressionTrees.getTrue().equals(prev)) {
+        result = simplifier.simplify(other);
+      } else if (ExpressionTrees.getTrue().equals(other)) {
+        result = simplifier.simplify(prev);
+      } else {
+        result = simplifier.simplify(factory.or(prev, other));
+      }
+    } else {
+      result = simplifier.simplify(factory.or(prev, other));
+    }
+
     stateInvariants.put(pStateId, result);
     return result;
   }

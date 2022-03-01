@@ -26,6 +26,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.MoreStrings;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.Collections3;
@@ -114,7 +115,7 @@ class TraceAbstractionPrecisionAdjustment implements PrecisionAdjustment {
     checkArgument(pFullState instanceof ARGState);
 
     TraceAbstractionState taState = (TraceAbstractionState) pState;
-    AbstractState wrappedPredState = taState.getWrappedState();
+    AbstractState wrappedPredState = verifyNotNull(taState.getWrappedState());
 
     Optional<PrecisionAdjustmentResult> wrappedPrecResult =
         wrappedPrecAdjustment.prec(
@@ -148,9 +149,10 @@ class TraceAbstractionPrecisionAdjustment implements PrecisionAdjustment {
 
   private boolean checkEmptyPredicatePrecision(Precision pPrecision) {
     return pPrecision instanceof PredicatePrecision
-        && ((PredicatePrecision) pPrecision).equals(PredicatePrecision.empty());
+        && pPrecision.equals(PredicatePrecision.empty());
   }
 
+  @Nullable // Null value represents the bottom state
   private TraceAbstractionState computeTraceAbstractionSuccessor(
       TraceAbstractionState pTaState, PredicateAbstractState pPredSuccessor, ARGState pFullState)
       throws CPATransferException, InterruptedException {
@@ -287,12 +289,10 @@ class TraceAbstractionPrecisionAdjustment implements PrecisionAdjustment {
 
       if (computedPostCondition.isTrue()) {
 
-        if (connectingCfaEdges
-            .stream()
+        if (connectingCfaEdges.stream()
             .anyMatch(edge -> edge.getEdgeType() == CFAEdgeType.StatementEdge)) {
           boolean assignmentMadeForRelevantPred =
-              precondition
-                  .stream()
+              precondition.stream()
                   .anyMatch(
                       pred ->
                           anyVariableModified(

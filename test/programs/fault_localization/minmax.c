@@ -12,7 +12,7 @@ SPDX-FileCopyrightText: Mohammed Bekkouche <http://www.i3s.unice.fr>
 SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-extern int __VERIFIER_nondet_uint();
+extern int __VERIFIER_nondet_int();
 extern void __VERIFIER_error();
 
 

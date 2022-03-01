@@ -91,7 +91,7 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- JUnit
              Testing framework. -->
-        <dependency org="junit" name="junit" rev="4.13.1" conf="test->default; contrib->sources"/>
+        <dependency org="junit" name="junit" rev="4.13.2" conf="test->default; contrib->sources"/>
 
         <!-- The JUnit task for Ant so that we can run the tests.
              The property used here is defined in build.xml according to the current Ant version. -->
@@ -102,8 +102,10 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Mockito
              Mocking framework for tests. -->
-        <dependency org="org.mockito" name="mockito-core" rev="4.0.0" conf="test->default"/>
-        <dependency org="org.mockito" name="mockito-errorprone" rev="4.0.0" conf="build->default"/>
+        <dependency org="org.mockito" name="mockito-core" rev="4.3.1" conf="test->default"/>
+        <!-- Conflicts with Error Prone 2.11.0, re-enable after new version is available
+        <dependency org="org.mockito" name="mockito-errorprone" rev="4.3.1" conf="build->default"/>
+        -->
 
         <!-- Antlr
              Parser generator. -->
@@ -139,8 +141,8 @@ SPDX-License-Identifier: Apache-2.0
         <!-- Google error-prone
              Compiler adaptor with some useful checks for common errors. -->
         <!-- Synchronize version with REFASTER_VERSION in ../.gitlab-ci.yml! -->
-        <dependency org="com.google.errorprone" name="error_prone_core" rev="2.9.0" conf="build->default" />
-        <dependency org="com.google.errorprone" name="error_prone_annotations" rev="2.9.0" conf="build->default; contrib->sources" />
+        <dependency org="com.google.errorprone" name="error_prone_core" rev="2.11.0" conf="build->default" />
+        <dependency org="com.google.errorprone" name="error_prone_annotations" rev="2.11.0" conf="build->default; contrib->sources" />
 
         <!-- Policeman's Forbidden API Checker
              Useful for detecting uses of unwanted API -->
@@ -152,17 +154,17 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- google-java-format
              A source-code formatter for Java -->
-        <dependency org="com.google.googlejavaformat" name="google-java-format" rev="1.12.0" conf="format-source->default"/>
+        <dependency org="com.google.googlejavaformat" name="google-java-format" rev="1.13.0" conf="format-source->default"/>
 
         <!-- SpotBugs -->
-        <dependency org="com.github.spotbugs" name="spotbugs-ant" rev="4.4.1" conf="spotbugs->default"/>
+        <dependency org="com.github.spotbugs" name="spotbugs-ant" rev="4.5.3" conf="spotbugs->default"/>
         <!-- JAR with annotations needs to be present at runtime because we use Nullable.class -->
-        <dependency org="com.github.spotbugs" name="spotbugs-annotations" rev="4.4.1" conf="runtime->default; contrib->sources"/>
+        <dependency org="com.github.spotbugs" name="spotbugs-annotations" rev="4.5.3" conf="runtime->default; contrib->sources"/>
         <dependency org="com.google.code.findbugs" name="jsr305" rev="3.0.2" conf="runtime->default; contrib->sources"/>
 
         <!-- Checkstyle -->
-        <dependency org="com.github.sevntu-checkstyle" name="sevntu-checks" rev="1.40.0" conf="checkstyle->default"/>
-        <dependency org="com.puppycrawl.tools" name="checkstyle" rev="9.1" conf="checkstyle->default"/>
+        <dependency org="com.github.sevntu-checkstyle" name="sevntu-checks" rev="1.41.0" conf="checkstyle->default"/>
+        <dependency org="com.puppycrawl.tools" name="checkstyle" rev="9.3" conf="checkstyle->default"/>
 
         <!-- VerifierCloud -->
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>
@@ -198,7 +200,7 @@ SPDX-License-Identifier: Apache-2.0
         </dependency>
 
         <!-- Guava has a dependency on error_prone_annotations without a revision number, need an override. -->
-        <override org="com.google.errorprone" module="error_prone_annotations" rev="2.9.0"/>
+        <override org="com.google.errorprone" module="error_prone_annotations" rev="2.11.0"/>
 
     </dependencies>
 </ivy-module>

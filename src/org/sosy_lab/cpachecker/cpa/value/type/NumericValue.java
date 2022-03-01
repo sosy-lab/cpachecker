@@ -14,7 +14,7 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
-
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -194,7 +194,7 @@ public class NumericValue implements Value, Serializable {
   }
 
   @Override
-  public Long asLong(CType type) {
+  public @Nullable Long asLong(CType type) {
     checkNotNull(type);
     type = type.getCanonicalType();
     if (!(type instanceof CSimpleType)) {

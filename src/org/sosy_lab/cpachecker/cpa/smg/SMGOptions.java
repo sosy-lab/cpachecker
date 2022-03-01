@@ -156,6 +156,12 @@ public class SMGOptions {
 
   @Option(
       secure = true,
+      name = "crashOnUnknown",
+      description = "Crash on unknown array dereferences")
+  private boolean crashOnUnknown = false;
+
+  @Option(
+      secure = true,
       description = "with this option enabled, heap abstraction will be enabled.")
   private boolean enableHeapAbstraction = false;
 
@@ -337,5 +343,9 @@ public class SMGOptions {
 
   public boolean getJoinOnBlockEnd() {
     return joinOnBlockEnd;
+  }
+
+  public boolean crashOnUnknown() {
+    return crashOnUnknown;
   }
 }

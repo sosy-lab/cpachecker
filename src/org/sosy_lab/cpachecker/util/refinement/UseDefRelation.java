@@ -190,7 +190,8 @@ public class UseDefRelation {
   }
 
   private void updateRelation(ARGState state, CFAEdge edge, Set<ASimpleDeclaration> defs, Set<ASimpleDeclaration> uses) {
-    assert(!relation.containsKey(Pair.of(state, edge))) : "There is already a use-def entry for this pair of state, edge";
+    assert !relation.containsKey(Pair.of(state, edge))
+        : "There is already a use-def entry for this pair of state, edge";
 
     relation.put(Pair.of(state, edge), Pair.of(defs, uses));
     unresolvedUses.removeAll(defs);

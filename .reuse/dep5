@@ -18,7 +18,7 @@ Copyright: Computer Science Department, Carnegie Mellon University
 Copyright: Computer Science Department, University of Oxford
 License: LicenseRef-BSD-4-Clause-CBMC
 
-Files: src/org/sosy_lab/cpachecker/core/counterexample/build/bundle.*
+Files: src/org/sosy_lab/cpachecker/core/counterexample/build/main.*
  src/org/sosy_lab/cpachecker/core/counterexample/build/workerData.js
 Copyright: 2020 Dirk Beyer <https://www.sosy-lab.org>
 License: Apache-2.0
