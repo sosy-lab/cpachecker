@@ -19,22 +19,21 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
+import org.sosy_lab.cpachecker.cpa.block.BlockState.BackwardsBlockState;
 
-@Options
+@Options(prefix = "cpa.block")
 public class BlockStateFactory {
 
   private final BlockState[] states;
   private final AnalysisDirection locationType;
-  private BlockNode blockNode;
+  private CFANode startNode;
   private final ImmutableSortedSet<CFANode> allNodes;
-  private final CFA cfa;
 
   public BlockStateFactory(CFA pCfa, AnalysisDirection pLocationType, Configuration config)
       throws InvalidConfigurationException {
     config.inject(this);
     locationType = checkNotNull(pLocationType);
-    cfa = pCfa;
+    startNode = pCfa.getMainFunction();
 
     Collection<CFANode> tmpNodes = pCfa.getAllNodes();
     if (tmpNodes instanceof ImmutableSortedSet) {
@@ -51,8 +50,8 @@ public class BlockStateFactory {
     }
   }
 
-  public void setBlock(final BlockNode pStartNode) {
-    blockNode = pStartNode;
+  public void setStartNode(final CFANode pStartNode) {
+    startNode = pStartNode;
     for (CFANode node : allNodes) {
       BlockState state = createLocationState(node);
       states[node.getNodeNumber()] = state;
@@ -77,7 +76,7 @@ public class BlockStateFactory {
 
   private BlockState createLocationState(CFANode node) {
     return locationType == AnalysisDirection.BACKWARD
-           ? new BlockState(node, blockNode == null ? cfa.getMainFunction() : blockNode.getStartNode(), false)
-           : new BlockState(node, blockNode == null ? cfa.getMainFunction() : blockNode.getLastNode(), true);
+           ? new BackwardsBlockState(node, checkNotNull(startNode, "You need to set a start node for backwards analysis."))
+           : new BlockState(node);
   }
 }

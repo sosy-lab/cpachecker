@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.splitter;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
@@ -157,7 +155,7 @@ public abstract class SplitInfoState implements AbstractQueryableState {
     private final Set<Integer> inSplit;
 
     private SetSplitInfoState(final Set<Integer> pInSplit) {
-      inSplit = checkNotNull(pInSplit);
+      inSplit = pInSplit;
     }
 
     @Override
@@ -220,7 +218,10 @@ public abstract class SplitInfoState implements AbstractQueryableState {
 
     @Override
     public int hashCode() {
-      return inSplit.hashCode();
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + ((inSplit == null) ? 0 : inSplit.hashCode());
+      return result;
     }
 
     @Override
@@ -240,7 +241,14 @@ public abstract class SplitInfoState implements AbstractQueryableState {
         return false;
       }
       SetSplitInfoState other = (SetSplitInfoState) obj;
-      return inSplit.equals(other.inSplit);
+      if (inSplit == null) {
+        if (other.inSplit != null) {
+          return false;
+        }
+      } else if (!inSplit.equals(other.inSplit)) {
+        return false;
+      }
+      return true;
     }
   }
 }

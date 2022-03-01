@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.usage;
 
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.CharMatcher;
 import com.google.common.collect.ImmutableSet;
 import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
@@ -88,7 +87,8 @@ public class VariableSkipper {
         idType = ((CArrayType) idType).getType();
       }
       String typeString = idType.toString();
-      typeString = CharMatcher.anyOf("()").removeFrom(typeString);
+      typeString = typeString.replaceAll("\\(", "");
+      typeString = typeString.replaceAll("\\)", "");
       if (byType.contains(typeString)) {
         return true;
       }

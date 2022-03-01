@@ -112,8 +112,8 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
     }
 
     long fieldOffset = pOffset.getAsLong();
-    long typeBitSize = getBitSizeof(pEdge, pType, pSmgState);
-    long objectBitSize = pObject.getSize();
+    int typeBitSize = getBitSizeof(pEdge, pType, pSmgState);
+    int objectBitSize = pObject.getSize();
 
     //FIXME Does not work with variable array length.
     boolean doesNotFitIntoObject = fieldOffset < 0
@@ -172,8 +172,8 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
 
     // FIXME Does not work with variable array length.
     // TODO: write value with bit precise size
-    long memoryBitSize = pMemoryOfField.getSize();
-    long rValueTypeBitSize = getBitSizeof(pEdge, pRValueType, pState);
+    int memoryBitSize = pMemoryOfField.getSize();
+    int rValueTypeBitSize = getBitSizeof(pEdge, pRValueType, pState);
     boolean doesNotFitIntoObject =
         pFieldOffset < 0 || pFieldOffset + rValueTypeBitSize > memoryBitSize;
 
@@ -232,7 +232,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
       CType rValueType)
       throws UnrecognizedCodeException, SMGInconsistentException {
 
-    long sizeOfField = getBitSizeof(cfaEdge, rValueType, newState);
+    int sizeOfField = getBitSizeof(cfaEdge, rValueType, newState);
 
     // FIXME Does not work with variable array length.
     if (memoryOfField.getSize() < sizeOfField) {

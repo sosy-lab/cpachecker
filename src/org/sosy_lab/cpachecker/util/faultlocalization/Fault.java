@@ -98,7 +98,8 @@ public class Fault extends ForwardingSet<FaultContribution> implements Comparabl
 
   @Override
   public String toString(){
-    List<FaultInfo> copy = ImmutableList.sortedCopyOf(infos);
+    List<FaultInfo> copy = new ArrayList<>(infos);
+    Collections.sort(copy);
 
     StringBuilder out = new StringBuilder("Error suspected on line(s): "
         + listDistinctLinesAndJoin()
@@ -180,16 +181,5 @@ public class Fault extends ForwardingSet<FaultContribution> implements Comparabl
 
   public void replaceErrorSet(Set<FaultContribution> pContributions) {
     errorSet = pContributions;
-  }
-
-  public static Fault merge(Fault f1, Fault f2) {
-    Set<FaultContribution> contributions = new HashSet<>(f1);
-    contributions.addAll(f2);
-    List<FaultInfo> infos = new ArrayList<>(f1.infos);
-    infos.addAll(f2.infos);
-    Fault newFault = new Fault(contributions);
-    infos.forEach(newFault::addInfo);
-    newFault.intendedIndex = Integer.min(f1.intendedIndex, f2.intendedIndex);
-    return newFault;
   }
 }

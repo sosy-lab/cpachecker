@@ -257,7 +257,9 @@ public class UseDefRelation {
         final FunctionEntryNode functionEntryNode = functionCallEdge.getSuccessor();
 
         List<ASimpleDeclaration> parameters =
-            new ArrayList<>(functionEntryNode.getFunctionParameters());
+            new ArrayList<>(functionEntryNode.getFunctionParameters().size());
+        parameters.addAll(functionEntryNode.getFunctionParameters());
+
         Set<ASimpleDeclaration> defs = new HashSet<>();
         Set<ASimpleDeclaration> uses = new HashSet<>();
         for (int parameterIndex = 0; parameterIndex < parameters.size(); parameterIndex++) {

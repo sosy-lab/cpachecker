@@ -101,9 +101,12 @@ class DnfTransformation extends BooleanFormulaTransformationVisitor {
           return fmgr.and(pProcessedOperands);
         }
       }
-    } catch (InterruptedException | SolverException e) {
+    } catch (InterruptedException e) {
       // The exception can't be propagated here, because we're overwriting a method in which the
       // method signature cannot be changed. Thus, we have to throw an unchecked exceptions here.
+      throw new DnfTransformationException(e.getMessage(), e);
+    } catch (SolverException e) {
+      // see above, a checked exception cannot be propagated here
       throw new DnfTransformationException(e.getMessage(), e);
     }
 

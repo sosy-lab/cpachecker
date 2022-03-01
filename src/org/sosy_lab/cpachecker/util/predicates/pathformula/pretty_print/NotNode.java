@@ -29,9 +29,9 @@ class NotNode implements FormulaNode {
   @Override
   public String toString() {
     if (node instanceof OrNode || node instanceof ExpressionNode) {
-      return "!" + node;
+      return "¬" + node;
     }
-    return "!(" + node + ")";
+    return "¬(" + node + ")";
   }
 
   @Override

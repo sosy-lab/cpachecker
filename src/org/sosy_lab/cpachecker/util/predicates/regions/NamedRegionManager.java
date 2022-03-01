@@ -12,13 +12,14 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.primitives.ImmutableIntArray;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -32,6 +33,7 @@ import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders.AbstractAppender;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.Triple;
+import org.sosy_lab.cpachecker.util.predicates.PredicateOrderingStrategy;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -235,13 +237,10 @@ public class NamedRegionManager implements RegionManager {
   }
 
   @Override
-  public void setVarOrder(ImmutableIntArray pOrder) {
-    delegate.setVarOrder(pOrder);
-  }
+  public void setVarOrder(ImmutableIntArray pOrder) {}
 
   @Override
-  public void reorder(VariableOrderingStrategy strategy) {
-    delegate.reorder(strategy);
+  public void reorder(PredicateOrderingStrategy strategy) {
   }
 
   @Override
@@ -285,20 +284,20 @@ public class NamedRegionManager implements RegionManager {
     synchronized (regionMap) {
       // sort predicates according to BDD ordering.
       // create small BDDs "AND(A,B)" and check which node is the root.
-      return ImmutableList.sortedCopyOf(
-          (a, b) -> {
-            Region ra = regionMap.get(a);
-            Region rb = regionMap.get(b);
-            Region root = getIfThenElse(makeAnd(ra, rb)).getFirst();
-            if (ra.equals(root)) {
-              return 1;
-            } else if (rb.equals(root)) {
-              return -1;
-            } else {
-              throw new AssertionError("should not happen, all predicates are unique");
-            }
-          },
-          regionMap.keySet());
+      List<String> predicates = new ArrayList<>(regionMap.keySet());
+      Collections.sort(predicates, (a, b) -> {
+        Region ra = regionMap.get(a);
+        Region rb = regionMap.get(b);
+        Region root = getIfThenElse(makeAnd(ra, rb)).getFirst();
+        if (ra.equals(root)) {
+          return 1;
+        } else if (rb.equals(root)) {
+          return -1;
+        } else {
+          throw new AssertionError("should not happen, all predicates are unique");
+        }
+      });
+      return predicates;
     }
   }
 
@@ -329,7 +328,7 @@ public class NamedRegionManager implements RegionManager {
   }
 
   @Override
-  public Region replace(Region pRegion, List<Region> pOldPredicates, List<Region> pNewPredicates) {
+  public Region replace(Region pRegion, Region[] pOldPredicates, Region[] pNewPredicates) {
     return delegate.replace(pRegion, pOldPredicates, pNewPredicates);
   }
 }

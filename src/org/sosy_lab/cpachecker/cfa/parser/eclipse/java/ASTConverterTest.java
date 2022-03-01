@@ -11,8 +11,8 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
-import java.util.Optional;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
@@ -33,7 +33,7 @@ public class ASTConverterTest {
   public void testGetClassOfJType() {
     Optional<Class<?>> optionalOfPrimitiveType =
         ASTConverter.getClassOfJType(JSimpleType.getBoolean(), ImmutableSet.of());
-    assertThat(optionalOfPrimitiveType.orElseThrow()).isEqualTo(boolean.class);
+    assertThat(optionalOfPrimitiveType.get()).isEqualTo(boolean.class);
   }
 
   @Test
@@ -49,7 +49,7 @@ public class ASTConverterTest {
   public void testGetClassOfJTypeForNonPrimitiveType() {
     Optional<Class<?>> optionalOfStringClass =
         ASTConverter.getClassOfJType(jClassType, ImmutableSet.of());
-    assertThat(optionalOfStringClass.orElseThrow()).isEqualTo(String.class);
+    assertThat(optionalOfStringClass.get()).isEqualTo(String.class);
   }
 
   @Test
@@ -57,9 +57,8 @@ public class ASTConverterTest {
     JArrayType jArrayTypeOfString = new JArrayType(jClassType, 3);
     Optional<Class<?>> optionalOfArrayClass =
         ASTConverter.getClassOfJType(jArrayTypeOfString, ImmutableSet.of());
-    assertThat(optionalOfArrayClass.orElseThrow().isArray()).isTrue();
-    assertThat(optionalOfArrayClass.orElseThrow().toGenericString())
-        .isEqualTo("java.lang.String[][][]");
+    assertThat(optionalOfArrayClass.get().isArray()).isTrue();
+    assertThat(optionalOfArrayClass.get().toGenericString()).isEqualTo("java.lang.String[][][]");
   }
 
   private static JClassType createStringJClassType(String pFullyQualifiedName, String pString) {
@@ -77,7 +76,6 @@ public class ASTConverterTest {
   @Test
   public void testUnboxing() {
     JClassType jClassTypeOfInteger = createStringJClassType("java.lang.Integer", "Integer");
-    assertThat(ASTConverter.unboxJClassType(jClassTypeOfInteger).orElseThrow())
-        .isEqualTo(JBasicType.INT);
+    assertThat(ASTConverter.unboxJClassType(jClassTypeOfInteger).get()).isEqualTo(JBasicType.INT);
   }
 }

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.variableclassification;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMultimap;
@@ -19,7 +20,6 @@ import java.util.ArrayDeque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -540,7 +540,7 @@ final class VariableAndFieldRelevancyComputer {
           CFunctionCall statement = call.getSummaryEdge().getExpression();
           Optional<CVariableDeclaration> returnVar = call.getSuccessor().getReturnVariable();
           if (returnVar.isPresent()) {
-            String scopedRetVal = returnVar.orElseThrow().getQualifiedName();
+            String scopedRetVal = returnVar.get().getQualifiedName();
             if (statement instanceof CFunctionCallAssignmentStatement) {
               final Pair<VariableOrField, VarFieldDependencies> r =
                   ((CFunctionCallAssignmentStatement) statement)
@@ -568,7 +568,7 @@ final class VariableAndFieldRelevancyComputer {
           if (ret.asAssignment().isPresent()) {
             final Pair<VariableOrField, VarFieldDependencies> r =
                 ret.asAssignment()
-                    .orElseThrow()
+                    .get()
                     .getLeftHandSide()
                     .accept(CollectingLHSVisitor.create(pCfa));
             result =
@@ -576,7 +576,7 @@ final class VariableAndFieldRelevancyComputer {
                     r.getSecond()
                         .withDependencies(
                             ret.asAssignment()
-                                .orElseThrow()
+                                .get()
                                 .getRightHandSide()
                                 .accept(CollectingRHSVisitor.create(pCfa, r.getFirst()))));
           }

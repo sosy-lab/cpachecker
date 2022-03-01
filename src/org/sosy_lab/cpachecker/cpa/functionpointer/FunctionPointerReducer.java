@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.functionpointer;
 
-import java.util.Optional;
+import com.google.common.base.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;

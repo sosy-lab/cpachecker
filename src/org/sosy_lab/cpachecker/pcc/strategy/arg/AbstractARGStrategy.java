@@ -22,7 +22,6 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PropertyChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -55,8 +54,7 @@ public abstract class AbstractARGStrategy extends SequentialReadStrategy {
   }
 
   @Override
-  public void constructInternalProofRepresentation(
-      UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa) {
+  public void constructInternalProofRepresentation(UnmodifiableReachedSet pReached) {
     if (correctReachedSetFormatForProof(pReached)) {
       root = (ARGState) pReached.getFirstState();
       stats.increaseProofSize(1);
@@ -177,9 +175,8 @@ public abstract class AbstractARGStrategy extends SequentialReadStrategy {
   }
 
   @Override
-  protected Object getProofToWrite(
-      UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa) {
-    constructInternalProofRepresentation(pReached, pCpa);
+  protected Object getProofToWrite(UnmodifiableReachedSet pReached) {
+    constructInternalProofRepresentation(pReached);
     return root;
   }
 

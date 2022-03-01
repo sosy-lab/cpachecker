@@ -25,7 +25,6 @@ import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.eclipse.cdt.core.dom.ast.ASTVisitor;
 import org.eclipse.cdt.core.dom.ast.IASTASMDeclaration;
-import org.eclipse.cdt.core.dom.ast.IASTComment;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
@@ -38,10 +37,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
-import org.sosy_lab.cpachecker.cfa.ParseResultWithCommentLocations;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.util.SyntacticBlock;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -83,10 +79,6 @@ class CFABuilder extends ASTVisitor {
 
   // Data structure for checking amount of initializations per global variable
   private final Set<String> globalInitializedVariables = new HashSet<>();
-
-  // Data structures for storing locations of ACSL annotations
-  private final List<FileLocation> acslCommentPositions = new ArrayList<>();
-  private final List<SyntacticBlock> blocks = new ArrayList<>();
 
   private final List<Path> parsedFiles = new ArrayList<>();
 
@@ -158,15 +150,6 @@ class CFABuilder extends ASTVisitor {
         Triple.of(new ArrayList<IASTFunctionDefinition>(), staticVariablePrefix, fileScope));
 
     ast.accept(this);
-
-    if (options.shouldCollectACSLAnnotations()) {
-      for (IASTComment comment : ast.getComments()) {
-        String commentString = String.valueOf(comment.getComment());
-        if (commentString.startsWith("/*@") || commentString.startsWith("//@")) {
-          acslCommentPositions.add(astCreator.getLocation(comment));
-        }
-      }
-    }
 
     shutdownNotifier.shutdownIfNecessary();
   }
@@ -363,12 +346,9 @@ class CFABuilder extends ASTVisitor {
       throw new CParserException("Invalid C code because of undefined identifiers mentioned above.");
     }
 
-    if (acslCommentPositions.isEmpty()) {
-      return new ParseResult(cfas, cfaNodes, globalDecls, parsedFiles);
-    }
+    ParseResult result = new ParseResult(cfas, cfaNodes, globalDecls, parsedFiles);
 
-    return new ParseResultWithCommentLocations(
-        cfas, cfaNodes, globalDecls, parsedFiles, acslCommentPositions, blocks);
+    return result;
   }
 
   private void handleFunctionDefinition(
@@ -416,7 +396,6 @@ class CFABuilder extends ASTVisitor {
     globalDecls.addAll(functionBuilder.getGlobalDeclarations());
 
     encounteredAsm |= functionBuilder.didEncounterAsm();
-    blocks.addAll(functionBuilder.getBlocks());
     functionBuilder.finish();
   }
 

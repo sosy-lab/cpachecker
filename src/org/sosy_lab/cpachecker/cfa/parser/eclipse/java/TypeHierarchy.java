@@ -116,8 +116,8 @@ final class TypeHierarchy {
     return fieldDeclarationsOfType.get(type);
   }
 
-  public static TypeHierarchy createTypeHierachy(LogManager pLogger, List<JavaFileAST> pJavaProgram)
-      throws JParserException {
+  public static TypeHierarchy createTypeHierachy
+      (LogManager pLogger, List<JavaFileAST> pJavaProgram) throws JParserException {
 
     TypeHierachyCreator creator = new TypeHierachyCreator(pLogger, new THTypeTable());
 
@@ -156,7 +156,7 @@ final class TypeHierarchy {
 
   public JInterfaceType getInterfaceType(String pTypeName) {
 
-    JClassOrInterfaceType type = types.get(pTypeName);
+    JClassOrInterfaceType type =  types.get(pTypeName);
 
     checkState((type instanceof JInterfaceType), "Interface Type does not exist");
 
@@ -171,7 +171,7 @@ final class TypeHierarchy {
 
   public JClassType getClassType(String pTypeName) {
 
-    JClassOrInterfaceType type = types.get(pTypeName);
+    JClassOrInterfaceType type =  types.get(pTypeName);
 
     checkState((type instanceof JClassType), "Interface Type does not exist");
 
@@ -181,10 +181,8 @@ final class TypeHierarchy {
   void updateTypeHierarchy(ITypeBinding classOrInterfaceBinding) {
 
     checkNotNull(classOrInterfaceBinding);
-    checkArgument(
-        classOrInterfaceBinding.isClass()
-            || classOrInterfaceBinding.isEnum()
-            || classOrInterfaceBinding.isInterface());
+    checkArgument(classOrInterfaceBinding.isClass() || classOrInterfaceBinding.isEnum()
+        || classOrInterfaceBinding.isInterface());
 
     THTypeConverter converter = new THTypeConverter(typeTable);
 
@@ -202,7 +200,7 @@ final class TypeHierarchy {
 
     JClassType superClass = pJClassType.getParentClass();
 
-    while (superClass != null && !typeTable.containsType(superClass.getName())) {
+    while(superClass != null && !typeTable.containsType(superClass.getName())){
       typeTable.registerType(superClass);
       superClass = superClass.getParentClass();
     }
@@ -236,8 +234,8 @@ final class TypeHierarchy {
     private final Map<String, JClassOrInterfaceType> types = new HashMap<>();
     private final Map<JClassOrInterfaceType, Path> typeOfFiles = new HashMap<>();
 
-    private final Map<JClassOrInterfaceType, Set<JMethodDeclaration>> methodDeclarationsOfType =
-        new HashMap<>();
+    private final Map<JClassOrInterfaceType, Set<JMethodDeclaration>>
+                                                    methodDeclarationsOfType = new HashMap<>();
 
     private final Map<JClassOrInterfaceType, ImmutableSet<JFieldDeclaration>>
         fieldDeclarationsOfType = new HashMap<>();
@@ -280,8 +278,7 @@ final class TypeHierarchy {
      *
      * @param pDecl the method declaration to be registered.
      */
-    public void registerFieldDeclaration(
-        JFieldDeclaration pDecl, JClassOrInterfaceType declaringClass) {
+    public void registerFieldDeclaration(JFieldDeclaration pDecl, JClassOrInterfaceType declaringClass) {
 
       checkArgument(fieldDeclarationsOfType.containsKey(declaringClass));
       checkArgument(!fieldDeclarationsOfType.get(declaringClass).contains(pDecl));
@@ -308,22 +305,20 @@ final class TypeHierarchy {
     }
 
     public Map<JClassOrInterfaceType, Set<JMethodDeclaration>> getMethodDeclarationsOfType() {
-      return ImmutableMap.copyOf(
-          Maps.transformValues(methodDeclarationsOfType, ImmutableSet::copyOf));
+      return ImmutableMap.copyOf(Maps.transformValues(methodDeclarationsOfType, ImmutableSet::copyOf));
     }
 
-    public Map<JClassOrInterfaceType, ImmutableSet<JFieldDeclaration>>
-        getFieldDeclarationsOfType() {
-      return ImmutableMap.copyOf(
-          Maps.transformValues(fieldDeclarationsOfType, ImmutableSet::copyOf));
+    public Map<JClassOrInterfaceType, ImmutableSet<JFieldDeclaration>> getFieldDeclarationsOfType() {
+      return ImmutableMap.copyOf(Maps.transformValues(fieldDeclarationsOfType, ImmutableSet::copyOf));
     }
 
-    public void registerFieldDeclaration(
-        Set<JFieldDeclaration> pDecl, JClassOrInterfaceType pDeclaringClass) {
+    public void registerFieldDeclaration(Set<JFieldDeclaration> pDecl,
+        JClassOrInterfaceType pDeclaringClass) {
 
       for (JFieldDeclaration decl : pDecl) {
         registerFieldDeclaration(decl, pDeclaringClass);
       }
     }
+
   }
 }

@@ -12,6 +12,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.statistics.StatisticsDataProvider;
 import org.sosy_lab.cpachecker.cpa.statistics.StatisticsProvider;
 
+
 /**
  * The SimpleIntProvider is a basic implementation for StatisticsProvider
  * where the state is basically a single Integer.
@@ -22,7 +23,7 @@ import org.sosy_lab.cpachecker.cpa.statistics.StatisticsProvider;
  *
  */
 public class SimpleIntProvider implements StatisticsProvider {
-  public interface SimpleIntProviderImplementation {
+  public static interface SimpleIntProviderImplementation {
     String getPropertyName();
     /**
      * Calculate the next state given the current state and an CFAEdge
@@ -33,7 +34,7 @@ public class SimpleIntProvider implements StatisticsProvider {
   /**
    * To also name your merge strategy override the toString method.
    */
-  public interface IntMerger {
+  public static interface IntMerger {
     /**
      * Merge two states.
      */

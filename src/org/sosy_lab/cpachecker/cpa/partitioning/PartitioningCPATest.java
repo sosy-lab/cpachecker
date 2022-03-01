@@ -12,6 +12,7 @@ import static com.google.common.truth.Truth.assertThat;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAchecker.InitialStatesFor;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
@@ -24,7 +25,7 @@ public class PartitioningCPATest {
 
   private PartitioningCPA cpa;
   private AbstractDomain domain;
-  private CFANode DUMMY_CFA_NODE = CFANode.newDummyCFANode();
+  private CFANode DUMMY_CFA_NODE = new CFANode(CFunctionDeclaration.DUMMY);
 
   @Before
   public void setUp() {

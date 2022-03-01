@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.util.predicates.weakening;
 
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Throwables;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableBiMap;
@@ -261,58 +260,30 @@ public class InductiveWeakeningManager implements StatisticsProvider {
     }
   }
 
-  private static final class TemporaryException extends RuntimeException {
-
-    private static final long serialVersionUID = -7046164286357019183L;
-
-    TemporaryException(InterruptedException e) {
-      super(e);
-    }
-
-    TemporaryException(SolverException e) {
-      super(e);
-    }
-
-    AssertionError unwrap() throws InterruptedException, SolverException {
-      Throwables.propagateIfPossible(getCause(), InterruptedException.class, SolverException.class);
-      throw new AssertionError(this);
-    }
-  }
-
   public BooleanFormula removeRedundancies(BooleanFormula input)
-      throws InterruptedException, SolverException {
+      throws InterruptedException {
     // Assume the formula to be a conjunction over disjunctions.
     BooleanFormula nnf = fmgr.applyTactic(input, Tactic.NNF);
 
-    try {
-    return bfmgr.transformRecursively(
-        nnf,
-        new BooleanFormulaTransformationVisitor(fmgr) {
+    return bfmgr.transformRecursively(nnf, new BooleanFormulaTransformationVisitor(fmgr) {
           @Override
           public BooleanFormula visitAnd(List<BooleanFormula> processedOperands) {
             try {
               return bfmgr.and(simplifyArgs(processedOperands));
-            } catch (InterruptedException e) {
-              throw new TemporaryException(e);
-            } catch (SolverException e) {
-              throw new TemporaryException(e);
-            }
+            } catch (SolverException|InterruptedException pE) {
+              throw new UnsupportedOperationException("Error while "
+                  + "simplifying", pE); }
           }
 
           @Override
           public BooleanFormula visitOr(List<BooleanFormula> processedOperands) {
             try {
               return bfmgr.or(simplifyArgs(processedOperands));
-            } catch (InterruptedException e) {
-              throw new TemporaryException(e);
-            } catch (SolverException e) {
-              throw new TemporaryException(e);
-            }
+            } catch (SolverException|InterruptedException pE) {
+              throw new UnsupportedOperationException("Error while "
+                  + "simplifying", pE); }
           }
         });
-    } catch (TemporaryException e) {
-      throw e.unwrap();
-    }
   }
 
   private List<BooleanFormula> simplifyArgs(

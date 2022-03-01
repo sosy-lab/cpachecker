@@ -37,7 +37,7 @@ public class ReachedSetBasedExpressionTreeSupplier implements ExpressionTreeSupp
   }
 
   @Override
-  public ExpressionTree<Object> getInvariantFor(CFANode pLocation) throws InterruptedException {
+  public ExpressionTree<Object> getInvariantFor(CFANode pLocation) {
 
     Set<InvariantsState> invStates = new HashSet<>();
     boolean otherReportingStates = false;

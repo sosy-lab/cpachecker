@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.error;
 import com.google.common.collect.ImmutableSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 public class DummyErrorState extends ARGState {
@@ -27,7 +28,7 @@ public class DummyErrorState extends ARGState {
   }
 
   @Override
-  public Set<TargetInformation> getTargetInformation() {
+  public Set<Property> getViolatedProperties() {
     return ImmutableSet.of();
   }
 

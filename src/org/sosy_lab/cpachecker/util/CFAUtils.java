@@ -31,7 +31,6 @@ import java.util.NavigableSet;
 import java.util.Queue;
 import java.util.Set;
 import java.util.function.Function;
-import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -482,7 +481,7 @@ public class CFAUtils {
     return result;
   }
 
-  public static Iterable<AAstNode> getAstNodesFromCfaEdge(final CFAEdge edge) {
+  public static Iterable<? extends AAstNode> getAstNodesFromCfaEdge(final CFAEdge edge) {
     switch (edge.getEdgeType()) {
       case CallToReturnEdge:
         FunctionSummaryEdge fnSumEdge = (FunctionSummaryEdge) edge;
@@ -491,11 +490,11 @@ public class CFAUtils {
       case FunctionCallEdge:
         FunctionCallEdge functionCallEdge = (FunctionCallEdge) edge;
         return Iterables.concat(
-            Optionals.asSet(edge.getRawAST()),
+            edge.getRawAST().asSet(),
             getAstNodesFromCfaEdge(functionCallEdge.getSummaryEdge()));
 
       default:
-        return Optionals.asSet(edge.getRawAST());
+        return edge.getRawAST().asSet();
     }
   }
 
@@ -694,7 +693,7 @@ public class CFAUtils {
 
     @Override
     public Iterable<? extends AAstNode> visit(AReturnStatement pNode) {
-      return Optionals.asSet(pNode.getReturnValue());
+      return pNode.getReturnValue().asSet();
     }
 
     @Override

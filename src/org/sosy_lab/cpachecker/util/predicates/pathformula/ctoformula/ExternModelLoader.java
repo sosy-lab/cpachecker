@@ -40,7 +40,7 @@ public class ExternModelLoader {
   public BooleanFormula handleExternModelFunction(List<CExpression> parameters, SSAMapBuilder ssa) {
     assert (!parameters.isEmpty()) : "No external model given!";
     // the parameter comes in C syntax (with ")
-    String filename = parameters.get(0).toASTString().replace("\"", "");
+    String filename = parameters.get(0).toASTString().replaceAll("\"", "");
     Path modelFile = Path.of(filename);
     return loadExternalFormula(modelFile, ssa);
   }

@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import com.google.errorprone.annotations.CheckReturnValue;
-import java.util.Objects;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -107,7 +106,12 @@ public interface Algorithm {
 
     @Override
     public int hashCode() {
-      return Objects.hash(propertyChecked, isSound, isPrecise);
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + (propertyChecked ? 1231 : 1237);
+      result = prime * result + (isSound ? 1231 : 1237);
+      result = prime * result + (isPrecise ? 1231 : 1237);
+      return result;
     }
 
     @Override

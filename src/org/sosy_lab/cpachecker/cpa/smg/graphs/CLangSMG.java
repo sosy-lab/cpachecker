@@ -363,9 +363,9 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
 
     for (SMGEdgeHasValue hvedge : getHVEdges()) {
       MemoryLocation memloc = resolveMemLoc(hvedge);
-      Iterable<SMGEdgeHasValue> edge = getHVEdgeFromMemoryLocation(memloc);
+      SMGHasValueEdges edge = getHVEdgeFromMemoryLocation(memloc);
 
-      if (edge.iterator().hasNext()) {
+      if (!edge.isEmpty()) {
         result.put(memloc, edge.iterator().next().getValue());
       }
     }
@@ -463,7 +463,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     markObjectDeletedAndRemoveEdges(pObject);
   }
 
-  private Iterable<SMGEdgeHasValue> getHVEdgeFromMemoryLocation(MemoryLocation pLocation) {
+  private SMGHasValueEdges getHVEdgeFromMemoryLocation(MemoryLocation pLocation) {
     SMGObject objectAtLocation = getObjectFromMemoryLocation(pLocation);
     if (objectAtLocation == null) {
       return new SMGHasValueEdgeSet();
@@ -471,7 +471,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
 
     SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(objectAtLocation);
     if (pLocation.isReference()) {
-      filter = filter.filterAtOffset(pLocation.getOffset()).filterWithoutSize();
+      filter.filterAtOffset(pLocation.getOffset()).filterWithoutSize();
     }
 
     // Remember, edges may overlap with different types
@@ -527,9 +527,9 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     for (int i = 0; i < offsets.length(); i++) {
       final long offset = offsets.get(i);
 
-      Iterable<SMGEdgeHasValue> hves =
+      SMGHasValueEdges hves =
           getHVEdges(SMGEdgeHasValueFilter.objectFilter(object).filterAtOffset(offset));
-      if (!hves.iterator().hasNext()) {
+      if (hves.isEmpty()) {
         return Optional.empty();
       }
 
@@ -577,7 +577,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     long offset = hvEdge.getOffset();
 
     if (global_objects.containsValue(object) || isHeapObject(object)) {
-      return MemoryLocation.fromQualifiedName(object.getLabel(), offset);
+      return MemoryLocation.valueOf(object.getLabel(), offset);
     } else {
 
       String regionLabel = object.getLabel();
@@ -590,7 +590,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
 
       String functionName = frame.getFunctionDeclaration().getName();
 
-      return MemoryLocation.forLocalVariable(functionName, object.getLabel(), offset);
+      return MemoryLocation.valueOf(functionName, object.getLabel(), offset);
     }
   }
 

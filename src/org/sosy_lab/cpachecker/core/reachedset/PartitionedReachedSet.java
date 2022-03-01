@@ -12,13 +12,13 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
@@ -40,10 +40,13 @@ import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
  */
 public class PartitionedReachedSet extends DefaultReachedSet {
 
+  private static final long serialVersionUID = 1L;
+
+  @SuppressFBWarnings("SE_BAD_FIELD")
   private final Multimap<Object, AbstractState> partitionedReached = LinkedHashMultimap.create(100, 1);
 
-  public PartitionedReachedSet(ConfigurableProgramAnalysis pCpa, WaitlistFactory waitlistFactory) {
-    super(pCpa, waitlistFactory);
+  public PartitionedReachedSet(WaitlistFactory waitlistFactory) {
+    super(waitlistFactory);
   }
 
   @Override

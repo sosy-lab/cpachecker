@@ -67,8 +67,6 @@ import org.sosy_lab.java_smt.api.SolverException;
 public class PredicateCPA
     implements ConfigurableProgramAnalysis, StatisticsProvider, ProofChecker, AutoCloseable {
 
-  private final PredicatePrecisionAdjustment predicatePrecisionAdjustment;
-
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(PredicateCPA.class).withOptions(BlockOperator.class);
   }
@@ -229,17 +227,6 @@ public class PredicateCPA
             abstractionManager,
             abstractionStats,
             statistics);
-
-    predicatePrecisionAdjustment = new PredicatePrecisionAdjustment(
-        logger,
-        config,
-        formulaManager,
-        pathFormulaManager,
-        blk,
-        getPredicateManager(),
-        invariantsManager,
-        predicateProvider,
-        statistics);
   }
 
   @Override
@@ -269,7 +256,7 @@ public class PredicateCPA
         return new PredicateMergeOperator(
             logger, pathFormulaManager, statistics, mergeAbstractionStates, getPredicateManager());
       default:
-        throw new AssertionError("Update list of allowed merge operators");
+        throw new InternalError("Update list of allowed merge operators");
     }
   }
 
@@ -283,7 +270,7 @@ public class PredicateCPA
       case "SEPNAA":
         return new PredicateNeverAtAbstractionStopOperator(getAbstractDomain());
       default:
-        throw new AssertionError("Update list of allowed stop operators");
+        throw new InternalError("Update list of allowed stop operators");
     }
   }
 
@@ -338,8 +325,15 @@ public class PredicateCPA
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    //TODO config übergeben
-    return predicatePrecisionAdjustment;
+    return new PredicatePrecisionAdjustment(
+        logger,
+        formulaManager,
+        pathFormulaManager,
+        blk,
+        getPredicateManager(),
+        invariantsManager,
+        predicateProvider,
+        statistics);
   }
 
   @Override

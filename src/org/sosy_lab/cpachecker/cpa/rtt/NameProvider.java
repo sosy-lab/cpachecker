@@ -14,7 +14,9 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
 
-/** Class for creation of fully qualified names of object fields. */
+/**
+ * Class for creation of fully qualified names of object fields.
+ */
 public class NameProvider {
 
   private static final NameProvider SINGLETON = new NameProvider();
@@ -63,8 +65,7 @@ public class NameProvider {
     }
   }
 
-  private String getScopedFieldName(
-      JFieldAccess pFieldAccess, String pMethodName, RTTState pRttState) {
+  private String getScopedFieldName(JFieldAccess pFieldAccess, String pMethodName, RTTState pRttState) {
     JIdExpression qualifier = pFieldAccess.getReferencedVariable();
 
     JSimpleDeclaration declaration = qualifier.getDeclaration();
@@ -73,8 +74,8 @@ public class NameProvider {
     return getScopedVariableName(declaration, pMethodName, qualifierScope);
   }
 
-  public String getScopedVariableName(
-      String pVariableName, String pFunctionName, String pUniqueObject, RTTState pState) {
+  public String getScopedVariableName(String pVariableName, String pFunctionName, String pUniqueObject,
+      RTTState pState) {
 
     if (pVariableName.equals(RTTState.KEYWORD_THIS)) {
       return pVariableName;
@@ -91,13 +92,12 @@ public class NameProvider {
     return pFunctionName + VARIABLE_DELIMITER + pVariableName;
   }
 
-  public String getScopedVariableName(
-      JSimpleDeclaration pDeclaration, String functionName, String uniqueObject) {
+
+  public String getScopedVariableName(JSimpleDeclaration pDeclaration, String functionName, String uniqueObject) {
 
     String variableName = pDeclaration.getName();
 
-    if (pDeclaration instanceof JFieldDeclaration
-        && ((JFieldDeclaration) pDeclaration).isStatic()) {
+    if (pDeclaration instanceof JFieldDeclaration && ((JFieldDeclaration) pDeclaration).isStatic()) {
       return variableName;
 
     } else if (pDeclaration instanceof JFieldDeclaration) {

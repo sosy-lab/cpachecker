@@ -14,28 +14,45 @@ import static com.google.common.base.Preconditions.checkState;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Ordering;
-import com.google.errorprone.annotations.Immutable;
 import java.io.Serializable;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.OptionalLong;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PersistentMap;
 
-/** This class describes a location in the memory. */
-@Immutable
-public final class MemoryLocation implements Comparable<MemoryLocation>, Serializable {
+/**
+* This class describes a location in the memory.
+*/
+public class MemoryLocation implements Comparable<MemoryLocation>, Serializable {
 
   private static final long serialVersionUID = -8910967707373729034L;
-  private final @Nullable String functionName;
+  private final String functionName;
   private final String identifier;
   private final @Nullable Long offset;
 
-  private MemoryLocation(
-      @Nullable String pFunctionName, String pIdentifier, @Nullable Long pOffset) {
+  private MemoryLocation(String pFunctionName, String pIdentifier, @Nullable Long pOffset) {
+    checkNotNull(pFunctionName);
     checkNotNull(pIdentifier);
 
     functionName = pFunctionName;
     identifier = pIdentifier;
+    offset = pOffset;
+  }
+
+  protected MemoryLocation(String pIdentifier, @Nullable Long pOffset) {
+    checkNotNull(pIdentifier);
+
+    int separatorIndex = pIdentifier.indexOf("::");
+    if (separatorIndex >= 0) {
+      functionName = pIdentifier.substring(0, separatorIndex);
+      identifier = pIdentifier.substring(separatorIndex + 2);
+    } else {
+      functionName = null;
+      identifier = pIdentifier;
+    }
     offset = pOffset;
   }
 
@@ -62,70 +79,23 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
     return Objects.hash(functionName, identifier, offset);
   }
 
-  /** Create an instance for the given declaration, which usually should be a variable. */
-  public static MemoryLocation forDeclaration(ASimpleDeclaration pDeclaration) {
-    // TODO Could avoid parsing qualified name if we can get the function here.
-    return MemoryLocation.fromQualifiedName(pDeclaration.getQualifiedName());
+  public static MemoryLocation valueOf(String pFunctionName, String pIdentifier) {
+    return new MemoryLocation(pFunctionName, pIdentifier, null);
   }
 
-  /**
-   * Create an instance for the given identifier without function name and offset. Typically this
-   * should be used for global variables.
-   */
-  public static MemoryLocation forIdentifier(String pIdentifier) {
-    return new MemoryLocation(null, pIdentifier, null);
+  public static MemoryLocation valueOf(String pFunctionName, String pIdentifier, long pOffset) {
+    return new MemoryLocation(pFunctionName, pIdentifier, pOffset);
   }
 
-  /**
-   * Create an instance for the given identifier without function name but with an offset. Typically
-   * this should be used for global variables.
-   */
-  public static MemoryLocation forIdentifier(String pIdentifier, long pOffset) {
-    return new MemoryLocation(null, pIdentifier, pOffset);
+  public static MemoryLocation valueOf(String pIdentifier, long pOffset) {
+    return new MemoryLocation(pIdentifier, pOffset);
   }
 
-  public static MemoryLocation forLocalVariable(String pFunctionName, String pIdentifier) {
-    return new MemoryLocation(checkNotNull(pFunctionName), pIdentifier, null);
+  public static MemoryLocation valueOf(String pIdentifier, OptionalLong pOffset) {
+    return new MemoryLocation(pIdentifier, pOffset.isPresent() ? pOffset.orElseThrow() : null);
   }
 
-  public static MemoryLocation forLocalVariable(
-      String pFunctionName, String pIdentifier, long pOffset) {
-    return new MemoryLocation(checkNotNull(pFunctionName), pIdentifier, pOffset);
-  }
-
-  private static MemoryLocation fromQualifiedName(String pIdentifier, @Nullable Long pOffset) {
-    String functionName;
-    String identifier;
-    int separatorIndex = pIdentifier.indexOf("::");
-
-    if (separatorIndex >= 0) {
-      functionName = pIdentifier.substring(0, separatorIndex);
-      identifier = pIdentifier.substring(separatorIndex + 2);
-    } else {
-      functionName = null;
-      identifier = pIdentifier;
-    }
-    return new MemoryLocation(functionName, identifier, pOffset);
-  }
-
-  /**
-   * Create an instance using a qualified name of a declaration as returned by {@link
-   * ASimpleDeclaration#getQualifiedName()}.
-   */
-  public static MemoryLocation fromQualifiedName(String pIdentifier) {
-    return fromQualifiedName(pIdentifier, null);
-  }
-
-  /**
-   * Create an instance using a qualified name of a declaration as returned by {@link
-   * ASimpleDeclaration#getQualifiedName()}.
-   */
-  public static MemoryLocation fromQualifiedName(String pIdentifier, long pOffset) {
-    return fromQualifiedName(pIdentifier, Long.valueOf(pOffset));
-  }
-
-  /** Create an instance from a string that was produced by {@link #getExtendedQualifiedName()}. */
-  public static MemoryLocation parseExtendedQualifiedName(String pVariableName) {
+  public static MemoryLocation valueOf(String pVariableName) {
 
     List<String> nameParts = Splitter.on("::").splitToList(pVariableName);
     List<String> offsetParts = Splitter.on('/').splitToList(pVariableName);
@@ -148,20 +118,20 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
       if (hasOffset) {
         varName = varName.replace("/" + offset, "");
       }
-      return new MemoryLocation(null, varName.replace("/" + offset, ""), offset);
+      return new MemoryLocation(varName.replace("/" + offset, ""), offset);
     }
   }
 
-  /**
-   * Return a string that represents the full information of this class. This string should be used
-   * as an opaque identifier and only be passed to {@link #parseExtendedQualifiedName(String)}.
-   */
-  public String getExtendedQualifiedName() {
+  public String getAsSimpleString() {
     String variableName = isOnFunctionStack() ? (functionName + "::" + identifier) : identifier;
     if (offset == null) {
       return variableName;
     }
     return variableName + "/" + offset;
+  }
+
+  public String serialize() {
+    return getAsSimpleString();
   }
 
   public boolean isOnFunctionStack() {
@@ -195,29 +165,30 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
     return offset;
   }
 
-  /** Return new instance without offset. */
   public MemoryLocation getReferenceStart() {
     checkState(isReference(), "Memory location is no reference: %s", this);
-    return new MemoryLocation(functionName, identifier, null);
-  }
-
-  /** Return a new instance with replaced offset. */
-  public MemoryLocation withOffset(long pNewOffset) {
-    return new MemoryLocation(functionName, identifier, pNewOffset);
-  }
-
-  /**
-   * Return a new instance with the given offset added to the existing offset. If the existing
-   * offset is not set, 0 is used as its value.
-   */
-  public MemoryLocation withAddedOffset(long pAddToOffset) {
-    long oldOffset = offset == null ? 0 : offset;
-    return new MemoryLocation(functionName, identifier, oldOffset + pAddToOffset);
+    if (functionName != null) {
+      return new MemoryLocation(functionName, identifier, null);
+    } else {
+      return new MemoryLocation(identifier, null);
+    }
   }
 
   @Override
   public String toString() {
-    return getExtendedQualifiedName();
+    return getAsSimpleString();
+  }
+
+  public static PersistentMap<MemoryLocation, Long> transform(
+      PersistentMap<String, Long> pConstantMap) {
+
+    PersistentMap<MemoryLocation, Long> result = PathCopyingPersistentTreeMap.of();
+
+    for (Map.Entry<String, Long> entry : pConstantMap.entrySet()) {
+      result = result.putAndCopy(valueOf(entry.getKey()), checkNotNull(entry.getValue()));
+    }
+
+    return result;
   }
 
   @Override

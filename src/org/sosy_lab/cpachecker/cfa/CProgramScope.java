@@ -85,7 +85,7 @@ public class CProgramScope implements Scope {
 
   public static final String ARTIFICIAL_RETVAL_NAME = "__artificial_result__";
 
-  private static Iterable<CSimpleDeclaration> toCSimpleDeclarations(CFANode pNode) {
+  private static final Iterable<CSimpleDeclaration> toCSimpleDeclarations(CFANode pNode) {
     return CFAUtils.leavingEdges(pNode)
         .transformAndConcat(
             pEdge -> {
@@ -103,7 +103,7 @@ public class CProgramScope implements Scope {
             });
   }
 
-  private static boolean hasName(CSimpleDeclaration pDeclaration) {
+  private static final boolean hasName(CSimpleDeclaration pDeclaration) {
     if (pDeclaration.getName() != null && pDeclaration.getQualifiedName() != null) {
       return true;
     }
@@ -117,7 +117,7 @@ public class CProgramScope implements Scope {
     return false;
   }
 
-  private static String getName(CSimpleDeclaration pDeclaration) {
+  private static final String getName(CSimpleDeclaration pDeclaration) {
     String result = pDeclaration.getName();
     if (result != null) {
       return result;
@@ -132,7 +132,7 @@ public class CProgramScope implements Scope {
     throw new AssertionError("Cannot extract a name.");
   }
 
-  private static String getOriginalQualifiedName(CSimpleDeclaration pDeclaration) {
+  private static final String getOriginalQualifiedName(CSimpleDeclaration pDeclaration) {
       String name = pDeclaration.getName();
       if (name == null) {
         return getComplexDeclarationName(pDeclaration);
@@ -596,8 +596,8 @@ public class CProgramScope implements Scope {
     return Multimaps.index(pQualifiedDeclarations.values(), CProgramScope::getName);
   }
 
-  private static Iterable<AAstNode> getAstNodesFromCfaEdge(CFAEdge pEdge) {
-    Iterable<AAstNode> nodes =
+  private static Iterable<? extends AAstNode> getAstNodesFromCfaEdge(CFAEdge pEdge) {
+    Iterable<? extends AAstNode> nodes =
         FluentIterable.from(CFAUtils.getAstNodesFromCfaEdge(pEdge))
             .transformAndConcat(CFAUtils::traverseRecursively);
     if (pEdge instanceof ADeclarationEdge) {

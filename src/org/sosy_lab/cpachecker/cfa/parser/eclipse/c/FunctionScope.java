@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -23,7 +24,6 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
@@ -54,7 +54,7 @@ class FunctionScope extends AbstractScope {
   private final Deque<Map<String, CComplexTypeDeclaration>> typesStack = new ArrayDeque<>();
   private final Map<String, CTypeDefDeclaration> typedefs;
   private final Deque<Map<String, CVariableDeclaration>> labelsStack = new ArrayDeque<>();
-  private final Deque<Map<String, CFALabelNode>> labelsNodeStack = new ArrayDeque<>();
+  private final Deque<Map<String, CLabelNode>> labelsNodeStack = new ArrayDeque<>();
   private final Deque<Map<String, CSimpleDeclaration>> varsStack = new ArrayDeque<>();
   private final Deque<Map<String, CSimpleDeclaration>> varsStackWitNewNames = new ArrayDeque<>();
   private final Deque<Map<String, CSimpleDeclaration>> varsList = new ArrayDeque<>();
@@ -114,7 +114,7 @@ class FunctionScope extends AbstractScope {
         localFunctions.keySet());
 
     if (currentFunction.getType().getReturnType().getCanonicalType() instanceof CVoidType) {
-      returnVariable = Optional.empty();
+      returnVariable = Optional.absent();
     } else {
       @SuppressWarnings("deprecation") // As soon as this is the only usage of the deprecated constant, it should be inlined here
       String name = VariableClassificationBuilder.FUNCTION_RETURN_VARIABLE;
@@ -326,20 +326,20 @@ class FunctionScope extends AbstractScope {
     return labelsStack.peekLast().containsKey(labelName);
   }
 
-  public boolean containsLabelCFANode(CFALabelNode node) {
+  public boolean containsLabelCFANode(CLabelNode node) {
     return labelsNodeStack.peekLast().containsKey(node.getLabel());
   }
 
-  public void addLabelCFANode(CFALabelNode node) {
+  public void addLabelCFANode(CLabelNode node) {
     labelsNodeStack.peekLast().put(node.getLabel(), node);
   }
 
-  public CFALabelNode lookupLocalLabelNode(String name) {
-    Iterator<Map<String, CFALabelNode>> it = labelsNodeStack.descendingIterator();
+  public CLabelNode lookupLocalLabelNode(String name) {
+    Iterator<Map<String, CLabelNode>> it = labelsNodeStack.descendingIterator();
     while (it.hasNext()) {
-      Map<String, CFALabelNode> nodes = it.next();
+      Map<String, CLabelNode> nodes = it.next();
 
-      CFALabelNode node = nodes.get(name);
+      CLabelNode node = nodes.get(name);
       if (node != null) {
         return node;
       }

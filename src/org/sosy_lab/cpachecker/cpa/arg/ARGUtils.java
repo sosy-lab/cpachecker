@@ -270,13 +270,12 @@ public class ARGUtils {
       Iterator<ARGState> parents = currentARGState.getParents().iterator();
 
       ARGState parentElement = parents.next();
-
-      while (!pIsStart.apply(parentElement) && seenElements.contains(parentElement) && parents.hasNext()) {
+      while (seenElements.contains(parentElement) && parents.hasNext()) {
         // while seenElements already contained parentElement, try next parent
         parentElement = parents.next();
       }
 
-      if (!pIsStart.apply(parentElement) && seenElements.contains(parentElement)) {
+      if (seenElements.contains(parentElement)) {
         // Backtrack
         checkArgument(
             !backTrackPoints.isEmpty(), "No ARG path from the target state to a root state.");
@@ -401,13 +400,13 @@ public class ARGUtils {
     return new ARGPath(states);
   }
 
-  private static boolean isRelevantLocation(CFANode pInput) {
+  private static final boolean isRelevantLocation(CFANode pInput) {
     return pInput.isLoopStart()
         || pInput instanceof FunctionEntryNode
         || pInput instanceof FunctionExitNode;
   }
 
-  private static boolean containsRelevantLocation(Iterable<CFANode> nodes) {
+  private static final boolean containsRelevantLocation(Iterable<CFANode> nodes) {
     return Iterables.any(nodes, ARGUtils::isRelevantLocation);
   }
 

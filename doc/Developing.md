@@ -153,16 +153,6 @@ just run `scripts/cpa.sh -debug ...` and point your debugger to TCP port 5005
 of the respective machine.
 
 
-JavaScript Development
------------------------
-The JS files can be found in the directory `src/org/sosy_lab/cpachecker/core/counterexample`. We use Node.js as environment for our files.
-All necessary third party libraries that we rely on can be installed via `npm run install`.
-
-Our JS code is postprocessed with [webpack](https://webpack.js.org/). Webpack bundles our JS and CSS code as well as the third party libraries and puts the resulting files in the `build` directory. This can be done via the `npm run build` command, which should be executed every time changes to the JS related files are made. **Note that none of the raw files are actually used in the report generating, so any changes will not take effect unless the bundled files are updated.**
-
-During development, we also have a small development server that can be started via `npm run start`. This server automatically opens an example report file in the browser and enables live updates for any changes to the JS code. Since a fully rendered HTML file is necessary for this server, the example file was created by CPAchecker and can be found under `development_data/index.html`. Therefore, changes to the `report.html` file will not be updated automatically. It is important to keep this file up to date by hand after any changes to the `report.html` file.
-
-
 Releasing a New Version
 -----------------------
 

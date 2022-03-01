@@ -717,7 +717,7 @@ public class OctagonState implements AbstractState {
   private OctagonState removeVars(String varPrefix) {
     List<MemoryLocation> keysToRemove = new ArrayList<>();
     for (MemoryLocation var : variableToIndexMap.keySet()) {
-      if (var.getExtendedQualifiedName().startsWith(varPrefix)) {
+      if (var.getAsSimpleString().startsWith(varPrefix)) {
         keysToRemove.add(var);
       }
     }

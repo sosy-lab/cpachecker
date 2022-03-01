@@ -47,10 +47,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
@@ -204,7 +204,7 @@ public class TerminationLoopInformation {
     }
 
     // Create a unique target node for each loop
-    targetNode = Optional.of(new CFALabelNode(functionName, NON_TERMINATION_LABEL));
+    targetNode = Optional.of(new CLabelNode(functionName, NON_TERMINATION_LABEL));
 
     relevantVariablesInitializationIntermediateLocations = intermediateStates.build();
     relevantVariables = builder.build();

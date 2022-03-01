@@ -266,7 +266,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
       Configuration config = configBuilder.build();
 
       CoreComponentsFactory coreComponents =
-          new CoreComponentsFactory(config, logger, shutdown, AggregatedReachedSets.empty());
+          new CoreComponentsFactory(config, logger, shutdown, new AggregatedReachedSets());
 
       final Specification constrSpec =
           spec.withAdditionalSpecificationFile(
@@ -274,7 +274,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
 
       ConfigurableProgramAnalysis cpa = coreComponents.createCPA(cfa, constrSpec);
 
-      ReachedSet reached = coreComponents.createReachedSet(cpa);
+      ReachedSet reached = coreComponents.createReachedSet();
       reached.add(cpa.getInitialState(mainFunction, StateSpacePartition.getDefaultPartition()),
           cpa.getInitialPrecision(mainFunction, StateSpacePartition.getDefaultPartition()));
 

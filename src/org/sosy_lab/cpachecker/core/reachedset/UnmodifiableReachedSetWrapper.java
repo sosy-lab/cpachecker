@@ -15,12 +15,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.function.BiConsumer;
-import java.util.stream.Stream;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 
 public class UnmodifiableReachedSetWrapper implements UnmodifiableReachedSet {
 
@@ -38,11 +37,6 @@ public class UnmodifiableReachedSetWrapper implements UnmodifiableReachedSet {
   @Override
   public Iterator<AbstractState> iterator() {
     return Iterators.unmodifiableIterator(delegate.iterator());
-  }
-
-  @Override
-  public Stream<AbstractState> stream() {
-    return delegate.stream();
   }
 
   @Override
@@ -112,12 +106,12 @@ public class UnmodifiableReachedSetWrapper implements UnmodifiableReachedSet {
   }
 
   @Override
-  public boolean wasTargetReached() {
-    return delegate.wasTargetReached();
+  public boolean hasViolatedProperties() {
+    return delegate.hasViolatedProperties();
   }
 
   @Override
-  public Collection<TargetInformation> getTargetInformation() {
-    return delegate.getTargetInformation();
+  public Collection<Property> getViolatedProperties() {
+    return delegate.getViolatedProperties();
   }
 }

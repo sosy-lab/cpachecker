@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.cpa.usage;
 
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.collect.Lists;
+import com.google.common.base.Optional;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -123,15 +123,21 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
 
     Iterator<CFAEdge> iterator = from(path).filter(this::hasRelevantFileLocation).iterator();
 
-    CFAEdge warning =
-        Lists.reverse(path).stream()
-            .filter(e -> Objects.equals(e.getSuccessor(), usage.getCFANode()))
-            .filter(e -> e.toString().contains(pId.getName()))
-            .findFirst()
-            .orElse(null);
+    Optional<CFAEdge> warningEdge =
+        from(path)
+            .filter(
+                e ->
+                Objects.equals(e.getSuccessor(), usage.getCFANode())
+                        && e.toString().contains(pId.getName()))
+            .last();
 
-    if (warning == null) {
+    CFAEdge warning;
+
+    if (warningEdge.isPresent()) {
+      warning = warningEdge.get();
+    } else {
       logger.log(Level.WARNING, "Can not determine an unsafe edge");
+      warning = null;
     }
     Element result = null;
     Element lastWarningElement = null;

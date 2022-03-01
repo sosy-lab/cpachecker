@@ -23,22 +23,23 @@ final class NameConverter {
 
   private static final String DELIMITER = "_";
 
-  private NameConverter() {}
+  private NameConverter() {
+
+  }
 
   /**
-   * This Method uses the binding of a Method to construct the fully qualified unique method name
-   * for Methods and constructor in the CFA. Use whenever possible to avoid Inconsistency.
+   * This Method uses the binding of a Method to construct the fully qualified unique
+   *  method name for Methods and constructor in the CFA. Use whenever possible to avoid
+   * Inconsistency.
    *
    * @param binding The JDT Binding of a method to be named
    * @return the fully Qualified, unique method name
    */
   public static String convertName(IMethodBinding binding) {
 
-    StringBuilder name =
-        new StringBuilder(
-            (convertClassOrInterfaceToFullName(binding.getDeclaringClass())
-                + DELIMITER
-                + binding.getName()));
+    StringBuilder name = new StringBuilder((
+        convertClassOrInterfaceToFullName(binding.getDeclaringClass())
+            + DELIMITER + binding.getName()));
 
     final ITypeBinding[] parameterTypes = binding.getParameterTypes();
     if (parameterTypes.length > 0) {
@@ -96,7 +97,7 @@ final class NameConverter {
       assert key.charAt(key.length() - 1) == ';';
       return key.substring(0, key.length() - 1);
 
-    } else if (classBinding.isRecovered()) {
+    } else if(classBinding.isRecovered()){
       // Dirty solution for MissingTypeBindings.
       try {
         final String name = classBinding.getName();
@@ -105,7 +106,8 @@ final class NameConverter {
       } catch (ClassNotFoundException e) {
         return classBinding.getQualifiedName();
       }
-    } else {
+    }
+    else{
       return classBinding.getQualifiedName();
     }
   }
@@ -144,13 +146,11 @@ final class NameConverter {
     ITypeBinding declaringClassBinding = pClassBinding.getDeclaringClass();
     assert declaringClassBinding != null : "Anonymous class must be nested!";
 
-    StringBuilder name =
-        new StringBuilder(
-            convertClassOrInterfaceToFullName(declaringClassBinding)
-                + "."
-                + convertClassOrInterfaceToFullName(pClassBinding)
-                + DELIMITER
-                + convertClassOrInterfaceToSimpleName(pClassBinding));
+    StringBuilder name = new StringBuilder(convertClassOrInterfaceToFullName(declaringClassBinding)
+                                          + "."
+                                          + convertClassOrInterfaceToFullName(pClassBinding)
+        + DELIMITER
+                                          + convertClassOrInterfaceToSimpleName(pClassBinding));
 
     if (!pParameters.isEmpty()) {
       name.append(DELIMITER);

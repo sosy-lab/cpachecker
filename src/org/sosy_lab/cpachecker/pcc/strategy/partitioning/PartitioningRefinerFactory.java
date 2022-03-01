@@ -18,7 +18,7 @@ public class PartitioningRefinerFactory {
 
   private PartitioningRefinerFactory() {}
 
-  public enum RefinementHeuristics {
+  public static enum RefinementHeuristics {
     FM_NODECUT,
     FM_EDGECUT
   }

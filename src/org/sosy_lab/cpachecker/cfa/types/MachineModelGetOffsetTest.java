@@ -47,21 +47,24 @@ public class MachineModelGetOffsetTest {
 
   @Parameters(name = "{2}: {0}")
   public static Object[][] machineModels() {
-    return new Object[][] {
-      // struct, fieldname, expected offset in bits, machine model
-      {STRUCT, FIRST_BITFIELD_12, BigInteger.ZERO, MODEL32},
-      {STRUCT, FIRST_BITFIELD_12, BigInteger.ZERO, MODEL64},
-      {STRUCT, SECOND_BITFIELD_10, BigInteger.valueOf(12), MODEL32},
-      {STRUCT, SECOND_BITFIELD_10, BigInteger.valueOf(12), MODEL64},
-      {STRUCT, THIRD_INT, BigInteger.valueOf(32), MODEL32},
-      {STRUCT, THIRD_INT, BigInteger.valueOf(32), MODEL64},
-      {STRUCT, LAST_INCOMPLETEARRAY, BigInteger.valueOf(64), MODEL32},
-      {STRUCT, LAST_INCOMPLETEARRAY, BigInteger.valueOf(64), MODEL64},
-      {STRUCT_2, CHAR, BigInteger.valueOf(88), MODEL32},
-      {STRUCT_2, CHAR, BigInteger.valueOf(88), MODEL64},
-      {STRUCT_3, CHAR, BigInteger.valueOf(80), MODEL32},
-      {STRUCT_3, CHAR, BigInteger.valueOf(80), MODEL64}
-    };
+    Object[][] types =
+        new Object[][] {
+          // fieldname          // expected offset in bits
+          {STRUCT, FIRST_BITFIELD_12, BigInteger.ZERO, MODEL32},
+          {STRUCT, FIRST_BITFIELD_12, BigInteger.ZERO, MODEL64},
+          {STRUCT, SECOND_BITFIELD_10, BigInteger.valueOf(12), MODEL32},
+          {STRUCT, SECOND_BITFIELD_10, BigInteger.valueOf(12), MODEL64},
+          {STRUCT, THIRD_INT, BigInteger.valueOf(32), MODEL32},
+          {STRUCT, THIRD_INT, BigInteger.valueOf(32), MODEL64},
+          {STRUCT, LAST_INCOMPLETEARRAY, BigInteger.valueOf(64), MODEL32},
+          {STRUCT, LAST_INCOMPLETEARRAY, BigInteger.valueOf(64), MODEL64},
+          {STRUCT_2, CHAR, BigInteger.valueOf(88), MODEL32},
+          {STRUCT_2, CHAR, BigInteger.valueOf(88), MODEL64},
+          {STRUCT_3, CHAR, BigInteger.valueOf(80), MODEL32},
+          {STRUCT_3, CHAR, BigInteger.valueOf(80), MODEL64}
+        };
+
+    return types;
   }
 
   // If you plan on expanding this memberlist for more

@@ -11,15 +11,15 @@ package org.sosy_lab.cpachecker.cpa.usage;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
 import com.google.common.base.Predicates;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.Optional;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
-import org.sosy_lab.cpachecker.core.defaults.AbstractSerializableSingleWrapperState;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 /** Represents one abstract state of the Usage CPA. */
-public final class UsageState extends AbstractSerializableSingleWrapperState
+public final class UsageState extends AbstractSingleWrapperState
     implements LatticeAbstractState<UsageState> {
 
   private static final long serialVersionUID = -898577877284268426L;
@@ -113,12 +113,11 @@ public final class UsageState extends AbstractSerializableSingleWrapperState
      * If we get **b, having (*b, c), we give *c
      */
     Optional<AbstractIdentifier> linkedId =
-        Identifiers.getDereferencedIdentifiers(id).stream()
-            .filter(variableBindingRelation::containsKey)
-            .findFirst();
+        from(Identifiers.getDereferencedIdentifiers(id))
+            .firstMatch(variableBindingRelation::containsKey);
 
     if (linkedId.isPresent()) {
-      AbstractIdentifier pointsFrom = linkedId.orElseThrow();
+      AbstractIdentifier pointsFrom = linkedId.get();
       int delta = id.getDereference() - pointsFrom.getDereference();
       AbstractIdentifier initialId = variableBindingRelation.get(pointsFrom);
       AbstractIdentifier pointsTo =

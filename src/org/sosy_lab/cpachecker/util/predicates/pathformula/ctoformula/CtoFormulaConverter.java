@@ -367,7 +367,7 @@ public class CtoFormulaConverter {
    * @return the name of the expression
    */
   static String exprToVarName(AAstNode e, String function) {
-    return (function + "::" + exprToVarNameUnscoped(e)).intern();
+    return (function + "::" + exprToVarNameUnscoped(e)).intern().intern();
   }
 
   /** Produces a fresh new SSA index for an assignment and updates the SSA map. */
@@ -1311,13 +1311,13 @@ public class CtoFormulaConverter {
       CFunctionCallExpression funcCallExp = exp.getRightHandSide();
 
       String callerFunction = ce.getSuccessor().getFunctionName();
-      final Optional<CVariableDeclaration> returnVariableDeclaration =
+      final com.google.common.base.Optional<CVariableDeclaration> returnVariableDeclaration =
           ce.getFunctionEntry().getReturnVariable();
       if (!returnVariableDeclaration.isPresent()) {
         throw new UnrecognizedCodeException("Void function used in assignment", ce, retExp);
       }
-      final CIdExpression rhs =
-          new CIdExpression(funcCallExp.getFileLocation(), returnVariableDeclaration.orElseThrow());
+      final CIdExpression rhs = new CIdExpression(funcCallExp.getFileLocation(),
+          returnVariableDeclaration.get());
 
       return makeAssignment(exp.getLeftHandSide(), rhs, ce, callerFunction, ssa, pts, constraints, errorConditions);
     } else {
@@ -1416,29 +1416,18 @@ public class CtoFormulaConverter {
     return result;
   }
 
-  protected BooleanFormula makeReturn(
-      final Optional<CAssignment> assignment,
-      final CReturnStatementEdge edge,
-      final String function,
-      final SSAMapBuilder ssa,
-      final PointerTargetSetBuilder pts,
-      final Constraints constraints,
-      final ErrorConditions errorConditions)
-      throws UnrecognizedCodeException, InterruptedException {
+  protected BooleanFormula makeReturn(final com.google.common.base.Optional<CAssignment> assignment,
+      final CReturnStatementEdge edge, final String function,
+      final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
+      final Constraints constraints, final ErrorConditions errorConditions)
+          throws UnrecognizedCodeException, InterruptedException {
     if (!assignment.isPresent()) {
       // this is a return from a void function, do nothing
       return bfmgr.makeTrue();
     } else {
 
-      return makeAssignment(
-          assignment.orElseThrow().getLeftHandSide(),
-          assignment.orElseThrow().getRightHandSide(),
-          edge,
-          function,
-          ssa,
-          pts,
-          constraints,
-          errorConditions);
+      return makeAssignment(assignment.get().getLeftHandSide(), assignment.get().getRightHandSide(),
+          edge, function, ssa, pts, constraints, errorConditions);
     }
   }
 

@@ -27,11 +27,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class PredicatePersistenceUtils {
 
-  public enum PredicateDumpFormat {
-    PLAIN,
-    SMTLIB2
-  }
-
+  public static enum PredicateDumpFormat {PLAIN, SMTLIB2}
   public static final Splitter LINE_SPLITTER = Splitter.on('\n').omitEmptyStrings();
   public static final Joiner LINE_JOINER = Joiner.on('\n');
 

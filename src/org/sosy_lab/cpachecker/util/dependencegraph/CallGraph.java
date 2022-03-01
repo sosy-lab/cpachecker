@@ -69,6 +69,8 @@ final class CallGraph<P> {
     predecessorCallNode.addSuccessor(successorCallNode);
     successorCallNode.addPredecessor(predecessorCallNode);
   }
+  
+  
 
   static <P, N> CallGraph<P> createCallGraph(
       Function<? super N, ? extends Iterable<? extends SuccessorResult<? extends P, ? extends N>>>

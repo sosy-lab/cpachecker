@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.predicates.bdd;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
 import static jsylvan.JSylvan.deref;
@@ -16,6 +15,7 @@ import static jsylvan.JSylvan.makeUnionPar;
 import static jsylvan.JSylvan.ref;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.primitives.ImmutableIntArray;
 import com.google.common.primitives.Longs;
@@ -42,6 +42,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.Triple;
+import org.sosy_lab.cpachecker.util.predicates.PredicateOrderingStrategy;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -291,22 +292,19 @@ class SylvanBDDRegionManager implements RegionManager {
   }
 
   @Override
-  public void setVarOrder(ImmutableIntArray pOrder) {
-    throw new UnsupportedOperationException("reordering not yet implemented");
+  public void setVarOrder(ImmutableIntArray pOrder) {}
+
+  @Override
+  public void reorder(PredicateOrderingStrategy strategy) {
   }
 
   @Override
-  public void reorder(VariableOrderingStrategy strategy) {
-    throw new UnsupportedOperationException("reordering not yet implemented");
-  }
-
-  @Override
-  public Region replace(Region pRegion, List<Region> pOldPredicates, List<Region> pNewPredicates) {
-    checkArgument(pOldPredicates.size() == pNewPredicates.size());
+  public Region replace(Region pRegion, Region[] pOldPredicates, Region[] pNewPredicates) {
+    Preconditions.checkArgument(pOldPredicates.length == pNewPredicates.length);
     long bdd = unwrap(pRegion);
-    for (int i = 0; i < pOldPredicates.size(); i++) {
-      long oldVar = JSylvan.getVar(unwrap(pOldPredicates.get(i)));
-      long newVar = JSylvan.getVar(unwrap(pNewPredicates.get(i)));
+    for (int i = 0; i < pOldPredicates.length; i++) {
+      long oldVar = JSylvan.getVar(unwrap(pOldPredicates[i]));
+      long newVar = JSylvan.getVar(unwrap(pNewPredicates[i]));
       bdd = JSylvan.makeExists(JSylvan.makeAnd(bdd, JSylvan.makeEquals(oldVar, newVar)), oldVar);
     }
     return wrap(bdd);

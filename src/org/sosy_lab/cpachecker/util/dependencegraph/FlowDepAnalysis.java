@@ -104,7 +104,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
     defs.addAll(foreignDefUseData.getForeignUses(function));
 
     for (AParameterDeclaration parameter : function.getParameters()) {
-      defs.add(MemoryLocation.forDeclaration(parameter));
+      defs.add(MemoryLocation.valueOf(parameter.getQualifiedName()));
     }
 
     return defs;
@@ -249,7 +249,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
   protected void insertCombiners(Dominance.DomFrontiers<CFANode> pDomFrontiers) {
 
     for (AParameterDeclaration declaration : entryNode.getFunctionParameters()) {
-      MemoryLocation variable = MemoryLocation.forDeclaration(declaration);
+      MemoryLocation variable = MemoryLocation.valueOf(declaration.getQualifiedName());
       insertCombiner(entryNode, variable);
     }
 
@@ -369,7 +369,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
           dependenceConsumer.accept(
               typeDeclarationEdge,
               pEdge,
-              MemoryLocation.parseExtendedQualifiedName(complexType.getQualifiedName()),
+              MemoryLocation.valueOf(complexType.getQualifiedName()),
               true);
         }
       }
@@ -405,11 +405,11 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
 
   private void addReturnValueDependences() {
 
-    Optional<? extends AVariableDeclaration> optRetVar = entryNode.getReturnVariable();
+    Optional<? extends AVariableDeclaration> optRetVar = entryNode.getReturnVariable().toJavaUtil();
 
     if (optRetVar.isPresent()) {
 
-      MemoryLocation returnVar = MemoryLocation.forDeclaration(optRetVar.get());
+      MemoryLocation returnVar = MemoryLocation.valueOf(optRetVar.get().getQualifiedName());
 
       for (CFAEdge defEdge : CFAUtils.allEnteringEdges(entryNode.getExitNode())) {
         for (CFAEdge returnEdge : CFAUtils.allLeavingEdges(entryNode.getExitNode())) {

@@ -67,20 +67,19 @@ public enum TestTargetType {
 
     @Override
     public Predicate<CFAEdge> getEdgeCriterion(final String funName) {
-      return edge ->
-          (edge instanceof CStatementEdge
-                  && ((CStatementEdge) edge).getStatement() instanceof CFunctionCall
-                  && ((CFunctionCall) ((CStatementEdge) edge).getStatement())
-                      .getFunctionCallExpression()
-                      .getFunctionNameExpression()
-                      .toASTString()
-                      .equals(funName))
-              || (edge instanceof CFunctionCallEdge
-                  && ((CFunctionCallEdge) edge)
-                      .getFunctionCallExpression()
-                      .getFunctionNameExpression()
-                      .toASTString()
-                      .equals(funName));
+      return edge -> (edge instanceof CStatementEdge
+          && ((CStatementEdge) edge).getStatement() instanceof CFunctionCall
+          && ((CFunctionCall) ((CStatementEdge) edge).getStatement()).getFunctionCallExpression()
+              .getFunctionNameExpression()
+              .toASTString()
+              .equals(funName))
+          || (edge instanceof CFunctionCallEdge
+              && ((CFunctionCallEdge) edge).getRawAST().isPresent()
+              && ((CFunctionCallEdge) edge).getRawAST().get().getFunctionCallExpression()
+                  .getFunctionNameExpression()
+                  .toASTString()
+                  .equals(funName));
+
     }
   },
   STATEMENT {

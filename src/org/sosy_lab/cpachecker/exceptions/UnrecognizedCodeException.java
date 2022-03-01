@@ -57,7 +57,7 @@ public class UnrecognizedCodeException extends CPATransferException {
     if (astNode != null) {
       lang = getLanguage(astNode);
     } else if (edge != null && edge.getRawAST().isPresent()) {
-      lang = getLanguage(edge.getRawAST().orElseThrow());
+      lang = getLanguage(edge.getRawAST().get());
     }
 
     if (lang == null) {
@@ -86,7 +86,7 @@ public class UnrecognizedCodeException extends CPATransferException {
       @Nullable CFAEdge edge, @Nullable AAstNode astNode) {
     checkNotNull(msg1);
     if (astNode == null && edge != null && edge.getRawAST().isPresent()) {
-      astNode = edge.getRawAST().orElseThrow();
+      astNode = edge.getRawAST().get();
     }
 
     StringBuilder sb = new StringBuilder();

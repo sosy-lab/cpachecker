@@ -27,7 +27,7 @@ public final class SMGConsistencyChecker {
    */
   public static void checkBasicConsistency(SMG smg) throws SMGInconsistencyException {
     SMGObject nullPointer = smg.getNullObject();
-    if (smg.isValid(nullPointer)
+    if (nullPointer.isValid()
         || nullPointer.getSize().intValue() != 0
         || nullPointer.getNestingLevel() != 0
         || nullPointer.getOffset().intValue() != 0) {
@@ -46,7 +46,7 @@ public final class SMGConsistencyChecker {
    */
   private static void checkValidDLLConsistency(SMG smg) {
     Optional<SMGDoublyLinkedListSegment> invalidDLL =
-        smg.getDLLs().stream().filter(l -> !smg.isValid(l)).findAny();
+        smg.getDLLs().stream().filter(l -> !l.isValid()).findAny();
     if (invalidDLL.isPresent()) {
       throw new SMGInconsistencyException(
           "Inconsistent smg: " + smg + "\n Invalid DLL found: " + invalidDLL);
@@ -61,7 +61,7 @@ public final class SMGConsistencyChecker {
   private static void checkInvalidRegionConsistency(SMG smg) {
 
     for (SMGObject region : smg.getObjects()) {
-      if (!smg.isValid(region)) {
+      if (!region.isValid()) {
 
         if (!smg.getEdges(region).isEmpty()) {
           throw new SMGInconsistencyException(

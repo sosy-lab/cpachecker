@@ -7,9 +7,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * The implementation of basic SMG graph data structure.
+ * This package contains utility classes for program slicing.
+ *
+ * @see org.sosy_lab.cpachecker.util.dependencegraph
  */
-@javax.annotation.ParametersAreNonnullByDefault
-@org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
-@org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault
 package org.sosy_lab.cpachecker.util.smg.graph;

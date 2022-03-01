@@ -12,7 +12,6 @@ import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -25,7 +24,6 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PCCStrategy;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.pcc.strategy.PCCStrategyBuilder;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
@@ -48,8 +46,6 @@ public class ProofGenerator {
 
   private final LogManager logger;
   private final Timer writingTimer = new Timer();
-
-  private final @Nullable ProofSlicer slicer;
 
   private final Statistics proofGeneratorStats =
       new Statistics() {
@@ -91,11 +87,6 @@ public class ProofGenerator {
 
     checkingStrategy =
         PCCStrategyBuilder.buildStrategy(pConfig, pLogger, pShutdownNotifier, file, null, null, null);
-    if (slicingEnabled) {
-      slicer = new ProofSlicer(pLogger);
-    } else {
-      slicer = null;
-    }
   }
 
   public void generateProof(CPAcheckerResult pResult) {
@@ -115,11 +106,10 @@ public class ProofGenerator {
 
   }
 
-  private void constructAndWriteProof(final ReachedSet pReached) {
-    UnmodifiableReachedSet reached = pReached;
-    if (slicer != null) {
+  private void constructAndWriteProof(UnmodifiableReachedSet pReached) {
+    if(slicingEnabled){
       logger.log(Level.INFO, "Start slicing of proof");
-      reached = slicer.sliceProof(reached, pReached.getCPA());
+      pReached = new ProofSlicer().sliceProof(pReached);
     }
 
     // saves the proof
@@ -127,14 +117,14 @@ public class ProofGenerator {
 
     writingTimer.start();
 
-    checkingStrategy.writeProof(reached, pReached.getCPA());
+    checkingStrategy.writeProof(pReached);
 
     writingTimer.stop();
     logger.log(Level.INFO, "Writing proof took " + writingTimer.getMaxTime().formatAs(TimeUnit.SECONDS));
 
   }
 
-  protected Statistics generateProofUnchecked(final ReachedSet pReached) {
+  protected Statistics generateProofUnchecked(final UnmodifiableReachedSet pReached) {
     constructAndWriteProof(pReached);
 
     return proofGeneratorStats;

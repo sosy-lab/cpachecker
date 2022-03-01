@@ -578,4 +578,24 @@ public final class Solver implements AutoCloseable {
   public String getInterpolatingVersion() {
     return interpolatingContext.getVersion();
   }
+
+  /**
+   * Populate the cache for unsatisfiability queries with a formula
+   * that is known to be unsat.
+   * @param unsat An unsatisfiable formula.
+   */
+  public void addUnsatisfiableFormulaToCache(BooleanFormula unsat) {
+    if (unsatCache.containsKey(unsat) || bfmgr.isFalse(unsat)) {
+      return;
+    }
+    try {
+      assert isUnsatUncached(unsat) : "formula is sat: " + unsat;
+    } catch (SolverException e) {
+      throw new AssertionError(e);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+
+    unsatCache.put(unsat, true);
+  }
 }

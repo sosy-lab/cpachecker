@@ -8,85 +8,13 @@
 
 package org.sosy_lab.cpachecker.util.smg.graph;
 
-import org.sosy_lab.common.UniqueIdGenerator;
+import java.math.BigInteger;
 
-/**
- * SMGValues are symbolic, with the exception of 0. They are only compared, so we need to use the
- * same object for the same symbolic value!
- */
-public class SMGValue implements SMGNode, Comparable<SMGValue> {
+public interface SMGValue extends SMGNode, Comparable<SMGValue> {
 
-  private static final UniqueIdGenerator U_ID_GENERATOR = new UniqueIdGenerator();
-
-  /** The static value 0 */
-  private static final SMGValue ZERO_VALUE = new SMGValue(0);
-
-  /* Unique id to idendify this value. This is better than hashCodes as it does not clash. */
-  private final int id;
-
-  /**
-   * Values can be nested inside SMGs. Basicly a value in a list is nesting level 0, while a value
-   * in a list that is in a list is level 1 etc.
-   */
-  private int nestingLevel;
-
-  /**
-   * Creates a new, symbolic SMGValue with the entered nesting level.
-   *
-   * @param pNestingLevel The nesting level of this value node.
-   */
-  protected SMGValue(int pNestingLevel) {
-    nestingLevel = pNestingLevel;
-    id = U_ID_GENERATOR.getFreshId();
-  }
-
-  public static SMGValue of(int pNestingLevel) {
-    return new SMGValue(pNestingLevel);
-  }
-
-  public static SMGValue of() {
-    return of(0);
-  }
+  BigInteger getValue();
 
   @Override
-  public int getNestingLevel() {
-    return nestingLevel;
-  }
+  boolean equals(Object other);
 
-  /** @return The static SMGValue = 0. */
-  public static SMGValue zeroValue() {
-    return ZERO_VALUE;
-  }
-
-  /** @return True if this SMGValue is equal to 0. */
-  public boolean isZero() {
-    return this.equals(ZERO_VALUE);
-  }
-
-  @Override
-  public int compareTo(SMGValue pArg0) {
-    return Integer.compare(id, pArg0.id);
-  }
-
-  @Override
-  public boolean equals(Object other) {
-    if (other == null) {
-      return false;
-    }
-    if (!(other instanceof SMGValue)) {
-      return false;
-    }
-    SMGValue otherObj = (SMGValue) other;
-    return id == otherObj.id;
-  }
-
-  @Override
-  public int hashCode() {
-    return id;
-  }
-
-  @Override
-  public void increaseLevelBy(int pByX) {
-    nestingLevel += pByX;
-  }
 }

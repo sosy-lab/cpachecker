@@ -13,14 +13,13 @@ int isDivisible(int number, int divisor) {
 	// div = 3
 	int div = number / divisor;
 	// result = 3 * 3 = 9 != 10 -> not divisible
-	int result = number * div; //FIX(1/2): divisor * div
+	int result = number * div;
 	return result == number;
 }
 
 int gcd0(int min, int max){
 	for(int i = max/2 + 1; i >= 1; i--) {
-	        // Eventually, we call isDivisible(12, 12) which is true but 12 is not gcd(32, 12).
-		if(isDivisible(min, i)) { // FIX(2/2): isDivisible(min, i) && isDivisible(max, i)
+		if(isDivisible(min, i)) {
 			return i;
 		}	
 	}
@@ -44,14 +43,14 @@ int gcd1(int number1, int number2){
 	return gcd0(number2, number1);
 }
 
-// Test a limit of MAX-SAT and ERR-INV: both techniques are bad in recognizing missing function calls.
+
 int main(){
 
-	int number1 = 32; // 2 * 2 * 2 * 2 * 2
-	int number2 = 12; // 2 * 2 * 3
+	int number1 = 60;
+	int number2 = 24;
 
 	int gcd = gcd1(number1, number2);
-	if(gcd != 4)
+	if(gcd != 12)
 		goto ERROR;
 	
 	

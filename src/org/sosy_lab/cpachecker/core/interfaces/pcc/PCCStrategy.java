@@ -17,7 +17,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -36,7 +35,7 @@ public interface PCCStrategy {
    *
    * @param pReached - save overapproximation of state space
    */
-  void writeProof(UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa);
+  void writeProof(UnmodifiableReachedSet pReached);
 
   /**
    * Constructs the proof/certificate from the given save overapproximation and saves it in its internal data structures.
@@ -48,9 +47,7 @@ public interface PCCStrategy {
    * <li>if class does not support direct checking of analysis result</li></ul>
    * @throws InterruptedException if construction took longer than remaining time available for CPAchecker execution
    */
-  void constructInternalProofRepresentation(
-      UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa)
-      throws InvalidConfigurationException, InterruptedException;
+  void constructInternalProofRepresentation(UnmodifiableReachedSet pReached) throws InvalidConfigurationException, InterruptedException;
 
   /**
    * Reads the certificate from disk, stream, etc. and stores it internally.

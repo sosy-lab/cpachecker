@@ -244,6 +244,9 @@ public class NonRecursiveEnvironment implements Map<MemoryLocation, NumeralFormu
         && ((NonRecursiveEnvironment) pInner).compoundIntervalManagerFactory.equals(pCompoundIntervalManagerFactory)) {
       return (NonRecursiveEnvironment) pInner;
     }
+    if (pInner instanceof PersistentSortedMap) {
+      return new NonRecursiveEnvironment(pCompoundIntervalManagerFactory, pInner);
+    }
     return new NonRecursiveEnvironment(pCompoundIntervalManagerFactory, pInner);
   }
 

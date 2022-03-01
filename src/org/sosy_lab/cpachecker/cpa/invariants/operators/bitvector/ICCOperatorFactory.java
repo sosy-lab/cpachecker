@@ -26,8 +26,14 @@ public enum ICCOperatorFactory {
    * The addition operator for adding compound states to simple intervals.
    */
   public Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval> getAdd(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return (pFirstOperand, pSecondOperand) ->
-        pSecondOperand.add(pFirstOperand, pAllowSignedWrapAround, pOverflowEventHandler);
+    return new Operator<>() {
+
+      @Override
+      public CompoundBitVectorInterval apply(BitVectorInterval pFirstOperand, CompoundBitVectorInterval pSecondOperand) {
+        return pSecondOperand.add(pFirstOperand, pAllowSignedWrapAround, pOverflowEventHandler);
+      }
+
+    };
   }
 
   /**
@@ -90,8 +96,14 @@ public enum ICCOperatorFactory {
    * The multiplication operator for multiplying simple intervals with compound states.
    */
   public Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval> getMultiply(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return (pFirstOperand, pSecondOperand) ->
-        pSecondOperand.multiply(pFirstOperand, pAllowSignedWrapAround, pOverflowEventHandler);
+    return new Operator<>() {
+
+      @Override
+      public CompoundBitVectorInterval apply(BitVectorInterval pFirstOperand, CompoundBitVectorInterval pSecondOperand) {
+        return pSecondOperand.multiply(pFirstOperand, pAllowSignedWrapAround, pOverflowEventHandler);
+      }
+
+    };
   }
 
   /**

@@ -147,7 +147,7 @@ public final class MultipleProperties {
           if (property.isTarget(automatonState)) {
             property.updateResult(Result.FALSE);
             property.setRelevant();
-            property.addViolatedPropertyDescription(automatonState.getTargetInformation());
+            property.addViolatedPropertyDescription(automatonState.getViolatedProperties());
             builder.add(property);
           }
         }

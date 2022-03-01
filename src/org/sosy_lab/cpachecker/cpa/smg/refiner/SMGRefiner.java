@@ -160,7 +160,7 @@ public class SMGRefiner implements Refiner {
             checkerForInterpolation);
   }
 
-  public static SMGRefiner create(ConfigurableProgramAnalysis pCpa)
+  public static final SMGRefiner create(ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException, SMGInconsistentException {
 
     ARGCPA argCpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, SMGRefiner.class);

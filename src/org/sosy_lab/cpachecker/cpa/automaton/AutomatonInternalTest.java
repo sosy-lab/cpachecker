@@ -423,7 +423,7 @@ public class AutomatonInternalTest {
     }
   }
 
-  private interface Matches {
+  private static interface Matches {
     StringSubject andVariable(int var);
   }
 }

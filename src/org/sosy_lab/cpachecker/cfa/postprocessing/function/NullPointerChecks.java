@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
@@ -17,7 +18,6 @@ import com.google.common.collect.Lists;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -146,7 +146,7 @@ public class NullPointerChecks {
     if (edge instanceof CReturnStatementEdge) {
       Optional<CExpression> returnExp = ((CReturnStatementEdge)edge).getExpression();
       if (returnExp.isPresent()) {
-        returnExp.orElseThrow().accept(visitor);
+        returnExp.get().accept(visitor);
       }
     } else if (edge instanceof CStatementEdge) {
       CStatement stmt = ((CStatementEdge)edge).getStatement();
@@ -231,12 +231,10 @@ public class NullPointerChecks {
             ((CAssumeEdge) edge).isSwapped(),
             ((CAssumeEdge) edge).isArtificialIntermediate());
     case ReturnStatementEdge:
-        return new CReturnStatementEdge(
-            edge.getRawStatement(),
-            ((CReturnStatementEdge) edge).getReturnStatement(),
-            edge.getFileLocation(),
-            predecessor,
-            ((CReturnStatementEdge) edge).getSuccessor());
+      return new CReturnStatementEdge(edge.getRawStatement(),
+                                      ((CReturnStatementEdge)edge).getRawAST().get(),
+                                      edge.getFileLocation(), predecessor,
+                                      ((CReturnStatementEdge)edge).getSuccessor());
     case StatementEdge:
       return new CStatementEdge(edge.getRawStatement(), ((CStatementEdge)edge).getStatement(),
                                 edge.getFileLocation(), predecessor, successor);

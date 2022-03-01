@@ -122,19 +122,17 @@ public class ExpressionNode implements FormulaNode {
     }
     switch (pOperator) {
       case "=":
-        return pNegated ? "!=" : "=";
+        return pNegated ? "≠" : "=";
       case "bvsdiv":
         return "/";
       case "bvadd":
         return "+";
       case "bvslt":
-        return pNegated ? ">=" : "<";
+        return pNegated ? "≥" : "<";
       case "bvextract":
         return copy;
       case "bvneg":
         return "-";
-      case "bvmul":
-        return "*";
       default:
         return pNegated ? "!" + pOperator : pOperator;
     }

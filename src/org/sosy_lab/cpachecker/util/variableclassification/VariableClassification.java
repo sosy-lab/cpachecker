@@ -25,11 +25,13 @@ import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 public class VariableClassification implements Serializable {
 
@@ -68,6 +70,8 @@ public class VariableClassification implements Serializable {
 
   private final Table<CFAEdge, Integer, Partition> edgeToPartitions;
 
+  private final transient LogManagerWithoutDuplicates logger;
+
   VariableClassification(
       boolean pHasRelevantNonIntAddVars,
       Set<String> pIntBoolVars,
@@ -84,7 +88,8 @@ public class VariableClassification implements Serializable {
       Set<Partition> pIntAddPartitions,
       Table<CFAEdge, Integer, Partition> pEdgeToPartitions,
       Multiset<String> pAssumedVariables,
-      Multiset<String> pAssignedVariables) {
+      Multiset<String> pAssignedVariables,
+      LogManager pLogger) {
     hasRelevantNonIntAddVars = pHasRelevantNonIntAddVars;
     intBoolVars = ImmutableSet.copyOf(pIntBoolVars);
     intEqualVars = ImmutableSet.copyOf(pIntEqualVars);
@@ -101,10 +106,11 @@ public class VariableClassification implements Serializable {
     edgeToPartitions = ImmutableTable.copyOf(pEdgeToPartitions);
     assumedVariables = ImmutableMultiset.copyOf(pAssumedVariables);
     assignedVariables = ImmutableMultiset.copyOf(pAssignedVariables);
+    logger = new LogManagerWithoutDuplicates(pLogger);
   }
 
   @VisibleForTesting
-  public static VariableClassification empty() {
+  public static VariableClassification empty(LogManager pLogger) {
     return new VariableClassification(
         false,
         ImmutableSet.of(),
@@ -121,7 +127,8 @@ public class VariableClassification implements Serializable {
         ImmutableSet.of(),
         ImmutableTable.of(),
         ImmutableMultiset.of(),
-        ImmutableMultiset.of());
+        ImmutableMultiset.of(),
+        pLogger);
   }
 
   public boolean hasRelevantNonIntAddVars() {
@@ -300,15 +307,12 @@ public class VariableClassification implements Serializable {
    * @param loopStructure the loop structure, to identify loop-counter variables
    * @return the score for the given collection of variables
    */
-  public int obtainDomainTypeScoreForVariables(
-      Collection<String> variableNames,
-      Optional<LoopStructure> loopStructure,
-      LogManagerWithoutDuplicates logger) {
+  public int obtainDomainTypeScoreForVariables(Collection<String> variableNames,
+      Optional<LoopStructure> loopStructure) {
     final int BOOLEAN_VAR = 1;
     final int INTEQUAL_VAR = 2;
     final int UNKNOWN_VAR = 4;
 
-    checkNotNull(logger);
     checkNotNull(loopStructure);
     if(variableNames.isEmpty()) {
       return UNKNOWN_VAR;
@@ -377,6 +381,7 @@ public class VariableClassification implements Serializable {
         intAddPartitions,
         edgeToPartitions,
         assumedVariables,
-        assignedVariables);
+        assignedVariables,
+        GlobalInfo.getInstance().getLogManager());
   }
 }

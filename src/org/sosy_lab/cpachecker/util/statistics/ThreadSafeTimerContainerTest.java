@@ -20,7 +20,6 @@ public class ThreadSafeTimerContainerTest {
 
   public ThreadSafeTimerContainerTest() {}
 
-  @SuppressWarnings("deprecation")
   @Before
   public void init() {
     container = new ThreadSafeTimerContainer("");

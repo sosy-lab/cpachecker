@@ -50,7 +50,9 @@ public final class BinaryIdentifier implements AbstractIdentifier {
 
   @Override
   public String toString() {
-    return Identifiers.getCharsOf(dereference) + "(" + id1 + " # " + id2 + ")";
+    String info = Identifiers.getCharsOf(dereference);
+    info += "(" + id1 + " # " + id2 + ")";
+    return info;
   }
 
   @Override

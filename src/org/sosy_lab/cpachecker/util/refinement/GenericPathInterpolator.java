@@ -109,7 +109,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
     interpolantManager = pInterpolantManager;
 
     prefixProvider = pPrefixProvider;
-    selector = new PrefixSelector(pCfa.getVarClassification(), pCfa.getLoopStructure(), pLogger);
+    selector = new PrefixSelector(pCfa.getVarClassification(), pCfa.getLoopStructure());
   }
 
   @Override

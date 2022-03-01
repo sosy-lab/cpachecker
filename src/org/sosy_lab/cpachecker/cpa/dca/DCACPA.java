@@ -11,8 +11,12 @@ package org.sosy_lab.cpachecker.cpa.dca;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.MoreCollectors;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.logging.Level;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -29,9 +33,13 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.specification.Property;
+import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.core.specification.SpecificationProperty;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
+import org.sosy_lab.cpachecker.util.ltl.formulas.LabelledFormula;
 
 public class DCACPA extends AbstractSingleWrapperCPA {
 
@@ -42,8 +50,18 @@ public class DCACPA extends AbstractSingleWrapperCPA {
   private final ControlAutomatonCPA automatonCPA;
   private final List<Automaton> automatonList;
 
-  public DCACPA(ConfigurableProgramAnalysis pCpa) {
+  public DCACPA(ConfigurableProgramAnalysis pCpa, Specification pSpec, LogManager pLogger) {
     super(pCpa);
+
+    Optional<SpecificationProperty> propertyOpt =
+        pSpec.getProperties().stream().collect(MoreCollectors.toOptional());
+    if (propertyOpt.isPresent()) {
+      Property property = propertyOpt.orElseThrow().getProperty();
+      pLogger.logf(Level.INFO, "Retrieved property from file: %s", property);
+      if (property instanceof LabelledFormula) {
+        pLogger.logf(Level.INFO, "Negated property: %s", ((LabelledFormula) property).not());
+      }
+    }
 
     checkArgument(pCpa instanceof ControlAutomatonCPA);
     automatonCPA = (ControlAutomatonCPA) pCpa;

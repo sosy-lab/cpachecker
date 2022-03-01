@@ -42,7 +42,11 @@ public abstract class NondeterminismState implements LatticeAbstractState<Nondet
     }
 
     private NondeterminismNonAbstractionState(Map<String, Object> pNondetVariables) {
-      nondetVariables = PathCopyingPersistentTreeMap.copyOf(pNondetVariables);
+      if (pNondetVariables instanceof PersistentSortedMap) {
+        nondetVariables = (PersistentSortedMap<String, Object>) pNondetVariables;
+      } else {
+        nondetVariables = PathCopyingPersistentTreeMap.copyOf(pNondetVariables);
+      }
     }
 
     public NondeterminismNonAbstractionState addNondetVariable(String pVariable) {

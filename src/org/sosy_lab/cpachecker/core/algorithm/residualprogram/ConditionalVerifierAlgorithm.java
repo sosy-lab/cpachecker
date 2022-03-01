@@ -136,7 +136,7 @@ public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvid
         shutdown.shutdownIfNecessary();
 
         CoreComponentsFactory coreComponents =
-            new CoreComponentsFactory(config, logger, shutdown, AggregatedReachedSets.empty());
+            new CoreComponentsFactory(config, logger, shutdown, new AggregatedReachedSets());
 
         logger.log(Level.FINE, "Build configurable program analysis");
         ConfigurableProgramAnalysis cpa;
@@ -160,7 +160,7 @@ public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvid
             cpa.getInitialState(pEntryNode, StateSpacePartition.getDefaultPartition());
         Precision initialPrecision =
             cpa.getInitialPrecision(pEntryNode, StateSpacePartition.getDefaultPartition());
-        ReachedSet reachedSet = coreComponents.createReachedSet(cpa);
+        ReachedSet reachedSet = coreComponents.createReachedSet();
         reachedSet.add(initialState, initialPrecision);
         shutdown.shutdownIfNecessary();
 
@@ -217,7 +217,7 @@ public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvid
         shutdown.shutdownIfNecessary();
 
         CoreComponentsFactory coreComponents =
-            new CoreComponentsFactory(config, logger, shutdown, AggregatedReachedSets.empty());
+            new CoreComponentsFactory(config, logger, shutdown, new AggregatedReachedSets());
 
         logger.log(Level.FINE, "Build configurable program analysis");
         ConfigurableProgramAnalysis cpa;
@@ -236,7 +236,7 @@ public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvid
         Precision initialPrecision =
             cpa.getInitialPrecision(
                 cfaResidProg.getMainFunction(), StateSpacePartition.getDefaultPartition());
-        ReachedSet reachedSet = coreComponents.createReachedSet(cpa);
+        ReachedSet reachedSet = coreComponents.createReachedSet();
         reachedSet.add(initialState, initialPrecision);
         reached.setDelegate(reachedSet);
         shutdown.shutdownIfNecessary();

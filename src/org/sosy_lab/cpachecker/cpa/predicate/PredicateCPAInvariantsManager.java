@@ -880,7 +880,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
       return true;
     }
 
-    private List<CandidateInvariant> getLocationCandidateInvariant(InfeasiblePrefix pInput) {
+    private final List<CandidateInvariant> getLocationCandidateInvariant(InfeasiblePrefix pInput) {
       List<BooleanFormula> interpolants;
       try {
         List<BooleanFormula> pathFormula = pInput.getPathFormulae();

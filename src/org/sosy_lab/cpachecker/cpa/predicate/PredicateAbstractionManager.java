@@ -91,7 +91,7 @@ public class PredicateAbstractionManager {
 
   private static final Set<Integer> noAbstractionReuse = ImmutableSet.of();
 
-  enum AbstractionType {
+  static enum AbstractionType {
     CARTESIAN,
     CARTESIAN_BY_WEAKENING,
     BOOLEAN,

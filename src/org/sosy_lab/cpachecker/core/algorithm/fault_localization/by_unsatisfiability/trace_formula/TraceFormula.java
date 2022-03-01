@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiab
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,7 +41,7 @@ public abstract class TraceFormula {
   protected final Selector.Factory selectorFactory;
 
   protected BooleanFormulaManager bmgr;
-  protected BooleanFormula postConditionStatement;
+  protected BooleanFormula postcondition;
   protected BooleanFormula precondition;
   protected BooleanFormula trace;
 
@@ -140,38 +139,18 @@ public abstract class TraceFormula {
     bmgr = context.getSolver().getFormulaManager().getBooleanFormulaManager();
     calculateEntries();
     precondition = calculatePrecondition();
-    postConditionStatement = calculatePostCondition();
+    postcondition = calculatePostCondition();
     trace = calculateTrace();
     // logs for unit tests
     context.getLogger().log(Level.FINEST, "tftrace=" + trace);
   }
 
-  private TraceFormula(FormulaContext pContext, TraceFormulaOptions pTraceFormulaOptions, BooleanFormula pPrecondition, BooleanFormula pPostcondition, FormulaEntryList pList, List<CFAEdge> pEdges) {
-    selectorFactory = new Selector.Factory();
-    edges = pEdges;
-    options = pTraceFormulaOptions;
-    context = pContext;
-    bmgr = context.getSolver().getFormulaManager().getBooleanFormulaManager();
-    entries = pList;
-    precondition = pPrecondition;
-    if (!bmgr.isTrue(pPostcondition)) {
-      postConditionStatement = pPostcondition;
-    } else {
-      postConditionStatement = calculatePostCondition();
-    }
-    trace = calculateTrace();
-  }
-
   public boolean isCalculationPossible() throws SolverException, InterruptedException {
-    return !context.getSolver().isUnsat(bmgr.and(getPostCondition(), precondition));
+    return !context.getSolver().isUnsat(bmgr.and(postcondition, precondition));
   }
 
-  public BooleanFormula getPostCondition() {
-    return bmgr.not(postConditionStatement);
-  }
-
-  public BooleanFormula getPostConditionStatement() {
-    return postConditionStatement;
+  public BooleanFormula getPostcondition() {
+    return postcondition;
   }
 
   public BooleanFormula getPrecondition() {
@@ -183,7 +162,7 @@ public abstract class TraceFormula {
   }
 
   public BooleanFormula getTraceFormula() {
-    return bmgr.and(precondition, trace, getPostCondition());
+    return bmgr.and(precondition, trace, postcondition);
   }
 
   public FormulaEntryList getEntries() {
@@ -289,7 +268,7 @@ public abstract class TraceFormula {
         }
       }
     }
-    return postCond;
+    return bmgr.not(postCond);
   }
 
   /** Calculate the boolean formulas for every edge including the SSA-maps and the selectors. */
@@ -383,27 +362,6 @@ public abstract class TraceFormula {
         List<CFAEdge> pCounterexample)
         throws CPAException, InterruptedException, SolverException {
       super(pFormulaContext, pTraceFormulaOptions, pCounterexample);
-    }
-
-    @Override
-    protected BooleanFormula calculateTrace() {
-      return entries.toSelectorList().stream()
-          .map(entry -> bmgr.implication(entry.getFormula(), entry.getEdgeFormula()))
-          .collect(bmgr.toConjunction());
-    }
-  }
-
-  public static class SelectorTraceWithKnownConditions extends TraceFormula {
-
-    public SelectorTraceWithKnownConditions(
-        FormulaContext pFormulaContext,
-        TraceFormulaOptions pTraceFormulaOptions,
-        FormulaEntryList pPath,
-        BooleanFormula pPreCondition,
-        BooleanFormula pPostCondition,
-        List<CFAEdge> pEdges)
-    {
-      super(pFormulaContext, pTraceFormulaOptions, pPreCondition, pPostCondition, pPath, new ArrayList<>(pEdges));
     }
 
     @Override

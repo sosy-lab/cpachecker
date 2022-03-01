@@ -8,7 +8,6 @@
 
 extern int __VERIFIER_nondet_int();
 
-// synthetic task to demonstrate inductive interpolants for ERR-INV
 int main(){		
 	int y = 0;
 	int x = 5;

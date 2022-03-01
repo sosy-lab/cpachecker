@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs.object.test;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Iterables;
 import com.google.common.truth.Truth;
 import java.util.Collection;
@@ -35,7 +36,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObjectKind;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
-import org.sosy_lab.cpachecker.cpa.smg.util.PersistentBiMap;
 
 @RunWith(Parameterized.class)
 public class SMGRegionsWithRegionsTest {
@@ -77,7 +77,7 @@ public class SMGRegionsWithRegionsTest {
             new SMGOptions(Configuration.defaultConfiguration()),
             smg,
             0,
-            PersistentBiMap.of());
+            HashBiMap.create());
 
     final int intSize =
         MACHINE_MODEL_FOR_TESTING.getSizeofInt() * MACHINE_MODEL_FOR_TESTING.getSizeofCharInBits();
@@ -135,7 +135,7 @@ public class SMGRegionsWithRegionsTest {
     SMGListAbstractionTestHelpers.assertAbstractListSegmentAsExpected(
         abstractionResult, regionSize, LEVEL_ZERO, listKind, values.length);
 
-    Iterable<SMGEdgeHasValue> dataFieldSet =
+    SMGHasValueEdges dataFieldSet =
         smg.getHVEdges(
             SMGEdgeHasValueFilter.objectFilter(abstractionResult)
                 .filterAtOffset(dfo)

@@ -10,10 +10,9 @@ package org.sosy_lab.cpachecker.cfa.model;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 import java.util.List;
-import java.util.Optional;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
@@ -25,7 +24,7 @@ public abstract class FunctionEntryNode extends CFANode {
   private static final long serialVersionUID = 1837494813423960670L;
   private final FileLocation location;
   private final AFunctionDeclaration functionDefinition;
-  private final @Nullable AVariableDeclaration returnVariable;
+  private final Optional<? extends AVariableDeclaration> returnVariable;
 
   // Check if call edges are added in the second pass
   private final FunctionExitNode exitNode;
@@ -40,7 +39,7 @@ public abstract class FunctionEntryNode extends CFANode {
     location = checkNotNull(pFileLocation);
     functionDefinition = pFunctionDefinition;
     exitNode = pExitNode;
-    returnVariable = pReturnVariable.orElse(null);
+    returnVariable = checkNotNull(pReturnVariable);
   }
 
   public FileLocation getFileLocation() {
@@ -67,6 +66,6 @@ public abstract class FunctionEntryNode extends CFANode {
    * This variable is the same as the one used by {@link AReturnStatement#asAssignment()}.
    */
   public Optional<? extends AVariableDeclaration> getReturnVariable() {
-    return Optional.ofNullable(returnVariable);
+    return returnVariable;
   }
 }

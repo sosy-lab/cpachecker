@@ -30,7 +30,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
@@ -252,7 +251,7 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
   }
 
   private void handleFunctionCall(CFunctionCallEdge edge) throws HandleCodeException {
-    CFunctionCall statement = edge.getFunctionCall();
+    CStatement statement = edge.getRawAST().get();
 
     if (statement instanceof CFunctionCallAssignmentStatement) {
       /*

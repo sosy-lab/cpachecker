@@ -74,8 +74,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
   }
 
   @Override
-  public void constructInternalProofRepresentation(
-      UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa)
+  public void constructInternalProofRepresentation(UnmodifiableReachedSet pReached)
       throws InvalidConfigurationException, InterruptedException {
     if (!(pReached instanceof HistoryForwardingReachedSet)) {
       throw new InvalidConfigurationException("Reached sets used by restart algorithm are not memorized. Please enable option analysis.memorizeReachedAfterRestart");
@@ -108,10 +107,9 @@ public class ARG_CMCStrategy extends AbstractStrategy {
   }
 
   @Override
-  protected void writeProofToStream(
-      ObjectOutputStream pOut, UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa)
-      throws IOException, InvalidConfigurationException, InterruptedException {
-    constructInternalProofRepresentation(pReached, pCpa);
+  protected void writeProofToStream(ObjectOutputStream pOut, UnmodifiableReachedSet pReached) throws IOException,
+      InvalidConfigurationException, InterruptedException {
+    constructInternalProofRepresentation(pReached);
     if (proofKnown) {
       HistoryForwardingReachedSet historyReached = (HistoryForwardingReachedSet) pReached;
       if (historyReached.getAllReachedSetsUsedAsDelegates().size() != historyReached.getCPAs().size()) {
@@ -171,7 +169,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
           // check current partial ARG
           logger.log(Level.INFO, "Start checking partial ARG ", i);
           if (roots[i] == null
-              || !checkPartialARG(factory.create(cpa), roots[i], incompleteStates, i, cpa)) {
+              || !checkPartialARG(factory.create(), roots[i], incompleteStates, i, cpa)) {
             logger.log(Level.FINE, "Checking of partial ARG ", i, " failed.");
             return false;
           }
@@ -296,10 +294,8 @@ public class ARG_CMCStrategy extends AbstractStrategy {
 
           // check current partial ARG
           logger.log(Level.INFO, "Start checking partial ARG ", i);
-          if (!checkResult.get()
-              || roots[i] == null
-              || !checkPartialARG(
-                  factory.create(cpas[i]), roots[i], incompleteStates, i, cpas[i])) {
+          if (!checkResult.get() || roots[i] == null
+              || !checkPartialARG(factory.create(), roots[i], incompleteStates, i, cpas[i])) {
             logger.log(Level.FINE, "Checking of partial ARG ", i, " failed.");
             return false;
           }

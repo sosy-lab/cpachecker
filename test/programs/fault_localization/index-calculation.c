@@ -13,7 +13,7 @@ int main(){
 	if (x != 1) 
 		x = 2;
 	else 
-		x = x + 2; // FIX: x = 0, x = 1, x = 2 (synthetic task)
+		x = x + 2;
 	
 	if(!(x < 3 && x >= 0))
 		goto ERROR;

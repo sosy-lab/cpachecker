@@ -125,7 +125,7 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
     // analysis was unsound
     if (!status.isSound()
         || pReachedSet.hasWaitingState()
-        || (status.wasPropertyChecked() && !pReachedSet.getTargetInformation().isEmpty())) {
+        || (status.wasPropertyChecked() && !pReachedSet.getViolatedProperties().isEmpty())) {
       logger.log(Level.SEVERE, "Do not extract requirements since analysis failed.");
       return status;
     }

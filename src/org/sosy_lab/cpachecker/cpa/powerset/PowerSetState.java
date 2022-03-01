@@ -16,6 +16,7 @@ import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
@@ -64,10 +65,10 @@ public class PowerSetState implements AbstractWrapperState, Targetable {
   }
 
   @Override
-  public @NonNull Set<TargetInformation> getTargetInformation() throws IllegalStateException {
+  public @NonNull Set<Property> getViolatedProperties() throws IllegalStateException {
     return FluentIterable.from(setOfStates)
         .filter(AbstractStates::isTargetState)
-        .transformAndConcat(s -> ((Targetable) s).getTargetInformation())
+        .transformAndConcat(s -> ((Targetable) s).getViolatedProperties())
         .toSet();
   }
 

@@ -162,7 +162,7 @@ public class CFADeclarationMover {
         edge =
             new CReturnStatementEdge(
                 edge.getRawStatement(),
-                ((CReturnStatementEdge) edge).getReturnStatement(),
+                ((CReturnStatementEdge) edge).getRawAST().orNull(),
                 edge.getFileLocation(),
                 pred,
                 (FunctionExitNode) edge.getSuccessor());

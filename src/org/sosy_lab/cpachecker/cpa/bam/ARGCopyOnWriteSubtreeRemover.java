@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.bam;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Verify.verify;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Preconditions;
@@ -320,8 +319,7 @@ public class ARGCopyOnWriteSubtreeRemover extends ARGSubtreeRemover {
       final Map<ARGState, ARGState> cloneMapping) {
     // build reachedset, iteration order is very important here,
     // because pReached and clonedReached should behave similar, e.g. first state is equal
-    verify(pReached.getCPA() == bamCpa, "all reached-sets should be created with the same CPA.");
-    ReachedSet clonedReached = data.getReachedSetFactory().create(bamCpa);
+    ReachedSet clonedReached = data.getReachedSetFactory().create();
     for (AbstractState abstractState : Iterables.filter(pReached, keepStates)) {
       ARGState state = (ARGState) abstractState;
       ARGState clonedState = cloneMapping.get(state);

@@ -14,10 +14,10 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.primitives.ImmutableIntArray;
 import java.io.PrintStream;
-import java.util.List;
 import java.util.function.Function;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.Triple;
+import org.sosy_lab.cpachecker.util.predicates.PredicateOrderingStrategy;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -226,17 +226,14 @@ public class SymbolicRegionManager implements RegionManager {
   }
 
   @Override
-  public void reorder(VariableOrderingStrategy strategy) {
-    // not applicable
+  public void reorder(PredicateOrderingStrategy strategy) {
   }
 
   @Override
-  public void setVarOrder(ImmutableIntArray pOrder) {
-    // not applicable
-  }
+  public void setVarOrder(ImmutableIntArray pOrder) {}
 
   @Override
-  public Region replace(Region pRegion, List<Region> pOldPredicates, List<Region> pNewPredicates) {
+  public Region replace(Region pRegion, Region[] pOldPredicates, Region[] pNewPredicates) {
     throw new UnsupportedOperationException();
   }
 }

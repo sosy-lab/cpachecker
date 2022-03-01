@@ -13,6 +13,7 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutConst;
 import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutVolatile;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
@@ -25,7 +26,6 @@ import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
 import java.util.LongSummaryStatistics;
-import java.util.Optional;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.eclipse.cdt.core.dom.ast.IASTArrayDeclarator;
@@ -639,12 +639,11 @@ class ASTConverter {
     // TODO: consider always adding a const modifier if there is an initializer
     CType type = (initializer == null) ? CTypes.withoutConst(pType) : pType;
 
-    if (type instanceof CArrayType && !(initializer instanceof CInitializerList)) {
+    if (type instanceof CArrayType) {
       // Replace with pointer type.
       // This should actually be handled by Eclipse, because the C standard says in §5.4.2.1 (3)
       // that array types of operands are converted to pointer types except in a very few
       // specific cases (for which there will never be a temporary variable).
-      // However, if the initializer is for an array, then of course we need to keep the array type.
       type = new CPointerType(type.isConst(), type.isVolatile(), ((CArrayType) type).getType());
     } else if (type instanceof CFunctionType) {
       // Happens if function pointers are used in ternary expressions, for example.
@@ -1561,21 +1560,20 @@ class ASTConverter {
   public CReturnStatement convert(final IASTReturnStatement s) {
     final FileLocation loc = getLocation(s);
     final Optional<CExpression> returnExp =
-        Optional.ofNullable(convertExpressionWithoutSideEffects(s.getReturnValue()));
+        Optional.fromNullable(convertExpressionWithoutSideEffects(s.getReturnValue()));
     final Optional<CVariableDeclaration> returnVariableDeclaration =
 ((FunctionScope)scope).getReturnVariable();
 
     final Optional<CAssignment> returnAssignment;
     if (returnVariableDeclaration.isPresent()) {
-      CIdExpression lhs = new CIdExpression(loc, returnVariableDeclaration.orElseThrow());
+      CIdExpression lhs = new CIdExpression(loc, returnVariableDeclaration.get());
       CExpression rhs = null;
       if (returnExp.isPresent()) {
-        rhs = returnExp.orElseThrow();
+        rhs = returnExp.get();
       } else {
         logger.log(
             Level.WARNING, loc + ":", "Return statement without expression in non-void function.");
-        CInitializer defaultValue =
-            CDefaults.forType(returnVariableDeclaration.orElseThrow().getType(), loc);
+        CInitializer defaultValue = CDefaults.forType(returnVariableDeclaration.get().getType(), loc);
         if (defaultValue instanceof CInitializerExpression) {
           rhs = ((CInitializerExpression)defaultValue).getExpression();
         }
@@ -1583,7 +1581,7 @@ class ASTConverter {
       if (rhs != null) {
         returnAssignment = Optional.of(new CExpressionAssignmentStatement(loc, lhs, rhs));
       } else {
-        returnAssignment = Optional.empty();
+        returnAssignment = Optional.absent();
       }
 
     } else {
@@ -1592,10 +1590,10 @@ class ASTConverter {
             Level.WARNING,
             loc + ":",
             "Return statement with expression",
-            returnExp.orElseThrow(),
+            returnExp.get(),
             "in void function.");
       }
-      returnAssignment = Optional.empty();
+      returnAssignment = Optional.absent();
     }
 
     return new CReturnStatement(loc, returnExp, returnAssignment);

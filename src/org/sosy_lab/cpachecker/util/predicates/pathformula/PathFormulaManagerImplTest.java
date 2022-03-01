@@ -129,7 +129,10 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
         new CFunctionDeclaration(FileLocation.DUMMY, functionType, fName, ImmutableList.of());
     FunctionEntryNode entryNode =
         new CFunctionEntryNode(
-            FileLocation.DUMMY, fdef, new FunctionExitNode(fdef), Optional.empty());
+            FileLocation.DUMMY,
+            fdef,
+            new FunctionExitNode(fdef),
+            com.google.common.base.Optional.absent());
 
     // Edge 1: "x' = x + 1".
     // Edge 2: "x <= 10"

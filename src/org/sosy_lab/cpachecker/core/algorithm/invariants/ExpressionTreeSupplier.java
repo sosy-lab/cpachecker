@@ -15,13 +15,14 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 public interface ExpressionTreeSupplier {
 
   /**
-   * Return an invariant that holds at a given node. This method should be relatively cheap and not
-   * block (i.e., do not start an expensive invariant generation procedure).
+   * Return an invariant that holds at a given node.
+   * This method should be relatively cheap and not block
+   * (i.e., do not start an expensive invariant generation procedure).
    *
    * @param node The CFANode.
    * @return An invariant boolean expression over C expressions.
    */
-  ExpressionTree<Object> getInvariantFor(CFANode node) throws InterruptedException;
+  ExpressionTree<Object> getInvariantFor(CFANode node);
 
   enum TrivialInvariantSupplier implements ExpressionTreeSupplier {
     INSTANCE;

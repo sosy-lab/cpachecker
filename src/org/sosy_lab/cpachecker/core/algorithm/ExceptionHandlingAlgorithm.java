@@ -297,8 +297,9 @@ public class ExceptionHandlingAlgorithm
   private boolean isTransitiveChildOf(ARGState potentialChild, ARGState potentialParent) {
 
     Set<ARGState> seen = new HashSet<>();
-    Deque<ARGState> waitlist = new ArrayDeque<>(potentialChild.getParents()); // use BFS
+    Deque<ARGState> waitlist = new ArrayDeque<>(); // use BFS
 
+    waitlist.addAll(potentialChild.getParents());
     while (!waitlist.isEmpty()) {
       ARGState current = waitlist.pollFirst();
 

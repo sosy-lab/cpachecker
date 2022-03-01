@@ -11,12 +11,11 @@ package org.sosy_lab.cpachecker.util;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -69,10 +68,9 @@ public class BuiltinOverflowFunctions {
     public final Boolean hasNoSideEffects;
     public final String name;
 
-    BuiltinOverflowFunction(
-        BinaryOperator pOperator, @Nullable CSimpleType pType, Boolean pHasNoSideEffect) {
+    private BuiltinOverflowFunction(BinaryOperator pOperator, CSimpleType pType, Boolean pHasNoSideEffect) {
       operator = pOperator;
-      type = Optional.ofNullable(pType);
+      type = Optional.fromNullable(pType);
       hasNoSideEffects = pHasNoSideEffect;
 
       StringBuilder sb = new StringBuilder();
@@ -95,7 +93,7 @@ public class BuiltinOverflowFunctions {
       }
     }
 
-    private static String getDataTypePrefix(@Nullable CSimpleType pType) {
+    private static String getDataTypePrefix(CSimpleType pType) {
       if(pType == null) {
         return "";
       }
@@ -107,7 +105,7 @@ public class BuiltinOverflowFunctions {
       return "u";
     }
 
-    private static String getDataTypeSuffix(@Nullable CSimpleType pType) {
+    private static String getDataTypeSuffix(CSimpleType pType) {
       if (pType == null) {
         return "";
       }
@@ -131,9 +129,9 @@ public class BuiltinOverflowFunctions {
    * resolve the type of the built-yin overflow function. This is important since the input
    * parameters have to be casted in case their type differs
    */
-  public static Optional<CSimpleType> getType(String pFunctionName) {
+  public static CSimpleType getType(String pFunctionName) {
     checkState(functions.containsKey(pFunctionName));
-    return functions.get(pFunctionName).type;
+    return functions.get(pFunctionName).type.orNull();
   }
 
   public static BinaryOperator getOperator(String pFunctionName) {
@@ -165,10 +163,7 @@ public class BuiltinOverflowFunctions {
     Optional<CSimpleType> type = functions.get(pFunctionName).type;
 
     if (type.isPresent()) {
-      return ImmutableList.of(
-          type.orElseThrow(),
-          type.orElseThrow(),
-          new CPointerType(false, false, type.orElseThrow()));
+      return ImmutableList.of(type.get(), type.get(), new CPointerType(false, false, type.get()));
     } else {
       return ImmutableList.of();
     }
@@ -227,7 +222,7 @@ public class BuiltinOverflowFunctions {
 
   private static CSimpleType getTargetType(String pFunctionName, CExpression thirdArgument) {
     if (!isFunctionWithArbitraryArgumentTypes(pFunctionName)) {
-      return getType(pFunctionName).orElseThrow();
+      return getType(pFunctionName);
     }
 
     CType targetType = thirdArgument.getExpressionType().getCanonicalType();

@@ -13,8 +13,8 @@ import static com.google.common.base.Preconditions.checkState;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Streams;
 import com.google.common.primitives.ImmutableIntArray;
 import java.io.PrintStream;
 import java.lang.ref.PhantomReference;
@@ -43,6 +43,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.util.Triple;
+import org.sosy_lab.cpachecker.util.predicates.PredicateOrderingStrategy;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -320,7 +321,7 @@ class JavaBDDRegionManager implements RegionManager {
     return region;
   }
 
-  private static BDD unwrap(Region region) {
+  private BDD unwrap(Region region) {
     return ((JavaBDDRegion) region).getBDD();
   }
 
@@ -469,42 +470,41 @@ class JavaBDDRegionManager implements RegionManager {
   }
 
   @Override
-  public void reorder(VariableOrderingStrategy strategy) {
+  public void reorder(PredicateOrderingStrategy strategy) {
     switch (strategy) {
-      case RANDOM:
+      case FRAMEWORK_RANDOM:
         factory.reorder(BDDFactory.REORDER_RANDOM);
         break;
-      case SIFT:
+      case FRAMEWORK_SIFT:
         factory.reorder(BDDFactory.REORDER_SIFT);
         break;
-      case SIFTITE:
+      case FRAMEWORK_SIFTITE:
         factory.reorder(BDDFactory.REORDER_SIFTITE);
         break;
-      case WIN2:
+      case FRAMEWORK_WIN2:
         factory.reorder(BDDFactory.REORDER_WIN2);
         break;
-      case WIN2ITE:
+      case FRAMEWORK_WIN2ITE:
         factory.reorder(BDDFactory.REORDER_WIN2ITE);
         break;
-      case WIN3:
+      case FRAMEWORK_WIN3:
         factory.reorder(BDDFactory.REORDER_WIN3);
         break;
-      case WIN3ITE:
+      case FRAMEWORK_WIN3ITE:
         factory.reorder(BDDFactory.REORDER_WIN3ITE);
         break;
       default:
-        throw new UnsupportedOperationException("Reorder strategy " + strategy + " not supported");
+        break;
     }
   }
 
   @Override
-  public Region replace(Region pRegion, List<Region> pOldPredicates, List<Region> pNewPredicates) {
-    checkArgument(pOldPredicates.size() == pNewPredicates.size());
+  public Region replace(Region pRegion, Region[] pOldPredicates, Region[] pNewPredicates) {
+    Preconditions.checkArgument(pOldPredicates.length == pNewPredicates.length);
     BDDPairing pairing = factory.makePair();
-    Streams.forEachPair(
-        pOldPredicates.stream().map(JavaBDDRegionManager::unwrap),
-        pNewPredicates.stream().map(JavaBDDRegionManager::unwrap),
-        (r1, r2) -> pairing.set(r1.var(), r2.var()));
+    for (int i = 0; i < pOldPredicates.length; i++) {
+      pairing.set(unwrap(pOldPredicates[i]).var(), unwrap(pNewPredicates[i]).var());
+    }
     return wrap(unwrap(pRegion).replace(pairing));
   }
 

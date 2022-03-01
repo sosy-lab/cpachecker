@@ -49,8 +49,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.util.SyntacticBlock;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.util.SyntacticBlockStructureBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -85,7 +83,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLParser;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
@@ -288,10 +285,6 @@ public class CFACreator {
   // keep option name in sync with {@link CPAMain#language}, value might differ
   private Language language = Language.C;
 
-  // data structures for parsing ACSL annotations
-  private final List<FileLocation> commentPositions = new ArrayList<>();
-  private final List<SyntacticBlock> blocks = new ArrayList<>();
-
   private final LogManager logger;
   private final Parser parser;
   private final ShutdownNotifier shutdownNotifier;
@@ -481,17 +474,7 @@ public class CFACreator {
           throw new AssertionError();
       }
 
-      CFA cfa = createCFA(c, mainFunction);
-
-      if (!commentPositions.isEmpty()) {
-        SyntacticBlockStructureBuilder blockStructureBuilder = new SyntacticBlockStructureBuilder(cfa);
-        blockStructureBuilder.addAll(blocks);
-        cfa =
-            ACSLParser.parseACSLAnnotations(
-                sourceFiles, cfa, logger, commentPositions, blockStructureBuilder.build());
-      }
-
-      return cfa;
+      return createCFA(c, mainFunction);
 
     } finally {
       stats.totalTime.stop();
@@ -634,13 +617,6 @@ public class CFACreator {
     stats.processingTime.stop();
 
     final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(varClassification);
-
-    if (pParseResult instanceof ParseResultWithCommentLocations) {
-      ParseResultWithCommentLocations withCommentLocations = ((ParseResultWithCommentLocations) pParseResult);
-      commentPositions.addAll(
-          withCommentLocations.getCommentLocations());
-      blocks.addAll(withCommentLocations.getBlocks());
-    }
 
     // check the super CFA starting at the main function
     stats.checkTime.start();

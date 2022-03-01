@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.toolch
 
 import de.uni_freiburg.informatik.ultimate.core.model.services.IProgressAwareTimer;
 import de.uni_freiburg.informatik.ultimate.core.model.services.IProgressMonitorService;
-import de.uni_freiburg.informatik.ultimate.core.model.services.IUltimateServiceProvider;
 import java.util.concurrent.CountDownLatch;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -28,6 +27,10 @@ public class LassoRankerProgressMonitorService implements IProgressMonitorServic
     return !shutdownManager.getNotifier().shouldShutdown();
   }
 
+  @Override
+  public boolean continueProcessingRoot() {
+    return !shutdownManager.getNotifier().shouldShutdown();
+  }
 
   @Override
   public IProgressAwareTimer getChildTimer(long pTimeout) {
@@ -72,13 +75,12 @@ public class LassoRankerProgressMonitorService implements IProgressMonitorServic
   }
 
   @Override
-  public long remainingTime() {
-    throw new UnsupportedOperationException(getClass() + "::remainingTime is not implemented");
+  public void addChildTimer(IProgressAwareTimer pTimer) {
+    throw new UnsupportedOperationException(getClass() + "::addChildTimer is not implemented");
   }
 
   @Override
-  public IUltimateServiceProvider registerChildTimer(
-      IUltimateServiceProvider pServices, IProgressAwareTimer pTimer) {
-    throw new UnsupportedOperationException(getClass() + "::registerChildTimer is not implemented");
+  public IProgressAwareTimer removeChildTimer() {
+    throw new UnsupportedOperationException(getClass() + "::removeChildTimer is not implemented");
   }
 }

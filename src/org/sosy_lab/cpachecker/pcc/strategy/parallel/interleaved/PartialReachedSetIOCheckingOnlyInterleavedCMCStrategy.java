@@ -73,8 +73,7 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
   }
 
   @Override
-  public void constructInternalProofRepresentation(
-      UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa)
+  public void constructInternalProofRepresentation(UnmodifiableReachedSet pReached)
       throws InvalidConfigurationException, InterruptedException {
     throw new InvalidConfigurationException(
         "Interleaved proof reading and checking strategies do not  support internal PCC with result check algorithm");
@@ -179,9 +178,8 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
   }
 
   @Override
-  protected void writeProofToStream(
-      ObjectOutputStream pOut, UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa)
-      throws IOException, InvalidConfigurationException, InterruptedException {
+  protected void writeProofToStream(ObjectOutputStream pOut, UnmodifiableReachedSet pReached) throws IOException,
+      InvalidConfigurationException, InterruptedException {
     if (!(pReached instanceof HistoryForwardingReachedSet)) { throw new InvalidConfigurationException(
         "Reached sets used by restart algorithm are not memorized. Please enable option analysis.memorizeReachedAfterRestart"); }
 
@@ -218,7 +216,7 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
 
         ioHelper = new CMCPartitioningIOHelper(config, logger, shutdown,
             automatonWriter.getAllAncestorsFor(unexplored), unexplored, (ARGState) reached.getFirstState());
-        ioHelper.writeProof(pOut, reached, pCpa);
+        ioHelper.writeProof(pOut, reached);
      }
     } catch (ClassCastException e) {
       logger.logDebugException(e);

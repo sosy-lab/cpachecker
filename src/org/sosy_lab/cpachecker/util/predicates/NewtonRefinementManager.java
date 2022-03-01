@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.predicates;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -418,9 +419,19 @@ public class NewtonRefinementManager implements StatisticsProvider {
     // Mutable as removing entries might be necessary.
     Map<String, Formula> intermediateVars =
         ImmutableMap.copyOf(
-            Maps.filterKeys(
+            Maps.filterEntries(
                 fmgr.extractVariables(toExist),
-                varName -> fmgr.isIntermediate(varName, pathFormula.getSsa())));
+                new Predicate<Entry<String, Formula>>() {
+
+                  @Override
+                  public boolean apply(@Nullable Entry<String, Formula> pInput) {
+                    if (pInput == null) {
+                      return false;
+                    } else {
+                      return fmgr.isIntermediate(pInput.getKey(), pathFormula.getSsa());
+                    }
+                  }
+                }));
 
     // If there are no intermediate Variables, no quantification is necessary
     if (intermediateVars.isEmpty()) {
@@ -548,7 +559,11 @@ public class NewtonRefinementManager implements StatisticsProvider {
 
         // identify the variables that are not future live and can be quantified
         Map<String, Formula> toQuantify =
-            Maps.filterKeys(fmgr.extractVariables(pred), varName -> !futureLives.contains(varName));
+            Maps.filterEntries(
+                fmgr.extractVariables(pred),
+                (e) -> {
+                  return !futureLives.contains(e.getKey());
+                });
 
         // quantify the previously identified variables
         if (!toQuantify.isEmpty()) {

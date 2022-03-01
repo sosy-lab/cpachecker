@@ -11,7 +11,7 @@ extern int __VERIFIER_nondet_int();
 int main(){
 	
 	int x = -2;
-	x++; // FIX: x = x + 7
+	x++;
 	if (x < 2) {
 		if (x < 0) {
 			if (x < 3)

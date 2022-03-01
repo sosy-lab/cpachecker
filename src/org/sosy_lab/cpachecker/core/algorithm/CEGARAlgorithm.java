@@ -268,7 +268,7 @@ public class CEGARAlgorithm
   private boolean refinementNecessary(ReachedSet reached, AbstractState previousLastState) {
     if (globalRefinement) {
       // check other states
-      return reached.wasTargetReached();
+      return reached.hasViolatedProperties();
 
     } else {
       // Check only last state, but only if it is different from the last iteration.

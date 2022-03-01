@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.counterexample;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
@@ -25,7 +26,6 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -968,7 +968,7 @@ public class AssumptionToEdgeAllocator {
           return lookupReferenceAddress(pIastFieldReference);
         }
 
-        Address address = fieldOwnerAddress.addOffset(fieldOffset.orElseThrow());
+        Address address = fieldOwnerAddress.addOffset(fieldOffset.get());
         if (address.isUnknown()) {
           return lookupReferenceAddress(pIastFieldReference);
         }
@@ -1395,14 +1395,14 @@ public class AssumptionToEdgeAllocator {
         return ExplicitValueLiteral.valueOf(new BigDecimal(val), pType);
 
       } else if (pValue instanceof Double) {
-        double doubleValue = ((Double) pValue);
+        double doubleValue = ((Double)pValue).doubleValue();
         if (Double.isInfinite(doubleValue) || Double.isNaN(doubleValue)) {
           // TODO return correct value
           return UnknownValueLiteral.getInstance();
         }
         return ExplicitValueLiteral.valueOf(BigDecimal.valueOf(doubleValue), pType);
       } else if (pValue instanceof Float) {
-        float floatValue = ((Float) pValue);
+        float floatValue = ((Float)pValue).floatValue();
         if (Float.isInfinite(floatValue) || Double.isNaN(floatValue)) {
           // TODO return correct value
           return UnknownValueLiteral.getInstance();
@@ -1592,7 +1592,7 @@ public class AssumptionToEdgeAllocator {
           Optional<BigInteger> memberOffset = bitsToByte(memberBitOffset.getValue(), machineModel);
           // TODO this looses values of bit fields
           if (memberOffset.isPresent()) {
-            handleMemberField(memberType, address.addOffset(memberOffset.orElseThrow()));
+            handleMemberField(memberType, address.addOffset(memberOffset.get()));
           }
         }
       }
@@ -2101,7 +2101,7 @@ public class AssumptionToEdgeAllocator {
     if (ownerType instanceof CElaboratedType) {
       CType realType = ((CElaboratedType) ownerType).getRealType();
       if (realType == null) {
-        return Optional.empty();
+        return Optional.absent();
       }
 
       return getFieldOffset(realType.getCanonicalType(), fieldName, pMachineModel);
@@ -2128,6 +2128,6 @@ public class AssumptionToEdgeAllocator {
     if (divAndRemainder[1].equals(BigInteger.ZERO)) {
       return Optional.of(divAndRemainder[0]);
     }
-    return Optional.empty();
+    return Optional.absent();
   }
 }
