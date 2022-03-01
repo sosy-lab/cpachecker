@@ -25,6 +25,7 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.cwriter.CFAToCTranslator;
@@ -47,6 +48,19 @@ public class SliceExporter {
 
   @Option(
       secure = true,
+      name = "exportToDot.enable",
+      description = "Whether to export program slices as DOT files.")
+  private boolean exportToDot = true;
+
+  @Option(
+      secure = true,
+      name = "exportToDot.file",
+      description = "File template for exported program slice DOT files.")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private PathTemplate exportToDotFile = PathTemplate.ofFormatString("programSlice.%d.dot");
+
+  @Option(
+      secure = true,
       name = "exportCriteria.enable",
       description = "Export the used slicing criteria to file")
   private boolean exportCriteria = false;
@@ -59,8 +73,9 @@ public class SliceExporter {
   private PathTemplate exportCriteriaFile =
       PathTemplate.ofFormatString("programSlice.%d.criteria.txt");
 
+  private final Configuration config;
   private final LogManager logger;
-  private int exportCount = -1;
+  private int exportCount = 0;
   private final CFAToCTranslator translator;
 
   public SliceExporter(Configuration pConfig, LogManager pLogger)
@@ -68,64 +83,81 @@ public class SliceExporter {
     pConfig.inject(this);
 
     translator = new CFAToCTranslator(pConfig);
+    config = pConfig;
     logger = pLogger;
   }
 
+  private void exportToC(Slice pSlice, Path pPath) {
+
+    CFA sliceCfa = SliceToCfaConversion.convert(config, logger, pSlice);
+
+    try (Writer writer = IO.openOutputFile(pPath, Charset.defaultCharset())) {
+
+      String code = translator.translateCfa(sliceCfa);
+      writer.write(code);
+
+    } catch (CPAException | IOException | InvalidConfigurationException ex) {
+      logger.logUserException(
+          Level.WARNING, ex, "Could not write program slice to C file: " + pPath);
+    }
+  }
+
+  private void exportAsDotFile(Slice pSlice, Path pPath) {
+
+    CFA sliceCfa = SliceToCfaConversion.convert(config, logger, pSlice);
+
+    try (Writer writer = IO.openOutputFile(pPath, Charset.defaultCharset())) {
+      DOTBuilder.generateDOT(writer, sliceCfa);
+    } catch (IOException ex) {
+      logger.logUserException(
+          Level.WARNING, ex, "Could not write program slice to DOT file: " + pPath);
+    }
+  }
+
+  private void exportCriteria(Slice pSlice, Path pPath) {
+
+    try (Writer writer = IO.openOutputFile(pPath, Charset.defaultCharset())) {
+
+      for (CFAEdge edge : pSlice.getSlicingCriteria()) {
+
+        FileLocation fileLoc = edge.getFileLocation();
+        writer.append(String.valueOf(fileLoc.getFileName()));
+        writer.append(":");
+        writer.append(String.valueOf(fileLoc.getStartingLineNumber()));
+        writer.append(":");
+        writer.append(edge.getCode());
+        writer.append("\n");
+      }
+
+    } catch (IOException ex) {
+      logger.logUserException(
+          Level.WARNING, ex, "Could not write slicing criteria to file: " + pPath);
+    }
+  }
+
+  private void export(Slice pSlice, int pCurrentExportCount) {
+
+    if (exportToC && exportToCFile != null) {
+      exportToC(pSlice, exportToCFile.getPath(pCurrentExportCount));
+    }
+
+    if (exportToDot && exportToDotFile != null) {
+      exportAsDotFile(pSlice, exportToDotFile.getPath(pCurrentExportCount));
+    }
+
+    if (exportCriteria && exportCriteriaFile != null) {
+      exportCriteria(pSlice, exportCriteriaFile.getPath(pCurrentExportCount));
+    }
+  }
+
   /**
-   * Executes the slice-exporter, which (depending on the configuration) exports program slices to C
-   * program files.
+   * Executes the slice-exporter, which exports, depending on the configuration, various parts of a
+   * program {@link Slice} in different output formats.
    *
    * @param pSlice program slice to export
    */
   public void execute(Slice pSlice) {
-    exportCount++;
-    if (exportCriteria && exportCriteriaFile != null) {
-      Concurrency.newThread(
-              "Slice-criteria-Exporter",
-              () -> {
-                Path path = exportCriteriaFile.getPath(exportCount);
-
-                try (Writer writer = IO.openOutputFile(path, Charset.defaultCharset())) {
-                  StringBuilder output = new StringBuilder();
-                  for (CFAEdge e : pSlice.getUsedCriteria()) {
-                    FileLocation loc = e.getFileLocation();
-                    output
-                        .append(loc.getFileName())
-                        .append(":")
-                        .append(loc.getStartingLineNumber())
-                        .append(":")
-                        .append(e.getCode())
-                        .append("\n");
-                  }
-                  writer.write(output.toString());
-
-                } catch (IOException e) {
-                  logger.logUserException(
-                      Level.WARNING, e, "Could not write slicing criteria to file " + path);
-                }
-              })
-          .start();
-    }
-
-    if (exportToC && exportToCFile != null) {
-      Concurrency.newThread(
-              "Slice-Exporter",
-              () -> {
-                CFA sliceCfa = SliceToCfaConverter.convert(pSlice);
-
-                Path path = exportToCFile.getPath(exportCount);
-
-                try (Writer writer = IO.openOutputFile(path, Charset.defaultCharset())) {
-
-                  assert translator != null;
-                  String code = translator.translateCfa(sliceCfa);
-                  writer.write(code);
-
-                } catch (CPAException | IOException | InvalidConfigurationException e) {
-                  logger.logUserException(Level.WARNING, e, "Could not write CFA to C file.");
-                }
-              })
-          .start();
-    }
+    int currentExportCount = exportCount++;
+    Concurrency.newThread("Slice-Exporter", () -> export(pSlice, currentExportCount)).start();
   }
 }

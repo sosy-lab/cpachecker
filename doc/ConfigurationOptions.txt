@@ -2890,9 +2890,9 @@ cpa.smg.refinement.interpolationTreeExportFile = "interpolationTree.%d-%d.dot"
 cpa.smg.runtimeCheck = NONE
   enum:     [FORCED, NONE, HALF, FULL]
 
-# Which unknown function are always considered as safe functions, i.e., free
-# of memory-related side-effects?
-cpa.smg.safeUnknownFunctions = {"abort"}
+# Patterns of unknown functions which are always considered as safe
+# functions, i.e., free of memory-related side-effects.
+cpa.smg.safeUnknownFunctionsPatterns = {"abort"}
 
 # which stop operator to use for the SMGCPA
 cpa.smg.stop = "SEP"
@@ -4163,6 +4163,12 @@ slicing.exportToC.enable = false
 
 # File template for exported C program slices
 slicing.exportToC.file = "programSlice.%d.c"
+
+# Whether to export program slices as DOT files.
+slicing.exportToDot.enable = true
+
+# File template for exported program slice DOT files.
+slicing.exportToDot.file = "programSlice.%d.dot"
 
 # which type of extractor for slicing criteria to use
 slicing.extractor = ALL

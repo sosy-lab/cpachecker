@@ -13,6 +13,7 @@
 # In most cases a more detailed description of why an API is unwanted
 # can be found in doc/StyleGuide.md
 
+com.google.common.base.Charsets @ use java.nio.charsets.StandardCharsets instead
 com.google.common.base.Objects @ use java.util.Objects instead
 com.google.common.io.Files#createTempDir() @ Uses inappropriate permissions, cf. JavaDoc
 java.lang.InternalError @ This refers to JVM-internal errors, throw AssertionError instead

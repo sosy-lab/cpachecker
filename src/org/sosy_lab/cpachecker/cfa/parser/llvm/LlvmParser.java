@@ -53,13 +53,13 @@ public class LlvmParser implements Parser {
       throw new InvalidConfigurationException(
           "Multiple program files not supported when using LLVM frontend.");
     }
-    return parseFile(pFilenames.get(0));
+    return parseFile(Path.of(pFilenames.get(0)));
   }
 
-  protected ParseResult parseFile(final String pFilename) throws LLVMParserException {
+  protected ParseResult parseFile(final Path pFilename) throws LLVMParserException {
     addLlvmLookupDirs();
     try (Context llvmContext = Context.create();
-        Module llvmModule = Module.parseIR(pFilename, llvmContext)) {
+        Module llvmModule = Module.parseIR(pFilename.toString(), llvmContext)) {
       parseTimer.start();
       return buildCfa(llvmModule, pFilename);
 
@@ -98,12 +98,12 @@ public class LlvmParser implements Parser {
     Module.addLibraryLookupPaths(libDirs);
   }
 
-  private ParseResult buildCfa(final Module pModule, final String pFilename) throws LLVMException {
+  private ParseResult buildCfa(final Module pModule, final Path pFilename) throws LLVMException {
     return cfaBuilder.build(pModule, pFilename);
   }
 
   @Override
-  public ParseResult parseString(final String pFilename, final String pCode) {
+  public ParseResult parseString(final Path pFilename, final String pCode) {
     // TODO
     throw new UnsupportedOperationException();
   }

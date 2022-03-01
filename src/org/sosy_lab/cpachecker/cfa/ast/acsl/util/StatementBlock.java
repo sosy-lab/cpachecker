@@ -59,12 +59,12 @@ public class StatementBlock implements SyntacticBlock {
   }
 
   @Override
-  public Set<CFAEdge> getEnteringEdges() {
+  public Iterable<CFAEdge> getEnteringEdges() {
     return enteringEdges;
   }
 
   @Override
-  public Set<CFAEdge> getLeavingEdges() {
+  public Iterable<CFAEdge> getLeavingEdges() {
     return leavingEdges;
   }
 
@@ -99,9 +99,7 @@ public class StatementBlock implements SyntacticBlock {
         // If currentEdge is a function call, then continue with the return edge and skip
         // everything in between
         CFunctionSummaryEdge summaryEdge = ((CFunctionCallEdge) currentEdge).getSummaryEdge();
-        for (int i = 0; i < summaryEdge.getSuccessor().getNumEnteringEdges(); i++) {
-          waitlist.add(summaryEdge.getSuccessor().getEnteringEdge(i));
-        }
+        CFAUtils.enteringEdges(summaryEdge.getSuccessor()).copyInto(waitlist);
         continue;
       }
       CFANode successor = currentEdge.getSuccessor();
@@ -109,9 +107,7 @@ public class StatementBlock implements SyntacticBlock {
         leavingEdges.add(currentEdge);
       } else {
         containedNodes.add(successor);
-        for (int i = 0; i < successor.getNumLeavingEdges(); i++) {
-          waitlist.add(successor.getLeavingEdge(i));
-        }
+        CFAUtils.leavingEdges(successor).copyInto(waitlist);
       }
     }
     return true;

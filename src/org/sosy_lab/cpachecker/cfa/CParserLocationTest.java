@@ -64,7 +64,7 @@ public class CParserLocationTest {
   @Test
   public void singleFileTest() throws CParserException, InterruptedException {
     String code = "void main() { }";
-    ParseResult result = parser.parseString(fileName, code);
+    ParseResult result = parser.parseString(Path.of(fileName), code);
     FileLocation mainLoc = result.getFunctions().get("main").getFileLocation();
 
     assertThat(mainLoc.getFileName()).isEqualTo(Path.of(expectedFileName));
@@ -82,7 +82,7 @@ public class CParserLocationTest {
         new CParserWithLocationMapper(
             Configuration.defaultConfiguration(), LogManager.createTestLogManager(), parser, false);
     String code = "#line 5 \"foo.c\"\nvoid main() { }";
-    ParseResult result = parser.parseString(fileName, code);
+    ParseResult result = parser.parseString(Path.of(fileName), code);
     FileLocation mainLoc = result.getFunctions().get("main").getFileLocation();
 
     assertThat(mainLoc.getFileName()).isEqualTo(Path.of(expectedFileName));
@@ -100,7 +100,7 @@ public class CParserLocationTest {
         new CParserWithLocationMapper(
             Configuration.defaultConfiguration(), LogManager.createTestLogManager(), parser, true);
     String code = "#line 5\nvoid main() { }";
-    ParseResult result = parser.parseString(fileName, code);
+    ParseResult result = parser.parseString(Path.of(fileName), code);
     FileLocation mainLoc = result.getFunctions().get("main").getFileLocation();
 
     assertThat(mainLoc.getFileName()).isEqualTo(Path.of(expectedFileName));
@@ -118,7 +118,7 @@ public class CParserLocationTest {
         new CParserWithLocationMapper(
             Configuration.defaultConfiguration(), LogManager.createTestLogManager(), parser, true);
     String code = "#line 5 \"foo.c\"\nvoid main() { }";
-    ParseResult result = parser.parseString(fileName, code);
+    ParseResult result = parser.parseString(Path.of(fileName), code);
     FileLocation mainLoc = result.getFunctions().get("main").getFileLocation();
 
     assertThat(mainLoc.getFileName()).isEqualTo(Path.of("foo.c"));

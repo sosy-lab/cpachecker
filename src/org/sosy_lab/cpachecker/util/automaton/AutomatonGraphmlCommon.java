@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.util.automaton;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
-import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
@@ -23,6 +22,8 @@ import com.google.common.io.CharStreams;
 import com.google.common.io.MoreFiles;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -380,8 +381,7 @@ public class AutomatonGraphmlCommon {
       for (Path specFile : pVerificationTaskMetaData.getNonPropertySpecificationFiles()) {
         graph.appendChild(
             createDataElement(
-                KeyDef.SPECIFICATION,
-                MoreFiles.asCharSource(specFile, Charsets.UTF_8).read().trim()));
+                KeyDef.SPECIFICATION, Files.readString(specFile, StandardCharsets.UTF_8).trim()));
         ++nSpecs;
       }
 
