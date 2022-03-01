@@ -288,7 +288,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
       currentImage = bfmgr.or(currentImage, interpolant);
       itpMgr.pop();
-      itpMgr.push(currentImage);
+      itpMgr.push(interpolant);
     }
     itpMgr.popAll();
     logger.log(Level.FINE, "The overapproximation is unsafe, going back to BMC phase");
