@@ -17,11 +17,11 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 @Immutable
 public final class SMGRegion extends SMGObject implements SMGObjectTemplate {
 
-  public SMGRegion(int pSize, String pLabel) {
+  public SMGRegion(long pSize, String pLabel) {
     super(pSize, pLabel, SMGObjectKind.REG);
   }
 
-  public SMGRegion(int pSize) {
+  public SMGRegion(long pSize) {
     super(pSize, "ID" + SMGCPA.getNewValue(), SMGObjectKind.REG);
   }
 
@@ -29,7 +29,7 @@ public final class SMGRegion extends SMGObject implements SMGObjectTemplate {
     super(pOther);
   }
 
-  public SMGRegion(int pSize, String pLabel, int pLevel) {
+  public SMGRegion(long pSize, String pLabel, int pLevel) {
     super(pSize, pLabel, pLevel, SMGObjectKind.REG);
   }
 

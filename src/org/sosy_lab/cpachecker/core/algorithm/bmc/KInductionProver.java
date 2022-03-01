@@ -19,7 +19,6 @@ import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.unroll;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
@@ -43,6 +42,8 @@ import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.stream.Stream;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -58,7 +59,6 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLoca
 import org.sosy_lab.cpachecker.core.algorithm.invariants.ExpressionTreeSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantGenerator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -77,8 +77,6 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
-import org.sosy_lab.cpachecker.util.predicates.invariants.ExpressionTreeInvariantSupplier;
-import org.sosy_lab.cpachecker.util.predicates.invariants.FormulaInvariantsSupplier;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -161,7 +159,7 @@ class KInductionProver implements AutoCloseable {
     shutdownNotifier = checkNotNull(pShutdownNotifier);
     reachedSet =
         new UnrolledReachedSet(
-            algorithm, cpa, pLoopHeads, reachedSetFactory.create(), this::ensureK);
+            algorithm, cpa, pLoopHeads, reachedSetFactory.create(cpa), this::ensureK);
 
     @SuppressWarnings("resource")
     PredicateCPA stepCasePredicateCPA = CPAs.retrieveCPA(cpa, PredicateCPA.class);
@@ -190,12 +188,7 @@ class KInductionProver implements AutoCloseable {
   private InvariantSupplier getCurrentInvariantSupplier() throws InterruptedException {
     if (invariantGenerationRunning) {
       try {
-        if (invariantGenerator instanceof KInductionInvariantGenerator) {
-          return ((KInductionInvariantGenerator) invariantGenerator).getSupplier();
-        } else {
-          // in the general case we have to retrieve the invariants from a reachedset
-          return new FormulaInvariantsSupplier(invariantGenerator.get());
-        }
+        return invariantGenerator.getSupplier();
       } catch (CPAException e) {
         logger.logUserException(Level.FINE, e, "Invariant generation failed.");
         invariantGenerationRunning = false;
@@ -214,7 +207,7 @@ class KInductionProver implements AutoCloseable {
       return expressionTreeSupplier;
     }
     try {
-      return new ExpressionTreeInvariantSupplier(invariantGenerator.get(), cfa);
+      return invariantGenerator.getExpressionTreeSupplier();
     } catch (CPAException e) {
       logger.logUserException(Level.FINE, e, "Invariant generation failed.");
       invariantGenerationRunning = false;
@@ -720,7 +713,7 @@ class KInductionProver implements AutoCloseable {
                   return variableMapper.variableFormulas;
                 });
 
-        ImmutableMap.Builder<String, ModelValue> modelBuilder = ImmutableMap.builder();
+        PersistentMap<String, ModelValue> model = PathCopyingPersistentTreeMap.of();
         final List<BooleanFormula> input = new ArrayList<>();
 
         for (ValueAssignment valueAssignment : pModelAssignments) {
@@ -738,12 +731,11 @@ class KInductionProver implements AutoCloseable {
                 && !inputs.containsKey(actualName)) {
               BooleanFormula assignment =
                   fmgr.uninstantiate(valueAssignment.getAssignmentAsFormula());
-              modelBuilder.put(actualName, new ModelValue(actualName, assignment, fmgr));
+              model = model.putAndCopy(actualName, new ModelValue(actualName, assignment, fmgr));
             }
           }
         }
 
-        Map<String, ModelValue> model = modelBuilder.build();
         if (!model.isEmpty()) {
           CounterexampleToInductivity cti = new CounterexampleToInductivity(loopHead, model);
 

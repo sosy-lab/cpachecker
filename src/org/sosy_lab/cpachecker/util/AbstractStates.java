@@ -24,6 +24,7 @@ import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSerializableSingleWrapperState;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
@@ -68,8 +69,13 @@ public final class AbstractStates {
     if (pType.isInstance(pState)) {
       return pType.cast(pState);
 
+      // optimization for single-wrapper states (would work without)
     } else if (pState instanceof AbstractSingleWrapperState) {
       AbstractState wrapped = ((AbstractSingleWrapperState)pState).getWrappedState();
+      return extractStateByType(wrapped, pType);
+
+    } else if (pState instanceof AbstractSerializableSingleWrapperState) {
+      AbstractState wrapped = ((AbstractSerializableSingleWrapperState) pState).getWrappedState();
       return extractStateByType(wrapped, pType);
 
     } else if (pState instanceof AbstractWrapperState) {
@@ -215,11 +221,7 @@ public final class AbstractStates {
     return FluentIterable.from(
         Traverser.forTree(
                 (AbstractState state) -> {
-                  if (state instanceof AbstractSingleWrapperState) {
-                    AbstractState wrapped = ((AbstractSingleWrapperState) state).getWrappedState();
-                    return ImmutableList.of(wrapped);
-
-                  } else if (state instanceof AbstractWrapperState) {
+                  if (state instanceof AbstractWrapperState) {
                     return ((AbstractWrapperState) state).getWrappedStates();
                   }
 

@@ -140,6 +140,12 @@ public class SMGOptions {
   private boolean trackPredicates = false;
 
   @Option(
+      secure = true,
+      name = "trackErrorPredicates",
+      description = "Enable track predicates for possible memory safety error on SMG state")
+  private boolean trackErrorPredicates = false;
+
+  @Option(
     secure = true,
     name = "handleUnknownDereferenceAsSafe",
     description =
@@ -287,6 +293,10 @@ public class SMGOptions {
 
   public boolean trackPredicates() {
     return trackPredicates;
+  }
+
+  public boolean trackErrorPredicates() {
+    return trackErrorPredicates;
   }
 
   public boolean isHeapAbstractionEnabled() {

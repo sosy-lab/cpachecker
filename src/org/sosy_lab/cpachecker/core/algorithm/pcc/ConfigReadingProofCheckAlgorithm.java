@@ -65,7 +65,7 @@ public class ConfigReadingProofCheckAlgorithm implements Algorithm, StatisticsPr
     valConfig = readValidationConfiguration();
 
     coreFact = new CoreComponentsFactory(valConfig, pLogger, pShutdownNotifier,
-        new AggregatedReachedSets());
+        AggregatedReachedSets.empty());
 
     ConfigurationBuilder configBuilder = Configuration.builder();
     configBuilder.copyFrom(pConfig);
@@ -104,7 +104,7 @@ public class ConfigReadingProofCheckAlgorithm implements Algorithm, StatisticsPr
 
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
-    ReachedSet internalReached = coreFact.createReachedSet();
+    ReachedSet internalReached = coreFact.createReachedSet(valCPA);
     internalReached.add(
         valCPA.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()),
         valCPA.getInitialPrecision(cfa.getMainFunction(),

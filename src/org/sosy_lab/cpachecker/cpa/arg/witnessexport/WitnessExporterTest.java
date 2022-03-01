@@ -55,7 +55,7 @@ public class WitnessExporterTest {
 
     private final String fileName;
 
-    private WitnessGenerationConfig(String pConfigName) {
+    WitnessGenerationConfig(String pConfigName) {
       fileName = String.format("witnessGeneration-%s.properties", pConfigName);
     }
   }

@@ -16,7 +16,6 @@ import static java.util.concurrent.Executors.newFixedThreadPool;
 import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDefaultPartition;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -300,9 +299,9 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
             singleShutdownManager.getNotifier(),
             aggregatedReachedSetManager.asView());
 
-    final ReachedSet reached = coreComponents.createReachedSet();
     final ConfigurableProgramAnalysis cpa = coreComponents.createCPA(cfa, specification);
     final Algorithm algorithm = coreComponents.createAlgorithm(cpa, cfa, specification);
+    final ReachedSet reached = coreComponents.createReachedSet(cpa);
 
     AtomicBoolean terminated = new AtomicBoolean(false);
     StatisticsEntry statisticsEntry =
@@ -381,12 +380,12 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
               @Override
               public void updated(ReachedSet pReachedSet) {
                 singleLogger.log(Level.INFO, "Updating reached set provided to other analyses");
-                ReachedSet oldReachedSet = oldReached.get();
-                ReachedSet newReached = coreComponents.createReachedSet();
+                ReachedSet newReached = coreComponents.createReachedSet(pReachedSet.getCPA());
                 for (AbstractState as : pReachedSet) {
-                  newReached.add(as, pReachedSet.getPrecision(as));
-                  newReached.removeOnlyFromWaitlist(as);
+                  newReached.addNoWaitlist(as, pReachedSet.getPrecision(as));
                 }
+
+                ReachedSet oldReachedSet = oldReached.get();
                 if (oldReachedSet != null) {
                   aggregatedReachedSetManager.updateReachedSet(oldReachedSet, newReached);
                 } else {
@@ -457,7 +456,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
           }
 
           if (!stopAnalysis) {
-            currentReached = coreComponents.createReachedSet();
+            currentReached = coreComponents.createReachedSet(cpa);
             pStatisticsEntry.reachedSet.set(currentReached);
             initializeReachedSet(cpa, mainEntryNode, currentReached);
           }
@@ -599,7 +598,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
         pOut.println();
         String title = "Statistics for: " + subStats.name;
         pOut.println(title);
-        pOut.println(Strings.repeat("=", title.length()));
+        pOut.println("=".repeat(title.length()));
         if (subStats.rLimit != null) {
           pOut.println(
               "Time spent in analysis thread "

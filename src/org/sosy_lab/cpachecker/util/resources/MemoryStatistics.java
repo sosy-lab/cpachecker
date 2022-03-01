@@ -203,10 +203,7 @@ public class MemoryStatistics implements Runnable {
 
         } catch (RuntimeErrorException e) {
           throw ManagementUtils.handleRuntimeErrorException(e);
-        } catch (JMException e) {
-          logger.logDebugException(e, "Querying memory size failed");
-          osMbean = null;
-        } catch (ClassCastException e) {
+        } catch (JMException | ClassCastException e) {
           logger.logDebugException(e, "Querying memory size failed");
           osMbean = null;
         }

@@ -191,7 +191,6 @@ public class PathPairIterator extends
       refinedStates.clear();
       targetToPathIterator.clear();
       firstPath = null;
-      refinedStates.clear();
       subgraphComputer = null;
     } else if (callerClass.equals(PointIterator.class)) {
       currentIterators.clear();

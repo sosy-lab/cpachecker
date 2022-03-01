@@ -64,6 +64,7 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 
@@ -113,6 +114,11 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   private static final String ATOMIC_LOCK = "__CPAchecker_atomic_lock__";
   private static final String LOCAL_ACCESS_LOCK = "__CPAchecker_local_access_lock__";
   private static final String THREAD_ID_SEPARATOR = "__CPAchecker__";
+
+  private static final ImmutableSet<String> UNSUPPORTED_THREAD_FUNCTIONS =
+      ImmutableSet.of(
+          // https://gitlab.com/sosy-lab/software/cpachecker/-/issues/929
+          "pthread_cond_wait", "pthread_cond_timedwait");
 
   private static final ImmutableSet<String> THREAD_FUNCTIONS = ImmutableSet.of(
       THREAD_START, THREAD_MUTEX_LOCK, THREAD_MUTEX_UNLOCK, THREAD_JOIN, THREAD_EXIT,
@@ -221,6 +227,9 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
         AExpression functionNameExp = ((AFunctionCall)statement).getFunctionCallExpression().getFunctionNameExpression();
         if (functionNameExp instanceof AIdExpression) {
           final String functionName = ((AIdExpression)functionNameExp).getName();
+          if (UNSUPPORTED_THREAD_FUNCTIONS.contains(functionName)) {
+            throw new UnsupportedCodeException("pthread condition variables", cfaEdge);
+          }
           switch(functionName) {
           case THREAD_START:
                 return startNewThread(threadingState, statement, results, cfaEdge);

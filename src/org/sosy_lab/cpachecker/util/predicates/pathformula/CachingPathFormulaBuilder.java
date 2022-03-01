@@ -27,7 +27,7 @@ public abstract class CachingPathFormulaBuilder implements PathFormulaBuilder {
    * @param pPfmgr the path-formula manager with which the result shall have been computed
    * @param pPathFormula the path formula that shall have been used in the computation of the result
    */
-  private final @Nullable PathFormula cachedBuild(
+  private @Nullable PathFormula cachedBuild(
       final PathFormulaManager pPfmgr, final PathFormula pPathFormula) {
     if (cachedResult == null
         || !pPfmgr.equals(cachedInputPfmgr)
@@ -37,7 +37,7 @@ public abstract class CachingPathFormulaBuilder implements PathFormulaBuilder {
     return cachedResult;
   }
 
-  private final void updateCache(
+  private void updateCache(
       final PathFormula pResult, final PathFormulaManager pPfmgr, final PathFormula pPathFormula) {
     cachedResult = pResult;
     cachedInputPfmgr = pPfmgr;

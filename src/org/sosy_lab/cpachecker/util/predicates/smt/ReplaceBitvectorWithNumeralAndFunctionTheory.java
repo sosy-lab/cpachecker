@@ -14,6 +14,8 @@ import static org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.Bit
 import static org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.BitwiseXorUfName;
 import static org.sosy_lab.java_smt.api.FormulaType.getBitvectorTypeWithSize;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -383,5 +385,15 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
     } else {
       return numericFormulaManager.floor(unwrapped);
     }
+  }
+
+  @Override
+  public BooleanFormula distinct(List<BitvectorFormula> pBits) {
+    if (pBits.isEmpty()) {
+      return booleanFormulaManager.makeTrue();
+    }
+    int bitsize = getLength(pBits.get(0));
+    pBits.forEach(bit -> { Preconditions.checkArgument(bitsize == getLength(bit), "Expect operators to have the same size"); });
+    return numericFormulaManager.distinct(Lists.transform(pBits, this::unwrap));
   }
 }

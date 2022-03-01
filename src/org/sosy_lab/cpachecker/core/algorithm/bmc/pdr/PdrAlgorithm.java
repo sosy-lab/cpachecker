@@ -76,9 +76,9 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.SymbolicCa
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.pdr.PartialTransitionRelation.CtiWithInputs;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.AbstractInvariantGenerator;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.ExpressionTreeSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantGenerator;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -106,6 +106,7 @@ import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.predicates.AssignmentToPathAllocator;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
+import org.sosy_lab.cpachecker.util.predicates.invariants.ExpressionTreeInvariantSupplier;
 import org.sosy_lab.cpachecker.util.predicates.invariants.FormulaInvariantsSupplier;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
@@ -209,30 +210,37 @@ public class PdrAlgorithm implements Algorithm {
 
     assignmentToPathAllocator =
         new AssignmentToPathAllocator(config, shutdownNotifier, pLogger, cfa.getMachineModel());
-    invariantGenerator = new AbstractInvariantGenerator() {
+    invariantGenerator =
+        new AbstractInvariantGenerator() {
 
-      @Override
-      protected void startImpl(CFANode pInitialLocation) {
-        // do nothing
-      }
+          @Override
+          protected void startImpl(CFANode pInitialLocation) {
+            // do nothing
+          }
 
-      @Override
-      public boolean isProgramSafe() {
-        // just return false, program will be ended by parallel algorithm if the invariant
-        // generator can prove safety before the current analysis
-        return false;
-      }
+          @Override
+          public boolean isProgramSafe() {
+            // just return false, program will be ended by parallel algorithm if the invariant
+            // generator can prove safety before the current analysis
+            return false;
+          }
 
-      @Override
-      public void cancel() {
-        // do nothing
-      }
+          @Override
+          public void cancel() {
+            // do nothing
+          }
 
-      @Override
-      public AggregatedReachedSets get() throws CPAException, InterruptedException {
-        return pAggregatedReachedSets;
-      }
-    };
+          @Override
+          public InvariantSupplier getSupplier() throws CPAException, InterruptedException {
+            return new FormulaInvariantsSupplier(pAggregatedReachedSets);
+          }
+
+          @Override
+          public ExpressionTreeSupplier getExpressionTreeSupplier()
+              throws CPAException, InterruptedException {
+            return new ExpressionTreeInvariantSupplier(pAggregatedReachedSets, pCFA);
+          }
+        };
   }
 
   @Override
@@ -270,9 +278,7 @@ public class PdrAlgorithm implements Algorithm {
     // Successfully proven invariants are removed from the set.
     final CandidateGenerator candidateGenerator = getCandidateInvariants();
     if (!candidateGenerator.produceMoreCandidates()) {
-      for (AbstractState state : ImmutableList.copyOf(rawBmcReachedSet.getWaitlist())) {
-        rawBmcReachedSet.removeOnlyFromWaitlist(state);
-      }
+      rawBmcReachedSet.clearWaitlist();
       return AlgorithmStatus.SOUND_AND_PRECISE;
     }
 
@@ -687,12 +693,7 @@ public class PdrAlgorithm implements Algorithm {
   private InvariantSupplier getCurrentInvariantSupplier() throws InterruptedException {
     if (invariantGenerationRunning) {
       try {
-        if (invariantGenerator instanceof KInductionInvariantGenerator) {
-          return ((KInductionInvariantGenerator) invariantGenerator).getSupplier();
-        } else {
-          // in the general case we have to retrieve the invariants from a reachedset
-          return new FormulaInvariantsSupplier(invariantGenerator.get());
-        }
+        return invariantGenerator.getSupplier();
       } catch (CPAException e) {
         logger.logUserException(Level.FINE, e, "Invariant generation failed.");
         invariantGenerationRunning = false;
@@ -954,7 +955,7 @@ public class PdrAlgorithm implements Algorithm {
   }
 
   private PartialTransitionRelation createPartialTransitionRelation(CFANode predecessorLocation) {
-    return createPartialTransitionRelation(predecessorLocation, reachedSetFactory.create());
+    return createPartialTransitionRelation(predecessorLocation, reachedSetFactory.create(cpa));
   }
 
   private PartialTransitionRelation createPartialTransitionRelation(
@@ -1009,7 +1010,8 @@ public class PdrAlgorithm implements Algorithm {
     if (abstractionState.isPresent()) {
       logger.log(
           Level.WARNING,
-          "PDR algorithm and its derivatives do not work with PredicateCPA abstractions. Could not check for satisfiability.");
+          "PDR algorithm and its derivatives do not work with PredicateCPA abstractions. Could not"
+              + " check for satisfiability.");
       return false;
     }
     return true;
@@ -1181,7 +1183,8 @@ public class PdrAlgorithm implements Algorithm {
           // should not occur
           logger.log(
               Level.WARNING,
-              "Could not create error path information because of inconsistent branching information!");
+              "Could not create error path information because of inconsistent branching"
+                  + " information!");
           return;
         }
 
@@ -1267,10 +1270,10 @@ public class PdrAlgorithm implements Algorithm {
   protected static class BasicPdrOptions {
 
     @Option(
-      secure = true,
-      description =
-          "Maximum number of accepted spurious transitions within a proof-obligation trace before a consecution abstraction failure triggers a refinement."
-    )
+        secure = true,
+        description =
+            "Maximum number of accepted spurious transitions within a proof-obligation trace before"
+                + " a consecution abstraction failure triggers a refinement.")
     private int spuriousTransitionCountThreshold = 0;
 
     @Option(

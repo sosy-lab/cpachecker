@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWra
 public abstract class ARGSubtreeRemover {
 
   protected final BlockPartitioning partitioning;
+  protected final AbstractBAMCPA bamCpa;
   protected final BAMDataManager data;
   protected final Reducer wrappedReducer;
   protected final BAMCache bamCache;
@@ -43,6 +44,7 @@ public abstract class ARGSubtreeRemover {
 
   protected ARGSubtreeRemover(AbstractBAMCPA bamCpa, TimerWrapper pRemoveCachedSubtreeTimer) {
     partitioning = bamCpa.getBlockPartitioning();
+    this.bamCpa = bamCpa;
     data = bamCpa.getData();
     wrappedReducer = bamCpa.getReducer();
     bamCache = bamCpa.getData().getCache();

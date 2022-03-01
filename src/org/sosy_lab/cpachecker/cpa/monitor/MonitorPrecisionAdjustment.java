@@ -13,7 +13,6 @@ import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 import java.util.Optional;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -58,17 +57,23 @@ public class MonitorPrecisionAdjustment implements PrecisionAdjustment {
           .create(pElement, oldPrecision, Action.CONTINUE));
     }
 
-    UnmodifiableReachedSet elements = new UnmodifiableReachedSetView(
-        pElements,  AbstractSingleWrapperState.getUnwrapFunction(), Functions.<Precision>identity());
+    UnmodifiableReachedSet elements =
+        new UnmodifiableReachedSetView(
+            pElements,
+            (state) -> ((MonitorState) state).getWrappedState(),
+            Functions.<Precision>identity());
     // TODO we really would have to filter out all TimeoutElements in this view
 
     AbstractState oldElement = element.getWrappedState();
 
     totalTimeOfPrecAdj.start();
-    Optional<PrecisionAdjustmentResult> unwrappedResult = wrappedPrecAdjustment.prec(
-        oldElement, oldPrecision, elements,
-        Functions.compose(AbstractSingleWrapperState.getUnwrapFunction(), projection),
-        fullState);
+    Optional<PrecisionAdjustmentResult> unwrappedResult =
+        wrappedPrecAdjustment.prec(
+            oldElement,
+            oldPrecision,
+            elements,
+            Functions.compose((state) -> ((MonitorState) state).getWrappedState(), projection),
+            fullState);
     totalTimeOfPrecAdj.stop();
     long totalTimeOfExecution = totalTimeOfPrecAdj.getLengthOfLastInterval().asMillis();
     // add total execution time to the total time of the previous element

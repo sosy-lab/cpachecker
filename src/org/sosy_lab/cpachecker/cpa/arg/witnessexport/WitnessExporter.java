@@ -54,7 +54,8 @@ public class WitnessExporter {
 
     @Override
     public ExpressionTree<Object> provideInvariantFor(
-        CFAEdge pEdge, Optional<? extends Collection<? extends ARGState>> pStates) {
+        CFAEdge pEdge, Optional<? extends Collection<? extends ARGState>> pStates)
+        throws InterruptedException {
       if (!pStates.isPresent()) {
         return ExpressionTrees.getTrue();
       }
@@ -106,7 +107,8 @@ public class WitnessExporter {
       final ARGState pRootState,
       final Predicate<? super ARGState> pIsRelevantState,
       final BiPredicate<ARGState, ARGState> pIsRelevantEdge,
-      CounterexampleInfo pCounterExample) {
+      CounterexampleInfo pCounterExample)
+      throws InterruptedException {
 
     String defaultFileName = getInitialFileName(pRootState);
     WitnessFactory writer =
@@ -135,7 +137,8 @@ public class WitnessExporter {
       final Predicate<? super ARGState> pIsRelevantState,
       final BiPredicate<ARGState, ARGState> pIsRelevantEdge,
       final Predicate<? super ARGState> pIsCycleHead,
-      final Function<? super ARGState, ExpressionTree<Object>> toQuasiInvariant) {
+      final Function<? super ARGState, ExpressionTree<Object>> toQuasiInvariant)
+      throws InterruptedException {
     String defaultFileName = getInitialFileName(pRoot);
     WitnessFactory writer =
         new WitnessFactory(
@@ -162,7 +165,8 @@ public class WitnessExporter {
       final ARGState pRootState,
       final Predicate<? super ARGState> pIsRelevantState,
       final BiPredicate<ARGState, ARGState> pIsRelevantEdge,
-      InvariantProvider pInvariantProvider) {
+      InvariantProvider pInvariantProvider)
+      throws InterruptedException {
 
     Preconditions.checkNotNull(pRootState);
     Preconditions.checkNotNull(pIsRelevantState);
