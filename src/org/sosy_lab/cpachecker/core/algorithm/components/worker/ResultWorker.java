@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.components.worker;
 
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.Collection;
@@ -18,7 +19,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
@@ -96,7 +96,7 @@ public class ResultWorker extends Worker {
     // that's why we use allMatch
     // to ensure we do not forget an error location, we need every worker to send an initial message
     logger.log(Level.ALL,"Waiting for answers: ", expectAnswer.entrySet().stream().filter(e -> e.getValue() != 0).collect(
-        Collectors.toMap(e -> e.getKey(), e-> e.getValue())) + "-" + messageReceived.size() + "/" + numWorkers);
+        ImmutableMap.toImmutableMap(e -> e.getKey(), e-> e.getValue())) + "-" + messageReceived.size() + "/" + numWorkers);
     finished =
         messageReceived.size() == numWorkers
             && expectAnswer.values().stream().allMatch(i -> i == 0);

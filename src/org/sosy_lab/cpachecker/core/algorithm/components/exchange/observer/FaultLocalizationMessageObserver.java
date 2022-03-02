@@ -10,11 +10,11 @@ package org.sosy_lab.cpachecker.core.algorithm.components.exchange.observer;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Connection;
@@ -65,8 +65,7 @@ public class FaultLocalizationMessageObserver implements MessageObserver {
     if (!faults.isEmpty()) {
       logger.log(Level.INFO, "Found faults:\n" + Joiner.on("\n").join(
           faults.stream().map(m -> m.getPayload().getOrDefault(Payload.FAULT_LOCALIZATION, ""))
-              .collect(
-                  Collectors.toSet())));
+              .collect(ImmutableList.toImmutableList())));
     } else {
       logger.log(
           Level.INFO,

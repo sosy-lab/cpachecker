@@ -8,13 +8,13 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.components;
 
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -37,9 +37,9 @@ import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.SingleBlo
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.ConnectionProvider;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.UpdatedTypeMap;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.classic_network.ClassicNetworkConnectionProvider;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.memory.InMemoryConnectionProvider;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.nio_network.NetworkConnectionProvider;
-import org.sosy_lab.cpachecker.core.algorithm.components.exchange.classic_network.ClassicNetworkConnectionProvider;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.observer.ErrorMessageObserver;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.observer.FaultLocalizationMessageObserver;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.observer.MessageListener;
@@ -304,9 +304,12 @@ public class ComponentAnalysis implements Algorithm, StatisticsProvider, Statist
             shutdownManager.getNotifier(),
             cfa,
             AnalysisDirection.FORWARD);
-    return manager.makeFormulaForPath(
-        pTree.getDistinctNodes().stream().flatMap(m -> m.getEdgesInBlock().stream()).collect(
-            Collectors.toList())).getSsa();
+    return manager
+        .makeFormulaForPath(
+            pTree.getDistinctNodes().stream()
+                .flatMap(m -> m.getEdgesInBlock().stream())
+                .collect(ImmutableList.toImmutableList()))
+        .getSsa();
   }
 
   @Override

@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.components.decomposition;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -15,7 +16,6 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
@@ -211,7 +211,8 @@ public class BlockNode {
 
     public BlockNodeFactory(CFA pCfa) {
       idToNodeMap =
-          pCfa.getAllNodes().stream().collect(Collectors.toMap(n -> n.getNodeNumber(), n -> n));
+          pCfa.getAllNodes().stream()
+              .collect(ImmutableMap.toImmutableMap(n -> n.getNodeNumber(), n -> n));
     }
 
     public BlockNode makeBlock(

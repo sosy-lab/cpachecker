@@ -8,8 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.block;
 
+import com.google.common.collect.ImmutableSet;
 import java.io.Serializable;
-import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -33,7 +33,6 @@ public class BlockState implements AbstractQueryableState, Partitionable,
     FINAL
   }
 
-  private final Set<TargetInformation> targetInformation;
   private final CFANode targetCFANode;
   private final CFANode node;
   private final AnalysisDirection direction;
@@ -45,14 +44,10 @@ public class BlockState implements AbstractQueryableState, Partitionable,
       AnalysisDirection pDirection,
       BlockStateType pType) {
     node = pNode;
-    targetInformation = new HashSet<>();
     direction = pDirection;
     type = pType;
     targetCFANode = direction == AnalysisDirection.FORWARD ? pTargetNode.getLastNode()
                                                            : pTargetNode.getStartNode();
-    if (isTarget()) {
-      targetInformation.add(new BlockEntryReachedTargetInformation(targetCFANode));
-    }
   }
 
   public CFANode getLocationNode() {
@@ -80,7 +75,9 @@ public class BlockState implements AbstractQueryableState, Partitionable,
 
   @Override
   public @NonNull Set<TargetInformation> getTargetInformation() throws IllegalStateException {
-    return targetInformation;
+    return isTarget()
+        ? ImmutableSet.of(new BlockEntryReachedTargetInformation(targetCFANode))
+        : ImmutableSet.of();
   }
 
   @Override

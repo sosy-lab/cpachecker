@@ -10,6 +10,8 @@ package org.sosy_lab.cpachecker.core.algorithm.components.visualization;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -17,7 +19,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -57,49 +58,53 @@ public class MessageLogger {
     Multimap<String, Object> map = ArrayListMultimap.create();
     map.putAll("code", Splitter.on("\n").splitToList(pNode.getCode()));
     map.putAll("predecessors", pNode.getPredecessors().stream().map(p -> p.getId()).collect(
-        Collectors.toSet()));
+      ImmutableSet.toImmutableSet()));
     map.putAll("successors", pNode.getSuccessors().stream().map(p -> p.getId()).collect(
-        Collectors.toSet()));
+      ImmutableSet.toImmutableSet()));
     return map;
   }
 
   public synchronized void logTree() throws IOException {
     Map<String, Map<String, List<String>>> treeMap = new HashMap<>();
-    tree.getDistinctNodes().forEach(n -> {
-      Map<String, List<String>> attributes = new HashMap<>();
-      attributes.put("code", Splitter.on("\n").splitToList(n.getCode()));
-      attributes.put("predecessors", n.getPredecessors().stream().map(p -> p.getId()).collect(
-          Collectors.toList()));
-      attributes.put("successors", n.getSuccessors().stream().map(p -> p.getId()).collect(
-          Collectors.toList()));
-      treeMap.put(n.getId(), attributes);
-    });
+    tree.getDistinctNodes()
+        .forEach(
+            n -> {
+              Map<String, List<String>> attributes = new HashMap<>();
+              attributes.put("code", Splitter.on("\n").splitToList(n.getCode()));
+              attributes.put(
+                  "predecessors",
+                  n.getPredecessors().stream()
+                      .map(p -> p.getId())
+                      .collect(ImmutableList.toImmutableList()));
+              attributes.put(
+                  "successors",
+                  n.getSuccessors().stream()
+                      .map(p -> p.getId())
+                      .collect(ImmutableList.toImmutableList()));
+              treeMap.put(n.getId(), attributes);
+            });
     JSON.writeJSONString(treeMap, blockCFAFile);
   }
 
-  public synchronized void log(Message pMessage) {
-    try {
-      if (entries.get(pMessage.getUniqueBlockId()) == null) {
-        return;
-      }
-      Map<String, Object> messageToJSON = new HashMap<>();
-      messageToJSON.put("type", pMessage.getType().name());
-      messageToJSON.put("timestamp", pMessage.getTimestamp());
-      messageToJSON.put("from", pMessage.getUniqueBlockId());
-      Payload p = pMessage.getPayload();
-      String message = p.get(PredicateCPA.class.getName());
-      if (message != null) {
-        p = Payload.builder().putAll(p).addEntry(PredicateCPA.class.getName(),
-            fmgr.parse(message).toString()).build();
-      }
-      messageToJSON.put("payload", p.toJSONString());
-      entries.get(pMessage.getUniqueBlockId()).put("messages", messageToJSON);
-      Map<String, Map<String, Collection<Object>>> converted = new HashMap<>();
-      entries.forEach((k, v) -> converted.put(k, v.asMap()));
-      JSON.writeJSONString(converted, reportFile);
-    } catch (Exception e) {
-      // dont produce errors as analysis remains valid.
+  public synchronized void log(Message pMessage) throws IOException {
+    if (entries.get(pMessage.getUniqueBlockId()) == null) {
+      return;
     }
+    Map<String, Object> messageToJSON = new HashMap<>();
+    messageToJSON.put("type", pMessage.getType().name());
+    messageToJSON.put("timestamp", pMessage.getTimestamp());
+    messageToJSON.put("from", pMessage.getUniqueBlockId());
+    Payload p = pMessage.getPayload();
+    String message = p.get(PredicateCPA.class.getName());
+    if (message != null) {
+      p = Payload.builder().putAll(p).addEntry(PredicateCPA.class.getName(),
+          fmgr.parse(message).toString()).build();
+    }
+    messageToJSON.put("payload", p.toJSONString());
+    entries.get(pMessage.getUniqueBlockId()).put("messages", messageToJSON);
+    Map<String, Map<String, Collection<Object>>> converted = new HashMap<>();
+    entries.forEach((k, v) -> converted.put(k, v.asMap()));
+    JSON.writeJSONString(converted, reportFile);
   }
 
 }

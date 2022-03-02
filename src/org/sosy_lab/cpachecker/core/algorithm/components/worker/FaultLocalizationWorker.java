@@ -185,7 +185,7 @@ public class FaultLocalizationWorker extends AnalysisWorker {
           .min(Comparator.comparingInt(Fault::size).thenComparingDouble(f -> 1d / f.getScore()))
           .orElseThrow();
       updated = Payload.builder().putAll(currentResult.getPayload())
-          .addEntry(Payload.FAULT_LOCALIZATION, getBlockId() + ": " + minimalFault.toString())
+          .addEntry(Payload.FAULT_LOCALIZATION, getBlockId() + ": " + minimalFault)
           .build();
       currentResult = Message.replacePayload(currentResult, updated);
     } catch (TraceFormulaUnsatisfiableException pE) {

@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.components.distributed_cpa;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.collect.ForwardingCollection;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
@@ -63,7 +65,7 @@ public class MessageProcessing extends ForwardingCollection<Message> {
   }
 
   public Collection<Payload> toPayloadCollection() {
-    return messages.stream().map(m -> m.getPayload()).collect(ImmutableList.toImmutableList());
+    return transformedImmutableListCopy(messages, m->m.getPayload());
   }
 
   public MessageProcessing merge(MessageProcessing pProcessing, boolean removeDuplicates) {
