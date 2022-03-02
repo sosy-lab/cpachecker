@@ -560,10 +560,10 @@ public class AssumptionToEdgeAllocator {
               CPointerType.class));
 
     boolean leftIsAccepted = equalTypes || acceptedTypes.anyMatch(
-        pArg0 -> pArg0.isAssignableFrom(leftType.getClass()));
+        acceptedTypeClass -> acceptedTypeClass.isAssignableFrom(leftType.getClass()));
 
     boolean rightIsAccepted = equalTypes || acceptedTypes.anyMatch(
-        pArg0 -> pArg0.isAssignableFrom(rightType.getClass()));
+        acceptedTypeClass -> acceptedTypeClass.isAssignableFrom(rightType.getClass()));
 
     if (leftType instanceof CSimpleType && !rightIsAccepted) {
       if (rightType instanceof CVoidType) {
