@@ -92,7 +92,7 @@ def html_for_message(message, block_log):
 def html_dict_to_html_table(all_messages, block_logs: dict):
     first_timestamp = int(all_messages[0]["timestamp"])
     timestamp_to_message = {}
-    sorted_keys = list(sorted(block_logs.keys(), key=lambda x: int(x[1::])))
+    sorted_keys = sorted(block_logs.keys(), key=lambda x: int(x[1::]))
     index_dict = {}
     for index in enumerate(sorted_keys):
         index_dict[index[1]] = index[0]
@@ -152,7 +152,7 @@ def main(argv=None):
             all_messages += block_logs[key]["messages"]
     if not all_messages:
         return
-    all_messages = list(sorted(all_messages, key=lambda entry: (entry["timestamp"], entry["from"][1::])))
+    all_messages = sorted(all_messages, key=lambda entry: (entry["timestamp"], entry["from"][1::]))
     with open(relative_path("table.html")) as html:
         with open(relative_path("table.css")) as css:
             text = html.read().replace(
