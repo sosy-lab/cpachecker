@@ -20,13 +20,10 @@ import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import com.google.common.base.Joiner;
-import java.io.BufferedWriter;
+import com.google.common.base.Throwables;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.Set;
 import java.util.zip.GZIPInputStream;
@@ -149,11 +146,8 @@ public class Message implements Comparable<Message> {
   }
 
   public static Message newErrorMessage(String pUniqueBlockId, Throwable pException) {
-    ByteArrayOutputStream arrayWriter = new ByteArrayOutputStream();
-    PrintWriter printer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new ByteArrayOutputStream(), StandardCharsets.UTF_8)));
-    pException.printStackTrace(printer);
     return new Message(MessageType.ERROR, pUniqueBlockId, 0,
-        Payload.builder().addEntry(Payload.EXCEPTION, arrayWriter.toString(StandardCharsets.UTF_8)).build());
+        Payload.builder().addEntry(Payload.EXCEPTION, Throwables.getStackTraceAsString(pException)).build());
   }
 
   @Override
