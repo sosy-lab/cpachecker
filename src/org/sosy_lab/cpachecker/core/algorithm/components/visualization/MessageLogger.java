@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockTree
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Payload;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pretty_print.BooleanFormulaParser;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -93,7 +92,7 @@ public class MessageLogger {
       String message = p.get(PredicateCPA.class.getName());
       if (message != null) {
         p = Payload.builder().putAll(p).addEntry(PredicateCPA.class.getName(),
-            BooleanFormulaParser.parse(fmgr.parse(message)).toString()).build();
+            fmgr.parse(message).toString()).build();
       }
       messageToJSON.put("payload", p.toJSONString());
       entries.get(pMessage.getUniqueBlockId()).put("messages", messageToJSON);

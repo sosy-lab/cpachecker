@@ -20,9 +20,11 @@ import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import com.google.common.base.Joiner;
+import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
@@ -148,10 +150,10 @@ public class Message implements Comparable<Message> {
 
   public static Message newErrorMessage(String pUniqueBlockId, Throwable pException) {
     ByteArrayOutputStream arrayWriter = new ByteArrayOutputStream();
-    PrintWriter printer = new PrintWriter(new ByteArrayOutputStream());
+    PrintWriter printer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new ByteArrayOutputStream(), StandardCharsets.UTF_8)));
     pException.printStackTrace(printer);
     return new Message(MessageType.ERROR, pUniqueBlockId, 0,
-        Payload.builder().addEntry(Payload.EXCEPTION, arrayWriter.toString()).build());
+        Payload.builder().addEntry(Payload.EXCEPTION, arrayWriter.toString(StandardCharsets.UTF_8)).build());
   }
 
   @Override
@@ -191,10 +193,7 @@ public class Message implements Comparable<Message> {
 
   @Override
   public boolean equals(Object pO) {
-    if (this == pO) {
-      return true;
-    }
-    if (pO == null || getClass() != pO.getClass()) {
+    if (!(pO instanceof Message)) {
       return false;
     }
     Message message = (Message) pO;

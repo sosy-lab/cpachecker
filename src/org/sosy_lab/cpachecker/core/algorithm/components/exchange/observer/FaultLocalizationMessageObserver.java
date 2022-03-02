@@ -61,7 +61,7 @@ public class FaultLocalizationMessageObserver implements MessageObserver {
     }
     Set<String> visitedBlocks = new HashSet<>(Splitter.on(",")
         .splitToList(resultMessage.getPayload().getOrDefault(Payload.VISITED, "")));
-    faults.removeIf(m -> !(visitedBlocks.contains(m.getUniqueBlockId())));
+    faults.removeIf(m -> !visitedBlocks.contains(m.getUniqueBlockId()));
     if (!faults.isEmpty()) {
       logger.log(Level.INFO, "Found faults:\n" + Joiner.on("\n").join(
           faults.stream().map(m -> m.getPayload().getOrDefault(Payload.FAULT_LOCALIZATION, ""))

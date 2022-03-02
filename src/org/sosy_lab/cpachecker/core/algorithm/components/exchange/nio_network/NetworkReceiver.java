@@ -118,7 +118,6 @@ public class NetworkReceiver implements Closeable {
       int numRead = channel.read(buffer);
 
       if (numRead == -1) {
-        channel.close();
         key.cancel();
         return false;
       }
