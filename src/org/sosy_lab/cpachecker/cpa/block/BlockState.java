@@ -46,8 +46,14 @@ public class BlockState implements AbstractQueryableState, Partitionable,
     node = pNode;
     direction = pDirection;
     type = pType;
-    targetCFANode = direction == AnalysisDirection.FORWARD ? pTargetNode.getLastNode()
-                                                           : pTargetNode.getStartNode();
+    if (pTargetNode == null) {
+      targetCFANode = CFANode.newDummyCFANode();
+    } else {
+      targetCFANode =
+          direction == AnalysisDirection.FORWARD
+              ? pTargetNode.getLastNode()
+              : pTargetNode.getStartNode();
+    }
   }
 
   public CFANode getLocationNode() {

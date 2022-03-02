@@ -8,10 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.components.visualization;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+
 import com.google.common.base.Splitter;
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -57,10 +58,8 @@ public class MessageLogger {
   private Multimap<String, Object> createInitialMap(BlockNode pNode) {
     Multimap<String, Object> map = ArrayListMultimap.create();
     map.putAll("code", Splitter.on("\n").splitToList(pNode.getCode()));
-    map.putAll("predecessors", pNode.getPredecessors().stream().map(p -> p.getId()).collect(
-      ImmutableSet.toImmutableSet()));
-    map.putAll("successors", pNode.getSuccessors().stream().map(p -> p.getId()).collect(
-      ImmutableSet.toImmutableSet()));
+    map.putAll("predecessors", transformedImmutableSetCopy(pNode.getPredecessors(), p->p.getId()));
+    map.putAll("successors", transformedImmutableSetCopy(pNode.getSuccessors(), p->p.getId()));
     return map;
   }
 
@@ -73,14 +72,10 @@ public class MessageLogger {
               attributes.put("code", Splitter.on("\n").splitToList(n.getCode()));
               attributes.put(
                   "predecessors",
-                  n.getPredecessors().stream()
-                      .map(p -> p.getId())
-                      .collect(ImmutableList.toImmutableList()));
+                  transformedImmutableListCopy(n.getPredecessors(), p->p.getId()));
               attributes.put(
                   "successors",
-                  n.getSuccessors().stream()
-                      .map(p -> p.getId())
-                      .collect(ImmutableList.toImmutableList()));
+                  transformedImmutableListCopy(n.getSuccessors(), p->p.getId()));
               treeMap.put(n.getId(), attributes);
             });
     JSON.writeJSONString(treeMap, blockCFAFile);

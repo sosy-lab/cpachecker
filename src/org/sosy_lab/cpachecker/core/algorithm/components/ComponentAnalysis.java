@@ -8,7 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.components;
 
-import com.google.common.collect.ImmutableList;
+import static com.google.common.collect.FluentIterable.from;
+
 import java.io.IOException;
 import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
@@ -306,9 +307,7 @@ public class ComponentAnalysis implements Algorithm, StatisticsProvider, Statist
             AnalysisDirection.FORWARD);
     return manager
         .makeFormulaForPath(
-            pTree.getDistinctNodes().stream()
-                .flatMap(m -> m.getEdgesInBlock().stream())
-                .collect(ImmutableList.toImmutableList()))
+            from(pTree.getDistinctNodes()).transformAndConcat(b -> b.getEdgesInBlock()).toList())
         .getSsa();
   }
 

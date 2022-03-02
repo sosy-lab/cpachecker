@@ -97,7 +97,7 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
     } else {
       pathFormula = state.getPathFormula();
     }
-    typeMap.merge(pathFormula.getSsa());
+    // TODO: typeMap.merge(pathFormula.getSsa());
     String formula =
         fmgr.dumpFormula(uninstantiate(pathFormula).getFormula())
             .toString();

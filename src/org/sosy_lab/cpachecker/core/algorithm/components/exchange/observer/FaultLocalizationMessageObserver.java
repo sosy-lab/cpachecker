@@ -8,9 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.components.exchange.observer;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.HashSet;
 import java.util.Set;
@@ -64,8 +65,7 @@ public class FaultLocalizationMessageObserver implements MessageObserver {
     faults.removeIf(m -> !visitedBlocks.contains(m.getUniqueBlockId()));
     if (!faults.isEmpty()) {
       logger.log(Level.INFO, "Found faults:\n" + Joiner.on("\n").join(
-          faults.stream().map(m -> m.getPayload().getOrDefault(Payload.FAULT_LOCALIZATION, ""))
-              .collect(ImmutableList.toImmutableList())));
+          transformedImmutableListCopy(faults, m->m.getPayload().getOrDefault(Payload.FAULT_LOCALIZATION, ""))));
     } else {
       logger.log(
           Level.INFO,
