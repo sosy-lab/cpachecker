@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -259,10 +259,10 @@ public final class SMGIntersectStates {
     SMGHasValueEdges hves2 = heap2.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject2));
 
     Map<Long, SMGEdgeHasValue> offsetToHve1Map =
-        FluentIterable.from(hves1).uniqueIndex(SMGEdgeHasValue::getOffset);
+        Maps.uniqueIndex(hves1, SMGEdgeHasValue::getOffset);
 
     Map<Long, SMGEdgeHasValue> offsetToHve2Map =
-        FluentIterable.from(hves2).uniqueIndex(SMGEdgeHasValue::getOffset);
+        Maps.uniqueIndex(hves2, SMGEdgeHasValue::getOffset);
 
     Set<Long> offsetSet = Sets.union(offsetToHve1Map.keySet(), offsetToHve2Map.keySet());
 
