@@ -45,7 +45,7 @@ public class ResultWorker extends Worker {
     pNodes.forEach(node -> nodeMap.put(node.getId(), node));
     messageReceived = new HashSet<>();
     expectAnswer = new ConcurrentHashMap<>();
-    nodeMap.keySet().forEach(id -> expectAnswer.put(id, 0));
+    nodeMap.keySet().forEach(nodeId -> expectAnswer.put(nodeId, 0));
     numWorkers = pNodes.size();
   }
 

@@ -84,7 +84,7 @@ public abstract class AbstractDistributedCPA implements ConfigurableProgramAnaly
   public abstract Payload serialize(AbstractState pState);
 
   protected abstract MessageProcessing proceedForward(Message newMessage)
-      throws InterruptedException, SolverException;
+      throws InterruptedException;
 
   protected abstract MessageProcessing proceedBackward(Message newMessage)
       throws SolverException, InterruptedException;
@@ -144,7 +144,7 @@ public abstract class AbstractDistributedCPA implements ConfigurableProgramAnaly
     return parentCPA;
   }
 
-  public void setParentCPA(ConfigurableProgramAnalysis pParentCPA) throws CPAException {
+  public void setParentCPA(ConfigurableProgramAnalysis pParentCPA) {
     parentCPA = pParentCPA;
   }
 

@@ -27,22 +27,19 @@ public class ClassicNetworkSender implements Closeable, StatisticsProvider {
 
   private final static ConnectionStats stats = new ConnectionStats();
 
-  public ClassicNetworkSender(InetSocketAddress pAddress) throws IOException {
+  public ClassicNetworkSender(InetSocketAddress pAddress) {
     address = pAddress;
     converter = new MessageConverter();
   }
 
   public void sendMessage(Message pMessage, int retries) throws IOException {
-    try {
-      Socket client = new Socket();
+    try (Socket client = new Socket();
+         DataOutputStream out = new DataOutputStream(client.getOutputStream())) {
       client.connect(address);
-      DataOutputStream out = new DataOutputStream(client.getOutputStream());
       byte[] message = converter.messageToJson(pMessage);
       stats.averageMessageSize.setNextValue(message.length);
       out.write(message);
       out.flush();
-      out.close();
-      client.close();
     } catch (ConnectException pE) {
       // in case of many blocks, connecting may time out.
       // repeat the connection attempt.

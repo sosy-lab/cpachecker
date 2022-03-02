@@ -263,26 +263,26 @@ public class ComponentAnalysis implements Algorithm, StatisticsProvider, Statist
       }
 
       // listen to messages
-      Connection mainThreadConnection = components.getAdditionalConnections().get(0);
-      mainThreadConnection.collectStatistics(statsCollection);
-      if (workerType == WorkerType.FAULT_LOCALIZATION) {
-        listener.register(new FaultLocalizationMessageObserver(logger, mainThreadConnection));
-      }
+      try (Connection mainThreadConnection = components.getAdditionalConnections().get(0)) {
+        mainThreadConnection.collectStatistics(statsCollection);
+        if (workerType == WorkerType.FAULT_LOCALIZATION) {
+          listener.register(new FaultLocalizationMessageObserver(logger, mainThreadConnection));
+        }
 
-      // wait for result
-      while (true) {
-        // breaks if one observer wants to finish.
-        if (listener.process(mainThreadConnection.read())) {
-          break;
+        // wait for result
+        while (true) {
+          // breaks if one observer wants to finish.
+          if (listener.process(mainThreadConnection.read())) {
+            break;
+          }
+        }
+
+        // finish and shutdown
+        listener.finish();
+        for (Worker worker : components.getWorkers()) {
+          worker.shutdown();
         }
       }
-
-      // finish and shutdown
-      listener.finish();
-      for (Worker worker : components.getWorkers()) {
-        worker.shutdown();
-      }
-      mainThreadConnection.close();
 
       return listener.getObserver(StatusObserver.class).getStatus();
     } catch (InvalidConfigurationException | IOException | InvocationTargetException | InstantiationException | IllegalAccessException | NoSuchMethodException pE) {

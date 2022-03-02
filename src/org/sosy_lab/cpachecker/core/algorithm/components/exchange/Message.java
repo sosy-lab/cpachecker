@@ -253,39 +253,37 @@ public class Message implements Comparable<Message> {
 
   public static class CompressedMessageConverter extends MessageConverter {
 
-    /**
-     * Mimics a MessageConverter but it zips messages.
-     */
+    /** Mimics a MessageConverter but it zips messages. */
     public CompressedMessageConverter() {}
 
     @Override
     public byte[] messageToJson(Message pMessage) throws IOException {
-      ByteArrayOutputStream output = new ByteArrayOutputStream();
-      GZIPOutputStream writer = new GZIPOutputStream(output);
-      byte[] message = super.messageToJson(pMessage);
-      writer.write(message);
-      writer.close();
-      return output.toByteArray();
+      try (ByteArrayOutputStream output = new ByteArrayOutputStream();
+          GZIPOutputStream writer = new GZIPOutputStream(output)) {
+        byte[] message = super.messageToJson(pMessage);
+        writer.write(message);
+        return output.toByteArray();
+      }
     }
 
     @Override
     public Message jsonToMessage(byte[] pBytes) throws IOException {
-      GZIPInputStream reader = new GZIPInputStream(new ByteArrayInputStream(pBytes));
-      ByteArrayOutputStream output = new ByteArrayOutputStream();
+      try (GZIPInputStream reader = new GZIPInputStream(new ByteArrayInputStream(pBytes));
+          ByteArrayOutputStream output = new ByteArrayOutputStream()) {
 
-      byte[] buf = new byte[4096];
-      while (true) {
-        int n = reader.read(buf);
-        if (n < 0) {
-          break;
+        byte[] buf = new byte[4096];
+        while (true) {
+          int n = reader.read(buf);
+          if (n < 0) {
+            break;
+          }
+          output.write(buf, 0, n);
         }
-        output.write(buf, 0, n);
+        reader.close();
+        byte[] data = output.toByteArray();
+        return super.jsonToMessage(data);
       }
-      reader.close();
-      byte[] data = output.toByteArray();
-      return super.jsonToMessage(data);
     }
-
   }
 
   private static class MessageDeserializer extends StdDeserializer<Message> {

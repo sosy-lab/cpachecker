@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Payload;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.java_smt.api.SolverException;
 
 public class MessageLogger {
 
@@ -78,8 +77,7 @@ public class MessageLogger {
     JSON.writeJSONString(treeMap, blockCFAFile);
   }
 
-  public synchronized void log(Message pMessage)
-      throws IOException, SolverException, InterruptedException {
+  public synchronized void log(Message pMessage) {
     try {
       if (entries.get(pMessage.getUniqueBlockId()) == null) {
         return;

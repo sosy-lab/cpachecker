@@ -177,7 +177,7 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
 
   @Override
   public MessageProcessing proceedForward(Message message)
-      throws InterruptedException, SolverException {
+      throws InterruptedException {
     Preconditions.checkArgument(message.getType() == MessageType.BLOCK_POSTCONDITION,
         "can only process messages with type %s", MessageType.BLOCK_POSTCONDITION);
     CFANode node = block.getNodeWithNumber(message.getTargetNodeNumber());
@@ -190,10 +190,14 @@ public class DistributedPredicateCPA extends AbstractDistributedCPA {
       return MessageProcessing.stop();
     }
     PredicateAbstractState state = (PredicateAbstractState) deserialize(message);
-    if (getSolver().isUnsat(state.getPathFormula().getFormula())) {
-      receivedPostConditions.remove(message.getUniqueBlockId());
-      unsatPredecessors.add(message.getUniqueBlockId());
-      return MessageProcessing.stop();
+    try {
+      if (getSolver().isUnsat(state.getPathFormula().getFormula())) {
+        receivedPostConditions.remove(message.getUniqueBlockId());
+        unsatPredecessors.add(message.getUniqueBlockId());
+        return MessageProcessing.stop();
+      }
+    } catch (SolverException pE) {
+      return MessageProcessing.stopWith(Message.newErrorMessage(block.getId(), pE));
     }
     unsatPredecessors.remove(message.getUniqueBlockId());
     storePostCondition(message);

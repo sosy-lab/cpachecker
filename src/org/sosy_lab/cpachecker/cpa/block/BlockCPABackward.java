@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.block;
 import static com.google.common.base.Preconditions.checkState;
 
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
@@ -50,8 +49,7 @@ public class BlockCPABackward extends AbstractCPA {
     return new BlockState(node, blockNode, AnalysisDirection.BACKWARD, BlockStateType.INITIAL);
   }
 
-  public static BlockCPABackward create(CFA pCFA, Configuration pConfig)
-      throws InvalidConfigurationException {
+  public static BlockCPABackward create(CFA _pCFA, Configuration _pConfig) {
     return new BlockCPABackward();
   }
 }

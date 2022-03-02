@@ -188,8 +188,6 @@ public class FaultLocalizationWorker extends AnalysisWorker {
           .addEntry(Payload.FAULT_LOCALIZATION, getBlockId() + ": " + minimalFault.toString())
           .build();
       currentResult = Message.replacePayload(currentResult, updated);
-    } catch (IOException pE) {
-      throw new CPAException("IO Exception", pE);
     } catch (TraceFormulaUnsatisfiableException pE) {
       // current block does most likely not lead to an error
       return responses;
@@ -200,8 +198,7 @@ public class FaultLocalizationWorker extends AnalysisWorker {
   }
 
   public Set<Fault> performFaultLocalization(TraceFormula tf)
-      throws CPATransferException, InterruptedException, SolverException, IOException,
-             TraceFormulaUnsatisfiableException {
+      throws CPATransferException, InterruptedException, SolverException {
     if (!tf.isCalculationPossible()) {
       return ImmutableSet.of();
     }
@@ -209,7 +206,7 @@ public class FaultLocalizationWorker extends AnalysisWorker {
   }
 
   private TraceFormula createTraceFormula(PathFormula pPostCondition)
-      throws CPATransferException, InterruptedException, IOException, SolverException,
+      throws CPATransferException, InterruptedException, SolverException,
              TraceFormulaUnsatisfiableException {
     PathFormulaManagerImpl pathFormulaManager = context.getManager();
     FormulaEntryList entries = new FormulaEntryList();

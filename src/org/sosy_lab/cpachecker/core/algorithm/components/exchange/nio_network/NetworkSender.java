@@ -27,22 +27,22 @@ public class NetworkSender implements StatisticsProvider {
 
   private final static ConnectionStats stats = new ConnectionStats();
 
-  public NetworkSender(String pAddress, int pPort) throws IOException {
+  public NetworkSender(String pAddress, int pPort) {
     this(new InetSocketAddress(pAddress, pPort));
   }
 
-  public NetworkSender(InetSocketAddress pAddress) throws IOException {
+  public NetworkSender(InetSocketAddress pAddress) {
     converter = new CompressedMessageConverter();
     address = pAddress;
   }
 
   public void send(Message pMessage) throws IOException {
-    SocketChannel client = SocketChannel.open(address);
-    byte[] message = converter.messageToJson(pMessage);
-    stats.averageMessageSize.setNextValue(message.length);
-    ByteBuffer buffer = ByteBuffer.wrap(message);
-    client.write(buffer);
-    client.close();
+    try (SocketChannel client = SocketChannel.open(address)) {
+      byte[] message = converter.messageToJson(pMessage);
+      stats.averageMessageSize.setNextValue(message.length);
+      ByteBuffer buffer = ByteBuffer.wrap(message);
+      client.write(buffer);
+    }
   }
 
   @Override

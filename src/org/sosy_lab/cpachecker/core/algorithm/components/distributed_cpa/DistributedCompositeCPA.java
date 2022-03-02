@@ -123,7 +123,7 @@ public class DistributedCompositeCPA extends AbstractDistributedCPA {
 
   @Override
   public MessageProcessing proceedForward(Message newMessage)
-      throws SolverException, InterruptedException {
+      throws InterruptedException {
     forwardProceed.start();
     MessageProcessing processing = MessageProcessing.proceed();
     for (AbstractDistributedCPA value : registered.values()) {
@@ -154,14 +154,14 @@ public class DistributedCompositeCPA extends AbstractDistributedCPA {
   }
 
   @Override
-  public void setParentCPA(ConfigurableProgramAnalysis cpa) throws CPAException {
+  public void setParentCPA(ConfigurableProgramAnalysis cpa) {
     super.setParentCPA(cpa);
     CompositeCPA compositeCPA = (CompositeCPA) cpa;
     for (ConfigurableProgramAnalysis wrappedCPA : compositeCPA.getWrappedCPAs()) {
       try {
         register(wrappedCPA.getClass());
       } catch (NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException pE) {
-        throw new CPAException("Could not create distributed CPA for " + wrappedCPA);
+        throw new AssertionError("Could not create distributed CPA for " + wrappedCPA);
       }
     }
     for (ConfigurableProgramAnalysis wrappedCPA : compositeCPA.getWrappedCPAs()) {

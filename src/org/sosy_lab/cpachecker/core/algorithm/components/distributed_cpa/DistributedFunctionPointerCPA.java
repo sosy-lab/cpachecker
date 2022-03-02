@@ -88,7 +88,7 @@ public class DistributedFunctionPointerCPA extends AbstractDistributedCPA {
 
   @Override
   protected MessageProcessing proceedForward(Message newMessage)
-      throws InterruptedException, SolverException {
+      throws InterruptedException {
     return MessageProcessing.proceed();
   }
 

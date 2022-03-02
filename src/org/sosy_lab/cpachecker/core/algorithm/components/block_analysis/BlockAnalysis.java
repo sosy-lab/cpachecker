@@ -88,7 +88,7 @@ public abstract class BlockAnalysis {
       Configuration pConfiguration,
       ShutdownManager pShutdownManager,
       AnalysisOptions pOptions)
-      throws CPAException, InterruptedException, InvalidConfigurationException, IOException {
+      throws CPAException, InterruptedException, InvalidConfigurationException {
     Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> parts =
         AlgorithmFactory.createAlgorithm(pLogger, pSpecification, pCFA, pConfiguration,
             pShutdownManager,
@@ -276,7 +276,7 @@ public abstract class BlockAnalysis {
         Configuration pConfiguration,
         ShutdownManager pShutdownManager,
         AnalysisOptions pOptions)
-        throws CPAException, InterruptedException, InvalidConfigurationException, IOException {
+        throws CPAException, InterruptedException, InvalidConfigurationException {
       super(pId, pLogger, pBlock, pCFA, pTypeMap, AnalysisDirection.FORWARD, pSpecification,
           pConfiguration,
           pShutdownManager, pOptions);
@@ -392,7 +392,7 @@ public abstract class BlockAnalysis {
         Specification pSpecification,
         Configuration pConfiguration,
         ShutdownManager pShutdownManager, AnalysisOptions pOptions)
-        throws CPAException, InterruptedException, InvalidConfigurationException, IOException {
+        throws CPAException, InterruptedException, InvalidConfigurationException {
       super(pId, pLogger, pBlock, pCFA, pTypeMap, AnalysisDirection.BACKWARD, pSpecification,
           pConfiguration,
           pShutdownManager, pOptions);
@@ -446,7 +446,7 @@ public abstract class BlockAnalysis {
         Specification pSpecification,
         Configuration pConfiguration,
         ShutdownManager pShutdownManager, AnalysisOptions pOptions)
-        throws CPAException, InterruptedException, InvalidConfigurationException, IOException {
+        throws CPAException, InterruptedException, InvalidConfigurationException {
       super(pId, pLogger, pBlock, pCFA, pTypeMap, pDirection, pSpecification, pConfiguration,
           pShutdownManager, pOptions);
     }
