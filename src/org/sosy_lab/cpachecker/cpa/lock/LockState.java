@@ -45,9 +45,9 @@ public final class LockState extends AbstractLockState {
     }
 
     @Override
-    public int compareTo(CompatibleState pArg0) {
-      Preconditions.checkArgument(pArg0 instanceof LockTreeNode);
-      LockTreeNode o = (LockTreeNode) pArg0;
+    public int compareTo(CompatibleState pOther) {
+      Preconditions.checkArgument(pOther instanceof LockTreeNode);
+      LockTreeNode o = (LockTreeNode) pOther;
       int result = size() - o.size();
       if (result != 0) {
         return result;
