@@ -40,9 +40,9 @@ class BlockCPAFactory extends AbstractCPAFactory {
     checkNotNull(cfa, "CFA instance needed to create LocationCPA");
     switch (analysisDirection) {
       case FORWARD:
-        return BlockCPA.create(cfa, getConfiguration());
+        return BlockCPA.create();
       case BACKWARD:
-        return BlockCPABackward.create(cfa, getConfiguration());
+        return BlockCPABackward.create();
       default:
         throw new AssertionError("AnalysisDirection " + analysisDirection + "does not exist");
     }

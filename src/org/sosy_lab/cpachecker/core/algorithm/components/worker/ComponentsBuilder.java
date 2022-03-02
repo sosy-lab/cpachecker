@@ -183,7 +183,7 @@ public class ComponentsBuilder {
   }
 
   public ComponentsBuilder addRootWorker(BlockNode pNode, AnalysisOptions pOptions)
-      throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
+      throws CPAException, InterruptedException, InvalidConfigurationException {
     workers.add(
         new RootWorker(nextId(pNode.getId()), pOptions, pNode, logger, cfa, specification,
             configuration,

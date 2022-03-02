@@ -47,7 +47,7 @@ public class RootWorker extends Worker {
       Specification pSpecification,
       Configuration pConfiguration,
       ShutdownManager pShutdownManager)
-      throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
+      throws CPAException, InterruptedException, InvalidConfigurationException {
     super("root-worker", pLogger, pOptions);
     root = pNode;
     if (!root.isRoot() || !root.isEmpty() || !root.getLastNode().equals(root.getStartNode())) {
@@ -61,7 +61,7 @@ public class RootWorker extends Worker {
 
   @Override
   public Collection<Message> processMessage(
-      Message pMessage) throws InterruptedException, IOException, SolverException, CPAException {
+      Message pMessage) throws InterruptedException, SolverException, CPAException, IOException {
     switch (pMessage.getType()) {
       case ERROR_CONDITION:
         if (pMessage.getTargetNodeNumber() == root.getLastNode().getNodeNumber()

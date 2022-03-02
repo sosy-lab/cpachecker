@@ -279,7 +279,6 @@ public class Message implements Comparable<Message> {
           }
           output.write(buf, 0, n);
         }
-        reader.close();
         byte[] data = output.toByteArray();
         return super.jsonToMessage(data);
       }
