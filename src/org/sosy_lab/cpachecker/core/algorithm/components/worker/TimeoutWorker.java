@@ -61,7 +61,7 @@ public class TimeoutWorker extends Worker {
         // fall through
       case FOUND_RESULT:
         shutdown();
-        // fall through
+        return ImmutableSet.of();
       case ERROR_CONDITION:
         // fall through
       case ERROR_CONDITION_UNREACHABLE:

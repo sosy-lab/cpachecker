@@ -115,7 +115,7 @@ public class AnalysisWorker extends Worker {
         // fall through
       case FOUND_RESULT:
         shutdown();
-        // fall through
+        return ImmutableSet.of();
       case ERROR_CONDITION_UNREACHABLE:
         return ImmutableSet.of();
       default:

@@ -81,7 +81,7 @@ public class RootWorker extends Worker {
         // fall through
       case ERROR:
         shutdown();
-        // fall through
+        return ImmutableSet.of();
       case BLOCK_POSTCONDITION:
         // fall through
       case ERROR_CONDITION_UNREACHABLE:

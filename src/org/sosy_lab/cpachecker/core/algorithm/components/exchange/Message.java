@@ -256,9 +256,7 @@ public class Message implements Comparable<Message> {
     /**
      * Mimics a MessageConverter but it zips messages.
      */
-    public CompressedMessageConverter() {
-      super();
-    }
+    public CompressedMessageConverter() {}
 
     @Override
     public byte[] messageToJson(Message pMessage) throws IOException {
