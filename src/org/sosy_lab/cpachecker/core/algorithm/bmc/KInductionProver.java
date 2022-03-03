@@ -353,7 +353,7 @@ class KInductionProver implements AutoCloseable {
      * it for k iterations.
      */
     Map<CandidateInvariant, BooleanFormula> assertions = new HashMap<>();
-    Set<AbstractState> inductionHypothesis = new HashSet<>();
+    ImmutableSet.Builder<AbstractState> inductionHypothesisBuilder = ImmutableSet.builder();
 
     for (CandidateInvariant candidateInvariant :
         CandidateInvariantCombination.getConjunctiveParts(pPredecessorAssumptions)) {
@@ -386,7 +386,7 @@ class KInductionProver implements AutoCloseable {
                     fmgr,
                     pfmgr);
             // Record the states used in the hypothesis
-            inductionHypothesis.addAll(
+            inductionHypothesisBuilder.addAll(
                 ImmutableSet.copyOf(
                     candidateInvariant.filterApplicable(
                         BMCHelper.filterBmcCheckedWithin(
@@ -410,6 +410,9 @@ class KInductionProver implements AutoCloseable {
       }
       assertions.put(candidateInvariant, bfmgr.and(storedAssertion, predecessorAssertion));
     }
+
+    // Build the set of states used as induction hypothesis
+    ImmutableSet<AbstractState> inductionHypothesis = inductionHypothesisBuilder.build();
 
     // Assert the known invariants at the loop head at end of the first iteration.
 

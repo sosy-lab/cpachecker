@@ -49,7 +49,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.automaton.Automata;
-import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -419,29 +418,21 @@ public final class BMCHelper {
    */
   static FluentIterable<AbstractState> filterBmcCheckedWithin(
       Iterable<AbstractState> pStates, Set<Object> pCheckedKeys, Iterable<Loop> pLoops) {
-    return from(pStates)
-        .filter(
-            pArg0 -> {
-              if (pArg0 == null) {
-                return false;
-              }
-              LoopIterationReportingState ls =
-                  AbstractStates.extractStateByType(pArg0, LoopIterationReportingState.class);
-              if (ls == null) {
-                return false;
-              } else {
-                return isWithinBmcCheckedRange(((LoopBoundState) ls), pCheckedKeys, pLoops);
-              }
-            });
+    return from(pStates).filter(pState -> isWithinBmcCheckedRange(pState, pCheckedKeys, pLoops));
   }
 
   private static boolean isWithinBmcCheckedRange(
-      LoopBoundState pLoopBoundState, Set<Object> pCheckedKeys, Iterable<Loop> pLoops) {
+      AbstractState pState, Set<Object> pCheckedKeys, Iterable<Loop> pLoops) {
+    LoopIterationReportingState loopState =
+        AbstractStates.extractStateByType(pState, LoopIterationReportingState.class);
+    if (loopState == null) {
+      return false;
+    }
     for (Object key : pCheckedKeys) {
-      LoopBoundState checkedState = (LoopBoundState) key;
+      LoopIterationReportingState checkedState = (LoopIterationReportingState) key;
       boolean withinCheckedRange = true;
       for (Loop loop : pLoops) {
-        if (pLoopBoundState.getIteration(loop) > checkedState.getIteration(loop)) {
+        if (loopState.getIteration(loop) > checkedState.getIteration(loop)) {
           withinCheckedRange = false;
           break;
         }
