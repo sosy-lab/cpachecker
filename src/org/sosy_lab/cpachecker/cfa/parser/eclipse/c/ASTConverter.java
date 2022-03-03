@@ -2150,9 +2150,9 @@ class ASTConverter {
   }
 
   private static ImmutableList<String> getAttributes(IASTDeclarator d) {
-    return ImmutableList.copyOf(
-        FluentIterable.from(d.getAttributes())
-            .transform(a -> ASTConverter.getAttributeString(a.getName())));
+    return FluentIterable.from(d.getAttributes())
+        .transform(a -> ASTConverter.getAttributeString(a.getName()))
+        .toList();
   }
 
   /**
