@@ -8,9 +8,10 @@
 
 package org.sosy_lab.cpachecker.cfa.blocks;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
-import com.google.common.collect.Iterables;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
@@ -88,8 +89,7 @@ public class Block {
         // TODO should we also handle a function return variable?
       }
       outOfScopeVariables =
-          ImmutableSet
-              .copyOf(Iterables.transform(declarations, ASimpleDeclaration::getQualifiedName));
+          transformedImmutableSetCopy(declarations, ASimpleDeclaration::getQualifiedName);
     }
     return outOfScopeVariables;
   }
