@@ -12,10 +12,16 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Connection;
@@ -25,6 +31,9 @@ import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Payload;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class FaultLocalizationMessageObserver implements MessageObserver {
+
+  @FileOption(Type.OUTPUT_FILE)
+  private static final Path FL_RESULT = Path.of("faults.txt");
 
   private final Set<Message> faults;
   private final Connection mainConnection;
@@ -57,15 +66,33 @@ public class FaultLocalizationMessageObserver implements MessageObserver {
     if (result != Result.FALSE) {
       return;
     }
+    // read all remaining faults
+    // since a violation has already been found, we know that every possible fault is present
+    // but the message might not have been processed by now
     while (!mainConnection.isEmpty()) {
       process(mainConnection.read());
     }
-    Set<String> visitedBlocks = new HashSet<>(Splitter.on(",")
-        .splitToList(resultMessage.getPayload().getOrDefault(Payload.VISITED, "")));
+    Set<String> visitedBlocks =
+        ImmutableSet.copyOf(
+            Splitter.on(",")
+                .split(resultMessage.getPayload().getOrDefault(Payload.VISITED, "")));
     faults.removeIf(m -> !visitedBlocks.contains(m.getUniqueBlockId()));
     if (!faults.isEmpty()) {
-      logger.log(Level.INFO, "Found faults:\n" + Joiner.on("\n").join(
-          transformedImmutableListCopy(faults, m->m.getPayload().getOrDefault(Payload.FAULT_LOCALIZATION, ""))));
+      logger.logf(
+          Level.INFO,
+          "Fault localization found %d faults. See %s for more information.",
+          faults.size(),
+          FL_RESULT);
+      try {
+        Files.writeString(
+            FL_RESULT,
+            Joiner.on("\n")
+                .join(
+                    transformedImmutableListCopy(
+                        faults, m -> m.getPayload().getOrDefault(Payload.FAULT_LOCALIZATION, ""))));
+      } catch (IOException pE) {
+        throw new CPAException("Unable to write faults to file: " + FL_RESULT, pE);
+      }
     } else {
       logger.log(
           Level.INFO,
