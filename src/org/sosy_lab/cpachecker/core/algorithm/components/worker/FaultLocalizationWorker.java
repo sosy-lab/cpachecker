@@ -15,7 +15,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
@@ -278,11 +277,11 @@ public class FaultLocalizationWorker extends AnalysisWorker {
     if (bmgr.isTrue(pPostCondition)) {
       return pPostCondition;
     }
-    Set<BooleanFormula> postConds = new HashSet<>();
+    Set<BooleanFormula> postConds = ImmutableSet.of();
     if (actualPost != null) {
-      postConds.addAll(bmgr.toConjunctionArgs(actualPost, true));
+      postConds = ImmutableSet.copyOf(bmgr.toConjunctionArgs(actualPost, true));
     }
-    Set<BooleanFormula> negate = new HashSet<>();
+    ImmutableSet.Builder<BooleanFormula> negate = ImmutableSet.builder();
     BooleanFormula formula = bmgr.makeTrue();
     for (BooleanFormula f : bmgr.toConjunctionArgs(pPostCondition, true)) {
       if (postConds.contains(f)) {
@@ -291,7 +290,7 @@ public class FaultLocalizationWorker extends AnalysisWorker {
         formula = bmgr.and(formula, f);
       }
     }
-    return bmgr.not(bmgr.and(formula, bmgr.not(bmgr.and(negate))));
+    return bmgr.not(bmgr.and(formula, bmgr.not(bmgr.and(negate.build()))));
   }
 
   private static class TraceFormulaUnsatisfiableException extends Exception {
