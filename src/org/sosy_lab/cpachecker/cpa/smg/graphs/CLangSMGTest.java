@@ -13,6 +13,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Map;
 import org.junit.Before;
@@ -40,7 +41,7 @@ public class CLangSMGTest {
   static private final CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.UNSIGNED_LONG_INT);
   public static final CFunctionDeclaration DUMMY_FUNCTION =
       new CFunctionDeclaration(
-          FileLocation.DUMMY, functionType, "foo", ImmutableList.of(), ImmutableList.of());
+          FileLocation.DUMMY, functionType, "foo", ImmutableList.of(), ImmutableSet.of());
   private CLangStackFrame sf;
 
   static private final LogManager logger = LogManager.createTestLogManager();

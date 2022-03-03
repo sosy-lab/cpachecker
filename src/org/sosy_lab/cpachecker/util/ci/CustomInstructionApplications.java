@@ -324,7 +324,7 @@ public class CustomInstructionApplications {
               CFunctionType.NO_ARGS_VOID_FUNCTION,
               "ci",
               ImmutableList.of(),
-              ImmutableList.of());
+              ImmutableSet.of());
       CFANode start = new CFANode(ciDef);
       CFANode end = new CFANode(ciDef);
       CFAEdge ciEdge = new CStatementEdge("r=x" + binaryOperatorForSimpleCustomInstruction + "y;", stmt, FileLocation.DUMMY, start, end);

@@ -18,6 +18,7 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.math.BigInteger;
@@ -761,7 +762,7 @@ public class HarnessExporter {
             ImmutableList.of(
                 new CParameterDeclaration(
                     FileLocation.DUMMY, CPointerType.POINTER_TO_VOID, "size")),
-            ImmutableList.of());
+            ImmutableSet.of());
     return new CFunctionCallExpression(
         FileLocation.DUMMY,
         CPointerType.POINTER_TO_VOID,

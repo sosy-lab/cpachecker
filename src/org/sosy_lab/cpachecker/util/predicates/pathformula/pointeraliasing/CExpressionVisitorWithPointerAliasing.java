@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -674,7 +675,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
                 trunc,
                 ImmutableList.of(
                     new CParameterDeclaration(dummy, returnType, "irrelevant_parameter_name")),
-                ImmutableList.of());
+                ImmutableSet.of());
 
         CRightHandSide rhs =
             new CFunctionCallExpression(

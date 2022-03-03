@@ -15,8 +15,9 @@ import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutVolatile;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -1258,7 +1259,7 @@ class ASTConverter {
               paramType -> new CParameterDeclaration(FileLocation.DUMMY, paramType, "p"));
       declaration =
           new CFunctionDeclaration(
-              FileLocation.DUMMY, functionType, name, parameterDeclarations, ImmutableList.of());
+              FileLocation.DUMMY, functionType, name, parameterDeclarations, ImmutableSet.of());
     }
 
     // declaration may still be null here,
@@ -1768,7 +1769,12 @@ class ASTConverter {
           }
         }
 
-        ImmutableList<String> attributes = ASTConverter.getAttributes(d);
+        final ImmutableSet<CFunctionDeclaration.FunctionAttributes> attributes;
+        if (d instanceof IASTFunctionDeclarator) {
+          attributes = ASTConverter.getAttributes((IASTFunctionDeclarator) d);
+        } else {
+          attributes = ImmutableSet.of();
+        }
 
         return new CFunctionDeclaration(fileLoc, functionType, name, params, attributes);
       }
@@ -2149,10 +2155,16 @@ class ASTConverter {
     return s;
   }
 
-  private static ImmutableList<String> getAttributes(IASTDeclarator d) {
-    return FluentIterable.from(d.getAttributes())
-        .transform(a -> ASTConverter.getAttributeString(a.getName()))
-        .toList();
+  private static ImmutableSet<CFunctionDeclaration.FunctionAttributes> getAttributes(
+      IASTFunctionDeclarator d) {
+    List<CFunctionDeclaration.FunctionAttributes> attributes = new ArrayList<>();
+    for (IASTAttribute attribute : d.getAttributes()) {
+      String name = getAttributeString(attribute.getName());
+      if (name.equals("noreturn")) {
+        attributes.add(CFunctionDeclaration.FunctionAttributes.NO_RETURN);
+      }
+    }
+    return Sets.immutableEnumSet(attributes);
   }
 
   /**

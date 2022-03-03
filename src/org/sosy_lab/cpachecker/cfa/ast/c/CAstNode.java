@@ -30,9 +30,4 @@ public interface CAstNode extends AAstNode {
       R accept_(V pV) throws X1 {
     return accept(pV);
   }
-
-  /** Returns the list of GNU C attributes associated with this CASTNode. */
-  default ImmutableList<String> getAttributes() {
-    return ImmutableList.of();
-  }
 }

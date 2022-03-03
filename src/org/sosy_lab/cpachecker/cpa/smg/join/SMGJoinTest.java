@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.smg.join;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import org.junit.Before;
 import org.junit.Test;
@@ -42,13 +43,13 @@ public class SMGJoinTest {
   static private final CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.UNSIGNED_LONG_INT);
   private static final CFunctionDeclaration functionDeclaration =
       new CFunctionDeclaration(
-          FileLocation.DUMMY, functionType, "foo", ImmutableList.of(), ImmutableList.of());
+          FileLocation.DUMMY, functionType, "foo", ImmutableList.of(), ImmutableSet.of());
   private static final CFunctionDeclaration functionDeclaration2 =
       new CFunctionDeclaration(
-          FileLocation.DUMMY, functionType, "bar", ImmutableList.of(), ImmutableList.of());
+          FileLocation.DUMMY, functionType, "bar", ImmutableList.of(), ImmutableSet.of());
   private static final CFunctionDeclaration functionDeclaration3 =
       new CFunctionDeclaration(
-          FileLocation.DUMMY, functionType, "main", ImmutableList.of(), ImmutableList.of());
+          FileLocation.DUMMY, functionType, "main", ImmutableList.of(), ImmutableSet.of());
 
   private SMGState dummyState;
 

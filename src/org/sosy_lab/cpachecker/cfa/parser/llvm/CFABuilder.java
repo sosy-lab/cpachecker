@@ -14,6 +14,7 @@ import static org.sosy_lab.llvm_j.Value.OpCode.AShr;
 
 import com.google.common.base.CharMatcher;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.TreeMultimap;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -118,7 +119,7 @@ public class CFABuilder {
           new CFunctionType(CVoidType.VOID, ImmutableList.of(), false),
           "abort",
           ImmutableList.of(),
-          ImmutableList.of());
+          ImmutableSet.of());
   private static final CExpression ABORT_FUNC_NAME =
       new CIdExpression(FileLocation.DUMMY, CVoidType.VOID, "abort", ABORT_FUNC_DECL);
 
@@ -788,7 +789,7 @@ public class CFABuilder {
                 functionType,
                 functionName,
                 parameterDeclarations,
-                ImmutableList.of());
+                ImmutableSet.of());
         functionDeclarations.put(functionName, derivedDeclaration);
       }
     } else {
@@ -1644,7 +1645,7 @@ public class CFABuilder {
             cFuncType,
             functionName,
             parameters,
-            ImmutableList.of());
+            ImmutableSet.of());
     functionDeclarations.put(functionName, functionDeclaration);
   }
 
