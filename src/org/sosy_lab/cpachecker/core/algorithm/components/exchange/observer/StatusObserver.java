@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus.StatusFactory;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Payload;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -22,10 +23,12 @@ public class StatusObserver implements MessageObserver {
 
   private final Map<String, AlgorithmStatus> statusMap;
   private AlgorithmStatus status;
+  private final StatusFactory factory;
 
   public StatusObserver() {
     statusMap = new HashMap<>();
     status = AlgorithmStatus.NO_PROPERTY_CHECKED;
+    factory = new StatusFactory();
   }
 
   @Override
@@ -37,7 +40,7 @@ public class StatusObserver implements MessageObserver {
               ImmutableList.toImmutableList());
       assert properties.size() == 3 : "Wrong status message" + pMessage;
       statusMap.put(pMessage.getUniqueBlockId(),
-          new AlgorithmStatus(properties.get(0), properties.get(1), properties.get(2)));
+          factory.statusOf(properties.get(0), properties.get(1), properties.get(2)));
     }
     return false;
   }

@@ -23,6 +23,8 @@ import java.util.Map;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
@@ -35,8 +37,11 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 public class MessageLogger {
 
-  private static final Path reportFile = Path.of("./output/block_analysis/block_analysis.json");
-  private static final Path blockCFAFile = Path.of("./output/block_analysis/blocks.json");
+  @FileOption(Type.OUTPUT_FILE)
+  private static final Path reportFile = Path.of("block_analysis/block_analysis.json");
+
+  @FileOption(Type.OUTPUT_FILE)
+  private static final Path blockCFAFile = Path.of("block_analysis/blocks.json");
 
   private final Map<String, Multimap<String, Object>> entries;
   private final BlockTree tree;
