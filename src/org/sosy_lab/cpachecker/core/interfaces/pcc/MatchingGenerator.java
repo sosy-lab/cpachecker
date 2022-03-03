@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.interfaces.pcc;
 
 import java.util.Map;
-
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedGraph;
 
 /**

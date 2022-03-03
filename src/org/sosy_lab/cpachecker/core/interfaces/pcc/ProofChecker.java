@@ -8,14 +8,13 @@
 
 package org.sosy_lab.cpachecker.core.interfaces.pcc;
 
+import java.util.Collection;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-
-import java.util.Collection;
 
 /**
  * Interface for classes representing an analysis that can be proof checked.

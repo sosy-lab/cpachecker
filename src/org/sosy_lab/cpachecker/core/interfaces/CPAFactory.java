@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.interfaces;
 
 import java.util.List;
-
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;

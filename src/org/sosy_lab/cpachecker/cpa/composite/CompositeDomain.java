@@ -10,12 +10,10 @@ package org.sosy_lab.cpachecker.cpa.composite;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-
+import java.util.List;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-
-import java.util.List;
 
 class CompositeDomain implements AbstractDomain {
 

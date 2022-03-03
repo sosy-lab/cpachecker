@@ -13,13 +13,11 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
-
+import java.util.List;
+import java.util.function.BiFunction;
 import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
-
-import java.util.List;
-import java.util.function.BiFunction;
 
 class CompositePrecision implements WrapperPrecision, AdjustablePrecision {
 
