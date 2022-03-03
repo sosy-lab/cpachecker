@@ -117,6 +117,7 @@ public class CFABuilder {
           FileLocation.DUMMY,
           new CFunctionType(CVoidType.VOID, ImmutableList.of(), false),
           "abort",
+          ImmutableList.of(),
           ImmutableList.of());
   private static final CExpression ABORT_FUNC_NAME =
       new CIdExpression(FileLocation.DUMMY, CVoidType.VOID, "abort", ABORT_FUNC_DECL);
@@ -783,7 +784,11 @@ public class CFABuilder {
       if (functionName != null) {
         CFunctionDeclaration derivedDeclaration =
             new CFunctionDeclaration(
-                FileLocation.DUMMY, functionType, functionName, parameterDeclarations);
+                FileLocation.DUMMY,
+                functionType,
+                functionName,
+                parameterDeclarations,
+                ImmutableList.of());
         functionDeclarations.put(functionName, derivedDeclaration);
       }
     } else {
@@ -1635,7 +1640,11 @@ public class CFABuilder {
     // Function declaration, exit
     CFunctionDeclaration functionDeclaration =
         new CFunctionDeclaration(
-            getLocation(pFuncDef, pFileName), cFuncType, functionName, parameters);
+            getLocation(pFuncDef, pFileName),
+            cFuncType,
+            functionName,
+            parameters,
+            ImmutableList.of());
     functionDeclarations.put(functionName, functionDeclaration);
   }
 

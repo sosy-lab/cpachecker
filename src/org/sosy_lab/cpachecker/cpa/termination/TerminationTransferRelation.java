@@ -104,6 +104,7 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
           FileLocation.DUMMY,
           CFunctionType.functionTypeWithReturnType(CNumericTypes.INT),
           "__VERIFIER_nondet_int",
+          ImmutableList.of(),
           ImmutableList.of());
 
   private Set<CFAEdge> createdCfaEdges = new LinkedHashSet<>();

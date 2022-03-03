@@ -320,7 +320,11 @@ public class CustomInstructionApplications {
       // create edge
       CFunctionDeclaration ciDef =
           new CFunctionDeclaration(
-              FileLocation.DUMMY, CFunctionType.NO_ARGS_VOID_FUNCTION, "ci", ImmutableList.of());
+              FileLocation.DUMMY,
+              CFunctionType.NO_ARGS_VOID_FUNCTION,
+              "ci",
+              ImmutableList.of(),
+              ImmutableList.of());
       CFANode start = new CFANode(ciDef);
       CFANode end = new CFANode(ciDef);
       CFAEdge ciEdge = new CStatementEdge("r=x" + binaryOperatorForSimpleCustomInstruction + "y;", stmt, FileLocation.DUMMY, start, end);

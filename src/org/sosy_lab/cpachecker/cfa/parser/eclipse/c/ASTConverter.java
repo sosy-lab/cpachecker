@@ -15,6 +15,7 @@ import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutVolatile;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
@@ -1256,7 +1257,8 @@ class ASTConverter {
               parameterTypes,
               paramType -> new CParameterDeclaration(FileLocation.DUMMY, paramType, "p"));
       declaration =
-          new CFunctionDeclaration(FileLocation.DUMMY, functionType, name, parameterDeclarations);
+          new CFunctionDeclaration(
+              FileLocation.DUMMY, functionType, name, parameterDeclarations, ImmutableList.of());
     }
 
     // declaration may still be null here,
@@ -1634,7 +1636,8 @@ class ASTConverter {
         declSpec,
         declSpec.getName(),
         declarator.getThird(),
-        declSpec.getParameterDeclarations());
+        declSpec.getParameterDeclarations(),
+        ASTConverter.getAttributes(f.getDeclarator()));
   }
 
   public List<CDeclaration> convert(final IASTSimpleDeclaration d) {
@@ -1765,7 +1768,9 @@ class ASTConverter {
           }
         }
 
-        return new CFunctionDeclaration(fileLoc, functionType, name, params);
+        ImmutableList<String> attributes = ASTConverter.getAttributes(d);
+
+        return new CFunctionDeclaration(fileLoc, functionType, name, params, attributes);
       }
 
       // now it should be a regular variable declaration
@@ -2142,6 +2147,12 @@ class ASTConverter {
       return s.substring(2, s.length() - 2);
     }
     return s;
+  }
+
+  private static ImmutableList<String> getAttributes(IASTDeclarator d) {
+    return ImmutableList.copyOf(
+        FluentIterable.from(d.getAttributes())
+            .transform(a -> ASTConverter.getAttributeString(a.getName())));
   }
 
   /**

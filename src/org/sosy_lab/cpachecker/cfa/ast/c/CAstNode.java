@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAstNodeVisitor;
 
@@ -28,5 +29,10 @@ public interface CAstNode extends AAstNode {
           V extends CAstNodeVisitor<R1, X1> & JAstNodeVisitor<R2, X2>>
       R accept_(V pV) throws X1 {
     return accept(pV);
+  }
+
+  /** Returns the list of GNU C attributes associated with this CASTNode. */
+  default ImmutableList<String> getAttributes() {
+    return ImmutableList.of();
   }
 }

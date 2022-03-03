@@ -41,11 +41,14 @@ import org.sosy_lab.cpachecker.util.Pair;
 public class SMGJoinTest {
   static private final CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.UNSIGNED_LONG_INT);
   private static final CFunctionDeclaration functionDeclaration =
-      new CFunctionDeclaration(FileLocation.DUMMY, functionType, "foo", ImmutableList.of());
+      new CFunctionDeclaration(
+          FileLocation.DUMMY, functionType, "foo", ImmutableList.of(), ImmutableList.of());
   private static final CFunctionDeclaration functionDeclaration2 =
-      new CFunctionDeclaration(FileLocation.DUMMY, functionType, "bar", ImmutableList.of());
+      new CFunctionDeclaration(
+          FileLocation.DUMMY, functionType, "bar", ImmutableList.of(), ImmutableList.of());
   private static final CFunctionDeclaration functionDeclaration3 =
-      new CFunctionDeclaration(FileLocation.DUMMY, functionType, "main", ImmutableList.of());
+      new CFunctionDeclaration(
+          FileLocation.DUMMY, functionType, "main", ImmutableList.of(), ImmutableList.of());
 
   private SMGState dummyState;
 

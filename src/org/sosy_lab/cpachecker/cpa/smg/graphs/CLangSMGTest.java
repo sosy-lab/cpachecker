@@ -39,7 +39,8 @@ import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 public class CLangSMGTest {
   static private final CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.UNSIGNED_LONG_INT);
   public static final CFunctionDeclaration DUMMY_FUNCTION =
-      new CFunctionDeclaration(FileLocation.DUMMY, functionType, "foo", ImmutableList.of());
+      new CFunctionDeclaration(
+          FileLocation.DUMMY, functionType, "foo", ImmutableList.of(), ImmutableList.of());
   private CLangStackFrame sf;
 
   static private final LogManager logger = LogManager.createTestLogManager();

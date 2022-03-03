@@ -69,6 +69,7 @@ class VariableGenerator {
             nondetFunctionType,
             nondetFunctionName,
             nondetFunctionName,
+            ImmutableList.of(),
             ImmutableList.of());
     CIdExpression nondetFunctionNameExpression =
         new CIdExpression(

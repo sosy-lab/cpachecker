@@ -673,7 +673,8 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
                 CFunctionType.functionTypeWithReturnType(returnType),
                 trunc,
                 ImmutableList.of(
-                    new CParameterDeclaration(dummy, returnType, "irrelevant_parameter_name")));
+                    new CParameterDeclaration(dummy, returnType, "irrelevant_parameter_name")),
+                ImmutableList.of());
 
         CRightHandSide rhs =
             new CFunctionCallExpression(

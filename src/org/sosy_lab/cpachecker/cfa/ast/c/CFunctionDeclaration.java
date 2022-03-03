@@ -26,14 +26,24 @@ public final class CFunctionDeclaration extends AFunctionDeclaration implements 
 
   public static final CFunctionDeclaration DUMMY =
       new CFunctionDeclaration(
-          FileLocation.DUMMY, CFunctionType.NO_ARGS_VOID_FUNCTION, "dummy", ImmutableList.of());
+          FileLocation.DUMMY,
+          CFunctionType.NO_ARGS_VOID_FUNCTION,
+          "dummy",
+          ImmutableList.of(),
+          ImmutableList.of());
 
   private static final long serialVersionUID = 5485363555708455537L;
 
-  public CFunctionDeclaration(FileLocation pFileLocation,
-      CFunctionType pType, String pName,
-      List<CParameterDeclaration> parameters) {
+  private ImmutableList<String> attributes;
+
+  public CFunctionDeclaration(
+      FileLocation pFileLocation,
+      CFunctionType pType,
+      String pName,
+      List<CParameterDeclaration> parameters,
+      ImmutableList<String> pAttributes) {
     super(pFileLocation, pType, checkNotNull(pName), pName, parameters);
+    attributes = pAttributes;
   }
 
   public CFunctionDeclaration(
@@ -41,8 +51,10 @@ public final class CFunctionDeclaration extends AFunctionDeclaration implements 
       CFunctionType pType,
       String pName,
       String pOrigName,
-      List<CParameterDeclaration> parameters) {
+      List<CParameterDeclaration> parameters,
+      ImmutableList<String> pAttributes) {
     super(pFileLocation, pType, checkNotNull(pName), checkNotNull(pOrigName), parameters);
+    attributes = pAttributes;
   }
 
   @Override
@@ -82,4 +94,8 @@ public final class CFunctionDeclaration extends AFunctionDeclaration implements 
     return pV.visit(this);
   }
 
+  @Override
+  public ImmutableList<String> getAttributes() {
+    return attributes;
+  }
 }

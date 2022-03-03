@@ -126,7 +126,8 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
     NavigableMap<String, FunctionEntryNode> functions = new TreeMap<>();
     CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.BOOL);
     CFunctionDeclaration fdef =
-        new CFunctionDeclaration(FileLocation.DUMMY, functionType, fName, ImmutableList.of());
+        new CFunctionDeclaration(
+            FileLocation.DUMMY, functionType, fName, ImmutableList.of(), ImmutableList.of());
     FunctionEntryNode entryNode =
         new CFunctionEntryNode(
             FileLocation.DUMMY, fdef, new FunctionExitNode(fdef), Optional.empty());
