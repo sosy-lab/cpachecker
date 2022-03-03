@@ -36,19 +36,19 @@ public final class CFunctionDeclaration extends AFunctionDeclaration implements 
   private static final long serialVersionUID = 5485363555708455537L;
 
   /** GNU C function attributes known to CPAchecker. */
-  public enum FunctionAttributes {
+  public enum FunctionAttribute {
     /** GNU C attribute 'noreturn'. */
     NO_RETURN
   }
 
-  private final ImmutableSet<FunctionAttributes> attributes;
+  private final ImmutableSet<FunctionAttribute> attributes;
 
   public CFunctionDeclaration(
       FileLocation pFileLocation,
       CFunctionType pType,
       String pName,
       List<CParameterDeclaration> parameters,
-      ImmutableSet<FunctionAttributes> pAttributes) {
+      ImmutableSet<FunctionAttribute> pAttributes) {
     super(pFileLocation, pType, checkNotNull(pName), pName, parameters);
     attributes = pAttributes;
   }
@@ -59,7 +59,7 @@ public final class CFunctionDeclaration extends AFunctionDeclaration implements 
       String pName,
       String pOrigName,
       List<CParameterDeclaration> parameters,
-      ImmutableSet<FunctionAttributes> pAttributes) {
+      ImmutableSet<FunctionAttribute> pAttributes) {
     super(pFileLocation, pType, checkNotNull(pName), checkNotNull(pOrigName), parameters);
     attributes = pAttributes;
   }
@@ -105,7 +105,7 @@ public final class CFunctionDeclaration extends AFunctionDeclaration implements 
    * Returns the list of GNU C attributes that are associated with this function declaration
    * and known to CPAchecker.
    */
-  public ImmutableSet<FunctionAttributes> getAttributes() {
+  public ImmutableSet<FunctionAttribute> getAttributes() {
     return attributes;
   }
 
@@ -113,7 +113,7 @@ public final class CFunctionDeclaration extends AFunctionDeclaration implements 
    * Returns whether this function declaration has the GNU C attribute 'noreturn'.
    */
   public boolean doesNotReturn() {
-    return attributes.contains(FunctionAttributes.NO_RETURN);
+    return attributes.contains(FunctionAttribute.NO_RETURN);
   }
 
 }

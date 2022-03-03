@@ -1769,7 +1769,7 @@ class ASTConverter {
           }
         }
 
-        final ImmutableSet<CFunctionDeclaration.FunctionAttributes> attributes;
+        final ImmutableSet<CFunctionDeclaration.FunctionAttribute> attributes;
         if (d instanceof IASTFunctionDeclarator) {
           attributes = ASTConverter.getAttributes((IASTFunctionDeclarator) d);
         } else {
@@ -2155,13 +2155,17 @@ class ASTConverter {
     return s;
   }
 
-  private static ImmutableSet<CFunctionDeclaration.FunctionAttributes> getAttributes(
+  /**
+   * Parses known GNU C attributes of IASTFunctionDeclarator.
+   * If any unknown attribute occurs, an exception is thrown.
+   */
+  private static ImmutableSet<CFunctionDeclaration.FunctionAttribute> getAttributes(
       IASTFunctionDeclarator d) {
-    List<CFunctionDeclaration.FunctionAttributes> attributes = new ArrayList<>();
+    List<CFunctionDeclaration.FunctionAttribute> attributes = new ArrayList<>();
     for (IASTAttribute attribute : d.getAttributes()) {
       String name = getAttributeString(attribute.getName());
       if (name.equals("noreturn")) {
-        attributes.add(CFunctionDeclaration.FunctionAttributes.NO_RETURN);
+        attributes.add(CFunctionDeclaration.FunctionAttribute.NO_RETURN);
       }
     }
     return Sets.immutableEnumSet(attributes);
