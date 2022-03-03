@@ -78,5 +78,4 @@ public class LlvmParserWithClang extends LlvmParser {
       return new LlvmParserWithClang(processor, logger, machine);
     }
   }
-
 }

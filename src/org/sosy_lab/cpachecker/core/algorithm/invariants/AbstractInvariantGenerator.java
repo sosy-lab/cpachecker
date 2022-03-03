@@ -33,5 +33,4 @@ public abstract class AbstractInvariantGenerator implements InvariantGenerator {
   public boolean isStarted() {
     return started.get();
   }
-
 }

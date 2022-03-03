@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.termination;
 
 import com.google.common.base.Preconditions;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;

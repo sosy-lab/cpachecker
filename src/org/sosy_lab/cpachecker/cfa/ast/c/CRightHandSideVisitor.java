@@ -11,5 +11,4 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 public interface CRightHandSideVisitor<R, X extends Exception> extends CExpressionVisitor<R, X> {
 
   R visit(CFunctionCallExpression pIastFunctionCallExpression) throws X;
-
 }

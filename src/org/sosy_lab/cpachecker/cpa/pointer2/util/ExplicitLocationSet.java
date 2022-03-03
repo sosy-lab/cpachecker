@@ -170,5 +170,4 @@ public class ExplicitLocationSet implements LocationSet, Iterable<MemoryLocation
   public int getSize() {
     return explicitSet.size();
   }
-
 }
