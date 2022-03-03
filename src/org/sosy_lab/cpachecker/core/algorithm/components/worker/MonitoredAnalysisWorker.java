@@ -79,7 +79,7 @@ public class MonitoredAnalysisWorker extends AnalysisWorker {
     }
 
     public void blockAcquire(BlockNode pBlockNode) throws InterruptedException {
-      logger.log(Level.FINEST, pBlockNode.getId() + " requires resource (" + open + ")");
+      logger.logf(Level.FINEST, "%s requires resource (available permits: %d)", pBlockNode.getId(), open);
       semaphore.acquire();
       open--;
     }

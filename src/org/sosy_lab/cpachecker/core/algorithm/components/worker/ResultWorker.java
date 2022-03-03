@@ -9,8 +9,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.components.worker;
 
 import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
@@ -95,15 +95,26 @@ public class ResultWorker extends Worker {
     // that messages are processed in the same way on all workers
     // that's why we use allMatch
     // to ensure we do not forget an error location, we need every worker to send an initial message
-    logger.log(Level.ALL,"Waiting for answers: ", expectAnswer.entrySet().stream().filter(e -> e.getValue() != 0).collect(
-        ImmutableMap.toImmutableMap(e -> e.getKey(), e-> e.getValue())) + "-" + messageReceived.size() + "/" + numWorkers);
+    if (logger.wouldBeLogged(Level.ALL)) {
+      logger.log(
+          Level.ALL,
+          "Waiting for answers: %s (%d/%d)",
+          Maps.filterValues(expectAnswer, v -> v != 0),
+          messageReceived.size(),
+          numWorkers);
+    }
     finished =
         messageReceived.size() == numWorkers
             && expectAnswer.values().stream().allMatch(i -> i == 0);
     if (finished) {
-      return ImmutableSet.of(Message.newResultMessage(pMessage.getUniqueBlockId(), 0, Result.TRUE,
-          new HashSet<>(Splitter.on(",")
-              .splitToList(pMessage.getPayload().getOrDefault(Payload.VISITED, "")))));
+      return ImmutableSet.of(
+          Message.newResultMessage(
+              pMessage.getUniqueBlockId(),
+              0,
+              Result.TRUE,
+              ImmutableSet.copyOf(
+                  Splitter.on(",")
+                      .split(pMessage.getPayload().getOrDefault(Payload.VISITED, "")))));
     }
     return ImmutableSet.of();
   }
