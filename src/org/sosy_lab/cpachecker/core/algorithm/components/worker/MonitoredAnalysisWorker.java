@@ -13,7 +13,6 @@ import java.util.Collection;
 import java.util.concurrent.Semaphore;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -34,13 +33,11 @@ public class MonitoredAnalysisWorker extends AnalysisWorker {
       LogManager pLogger,
       CFA pCFA,
       Specification pSpecification,
-      Configuration pConfiguration,
       ShutdownManager pShutdownManager,
       Monitor pMonitor,
       UpdatedTypeMap pMap)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     super(pId, pOptions, pBlock, pLogger, pCFA, pSpecification,
-        pConfiguration,
         pShutdownManager, pMap);
     monitor = pMonitor;
   }

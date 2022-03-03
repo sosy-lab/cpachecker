@@ -89,7 +89,7 @@ public class FaultLocalizationWorker extends AnalysisWorker {
       ShutdownManager pShutdownManager,
       UpdatedTypeMap pTypeMap)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
-    super(pId, pOptions, pBlock, pLogger, pCFA, pSpecification, pConfiguration, pShutdownManager,
+    super(pId, pOptions, pBlock, pLogger, pCFA, pSpecification, pShutdownManager,
         pTypeMap);
     PredicateCPA predicateCPA = backwardAnalysis.getDistributedCPA().getOriginalCPA(PredicateCPA.class);
     Configuration config = Configuration.builder().copyFrom(pConfiguration)

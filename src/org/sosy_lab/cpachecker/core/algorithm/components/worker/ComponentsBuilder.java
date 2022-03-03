@@ -107,7 +107,6 @@ public class ComponentsBuilder {
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     workers.add(
         new AnalysisWorker(nextId(pNode.getId()), pOptions, pNode, logger, cfa, specification,
-            configuration,
             shutdownManager, pTypeMap));
     return this;
   }
@@ -119,7 +118,6 @@ public class ComponentsBuilder {
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     workers.add(
         new SmartAnalysisWorker(nextId(pNode.getId()), pOptions, pNode, logger, cfa, specification,
-            configuration,
             shutdownManager, pTypeMap));
     return this;
   }
@@ -132,7 +130,6 @@ public class ComponentsBuilder {
     workers.add(
         new MonitoredAnalysisWorker(nextId(pNode.getId()), pOptions, pNode, logger, cfa,
             specification,
-            configuration,
             shutdownManager, monitor, pMap));
     return this;
   }

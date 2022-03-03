@@ -16,8 +16,6 @@ import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.components.block_analysis.BlockAnalysis;
@@ -51,42 +49,19 @@ public class AnalysisWorker extends Worker {
       LogManager pLogger,
       CFA pCFA,
       Specification pSpecification,
-      Configuration pConfiguration,
       ShutdownManager pShutdownManager,
       UpdatedTypeMap pTypeMap)
-      throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
+      throws CPAException, InterruptedException, InvalidConfigurationException, IOException {
     super("analysis-worker-" + pBlock.getId(), pLogger, pOptions);
     block = pBlock;
 
-    String withAbstraction =
-        analysisOptions.doAbstractAtTargetLocations() ? "-with-abstraction" : "";
-
-    Configuration fileConfig =
-        Configuration.builder().loadFromFile(
-                "config/predicateAnalysis-block-backward" + withAbstraction + ".properties")
-            .build();
-    ConfigString backward = new ConfigString();
-    fileConfig.inject(backward);
-
-    Configuration backwardConfiguration = Configuration.builder()
-        .copyFrom(fileConfig)
-        .setOption("CompositeCPA.cpas", "cpa.block.BlockCPABackward, " + backward.cpas)
-        .build();
+    Configuration forwardConfiguration = Configuration.builder().loadFromFile(pOptions.getForwardConfiguration()).build();
+    Configuration backwardConfiguration = Configuration.builder().loadFromFile(pOptions.getBackwardConfiguration()).build();
 
     Specification backwardSpecification =
         Specification.fromFiles(ImmutableSet.of(Path.of("config/specification/MainEntry.spc"),
                 Path.of("config/specification/TerminatingFunctions.spc")),
             pCFA, backwardConfiguration, logger, pShutdownManager.getNotifier());
-
-    ConfigString forward = new ConfigString();
-    pConfiguration.inject(forward);
-    Configuration forwardConfiguration =
-        Configuration.builder()
-            .copyFrom(pConfiguration)
-            .loadFromFile(
-                "config/predicateAnalysis-block-forward" + withAbstraction + ".properties")
-            .setOption("CompositeCPA.cpas", forward.cpas + ", cpa.block.BlockCPA")
-            .build();
 
     forwardAnalysis = new ForwardAnalysis(pId, pLogger, pBlock, pCFA, pTypeMap, pSpecification,
         forwardConfiguration,
@@ -193,9 +168,4 @@ public class AnalysisWorker extends Worker {
     return "Worker{" + "block=" + block + ", finished=" + finished + '}';
   }
 
-  @Options(prefix = "CompositeCPA")
-  private static class ConfigString {
-    @Option(description = "Read config")
-    private String cpas = "";
-  }
 }

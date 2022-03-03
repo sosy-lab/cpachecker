@@ -8,7 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.components.worker;
 
+import java.nio.file.Path;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -19,9 +22,6 @@ public class AnalysisOptions {
   @Option(description = "forces the precondition of fault localization workers to be true")
   private boolean flPreconditionAlwaysTrue = false;
 
-  @Option(description = "whether analysis worker abstract at block entries or exits")
-  private boolean abstractAtTargetLocation = false;
-
   @Option(description = "whether analysis worker store circular post conditions")
   private boolean doStoreCircularPostConditions = false;
 
@@ -31,16 +31,20 @@ public class AnalysisOptions {
   @Option(description = "loop free programs do not require to deny all possible error messages")
   private boolean sendEveryErrorMessage = false;
 
+  @Option(description = "define the configuration for the desired forward analysis")
+  @FileOption(Type.OPTIONAL_INPUT_FILE)
+  private Path forwardConfiguration = Path.of("config/predicateAnalysis-block-forward.properties");
+
+  @Option(description = "define the configuration for the desired backward analysis")
+  @FileOption(Type.OPTIONAL_INPUT_FILE)
+  private Path backwardConfiguration = Path.of("config/predicateAnalysis-block-backward.properties");
+
   public AnalysisOptions(Configuration pConfig) throws InvalidConfigurationException {
     pConfig.inject(this);
   }
 
   public boolean isFlPreconditionAlwaysTrue() {
     return flPreconditionAlwaysTrue;
-  }
-
-  public boolean doAbstractAtTargetLocations() {
-    return abstractAtTargetLocation;
   }
 
   public boolean doStoreCircularPostConditions() {
@@ -53,5 +57,13 @@ public class AnalysisOptions {
 
   public boolean sendEveryErrorMessage() {
     return sendEveryErrorMessage;
+  }
+
+  public Path getBackwardConfiguration() {
+    return backwardConfiguration;
+  }
+
+  public Path getForwardConfiguration() {
+    return forwardConfiguration;
   }
 }

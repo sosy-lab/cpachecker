@@ -38,11 +38,10 @@ public class SmartAnalysisWorker extends AnalysisWorker {
       LogManager pLogger,
       CFA pCFA,
       Specification pSpecification,
-      Configuration pConfiguration,
       ShutdownManager pShutdownManager,
       UpdatedTypeMap pTypeMap)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
-    super(pId, pOptions, pBlock, pLogger, pCFA, pSpecification, pConfiguration, pShutdownManager,
+    super(pId, pOptions, pBlock, pLogger, pCFA, pSpecification, pShutdownManager,
         pTypeMap);
     smartQueue = new PriorityBlockingQueue<>();
   }
