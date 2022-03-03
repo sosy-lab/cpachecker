@@ -11,8 +11,10 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.List;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
@@ -33,6 +35,22 @@ public final class CFunctionDeclaration extends AFunctionDeclaration implements 
           ImmutableList.of(),
           ImmutableSet.of());
 
+  /**
+   * All GNU C function attributes that are known by CPAchecker. The keys of this map are the names
+   * of the C attributes. The value of each name is one of the following two:
+   *
+   * <ul>
+   *   <li>a {@link FunctionAttribute} that is used within CPAchecker to represent the attribute, or
+   *   <li>empty if the attribute is known by CPAchecker, but ignored.
+   * </ul>
+   */
+  public static final ImmutableMap<String, Optional<CFunctionDeclaration.FunctionAttribute>>
+      KNOWN_ATTRIBUTES =
+          ImmutableMap.of(
+              "noreturn", Optional.of(FunctionAttribute.NO_RETURN),
+              "leaf", Optional.empty(),
+              "nothrow", Optional.empty());
+
   private static final long serialVersionUID = 5485363555708455537L;
 
   /** GNU C function attributes known to CPAchecker. */
@@ -40,6 +58,7 @@ public final class CFunctionDeclaration extends AFunctionDeclaration implements 
     /** GNU C attribute 'noreturn'. */
     NO_RETURN
   }
+
 
   private final ImmutableSet<FunctionAttribute> attributes;
 

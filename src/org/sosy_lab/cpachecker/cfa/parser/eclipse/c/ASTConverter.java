@@ -2164,8 +2164,15 @@ class ASTConverter {
     List<CFunctionDeclaration.FunctionAttribute> attributes = new ArrayList<>();
     for (IASTAttribute attribute : d.getAttributes()) {
       String name = getAttributeString(attribute.getName());
-      if (name.equals("noreturn")) {
-        attributes.add(CFunctionDeclaration.FunctionAttribute.NO_RETURN);
+      if (!CFunctionDeclaration.KNOWN_ATTRIBUTES.containsKey(name)) {
+        throw new CFAGenerationRuntimeException(
+            "Unrecognized attribute in declaration of " + d.getName() + ": " + name);
+      }
+
+      Optional<CFunctionDeclaration.FunctionAttribute> maybeAttribute =
+          CFunctionDeclaration.KNOWN_ATTRIBUTES.get(name);
+      if (maybeAttribute.isPresent()) {
+        attributes.add(maybeAttribute.get());
       }
     }
     return Sets.immutableEnumSet(attributes);
