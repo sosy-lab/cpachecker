@@ -84,10 +84,9 @@ public abstract class Worker implements Runnable, StatisticsProvider {
         // result unknown if error occurs, terminate other workers.
         broadcast(ImmutableList.of(Message.newErrorMessage(getId(), pE)));
       } catch (IOException | InterruptedException pEx) {
-        // in case broadcast fails, throw unchecked exception.
+        logger.logException(Level.SEVERE, pE, "Failed broadcasting an error message.");
+        logger.logfException(Level.SEVERE, pEx, "%s faced a problem while processing messages.", getId());
       }
-      // error messages dont print stack trace... this worker terminates
-      throw new AssertionError(pE);
     }
   }
 
