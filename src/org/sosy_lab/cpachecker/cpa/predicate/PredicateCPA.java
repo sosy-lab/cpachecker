@@ -338,7 +338,6 @@ public class PredicateCPA
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    //TODO config übergeben
     return predicatePrecisionAdjustment;
   }
 
