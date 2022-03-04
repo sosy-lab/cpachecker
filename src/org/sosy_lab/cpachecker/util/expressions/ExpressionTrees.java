@@ -100,7 +100,6 @@ public final class ExpressionTrees {
   }
 
   public static <LeafType> boolean isConstant(ExpressionTree<LeafType> pExpressionTree) {
-    @SuppressWarnings("unchecked")
     ExpressionTreeVisitor<LeafType, Boolean, NoException> visitor =
         new DefaultExpressionTreeVisitor<>() {
 
@@ -123,7 +122,6 @@ public final class ExpressionTrees {
   }
 
   public static <LeafType> boolean isLeaf(ExpressionTree<LeafType> pExpressionTree) {
-    @SuppressWarnings("unchecked")
     ExpressionTreeVisitor<LeafType, Boolean, NoException> visitor =
         new DefaultExpressionTreeVisitor<>() {
 
@@ -151,7 +149,6 @@ public final class ExpressionTrees {
   }
 
   public static <LeafType> boolean isOr(ExpressionTree<LeafType> pExpressionTree) {
-    @SuppressWarnings("unchecked")
     ExpressionTreeVisitor<LeafType, Boolean, NoException> visitor =
         new DefaultExpressionTreeVisitor<>() {
 
@@ -169,7 +166,6 @@ public final class ExpressionTrees {
   }
 
   public static <LeafType> boolean isAnd(ExpressionTree<LeafType> pExpressionTree) {
-    @SuppressWarnings("unchecked")
     ExpressionTreeVisitor<LeafType, Boolean, NoException> visitor =
         new DefaultExpressionTreeVisitor<>() {
 
@@ -193,7 +189,6 @@ public final class ExpressionTrees {
   }
 
   public static <LeafType> boolean isInCNF(ExpressionTree<LeafType> pExpressionTree) {
-    @SuppressWarnings("unchecked")
     ExpressionTreeVisitor<LeafType, Boolean, NoException> visitor = new ExpressionTreeVisitor<>() {
 
       @Override
@@ -237,7 +232,6 @@ public final class ExpressionTrees {
   }
 
   public static <LeafType> boolean isInDNF(ExpressionTree<LeafType> pExpressionTree) {
-    @SuppressWarnings("unchecked")
     ExpressionTreeVisitor<LeafType, Boolean, NoException> visitor = new ExpressionTreeVisitor<>() {
 
       @Override
