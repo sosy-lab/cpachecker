@@ -44,12 +44,53 @@ public final class CFunctionDeclaration extends AFunctionDeclaration implements 
    *   <li>empty if the attribute is known by CPAchecker, but ignored.
    * </ul>
    */
-  public static final ImmutableMap<String, Optional<CFunctionDeclaration.FunctionAttribute>>
-      KNOWN_ATTRIBUTES =
-          ImmutableMap.of(
-              "noreturn", Optional.of(FunctionAttribute.NO_RETURN),
-              "leaf", Optional.empty(),
-              "nothrow", Optional.empty());
+  public static final ImmutableMap<String, Optional<FunctionAttribute>> KNOWN_ATTRIBUTES;
+
+  static {
+    ImmutableMap.Builder<String, Optional<FunctionAttribute>> builder = ImmutableMap.builder();
+    KNOWN_ATTRIBUTES = builder
+        .put("access", Optional.empty())
+        .put("alias", Optional.empty())
+        .put("aligned", Optional.empty())
+        .put("always_inline", Optional.empty())
+        .put("attrs", Optional.empty())
+        .put("bitwise", Optional.empty())
+        .put("bounded", Optional.empty())
+        .put("cdecl", Optional.empty())
+        .put("const", Optional.empty())
+        .put("dllimport", Optional.empty())
+        .put("fastcall", Optional.empty())
+        .put("format", Optional.empty())
+        .put("gnu_inline", Optional.empty())
+        .put("deprecated", Optional.empty())
+        .put("ldv_model", Optional.empty())
+        .put("ldv_model_inline", Optional.empty())
+        .put("leaf", Optional.empty())
+        .put("malloc", Optional.empty())
+        .put("mode", Optional.empty()) // handled in ASTConverter
+        .put("no_instrument_function", Optional.empty())
+        .put("noinline", Optional.empty())
+        .put("nonnull", Optional.empty())
+        .put("noreturn", Optional.of(FunctionAttribute.NO_RETURN))
+        .put("nothrow", Optional.empty())
+        .put("packed", Optional.empty())
+        .put("pure", Optional.empty())
+        .put("regparm", Optional.empty())
+        // we do not support 'returns_twice
+        // .put("returns_twice", Optional.empty())
+        .put("section", Optional.empty())
+        .put("selectany", Optional.empty())
+        .put("stdcall", Optional.empty())
+        .put("transparent_union", Optional.empty())
+        .put("warn_unused_result", Optional.empty())
+        .put("unused", Optional.empty())
+        .put("used", Optional.empty())
+        .put("visibility", Optional.empty())
+        .put("warning", Optional.empty())
+        // weak memory makes our memory analysis unsafe
+        // "__weak__", Optional.empty(),
+        .build();
+  }
 
   private static final long serialVersionUID = 5485363555708455537L;
 
