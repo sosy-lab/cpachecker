@@ -406,20 +406,12 @@ public class ARGUtils {
         || pInput instanceof FunctionExitNode;
   }
 
-  private static boolean containsRelevantLocation(Iterable<CFANode> nodes) {
-    return Iterables.any(nodes, ARGUtils::isRelevantLocation);
+  public static boolean isRelevantState(ARGState state) {
+    return AbstractStates.isTargetState(state)
+        || Iterables.any(AbstractStates.extractLocations(state), ARGUtils::isRelevantLocation)
+        || !state.wasExpanded()
+        || state.shouldBeHighlighted();
   }
-
-  private static final Predicate<AbstractState> AT_RELEVANT_LOCATION =
-      Predicates.compose(ARGUtils::containsRelevantLocation, AbstractStates::extractLocations);
-
-  @SuppressWarnings("unchecked")
-  public static final Predicate<ARGState> RELEVANT_STATE =
-      Predicates.or(
-          AbstractStates::isTargetState,
-          AT_RELEVANT_LOCATION,
-          pInput -> !pInput.wasExpanded(),
-          ARGState::shouldBeHighlighted);
 
   /**
    * Project the ARG to a subset of "relevant" states.

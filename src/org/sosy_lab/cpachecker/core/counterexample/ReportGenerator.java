@@ -681,7 +681,7 @@ public class ReportGenerator {
   private void buildRelevantArgGraphData(UnmodifiableReachedSet reached) {
     SetMultimap<ARGState, ARGState> relevantSetMultimap =
         ARGUtils.projectARG(
-            (ARGState) reached.getFirstState(), ARGState::getChildren, ARGUtils.RELEVANT_STATE);
+            (ARGState) reached.getFirstState(), ARGState::getChildren, ARGUtils::isRelevantState);
 
     for (Entry<ARGState, Collection<ARGState>> entry : relevantSetMultimap.asMap().entrySet()) {
       ARGState parent = entry.getKey();
