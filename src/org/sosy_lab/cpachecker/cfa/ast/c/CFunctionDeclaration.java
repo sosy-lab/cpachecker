@@ -76,8 +76,7 @@ public final class CFunctionDeclaration extends AFunctionDeclaration implements 
         .put("packed", Optional.empty())
         .put("pure", Optional.empty())
         .put("regparm", Optional.empty())
-        // we do not support 'returns_twice
-        // .put("returns_twice", Optional.empty())
+        .put("returns_twice", Optional.empty())
         .put("section", Optional.empty())
         .put("selectany", Optional.empty())
         .put("stdcall", Optional.empty())
