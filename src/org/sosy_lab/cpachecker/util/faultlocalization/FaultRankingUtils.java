@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Function;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo.InfoType;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.RankInfo;
@@ -22,14 +21,13 @@ import org.sosy_lab.cpachecker.util.faultlocalization.appendables.RankInfo;
  */
 public class FaultRankingUtils {
 
-  private static Function<List<FaultInfo>, Double> evaluationFunction =
-      r ->
-          r.stream()
-              .filter(c -> c.getType().equals(InfoType.RANK_INFO))
-              .mapToDouble(FaultInfo::getScore)
-              .average()
-              .orElse(0);
-
+  private static double computeScore(List<FaultInfo> faultInfos) {
+    return faultInfos.stream()
+        .filter(c -> c.getType().equals(InfoType.RANK_INFO))
+        .mapToDouble(FaultInfo::getScore)
+        .average()
+        .orElse(0);
+  }
 
   public static FaultScoring concatHeuristics(FaultScoring... pRanking) {
     return new FaultScoring() {
@@ -68,7 +66,7 @@ public class FaultRankingUtils {
    * @param fault Assigns a score to the Fault.
    */
   public static void assignScoreTo(Fault fault){
-    fault.setScore(evaluationFunction.apply(fault.getInfos()));
+    fault.setScore(computeScore(fault.getInfos()));
   }
 
   /**
@@ -77,7 +75,7 @@ public class FaultRankingUtils {
    * @param faultContribution Assigns a score to the FaultContribution.
    */
   public static void assignScoreTo(FaultContribution faultContribution){
-    faultContribution.setScore(evaluationFunction.apply(faultContribution.getInfos()));
+    faultContribution.setScore(computeScore(faultContribution.getInfos()));
   }
 
 }

@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.composite;
 import static com.google.common.base.Predicates.instanceOf;
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -37,8 +36,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  */
 class CompositeMergeAgreeOperator implements MergeOperator {
 
-  private static final Predicate<Object> NON_MERGEABLE_STATE = instanceOf(NonMergeableAbstractState.class);
-
   private final ImmutableList<MergeOperator> mergeOperators;
   private final ImmutableList<StopOperator> stopOperators;
 
@@ -60,8 +57,7 @@ class CompositeMergeAgreeOperator implements MergeOperator {
 
     assert (compSuccessorState.getNumberOfStates() == compReachedState.getNumberOfStates());
 
-    if (from(compSuccessorState.getWrappedStates()).anyMatch(NON_MERGEABLE_STATE)
-        || from(compReachedState.getWrappedStates()).anyMatch(NON_MERGEABLE_STATE)) {
+    if (hasNonMergeableState(compSuccessorState) || hasNonMergeableState(compReachedState)) {
       // one CPA asks us to not merge at all
       return reachedState;
     }
@@ -104,5 +100,9 @@ class CompositeMergeAgreeOperator implements MergeOperator {
     } else {
       return new CompositeState(mergedStates.build());
     }
+  }
+
+  private static boolean hasNonMergeableState(CompositeState state) {
+    return from(state.getWrappedStates()).anyMatch(instanceOf(NonMergeableAbstractState.class));
   }
 }

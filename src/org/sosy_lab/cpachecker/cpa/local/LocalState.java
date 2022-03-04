@@ -19,7 +19,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.BiFunction;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.ConstantIdentifier;
@@ -36,16 +35,15 @@ public final class LocalState implements LatticeAbstractState<LocalState> {
       return name().toLowerCase();
     }
 
-    public static final BiFunction<DataType, DataType, DataType> max =
-        (d1, d2) -> {
-          if (d1 == GLOBAL || d2 == GLOBAL) {
-            return GLOBAL;
-          } else if (d1 == null || d2 == null) {
-            return null;
-          } else {
-            return LOCAL;
-          }
-        };
+    public static final DataType max(DataType d1, DataType d2) {
+      if (d1 == GLOBAL || d2 == GLOBAL) {
+        return GLOBAL;
+      } else if (d1 == null || d2 == null) {
+        return null;
+      } else {
+        return LOCAL;
+      }
+    }
   }
   // map from variable id to its type
   private final LocalState previousState;
@@ -195,7 +193,7 @@ public final class LocalState implements LatticeAbstractState<LocalState> {
         .forEach(
             id ->
                 joinState.putIntoDataInfo(
-                    id, DataType.max.apply(DataInfo.get(id), pState2.DataInfo.get(id))));
+                    id, DataType.max(DataInfo.get(id), pState2.DataInfo.get(id))));
 
     return joinState;
   }
