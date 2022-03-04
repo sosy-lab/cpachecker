@@ -87,8 +87,7 @@ public final class CFunctionDeclaration extends AFunctionDeclaration implements 
         .put("used", Optional.empty())
         .put("visibility", Optional.empty())
         .put("warning", Optional.empty())
-        // weak memory makes our memory analysis unsafe
-        // "__weak__", Optional.empty(),
+        .put("weak", Optional.empty())
         .build();
   }
 
