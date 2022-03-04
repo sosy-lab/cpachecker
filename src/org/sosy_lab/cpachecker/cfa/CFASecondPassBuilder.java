@@ -22,12 +22,14 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodOrConstructorInvocation;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
@@ -72,6 +74,12 @@ public class CFASecondPassBuilder {
   @Option(secure=true, name="cfa.assumeFunctions",
       description="Which functions should be interpreted as encoding assumptions")
   private Set<String> assumeFunctions = ImmutableSet.of("__VERIFIER_assume");
+
+  @Option(
+      secure = true,
+      name = "cfa.abortFunctions",
+      description = "Which functions should be interpreted as stopping program execution")
+  private Set<String> abortFunctions = ImmutableSet.of("abort", "exit");
 
   protected final MutableCFA cfa;
   protected final Language language;
@@ -119,6 +127,7 @@ public class CFASecondPassBuilder {
       createCallAndReturnEdges(statementEdge, call);
     } else {
       replaceBuiltinFunction(statementEdge, call);
+      applyAttributes(statementEdge, call);
     }
   }
 
@@ -320,5 +329,45 @@ public class CFASecondPassBuilder {
     cfa.addNode(elseNode);
     CFACreationUtils.addEdgeUnconditionallyToCFA(trueEdge);
     CFACreationUtils.addEdgeUnconditionallyToCFA(falseEdge);
+  }
+
+  private void applyAttributes(AStatementEdge edge, AFunctionCall call) {
+    if (!(edge instanceof CStatementEdge)) {
+      return;
+    }
+    CStatementEdge cEdge = (CStatementEdge) edge;
+
+    AFunctionCallExpression f = call.getFunctionCallExpression();
+    AFunctionDeclaration decl = f.getDeclaration();
+    if (decl == null) {
+      return;
+    }
+
+    String name = decl.getName();
+    if (call instanceof AFunctionCallAssignmentStatement) {
+      logger.logf(Level.WARNING, "Ignoring non-void call to %s.", name);
+      return;
+    }
+
+    if (isAbortingFunction(decl)) {
+      CFATerminationNode terminationNode =
+          new CFATerminationNode(edge.getPredecessor().getFunction());
+      CStatementEdge edgeToTermination =
+          new CStatementEdge(
+              cEdge.getRawStatement(),
+              cEdge.getStatement(),
+              cEdge.getFileLocation(),
+              cEdge.getPredecessor(),
+              terminationNode);
+      CFACreationUtils.removeEdgeFromNodes(edge);
+      CFACreationUtils.removeChainOfNodesFromCFA(edge.getSuccessor());
+      cfa.addNode(terminationNode);
+      CFACreationUtils.addEdgeUnconditionallyToCFA(edgeToTermination);
+    }
+  }
+
+  private boolean isAbortingFunction(AFunctionDeclaration pDecl) {
+    return (pDecl instanceof CFunctionDeclaration && ((CFunctionDeclaration) pDecl).doesNotReturn())
+        || abortFunctions.contains(pDecl.getName());
   }
 }

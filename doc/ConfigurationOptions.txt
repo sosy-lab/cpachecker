@@ -759,6 +759,9 @@ cegar.refiner = no default value
 # whether or not to use refinement selection to decide which domain to refine
 cegar.useRefinementSelection = false
 
+# Which functions should be interpreted as stopping program execution
+cfa.abortFunctions = {"abort", "exit"}
+
 # Add custom labels to the CFA
 cfa.addLabels = false
 
