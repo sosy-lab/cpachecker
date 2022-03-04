@@ -69,15 +69,10 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -90,11 +85,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.counterexample.CExpressionToOrinalCodeVisitor;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
@@ -106,7 +96,6 @@ import org.sosy_lab.cpachecker.cpa.arg.witnessexport.TransitionCondition.Scope;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
-import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.CFATraversal;
@@ -157,117 +146,6 @@ class WitnessFactory implements EdgeAppender {
   private static boolean isTmpVariable(AIdExpression exp) {
     return exp.getDeclaration().getQualifiedName().toUpperCase().contains("__CPACHECKER_TMP");
   }
-
-  /**
-   * Filter the assumptions of an edge for relevant assumptions, and then return a new edge based on
-   * the filtered assumptions.
-   */
-  static final Function<CFAEdgeWithAssumptions, CFAEdgeWithAssumptions> ASSUMPTION_FILTER =
-      new Function<>() {
-
-        @Override
-        public CFAEdgeWithAssumptions apply(CFAEdgeWithAssumptions pEdgeWithAssumptions) {
-          int originalSize = pEdgeWithAssumptions.getExpStmts().size();
-          ImmutableList.Builder<AExpressionStatement> expressionStatementsBuilder =
-              ImmutableList.builderWithExpectedSize(originalSize);
-          for (AExpressionStatement expressionStatement : pEdgeWithAssumptions.getExpStmts()) {
-            if (isRelevantExpression(expressionStatement.getExpression())) {
-              expressionStatementsBuilder.add(expressionStatement);
-            }
-          }
-
-          ImmutableList<AExpressionStatement> expressionStatements =
-              expressionStatementsBuilder.build();
-          if (expressionStatements.size() == originalSize) {
-            return pEdgeWithAssumptions;
-          }
-          return new CFAEdgeWithAssumptions(
-              pEdgeWithAssumptions.getCFAEdge(),
-              expressionStatements,
-              pEdgeWithAssumptions.getComment());
-        }
-
-        /**
-         * Check whether an expresion is relevant for the witness export, e.g., we assume that
-         * assignments of constants to pointers are not relevant.
-         */
-        private boolean isRelevantExpression(final AExpression assumption) {
-          if (!(assumption instanceof CBinaryExpression)) {
-            return true;
-
-          } else {
-            CBinaryExpression binExpAssumption = (CBinaryExpression) assumption;
-            CExpression leftSide = binExpAssumption.getOperand1();
-            CExpression rightSide = binExpAssumption.getOperand2();
-
-            final CType leftType = leftSide.getExpressionType().getCanonicalType();
-            final CType rightType = rightSide.getExpressionType().getCanonicalType();
-
-            if (!(leftType instanceof CVoidType) || !(rightType instanceof CVoidType)) {
-
-              boolean equalTypes = leftType.equals(rightType);
-              boolean leftIsAccepted = equalTypes || leftType instanceof CSimpleType;
-              boolean rightIsAccepted = equalTypes || rightType instanceof CSimpleType;
-
-              if (leftIsAccepted && rightIsAccepted) {
-                boolean leftIsConstant = isConstant(leftSide);
-                boolean leftIsPointer = !leftIsConstant && isEffectivelyPointer(leftSide);
-                boolean rightIsConstant = isConstant(rightSide);
-                boolean rightIsPointer = !rightIsConstant && isEffectivelyPointer(rightSide);
-                if (!(leftIsPointer && rightIsConstant) && !(leftIsConstant && rightIsPointer)) {
-                  return true;
-                }
-              }
-            }
-          }
-          return false;
-        }
-
-        private boolean isConstant(CExpression pLeftSide) {
-          return pLeftSide.accept(IsConstantExpressionVisitor.INSTANCE);
-        }
-
-        private boolean isEffectivelyPointer(CExpression pLeftSide) {
-          return pLeftSide.accept(
-              new DefaultCExpressionVisitor<Boolean, NoException>() {
-
-                @Override
-                public Boolean visit(CComplexCastExpression pComplexCastExpression) {
-                  return pComplexCastExpression.getOperand().accept(this);
-                }
-
-                @Override
-                public Boolean visit(CBinaryExpression pIastBinaryExpression) {
-                  return pIastBinaryExpression.getOperand1().accept(this)
-                      || pIastBinaryExpression.getOperand2().accept(this);
-                }
-
-                @Override
-                public Boolean visit(CCastExpression pIastCastExpression) {
-                  return pIastCastExpression.getOperand().accept(this);
-                }
-
-                @Override
-                public Boolean visit(CUnaryExpression pIastUnaryExpression) {
-                  switch (pIastUnaryExpression.getOperator()) {
-                    case MINUS:
-                    case TILDE:
-                      return pIastUnaryExpression.getOperand().accept(this);
-                    case AMPER:
-                      return true;
-                    default:
-                      return visitDefault(pIastUnaryExpression);
-                  }
-                }
-
-                @Override
-                protected Boolean visitDefault(CExpression pExp) {
-                  CType type = pExp.getExpressionType().getCanonicalType();
-                  return type instanceof CPointerType || type instanceof CFunctionType;
-                }
-              });
-        }
-      };
 
   private final WitnessOptions witnessOptions;
   private final CFA cfa;
@@ -1153,7 +1031,8 @@ class WitnessFactory implements EdgeAppender {
       if (pCounterExample.orElseThrow().isPreciseCounterExample()) {
         valueMap =
             Multimaps.transformValues(
-                pCounterExample.orElseThrow().getExactVariableValues(), ASSUMPTION_FILTER);
+                pCounterExample.orElseThrow().getExactVariableValues(),
+                WitnessAssumptionFilter::filterRelevantAssumptions);
       } else {
         isRelevantEdge = BiPredicates.bothSatisfy(pIsRelevantState);
       }
