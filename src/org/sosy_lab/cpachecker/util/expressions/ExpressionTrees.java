@@ -198,12 +198,13 @@ public final class ExpressionTrees {
 
       @Override
       public Boolean visit(And<LeafType> pAnd) {
+        // A clause may be a single literal or a disjunction of literals
+        assert getChildren(pAnd).allMatch(pClause -> !isAnd(pClause))
+            : "A conjunction must not contain child conjunctions";
         return getChildren(pAnd).allMatch(new Predicate<ExpressionTree<LeafType>>() {
 
           @Override
           public boolean apply(ExpressionTree<LeafType> pClause) {
-            // A clause may be a single literal or a disjunction of literals
-            assert !isAnd(pClause) : "A conjunction must not contain child conjunctions";
             return isCNFClause(pClause);
           }
         });
@@ -247,12 +248,13 @@ public final class ExpressionTrees {
 
       @Override
       public Boolean visit(Or<LeafType> pOr) {
+        // A clause may be a single literal or a conjunction of literals
+        assert getChildren(pOr).allMatch(pClause -> !isOr(pClause))
+            : "A disjunction must not contain child disjunctions";
         return getChildren(pOr).allMatch(new Predicate<ExpressionTree<LeafType>>() {
 
           @Override
           public boolean apply(ExpressionTree<LeafType> pClause) {
-            // A clause may be a single literal or a conjunction of literals
-            assert !isOr(pClause) : "A disjunction must not contain child disjunctions";
             return isDNFClause(pClause);
           }
         });
