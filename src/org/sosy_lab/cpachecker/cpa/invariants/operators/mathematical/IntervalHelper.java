@@ -9,9 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.invariants.operators.mathematical;
 
 import java.math.BigInteger;
-
 import org.checkerframework.checker.nullness.qual.Nullable;
-
 import org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval;
 
 /**

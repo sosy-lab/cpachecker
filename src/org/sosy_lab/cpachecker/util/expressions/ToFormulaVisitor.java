@@ -123,5 +123,4 @@ public class ToFormulaVisitor
       super(pCause);
     }
   }
-
 }

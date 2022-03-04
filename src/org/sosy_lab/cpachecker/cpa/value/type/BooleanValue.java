@@ -8,9 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.value.type;
 
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
-
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 /**
  * This class represents a boolean value.

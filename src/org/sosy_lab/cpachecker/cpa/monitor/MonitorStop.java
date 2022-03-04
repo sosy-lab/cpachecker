@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.monitor;
 
 import java.util.Collection;
 import java.util.Collections;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;

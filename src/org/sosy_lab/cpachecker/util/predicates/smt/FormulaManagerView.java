@@ -1235,10 +1235,10 @@ public class FormulaManagerView {
         myFreeVariableNodeTransformer(
             unwrap(f),
             uninstantiateCache,
-            pArg0 ->
-                pArg0.charAt(pArg0.length() - 1) == INDEX_SEPARATOR
-                    ? pArg0
-                    : parseName(pArg0).getFirst()));
+            name ->
+                name.charAt(name.length() - 1) == INDEX_SEPARATOR
+                    ? name
+                    : parseName(name).getFirst()));
   }
 
   /**

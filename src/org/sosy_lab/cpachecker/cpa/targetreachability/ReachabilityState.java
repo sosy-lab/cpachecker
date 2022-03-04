@@ -13,7 +13,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public enum ReachabilityState implements AvoidanceReportingState {
-
   RELEVANT_TO_TARGET(true),
   IRRELEVANT_TO_TARGET(false);
 
@@ -32,5 +31,4 @@ public enum ReachabilityState implements AvoidanceReportingState {
   public BooleanFormula getReasonFormula(FormulaManagerView mgr) {
     return mgr.getBooleanFormulaManager().makeVariable("IRRELEVANT_FOR_SPECIFICATION");
   }
-
 }

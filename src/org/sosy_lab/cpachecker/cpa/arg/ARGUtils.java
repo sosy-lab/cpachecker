@@ -197,8 +197,8 @@ public class ARGUtils {
     Collection<PathPosition> tracePrefixesToAvoid =
         Collections2.transform(
             pOtherPathThan,
-            pArg0 -> {
-              PathPosition result = pArg0.reversePathIterator().getPosition();
+            otherPath -> {
+              PathPosition result = otherPath.reversePathIterator().getPosition();
               CFANode expectedPostfixLoc = AbstractStates.extractLocation(pEndState);
               Verify.verify(result.getLocation().equals(expectedPostfixLoc));
               return result;

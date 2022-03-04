@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.exceptions;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
-
 public class JParserException extends ParserException {
 
   private static final long serialVersionUID = 2377445523222164635L;
@@ -27,5 +26,4 @@ public class JParserException extends ParserException {
   public JParserException(String pMsg, CFAEdge pEdge) {
     super(pMsg, pEdge, Language.JAVA);
   }
-
 }

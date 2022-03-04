@@ -9,10 +9,10 @@
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -358,11 +358,10 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
     }
 
     Map<Long, SMGEdgePointsTo> pointerToRegionMap =
-        FluentIterable.from(pointerToAbstraction).uniqueIndex(SMGEdgePointsTo::getOffset);
+        Maps.uniqueIndex(pointerToAbstraction, SMGEdgePointsTo::getOffset);
 
     Map<Long, SMGEdgePointsToTemplate> pointerToRegionTemplateMap =
-        FluentIterable.from(pointerToRegionTemplate)
-            .uniqueIndex(SMGEdgePointsToTemplate::getOffset);
+        Maps.uniqueIndex(pointerToRegionTemplate, SMGEdgePointsToTemplate::getOffset);
 
     for(Entry<Long, SMGEdgePointsToTemplate> ptEntry : pointerToRegionTemplateMap.entrySet()) {
       long offset = ptEntry.getKey();
@@ -395,17 +394,18 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
     }
 
     Map<Long, SMGEdgeHasValue> fieldsOfRegionMap =
-        FluentIterable.from(fieldsOfRegion).uniqueIndex(SMGEdgeHasValue::getOffset);
+        Maps.uniqueIndex(fieldsOfRegion, SMGEdgeHasValue::getOffset);
 
     Set<SMGEdgeHasValueTemplate> fieldsOfTemplateSet = new HashSet<>(fieldsOfTemplate.getFieldTemplateContainingPointer());
     fieldsOfTemplateSet.addAll(fieldsOfTemplate.getFieldTemplateContainingPointerTemplate());
 
     Map<Long, SMGEdgeHasValueTemplate> fieldsOfRegionTemplateMap =
-        FluentIterable.from(fieldsOfTemplateSet).uniqueIndex(SMGEdgeHasValueTemplate::getOffset);
+        Maps.uniqueIndex(fieldsOfTemplateSet, SMGEdgeHasValueTemplate::getOffset);
 
     Map<Long, SMGEdgeHasValueTemplateWithConcreteValue> fieldsOfRegionTemplateCVMap =
-        FluentIterable.from(fieldsOfTemplate.getFieldTemplateContainingValue())
-            .uniqueIndex(SMGEdgeHasValueTemplateWithConcreteValue::getOffset);
+        Maps.uniqueIndex(
+            fieldsOfTemplate.getFieldTemplateContainingValue(),
+            SMGEdgeHasValueTemplateWithConcreteValue::getOffset);
 
     for (Entry<Long, SMGEdgeHasValue> hveEntry : fieldsOfRegionMap.entrySet()) {
 
@@ -570,10 +570,10 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
     }
 
     Map<Long, SMGEdgeHasValue> fieldOffsetMap =
-        FluentIterable.from(fields).uniqueIndex(SMGEdgeHasValue::getOffset);
+        Maps.uniqueIndex(fields, SMGEdgeHasValue::getOffset);
 
     Map<Long, SMGEdgeHasValueTemplate> fieldOffsetTemplateMap =
-        FluentIterable.from(fieldsTemplate).uniqueIndex(SMGEdgeHasValueTemplate::getOffset);
+        Maps.uniqueIndex(fieldsTemplate, SMGEdgeHasValueTemplate::getOffset);
 
     for(Entry<Long, SMGEdgeHasValueTemplate> hveTmpEntry : fieldOffsetTemplateMap.entrySet()) {
 
@@ -646,11 +646,10 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
     }
 
     Map<Long, SMGEdgePointsTo> pointerToRegionMap =
-        FluentIterable.from(pointerToRegion).uniqueIndex(SMGEdgePointsTo::getOffset);
+        Maps.uniqueIndex(pointerToRegion, SMGEdgePointsTo::getOffset);
 
     Map<Long, SMGEdgePointsToTemplate> pointerToRegionTemplateMap =
-        FluentIterable.from(pointerToRegionTemplate)
-            .uniqueIndex(SMGEdgePointsToTemplate::getOffset);
+        Maps.uniqueIndex(pointerToRegionTemplate, SMGEdgePointsToTemplate::getOffset);
 
     for (Entry<Long, SMGEdgePointsToTemplate> pteTmp : pointerToRegionTemplateMap.entrySet()) {
 
@@ -684,17 +683,18 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
     }
 
     Map<Long, SMGEdgeHasValue> fieldsOfRegionMap =
-        FluentIterable.from(fieldsOfRegion).uniqueIndex(SMGEdgeHasValue::getOffset);
+        Maps.uniqueIndex(fieldsOfRegion, SMGEdgeHasValue::getOffset);
 
     Set<SMGEdgeHasValueTemplate> fieldsOfTemplateSet = new HashSet<>(fieldsOfTemplate.getFieldTemplateContainingPointer());
     fieldsOfTemplateSet.addAll(fieldsOfTemplate.getFieldTemplateContainingPointerTemplate());
 
     Map<Long, SMGEdgeHasValueTemplate> fieldsOfRegionTemplateMap =
-        FluentIterable.from(fieldsOfTemplateSet).uniqueIndex(SMGEdgeHasValueTemplate::getOffset);
+        Maps.uniqueIndex(fieldsOfTemplateSet, SMGEdgeHasValueTemplate::getOffset);
 
     Map<Long, SMGEdgeHasValueTemplateWithConcreteValue> fieldsOfRegionTemplateCVMap =
-        FluentIterable.from(fieldsOfTemplate.getFieldTemplateContainingValue())
-            .uniqueIndex(SMGEdgeHasValueTemplateWithConcreteValue::getOffset);
+        Maps.uniqueIndex(
+            fieldsOfTemplate.getFieldTemplateContainingValue(),
+            SMGEdgeHasValueTemplateWithConcreteValue::getOffset);
 
     for (Entry<Long, SMGEdgeHasValue> hveEntry : fieldsOfRegionMap.entrySet()) {
 

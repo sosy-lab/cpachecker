@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.invariants.variableselection;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -32,28 +31,24 @@ public class AcceptSpecifiedVariableSelection<ConstantType> implements VariableS
 
   @Override
   public boolean contains(final MemoryLocation pMemoryLocation) {
-
     return FluentIterable.from(specifiedVariables)
-        .anyMatch(
-            new Predicate<MemoryLocation>() {
+        .anyMatch(specifiedVar -> matches(specifiedVar, pMemoryLocation));
+  }
 
-              @Override
-              public boolean apply(MemoryLocation pArg0) {
-                if (pMemoryLocation.equals(pArg0)) {
-                  return true;
-                }
-                if (pArg0.getIdentifier().endsWith("[*]")) {
-                  int arraySubscriptIndex = pMemoryLocation.getIdentifier().indexOf('[');
-                  if (arraySubscriptIndex >= 0) {
-                    String containedArray =
-                        pArg0.getIdentifier().substring(0, pArg0.getIdentifier().indexOf('['));
-                    String array = pMemoryLocation.getIdentifier().substring(arraySubscriptIndex);
-                    return containedArray.equals(array);
-                  }
-                }
-                return false;
-              }
-            });
+  private static boolean matches(MemoryLocation pPattern, MemoryLocation pTarget) {
+    if (pTarget.equals(pPattern)) {
+      return true;
+    }
+    if (pPattern.getIdentifier().endsWith("[*]")) {
+      int arraySubscriptIndex = pTarget.getIdentifier().indexOf('[');
+      if (arraySubscriptIndex >= 0) {
+        String containedArray =
+            pPattern.getIdentifier().substring(0, pPattern.getIdentifier().indexOf('['));
+        String array = pTarget.getIdentifier().substring(arraySubscriptIndex);
+        return containedArray.equals(array);
+      }
+    }
+    return false;
   }
 
   @Override

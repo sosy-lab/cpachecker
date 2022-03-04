@@ -166,11 +166,11 @@ public class StatisticsState implements AbstractStateWithLocation, Partitionable
   }
 
   @Override
-  public boolean equals(Object pArg0) {
-    if (super.equals(pArg0)) {
+  public boolean equals(Object pOther) {
+    if (super.equals(pOther)) {
       return true;
     }
-    StatisticsState other = (StatisticsState)pArg0;
+    StatisticsState other = (StatisticsState)pOther;
     if (other == null) {
       return false;
     }

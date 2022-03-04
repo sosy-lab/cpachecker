@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.waitlist;
 
 import java.util.Collection;
 import java.util.Iterator;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 /**

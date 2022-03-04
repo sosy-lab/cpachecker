@@ -63,8 +63,8 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
   }
 
   @Override
-  public int compareTo(SMGObject pArg0) {
-    return Integer.compare(id, pArg0.id);
+  public int compareTo(SMGObject pOther) {
+    return Integer.compare(id, pOther.id);
   }
 
   @Override

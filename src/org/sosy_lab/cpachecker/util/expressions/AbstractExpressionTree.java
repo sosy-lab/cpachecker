@@ -33,5 +33,4 @@ abstract class AbstractExpressionTree<LeafType> implements ExpressionTree<LeafTy
               }
             }));
   }
-
 }
