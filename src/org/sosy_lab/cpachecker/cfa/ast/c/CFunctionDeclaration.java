@@ -53,7 +53,6 @@ public final class CFunctionDeclaration extends AFunctionDeclaration implements 
         .put("alias", Optional.empty())
         .put("aligned", Optional.empty())
         .put("always_inline", Optional.empty())
-        .put("attrs", Optional.empty())
         .put("bitwise", Optional.empty())
         .put("bounded", Optional.empty())
         .put("cdecl", Optional.empty())
