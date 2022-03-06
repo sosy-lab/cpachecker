@@ -615,6 +615,9 @@ public class SMG {
    */
   private ImmutableSortedMap<BigInteger, BigInteger> getZeroValueEdgesForObject(
       SMGObject smgObject, BigInteger offset, BigInteger sizeInBits) {
+    if (hasValueEdges.get(smgObject) == null) {
+      return ImmutableSortedMap.of();
+    }
     BigInteger offsetPlusSize = offset.add(sizeInBits);
     // FIT-TR-2013-4 appendix B states that the entered field has to be covered. It does not matter
     // if this is done in a sinle edge, or multiple, or that the edges exceed the field entered.
