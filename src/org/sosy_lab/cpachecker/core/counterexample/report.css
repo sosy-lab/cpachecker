@@ -746,6 +746,46 @@ text {
   stroke-width: 1.5px;
 }
 
+.cfa-node-covered rect {
+  stroke: #10b705;
+  fill: #3aec49;
+  stroke-width: 1.5px;
+  rx: 5;
+  ry: 5;
+}
+
+.cfa-node-covered circle {
+  stroke: #10b705;
+  fill: #3aec49;
+  stroke-width: 1.5px;
+}
+
+.cfa-node-covered polygon {
+  stroke: #10b705;
+  fill: #3aec49;
+  stroke-width: 1.5px;
+}
+
+.cfa-node-considered rect {
+  stroke: #14e59a;
+  fill: #4df8bd;
+  stroke-width: 1.5px;
+  rx: 5;
+  ry: 5;
+}
+
+.cfa-node-considered circle {
+  stroke: #14e59a;
+  fill: #4df8bd;
+  stroke-width: 1.5px;
+}
+
+.cfa-node-considered polygon {
+  stroke: #14e59a;
+  fill: #4df8bd;
+  stroke-width: 1.5px;
+}
+
 .cfa-dummy rect {
   fill: #fff;
   stroke: #c0c0c0;
