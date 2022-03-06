@@ -128,17 +128,21 @@ public class SMGCPAValueVisitor
   @Override
   public List<ValueAndSMGState> visit(CArraySubscriptExpression e) throws CPATransferException {
     // Array subscript is default Java array usage. Example: array[5]
-    // In C this can be translated to *(array + 5). Note: this is commutative!
+    // In C this can be translated to *(array + 5), but the array may be on the stack/heap (or
+    // global, but be throw global and stack togehter when reading). Note: this is commutative!
     // TODO: how to handle *(array++) etc.? This case equals *(array + 1). Would the ++ case come
     // from an assignment edge?
 
     // The expression is split into array and subscript expression
     // Use the array expression in the visitor again to get the array address
+    // The type of the arrayExpr may be pointer or array, depending on stack/heap
     CExpression arrayExpr = e.getArrayExpression();
     List<ValueAndSMGState> arrayValueAndStates = arrayExpr.accept(this);
     // We know that there can only be 1 return value for the array address
     Preconditions.checkArgument(arrayValueAndStates.size() == 1);
     ValueAndSMGState arrayValueAndState = arrayValueAndStates.get(0);
+
+    Value arrayValue = arrayValueAndStates.get(0).getValue();
 
     // Evaluate the subscript as far as possible
     CExpression subscriptExpr = e.getSubscriptExpression();
@@ -154,18 +158,48 @@ public class SMGCPAValueVisitor
     SMGState newState = subscriptValueAndState.getState();
     // If the subscript is a unknown value, we can't read anything and return unknown
     if (!subscriptValue.isNumericValue()) {
+      // TODO: log this!
       return ImmutableList.of(ValueAndSMGState.ofUnknownValue(newState));
     }
     // Calculate the offset out of the subscript value and the type
-    BigInteger typeSizeInBits =
-        evaluator.getBitSizeof(subscriptValueAndState.getState(), subscriptExpr);
+    BigInteger typeSizeInBits = evaluator.getBitSizeof(newState, e.getExpressionType());
     BigInteger subscriptOffset =
         typeSizeInBits.multiply(subscriptValue.asNumericValue().bigInteger());
 
     // Get the value from the array and return the value + state
-    return ImmutableList.of(
-        evaluator.readValueWithPointerDereference(
-            newState, subscriptValue, subscriptOffset, typeSizeInBits));
+    if (arrayExpr.getExpressionType() instanceof CPointerType) {
+      // In the pointer case, the Value needs to be a AddressExpression
+      Preconditions.checkArgument(arrayValue instanceof AddressExpression);
+      AddressExpression addressValue = (AddressExpression) arrayValue;
+      // The pointer might actually point inside of the array, take the offset of that into account!
+      Value arrayPointerOffsetExpr = addressValue.getOffset();
+      if (!arrayPointerOffsetExpr.isNumericValue()) {
+        // The offset is some non numeric Value and therefore not useable!
+        // TODO: log
+        return ImmutableList.of(ValueAndSMGState.ofUnknownValue(newState));
+      }
+      subscriptOffset = arrayPointerOffsetExpr.asNumericValue().bigInteger().add(subscriptOffset);
+
+      return ImmutableList.of(
+          evaluator.readValueWithPointerDereference(
+              newState, addressValue.getMemoryAddress(), subscriptOffset, typeSizeInBits));
+    } else {
+      // Here our arrayValue holds the name of our variable
+      Preconditions.checkArgument(arrayValue instanceof SymbolicValue);
+
+      MemoryLocation maybeVariableIdent =
+          ((SymbolicValue) arrayValue).getRepresentedLocation().orElseThrow();
+
+      // This might actually point inside the array, add the offset
+      if (maybeVariableIdent.isReference()) {
+        // TODO: is it possible for this offset to be unknown?
+        subscriptOffset = subscriptOffset.add(BigInteger.valueOf(maybeVariableIdent.getOffset()));
+      }
+
+      return ImmutableList.of(
+          evaluator.readStackOrGlobalVariable(
+              newState, maybeVariableIdent.getIdentifier(), subscriptOffset, typeSizeInBits));
+    }
   }
 
   @Override
@@ -347,8 +381,10 @@ public class SMGCPAValueVisitor
       throw new SMG2Exception(errorState);
     }
 
-    if (SMGCPAValueExpressionEvaluator.isStructOrUnionType(type)) {
-      // Struct/Unions on the stack/global; return the identifier in a symbolic value
+    if (SMGCPAValueExpressionEvaluator.isStructOrUnionType(type) || type instanceof CArrayType) {
+      // Struct/Unions/arrays on the stack/global; return the identifier in a symbolic value
+      // TODO: what i ideally want is the same Value for the same Object, so i would need to save
+      // them somehow....
       return ImmutableList.of(
           ValueAndSMGState.of(
               SymbolicValueFactory.getInstance()
