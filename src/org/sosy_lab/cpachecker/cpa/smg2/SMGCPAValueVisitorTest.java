@@ -21,6 +21,8 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -32,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -39,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
@@ -106,6 +110,17 @@ public class SMGCPAValueVisitorTest {
           UNSIGNED_INT_TYPE, // No padding after this
           LONG_TYPE, // No padding after this
           UNSIGNED_LONG_TYPE, // No padding after this
+          CHAR_TYPE);
+
+  // TODO: add complex types, structs/arrays etc. as well.
+  private static final List<CType> arrayTestTypes =
+      ImmutableList.of(
+          SHORT_TYPE,
+          INT_TYPE,
+          UNSIGNED_SHORT_TYPE,
+          UNSIGNED_INT_TYPE,
+          LONG_TYPE,
+          UNSIGNED_LONG_TYPE,
           CHAR_TYPE);
 
   @Before
@@ -539,6 +554,362 @@ public class SMGCPAValueVisitorTest {
     }
   }
 
+  /**
+   * Read an array on the stack with a constant subscript expression for multiple types and values
+   * saved in the array. Example: int * array = array[] {1, 2, 3, ...}; array[0]; ....
+   *
+   * @throws CPATransferException should never be thrown!
+   * @throws InvalidConfigurationException should never be thrown!
+   */
+  @Test
+  public void readStackArraySubscriptConstMultipleTypesRepeated()
+      throws CPATransferException, InvalidConfigurationException {
+    String arrayVariableName = "arrayVariable";
+
+    // Some length, doesn't really matter
+    int arrayLength = 100;
+
+    // We want to test the arrays for all basic types
+    for (int i = 0; i < arrayTestTypes.size(); i++) {
+      CType currentArrayType = arrayTestTypes.get(i);
+
+      int sizeOfCurrentTypeInBits = MACHINE_MODEL.getSizeof(currentArrayType).intValue() * 8;
+      // Create the array on the stack; size is type size in bits * size of array
+      addStackVariableToMemoryModel(arrayVariableName, sizeOfCurrentTypeInBits * arrayLength);
+
+      // Now write some distinct values into the array, for signed we want to test negatives!
+      for (int k = 0; k < arrayLength; k++) {
+        // Create a Value that we want to be mapped to a SMGValue to write into the array depending
+        // on the type
+        Value arrayValue;
+        if (currentArrayType instanceof CSimpleType) {
+          if (((CSimpleType) currentArrayType).isSigned()) {
+            // Make every second number negative
+            arrayValue = new NumericValue(k % 2 == 0 ? k : -k);
+          } else {
+            arrayValue = new NumericValue(k);
+          }
+        } else {
+          // may be some other type, arrays, structs etc.
+          // TODO:
+          arrayValue = null;
+        }
+
+        // Write to the stack array
+        writeToStackVariableInMemoryModel(
+            arrayVariableName, sizeOfCurrentTypeInBits * k, sizeOfCurrentTypeInBits, arrayValue);
+      }
+
+      // Now we read the entire array twice.(twice because values may change when reading in SMGs, and we don't want that)
+      for (int j = 0; j < 2; j++) {
+        for (int k = 0; k < arrayLength; k++) {
+          CArraySubscriptExpression arraySubscriptExpr =
+              arraySubscriptStackAccess(arrayVariableName, currentArrayType, k, arrayLength);
+
+          List<ValueAndSMGState> resultList = arraySubscriptExpr.accept(visitor);
+
+          // Assert the correct return values depending on type
+          assertThat(resultList).hasSize(1);
+          Value resultValue = resultList.get(0).getValue();
+          if (currentArrayType instanceof CSimpleType) {
+            assertThat(resultValue).isInstanceOf(NumericValue.class);
+            if (((CSimpleType) currentArrayType).isSigned()) {
+              // Every second number is negative
+              assertThat(resultValue.asNumericValue().bigInteger())
+                  .isEqualTo(BigInteger.valueOf(k % 2 == 0 ? k : -k));
+            } else {
+              assertThat(resultValue.asNumericValue().bigInteger())
+                  .isEqualTo(BigInteger.valueOf(k));
+            }
+          } else {
+            // may be some other type, arrays, structs etc.
+            // TODO:
+          }
+        }
+      }
+      // Reset memory model
+      resetSMGStateAndVisitor();
+    }
+  }
+
+  /**
+   * Read an array on the stack with a variable subscript expression for multiple types and values
+   * saved in the array. Example: int * array = array[] {1, 2, 3, ...}; array[variable]; ....
+   *
+   * @throws CPATransferException should never be thrown!
+   * @throws InvalidConfigurationException should never be thrown!
+   */
+  @Test
+  public void readStackArraySubscriptWithVariableMultipleTypesRepeated()
+      throws CPATransferException, InvalidConfigurationException {
+    String arrayVariableName = "arrayVariable";
+    String indexVariableName = "indexVariableName";
+
+    // Some length, doesn't really matter
+    int arrayLength = 100;
+
+    CType indexVarType = INT_TYPE;
+
+    // We want to test the arrays for all basic types
+    for (int i = 0; i < arrayTestTypes.size(); i++) {
+      CType currentArrayType = arrayTestTypes.get(i);
+
+      int sizeOfCurrentTypeInBits = MACHINE_MODEL.getSizeof(currentArrayType).intValue() * 8;
+      // Create the array on the stack; size is type size in bits * size of array
+      addStackVariableToMemoryModel(arrayVariableName, sizeOfCurrentTypeInBits * arrayLength);
+
+      // Now write some distinct values into the array, for signed we want to test negatives!
+      for (int k = 0; k < arrayLength; k++) {
+        // Create a Value that we want to be mapped to a SMGValue to write into the array depending
+        // on the type
+        Value arrayValue;
+        if (currentArrayType instanceof CSimpleType) {
+          if (((CSimpleType) currentArrayType).isSigned()) {
+            // Make every second number negative
+            arrayValue = new NumericValue(k % 2 == 0 ? k : -k);
+          } else {
+            arrayValue = new NumericValue(k);
+          }
+        } else {
+          // may be some other type, arrays, structs etc.
+          // TODO:
+          arrayValue = null;
+        }
+
+        // Write to the stack array
+        writeToStackVariableInMemoryModel(
+            arrayVariableName, sizeOfCurrentTypeInBits * k, sizeOfCurrentTypeInBits, arrayValue);
+
+        // Now create length stack variables holding the indices to access the array
+        addStackVariableToMemoryModel(
+            indexVariableName + k, MACHINE_MODEL.getSizeof(indexVarType).intValue() * 8);
+        writeToStackVariableInMemoryModel(
+            indexVariableName + k,
+            0,
+            MACHINE_MODEL.getSizeof(indexVarType).intValue() * 8,
+            new NumericValue(k));
+      }
+
+      // Now we read the entire array twice.(twice because values may change when reading in SMGs,
+      // and we don't want that)
+      for (int j = 0; j < 2; j++) {
+        for (int k = 0; k < arrayLength; k++) {
+          CArraySubscriptExpression arraySubscriptExpr =
+              arraySubscriptStackAccessWithVariable(
+                  arrayVariableName,
+                  indexVariableName + k,
+                  currentArrayType,
+                  indexVarType,
+                  arrayLength);
+
+          List<ValueAndSMGState> resultList = arraySubscriptExpr.accept(visitor);
+
+          // Assert the correct return values depending on type
+          assertThat(resultList).hasSize(1);
+          Value resultValue = resultList.get(0).getValue();
+          if (currentArrayType instanceof CSimpleType) {
+            assertThat(resultValue).isInstanceOf(NumericValue.class);
+            if (((CSimpleType) currentArrayType).isSigned()) {
+              // Every second number is negative
+              assertThat(resultValue.asNumericValue().bigInteger())
+                  .isEqualTo(BigInteger.valueOf(k % 2 == 0 ? k : -k));
+            } else {
+              assertThat(resultValue.asNumericValue().bigInteger())
+                  .isEqualTo(BigInteger.valueOf(k));
+            }
+          } else {
+            // may be some other type, arrays, structs etc.
+            // TODO:
+          }
+        }
+      }
+      // Reset memory model
+      resetSMGStateAndVisitor();
+    }
+  }
+
+  /**
+   * Read an array on the heap with a constant subscript expression for multiple types and values
+   * saved in the array. Example: int * array = malloc(); fill; ... = array[0]; ....
+   *
+   * @throws CPATransferException should never be thrown!
+   * @throws InvalidConfigurationException should never be thrown!
+   */
+  @Test
+  public void readHeapArraySubscriptConstMultipleTypesRepeated()
+      throws CPATransferException, InvalidConfigurationException {
+    String arrayVariableName = "arrayVariable";
+
+    // Some length, doesn't really matter
+    int arrayLength = 100;
+
+    // We want to test the arrays for all basic types
+    for (int i = 0; i < arrayTestTypes.size(); i++) {
+      CType currentArrayType = arrayTestTypes.get(i);
+
+      int sizeOfCurrentTypeInBits = MACHINE_MODEL.getSizeof(currentArrayType).intValue() * 8;
+      // address to the heap where the array starts
+      Value addressValue = new ConstantSymbolicExpression(new UnknownValue(), null);
+      // Create the array on the heap; size is type size in bits * size of array
+      addHeapVariableToMemoryModel(0, sizeOfCurrentTypeInBits * arrayLength, addressValue);
+      // Stack variable holding the address (the pointer)
+      addStackVariableToMemoryModel(arrayVariableName, POINTER_SIZE);
+      writeToStackVariableInMemoryModel(arrayVariableName, 0, POINTER_SIZE, addressValue);
+
+      // Now write some distinct values into the array, for signed we want to test negatives!
+      for (int k = 0; k < arrayLength; k++) {
+        // Create a Value that we want to be mapped to a SMGValue to write into the array depending
+        // on the type
+        Value arrayValue;
+        if (currentArrayType instanceof CSimpleType) {
+          if (((CSimpleType) currentArrayType).isSigned()) {
+            // Make every second number negative
+            arrayValue = new NumericValue(k % 2 == 0 ? k : -k);
+          } else {
+            arrayValue = new NumericValue(k);
+          }
+        } else {
+          // may be some other type, arrays, structs etc.
+          // TODO:
+          arrayValue = null;
+        }
+
+        // Write to the heap array
+        writeToHeapObjectByAddress(
+            addressValue, sizeOfCurrentTypeInBits * k, sizeOfCurrentTypeInBits, arrayValue);
+      }
+
+      // Now we read the entire array twice.(twice because values may change when reading in SMGs,
+      // and we don't want that)
+      for (int j = 0; j < 2; j++) {
+        for (int k = 0; k < arrayLength; k++) {
+          CArraySubscriptExpression arraySubscriptExpr =
+              arraySubscriptHeapAccess(arrayVariableName, currentArrayType, k);
+
+          List<ValueAndSMGState> resultList = arraySubscriptExpr.accept(visitor);
+
+          // Assert the correct return values depending on type
+          assertThat(resultList).hasSize(1);
+          Value resultValue = resultList.get(0).getValue();
+          if (currentArrayType instanceof CSimpleType) {
+            assertThat(resultValue).isInstanceOf(NumericValue.class);
+            if (((CSimpleType) currentArrayType).isSigned()) {
+              // Every second number is negative
+              assertThat(resultValue.asNumericValue().bigInteger())
+                  .isEqualTo(BigInteger.valueOf(k % 2 == 0 ? k : -k));
+            } else {
+              assertThat(resultValue.asNumericValue().bigInteger())
+                  .isEqualTo(BigInteger.valueOf(k));
+            }
+          } else {
+            // may be some other type, arrays, structs etc.
+            // TODO:
+          }
+        }
+      }
+      // Reset memory model
+      resetSMGStateAndVisitor();
+    }
+  }
+
+  /**
+   * Read an array on the heap with a variable subscript expression on the stack for multiple types
+   * and values saved in the array.
+   *
+   * <p>Example: int * array = malloc(); fill; for (var++) {... = array[var]; ....}
+   *
+   * @throws CPATransferException should never be thrown!
+   * @throws InvalidConfigurationException should never be thrown!
+   */
+  @Test
+  public void readHeapArraySubscriptWithVariableMultipleTypesRepeated()
+      throws CPATransferException, InvalidConfigurationException {
+    String arrayVariableName = "arrayVariable";
+    String indexVariableName = "indexVariable";
+
+    CType indexVarType = INT_TYPE;
+
+    // Some length, doesn't really matter
+    int arrayLength = 100;
+
+    // We want to test the arrays for all basic types
+    for (int i = 0; i < arrayTestTypes.size(); i++) {
+      CType currentArrayType = arrayTestTypes.get(i);
+
+      int sizeOfCurrentTypeInBits = MACHINE_MODEL.getSizeof(currentArrayType).intValue() * 8;
+      // address to the heap where the array starts
+      Value addressValue = new ConstantSymbolicExpression(new UnknownValue(), null);
+      // Create the array on the heap; size is type size in bits * size of array
+      addHeapVariableToMemoryModel(0, sizeOfCurrentTypeInBits * arrayLength, addressValue);
+      // Stack variable holding the address (the pointer)
+      addStackVariableToMemoryModel(arrayVariableName, POINTER_SIZE);
+      writeToStackVariableInMemoryModel(arrayVariableName, 0, POINTER_SIZE, addressValue);
+
+      // Now write some distinct values into the array, for signed we want to test negatives!
+      for (int k = 0; k < arrayLength; k++) {
+        // Create a Value that we want to be mapped to a SMGValue to write into the array depending
+        // on the type
+        Value arrayValue;
+        if (currentArrayType instanceof CSimpleType) {
+          if (((CSimpleType) currentArrayType).isSigned()) {
+            // Make every second number negative
+            arrayValue = new NumericValue(k % 2 == 0 ? k : -k);
+          } else {
+            arrayValue = new NumericValue(k);
+          }
+        } else {
+          // may be some other type, arrays, structs etc.
+          // TODO:
+          arrayValue = null;
+        }
+
+        // Write to the heap array
+        writeToHeapObjectByAddress(
+            addressValue, sizeOfCurrentTypeInBits * k, sizeOfCurrentTypeInBits, arrayValue);
+
+        // Now create length stack variables holding the indices to access the array
+        addStackVariableToMemoryModel(
+            indexVariableName + k, MACHINE_MODEL.getSizeof(indexVarType).intValue() * 8);
+        writeToStackVariableInMemoryModel(
+            indexVariableName + k,
+            0,
+            MACHINE_MODEL.getSizeof(indexVarType).intValue() * 8,
+            new NumericValue(k));
+      }
+
+      // Now we read the entire array twice.(twice because values may change when reading in SMGs,
+      // and we don't want that)
+      for (int j = 0; j < 2; j++) {
+        for (int k = 0; k < arrayLength; k++) {
+          CArraySubscriptExpression arraySubscriptExpr =
+              arraySubscriptHeapAccessWithVariable(
+                  arrayVariableName, indexVariableName + k, indexVarType, currentArrayType);
+
+          List<ValueAndSMGState> resultList = arraySubscriptExpr.accept(visitor);
+
+          // Assert the correct return values depending on type
+          assertThat(resultList).hasSize(1);
+          Value resultValue = resultList.get(0).getValue();
+          if (currentArrayType instanceof CSimpleType) {
+            assertThat(resultValue).isInstanceOf(NumericValue.class);
+            if (((CSimpleType) currentArrayType).isSigned()) {
+              // Every second number is negative
+              assertThat(resultValue.asNumericValue().bigInteger())
+                  .isEqualTo(BigInteger.valueOf(k % 2 == 0 ? k : -k));
+            } else {
+              assertThat(resultValue.asNumericValue().bigInteger())
+                  .isEqualTo(BigInteger.valueOf(k));
+            }
+          } else {
+            // may be some other type, arrays, structs etc.
+            // TODO:
+          }
+        }
+      }
+      // Reset memory model
+      resetSMGStateAndVisitor();
+    }
+  }
 
   /*
    * Test casting of char concrete values.
@@ -843,7 +1214,7 @@ public class SMGCPAValueVisitorTest {
     }
   }
 
-  /**
+  /*
    * Assuming that the input is a signed value that may be smaller or bigger than the type entered.
    * Example: short -1 to unsigned short would result in max unsigned short.
    */
@@ -935,13 +1306,17 @@ public class SMGCPAValueVisitorTest {
     return offset;
   }
 
-  /*
-   * Create a CFieldReference for a struct that is on the heap and has no pointer deref. Meaning access like: (*structAdress).field
+  /**
+   * Create a CFieldReference for a struct that is on the heap and has no pointer deref. Meaning
+   * access like: (*structAdress).field
    *
-   * @param structName the name of the struct when the type is declared. NOT the struct variable! I.e. Books for: struct Books { int number; ...}
-   * @param variableName the name of the variable on the stack that holds the pointer. This will be the qualified variable name! There name/original name will be some random String!
+   * @param structName the name of the struct when the type is declared. NOT the struct variable!
+   *     I.e. Books for: struct Books { int number; ...}
+   * @param variableName the name of the variable on the stack that holds the pointer. This will be
+   *     the qualified variable name! There name/original name will be some random String!
    * @param fieldNumberToRead the field you want to read in the end. See fieldTypes!
-   * @param fieldTypes the types for the fields. There will be exactly as much fields as types, in the order given. The fields are simply named field, field1 etc. starting from 0.
+   * @param fieldTypes the types for the fields. There will be exactly as much fields as types, in
+   *     the order given. The fields are simply named field, field1 etc. starting from 0.
    * @return the {@link CFieldReference}
    */
   public CFieldReference createFieldRefForPointerNoDeref(
@@ -987,13 +1362,16 @@ public class SMGCPAValueVisitorTest {
         false);
   }
 
-  /*
+  /**
    * Create a CFieldReference for a struct that is on the stack and has no pointer deref.
    *
-   * @param structName the name of the struct when the type is dclared. NOT the struct variable! I.e. Books for: struct Books { int number; ...}
-   * @param variableName the name of the variable on the stack that holds the struct. This will be the qualified variable name! There name/original name will be some random String!
+   * @param structName the name of the struct when the type is dclared. NOT the struct variable!
+   *     I.e. Books for: struct Books { int number; ...}
+   * @param variableName the name of the variable on the stack that holds the struct. This will be
+   *     the qualified variable name! There name/original name will be some random String!
    * @param fieldNumberToRead the field you want to read in the end. See fieldTypes!
-   * @param fieldTypes the types for the fields. There will be exactly as much fields as types, in the order given. The fields are simply named field, field1 etc. starting from 0.
+   * @param fieldTypes the types for the fields. There will be exactly as much fields as types, in
+   *     the order given. The fields are simply named field, field1 etc. starting from 0.
    * @param deref if true its struct->field, if its false its struct.field
    * @param structOrUnion ComplexTypeKind either union or struct
    * @return the {@link CFieldReference}
@@ -1102,6 +1480,7 @@ public class SMGCPAValueVisitorTest {
    * @param offset in bits of the pointer. Essentially where the pointer starts in the object.
    * @param size of the object in bits.
    * @param addressValue the address to the object. This is a mapping to the object + offset.
+   * @throws InvalidConfigurationException should never be thrown.
    */
   private void addHeapVariableToMemoryModel(int offset, int size, Value addressValue)
       throws InvalidConfigurationException {
@@ -1156,5 +1535,290 @@ public class SMGCPAValueVisitorTest {
             logger,
             new SMGOptions(Configuration.defaultConfiguration()));
     visitor = new SMGCPAValueVisitor(evaluator, currentState, new DummyCFAEdge(null, null), logger);
+  }
+
+  /**
+   * CArraySubscriptExpression for array[subscriptIndexInt] access and element type elementType. The
+   * array is on the stack! lengthInt denotes the length if the array.
+   *
+   * @param variableName qualified name of the array on the stack.
+   * @param elementType {@link CType} of the array elements.
+   * @param subscriptIndexInt index of the array access.
+   * @param lengthInt length of the array.
+   * @return a {@link CArraySubscriptExpression} as described above.
+   */
+  public CArraySubscriptExpression arraySubscriptStackAccess(
+      String variableName, CType elementType, int subscriptIndexInt, int lengthInt) {
+
+    CIntegerLiteralExpression length =
+        new CIntegerLiteralExpression(FileLocation.DUMMY, INT_TYPE, BigInteger.valueOf(lengthInt));
+
+    CIntegerLiteralExpression subscriptAccess =
+        new CIntegerLiteralExpression(
+            FileLocation.DUMMY, INT_TYPE, BigInteger.valueOf(subscriptIndexInt));
+
+    /*
+    Builder<CInitializer> builder = new ImmutableList.Builder<>();
+    for (int i = 0; i < lengthInt; i++) {
+      // Just make everything 0, we read the SMG anyway
+      builder.add(new CInitializerExpression(FileLocation.DUMMY, CIntegerLiteralExpression.ZERO));
+    }
+
+    // Initial List of arguments in the array, may not be the current state of the array!
+    CInitializerList initializerList = new CInitializerList(FileLocation.DUMMY, builder.build());
+     */
+
+    CArrayType arrayType = new CArrayType(false, false, elementType, length);
+
+    // initializer = null because we model values/memory using the SMG!
+    CVariableDeclaration declararation =
+        new CVariableDeclaration(
+            FileLocation.DUMMY,
+            false,
+            CStorageClass.AUTO,
+            arrayType, // this is always array type for stack arrays
+            variableName + "NotQual",
+            variableName + "NotQual",
+            variableName,
+            null);
+
+    CIdExpression idExpr = new CIdExpression(FileLocation.DUMMY, declararation);
+    return new CArraySubscriptExpression(FileLocation.DUMMY, elementType, idExpr, subscriptAccess);
+  }
+
+  /**
+   * Access a array thats on the stack via subscript. The index used is also a variable on the
+   * stack. Example: array[index]
+   *
+   * @param arrayVariableName qualified name of the array on the stack.
+   * @param indexVariableName qualified name of the index variable on the stack.
+   * @param elementType {@link CType} of the elements of the array
+   * @param indexVariableType {@link CType} of the index variable.
+   * @param lengthInt length of the array.
+   * @return a {@link CArraySubscriptExpression} as described above.
+   */
+  public CArraySubscriptExpression arraySubscriptStackAccessWithVariable(
+      String arrayVariableName,
+      String indexVariableName,
+      CType elementType,
+      CType indexVariableType,
+      int lengthInt) {
+
+    CIntegerLiteralExpression length =
+        new CIntegerLiteralExpression(FileLocation.DUMMY, INT_TYPE, BigInteger.valueOf(lengthInt));
+
+    CArrayType arrayType = new CArrayType(false, false, elementType, length);
+
+    // initializer = null because we model values/memory using the SMG!
+    CVariableDeclaration arrayDeclararation =
+        new CVariableDeclaration(
+            FileLocation.DUMMY,
+            false,
+            CStorageClass.AUTO,
+            arrayType, // this is always array type for stack arrays
+            arrayVariableName + "NotQual",
+            arrayVariableName + "NotQual",
+            arrayVariableName,
+            null);
+
+    // initializer = null because we model values/memory using the SMG!
+    CVariableDeclaration indexDeclararation =
+        new CVariableDeclaration(
+            FileLocation.DUMMY,
+            false,
+            CStorageClass.AUTO,
+            indexVariableType,
+            indexVariableName + "NotQual",
+            indexVariableName + "NotQual",
+            indexVariableName,
+            null);
+
+    CIdExpression arrayExpr = new CIdExpression(FileLocation.DUMMY, arrayDeclararation);
+    CIdExpression indexVarExpr = new CIdExpression(FileLocation.DUMMY, indexDeclararation);
+    return new CArraySubscriptExpression(FileLocation.DUMMY, elementType, arrayExpr, indexVarExpr);
+  }
+
+  /**
+   * CArraySubscriptExpression for a array on the heap via a pointer like:
+   * arrayPointer[subscriptIndexInt] access and element type elementType.
+   *
+   * @param variableName qualified name of the pointer to the array.
+   * @param elementType {@link CType} of the elements of the array.
+   * @param subscriptIndexInt index integer used to read the array.
+   * @return a {@link CArraySubscriptExpression} as described above.
+   */
+  public CArraySubscriptExpression arraySubscriptHeapAccess(
+      String variableName, CType elementType, int subscriptIndexInt) {
+    CIntegerLiteralExpression subscriptAccess =
+        new CIntegerLiteralExpression(
+            FileLocation.DUMMY, INT_TYPE, BigInteger.valueOf(subscriptIndexInt));
+
+    CPointerType pointerType = new CPointerType(false, false, elementType);
+
+    // initializer = null because we model values/memory using the SMG!
+    CVariableDeclaration declararation =
+        new CVariableDeclaration(
+            FileLocation.DUMMY,
+            false,
+            CStorageClass.AUTO,
+            pointerType,
+            variableName + "NotQual",
+            variableName + "NotQual",
+            variableName,
+            null);
+
+    CIdExpression idExpr = new CIdExpression(FileLocation.DUMMY, declararation);
+    return new CArraySubscriptExpression(FileLocation.DUMMY, elementType, idExpr, subscriptAccess);
+  }
+
+  /**
+   * Access a array on the heap via a pointer and subscript. Example: arrayP[index] with index as a
+   * variable.
+   *
+   * @param variableName name of the array pointer variable.
+   * @param indexVariableName name of the index variable. Must be on the stack!
+   * @param indexVariableType {@link CType} of the index variable.
+   * @param elementType {@link CType} of the elements in the array.
+   * @return a {@link CArraySubscriptExpression} as described above.
+   */
+  public CArraySubscriptExpression arraySubscriptHeapAccessWithVariable(
+      String variableName, String indexVariableName, CType indexVariableType, CType elementType) {
+    CPointerType pointerType = new CPointerType(false, false, elementType);
+
+    // initializer = null because we model values/memory using the SMG!
+    CVariableDeclaration arrayDeclararation =
+        new CVariableDeclaration(
+            FileLocation.DUMMY,
+            false,
+            CStorageClass.AUTO,
+            pointerType,
+            variableName + "NotQual",
+            variableName + "NotQual",
+            variableName,
+            null);
+
+    // initializer = null because we model values/memory using the SMG!
+    CVariableDeclaration declararationIndex =
+        new CVariableDeclaration(
+            FileLocation.DUMMY,
+            false,
+            CStorageClass.AUTO,
+            indexVariableType,
+            indexVariableName + "NotQual",
+            indexVariableName + "NotQual",
+            indexVariableName,
+            null);
+
+    CIdExpression arrayExpr = new CIdExpression(FileLocation.DUMMY, arrayDeclararation);
+    CIdExpression indexExpr = new CIdExpression(FileLocation.DUMMY, declararationIndex);
+    return new CArraySubscriptExpression(FileLocation.DUMMY, elementType, arrayExpr, indexExpr);
+  }
+
+  /**
+   * Access of an int array on the heap with a pointer binary expr, i.e. *(array + 1)
+   *
+   * @param variableName name of the array pointer variable on the stack (qualified name!).
+   * @param arrayIndiceInt the index to be read. 1 in the example above.
+   * @param elementType {@link CType} of the elements in the array.
+   * @return {@link CPointerExpression} for the described array.
+   */
+  public CPointerExpression arrayPointerAccess(
+      String variableName, CType elementType, int arrayIndiceInt) {
+    CIntegerLiteralExpression arrayIndice =
+        new CIntegerLiteralExpression(
+            FileLocation.DUMMY, INT_TYPE, BigInteger.valueOf(arrayIndiceInt));
+
+    // The type for the returned value after the pointer
+    CPointerType cPointerReturnType = new CPointerType(false, false, elementType);
+    // The type for the returned value after the binary expr
+    // TODO: why the f does this change?
+    CPointerType cPointerBinaryOperType = new CPointerType(false, false, elementType);
+
+    // initializer = null because we model values/memory using the SMG!
+    CVariableDeclaration declararation =
+        new CVariableDeclaration(
+            FileLocation.DUMMY,
+            false,
+            CStorageClass.AUTO,
+            cPointerReturnType,
+            variableName + "NotQual",
+            variableName + "NotQual",
+            variableName,
+            null);
+
+    CBinaryExpression.BinaryOperator cBinOperator = CBinaryExpression.BinaryOperator.PLUS;
+
+    CIdExpression idExpr = new CIdExpression(FileLocation.DUMMY, declararation);
+    CBinaryExpression arrayPlusX =
+        new CBinaryExpression(
+            FileLocation.DUMMY,
+            cPointerReturnType,
+            cPointerBinaryOperType,
+            idExpr,
+            arrayIndice,
+            cBinOperator);
+    return new CPointerExpression(FileLocation.DUMMY, elementType, arrayPlusX);
+  }
+
+  /**
+   * Access of an int array on the heap with a pointer binary expr, i.e. *(arrayP + index) with
+   * arrayP as a array pointer and index as a variable.
+   *
+   * @param arrayVariableName name of the array pointer variable on the stack (qualified name!).
+   * @param indexVariableName name of the index variable. Qualified name! Should be a variable that
+   *     either really can be there in a C program (no compiliation problem) or can be there as a
+   *     result of a read by the analysis (unknown etc.)
+   * @param indexVariableType {@link CType} of the index variable.
+   * @param elementType {@link CType} of the elements in the array.
+   * @return {@link CPointerExpression} for the described array.
+   */
+  public CPointerExpression arrayPointerAccessWithVariableIndex(
+      String arrayVariableName,
+      String indexVariableName,
+      CType indexVariableType,
+      CType elementType) {
+    // The type for the returned value after the pointer
+    CPointerType cPointerReturnType = new CPointerType(false, false, elementType);
+    // The type for the returned value after the binary expr
+    CPointerType cPointerBinaryOperType = new CPointerType(false, false, INT_TYPE);
+
+    // initializer = null because we model values/memory using the SMG!
+    CVariableDeclaration declararationArray =
+        new CVariableDeclaration(
+            FileLocation.DUMMY,
+            false,
+            CStorageClass.AUTO,
+            cPointerReturnType,
+            arrayVariableName + "NotQual",
+            arrayVariableName + "NotQual",
+            arrayVariableName,
+            null);
+
+    // initializer = null because we model values/memory using the SMG!
+    CVariableDeclaration declararationIndex =
+        new CVariableDeclaration(
+            FileLocation.DUMMY,
+            false,
+            CStorageClass.AUTO,
+            indexVariableType,
+            indexVariableName + "NotQual",
+            indexVariableName + "NotQual",
+            indexVariableName,
+            null);
+
+    CBinaryExpression.BinaryOperator cBinOperator = CBinaryExpression.BinaryOperator.PLUS;
+
+    CIdExpression idExprArray = new CIdExpression(FileLocation.DUMMY, declararationArray);
+    CIdExpression idExprIndex = new CIdExpression(FileLocation.DUMMY, declararationIndex);
+
+    CBinaryExpression arrayPlusX =
+        new CBinaryExpression(
+            FileLocation.DUMMY,
+            cPointerReturnType,
+            cPointerBinaryOperType,
+            idExprArray,
+            idExprIndex,
+            cBinOperator);
+    return new CPointerExpression(FileLocation.DUMMY, elementType, arrayPlusX);
   }
 }
