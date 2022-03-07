@@ -220,7 +220,7 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
         // pState = handleJMethodCallEdge(jmie.getParameterExpressions(),);
       }
 
-      if (jid.isPresent() && jid.get().isString()) {
+      if (jid.isPresent() && jid.orElseThrow().isString()) {
         return pState.updateVariable(jid.orElseThrow(), newValue);
       }
     }

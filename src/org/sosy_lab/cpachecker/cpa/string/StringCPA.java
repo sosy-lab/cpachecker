@@ -126,7 +126,7 @@ public class StringCPA extends AbstractCPA {
     for (CFAEdge edge : edgeVisitor.getVisitedEdges()) {
       Optional<AAstNode> optNode = edge.getRawAST();
       if (optNode.isPresent()) {
-        AAstNode aNode = optNode.get();
+        AAstNode aNode = optNode.orElseThrow();
         if (aNode instanceof JAstNode) {
           FluentIterable<JAstNode> iterator = CFAUtils.traverseRecursively((JAstNode) aNode);
           for (JAstNode jNode : iterator) {

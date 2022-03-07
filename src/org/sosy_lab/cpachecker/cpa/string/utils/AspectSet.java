@@ -94,7 +94,7 @@ public class AspectSet {
     if (aspects.size() < otherSet.size()) {
       return false;
     }
-    if (aspects.size() == 0 && otherSet.size() == 0) {
+    if (aspects.isEmpty() && otherSet.isEmpty()) {
       return false;
     }
     List<Aspect<?>> aspectsAsList = aspects.asList();
