@@ -20,6 +20,10 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
+/**
+ * This abstract class contains the common methods for both {@link CompositeStopSepOperator} and
+ * {@link CompositeStopJoinOperator}
+ */
 abstract class CompositeStopOperator
     implements ForcedCoveringStopOperator, CoveringStateSetProvider {
   protected final ImmutableList<StopOperator> stopOperators;

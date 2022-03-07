@@ -23,12 +23,19 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.core.defaults.StopJoinOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CoveringStateSetProvider;
-import org.sosy_lab.cpachecker.core.interfaces.ForcedCoveringStopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-/** TODO: add description */
+/**
+ * This class implements the <i>stop-join</i> operator for {@link CompositeCPA}.
+ *
+ * <p>When checking whether to stop, i.e. whether the given state is covered by the reached set, the
+ * {@link CompositeStopJoinOperator} first uses the component CPAs with <i>stop-sep</i> operators as
+ * a filter to get a subset of the reached set, in which any state can cover the given state
+ * individually; then the component CPAs with <i>stop-join</i> operators determine if the states in
+ * this subset of the reached set jointly cover the given state.
+ */
 class CompositeStopJoinOperator extends CompositeStopOperator {
 
   CompositeStopJoinOperator(ImmutableList<StopOperator> stopOperators) {
@@ -38,19 +45,20 @@ class CompositeStopJoinOperator extends CompositeStopOperator {
   @Override
   public boolean stop(AbstractState element, Collection<AbstractState> reached, Precision precision)
       throws CPAException, InterruptedException {
-    Collection<AbstractState> reachedSubSet = getStopSepStates(element, reached, precision);
-    return stopJoin(element, reachedSubSet, precision);
+    Collection<AbstractState> reachedSubSet = getStopSepCoveringStates(element, reached, precision);
+    return !getStopJoinCoveringStates(element, reachedSubSet, precision).isEmpty();
   }
 
   @Override
   public Collection<AbstractState> getCoveringStates(
       AbstractState pElement, Collection<AbstractState> pReachedSet, Precision pPrecision)
       throws CPAException, InterruptedException {
-    Collection<AbstractState> reachedSubSet = getStopSepStates(pElement, pReachedSet, pPrecision);
-    return ImmutableSet.copyOf(getStopJoinStates(pElement, reachedSubSet, pPrecision));
+    Collection<AbstractState> reachedSubSet =
+        getStopSepCoveringStates(pElement, pReachedSet, pPrecision);
+    return ImmutableSet.copyOf(getStopJoinCoveringStates(pElement, reachedSubSet, pPrecision));
   }
 
-  private Collection<AbstractState> getStopSepStates(
+  private Collection<AbstractState> getStopSepCoveringStates(
       AbstractState element, Collection<AbstractState> reached, Precision precision)
       throws CPAException, InterruptedException {
     Collection<AbstractState> reachedSubSet = new LinkedHashSet<>();
@@ -80,8 +88,8 @@ class CompositeStopJoinOperator extends CompositeStopOperator {
 
     for (int idx = 0; idx < compositeElements.size(); idx++) {
       StopOperator stopOp = stopOperators.get(idx);
-      // TODO: probably not a good way to distinguish StopOperator types
-      if (stopOp instanceof StopJoinOperator) {
+      // TODO: is there a better way to distinguish StopOperator types?
+      if (stopOp instanceof StopJoinOperator) { // ignore stop-join operators
         continue;
       }
 
@@ -96,6 +104,7 @@ class CompositeStopJoinOperator extends CompositeStopOperator {
     return true;
   }
 
+  /** Checks whether all the stop-join operators implement {@link CoveringStateSetProvider} */
   private boolean retrieveCoveringStatesPossible() {
     for (StopOperator op : stopOperators) {
       if ((op instanceof StopJoinOperator) && !(op instanceof CoveringStateSetProvider)) {
@@ -105,10 +114,9 @@ class CompositeStopJoinOperator extends CompositeStopOperator {
     return true;
   }
 
-  private Collection<AbstractState> getStopJoinStates(
+  private Collection<AbstractState> getStopJoinCoveringStates(
       AbstractState element, Collection<AbstractState> reached, Precision precision)
       throws CPAException, InterruptedException {
-    // TODO: the code here is similar to stopJoin, consider refactor to reduce redundancy
     if (reached.isEmpty()) {
       return ImmutableSet.of();
     }
@@ -137,53 +145,24 @@ class CompositeStopJoinOperator extends CompositeStopOperator {
       AbstractState absElem = compositeElements.get(idx);
       Precision prec = compositePrecisions.get(idx);
 
+      // if retrieval of covering set if possible, we can potentially collect a minimal covering set
+      // (depends on whether the component CPA implements some minimization heuristics); otherwise,
+      // we simply do a normal stop-join check
       if (retrievalPossible) {
-        assert stopOp instanceof ForcedCoveringStopOperator;
+        assert stopOp instanceof CoveringStateSetProvider;
         Collection<AbstractState> currentCoveringStates =
             ((CoveringStateSetProvider) stopOp).getCoveringStates(absElem, absElems, prec);
         if (currentCoveringStates.isEmpty()) {
           return ImmutableSet.of();
         }
+        // Map the component state back to the composite state and add it to the accumulated subset
         for (AbstractState k : currentCoveringStates) {
           reachedSubSet.addAll(stateMap.get(k));
         }
-      } else if (!stopOp.stop(absElem, absElems, prec)) {
+      } else if (!stopOp.stop(absElem, absElems, prec)) { // !retrievalPossible
         return ImmutableSet.of();
       }
     }
-
     return reachedSubSet;
-  }
-
-  private boolean stopJoin(
-      AbstractState element, Collection<AbstractState> reached, Precision precision)
-      throws CPAException, InterruptedException {
-    if (reached.isEmpty()) {
-      return false;
-    }
-
-    List<AbstractState> compositeElements = ((CompositeState) element).getWrappedStates();
-    List<Precision> compositePrecisions = ((CompositePrecision) precision).getWrappedPrecisions();
-
-    for (int idx = 0; idx < compositeElements.size(); idx++) {
-      StopOperator stopOp = stopOperators.get(idx);
-      if (!(stopOp instanceof StopJoinOperator)) {
-        continue;
-      }
-
-      List<AbstractState> absElems = new ArrayList<>();
-      for (AbstractState e : reached) {
-        absElems.add(((CompositeState) e).get(idx));
-      }
-
-      AbstractState absElem = compositeElements.get(idx);
-      Precision prec = compositePrecisions.get(idx);
-
-      if (!stopOp.stop(absElem, absElems, prec)) {
-        return false;
-      }
-    }
-
-    return true;
   }
 }
