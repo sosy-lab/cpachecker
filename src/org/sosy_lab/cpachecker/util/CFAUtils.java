@@ -795,6 +795,9 @@ public class CFAUtils {
 
     @Override
     public Iterable<AAstNode> visit(JArrayCreationExpression pExp) {
+      if (pExp.getInitializer() == null) {
+        return ImmutableList.copyOf(pExp.getLength()); // no actual copy, avoids unchecked cast
+      }
       return Iterables.concat(pExp.getLength(), ImmutableList.of(pExp.getInitializer()));
     }
 
