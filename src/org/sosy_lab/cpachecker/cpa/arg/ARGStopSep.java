@@ -175,11 +175,4 @@ public class ARGStopSep implements ForcedCoveringStopOperator {
         .isForcedCoveringPossible(
             element.getWrappedState(), reachedState.getWrappedState(), pPrecision);
   }
-
-  @Override
-  public Collection<AbstractState> getCoveringStates(
-      AbstractState pElement, Collection<AbstractState> pReachedSet, Precision pPrecision)
-      throws CPAException, InterruptedException {
-    throw new UnsupportedOperationException();
-  }
 }

@@ -16,12 +16,14 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.core.defaults.StopJoinOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.CoveringStateSetProvider;
 import org.sosy_lab.cpachecker.core.interfaces.ForcedCoveringStopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /** TODO: add description */
-class PredicateStopJoinOperator extends StopJoinOperator implements ForcedCoveringStopOperator {
+class PredicateStopJoinOperator extends StopJoinOperator
+    implements ForcedCoveringStopOperator, CoveringStateSetProvider {
   private final boolean minimizeCovering;
   private final PredicateAbstractDomain domain;
 

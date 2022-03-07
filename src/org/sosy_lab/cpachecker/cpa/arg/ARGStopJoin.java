@@ -21,6 +21,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.CoveringStateSetProvider;
 import org.sosy_lab.cpachecker.core.interfaces.ForcedCoveringStopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -111,7 +112,7 @@ public class ARGStopJoin implements StopOperator, ForcedCoveringStopOperator {
     if (!(wrappedStop instanceof ForcedCoveringStopOperator)) {
       return false;
     }
-    ForcedCoveringStopOperator stopOp = (ForcedCoveringStopOperator) wrappedStop;
+    CoveringStateSetProvider stopOp = (CoveringStateSetProvider) wrappedStop;
 
     Collection<ARGState> mayCoverCandidates = getMayCoverCandidates(argElement, pReached);
     if (mayCoverCandidates.isEmpty()) {
@@ -194,12 +195,5 @@ public class ARGStopJoin implements StopOperator, ForcedCoveringStopOperator {
     return ((ForcedCoveringStopOperator) wrappedStop)
         .isForcedCoveringPossible(
             element.getWrappedState(), reachedState.getWrappedState(), pPrecision);
-  }
-
-  @Override
-  public Collection<AbstractState> getCoveringStates(
-      AbstractState pElement, Collection<AbstractState> pReachedSet, Precision pPrecision)
-      throws CPAException, InterruptedException {
-    throw new UnsupportedOperationException();
   }
 }

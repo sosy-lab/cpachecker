@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.defaults.StopJoinOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.CoveringStateSetProvider;
 import org.sosy_lab.cpachecker.core.interfaces.ForcedCoveringStopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -97,7 +98,7 @@ class CompositeStopJoinOperator extends CompositeStopOperator {
 
   private boolean retrieveCoveringStatesPossible() {
     for (StopOperator op : stopOperators) {
-      if ((op instanceof StopJoinOperator) && !(op instanceof ForcedCoveringStopOperator)) {
+      if ((op instanceof StopJoinOperator) && !(op instanceof CoveringStateSetProvider)) {
         return false;
       }
     }
@@ -139,7 +140,7 @@ class CompositeStopJoinOperator extends CompositeStopOperator {
       if (retrievalPossible) {
         assert stopOp instanceof ForcedCoveringStopOperator;
         Collection<AbstractState> currentCoveringStates =
-            ((ForcedCoveringStopOperator) stopOp).getCoveringStates(absElem, absElems, prec);
+            ((CoveringStateSetProvider) stopOp).getCoveringStates(absElem, absElems, prec);
         if (currentCoveringStates.isEmpty()) {
           return ImmutableSet.of();
         }
