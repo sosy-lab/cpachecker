@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.interfaces;
 
 import com.google.common.base.Predicate;
-
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 public interface WrapperPrecision extends Precision {

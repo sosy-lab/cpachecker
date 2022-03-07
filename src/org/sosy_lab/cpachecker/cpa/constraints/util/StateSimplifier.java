@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.constraints.util;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.HashMap;
@@ -27,7 +29,6 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 /**
  * Simplifier for {@link ConstraintsState}s. Provides different methods for simplifying a <code>
@@ -230,15 +231,11 @@ public class StateSimplifier {
   }
 
   private Set<SymbolicIdentifier> getExistingSymbolicIds(final ValueAnalysisState pValueState) {
-    Set<SymbolicIdentifier> symbolicValues = new HashSet<>();
-
-    for (Value v : Iterables.transform(pValueState.getConstants(), e -> e.getValue().getValue())) {
-      if (v instanceof SymbolicValue) {
-        symbolicValues.addAll(SymbolicValues.getContainedSymbolicIdentifiers((SymbolicValue) v));
-      }
-    }
-
-    return symbolicValues;
+    return from(pValueState.getConstants())
+        .transform(e -> e.getValue().getValue())
+        .filter(SymbolicValue.class)
+        .transformAndConcat(SymbolicValues::getContainedSymbolicIdentifiers)
+        .copyInto(new HashSet<>());
   }
 
   private Map<ActivityInfo, Set<ActivityInfo>> getInitialActivityMap(

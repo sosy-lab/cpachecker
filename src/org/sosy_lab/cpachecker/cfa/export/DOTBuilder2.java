@@ -27,6 +27,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -41,12 +42,14 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.CompositeCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
+import org.sosy_lab.cpachecker.util.coverage.CoverageUtility;
 
 /**
  * Generates one DOT file per function for the report.
@@ -64,13 +67,21 @@ import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
  */
 public final class DOTBuilder2 {
 
-  private final CFA cfa;
-  private final CFAJSONBuilder jsoner;
-  private final DOTViewBuilder dotter;
+  private CFA cfa;
+  private CFAJSONBuilder jsoner;
+  private DOTViewBuilder dotter;
+
+  public DOTBuilder2(CFA pCfa, UnmodifiableReachedSet pReached) {
+    init(pCfa, Optional.of(pReached));
+  }
 
   public DOTBuilder2(CFA pCfa) {
+    init(pCfa, Optional.empty());
+  }
+
+  private void init(CFA pCfa, Optional<UnmodifiableReachedSet> pReached) {
     cfa = checkNotNull(pCfa);
-    jsoner = new CFAJSONBuilder();
+    jsoner = new CFAJSONBuilder(pReached, cfa);
     dotter = new DOTViewBuilder(cfa);
     CFAVisitor vis = new NodeCollectingCFAVisitor(new CompositeCFAVisitor(jsoner, dotter));
     for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
@@ -323,7 +334,7 @@ public final class DOTBuilder2 {
 
         for (CFAEdge edge: combo) {
           sb.append("<tr><td align=\"right\">");
-          sb.append("" + edge.getPredecessor().getNodeNumber());
+          sb.append(edge.getPredecessor().getNodeNumber());
           sb.append("</td><td align=\"left\">");
           sb.append(HtmlEscapers.htmlEscaper().escape(getEdgeText(edge))
                             .replace("|", "&#124;")
@@ -346,6 +357,23 @@ public final class DOTBuilder2 {
   private static class CFAJSONBuilder extends DefaultCFAVisitor {
     private final Map<Integer, Object> nodes = new HashMap<>();
     private final Map<String, Object> edges = new HashMap<>();
+    private final Optional<UnmodifiableReachedSet> reached;
+    private final Set<CFANode> consideredNodes;
+
+    public CFAJSONBuilder(Optional<UnmodifiableReachedSet> pReached, CFA cfa) {
+      this.reached = pReached;
+      this.consideredNodes = generateConsideredNodes(cfa);
+    }
+
+    private Set<CFANode> generateConsideredNodes(CFA cfa) {
+      if (reached.isPresent()) {
+        Set<CFANode> visitedNodes = CoverageUtility.getVisitedNodes(reached.get(), cfa);
+        CoverageUtility.addIndirectlyCoveredNodes(visitedNodes);
+        return visitedNodes;
+      } else {
+        return new HashSet<>();
+      }
+    }
 
     @Override
     public TraversalProcess visitNode(CFANode node) {
@@ -355,9 +383,16 @@ public final class DOTBuilder2 {
       jnode.put("func", node.getFunctionName());
       jnode.put("type", determineNodeType(node));
       jnode.put("loop", node.isLoopStart());
+      if (reached.isPresent()) {
+        jnode.put("covered", CoverageUtility.isNodeConsidered(node, reached.get()));
+      } else {
+        jnode.put("covered", false);
+      }
+      if (consideredNodes.contains(node)) {
+        jnode.put("considered", true);
+      }
 
       nodes.put(node.getNodeNumber(), jnode);
-
       return TraversalProcess.CONTINUE;
     }
 

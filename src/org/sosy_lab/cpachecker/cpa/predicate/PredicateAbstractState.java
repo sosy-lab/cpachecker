@@ -19,6 +19,8 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.IMCAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.ISMCAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
@@ -322,13 +324,16 @@ public abstract class PredicateAbstractState
   }
 
   /**
-   * Replace the abstraction formula part of this element.
-   * THIS IS POTENTIALLY UNSOUND!
+   * Replace the abstraction formula part of this element. THIS IS POTENTIALLY UNSOUND!
    *
-   * Call this function only during refinement if you also change all successor
-   * elements and consider the coverage relation.
+   * <p>Call this function only during refinement if you also change all successor elements and
+   * consider the coverage relation.
+   *
+   * <p>If abstraction formulas are not computed by predicate abstraction but by other algorithms
+   * (e.g., {@link IMCAlgorithm} or {@link ISMCAlgorithm}), this function can be used to set the
+   * fixed point to respective abstraction states in order to generate correctness witnesses.
    */
-  void setAbstraction(AbstractionFormula pAbstractionFormula) {
+  public void setAbstraction(AbstractionFormula pAbstractionFormula) {
     if (isAbstractionState()) {
       abstractionFormula = checkNotNull(pAbstractionFormula);
     } else {

@@ -6,8 +6,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-extern int __VERIFIER_nondet_int();
-
 int isDivisible(int number, int divisor) {
 	while(!(number < 0)) { // FIX: while(number > 0) or while(!(number <= 0))
 		number -= divisor;

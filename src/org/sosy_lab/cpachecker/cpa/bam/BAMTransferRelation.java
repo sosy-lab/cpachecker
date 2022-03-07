@@ -412,7 +412,7 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
         }
       }
       if (pSearchTargetStatesOnExit) {
-        for (AbstractState targetState : Iterables.filter(reached, AbstractStates::isTargetState)) {
+        for (AbstractState targetState : AbstractStates.getTargetStates(reached)) {
           assert ((ARGState) targetState).getChildren().isEmpty();
           returnStates.add(targetState);
         }

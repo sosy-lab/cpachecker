@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util;
 
+import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.base.Function;
@@ -18,6 +19,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
+import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -218,9 +220,9 @@ public class CParserUtils {
       for (String assumeCode : pStatements) {
         Collection<CStatement> statements =
             parseAsCStatements(assumeCode, pResultFunction, pCParser, pScope, pParserTools);
-        statements = adjustCharAssignmentSignedness(statements);
-        statements = removeDuplicates(statements);
-        result.addAll(statements);
+        result.addAll(
+            removeDuplicates(
+                from(statements).transform(CParserUtils::adjustCharAssignmentSignedness)));
       }
       return result;
     }
@@ -340,7 +342,8 @@ public class CParserUtils {
           CParserUtils.parseListOfStatements(
               tryFixACSL(assumeCode, pResultFunction, pScope), pCParser, pScope);
     }
-    statements = removeDuplicates(adjustCharAssignmentSignedness(statements));
+    statements =
+        removeDuplicates(from(statements).transform(CParserUtils::adjustCharAssignmentSignedness));
     {
       CBinaryExpressionBuilder binaryExpressionBuilder =
           new CBinaryExpressionBuilder(pParserTools.machineModel, pParserTools.logger);
@@ -424,12 +427,14 @@ public class CParserUtils {
 
     ParseResult parseResult;
     try {
-      parseResult = pCParser.parseString("<expr>", testCode, new CSourceOriginMapping(), pScope);
+      parseResult =
+          pCParser.parseString(Path.of("#expr#"), testCode, new CSourceOriginMapping(), pScope);
     } catch (CParserException e) {
       assumeCode = tryFixACSL(assumeCode, pResultFunction, pScope);
       testCode = String.format(formatString, assumeCode);
       try {
-        parseResult = pCParser.parseString("<expr>", testCode, new CSourceOriginMapping(), pScope);
+        parseResult =
+            pCParser.parseString(Path.of("#expr#"), testCode, new CSourceOriginMapping(), pScope);
       } catch (CParserException e2) {
         throw new InvalidAutomatonException(
             "Cannot interpret code as C expression: <" + pAssumeCode + ">", e);
@@ -611,40 +616,31 @@ public class CParserUtils {
   }
 
   /**
-   * Be nice to tools that assume that default char (when it is neither
-   * specified as signed nor as unsigned) may be unsigned.
+   * Be nice to tools that assume that default char (when it is neither specified as signed nor as
+   * unsigned) may be unsigned.
    *
-   * @param pStatements the assignment statements.
-   *
-   * @return the adjusted statements.
+   * @param pStatement the assignment statement.
+   * @return the adjusted statement.
    */
-  private static Collection<CStatement> adjustCharAssignmentSignedness(
-      Iterable<? extends CStatement> pStatements) {
-    return FluentIterable.from(pStatements).transform(new Function<CStatement, CStatement>() {
-
-      @Override
-      public CStatement apply(CStatement pStatement) {
-        if (pStatement instanceof CExpressionAssignmentStatement) {
-          CExpressionAssignmentStatement statement = (CExpressionAssignmentStatement) pStatement;
-          CLeftHandSide leftHandSide = statement.getLeftHandSide();
-          CType canonicalType = leftHandSide.getExpressionType().getCanonicalType();
-          if (canonicalType instanceof CSimpleType) {
-            CSimpleType simpleType = (CSimpleType) canonicalType;
-            CBasicType basicType = simpleType.getType();
-            if (basicType.equals(CBasicType.CHAR) && !simpleType.isSigned()
-                && !simpleType.isUnsigned()) {
-              CExpression rightHandSide = statement.getRightHandSide();
-              CExpression castedRightHandSide = new CCastExpression(rightHandSide.getFileLocation(),
-                  canonicalType, rightHandSide);
-              return new CExpressionAssignmentStatement(statement.getFileLocation(), leftHandSide,
-                  castedRightHandSide);
-            }
-          }
+  private static CStatement adjustCharAssignmentSignedness(CStatement pStatement) {
+    if (pStatement instanceof CExpressionAssignmentStatement) {
+      CExpressionAssignmentStatement statement = (CExpressionAssignmentStatement) pStatement;
+      CLeftHandSide leftHandSide = statement.getLeftHandSide();
+      CType canonicalType = leftHandSide.getExpressionType().getCanonicalType();
+      if (canonicalType instanceof CSimpleType) {
+        CSimpleType simpleType = (CSimpleType) canonicalType;
+        CBasicType basicType = simpleType.getType();
+        if (basicType.equals(CBasicType.CHAR) && !simpleType.isSigned()
+            && !simpleType.isUnsigned()) {
+          CExpression rightHandSide = statement.getRightHandSide();
+          CExpression castedRightHandSide = new CCastExpression(rightHandSide.getFileLocation(),
+              canonicalType, rightHandSide);
+          return new CExpressionAssignmentStatement(statement.getFileLocation(), leftHandSide,
+              castedRightHandSide);
         }
-        return pStatement;
       }
-
-    }).toList();
+    }
+    return pStatement;
   }
 
   /**

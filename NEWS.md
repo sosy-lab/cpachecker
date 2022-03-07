@@ -8,6 +8,13 @@ SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 SPDX-License-Identifier: Apache-2.0
 -->
 
+Changes from CPAchecker 2.1 to CPAchecker 2.1.1
+-----------------------------------------------
+* CPAchecker can be used as abstract model explorer
+  and precision refiner for component-based CEGAR
+  (cf. "Decomposing Software Verification into Off-the-Shelf Components:
+  An Application to CEGAR", Proc. ICSE, 2022, to be released).
+
 Changes from CPAchecker 2.0 to CPAchecker 2.1
 ---------------------------------------------
 * Interpolation-Sequence based Model Checking (ISMC)  

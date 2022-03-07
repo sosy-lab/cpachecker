@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa;
 
+import java.nio.file.Path;
 import java.util.List;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
@@ -30,7 +31,7 @@ public class DummyParser implements CParser {
 
   @Override
   public ParseResult parseString(
-      String pFileName, String pCode, CSourceOriginMapping pSourceOriginMapping, Scope pScope) {
+      Path pFileName, String pCode, CSourceOriginMapping pSourceOriginMapping, Scope pScope) {
     throw new UnsupportedOperationException();
   }
 

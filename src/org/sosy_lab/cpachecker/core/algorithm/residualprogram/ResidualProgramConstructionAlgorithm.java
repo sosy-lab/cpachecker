@@ -49,7 +49,6 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -289,8 +288,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
       Multimap<CFANode, CallstackStateEqualsWrapper> result =
           HashMultimap.create(cfa.getAllNodes().size(), cfa.getNumberOfFunctions());
 
-      for (AbstractState targetState : Iterables.filter(reached,
-          state -> state instanceof Targetable && ((Targetable) state).isTarget())) {
+      for (AbstractState targetState : AbstractStates.getTargetStates(reached)) {
         result.put(AbstractStates.extractLocation(targetState), new CallstackStateEqualsWrapper(
             AbstractStates.extractStateByType(targetState, CallstackState.class)));
 

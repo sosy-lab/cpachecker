@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 
 /**
@@ -85,8 +86,7 @@ public class InvariantWitnessFactory {
       return locations.build();
     }
 
-    for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-      CFAEdge edge = node.getLeavingEdge(i);
+    for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
       if (!edge.getFileLocation().equals(FileLocation.DUMMY)
           && !edge.getDescription().contains("CPAchecker_TMP")
           && !(edge instanceof AssumeEdge)) {

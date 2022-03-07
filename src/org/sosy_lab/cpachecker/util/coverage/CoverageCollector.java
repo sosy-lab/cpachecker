@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.util.coverage;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.Iterables;
@@ -26,6 +25,7 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /**
  * Class responsible for extracting coverage information.
@@ -95,7 +95,7 @@ class ReachedSetCoverageCollector {
     // Add information about visited functions
     for (FunctionEntryNode entryNode :
         AbstractStates.extractLocations(reached)
-            .filter(notNull())
+            .filter(cfaNode -> cfaNode != null)
             .filter(FunctionEntryNode.class)) {
 
       final FileLocation loc = entryNode.getFileLocation();
@@ -107,14 +107,24 @@ class ReachedSetCoverageCollector {
       cov.addVisitedFunction(entryNode);
     }
 
-    collectCoveredEdges(reached, cov);
+    collectVisitedEdges(reached, cov);
+    collectConsideredEdges(reached, cov, cfa);
 
     return cov;
   }
 
-  private void collectCoveredEdges(Iterable<AbstractState> reached, CoverageData cov) {
+  private void collectConsideredEdges(Iterable<AbstractState> reached, CoverageData cov, CFA cfa) {
+    Set<CFANode> consideredNodes = CoverageUtility.getVisitedNodes(reached, cfa);
+    CoverageUtility.addIndirectlyCoveredNodes(consideredNodes);
+
+    cov.addExistingNodes(cfa.getAllNodes(), cov.getInfosPerFile().values().stream().findFirst().get());
+    cov.addConsideredNodes(consideredNodes, cov.getInfosPerFile().values().stream().findFirst().get());
+  }
+
+  private void collectVisitedEdges(Iterable<AbstractState> reached, CoverageData cov) {
     Set<CFANode> reachedNodes =
-        from(reached).transform(AbstractStates::extractLocation).filter(notNull()).toSet();
+        from(reached).transform(AbstractStates::extractLocation)
+            .filter(cfaNode -> cfaNode != null).toSet();
     //Add information about visited locations
 
     for (AbstractState state : reached) {
@@ -138,8 +148,7 @@ class ReachedSetCoverageCollector {
         //Cover all edges from reached nodes
         //It is less precise, but without ARG it is impossible to know what path we chose
         CFANode node = AbstractStates.extractLocation(state);
-        for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-          CFAEdge edge = node.getLeavingEdge(i);
+        for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
           if (reachedNodes.contains(edge.getSuccessor())) {
             cov.addVisitedEdge(edge);
           }

@@ -15,5 +15,4 @@ public class PotentialFix extends FaultInfo {
     description = pDescription;
     score = 0;
   }
-
 }

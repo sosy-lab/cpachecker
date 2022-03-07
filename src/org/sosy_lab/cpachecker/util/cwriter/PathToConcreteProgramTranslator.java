@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.util.cwriter;
 
 import java.util.Iterator;
 import java.util.Set;
-
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;

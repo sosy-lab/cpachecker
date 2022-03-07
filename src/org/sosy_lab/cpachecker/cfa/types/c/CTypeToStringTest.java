@@ -12,6 +12,7 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.nio.file.Path;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -215,7 +216,7 @@ public class CTypeToStringTest {
     CType parsed =
         (CType)
             parser
-                .parseString("dummy", stringRepr + ";")
+                .parseString(Path.of("dummy"), stringRepr + ";")
                 .getGlobalDeclarations()
                 .get(0)
                 .getFirst()

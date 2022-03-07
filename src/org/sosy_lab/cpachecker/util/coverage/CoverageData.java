@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.coverage;
 
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -124,6 +125,18 @@ public final class CoverageData {
 
     for (int line = startingLine; line <= endingLine; line++) {
       collector.addVisitedLine(line);
+    }
+  }
+
+  public void addConsideredNodes(final Collection<CFANode> nodes, final FileCoverageInformation collector) {
+    for (CFANode node : nodes) {
+      collector.addConsideredNode(node.getNodeNumber());
+    }
+  }
+
+  public void addExistingNodes(final Collection<CFANode> nodes, final FileCoverageInformation collector) {
+    for (CFANode node : nodes) {
+      collector.addExistingNode(node.getNodeNumber());
     }
   }
 

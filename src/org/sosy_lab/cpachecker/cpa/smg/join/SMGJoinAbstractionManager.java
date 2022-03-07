@@ -8,9 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -135,10 +135,10 @@ public class SMGJoinAbstractionManager {
       Set<SMGEdgePointsTo> pInboundPointers1, Set<SMGEdgePointsTo> pInboundPointers2) {
 
     Map<Long, SMGEdgePointsTo> offsetToPte1Map =
-        FluentIterable.from(pInboundPointers1).uniqueIndex(pArg0 -> pArg0.getOffset());
+        Maps.uniqueIndex(pInboundPointers1, SMGEdgePointsTo::getOffset);
 
     Map<Long, SMGEdgePointsTo> offsetToPte2Map =
-        FluentIterable.from(pInboundPointers2).uniqueIndex(pArg0 -> pArg0.getOffset());
+        Maps.uniqueIndex(pInboundPointers2, SMGEdgePointsTo::getOffset);
 
     Set<Long> offsets = new HashSet<>(offsetToPte1Map.keySet());
 
@@ -174,10 +174,10 @@ public class SMGJoinAbstractionManager {
     Set<SMGEdgeHasValue> sharedNonPointer = new HashSet<>();
 
     Map<Long, SMGEdgeHasValue> offsetToHve1Map =
-        FluentIterable.from(pFieldsOfObject1).uniqueIndex(pArg0 -> pArg0.getOffset());
+        Maps.uniqueIndex(pFieldsOfObject1, SMGEdgeHasValue::getOffset);
 
     Map<Long, SMGEdgeHasValue> offsetToHve2Map =
-        FluentIterable.from(pFieldsOfObject2).uniqueIndex(pArg0 -> pArg0.getOffset());
+        Maps.uniqueIndex(pFieldsOfObject2, SMGEdgeHasValue::getOffset);
 
     Set<Long> offsets = new HashSet<>(offsetToHve1Map.keySet());
 

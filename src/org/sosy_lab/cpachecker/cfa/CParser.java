@@ -61,12 +61,13 @@ public interface CParser extends Parser {
   /**
    * Parse the content of a String into a CFA.
    *
+   * @param filename A filename that is the supposed source of this code (for relative lookups).
    * @param code The code to parse.
    * @return The CFA.
    * @throws CParserException If parser or CFA builder cannot handle the code.
    */
   @Override
-  default ParseResult parseString(String filename, String code)
+  default ParseResult parseString(Path filename, String code)
       throws CParserException, InterruptedException {
     return parseString(filename, code, new CSourceOriginMapping(), CProgramScope.empty());
   }
@@ -96,7 +97,7 @@ public interface CParser extends Parser {
    * @throws CParserException if the parser cannot handle the C code.
    */
   ParseResult parseString(
-      String pFileName, String pCode, CSourceOriginMapping pSourceOriginMapping, Scope pScope)
+      Path pFileName, String pCode, CSourceOriginMapping pSourceOriginMapping, Scope pScope)
       throws CParserException, InterruptedException;
 
   /**

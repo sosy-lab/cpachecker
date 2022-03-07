@@ -22,5 +22,4 @@ public interface PathFormulaBuilder {
 
   PathFormula build(PathFormulaManager pPfmgr, PathFormula pathFormula)
       throws CPATransferException, InterruptedException;
-
 }

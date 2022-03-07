@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.interfaces;
 
 import java.util.Collection;
-
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public interface StopOperator {

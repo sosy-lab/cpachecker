@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-
-
 public interface CDesignatorVisitor<R, X extends Exception> {
 
   R visit(CArrayDesignator pArrayDesignator) throws X;

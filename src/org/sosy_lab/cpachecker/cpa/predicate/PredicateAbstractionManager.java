@@ -1096,9 +1096,8 @@ public class PredicateAbstractionManager {
       final Collection<AbstractionPredicate> predicates,
       final AbstractionFormula result,
       int pCurrentAbstractionId) {
-    Path dumpFile;
-
-    dumpFile = fmgr.formatFormulaOutputFile("abstraction", pCurrentAbstractionId, "input", 0);
+    @Nullable Path dumpFile =
+        fmgr.formatFormulaOutputFile("abstraction", pCurrentAbstractionId, "input", 0);
     fmgr.dumpFormulaToFile(f, dumpFile);
 
     dumpFile =

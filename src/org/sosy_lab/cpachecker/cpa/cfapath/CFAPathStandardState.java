@@ -55,7 +55,6 @@ public class CFAPathStandardState implements CFAPathState, Iterable<CFAEdge> {
     public void remove() {
       throw new UnsupportedOperationException();
     }
-
   }
 
   private CFAPathStandardState() {
@@ -121,5 +120,4 @@ public class CFAPathStandardState implements CFAPathState, Iterable<CFAEdge> {
       }
     }
   }
-
 }

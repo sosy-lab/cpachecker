@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.util.expressions;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Function;
-import com.google.common.base.Predicate;
 import com.google.common.collect.Comparators;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -90,17 +89,11 @@ public final class ExpressionTrees {
         }
       };
 
-  public static final Predicate<ExpressionTree<?>> IS_CONSTANT = ExpressionTrees::isConstant;
-  public static final Predicate<ExpressionTree<?>> IS_LEAF = ExpressionTrees::isLeaf;
-  public static final Predicate<ExpressionTree<?>> IS_AND = ExpressionTrees::isAnd;
-  public static final Predicate<ExpressionTree<?>> IS_OR = ExpressionTrees::isOr;
-
   private ExpressionTrees() {
 
   }
 
   public static <LeafType> boolean isConstant(ExpressionTree<LeafType> pExpressionTree) {
-    @SuppressWarnings("unchecked")
     ExpressionTreeVisitor<LeafType, Boolean, NoException> visitor =
         new DefaultExpressionTreeVisitor<>() {
 
@@ -123,7 +116,6 @@ public final class ExpressionTrees {
   }
 
   public static <LeafType> boolean isLeaf(ExpressionTree<LeafType> pExpressionTree) {
-    @SuppressWarnings("unchecked")
     ExpressionTreeVisitor<LeafType, Boolean, NoException> visitor =
         new DefaultExpressionTreeVisitor<>() {
 
@@ -151,7 +143,6 @@ public final class ExpressionTrees {
   }
 
   public static <LeafType> boolean isOr(ExpressionTree<LeafType> pExpressionTree) {
-    @SuppressWarnings("unchecked")
     ExpressionTreeVisitor<LeafType, Boolean, NoException> visitor =
         new DefaultExpressionTreeVisitor<>() {
 
@@ -169,7 +160,6 @@ public final class ExpressionTrees {
   }
 
   public static <LeafType> boolean isAnd(ExpressionTree<LeafType> pExpressionTree) {
-    @SuppressWarnings("unchecked")
     ExpressionTreeVisitor<LeafType, Boolean, NoException> visitor =
         new DefaultExpressionTreeVisitor<>() {
 
@@ -193,25 +183,19 @@ public final class ExpressionTrees {
   }
 
   public static <LeafType> boolean isInCNF(ExpressionTree<LeafType> pExpressionTree) {
-    @SuppressWarnings("unchecked")
     ExpressionTreeVisitor<LeafType, Boolean, NoException> visitor = new ExpressionTreeVisitor<>() {
 
       @Override
       public Boolean visit(And<LeafType> pAnd) {
-        return getChildren(pAnd).allMatch(new Predicate<ExpressionTree<LeafType>>() {
-
-          @Override
-          public boolean apply(ExpressionTree<LeafType> pClause) {
-            // A clause may be a single literal or a disjunction of literals
-            assert !isAnd(pClause) : "A conjunction must not contain child conjunctions";
-            return isCNFClause(pClause);
-          }
-        });
+        // A clause may be a single literal or a disjunction of literals
+        assert getChildren(pAnd).allMatch(pClause -> !isAnd(pClause))
+            : "A conjunction must not contain child conjunctions";
+        return getChildren(pAnd).allMatch(pClause -> isCNFClause(pClause));
       }
 
       @Override
       public Boolean visit(Or<LeafType> pOr) {
-        return getChildren(pOr).allMatch(IS_LEAF);
+        return getChildren(pOr).allMatch(ExpressionTrees::isLeaf);
       }
 
       @Override
@@ -236,26 +220,20 @@ public final class ExpressionTrees {
   }
 
   public static <LeafType> boolean isInDNF(ExpressionTree<LeafType> pExpressionTree) {
-    @SuppressWarnings("unchecked")
     ExpressionTreeVisitor<LeafType, Boolean, NoException> visitor = new ExpressionTreeVisitor<>() {
 
       @Override
       public Boolean visit(And<LeafType> pAnd) {
         // Check: One clause with more than one literal
-        return getChildren(pAnd).allMatch(IS_LEAF);
+        return getChildren(pAnd).allMatch(ExpressionTrees::isLeaf);
       }
 
       @Override
       public Boolean visit(Or<LeafType> pOr) {
-        return getChildren(pOr).allMatch(new Predicate<ExpressionTree<LeafType>>() {
-
-          @Override
-          public boolean apply(ExpressionTree<LeafType> pClause) {
-            // A clause may be a single literal or a conjunction of literals
-            assert !isOr(pClause) : "A disjunction must not contain child disjunctions";
-            return isDNFClause(pClause);
-          }
-        });
+        // A clause may be a single literal or a conjunction of literals
+        assert getChildren(pOr).allMatch(pClause -> !isOr(pClause))
+            : "A disjunction must not contain child disjunctions";
+        return getChildren(pOr).allMatch(pClause -> isDNFClause(pClause));
       }
 
       @Override
@@ -364,11 +342,15 @@ public final class ExpressionTrees {
   }
 
   public static <LeafType> boolean isCNFClause(ExpressionTree<LeafType> pExpressionTree) {
-    return isLeaf(pExpressionTree) || (isOr(pExpressionTree) && getChildren(pExpressionTree).allMatch(IS_LEAF));
+    return isLeaf(pExpressionTree)
+        || (isOr(pExpressionTree)
+            && getChildren(pExpressionTree).allMatch(ExpressionTrees::isLeaf));
   }
 
   public static <LeafType> boolean isDNFClause(ExpressionTree<LeafType> pExpressionTree) {
-    return isLeaf(pExpressionTree) || (isAnd(pExpressionTree) && getChildren(pExpressionTree).allMatch(IS_LEAF));
+    return isLeaf(pExpressionTree)
+        || (isAnd(pExpressionTree)
+            && getChildren(pExpressionTree).allMatch(ExpressionTrees::isLeaf));
   }
 
   public static <LeafType> FluentIterable<ExpressionTree<LeafType>> getChildren(

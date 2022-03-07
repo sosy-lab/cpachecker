@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.Expression
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
@@ -306,8 +307,7 @@ public class WitnessToACSLAlgorithm implements Algorithm {
       return locations.build();
     }
 
-    for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-      CFAEdge edge = node.getLeavingEdge(i);
+    for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
       if (!edge.getFileLocation().equals(FileLocation.DUMMY)
           && !edge.getDescription().contains("CPAchecker_TMP")
           && !(edge instanceof AssumeEdge)) {
@@ -315,8 +315,7 @@ public class WitnessToACSLAlgorithm implements Algorithm {
       }
     }
 
-    for (int i = 0; i < node.getNumEnteringEdges(); i++) {
-      CFAEdge edge = node.getEnteringEdge(i);
+    for (CFAEdge edge : CFAUtils.enteringEdges(node)) {
       if (!edge.getFileLocation().equals(FileLocation.DUMMY)
           && !edge.getDescription().contains("CPAchecker_TMP")
           && !(edge instanceof AssumeEdge)) {

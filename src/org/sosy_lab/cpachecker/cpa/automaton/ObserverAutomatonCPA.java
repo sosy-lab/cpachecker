@@ -33,5 +33,4 @@ public class ObserverAutomatonCPA extends ControlAutomatonCPA {
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ObserverAutomatonCPA.class);
   }
-
 }

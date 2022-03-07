@@ -16,7 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
-
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -57,11 +57,11 @@ public class LlvmTypeConverter {
     logger = pLogger;
   }
 
-  public CType getCType(final TypeRef pLlvmType) {
+  public @Nullable CType getCType(final TypeRef pLlvmType) {
       return getCType(pLlvmType, /* isUnsigned = */ false);
   }
 
-  public CType getCType(final TypeRef pLlvmType, final boolean isUnsigned) {
+  public @Nullable CType getCType(final TypeRef pLlvmType, final boolean isUnsigned) {
     final boolean isConst = false;
     final boolean isVolatile = false;
     TypeKind typeKind = pLlvmType.getTypeKind();
