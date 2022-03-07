@@ -50,26 +50,23 @@ public class SuffixDomain implements AbstractStringDomain<String> {
       String val1 = (String) p1.getValue();
       String val2 = (String) p2.getValue();
 
-    if (val1.length() == val2.length()) {
-      return val1.equals(val2);
-    }
+      if (val1.length() == val2.length()) {
+        return val1.equals(val2);
+      }
 
-    if (val1.length() < val2.length()) {
-      return val1.equals(val2.substring(val1.length() - suffixLength, suffixLength));
+      if (val1.length() < val2.length()) {
+        return val1.equals(val2.substring(val1.length() - suffixLength, suffixLength));
+      }
     }
-
-  }
 
     return false;
-
   }
 
   @Override
   public Aspect<?> combineAspectsForStringConcat(Aspect<?> p1, Aspect<?> p2) {
     if (p1 instanceof UnknownAspect) {
       return p2;
-    }
-    else if (p2 instanceof UnknownAspect) {
+    } else if (p2 instanceof UnknownAspect) {
       return p1;
     }
     if (p1.getDomainType().equals(TYPE) && p2.getDomainType().equals(TYPE)) {
@@ -90,5 +87,4 @@ public class SuffixDomain implements AbstractStringDomain<String> {
     }
     return UnknownAspect.getInstance();
   }
-
 }

@@ -3011,13 +3011,8 @@ cpa.statistics.statisticsCPAFile = no default value
 cpa.string.containset = {}
 
 # which domains to use in StringCPA
-cpa.string.domains = ImmutableList
-          .of(
-                  "PrefixDomain",
-                  "SuffixDomain",
-                  "LengthDomain",
-                  "CharSetDomain",
-              "StringSetDomain")
+cpa.string.domains = [
+          "PrefixDomain", "SuffixDomain", "LengthDomain", "CharSetDomain", "StringSetDomain"]
 
 # which merge operator to use for StringCPA
 cpa.string.merge = "SEP"

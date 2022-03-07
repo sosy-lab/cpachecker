@@ -9,9 +9,9 @@
 import java.util.Scanner;
 
 public class Main {
-  public static void main(String[]main) {
+  public static void main(String[] main) {
     Scanner sc = new Scanner(System.in);
     String b = sc.nextLine();
-    assert b.length()> 20; 
-    }
+    assert b.length() > 20;
+  }
 }

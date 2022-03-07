@@ -22,7 +22,8 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 /*
  * Visitor used to create the string identifier JVariableIdentifier
  */
-public class JStringVariableVisitor implements JLeftHandSideVisitor<JStringVariableIdentifier, NoException> {
+public class JStringVariableVisitor
+    implements JLeftHandSideVisitor<JStringVariableIdentifier, NoException> {
 
   private final String funcName;
 
@@ -32,8 +33,7 @@ public class JStringVariableVisitor implements JLeftHandSideVisitor<JStringVaria
   }
 
   @Override
-  public JStringVariableIdentifier visit(JArraySubscriptExpression pE)
-      throws NoException {
+  public JStringVariableIdentifier visit(JArraySubscriptExpression pE) throws NoException {
     JExpression je = pE.getSubscriptExpression();
     if (je instanceof JLeftHandSide) {
       return ((JLeftHandSide) je).accept(this);
@@ -60,7 +60,5 @@ public class JStringVariableVisitor implements JLeftHandSideVisitor<JStringVaria
 
   public JStringVariableIdentifier visit(JSimpleDeclaration pE) {
     return new JStringVariableIdentifier(pE.getType(), MemoryLocation.forDeclaration(pE));
-
   }
-
 }

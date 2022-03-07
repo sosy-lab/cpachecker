@@ -19,7 +19,6 @@ import org.sosy_lab.cpachecker.cpa.string.utils.Aspect.UnknownAspect;
  */
 public class ContainsDomain implements AbstractStringDomain<List<String>> {
 
-
   private static final DomainType TYPE = DomainType.CONTAINS;
 
   private StringOptions options;
@@ -65,7 +64,6 @@ public class ContainsDomain implements AbstractStringDomain<List<String>> {
     }
 
     return false;
-
   }
 
   @SuppressWarnings("unchecked") // Safe
@@ -110,6 +108,5 @@ public class ContainsDomain implements AbstractStringDomain<List<String>> {
     }
 
     return new Aspect<>(this, builder.build());
-
   }
 }

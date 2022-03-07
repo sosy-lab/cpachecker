@@ -27,9 +27,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 public class Aevv extends AbstractExpressionValueVisitor {
 
   protected Aevv(
-      String pFunctionName,
-      MachineModel pMachineModel,
-      LogManagerWithoutDuplicates pLogger) {
+      String pFunctionName, MachineModel pMachineModel, LogManagerWithoutDuplicates pLogger) {
     super(pFunctionName, pMachineModel, pLogger);
   }
 
@@ -71,5 +69,4 @@ public class Aevv extends AbstractExpressionValueVisitor {
     // Not needed
     return null;
   }
-
 }

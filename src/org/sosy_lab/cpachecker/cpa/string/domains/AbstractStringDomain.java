@@ -22,6 +22,4 @@ public interface AbstractStringDomain<T> {
   public boolean isLessOrEqual(Aspect<?> first, Aspect<?> second);
 
   public Aspect<?> combineAspectsForStringConcat(Aspect<?> first, Aspect<?> second);
-
-
 }

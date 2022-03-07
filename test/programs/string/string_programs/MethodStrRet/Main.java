@@ -18,5 +18,4 @@ public class Main {
     iron = Foo("captain");
     assert iron.equals("captain");
   }
-
 }

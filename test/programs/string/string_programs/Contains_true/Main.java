@@ -8,16 +8,15 @@
 
 public class Main {
 
-  private static String s1 = "man"; 
-  
+  private static String s1 = "man";
+
   public static void main(String[] args) {
     String contain1 = "ma";
     assert s1.contains(contain1);
-      
-    String s2 = "Bat";
-    String s3 = s2+ s1;
-    String contain2 = "t"+contain1;
-    assert s3.contains(contain2);
-    }
 
+    String s2 = "Bat";
+    String s3 = s2 + s1;
+    String contain2 = "t" + contain1;
+    assert s3.contains(contain2);
+  }
 }

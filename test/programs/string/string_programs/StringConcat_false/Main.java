@@ -18,5 +18,4 @@ public class Main {
 
     assert result.equals("armour");
   }
-
 }

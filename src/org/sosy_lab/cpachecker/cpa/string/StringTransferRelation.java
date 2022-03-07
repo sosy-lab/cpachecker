@@ -84,9 +84,9 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
   }
 
   @Override
-  public Collection<StringState>
-      getAbstractSuccessorsForEdge(AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
-          throws CPATransferException, InterruptedException {
+  public Collection<StringState> getAbstractSuccessorsForEdge(
+      AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
+      throws CPATransferException, InterruptedException {
 
     StringState state = StringState.copyOf((StringState) pState);
     StringState successor = null;
@@ -131,10 +131,7 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
           final JMethodCallEdge fnkCall = (JMethodCallEdge) pCfaEdge;
           final FunctionEntryNode succ = fnkCall.getSuccessor();
           successor =
-              handleJMethodCallEdge(
-                  fnkCall.getArguments(),
-                  succ.getFunctionParameters(),
-                  state);
+              handleJMethodCallEdge(fnkCall.getArguments(), succ.getFunctionParameters(), state);
         }
         break;
 
@@ -212,8 +209,7 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
       if (valueExists) {
         newValue = pState.getAspectList(retJid);
         jid = Optional.of(retJid);
-      }
-      else {
+      } else {
         jid = Optional.of(jvv.visit(op1));
         JMethodInvocationExpression jmie = assignExp.getFunctionCallExpression();
         newValue = jalv.visit(jmie);
@@ -284,8 +280,8 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
     return new AspectSet(ImmutableSet.of());
   }
 
-  private StringState
-      handleJAssumption(boolean truthAssumption, JAssumeEdge pCfaEdge, StringState pState) {
+  private StringState handleJAssumption(
+      boolean truthAssumption, JAssumeEdge pCfaEdge, StringState pState) {
     JExpression exp = pCfaEdge.getExpression();
 
     boolean truthValue = false;
@@ -328,8 +324,8 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
     return null;
   }
 
-  private boolean
-      handleStringMethodCall(JReferencedMethodInvocationExpression jrmie, StringState pState) {
+  private boolean handleStringMethodCall(
+      JReferencedMethodInvocationExpression jrmie, StringState pState) {
     JIdExpression jid = jrmie.getReferencedVariable();
     JIdExpression funcNameExp = (JIdExpression) jrmie.getFunctionNameExpression();
     String stringFuncName = funcNameExp.getName();
@@ -343,27 +339,29 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
     boolean result = false;
     // the different functions, TODO add more functions
     switch (stringFuncName) {
-      case "equals": {
-        result = parseStringComparison(jid, parameters.get(0), BinaryOperator.EQUALS, pState);
-      }
+      case "equals":
+        {
+          result = parseStringComparison(jid, parameters.get(0), BinaryOperator.EQUALS, pState);
+        }
         break;
-      case "startsWith": {
-        result = parsePrefixComparison(jid, parameters.get(0), pState);
-      }
+      case "startsWith":
+        {
+          result = parsePrefixComparison(jid, parameters.get(0), pState);
+        }
         break;
-      case "endsWtih": {
-        return parseSuffixComparison(jid, parameters.get(0), pState);
-      }
+      case "endsWtih":
+        {
+          return parseSuffixComparison(jid, parameters.get(0), pState);
+        }
       default:
         logger.log(Level.FINE, "This function was not implemented yet.");
         break;
     }
     return result;
-
   }
 
-  private boolean
-      parsePrefixComparison(JIdExpression pJid, JExpression pJExpression, StringState pState) {
+  private boolean parsePrefixComparison(
+      JIdExpression pJid, JExpression pJExpression, StringState pState) {
     AspectSet first = parseExpressionToAspectList(pJid, pState);
     AspectSet second = parseExpressionToAspectList(pJExpression, pState);
     AbstractStringDomain<?> prefix = options.getDomain(DomainType.PREFFIX);
@@ -381,8 +379,8 @@ public class StringTransferRelation extends SingleEdgeTransferRelation {
     return false;
   }
 
-  private boolean
-      parseSuffixComparison(JIdExpression pJid, JExpression pJExpression, StringState pState) {
+  private boolean parseSuffixComparison(
+      JIdExpression pJid, JExpression pJExpression, StringState pState) {
     AspectSet first = parseExpressionToAspectList(pJid, pState);
     AspectSet second = parseExpressionToAspectList(pJExpression, pState);
     AbstractStringDomain<?> suffix = options.getDomain(DomainType.SUFFIX);

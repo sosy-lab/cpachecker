@@ -30,26 +30,25 @@ public class StringCpaUtilMethods {
       if (t.getName().equals("java.lang.String") && t.getSimpleName().equals("String")) {
         return true;
       }
-
     }
 
     return false;
   }
 
-  public static boolean
-      methodCallLength(JReferencedMethodInvocationExpression jrmie, StringState state) {
+  public static boolean methodCallLength(
+      JReferencedMethodInvocationExpression jrmie, StringState state) {
     return jrmie.getDeclaration().getOrigName().contains("String_length")
         && state.getOptions().hasDomain(DomainType.LENGTH);
   }
 
-  public static boolean
-      methoCallEquals(JReferencedMethodInvocationExpression jrmie, StringState state) {
+  public static boolean methoCallEquals(
+      JReferencedMethodInvocationExpression jrmie, StringState state) {
     return jrmie.getDeclaration().getOrigName().contains("String_equals")
         && state.getOptions().hasDomain(DomainType.STRING_SET);
   }
 
-  public static boolean
-      methoCallStartsWith(JReferencedMethodInvocationExpression jrmie, StringState state) {
+  public static boolean methoCallStartsWith(
+      JReferencedMethodInvocationExpression jrmie, StringState state) {
     return jrmie.getDeclaration().getOrigName().contains("String_startswith")
         && state.getOptions().hasDomain(DomainType.PREFFIX);
   }

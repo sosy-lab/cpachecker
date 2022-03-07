@@ -52,7 +52,7 @@ public class JStringVariableIdentifier {
     }
     JStringVariableIdentifier other = (JStringVariableIdentifier) obj;
     return type.equals(other.type) && memLoc.equals(other.memLoc);
-    }
+  }
 
   @Override
   public String toString() {

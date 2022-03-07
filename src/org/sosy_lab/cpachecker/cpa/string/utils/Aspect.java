@@ -49,7 +49,7 @@ public class Aspect<T> implements Comparable<Aspect<?>> {
 
   public static class UnknownAspect extends Aspect<Void> {
 
-    private final static UnknownAspect instance = new UnknownAspect();
+    private static final UnknownAspect instance = new UnknownAspect();
 
     private UnknownAspect() {
       super(null, null);
@@ -74,5 +74,4 @@ public class Aspect<T> implements Comparable<Aspect<?>> {
     }
     return domain.toString().compareTo(pOther.domain.toString());
   }
-
 }

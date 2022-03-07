@@ -9,12 +9,12 @@
 public class Main {
 
   public static void main() {
-    int e=5;
+    int e = 5;
     String a = "hello";
     String b = " World!";
     String c = a + b;
     String d = a;
-    d=b;
+    d = b;
     assert c.equals("hello World!");
   }
 }

@@ -10,7 +10,5 @@ public class Main {
   public static void main(String[] args) {
     String three = "foo";
     assert three.length() == 3;
-
   }
-
 }

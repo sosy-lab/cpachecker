@@ -22,8 +22,7 @@ public class CharSetDomain implements AbstractStringDomain<ImmutableSet<Characte
 
   private static final DomainType TYPE = DomainType.CHAR_SET;
 
-  public CharSetDomain(@SuppressWarnings("unused") StringOptions pOptions) {
-  }
+  public CharSetDomain(@SuppressWarnings("unused") StringOptions pOptions) {}
 
   @Override
   public Aspect<ImmutableSet<Character>> addNewAspect(String pVariable) {

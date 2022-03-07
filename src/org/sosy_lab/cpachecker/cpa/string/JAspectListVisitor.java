@@ -50,8 +50,7 @@ import org.sosy_lab.cpachecker.exceptions.NoException;
  * Visitor that creates a list of aspects, depending on the expression.
  * We can expect that only string-variables are returned from the visitor (because of check in transfer relation)
  */
-public class JAspectListVisitor
-    implements JRightHandSideVisitor<AspectSet, NoException> {
+public class JAspectListVisitor implements JRightHandSideVisitor<AspectSet, NoException> {
 
   private final ImmutableList<AbstractStringDomain<?>> domains;
   private final String functionName;
@@ -86,8 +85,7 @@ public class JAspectListVisitor
   }
 
   @Override
-  public AspectSet visit(JStringLiteralExpression pE)
-      throws NoException {
+  public AspectSet visit(JStringLiteralExpression pE) throws NoException {
     ImmutableSet.Builder<Aspect<?>> builder = new ImmutableSet.Builder<>();
     String val = pE.getValue();
     if (val == null) {
@@ -115,11 +113,8 @@ public class JAspectListVisitor
       if (!(aspects1.getAspects().isEmpty() && aspects2.getAspects().isEmpty())) {
         ImmutableSet.Builder<Aspect<?>> builder = new ImmutableSet.Builder<>();
         for (AbstractStringDomain<?> dom : domains) {
-          builder
-              .add(
-                  dom.combineAspectsForStringConcat(
-                      aspects1.getAspect(dom),
-                      aspects2.getAspect(dom)));
+          builder.add(
+              dom.combineAspectsForStringConcat(aspects1.getAspect(dom), aspects2.getAspect(dom)));
         }
         return new AspectSet(builder.build());
       } else {
@@ -159,15 +154,13 @@ public class JAspectListVisitor
   }
 
   @Override
-  public AspectSet visit(JMethodInvocationExpression pE)
-      throws NoException {
+  public AspectSet visit(JMethodInvocationExpression pE) throws NoException {
     // TODO substring
     return new AspectSet(ImmutableSet.of());
   }
 
   @Override
-  public AspectSet visit(JClassInstanceCreation pE)
-      throws NoException {
+  public AspectSet visit(JClassInstanceCreation pE) throws NoException {
     return null;
   }
 
@@ -177,26 +170,22 @@ public class JAspectListVisitor
   }
 
   @Override
-  public AspectSet visit(JIntegerLiteralExpression pJIntegerLiteralExpression)
-      throws NoException {
+  public AspectSet visit(JIntegerLiteralExpression pJIntegerLiteralExpression) throws NoException {
     return null;
   }
 
   @Override
-  public AspectSet visit(JBooleanLiteralExpression pJBooleanLiteralExpression)
-      throws NoException {
+  public AspectSet visit(JBooleanLiteralExpression pJBooleanLiteralExpression) throws NoException {
     return null;
   }
 
   @Override
-  public AspectSet visit(JFloatLiteralExpression pJFloatLiteralExpression)
-      throws NoException {
+  public AspectSet visit(JFloatLiteralExpression pJFloatLiteralExpression) throws NoException {
     return null;
   }
 
   @Override
-  public AspectSet visit(JArrayCreationExpression pJArrayCreationExpression)
-      throws NoException {
+  public AspectSet visit(JArrayCreationExpression pJArrayCreationExpression) throws NoException {
     return null;
   }
 
@@ -206,20 +195,17 @@ public class JAspectListVisitor
   }
 
   @Override
-  public AspectSet visit(JArrayLengthExpression pJArrayLengthExpression)
-      throws NoException {
+  public AspectSet visit(JArrayLengthExpression pJArrayLengthExpression) throws NoException {
     return null;
   }
 
   @Override
-  public AspectSet visit(JNullLiteralExpression pJNullLiteralExpression)
-      throws NoException {
+  public AspectSet visit(JNullLiteralExpression pJNullLiteralExpression) throws NoException {
     return new AspectSet(ImmutableSortedSet.of());
   }
 
   @Override
-  public AspectSet visit(JEnumConstantExpression pJEnumConstantExpression)
-      throws NoException {
+  public AspectSet visit(JEnumConstantExpression pJEnumConstantExpression) throws NoException {
     return null;
   }
 
@@ -229,9 +215,7 @@ public class JAspectListVisitor
   }
 
   @Override
-  public AspectSet visit(JClassLiteralExpression pJClassLiteralExpression)
-      throws NoException {
+  public AspectSet visit(JClassLiteralExpression pJClassLiteralExpression) throws NoException {
     return null;
   }
-
 }

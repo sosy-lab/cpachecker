@@ -19,5 +19,4 @@ public class Main {
     String s3 = s1 + s2;
     assert s3.endsWith(suffix);
   }
-
 }

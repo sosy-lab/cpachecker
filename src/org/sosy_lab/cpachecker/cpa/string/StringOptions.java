@@ -20,7 +20,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cpa.string.domains.AbstractStringDomain;
 import org.sosy_lab.cpachecker.cpa.string.domains.DomainType;
 
-
 @Options(prefix = "cpa.string")
 public class StringOptions {
 
@@ -36,23 +35,15 @@ public class StringOptions {
   private ImmutableSet<String> containset = ImmutableSet.of();
 
   @Option(
-    secure = true,
-    name = "stringset",
-    description = "Compare these Strings for StringSetDomain")
+      secure = true,
+      name = "stringset",
+      description = "Compare these Strings for StringSetDomain")
   private ImmutableSet<String> stringSet = ImmutableSet.of();
 
-  @Option(
-    secure = true,
-    name = "domains",
-    description = "which domains to use in StringCPA")
+  @Option(secure = true, name = "domains", description = "which domains to use in StringCPA")
   private ImmutableList<String> domainList =
-      ImmutableList
-          .of(
-                  "PrefixDomain",
-                  "SuffixDomain",
-                  "LengthDomain",
-                  "CharSetDomain",
-              "StringSetDomain");
+      ImmutableList.of(
+          "PrefixDomain", "SuffixDomain", "LengthDomain", "CharSetDomain", "StringSetDomain");
 
   private ImmutableList<AbstractStringDomain<?>> domains;
 
@@ -63,25 +54,28 @@ public class StringOptions {
     builder.addAll(stringSet).addAll(pStringSet);
     stringSet = builder.build();
     domains = generateDomains(domainList);
-
   }
 
-  private ImmutableList<AbstractStringDomain<?>>
-      generateDomains(ImmutableList<String> pDomainList) throws InvalidConfigurationException {
+  private ImmutableList<AbstractStringDomain<?>> generateDomains(ImmutableList<String> pDomainList)
+      throws InvalidConfigurationException {
     ImmutableList.Builder<AbstractStringDomain<?>> builder = new ImmutableList.Builder<>();
     for (String domainName : pDomainList) {
       try {
         Class<?> clazz = Class.forName(addPath(domainName));
-        Constructor<?> constructor =
-            clazz.getConstructor(StringOptions.class);
+        Constructor<?> constructor = clazz.getConstructor(StringOptions.class);
         AbstractStringDomain<?> instance = (AbstractStringDomain<?>) constructor.newInstance(this);
         builder.add(instance);
-      } catch (InstantiationException | IllegalAccessException | IllegalArgumentException
-          | InvocationTargetException | NoSuchMethodException | SecurityException
+      } catch (InstantiationException
+          | IllegalAccessException
+          | IllegalArgumentException
+          | InvocationTargetException
+          | NoSuchMethodException
+          | SecurityException
           | ClassNotFoundException e) {
         throw new InvalidConfigurationException(
             domainName
-                + " is not an existing Domain or was  implemented incorrectly! Please refer to package-info in folder domain for more information.");
+                + " is not an existing Domain or was  implemented incorrectly! Please refer to"
+                + " package-info in folder domain for more information.");
       }
     }
     return builder.build();
@@ -132,5 +126,4 @@ public class StringOptions {
   public ImmutableList<AbstractStringDomain<?>> getDomains() {
     return domains;
   }
-
 }

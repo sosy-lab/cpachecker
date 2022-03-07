@@ -24,10 +24,8 @@ public class StringState implements LatticeAbstractState<StringState> {
   // Stores all strings of the program, along with the aspects
   private ImmutableMap<JStringVariableIdentifier, AspectSet> stringsAndAspects;
 
-
   public StringState(
-      ImmutableMap<JStringVariableIdentifier, AspectSet> pStringMap,
-      StringOptions pOptions) {
+      ImmutableMap<JStringVariableIdentifier, AspectSet> pStringMap, StringOptions pOptions) {
     options = pOptions;
     stringsAndAspects = pStringMap;
   }
@@ -45,8 +43,7 @@ public class StringState implements LatticeAbstractState<StringState> {
     ImmutableMap.Builder<JStringVariableIdentifier, AspectSet> builder =
         new ImmutableMap.Builder<>();
     StringState state = copyOf(this);
-    for (Map.Entry<JStringVariableIdentifier, AspectSet> entry : stringsAndAspects
-        .entrySet()) {
+    for (Map.Entry<JStringVariableIdentifier, AspectSet> entry : stringsAndAspects.entrySet()) {
       JStringVariableIdentifier jid = entry.getKey();
       if (!jid.equals(pJid)) {
         builder.put(jid, stringsAndAspects.get(jid));
@@ -75,8 +72,9 @@ public class StringState implements LatticeAbstractState<StringState> {
   /**
    * (non-Javadoc)
    *
-   * @see org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState#join(org.sosy_lab.cpachecker.core.
-   *      defaults.LatticeAbstractState)
+   * @see
+   *     org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState#join(org.sosy_lab.cpachecker.core.
+   *     defaults.LatticeAbstractState)
    */
   @Override
   public StringState join(StringState pOther) throws CPAException, InterruptedException {
@@ -91,8 +89,8 @@ public class StringState implements LatticeAbstractState<StringState> {
     return state;
   }
 
-  private ImmutableMap<JStringVariableIdentifier, AspectSet>
-      joinMapsNoDuplicates(Map<JStringVariableIdentifier, AspectSet> pStringMap) {
+  private ImmutableMap<JStringVariableIdentifier, AspectSet> joinMapsNoDuplicates(
+      Map<JStringVariableIdentifier, AspectSet> pStringMap) {
     ImmutableMap.Builder<JStringVariableIdentifier, AspectSet> builder =
         new ImmutableMap.Builder<>();
     for (Map.Entry<JStringVariableIdentifier, AspectSet> otherEntry : pStringMap.entrySet()) {
@@ -109,7 +107,7 @@ public class StringState implements LatticeAbstractState<StringState> {
    * (non-Javadoc)
    *
    * @see org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState#isLessOrEqual(org.sosy_lab.
-   *      cpachecker.core.defaults.LatticeAbstractState)
+   *     cpachecker.core.defaults.LatticeAbstractState)
    */
   @Override
   public boolean isLessOrEqual(StringState pOther) throws CPAException, InterruptedException {
@@ -117,8 +115,8 @@ public class StringState implements LatticeAbstractState<StringState> {
       return false;
     }
 
-    for (Map.Entry<JStringVariableIdentifier, AspectSet> otherEntry : pOther.stringsAndAspects
-        .entrySet()) {
+    for (Map.Entry<JStringVariableIdentifier, AspectSet> otherEntry :
+        pOther.stringsAndAspects.entrySet()) {
       AspectSet otherVaa = otherEntry.getValue();
       JStringVariableIdentifier jid = otherEntry.getKey();
       AspectSet vaa = this.stringsAndAspects.get(jid);

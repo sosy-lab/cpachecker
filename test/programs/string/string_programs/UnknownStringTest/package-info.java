@@ -5,4 +5,3 @@
 // SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
-

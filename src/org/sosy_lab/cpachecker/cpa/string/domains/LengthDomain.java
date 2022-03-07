@@ -19,8 +19,7 @@ public class LengthDomain implements AbstractStringDomain<Integer> {
 
   private static final DomainType TYPE = DomainType.LENGTH;
 
-  public LengthDomain(@SuppressWarnings("unused") StringOptions pOptions) {
-  }
+  public LengthDomain(@SuppressWarnings("unused") StringOptions pOptions) {}
 
   @Override
   public Aspect<Integer> addNewAspect(String pVariable) {
@@ -58,5 +57,4 @@ public class LengthDomain implements AbstractStringDomain<Integer> {
     }
     return UnknownAspect.getInstance();
   }
-
 }
