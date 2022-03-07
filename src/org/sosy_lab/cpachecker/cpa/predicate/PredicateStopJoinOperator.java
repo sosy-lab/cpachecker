@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.defaults.StopJoinOperator;
@@ -21,7 +20,6 @@ import org.sosy_lab.cpachecker.core.interfaces.ForcedCoveringStopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-/** TODO: add description */
 class PredicateStopJoinOperator extends StopJoinOperator
     implements ForcedCoveringStopOperator, CoveringStateSetProvider {
   private final boolean minimizeCovering;
@@ -59,14 +57,13 @@ class PredicateStopJoinOperator extends StopJoinOperator
     return ImmutableSet.of();
   }
 
+  /** Applies a series of heuristics to minimize the covering state set */
   private Set<AbstractState> minimizeCoveringStateSet(
       AbstractState pElement, Collection<AbstractState> pCoveringSet)
       throws CPAException, InterruptedException {
     Collection<AbstractState> coveringSubset = new LinkedHashSet<>(pCoveringSet.size());
     AbstractState joinedState = null;
-    for (Iterator<AbstractState> it = pCoveringSet.iterator(); it.hasNext(); ) {
-      AbstractState state = it.next();
-
+    for (AbstractState state : pCoveringSet) {
       // check single-state coverage
       if (domain.isLessOrEqual(pElement, state)) {
         return ImmutableSet.of(state);

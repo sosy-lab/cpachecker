@@ -89,7 +89,9 @@ class CompositeStopJoinOperator extends CompositeStopOperator {
     for (int idx = 0; idx < compositeElements.size(); idx++) {
       StopOperator stopOp = stopOperators.get(idx);
       // TODO: is there a better way to distinguish StopOperator types?
-      if (stopOp instanceof StopJoinOperator) { // ignore stop-join operators
+      // if the stop operator does not implement the interface `StopJoinOperator`,
+      // it is treated as a stop-sep operator
+      if (stopOp instanceof StopJoinOperator) { // skip stop-join operators
         continue;
       }
 
