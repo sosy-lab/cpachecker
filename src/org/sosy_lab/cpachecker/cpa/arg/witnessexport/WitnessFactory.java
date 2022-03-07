@@ -143,15 +143,13 @@ class WitnessFactory implements EdgeAppender {
           KeyDef.ASSUMPTIONRESULTFUNCTION,
           KeyDef.THREADNAME);
 
-  private static ARGState getCoveringState(ARGState pChild) {
-    ARGState child = pChild;
+  private static Set<ARGState> getCoveringStates(ARGState pChild) {
     // The child might be covered by another state
     // --> switch to the covering state
-    if (child.isCovered()) {
-      child = child.getCoveringState();
-      assert !child.isCovered();
+    if (pChild.isCovered()) {
+      return pChild.getCoveringStates();
     }
-    return child;
+    return ImmutableSet.of(pChild);
   }
 
   private static boolean isTmpVariable(AIdExpression exp) {
@@ -1098,7 +1096,7 @@ class WitnessFactory implements EdgeAppender {
             FluentIterable<ARGState> children =
                 FluentIterable.of(parent)
                     .transformAndConcat(pSuccessorFunction)
-                    .transform(WitnessFactory::getCoveringState)
+                    .transformAndConcat(WitnessFactory::getCoveringStates)
                     .filter(parent.getChildren()::contains);
 
             // Only the children on the path become parents themselves

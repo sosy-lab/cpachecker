@@ -657,7 +657,9 @@ public class ReportGenerator {
               String label = child.toDOTLabel();
               label = label.length() > 2 ? label.substring(0, label.length() - 2) : "";
               createCoveredArgNode(childStateId, child, label);
-              createCoveredArgEdge(childStateId, child.getCoveringState().getStateId());
+              for (ARGState covering : child.getCoveringStates()) {
+                createCoveredArgEdge(childStateId, covering.getStateId());
+              }
             }
             argEdges.put(
                 parentStateId + "->" + childStateId,
