@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
-import com.google.common.collect.Lists;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -270,14 +269,19 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     BooleanFormula currentImage = formulas.getPrefixFormula();
 
     // push formulas
-    itpMgr.push(formulas.getAssertionFormula());
-    itpMgr.push(Lists.reverse(formulas.getLoopFormulas()));
+    // suffix formula: T(S1, S2) && T(S1, S2) && ... && T(Sn-1, Sn) && ~P(Sn)
+    itpMgr.push(
+        bfmgr.and(
+            bfmgr.and(formulas.getLoopFormulas().subList(1, formulas.getNumLoops())),
+            formulas.getAssertionFormula()));
+    // 1st loop formula: T(S0, S1)
+    itpMgr.push(formulas.getLoopFormulas().get(0));
+    // initial image: I(S0)
     itpMgr.push(currentImage);
 
     while (itpMgr.isUnsat()) {
       logger.log(Level.ALL, "The current image is", currentImage);
-      assert formulas.getNumLoops() + 2 == itpMgr.getNumPushedFormulas();
-      BooleanFormula interpolant = itpMgr.getInterpolantAt(formulas.getNumLoops() - 1, true);
+      BooleanFormula interpolant = itpMgr.getInterpolantAt(0, true);
       logger.log(Level.ALL, "The interpolant is", interpolant);
       interpolant = fmgr.instantiate(fmgr.uninstantiate(interpolant), formulas.getPrefixSsaMap());
       logger.log(Level.ALL, "After changing SSA", interpolant);
