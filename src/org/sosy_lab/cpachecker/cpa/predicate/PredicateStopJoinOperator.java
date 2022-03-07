@@ -71,7 +71,7 @@ class PredicateStopJoinOperator extends StopJoinOperator implements ForcedCoveri
       }
 
       // check intersection
-      if (!domain.hasIntersection(pElement, state)) {
+      if (!domain.haveIntersection(pElement, state)) {
         continue;
       }
 

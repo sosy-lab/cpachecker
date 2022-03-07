@@ -1138,11 +1138,16 @@ public class PredicateAbstractionManager {
     return solver.implies(a, b);
   }
 
-  public boolean unsat(AbstractionFormula a1, AbstractionFormula a2)
+  /**
+   * Checks if a1 & a2 is satisfiable
+   *
+   * @return true if a1 & a2 is satisfiable; false otherwise.
+   */
+  public boolean checkIntersection(AbstractionFormula a1, AbstractionFormula a2)
       throws SolverException, InterruptedException {
     BooleanFormula f = bfmgr.and(a1.asFormula(), a2.asFormula());
     logger.log(Level.ALL, "Checking satisfiability of formula", f);
-    return solver.isUnsat(f);
+    return !solver.isUnsat(f);
   }
 
   /**
