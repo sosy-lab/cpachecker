@@ -7,6 +7,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 package org.sosy_lab.cpachecker.core.algorithm.components.exchange.observer;
+
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
@@ -24,6 +25,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -33,12 +35,13 @@ import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message.Messag
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Payload;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
+@Options
 public class FaultLocalizationMessageObserver implements MessageObserver {
 
-  @FileOption(Type.OUTPUT_FILE)
   @Option(
       description =
           "path for the file storing the results of the distributed fault localization algorithm")
+  @FileOption(Type.OUTPUT_FILE)
   private Path resultFile = Path.of("faults.txt");
 
   private final Set<Message> faults;

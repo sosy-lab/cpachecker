@@ -26,6 +26,8 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockTree;
@@ -35,19 +37,24 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
+@Options
 public class MessageLogger {
 
+  @Option(description = "output file for visualizing message exchange")
   @FileOption(Type.OUTPUT_FILE)
-  private static final Path reportFile = Path.of("block_analysis/block_analysis.json");
+  private Path reportFile = Path.of("block_analysis/block_analysis.json");
 
+  @Option(description = "output file for visualizing the block graph")
   @FileOption(Type.OUTPUT_FILE)
-  private static final Path blockCFAFile = Path.of("block_analysis/blocks.json");
+  private Path blockCFAFile = Path.of("block_analysis/blocks.json");
 
   private final Map<String, Multimap<String, Object>> entries;
   private final BlockTree tree;
   private FormulaManagerView fmgr;
 
-  public MessageLogger(BlockTree pTree) {
+  public MessageLogger(BlockTree pTree, Configuration pConfiguration)
+      throws InvalidConfigurationException {
+    pConfiguration.inject(this);
     // IO.openOutputFile(reportFile, StandardCharsets.US_ASCII, StandardOpenOption.CREATE);
     entries = new HashMap<>();
     tree = pTree;

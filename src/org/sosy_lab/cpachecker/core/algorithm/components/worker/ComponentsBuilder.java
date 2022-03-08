@@ -158,8 +158,9 @@ public class ComponentsBuilder {
     return this;
   }
 
-  public ComponentsBuilder addVisualizationWorker(BlockTree pBlockTree, AnalysisOptions pOptions) {
-    workers.add(new VisualizationWorker(logger, pBlockTree, pOptions));
+  public ComponentsBuilder addVisualizationWorker(BlockTree pBlockTree, AnalysisOptions pOptions, Configuration pConfiguration)
+      throws InvalidConfigurationException {
+    workers.add(new VisualizationWorker(logger, pBlockTree, pOptions, pConfiguration));
     return this;
   }
 

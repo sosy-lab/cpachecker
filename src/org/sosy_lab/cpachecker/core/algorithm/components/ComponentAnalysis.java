@@ -246,7 +246,7 @@ public class ComponentAnalysis implements Algorithm, StatisticsProvider, Statist
 
       if (spawnUtilWorkers) {
         builder = builder.addTimeoutWorker(maxWallTime, options);
-        builder = builder.addVisualizationWorker(tree, options);
+        builder = builder.addVisualizationWorker(tree, options, configuration);
       }
 
       Components components = builder.build();

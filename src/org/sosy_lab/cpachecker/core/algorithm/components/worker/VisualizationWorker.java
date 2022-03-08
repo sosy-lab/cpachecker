@@ -12,6 +12,8 @@ import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.logging.Level;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockTree;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
@@ -24,9 +26,10 @@ public class VisualizationWorker extends Worker {
 
   private final MessageLogger messageLogger;
 
-  protected VisualizationWorker(LogManager pLogger, BlockTree pTree, AnalysisOptions pOptions) {
+  protected VisualizationWorker(LogManager pLogger, BlockTree pTree, AnalysisOptions pOptions, Configuration pConfiguration)
+      throws InvalidConfigurationException {
     super("visualization-worker", pLogger, pOptions);
-    messageLogger = new MessageLogger(pTree);
+    messageLogger = new MessageLogger(pTree, pConfiguration);
     try {
       messageLogger.logTree();
     } catch (IOException pE) {
