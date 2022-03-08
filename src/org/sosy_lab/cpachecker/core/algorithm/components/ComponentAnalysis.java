@@ -267,7 +267,7 @@ public class ComponentAnalysis implements Algorithm, StatisticsProvider, Statist
       try (Connection mainThreadConnection = components.getAdditionalConnections().get(0)) {
         mainThreadConnection.collectStatistics(statsCollection);
         if (workerType == WorkerType.FAULT_LOCALIZATION) {
-          listener.register(new FaultLocalizationMessageObserver(logger, mainThreadConnection));
+          listener.register(new FaultLocalizationMessageObserver(logger, mainThreadConnection, configuration));
         }
 
         // wait for result

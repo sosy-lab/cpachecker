@@ -7,21 +7,24 @@
 // SPDX-License-Identifier: Apache-2.0
 
 package org.sosy_lab.cpachecker.core.algorithm.components.exchange.observer;
-
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
-
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
-import java.nio.file.Files;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Connection;
@@ -33,7 +36,10 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class FaultLocalizationMessageObserver implements MessageObserver {
 
   @FileOption(Type.OUTPUT_FILE)
-  private static final Path FL_RESULT = Path.of("faults.txt");
+  @Option(
+      description =
+          "path for the file storing the results of the distributed fault localization algorithm")
+  private Path resultFile = Path.of("faults.txt");
 
   private final Set<Message> faults;
   private final Connection mainConnection;
@@ -41,7 +47,9 @@ public class FaultLocalizationMessageObserver implements MessageObserver {
   private Message resultMessage;
   private Result result;
 
-  public FaultLocalizationMessageObserver(LogManager pLogManager, Connection pConnection) {
+  public FaultLocalizationMessageObserver(LogManager pLogManager, Connection pConnection, Configuration pConfiguration)
+      throws InvalidConfigurationException {
+    pConfiguration.inject(this);
     faults = new HashSet<>();
     mainConnection = pConnection;
     logger = pLogManager;
@@ -50,8 +58,8 @@ public class FaultLocalizationMessageObserver implements MessageObserver {
   @Override
   @CanIgnoreReturnValue
   public boolean process(Message pMessage) throws CPAException {
-    if (pMessage.getType() == MessageType.ERROR_CONDITION && pMessage.getPayload()
-        .containsKey(Payload.FAULT_LOCALIZATION)) {
+    if (pMessage.getType() == MessageType.ERROR_CONDITION
+        && pMessage.getPayload().containsKey(Payload.FAULT_LOCALIZATION)) {
       faults.add(pMessage);
     }
     if (pMessage.getType() == MessageType.FOUND_RESULT) {
@@ -74,24 +82,24 @@ public class FaultLocalizationMessageObserver implements MessageObserver {
     }
     Set<String> visitedBlocks =
         ImmutableSet.copyOf(
-            Splitter.on(",")
-                .split(resultMessage.getPayload().getOrDefault(Payload.VISITED, "")));
+            Splitter.on(",").split(resultMessage.getPayload().getOrDefault(Payload.VISITED, "")));
     faults.removeIf(m -> !visitedBlocks.contains(m.getUniqueBlockId()));
     if (!faults.isEmpty()) {
       logger.logf(
           Level.INFO,
           "Fault localization found %d faults. See %s for more information.",
           faults.size(),
-          FL_RESULT);
+          resultFile);
       try {
-        Files.writeString(
-            FL_RESULT,
-            Joiner.on("\n")
-                .join(
-                    transformedImmutableListCopy(
-                        faults, m -> m.getPayload().getOrDefault(Payload.FAULT_LOCALIZATION, ""))));
+        Writer outputFile = IO.openOutputFile(resultFile, StandardCharsets.UTF_8);
+        Joiner.on("\n")
+            .appendTo(
+                outputFile,
+                FluentIterable.from(faults)
+                    .transform(m -> m.getPayload().getOrDefault(Payload.FAULT_LOCALIZATION, "")));
       } catch (IOException pE) {
-        throw new CPAException("Unable to write faults to file: " + FL_RESULT, pE);
+        logger.logUserException(
+            Level.WARNING, pE, "Unable to write results of fault localization to a file");
       }
     } else {
       logger.log(
