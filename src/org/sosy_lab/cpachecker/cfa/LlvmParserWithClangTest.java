@@ -12,9 +12,9 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.google.common.io.MoreFiles;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import org.junit.Before;
@@ -67,11 +67,13 @@ public class LlvmParserWithClangTest {
   }
 
   @Test
-  public void compareStringParsingAndFileParsing()
+  public void testStringParseResultEqualsFileParseResult()
       throws ParserException, InterruptedException, InvalidConfigurationException, IOException {
+    String code = Files.readString(Path.of(testFile), Charset.defaultCharset());
+
     ParseResult fileResult = fileParser.parseFiles(ImmutableList.of(testFile));
-    String code = MoreFiles.asCharSource(Path.of(testFile), Charset.defaultCharset()).read();
     ParseResult stringResult = stringParser.parseString(fileName, code);
+
     assertThat(stringResult.isEmpty()).isEqualTo(fileResult.isEmpty());
     assertThat(stringResult.getCFANodes()).hasSize(fileResult.getCFANodes().size());
     assertThat(stringResult.getFunctions().keySet())
