@@ -15,20 +15,17 @@ import pydot
 from airium import Airium
 from pathlib import Path
 
-
-def output_path(name):
-    output = "../../output/block_analysis/"
-    Path(Path(__file__).parent / output).mkdir(parents=True, exist_ok=True)
-    return str(Path(__file__).parent / output / name)
-
-
-def relative_path(name):
-    return str(Path(__file__).parent / name)
+block_analysis_file_name = "block_analysis.json"
+summary_file_name = "blocks.json"
 
 
 def create_arg_parser():
     parser = argparse.ArgumentParser(description="Transforms Worker logs to HTML.")
-    parser.add_argument("--file", type=str)
+    parser.add_argument("-d", "--directory",
+                        type=str,
+                        help="set the path to the logs of worker (adjustable block "
+                             "analysis) usually found here: output/block_analysis",
+                        default="../../output/block_analysis")
     return parser
 
 
@@ -38,7 +35,6 @@ def parse_jsons(file):
 
 
 def html_for_message(message, block_log):
-
     div = Airium()
 
     if not message:
@@ -97,7 +93,8 @@ def html_dict_to_html_table(all_messages, block_logs: dict):
     for index in enumerate(sorted_keys):
         index_dict[index[1]] = index[0]
     for message in all_messages:
-        timestamp_to_message.setdefault(message["timestamp"] - first_timestamp, [""] * len(block_logs))[index_dict[message["from"]]] = message
+        timestamp_to_message.setdefault(message["timestamp"] - first_timestamp, [""] * len(block_logs))[
+            index_dict[message["from"]]] = message
     headers = ["time"] + sorted_keys
     table = Airium()
     with table.table(klass="worker"):
@@ -126,8 +123,9 @@ def html_dict_to_html_table(all_messages, block_logs: dict):
     return str(table)
 
 
-def visualize(block_logs):
+def visualize(output_path):
     g = nx.DiGraph()
+    block_logs = parse_jsons(str(Path(output_path) / Path(summary_file_name)))
     for key in block_logs:
         code = "\n".join(c for c in block_logs[key]["code"] if c)
         label = key + ":\n" + code if code else key
@@ -137,15 +135,17 @@ def visualize(block_logs):
             for successor in block_logs[key]["successors"]:
                 g.add_edge(key, successor)
 
-    nx.drawing.nx_pydot.write_dot(g, output_path("graph.dot"))
-    (graph,) = pydot.graph_from_dot_file(output_path('graph.dot'))
-    graph.write_png(output_path('graph.png'))
+    graph_dot = Path(output_path) / Path("graph.dot")
+    nx.drawing.nx_pydot.write_dot(g, str(graph_dot))
+    (graph,) = pydot.graph_from_dot_file(str(graph_dot))
+    graph.write_png(str(Path(output_path) / Path("graph.png")))
 
 
 def main(argv=None):
     parser = create_arg_parser()
     args = parser.parse_args(argv)
-    block_logs = parse_jsons(args.file)
+    output_path = args.directory
+    block_logs = parse_jsons(str(Path(output_path) / Path(block_analysis_file_name)))
     all_messages = []
     for key in block_logs:
         if "messages" in block_logs[key]:
@@ -153,15 +153,15 @@ def main(argv=None):
     if not all_messages:
         return
     all_messages = sorted(all_messages, key=lambda entry: (entry["timestamp"], entry["from"][1::]))
-    with open(relative_path("table.html")) as html:
-        with open(relative_path("table.css")) as css:
+    with open("table.html") as html:
+        with open("table.css") as css:
             text = html.read().replace(
                 "<!--<<<TABLE>>><!-->", html_dict_to_html_table(all_messages, block_logs)
             ).replace("/*CSS*/", css.read())
-            with open(output_path("report.html"), "w+") as new_html:
+            with open(Path(output_path) / Path("report.html"), "w+") as new_html:
                 new_html.write(text)
-    visualize(parse_jsons(output_path("blocks.json")))
-    webbrowser.open(output_path("report.html"))
+    visualize(output_path)
+    webbrowser.open(str(Path(output_path) / Path("report.html")))
 
 
 if __name__ == "__main__":
