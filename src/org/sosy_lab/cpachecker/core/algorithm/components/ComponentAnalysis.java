@@ -202,10 +202,6 @@ public class ComponentAnalysis implements Algorithm, StatisticsProvider, Statist
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
     logger.log(Level.INFO, "Starting block analysis...");
-    MessageListener listener = new MessageListener();
-    listener.register(new ResultMessageObserver(reachedSet));
-    listener.register(new ErrorMessageObserver());
-    listener.register(new StatusObserver());
     try {
       // create block tree and reduce to relevant parts
       CFADecomposer decomposer = getDecomposer();
@@ -258,6 +254,12 @@ public class ComponentAnalysis implements Algorithm, StatisticsProvider, Statist
         thread.start();
       }
 
+      // create message listener
+      MessageListener listener = new MessageListener();
+      listener.register(new ResultMessageObserver(reachedSet));
+      listener.register(new ErrorMessageObserver());
+      listener.register(new StatusObserver());
+
       // listen to messages
       try (Connection mainThreadConnection = components.getAdditionalConnections().get(0)) {
         mainThreadConnection.collectStatistics(statsCollection);
@@ -282,7 +284,7 @@ public class ComponentAnalysis implements Algorithm, StatisticsProvider, Statist
 
       return listener.getObserver(StatusObserver.class).getStatus();
     } catch (InvalidConfigurationException | IOException pE) {
-      logger.log(Level.SEVERE, "Block analysis stopped due to ", pE);
+      logger.logException(Level.SEVERE, pE, "Block analysis stopped unexpectedly.");
       throw new CPAException("Component Analysis run into an error.", pE);
     } finally {
       logger.log(Level.INFO, "Block analysis finished.");
