@@ -58,7 +58,6 @@ public final class CFunctionDeclaration extends AFunctionDeclaration implements 
         .put("dllimport", Optional.empty())
         .put("fastcall", Optional.empty())
         .put("format", Optional.empty())
-        .put("gnu_inline", Optional.empty())
         .put("deprecated", Optional.empty())
         .put("ldv_model", Optional.empty())
         .put("ldv_model_inline", Optional.empty())
