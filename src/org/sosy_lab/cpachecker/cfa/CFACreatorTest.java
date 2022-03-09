@@ -10,6 +10,7 @@
 package org.sosy_lab.cpachecker.cfa;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -146,7 +147,12 @@ public class CFACreatorTest {
         Predicates.and(
             CFACreatorTest::isTerminatingStatement,
             pCFAEdge -> CFACreatorTest.isFunctionCall(pCFAEdge, "abort"));
-    assertThatAnyEdgeMatches(created, isNoReturnFunctionCall);
+    FluentIterable<CFAEdge> cfaEdges = getAllEdges(created);
+    assertWithMessage(
+            "Expected function call to abort() with a succeeding CFATerminationNode in the CFA, but"
+                + " none found.")
+        .that(cfaEdges.anyMatch((isNoReturnFunctionCall)))
+        .isTrue();
   }
 
   @Test
@@ -164,7 +170,12 @@ public class CFACreatorTest {
         Predicates.and(
             CFACreatorTest::isTerminatingStatement,
             pCFAEdge -> CFACreatorTest.isFunctionCall(pCFAEdge, "myfunc"));
-    assertThatAnyEdgeMatches(created, isNoReturnFunctionCall);
+    FluentIterable<CFAEdge> cfaEdges = getAllEdges(created);
+    assertWithMessage(
+            "Expected function call to myfunc() with a succeeding CFATerminationNode in the CFA,"
+                + " but none found.")
+        .that(cfaEdges.anyMatch((isNoReturnFunctionCall)))
+        .isTrue();
   }
 
   @Test
@@ -184,7 +195,12 @@ public class CFACreatorTest {
         Predicates.and(
             CFACreatorTest::isTerminatingStatement,
             pCFAEdge -> CFACreatorTest.isFunctionCall(pCFAEdge, "abort"));
-    assertThatNoEdgeMatches(created, isNoReturnFunctionCall);
+    FluentIterable<CFAEdge> cfaEdges = getAllEdges(created);
+    assertWithMessage(
+            "Found function call to abort() with CFATerminationNode in the CFA, but CFA should"
+                + " continue after function call.")
+        .that(cfaEdges.anyMatch((isNoReturnFunctionCall)))
+        .isFalse();
   }
 
   @Test
@@ -204,7 +220,12 @@ public class CFACreatorTest {
         Predicates.and(
             CFACreatorTest::isTerminatingStatement,
             pCFAEdge -> CFACreatorTest.isFunctionCall(pCFAEdge, "abort"));
-    assertThatAnyEdgeMatches(created, isNoReturnFunctionCall);
+    FluentIterable<CFAEdge> cfaEdges = getAllEdges(created);
+    assertWithMessage(
+            "Expected function call to abort() with a succeeding CFATerminationNode in the CFA, but"
+                + " none found.")
+        .that(cfaEdges.anyMatch((isNoReturnFunctionCall)))
+        .isTrue();
   }
 
   private CFACreator createCfaCreatorForTesting(Configuration config)
@@ -244,16 +265,6 @@ public class CFACreatorTest {
     }
     String functionName = ((AIdExpression) callee).getName();
     return functionName.equals(pExpectedFunctionName);
-  }
-
-  private void assertThatAnyEdgeMatches(CFA pCfa, Predicate<CFAEdge> predicate) {
-    FluentIterable<CFAEdge> matchingEdges = getAllEdges(pCfa).filter(predicate);
-    assertThat(matchingEdges).isNotEmpty();
-  }
-
-  private void assertThatNoEdgeMatches(CFA pCfa, Predicate<CFAEdge> predicate) {
-    FluentIterable<CFAEdge> matchingEdges = getAllEdges(pCfa).filter(predicate);
-    assertThat(matchingEdges).isEmpty();
   }
 
   private FluentIterable<CFAEdge> getAllEdges(CFA pCfa) {
