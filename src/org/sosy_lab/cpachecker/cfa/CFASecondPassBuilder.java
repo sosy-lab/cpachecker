@@ -344,12 +344,11 @@ public class CFASecondPassBuilder {
     }
 
     String name = decl.getName();
-    if (call instanceof AFunctionCallAssignmentStatement) {
-      logger.logf(Level.WARNING, "Ignoring non-void call to %s.", name);
-      return;
-    }
 
     if (isAbortingFunction(decl)) {
+      if (call instanceof AFunctionCallAssignmentStatement) {
+        logger.logf(Level.WARNING, "Function-call assignment with non-returning method %s.", name);
+      }
       CFATerminationNode terminationNode =
           new CFATerminationNode(edge.getPredecessor().getFunction());
       CStatementEdge edgeToTermination =
