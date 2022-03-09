@@ -136,9 +136,7 @@ public class CFACreatorTest {
       throws InvalidConfigurationException, ParserException, InterruptedException {
     final Configuration config =
         TestDataTools.configurationForTest().setOption("language", "C").build();
-    final LogManager logger = LogManager.createTestLogManager();
-    final ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
-    final CFACreator creator = new CFACreator(config, logger, shutdownNotifier);
+    final CFACreator creator = createCfaCreatorForTesting(config);
     final String programSource =
         "extern void abort() __attribute__((__noreturn__));" + "int main() { abort(); }";
 
@@ -156,9 +154,7 @@ public class CFACreatorTest {
       throws InvalidConfigurationException, ParserException, InterruptedException {
     final Configuration config =
         TestDataTools.configurationForTest().setOption("language", "C").build();
-    final LogManager logger = LogManager.createTestLogManager();
-    final ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
-    final CFACreator creator = new CFACreator(config, logger, shutdownNotifier);
+    final CFACreator creator = createCfaCreatorForTesting(config);
     final String programSource =
         "extern void myfunc() __attribute__((__noreturn__));" + "int main() { myfunc(); }";
 
@@ -179,9 +175,7 @@ public class CFACreatorTest {
             .setOption("language", "C")
             .setOption("cfa.abortFunctions", "[]") // do not handle 'abort' as aborting function
             .build();
-    final LogManager logger = LogManager.createTestLogManager();
-    final ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
-    final CFACreator creator = new CFACreator(config, logger, shutdownNotifier);
+    final CFACreator creator = createCfaCreatorForTesting(config);
     final String programSource = "extern void abort();" + "int main() { abort(); }";
 
     final CFA created = creator.parseSourceAndCreateCFA(programSource);
@@ -201,9 +195,7 @@ public class CFACreatorTest {
             .setOption("language", "C")
             .setOption("cfa.abortFunctions", "abort") // handle 'abort' as aborting function
             .build();
-    final LogManager logger = LogManager.createTestLogManager();
-    final ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
-    final CFACreator creator = new CFACreator(config, logger, shutdownNotifier);
+    final CFACreator creator = createCfaCreatorForTesting(config);
     final String programSource = "extern void abort();" + "int main() { abort(); }";
 
     final CFA created = creator.parseSourceAndCreateCFA(programSource);
@@ -213,6 +205,13 @@ public class CFACreatorTest {
             CFACreatorTest::isTerminatingStatement,
             pCFAEdge -> CFACreatorTest.isFunctionCall(pCFAEdge, "abort"));
     assertThatAnyEdgeMatches(created, isNoReturnFunctionCall);
+  }
+
+  private CFACreator createCfaCreatorForTesting(Configuration config)
+      throws InvalidConfigurationException {
+    final LogManager logger = LogManager.createTestLogManager();
+    final ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
+    return new CFACreator(config, logger, shutdownNotifier);
   }
 
   /**
