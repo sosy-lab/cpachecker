@@ -22,9 +22,6 @@ public class CoverageReportStdoutSummary {
     long numVisitedFunctions = 0;
     long numVisitedLines = 0;
 
-    long numTotalNodes = 0;
-    long numConsideredNodes = 0;
-
     for (FileCoverageInformation info : pCoverage.getInfosPerFile().values()) {
       numTotalFunctions += info.allFunctions.size();
       numVisitedFunctions += info.visitedFunctions.entrySet().size();
@@ -34,9 +31,6 @@ public class CoverageReportStdoutSummary {
 
       numTotalLines += info.allLines.size();
       numVisitedLines += info.visitedLines.entrySet().size();
-
-      numTotalNodes += info.allNodes.size();
-      numConsideredNodes += info.consideredNodes.size();
     }
 
     if (numTotalFunctions > 0) {
@@ -56,13 +50,6 @@ public class CoverageReportStdoutSummary {
       StatisticsUtils.write(pStdOut, 1, 25, "Visited conditions", numVisitedConditions);
       StatisticsUtils.write(pStdOut, 1, 25, "Total conditions", numTotalConditions);
       StatisticsUtils.write(pStdOut, 1, 25, "Condition coverage", String.format("%.3f", conditionCoverage));
-    }
-
-    if (numTotalNodes > 0) {
-      final double consideredCoverage = numConsideredNodes / (double) numTotalNodes;
-      StatisticsUtils.write(pStdOut, 1, 25, "Considered nodes", numConsideredNodes);
-      StatisticsUtils.write(pStdOut, 1, 25, "Total nodes", numTotalNodes);
-      StatisticsUtils.write(pStdOut, 1, 25, "Considered coverage", String.format("%.3f", consideredCoverage));
     }
   }
 

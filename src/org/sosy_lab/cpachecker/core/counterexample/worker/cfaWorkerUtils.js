@@ -7,9 +7,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import $ from "jquery";
-import {addPanEvent, createGraph, hideToolTipBox, margin, showToolTipBox,} from "./workerUtils";
+import {
+  addPanEvent,
+  createGraph,
+  showToolTipBox,
+  hideToolTipBox,
+  margin,
+} from "./workerUtils";
 import enqueue from "./workerDirector";
-import {argWorkerCallback, argWorkerErrorCallback} from "./argWorkerUtils";
+import { argWorkerCallback, argWorkerErrorCallback } from "./argWorkerUtils";
 
 const d3 = require("d3");
 const DagreD3 = require("dagre-d3");
@@ -87,7 +93,9 @@ function addEventsToCfa() {
       if (!d3.select(".marked-cfa-node").empty()) {
         d3.select(".marked-cfa-node").classed("marked-cfa-node", false);
       }
-      const selection = d3.select(`#cfa-node${d3.select(this).attr("id").split("-")[1]}`);
+      const selection = d3.select(
+        `#cfa-node${d3.select(this).attr("id").split("-")[1]}`
+      );
       selection.classed("marked-cfa-node", true);
       const boundingRect = selection.node().getBoundingClientRect();
       $("#cfa-container")
