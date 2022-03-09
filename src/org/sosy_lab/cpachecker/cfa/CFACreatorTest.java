@@ -151,7 +151,7 @@ public class CFACreatorTest {
     assertWithMessage(
             "Expected function call to abort() with a succeeding CFATerminationNode in the CFA, but"
                 + " none found.")
-        .that(cfaEdges.anyMatch((isNoReturnFunctionCall)))
+        .that(cfaEdges.anyMatch(isNoReturnFunctionCall))
         .isTrue();
   }
 
@@ -174,7 +174,7 @@ public class CFACreatorTest {
     assertWithMessage(
             "Expected function call to myfunc() with a succeeding CFATerminationNode in the CFA,"
                 + " but none found.")
-        .that(cfaEdges.anyMatch((isNoReturnFunctionCall)))
+        .that(cfaEdges.anyMatch(isNoReturnFunctionCall))
         .isTrue();
   }
 
@@ -200,7 +200,7 @@ public class CFACreatorTest {
     assertWithMessage(
             "Found function call to abort() with CFATerminationNode in the CFA, but CFA should"
                 + " continue after function call.")
-        .that(cfaEdges.anyMatch((isNoReturnFunctionCall)))
+        .that(cfaEdges.anyMatch(isNoReturnFunctionCall))
         .isFalse();
   }
 
@@ -225,7 +225,7 @@ public class CFACreatorTest {
     assertWithMessage(
             "Expected function call to abort() with a succeeding CFATerminationNode in the CFA, but"
                 + " none found.")
-        .that(cfaEdges.anyMatch((isNoReturnFunctionCall)))
+        .that(cfaEdges.anyMatch(isNoReturnFunctionCall))
         .isTrue();
   }
 
