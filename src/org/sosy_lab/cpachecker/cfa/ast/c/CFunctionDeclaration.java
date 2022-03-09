@@ -74,7 +74,6 @@ public final class CFunctionDeclaration extends AFunctionDeclaration implements 
         .put("returns_twice", Optional.empty())
         .put("section", Optional.empty())
         .put("stdcall", Optional.empty())
-        .put("transparent_union", Optional.empty())
         .put("warn_unused_result", Optional.empty())
         .put("unused", Optional.empty())
         .put("used", Optional.empty())
