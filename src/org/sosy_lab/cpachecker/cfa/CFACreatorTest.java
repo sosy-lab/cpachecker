@@ -184,7 +184,8 @@ public class CFACreatorTest {
     final Configuration config =
         TestDataTools.configurationForTest()
             .setOption("language", "C")
-            .setOption("cfa.abortFunctions", "[]") // do not handle 'abort' as aborting function
+            .setOption(
+                "cfa.nonReturningFunctions", "[]") // do not handle 'abort' as aborting function
             .build();
     final CFACreator creator = createCfaCreatorForTesting(config);
     final String programSource = "extern void abort();" + "int main() { abort(); }";
@@ -209,7 +210,7 @@ public class CFACreatorTest {
     final Configuration config =
         TestDataTools.configurationForTest()
             .setOption("language", "C")
-            .setOption("cfa.abortFunctions", "abort") // handle 'abort' as aborting function
+            .setOption("cfa.nonReturningFunctions", "abort") // handle 'abort' as aborting function
             .build();
     final CFACreator creator = createCfaCreatorForTesting(config);
     final String programSource = "extern void abort();" + "int main() { abort(); }";

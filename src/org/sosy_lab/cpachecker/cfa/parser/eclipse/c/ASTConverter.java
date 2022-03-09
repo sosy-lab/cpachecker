@@ -1690,7 +1690,7 @@ class ASTConverter {
         declSpec.getName(),
         declarator.getThird(),
         declSpec.getParameterDeclarations(),
-        ASTConverter.getAttributes(f.getDeclarator()));
+        getAttributes(f.getDeclarator()));
   }
 
   public List<CDeclaration> convert(final IASTSimpleDeclaration d) {
@@ -1823,7 +1823,7 @@ class ASTConverter {
 
         final ImmutableSet<CFunctionDeclaration.FunctionAttribute> attributes;
         if (d instanceof IASTFunctionDeclarator) {
-          attributes = ASTConverter.getAttributes((IASTFunctionDeclarator) d);
+          attributes = getAttributes((IASTFunctionDeclarator) d);
         } else {
           attributes = ImmutableSet.of();
         }
@@ -2208,10 +2208,10 @@ class ASTConverter {
   }
 
   /**
-   * Parses known GNU C attributes of IASTFunctionDeclarator.
-   * If any unknown attribute occurs, an exception is thrown.
+   * Parses known GNU C attributes of IASTFunctionDeclarator. If any unknown attribute occurs, an
+   * exception is thrown.
    */
-  private static ImmutableSet<CFunctionDeclaration.FunctionAttribute> getAttributes(
+  private ImmutableSet<CFunctionDeclaration.FunctionAttribute> getAttributes(
       IASTFunctionDeclarator d) {
     EnumSet<FunctionAttribute> attributes = EnumSet.noneOf(FunctionAttribute.class);
     for (IASTAttribute attribute : d.getAttributes()) {
@@ -2221,6 +2221,10 @@ class ASTConverter {
             "Unrecognized attribute in declaration of " + d.getName() + ": " + name);
       }
       KNOWN_FUNCTION_ATTRIBUTES.get(name).ifPresent(attributes::add);
+    }
+    String functionName = convert(d.getName());
+    if (options.isNonReturningFunction(functionName)) {
+      attributes.add(FunctionAttribute.NO_RETURN);
     }
     return Sets.immutableEnumSet(attributes);
   }

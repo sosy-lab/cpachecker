@@ -75,12 +75,6 @@ public class CFASecondPassBuilder {
       description="Which functions should be interpreted as encoding assumptions")
   private Set<String> assumeFunctions = ImmutableSet.of("__VERIFIER_assume");
 
-  @Option(
-      secure = true,
-      name = "cfa.abortFunctions",
-      description = "Which functions should be interpreted as stopping program execution")
-  private Set<String> abortFunctions = ImmutableSet.of("abort", "exit");
-
   protected final MutableCFA cfa;
   protected final Language language;
   protected final LogManager logger;
@@ -366,7 +360,7 @@ public class CFASecondPassBuilder {
   }
 
   private boolean isAbortingFunction(AFunctionDeclaration pDecl) {
-    return (pDecl instanceof CFunctionDeclaration && ((CFunctionDeclaration) pDecl).doesNotReturn())
-        || abortFunctions.contains(pDecl.getName());
+    return (pDecl instanceof CFunctionDeclaration
+        && ((CFunctionDeclaration) pDecl).doesNotReturn());
   }
 }

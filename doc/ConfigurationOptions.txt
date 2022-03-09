@@ -759,9 +759,6 @@ cegar.refiner = no default value
 # whether or not to use refinement selection to decide which domain to refine
 cegar.useRefinementSelection = false
 
-# Which functions should be interpreted as stopping program execution
-cfa.abortFunctions = {"abort", "exit"}
-
 # Add custom labels to the CFA
 cfa.addLabels = false
 
@@ -827,6 +824,9 @@ cfa.initializeAllVariables = false
 # for arrays and structs) in your analysis anyway. this option will otherwise
 # create c code which is not the same as the original one
 cfa.moveDeclarationsToFunctionStart = false
+
+# Which functions should be interpreted as never returning to their call site
+cfa.nonReturningFunctions = {"abort", "exit"}
 
 # Export CFA as pixel graphic to the given file name. The suffix is added
 # corresponding to the value of option pixelgraphic.export.formatIf set to
