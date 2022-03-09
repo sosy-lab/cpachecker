@@ -917,7 +917,7 @@ components.spawnUtilWorkers = true
 
 # which worker to use
 components.workerType = DEFAULT
-  enum:     [DEFAULT, SMART, MONITORED, FAULT_LOCALIZATION]
+  enum:     [DEFAULT, SMART, FAULT_LOCALIZATION]
 
 # If adaptTimeLimits is set and all configurations support progress reports,
 # in each cycle the time limits per configuration are newly calculated based

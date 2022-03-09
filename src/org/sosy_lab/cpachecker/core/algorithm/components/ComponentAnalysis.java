@@ -117,7 +117,6 @@ public class ComponentAnalysis implements Algorithm, StatisticsProvider, Statist
   private enum WorkerType {
     DEFAULT,
     SMART,
-    MONITORED,
     FAULT_LOCALIZATION
   }
 
@@ -181,8 +180,6 @@ public class ComponentAnalysis implements Algorithm, StatisticsProvider, Statist
         return pBuilder.addAnalysisWorker(pNode, pMap, options);
       case SMART:
         return pBuilder.addSmartAnalysisWorker(pNode, pMap, options);
-      case MONITORED:
-        return pBuilder.addMonitoredAnalysisWorker(pNode, pMap, options);
       case FAULT_LOCALIZATION:
         return pBuilder.addFaultLocalizationWorker(pNode, pMap, options);
       default:

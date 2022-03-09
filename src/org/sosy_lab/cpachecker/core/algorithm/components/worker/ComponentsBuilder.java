@@ -24,7 +24,6 @@ import org.sosy_lab.cpachecker.core.algorithm.components.decomposition.BlockTree
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.ConnectionProvider;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.UpdatedTypeMap;
-import org.sosy_lab.cpachecker.core.algorithm.components.worker.MonitoredAnalysisWorker.Monitor;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -35,7 +34,6 @@ public class ComponentsBuilder {
   private final Configuration configuration;
   private final ShutdownManager shutdownManager;
   private final Specification specification;
-  private final Monitor monitor;
   private final List<Worker> workers;
   private final ConnectionProvider<?> connectionProvider;
   private int additionalConnections;
@@ -54,7 +52,6 @@ public class ComponentsBuilder {
     specification = pSpecification;
     connectionProvider = pConnectionProvider;
     workers = new ArrayList<>();
-    monitor = new Monitor(logger, 1);
   }
 
   private String nextId(String pAdditionalIdentifier) {
@@ -85,18 +82,6 @@ public class ComponentsBuilder {
     workers.add(
         new SmartAnalysisWorker(nextId(pNode.getId()), pOptions, pNode, logger, cfa, specification,
             shutdownManager, pTypeMap));
-    return this;
-  }
-
-  public ComponentsBuilder addMonitoredAnalysisWorker(
-      BlockNode pNode,
-      UpdatedTypeMap pMap,
-      AnalysisOptions pOptions)
-      throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
-    workers.add(
-        new MonitoredAnalysisWorker(nextId(pNode.getId()), pOptions, pNode, logger, cfa,
-            specification,
-            shutdownManager, monitor, pMap));
     return this;
   }
 
