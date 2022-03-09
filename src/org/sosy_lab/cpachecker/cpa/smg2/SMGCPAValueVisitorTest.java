@@ -852,10 +852,10 @@ public class SMGCPAValueVisitorTest {
       // and we don't want that)
       for (int j = 0; j < 2; j++) {
         for (int k = 0; k < TEST_ARRAY_LENGTH; k++) {
-          CPointerExpression arraySubscriptExpr =
+          CPointerExpression arrayPointerExpr =
               arrayPointerAccess(arrayVariableName, currentArrayType, k);
 
-          List<ValueAndSMGState> resultList = arraySubscriptExpr.accept(visitor);
+          List<ValueAndSMGState> resultList = arrayPointerExpr.accept(visitor);
 
           // Assert the correct return values depending on type
           assertThat(resultList).hasSize(1);
@@ -919,11 +919,11 @@ public class SMGCPAValueVisitorTest {
       // and we don't want that)
       for (int j = 0; j < 2; j++) {
         for (int k = 0; k < TEST_ARRAY_LENGTH; k++) {
-          CPointerExpression arraySubscriptExpr =
+          CPointerExpression arrayPointerExpr =
               arrayPointerAccessWithVariableIndex(
                   arrayVariableName, indexVariableName + k, indexVarType, currentArrayType);
 
-          List<ValueAndSMGState> resultList = arraySubscriptExpr.accept(visitor);
+          List<ValueAndSMGState> resultList = arrayPointerExpr.accept(visitor);
 
           // Assert the correct return values depending on type
           assertThat(resultList).hasSize(1);
