@@ -87,7 +87,7 @@ public final class CFunctionDeclaration extends AFunctionDeclaration implements 
 
   /**
    * GNU C function attributes used by CPAchecker.
-   * See @{link #KNOWN_ATTRIBUTES} for a list of all known attributes,
+   * See {@link #KNOWN_ATTRIBUTES} for a list of all known attributes,
    * including those that are ignored.
    */
   public enum FunctionAttribute {
