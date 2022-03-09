@@ -123,6 +123,8 @@ public class SMGCPAValueVisitorTest {
           UNSIGNED_LONG_TYPE,
           CHAR_TYPE);
 
+  private static final int TEST_ARRAY_LENGTH = 100;
+
   @Before
   public void init() throws InvalidConfigurationException {
     logger = new LogManagerWithoutDuplicates(LogManager.createTestLogManager());
@@ -904,6 +906,62 @@ public class SMGCPAValueVisitorTest {
             // may be some other type, arrays, structs etc.
             // TODO:
           }
+        }
+      }
+      // Reset memory model
+      resetSMGStateAndVisitor();
+    }
+  }
+
+  /**
+   * Read an array on the heap with a constant expression for multiple types and values saved in the
+   * array. Example: int * array = malloc(); fill; ... = *array; ... = *(array + 1);
+   *
+   * @throws CPATransferException should never be thrown!
+   * @throws InvalidConfigurationException should never be thrown!
+   */
+  @Test
+  public void readHeapArrayConstMultipleTypesRepeated()
+      throws CPATransferException, InvalidConfigurationException {
+    String arrayVariableName = "arrayVariable";
+
+    // We want to test the arrays for all basic types
+    for (int i = 0; i < arrayTestTypes.size(); i++) {
+      CType currentArrayType = arrayTestTypes.get(i);
+
+      int sizeOfCurrentTypeInBits = MACHINE_MODEL.getSizeof(currentArrayType).intValue() * 8;
+      // address to the heap where the array starts
+      Value addressValue = new ConstantSymbolicExpression(new UnknownValue(), null);
+      // Create the array on the heap; size is type size in bits * size of array
+      addHeapVariableToMemoryModel(0, sizeOfCurrentTypeInBits * TEST_ARRAY_LENGTH, addressValue);
+      // Stack variable holding the address (the pointer)
+      addStackVariableToMemoryModel(arrayVariableName, POINTER_SIZE);
+      writeToStackVariableInMemoryModel(arrayVariableName, 0, POINTER_SIZE, addressValue);
+
+      // Now write some distinct values into the array, for signed we want to test negatives!
+      for (int k = 0; k < TEST_ARRAY_LENGTH; k++) {
+        // Create a Value that we want to be mapped to a SMGValue to write into the array depending
+        // on the type
+        Value arrayValue = transformInputIntoValue(currentArrayType, k);
+
+        // Write to the heap array
+        writeToHeapObjectByAddress(
+            addressValue, sizeOfCurrentTypeInBits * k, sizeOfCurrentTypeInBits, arrayValue);
+      }
+
+      // Now we read the entire array twice.(twice because values may change when reading in SMGs,
+      // and we don't want that)
+      for (int j = 0; j < 2; j++) {
+        for (int k = 0; k < TEST_ARRAY_LENGTH; k++) {
+          CPointerExpression arraySubscriptExpr =
+              arrayPointerAccess(arrayVariableName, currentArrayType, k);
+
+          List<ValueAndSMGState> resultList = arraySubscriptExpr.accept(visitor);
+
+          // Assert the correct return values depending on type
+          assertThat(resultList).hasSize(1);
+          Value resultValue = resultList.get(0).getValue();
+          checkValue(currentArrayType, k, resultValue);
         }
       }
       // Reset memory model
@@ -1726,7 +1784,7 @@ public class SMGCPAValueVisitorTest {
       String variableName, CType elementType, int arrayIndiceInt) {
     CIntegerLiteralExpression arrayIndice =
         new CIntegerLiteralExpression(
-            FileLocation.DUMMY, INT_TYPE, BigInteger.valueOf(arrayIndiceInt));
+            FileLocation.DUMMY, INT_TYPE, BigInteger.valueOf(Math.abs(arrayIndiceInt)));
 
     // The type for the returned value after the pointer
     CPointerType cPointerReturnType = new CPointerType(false, false, elementType);
@@ -1746,10 +1804,20 @@ public class SMGCPAValueVisitorTest {
             variableName,
             null);
 
-    CBinaryExpression.BinaryOperator cBinOperator = CBinaryExpression.BinaryOperator.PLUS;
+    CBinaryExpression.BinaryOperator cBinOperator;
+    if (arrayIndiceInt >= 0) {
+      cBinOperator = CBinaryExpression.BinaryOperator.PLUS;
+    } else {
+      cBinOperator = CBinaryExpression.BinaryOperator.MINUS;
+    }
 
     CIdExpression idExpr = new CIdExpression(FileLocation.DUMMY, declararation);
-    CBinaryExpression arrayPlusX =
+    if (arrayIndiceInt == 0) {
+      // *(array)
+      return new CPointerExpression(FileLocation.DUMMY, elementType, idExpr);
+    }
+
+    CBinaryExpression arrayExpr =
         new CBinaryExpression(
             FileLocation.DUMMY,
             cPointerReturnType,
@@ -1757,7 +1825,9 @@ public class SMGCPAValueVisitorTest {
             idExpr,
             arrayIndice,
             cBinOperator);
-    return new CPointerExpression(FileLocation.DUMMY, elementType, arrayPlusX);
+
+    // *(array +- something)
+    return new CPointerExpression(FileLocation.DUMMY, elementType, arrayExpr);
   }
 
   /**
@@ -1820,5 +1890,51 @@ public class SMGCPAValueVisitorTest {
             idExprIndex,
             cBinOperator);
     return new CPointerExpression(FileLocation.DUMMY, elementType, arrayPlusX);
+  }
+
+  /**
+   * Checks Values with type valueType and original integer numValue. numValue has to be the same as
+   * the one used for the expected value such that transformInputIntoValue(numValue) ==
+   * valueToCheck!!! Consistent with transformInputIntoValue()!
+   *
+   * @param valueType {@link CType} for the original input value.
+   * @param numValue the original value used as input.
+   * @param valueToCheck the result Value to be checked against the numValue.
+   */
+  private void checkValue(CType valueType, int numValue, Value valueToCheck) {
+    Value expected = transformInputIntoValue(valueType, numValue);
+    assertThat(valueToCheck).isInstanceOf(expected.getClass());
+    if (valueType instanceof CSimpleType) {
+      assertThat(valueToCheck).isInstanceOf(NumericValue.class);
+      assertThat(valueToCheck.asNumericValue().bigInteger())
+          .isEqualTo(expected.asNumericValue().bigInteger());
+    } else {
+      // may be some other type, arrays, structs etc.
+      // TODO:
+    }
+  }
+
+  /**
+   * Generates Values from types and integers (for example loop indices). Use checkValue() to check
+   * in the end!
+   *
+   * @param valueType CType of the original value
+   * @param numValue the current value to be transformed into Value. Note: this does not mean the
+   *     resulting Value == input! Only check with checkValue().
+   * @return some Value for the type and input value.
+   */
+  private Value transformInputIntoValue(CType valueType, int numValue) {
+    if (valueType instanceof CSimpleType) {
+      if (((CSimpleType) valueType).isSigned()) {
+        // Make every second number negative
+        return new NumericValue(numValue % 2 == 0 ? numValue : -numValue);
+      } else {
+        return new NumericValue(numValue);
+      }
+    } else {
+      // may be some other type, arrays, structs etc.
+      // TODO:
+      return null;
+    }
   }
 }
