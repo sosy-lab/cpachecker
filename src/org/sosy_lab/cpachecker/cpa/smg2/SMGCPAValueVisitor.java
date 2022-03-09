@@ -637,6 +637,7 @@ public class SMGCPAValueVisitor
         // Default case either *pointer or *(pointer + smth), but both get transformed into a
         // AddressExpression Value type with the correct offset build in
         // Just dereference the pointer with the correct type
+        // TODO: revisit
         BigInteger sizeInBits = evaluator.getBitSizeof(currentState, type);
         BigInteger offsetInBits = offset.asNumericValue().bigInteger();
 
@@ -652,6 +653,20 @@ public class SMGCPAValueVisitor
               && ((CUnaryExpression) expr).getOperator() == CUnaryExpression.UnaryOperator.AMPER)) {
         // Special cases
         // TODO:
+      } else {
+        // "Normal" return types
+        // Default case either *pointer or *(pointer + smth), but both get transformed into a
+        // AddressExpression Value type with the correct offset build in
+        // Just dereference the pointer with the correct type
+        BigInteger sizeInBits = evaluator.getBitSizeof(currentState, type);
+        BigInteger offsetInBits = offset.asNumericValue().bigInteger();
+
+        // Dereference the Value and return it. The read checks for validity etc.
+        ValueAndSMGState readValue =
+            evaluator.readValueWithPointerDereference(
+                currentState, pointerValue.getMemoryAddress(), offsetInBits, sizeInBits);
+        currentState = readValue.getState();
+        builder.add(readValue);
       }
     }
     return builder.build();
@@ -1580,6 +1595,12 @@ public class SMGCPAValueVisitor
     if (binaryOperator != BinaryOperator.PLUS && binaryOperator != BinaryOperator.MINUS) {
       return ValueAndSMGState.ofUnknownValue(currentState);
     }
+
+    CType canonicalReturnType = expressionType;
+    if (calculationType instanceof CPointerType) {
+      canonicalReturnType = ((CPointerType) expressionType).getType();
+    }
+
     if (leftValue instanceof AddressExpression && !(rightValue instanceof AddressExpression)) {
       AddressExpression addressValue = (AddressExpression) leftValue;
       Value addressOffset = addressValue.getOffset();
@@ -1587,9 +1608,12 @@ public class SMGCPAValueVisitor
         // TODO: symbolic values if possible
         return ValueAndSMGState.ofUnknownValue(currentState);
       }
+
+      // We need the correct types here; the types of the returned value after the pointer
+      // expression!
       Value correctlyTypedOffset =
           arithmeticOperation(
-              new NumericValue(evaluator.getBitSizeof(currentState, expressionType)),
+              new NumericValue(evaluator.getBitSizeof(currentState, canonicalReturnType)),
               (NumericValue) rightValue,
               BinaryOperator.MULTIPLY,
               calculationType);
@@ -1615,7 +1639,7 @@ public class SMGCPAValueVisitor
       }
       Value correctlyTypedOffset =
           arithmeticOperation(
-              new NumericValue(evaluator.getBitSizeof(currentState, expressionType)),
+              new NumericValue(evaluator.getBitSizeof(currentState, canonicalReturnType)),
               (NumericValue) leftValue,
               BinaryOperator.MULTIPLY,
               evaluator.getMachineModel().getPointerEquivalentSimpleType());
@@ -1655,7 +1679,7 @@ public class SMGCPAValueVisitor
       Value distance =
           arithmeticOperation(
               (NumericValue) distanceInBits,
-              new NumericValue(evaluator.getBitSizeof(currentState, expressionType)),
+              new NumericValue(evaluator.getBitSizeof(currentState, canonicalReturnType)),
               BinaryOperator.DIVIDE,
               evaluator.getMachineModel().getPointerEquivalentSimpleType());
 
