@@ -43,7 +43,7 @@ public class ComponentsBuilder {
       ConnectionProvider<?> pConnectionProvider,
       Specification pSpecification,
       Configuration pConfiguration,
-      ShutdownManager pShutdownManager) throws InvalidConfigurationException {
+      ShutdownManager pShutdownManager) {
     logger = pLogger;
     cfa = pCFA;
     configuration = pConfiguration;
