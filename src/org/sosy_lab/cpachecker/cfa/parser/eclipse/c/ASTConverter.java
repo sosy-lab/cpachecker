@@ -2172,7 +2172,7 @@ class ASTConverter {
       Optional<CFunctionDeclaration.FunctionAttribute> maybeAttribute =
           CFunctionDeclaration.KNOWN_ATTRIBUTES.get(name);
       if (maybeAttribute.isPresent()) {
-        attributes.add(maybeAttribute.get());
+        attributes.add(maybeAttribute.orElseThrow());
       }
     }
     return Sets.immutableEnumSet(attributes);
