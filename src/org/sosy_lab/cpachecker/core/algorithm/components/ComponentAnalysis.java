@@ -190,14 +190,14 @@ public class ComponentAnalysis implements Algorithm, StatisticsProvider, Statist
     }
   }
 
-  private Class<? extends ConnectionProvider<?>> getConnectionProvider() {
+  private ConnectionProvider<?> getConnectionProvider() {
     switch (connectionType) {
       case NETWORK_NIO_UNSTABLE:
-        return NetworkConnectionProvider.class;
+        return new NetworkConnectionProvider();
       case IN_MEMORY:
-        return InMemoryConnectionProvider.class;
+        return new InMemoryConnectionProvider();
       case NETWORK:
-        return ClassicNetworkConnectionProvider.class;
+        return new ClassicNetworkConnectionProvider();
       default:
         throw new AssertionError("Unknown ConnectionType " + connectionType);
     }
@@ -232,9 +232,8 @@ public class ComponentAnalysis implements Algorithm, StatisticsProvider, Statist
       // create workers
       Collection<BlockNode> blocks = tree.getDistinctNodes();
       ComponentsBuilder builder =
-          new ComponentsBuilder(logger, cfa, specification, configuration, shutdownManager);
-      builder = builder.withConnectionType(getConnectionProvider())
-          .createAdditionalConnections(1);
+          new ComponentsBuilder(logger, cfa, getConnectionProvider(), specification, configuration, shutdownManager);
+      builder = builder.createAdditionalConnections(1);
       for (BlockNode distinctNode : blocks) {
         if (distinctNode.isRoot()) {
           builder = builder.addRootWorker(distinctNode, options);
