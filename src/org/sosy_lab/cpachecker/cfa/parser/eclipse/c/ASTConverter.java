@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.LongSummaryStatistics;
@@ -119,6 +120,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration.FunctionAttribute;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
@@ -2161,7 +2163,7 @@ class ASTConverter {
    */
   private static ImmutableSet<CFunctionDeclaration.FunctionAttribute> getAttributes(
       IASTFunctionDeclarator d) {
-    List<CFunctionDeclaration.FunctionAttribute> attributes = new ArrayList<>();
+    EnumSet<FunctionAttribute> attributes = EnumSet.noneOf(FunctionAttribute.class);
     for (IASTAttribute attribute : d.getAttributes()) {
       String name = getAttributeString(attribute.getName());
       if (!CFunctionDeclaration.KNOWN_ATTRIBUTES.containsKey(name)) {
