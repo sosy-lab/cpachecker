@@ -2170,12 +2170,7 @@ class ASTConverter {
         throw new CFAGenerationRuntimeException(
             "Unrecognized attribute in declaration of " + d.getName() + ": " + name);
       }
-
-      Optional<CFunctionDeclaration.FunctionAttribute> maybeAttribute =
-          CFunctionDeclaration.KNOWN_ATTRIBUTES.get(name);
-      if (maybeAttribute.isPresent()) {
-        attributes.add(maybeAttribute.orElseThrow());
-      }
+      KNOWN_FUNCTION_ATTRIBUTES.get(name).ifPresent(attributes::add);
     }
     return Sets.immutableEnumSet(attributes);
   }
