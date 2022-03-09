@@ -12,7 +12,6 @@ import static com.google.common.collect.FluentIterable.from;
 
 import java.io.IOException;
 import java.io.PrintStream;
-import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -282,7 +281,7 @@ public class ComponentAnalysis implements Algorithm, StatisticsProvider, Statist
       }
 
       return listener.getObserver(StatusObserver.class).getStatus();
-    } catch (InvalidConfigurationException | IOException | InvocationTargetException | InstantiationException | IllegalAccessException | NoSuchMethodException pE) {
+    } catch (InvalidConfigurationException | IOException pE) {
       logger.log(Level.SEVERE, "Block analysis stopped due to ", pE);
       throw new CPAException("Component Analysis run into an error.", pE);
     } finally {

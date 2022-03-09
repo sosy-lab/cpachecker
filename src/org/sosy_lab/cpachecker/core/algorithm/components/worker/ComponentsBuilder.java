@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.components.worker;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -115,9 +114,7 @@ public class ComponentsBuilder {
     return this;
   }
 
-  public Components build()
-      throws InvocationTargetException, InstantiationException, IllegalAccessException,
-          NoSuchMethodException, IOException {
+  public Components build() throws IOException {
     List<? extends Connection> connections =
         connectionProvider.createConnections(workers.size() + additionalConnections);
     List<Connection> excessConnections = new ArrayList<>();
