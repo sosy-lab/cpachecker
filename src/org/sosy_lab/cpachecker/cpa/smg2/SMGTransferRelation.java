@@ -12,6 +12,7 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCo
 
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -19,6 +20,11 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -357,5 +363,91 @@ public class SMGTransferRelation
         valueOffset,
         memoryOfField.getSize(),
         cfaEdge.getRawStatement());
+  }
+
+  /*
+   * Preliminary options. Copied and modified from value CPA!
+   */
+  @Options(prefix = "cpa.smg2")
+  public static class ValueTransferOptions {
+
+    @Option(
+        secure = true,
+        description =
+            "if there is an assumption like (x!=0), "
+                + "this option sets unknown (uninitialized) variables to 1L, "
+                + "when the true-branch is handled.")
+    private boolean initAssumptionVars = false;
+
+    @Option(
+        secure = true,
+        description =
+            "Assume that variables used only in a boolean context are either zero or one.")
+    private boolean optimizeBooleanVariables = true;
+
+    @Option(secure = true, description = "Track or not function pointer values")
+    private boolean ignoreFunctionValue = true;
+
+    @Option(
+        secure = true,
+        description =
+            "If 'ignoreFunctionValue' is set to true, this option allows to provide a fixed set of"
+                + " values in the TestComp format. It is used for function-calls to calls of"
+                + " VERIFIER_nondet_*. The file is provided via the option"
+                + " functionValuesForRandom ")
+    private boolean ignoreFunctionValueExceptRandom = false;
+
+    @Option(
+        secure = true,
+        description =
+            "Fixed set of values for function calls to VERIFIER_nondet_*. Does only work, if"
+                + " ignoreFunctionValueExceptRandom is enabled ")
+    @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+    private Path functionValuesForRandom = null;
+
+    @Option(
+        secure = true,
+        description = "Use equality assumptions to assign values (e.g., (x == 0) => x = 0)")
+    private boolean assignEqualityAssumptions = true;
+
+    @Option(
+        secure = true,
+        description =
+            "Allow the given extern functions and interpret them as pure functions"
+                + " although the value analysis does not support their semantics"
+                + " and this can produce wrong results.")
+    private Set<String> allowedUnsupportedFunctions = ImmutableSet.of();
+
+    public ValueTransferOptions(Configuration config) throws InvalidConfigurationException {
+      config.inject(this);
+    }
+
+    boolean isInitAssumptionVars() {
+      return initAssumptionVars;
+    }
+
+    boolean isAssignEqualityAssumptions() {
+      return assignEqualityAssumptions;
+    }
+
+    boolean isOptimizeBooleanVariables() {
+      return optimizeBooleanVariables;
+    }
+
+    boolean isIgnoreFunctionValue() {
+      return ignoreFunctionValue;
+    }
+
+    public boolean isIgnoreFunctionValueExceptRandom() {
+      return ignoreFunctionValueExceptRandom;
+    }
+
+    public Path getFunctionValuesForRandom() {
+      return functionValuesForRandom;
+    }
+
+    boolean isAllowedUnsupportedOption(String func) {
+      return allowedUnsupportedFunctions.contains(func);
+    }
   }
 }
