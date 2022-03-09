@@ -93,8 +93,7 @@ public class FaultLocalizationMessageObserver implements MessageObserver {
           "Fault localization found %d faults. See %s for more information.",
           faults.size(),
           resultFile);
-      try {
-        Writer outputFile = IO.openOutputFile(resultFile, StandardCharsets.UTF_8);
+      try (Writer outputFile = IO.openOutputFile(resultFile, StandardCharsets.UTF_8)) {
         Joiner.on("\n")
             .appendTo(
                 outputFile,
