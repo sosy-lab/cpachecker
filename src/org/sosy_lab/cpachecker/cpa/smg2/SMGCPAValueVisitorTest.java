@@ -969,6 +969,74 @@ public class SMGCPAValueVisitorTest {
     }
   }
 
+  /**
+   * Read an array on the heap with a variable expression for multiple types and values saved in the
+   * array. Example: int * array = malloc(); fill; ... = *(array + variable);
+   *
+   * @throws CPATransferException should never be thrown!
+   * @throws InvalidConfigurationException should never be thrown!
+   */
+  @Test
+  public void readHeapArrayVariableMultipleTypesRepeated()
+      throws CPATransferException, InvalidConfigurationException {
+    String arrayVariableName = "arrayVariable";
+    String indexVariableName = "indexVariableName";
+    CType indexVarType = INT_TYPE;
+
+    // We want to test the arrays for all basic types
+    for (int i = 0; i < arrayTestTypes.size(); i++) {
+      CType currentArrayType = arrayTestTypes.get(i);
+
+      int sizeOfCurrentTypeInBits = MACHINE_MODEL.getSizeof(currentArrayType).intValue() * 8;
+      // address to the heap where the array starts
+      Value addressValue = new ConstantSymbolicExpression(new UnknownValue(), null);
+      // Create the array on the heap; size is type size in bits * size of array
+      addHeapVariableToMemoryModel(0, sizeOfCurrentTypeInBits * TEST_ARRAY_LENGTH, addressValue);
+      // Stack variable holding the address (the pointer)
+      addStackVariableToMemoryModel(arrayVariableName, POINTER_SIZE);
+      writeToStackVariableInMemoryModel(arrayVariableName, 0, POINTER_SIZE, addressValue);
+
+      // Now write some distinct values into the array, for signed we want to test negatives!
+      for (int k = 0; k < TEST_ARRAY_LENGTH; k++) {
+        // Create a Value that we want to be mapped to a SMGValue to write into the array depending
+        // on the type
+        Value arrayValue = transformInputIntoValue(currentArrayType, k);
+
+        // Write to the heap array
+        writeToHeapObjectByAddress(
+            addressValue, sizeOfCurrentTypeInBits * k, sizeOfCurrentTypeInBits, arrayValue);
+
+        // Now create length stack variables holding the indices to access the array
+        addStackVariableToMemoryModel(
+            indexVariableName + k, MACHINE_MODEL.getSizeof(indexVarType).intValue() * 8);
+        writeToStackVariableInMemoryModel(
+            indexVariableName + k,
+            0,
+            MACHINE_MODEL.getSizeof(indexVarType).intValue() * 8,
+            new NumericValue(k));
+      }
+
+      // Now we read the entire array twice.(twice because values may change when reading in SMGs,
+      // and we don't want that)
+      for (int j = 0; j < 2; j++) {
+        for (int k = 0; k < TEST_ARRAY_LENGTH; k++) {
+          CPointerExpression arraySubscriptExpr =
+              arrayPointerAccessWithVariableIndex(
+                  arrayVariableName, indexVariableName + k, indexVarType, currentArrayType);
+
+          List<ValueAndSMGState> resultList = arraySubscriptExpr.accept(visitor);
+
+          // Assert the correct return values depending on type
+          assertThat(resultList).hasSize(1);
+          Value resultValue = resultList.get(0).getValue();
+          checkValue(currentArrayType, k, resultValue);
+        }
+      }
+      // Reset memory model
+      resetSMGStateAndVisitor();
+    }
+  }
+
   /*
    * Test casting of char concrete values.
    * Assuming Linux 64bit. If signed/unsigned is missing signed is assumed.
