@@ -16,6 +16,7 @@ import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutVolatile;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.math.BigInteger;
@@ -176,6 +177,55 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
 
 class ASTConverter {
+
+  /**
+   * All GNU C function attributes that are known by CPAchecker. The keys of this map are the names
+   * of the C attributes. The value of each name is one of the following two:
+   *
+   * <ul>
+   *   <li>a {@link FunctionAttribute} that is used within CPAchecker to represent the attribute, or
+   *   <li>empty if the attribute is known by CPAchecker, but ignored.
+   * </ul>
+   */
+  private static final ImmutableMap<String, Optional<FunctionAttribute>> KNOWN_FUNCTION_ATTRIBUTES;
+
+  static {
+    ImmutableMap.Builder<String, Optional<FunctionAttribute>> builder = ImmutableMap.builder();
+    KNOWN_FUNCTION_ATTRIBUTES =
+        builder
+            .put("access", Optional.empty())
+            .put("alias", Optional.empty())
+            .put("aligned", Optional.empty())
+            .put("always_inline", Optional.empty())
+            .put("cdecl", Optional.empty())
+            .put("const", Optional.empty())
+            .put("dllimport", Optional.empty())
+            .put("fastcall", Optional.empty())
+            .put("format", Optional.empty())
+            .put("deprecated", Optional.empty())
+            .put("ldv_model", Optional.empty())
+            .put("ldv_model_inline", Optional.empty())
+            .put("leaf", Optional.empty())
+            .put("malloc", Optional.empty())
+            .put("mode", Optional.empty()) // handled in ASTConverter
+            .put("no_instrument_function", Optional.empty())
+            .put("noinline", Optional.empty())
+            .put("nonnull", Optional.empty())
+            .put("noreturn", Optional.of(FunctionAttribute.NO_RETURN))
+            .put("nothrow", Optional.empty())
+            .put("pure", Optional.empty())
+            .put("regparm", Optional.empty())
+            .put("returns_twice", Optional.empty())
+            .put("section", Optional.empty())
+            .put("stdcall", Optional.empty())
+            .put("warn_unused_result", Optional.empty())
+            .put("unused", Optional.empty())
+            .put("used", Optional.empty())
+            .put("visibility", Optional.empty())
+            .put("warning", Optional.empty())
+            .put("weak", Optional.empty())
+            .build();
+  }
 
   // Calls to this functions are handled by this class and replaced with regular C code.
   private static final String FUNC_CONSTANT = "__builtin_constant_p";
@@ -2166,7 +2216,7 @@ class ASTConverter {
     EnumSet<FunctionAttribute> attributes = EnumSet.noneOf(FunctionAttribute.class);
     for (IASTAttribute attribute : d.getAttributes()) {
       String name = getAttributeString(attribute.getName());
-      if (!CFunctionDeclaration.KNOWN_ATTRIBUTES.containsKey(name)) {
+      if (!KNOWN_FUNCTION_ATTRIBUTES.containsKey(name)) {
         throw new CFAGenerationRuntimeException(
             "Unrecognized attribute in declaration of " + d.getName() + ": " + name);
       }

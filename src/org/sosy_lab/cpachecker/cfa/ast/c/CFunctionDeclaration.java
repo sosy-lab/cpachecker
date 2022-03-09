@@ -11,10 +11,8 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.List;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
@@ -35,61 +33,9 @@ public final class CFunctionDeclaration extends AFunctionDeclaration implements 
           ImmutableList.of(),
           ImmutableSet.of());
 
-  /**
-   * All GNU C function attributes that are known by CPAchecker. The keys of this map are the names
-   * of the C attributes. The value of each name is one of the following two:
-   *
-   * <ul>
-   *   <li>a {@link FunctionAttribute} that is used within CPAchecker to represent the attribute, or
-   *   <li>empty if the attribute is known by CPAchecker, but ignored.
-   * </ul>
-   */
-  public static final ImmutableMap<String, Optional<FunctionAttribute>> KNOWN_ATTRIBUTES;
-
-  static {
-    ImmutableMap.Builder<String, Optional<FunctionAttribute>> builder = ImmutableMap.builder();
-    KNOWN_ATTRIBUTES = builder
-        .put("access", Optional.empty())
-        .put("alias", Optional.empty())
-        .put("aligned", Optional.empty())
-        .put("always_inline", Optional.empty())
-        .put("cdecl", Optional.empty())
-        .put("const", Optional.empty())
-        .put("dllimport", Optional.empty())
-        .put("fastcall", Optional.empty())
-        .put("format", Optional.empty())
-        .put("deprecated", Optional.empty())
-        .put("ldv_model", Optional.empty())
-        .put("ldv_model_inline", Optional.empty())
-        .put("leaf", Optional.empty())
-        .put("malloc", Optional.empty())
-        .put("mode", Optional.empty()) // handled in ASTConverter
-        .put("no_instrument_function", Optional.empty())
-        .put("noinline", Optional.empty())
-        .put("nonnull", Optional.empty())
-        .put("noreturn", Optional.of(FunctionAttribute.NO_RETURN))
-        .put("nothrow", Optional.empty())
-        .put("pure", Optional.empty())
-        .put("regparm", Optional.empty())
-        .put("returns_twice", Optional.empty())
-        .put("section", Optional.empty())
-        .put("stdcall", Optional.empty())
-        .put("warn_unused_result", Optional.empty())
-        .put("unused", Optional.empty())
-        .put("used", Optional.empty())
-        .put("visibility", Optional.empty())
-        .put("warning", Optional.empty())
-        .put("weak", Optional.empty())
-        .build();
-  }
-
   private static final long serialVersionUID = 5485363555708455537L;
 
-  /**
-   * GNU C function attributes used by CPAchecker.
-   * See {@link #KNOWN_ATTRIBUTES} for a list of all known attributes,
-   * including those that are ignored.
-   */
+  /** GNU C function attributes used by CPAchecker. */
   public enum FunctionAttribute {
     /** GNU C attribute 'noreturn'. */
     NO_RETURN
