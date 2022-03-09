@@ -49,7 +49,7 @@ public class ComponentsBuilder {
       ShutdownManager pShutdownManager) throws InvalidConfigurationException {
     logger = pLogger;
     cfa = pCFA;
-    configuration = Configuration.builder().copyFrom(pConfiguration).build();
+    configuration = pConfiguration;
     shutdownManager = pShutdownManager;
     specification = pSpecification;
     connectionProvider = pConnectionProvider;
