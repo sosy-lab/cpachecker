@@ -60,14 +60,6 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 // TODO: run with more machine models
 /* Test all SMGCPAValueVisitor visits. Some will be tested indirectly, for example value creation. */
 public class SMGCPAValueVisitorTest {
-
-  private LogManagerWithoutDuplicates logger;
-  private SMGCPAValueExpressionEvaluator evaluator;
-  private SMGState currentState;
-
-  // The visitor should always use the currentState!
-  private SMGCPAValueVisitor visitor;
-
   private static final CType CHAR_TYPE = CNumericTypes.CHAR;
   private static final CType SHORT_TYPE = CNumericTypes.SHORT_INT;
   private static final CType UNSIGNED_SHORT_TYPE = CNumericTypes.UNSIGNED_SHORT_INT;
@@ -102,7 +94,7 @@ public class SMGCPAValueVisitorTest {
   // Note: padding is on per default, meaning that the types get padding to allign to their
   // "natural" memory offset. I.e. starting with a 2 byte type, then using a 4 byte type would
   // result in a padding of 2 byte between them. This is meant for structs with padding.
-  private static final List<CType> structOrUnionTestTypes =
+  private static final List<CType> STRUCT_UNION_TEST_TYPES =
       ImmutableList.of(
           SHORT_TYPE, // 2 byte padding after this!
           INT_TYPE, // No padding after this
@@ -113,7 +105,7 @@ public class SMGCPAValueVisitorTest {
           CHAR_TYPE);
 
   // TODO: add complex types, structs/arrays etc. as well.
-  private static final List<CType> arrayTestTypes =
+  private static final List<CType> ARRAY_TEST_TYPES =
       ImmutableList.of(
           SHORT_TYPE,
           INT_TYPE,
@@ -124,6 +116,13 @@ public class SMGCPAValueVisitorTest {
           CHAR_TYPE);
 
   private static final int TEST_ARRAY_LENGTH = 100;
+
+  private LogManagerWithoutDuplicates logger;
+  private SMGCPAValueExpressionEvaluator evaluator;
+  private SMGState currentState;
+
+  // The visitor should always use the currentState!
+  private SMGCPAValueVisitor visitor;
 
   @Before
   public void init() throws InvalidConfigurationException {
@@ -154,13 +153,13 @@ public class SMGCPAValueVisitorTest {
     String structVariableName = "structVariable";
     String structDeclrName = "structDeclaration";
 
-    for (int i = 0; i < structOrUnionTestTypes.size(); i++) {
+    for (int i = 0; i < STRUCT_UNION_TEST_TYPES.size(); i++) {
       CFieldReference fieldRef =
           createFieldRefForStackVar(
               structDeclrName,
               structVariableName,
               i,
-              structOrUnionTestTypes,
+              STRUCT_UNION_TEST_TYPES,
               true,
               ComplexTypeKind.STRUCT);
 
@@ -169,14 +168,14 @@ public class SMGCPAValueVisitorTest {
       Value addressValue = new ConstantSymbolicExpression(new UnknownValue(), null);
 
       addHeapVariableToMemoryModel(
-          0, getSizeInBitsForListOfCTypeWithPadding(structOrUnionTestTypes), addressValue);
+          0, getSizeInBitsForListOfCTypeWithPadding(STRUCT_UNION_TEST_TYPES), addressValue);
       addStackVariableToMemoryModel(structVariableName, POINTER_SIZE);
       writeToStackVariableInMemoryModel(structVariableName, 0, POINTER_SIZE, addressValue);
 
       writeToHeapObjectByAddress(
           addressValue,
-          getOffsetInBitsWithPadding(structOrUnionTestTypes, i),
-          MACHINE_MODEL.getSizeof(structOrUnionTestTypes.get(i)).intValue() * 8,
+          getOffsetInBitsWithPadding(STRUCT_UNION_TEST_TYPES, i),
+          MACHINE_MODEL.getSizeof(STRUCT_UNION_TEST_TYPES.get(i)).intValue() * 8,
           intValue);
 
       List<ValueAndSMGState> resultList = fieldRef.accept(visitor);
@@ -210,32 +209,32 @@ public class SMGCPAValueVisitorTest {
 
     // Add the heap object with padding, then map to stack var
     addHeapVariableToMemoryModel(
-        0, getSizeInBitsForListOfCTypeWithPadding(structOrUnionTestTypes), addressValue);
+        0, getSizeInBitsForListOfCTypeWithPadding(STRUCT_UNION_TEST_TYPES), addressValue);
     addStackVariableToMemoryModel(structVariableName, POINTER_SIZE);
     writeToStackVariableInMemoryModel(structVariableName, 0, POINTER_SIZE, addressValue);
 
     // Fill struct completely
-    for (int i = 0; i < structOrUnionTestTypes.size(); i++) {
+    for (int i = 0; i < STRUCT_UNION_TEST_TYPES.size(); i++) {
       // Create a Value that we want to be mapped to a SMGValue to write into the struct
       Value intValue = new NumericValue(i);
       // write the value into the struct on the heap
       writeToHeapObjectByAddress(
           addressValue,
-          getOffsetInBitsWithPadding(structOrUnionTestTypes, i),
-          MACHINE_MODEL.getSizeof(structOrUnionTestTypes.get(i)).intValue() * 8,
+          getOffsetInBitsWithPadding(STRUCT_UNION_TEST_TYPES, i),
+          MACHINE_MODEL.getSizeof(STRUCT_UNION_TEST_TYPES.get(i)).intValue() * 8,
           intValue);
     }
 
     // We read the struct completely more than once, the values may never change!
     for (int j = 0; j < 4; j++) {
       // Read all struct fields once
-      for (int i = 0; i < structOrUnionTestTypes.size(); i++) {
+      for (int i = 0; i < STRUCT_UNION_TEST_TYPES.size(); i++) {
         CFieldReference fieldRef =
             createFieldRefForStackVar(
                 structDeclrName,
                 structVariableName,
                 i,
-                structOrUnionTestTypes,
+                STRUCT_UNION_TEST_TYPES,
                 true,
                 ComplexTypeKind.STRUCT);
 
@@ -259,25 +258,25 @@ public class SMGCPAValueVisitorTest {
     String structVariableName = "structPointerVariable";
     String structDeclrName = "structDeclaration";
 
-    for (int i = 0; i < structOrUnionTestTypes.size(); i++) {
+    for (int i = 0; i < STRUCT_UNION_TEST_TYPES.size(); i++) {
       // Create a Value that we want to be mapped to a SMGValue to write into the struct
       Value intValue = new NumericValue(i);
       Value addressValue = new ConstantSymbolicExpression(new UnknownValue(), null);
 
       addHeapVariableToMemoryModel(
-          0, getSizeInBitsForListOfCTypeWithPadding(structOrUnionTestTypes), addressValue);
+          0, getSizeInBitsForListOfCTypeWithPadding(STRUCT_UNION_TEST_TYPES), addressValue);
       addStackVariableToMemoryModel(structVariableName, POINTER_SIZE);
       writeToStackVariableInMemoryModel(structVariableName, 0, POINTER_SIZE, addressValue);
 
       writeToHeapObjectByAddress(
           addressValue,
-          getOffsetInBitsWithPadding(structOrUnionTestTypes, i),
-          MACHINE_MODEL.getSizeof(structOrUnionTestTypes.get(i)).intValue() * 8,
+          getOffsetInBitsWithPadding(STRUCT_UNION_TEST_TYPES, i),
+          MACHINE_MODEL.getSizeof(STRUCT_UNION_TEST_TYPES.get(i)).intValue() * 8,
           intValue);
 
       CFieldReference fieldRef =
           createFieldRefForPointerNoDeref(
-              structDeclrName, structVariableName, i, structOrUnionTestTypes);
+              structDeclrName, structVariableName, i, STRUCT_UNION_TEST_TYPES);
 
       List<ValueAndSMGState> resultList = fieldRef.accept(visitor);
 
@@ -306,26 +305,26 @@ public class SMGCPAValueVisitorTest {
     Value addressValue = new ConstantSymbolicExpression(new UnknownValue(), null);
 
     addHeapVariableToMemoryModel(
-        0, getSizeInBitsForListOfCTypeWithPadding(structOrUnionTestTypes), addressValue);
+        0, getSizeInBitsForListOfCTypeWithPadding(STRUCT_UNION_TEST_TYPES), addressValue);
     addStackVariableToMemoryModel(structVariableName, POINTER_SIZE);
     writeToStackVariableInMemoryModel(structVariableName, 0, POINTER_SIZE, addressValue);
 
-    for (int i = 0; i < structOrUnionTestTypes.size(); i++) {
+    for (int i = 0; i < STRUCT_UNION_TEST_TYPES.size(); i++) {
       // Create a Value that we want to be mapped to a SMGValue to write into the struct
       Value intValue = new NumericValue(i);
 
       writeToHeapObjectByAddress(
           addressValue,
-          getOffsetInBitsWithPadding(structOrUnionTestTypes, i),
-          MACHINE_MODEL.getSizeof(structOrUnionTestTypes.get(i)).intValue() * 8,
+          getOffsetInBitsWithPadding(STRUCT_UNION_TEST_TYPES, i),
+          MACHINE_MODEL.getSizeof(STRUCT_UNION_TEST_TYPES.get(i)).intValue() * 8,
           intValue);
     }
 
     for (int j = 0; j < 4; j++) {
-      for (int i = 0; i < structOrUnionTestTypes.size(); i++) {
+      for (int i = 0; i < STRUCT_UNION_TEST_TYPES.size(); i++) {
         CFieldReference fieldRef =
             createFieldRefForPointerNoDeref(
-                structDeclrName, structVariableName, i, structOrUnionTestTypes);
+                structDeclrName, structVariableName, i, STRUCT_UNION_TEST_TYPES);
 
         List<ValueAndSMGState> resultList = fieldRef.accept(visitor);
 
@@ -351,13 +350,13 @@ public class SMGCPAValueVisitorTest {
     String structVariableName = "structVariable";
     String structDeclrName = "structDeclaration";
 
-    for (int i = 0; i < structOrUnionTestTypes.size(); i++) {
+    for (int i = 0; i < STRUCT_UNION_TEST_TYPES.size(); i++) {
       CFieldReference fieldRef =
           createFieldRefForStackVar(
               structDeclrName,
               structVariableName,
               i,
-              structOrUnionTestTypes,
+              STRUCT_UNION_TEST_TYPES,
               false,
               ComplexTypeKind.STRUCT);
 
@@ -367,12 +366,12 @@ public class SMGCPAValueVisitorTest {
       // Now create the SMGState, SPC and SMG with the struct already present and values written to
       // it
       addStackVariableToMemoryModel(
-          structVariableName, getSizeInBitsForListOfCTypeWithPadding(structOrUnionTestTypes));
+          structVariableName, getSizeInBitsForListOfCTypeWithPadding(STRUCT_UNION_TEST_TYPES));
       // Write to the stack var
       writeToStackVariableInMemoryModel(
           structVariableName,
-          getOffsetInBitsWithPadding(structOrUnionTestTypes, i),
-          MACHINE_MODEL.getSizeof(structOrUnionTestTypes.get(i)).intValue() * 8,
+          getOffsetInBitsWithPadding(STRUCT_UNION_TEST_TYPES, i),
+          MACHINE_MODEL.getSizeof(STRUCT_UNION_TEST_TYPES.get(i)).intValue() * 8,
           intValue);
 
       List<ValueAndSMGState> resultList = fieldRef.accept(visitor);
@@ -402,28 +401,28 @@ public class SMGCPAValueVisitorTest {
     // Now create the SMGState, SPC and SMG with the struct already present and values written to
     // it
     addStackVariableToMemoryModel(
-        structVariableName, getSizeInBitsForListOfCTypeWithPadding(structOrUnionTestTypes));
+        structVariableName, getSizeInBitsForListOfCTypeWithPadding(STRUCT_UNION_TEST_TYPES));
 
-    for (int i = 0; i < structOrUnionTestTypes.size(); i++) {
+    for (int i = 0; i < STRUCT_UNION_TEST_TYPES.size(); i++) {
       // Create a Value that we want to be mapped to a SMGValue to write into the struct
       Value intValue = new NumericValue(i);
 
       // Write to the stack var
       writeToStackVariableInMemoryModel(
           structVariableName,
-          getOffsetInBitsWithPadding(structOrUnionTestTypes, i),
-          MACHINE_MODEL.getSizeof(structOrUnionTestTypes.get(i)).intValue() * 8,
+          getOffsetInBitsWithPadding(STRUCT_UNION_TEST_TYPES, i),
+          MACHINE_MODEL.getSizeof(STRUCT_UNION_TEST_TYPES.get(i)).intValue() * 8,
           intValue);
     }
 
     for (int j = 0; j < 4; j++) {
-      for (int i = 0; i < structOrUnionTestTypes.size(); i++) {
+      for (int i = 0; i < STRUCT_UNION_TEST_TYPES.size(); i++) {
         CFieldReference fieldRef =
             createFieldRefForStackVar(
                 structDeclrName,
                 structVariableName,
                 i,
-                structOrUnionTestTypes,
+                STRUCT_UNION_TEST_TYPES,
                 false,
                 ComplexTypeKind.STRUCT);
 
@@ -464,24 +463,24 @@ public class SMGCPAValueVisitorTest {
 
     // Create the union once
     addStackVariableToMemoryModel(
-        unionVariableName, getLargestSizeInBitsForListOfCType(structOrUnionTestTypes));
+        unionVariableName, getLargestSizeInBitsForListOfCType(STRUCT_UNION_TEST_TYPES));
 
     // Write to the stack union the value 0 for all bits.
     writeToStackVariableInMemoryModel(
         unionVariableName,
         0,
-        getLargestSizeInBitsForListOfCType(structOrUnionTestTypes),
+        getLargestSizeInBitsForListOfCType(STRUCT_UNION_TEST_TYPES),
         new NumericValue(0));
 
     for (int j = 0; j < 2; j++) {
       // Repeat to check that no value changed!
-      for (int i = 0; i < structOrUnionTestTypes.size(); i++) {
+      for (int i = 0; i < STRUCT_UNION_TEST_TYPES.size(); i++) {
         CFieldReference fieldRef =
             createFieldRefForStackVar(
                 unionDeclrName,
                 unionVariableName,
                 i,
-                structOrUnionTestTypes,
+                STRUCT_UNION_TEST_TYPES,
                 false,
                 ComplexTypeKind.UNION);
 
@@ -510,9 +509,9 @@ public class SMGCPAValueVisitorTest {
 
     // Create the union once
     addStackVariableToMemoryModel(
-        unionVariableName, getLargestSizeInBitsForListOfCType(structOrUnionTestTypes));
+        unionVariableName, getLargestSizeInBitsForListOfCType(STRUCT_UNION_TEST_TYPES));
 
-    for (int k = 0; k < structOrUnionTestTypes.size(); k++) {
+    for (int k = 0; k < STRUCT_UNION_TEST_TYPES.size(); k++) {
       // Create a Value that we want to be mapped to a SMGValue to write into the struct
       Value intValue = new NumericValue(k + 1);
 
@@ -520,18 +519,18 @@ public class SMGCPAValueVisitorTest {
       writeToStackVariableInMemoryModel(
           unionVariableName,
           0,
-          MACHINE_MODEL.getSizeof(structOrUnionTestTypes.get(k)).intValue() * 8,
+          MACHINE_MODEL.getSizeof(STRUCT_UNION_TEST_TYPES.get(k)).intValue() * 8,
           intValue);
 
       // We write 1 type k, read all by i more than once (j iterations) and check that its
       // interpretation specific! Repeat for all other types.
-      for (int i = 0; i < structOrUnionTestTypes.size(); i++) {
+      for (int i = 0; i < STRUCT_UNION_TEST_TYPES.size(); i++) {
         CFieldReference fieldRef =
             createFieldRefForStackVar(
                 unionDeclrName,
                 unionVariableName,
                 i,
-                structOrUnionTestTypes,
+                STRUCT_UNION_TEST_TYPES,
                 false,
                 ComplexTypeKind.UNION);
 
@@ -543,8 +542,8 @@ public class SMGCPAValueVisitorTest {
           Value resultValue = resultList.get(0).getValue();
           // Check that types with the size of the current have the correct value, and all other
           // should be unknown
-          if (MACHINE_MODEL.getSizeof(structOrUnionTestTypes.get(k))
-              == MACHINE_MODEL.getSizeof(structOrUnionTestTypes.get(i))) {
+          if (MACHINE_MODEL.getSizeof(STRUCT_UNION_TEST_TYPES.get(k))
+              == MACHINE_MODEL.getSizeof(STRUCT_UNION_TEST_TYPES.get(i))) {
             assertThat(resultValue).isInstanceOf(NumericValue.class);
             assertThat(resultValue.asNumericValue().bigInteger())
                 .isEqualTo(BigInteger.valueOf(k + 1));
@@ -572,8 +571,8 @@ public class SMGCPAValueVisitorTest {
     int arrayLength = 100;
 
     // We want to test the arrays for all basic types
-    for (int i = 0; i < arrayTestTypes.size(); i++) {
-      CType currentArrayType = arrayTestTypes.get(i);
+    for (int i = 0; i < ARRAY_TEST_TYPES.size(); i++) {
+      CType currentArrayType = ARRAY_TEST_TYPES.get(i);
 
       int sizeOfCurrentTypeInBits = MACHINE_MODEL.getSizeof(currentArrayType).intValue() * 8;
       // Create the array on the stack; size is type size in bits * size of array
@@ -583,19 +582,7 @@ public class SMGCPAValueVisitorTest {
       for (int k = 0; k < arrayLength; k++) {
         // Create a Value that we want to be mapped to a SMGValue to write into the array depending
         // on the type
-        Value arrayValue;
-        if (currentArrayType instanceof CSimpleType) {
-          if (((CSimpleType) currentArrayType).isSigned()) {
-            // Make every second number negative
-            arrayValue = new NumericValue(k % 2 == 0 ? k : -k);
-          } else {
-            arrayValue = new NumericValue(k);
-          }
-        } else {
-          // may be some other type, arrays, structs etc.
-          // TODO:
-          arrayValue = null;
-        }
+        Value arrayValue = transformInputIntoValue(currentArrayType, k);
 
         // Write to the stack array
         writeToStackVariableInMemoryModel(
@@ -613,20 +600,7 @@ public class SMGCPAValueVisitorTest {
           // Assert the correct return values depending on type
           assertThat(resultList).hasSize(1);
           Value resultValue = resultList.get(0).getValue();
-          if (currentArrayType instanceof CSimpleType) {
-            assertThat(resultValue).isInstanceOf(NumericValue.class);
-            if (((CSimpleType) currentArrayType).isSigned()) {
-              // Every second number is negative
-              assertThat(resultValue.asNumericValue().bigInteger())
-                  .isEqualTo(BigInteger.valueOf(k % 2 == 0 ? k : -k));
-            } else {
-              assertThat(resultValue.asNumericValue().bigInteger())
-                  .isEqualTo(BigInteger.valueOf(k));
-            }
-          } else {
-            // may be some other type, arrays, structs etc.
-            // TODO:
-          }
+          checkValue(currentArrayType, k, resultValue);
         }
       }
       // Reset memory model
@@ -653,8 +627,8 @@ public class SMGCPAValueVisitorTest {
     CType indexVarType = INT_TYPE;
 
     // We want to test the arrays for all basic types
-    for (int i = 0; i < arrayTestTypes.size(); i++) {
-      CType currentArrayType = arrayTestTypes.get(i);
+    for (int i = 0; i < ARRAY_TEST_TYPES.size(); i++) {
+      CType currentArrayType = ARRAY_TEST_TYPES.get(i);
 
       int sizeOfCurrentTypeInBits = MACHINE_MODEL.getSizeof(currentArrayType).intValue() * 8;
       // Create the array on the stack; size is type size in bits * size of array
@@ -664,19 +638,7 @@ public class SMGCPAValueVisitorTest {
       for (int k = 0; k < arrayLength; k++) {
         // Create a Value that we want to be mapped to a SMGValue to write into the array depending
         // on the type
-        Value arrayValue;
-        if (currentArrayType instanceof CSimpleType) {
-          if (((CSimpleType) currentArrayType).isSigned()) {
-            // Make every second number negative
-            arrayValue = new NumericValue(k % 2 == 0 ? k : -k);
-          } else {
-            arrayValue = new NumericValue(k);
-          }
-        } else {
-          // may be some other type, arrays, structs etc.
-          // TODO:
-          arrayValue = null;
-        }
+        Value arrayValue = transformInputIntoValue(currentArrayType, k);
 
         // Write to the stack array
         writeToStackVariableInMemoryModel(
@@ -709,20 +671,7 @@ public class SMGCPAValueVisitorTest {
           // Assert the correct return values depending on type
           assertThat(resultList).hasSize(1);
           Value resultValue = resultList.get(0).getValue();
-          if (currentArrayType instanceof CSimpleType) {
-            assertThat(resultValue).isInstanceOf(NumericValue.class);
-            if (((CSimpleType) currentArrayType).isSigned()) {
-              // Every second number is negative
-              assertThat(resultValue.asNumericValue().bigInteger())
-                  .isEqualTo(BigInteger.valueOf(k % 2 == 0 ? k : -k));
-            } else {
-              assertThat(resultValue.asNumericValue().bigInteger())
-                  .isEqualTo(BigInteger.valueOf(k));
-            }
-          } else {
-            // may be some other type, arrays, structs etc.
-            // TODO:
-          }
+          checkValue(currentArrayType, k, resultValue);
         }
       }
       // Reset memory model
@@ -746,8 +695,8 @@ public class SMGCPAValueVisitorTest {
     int arrayLength = 100;
 
     // We want to test the arrays for all basic types
-    for (int i = 0; i < arrayTestTypes.size(); i++) {
-      CType currentArrayType = arrayTestTypes.get(i);
+    for (int i = 0; i < ARRAY_TEST_TYPES.size(); i++) {
+      CType currentArrayType = ARRAY_TEST_TYPES.get(i);
 
       int sizeOfCurrentTypeInBits = MACHINE_MODEL.getSizeof(currentArrayType).intValue() * 8;
       // address to the heap where the array starts
@@ -762,19 +711,7 @@ public class SMGCPAValueVisitorTest {
       for (int k = 0; k < arrayLength; k++) {
         // Create a Value that we want to be mapped to a SMGValue to write into the array depending
         // on the type
-        Value arrayValue;
-        if (currentArrayType instanceof CSimpleType) {
-          if (((CSimpleType) currentArrayType).isSigned()) {
-            // Make every second number negative
-            arrayValue = new NumericValue(k % 2 == 0 ? k : -k);
-          } else {
-            arrayValue = new NumericValue(k);
-          }
-        } else {
-          // may be some other type, arrays, structs etc.
-          // TODO:
-          arrayValue = null;
-        }
+        Value arrayValue = transformInputIntoValue(currentArrayType, k);
 
         // Write to the heap array
         writeToHeapObjectByAddress(
@@ -793,20 +730,7 @@ public class SMGCPAValueVisitorTest {
           // Assert the correct return values depending on type
           assertThat(resultList).hasSize(1);
           Value resultValue = resultList.get(0).getValue();
-          if (currentArrayType instanceof CSimpleType) {
-            assertThat(resultValue).isInstanceOf(NumericValue.class);
-            if (((CSimpleType) currentArrayType).isSigned()) {
-              // Every second number is negative
-              assertThat(resultValue.asNumericValue().bigInteger())
-                  .isEqualTo(BigInteger.valueOf(k % 2 == 0 ? k : -k));
-            } else {
-              assertThat(resultValue.asNumericValue().bigInteger())
-                  .isEqualTo(BigInteger.valueOf(k));
-            }
-          } else {
-            // may be some other type, arrays, structs etc.
-            // TODO:
-          }
+          checkValue(currentArrayType, k, resultValue);
         }
       }
       // Reset memory model
@@ -835,8 +759,8 @@ public class SMGCPAValueVisitorTest {
     int arrayLength = 100;
 
     // We want to test the arrays for all basic types
-    for (int i = 0; i < arrayTestTypes.size(); i++) {
-      CType currentArrayType = arrayTestTypes.get(i);
+    for (int i = 0; i < ARRAY_TEST_TYPES.size(); i++) {
+      CType currentArrayType = ARRAY_TEST_TYPES.get(i);
 
       int sizeOfCurrentTypeInBits = MACHINE_MODEL.getSizeof(currentArrayType).intValue() * 8;
       // address to the heap where the array starts
@@ -851,19 +775,7 @@ public class SMGCPAValueVisitorTest {
       for (int k = 0; k < arrayLength; k++) {
         // Create a Value that we want to be mapped to a SMGValue to write into the array depending
         // on the type
-        Value arrayValue;
-        if (currentArrayType instanceof CSimpleType) {
-          if (((CSimpleType) currentArrayType).isSigned()) {
-            // Make every second number negative
-            arrayValue = new NumericValue(k % 2 == 0 ? k : -k);
-          } else {
-            arrayValue = new NumericValue(k);
-          }
-        } else {
-          // may be some other type, arrays, structs etc.
-          // TODO:
-          arrayValue = null;
-        }
+        Value arrayValue = transformInputIntoValue(currentArrayType, k);
 
         // Write to the heap array
         writeToHeapObjectByAddress(
@@ -892,20 +804,7 @@ public class SMGCPAValueVisitorTest {
           // Assert the correct return values depending on type
           assertThat(resultList).hasSize(1);
           Value resultValue = resultList.get(0).getValue();
-          if (currentArrayType instanceof CSimpleType) {
-            assertThat(resultValue).isInstanceOf(NumericValue.class);
-            if (((CSimpleType) currentArrayType).isSigned()) {
-              // Every second number is negative
-              assertThat(resultValue.asNumericValue().bigInteger())
-                  .isEqualTo(BigInteger.valueOf(k % 2 == 0 ? k : -k));
-            } else {
-              assertThat(resultValue.asNumericValue().bigInteger())
-                  .isEqualTo(BigInteger.valueOf(k));
-            }
-          } else {
-            // may be some other type, arrays, structs etc.
-            // TODO:
-          }
+          checkValue(currentArrayType, k, resultValue);
         }
       }
       // Reset memory model
@@ -926,8 +825,8 @@ public class SMGCPAValueVisitorTest {
     String arrayVariableName = "arrayVariable";
 
     // We want to test the arrays for all basic types
-    for (int i = 0; i < arrayTestTypes.size(); i++) {
-      CType currentArrayType = arrayTestTypes.get(i);
+    for (int i = 0; i < ARRAY_TEST_TYPES.size(); i++) {
+      CType currentArrayType = ARRAY_TEST_TYPES.get(i);
 
       int sizeOfCurrentTypeInBits = MACHINE_MODEL.getSizeof(currentArrayType).intValue() * 8;
       // address to the heap where the array starts
@@ -984,8 +883,8 @@ public class SMGCPAValueVisitorTest {
     CType indexVarType = INT_TYPE;
 
     // We want to test the arrays for all basic types
-    for (int i = 0; i < arrayTestTypes.size(); i++) {
-      CType currentArrayType = arrayTestTypes.get(i);
+    for (int i = 0; i < ARRAY_TEST_TYPES.size(); i++) {
+      CType currentArrayType = ARRAY_TEST_TYPES.get(i);
 
       int sizeOfCurrentTypeInBits = MACHINE_MODEL.getSizeof(currentArrayType).intValue() * 8;
       // address to the heap where the array starts
