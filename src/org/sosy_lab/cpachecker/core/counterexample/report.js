@@ -23,14 +23,8 @@ import "bootstrap";
 import "datatables.net";
 import "code-prettify";
 import enqueue from "./worker/workerDirector";
-import {
-  argWorkerCallback,
-  argWorkerErrorCallback,
-} from "./worker/argWorkerUtils";
-import {
-  cfaWorkerCallback,
-  cfaWorkerErrorCallback,
-} from "./worker/cfaWorkerUtils";
+import {argWorkerCallback, argWorkerErrorCallback,} from "./worker/argWorkerUtils";
+import {cfaWorkerCallback, cfaWorkerErrorCallback,} from "./worker/cfaWorkerUtils";
 
 const d3 = require("d3");
 
@@ -837,8 +831,7 @@ let argTabDisabled = false;
             (v) => v.indexOf(searchInput) !== -1
           );
         }
-        if (match) return true;
-        return false;
+        return match;
       }
 
       $scope.searchFor = () => {
@@ -938,11 +931,16 @@ let argTabDisabled = false;
         }
         $scope.selectedCFAFunction = $scope.functions[0];
         $scope.zoomEnabled = false;
+        $scope.cfaColoringEnabled = true;
+        d3.select("#cfa-considered-button").html("<i class='far fa-check-square'></i>");
       }
 
       $scope.setCFAFunction = () => {
         if ($scope.zoomEnabled) {
           $scope.zoomControl();
+        }
+        if ($scope.cfaColoringEnabled) {
+          $scope.cfaColoringControl();
         }
         // FIXME: two-way binding does not update the selected option
         d3.selectAll("#cfa-toolbar option")
@@ -988,6 +986,40 @@ let argTabDisabled = false;
 
       $scope.cfaFunctionIsSet = (value) => value === $scope.selectedCFAFunction;
 
+      $scope.cfaColoringControl = function cfaColoringControl() {
+        if ($scope.cfaColoringEnabled) {
+          $scope.cfaColoringEnabled = false;
+          d3.select("#cfa-considered-button").html("<i class='far fa-square'></i>");
+          d3.selectAll(".cfa-node-covered").each(
+              function cfaNode() {
+                const node = d3.select(this.firstChild);
+                node.attr("style", "fill: #fff; stroke: #999;");
+              }
+          );
+          d3.selectAll(".cfa-node-considered").each(
+              function cfaNode() {
+                const node = d3.select(this.firstChild);
+                node.attr("style", "fill: #fff; stroke: #999;");
+              }
+          );
+        } else {
+          $scope.cfaColoringEnabled = true;
+          d3.select("#cfa-considered-button").html("<i class='far fa-check-square'></i>");
+          d3.selectAll(".cfa-node-covered").each(
+              function cfaNode() {
+                const node = d3.select(this.firstChild);
+                node.attr("style", "");
+              }
+          );
+          d3.selectAll(".cfa-node-considered").each(
+              function cfaNode() {
+                const node = d3.select(this.firstChild);
+                node.attr("style", "");
+              }
+          );
+        }
+      }
+
       $scope.zoomControl = function zoomControl() {
         if ($scope.zoomEnabled) {
           $scope.zoomEnabled = false;
@@ -1004,9 +1036,7 @@ let argTabDisabled = false;
           );
         } else {
           $scope.zoomEnabled = true;
-          d3.select("#cfa-zoom-button").html(
-            "<i class='far fa-check-square'></i>"
-          );
+          d3.select("#cfa-zoom-button").html("<i class='far fa-check-square'></i>");
           d3.selectAll(".cfa-svg").each(
             /* @this HTMLElement */ function cfaSvg() {
               const svg = d3.select(this);
@@ -1030,6 +1060,9 @@ let argTabDisabled = false;
         d3.selectAll(".cfa-graph").remove();
         if ($scope.zoomEnabled) {
           $scope.zoomControl();
+        }
+        if ($scope.cfaColoringEnabled) {
+          $scope.cfaColoringControl();
         }
         $scope.selectedCFAFunction = $scope.functions[0];
         cfaSplit = true;
