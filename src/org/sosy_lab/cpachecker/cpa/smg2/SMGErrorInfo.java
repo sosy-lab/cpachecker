@@ -191,7 +191,7 @@ public class SMGErrorInfo {
   @Override
   public String toString() {
     StringBuilder str = new StringBuilder("ErrorInfo {");
-    str.append(errorDescription.isEmpty() ? "<>" : errorDescription).append(", ");
+    str.append(errorDescription.isEmpty() ? "<>" : errorDescription).append("; Errors: ");
     if (invalidWrite) {
       str.append("invalid write").append(", ");
     }

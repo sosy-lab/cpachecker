@@ -547,8 +547,8 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
       SMGObject objectRead, BigInteger readOffset, BigInteger readSize) {
     String errorMSG =
         String.format(
-            "Try reading object %s with size %d bits at offset %d bit with read tpe size %d bit.",
-            objectRead, objectRead.getSize(), readSize, readOffset);
+            "Try reading object %s with size %d bits at offset %d bit with read type size %d bit",
+            objectRead, objectRead.getSize(), readOffset, readSize);
     SMGErrorInfo newErrorInfo =
         errorInfo
             .withProperty(Property.INVALID_READ)
