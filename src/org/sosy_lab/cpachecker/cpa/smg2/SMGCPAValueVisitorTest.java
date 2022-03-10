@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.smg2;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -937,9 +938,413 @@ public class SMGCPAValueVisitorTest {
     }
   }
 
+  /**
+   * Read an array on the heap with a variable expression for multiple types and values saved in the
+   * array. Example: ... = *(variable + array); Essentially the same as
+   * readHeapArrayVariableMultipleTypesRepeated() but with variable + array.
+   *
+   * @throws CPATransferException should never be thrown!
+   * @throws InvalidConfigurationException should never be thrown!
+   */
+  @Test
+  public void readHeapArrayVariableLeftMultipleTypesRepeated()
+      throws CPATransferException, InvalidConfigurationException {
+    String arrayVariableName = "arrayVariable";
+    String indexVariableName = "indexVariableName";
+    CType indexVarType = INT_TYPE;
+
+    // We want to test the arrays for all basic types
+    for (int i = 0; i < ARRAY_TEST_TYPES.size(); i++) {
+      CType currentArrayType = ARRAY_TEST_TYPES.get(i);
+
+      int sizeOfCurrentTypeInBits = MACHINE_MODEL.getSizeof(currentArrayType).intValue() * 8;
+      // address to the heap where the array starts
+      Value addressValue = new ConstantSymbolicExpression(new UnknownValue(), null);
+      // Create the array on the heap; size is type size in bits * size of array
+      addHeapVariableToMemoryModel(0, sizeOfCurrentTypeInBits * TEST_ARRAY_LENGTH, addressValue);
+      // Stack variable holding the address (the pointer)
+      addStackVariableToMemoryModel(arrayVariableName, POINTER_SIZE);
+      writeToStackVariableInMemoryModel(arrayVariableName, 0, POINTER_SIZE, addressValue);
+
+      // Now write some distinct values into the array, for signed we want to test negatives!
+      for (int k = 0; k < TEST_ARRAY_LENGTH; k++) {
+        // Create a Value that we want to be mapped to a SMGValue to write into the array depending
+        // on the type
+        Value arrayValue = transformInputIntoValue(currentArrayType, k);
+
+        // Write to the heap array
+        writeToHeapObjectByAddress(
+            addressValue, sizeOfCurrentTypeInBits * k, sizeOfCurrentTypeInBits, arrayValue);
+
+        // Now create length stack variables holding the indices to access the array
+        addStackVariableToMemoryModel(
+            indexVariableName + k, MACHINE_MODEL.getSizeof(indexVarType).intValue() * 8);
+        writeToStackVariableInMemoryModel(
+            indexVariableName + k,
+            0,
+            MACHINE_MODEL.getSizeof(indexVarType).intValue() * 8,
+            new NumericValue(k));
+      }
+
+      // Now we read the entire array twice.(twice because values may change when reading in SMGs,
+      // and we don't want that)
+      for (int j = 0; j < 2; j++) {
+        for (int k = 0; k < TEST_ARRAY_LENGTH; k++) {
+          CPointerExpression arrayPointerExpr =
+              arrayPointerAccessPlusVariableIndexOnTheLeft(
+                  arrayVariableName, indexVariableName + k, indexVarType, currentArrayType);
+
+          List<ValueAndSMGState> resultList = arrayPointerExpr.accept(visitor);
+
+          // Assert the correct return values depending on type
+          assertThat(resultList).hasSize(1);
+          Value resultValue = resultList.get(0).getValue();
+          checkValue(currentArrayType, k, resultValue);
+        }
+      }
+      // Reset memory model
+      resetSMGStateAndVisitor();
+    }
+  }
 
   /**
-   * Test distance of 2 pointers from the same array on the stack.
+   * Read an array on the heap with a pointer not pointing to the beginning and a variable
+   * expression for multiple types and values saved in the array. Note: we test plus and minus
+   * indexes as a pointer into an array minus a number is still valid! Example:
+   *
+   * <p>int * array = malloc();
+   *
+   * <p>int * arrayP = array + something;
+   *
+   * <p>fill array;
+   *
+   * <p>... = *(arrayP +- variable);
+   *
+   * @throws CPATransferException should never be thrown!
+   * @throws InvalidConfigurationException should never be thrown!
+   */
+  @Test
+  public void readHeapArrayMultiplePointerVariableMultipleTypesRepeated()
+      throws CPATransferException, InvalidConfigurationException {
+    String arrayVariableName = "arrayVariable";
+    String indexVariableName = "indexVariableName";
+    CType indexVarType = INT_TYPE;
+
+    // We want to test the arrays for all basic types
+    for (int i = 0; i < ARRAY_TEST_TYPES.size(); i++) {
+      CType currentArrayType = ARRAY_TEST_TYPES.get(i);
+
+      int sizeOfCurrentTypeInBits = MACHINE_MODEL.getSizeof(currentArrayType).intValue() * 8;
+      // address to the heap where the array starts
+      Value addressValue = new ConstantSymbolicExpression(new UnknownValue(), null);
+      // Create the array on the heap; size is type size in bits * size of array
+      addHeapVariableToMemoryModel(0, sizeOfCurrentTypeInBits * TEST_ARRAY_LENGTH, addressValue);
+      // Stack variable holding the address (the pointer)
+      addStackVariableToMemoryModel(arrayVariableName, POINTER_SIZE);
+      writeToStackVariableInMemoryModel(arrayVariableName, 0, POINTER_SIZE, addressValue);
+
+      // Now write some distinct values into the array, for signed we want to test negatives!
+      // Also create pointers
+      for (int k = 0; k < TEST_ARRAY_LENGTH; k++) {
+        // Create a Value that we want to be mapped to a SMGValue to write into the array depending
+        // on the type
+        Value arrayValue = transformInputIntoValue(currentArrayType, k);
+
+        // Write to the heap array
+        writeToHeapObjectByAddress(
+            addressValue, sizeOfCurrentTypeInBits * k, sizeOfCurrentTypeInBits, arrayValue);
+      }
+
+      // Now create length stack variables holding the indices to access the array
+      for (int k = 0; k < TEST_ARRAY_LENGTH; k++) {
+        addStackVariableToMemoryModel(
+            indexVariableName + k, MACHINE_MODEL.getSizeof(indexVarType).intValue() * 8);
+        writeToStackVariableInMemoryModel(
+            indexVariableName + k,
+            0,
+            MACHINE_MODEL.getSizeof(indexVarType).intValue() * 8,
+            new NumericValue(k));
+      }
+
+      // Pointers
+      for (int j = 0; j < TEST_ARRAY_LENGTH; j++) {
+        Value newPointer = new ConstantSymbolicExpression(new UnknownValue(), null);
+        addStackVariableToMemoryModel(arrayVariableName + j, POINTER_SIZE);
+        writeToStackVariableInMemoryModel(arrayVariableName + j, 0, POINTER_SIZE, newPointer);
+        addPointerToExistingHeapObject(j * sizeOfCurrentTypeInBits, addressValue, newPointer);
+      }
+
+      // Now we read the entire array twice for every valid combination of pointers and variables.
+      // (twice because values may change when reading in SMGs, and we don't want that)
+      for (int k = 0; k < 2; k++) {
+        for (int pointerNum = 0; pointerNum < TEST_ARRAY_LENGTH; pointerNum++) {
+          for (int index = -pointerNum; index < TEST_ARRAY_LENGTH - pointerNum; index++) {
+            // We start with negatives because its easier to make them + again (We need minus 1 and
+            // plus 1 etc. in most tests, the binary operation is what makes the minus however, so
+            // minus -1 is +1, but this way we can keep track of where we are in relation to the
+            // pointer)
+            CPointerExpression arrayPointerExpr;
+            if (index < 0) {
+              arrayPointerExpr =
+                  arrayPointerAccessMinusVariableIndexOnTheRight(
+                      arrayVariableName + pointerNum,
+                      indexVariableName + (-index),
+                      indexVarType,
+                      currentArrayType);
+            } else {
+              arrayPointerExpr =
+                  arrayPointerAccessPlusVariableIndexOnTheRight(
+                      arrayVariableName + pointerNum,
+                      indexVariableName + index,
+                      indexVarType,
+                      currentArrayType);
+            }
+
+            List<ValueAndSMGState> resultList = arrayPointerExpr.accept(visitor);
+
+            // Assert the correct return values depending on type
+            assertThat(resultList).hasSize(1);
+            Value resultValue = resultList.get(0).getValue();
+            checkValue(currentArrayType, pointerNum + index, resultValue);
+          }
+        }
+      }
+      // Reset memory model
+      resetSMGStateAndVisitor();
+    }
+  }
+
+  /**
+   * Try read an array on the heap with a pointer not pointing to the beginning and a variable
+   * expression for multiple types and values saved in the array. The catch is that we always read
+   * before the array beginns or after it ends and test what happens! Example:
+   *
+   * <p>int * array = malloc(100 * sizeOf....);
+   *
+   * <p>int * arrayP = array + something;
+   *
+   * <p>fill array;
+   *
+   * <p>... = *(arrayP +- variable); with arrayP +- variable < 0 or >= 100
+   *
+   * @throws CPATransferException should never be thrown!
+   * @throws InvalidConfigurationException should never be thrown!
+   */
+  @Test
+  public void readHeapArrayMultiplePointerVariableMultipleTypesRepeatedOutOfBoundsRead()
+      throws CPATransferException, InvalidConfigurationException {
+    String arrayVariableName = "arrayVariable";
+    String indexVariableName = "indexVariableName";
+    CType indexVarType = INT_TYPE;
+
+    // We want to test the arrays for all basic types
+    for (int i = 0; i < ARRAY_TEST_TYPES.size(); i++) {
+      CType currentArrayType = ARRAY_TEST_TYPES.get(i);
+
+      int sizeOfCurrentTypeInBits = MACHINE_MODEL.getSizeof(currentArrayType).intValue() * 8;
+      // address to the heap where the array starts
+      Value addressValue = new ConstantSymbolicExpression(new UnknownValue(), null);
+      // Create the array on the heap; size is type size in bits * size of array
+      addHeapVariableToMemoryModel(0, sizeOfCurrentTypeInBits * TEST_ARRAY_LENGTH, addressValue);
+      // Stack variable holding the address (the pointer)
+      addStackVariableToMemoryModel(arrayVariableName, POINTER_SIZE);
+      writeToStackVariableInMemoryModel(arrayVariableName, 0, POINTER_SIZE, addressValue);
+
+      // We don't need to fill the array for obvious reasons
+      // Now create length stack variables holding the indices to access the array
+      for (int k = -TEST_ARRAY_LENGTH; k <= TEST_ARRAY_LENGTH; k++) {
+        addStackVariableToMemoryModel(
+            indexVariableName + k, MACHINE_MODEL.getSizeof(indexVarType).intValue() * 8);
+        writeToStackVariableInMemoryModel(
+            indexVariableName + k,
+            0,
+            MACHINE_MODEL.getSizeof(indexVarType).intValue() * 8,
+            new NumericValue(k));
+      }
+
+      // Pointers to all valid positions but also invalid in -1 and length
+      for (int j = -1; j <= TEST_ARRAY_LENGTH; j++) {
+        Value newPointer = new ConstantSymbolicExpression(new UnknownValue(), null);
+        addStackVariableToMemoryModel(arrayVariableName + j, POINTER_SIZE);
+        writeToStackVariableInMemoryModel(arrayVariableName + j, 0, POINTER_SIZE, newPointer);
+        addPointerToExistingHeapObject(j * sizeOfCurrentTypeInBits, addressValue, newPointer);
+      }
+
+      // Read only invalid
+      for (int k = 0; k < 2; k++) {
+        for (int pointerNum = -1; pointerNum <= TEST_ARRAY_LENGTH; pointerNum++) {
+          for (int index = -TEST_ARRAY_LENGTH; index <= TEST_ARRAY_LENGTH; index++) {
+            // We start with negatives because its easier to make them + again (We need minus 1 and
+            // plus 1 etc. in most tests, the binary operation is what makes the minus however, so
+            // minus -1 is +1, but this way we can keep track of where we are in relation to the
+            // pointer)
+            CPointerExpression arrayPointerExpr;
+            BigInteger expectedOffset;
+            if (pointerNum + index < 0 || pointerNum + index >= TEST_ARRAY_LENGTH) {
+              arrayPointerExpr =
+                  arrayPointerAccessPlusVariableIndexOnTheRight(
+                      arrayVariableName + pointerNum,
+                      indexVariableName + index,
+                      indexVarType,
+                      currentArrayType);
+              expectedOffset =
+                  BigInteger.valueOf(pointerNum + index)
+                      .multiply(BigInteger.valueOf(sizeOfCurrentTypeInBits));
+            } else if (pointerNum - index < 0 || pointerNum - index >= TEST_ARRAY_LENGTH) {
+              arrayPointerExpr =
+                  arrayPointerAccessMinusVariableIndexOnTheRight(
+                      arrayVariableName + pointerNum,
+                      indexVariableName + index,
+                      indexVarType,
+                      currentArrayType);
+              expectedOffset =
+                  BigInteger.valueOf(pointerNum - index)
+                      .multiply(BigInteger.valueOf(sizeOfCurrentTypeInBits));
+            } else {
+              continue;
+            }
+
+            CPATransferException e =
+                assertThrows(CPATransferException.class, () -> arrayPointerExpr.accept(visitor));
+
+            BigInteger expectedObjectSize =
+                BigInteger.valueOf(sizeOfCurrentTypeInBits)
+                    .multiply(BigInteger.valueOf(TEST_ARRAY_LENGTH));
+
+            // TODO: rework once i make more useful error msg
+            assertThat(e).hasMessageThat().contains("invalid read");
+            assertThat(e)
+                .hasMessageThat()
+                .contains(
+                    "with size "
+                        + expectedObjectSize
+                        + " bits at offset "
+                        + expectedOffset
+                        + " bit with read type size "
+                        + sizeOfCurrentTypeInBits
+                        + " bit");
+          }
+        }
+      }
+      // Reset memory model
+      resetSMGStateAndVisitor();
+    }
+  }
+
+  /**
+   * Read an array on the heap with a pointer not pointing to the beginning and a variable
+   * expression for multiple types and values saved in the array. Note: same as
+   * readHeapArrayMultiplePointerVariableMultipleTypesRepeated() but we make all plus operations
+   * minus and all minus to plus but make the actuall numbers negative. Example:
+   *
+   * <p>int * array = malloc();
+   *
+   * <p>int * arrayP = array + something;
+   *
+   * <p>fill array;
+   *
+   * <p>... = *(arrayP +- (-variable));
+   *
+   * @throws CPATransferException should never be thrown!
+   * @throws InvalidConfigurationException should never be thrown!
+   */
+  @Test
+  public void readHeapArrayMultiplePointerNegativeVariableMultipleTypesRepeated()
+      throws CPATransferException, InvalidConfigurationException {
+    String arrayVariableName = "arrayVariable";
+    String indexVariableName = "indexVariableName";
+    CType indexVarType = INT_TYPE;
+
+    // We want to test the arrays for all basic types
+    for (int i = 0; i < ARRAY_TEST_TYPES.size(); i++) {
+      CType currentArrayType = ARRAY_TEST_TYPES.get(i);
+
+      int sizeOfCurrentTypeInBits = MACHINE_MODEL.getSizeof(currentArrayType).intValue() * 8;
+      // address to the heap where the array starts
+      Value addressValue = new ConstantSymbolicExpression(new UnknownValue(), null);
+      // Create the array on the heap; size is type size in bits * size of array
+      addHeapVariableToMemoryModel(0, sizeOfCurrentTypeInBits * TEST_ARRAY_LENGTH, addressValue);
+      // Stack variable holding the address (the pointer)
+      addStackVariableToMemoryModel(arrayVariableName, POINTER_SIZE);
+      writeToStackVariableInMemoryModel(arrayVariableName, 0, POINTER_SIZE, addressValue);
+
+      // Now write some distinct values into the array, for signed we want to test negatives!
+      // Also create pointers
+      for (int k = 0; k < TEST_ARRAY_LENGTH; k++) {
+        // Create a Value that we want to be mapped to a SMGValue to write into the array depending
+        // on the type
+        Value arrayValue = transformInputIntoValue(currentArrayType, k);
+
+        // Write to the heap array
+        writeToHeapObjectByAddress(
+            addressValue, sizeOfCurrentTypeInBits * k, sizeOfCurrentTypeInBits, arrayValue);
+      }
+
+      // Now create length stack variables holding the indices to access the array but negative
+      // numbers
+      for (int k = 0; k < TEST_ARRAY_LENGTH; k++) {
+        addStackVariableToMemoryModel(
+            indexVariableName + k, MACHINE_MODEL.getSizeof(indexVarType).intValue() * 8);
+        writeToStackVariableInMemoryModel(
+            indexVariableName + k,
+            0,
+            MACHINE_MODEL.getSizeof(indexVarType).intValue() * 8,
+            new NumericValue(-k));
+      }
+
+      // Pointers
+      for (int j = 0; j < TEST_ARRAY_LENGTH; j++) {
+        Value newPointer = new ConstantSymbolicExpression(new UnknownValue(), null);
+        addStackVariableToMemoryModel(arrayVariableName + j, POINTER_SIZE);
+        writeToStackVariableInMemoryModel(arrayVariableName + j, 0, POINTER_SIZE, newPointer);
+        addPointerToExistingHeapObject(j * sizeOfCurrentTypeInBits, addressValue, newPointer);
+      }
+
+      // Now we read the entire array twice for every valid combination of pointers and variables.
+      // (twice because values may change when reading in SMGs, and we don't want that)
+      for (int k = 0; k < 2; k++) {
+        for (int pointerNum = 0; pointerNum < TEST_ARRAY_LENGTH; pointerNum++) {
+          for (int index = -pointerNum; index < TEST_ARRAY_LENGTH - pointerNum; index++) {
+            // We start with negatives because its easier to make them + again (We need minus 1 and
+            // plus 1 etc. in most tests, the binary operation is what makes the minus however, so
+            // minus -1 is +1, but this way we can keep track of where we are in relation to the
+            // pointer)
+            CPointerExpression arrayPointerExpr;
+            if (index < 0) {
+              // *((pointer + 3) + (-3) == *(pointer) or *(pointer + 0)
+              arrayPointerExpr =
+                  arrayPointerAccessPlusVariableIndexOnTheRight(
+                      arrayVariableName + pointerNum,
+                      indexVariableName + (-index),
+                      indexVarType,
+                      currentArrayType);
+            } else {
+              // *((pointer + 3) - (-3) == *(pointer + 6)
+              arrayPointerExpr =
+                  arrayPointerAccessMinusVariableIndexOnTheRight(
+                      arrayVariableName + pointerNum,
+                      indexVariableName + index,
+                      indexVarType,
+                      currentArrayType);
+            }
+
+            List<ValueAndSMGState> resultList = arrayPointerExpr.accept(visitor);
+
+            // Assert the correct return values depending on type
+            assertThat(resultList).hasSize(1);
+            Value resultValue = resultList.get(0).getValue();
+            checkValue(currentArrayType, pointerNum + index, resultValue);
+          }
+        }
+      }
+      // Reset memory model
+      resetSMGStateAndVisitor();
+    }
+  }
+
+  /**
+   * Test distance of 2 pointers from the same array on the stack. Tests 0, positive and negative
+   * results.
    *
    * @throws CPATransferException should never be thrown!
    * @throws InvalidConfigurationException should never be thrown!
@@ -1006,7 +1411,8 @@ public class SMGCPAValueVisitorTest {
   }
 
   /**
-   * Test distance of 2 pointers from the same array on the heap.
+   * Test distance of 2 pointers from the same array on the heap. Tests 0, positive and negative
+   * results.
    *
    * @throws CPATransferException should never be thrown!
    * @throws InvalidConfigurationException should never be thrown!
