@@ -23,8 +23,14 @@ import "bootstrap";
 import "datatables.net";
 import "code-prettify";
 import enqueue from "./worker/workerDirector";
-import {argWorkerCallback, argWorkerErrorCallback,} from "./worker/argWorkerUtils";
-import {cfaWorkerCallback, cfaWorkerErrorCallback,} from "./worker/cfaWorkerUtils";
+import {
+  argWorkerCallback,
+  argWorkerErrorCallback,
+} from "./worker/argWorkerUtils";
+import {
+  cfaWorkerCallback,
+  cfaWorkerErrorCallback,
+} from "./worker/cfaWorkerUtils";
 
 const d3 = require("d3");
 
