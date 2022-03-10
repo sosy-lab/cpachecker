@@ -1596,6 +1596,7 @@ public class SMGCPAValueVisitor
       return ValueAndSMGState.ofUnknownValue(currentState);
     }
 
+    // The canonical type is the return type of the pointer expression!
     CType canonicalReturnType = expressionType;
     if (calculationType instanceof CPointerType) {
       canonicalReturnType = ((CPointerType) expressionType).getType();
@@ -1660,26 +1661,33 @@ public class SMGCPAValueVisitor
       Value leftOffset = addressLeft.getOffset();
       Value rightOffset = addressRight.getOffset();
 
-      if (binaryOperator == BinaryOperator.MINUS
+      // This fails if the underlying structure is not the same!
+      // We need the non-equal method for SMGs here as it might be that due to abstraction 2 values
+      // are not equal but refer to the same structure!
+      if (binaryOperator != BinaryOperator.MINUS
           || !rightOffset.isNumericValue()
           || !leftOffset.isNumericValue()) {
         // TODO: symbolic values if possible
         return ValueAndSMGState.ofUnknownValue(currentState);
       }
 
-      // Our offsets are in bits!
+      // Our offsets are in bits here! This also checks that its the same underlying memory object.
       Value distanceInBits =
-          arithmeticOperation(
-              (NumericValue) leftOffset,
-              (NumericValue) rightOffset,
-              BinaryOperator.MINUS,
-              evaluator.getMachineModel().getPointerEquivalentSimpleType());
+          evaluator.calculateAddressDistance(
+              currentState, addressLeft.getMemoryAddress(), addressRight.getMemoryAddress());
+
+      if (!distanceInBits.isNumericValue()) {
+        return ValueAndSMGState.of(distanceInBits, currentState);
+      }
 
       // distance in bits / type size = distance
+      // The type in both pointers is the same, we need the return type from one of them
       Value distance =
           arithmeticOperation(
               (NumericValue) distanceInBits,
-              new NumericValue(evaluator.getBitSizeof(currentState, canonicalReturnType)),
+              new NumericValue(
+                  evaluator.getBitSizeof(
+                      currentState, ((CPointerType) addressRight.getType()).getType())),
               BinaryOperator.DIVIDE,
               evaluator.getMachineModel().getPointerEquivalentSimpleType());
 
