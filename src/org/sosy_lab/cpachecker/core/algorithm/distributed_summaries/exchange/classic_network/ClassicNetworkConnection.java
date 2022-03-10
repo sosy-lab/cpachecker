@@ -61,4 +61,9 @@ public class ClassicNetworkConnection implements Connection {
   public void collectStatistics(Collection<Statistics> statsCollection) {
     clients.stream().findFirst().orElseThrow().collectStatistics(statsCollection);
   }
+
+  @Override
+  public String toString() {
+    return "Listen to " + server + " with " + clients.size() + " active connections.";
+  }
 }

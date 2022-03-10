@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.classic_network;
 
+import com.google.common.base.MoreObjects;
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -27,7 +28,7 @@ public class ClassicNetworkReceiver implements Closeable {
   public ClassicNetworkReceiver(BlockingQueue<Message> pQueue, int pPort) throws IOException {
     blockingQueue = pQueue;
     socket = new ServerSocket();
-    socket.bind(address = new InetSocketAddress("localhost", pPort));
+    socket.bind(address = new InetSocketAddress("127.0.0.1", pPort));
     finished = false;
     Thread server = new Thread(() -> {
       try {
@@ -60,5 +61,10 @@ public class ClassicNetworkReceiver implements Closeable {
   @Override
   public void close() throws IOException {
     finished = true;
+  }
+
+  @Override
+  public String toString() {
+    return MoreObjects.toStringHelper(this).add("address", address).toString();
   }
 }

@@ -99,7 +99,7 @@ public class MessageLogger {
     }
     Map<String, Object> messageToJSON = new HashMap<>();
     messageToJSON.put("type", pMessage.getType().name());
-    messageToJSON.put("timestamp", pMessage.getTimestamp());
+    messageToJSON.put("timestamp", pMessage.getTimestamp().toString());
     messageToJSON.put("from", pMessage.getUniqueBlockId());
     Payload p = pMessage.getPayload();
     String message = p.get(PredicateCPA.class.getName());

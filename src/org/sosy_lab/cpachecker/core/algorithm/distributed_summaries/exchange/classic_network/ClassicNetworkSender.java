@@ -33,13 +33,14 @@ public class ClassicNetworkSender implements Closeable, StatisticsProvider {
   }
 
   public void sendMessage(Message pMessage, int retries) throws IOException {
-    try (Socket client = new Socket();
-         DataOutputStream out = new DataOutputStream(client.getOutputStream())) {
+    try (Socket client = new Socket()) {
       client.connect(address);
-      byte[] message = converter.messageToJson(pMessage);
-      stats.averageMessageSize.setNextValue(message.length);
-      out.write(message);
-      out.flush();
+      try (DataOutputStream out = new DataOutputStream(client.getOutputStream())) {
+        byte[] message = converter.messageToJson(pMessage);
+        stats.averageMessageSize.setNextValue(message.length);
+        out.write(message);
+        out.flush();
+      }
     } catch (ConnectException pE) {
       // in case of many blocks, connecting may time out.
       // repeat the connection attempt.

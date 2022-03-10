@@ -24,6 +24,8 @@ import com.google.common.base.Throwables;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.Objects;
 import java.util.Set;
 import java.util.zip.GZIPInputStream;
@@ -42,7 +44,7 @@ public class Message implements Comparable<Message> {
   private final MessageType type;
   // forwards an immutable hashmap
   private final Payload payload;
-  private final long timestamp;
+  private final Timestamp timestamp;
 
   /**
    * A message is the interface of communication of {@link org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.Worker}
@@ -62,7 +64,7 @@ public class Message implements Comparable<Message> {
     payload = pPayload;
     uniqueBlockId = pUniqueBlockId;
     // when the message was created
-    timestamp = System.currentTimeMillis();
+    timestamp = Timestamp.from(Instant.now());
   }
 
   // Deserialize
@@ -70,7 +72,7 @@ public class Message implements Comparable<Message> {
       MessageType pType,
       String pUniqueBlockId,
       int pTargetNodeNumber,
-      long pTimestamp,
+      Timestamp pTimestamp,
       Payload pPayload) {
     targetNodeNumber = pTargetNodeNumber;
     type = pType;
@@ -171,7 +173,7 @@ public class Message implements Comparable<Message> {
     return uniqueBlockId;
   }
 
-  public long getTimestamp() {
+  public Timestamp getTimestamp() {
     return timestamp;
   }
 
@@ -297,7 +299,7 @@ public class Message implements Comparable<Message> {
       int nodeNumber = node.get("targetNodeNumber").asInt();
       MessageType type = MessageType.valueOf(node.get("type").asText());
       Payload payload = Payload.from(node.get("payload").asText());
-      long timestamp = node.get("timestamp").asLong();
+      Timestamp timestamp = Timestamp.valueOf(node.get("timestamp").asText());
       return new Message(type, uniqueBlockId, nodeNumber, timestamp, payload);
     }
   }
@@ -319,7 +321,7 @@ public class Message implements Comparable<Message> {
       pJsonGenerator.writeNumberField("targetNodeNumber", pMessage.getTargetNodeNumber());
       pJsonGenerator.writeStringField("type", pMessage.getType().name());
       pJsonGenerator.writeStringField("payload", pMessage.getPayload().toJSONString());
-      pJsonGenerator.writeNumberField("timestamp", pMessage.getTimestamp());
+      pJsonGenerator.writeStringField("timestamp", pMessage.getTimestamp().toString());
       pJsonGenerator.writeEndObject();
     }
   }

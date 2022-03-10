@@ -11,6 +11,7 @@ import sys
 import webbrowser
 import networkx as nx
 import pydot
+from datetime import datetime
 
 from airium import Airium
 from pathlib import Path
@@ -152,6 +153,9 @@ def main(argv=None):
             all_messages += block_logs[key]["messages"]
     if not all_messages:
         return
+    for message in all_messages:
+        # 2022 - 03 - 10 14: 44:07.031875
+        message["timestamp"] = int(datetime.strptime(message["timestamp"], '%Y-%m-%d %H:%M:%S.%f').timestamp())
     all_messages = sorted(all_messages, key=lambda entry: (entry["timestamp"], entry["from"][1::]))
     with open("table.html") as html:
         with open("table.css") as css:
