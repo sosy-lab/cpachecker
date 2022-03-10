@@ -293,7 +293,7 @@ public final class Specification {
     } catch (IOException e) {
       throw new InvalidConfigurationException(
           String.format(
-              "An exception occured during the execution of the external ltl converter tool:\n%s",
+              "An exception occured during the execution of the external ltl converter tool:%n%s",
               e.getMessage()),
           e);
     }
