@@ -34,23 +34,27 @@ public class CoverageReportGcov {
 
       //Convert ./test.c -> /full/path/test.c
       w.append(TEXTNAME + "\n");
-      w.append(SOURCEFILE + Path.of(sourcefile).toAbsolutePath() + "\n");
+      w.append(SOURCEFILE).append(String.valueOf(Path.of(sourcefile).toAbsolutePath()))
+          .append("\n");
 
       for (FunctionInfo info : fileInfos.allFunctions) {
-        w.append(FUNCTION + info.firstLine + "," + info.name + "\n");
+        w.append(FUNCTION).append(String.valueOf(info.firstLine)).append(",").append(info.name)
+            .append("\n");
         //Information about function end isn't used by lcov, but it is useful for some postprocessing
         //But lcov ignores all unknown lines, so, this additional information can't affect on its work
-        w.append("#" + FUNCTION + info.lastLine + "\n");
+        w.append("#" + FUNCTION).append(String.valueOf(info.lastLine)).append("\n");
       }
 
       for (Multiset.Entry<String> functionEntry : fileInfos.visitedFunctions.entrySet()) {
-        w.append(FUNCTIONDATA + functionEntry.getCount() + "," + functionEntry.getElement() + "\n");
+        w.append(FUNCTIONDATA).append(String.valueOf(functionEntry.getCount())).append(",")
+            .append(functionEntry.getElement()).append("\n");
       }
 
       /* Now save information about lines
        */
       for (Integer line : fileInfos.allLines) {
-        w.append(LINEDATA + line + "," + fileInfos.getVisitedLine(line) + "\n");
+        w.append(LINEDATA).append(String.valueOf(line)).append(",")
+            .append(String.valueOf(fileInfos.getVisitedLine(line))).append("\n");
       }
       w.append("end_of_record\n");
     }
