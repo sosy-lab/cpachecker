@@ -331,7 +331,7 @@ public class RedundancyRemoverTest {
   }
 
   @Test
-  public void testIdentifyAndRemoveRedundantRequirements() {//throws IOException, ParserException, InterruptedException, InvalidConfigurationException {
+  public void testIdentifyAndRemoveRedundantRequirements() {
 //    CFA cfa = TestDataTools.makeCFA("void main() { int x = 5;}");
 //    AbstractState loc =
 //        new LocationCPA(cfa, TestDataTools.configurationForTest().build()).getInitialState(

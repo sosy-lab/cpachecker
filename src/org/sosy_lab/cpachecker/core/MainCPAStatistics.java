@@ -13,11 +13,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Ordering;
@@ -383,20 +383,19 @@ class MainCPAStatistics implements Statistics {
     final ListMultimap<CFANode, AbstractState> locationIndex =
         Multimaps.index(pReachedSet, AbstractStates::extractLocation);
 
-    Function<CFANode, String> nodeLabelFormatter = new Function<>() {
-      @Override
-      public String apply(CFANode node) {
-        StringBuilder buf = new StringBuilder();
-        buf.append(node.getNodeNumber()).append("\n");
-        for (AbstractState state : locationIndex.get(node)) {
-          if (state instanceof Graphable) {
-            buf.append(((Graphable)state).toDOTLabel());
-          }
-        }
-        return buf.toString();
+    DOTBuilder.generateDOT(sb, cfa, node -> formatCFANodeWithStateInformation(node, locationIndex));
+  }
+
+  private static String formatCFANodeWithStateInformation(
+      CFANode node, Multimap<CFANode, AbstractState> locationMapping) {
+    StringBuilder buf = new StringBuilder();
+    buf.append(node.getNodeNumber()).append("\n");
+    for (AbstractState state : locationMapping.get(node)) {
+      if (state instanceof Graphable) {
+        buf.append(((Graphable) state).toDOTLabel());
       }
-    };
-    DOTBuilder.generateDOT(sb, cfa, nodeLabelFormatter);
+    }
+    return buf.toString();
   }
 
   private void printSubStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {

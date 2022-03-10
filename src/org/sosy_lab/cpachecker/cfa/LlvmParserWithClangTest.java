@@ -36,20 +36,20 @@ public class LlvmParserWithClangTest {
 
   @Parameters(name = "{0} with file name {1}")
   public static List<Object[]> testcases() {
-    List<String> testFiles =
+    List<Path> testFiles =
         ImmutableList.of(
-            "test/programs/llvm/switch-case.c",
-            "test/programs/simple/globalVariableInitialValue-1.c");
-    List<String> fileNames = ImmutableList.of("test.c", "test", "");
-    List<List<String>> testcases = Lists.cartesianProduct(testFiles, fileNames);
+            Path.of("test/programs/llvm/switch-case.c"),
+            Path.of("test/programs/simple/globalVariableInitialValue-1.c"));
+    List<Path> fileNames = ImmutableList.of(Path.of("test.c"), Path.of("test"));
+    List<List<Path>> testcases = Lists.cartesianProduct(testFiles, fileNames);
     return testcases.stream().map(List::toArray).collect(ImmutableList.toImmutableList());
   }
 
   @Parameter(0)
-  public String testFile;
+  public Path testFile;
 
   @Parameter(1)
-  public String fileName;
+  public Path fileName;
 
   // two parsers needed, as otherwise there is a problem with the already running parseTimer
   private LlvmParserWithClang fileParser;
@@ -69,9 +69,9 @@ public class LlvmParserWithClangTest {
   @Test
   public void testStringParseResultEqualsFileParseResult()
       throws ParserException, InterruptedException, InvalidConfigurationException, IOException {
-    String code = Files.readString(Path.of(testFile), Charset.defaultCharset());
+    String code = Files.readString(testFile, Charset.defaultCharset());
 
-    ParseResult fileResult = fileParser.parseFiles(ImmutableList.of(testFile));
+    ParseResult fileResult = fileParser.parseFiles(ImmutableList.of(testFile.toString()));
     ParseResult stringResult = stringParser.parseString(fileName, code);
 
     assertThat(stringResult.isEmpty()).isEqualTo(fileResult.isEmpty());

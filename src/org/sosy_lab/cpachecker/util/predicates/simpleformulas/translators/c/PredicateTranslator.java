@@ -70,7 +70,5 @@ public class PredicateTranslator {
     public Set<String> visit(Variable pVariable) {
       return ImmutableSet.of(pVariable.toString());
     }
-
   }
-
 }

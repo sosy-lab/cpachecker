@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.termination;
 
-import static com.google.common.base.Charsets.UTF_8;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -40,6 +39,7 @@ import java.io.PrintStream;
 import java.io.Writer;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -432,7 +432,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
     if (resultFile != null) {
       logger.logf(FINER, "Writing result of termination analysis into %s.", resultFile);
 
-      try (Writer writer = IO.openOutputFile(resultFile, UTF_8)) {
+      try (Writer writer = IO.openOutputFile(resultFile, StandardCharsets.UTF_8)) {
         writer.append("Non-termination arguments:\n");
         for (Entry<Loop, NonTerminationArgument> nonTerminationArgument :
             nonTerminationArguments.entrySet()) {

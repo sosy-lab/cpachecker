@@ -729,12 +729,12 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
         previousTimeSpan = timer.getLengthOfLastInterval();
       }
       timer.start();
-      boolean result = inner.adjustConditions();
-      if (!result) {
+      if (inner.adjustConditions()) {
+        return true;
+      } else {
         this.innerAdjusters.remove(inner);
         return adjustConditions();
       }
-      return result;
     }
 
     @Override

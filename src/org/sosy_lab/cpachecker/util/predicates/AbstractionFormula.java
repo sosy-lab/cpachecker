@@ -21,12 +21,10 @@ import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
-import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaToCVisitor;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
@@ -49,8 +47,6 @@ public class AbstractionFormula implements Serializable {
   private @Nullable transient final Region region; // Null after de-serializing from proof
   private transient final BooleanFormula formula;
   private final BooleanFormula instantiatedFormula;
-
-  private static final String FUNCTION_DELIMITER = "::";
 
   /**
    * The formula of the block directly before this abstraction.
@@ -118,28 +114,7 @@ public class AbstractionFormula implements Serializable {
   }
 
   public ExpressionTree<Object> asExpressionTree(CFANode pLocation) throws InterruptedException {
-    BooleanFormula inv = formula;
-    // filter out variables that are not global and
-    // not local in the current function
-    String prefix = pLocation.getFunctionName() + FUNCTION_DELIMITER;
-    inv =
-        fMgr.filterLiterals(
-            inv,
-            e -> {
-              for (String name : fMgr.extractVariableNames(e)) {
-                if (name.contains(FUNCTION_DELIMITER) && !name.startsWith(prefix)) {
-                  return false;
-                }
-              }
-              return true;
-            });
-
-    FormulaToCVisitor v = new FormulaToCVisitor(fMgr);
-    boolean isValid = fMgr.visit(inv, v);
-    if (isValid) {
-      return LeafExpression.of(v.getString());
-    }
-    return ExpressionTrees.getTrue(); // no new invariant
+    return ExpressionTrees.fromFormula(asFormula(), fMgr, pLocation);
   }
 
   /**

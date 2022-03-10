@@ -300,7 +300,7 @@ public class CProgramScope implements Scope {
   }
 
   @Override
-  public CSimpleDeclaration lookupVariable(String pName) {
+  public @Nullable CSimpleDeclaration lookupVariable(String pName) {
 
     List<Supplier<Iterable<CSimpleDeclaration>>> lookups = new ArrayList<>(isGlobalScope() ? 2 : 3);
     if (!isGlobalScope()) {
@@ -326,7 +326,7 @@ public class CProgramScope implements Scope {
       results = ImmutableSet.copyOf(lookupSupplierIterator.next().get());
     }
 
-    CSimpleDeclaration result = null;
+    @Nullable CSimpleDeclaration result = null;
     Iterator<CSimpleDeclaration> resultIt = results.iterator();
     if (resultIt.hasNext()) {
       result = resultIt.next();
@@ -338,7 +338,7 @@ public class CProgramScope implements Scope {
   }
 
   @Override
-  public CFunctionDeclaration lookupFunction(String pName) {
+  public @Nullable CFunctionDeclaration lookupFunction(String pName) {
     // Just take the first declaration; multiple different ones are not allowed
     Iterator<CFunctionDeclaration> it = functionDeclarations.get(pName).iterator();
     if (it.hasNext()) {
@@ -348,7 +348,7 @@ public class CProgramScope implements Scope {
   }
 
   @Override
-  public CComplexType lookupType(String pName) {
+  public @Nullable CComplexType lookupType(String pName) {
     CComplexType result = null;
     if (!isGlobalScope()) {
       String functionQualifiedName = createScopedNameOf(pName);

@@ -18,6 +18,7 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.math.BigInteger;
@@ -642,7 +643,6 @@ public class HarnessExporter {
           Collections.singletonList(tmpDeclaration),
           new CUnaryExpression(FileLocation.DUMMY, pType, var, UnaryOperator.AMPER));
     }
-    assert !pIsGlobal;
     ExpressionTestValue pointerValue =
         assignMallocToTmpVariable(pTargetSize, pType.getType(), false);
     return ExpressionTestValue.of(pointerValue.getAuxiliaryStatements(), pointerValue.getValue());
@@ -761,7 +761,8 @@ public class HarnessExporter {
             "malloc",
             ImmutableList.of(
                 new CParameterDeclaration(
-                    FileLocation.DUMMY, CPointerType.POINTER_TO_VOID, "size")));
+                    FileLocation.DUMMY, CPointerType.POINTER_TO_VOID, "size")),
+            ImmutableSet.of());
     return new CFunctionCallExpression(
         FileLocation.DUMMY,
         CPointerType.POINTER_TO_VOID,

@@ -9,11 +9,9 @@
 package org.sosy_lab.cpachecker.core.waitlist;
 
 import com.google.common.base.Preconditions;
-
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-
 import java.util.ArrayDeque;
 import java.util.Deque;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 /**
  * Waitlist implementation that supports either a breadth-first (BFS) or

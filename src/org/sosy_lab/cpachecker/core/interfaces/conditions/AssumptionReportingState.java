@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.interfaces.conditions;
 
 import java.util.List;
-
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 
 

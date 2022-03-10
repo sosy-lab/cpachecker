@@ -19,6 +19,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.MoreStrings;
 import org.sosy_lab.common.ProcessExecutor;
 import org.sosy_lab.common.configuration.Configuration;
@@ -109,11 +110,11 @@ public abstract class Preprocessor {
     }
   }
 
-  protected Path getAndWriteDumpFile(String programCode, Path file) {
+  protected @Nullable Path getAndWriteDumpFile(String programCode, Path file) {
     return getAndWriteDumpFile(programCode, file, dumpDirectory);
   }
 
-  protected Path getAndWriteDumpFile(String programCode, Path file, Path pDumpDirectory) {
+  protected @Nullable Path getAndWriteDumpFile(String programCode, Path file, Path pDumpDirectory) {
     if (dumpResults() && pDumpDirectory != null) {
       final Path dumpFile = pDumpDirectory.resolve(getDumpFileOfFile(file.toString())).normalize();
       final Path tmpDir = Path.of(StandardSystemProperty.JAVA_IO_TMPDIR.value());

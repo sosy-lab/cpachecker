@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.interfaces.pcc;
 
 import java.util.Collection;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 /**

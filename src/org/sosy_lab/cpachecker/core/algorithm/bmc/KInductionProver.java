@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.FormulaInContext;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.InvariantStrengthening.NextCti;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariantCombination;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.SingleLocationFormulaInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.SymbolicCandiateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.ExpressionTreeSupplier;
@@ -352,6 +353,7 @@ class KInductionProver implements AutoCloseable {
      * it for k iterations.
      */
     Map<CandidateInvariant, BooleanFormula> assertions = new HashMap<>();
+    ImmutableSet.Builder<AbstractState> inductionHypothesisBuilder = ImmutableSet.builder();
 
     for (CandidateInvariant candidateInvariant :
         CandidateInvariantCombination.getConjunctiveParts(pPredecessorAssumptions)) {
@@ -374,13 +376,32 @@ class KInductionProver implements AutoCloseable {
         if (previousViolation != null && previousK == pK) {
           predecessorAssertion = bfmgr.not(previousViolation);
         } else {
-          // Build the formula
-          predecessorAssertion =
-              candidateInvariant.getAssertion(
-                  BMCHelper.filterBmcChecked(
-                      filterIterationsUpTo(reached, pK, loopHeads), pCheckedKeys),
-                  fmgr,
-                  pfmgr);
+          // If we are not running KI-PDR and the candidate invariant is specified at a certain
+          // location, the predecessor states are those within the BMC-checked range
+          if (!pLifting.canLift() && candidateInvariant instanceof SingleLocationFormulaInvariant) {
+            predecessorAssertion =
+                candidateInvariant.getAssertion(
+                    BMCHelper.filterBmcCheckedWithin(
+                        reached, pCheckedKeys, cfa.getLoopStructure().orElseThrow().getAllLoops()),
+                    fmgr,
+                    pfmgr);
+            // Record the states used in the hypothesis
+            inductionHypothesisBuilder.addAll(
+                ImmutableSet.copyOf(
+                    candidateInvariant.filterApplicable(
+                        BMCHelper.filterBmcCheckedWithin(
+                            reached,
+                            pCheckedKeys,
+                            cfa.getLoopStructure().orElseThrow().getAllLoops()))));
+          } else {
+            // Build the formula
+            predecessorAssertion =
+                candidateInvariant.getAssertion(
+                    BMCHelper.filterBmcChecked(
+                        filterIterationsUpTo(reached, pK, loopHeads), pCheckedKeys),
+                    fmgr,
+                    pfmgr);
+          }
         }
       }
       BooleanFormula storedAssertion = assertions.get(candidateInvariant);
@@ -389,6 +410,9 @@ class KInductionProver implements AutoCloseable {
       }
       assertions.put(candidateInvariant, bfmgr.and(storedAssertion, predecessorAssertion));
     }
+
+    // Build the set of states used as induction hypothesis
+    ImmutableSet<AbstractState> inductionHypothesis = inductionHypothesisBuilder.build();
 
     // Assert the known invariants at the loop head at end of the first iteration.
 
@@ -416,7 +440,8 @@ class KInductionProver implements AutoCloseable {
                 .toList());
     // Create the successor violation formula
     Multimap<BooleanFormula, BooleanFormula> successorViolationAssertions =
-        getSuccessorViolationAssertions(pCandidateInvariant, pK + 1);
+        getSuccessorViolationAssertions(
+            pCandidateInvariant, pK + 1, inductionHypothesis, pLifting.canLift());
     // Record the successor violation formula to reuse its negation as an
     // assertion in a future induction attempt
     BooleanFormula successorViolation =
@@ -468,7 +493,13 @@ class KInductionProver implements AutoCloseable {
             Iterable<? extends SymbolicCandiateInvariant> badStateBlockingClauses =
                 ImmutableSet.of();
             Map<CounterexampleToInductivity, BooleanFormula> detectedCtis =
-                extractCTIs(reached, modelAssignments, pCheckedKeys, pCandidateInvariant, pK + 1);
+                extractCTIs(
+                    reached,
+                    modelAssignments,
+                    pCheckedKeys,
+                    pCandidateInvariant,
+                    pK + 1,
+                    pLifting.canLift());
             if (pLifting.canLift()) {
               prover.pop(); // Pop the loop-head invariants
               // Pop the successor violation
@@ -516,7 +547,8 @@ class KInductionProver implements AutoCloseable {
         AssertCandidate assertSuccessorViolation =
             (candidate) -> {
               Multimap<BooleanFormula, BooleanFormula> succViolationAssertions =
-                  getSuccessorViolationAssertions(pCandidateInvariant, pK + 1);
+                  getSuccessorViolationAssertions(
+                      pCandidateInvariant, pK + 1, inductionHypothesis, pLifting.canLift());
               // Record the successor violation formula to reuse its negation as an
               // assertion in a future induction attempt
               return BMCHelper.disjoinStateViolationAssertions(bfmgr, succViolationAssertions);
@@ -525,7 +557,13 @@ class KInductionProver implements AutoCloseable {
             () -> {
               List<ValueAssignment> modelAssignments = prover.getModelAssignments();
               Iterable<CounterexampleToInductivity> detectedCtis =
-                  extractCTIs(reached, modelAssignments, pCheckedKeys, pCandidateInvariant, pK + 1)
+                  extractCTIs(
+                          reached,
+                          modelAssignments,
+                          pCheckedKeys,
+                          pCandidateInvariant,
+                          pK + 1,
+                          pLifting.canLift())
                       .keySet();
               if (Iterables.isEmpty(detectedCtis)) {
                 return Optional.empty();
@@ -676,7 +714,8 @@ class KInductionProver implements AutoCloseable {
       Iterable<ValueAssignment> pModelAssignments,
       Set<Object> pCheckedKeys,
       CandidateInvariant pCandidateInvariant,
-      int pK) {
+      int pK,
+      boolean pCanLift) {
 
     Map<String, CType> types = new HashMap<>();
 
@@ -694,11 +733,16 @@ class KInductionProver implements AutoCloseable {
       // Logically, there is no different to computing the CTI state
       // "at the start of the first iteration" and using it as a candidate invariant there,
       // but technically, this is easier:
+
+      // If we are not running KI-PDR and the candidate invariant is specified at a certain
+      // location, we compute the CTI state "at the start of the first loop iteration"
+      int loopIterationForCTI =
+          !pCanLift && (pCandidateInvariant instanceof SingleLocationFormulaInvariant) ? 0 : 1;
       FluentIterable<AbstractState> loopHeadStates =
           filterIteration(
               AbstractStates.filterLocations(
                   BMCHelper.filterBmcChecked(pReached, pCheckedKeys), ImmutableSet.of(loopHead)),
-              1,
+              loopIterationForCTI,
               loopHeads);
 
       for (AbstractState loopHeadState : loopHeadStates) {
@@ -769,14 +813,26 @@ class KInductionProver implements AutoCloseable {
   }
 
   private Multimap<BooleanFormula, BooleanFormula> getSuccessorViolationAssertions(
-      CandidateInvariant pCandidateInvariant, int pK)
+      CandidateInvariant pCandidateInvariant,
+      int pK,
+      Set<AbstractState> pHypothesis,
+      boolean pCanLift)
       throws CPATransferException, InterruptedException {
     ReachedSet reached = reachedSet.getReachedSet();
 
     ImmutableListMultimap.Builder<BooleanFormula, BooleanFormula> stateViolationAssertionsBuilder =
         ImmutableListMultimap.builder();
-    Iterable<AbstractState> assertionStates =
-        filterIteration(pCandidateInvariant.filterApplicable(reached), pK, loopHeads);
+    Iterable<AbstractState> assertionStates;
+    // If we are not running KI-PDR and the candidate invariant is specified at a certain location,
+    // assertion states are those not in the induction hypothesis
+    if (!pCanLift && pCandidateInvariant instanceof SingleLocationFormulaInvariant) {
+      assertionStates =
+          from(pCandidateInvariant.filterApplicable(reached))
+              .filter(state -> !pHypothesis.contains(state));
+    } else {
+      assertionStates =
+          filterIteration(pCandidateInvariant.filterApplicable(reached), pK, loopHeads);
+    }
 
     for (AbstractState state : assertionStates) {
       Set<AbstractState> stateAsSet = Collections.singleton(state);

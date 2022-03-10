@@ -112,7 +112,7 @@ public class AppliedCustomInstructionParserTest {
   }
 
   @Test
-  public void testReadCustomInstruction() throws AppliedCustomInstructionParsingFailedException, InterruptedException, SecurityException {
+  public void testReadCustomInstruction() throws Exception {
     try {
       aciParser.readCustomInstruction("test4");
       assert_().fail();

@@ -8,7 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.value.symbolic;
 
-import com.google.common.collect.Iterables;
+import static com.google.common.collect.FluentIterable.from;
+
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Collections;
@@ -204,15 +205,11 @@ public class ConstraintsStrengthenOperator implements Statistics {
   }
 
   private Collection<SymbolicIdentifier> getIdentifiersInState(final ValueAnalysisState pState) {
-    Collection<SymbolicIdentifier> ret = new HashSet<>();
-
-    for (Value v : Iterables.transform(pState.getConstants(), e -> e.getValue().getValue())) {
-      if (v instanceof SymbolicValue) {
-        ret.addAll(SymbolicValues.getContainedSymbolicIdentifiers((SymbolicValue) v));
-      }
-    }
-
-    return ret;
+    return from(pState.getConstants())
+        .transform(e -> e.getValue().getValue())
+        .filter(SymbolicValue.class)
+        .transformAndConcat(SymbolicValues::getContainedSymbolicIdentifiers)
+        .copyInto(new HashSet<>());
   }
 
   @Override

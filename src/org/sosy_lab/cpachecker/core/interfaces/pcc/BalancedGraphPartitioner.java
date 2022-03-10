@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.interfaces.pcc;
 
 import java.util.List;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
 
 /**

@@ -279,10 +279,6 @@ public final class Specification {
     LabelledFormula formula;
     try {
       formula = LtlParser.parseProperty(ltl);
-    } catch (LtlParseException e) {
-      throw new InvalidConfigurationException(
-          String.format("Could not parse property '%s' (%s)", ltl, e.getMessage()), e);
-    }
     return Ltl2BuechiConverter.convertFormula(
         formula.not(),
         cfa.getMainFunction().getFunctionName(),
@@ -291,6 +287,16 @@ public final class Specification {
         cfa.getMachineModel(),
         scope,
         pShutdownNotifier);
+    } catch (LtlParseException e) {
+      throw new InvalidConfigurationException(
+          String.format("Could not parse property '%s' (%s)", ltl, e.getMessage()), e);
+    } catch (IOException e) {
+      throw new InvalidConfigurationException(
+          String.format(
+              "An exception occured during the execution of the external ltl converter tool:\n%s",
+              e.getMessage()),
+          e);
+    }
   }
 
   /**

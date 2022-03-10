@@ -52,19 +52,19 @@ public class SMGPointsToEdge implements SMGEdge, Comparable<SMGPointsToEdge> {
   }
 
   @Override
-  public int compareTo(SMGPointsToEdge pArg0) {
-    if (pointsToObject.compareTo(pArg0.pointsToObject) == 0) {
-      if (offset.compareTo(pArg0.offset) == 0) {
-        if (targetSpecifier == pArg0.targetSpecifier) {
+  public int compareTo(SMGPointsToEdge pOther) {
+    if (pointsToObject.compareTo(pOther.pointsToObject) == 0) {
+      if (offset.compareTo(pOther.offset) == 0) {
+        if (targetSpecifier == pOther.targetSpecifier) {
           return 0;
         } else {
           return 1;
         }
       } else {
-        return offset.compareTo(pArg0.offset);
+        return offset.compareTo(pOther.offset);
       }
     } else {
-      return pointsToObject.compareTo(pArg0.pointsToObject);
+      return pointsToObject.compareTo(pOther.pointsToObject);
     }
   }
 

@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.faultlocalization.ranking;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.base.Splitter;
 import com.google.common.collect.Iterables;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -15,8 +17,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultExplanation;
-
-import static com.google.common.base.Preconditions.checkArgument;
 
 public class NoContextExplanation implements FaultExplanation {
 

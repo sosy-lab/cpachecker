@@ -15,6 +15,7 @@ import com.google.common.base.Strings;
 import com.google.common.io.Files;
 import java.nio.file.Path;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -54,7 +55,7 @@ public class ClangPreprocessor extends Preprocessor {
    * @param dumpDirectory The required dump directory where the dump file will be written to.
    * @return The path denoting the dump file.
    */
-  public Path preprocessAndGetDumpedFile(Path file, Path dumpDirectory)
+  public @Nullable Path preprocessAndGetDumpedFile(Path file, Path dumpDirectory)
       throws ParserException, InterruptedException {
     checkNotNull(dumpDirectory, "Using the clang preprocessor requires a dump directory.");
     if (Files.getFileExtension(file.toString()).isEmpty()) {

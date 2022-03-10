@@ -50,9 +50,9 @@ public class SMGOptions {
   @Option(
       secure = true,
       description =
-          "Which unknown function are always considered as safe functions, "
-              + "i.e., free of memory-related side-effects?")
-  private ImmutableSet<String> safeUnknownFunctions = ImmutableSet.of("abort");
+          "Patterns of unknown functions which are always considered as safe functions, i.e., free"
+              + " of memory-related side-effects.")
+  private ImmutableSet<String> safeUnknownFunctionsPatterns = ImmutableSet.of("abort");
 
   public enum UnknownFunctionHandling {
     STRICT,
@@ -245,8 +245,8 @@ public class SMGOptions {
     return handleUnknownFunctions;
   }
 
-  public ImmutableSet<String> getSafeUnknownFunctions() {
-    return safeUnknownFunctions;
+  public ImmutableSet<String> getSafeUnknownFunctionsPatterns() {
+    return safeUnknownFunctionsPatterns;
   }
 
   public boolean isGCCZeroLengthArray() {

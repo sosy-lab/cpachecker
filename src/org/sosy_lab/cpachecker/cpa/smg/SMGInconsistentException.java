@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.smg;
 
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-
 public class SMGInconsistentException extends CPATransferException {
   private static final long serialVersionUID = -1677699207895867889L;
 

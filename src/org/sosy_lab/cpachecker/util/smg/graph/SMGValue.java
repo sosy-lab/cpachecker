@@ -64,8 +64,8 @@ public class SMGValue implements SMGNode, Comparable<SMGValue> {
   }
 
   @Override
-  public int compareTo(SMGValue pArg0) {
-    return Integer.compare(id, pArg0.id);
+  public int compareTo(SMGValue pOther) {
+    return Integer.compare(id, pOther.id);
   }
 
   @Override

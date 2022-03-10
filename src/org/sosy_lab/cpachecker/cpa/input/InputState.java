@@ -58,5 +58,4 @@ public class InputState implements AbstractState {
     }
     return new InputState(pInputs);
   }
-
 }

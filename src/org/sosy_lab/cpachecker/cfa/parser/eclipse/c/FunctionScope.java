@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -191,7 +192,7 @@ class FunctionScope extends AbstractScope {
   }
 
   @Override
-  public CFunctionDeclaration lookupFunction(String name) {
+  public @Nullable CFunctionDeclaration lookupFunction(String name) {
     checkNotNull(name);
 
     // we look at first if the function is available in the local functions
@@ -209,7 +210,7 @@ class FunctionScope extends AbstractScope {
   }
 
   @Override
-  public CComplexType lookupType(String name) {
+  public @Nullable CComplexType lookupType(String name) {
     checkNotNull(name);
 
     Iterator<Map<String, CComplexTypeDeclaration>> it = typesStack.descendingIterator();
@@ -231,7 +232,7 @@ class FunctionScope extends AbstractScope {
   }
 
   @Override
-  public CType lookupTypedef(final String name) {
+  public @Nullable CType lookupTypedef(final String name) {
     checkNotNull(name);
 
     final CTypeDefDeclaration declaration = typedefs.get(name);

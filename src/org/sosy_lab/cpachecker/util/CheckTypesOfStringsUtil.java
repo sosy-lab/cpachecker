@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.util;
 
 import java.util.regex.Pattern;
-
 import org.sosy_lab.cpachecker.cpa.sign.SIGN;
 
 

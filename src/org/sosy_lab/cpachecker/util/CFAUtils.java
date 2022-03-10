@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 import com.google.common.collect.UnmodifiableIterator;
 import com.google.common.graph.Traverser;
 import java.util.ArrayDeque;
@@ -345,7 +346,7 @@ public class CFAUtils {
   }
 
   public static Map<Integer, CFANode> getMappingFromNodeIDsToCFANodes(CFA pCfa) {
-    return from(pCfa.getAllNodes()).uniqueIndex(node -> node.getNodeNumber());
+    return Maps.uniqueIndex(pCfa.getAllNodes(), CFANode::getNodeNumber);
   }
 
   /**
@@ -794,6 +795,9 @@ public class CFAUtils {
 
     @Override
     public Iterable<AAstNode> visit(JArrayCreationExpression pExp) {
+      if (pExp.getInitializer() == null) {
+        return ImmutableList.copyOf(pExp.getLength()); // no actual copy, avoids unchecked cast
+      }
       return Iterables.concat(pExp.getLength(), ImmutableList.of(pExp.getInitializer()));
     }
 

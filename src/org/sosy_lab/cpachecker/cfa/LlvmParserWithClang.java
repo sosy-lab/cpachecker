@@ -14,6 +14,8 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Objects;
+
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.TempFile;
@@ -55,16 +57,13 @@ public class LlvmParserWithClang extends LlvmParser {
   }
 
   @Override
-  public ParseResult parseString(final String pFilename, final String pCode)
+  public ParseResult parseString(final Path pFilename, final String pCode)
       throws ParserException, InterruptedException {
+    Objects.requireNonNull(pFilename);
     // The input is written to a file in a temporary directory so that clang can preprocess it.
     // This temp dir will be automatically deleted when the try block terminates.
     try (DeleteOnCloseDir tempDir = TempFile.createDeleteOnCloseDir("input-for-llvm-with-clang")) {
-      String filename = pFilename;
-      if (Strings.isNullOrEmpty(filename)) {
-        filename = "input-for-llvm-with-clang";
-      }
-      Path tempFile = tempDir.toPath().resolve(filename).normalize();
+      Path tempFile = tempDir.toPath().resolve(pFilename).normalize();
       IO.writeFile(tempFile, Charset.defaultCharset(), pCode);
       return parseSingleFile(tempFile);
     } catch (IOException e) {
@@ -90,7 +89,7 @@ public class LlvmParserWithClang extends LlvmParser {
   private ParseResult parse0(final Path pFilename, final Path pDumpDirectory)
       throws ParserException, InterruptedException {
     Path dumpedFile = preprocessor.preprocessAndGetDumpedFile(pFilename, pDumpDirectory);
-    return super.parseFile(dumpedFile.toString());
+    return super.parseFile(dumpedFile);
   }
 
   static class Factory {
@@ -99,5 +98,4 @@ public class LlvmParserWithClang extends LlvmParser {
       return new LlvmParserWithClang(processor, logger, machine);
     }
   }
-
 }
