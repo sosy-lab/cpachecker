@@ -367,7 +367,7 @@ public final class DOTBuilder2 {
 
     private Set<CFANode> generateConsideredNodes(CFA cfa) {
       if (reached.isPresent()) {
-        Set<CFANode> visitedNodes = CoverageUtility.getVisitedNodes(reached.get(), cfa);
+        Set<CFANode> visitedNodes = CoverageUtility.getVisitedNodes(reached.orElseThrow(), cfa);
         CoverageUtility.addIndirectlyCoveredNodes(visitedNodes);
         return visitedNodes;
       } else {
@@ -384,7 +384,7 @@ public final class DOTBuilder2 {
       jnode.put("type", determineNodeType(node));
       jnode.put("loop", node.isLoopStart());
       if (reached.isPresent()) {
-        jnode.put("covered", CoverageUtility.isNodeConsidered(node, reached.get()));
+        jnode.put("covered", CoverageUtility.isNodeConsidered(node, reached.orElseThrow()));
       } else {
         jnode.put("covered", false);
       }
