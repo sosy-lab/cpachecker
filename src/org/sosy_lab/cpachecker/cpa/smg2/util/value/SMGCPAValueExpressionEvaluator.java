@@ -247,10 +247,53 @@ public class SMGCPAValueExpressionEvaluator {
 
     // The offset of the pointer used. (the pointer might point to a offset != 0, the other offset
     // needs to the added to that!)
-    // BigInteger baseOffset = maybeTargetAndOffset.orElseThrow().getOffsetForObject();
-    // BigInteger offset = baseOffset.add(pOffset);
+    BigInteger baseOffset = maybeTargetAndOffset.orElseThrow().getOffsetForObject();
+    BigInteger offset = baseOffset.add(pOffset);
 
-    return readValue(pState, object, pOffset, pSizeInBits);
+    return readValue(pState, object, offset, pSizeInBits);
+  }
+
+  /**
+   * Calculates the distance of 2 addresses in bits. But returns unknown Value if its not the same
+   * object or unknown pointers.
+   *
+   * @param state the {@link SMGState} the 2 pointers are known in.
+   * @param leftPointer {@link Value} left hand side pointer in the minus operation.
+   * @param rightPointer {@link Value} right hand side pointer in the minus operation.
+   * @return Either distance as {@link NumericValue} or {@link UnknownValue}.
+   */
+  public Value calculateAddressDistance(SMGState state, Value leftPointer, Value rightPointer) {
+    SymbolicProgramConfiguration spc = state.getMemoryModel();
+    if (!spc.isPointer(leftPointer) || !spc.isPointer(rightPointer)) {
+      // Not known or not known as a pointer, return nothing
+      return UnknownValue.getInstance();
+    }
+    // We can only compare the underlying SMGObject for equality as the Values are distinct if they
+    // point to different parts of the object. We need to compare the object because we can only
+    // calculate the distance in the exact same object
+    Optional<SMGObjectAndOffset> maybeLeftTargetAndOffset =
+        state.getMemoryModel().dereferencePointer(leftPointer);
+    if (maybeLeftTargetAndOffset.isEmpty()) {
+      return UnknownValue.getInstance();
+    }
+    Optional<SMGObjectAndOffset> maybeRightTargetAndOffset =
+        state.getMemoryModel().dereferencePointer(rightPointer);
+    if (maybeRightTargetAndOffset.isEmpty()) {
+      return UnknownValue.getInstance();
+    }
+    SMGObjectAndOffset leftTargetAndOffset = maybeLeftTargetAndOffset.orElseThrow();
+    SMGObjectAndOffset rightTargetAndOffset = maybeRightTargetAndOffset.orElseThrow();
+    SMGObject leftTarget = leftTargetAndOffset.getSMGObject();
+    SMGObject rightTarget = rightTargetAndOffset.getSMGObject();
+    if (!leftTarget.equals(rightTarget)) {
+      return UnknownValue.getInstance();
+    }
+    // int because this is always a int
+    return new NumericValue(
+        leftTargetAndOffset
+            .getOffsetForObject()
+            .subtract(rightTargetAndOffset.getOffsetForObject())
+            .intValue());
   }
 
   /**
