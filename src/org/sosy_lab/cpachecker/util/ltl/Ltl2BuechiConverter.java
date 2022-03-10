@@ -18,7 +18,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,6 +28,7 @@ import jhoafparser.storage.StoredAutomaton;
 import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -187,7 +187,7 @@ public class Ltl2BuechiConverter {
    */
   private String readLinesFromStream(InputStream is) throws IOException {
     try (BufferedReader br =
-        new BufferedReader(new InputStreamReader(is, Charset.defaultCharset())); ) {
+        new BufferedReader(new InputStreamReader(is, IO.getNativeCharset())); ) {
       return CharStreams.toString(br);
     }
   }
