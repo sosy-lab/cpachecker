@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.smg2;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.List;
@@ -936,6 +937,129 @@ public class SMGCPAValueVisitorTest {
     }
   }
 
+
+  /**
+   * Test distance of 2 pointers from the same array on the stack.
+   *
+   * @throws CPATransferException should never be thrown!
+   * @throws InvalidConfigurationException should never be thrown!
+   */
+  @Test
+  public void stackArrayPointerDistance()
+      throws CPATransferException, InvalidConfigurationException {
+    String arrayVariableName = "arrayVariable";
+    String indexVariableName = "indexVariableName";
+    CType indexVarType = INT_TYPE;
+
+    // We want to test the arrays for all basic types
+    for (int i = 0; i < ARRAY_TEST_TYPES.size(); i++) {
+      CType currentArrayType = ARRAY_TEST_TYPES.get(i);
+
+      int sizeOfCurrentTypeInBits = MACHINE_MODEL.getSizeof(currentArrayType).intValue() * 8;
+      // address to the heap where the array starts
+      Value addressValue = new ConstantSymbolicExpression(new UnknownValue(), null);
+      // Create the array on the heap; size is type size in bits * size of array
+      addHeapVariableToMemoryModel(0, sizeOfCurrentTypeInBits * TEST_ARRAY_LENGTH, addressValue);
+      // Stack variable holding the address (the pointer)
+      addStackVariableToMemoryModel(arrayVariableName, POINTER_SIZE);
+      writeToStackVariableInMemoryModel(arrayVariableName, 0, POINTER_SIZE, addressValue);
+
+      // Now write some distinct values into the array, for signed we want to test negatives!
+      for (int k = 0; k < TEST_ARRAY_LENGTH; k++) {
+        // Create a Value that we want to be mapped to a SMGValue to write into the array depending
+        // on the type
+        Value arrayValue = transformInputIntoValue(currentArrayType, k);
+
+        // Write to the heap array
+        writeToHeapObjectByAddress(
+            addressValue, sizeOfCurrentTypeInBits * k, sizeOfCurrentTypeInBits, arrayValue);
+
+        // Now create length stack variables holding the indices to access the array
+        addStackVariableToMemoryModel(
+            indexVariableName + k, MACHINE_MODEL.getSizeof(indexVarType).intValue() * 8);
+        writeToStackVariableInMemoryModel(
+            indexVariableName + k,
+            0,
+            MACHINE_MODEL.getSizeof(indexVarType).intValue() * 8,
+            new NumericValue(k));
+      }
+
+      // Now we read the entire array twice.(twice because values may change when reading in SMGs,
+      // and we don't want that)
+      for (int j = 0; j < 2; j++) {
+        for (int k = 0; k < TEST_ARRAY_LENGTH; k++) {
+          CPointerExpression arrayPointerExpr =
+              arrayPointerAccessPlusVariableIndexOnTheRight(
+                  arrayVariableName, indexVariableName + k, indexVarType, currentArrayType);
+
+          List<ValueAndSMGState> resultList = arrayPointerExpr.accept(visitor);
+
+          // Assert the correct return values depending on type
+          assertThat(resultList).hasSize(1);
+          Value resultValue = resultList.get(0).getValue();
+          checkValue(currentArrayType, k, resultValue);
+        }
+      }
+      // Reset memory model
+      resetSMGStateAndVisitor();
+    }
+  }
+
+  /**
+   * Test distance of 2 pointers from the same array on the heap.
+   *
+   * @throws CPATransferException should never be thrown!
+   * @throws InvalidConfigurationException should never be thrown!
+   */
+  @Test
+  public void heapArrayPointerDistance()
+      throws CPATransferException, InvalidConfigurationException {
+    String arrayVariableName = "arrayVariable";
+
+    // We want to test the arrays for all basic types
+    for (int i = 0; i < ARRAY_TEST_TYPES.size(); i++) {
+      CType currentArrayType = ARRAY_TEST_TYPES.get(i);
+
+      int sizeOfCurrentTypeInBits = MACHINE_MODEL.getSizeof(currentArrayType).intValue() * 8;
+      // address to the heap where the array starts
+      Value addressValue = new ConstantSymbolicExpression(new UnknownValue(), null);
+      // Create the array on the heap; size is type size in bits * size of array
+      addHeapVariableToMemoryModel(0, sizeOfCurrentTypeInBits * TEST_ARRAY_LENGTH, addressValue);
+      // Stack variable holding the address (the pointer)
+      addStackVariableToMemoryModel(arrayVariableName, POINTER_SIZE);
+      writeToStackVariableInMemoryModel(arrayVariableName, 0, POINTER_SIZE, addressValue);
+
+      // Now create a lot of pointers pointing to the same structure but different offsets
+      for (int k = 0; k < TEST_ARRAY_LENGTH; k++) {
+        Value newPointer = new ConstantSymbolicExpression(new UnknownValue(), null);
+        addStackVariableToMemoryModel(arrayVariableName + k, POINTER_SIZE);
+        writeToStackVariableInMemoryModel(arrayVariableName + k, 0, POINTER_SIZE, newPointer);
+        addPointerToExistingHeapObject(k * sizeOfCurrentTypeInBits, addressValue, newPointer);
+      }
+
+      // Now we read the entire array twice.(twice because values may change when reading in SMGs,
+      // and we don't want that)
+      for (int j = 0; j < TEST_ARRAY_LENGTH; j++) {
+        for (int k = 0; k < TEST_ARRAY_LENGTH; k++) {
+          // Obviously a smaller minus a larger offset makes no sense (if you don't want useless values)
+          CBinaryExpression arrayDistanceExpr =
+              arrayPointerMinusArrayPointer(
+                  arrayVariableName + j, arrayVariableName + k, currentArrayType);
+
+          List<ValueAndSMGState> resultList = arrayDistanceExpr.accept(visitor);
+
+          // Assert the correct return values depending on type
+          assertThat(resultList).hasSize(1);
+          Value resultValue = resultList.get(0).getValue();
+          assertThat(resultValue.isNumericValue()).isTrue();
+          assertThat(resultValue.asNumericValue().longValue()).isEqualTo(j - k);
+        }
+      }
+      // Reset memory model
+      resetSMGStateAndVisitor();
+    }
+  }
+
   /*
    * Test casting of char concrete values.
    * Assuming Linux 64bit. If signed/unsigned is missing signed is assumed.
@@ -976,8 +1100,6 @@ public class SMGCPAValueVisitorTest {
             .isEqualTo(convertToType(BigInteger.valueOf(testChar), typeToTest));
       }
     }
-
-
   }
 
   /*
@@ -1518,6 +1640,33 @@ public class SMGCPAValueVisitorTest {
     spc =
         spc.copyAndAddPointerFromAddressToRegion(
             addressValue, smgHeapObject, BigInteger.valueOf(offset));
+
+    // This state now has the stack variable that is the pointer to the struct and the struct with a
+    // value in the second int, and none in the first
+    currentState =
+        SMGState.of(
+            MachineModel.LINUX64,
+            spc,
+            logger,
+            new SMGOptions(Configuration.defaultConfiguration()));
+    visitor = new SMGCPAValueVisitor(evaluator, currentState, new DummyCFAEdge(null, null), logger);
+  }
+
+  private void addPointerToExistingHeapObject(
+      int offset, Value addressOfTargetWith0Offset, Value newPointerValue)
+      throws InvalidConfigurationException {
+    SymbolicProgramConfiguration spc = currentState.getMemoryModel();
+
+    // Get the pte for the objects 0 position via the original malloc pointer (always the value in
+    // the addressExpr)
+    SMGObjectAndOffset objectAndOffset =
+        spc.dereferencePointer(addressOfTargetWith0Offset).orElseThrow();
+    Preconditions.checkArgument(objectAndOffset.getOffsetForObject().longValue() == 0);
+
+    // Mapping to the smg points to edge
+    spc =
+        spc.copyAndAddPointerFromAddressToRegion(
+            newPointerValue, objectAndOffset.getSMGObject(), BigInteger.valueOf(offset));
 
     // This state now has the stack variable that is the pointer to the struct and the struct with a
     // value in the second int, and none in the first
