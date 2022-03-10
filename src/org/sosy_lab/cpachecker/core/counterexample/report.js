@@ -932,7 +932,9 @@ let argTabDisabled = false;
         $scope.selectedCFAFunction = $scope.functions[0];
         $scope.zoomEnabled = false;
         $scope.cfaColoringEnabled = true;
-        d3.select("#cfa-considered-button").html("<i class='far fa-check-square'></i>");
+        d3.select("#cfa-considered-button").html(
+          "<i class='far fa-check-square'></i>"
+        );
       }
 
       $scope.setCFAFunction = () => {
@@ -989,24 +991,23 @@ let argTabDisabled = false;
       $scope.cfaColoringControl = function cfaColoringControl() {
         if ($scope.cfaColoringEnabled) {
           $scope.cfaColoringEnabled = false;
-          d3.select("#cfa-considered-button").html("<i class='far fa-square'></i>");
-          d3.selectAll(".cfa-node-covered").each(
-              function cfaNode() {
+          d3.select("#cfa-considered-button").html(
+              "<i class='far fa-square'></i>");
+          d3.selectAll(".cfa-node-covered").each(function cfaNode() {
                 const node = d3.select(this.firstChild);
                 node.attr("style", "fill: #fff; stroke: #999;");
               }
           );
-          d3.selectAll(".cfa-node-considered").each(
-              function cfaNode() {
+          d3.selectAll(".cfa-node-considered").each(function cfaNode() {
                 const node = d3.select(this.firstChild);
                 node.attr("style", "fill: #fff; stroke: #999;");
               }
           );
         } else {
           $scope.cfaColoringEnabled = true;
-          d3.select("#cfa-considered-button").html("<i class='far fa-check-square'></i>");
-          d3.selectAll(".cfa-node-covered").each(
-              function cfaNode() {
+          d3.select("#cfa-considered-button").html(
+              "<i class='far fa-check-square'></i>");
+          d3.selectAll(".cfa-node-covered").each(function cfaNode() {
                 const node = d3.select(this.firstChild);
                 node.attr("style", "");
               }
@@ -1036,7 +1037,8 @@ let argTabDisabled = false;
           );
         } else {
           $scope.zoomEnabled = true;
-          d3.select("#cfa-zoom-button").html("<i class='far fa-check-square'></i>");
+          d3.select("#cfa-zoom-button").html(
+              "<i class='far fa-check-square'></i>");
           d3.selectAll(".cfa-svg").each(
             /* @this HTMLElement */ function cfaSvg() {
               const svg = d3.select(this);
