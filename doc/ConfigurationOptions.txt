@@ -895,30 +895,6 @@ cinvariants.prefix = no default value
 # Attempt to simplify the invariant before exporting [may be very expensive].
 cinvariants.simplify = false
 
-# how to send messages
-components.connectionType = NETWORK_NIO_UNSTABLE
-  enum:     [NETWORK_NIO_UNSTABLE, NETWORK, IN_MEMORY]
-
-# whether to use daemon threads for workers
-components.daemon = true
-
-# algorithm to decompose the CFA
-components.decompositionType = BLOCK_OPERATOR
-  enum:     [BLOCK_OPERATOR, GIVEN_SIZE, SINGLE_BLOCK]
-
-# desired number of BlockNodes
-components.desiredNumberOfBlocks = 5
-
-# maximal overall wall-time for parallel analysis
-components.maxWallTime = 15 * 60s
-
-# whether to spawn util worker
-components.spawnUtilWorkers = true
-
-# which worker to use
-components.workerType = DEFAULT
-  enum:     [DEFAULT, SMART, FAULT_LOCALIZATION]
-
 # If adaptTimeLimits is set and all configurations support progress reports,
 # in each cycle the time limits per configuration are newly calculated based
 # on the progress
@@ -3538,6 +3514,52 @@ differential.ignoreDeclarations = false
 # Program to check against
 differential.program = no default value
 
+# how to send messages
+distributedSummaries.connectionType = NETWORK_NIO_UNSTABLE
+  enum:     [NETWORK_NIO_UNSTABLE, NETWORK, IN_MEMORY]
+
+# whether to use daemon threads for workers
+distributedSummaries.daemon = true
+
+# algorithm to decompose the CFA
+distributedSummaries.decompositionType = BLOCK_OPERATOR
+  enum:     [BLOCK_OPERATOR, GIVEN_SIZE, SINGLE_BLOCK]
+
+# desired number of BlockNodes
+distributedSummaries.desiredNumberOfBlocks = 5
+
+# maximal overall wall-time for parallel analysis
+distributedSummaries.maxWallTime = 15 * 60s
+
+# path for the file storing the results of the distributed fault localization
+# algorithm
+distributedSummaries.observer.resultFile = "faults.txt"
+
+# whether to spawn util worker
+distributedSummaries.spawnUtilWorkers = true
+
+# define the configuration for the desired backward analysis
+distributedSummaries.worker.backwardConfiguration = "config/predicateAnalysis-block-backward.properties"
+
+# whether error conditions are always checked for unsatisfiability
+distributedSummaries.worker.checkEveryErrorCondition = true
+
+# whether analysis worker store circular post conditions
+distributedSummaries.worker.doStoreCircularPostConditions = false
+
+# forces the precondition of fault localization workers to be true
+distributedSummaries.worker.flPreconditionAlwaysTrue = false
+
+# define the configuration for the desired forward analysis
+distributedSummaries.worker.forwardConfiguration = "config/predicateAnalysis-block-forward.properties"
+
+# loop free programs do not require to deny all possible error messages
+distributedSummaries.worker.sendEveryErrorMessage = false
+
+# which worker to use
+distributedSummaries.workerType = DEFAULT
+  enum:     [DEFAULT, SMART, FAULT_LOCALIZATION]
+
 # Enable to use lazy refinement in current analysis instead of restarting
 # from root after each refinement.
 enabledanalysis.allowLazyRefinement = false
@@ -4264,10 +4286,6 @@ restartAlgorithm.printIntermediateStatistics = true
 # the last one that is excuted
 restartAlgorithm.writeIntermediateOutputFiles = false
 
-# path for the file storing the results of the distributed fault localization
-# algorithm
-resultFile = "faults.txt"
-
 # path to condition file
 slicing.conditionFile = "output/AssumptionAutomaton.txt"
 
@@ -4706,21 +4724,3 @@ witness.validation.termination.terminatingStatements = "config/specification/Ter
 # When validating a violation witness, use this configuration file instead of
 # the current one.
 witness.validation.violation.config = no default value
-
-# define the configuration for the desired backward analysis
-worker.backwardConfiguration = "config/predicateAnalysis-block-backward.properties"
-
-# whether error conditions are always checked for unsatisfiability
-worker.checkEveryErrorCondition = true
-
-# whether analysis worker store circular post conditions
-worker.doStoreCircularPostConditions = false
-
-# forces the precondition of fault localization workers to be true
-worker.flPreconditionAlwaysTrue = false
-
-# define the configuration for the desired forward analysis
-worker.forwardConfiguration = "config/predicateAnalysis-block-forward.properties"
-
-# loop free programs do not require to deny all possible error messages
-worker.sendEveryErrorMessage = false
