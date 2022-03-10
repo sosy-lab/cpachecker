@@ -64,8 +64,6 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -82,9 +80,9 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   private boolean exportAssumptions = true;
 
   @Option(
-      secure = true,
-      name = "export.location",
-      description = "export assumptions collected per location"
+    secure = true,
+    name = "export.location",
+    description = "export assumptions collected per location"
   )
   private boolean exportLocationAssumptions = true;
 
@@ -110,8 +108,8 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   private Path assumptionAutomatonDotFile = Path.of("AssumptionAutomaton.dot");
 
   @Option(
-      secure = true,
-      description = "compress the produced assumption automaton using GZIP compression."
+    secure = true,
+    description = "compress the produced assumption automaton using GZIP compression."
   )
   private boolean compressAutomaton = false;
 
@@ -300,9 +298,9 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       AssumptionStorageState asmptState = AbstractStates.extractStateByType(e, AssumptionStorageState.class);
 
       boolean hasFalseAssumption =
-          e.isTarget()
-              || asmptState.isStop()
-              || exceptionStates.contains(e.getStateId());
+             e.isTarget()
+          || asmptState.isStop()
+          || exceptionStates.contains(e.getStateId());
 
       boolean isRelevant = !asmptState.isAssumptionTrue();
 
@@ -327,7 +325,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     }
 
     automatonStates += writeAutomaton(output, (ARGState) firstState, relevantStates, falseAssumptionStates,
-        automatonBranchingThreshold, automatonIgnoreAssumptions);
+            automatonBranchingThreshold, automatonIgnoreAssumptions);
 
   }
 
@@ -503,11 +501,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
           AssumptionStorageState assumptionChild =
               AbstractStates.extractStateByType(child, AssumptionStorageState.class);
-          addAssumption(
-              descriptionForInnerMultiEdges,
-              assumptionChild,
-              ignoreAssumptions,
-              AbstractStates.extractLocation(child));
+          addAssumption(descriptionForInnerMultiEdges, assumptionChild, ignoreAssumptions);
           finishTransition(
               descriptionForInnerMultiEdges,
               child,
@@ -527,8 +521,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
           AssumptionStorageState assumptionChild =
               AbstractStates.extractStateByType(child, AssumptionStorageState.class);
-          addAssumption(
-              sb, assumptionChild, ignoreAssumptions, AbstractStates.extractLocation(child));
+          addAssumption(sb, assumptionChild, ignoreAssumptions);
           finishTransition(
               sb, child, relevantStates, falseAssumptionStates, actionOnFinalEdges, branching);
         }
@@ -544,36 +537,28 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     return numProducedStates;
   }
 
+
   private static void addAssumption(
       final Appendable writer,
       final AssumptionStorageState assumptionState,
-      boolean ignoreAssumptions,
-      CFANode pCFANode)
+      boolean ignoreAssumptions)
       throws IOException {
-    if (!ignoreAssumptions) {
-      FormulaManagerView fmgr = assumptionState.getFormulaManager();
+   if (!ignoreAssumptions) {
       final BooleanFormulaManagerView bmgr =
           assumptionState.getFormulaManager().getBooleanFormulaManager();
       BooleanFormula assumption =
           bmgr.and(assumptionState.getAssumption(), assumptionState.getStopFormula());
       if (!bmgr.isTrue(assumption)) {
-        try {
-          ExpressionTree<Object> assumptionTree =
-              ExpressionTrees.fromFormula(assumption, fmgr, pCFANode);
-          // At this point, we know that the InterruptedException is not thrown,
-          // hence, we can continue
-          writer.append("ASSUME {");
-          escape(assumptionTree.toString(), writer);
-          writer.append("} ");
-        } catch (InterruptedException e) {
-        //Nothing to do here, as we simply ignore this assumption if it is not parsable
-        }
+        writer.append("ASSUME {");
+        escape(assumption.toString(), writer);
+        writer.append("} ");
       }
     }
   }
 
+
   private static void finishTransition(final Appendable writer, final ARGState child, final Set<ARGState> relevantStates,
-                                       final Set<AbstractState> falseAssumptionStates, final String actionOnFinalEdges, final boolean branching)
+      final Set<AbstractState> falseAssumptionStates, final String actionOnFinalEdges, final boolean branching)
       throws IOException {
     if (falseAssumptionStates.contains(child)) {
       writer.append(actionOnFinalEdges + "GOTO __FALSE");
@@ -624,20 +609,20 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         case '\r':
           appendTo.append("\\r");
           break;
-        case '\n':
-          appendTo.append("\\n");
-          break;
-        case '\"':
-          appendTo.append("\\\"");
-          break;
-        case '\\':
-          appendTo.append("\\\\");
-          break;
-        case '`':
-          break;
-        default:
-          appendTo.append(c);
-          break;
+      case '\n':
+        appendTo.append("\\n");
+        break;
+      case '\"':
+        appendTo.append("\\\"");
+        break;
+      case '\\':
+        appendTo.append("\\\\");
+        break;
+      case '`':
+        break;
+      default:
+        appendTo.append(c);
+        break;
       }
     }
   }

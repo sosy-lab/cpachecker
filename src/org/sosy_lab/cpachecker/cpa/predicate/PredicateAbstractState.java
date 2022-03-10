@@ -35,7 +35,9 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-/** AbstractState for Symbolic Predicate Abstraction CPA */
+/**
+ * AbstractState for Symbolic Predicate Abstraction CPA
+ */
 public abstract class PredicateAbstractState
     implements AbstractState, Partitionable, Serializable, Splitable {
 
@@ -127,7 +129,7 @@ public abstract class PredicateAbstractState
     @Override
     public ExpressionTree<Object> getFormulaApproximation(
         FunctionEntryNode pFunctionScope, CFANode pLocation) throws InterruptedException {
-     return super.abstractionFormula.asExpressionTree(pLocation);
+      return super.abstractionFormula.asExpressionTree(pLocation);
     }
 
     @Override
