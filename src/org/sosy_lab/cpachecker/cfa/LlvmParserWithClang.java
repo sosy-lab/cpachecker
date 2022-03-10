@@ -9,7 +9,6 @@
 
 package org.sosy_lab.cpachecker.cfa;
 
-import com.google.common.base.Strings;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
