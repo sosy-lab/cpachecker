@@ -131,29 +131,6 @@ public interface Algorithm {
       }
       return "AlgorithmStatus [isSound=" + isSound + ", isPrecise=" + isPrecise + "]";
     }
-
-    public static class StatusFactory {
-
-      public StatusFactory() {}
-
-      public AlgorithmStatus statusOf(boolean pPropertyChecked, boolean pIsSound, boolean pIsPrecise) {
-        if (!pPropertyChecked) {
-          return NO_PROPERTY_CHECKED;
-        }
-        if (pIsSound) {
-          if (pIsPrecise) {
-            return SOUND_AND_PRECISE;
-          }
-          return SOUND_AND_IMPRECISE;
-        } else {
-          if (pIsPrecise) {
-            return UNSOUND_AND_PRECISE;
-          }
-          return UNSOUND_AND_IMPRECISE;
-        }
-      }
-
-    }
   }
 
   interface AlgorithmFactory {

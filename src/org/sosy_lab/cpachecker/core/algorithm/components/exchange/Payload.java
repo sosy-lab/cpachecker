@@ -21,16 +21,25 @@ import org.sosy_lab.common.JSON;
 
 public class Payload extends ForwardingMap<String, String> {
 
+  // distributed analysis
   public static final String FULL_PATH = "full";
   public static final String FIRST = "first";
-  public static final String EXCEPTION = "exception";
   public static final String RESULT = "result";
-  public static final String FAULT_LOCALIZATION = "fl";
   public static final String VISITED = "visited";
-  public static final String STATUS = "status";
-  public static final String REASON = "reason";
+  public static final String EXCEPTION = "exception";
   public static final String REACHABLE = "reach";
   public static final String SMART = "smart";
+  // reason why error condition is reachable
+  public static final String REASON = "reason";
+
+  // fault localization
+  public static final String FAULT_LOCALIZATION = "fl";
+
+
+  // AlgorithmStatus
+  public static final String SOUND = "sound";
+  public static final String PRECISE = "precise";
+  public static final String PROPERTY = "property";
 
   private final Map<String, String> delegate;
 

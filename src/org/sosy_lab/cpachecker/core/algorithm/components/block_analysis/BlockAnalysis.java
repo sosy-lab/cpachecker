@@ -37,6 +37,9 @@ import org.sosy_lab.cpachecker.core.algorithm.components.distributed_cpa.Distrib
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Payload;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.UpdatedTypeMap;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.observer.StatusObserver.StatusPrecise;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.observer.StatusObserver.StatusPropertyChecked;
+import org.sosy_lab.cpachecker.core.algorithm.components.exchange.observer.StatusObserver.StatusSoundness;
 import org.sosy_lab.cpachecker.core.algorithm.components.worker.AnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -260,6 +263,25 @@ public abstract class BlockAnalysis {
     return violationStates;
   }
 
+  protected Payload appendStatus(AlgorithmStatus pStatus, Payload pCurrentPayload) {
+    return Payload.builder().putAll(pCurrentPayload).addEntry(
+            Payload.PROPERTY,
+            pStatus.wasPropertyChecked()
+            ? StatusPropertyChecked.CHECKED.name()
+            : StatusPropertyChecked.UNCHECKED.name())
+        .addEntry(
+            Payload.SOUND,
+            pStatus.isSound()
+            ? StatusSoundness.SOUND.name()
+            : StatusSoundness.UNSOUND.name())
+        .addEntry(
+            Payload.PRECISE,
+            pStatus.isPrecise()
+            ? StatusPrecise.PRECISE.name()
+            : StatusPrecise.IMPRECISE.name())
+        .build();
+  }
+
   public static class ForwardAnalysis extends BlockAnalysis {
 
     private final BlockTransferRelation relation;
@@ -329,25 +351,30 @@ public abstract class BlockAnalysis {
     }
 
     private Collection<Message> createBlockPostConditionMessage(
-        Collection<Message> messages,
-        Set<ARGState> blockEntries)
+        Collection<Message> messages, Set<ARGState> blockEntries)
         throws CPAException, InterruptedException {
       List<AbstractState> compositeStates =
-          blockEntries.stream().map(this::extractCompositeStateFromAbstractState).collect(
-              ImmutableList.toImmutableList());
+          blockEntries.stream()
+              .map(this::extractCompositeStateFromAbstractState)
+              .collect(ImmutableList.toImmutableList());
       Set<Message> answers = new HashSet<>();
       if (!compositeStates.isEmpty()) {
-        boolean fullPath = messages.size() == block.getPredecessors().size() && messages.stream()
-            .allMatch(m -> Boolean.parseBoolean(m.getPayload().get(Payload.FULL_PATH)));
+        boolean fullPath =
+            messages.size() == block.getPredecessors().size()
+                && messages.stream()
+                    .allMatch(m -> Boolean.parseBoolean(m.getPayload().get(Payload.FULL_PATH)));
         Set<String> visited = visitedBlocks(messages);
         AbstractState combined = distributedCompositeCPA.combine(compositeStates);
         Payload result = distributedCompositeCPA.serialize(combined);
-        result = Payload.builder().putAll(result).addEntry(Payload.STATUS,
-                status.wasPropertyChecked() + "," + status.isSound() + "," + status.isPrecise())
-            .build();
+        result = appendStatus(status, result);
         Message response =
-            Message.newBlockPostCondition(block.getId(), block.getLastNode().getNodeNumber(),
-                result, fullPath, true, visited);
+            Message.newBlockPostCondition(
+                block.getId(),
+                block.getLastNode().getNodeNumber(),
+                result,
+                fullPath,
+                true,
+                visited);
         distributedCompositeCPA.setLatestOwnPostConditionMessage(response);
         answers.add(response);
       }
@@ -367,9 +394,7 @@ public abstract class BlockAnalysis {
         Payload initial = distributedCompositeCPA.serialize(
             distributedCompositeCPA.getInitialState(targetNode.orElseThrow(),
                 StateSpacePartition.getDefaultPartition()));
-        initial = Payload.builder().putAll(initial).addEntry(Payload.STATUS,
-                status.wasPropertyChecked() + "," + status.isSound() + "," + status.isPrecise())
-            .build();
+        initial = appendStatus(status, initial);
         answers.add(Message.newErrorConditionMessage(block.getId(),
             targetNode.orElseThrow().getNodeNumber(), initial, true,
             ImmutableSet.of(block.getId())));
@@ -417,8 +442,7 @@ public abstract class BlockAnalysis {
       Set<Message> responses = new HashSet<>();
       for (AbstractState state : states) {
         Payload payload = distributedCompositeCPA.serialize(state);
-        payload = Payload.builder().putAll(payload).addEntry(Payload.STATUS,
-            status.wasPropertyChecked() + "," + status.isSound() + "," + status.isPrecise()).build();
+        payload = appendStatus(status, payload);
         responses.add(Message.newErrorConditionMessage(block.getId(), block.getStartNode().getNodeNumber(),
             payload, false,
             visitedBlocks(messages)));

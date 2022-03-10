@@ -8,41 +8,71 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.components.exchange.observer;
 
-import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus.StatusFactory;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.components.exchange.Payload;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class StatusObserver implements MessageObserver {
 
+  public enum StatusSoundness {
+    SOUND,
+    UNSOUND
+  }
+
+  public enum StatusPropertyChecked {
+    CHECKED,
+    UNCHECKED
+  }
+
+  public enum StatusPrecise {
+    PRECISE,
+    IMPRECISE
+  }
+
   private final Map<String, AlgorithmStatus> statusMap;
   private AlgorithmStatus status;
-  private final StatusFactory factory;
 
   public StatusObserver() {
     statusMap = new HashMap<>();
     status = AlgorithmStatus.NO_PROPERTY_CHECKED;
-    factory = new StatusFactory();
   }
 
   @Override
   public boolean process(Message pMessage) throws CPAException {
-    if (pMessage.getPayload().containsKey(Payload.STATUS)) {
-      String statusString = pMessage.getPayload().get(Payload.STATUS);
-      List<Boolean> properties =
-          Splitter.on(",").splitToStream(statusString).map(Boolean::parseBoolean).collect(
-              ImmutableList.toImmutableList());
-      assert properties.size() == 3 : "Wrong status message" + pMessage;
-      statusMap.put(pMessage.getUniqueBlockId(),
-          factory.statusOf(properties.get(0), properties.get(1), properties.get(2)));
+    Payload payload = pMessage.getPayload();
+    if (!(payload.containsKey(Payload.PRECISE)
+        && payload.containsKey(Payload.PROPERTY)
+        && payload.containsKey(Payload.SOUND))) {
+      return false;
     }
+    StatusPrecise isPrecise = StatusPrecise.valueOf(payload.get(Payload.PRECISE));
+    StatusPropertyChecked isPropertyChecked =
+        StatusPropertyChecked.valueOf(payload.get(Payload.PROPERTY));
+    StatusSoundness isSound = StatusSoundness.valueOf(payload.get(Payload.SOUND));
+    statusMap.put(
+        pMessage.getUniqueBlockId(),
+        statusOf(isPropertyChecked, isSound, isPrecise));
     return false;
+  }
+
+  private AlgorithmStatus statusOf(StatusPropertyChecked pPropertyChecked, StatusSoundness pIsSound, StatusPrecise pIsPrecise) {
+    if (pPropertyChecked == StatusPropertyChecked.UNCHECKED) {
+      return AlgorithmStatus.NO_PROPERTY_CHECKED;
+    }
+    if (pIsSound == StatusSoundness.SOUND) {
+      if (pIsPrecise == StatusPrecise.PRECISE) {
+        return AlgorithmStatus.SOUND_AND_PRECISE;
+      }
+      return AlgorithmStatus.SOUND_AND_IMPRECISE;
+    } else {
+      if (pIsPrecise == StatusPrecise.PRECISE) {
+        return AlgorithmStatus.UNSOUND_AND_PRECISE;
+      }
+      return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
+    }
   }
 
   public AlgorithmStatus getStatus() {
@@ -51,7 +81,9 @@ public class StatusObserver implements MessageObserver {
 
   @Override
   public void finish() throws InterruptedException, CPAException {
-    status = statusMap.values().stream().reduce(AlgorithmStatus::update)
-        .orElse(AlgorithmStatus.NO_PROPERTY_CHECKED);
+    status =
+        statusMap.values().stream()
+            .reduce(AlgorithmStatus::update)
+            .orElse(AlgorithmStatus.NO_PROPERTY_CHECKED);
   }
 }
