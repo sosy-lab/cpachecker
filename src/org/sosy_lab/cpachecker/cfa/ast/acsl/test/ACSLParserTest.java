@@ -12,7 +12,6 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
@@ -29,7 +28,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.CFAWithACSLAnnotations;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLAnnotation;
-import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 @RunWith(Parameterized.class)
@@ -87,8 +85,7 @@ public class ACSLParserTest {
   }
 
   @Test
-  public void annotationParsingProducesExpectedNumberOfAnnotations()
-      throws InterruptedException, ParserException, InvalidConfigurationException, IOException {
+  public void annotationParsingProducesExpectedNumberOfAnnotations() throws Exception {
     List<String> files = ImmutableList.of(Path.of(TEST_DIR, programName).toString());
     CFA cfa = cfaCreator.parseFileAndCreateCFA(files);
     if (cfa instanceof CFAWithACSLAnnotations) {
