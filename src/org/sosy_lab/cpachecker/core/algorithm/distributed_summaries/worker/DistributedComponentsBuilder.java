@@ -15,7 +15,9 @@ import java.util.List;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LoggingOptions;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
@@ -26,9 +28,8 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Upd
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class ComponentsBuilder {
+public class DistributedComponentsBuilder {
 
-  private final LogManager logger;
   private final CFA cfa;
   private final Configuration configuration;
   private final ShutdownManager shutdownManager;
@@ -37,14 +38,12 @@ public class ComponentsBuilder {
   private final ConnectionProvider<?> connectionProvider;
   private int additionalConnections;
 
-  public ComponentsBuilder(
-      LogManager pLogger,
+  public DistributedComponentsBuilder(
       CFA pCFA,
       ConnectionProvider<?> pConnectionProvider,
       Specification pSpecification,
       Configuration pConfiguration,
       ShutdownManager pShutdownManager) {
-    logger = pLogger;
     cfa = pCFA;
     configuration = pConfiguration;
     shutdownManager = pShutdownManager;
@@ -56,61 +55,66 @@ public class ComponentsBuilder {
   private String nextId(String pAdditionalIdentifier) {
     return "W" + workers.size() + pAdditionalIdentifier;
   }
+  
+  private LogManager nextLogger() throws InvalidConfigurationException {
+    return BasicLogManager.create(new LoggingOptions(configuration));
+  }
 
-  public ComponentsBuilder createAdditionalConnections(int numberConnections) {
+  public DistributedComponentsBuilder createAdditionalConnections(int numberConnections) {
     additionalConnections = numberConnections;
     return this;
   }
 
-  public ComponentsBuilder addAnalysisWorker(
+  public DistributedComponentsBuilder addAnalysisWorker(
       BlockNode pNode,
       UpdatedTypeMap pTypeMap,
       AnalysisOptions pOptions)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     workers.add(
-        new AnalysisWorker(nextId(pNode.getId()), pOptions, pNode, logger, cfa, specification,
+        new AnalysisWorker(nextId(pNode.getId()), pOptions, pNode, nextLogger(), cfa, specification,
             shutdownManager, pTypeMap));
     return this;
   }
 
-  public ComponentsBuilder addSmartAnalysisWorker(
+  public DistributedComponentsBuilder addSmartAnalysisWorker(
       BlockNode pNode,
       UpdatedTypeMap pTypeMap,
       AnalysisOptions pOptions)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     workers.add(
-        new SmartAnalysisWorker(nextId(pNode.getId()), pOptions, pNode, logger, cfa, specification,
+        new SmartAnalysisWorker(nextId(pNode.getId()), pOptions, pNode, nextLogger(), cfa, specification,
             shutdownManager, pTypeMap));
     return this;
   }
 
-  public ComponentsBuilder addFaultLocalizationWorker(
+  public DistributedComponentsBuilder addFaultLocalizationWorker(
       BlockNode pNode,
       UpdatedTypeMap pTypeMap,
       AnalysisOptions pOptions)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     workers.add(
-        new FaultLocalizationWorker(nextId(pNode.getId()), pOptions, pNode, logger, cfa,
+        new FaultLocalizationWorker(nextId(pNode.getId()), pOptions, pNode, nextLogger(), cfa,
             specification,
             configuration, shutdownManager, pTypeMap));
     return this;
   }
 
-  public ComponentsBuilder addResultCollectorWorker(
+  public DistributedComponentsBuilder addResultCollectorWorker(
       Collection<BlockNode> nodes,
-      AnalysisOptions pOptions) {
-    workers.add(new ResultWorker(logger, nodes, pOptions));
+      AnalysisOptions pOptions) throws InvalidConfigurationException {
+    workers.add(new ResultWorker(nextLogger(), nodes, pOptions));
     return this;
   }
 
-  public ComponentsBuilder addTimeoutWorker(TimeSpan pTimeout, AnalysisOptions pOptions) {
-    workers.add(new TimeoutWorker(logger, pTimeout, pOptions));
-    return this;
-  }
-
-  public ComponentsBuilder addVisualizationWorker(BlockTree pBlockTree, AnalysisOptions pOptions, Configuration pConfiguration)
+  public DistributedComponentsBuilder addTimeoutWorker(TimeSpan pTimeout, AnalysisOptions pOptions)
       throws InvalidConfigurationException {
-    workers.add(new VisualizationWorker(logger, pBlockTree, pOptions, pConfiguration));
+    workers.add(new TimeoutWorker(nextLogger(), pTimeout, pOptions));
+    return this;
+  }
+
+  public DistributedComponentsBuilder addVisualizationWorker(BlockTree pBlockTree, AnalysisOptions pOptions, Configuration pConfiguration)
+      throws InvalidConfigurationException {
+    workers.add(new VisualizationWorker(nextLogger(), pBlockTree, pOptions, pConfiguration));
     return this;
   }
 
@@ -128,10 +132,10 @@ public class ComponentsBuilder {
     return new Components(workers, excessConnections);
   }
 
-  public ComponentsBuilder addRootWorker(BlockNode pNode, AnalysisOptions pOptions)
+  public DistributedComponentsBuilder addRootWorker(BlockNode pNode, AnalysisOptions pOptions)
       throws CPAException, InterruptedException, InvalidConfigurationException {
     workers.add(
-        new RootWorker(nextId(pNode.getId()), pOptions, pNode, logger, cfa, specification,
+        new RootWorker(nextId(pNode.getId()), pOptions, pNode, nextLogger(), cfa, specification,
             configuration,
             shutdownManager));
     return this;

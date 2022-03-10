@@ -46,8 +46,8 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.obs
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.observer.ResultMessageObserver;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.observer.StatusObserver;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.AnalysisOptions;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.ComponentsBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.ComponentsBuilder.Components;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DistributedComponentsBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DistributedComponentsBuilder.Components;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.FaultLocalizationWorker;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.RootWorker;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.Worker;
@@ -66,7 +66,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 @Options(prefix = "distributedSummaries")
-public class ComponentAnalysis implements Algorithm, StatisticsProvider, Statistics {
+public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider, Statistics {
 
   private final Configuration configuration;
   private final LogManager logger;
@@ -119,7 +119,7 @@ public class ComponentAnalysis implements Algorithm, StatisticsProvider, Statist
     FAULT_LOCALIZATION
   }
 
-  public ComponentAnalysis(
+  public DistributedSummaryAnalysis(
       Configuration pConfig,
       LogManager pLogger,
       CFA pCfa,
@@ -169,8 +169,8 @@ public class ComponentAnalysis implements Algorithm, StatisticsProvider, Statist
     }
   }
 
-  private ComponentsBuilder analysisWorker(
-      ComponentsBuilder pBuilder,
+  private DistributedComponentsBuilder analysisWorker(
+      DistributedComponentsBuilder pBuilder,
       BlockNode pNode,
       UpdatedTypeMap pMap)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
@@ -223,8 +223,8 @@ public class ComponentAnalysis implements Algorithm, StatisticsProvider, Statist
 
       // create workers
       Collection<BlockNode> blocks = tree.getDistinctNodes();
-      ComponentsBuilder builder =
-          new ComponentsBuilder(logger, cfa, getConnectionProvider(), specification, configuration, shutdownManager);
+      DistributedComponentsBuilder builder =
+          new DistributedComponentsBuilder(cfa, getConnectionProvider(), specification, configuration, shutdownManager);
       builder = builder.createAdditionalConnections(1);
       for (BlockNode distinctNode : blocks) {
         if (distinctNode.isRoot()) {
