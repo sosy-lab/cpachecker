@@ -113,6 +113,14 @@ public class CPAMain {
     final LogManager logManager = BasicLogManager.create(logOptions);
     cpaConfig.enableLogging(logManager);
 
+    if (!System.getProperty("file.encoding", "UTF-8").equalsIgnoreCase("UTF-8")) {
+      logManager.logf(
+          Level.WARNING,
+          "JVM property file.encoding is set to non-standard value '%s'. "
+              + "This is not recommended and output files might be written in unexpected encodings.",
+          System.getProperty("file.encoding"));
+    }
+
     // create everything
     final ShutdownManager shutdownManager = ShutdownManager.create();
     final ShutdownNotifier shutdownNotifier = shutdownManager.getNotifier();

@@ -2234,7 +2234,7 @@ class ASTConverter {
     JMethodDeclaration declaration = null;
     JExpression referencedVariableName = null;
 
-    if ((mb == null || !mb.isStatic) && mi.getExpression() != null) {
+    if (mb != null && !mb.isStatic && mi.getExpression() != null) {
       referencedVariableName = convertExpressionWithoutSideEffects(mi.getExpression());
     }
 

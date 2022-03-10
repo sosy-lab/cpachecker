@@ -101,17 +101,6 @@ onmessage = (msg) => {
     return "circle";
   }
 
-  function nodeColorDecider(n) {
-    console.log(n);
-    if (n.covered) {
-      return "cfa-node-covered";
-    } else if (n.considered) {
-      return "cfa-node-considered";
-    } else {
-      return "cfa-node";
-    }
-  }
-
   // Set nodes for the graph contained in the json nodes
   function setGraphNodes(graph, nodesToSet) {
     nodesToSet.forEach((n) => {
@@ -119,7 +108,7 @@ onmessage = (msg) => {
         graph.setNode(n.index, {
           label: setNodeLabel(n),
           labelStyle: "font-family: 'Courier New', Courier, monospace",
-          class: nodeColorDecider(n),
+          class: "cfa-node",
           id: `cfa-node${n.index}`,
           shape: nodeShapeDecider(n),
         });

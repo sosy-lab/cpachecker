@@ -13,7 +13,6 @@ import static com.google.common.truth.Truth.assert_;
 import com.google.common.collect.ImmutableList;
 import com.google.common.truth.Truth;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -36,7 +35,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -56,10 +54,7 @@ public class CustomInstructionTest {
 
   @Before
   @SuppressForbidden("reflection only in test")
-  public void init()
-      throws NoSuchMethodException, SecurityException, InstantiationException,
-          IllegalAccessException, IllegalArgumentException, InvocationTargetException,
-          ParserException, InterruptedException {
+  public void init() throws Exception {
     cfa =
         TestDataTools.makeCFA(
             "void main(int a) {",
@@ -103,8 +98,7 @@ public class CustomInstructionTest {
   }
 
   @Test
-  public void testIsStartState() throws CPAException, InstantiationException, IllegalAccessException,
-      IllegalArgumentException, InvocationTargetException {
+  public void testIsStartState() throws Exception {
     ARGState notStart =
         new ARGState(locConstructor.newInstance(startNode.getLeavingEdge(0).getSuccessor(), true), start);
     ARGState noLocation = new ARGState(new CallstackState(null, "main", startNode), null);
@@ -237,9 +231,7 @@ public class CustomInstructionTest {
   }
 
   @Test
-  public void testInspectAppliedCustomInstruction()
-      throws AppliedCustomInstructionParsingFailedException, InterruptedException, ParserException,
-          SecurityException, IllegalArgumentException {
+  public void testInspectAppliedCustomInstruction() throws Exception {
     cfa =
         TestDataTools.makeCFA(
             "extern int f2(int);",
@@ -344,7 +336,7 @@ public class CustomInstructionTest {
   }
 
   @Test
-  public void testGetInputVariables() throws SecurityException, IllegalArgumentException {
+  public void testGetInputVariables() {
     Truth.assertThat(aci.getInputVariables()).isEmpty();
 
     List<String> inputVariables = new ArrayList<>(1);

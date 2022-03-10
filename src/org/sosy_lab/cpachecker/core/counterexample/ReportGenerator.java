@@ -188,7 +188,7 @@ public class ReportGenerator {
       }
     }
 
-    DOTBuilder2 dotBuilder = new DOTBuilder2(pCfa, pReached);
+    DOTBuilder2 dotBuilder = new DOTBuilder2(pCfa);
     PrintStream console = System.out;
     if (counterExamples.isEmpty()) {
       if (reportFile != null) {
@@ -218,7 +218,7 @@ public class ReportGenerator {
               counterExFiles,
               counterExamples.transform(cex -> counterExampleFiles.getPath(cex.getUniqueId())));
       counterExFiles.append("\".");
-      console.println(counterExFiles);
+      console.println(counterExFiles.toString());
     }
   }
 

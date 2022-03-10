@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.coverage;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.Iterables;
@@ -95,7 +96,7 @@ class ReachedSetCoverageCollector {
     // Add information about visited functions
     for (FunctionEntryNode entryNode :
         AbstractStates.extractLocations(reached)
-            .filter(cfaNode -> cfaNode != null)
+            .filter(notNull())
             .filter(FunctionEntryNode.class)) {
 
       final FileLocation loc = entryNode.getFileLocation();
@@ -107,24 +108,14 @@ class ReachedSetCoverageCollector {
       cov.addVisitedFunction(entryNode);
     }
 
-    collectVisitedEdges(reached, cov);
-    collectConsideredEdges(reached, cov, cfa);
+    collectCoveredEdges(reached, cov);
 
     return cov;
   }
 
-  private void collectConsideredEdges(Iterable<AbstractState> reached, CoverageData cov, CFA cfa) {
-    Set<CFANode> consideredNodes = CoverageUtility.getVisitedNodes(reached, cfa);
-    CoverageUtility.addIndirectlyCoveredNodes(consideredNodes);
-
-    cov.addExistingNodes(cfa.getAllNodes(), cov.getInfosPerFile().values().stream().findFirst().get());
-    cov.addConsideredNodes(consideredNodes, cov.getInfosPerFile().values().stream().findFirst().get());
-  }
-
-  private void collectVisitedEdges(Iterable<AbstractState> reached, CoverageData cov) {
+  private void collectCoveredEdges(Iterable<AbstractState> reached, CoverageData cov) {
     Set<CFANode> reachedNodes =
-        from(reached).transform(AbstractStates::extractLocation)
-            .filter(cfaNode -> cfaNode != null).toSet();
+        from(reached).transform(AbstractStates::extractLocation).filter(notNull()).toSet();
     //Add information about visited locations
 
     for (AbstractState state : reached) {
