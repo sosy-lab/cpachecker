@@ -310,7 +310,8 @@ final class SliceToCfaConversion {
           relevantFunctionType,
           pFunctionDeclaration.getName(),
           pFunctionDeclaration.getOrigName(),
-          relevantParameters);
+          relevantParameters,
+          pFunctionDeclaration.getAttributes());
     }
   }
 

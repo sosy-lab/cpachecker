@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.TreeMultimap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigInteger;
@@ -126,7 +127,8 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
     NavigableMap<String, FunctionEntryNode> functions = new TreeMap<>();
     CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.BOOL);
     CFunctionDeclaration fdef =
-        new CFunctionDeclaration(FileLocation.DUMMY, functionType, fName, ImmutableList.of());
+        new CFunctionDeclaration(
+            FileLocation.DUMMY, functionType, fName, ImmutableList.of(), ImmutableSet.of());
     FunctionEntryNode entryNode =
         new CFunctionEntryNode(
             FileLocation.DUMMY, fdef, new FunctionExitNode(fdef), Optional.empty());

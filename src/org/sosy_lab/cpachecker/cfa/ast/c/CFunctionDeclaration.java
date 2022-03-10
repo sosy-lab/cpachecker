@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -26,14 +27,31 @@ public final class CFunctionDeclaration extends AFunctionDeclaration implements 
 
   public static final CFunctionDeclaration DUMMY =
       new CFunctionDeclaration(
-          FileLocation.DUMMY, CFunctionType.NO_ARGS_VOID_FUNCTION, "dummy", ImmutableList.of());
+          FileLocation.DUMMY,
+          CFunctionType.NO_ARGS_VOID_FUNCTION,
+          "dummy",
+          ImmutableList.of(),
+          ImmutableSet.of());
 
   private static final long serialVersionUID = 5485363555708455537L;
 
-  public CFunctionDeclaration(FileLocation pFileLocation,
-      CFunctionType pType, String pName,
-      List<CParameterDeclaration> parameters) {
+  /** GNU C function attributes used by CPAchecker. */
+  public enum FunctionAttribute {
+    /** GNU C attribute 'noreturn'. */
+    NO_RETURN
+  }
+
+
+  private final ImmutableSet<FunctionAttribute> attributes;
+
+  public CFunctionDeclaration(
+      FileLocation pFileLocation,
+      CFunctionType pType,
+      String pName,
+      List<CParameterDeclaration> parameters,
+      ImmutableSet<FunctionAttribute> pAttributes) {
     super(pFileLocation, pType, checkNotNull(pName), pName, parameters);
+    attributes = pAttributes;
   }
 
   public CFunctionDeclaration(
@@ -41,8 +59,10 @@ public final class CFunctionDeclaration extends AFunctionDeclaration implements 
       CFunctionType pType,
       String pName,
       String pOrigName,
-      List<CParameterDeclaration> parameters) {
+      List<CParameterDeclaration> parameters,
+      ImmutableSet<FunctionAttribute> pAttributes) {
     super(pFileLocation, pType, checkNotNull(pName), checkNotNull(pOrigName), parameters);
+    attributes = pAttributes;
   }
 
   @Override
@@ -80,6 +100,21 @@ public final class CFunctionDeclaration extends AFunctionDeclaration implements 
   @Override
   public <R, X extends Exception> R accept(CAstNodeVisitor<R, X> pV) throws X {
     return pV.visit(this);
+  }
+
+  /** 
+   * Returns the list of GNU C attributes that are associated with this function declaration
+   * and known to CPAchecker.
+   */
+  public ImmutableSet<FunctionAttribute> getAttributes() {
+    return attributes;
+  }
+
+  /**
+   * Returns whether this function declaration has the GNU C attribute 'noreturn'.
+   */
+  public boolean doesNotReturn() {
+    return attributes.contains(FunctionAttribute.NO_RETURN);
   }
 
 }

@@ -65,7 +65,8 @@ public class CFANode implements Comparable<CFANode>, Serializable {
             FileLocation.DUMMY,
             CFunctionType.NO_ARGS_VOID_FUNCTION,
             functionName,
-            ImmutableList.of()));
+            ImmutableList.of(),
+            ImmutableSet.of()));
   }
 
   /** Create a new CFA node for a dummy function (with a C type). */

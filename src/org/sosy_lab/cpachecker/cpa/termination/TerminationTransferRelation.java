@@ -16,6 +16,7 @@ import static org.sosy_lab.cpachecker.cfa.ast.FileLocation.DUMMY;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -104,7 +105,8 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
           FileLocation.DUMMY,
           CFunctionType.functionTypeWithReturnType(CNumericTypes.INT),
           "__VERIFIER_nondet_int",
-          ImmutableList.of());
+          ImmutableList.of(),
+          ImmutableSet.of());
 
   private Set<CFAEdge> createdCfaEdges = new LinkedHashSet<>();
 
