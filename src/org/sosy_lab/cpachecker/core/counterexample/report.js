@@ -992,34 +992,31 @@ let argTabDisabled = false;
         if ($scope.cfaColoringEnabled) {
           $scope.cfaColoringEnabled = false;
           d3.select("#cfa-considered-button").html(
-              "<i class='far fa-square'></i>");
+            "<i class='far fa-square'></i>"
+          );
           d3.selectAll(".cfa-node-covered").each(function cfaNode() {
-                const node = d3.select(this.firstChild);
-                node.attr("style", "fill: #fff; stroke: #999;");
-              }
-          );
+            const node = d3.select(this.firstChild);
+            node.attr("style", "fill: #fff; stroke: #999;");
+          });
           d3.selectAll(".cfa-node-considered").each(function cfaNode() {
-                const node = d3.select(this.firstChild);
-                node.attr("style", "fill: #fff; stroke: #999;");
-              }
-          );
+            const node = d3.select(this.firstChild);
+            node.attr("style", "fill: #fff; stroke: #999;");
+          });
         } else {
           $scope.cfaColoringEnabled = true;
           d3.select("#cfa-considered-button").html(
-              "<i class='far fa-check-square'></i>");
+            "<i class='far fa-check-square'></i>"
+          );
           d3.selectAll(".cfa-node-covered").each(function cfaNode() {
-                const node = d3.select(this.firstChild);
-                node.attr("style", "");
-              }
-          );
-          d3.selectAll(".cfa-node-considered").each(
-              function cfaNode() {
-                const node = d3.select(this.firstChild);
-                node.attr("style", "");
-              }
-          );
+            const node = d3.select(this.firstChild);
+            node.attr("style", "");
+          });
+          d3.selectAll(".cfa-node-considered").each(function cfaNode() {
+            const node = d3.select(this.firstChild);
+            node.attr("style", "");
+          });
         }
-      }
+      };
 
       $scope.zoomControl = function zoomControl() {
         if ($scope.zoomEnabled) {
@@ -1038,7 +1035,8 @@ let argTabDisabled = false;
         } else {
           $scope.zoomEnabled = true;
           d3.select("#cfa-zoom-button").html(
-              "<i class='far fa-check-square'></i>");
+            "<i class='far fa-check-square'></i>"
+          );
           d3.selectAll(".cfa-svg").each(
             /* @this HTMLElement */ function cfaSvg() {
               const svg = d3.select(this);
