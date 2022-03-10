@@ -920,7 +920,7 @@ public class SMGCPAValueVisitorTest {
       for (int j = 0; j < 2; j++) {
         for (int k = 0; k < TEST_ARRAY_LENGTH; k++) {
           CPointerExpression arrayPointerExpr =
-              arrayPointerAccessWithVariableIndex(
+              arrayPointerAccessPlusVariableIndexOnTheRight(
                   arrayVariableName, indexVariableName + k, indexVarType, currentArrayType);
 
           List<ValueAndSMGState> resultList = arrayPointerExpr.accept(visitor);
@@ -1809,7 +1809,7 @@ public class SMGCPAValueVisitorTest {
    * @param elementType {@link CType} of the elements in the array.
    * @return {@link CPointerExpression} for the described array.
    */
-  public CPointerExpression arrayPointerAccessWithVariableIndex(
+  public CPointerExpression arrayPointerAccessPlusVariableIndexOnTheRight(
       String arrayVariableName,
       String indexVariableName,
       CType indexVariableType,
@@ -1819,18 +1819,80 @@ public class SMGCPAValueVisitorTest {
     // The type for the returned value after the binary expr
     CPointerType cPointerBinaryOperType = new CPointerType(false, false, INT_TYPE);
 
-    // initializer = null because we model values/memory using the SMG!
-    CVariableDeclaration declararationArray =
-        new CVariableDeclaration(
-            FileLocation.DUMMY,
-            false,
-            CStorageClass.AUTO,
-            cPointerReturnType,
-            arrayVariableName + "NotQual",
-            arrayVariableName + "NotQual",
-            arrayVariableName,
-            null);
+    return buildCPointerExpressionFromBinary(
+        cPointerReturnType,
+        cPointerBinaryOperType,
+        createCIdExprWithType(cPointerReturnType, arrayVariableName),
+        createCIdExprWithType(indexVariableType, indexVariableName),
+        elementType,
+        CBinaryExpression.BinaryOperator.PLUS);
+  }
 
+  /*
+   * Same as arrayPointerAccessPlusVariableIndexOnTheRight() but this form *(variable + pointer)
+   */
+  public CPointerExpression arrayPointerAccessPlusVariableIndexOnTheLeft(
+      String arrayVariableName,
+      String indexVariableName,
+      CType indexVariableType,
+      CType elementType) {
+    // The type for the returned value after the pointer
+    CPointerType cPointerReturnType = new CPointerType(false, false, elementType);
+    // The type for the returned value after the binary expr
+    CPointerType cPointerBinaryOperType = new CPointerType(false, false, INT_TYPE);
+
+    return buildCPointerExpressionFromBinary(
+        cPointerReturnType,
+        cPointerBinaryOperType,
+        createCIdExprWithType(indexVariableType, indexVariableName),
+        createCIdExprWithType(cPointerReturnType, arrayVariableName),
+        elementType,
+        CBinaryExpression.BinaryOperator.PLUS);
+  }
+
+  /*
+   * Same as arrayPointerAccessPlusVariableIndexOnTheRight() but this form *(pointer - variable)
+   */
+  public CPointerExpression arrayPointerAccessMinusVariableIndexOnTheRight(
+      String arrayVariableName,
+      String indexVariableName,
+      CType indexVariableType,
+      CType elementType) {
+    // The type for the returned value after the pointer
+    CPointerType cPointerReturnType = new CPointerType(false, false, elementType);
+    // The type for the returned value after the binary expr
+    CPointerType cPointerBinaryOperType = new CPointerType(false, false, INT_TYPE);
+
+    return buildCPointerExpressionFromBinary(
+        cPointerReturnType,
+        cPointerBinaryOperType,
+        createCIdExprWithType(cPointerReturnType, arrayVariableName),
+        createCIdExprWithType(indexVariableType, indexVariableName),
+        elementType,
+        CBinaryExpression.BinaryOperator.MINUS);
+  }
+
+  /*
+   * pointer - pointer = distance of the members (we allow this only for the same data structure!)
+   */
+  public CBinaryExpression arrayPointerMinusArrayPointer(
+      String leftArrayVariableName, String rightArrayVariableName, CType arrayType) {
+    // The type for the returned value after the pointer
+    CPointerType cPointerReturnType = new CPointerType(false, false, arrayType);
+    // The type for the returned value after the binary expr
+    CPointerType cPointerBinaryOperType = new CPointerType(false, false, INT_TYPE);
+
+    // In this case the operation and binary type are always equal!
+    return new CBinaryExpression(
+        FileLocation.DUMMY,
+        cPointerBinaryOperType,
+        cPointerBinaryOperType,
+        createCIdExprWithType(cPointerReturnType, leftArrayVariableName),
+        createCIdExprWithType(cPointerReturnType, rightArrayVariableName),
+        CBinaryExpression.BinaryOperator.MINUS);
+  }
+
+  private CIdExpression createCIdExprWithType(CType indexVariableType, String indexVariableName) {
     // initializer = null because we model values/memory using the SMG!
     CVariableDeclaration declararationIndex =
         new CVariableDeclaration(
@@ -1842,21 +1904,26 @@ public class SMGCPAValueVisitorTest {
             indexVariableName + "NotQual",
             indexVariableName,
             null);
+    return new CIdExpression(FileLocation.DUMMY, declararationIndex);
+  }
 
-    CBinaryExpression.BinaryOperator cBinOperator = CBinaryExpression.BinaryOperator.PLUS;
+  private CPointerExpression buildCPointerExpressionFromBinary(
+      CPointerType cPointerReturnType,
+      CPointerType cPointerBinaryOperType,
+      CIdExpression leftIdExpr,
+      CIdExpression rightIdExpr,
+      CType elementType,
+      CBinaryExpression.BinaryOperator cBinOperator) {
 
-    CIdExpression idExprArray = new CIdExpression(FileLocation.DUMMY, declararationArray);
-    CIdExpression idExprIndex = new CIdExpression(FileLocation.DUMMY, declararationIndex);
-
-    CBinaryExpression arrayPlusX =
+    CBinaryExpression binaryExpr =
         new CBinaryExpression(
             FileLocation.DUMMY,
             cPointerReturnType,
             cPointerBinaryOperType,
-            idExprArray,
-            idExprIndex,
+            leftIdExpr,
+            rightIdExpr,
             cBinOperator);
-    return new CPointerExpression(FileLocation.DUMMY, elementType, arrayPlusX);
+    return new CPointerExpression(FileLocation.DUMMY, elementType, binaryExpr);
   }
 
   /**
