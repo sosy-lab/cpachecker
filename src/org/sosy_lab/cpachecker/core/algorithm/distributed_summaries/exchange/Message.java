@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import com.google.common.base.Joiner;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Throwables;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -179,12 +180,12 @@ public class Message implements Comparable<Message> {
 
   @Override
   public String toString() {
-    return "Message{" +
-        "targetNodeNumber=" + targetNodeNumber +
-        ", uniqueBlockId='" + uniqueBlockId + '\'' +
-        ", type=" + type +
-        ", payload='" + payload + '\'' +
-        '}';
+    return MoreObjects.toStringHelper(this)
+        .add("targetNodeNumber", targetNodeNumber)
+        .add("uniqueBlockId", uniqueBlockId)
+        .add("type", type)
+        .add("payload", payload)
+        .toString();
   }
 
   @Override
