@@ -1088,7 +1088,7 @@ public class SMGCPAValueVisitorTest {
               arrayPointerExpr =
                   arrayPointerAccessMinusVariableIndexOnTheRight(
                       arrayVariableName + pointerNum,
-                      indexVariableName + (-index),
+                      indexVariableName + -index,
                       indexVarType,
                       currentArrayType);
             } else {
@@ -1315,7 +1315,7 @@ public class SMGCPAValueVisitorTest {
               arrayPointerExpr =
                   arrayPointerAccessPlusVariableIndexOnTheRight(
                       arrayVariableName + pointerNum,
-                      indexVariableName + (-index),
+                      indexVariableName + -index,
                       indexVarType,
                       currentArrayType);
             } else {
