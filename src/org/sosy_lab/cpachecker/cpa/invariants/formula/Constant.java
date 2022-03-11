@@ -20,9 +20,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.Typed;
  */
 public class Constant<T> extends AbstractFormula<T> implements NumeralFormula<T> {
 
-  /**
-   * The value of the constant.
-   */
+  /** The value of the constant. */
   private final T value;
 
   /**
@@ -87,7 +85,6 @@ public class Constant<T> extends AbstractFormula<T> implements NumeralFormula<T>
    *
    * @param pInfo the type information for the constant.
    * @param pValue the value of the constant.
-   *
    * @return a invariants formula representing a constant with the given value.
    */
   static <T> Constant<T> of(TypeInfo pInfo, T pValue) {
@@ -98,11 +95,9 @@ public class Constant<T> extends AbstractFormula<T> implements NumeralFormula<T>
    * Gets a invariants formula representing a constant with the given value.
    *
    * @param pValue the value of the constant.
-   *
    * @return a invariants formula representing a constant with the given value.
    */
   static <T extends Typed> Constant<T> of(T pValue) {
     return new Constant<>(pValue.getTypeInfo(), pValue);
   }
-
 }

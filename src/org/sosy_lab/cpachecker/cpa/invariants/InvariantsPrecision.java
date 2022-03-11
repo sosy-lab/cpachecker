@@ -16,8 +16,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 class InvariantsPrecision implements Precision {
 
-  public static InvariantsPrecision getEmptyPrecision(
-      AbstractionStrategy pAbstractionStrategy) {
+  public static InvariantsPrecision getEmptyPrecision(AbstractionStrategy pAbstractionStrategy) {
     return new InvariantsPrecision(
         ImmutableSet.of(), ImmutableSet.of(), 0, pAbstractionStrategy, false) {
 
@@ -80,7 +79,9 @@ class InvariantsPrecision implements Precision {
 
   @Override
   public String toString() {
-    return String.format("Number of relevant edges: %d; Interesting variables: %s;", this.relevantEdges.size(), this.interestingVariables);
+    return String.format(
+        "Number of relevant edges: %d; Interesting variables: %s;",
+        this.relevantEdges.size(), this.interestingVariables);
   }
 
   @Override

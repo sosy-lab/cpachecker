@@ -17,7 +17,8 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.CollectVarsVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.NumeralFormula;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-public class AcceptSpecifiedVariableSelection<ConstantType> implements VariableSelection<ConstantType> {
+public class AcceptSpecifiedVariableSelection<ConstantType>
+    implements VariableSelection<ConstantType> {
 
   private final CollectVarsVisitor<ConstantType> collectVarsVisitor = new CollectVarsVisitor<>();
 
@@ -52,7 +53,8 @@ public class AcceptSpecifiedVariableSelection<ConstantType> implements VariableS
   }
 
   @Override
-  public VariableSelection<ConstantType> acceptAssumption(BooleanFormula<ConstantType> pAssumption) {
+  public VariableSelection<ConstantType> acceptAssumption(
+      BooleanFormula<ConstantType> pAssumption) {
     Set<MemoryLocation> involvedVariables = pAssumption.accept(this.collectVarsVisitor);
     for (MemoryLocation involvedVariable : involvedVariables) {
       if (contains(involvedVariable)) {
@@ -71,7 +73,8 @@ public class AcceptSpecifiedVariableSelection<ConstantType> implements VariableS
   }
 
   @Override
-  public VariableSelection<ConstantType> acceptAssignment(MemoryLocation pMemoryLocation, NumeralFormula<ConstantType> pAssumption) {
+  public VariableSelection<ConstantType> acceptAssignment(
+      MemoryLocation pMemoryLocation, NumeralFormula<ConstantType> pAssumption) {
     if (contains(pMemoryLocation)) {
       /*
        * Extend the set of specified variables transitively.
@@ -97,10 +100,12 @@ public class AcceptSpecifiedVariableSelection<ConstantType> implements VariableS
     return pVisitor.visit(this);
   }
 
-  private class VariableSelectionJoiner implements VariableSelectionVisitor<ConstantType, VariableSelection<ConstantType>> {
+  private class VariableSelectionJoiner
+      implements VariableSelectionVisitor<ConstantType, VariableSelection<ConstantType>> {
 
     @Override
-    public VariableSelection<ConstantType> visit(AcceptAllVariableSelection<ConstantType> pAcceptAllVariableSelection) {
+    public VariableSelection<ConstantType> visit(
+        AcceptAllVariableSelection<ConstantType> pAcceptAllVariableSelection) {
       return pAcceptAllVariableSelection;
     }
 
@@ -108,21 +113,23 @@ public class AcceptSpecifiedVariableSelection<ConstantType> implements VariableS
     public VariableSelection<ConstantType> visit(
         AcceptSpecifiedVariableSelection<ConstantType> pAcceptSpecifiedVariableSelection) {
       if (AcceptSpecifiedVariableSelection.this == pAcceptSpecifiedVariableSelection
-          || AcceptSpecifiedVariableSelection.this.specifiedVariables.containsAll(pAcceptSpecifiedVariableSelection.specifiedVariables)) {
+          || AcceptSpecifiedVariableSelection.this.specifiedVariables.containsAll(
+              pAcceptSpecifiedVariableSelection.specifiedVariables)) {
         return AcceptSpecifiedVariableSelection.this;
       }
       return pAcceptSpecifiedVariableSelection.join(specifiedVariables);
     }
-
   }
 
   private VariableSelection<ConstantType> join(Set<MemoryLocation> pSpecifiedVariables) {
-    if (this.specifiedVariables == pSpecifiedVariables || this.specifiedVariables.containsAll(pSpecifiedVariables)) {
+    if (this.specifiedVariables == pSpecifiedVariables
+        || this.specifiedVariables.containsAll(pSpecifiedVariables)) {
       return this;
     }
-    AcceptSpecifiedVariableSelection<ConstantType> result = new AcceptSpecifiedVariableSelection<>(
-        Iterables.concat(AcceptSpecifiedVariableSelection.this.specifiedVariables, pSpecifiedVariables));
+    AcceptSpecifiedVariableSelection<ConstantType> result =
+        new AcceptSpecifiedVariableSelection<>(
+            Iterables.concat(
+                AcceptSpecifiedVariableSelection.this.specifiedVariables, pSpecifiedVariables));
     return result;
   }
-
 }
