@@ -2885,8 +2885,16 @@ cpa.smg.zeroingMemoryAllocation = {"calloc", "kzalloc"}
 # Allocate memory on declaration of external variable
 cpa.smg2.allocateExternalVariables = true
 
+# Allow the given extern functions and interpret them as pure functions
+# although the value analysis does not support their semantics and this can
+# produce wrong results.
+cpa.smg2.allowedUnsupportedFunctions = {}
+
 # Array allocation functions
 cpa.smg2.arrayAllocationFunctions = {"calloc"}
+
+# Use equality assumptions to assign values (e.g., (x == 0) => x = 0)
+cpa.smg2.assignEqualityAssumptions = true
 
 # with this option enabled, a check for unreachable memory occurs whenever a
 # function returns, and not only at the end of the main function
@@ -2911,6 +2919,10 @@ cpa.smg2.externalAllocationFunction = {"ext_allocation"}
 # Default size of externally allocated memory
 cpa.smg2.externalAllocationSize = Integer.MAX_VALUE
 
+# Fixed set of values for function calls to VERIFIER_nondet_*. Does only
+# work, if ignoreFunctionValueExceptRandom is enabled 
+cpa.smg2.functionValuesForRandom = no default value
+
 # Handle external variables with incomplete type (extern int array[]) as
 # external allocation
 cpa.smg2.handleIncompleteExternalVariableAsExternalAllocation = false
@@ -2926,6 +2938,19 @@ cpa.smg2.handleUnknownDereferenceAsSafe = false
 # Sets how unknown functions are handled.
 cpa.smg2.handleUnknownFunctions = STRICT
   enum:     [STRICT, ASSUME_SAFE, ASSUME_EXTERNAL_ALLOCATED]
+
+# Track or not function pointer values
+cpa.smg2.ignoreFunctionValue = true
+
+# If 'ignoreFunctionValue' is set to true, this option allows to provide a
+# fixed set of values in the TestComp format. It is used for function-calls
+# to calls of VERIFIER_nondet_*. The file is provided via the option
+# functionValuesForRandom 
+cpa.smg2.ignoreFunctionValueExceptRandom = false
+
+# if there is an assumption like (x!=0), this option sets unknown
+# (uninitialized) variables to 1L, when the true-branch is handled.
+cpa.smg2.initAssumptionVars = false
 
 # Perform merge SMGStates by SMGJoin on ends of code block. Works with
 # 'merge=JOIN'
@@ -2949,6 +2974,10 @@ cpa.smg2.memoryErrors = true
 # which merge operator to use for the SMGCPA
 cpa.smg2.merge = "SEP"
   allowed values: [SEP, JOIN]
+
+# Assume that variables used only in a boolean context are either zero or
+# one.
+cpa.smg2.optimizeBooleanVariables = true
 
 # Which unknown function are always considered as safe functions, i.e., free
 # of memory-related side-effects?
