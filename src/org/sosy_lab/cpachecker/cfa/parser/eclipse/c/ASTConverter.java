@@ -196,6 +196,7 @@ class ASTConverter {
             .put("access", Optional.empty())
             .put("alias", Optional.empty())
             .put("aligned", Optional.empty())
+            .put("alloc_size", Optional.empty())
             .put("always_inline", Optional.empty())
             .put("cdecl", Optional.empty())
             .put("const", Optional.empty())
