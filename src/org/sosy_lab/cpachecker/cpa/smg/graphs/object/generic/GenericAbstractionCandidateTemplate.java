@@ -39,7 +39,8 @@ public class GenericAbstractionCandidateTemplate implements SMGObjectTemplate {
     abstractPointerToMaterlisationSteps = pMaterlisationStep;
   }
 
-  private GenericAbstractionCandidateTemplate(MachineModel pMachineModel,
+  private GenericAbstractionCandidateTemplate(
+      MachineModel pMachineModel,
       Set<SMGEdgeHasValue> sharedFields,
       Set<Pair<SMGEdgePointsTo, SMGEdgePointsTo>> sharedIPointer,
       Set<Pair<SMGEdgeHasValue, SMGEdgeHasValue>> sharedOPointer,
@@ -50,8 +51,7 @@ public class GenericAbstractionCandidateTemplate implements SMGObjectTemplate {
     abstractPointerToMaterlisationSteps = result;
 
     MaterlisationStep stopStep = createStopStep(sharedIPointer, sharedOPointer, sharedFields, root);
-    MaterlisationStep continueStep =
-        prepareContinueStep(nonSharedOPointer, stopStep);
+    MaterlisationStep continueStep = prepareContinueStep(nonSharedOPointer, stopStep);
 
     List<MaterlisationStep> matSteps = ImmutableList.of(continueStep, stopStep);
 
@@ -61,8 +61,8 @@ public class GenericAbstractionCandidateTemplate implements SMGObjectTemplate {
     }
   }
 
-  private MaterlisationStep prepareContinueStep(Set<SMGEdgeHasValue> pNonSharedOPointer,
-      MaterlisationStep pStopStep) {
+  private MaterlisationStep prepareContinueStep(
+      Set<SMGEdgeHasValue> pNonSharedOPointer, MaterlisationStep pStopStep) {
 
     Set<SMGObjectTemplate> abstractObjects = new HashSet<>(pNonSharedOPointer.size() + 1);
 
@@ -73,13 +73,15 @@ public class GenericAbstractionCandidateTemplate implements SMGObjectTemplate {
         pStopStep.getAbstractAdressesToOPointer();
 
     Set<SMGEdgePointsToTemplate> abstractPointer = new HashSet<>(pNonSharedOPointer.size());
-    Set<SMGEdgeHasValueTemplate> abstractFieldsToIPointer = new HashSet<>(pNonSharedOPointer.size());
+    Set<SMGEdgeHasValueTemplate> abstractFieldsToIPointer =
+        new HashSet<>(pNonSharedOPointer.size());
 
     Map<SMGValue, SMGValue> uPointerToPointer = new HashMap<>();
 
     for (SMGEdgeHasValue oPointer : pNonSharedOPointer) {
       GenericAbstractionCandidateTemplate abstraction =
-          new GenericAbstractionCandidateTemplate(machineModel, abstractPointerToMaterlisationSteps);
+          new GenericAbstractionCandidateTemplate(
+              machineModel, abstractPointerToMaterlisationSteps);
 
       abstractObjects.add(abstraction);
 
@@ -92,13 +94,10 @@ public class GenericAbstractionCandidateTemplate implements SMGObjectTemplate {
 
         SMGEdgeHasValueTemplate templateOEdge =
             new SMGEdgeHasValueTemplate(
-                root,
-                uPointerTemplate,
-                oPointer.getOffset(),
-                oPointer.getSizeInBits());
+                root, uPointerTemplate, oPointer.getOffset(), oPointer.getSizeInBits());
         SMGEdgePointsToTemplate templateIEdge =
-            new SMGEdgePointsToTemplate(abstraction, uPointerTemplate,
-                iPointerTemplate.getOffset());
+            new SMGEdgePointsToTemplate(
+                abstraction, uPointerTemplate, iPointerTemplate.getOffset());
 
         abstractPointer.add(templateIEdge);
         abstractFieldsToIPointer.add(templateOEdge);
@@ -108,15 +107,22 @@ public class GenericAbstractionCandidateTemplate implements SMGObjectTemplate {
     Set<SMGEdgeHasValueTemplateWithConcreteValue> abstractFields = pStopStep.getAbstractFields();
     Set<SMGEdgeHasValueTemplate> abstractFieldsToOPointer = pStopStep.getAbstractFieldsToOPointer();
 
-    return new MaterlisationStep(abstractObjects, abstractPointer, abstractFields,
-        abstractFieldsToIPointer, targetAdressTemplateOfPointer, abstractFieldsToOPointer,
-        uPointerToPointer, false);
+    return new MaterlisationStep(
+        abstractObjects,
+        abstractPointer,
+        abstractFields,
+        abstractFieldsToIPointer,
+        targetAdressTemplateOfPointer,
+        abstractFieldsToOPointer,
+        uPointerToPointer,
+        false);
   }
 
   private MaterlisationStep createStopStep(
       Set<Pair<SMGEdgePointsTo, SMGEdgePointsTo>> pSharedIPointer,
       Set<Pair<SMGEdgeHasValue, SMGEdgeHasValue>> pSharedOPointer,
-      Set<SMGEdgeHasValue> pSharedFields, SMGRegion pRoot) {
+      Set<SMGEdgeHasValue> pSharedFields,
+      SMGRegion pRoot) {
 
     /*It is assumed, that shared pointer connect the abstraction to outside of the abstraction in the smg.
      *For every shared pointer, generate such an edge. The stop step has no further abstractions connected to it,
@@ -143,7 +149,7 @@ public class GenericAbstractionCandidateTemplate implements SMGObjectTemplate {
     SMGValue abstractPointerValue = SMGZeroValue.INSTANCE;
 
     for (Pair<SMGEdgePointsTo, SMGEdgePointsTo> edges : pSharedIPointer) {
-      //TODO different Values of edge
+      // TODO different Values of edge
       SMGEdgePointsToTemplate edgeTemplate =
           new SMGEdgePointsToTemplate(pRoot, abstractPointerValue, edges.getFirst().getOffset());
       abstractAdressesToOPointer.add(edgeTemplate);
@@ -167,8 +173,14 @@ public class GenericAbstractionCandidateTemplate implements SMGObjectTemplate {
 
     Map<SMGValue, SMGValue> emptyMap = new HashMap<>();
 
-    return new MaterlisationStep(abstractObjects, abstractPt_edges, abstractFields,
-        abstractFieldsToIPointer, abstractAdressesToOPointer, abstractFieldsToOPointer, emptyMap,
+    return new MaterlisationStep(
+        abstractObjects,
+        abstractPt_edges,
+        abstractFields,
+        abstractFieldsToIPointer,
+        abstractAdressesToOPointer,
+        abstractFieldsToOPointer,
+        emptyMap,
         true);
   }
 
@@ -191,13 +203,13 @@ public class GenericAbstractionCandidateTemplate implements SMGObjectTemplate {
   }
 
   /**
-   * Create simple inductive abstraction with one base object, the root region, and
-   * as many inductive steps, as there are pointer leading to the base object.
+   * Create simple inductive abstraction with one base object, the root region, and as many
+   * inductive steps, as there are pointer leading to the base object.
    *
-   * The abstraction is generated from two concrete regions of two smgs. One region represents
-   * the base object at the end of the abstraction, while the other represents an object in the middle
-   * of the abstraction. Based on which pointer they share, that lead to and from these objects,
-   * and which pointer they don't share, a simple inductive abstraction is generated.
+   * <p>The abstraction is generated from two concrete regions of two smgs. One region represents
+   * the base object at the end of the abstraction, while the other represents an object in the
+   * middle of the abstraction. Based on which pointer they share, that lead to and from these
+   * objects, and which pointer they don't share, a simple inductive abstraction is generated.
    *
    * @param pMachineModel the machine model
    * @param sharedFields shared Fields
@@ -209,24 +221,31 @@ public class GenericAbstractionCandidateTemplate implements SMGObjectTemplate {
    */
   public static GenericAbstractionCandidateTemplate createSimpleInductiveGenericAbstractionTemplate(
       MachineModel pMachineModel,
-      Set<SMGEdgeHasValue> sharedFields, Set<Pair<SMGEdgePointsTo, SMGEdgePointsTo>> sharedIPointer,
+      Set<SMGEdgeHasValue> sharedFields,
+      Set<Pair<SMGEdgePointsTo, SMGEdgePointsTo>> sharedIPointer,
       Set<Pair<SMGEdgeHasValue, SMGEdgeHasValue>> sharedOPointer,
-      Set<SMGEdgeHasValue> nonSharedOPointer, SMGRegion pRoot) {
-    return new GenericAbstractionCandidateTemplate(pMachineModel, sharedFields, sharedIPointer, sharedOPointer, nonSharedOPointer, pRoot);
+      Set<SMGEdgeHasValue> nonSharedOPointer,
+      SMGRegion pRoot) {
+    return new GenericAbstractionCandidateTemplate(
+        pMachineModel, sharedFields, sharedIPointer, sharedOPointer, nonSharedOPointer, pRoot);
   }
 
   public static GenericAbstractionCandidateTemplate valueOf(
       MachineModel pMachineModel,
       Map<SMGValue, List<MaterlisationStep>> abstractPointerToMaterlisationSteps) {
 
-    return new GenericAbstractionCandidateTemplate(pMachineModel, ImmutableMap.copyOf(abstractPointerToMaterlisationSteps));
+    return new GenericAbstractionCandidateTemplate(
+        pMachineModel, ImmutableMap.copyOf(abstractPointerToMaterlisationSteps));
   }
 
-  public static GenericAbstractionCandidateTemplate valueOf(MachineModel pMachineModel,GenericAbstraction abstraction) {
-    return new GenericAbstractionCandidateTemplate(pMachineModel, abstraction.getMaterlisationStepMap());
+  public static GenericAbstractionCandidateTemplate valueOf(
+      MachineModel pMachineModel, GenericAbstraction abstraction) {
+    return new GenericAbstractionCandidateTemplate(
+        pMachineModel, abstraction.getMaterlisationStepMap());
   }
 
-  public boolean matchesSpecificShape(@SuppressWarnings("unused") GenericAbstractionCandidateTemplate pTemplate) {
+  public boolean matchesSpecificShape(
+      @SuppressWarnings("unused") GenericAbstractionCandidateTemplate pTemplate) {
     return false;
   }
 

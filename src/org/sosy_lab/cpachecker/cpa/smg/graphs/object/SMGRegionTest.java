@@ -30,13 +30,13 @@ public class SMGRegionTest {
     SMGRegion region_same = new SMGRegion(64, "region");
     SMGObject objectJoint = region.join(region_same, region_same.getLevel());
     assertThat(objectJoint).isInstanceOf(SMGRegion.class);
-    SMGRegion regionJoint = (SMGRegion)objectJoint;
+    SMGRegion regionJoint = (SMGRegion) objectJoint;
 
     assertThat(regionJoint.getSize()).isEqualTo(64);
     assertThat(regionJoint.getLabel()).isEqualTo("region");
   }
 
-  @Test(expected=UnsupportedOperationException.class)
+  @Test(expected = UnsupportedOperationException.class)
   public void testJoinDiffSize() {
     SMGRegion region = new SMGRegion(64, "region");
     SMGRegion regionDiff = new SMGRegion(80, "region");
@@ -57,5 +57,4 @@ public class SMGRegionTest {
     assertThat(three.getLabel()).isEqualTo(one.getLabel());
     assertThat(four.getLabel()).isNotEqualTo(one.getLabel());
   }
-
 }

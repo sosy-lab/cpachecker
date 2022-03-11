@@ -22,8 +22,10 @@ public class PersistentBiMap<K extends Comparable<? super K>, V extends Comparab
     reverse = pReverse;
   }
 
-  public static <K extends Comparable<? super K>, V extends Comparable<? super V>> PersistentBiMap<K,V> of() {
-    return new PersistentBiMap<K,V>(PathCopyingPersistentTreeMap.of(), PathCopyingPersistentTreeMap.of());
+  public static <K extends Comparable<? super K>, V extends Comparable<? super V>>
+      PersistentBiMap<K, V> of() {
+    return new PersistentBiMap<K, V>(
+        PathCopyingPersistentTreeMap.of(), PathCopyingPersistentTreeMap.of());
   }
 
   public int size() {

@@ -8,9 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.smg;
 
-/**
- * Target Specifier for specifying target of pointer.
- */
+/** Target Specifier for specifying target of pointer. */
 public enum SMGTargetSpecifier {
   REGION("reg"),
   FIRST("fst"),

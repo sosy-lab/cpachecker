@@ -107,9 +107,14 @@ public class GenericAbstraction extends SMGObject implements SMGAbstractObject {
   @Override
   public String toString() {
     return "Generic Abstraction:\n"
-        + "pointersToThisAbstraction " + abstractToConcretePointerMap + "\n"
-        + "pointersToThisAbstraction " + abstractToConcretePointerMap + "\n"
-        + "materlisationSteps " + materlisationStepMap;
+        + "pointersToThisAbstraction "
+        + abstractToConcretePointerMap
+        + "\n"
+        + "pointersToThisAbstraction "
+        + abstractToConcretePointerMap
+        + "\n"
+        + "materlisationSteps "
+        + materlisationStepMap;
   }
 
   public GenericAbstractionCandidateTemplate createCandidateTemplate(MachineModel pMachineModel) {
@@ -118,7 +123,8 @@ public class GenericAbstraction extends SMGObject implements SMGAbstractObject {
 
   @Override
   public SMGObject copy(int pNewLevel) {
-    return new GenericAbstraction(getSize(), getLabel(), materlisationStepMap, abstractToConcretePointerMap, pNewLevel);
+    return new GenericAbstraction(
+        getSize(), getLabel(), materlisationStepMap, abstractToConcretePointerMap, pNewLevel);
   }
 
   @Override
@@ -138,6 +144,7 @@ public class GenericAbstraction extends SMGObject implements SMGAbstractObject {
 
   @Override
   public boolean isAbstract() {
-    throw new UnsupportedOperationException("GenericAbstraction does not know if it is abstract?"); // TODO why not?
+    throw new UnsupportedOperationException(
+        "GenericAbstraction does not know if it is abstract?"); // TODO why not?
   }
 }

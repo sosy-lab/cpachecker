@@ -14,16 +14,17 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGAbstractListCandidateSeq
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
 
 public class SMGSingleLinkedListCandidateSequenceBlock
-extends SMGAbstractListCandidateSequenceBlock<SMGSingleLinkedListShape> {
+    extends SMGAbstractListCandidateSequenceBlock<SMGSingleLinkedListShape> {
 
-  public SMGSingleLinkedListCandidateSequenceBlock(SMGSingleLinkedListShape pShape, int pLength,
-      SMGMemoryPath pPointerToStartObject) {
+  public SMGSingleLinkedListCandidateSequenceBlock(
+      SMGSingleLinkedListShape pShape, int pLength, SMGMemoryPath pPointerToStartObject) {
     super(pShape, pLength, pPointerToStartObject);
   }
 
   @Override
   public boolean isBlocked(SMGAbstractionCandidate pCandidate, UnmodifiableCLangSMG smg) {
-    return pCandidate instanceof SMGSingleLinkedListCandidateSequence && super.isBlocked(pCandidate, smg);
+    return pCandidate instanceof SMGSingleLinkedListCandidateSequence
+        && super.isBlocked(pCandidate, smg);
   }
 
   @Override
