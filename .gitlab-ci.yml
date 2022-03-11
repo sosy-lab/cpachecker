@@ -297,8 +297,5 @@ unit-tests:jdk-17:
 
 
 # Disable some checks because they are not used for CPAchecker
-check-format:
-  only: []
-
 javadoc:
   only: []
