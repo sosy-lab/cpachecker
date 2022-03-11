@@ -29,10 +29,8 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 
-
 public abstract class AExpressionVisitor<R, X extends Exception>
-                                        implements CExpressionVisitor<R, X>,
-                                                   JExpressionVisitor<R, X> {
+    implements CExpressionVisitor<R, X>, JExpressionVisitor<R, X> {
 
   /*
    * only language common expressions here, all other have to be implemented by
@@ -70,19 +68,19 @@ public abstract class AExpressionVisitor<R, X extends Exception>
 
   @Override
   public R visit(JBinaryExpression exp) throws X {
-    return visit((ABinaryExpression)exp);
+    return visit((ABinaryExpression) exp);
   }
 
   public abstract R visit(ABinaryExpression exp) throws X;
 
   @Override
   public R visit(CCastExpression exp) throws X {
-    return visit((ACastExpression)exp);
+    return visit((ACastExpression) exp);
   }
 
   @Override
   public R visit(JCastExpression exp) throws X {
-    return visit((ACastExpression)exp);
+    return visit((ACastExpression) exp);
   }
 
   public abstract R visit(ACastExpression exp) throws X;
@@ -113,24 +111,24 @@ public abstract class AExpressionVisitor<R, X extends Exception>
 
   @Override
   public R visit(CIntegerLiteralExpression exp) throws X {
-    return visit((AIntegerLiteralExpression)exp);
+    return visit((AIntegerLiteralExpression) exp);
   }
 
   @Override
   public R visit(JIntegerLiteralExpression exp) throws X {
-    return visit((AIntegerLiteralExpression)exp);
+    return visit((AIntegerLiteralExpression) exp);
   }
 
   public abstract R visit(AIntegerLiteralExpression exp) throws X;
 
   @Override
   public R visit(CStringLiteralExpression exp) throws X {
-    return visit((AStringLiteralExpression)exp);
+    return visit((AStringLiteralExpression) exp);
   }
 
   @Override
   public R visit(JStringLiteralExpression exp) throws X {
-    return visit((AStringLiteralExpression)exp);
+    return visit((AStringLiteralExpression) exp);
   }
 
   public abstract R visit(AStringLiteralExpression exp) throws X;
@@ -146,5 +144,4 @@ public abstract class AExpressionVisitor<R, X extends Exception>
   }
 
   public abstract R visit(AUnaryExpression exp) throws X;
-
 }

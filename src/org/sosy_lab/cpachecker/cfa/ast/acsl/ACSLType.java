@@ -43,7 +43,7 @@ public class ACSLType {
   }
 
   public CType toCType() {
-    switch(typeName.toLowerCase()) {
+    switch (typeName.toLowerCase()) {
       case "_bool":
         return CNumericTypes.BOOL;
       case "char":

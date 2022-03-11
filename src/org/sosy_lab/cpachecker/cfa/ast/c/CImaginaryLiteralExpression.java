@@ -13,14 +13,14 @@ import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public final class CImaginaryLiteralExpression extends ALiteralExpression implements CLiteralExpression {
+public final class CImaginaryLiteralExpression extends ALiteralExpression
+    implements CLiteralExpression {
 
   private static final long serialVersionUID = -3248391757986816857L;
   private final CLiteralExpression value;
 
-  public CImaginaryLiteralExpression(FileLocation pFileLocation,
-                                    CType pType,
-                                    CLiteralExpression pValue) {
+  public CImaginaryLiteralExpression(
+      FileLocation pFileLocation, CType pType, CLiteralExpression pValue) {
     super(pFileLocation, pType);
     value = pValue;
   }

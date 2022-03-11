@@ -39,8 +39,8 @@ public final class CCompositeType implements CComplexType {
 
     checkNotNull(pKind);
     checkArgument(pKind == ComplexTypeKind.STRUCT || pKind == ComplexTypeKind.UNION);
-    isConst= pConst;
-    isVolatile=pVolatile;
+    isConst = pConst;
+    isVolatile = pVolatile;
     kind = pKind;
     name = pName.intern();
     origName = pOrigName.intern();
@@ -59,15 +59,17 @@ public final class CCompositeType implements CComplexType {
   }
 
   private void checkMembers(List<CCompositeTypeMemberDeclaration> pMembers) {
-    for (Iterator<CCompositeTypeMemberDeclaration> it = pMembers.iterator(); it.hasNext();) {
+    for (Iterator<CCompositeTypeMemberDeclaration> it = pMembers.iterator(); it.hasNext(); ) {
       CCompositeTypeMemberDeclaration member = it.next();
       if (member.getType().isIncomplete()) {
-        checkArgument(kind == ComplexTypeKind.STRUCT,
-            "incomplete member %s in %s", member, this);
-        checkArgument(!it.hasNext(),
-            "incomplete member %s in non-last position of %s", member, this);
-        checkArgument(member.getType().getCanonicalType() instanceof CArrayType,
-            "incomplete non-array member %s in last position of %s", member, this);
+        checkArgument(kind == ComplexTypeKind.STRUCT, "incomplete member %s in %s", member, this);
+        checkArgument(
+            !it.hasNext(), "incomplete member %s in non-last position of %s", member, this);
+        checkArgument(
+            member.getType().getCanonicalType() instanceof CArrayType,
+            "incomplete non-array member %s in last position of %s",
+            member,
+            this);
       }
     }
   }
@@ -159,23 +161,19 @@ public final class CCompositeType implements CComplexType {
   }
 
   /**
-   * This is the declaration of a member of a composite type.
-   * It contains a type and an optional name.
+   * This is the declaration of a member of a composite type. It contains a type and an optional
+   * name.
    */
-  public static final class CCompositeTypeMemberDeclaration implements Serializable{
-
-
+  public static final class CCompositeTypeMemberDeclaration implements Serializable {
 
     private static final long serialVersionUID = 8647666228796784933L;
-    private final CType    type;
-    private final String   name;
+    private final CType type;
+    private final String name;
 
-    public CCompositeTypeMemberDeclaration(CType pType,
-                                           String pName) {
+    public CCompositeTypeMemberDeclaration(CType pType, String pName) {
 
       type = checkNotNull(pType);
       name = pName;
-
     }
 
     @Override
@@ -199,9 +197,8 @@ public final class CCompositeType implements CComplexType {
         return false;
       }
       CCompositeTypeMemberDeclaration other = (CCompositeTypeMemberDeclaration) obj;
-      return
-          Objects.equals(name, other.name) &&
-          type.getCanonicalType().equals(other.type.getCanonicalType());
+      return Objects.equals(name, other.name)
+          && type.getCanonicalType().equals(other.type.getCanonicalType());
     }
 
     public CType getType() {
@@ -232,7 +229,6 @@ public final class CCompositeType implements CComplexType {
     return isVolatile;
   }
 
-
   @Override
   public <R, X extends Exception> R accept(CTypeVisitor<R, X> pVisitor) throws X {
     return pVisitor.visit(this);
@@ -244,9 +240,9 @@ public final class CCompositeType implements CComplexType {
   }
 
   /**
-   * Be careful, this method compares the CType as it is to the given object,
-   * typedefs won't be resolved. If you want to compare the type without having
-   * typedefs in it use #getCanonicalType().equals()
+   * Be careful, this method compares the CType as it is to the given object, typedefs won't be
+   * resolved. If you want to compare the type without having typedefs in it use
+   * #getCanonicalType().equals()
    */
   @Override
   public boolean equals(@Nullable Object obj) {
@@ -260,8 +256,10 @@ public final class CCompositeType implements CComplexType {
 
     CCompositeType other = (CCompositeType) obj;
 
-    return isConst == other.isConst && isVolatile == other.isVolatile
-           && kind == other.kind && Objects.equals(name, other.name);
+    return isConst == other.isConst
+        && isVolatile == other.isVolatile
+        && kind == other.kind
+        && Objects.equals(name, other.name);
   }
 
   @Override
@@ -277,9 +275,9 @@ public final class CCompositeType implements CComplexType {
     CCompositeType other = (CCompositeType) obj;
 
     return isConst == other.isConst
-           && isVolatile == other.isVolatile
-           && kind == other.kind
-           && (Objects.equals(name, other.name) || (origName.isEmpty() && other.origName.isEmpty()));
+        && isVolatile == other.isVolatile
+        && kind == other.kind
+        && (Objects.equals(name, other.name) || (origName.isEmpty() && other.origName.isEmpty()));
   }
 
   @Override
@@ -292,8 +290,9 @@ public final class CCompositeType implements CComplexType {
     if ((isConst == pForceConst) && (isVolatile == pForceVolatile)) {
       return this;
     }
-    CCompositeType result = new CCompositeType(
-        isConst || pForceConst, isVolatile || pForceVolatile, kind, name, origName);
+    CCompositeType result =
+        new CCompositeType(
+            isConst || pForceConst, isVolatile || pForceVolatile, kind, name, origName);
     if (members != null) {
       result.setMembers(members);
     }

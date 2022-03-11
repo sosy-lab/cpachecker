@@ -82,7 +82,8 @@ public class ACSLLogicalPredicate extends ACSLPredicate {
         } else if (simpleRight.equals(getTrue())) {
           return isNegated() ? simpleLeftNegated : simpleLeft;
         } else if (isNegated()) {
-          return new ACSLLogicalPredicate(simpleLeftNegated, simpleRightNegated, ACSLBinaryOperator.OR);
+          return new ACSLLogicalPredicate(
+              simpleLeftNegated, simpleRightNegated, ACSLBinaryOperator.OR);
         }
         break;
       case OR:

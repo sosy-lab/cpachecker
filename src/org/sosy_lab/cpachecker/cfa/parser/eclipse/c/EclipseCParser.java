@@ -91,14 +91,14 @@ class EclipseCParser implements CParser {
     parserLog = new ShutdownNotifierLogAdapter(pShutdownNotifier);
 
     switch (pOptions.getDialect()) {
-    case C99:
-      language = new CLanguage(new ANSICParserExtensionConfiguration());
-      break;
-    case GNUC:
-      language = GCCLanguage.getDefault();
-      break;
-    default:
-      throw new IllegalArgumentException("Unknown C dialect");
+      case C99:
+        language = new CLanguage(new ANSICParserExtensionConfiguration());
+        break;
+      case GNUC:
+        language = GCCLanguage.getDefault();
+        break;
+      default:
+        throw new IllegalArgumentException("Unknown C dialect");
     }
   }
 
@@ -185,7 +185,6 @@ class EclipseCParser implements CParser {
           Preconditions.checkArgument(pContent instanceof FileContentToParse);
           return wrapCode(pFileName, ((FileContentToParse) pContent).getFileContent());
         });
-
   }
 
   /** This method parses a single string, where no prefix for static variables is needed. */
@@ -211,19 +210,23 @@ class EclipseCParser implements CParser {
 
     // strip wrapping function header
     IASTDeclaration[] declarations = ast.getDeclarations();
-    if (   declarations == null
+    if (declarations == null
         || declarations.length != 1
         || !(declarations[0] instanceof IASTFunctionDefinition)) {
       throw new CParserException("Not a single function: " + ast.getRawSignature());
     }
 
-    IASTFunctionDefinition func = (IASTFunctionDefinition)declarations[0];
+    IASTFunctionDefinition func = (IASTFunctionDefinition) declarations[0];
     IASTStatement body = func.getBody();
     if (!(body instanceof IASTCompoundStatement)) {
-      throw new CParserException("Function has an unexpected " + body.getClass().getSimpleName() + " as body: " + func.getRawSignature());
+      throw new CParserException(
+          "Function has an unexpected "
+              + body.getClass().getSimpleName()
+              + " as body: "
+              + func.getRawSignature());
     }
 
-    IASTStatement[] statements = ((IASTCompoundStatement)body).getStatements();
+    IASTStatement[] statements = ((IASTCompoundStatement) body).getStatements();
 
     return statements;
   }
@@ -300,7 +303,9 @@ class EclipseCParser implements CParser {
       for (IASTPreprocessorIncludeStatement include : result.getIncludeDirectives()) {
         if (!include.isResolved()) {
           if (include.isSystemInclude()) {
-            throw new CFAGenerationRuntimeException("File includes system headers, either preprocess it manually or specify -preprocess.");
+            throw new CFAGenerationRuntimeException(
+                "File includes system headers, either preprocess it manually or specify"
+                    + " -preprocess.");
           } else {
             throw parseContext.parseError(
                 "Included file " + include.getName() + " is missing", include);
@@ -417,7 +422,7 @@ class EclipseCParser implements CParser {
       if (pos < 0) {
         commonPathPrefix = commonStringPrefix;
       } else {
-        commonPathPrefix = commonStringPrefix.substring(0, pos+1);
+        commonPathPrefix = commonStringPrefix.substring(0, pos + 1);
       }
 
       return pInput -> {
@@ -436,7 +441,6 @@ class EclipseCParser implements CParser {
     }
   }
 
-
   @Override
   public Timer getParseTime() {
     return parseTimer;
@@ -447,10 +451,8 @@ class EclipseCParser implements CParser {
     return cfaTimer;
   }
 
-
   /**
-   * Private class extending the Eclipse CDT class that is the starting point
-   * for using the parser.
+   * Private class extending the Eclipse CDT class that is the starting point for using the parser.
    * Supports choise of parser dialect.
    */
   @SuppressWarnings("unchecked")
@@ -469,8 +471,8 @@ class EclipseCParser implements CParser {
   }
 
   /**
-   * Private class that tells the Eclipse CDT scanner that no macros and include
-   * paths have been defined externally.
+   * Private class that tells the Eclipse CDT scanner that no macros and include paths have been
+   * defined externally.
    */
   protected static class StubScannerInfo implements IScannerInfo {
 
@@ -491,7 +493,9 @@ class EclipseCParser implements CParser {
       // So we redefine these macros to themselves in order to
       // parse them as functions.
       macrosBuilder.put("__builtin_constant_p", "__builtin_constant_p");
-      macrosBuilder.put("__builtin_types_compatible_p(t1,t2)", "__builtin_types_compatible_p(({t1 arg1; arg1;}), ({t2 arg2; arg2;}))");
+      macrosBuilder.put(
+          "__builtin_types_compatible_p(t1,t2)",
+          "__builtin_types_compatible_p(({t1 arg1; arg1;}), ({t2 arg2; arg2;}))");
       macrosBuilder.put("__offsetof__", "__offsetof__");
       macrosBuilder.put("__builtin_offsetof(t,f)", "__builtin_offsetof(((t){}).f)");
       macrosBuilder.put("__func__", "\"__func__\"");
@@ -530,7 +534,7 @@ class EclipseCParser implements CParser {
       MACROS = macrosBuilder.build();
     }
 
-    protected final static IScannerInfo instance = new StubScannerInfo();
+    protected static final IScannerInfo instance = new StubScannerInfo();
 
     @Override
     public Map<String, String> getDefinedSymbols() {
@@ -549,15 +553,14 @@ class EclipseCParser implements CParser {
     static final InternalFileContentProvider instance = new FileContentProvider();
 
     @Override
-    public InternalFileContent getContentForInclusion(String pFilePath,
-        IMacroDictionary pMacroDictionary) {
-      return InternalParserUtil.createExternalFileContent(pFilePath,
-          InternalParserUtil.SYSTEM_DEFAULT_ENCODING);
+    public InternalFileContent getContentForInclusion(
+        String pFilePath, IMacroDictionary pMacroDictionary) {
+      return InternalParserUtil.createExternalFileContent(
+          pFilePath, InternalParserUtil.SYSTEM_DEFAULT_ENCODING);
     }
 
     @Override
-    public InternalFileContent getContentForInclusion(IIndexFileLocation pIfl,
-        String pAstPath) {
+    public InternalFileContent getContentForInclusion(IIndexFileLocation pIfl, String pAstPath) {
       return InternalParserUtil.createFileContent(pIfl);
     }
   }

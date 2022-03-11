@@ -18,10 +18,9 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 
 /**
- * This class represents forward declarations of functions.
- * Example code:
+ * This class represents forward declarations of functions. Example code:
  *
- * int foo(int x);
+ * <p>int foo(int x);
  */
 public final class CFunctionDeclaration extends AFunctionDeclaration implements CDeclaration {
 
@@ -40,7 +39,6 @@ public final class CFunctionDeclaration extends AFunctionDeclaration implements 
     /** GNU C attribute 'noreturn'. */
     NO_RETURN
   }
-
 
   private final ImmutableSet<FunctionAttribute> attributes;
 
@@ -73,7 +71,7 @@ public final class CFunctionDeclaration extends AFunctionDeclaration implements 
   @SuppressWarnings("unchecked")
   @Override
   public List<CParameterDeclaration> getParameters() {
-    return (List<CParameterDeclaration>)super.getParameters();
+    return (List<CParameterDeclaration>) super.getParameters();
   }
 
   @Override
@@ -83,7 +81,9 @@ public final class CFunctionDeclaration extends AFunctionDeclaration implements 
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) { return true; }
+    if (this == obj) {
+      return true;
+    }
 
     if (!(obj instanceof CFunctionDeclaration)) {
       return false;
@@ -102,19 +102,16 @@ public final class CFunctionDeclaration extends AFunctionDeclaration implements 
     return pV.visit(this);
   }
 
-  /** 
-   * Returns the list of GNU C attributes that are associated with this function declaration
-   * and known to CPAchecker.
+  /**
+   * Returns the list of GNU C attributes that are associated with this function declaration and
+   * known to CPAchecker.
    */
   public ImmutableSet<FunctionAttribute> getAttributes() {
     return attributes;
   }
 
-  /**
-   * Returns whether this function declaration has the GNU C attribute 'noreturn'.
-   */
+  /** Returns whether this function declaration has the GNU C attribute 'noreturn'. */
   public boolean doesNotReturn() {
     return attributes.contains(FunctionAttribute.NO_RETURN);
   }
-
 }

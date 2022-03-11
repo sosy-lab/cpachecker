@@ -16,8 +16,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 /**
- * Provides a symbol table that maps variable and functions to their declaration
- * (if a name is visible in the current scope).
+ * Provides a symbol table that maps variable and functions to their declaration (if a name is
+ * visible in the current scope).
  */
 abstract class AbstractScope implements Scope {
 
@@ -42,6 +42,7 @@ abstract class AbstractScope implements Scope {
 
   /**
    * Look up {@link CComplexType}s by their name.
+   *
    * @param name The fully qualified name (e.g., "struct s").
    * @return The CComplexType instance or null.
    */
@@ -49,13 +50,15 @@ abstract class AbstractScope implements Scope {
   public abstract CComplexType lookupType(String name);
 
   /**
-   * Look up {@link CType}s by the names of their typedefs.
-   * This is basically needed to correctly search for anonymous complex types e.g.
+   * Look up {@link CType}s by the names of their typedefs. This is basically needed to correctly
+   * search for anonymous complex types e.g.
+   *
    * <pre>
    * typedef struct { // The struct gets the tag __anon_type_0
    *    ...
    * } s_type;
    * </pre>
+   *
    * @param name typedef type name e.g. s_type
    * @return the type declared in typedef e.g. struct __anon_type_0
    */
@@ -68,21 +71,19 @@ abstract class AbstractScope implements Scope {
   /**
    * Register a type, e.g., a new struct type.
    *
-   * @return True if the type actually needs to be declared, False if the declaration can be omitted because the type is already known.
+   * @return True if the type actually needs to be declared, False if the declaration can be omitted
+   *     because the type is already known.
    */
   @Override
   public abstract boolean registerTypeDeclaration(CComplexTypeDeclaration declaration);
 
   /**
-   * Take a name and return a name qualified with the current function
-   * (if we are in a function).
+   * Take a name and return a name qualified with the current function (if we are in a function).
    */
   @Override
   public abstract String createScopedNameOf(String name);
 
-  /**
-   * Returns the name for the type as it would be if it is renamed.
-   */
+  /** Returns the name for the type as it would be if it is renamed. */
   @Override
   public String getFileSpecificTypeName(String type) {
     if (currentFile.isEmpty() || isFileSpecificTypeName(type)) {
