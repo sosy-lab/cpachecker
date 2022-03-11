@@ -21,7 +21,7 @@ class RecursiveAnalysisFailedException extends CPATransferException {
     super(createMessage(e));
 
     if (e instanceof RecursiveAnalysisFailedException) {
-      RecursiveAnalysisFailedException recursiveException = (RecursiveAnalysisFailedException)e;
+      RecursiveAnalysisFailedException recursiveException = (RecursiveAnalysisFailedException) e;
       initCause(recursiveException.getCause());
       depth = recursiveException.depth + 1;
     } else {
@@ -32,7 +32,7 @@ class RecursiveAnalysisFailedException extends CPATransferException {
 
   private static String createMessage(CPAException e) {
     if (e instanceof RecursiveAnalysisFailedException) {
-      RecursiveAnalysisFailedException r = (RecursiveAnalysisFailedException)e;
+      RecursiveAnalysisFailedException r = (RecursiveAnalysisFailedException) e;
       return "Error in recursive analysis at depth " + r.depth + ": " + r.getCause().getMessage();
     } else {
       return "Error in recursive analysis at depth 1: " + e.getMessage();
@@ -41,6 +41,6 @@ class RecursiveAnalysisFailedException extends CPATransferException {
 
   @Override
   public synchronized CPAException getCause() {
-    return (CPAException)super.getCause();
+    return (CPAException) super.getCause();
   }
 }

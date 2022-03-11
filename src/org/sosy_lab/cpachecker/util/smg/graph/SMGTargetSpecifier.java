@@ -9,10 +9,8 @@
 package org.sosy_lab.cpachecker.util.smg.graph;
 
 public enum SMGTargetSpecifier {
-
   IS_REGION,
   IS_FIRST_POINTER,
   IS_LAST_POINTER,
   IS_ALL_POINTER
-
 }

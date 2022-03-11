@@ -8,8 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-
-public class Exclusion<ConstantType> extends AbstractFormula<ConstantType> implements NumeralFormula<ConstantType> {
+public class Exclusion<ConstantType> extends AbstractFormula<ConstantType>
+    implements NumeralFormula<ConstantType> {
 
   private final NumeralFormula<ConstantType> excluded;
 
@@ -50,12 +50,13 @@ public class Exclusion<ConstantType> extends AbstractFormula<ConstantType> imple
 
   @Override
   public <ReturnType, ParamType> ReturnType accept(
-      ParameterizedNumeralFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
+      ParameterizedNumeralFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor,
+      ParamType pParameter) {
     return pVisitor.visit(this, pParameter);
   }
 
-  public static <ConstantType> NumeralFormula<ConstantType> of(NumeralFormula<ConstantType> pToExclude) {
+  public static <ConstantType> NumeralFormula<ConstantType> of(
+      NumeralFormula<ConstantType> pToExclude) {
     return new Exclusion<>(pToExclude);
   }
-
 }

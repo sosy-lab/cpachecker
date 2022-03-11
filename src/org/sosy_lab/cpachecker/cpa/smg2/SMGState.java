@@ -52,12 +52,16 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   // Properties:
   @SuppressWarnings("unused")
   private static final String HAS_INVALID_FREES = "has-invalid-frees";
+
   @SuppressWarnings("unused")
   private static final String HAS_INVALID_READS = "has-invalid-reads";
+
   @SuppressWarnings("unused")
   private static final String HAS_INVALID_WRITES = "has-invalid-writes";
+
   @SuppressWarnings("unused")
   private static final String HAS_LEAKS = "has-leaks";
+
   @SuppressWarnings("unused")
   private static final String HAS_HEAP_OBJECTS = "has-heap-objects";
 
@@ -170,12 +174,11 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   /**
    * Copy SMGState with a newly created object and put it into the global namespace
    *
-   * Keeps consistency: yes
+   * <p>Keeps consistency: yes
    *
    * @param pTypeSize Size of the type of the new global variable
    * @param pVarName Name of the global variable
    * @return Newly created object
-   *
    */
   public SMGState copyAndAddGlobalVariable(int pTypeSize, String pVarName) {
     SMGObject newObject = SMGObject.of(0, BigInteger.valueOf(pTypeSize), BigInteger.ZERO);
@@ -186,7 +189,7 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   /**
    * Copy SMGState with a newly created object and put it into the current stack frame.
    *
-   * Keeps consistency: yes
+   * <p>Keeps consistency: yes
    *
    * @param pTypeSize Size of the type the new local variable
    * @param pVarName Name of the local variable
@@ -205,7 +208,7 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
    * Copy SMGState with a newly created anonymous object and put it into the current stack frame.
    * Used for string initilizers as function arguments.
    *
-   * Keeps consistency: yes
+   * <p>Keeps consistency: yes
    *
    * @param pTypeSize Size of the type the new local variable
    * @return Newly created object
@@ -309,9 +312,7 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   public SMGState copyAndPruneOutOfScopeVariables(Set<CSimpleDeclaration> pOutOfScopeVars) {
     SMGState retState = this;
     for (CSimpleDeclaration variable : pOutOfScopeVars) {
-      retState =
-          retState.copyAndPruneVariable(
-              MemoryLocation.forDeclaration(variable));
+      retState = retState.copyAndPruneVariable(MemoryLocation.forDeclaration(variable));
     }
 
     return retState;
@@ -358,7 +359,7 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
     if (unreachableObjects.isEmpty()) {
       return this;
     }
-    return this.copyWithMemLeak(newHeap, unreachableObjects);
+    return copyWithMemLeak(newHeap, unreachableObjects);
   }
 
   /*
@@ -370,7 +371,8 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
         leakedObjects.stream().map(Object::toString).collect(Collectors.joining(","));
     String errorMSG = "Memory leak of " + leakedObjectsLabels + " is detected.";
     SMGErrorInfo newErrorInfo =
-        errorInfo.withProperty(Property.INVALID_HEAP)
+        errorInfo
+            .withProperty(Property.INVALID_HEAP)
             .withErrorMessage(errorMSG)
             .withInvalidObjects(leakedObjects);
     logMemoryError(errorMSG, true);
@@ -677,7 +679,6 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
         copyAndReplaceMemoryModel(
             newState.getMemoryModel().copyAndPutValue(unknownValue, readSMGValue)));
   }
-
   public SMGState writeValue(SMGObject object, BigInteger offset, BigInteger sizeInBits, SMGValue value) {
     // TODO: decide if we need more checks here
     return copyAndReplaceMemoryModel(memoryModel.writeValue(object, offset, sizeInBits, value));

@@ -24,11 +24,10 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
 
 /**
- * Live view of an unmodifiable reached state set, where states
- * and precision are transformed by mapping functions.
+ * Live view of an unmodifiable reached state set, where states and precision are transformed by
+ * mapping functions.
  */
-public class UnmodifiableReachedSetView
-  implements UnmodifiableReachedSet {
+public class UnmodifiableReachedSetView implements UnmodifiableReachedSet {
   private final UnmodifiableReachedSet underlying;
   private final Function<? super AbstractState, AbstractState> mapStateFunction;
   private final Function<? super Precision, Precision> mapPrecisionFunction;
@@ -67,7 +66,8 @@ public class UnmodifiableReachedSetView
   }
 
   @Override
-  public Collection<AbstractState> getReached(AbstractState pState) throws UnsupportedOperationException {
+  public Collection<AbstractState> getReached(AbstractState pState)
+      throws UnsupportedOperationException {
     throw new UnsupportedOperationException("Unwrapping prevents knowing the partition");
   }
 

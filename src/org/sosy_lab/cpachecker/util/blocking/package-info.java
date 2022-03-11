@@ -7,7 +7,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Another implementation for grouping CFA nodes into blocks.
- * Similar to large block encoding (LBE).
+ * Another implementation for grouping CFA nodes into blocks. Similar to large block encoding (LBE).
  */
 package org.sosy_lab.cpachecker.util.blocking;

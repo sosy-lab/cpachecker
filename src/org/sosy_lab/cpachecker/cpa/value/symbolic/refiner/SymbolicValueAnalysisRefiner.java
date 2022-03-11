@@ -104,14 +104,16 @@ import org.sosy_lab.cpachecker.util.refinement.PathInterpolator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
-/**
- * Refiner for value analysis using symbolic values.
- */
+/** Refiner for value analysis using symbolic values. */
 @Options(prefix = "cpa.value.refinement")
 public class SymbolicValueAnalysisRefiner
     extends GenericRefiner<ForgettingCompositeState, SymbolicInterpolant> {
 
-  @Option(secure = true, description = "whether or not to do lazy-abstraction", name = "restart", toUppercase = true)
+  @Option(
+      secure = true,
+      description = "whether or not to do lazy-abstraction",
+      name = "restart",
+      toUppercase = true)
   private RestartStrategy restartStrategy = RestartStrategy.PIVOT;
 
   @Option(secure = true, description = "if this option is set to false, constraints are never kept")
@@ -167,11 +169,7 @@ public class SymbolicValueAnalysisRefiner
         new ValueTransferBasedStrongestPostOperator(solver, logger, config, cfa);
 
     final SymbolicFeasibilityChecker feasibilityChecker =
-        new SymbolicValueAnalysisFeasibilityChecker(strongestPostOperator,
-                                                    config,
-                                                    logger,
-                                                    cfa);
-
+        new SymbolicValueAnalysisFeasibilityChecker(strongestPostOperator, config, logger, cfa);
 
     final GenericPrefixProvider<ForgettingCompositeState> prefixProvider =
         new GenericPrefixProvider<>(
@@ -184,21 +182,23 @@ public class SymbolicValueAnalysisRefiner
             shutdownNotifier);
 
     final ElementTestingSymbolicEdgeInterpolator edgeInterpolator =
-        new ElementTestingSymbolicEdgeInterpolator(feasibilityChecker,
-                                        strongestPostOperator,
-                                        SymbolicInterpolantManager.getInstance(),
-                                        config,
-                                        shutdownNotifier,
-                                        cfa);
+        new ElementTestingSymbolicEdgeInterpolator(
+            feasibilityChecker,
+            strongestPostOperator,
+            SymbolicInterpolantManager.getInstance(),
+            config,
+            shutdownNotifier,
+            cfa);
 
     final SymbolicPathInterpolator pathInterpolator =
-        new SymbolicPathInterpolator(edgeInterpolator,
-                                    feasibilityChecker,
-                                    prefixProvider,
-                                    config,
-                                    logger,
-                                    shutdownNotifier,
-                                    cfa);
+        new SymbolicPathInterpolator(
+            edgeInterpolator,
+            feasibilityChecker,
+            prefixProvider,
+            config,
+            logger,
+            shutdownNotifier,
+            cfa);
 
     return new SymbolicValueAnalysisRefiner(
         cfa,
@@ -220,12 +220,13 @@ public class SymbolicValueAnalysisRefiner
       final LogManager pLogger)
       throws InvalidConfigurationException {
 
-    super(pFeasibilityChecker,
-          pInterpolator,
-          SymbolicInterpolantManager.getInstance(),
-          pPathExtractor,
-          pConfig,
-          pLogger);
+    super(
+        pFeasibilityChecker,
+        pInterpolator,
+        SymbolicInterpolantManager.getInstance(),
+        pPathExtractor,
+        pConfig,
+        pLogger);
 
     pConfig.inject(this);
 
@@ -245,8 +246,7 @@ public class SymbolicValueAnalysisRefiner
 
   @Override
   public CounterexampleInfo performRefinementForPath(
-      ARGReachedSet pReached, ARGPath targetPathToUse)
-      throws CPAException, InterruptedException {
+      ARGReachedSet pReached, ARGPath targetPathToUse) throws CPAException, InterruptedException {
     CounterexampleInfo info = super.performRefinementForPath(pReached, targetPathToUse);
     if (!info.isSpurious() && writePathConstraints && pathConstraintsOutputFile != null) {
       return getCexWithSymbolicInformation(info, pathConstraintsOutputFile);
@@ -275,53 +275,53 @@ public class SymbolicValueAnalysisRefiner
     CFAEdge currentEdge;
     while (fullPath.hasNext()) {
       List<CFAEdge> intermediateEdges = new ArrayList<>();
-        currentEdge = fullPath.getOutgoingEdge();
-        intermediateEdges.add(currentEdge);
+      currentEdge = fullPath.getOutgoingEdge();
+      intermediateEdges.add(currentEdge);
 
-        Optional<ForgettingCompositeState> maybeNext =
-            strongestPost.step(currentState, currentEdge, fullPrecision, callstack, pTargetPath);
+      Optional<ForgettingCompositeState> maybeNext =
+          strongestPost.step(currentState, currentEdge, fullPrecision, callstack, pTargetPath);
 
-        fullPath.advance();
+      fullPath.advance();
 
-        if (!maybeNext.isPresent()) {
+      if (!maybeNext.isPresent()) {
         throw new CPAException(
             "Counterexample said to be feasible but spurious at edge: " + currentEdge);
 
-        } else {
-          currentState = maybeNext.orElseThrow();
-          if (!pIdentifierAssignment.isEmpty()) {
-            ValueAnalysisState currentValueState = currentState.getValueState();
-            Set<SymbolicIdentifier> usedIdentifiers = new HashSet<>();
-            for (Entry<MemoryLocation, ValueAndType> e : currentValueState.getConstants()) {
-              Value v = e.getValue().getValue();
-              if (v instanceof SymbolicValue) {
-                usedIdentifiers.addAll(((SymbolicValue) v).accept(SymbolicIdentifierLocator
-                    .getInstance()));
-              }
-            }
-            ExpressionValueVisitor valueVisitor =
-                new ExpressionValueVisitor(
-                    currentValueState,
-                    currentEdge.getSuccessor().getFunctionName(),
-                    machineModel,
-                    new LogManagerWithoutDuplicates(logger));
-            for (SymbolicIdentifier i : usedIdentifiers) {
-              if (pIdentifierAssignment.containsKey(i)) {
-                currentValueState.assignConstant(i, pIdentifierAssignment.get(i), valueVisitor);
-              } else {
-                currentValueState.assignConstant(i, new NumericValue(0), valueVisitor);
-              }
+      } else {
+        currentState = maybeNext.orElseThrow();
+        if (!pIdentifierAssignment.isEmpty()) {
+          ValueAnalysisState currentValueState = currentState.getValueState();
+          Set<SymbolicIdentifier> usedIdentifiers = new HashSet<>();
+          for (Entry<MemoryLocation, ValueAndType> e : currentValueState.getConstants()) {
+            Value v = e.getValue().getValue();
+            if (v instanceof SymbolicValue) {
+              usedIdentifiers.addAll(
+                  ((SymbolicValue) v).accept(SymbolicIdentifierLocator.getInstance()));
             }
           }
-          stateSequence.add(Pair.of(currentState, intermediateEdges));
+          ExpressionValueVisitor valueVisitor =
+              new ExpressionValueVisitor(
+                  currentValueState,
+                  currentEdge.getSuccessor().getFunctionName(),
+                  machineModel,
+                  new LogManagerWithoutDuplicates(logger));
+          for (SymbolicIdentifier i : usedIdentifiers) {
+            if (pIdentifierAssignment.containsKey(i)) {
+              currentValueState.assignConstant(i, pIdentifierAssignment.get(i), valueVisitor);
+            } else {
+              currentValueState.assignConstant(i, new NumericValue(0), valueVisitor);
+            }
+          }
         }
+        stateSequence.add(Pair.of(currentState, intermediateEdges));
+      }
     }
 
     return stateSequence;
   }
 
-  private CounterexampleInfo getCexWithSymbolicInformation(CounterexampleInfo pCex, PathTemplate pOutputFile)
-      throws CPAException, InterruptedException {
+  private CounterexampleInfo getCexWithSymbolicInformation(
+      CounterexampleInfo pCex, PathTemplate pOutputFile) throws CPAException, InterruptedException {
     ARGPath tp = pCex.getTargetPath();
     StringBuilder symbolicInfo = new StringBuilder();
 
@@ -396,8 +396,10 @@ public class SymbolicValueAnalysisRefiner
         Value value = SymbolicValues.convertToValue(va);
         assignment.put(identifier, value);
       } else {
-        logger.log(Level.FINE,
-            "Skipping variable %s for assignment because it doesn't fit symbolic identifier encoding",
+        logger.log(
+            Level.FINE,
+            "Skipping variable %s for assignment because it doesn't fit symbolic identifier"
+                + " encoding",
             va.getName());
       }
     }
@@ -444,8 +446,7 @@ public class SymbolicValueAnalysisRefiner
 
     for (ARGState r : roots) {
       Multimap<CFANode, MemoryLocation> valuePrecInc = pInterpolants.extractPrecisionIncrement(r);
-      ConstraintsPrecision.Increment constrPrecInc =
-          getConstraintsIncrement(r, pInterpolants);
+      ConstraintsPrecision.Increment constrPrecInc = getConstraintsIncrement(r, pInterpolants);
 
       ARGTreePrecisionUpdater.updateARGTree(pReached, r, valuePrecInc, constrPrecInc);
     }
@@ -453,10 +454,8 @@ public class SymbolicValueAnalysisRefiner
 
   private ConstraintsPrecision.Increment getConstraintsIncrement(
       final ARGState pRefinementRoot,
-      final InterpolationTree<ForgettingCompositeState, SymbolicInterpolant> pTree
-  ) {
-    ConstraintsPrecision.Increment.Builder increment =
-        ConstraintsPrecision.Increment.builder();
+      final InterpolationTree<ForgettingCompositeState, SymbolicInterpolant> pTree) {
+    ConstraintsPrecision.Increment.Builder increment = ConstraintsPrecision.Increment.builder();
 
     if (trackConstraints) {
       Deque<ARGState> todo =

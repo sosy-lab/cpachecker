@@ -70,7 +70,7 @@ Develop CPAchecker from within Eclipse
 
 1. Install [Eclipse](http://www.eclipse.org/) with at least version 4.6, with JDT.
 
-2. IMPORTANT: Install the Eclipse plugin for [google-java-format](https://github.com/google/google-java-format/):
+2. Install the Eclipse plugin for [google-java-format](https://github.com/google/google-java-format/):
    Download the `google-java-format-eclipse-plugin-*.jar`
    from the most recent [google-java-format release](https://github.com/google/google-java-format/releases)
    and put it into the `dropins` folder of your Eclipse installation

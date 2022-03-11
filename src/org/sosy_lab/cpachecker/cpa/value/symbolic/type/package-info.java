@@ -7,9 +7,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * This package contains all {@link org.sosy_lab.cpachecker.cpa.value.type.Value Values}
- * of a symbolic nature and classes that they depend on, like factories.
- * All <code>Value</code> objects in this package usually are implementations of SymbolicValue and are used in
- * symbolic execution and in the {@link org.sosy_lab.cpachecker.cpa.constraints} CPA.
+ * This package contains all {@link org.sosy_lab.cpachecker.cpa.value.type.Value Values} of a
+ * symbolic nature and classes that they depend on, like factories. All <code>Value</code> objects
+ * in this package usually are implementations of SymbolicValue and are used in symbolic execution
+ * and in the {@link org.sosy_lab.cpachecker.cpa.constraints} CPA.
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;

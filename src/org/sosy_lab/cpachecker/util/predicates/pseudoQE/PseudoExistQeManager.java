@@ -67,9 +67,8 @@ public class PseudoExistQeManager implements StatisticsProvider {
   private final PseudoExQeStatistics stats = new PseudoExQeStatistics();
 
   @Option(
-    secure = true,
-    description = "Use Destructive Equality Resolution as simplification method"
-  )
+      secure = true,
+      description = "Use Destructive Equality Resolution as simplification method")
   private boolean useDER = true;
 
   @Option(secure = true, description = "Use Unconnected Parameter Drop as simplification method")
@@ -98,8 +97,8 @@ public class PseudoExistQeManager implements StatisticsProvider {
         Formula pF, List<Formula> pArgs, FunctionDeclaration<?> pFunctionDeclaration) {
       switch (pFunctionDeclaration.getKind()) {
 
-        // TODO this code assumes that equality has exactly two arguments.
-        // We might have more than two.
+          // TODO this code assumes that equality has exactly two arguments.
+          // We might have more than two.
 
         case EQ: // check those functions that represent equality
         case BV_EQ:
@@ -127,18 +126,17 @@ public class PseudoExistQeManager implements StatisticsProvider {
   }
 
   @Option(
-    secure = true,
-    description =
-        "Which solver tactic to use for Quantifier Elimination(Only used if useRealQuantifierElimination=true)"
-  )
+      secure = true,
+      description =
+          "Which solver tactic to use for Quantifier Elimination(Only used if"
+              + " useRealQuantifierElimination=true)")
   private SolverQeTactic solverQeTactic = SolverQeTactic.LIGHT;
 
   @Option(
-    secure = true,
-    description =
-        "Specify whether to overapproximate quantified formula,"
-            + " if one or more quantifiers couldn't be eliminated.(Otherwise an exception will be thrown)"
-  )
+      secure = true,
+      description =
+          "Specify whether to overapproximate quantified formula, if one or more quantifiers"
+              + " couldn't be eliminated.(Otherwise an exception will be thrown)")
   private boolean overapprox = false;
 
   /**
@@ -152,17 +150,18 @@ public class PseudoExistQeManager implements StatisticsProvider {
   public PseudoExistQeManager(Solver pSolver, Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
     pConfig.inject(this, PseudoExistQeManager.class);
-    this.solver = pSolver;
-    this.fmgr = pSolver.getFormulaManager();
-    this.bFmgr = fmgr.getBooleanFormulaManager();
-    this.logger = pLogger;
+    solver = pSolver;
+    fmgr = pSolver.getFormulaManager();
+    bFmgr = fmgr.getBooleanFormulaManager();
+    logger = pLogger;
     try {
       qFmgr = Optional.of(fmgr.getQuantifiedFormulaManager());
     } catch (UnsupportedOperationException e) {
       qFmgr = Optional.empty();
-      this.logger.log(
+      logger.log(
           Level.WARNING,
-          "The selected SMT-Solver does not support Quantifier Elimination, but Solver-based QE is enabled. Switched solverQeTactic configuration option to NONE.");
+          "The selected SMT-Solver does not support Quantifier Elimination, but Solver-based QE is"
+              + " enabled. Switched solverQeTactic configuration option to NONE.");
       solverQeTactic = SolverQeTactic.NONE;
     }
   }
@@ -192,7 +191,8 @@ public class PseudoExistQeManager implements StatisticsProvider {
           new PseudoExistFormula(pQuantifiedVars, pQuantifiedFormula, fmgr);
 
       // Apply the implemented solver-independent techniques for quantifier elimination one by one.
-      // Each time one quantified variable has been removed the previous techniques will be repeated,
+      // Each time one quantified variable has been removed the previous techniques will be
+      // repeated,
       // on the new smaller Set of quantified Variables
       int quantifierCountLastIteration = Integer.MAX_VALUE;
 
@@ -331,7 +331,8 @@ public class PseudoExistQeManager implements StatisticsProvider {
         } catch (SolverException e) {
           logger.log(
               Level.WARNING,
-              "Solver failed while proving satisfiability of unconnected conjuncts. Ignore UPD-result.");
+              "Solver failed while proving satisfiability of unconnected conjuncts. Ignore"
+                  + " UPD-result.");
           return pExistFormula;
         }
         // Create resulting inner Formula

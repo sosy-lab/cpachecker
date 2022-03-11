@@ -15,7 +15,6 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 
 @SuppressWarnings("ImmutableEnumChecker") // enum used as stateful factory
 public enum CompoundBitVectorIntervalManagerFactory implements CompoundIntervalManagerFactory {
-
   ALLOW_SIGNED_WRAP_AROUND {
 
     @Override
@@ -32,7 +31,8 @@ public enum CompoundBitVectorIntervalManagerFactory implements CompoundIntervalM
     }
   };
 
-  private final Collection<OverflowEventHandler> overflowEventHandlers = new CopyOnWriteArrayList<>();
+  private final Collection<OverflowEventHandler> overflowEventHandlers =
+      new CopyOnWriteArrayList<>();
 
   private void handleAllOverflowHandlers() {
     for (OverflowEventHandler component : overflowEventHandlers) {
@@ -41,7 +41,8 @@ public enum CompoundBitVectorIntervalManagerFactory implements CompoundIntervalM
   }
 
   @Override
-  public CompoundIntervalManager createCompoundIntervalManager(MachineModel pMachineModel, Type pType) {
+  public CompoundIntervalManager createCompoundIntervalManager(
+      MachineModel pMachineModel, Type pType) {
     return createCompoundIntervalManager(BitVectorInfo.from(pMachineModel, pType));
   }
 
@@ -50,7 +51,8 @@ public enum CompoundBitVectorIntervalManagerFactory implements CompoundIntervalM
     return createCompoundIntervalManager(pInfo, true);
   }
 
-  public CompoundIntervalManager createCompoundIntervalManager(TypeInfo pInfo, boolean pWithOverflowHandlers) {
+  public CompoundIntervalManager createCompoundIntervalManager(
+      TypeInfo pInfo, boolean pWithOverflowHandlers) {
     if (pInfo instanceof BitVectorInfo) {
       return new CompoundBitVectorIntervalManager(
           (BitVectorInfo) pInfo,
@@ -72,5 +74,4 @@ public enum CompoundBitVectorIntervalManagerFactory implements CompoundIntervalM
   public void removeOverflowEventHandler(OverflowEventHandler pOverflowEventHandler) {
     overflowEventHandlers.remove(pOverflowEventHandler);
   }
-
 }

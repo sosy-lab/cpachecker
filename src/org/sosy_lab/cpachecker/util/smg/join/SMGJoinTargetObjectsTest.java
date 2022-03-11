@@ -26,15 +26,15 @@ public class SMGJoinTargetObjectsTest extends SMGJoinTest0 {
   private NodeMapping mapping1;
   private NodeMapping mapping2;
 
-  final private SMGObject obj1 = createRegion(64);
+  private final SMGObject obj1 = createRegion(64);
   private final SMGValue value1 = createValue();
-  final private SMGPointsToEdge pt1 = createPTRegionEdge(0, obj1);
+  private final SMGPointsToEdge pt1 = createPTRegionEdge(0, obj1);
 
-  final private SMGObject obj2 = createRegion(64);
+  private final SMGObject obj2 = createRegion(64);
   private final SMGValue value2 = createValue();
-  final private SMGPointsToEdge pt2 = createPTRegionEdge(0, obj2);
+  private final SMGPointsToEdge pt2 = createPTRegionEdge(0, obj2);
 
-  final private SMGObject destObj = createRegion(64);
+  private final SMGObject destObj = createRegion(64);
 
   @Before
   public void setUp() {
@@ -58,15 +58,7 @@ public class SMGJoinTargetObjectsTest extends SMGJoinTest0 {
 
     SMGJoinTargetObjects jto =
         new SMGJoinTargetObjects(
-            SMGJoinStatus.EQUAL,
-            smg1,
-            smg2,
-            destSMG,
-            mapping1,
-            mapping2,
-            value1,
-            value2,
-            0);
+            SMGJoinStatus.EQUAL, smg1, smg2, destSMG, mapping1, mapping2, value1, value2, 0);
     assertThat(jto.mapping2.getMappedObject(obj2))
         .isSameInstanceAs(jto.mapping1.getMappedObject(obj1));
     // TODO investigate why they should not be the same, regions are immutable
@@ -123,15 +115,7 @@ public class SMGJoinTargetObjectsTest extends SMGJoinTest0 {
 
     SMGJoinTargetObjects jto =
         new SMGJoinTargetObjects(
-            SMGJoinStatus.EQUAL,
-            smg1,
-            smg2,
-            destSMG,
-            mapping1,
-            mapping2,
-            value1,
-            value2,
-            0);
+            SMGJoinStatus.EQUAL, smg1, smg2, destSMG, mapping1, mapping2, value1, value2, 0);
 
     assertThat(jto.isDefined()).isFalse();
     assertThat(jto.isRecoverableFailur()).isTrue();
@@ -150,26 +134,10 @@ public class SMGJoinTargetObjectsTest extends SMGJoinTest0 {
 
     SMGJoinTargetObjects mta =
         new SMGJoinTargetObjects(
-            SMGJoinStatus.EQUAL,
-            smg1,
-            smg2,
-            destSMG,
-            mapping1,
-            mapping2,
-            value1,
-            value2,
-            0);
+            SMGJoinStatus.EQUAL, smg1, smg2, destSMG, mapping1, mapping2, value1, value2, 0);
     SMGJoinTargetObjects jto =
         new SMGJoinTargetObjects(
-            SMGJoinStatus.EQUAL,
-            smg1,
-            smg2,
-            destSMG,
-            mapping1,
-            mapping2,
-            value1,
-            value2,
-            0);
+            SMGJoinStatus.EQUAL, smg1, smg2, destSMG, mapping1, mapping2, value1, value2, 0);
     assertThat(jto.isDefined()).isTrue();
     assertThat(jto.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
     assertThat(jto.getInputSMG1()).isSameInstanceAs(smg1);
@@ -196,20 +164,14 @@ public class SMGJoinTargetObjectsTest extends SMGJoinTest0 {
     mapping2.addMapping(obj2, destObj);
 
     // See TODO below
-    // SMGMapTargetAddress mta = new SMGMapTargetAddress(new SMG(smg1), new SMG(smg2), new SMG(destSMG),
-    //                                                  new SMGNodeMapping(mapping1), new SMGNodeMapping(mapping2),
+    // SMGMapTargetAddress mta = new SMGMapTargetAddress(new SMG(smg1), new SMG(smg2), new
+    // SMG(destSMG),
+    //                                                  new SMGNodeMapping(mapping1), new
+    // SMGNodeMapping(mapping2),
     //                                                  value1, value2);
     SMGJoinTargetObjects jto =
         new SMGJoinTargetObjects(
-            SMGJoinStatus.EQUAL,
-            smg1,
-            smg2,
-            destSMG,
-            mapping1,
-            mapping2,
-            value1,
-            value2,
-            0);
+            SMGJoinStatus.EQUAL, smg1, smg2, destSMG, mapping1, mapping2, value1, value2, 0);
     assertThat(jto.isDefined()).isTrue();
     assertThat(jto.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
     assertThat(jto.getInputSMG1()).isSameInstanceAs(smg1);

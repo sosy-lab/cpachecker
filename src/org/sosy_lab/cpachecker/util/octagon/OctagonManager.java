@@ -57,7 +57,6 @@ import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonInterval;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-
 public abstract class OctagonManager {
 
   private static boolean libraryLoaded = false;
@@ -74,7 +73,7 @@ public abstract class OctagonManager {
   /* num handling function*/
 
   /* allocate new space for num array and init*/
-  public final NumArray init_num_t (int n) {
+  public final NumArray init_num_t(int n) {
     return new NumArray(J_init_n(n));
   }
 
@@ -84,12 +83,13 @@ public abstract class OctagonManager {
   }
 
   public final Octagon set_bounds(Octagon oct, int pos, NumArray lower, NumArray upper) {
-    return new Octagon(J_set_bounds(oct.getOctId(), pos, lower.getArray(), upper.getArray(), false), this);
+    return new Octagon(
+        J_set_bounds(oct.getOctId(), pos, lower.getArray(), upper.getArray(), false), this);
   }
 
   /* set int */
   public final void num_set_int(NumArray n, int pos, long i) {
-    J_num_set_int(n.getArray(), pos, (int)i);
+    J_num_set_int(n.getArray(), pos, (int) i);
   }
   /* set float */
   public final void num_set_float(NumArray n, int pos, double d) {
@@ -126,6 +126,7 @@ public abstract class OctagonManager {
   public final Octagon universe(int n) {
     return new Octagon(J_universe(n), this);
   }
+
   final void free(Long oct) {
     J_free(oct);
   }
@@ -210,7 +211,8 @@ public abstract class OctagonManager {
   }
 
   public final Octagon addBinConstraint(Octagon oct, int noOfConstraints, NumArray array) {
-    return new Octagon(J_addBinConstraints(oct.getOctId(), noOfConstraints, array.getArray(), false), this);
+    return new Octagon(
+        J_addBinConstraints(oct.getOctId(), noOfConstraints, array.getArray(), false), this);
   }
 
   public final Octagon substituteVar(Octagon oct, int x, NumArray array) {
@@ -220,12 +222,15 @@ public abstract class OctagonManager {
   public final Octagon addConstraint(Octagon oct, NumArray array) {
     return new Octagon(J_addConstraint(oct.getOctId(), array.getArray(), false), this);
   }
+
   public final Octagon intervAssingVar(Octagon oct, int k, NumArray array) {
     return new Octagon(J_intervAssingVar(oct.getOctId(), k, array.getArray(), false), this);
   }
+
   public final Octagon intervSubstituteVar(Octagon oct, int x, NumArray array) {
     return new Octagon(J_intervSubstituteVar(oct.getOctId(), x, array.getArray(), false), this);
   }
+
   public final Octagon intervAddConstraint(Octagon oct, NumArray array) {
     return new Octagon(J_intervAddConstraint(oct.getOctId(), array.getArray(), false), this);
   }
@@ -234,15 +239,17 @@ public abstract class OctagonManager {
   public final Octagon addDimensionAndEmbed(Octagon oct, int k) {
     return new Octagon(J_addDimenensionAndEmbed(oct.getOctId(), k, false), this);
   }
+
   public final Octagon addDimensionAndProject(Octagon oct, int k) {
     return new Octagon(J_addDimenensionAndProject(oct.getOctId(), k, false), this);
   }
+
   public final Octagon removeDimension(Octagon oct, int k) {
     return new Octagon(J_removeDimension(oct.getOctId(), k, false), this);
   }
 
   public final void printNum(NumArray arr, int size) {
-      J_printNum(arr.getArray(), size);
+    J_printNum(arr.getArray(), size);
   }
 
   public final void printOct(Octagon oct) {
@@ -250,5 +257,6 @@ public abstract class OctagonManager {
   }
 
   public abstract String print(Octagon oct, BiMap<Integer, MemoryLocation> map);
+
   public abstract OctagonInterval getVariableBounds(Octagon oct, int id);
 }

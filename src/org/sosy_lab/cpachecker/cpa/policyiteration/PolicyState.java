@@ -14,10 +14,10 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 
 /**
- * Abstract state for policy iteration: bounds on each expression (from the
- * template), for the given control node.
+ * Abstract state for policy iteration: bounds on each expression (from the template), for the given
+ * control node.
  *
- * Logic-less container class.
+ * <p>Logic-less container class.
  */
 public abstract class PolicyState implements AbstractState, Graphable {
 
@@ -27,10 +27,7 @@ public abstract class PolicyState implements AbstractState, Graphable {
     node = pNode;
   }
 
-  /**
-   * Cast to subclass.
-   * Syntax sugar to avoid ugliness.
-   */
+  /** Cast to subclass. Syntax sugar to avoid ugliness. */
   public PolicyIntermediateState asIntermediate() {
     return (PolicyIntermediateState) this;
   }

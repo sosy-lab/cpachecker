@@ -15,10 +15,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class SMGStopOperator extends StopSepOperator{
-  /**
-   * Creates a stop-sep operator based on the given partial order
-   */
+public class SMGStopOperator extends StopSepOperator {
+  /** Creates a stop-sep operator based on the given partial order */
   public SMGStopOperator(AbstractDomain d) {
     super(d);
   }

@@ -31,13 +31,18 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.pcc.propertychecker.DefaultPropertyChecker;
 
-@Options(prefix="pcc.arg")
+@Options(prefix = "pcc.arg")
 public class ARG_CPAStrategy extends AbstractARGStrategy {
 
-  @Option(secure=true,
+  @Option(
+      secure = true,
       name = "checkPropertyPerElement",
-      description = "Enable if used property checker implements satisfiesProperty(AbstractState) and checked property is violated for a set iff an element in this set exists for which violates the property")
+      description =
+          "Enable if used property checker implements satisfiesProperty(AbstractState) and checked"
+              + " property is violated for a set iff an element in this set exists for which"
+              + " violates the property")
   private boolean singleCheck = false;
+
   private List<AbstractState> visitedStates;
   private final StopOperator stop;
   private final TransferRelation transfer;
@@ -49,17 +54,24 @@ public class ARG_CPAStrategy extends AbstractARGStrategy {
       final Path pProofFile,
       final @Nullable PropertyCheckerCPA pCpa)
       throws InvalidConfigurationException {
-    super(pConfig, pLogger, pCpa == null ? new DefaultPropertyChecker() : pCpa.getPropChecker(), pShutdownNotifier, pProofFile);
+    super(
+        pConfig,
+        pLogger,
+        pCpa == null ? new DefaultPropertyChecker() : pCpa.getPropChecker(),
+        pShutdownNotifier,
+        pProofFile);
     pConfig.inject(this);
     if (pCpa == null) {
       stop = null;
       transfer = null;
     } else {
-      if(!(pCpa.getWrappedCPAs().get(0) instanceof ARGCPA)) {
-        throw new InvalidConfigurationException("Expect that the property checker cpa wraps an ARG cpa");
+      if (!(pCpa.getWrappedCPAs().get(0) instanceof ARGCPA)) {
+        throw new InvalidConfigurationException(
+            "Expect that the property checker cpa wraps an ARG cpa");
       }
-      stop = ((ARGCPA)pCpa.getWrappedCPAs().get(0)).getWrappedCPAs().get(0).getStopOperator();
-      transfer = ((ARGCPA)pCpa.getWrappedCPAs().get(0)).getWrappedCPAs().get(0).getTransferRelation();
+      stop = ((ARGCPA) pCpa.getWrappedCPAs().get(0)).getWrappedCPAs().get(0).getStopOperator();
+      transfer =
+          ((ARGCPA) pCpa.getWrappedCPAs().get(0)).getWrappedCPAs().get(0).getTransferRelation();
     }
   }
 
@@ -68,12 +80,14 @@ public class ARG_CPAStrategy extends AbstractARGStrategy {
     if (!singleCheck) {
       visitedStates = new ArrayList<>();
     }
-
   }
 
   @Override
-  protected boolean checkCovering(final ARGState pCovered, final ARGState pCovering, final Precision pPrecision) throws CPAException, InterruptedException {
-    return checkCoverWithStopOp(pCovered.getWrappedState(), Collections.singleton(pCovering.getWrappedState()), pPrecision);
+  protected boolean checkCovering(
+      final ARGState pCovered, final ARGState pCovering, final Precision pPrecision)
+      throws CPAException, InterruptedException {
+    return checkCoverWithStopOp(
+        pCovered.getWrappedState(), Collections.singleton(pCovering.getWrappedState()), pPrecision);
   }
 
   @Override
@@ -110,26 +124,31 @@ public class ARG_CPAStrategy extends AbstractARGStrategy {
   }
 
   @Override
-  protected boolean checkSuccessors(final ARGState pPredecessor, final Collection<ARGState> pSuccessors,
-      final Precision pPrecision) throws InterruptedException, CPAException {
+  protected boolean checkSuccessors(
+      final ARGState pPredecessor,
+      final Collection<ARGState> pSuccessors,
+      final Precision pPrecision)
+      throws InterruptedException, CPAException {
     Collection<AbstractState> wrappedSuccessors = new ArrayList<>(pSuccessors.size());
-    for (ARGState succ: pSuccessors) {
+    for (ARGState succ : pSuccessors) {
       wrappedSuccessors.add(succ.getWrappedState());
     }
 
     Collection<? extends AbstractState> computedSuccessors =
         transfer.getAbstractSuccessors(pPredecessor.getWrappedState(), pPrecision);
 
-     for (AbstractState succ : computedSuccessors) {
-       if (!checkCoverWithStopOp(succ, wrappedSuccessors, pPrecision)) {
-         return false;
-       }
-     }
+    for (AbstractState succ : computedSuccessors) {
+      if (!checkCoverWithStopOp(succ, wrappedSuccessors, pPrecision)) {
+        return false;
+      }
+    }
     return true;
   }
 
   @Override
-  protected boolean addSuccessors(final Collection<ARGState> pSuccessors, final ReachedSet pReachedSet,
+  protected boolean addSuccessors(
+      final Collection<ARGState> pSuccessors,
+      final ReachedSet pReachedSet,
       final Precision pPrecision) {
     for (ARGState argS : pSuccessors) {
       pReachedSet.add(argS, pPrecision);
@@ -138,15 +157,20 @@ public class ARG_CPAStrategy extends AbstractARGStrategy {
   }
 
   @Override
-  protected boolean treatStateIfCoveredByUnkownState(final ARGState pCovered, final ARGState pCoveringState,
+  protected boolean treatStateIfCoveredByUnkownState(
+      final ARGState pCovered,
+      final ARGState pCoveringState,
       final ReachedSet pReachedSet,
       final Precision pPrecision) {
     pReachedSet.add(pCoveringState, pPrecision);
     return false;
   }
 
-  private boolean checkCoverWithStopOp(final AbstractState pCovered, final Collection<AbstractState> pCoverElems,
-      final Precision pPrecision) throws CPAException, InterruptedException {
+  private boolean checkCoverWithStopOp(
+      final AbstractState pCovered,
+      final Collection<AbstractState> pCoverElems,
+      final Precision pPrecision)
+      throws CPAException, InterruptedException {
     return stop.stop(pCovered, pCoverElems, pPrecision);
   }
 }

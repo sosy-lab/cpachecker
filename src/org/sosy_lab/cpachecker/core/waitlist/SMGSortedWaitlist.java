@@ -13,9 +13,8 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
- * Waitlist implementation that sorts the abstract states depending
- * on the number of SMG-objects (if there are any).
- * States with fewer objects are considered first.
+ * Waitlist implementation that sorts the abstract states depending on the number of SMG-objects (if
+ * there are any). States with fewer objects are considered first.
  */
 public class SMGSortedWaitlist extends AbstractSortedWaitlist<Integer> {
 

@@ -50,10 +50,11 @@ class SSCReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
     removeSubtree(element, ImmutableList.of(newPrecision), ImmutableList.of(pPrecisionType));
   }
 
-  /** This method over-approximates the cut-point.
-   * It searches the latest original state and cuts there, i.e., it might cut more than needed,
-   * but sufficiently enough to remove the property violation.
-   * We assume that the precision gets stronger along all paths. */
+  /**
+   * This method over-approximates the cut-point. It searches the latest original state and cuts
+   * there, i.e., it might cut more than needed, but sufficiently enough to remove the property
+   * violation. We assume that the precision gets stronger along all paths.
+   */
   @Override
   @SuppressFBWarnings("BC_UNCONFIRMED_CAST")
   public void removeSubtree(

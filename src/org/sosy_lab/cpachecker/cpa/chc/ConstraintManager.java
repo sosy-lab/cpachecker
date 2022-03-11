@@ -56,7 +56,8 @@ public class ConstraintManager {
 
   private static LogManager logger;
 
-  public static boolean init(String firingRelation, String generalizationOperator, LogManager logM) {
+  public static boolean init(
+      String firingRelation, String generalizationOperator, LogManager logM) {
 
     String[] initstr = {
       "swipl",
@@ -128,7 +129,7 @@ public class ConstraintManager {
 
     logger.log(Level.FINEST, "\n * definition: " + cn1 + "\n * ancestor :  " + cn1);
 
-    return normalize("G",q.oneSolution());
+    return normalize("G", q.oneSolution());
   }
 
   public static Constraint and(Constraint cn1, Constraint cn2) {
@@ -143,8 +144,7 @@ public class ConstraintManager {
      * Remove all non primed variables which occur in
      * the set of primed variables
      */
-    Map<String,Term> newVars = ConstraintManager.selectVariables(
-        cn1.getVars(), cn2.getVars());
+    Map<String, Term> newVars = ConstraintManager.selectVariables(cn1.getVars(), cn2.getVars());
 
     Constraint andConstraint = ConstraintManager.simplify(andCn, newVars);
 
@@ -156,10 +156,10 @@ public class ConstraintManager {
   private static Map<String, Term> selectVariables(
       Map<String, Term> vars, Map<String, Term> pVars) {
 
-    Map<String,Term> newVars = new HashMap<>(pVars);
+    Map<String, Term> newVars = new HashMap<>(pVars);
 
     for (Map.Entry<String, Term> me : vars.entrySet()) {
-      if (! pVars.containsKey(me.getKey())) {
+      if (!pVars.containsKey(me.getKey())) {
         newVars.put(me.getKey(), me.getValue());
       }
     }
@@ -192,13 +192,14 @@ public class ConstraintManager {
       newConstraint =
           newConstraint.replace(
               me.getValue().toString(), ConstraintManager.primedVarToVar(me.getKey()));
-      nres.addVar(var2CVar(ConstraintManager.primedVarToVar(me.getKey())),
-        new Variable(primedVarToVar(me.getKey())));
+      nres.addVar(
+          var2CVar(ConstraintManager.primedVarToVar(me.getKey())),
+          new Variable(primedVarToVar(me.getKey())));
     }
 
     // TODO: to be improved
-    nres.setConstraint(new ArrayList<>(
-      Arrays.asList(Util.listToTermArray(Util.textToTerm(newConstraint)))));
+    nres.setConstraint(
+        new ArrayList<>(Arrays.asList(Util.listToTermArray(Util.textToTerm(newConstraint)))));
 
     logger.log(Level.FINEST, "\n * result: " + nres);
 
@@ -239,21 +240,17 @@ public class ConstraintManager {
     return cns;
   }
 
-
   public static Constraint getConstraint(CAssignment ca) {
     Constraint c = new Constraint();
     CExpression lhs = ca.getLeftHandSide();
     CRightHandSide rhs = ca.getRightHandSide();
     CExpression exp = (CExpression) rhs;
-    c.addVar(lhs.toString(),ConstraintManager.CVar2PrologPrimedVar(lhs.toString()));
+    c.addVar(lhs.toString(), ConstraintManager.CVar2PrologPrimedVar(lhs.toString()));
     if (lhs instanceof AIdExpression) {
       for (Pair<Term, List<Term>> t : expressionToCLP(exp)) {
-        Term[] operands = {
-          c.getVars().get(lhs.toString()),
-          t.getFirst()
-        };
+        Term[] operands = {c.getVars().get(lhs.toString()), t.getFirst()};
         List<Term> list = new ArrayList<>();
-        list.add(new Compound("=:=",operands));
+        list.add(new Compound("=:=", operands));
         c.setConstraint(list);
       }
     } else {
@@ -262,28 +259,26 @@ public class ConstraintManager {
     return c;
   }
 
-
   public static Constraint getConstraint(CExpression exp) {
     List<Term> tlist = new ArrayList<>();
     List<Term> vlist = new ArrayList<>();
     for (Pair<Term, List<Term>> t : expressionToCLP(exp)) {
-        tlist.add(t.getFirst());
-        vlist.addAll(t.getSecond());
-      }
-    return new Constraint(tlist,vlist);
+      tlist.add(t.getFirst());
+      vlist.addAll(t.getSecond());
+    }
+    return new Constraint(tlist, vlist);
   }
 
   public static List<Constraint> getConstraint(List<CExpression> exp) {
     List<Constraint> clist = new ArrayList<>();
-    for (CExpression c: exp) {
+    for (CExpression c : exp) {
       clist.add(getConstraint(c));
     }
     return clist;
   }
 
-
   public static Constraint getConstraint(ADeclarationEdge ae) {
-    CDeclaration decl = (CDeclaration)ae.getDeclaration();
+    CDeclaration decl = (CDeclaration) ae.getDeclaration();
     Constraint ac = new Constraint();
     if (decl instanceof CVariableDeclaration) {
       CVariableDeclaration vdecl = (CVariableDeclaration) decl;
@@ -292,12 +287,12 @@ public class ConstraintManager {
       Term lhs = CVar2PrologPrimedVar(varName);
       if (initializer != null) {
         if (initializer instanceof CInitializerExpression) {
-          CExpression expression = ((CInitializerExpression)initializer).getExpression();
+          CExpression expression = ((CInitializerExpression) initializer).getExpression();
           Collection<Pair<Term, List<Term>>> at = expressionToCLP(expression);
           for (Pair<Term, List<Term>> t : at) {
             Term rhs = t.getFirst();
             List<Term> acList = new ArrayList<>();
-            acList.add(new Compound("=:=", new Term[] {lhs,rhs}));
+            acList.add(new Compound("=:=", new Term[] {lhs, rhs}));
             ac.setConstraint(acList);
           }
         }
@@ -307,12 +302,12 @@ public class ConstraintManager {
     return ac;
   }
 
-
   public static Constraint getConstraint(AReturnStatementEdge aRetEdge) {
 
-    AExpression expression = aRetEdge.getExpression().isPresent()
-        ? aRetEdge.getExpression().get()
-        : CIntegerLiteralExpression.ZERO; // this is the default in C
+    AExpression expression =
+        aRetEdge.getExpression().isPresent()
+            ? aRetEdge.getExpression().get()
+            : CIntegerLiteralExpression.ZERO; // this is the default in C
 
     String varName = "FRET_" + aRetEdge.getSuccessor().getFunctionName();
 
@@ -324,7 +319,7 @@ public class ConstraintManager {
     for (Pair<Term, List<Term>> t : at) {
       Term rhs = t.getFirst();
       List<Term> acList = new ArrayList<>();
-      acList.add(new Compound("=:=", new Term[] {lhs,rhs}));
+      acList.add(new Compound("=:=", new Term[] {lhs, rhs}));
       ac.setConstraint(acList);
     }
 
@@ -337,11 +332,12 @@ public class ConstraintManager {
       throws UnrecognizedCodeException {
 
     FunctionSummaryEdge summaryEdge = fretEdge.getSummaryEdge();
-    AFunctionCall exprOnSummary  = summaryEdge.getExpression();
+    AFunctionCall exprOnSummary = summaryEdge.getExpression();
 
     // expression is an assignment operation, e.g. a = g(b);
     if (exprOnSummary instanceof AFunctionCallAssignmentStatement) {
-      AFunctionCallAssignmentStatement assignExp = ((AFunctionCallAssignmentStatement)exprOnSummary);
+      AFunctionCallAssignmentStatement assignExp =
+          ((AFunctionCallAssignmentStatement) exprOnSummary);
       AExpression op1 = assignExp.getLeftHandSide();
 
       // we expect left hand side of the expression to be a variable
@@ -350,7 +346,8 @@ public class ConstraintManager {
         String varName = "FRET_" + fretEdge.getPredecessor().getFunctionName();
         Term lhs = CVar2PrologPrimedVar(op1.toString());
         Term rhs = CVar2PrologVar(varName);
-        Constraint ac = new Constraint(Lists.newArrayList(new Compound("=:=", new Term[]{lhs, rhs})));
+        Constraint ac =
+            new Constraint(Lists.newArrayList(new Compound("=:=", new Term[] {lhs, rhs})));
 
         ac.addVar(op1.toString(), lhs);
 
@@ -366,27 +363,25 @@ public class ConstraintManager {
     return new Constraint();
   }
 
-
   public static Constraint getConstraint(CExpression lhs, CFunctionCallExpression rhs) {
     Constraint c = new Constraint();
     if (rhs != null) {
-      c.addVar(lhs.toString(),ConstraintManager.CVar2PrologPrimedVar(lhs.toString()));
+      c.addVar(lhs.toString(), ConstraintManager.CVar2PrologPrimedVar(lhs.toString()));
       if (lhs instanceof AIdExpression) {
         Term[] operands = {
           c.getVars().get(lhs.toString()),
           CVar2PrologVar(rhs.getFunctionNameExpression().toString())
         };
         List<Term> list = new ArrayList<>();
-        list.add(new Compound("=:=",operands));
+        list.add(new Compound("=:=", operands));
         c.setConstraint(list);
       }
     }
     return c;
   }
 
-
-  public static Collection<Constraint> getConstraint(List<String> names,
-      List<? extends AExpression> expressions) {
+  public static Collection<Constraint> getConstraint(
+      List<String> names, List<? extends AExpression> expressions) {
 
     List<Constraint> cnList = new ArrayList<>();
 
@@ -396,48 +391,41 @@ public class ConstraintManager {
       AExpression expression = expressions.get(i);
 
       for (Pair<Term, List<Term>> p : paramExpressionToCLP(name, expression)) {
-        cnList.add(new Constraint(
-            new ArrayList<>(Arrays.asList(Util.listToTermArray(p.getFirst()))),p.getSecond()));
+        cnList.add(
+            new Constraint(
+                new ArrayList<>(Arrays.asList(Util.listToTermArray(p.getFirst()))), p.getSecond()));
       }
     }
 
     return cnList;
   }
 
-
   /**
-   * input:  ppv is of the form "_$CVAR", where
-   *         $CVAR stands for a C program variable
-   * output: "$CVAR"
+   * input: ppv is of the form "_$CVAR", where $CVAR stands for a C program variable output: "$CVAR"
    */
   public static String var2CVar(String pv) {
     return pv.substring(4);
   }
 
-
   /**
-   * input:  ppv is of the form "_p_$CVAR", where
-   *         $CVAR stands for a C program variable
-   * output: "$CVAR"
+   * input: ppv is of the form "_p_$CVAR", where $CVAR stands for a C program variable output:
+   * "$CVAR"
    */
   public static String primedVar2CVar(String ppv) {
     return ppv.substring(11);
   }
 
-
   public static Variable CVar2PrologVar(String cv) {
     return new Variable("CPA_" + cv);
   }
-
 
   public static Variable CVar2PrologPrimedVar(String cv) {
     return new Variable("Primed_CPA_" + cv);
   }
 
-
   private static String primedVarToVar(String pvar) {
     if (pvar.startsWith("Primed_")) {
-      return pvar.replace("Primed_","");
+      return pvar.replace("Primed_", "");
     }
     return pvar;
   }
@@ -445,37 +433,37 @@ public class ConstraintManager {
   private static Collection<Pair<Term, List<Term>>> getNegatedConstraintList(
       Pair<Term, List<Term>> cn) {
 
-      Compound atomCnT = (Compound)cn.getFirst();
-      Compound negAtomCnT = null;
-      switch ( atomCnT.name() ) {
-        case "<":
-          negAtomCnT = new Compound(">=", 2);
-          negAtomCnT.setArg(1, atomCnT.arg(1));
-          negAtomCnT.setArg(2, atomCnT.arg(2));
+    Compound atomCnT = (Compound) cn.getFirst();
+    Compound negAtomCnT = null;
+    switch (atomCnT.name()) {
+      case "<":
+        negAtomCnT = new Compound(">=", 2);
+        negAtomCnT.setArg(1, atomCnT.arg(1));
+        negAtomCnT.setArg(2, atomCnT.arg(2));
         return ImmutableSet.of(Pair.of(negAtomCnT, cn.getSecond()));
-        case "=<":
-          negAtomCnT = new Compound(">", 2);
-          negAtomCnT.setArg(1, atomCnT.arg(1));
-          negAtomCnT.setArg(2, atomCnT.arg(2));
+      case "=<":
+        negAtomCnT = new Compound(">", 2);
+        negAtomCnT.setArg(1, atomCnT.arg(1));
+        negAtomCnT.setArg(2, atomCnT.arg(2));
         return ImmutableSet.of(Pair.of(negAtomCnT, cn.getSecond()));
-        case ">":
-          negAtomCnT = new Compound("=<", 2);
-          negAtomCnT.setArg(1, atomCnT.arg(1));
-          negAtomCnT.setArg(2, atomCnT.arg(2));
+      case ">":
+        negAtomCnT = new Compound("=<", 2);
+        negAtomCnT.setArg(1, atomCnT.arg(1));
+        negAtomCnT.setArg(2, atomCnT.arg(2));
         return ImmutableSet.of(Pair.of(negAtomCnT, cn.getSecond()));
-        case ">=":
-          negAtomCnT = new Compound("<", 2);
-          negAtomCnT.setArg(1, atomCnT.arg(1));
-          negAtomCnT.setArg(2, atomCnT.arg(2));
+      case ">=":
+        negAtomCnT = new Compound("<", 2);
+        negAtomCnT.setArg(1, atomCnT.arg(1));
+        negAtomCnT.setArg(2, atomCnT.arg(2));
         return ImmutableSet.of(Pair.of(negAtomCnT, cn.getSecond()));
-        case "=:=":
+      case "=:=":
         return Arrays.asList(
             Pair.of(new Compound("<", new Term[] {atomCnT.arg(1), atomCnT.arg(2)}), cn.getSecond()),
             Pair.of(
                 new Compound(">", new Term[] {atomCnT.arg(1), atomCnT.arg(2)}), cn.getSecond()));
-        default:
-          return null;
-      }
+      default:
+        return null;
+    }
   }
 
   private static Collection<Pair<Term, List<Term>>> expressionToCLP(AExpression ce) {
@@ -487,8 +475,8 @@ public class ConstraintManager {
       return ImmutableSet.of(Pair.of(CVar2PrologVar(ce.toString()), vars));
     } else if (ce instanceof CIntegerLiteralExpression) {
       return ImmutableSet.of(Pair.of(Util.textToTerm("rdiv(" + ce + ",1)"), vars));
-    } else if (ce instanceof CBinaryExpression ) {
-      CBinaryExpression bexp = (CBinaryExpression)ce;
+    } else if (ce instanceof CBinaryExpression) {
+      CBinaryExpression bexp = (CBinaryExpression) ce;
       Collection<Pair<Term, List<Term>>> operand1 = expressionToCLP(bexp.getOperand1());
       Collection<Pair<Term, List<Term>>> operand2 = expressionToCLP(bexp.getOperand2());
       switch (bexp.getOperator()) {
@@ -541,8 +529,8 @@ public class ConstraintManager {
       expTerm = Util.textToTerm("rdiv(" + ce + ",1)");
       Term paramAexpTerm = new Compound("=:=", new Term[] {paramVariable, expTerm});
       return ImmutableSet.of(Pair.of(Util.termArrayToList(new Term[] {paramAexpTerm}), vars));
-    } else if (ce instanceof CBinaryExpression ) {
-      CBinaryExpression bexp = (CBinaryExpression)ce;
+    } else if (ce instanceof CBinaryExpression) {
+      CBinaryExpression bexp = (CBinaryExpression) ce;
       Collection<Pair<Term, List<Term>>> aexpTerms = expressionToCLP(ce);
       ImmutableCollection.Builder<Pair<Term, List<Term>>> paramAexpTerms =
           ImmutableList.builderWithExpectedSize(aexpTerms.size());
@@ -554,11 +542,13 @@ public class ConstraintManager {
           for (Pair<Term, List<Term>> aexpTerm : aexpTerms) {
             List<Term> aexpTermVars = new ArrayList<>(aexpTerm.getSecond());
             aexpTermVars.add(paramVariable);
-            Term paramAexpTerm = new Compound("=:=", new Term[] {paramVariable, aexpTerm.getFirst()});
-            paramAexpTerms.add(Pair.of(Util.termArrayToList(new Term[] {paramAexpTerm}), aexpTermVars));
+            Term paramAexpTerm =
+                new Compound("=:=", new Term[] {paramVariable, aexpTerm.getFirst()});
+            paramAexpTerms.add(
+                Pair.of(Util.termArrayToList(new Term[] {paramAexpTerm}), aexpTermVars));
           }
           return paramAexpTerms.build();
-        // add an extra atomic constraint
+          // add an extra atomic constraint
         case EQUALS:
         case LESS_THAN:
         case LESS_EQUAL:
@@ -568,11 +558,19 @@ public class ConstraintManager {
           for (Pair<Term, List<Term>> aexpTerm : aexpTerms) {
             List<Term> aexpTermVars = new ArrayList<>(aexpTerm.getSecond());
             aexpTermVars.add(paramVariable);
-            Term paramAexpTerm = new Compound("=:=", new Term[] {paramVariable, Util.textToTerm("rdiv(1,1)")});
-            paramAexpTerms.add(Pair.of(Util.termArrayToList(new Term[] {paramAexpTerm, aexpTerm.getFirst()}), aexpTermVars));
-            paramAexpTerm = new Compound("=:=", new Term[] {paramVariable, Util.textToTerm("rdiv(0,1)")});
+            Term paramAexpTerm =
+                new Compound("=:=", new Term[] {paramVariable, Util.textToTerm("rdiv(1,1)")});
+            paramAexpTerms.add(
+                Pair.of(
+                    Util.termArrayToList(new Term[] {paramAexpTerm, aexpTerm.getFirst()}),
+                    aexpTermVars));
+            paramAexpTerm =
+                new Compound("=:=", new Term[] {paramVariable, Util.textToTerm("rdiv(0,1)")});
             for (Pair<Term, List<Term>> negAexpTerm : getNegatedConstraintList(aexpTerm)) {
-              paramAexpTerms.add(Pair.of(Util.termArrayToList(new Term[] {paramAexpTerm, negAexpTerm.getFirst()}), aexpTermVars));
+              paramAexpTerms.add(
+                  Pair.of(
+                      Util.termArrayToList(new Term[] {paramAexpTerm, negAexpTerm.getFirst()}),
+                      aexpTermVars));
             }
           }
           return paramAexpTerms.build();
@@ -605,7 +603,6 @@ public class ConstraintManager {
     return termList.build();
   }
 
-
   private static boolean initFiringRelation(String firingRelation) {
 
     String qStr = "assert((less(C1,C2)";
@@ -632,7 +629,6 @@ public class ConstraintManager {
 
     return q.hasSolution();
   }
-
 
   private static boolean initGeneralizationOperator(String generalizationOperator) {
 
@@ -662,8 +658,9 @@ public class ConstraintManager {
   }
 
   /**
-   * Compute over-approximation of convex hull of two constraints.
-   * TODO: Currently the over-approximation is always very imprecise (it is just the top element)
+   * Compute over-approximation of convex hull of two constraints. TODO: Currently the
+   * over-approximation is always very imprecise (it is just the top element)
+   *
    * @param cn1 the first constraint
    * @param cn2s the second constraint
    */
@@ -671,6 +668,5 @@ public class ConstraintManager {
     return new Constraint();
   }
 
-  private ConstraintManager() {
-  }
+  private ConstraintManager() {}
 }

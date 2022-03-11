@@ -7,9 +7,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * The frontend of CPAchecker for using it as a standalone application
- * on the command line.
- * This includes parsing the command-line arguments, and setting up the CPAchecker core.
+ * The frontend of CPAchecker for using it as a standalone application on the command line. This
+ * includes parsing the command-line arguments, and setting up the CPAchecker core.
  */
 @javax.annotation.ParametersAreNonnullByDefault
 @org.sosy_lab.common.annotations.FieldsAreNonnullByDefault

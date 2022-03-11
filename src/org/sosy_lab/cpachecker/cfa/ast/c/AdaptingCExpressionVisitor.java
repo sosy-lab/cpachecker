@@ -11,14 +11,15 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 import com.google.errorprone.annotations.ForOverride;
 
 /**
- * Class similar to {@link ForwardingCExpressionVisitor} that allows to have
- * a different return type than the delegate visitor.
+ * Class similar to {@link ForwardingCExpressionVisitor} that allows to have a different return type
+ * than the delegate visitor.
+ *
  * @param <R> The return type of the methods of this class.
  * @param <D> The return type of the methods of the delegate visitor.
  * @param <X> The (common) exception type.
  */
 public abstract class AdaptingCExpressionVisitor<R, D, X extends Exception>
-                                                implements CExpressionVisitor<R, X> {
+    implements CExpressionVisitor<R, X> {
 
   protected final CExpressionVisitor<D, X> delegate;
 

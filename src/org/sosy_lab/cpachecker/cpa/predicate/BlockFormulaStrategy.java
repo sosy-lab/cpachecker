@@ -22,11 +22,10 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
- * This class represents a strategy to get the sequence of block formulas
- * from an ARG path.
- * This class implements the trivial strategy (just get the formulas from the states),
- * but for example {@link BlockFormulaSlicer} implements a more refined strategy.
- * Typically {@link PredicateCPARefinerFactory} automatically creates the desired strategy.
+ * This class represents a strategy to get the sequence of block formulas from an ARG path. This
+ * class implements the trivial strategy (just get the formulas from the states), but for example
+ * {@link BlockFormulaSlicer} implements a more refined strategy. Typically {@link
+ * PredicateCPARefinerFactory} automatically creates the desired strategy.
  */
 public class BlockFormulaStrategy {
 
@@ -35,7 +34,7 @@ public class BlockFormulaStrategy {
     private @Nullable BooleanFormula branchingFormula;
 
     public BlockFormulas(List<BooleanFormula> pFormulas) {
-      this.formulas = ImmutableList.copyOf(pFormulas);
+      formulas = ImmutableList.copyOf(pFormulas);
     }
 
     public static BlockFormulas createFromPathFormulas(List<PathFormula> pPathFormulas) {
@@ -45,12 +44,12 @@ public class BlockFormulaStrategy {
 
     public BlockFormulas(List<BooleanFormula> pFormulas, BooleanFormula pBranchingFormula) {
       this(pFormulas);
-      this.branchingFormula = pBranchingFormula;
+      branchingFormula = pBranchingFormula;
     }
 
     public BlockFormulas withBranchingFormula(BooleanFormula pBranchingFormula) {
       checkState(branchingFormula == null);
-      return new BlockFormulas(this.formulas, pBranchingFormula);
+      return new BlockFormulas(formulas, pBranchingFormula);
     }
 
     public ImmutableList<BooleanFormula> getFormulas() {
@@ -77,11 +76,12 @@ public class BlockFormulaStrategy {
 
   /**
    * Get the block formulas from a path.
+   *
    * @param argRoot The initial element of the analysis (= the root element of the ARG)
    * @param abstractionStates A list of all abstraction elements
    * @return A list of block formulas for this path.
-   * @throws CPATransferException If CFA edges cannot be analyzed
-   *    (should not happen because the main analyses analyzed them successfully).
+   * @throws CPATransferException If CFA edges cannot be analyzed (should not happen because the
+   *     main analyses analyzed them successfully).
    * @throws InterruptedException On shutdown request.
    */
   BlockFormulas getFormulasForPath(ARGState argRoot, List<ARGState> abstractionStates)

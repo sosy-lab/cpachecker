@@ -139,6 +139,7 @@ public class ARGToAutomatonConverter {
           "when using FIRST_BFS, how many nodes should be skipped? "
               + "ZERO will only export the root itself, MAX_INT will export only LEAFS.")
   private int skipFirstNum = 10;
+
   private final CBinaryExpressionBuilder cBinaryExpressionBuilder;
 
   public ARGToAutomatonConverter(
@@ -245,8 +246,8 @@ public class ARGToAutomatonConverter {
       } else {
         transitions.add(
             new AutomatonTransition.Builder(
-                buildOtherwise(locationQueries),
-                AutomatonInternalState.BOTTOM).build());
+                    buildOtherwise(locationQueries), AutomatonInternalState.BOTTOM)
+                .build());
 
         boolean hasSeveralChildren = transitions.size() > 1;
         states.add(
@@ -416,10 +417,10 @@ public class ARGToAutomatonConverter {
         alwaysExport.add(s);
       }
       for (ARGState child : children) {
-         if (!finished.contains(child)) {
-           waitlist.add(child);
-         }
-       }
+        if (!finished.contains(child)) {
+          waitlist.add(child);
+        }
+      }
     }
     return alwaysExport;
   }
@@ -898,7 +899,7 @@ public class ARGToAutomatonConverter {
 
     for (CallstackState callstack : pStacksWithAssumptions) {
       final Set<ARGState> parents = new HashSet<>();
-      final Map<ARGState,CFANode> parentsToLeafNode = new HashMap<>();
+      final Map<ARGState, CFANode> parentsToLeafNode = new HashMap<>();
       for (ARGState leaf : pCallstackToLeaves.get(callstack)) {
         ARGState parent = leaf.getParents().iterator().next();
         if (parents.add(parent)) {
@@ -946,10 +947,12 @@ public class ARGToAutomatonConverter {
 
   private static AutomatonTransition makeLocationTransition(
       int nodeNumber, String followStateName, Collection<AExpression> assumptions, boolean negate) {
-    AutomatonBoolExpr expr = new AutomatonBoolExpr.CPAQuery("location", "nodenumber==" + nodeNumber);
+    AutomatonBoolExpr expr =
+        new AutomatonBoolExpr.CPAQuery("location", "nodenumber==" + nodeNumber);
     return new AutomatonTransition.Builder(
-        negate ? new AutomatonBoolExpr.Negation(expr) : expr,
-        followStateName).withAssumptions(ImmutableList.copyOf(assumptions)).build();
+            negate ? new AutomatonBoolExpr.Negation(expr) : expr, followStateName)
+        .withAssumptions(ImmutableList.copyOf(assumptions))
+        .build();
   }
 
   private CExpression negateExpression(CExpression expr) {
@@ -1080,9 +1083,7 @@ public class ARGToAutomatonConverter {
      */
     private Set<PersistentSet<ARGState>> ignoreStates = new LinkedHashSet<>();
 
-    BranchingInfo(
-        ARGState pCurrent,
-        ImmutableSetMultimap<ARGState, ARGState> pChildren) {
+    BranchingInfo(ARGState pCurrent, ImmutableSetMultimap<ARGState, ARGState> pChildren) {
       current = pCurrent;
       children = pChildren;
     }

@@ -19,36 +19,30 @@ public interface CandidateGenerator extends Iterable<CandidateInvariant> {
   /**
    * Tries to produce more candidates.
    *
-   * @return {@code true} if more candidates were produced,
-   * {@code false} otherwise.
+   * @return {@code true} if more candidates were produced, {@code false} otherwise.
    */
   boolean produceMoreCandidates();
 
   /**
    * Checks if there are candidates currently available.
    *
-   * If no candidates are available, more can be requested to be produced by
-   * calling {@link #produceMoreCandidates}.
+   * <p>If no candidates are available, more can be requested to be produced by calling {@link
+   * #produceMoreCandidates}.
    *
-   * @return {@code true} if there are any candidates,
-   * {@code false} if more need to be produced first.
+   * @return {@code true} if there are any candidates, {@code false} if more need to be produced
+   *     first.
    */
   boolean hasCandidatesAvailable();
 
-  /**
-   * Confirms the given candidates, so that they are no longer provided as
-   * candidates.
-   */
+  /** Confirms the given candidates, so that they are no longer provided as candidates. */
   void confirmCandidates(Iterable<CandidateInvariant> pCandidates);
 
-  /**
-   * Returns the confirmed candidate invariants.
-   */
+  /** Returns the confirmed candidate invariants. */
   Set<? extends CandidateInvariant> getConfirmedCandidates();
 
   /**
-   * Suggests candidate invariants to the generator.
-   * The generator is not required to follow the suggestion.
+   * Suggests candidate invariants to the generator. The generator is not required to follow the
+   * suggestion.
    *
    * @param pCandidates the suggested candidates.
    */

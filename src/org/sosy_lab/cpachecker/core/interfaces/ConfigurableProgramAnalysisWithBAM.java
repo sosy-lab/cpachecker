@@ -15,8 +15,7 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public interface ConfigurableProgramAnalysisWithBAM extends
-    ConfigurableProgramAnalysis {
+public interface ConfigurableProgramAnalysisWithBAM extends ConfigurableProgramAnalysis {
 
   /**
    * Get the reduce operator for BAM.
@@ -33,7 +32,7 @@ public interface ConfigurableProgramAnalysisWithBAM extends
    *
    * @param pPartitioning Partitioning used for BAM.
    */
-  default void setPartitioning(BlockPartitioning pPartitioning) { }
+  default void setPartitioning(BlockPartitioning pPartitioning) {}
 
   /**
    * Check coverage for two abstract state, based on {@link AbstractDomain#isLessOrEqual}.

@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.usage.storage;
 
-
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -40,7 +39,7 @@ public class RefinedUsagePointSet implements AbstractUsagePointSet {
   }
 
   public static RefinedUsagePointSet create(UsageInfo newSet, UsageInfo newSet2) {
-    //We may clone it, so just == can not help
+    // We may clone it, so just == can not help
     if (newSet.getPath().equals(newSet2.getPath()) && newSet.equals(newSet2)) {
       return new RefinedUsagePointSet(newSet);
     } else {
@@ -56,5 +55,4 @@ public class RefinedUsagePointSet implements AbstractUsagePointSet {
   public Pair<UsageInfo, UsageInfo> getUnsafePair() {
     return Pair.of(target, target);
   }
-
 }

@@ -29,7 +29,7 @@ public class ModularStopOperator implements StopOperator {
     int k = ((LoopBoundState) pState).getDeepestIteration();
     for (AbstractState s : pReached) {
       int k2 = ((LoopBoundState) s).getDeepestIteration();
-      if (k%modulus == k2%modulus) {
+      if (k % modulus == k2 % modulus) {
         return true;
       }
     }

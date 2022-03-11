@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-
-
 public abstract class ForwardingCExpressionVisitor<R, X extends Exception>
     implements CExpressionVisitor<R, X> {
 

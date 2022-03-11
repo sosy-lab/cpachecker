@@ -22,20 +22,16 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-/**
- * Utility class with helper methods for CTypes.
- */
+/** Utility class with helper methods for CTypes. */
 class CTypeUtils {
 
-  private CTypeUtils() { }
+  private CTypeUtils() {}
 
   private static final CachingCanonizingCTypeVisitor typeVisitor =
       new CachingCanonizingCTypeVisitor(
           /*ignoreConst=*/ true, /*ignoreVolatile=*/ true, /*ignoreSignedness=*/ false);
 
-  /**
-   * Return the length of an array, honoring the options for maximum and default array length.
-   */
+  /** Return the length of an array, honoring the options for maximum and default array length. */
   static int getArrayLength(CArrayType t, FormulaEncodingWithPointerAliasingOptions options) {
     OptionalInt length = t.getLengthAsInt();
     return length.isPresent()
@@ -62,18 +58,19 @@ class CTypeUtils {
   }
 
   /**
-   * The method is used to check if a composite type contains array as this means it can't be encoded as a bunch of
-   * variables. It also returns {@code true} on stand-alone arrays assuming they are not function
-   * parameters. Normally stand-alone arrays are different from pointers as their address
-   * cannot change, unlike the value of a pointer. Thus arrays are usually encoded as uninterpreted
-   * constants corresponding to their starting addresses, just as variables of structure types.
-   * They can also be "assigned" somewhat similar to structures by initialization or zeroing allocation function.
-   * So usually stand-alone arrays are treated together with structure array members.
-   * However, this is not the case for
-   * function parameters (see § 6.7.5.3 (7) of the C99 standard), those are actually pointers rather than arrays as
-   * their starting address can change (upon a function call since they are inlined) and the corresponding assignment
-   * has the same semantics as pointer assignment.
-   * So the static method {@link #containsArrayInFunctionParameter(CType)} should be used for function parameters.
+   * The method is used to check if a composite type contains array as this means it can't be
+   * encoded as a bunch of variables. It also returns {@code true} on stand-alone arrays assuming
+   * they are not function parameters. Normally stand-alone arrays are different from pointers as
+   * their address cannot change, unlike the value of a pointer. Thus arrays are usually encoded as
+   * uninterpreted constants corresponding to their starting addresses, just as variables of
+   * structure types. They can also be "assigned" somewhat similar to structures by initialization
+   * or zeroing allocation function. So usually stand-alone arrays are treated together with
+   * structure array members. However, this is not the case for function parameters (see § 6.7.5.3
+   * (7) of the C99 standard), those are actually pointers rather than arrays as their starting
+   * address can change (upon a function call since they are inlined) and the corresponding
+   * assignment has the same semantics as pointer assignment. So the static method {@link
+   * #containsArrayInFunctionParameter(CType)} should be used for function parameters.
+   *
    * @param pType any type to check, but normally a composite type
    * @return whether the {@code type} contains array
    */
@@ -89,8 +86,10 @@ class CTypeUtils {
   }
 
   /**
-   * Same as {{@link #containsArrayOutsideFunctionParameter(CType)}, but returns {@code false} on stand-alone arrays.
-   * This corresponds to the fact that arrays in function parameters are to be treated as pointers.
+   * Same as {{@link #containsArrayOutsideFunctionParameter(CType)}, but returns {@code false} on
+   * stand-alone arrays. This corresponds to the fact that arrays in function parameters are to be
+   * treated as pointers.
+   *
    * @param pType type any type to check, normally a composite type
    * @return whether the {@code type} contains array
    */
@@ -103,9 +102,9 @@ class CTypeUtils {
     }
   }
 
-  /** A generalization of {@link #containsArrayOutsideFunctionParameter(CType)} and
-   * {@link #containsArrayInFunctionParameter(CType)} for a
-   * known declaration.
+  /**
+   * A generalization of {@link #containsArrayOutsideFunctionParameter(CType)} and {@link
+   * #containsArrayInFunctionParameter(CType)} for a known declaration.
    *
    * @param pType pType type any type to check
    * @param pDeclaration declaration of a variable for which the type is checked
@@ -121,13 +120,11 @@ class CTypeUtils {
   }
 
   /**
-   * <p>
    * The method returns the type of a base variable by the type of the given memory location.
-   * </p>
-   * <p>
-   * Here we need special handling for arrays as their base variables are handled as pointers to their first
-   * (zeroth) elements.
-   * </p>
+   *
+   * <p>Here we need special handling for arrays as their base variables are handled as pointers to
+   * their first (zeroth) elements.
+   *
    * @param type The type of the memory location
    * @return The type of the base variable
    */
@@ -155,18 +152,17 @@ class CTypeUtils {
     return !(type instanceof CArrayType) && !(type instanceof CCompositeType);
   }
 
-  /**
-   * Only for use from {@link #checkIsSimplified(CType)}.
-   */
+  /** Only for use from {@link #checkIsSimplified(CType)}. */
   private static synchronized CType simplifyType(final CType type) {
     return type.accept(typeVisitor);
   }
 
   /**
-   * The code in this package works only with "simplified" types,
-   * which have typedefs resolved and const and volatile removed
-   * (as produced by {@link TypeHandlerWithPointerAliasing#simplifyType(CType)}.
-   * This method can be used as an assertion check that a given type has been simplified.
+   * The code in this package works only with "simplified" types, which have typedefs resolved and
+   * const and volatile removed (as produced by {@link
+   * TypeHandlerWithPointerAliasing#simplifyType(CType)}. This method can be used as an assertion
+   * check that a given type has been simplified.
+   *
    * @param type A C-type.
    * @return The same type object, if it is simplified, otherwise an exception is thrown.
    */

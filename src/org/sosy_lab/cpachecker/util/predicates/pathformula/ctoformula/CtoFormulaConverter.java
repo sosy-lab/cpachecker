@@ -200,18 +200,18 @@ public class CtoFormulaConverter {
       AnalysisDirection pDirection) {
 
     this.fmgr = fmgr;
-    this.options = pOptions;
-    this.machineModel = pMachineModel;
-    this.variableClassification = pVariableClassification;
-    this.typeHandler = pTypeHandler;
+    options = pOptions;
+    machineModel = pMachineModel;
+    variableClassification = pVariableClassification;
+    typeHandler = pTypeHandler;
 
-    this.bfmgr = fmgr.getBooleanFormulaManager();
-    this.efmgr = fmgr.getBitvectorFormulaManager();
-    this.ffmgr = fmgr.getFunctionFormulaManager();
+    bfmgr = fmgr.getBooleanFormulaManager();
+    efmgr = fmgr.getBitvectorFormulaManager();
+    ffmgr = fmgr.getFunctionFormulaManager();
     this.logger = new LogManagerWithoutDuplicates(logger);
-    this.shutdownNotifier = pShutdownNotifier;
+    shutdownNotifier = pShutdownNotifier;
 
-    this.direction = pDirection;
+    direction = pDirection;
 
     stringUfDecl =
         ffmgr.declareUF("__string__", typeHandler.getPointerType(), FormulaType.IntegerType);
@@ -499,7 +499,7 @@ public class CtoFormulaConverter {
    */
   protected Formula makeVariable(String name, CType type, SSAMapBuilder ssa) {
     int useIndex = getIndex(name, type, ssa);
-    return fmgr.makeVariable(this.getFormulaTypeFromCType(type), name, useIndex);
+    return fmgr.makeVariable(getFormulaTypeFromCType(type), name, useIndex);
   }
 
   /**
@@ -557,7 +557,7 @@ public class CtoFormulaConverter {
       useIndex = makeFreshIndex(name, type, ssa);
     }
 
-    Formula result = fmgr.makeVariable(this.getFormulaTypeFromCType(type), name, useIndex);
+    Formula result = fmgr.makeVariable(getFormulaTypeFromCType(type), name, useIndex);
 
     if (direction == AnalysisDirection.BACKWARD) {
       makeFreshIndex(name, type, ssa);

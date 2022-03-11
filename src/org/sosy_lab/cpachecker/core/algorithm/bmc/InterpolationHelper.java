@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
+import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.FluentIterable;
@@ -23,6 +24,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -254,6 +256,38 @@ public final class InterpolationHelper {
           throw new IllegalArgumentException(
               "InterpolationHelper does not support ItpDeriveDirection=" + itpDeriveDirection);
         }
+    }
+  }
+
+  /**
+   * This method stores the final fixed point in the abstraction formula of every abstraction state
+   * at the loop head in order to generate correctness witnesses.
+   *
+   * <p>In predicate analysis, the invariant at a program location is obtained by taking the
+   * disjunction of all abstraction formulas at this location. Therefore, it is necessary to set the
+   * abstraction formula of every loop-head abstraction state to the fixed point; otherwise, the
+   * invariant will be the tautology.
+   *
+   * @throws InterruptedException on shutdown request.
+   */
+  @SuppressWarnings("resource")
+  static void storeFixedPointAsAbstractionAtLoopHeads(
+      ReachedSet pReachedSet,
+      final BooleanFormula pFixedPoint,
+      final PredicateAbstractionManager pPredAbsMgr,
+      final PathFormulaManager pPfmgr)
+      throws InterruptedException {
+    // Find all abstraction states: they are at same loop head due to single-loop assumption
+    List<AbstractState> abstractionStates =
+        from(pReachedSet)
+            .skip(1) // skip the root
+            .filter(not(AbstractStates::isTargetState)) // target states may be abstraction states
+            .filter(PredicateAbstractState::containsAbstractionState)
+            .toList();
+    for (AbstractState state : abstractionStates) {
+      PredicateAbstractState predState = PredicateAbstractState.getPredicateState(state);
+      predState.setAbstraction(
+          pPredAbsMgr.asAbstraction(pFixedPoint, pPfmgr.makeEmptyPathFormula()));
     }
   }
 }
