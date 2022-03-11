@@ -202,8 +202,7 @@ public class InvariantsState
       boolean pOverapproximatesUnsupportedFeature) {
     environment = pEnvironment;
     tools = pTools;
-    partialEvaluator =
-        new PartialEvaluator(pTools.compoundIntervalManagerFactory, environment);
+    partialEvaluator = new PartialEvaluator(pTools.compoundIntervalManagerFactory, environment);
     variableSelection = pVariableSelection;
     variableTypes = pVariableTypes;
     machineModel = pMachineModel;
@@ -1078,8 +1077,7 @@ public class InvariantsState
       return this;
     }
     FormulaEvaluationVisitor<CompoundInterval> evaluator = getFormulaResolver();
-    BooleanFormula<CompoundInterval> assumption =
-        pAssumption.accept(partialEvaluator, evaluator);
+    BooleanFormula<CompoundInterval> assumption = pAssumption.accept(partialEvaluator, evaluator);
     if (assumption instanceof BooleanConstant) {
       // An assumption evaluating to false represents an unreachable state; it can never be
       // fulfilled
@@ -1915,8 +1913,7 @@ public class InvariantsState
       compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
       compoundIntervalFormulaManager =
           new CompoundIntervalFormulaManager(compoundIntervalManagerFactory);
-      evaluationVisitor =
-          new FormulaCompoundStateEvaluationVisitor(compoundIntervalManagerFactory);
+      evaluationVisitor = new FormulaCompoundStateEvaluationVisitor(compoundIntervalManagerFactory);
       abstractionVisitor = new FormulaAbstractionVisitor(compoundIntervalManagerFactory);
     }
 

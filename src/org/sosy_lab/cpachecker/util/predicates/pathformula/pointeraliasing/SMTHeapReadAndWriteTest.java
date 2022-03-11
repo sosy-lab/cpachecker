@@ -119,8 +119,7 @@ public class SMTHeapReadAndWriteTest extends SMTHeapBasedTest0 {
     BooleanFormula atom =
         mgrv.assignment(
             bvmgr.makeVariable(3, TEST_VAR_NAME_PRE + 3), bvmgr.makeBitvector(3, 0b101L));
-    assertThatFormula(bmgr.and(wroteArrayFormula, readResultFormula))
-        .isEquisatisfiableTo(atom);
+    assertThatFormula(bmgr.and(wroteArrayFormula, readResultFormula)).isEquisatisfiableTo(atom);
   }
 
   @Test

@@ -133,8 +133,7 @@ public class ExpressionToFormulaVisitor
     machineModel = pMachineModel;
     variableNameExtractor = pVariableNameExtractor;
     environment = pEnvironment;
-    evaluationVisitor =
-        new FormulaCompoundStateEvaluationVisitor(compoundIntervalManagerFactory);
+    evaluationVisitor = new FormulaCompoundStateEvaluationVisitor(compoundIntervalManagerFactory);
     compoundIntervalFormulaManager =
         new CompoundIntervalFormulaManager(compoundIntervalManagerFactory);
   }

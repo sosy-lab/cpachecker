@@ -249,8 +249,7 @@ public class InvariantsCPA
     shutdownNotifier = pShutdownNotifier;
     cfa = pCfa;
     specification = checkNotNull(pSpecification);
-    targetLocationProvider =
-        new CachingTargetLocationProvider(shutdownNotifier, logManager, cfa);
+    targetLocationProvider = new CachingTargetLocationProvider(shutdownNotifier, logManager, cfa);
     options = pOptions;
     conditionAdjuster = pOptions.conditionAdjusterFactory.createConditionAdjuster(this);
     machineModel = pCfa.getMachineModel();

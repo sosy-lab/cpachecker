@@ -377,8 +377,7 @@ public final class PredicatePrecision implements AdjustablePrecision {
     difference += Sets.difference(getGlobalPredicates(), other.getGlobalPredicates()).size();
 
     difference +=
-        Sets.difference(
-                getFunctionPredicates().entries(), other.getFunctionPredicates().entries())
+        Sets.difference(getFunctionPredicates().entries(), other.getFunctionPredicates().entries())
             .size();
 
     difference +=

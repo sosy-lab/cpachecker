@@ -197,8 +197,7 @@ public class NonRecursiveEnvironment
     if (!containsKey(pKey)) {
       return this;
     }
-    return new NonRecursiveEnvironment(
-        compoundIntervalManagerFactory, inner.removeAndCopy(pKey));
+    return new NonRecursiveEnvironment(compoundIntervalManagerFactory, inner.removeAndCopy(pKey));
   }
 
   @Override

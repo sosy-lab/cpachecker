@@ -206,9 +206,7 @@ public class FunctionPointerState
     if (pointerVariableValues.size() < pElement.pointerVariableValues.size()) {
       return false;
     }
-    return pointerVariableValues
-        .entrySet()
-        .containsAll(pElement.pointerVariableValues.entrySet());
+    return pointerVariableValues.entrySet().containsAll(pElement.pointerVariableValues.entrySet());
   }
 
   @Override

@@ -182,11 +182,7 @@ public class UninitializedVariablesState implements AbstractQueryableState, Seri
     } catch (IllegalArgumentException e) {
       // thrown if the Enum does not contain the property
       throw new InvalidQueryException(
-          "The Query \""
-              + pProperty
-              + "\" is not defined for this CPA (\""
-              + getCPAName()
-              + "\"");
+          "The Query \"" + pProperty + "\" is not defined for this CPA (\"" + getCPAName() + "\"");
     }
     return properties.contains(prop);
   }

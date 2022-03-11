@@ -59,8 +59,7 @@ public class CompoundIntervalFormulaManager {
   public CompoundIntervalFormulaManager(
       CompoundIntervalManagerFactory pCompoundIntervalManagerFactory) {
     compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
-    evaluationVisitor =
-        new FormulaCompoundStateEvaluationVisitor(pCompoundIntervalManagerFactory);
+    evaluationVisitor = new FormulaCompoundStateEvaluationVisitor(pCompoundIntervalManagerFactory);
     partialEvaluator = new PartialEvaluator(compoundIntervalManagerFactory, this);
   }
 

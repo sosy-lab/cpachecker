@@ -248,8 +248,7 @@ public class AutomatonGraphmlParser {
     shutdownNotifier = pShutdownNotifier;
     cfa = pCFA;
     config = pConfig;
-    parserTools =
-        ParserTools.create(ExpressionTrees.newFactory(), cfa.getMachineModel(), logger);
+    parserTools = ParserTools.create(ExpressionTrees.newFactory(), cfa.getMachineModel(), logger);
     stateInvariantsMap = new HashMap<>();
   }
 

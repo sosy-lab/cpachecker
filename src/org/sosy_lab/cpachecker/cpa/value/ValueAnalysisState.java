@@ -500,8 +500,7 @@ public final class ValueAnalysisState
     } else {
       List<String> parts = Splitter.on("==").trimResults().splitToList(pProperty);
       if (parts.size() != 2) {
-        ValueAndType value =
-            constantsMap.get(MemoryLocation.parseExtendedQualifiedName(pProperty));
+        ValueAndType value = constantsMap.get(MemoryLocation.parseExtendedQualifiedName(pProperty));
         if (value != null && value.getValue().isExplicitlyKnown()) {
           return value.getValue();
         } else {
@@ -530,8 +529,7 @@ public final class ValueAnalysisState
               + "\" is invalid. Could not split the property string correctly.");
     } else {
       // The following is a hack
-      ValueAndType val =
-          constantsMap.get(MemoryLocation.parseExtendedQualifiedName(parts.get(0)));
+      ValueAndType val = constantsMap.get(MemoryLocation.parseExtendedQualifiedName(parts.get(0)));
       if (val == null) {
         return false;
       }

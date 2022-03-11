@@ -198,8 +198,7 @@ public final class SSAMap implements Serializable {
   }
 
   public SSAMap withDefault(final int pDefaultValue) {
-    return new SSAMap(
-        vars, freshValueProvider, varsHashCode, varTypes, pDefaultValue);
+    return new SSAMap(vars, freshValueProvider, varsHashCode, varTypes, pDefaultValue);
   }
 
   /**

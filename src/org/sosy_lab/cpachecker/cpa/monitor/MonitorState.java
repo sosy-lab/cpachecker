@@ -95,8 +95,7 @@ public class MonitorState extends AbstractSingleWrapperState implements Avoidanc
 
   @Override
   public String toString() {
-    return String.format(
-        "Total time: %s Wrapped elem: %s", totalTimeOnPath, getWrappedStates());
+    return String.format("Total time: %s Wrapped elem: %s", totalTimeOnPath, getWrappedStates());
   }
 
   @Override
