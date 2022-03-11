@@ -65,7 +65,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
       List<Precision> newPrecisions,
       List<Predicate<? super Precision>> pPrecisionTypes)
       throws InterruptedException {
-    Preconditions.checkArgument(newPrecisions.size()==pPrecisionTypes.size());
+    Preconditions.checkArgument(newPrecisions.size() == pPrecisionTypes.size());
     assert path.getFirstState().getSubgraph().contains(element);
     final ARGSubtreeRemover argSubtreeRemover;
     if (bamCpa.useCopyOnWriteRefinement()) {
@@ -92,7 +92,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
   }
 
   @Override
-  public String toString(){
+  public String toString() {
     return "BAMReachedSet {{" + asReachedSet().asCollection() + "}}";
   }
 }

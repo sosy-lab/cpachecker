@@ -31,16 +31,19 @@ public class CachePrecisionAdjustment implements PrecisionAdjustment {
 
   public CachePrecisionAdjustment(PrecisionAdjustment pCachedPrecisionAdjustment) {
     mCachedPrecisionAdjustment = pCachedPrecisionAdjustment;
-    //mCache = new HashMap<AbstractState, Map<Precision, Triple<AbstractState, Precision, Action>>>();
+    // mCache = new HashMap<AbstractState, Map<Precision, Triple<AbstractState, Precision,
+    // Action>>>();
     mCache = new HashMap<>();
   }
 
   @Override
   public Optional<PrecisionAdjustmentResult> prec(
-      AbstractState pElement, Precision pPrecision,
+      AbstractState pElement,
+      Precision pPrecision,
       UnmodifiableReachedSet pElements,
       Function<AbstractState, AbstractState> projection,
-      AbstractState fullState) throws CPAException, InterruptedException {
+      AbstractState fullState)
+      throws CPAException, InterruptedException {
 
     Map<AbstractState, Optional<PrecisionAdjustmentResult>> lCache = mCache.get(pPrecision);
 
@@ -52,12 +55,11 @@ public class CachePrecisionAdjustment implements PrecisionAdjustment {
     Optional<PrecisionAdjustmentResult> lResult = lCache.get(pElement);
 
     if (lResult == null) {
-      lResult = mCachedPrecisionAdjustment.prec(
-              pElement, pPrecision, pElements, projection, fullState);
+      lResult =
+          mCachedPrecisionAdjustment.prec(pElement, pPrecision, pElements, projection, fullState);
       lCache.put(pElement, lResult);
     }
 
     return lResult;
   }
-
 }

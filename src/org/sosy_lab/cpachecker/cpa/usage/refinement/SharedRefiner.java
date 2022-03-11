@@ -28,12 +28,15 @@ public class SharedRefiner extends GenericSinglePathRefiner {
 
   private LocalTransferRelation transferRelation;
 
-  //Debug counter
+  // Debug counter
   private StatCounter counter = new StatCounter("Number of cases with empty successors");
-  //private final StatInt totalFalseConditions = new StatInt(StatKind.COUNT, "Number of false conditions that were detected by SharedRefiner");
+  // private final StatInt totalFalseConditions = new StatInt(StatKind.COUNT, "Number of false
+  // conditions that were detected by SharedRefiner");
   private StatCounter numOfFalseResults = new StatCounter("Number of false results");
 
-  public SharedRefiner(ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> pWrapper, LocalTransferRelation RelationForSharedRefiner) {
+  public SharedRefiner(
+      ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> pWrapper,
+      LocalTransferRelation RelationForSharedRefiner) {
     super(pWrapper);
     transferRelation = RelationForSharedRefiner;
   }
@@ -41,10 +44,11 @@ public class SharedRefiner extends GenericSinglePathRefiner {
   @Override
   protected RefinementResult call(ExtendedARGPath pPath) throws CPAException, InterruptedException {
     RefinementResult result = RefinementResult.createUnknown();
-    List<CFAEdge> edges  = pPath.getFullPath();
+    List<CFAEdge> edges = pPath.getFullPath();
     SingletonPrecision emptyPrecision = SingletonPrecision.getInstance();
 
-    LocalState lastState = AbstractStates.extractStateByType(pPath.getLastState(), LocalState.class);
+    LocalState lastState =
+        AbstractStates.extractStateByType(pPath.getLastState(), LocalState.class);
     LocalState initialState = LocalState.createInitialLocalState(lastState);
 
     Collection<LocalState> successors = Collections.singleton(initialState);
@@ -52,8 +56,8 @@ public class SharedRefiner extends GenericSinglePathRefiner {
     SingleIdentifier usageId = pPath.getUsageInfo().getId();
 
     for (CFAEdge edge : edges) {
-      assert(successors.size() <= 1);
-      Iterator<LocalState> sharedIterator= successors.iterator();
+      assert (successors.size() <= 1);
+      Iterator<LocalState> sharedIterator = successors.iterator();
       if (sharedUsage.getCFANode().equals(edge.getSuccessor())) {
         LocalState usageState = sharedIterator.next();
         assert usageState != null;
@@ -67,14 +71,14 @@ public class SharedRefiner extends GenericSinglePathRefiner {
         }
         break;
       } else {
-        //TODO Important! Final state is not a state of usage. Think about.
-        if ( sharedIterator.hasNext()) {
+        // TODO Important! Final state is not a state of usage. Think about.
+        if (sharedIterator.hasNext()) {
           LocalState usageState = sharedIterator.next();
 
-          successors = transferRelation.getAbstractSuccessorsForEdge(usageState,
-              emptyPrecision, edge);
+          successors =
+              transferRelation.getAbstractSuccessorsForEdge(usageState, emptyPrecision, edge);
         } else {
-          //Strange situation
+          // Strange situation
           counter.inc();
           result = RefinementResult.createUnknown();
           break;
@@ -82,15 +86,13 @@ public class SharedRefiner extends GenericSinglePathRefiner {
       }
     }
 
-    //totalFalseConditions.setNextValue(numOfFalseResults.getValue());
+    // totalFalseConditions.setNextValue(numOfFalseResults.getValue());
     return result;
   }
 
   @Override
   protected void printAdditionalStatistics(StatisticsWriter pOut) {
-    pOut.beginLevel()
-      .put(counter)
-      .put(numOfFalseResults);
-    //pOut.println(totalFalseConditions);
+    pOut.beginLevel().put(counter).put(numOfFalseResults);
+    // pOut.println(totalFalseConditions);
   }
 }

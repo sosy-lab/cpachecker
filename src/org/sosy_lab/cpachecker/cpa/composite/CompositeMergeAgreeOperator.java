@@ -22,17 +22,15 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
- * Provides a MergeOperator implementation that delegates to the component CPA.
- * If any of those CPAs returns an state that does not cover both its input
- * states, this implementation returns its second input state
- * (i.e., it behaves like MergeSep).
+ * Provides a MergeOperator implementation that delegates to the component CPA. If any of those CPAs
+ * returns an state that does not cover both its input states, this implementation returns its
+ * second input state (i.e., it behaves like MergeSep).
  *
- * This operator is good for the combination of CPAs where some CPAs never merge
- * and some may merge.
+ * <p>This operator is good for the combination of CPAs where some CPAs never merge and some may
+ * merge.
  *
- * Note that the definition of MergeOperator already requires that the returned
- * state covers the second input state. This implementation relies on that
- * guarantee and always assumes this is true.
+ * <p>Note that the definition of MergeOperator already requires that the returned state covers the
+ * second input state. This implementation relies on that guarantee and always assumes this is true.
  */
 class CompositeMergeAgreeOperator implements MergeOperator {
 
@@ -42,18 +40,18 @@ class CompositeMergeAgreeOperator implements MergeOperator {
   CompositeMergeAgreeOperator(
       ImmutableList<MergeOperator> mergeOperators, ImmutableList<StopOperator> stopOperators) {
     this.mergeOperators = mergeOperators;
-    this.stopOperators  = stopOperators;
+    this.stopOperators = stopOperators;
   }
 
   @Override
-  public AbstractState merge(AbstractState successorState,
-                               AbstractState reachedState,
-                               Precision precision) throws CPAException, InterruptedException {
+  public AbstractState merge(
+      AbstractState successorState, AbstractState reachedState, Precision precision)
+      throws CPAException, InterruptedException {
 
     // Merge Sep Code
     CompositeState compSuccessorState = (CompositeState) successorState;
-    CompositeState compReachedState   = (CompositeState) reachedState;
-    CompositePrecision compPrecision  = (CompositePrecision) precision;
+    CompositeState compReachedState = (CompositeState) reachedState;
+    CompositePrecision compPrecision = (CompositePrecision) precision;
 
     assert (compSuccessorState.getNumberOfStates() == compReachedState.getNumberOfStates());
 
@@ -63,7 +61,7 @@ class CompositeMergeAgreeOperator implements MergeOperator {
     }
 
     ImmutableList.Builder<AbstractState> mergedStates = ImmutableList.builder();
-    Iterator<StopOperator> stopIter   = stopOperators.iterator();
+    Iterator<StopOperator> stopIter = stopOperators.iterator();
     Iterator<AbstractState> comp1Iter = compSuccessorState.getWrappedStates().iterator();
     Iterator<AbstractState> comp2Iter = compReachedState.getWrappedStates().iterator();
     Iterator<Precision> precIter = compPrecision.getWrappedPrecisions().iterator();
@@ -71,14 +69,15 @@ class CompositeMergeAgreeOperator implements MergeOperator {
     boolean identicalStates = true;
     for (MergeOperator mergeOp : mergeOperators) {
       AbstractState absSuccessorState = comp1Iter.next();
-      AbstractState absReachedState   = comp2Iter.next();
+      AbstractState absReachedState = comp2Iter.next();
 
-      Precision prec      = precIter.next();
+      Precision prec = precIter.next();
       StopOperator stopOp = stopIter.next();
 
       AbstractState mergedState = mergeOp.merge(absSuccessorState, absReachedState, prec);
 
-      // Check if 'mergedState' also covers 'absSuccessorState', i.e., if 'mergeOp' performed a join.
+      // Check if 'mergedState' also covers 'absSuccessorState', i.e., if 'mergeOp' performed a
+      // join.
       // By definition of MergeOperator, we know it covers 'absReachedState'.
       if (!stopOp.stop(absSuccessorState, Collections.singleton(mergedState), prec)) {
         // the result of merge does not cover 'absSuccessorState'

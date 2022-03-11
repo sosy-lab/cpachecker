@@ -31,8 +31,11 @@ public class DefUseCPA extends AbstractCPA {
     return AutomaticCPAFactory.forType(DefUseCPA.class);
   }
 
-  @Option(secure=true, name="merge", values={"sep", "join"},
-      description="which merge operator to use for DefUseCPA")
+  @Option(
+      secure = true,
+      name = "merge",
+      values = {"sep", "join"},
+      description = "which merge operator to use for DefUseCPA")
   private String mergeType = "sep";
 
   private DefUseCPA(Configuration config) throws InvalidConfigurationException {
@@ -53,7 +56,7 @@ public class DefUseCPA extends AbstractCPA {
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     Set<DefUseDefinition> defUseDefinitions = new HashSet<>();
     if (pNode instanceof CFunctionEntryNode) {
-      List<String> parameterNames = ((CFunctionEntryNode)pNode).getFunctionParameterNames();
+      List<String> parameterNames = ((CFunctionEntryNode) pNode).getFunctionParameterNames();
 
       for (String parameterName : parameterNames) {
         DefUseDefinition newDef = new DefUseDefinition(parameterName, null);

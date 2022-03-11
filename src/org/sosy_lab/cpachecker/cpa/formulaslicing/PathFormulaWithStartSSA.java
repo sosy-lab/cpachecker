@@ -39,8 +39,7 @@ public final class PathFormulaWithStartSSA {
       return false;
     }
     PathFormulaWithStartSSA that = (PathFormulaWithStartSSA) pO;
-    return Objects.equals(pathFormula, that.pathFormula) &&
-        Objects.equals(startMap, that.startMap);
+    return Objects.equals(pathFormula, that.pathFormula) && Objects.equals(startMap, that.startMap);
   }
 
   @Override

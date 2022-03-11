@@ -21,13 +21,18 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
 
-// requires that function names are unique, no two functions may have the same name although they have different signature
+// requires that function names are unique, no two functions may have the same name although they
+// have different signature
 // currently ensured by parser
 @Options(prefix = "cpa.validVars")
 public class ValidVarsCPA extends AbstractCPA implements ProofCheckerCPA {
 
-  @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN"},
-      description="which merge operator to use for ValidVarsCPA")
+  @Option(
+      secure = true,
+      name = "merge",
+      toUppercase = true,
+      values = {"SEP", "JOIN"},
+      description = "which merge operator to use for ValidVarsCPA")
   private String mergeType = "JOIN";
 
   public static CPAFactory factory() {

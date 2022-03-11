@@ -18,9 +18,7 @@ import org.sosy_lab.cpachecker.cpa.andersen.util.SimpleConstraint;
 
 public class AndersenState implements LatticeAbstractState<AndersenState> {
 
-  /**
-   * The local constraint system.
-   */
+  /** The local constraint system. */
   private final ConstraintSystem localConstraintSystem;
 
   public AndersenState() {
@@ -28,12 +26,13 @@ public class AndersenState implements LatticeAbstractState<AndersenState> {
   }
 
   public AndersenState(ConstraintSystem pLocalConstraintSystem) {
-    this.localConstraintSystem = pLocalConstraintSystem == null ? new ConstraintSystem() : pLocalConstraintSystem;
+    this.localConstraintSystem =
+        pLocalConstraintSystem == null ? new ConstraintSystem() : pLocalConstraintSystem;
   }
 
   /**
-   * Adds a (new) {@link BaseConstraint} returns the result.
-   * This instance is not modified by the operation.
+   * Adds a (new) {@link BaseConstraint} returns the result. This instance is not modified by the
+   * operation.
    *
    * @param pConstr {@link BaseConstraint} that should be added.
    */
@@ -42,8 +41,8 @@ public class AndersenState implements LatticeAbstractState<AndersenState> {
   }
 
   /**
-   * Adds a (new) {@link SimpleConstraint} and returns the result.
-   * This instance is not modified by the operation.
+   * Adds a (new) {@link SimpleConstraint} and returns the result. This instance is not modified by
+   * the operation.
    *
    * @param pConstr {@link SimpleConstraint} that should be added.
    */
@@ -52,8 +51,8 @@ public class AndersenState implements LatticeAbstractState<AndersenState> {
   }
 
   /**
-   * Adds a (new) {@link ComplexConstraint} and returns the result.
-   * This instance is not modified by the operation.
+   * Adds a (new) {@link ComplexConstraint} and returns the result. This instance is not modified by
+   * the operation.
    *
    * @param pConstr {@link ComplexConstraint} that should be added.
    */
@@ -95,10 +94,15 @@ public class AndersenState implements LatticeAbstractState<AndersenState> {
   @Override
   public boolean isLessOrEqual(AndersenState pReachedState) {
     return Objects.equals(this, pReachedState)
-        || (this.localConstraintSystem.getBaseConstraints()
-            .containsAll(pReachedState.localConstraintSystem.getBaseConstraints())
-        && this.localConstraintSystem.getSimpleConstraints().containsAll(pReachedState.localConstraintSystem.getSimpleConstraints())
-        && this.localConstraintSystem.getComplexConstraints().containsAll(pReachedState.localConstraintSystem.getComplexConstraints()));
+        || (this.localConstraintSystem
+                .getBaseConstraints()
+                .containsAll(pReachedState.localConstraintSystem.getBaseConstraints())
+            && this.localConstraintSystem
+                .getSimpleConstraints()
+                .containsAll(pReachedState.localConstraintSystem.getSimpleConstraints())
+            && this.localConstraintSystem
+                .getComplexConstraints()
+                .containsAll(pReachedState.localConstraintSystem.getComplexConstraints()));
   }
 
   @Override

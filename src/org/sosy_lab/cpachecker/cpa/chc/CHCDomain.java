@@ -12,7 +12,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-
 public class CHCDomain implements AbstractDomain {
 
   @Override
@@ -26,7 +25,6 @@ public class CHCDomain implements AbstractDomain {
     CHCState crstate1 = (CHCState) state1;
     CHCState crstate2 = (CHCState) state2;
 
-    return ConstraintManager.subsumes(crstate1.getConstraint(),crstate2.getConstraint());
+    return ConstraintManager.subsumes(crstate1.getConstraint(), crstate2.getConstraint());
   }
-
 }

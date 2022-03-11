@@ -59,11 +59,11 @@ public class LockCPA extends AbstractCPA
   private boolean refinement = false;
 
   @Option(
-    secure = true,
-    name = "merge",
-    toUppercase = true,
-    values = {"SEP", "JOIN"},
-    description = "which merge operator to use for LockCPA")
+      secure = true,
+      name = "merge",
+      toUppercase = true,
+      values = {"SEP", "JOIN"},
+      description = "which merge operator to use for LockCPA")
   private String mergeType = "SEP";
 
   private final LockReducer reducer;

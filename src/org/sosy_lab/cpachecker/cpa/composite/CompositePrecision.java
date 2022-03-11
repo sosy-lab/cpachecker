@@ -35,7 +35,7 @@ class CompositePrecision implements WrapperPrecision, AdjustablePrecision {
       return false;
     }
 
-    return precisions.equals(((CompositePrecision)other).precisions);
+    return precisions.equals(((CompositePrecision) other).precisions);
   }
 
   @Override
@@ -62,7 +62,7 @@ class CompositePrecision implements WrapperPrecision, AdjustablePrecision {
         return pType.cast(precision);
 
       } else if (precision instanceof WrapperPrecision) {
-        T result = ((WrapperPrecision)precision).retrieveWrappedPrecision(pType);
+        T result = ((WrapperPrecision) precision).retrieveWrappedPrecision(pType);
         if (result != null) {
           return result;
         }
@@ -72,7 +72,8 @@ class CompositePrecision implements WrapperPrecision, AdjustablePrecision {
   }
 
   @Override
-  public Precision replaceWrappedPrecision(Precision newPrecision, Predicate<? super Precision> replaceType) {
+  public Precision replaceWrappedPrecision(
+      Precision newPrecision, Predicate<? super Precision> replaceType) {
 
     if (replaceType.apply(this)) {
       return newPrecision;
@@ -86,7 +87,8 @@ class CompositePrecision implements WrapperPrecision, AdjustablePrecision {
         changed = true;
 
       } else if (precision instanceof WrapperPrecision) {
-        Precision newWrappedPrecision = ((WrapperPrecision)precision).replaceWrappedPrecision(newPrecision, replaceType);
+        Precision newWrappedPrecision =
+            ((WrapperPrecision) precision).replaceWrappedPrecision(newPrecision, replaceType);
         if (newWrappedPrecision != null) {
           newPrecisions.add(newWrappedPrecision);
           changed = true;
@@ -146,8 +148,8 @@ class CompositePrecision implements WrapperPrecision, AdjustablePrecision {
           adjustedPrecision);
 
       Precision newPrecision =
-              adjustFunction.apply(
-                      (AdjustablePrecision) currentPrecision, (AdjustablePrecision) adjustedPrecision);
+          adjustFunction.apply(
+              (AdjustablePrecision) currentPrecision, (AdjustablePrecision) adjustedPrecision);
       newPrecisions.add(newPrecision);
     }
     return new CompositePrecision(newPrecisions.build());
@@ -155,7 +157,8 @@ class CompositePrecision implements WrapperPrecision, AdjustablePrecision {
 
   @Override
   public boolean isEmpty() {
-    return from(precisions).transform(p -> (AdjustablePrecision) p)
+    return from(precisions)
+        .transform(p -> (AdjustablePrecision) p)
         .allMatch(AdjustablePrecision::isEmpty);
   }
 }

@@ -203,7 +203,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
               getPredicateState(coveringCandidate).getAbstractionFormula().asFormula();
           assert !bfmgr.isTrue(stateFormula)
               : "Existing state with abstraction true would cover anyway, no forced covering"
-                    + " needed";
+                  + " needed";
           formulas.add(bfmgr.not(fmgr.instantiate(stateFormula, ssaMap)));
         }
         assert formulas.size() == path.size() + 2;

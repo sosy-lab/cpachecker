@@ -99,9 +99,7 @@ class TraceAbstractionState extends AbstractSingleWrapperState implements Grapha
     }
 
     sb.append(
-        activePredicates
-            .values()
-            .stream()
+        activePredicates.values().stream()
             .map(indexedPred -> indexedPred.getPredicate().getSymbolicAtom().toString())
             .collect(Collectors.joining("\n")));
     return sb.toString();

@@ -102,7 +102,7 @@ public class FunctionPointerState
     @Override
     public boolean equals(Object pObj) {
       return pObj instanceof NamedFunctionTarget
-          && ((NamedFunctionTarget)pObj).functionName.equals(this.functionName);
+          && ((NamedFunctionTarget) pObj).functionName.equals(this.functionName);
     }
 
     @Override
@@ -206,7 +206,9 @@ public class FunctionPointerState
     if (this.pointerVariableValues.size() < pElement.pointerVariableValues.size()) {
       return false;
     }
-    return this.pointerVariableValues.entrySet().containsAll(pElement.pointerVariableValues.entrySet());
+    return this.pointerVariableValues
+        .entrySet()
+        .containsAll(pElement.pointerVariableValues.entrySet());
   }
 
   @Override
@@ -221,7 +223,7 @@ public class FunctionPointerState
     } else if (!(pObj instanceof FunctionPointerState)) {
       return false;
     }
-    return this.pointerVariableValues.equals(((FunctionPointerState)pObj).pointerVariableValues);
+    return this.pointerVariableValues.equals(((FunctionPointerState) pObj).pointerVariableValues);
   }
 
   @Override
@@ -231,6 +233,4 @@ public class FunctionPointerState
     }
     return hashCode;
   }
-
-
 }

@@ -7,8 +7,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Coverage CPA computes code coverage either from
- * the CFA edges that were touched by the transfer relation,
- * or from the final set reached.
+ * Coverage CPA computes code coverage either from the CFA edges that were touched by the transfer
+ * relation, or from the final set reached.
  */
 package org.sosy_lab.cpachecker.cpa.coverage;

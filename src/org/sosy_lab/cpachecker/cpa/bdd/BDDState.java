@@ -18,8 +18,7 @@ import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class BDDState implements AbstractQueryableState,
-    LatticeAbstractState<BDDState> {
+public class BDDState implements AbstractQueryableState, LatticeAbstractState<BDDState> {
 
   private Region currentState;
   private final NamedRegionManager manager;
@@ -46,7 +45,7 @@ public class BDDState implements AbstractQueryableState,
 
   @Override
   public BDDState join(BDDState other) {
-     Region result = manager.makeOr(this.currentState, other.currentState);
+    Region result = manager.makeOr(this.currentState, other.currentState);
 
     // FIRST check the other element
     if (result.equals(other.currentState)) {
@@ -63,12 +62,12 @@ public class BDDState implements AbstractQueryableState,
 
   @Override
   public String toString() {
-    return //manager.dumpRegion(currentState) + "\n" +
-        manager.regionToDot(currentState);
+    return // manager.dumpRegion(currentState) + "\n" +
+    manager.regionToDot(currentState);
   }
 
   public String toCompactString() {
-    return "";//manager.dumpRegion(currentState);
+    return ""; // manager.dumpRegion(currentState);
   }
 
   @Override
@@ -105,8 +104,7 @@ public class BDDState implements AbstractQueryableState,
     }
   }
 
-  /** this.state = this.state.and(pConstraint);
-   */
+  /** this.state = this.state.and(pConstraint); */
   public void addConstraintToState(Region pConstraint) {
     currentState = manager.makeAnd(currentState, pConstraint);
   }
@@ -116,23 +114,30 @@ public class BDDState implements AbstractQueryableState,
     return new BDDState(manager, bvmgr, manager.makeAnd(currentState, constraint));
   }
 
-  /** This function adds the equality of left and right side to the state.
-   * If left or right side is null, the state is returned unchanged. */
+  /**
+   * This function adds the equality of left and right side to the state. If left or right side is
+   * null, the state is returned unchanged.
+   */
   public BDDState addAssignment(@Nullable Region[] leftSide, @Nullable Region[] rightSide) {
     return addAssignment(leftSide, rightSide, false);
   }
 
-
-  /** This function adds the equality of left and right side to the current state.
-   * If left or right side is null, the state is returned unchanged.
+  /**
+   * This function adds the equality of left and right side to the current state. If left or right
+   * side is null, the state is returned unchanged.
    *
-   * @param addIncreasing order of iteration, might cause better performance */
-  private BDDState addAssignment(@Nullable Region[] leftSide, @Nullable Region[] rightSide, final boolean addIncreasing) {
+   * @param addIncreasing order of iteration, might cause better performance
+   */
+  private BDDState addAssignment(
+      @Nullable Region[] leftSide, @Nullable Region[] rightSide, final boolean addIncreasing) {
     if (leftSide == null || rightSide == null) {
       return this;
     } else {
-      assert leftSide.length == rightSide.length : "left side and right side should have equal length: "
-              + leftSide.length + " != " + rightSide.length;
+      assert leftSide.length == rightSide.length
+          : "left side and right side should have equal length: "
+              + leftSide.length
+              + " != "
+              + rightSide.length;
       final Region[] assignRegions = bvmgr.makeBinaryEqual(leftSide, rightSide);
 
       Region result;

@@ -13,15 +13,13 @@ import java.util.List;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 
 /**
- * A {@link CounterexampleFilter} that is a conjunction of other filters,
- * i.e., each filter needs to agree that a counterexample is relevant.
+ * A {@link CounterexampleFilter} that is a conjunction of other filters, i.e., each filter needs to
+ * agree that a counterexample is relevant.
  *
- * Note that because {@link CounterexampleFilter}s are usually stateful,
- * it is important to put the weakest filter first,
- * i.e., the one that defines most counterexamples as relevant.
- * So usually the chain would start with something like a cheap but weak
- * {@link PathEqualityCounterexampleFilter},
- * and contain more expensive (and stronger) filters at the end.
+ * <p>Note that because {@link CounterexampleFilter}s are usually stateful, it is important to put
+ * the weakest filter first, i.e., the one that defines most counterexamples as relevant. So usually
+ * the chain would start with something like a cheap but weak {@link
+ * PathEqualityCounterexampleFilter}, and contain more expensive (and stronger) filters at the end.
  */
 public class ConjunctiveCounterexampleFilter implements CounterexampleFilter {
 

@@ -17,9 +17,7 @@ import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.templates.Template;
 
-/**
- * Converts a set of invariants to the pretty text representation.
- */
+/** Converts a set of invariants to the pretty text representation. */
 public class PolicyDotWriter {
   public String toDOTLabel(Map<Template, PolicyBound> data) {
     StringBuilder b = new StringBuilder();
@@ -31,8 +29,7 @@ public class PolicyDotWriter {
     // Pretty-printing is tricky.
     Map<LinearExpression<?>, Rational> lessThan = new HashMap<>();
     Map<LinearExpression<?>, Rational> greaterThan = new HashMap<>();
-    Map<LinearExpression<?>, Pair<Rational, Rational>> bounded
-        = new HashMap<>();
+    Map<LinearExpression<?>, Pair<Rational, Rational>> bounded = new HashMap<>();
     Map<LinearExpression<?>, Rational> equal = new HashMap<>();
 
     for (Map.Entry<Template, PolicyBound> e : data.entrySet()) {
@@ -63,11 +60,9 @@ public class PolicyDotWriter {
           }
         } else {
           if (negated) {
-            bounded.put(
-                template.negate(), Pair.of(upperBound.negate(), lowerBound.negate()));
+            bounded.put(template.negate(), Pair.of(upperBound.negate(), lowerBound.negate()));
           } else {
-            bounded.put(
-                template, Pair.of(lowerBound, upperBound));
+            bounded.put(template, Pair.of(lowerBound, upperBound));
           }
         }
       } else {
@@ -81,16 +76,12 @@ public class PolicyDotWriter {
 
     // Print equals.
     for (Map.Entry<LinearExpression<?>, Rational> entry : equal.entrySet()) {
-      b.append(entry.getKey())
-          .append("=")
-          .append(entry.getValue())
-          .append("\n");
+      b.append(entry.getKey()).append("=").append(entry.getValue()).append("\n");
     }
 
     // Print bounded.
     for (Map.Entry<LinearExpression<?>, Pair<Rational, Rational>> entry : bounded.entrySet()) {
-      b
-          .append(entry.getValue().getFirst())
+      b.append(entry.getValue().getFirst())
           .append("≤")
           .append(entry.getKey())
           .append("≤")
@@ -100,23 +91,17 @@ public class PolicyDotWriter {
 
     // Print less-than.
     for (Map.Entry<LinearExpression<?>, Rational> entry : lessThan.entrySet()) {
-      b.append(entry.getKey())
-          .append("≤")
-          .append(entry.getValue())
-          .append("\n");
+      b.append(entry.getKey()).append("≤").append(entry.getValue()).append("\n");
     }
 
     // Printing greater-than.
     for (Map.Entry<LinearExpression<?>, Rational> entry : greaterThan.entrySet()) {
-      b.append(entry.getKey())
-          .append("≥")
-          .append(entry.getValue())
-          .append("\n");
+      b.append(entry.getKey()).append("≥").append(entry.getValue()).append("\n");
     }
     return b.toString();
   }
 
   private boolean isNegated(LinearExpression<?> pTemplate) {
-   return pTemplate.toString().trim().startsWith("-");
+    return pTemplate.toString().trim().startsWith("-");
   }
 }

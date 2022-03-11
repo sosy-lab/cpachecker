@@ -47,7 +47,8 @@ public class PolyhedraWideningManagerTest {
     }
   }
 
-  @Test public void test_polyhedra() {
+  @Test
+  public void test_polyhedra() {
     // FIXME Tests should not rely on a user manually checking log message
     // but instead use proper assertions, otherwise they are useless as regression tests.
     CIdExpression x, y;
@@ -59,20 +60,20 @@ public class PolyhedraWideningManagerTest {
     LinearExpression<CIdExpression> linX = LinearExpression.ofVariable(x);
     LinearExpression<CIdExpression> linY = LinearExpression.ofVariable(y);
 
-    point1 = ImmutableMap.of(
-      Template.of(linX), Rational.ZERO,
-      Template.of(linX.negate()), Rational.ZERO,
-      Template.of(linY), Rational.ZERO,
-      Template.of(linY.negate()), Rational.ZERO
-    );
+    point1 =
+        ImmutableMap.of(
+            Template.of(linX), Rational.ZERO,
+            Template.of(linX.negate()), Rational.ZERO,
+            Template.of(linY), Rational.ZERO,
+            Template.of(linY.negate()), Rational.ZERO);
 
     // Point 2: (x=1 /\ y=1).
-    point2 = ImmutableMap.of(
-      Template.of(linX), Rational.ONE,
-      Template.of(linX.negate()), Rational.NEG_ONE,
-      Template.of(linY), Rational.ONE,
-      Template.of(linY.negate()), Rational.NEG_ONE
-    );
+    point2 =
+        ImmutableMap.of(
+            Template.of(linX), Rational.ONE,
+            Template.of(linX.negate()), Rational.NEG_ONE,
+            Template.of(linY), Rational.ONE,
+            Template.of(linY.negate()), Rational.NEG_ONE);
 
     Abstract1 abs1, abs2, widened, union;
 
@@ -94,13 +95,9 @@ public class PolyhedraWideningManagerTest {
   }
 
   private CIdExpression makeVar(String varName, CSimpleType type) {
-    return new CIdExpression(FileLocation.DUMMY,
+    return new CIdExpression(
+        FileLocation.DUMMY,
         new CVariableDeclaration(
-            FileLocation.DUMMY,
-            false,
-            CStorageClass.AUTO,
-            type,
-            varName, varName, varName, null
-        ));
+            FileLocation.DUMMY, false, CStorageClass.AUTO, type, varName, varName, varName, null));
   }
 }

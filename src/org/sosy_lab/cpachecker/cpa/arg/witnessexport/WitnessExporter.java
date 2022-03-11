@@ -74,6 +74,7 @@ public class WitnessExporter {
       return factory.or(stateInvariants);
     }
   }
+
   protected final WitnessOptions options;
 
   protected final CFA cfa;
@@ -83,7 +84,6 @@ public class WitnessExporter {
   protected final Simplifier<Object> simplifier = ExpressionTrees.newSimplifier(factory);
 
   protected final VerificationTaskMetaData verificationTaskMetaData;
-
 
   public WitnessExporter(
       final Configuration pConfig,

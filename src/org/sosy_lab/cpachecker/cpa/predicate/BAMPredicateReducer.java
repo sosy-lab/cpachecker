@@ -307,7 +307,7 @@ public class BAMPredicateReducer
 
       assert pPrecision.getLocationInstancePredicates().isEmpty()
           : "TODO: need to handle location-instance-specific predicates in"
-                + " ReducedPredicatePrecision";
+              + " ReducedPredicatePrecision";
       /* LocationInstancePredicates is useless, because a block can be visited
        * several times along a error path and the index would always start from 0 again.
        * Thus we ignore LocationInstancePredicates and hope nobody is using them.

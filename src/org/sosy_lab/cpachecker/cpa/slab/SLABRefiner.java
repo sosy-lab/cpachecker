@@ -65,21 +65,22 @@ public class SLABRefiner implements Refiner, StatisticsProvider {
     slabCpa = pSlabCpa;
     argLogger = new ARGLogger(config, slabCpa.getLogger());
     solver = slabCpa.getPredicateCpa().getSolver();
-
   }
 
-  public static Refiner create(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
+  public static Refiner create(ConfigurableProgramAnalysis pCpa)
+      throws InvalidConfigurationException {
     PredicateCPA predicateCpa = CPAs.retrieveCPA(pCpa, PredicateCPA.class);
     SLABCPA argCpa = CPAs.retrieveCPA(pCpa, SLABCPA.class);
     if (predicateCpa == null) {
-      throw new InvalidConfigurationException(SlicingAbstractionsRefiner.class.getSimpleName() + " needs a PredicateCPA");
+      throw new InvalidConfigurationException(
+          SlicingAbstractionsRefiner.class.getSimpleName() + " needs a PredicateCPA");
     }
 
     RefinementStrategy strategy =
         new SlicingAbstractionsStrategy(predicateCpa, predicateCpa.getConfiguration());
 
     PredicateCPARefinerFactory factory = new PredicateCPARefinerFactory(pCpa);
-    ARGBasedRefiner refiner =  factory.create(strategy);
+    ARGBasedRefiner refiner = factory.create(strategy);
     return new SLABRefiner(refiner, argCpa, predicateCpa.getConfiguration());
   }
 
@@ -191,8 +192,8 @@ public class SLABRefiner implements Refiner, StatisticsProvider {
       } else {
         infeasible = false;
       }
-    } catch (SolverException  e){
-         throw new CPAException("Solver Failure", e);
+    } catch (SolverException e) {
+      throw new CPAException("Solver Failure", e);
     }
     return infeasible;
   }

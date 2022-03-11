@@ -207,7 +207,7 @@ public class CPAsTest {
         .set(Specification.alwaysSatisfied(), Specification.class)
         .set(aggregatedReachedSets, AggregatedReachedSets.class)
         .createInstance();
-    }
+  }
 
   @Test
   public void getInitialState() throws InterruptedException {

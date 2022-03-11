@@ -31,26 +31,31 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
 
   protected final boolean inCPAEnabledAnalysis;
 
-
-  public ARGPrecisionAdjustment(PrecisionAdjustment pWrappedPrecAdjustment, boolean pInCPAEnabledAnalysis, ARGStatistics pStats) {
+  public ARGPrecisionAdjustment(
+      PrecisionAdjustment pWrappedPrecAdjustment,
+      boolean pInCPAEnabledAnalysis,
+      ARGStatistics pStats) {
     wrappedPrecAdjustment = pWrappedPrecAdjustment;
     inCPAEnabledAnalysis = pInCPAEnabledAnalysis;
     statistics = pStats;
   }
 
   @Override
-  public Optional<PrecisionAdjustmentResult> prec(AbstractState pElement,
+  public Optional<PrecisionAdjustmentResult> prec(
+      AbstractState pElement,
       Precision oldPrecision,
       UnmodifiableReachedSet pElements,
       final Function<AbstractState, AbstractState> projection,
-      AbstractState fullState) throws CPAException, InterruptedException {
+      AbstractState fullState)
+      throws CPAException, InterruptedException {
 
     Preconditions.checkArgument(pElement instanceof ARGState);
     //noinspection ConstantConditions
-    ARGState element = (ARGState)pElement;
+    ARGState element = (ARGState) pElement;
 
     // do precision adjustment
-    Optional<PrecisionAdjustmentResult> result = prec(element, oldPrecision, pElements, projection, fullState);
+    Optional<PrecisionAdjustmentResult> result =
+        prec(element, oldPrecision, pElements, projection, fullState);
 
     // print statistics for this algorithm iteration (if necessary)
     statistics.printIterationStatistics(pElements);
@@ -58,19 +63,23 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
     return result;
   }
 
-  private Optional<PrecisionAdjustmentResult> prec(final ARGState element,
+  private Optional<PrecisionAdjustmentResult> prec(
+      final ARGState element,
       Precision oldPrecision,
       UnmodifiableReachedSet pElements,
       final Function<AbstractState, AbstractState> projection,
-      AbstractState fullState) throws CPAException, InterruptedException {
+      AbstractState fullState)
+      throws CPAException, InterruptedException {
 
     if (inCPAEnabledAnalysis && element.isTarget()) {
       if (elementHasSiblings(element)) {
         removeUnreachedSiblingsFromARG(element, pElements);
       }
-      // strengthening of PredicateCPA already proved if path is infeasible and removed infeasible element
+      // strengthening of PredicateCPA already proved if path is infeasible and removed infeasible
+      // element
       // thus path is feasible here
-      throw new CPAEnabledAnalysisPropertyViolationException("Property violated during successor computation", element, false);
+      throw new CPAEnabledAnalysisPropertyViolationException(
+          "Property violated during successor computation", element, false);
     }
 
     AbstractState oldElement = element.getWrappedState();
@@ -90,7 +99,8 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
 
     PrecisionAdjustmentResult unwrappedResult = optionalUnwrappedResult.orElseThrow();
 
-    // ensure that ARG and reached set are consistent if BREAK is signaled for a state with multiple children
+    // ensure that ARG and reached set are consistent if BREAK is signaled for a state with multiple
+    // children
     if (unwrappedResult.action() == Action.BREAK && elementHasSiblings(element)) {
       removeUnreachedSiblingsFromARG(element, pElements);
     }
@@ -112,17 +122,20 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
   }
 
   /**
-   * This method removes all siblings of the given element from the ARG, if they are not yet in the reached set.
+   * This method removes all siblings of the given element from the ARG, if they are not yet in the
+   * reached set.
    *
-   * These measures are necessary in the cases where precision adjustment signals {@link Action#BREAK} for a state
-   * whose parent has multiple children, and not all children have been processed completely. In this case, not all
-   * children would be in the reached set, however, are already in the ARG (as children of their parent). To avoid this
-   * inconsistency, all children not yet contained in the reached set are removed from the ARG.
+   * <p>These measures are necessary in the cases where precision adjustment signals {@link
+   * Action#BREAK} for a state whose parent has multiple children, and not all children have been
+   * processed completely. In this case, not all children would be in the reached set, however, are
+   * already in the ARG (as children of their parent). To avoid this inconsistency, all children not
+   * yet contained in the reached set are removed from the ARG.
    *
    * @param element the element for which to remove the siblings
    * @param pReachedSet the current reached set
    */
-  private void removeUnreachedSiblingsFromARG(ARGState element, UnmodifiableReachedSet pReachedSet) {
+  private void removeUnreachedSiblingsFromARG(
+      ARGState element, UnmodifiableReachedSet pReachedSet) {
     ImmutableList.Builder<ARGState> scheduledForDeletion = ImmutableList.builder();
 
     for (ARGState sibling : Iterables.getOnlyElement(element.getParents()).getChildren()) {

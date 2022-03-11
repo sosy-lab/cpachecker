@@ -243,8 +243,7 @@ public final class DeadLockState extends AbstractLockState {
       return false;
     }
     DeadLockState other = (DeadLockState) obj;
-    return Objects.equals(toRestore, other.toRestore)
-        && Objects.equals(lockList, other.lockList);
+    return Objects.equals(toRestore, other.toRestore) && Objects.equals(lockList, other.lockList);
   }
 
   /**

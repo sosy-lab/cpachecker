@@ -15,9 +15,7 @@ import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-
 public enum PointerDomain implements AbstractDomain {
-
   INSTANCE;
 
   @Override
@@ -38,7 +36,8 @@ public enum PointerDomain implements AbstractDomain {
   }
 
   @Override
-  public boolean isLessOrEqual(AbstractState pState1, AbstractState pState2) throws CPAException, InterruptedException {
+  public boolean isLessOrEqual(AbstractState pState1, AbstractState pState2)
+      throws CPAException, InterruptedException {
     if (pState1 == pState2) {
       return true;
     }
@@ -52,5 +51,4 @@ public enum PointerDomain implements AbstractDomain {
     }
     return true;
   }
-
 }

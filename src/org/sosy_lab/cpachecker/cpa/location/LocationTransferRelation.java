@@ -41,8 +41,8 @@ public class LocationTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<LocationState> getAbstractSuccessors(AbstractState element,
-      Precision prec) throws CPATransferException {
+  public Collection<LocationState> getAbstractSuccessors(AbstractState element, Precision prec)
+      throws CPATransferException {
 
     CFANode node = ((LocationState) element).getLocationNode();
     return CFAUtils.successorsOf(node).transform(n -> factory.getState(n)).toList();

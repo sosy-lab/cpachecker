@@ -26,9 +26,7 @@ public class GenericAssumptionsCPA extends AbstractCPA {
     return AutomaticCPAFactory.forType(GenericAssumptionsCPA.class);
   }
 
-  private GenericAssumptionsCPA(CFA pCFA,
-                                LogManager pLogManager,
-                                Configuration pConfiguration)
+  private GenericAssumptionsCPA(CFA pCFA, LogManager pLogManager, Configuration pConfiguration)
       throws InvalidConfigurationException {
     super(
         "sep",
@@ -41,5 +39,4 @@ public class GenericAssumptionsCPA extends AbstractCPA {
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return new GenericAssumptionsState(ImmutableList.of());
   }
-
 }

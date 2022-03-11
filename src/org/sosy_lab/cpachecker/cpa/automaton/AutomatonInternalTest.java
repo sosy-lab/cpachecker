@@ -52,9 +52,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
-/**
- * This class contains Tests for the AutomatonAnalysis
- */
+/** This class contains Tests for the AutomatonAnalysis */
 public class AutomatonInternalTest {
 
   private final LogManager logger;
@@ -109,10 +107,11 @@ public class AutomatonInternalTest {
     AutomatonBoolExpr cannot = new AutomatonBoolExpr.CPAQuery("none", "none");
     Map<String, AutomatonVariable> vars = ImmutableMap.of();
     List<AbstractState> elements = ImmutableList.of();
-    AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, vars, elements, null, null);
+    AutomatonExpressionArguments args =
+        new AutomatonExpressionArguments(null, vars, elements, null, null);
     AutomatonBoolExpr ex;
-    AutomatonBoolExpr myTrue= AutomatonBoolExpr.TRUE;
-    AutomatonBoolExpr myFalse= AutomatonBoolExpr.FALSE;
+    AutomatonBoolExpr myTrue = AutomatonBoolExpr.TRUE;
+    AutomatonBoolExpr myFalse = AutomatonBoolExpr.FALSE;
 
     ex = new AutomatonBoolExpr.And(myTrue, myTrue);
     assertThat(ex.eval(args).getValue()).isTrue();
@@ -223,7 +222,8 @@ public class AutomatonInternalTest {
   @Test
   public void transitionVariableReplacement() {
     LogManager mockLogger = mock(LogManager.class);
-    AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, null, null, null, mockLogger);
+    AutomatonExpressionArguments args =
+        new AutomatonExpressionArguments(null, null, null, null, mockLogger);
     args.putTransitionVariable(1, TestDataTools.makeVariable("hi", CNumericTypes.INT));
     args.putTransitionVariable(2, TestDataTools.makeVariable("hello", CNumericTypes.INT));
     // actual test
@@ -386,7 +386,8 @@ public class AutomatonInternalTest {
   private class ASTMatcherSubject extends Subject {
 
     private final String pattern;
-    private final AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, null, null, null, null);
+    private final AutomatonExpressionArguments args =
+        new AutomatonExpressionArguments(null, null, null, null, null);
 
     public ASTMatcherSubject(FailureMetadata pMetadata, String pPattern) {
       super(pMetadata, pPattern);

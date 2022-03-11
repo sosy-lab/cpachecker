@@ -16,8 +16,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
- * Provides a MergeOperator implementation that just delegates to the component
- * CPAs without any further logic.
+ * Provides a MergeOperator implementation that just delegates to the component CPAs without any
+ * further logic.
  */
 class CompositeMergePlainOperator implements MergeOperator {
 
@@ -28,14 +28,14 @@ class CompositeMergePlainOperator implements MergeOperator {
   }
 
   @Override
-  public AbstractState merge(AbstractState successorState,
-                               AbstractState reachedState,
-                               Precision precision) throws CPAException, InterruptedException {
+  public AbstractState merge(
+      AbstractState successorState, AbstractState reachedState, Precision precision)
+      throws CPAException, InterruptedException {
 
     // Merge Sep Code
     CompositeState compSuccessorState = (CompositeState) successorState;
-    CompositeState compReachedState   = (CompositeState) reachedState;
-    CompositePrecision compPrecision  = (CompositePrecision) precision;
+    CompositeState compReachedState = (CompositeState) reachedState;
+    CompositePrecision compPrecision = (CompositePrecision) precision;
 
     assert (compSuccessorState.getNumberOfStates() == compReachedState.getNumberOfStates());
 
@@ -47,8 +47,9 @@ class CompositeMergePlainOperator implements MergeOperator {
     boolean identicalStates = true;
     for (MergeOperator mergeOp : mergeOperators) {
       AbstractState absSuccessorState = iter1.next();
-      AbstractState absReachedState   = iter2.next();
-      AbstractState mergedState       = mergeOp.merge(absSuccessorState, absReachedState, iterPrec.next());
+      AbstractState absReachedState = iter2.next();
+      AbstractState mergedState =
+          mergeOp.merge(absSuccessorState, absReachedState, iterPrec.next());
 
       if (mergedState != absReachedState) {
         identicalStates = false;

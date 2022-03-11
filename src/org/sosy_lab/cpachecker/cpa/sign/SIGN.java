@@ -13,9 +13,16 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.Serializable;
 
-public enum SIGN implements Serializable{
+public enum SIGN implements Serializable {
   // ALL = 111, PLUS = 100, MINUS = 010, ...
-  EMPTY(0), PLUS(1), MINUS(2), ZERO(4), PLUSMINUS(3), PLUS0(5), MINUS0(6), ALL(7);
+  EMPTY(0),
+  PLUS(1),
+  MINUS(2),
+  ZERO(4),
+  PLUSMINUS(3),
+  PLUS0(5),
+  MINUS0(6),
+  ALL(7);
 
   private final int numVal;
 
@@ -30,12 +37,13 @@ public enum SIGN implements Serializable{
   }
 
   SIGN(int numVal) {
-      this.numVal = numVal;
+    this.numVal = numVal;
   }
 
   public boolean isAll() {
     return this == ALL;
   }
+
   public boolean isEmpty() {
     return this == EMPTY;
   }
@@ -46,12 +54,16 @@ public enum SIGN implements Serializable{
   }
 
   public boolean covers(SIGN sign) {
-    if ((sign.numVal | this.numVal)  == this.numVal) { return true; }
+    if ((sign.numVal | this.numVal) == this.numVal) {
+      return true;
+    }
     return false;
   }
 
   public boolean intersects(SIGN sign) {
-    if ((sign.numVal & this.numVal) != 0) { return true; }
+    if ((sign.numVal & this.numVal) != 0) {
+      return true;
+    }
     return false;
   }
 
@@ -72,7 +84,7 @@ public enum SIGN implements Serializable{
 
   public ImmutableSet<SIGN> split() { // TODO performance
     ImmutableSet.Builder<SIGN> builder = ImmutableSet.builder();
-    for (SIGN s : ImmutableList.of(PLUS,MINUS,ZERO)) {
+    for (SIGN s : ImmutableList.of(PLUS, MINUS, ZERO)) {
       if ((s.numVal & numVal) > 0) {
         builder.add(s);
       }

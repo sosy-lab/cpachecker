@@ -43,13 +43,11 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
-/**
- * Manipulating proof-carrying code for BAM.
- */
-@Options(prefix="pcc.proofgen")
+/** Manipulating proof-carrying code for BAM. */
+@Options(prefix = "pcc.proofgen")
 public final class BAMPCCManager {
 
-  @Option(secure=true, description = "Generate and dump a proof")
+  @Option(secure = true, description = "Generate and dump a proof")
   private boolean doPCC = false;
 
   private final ProofChecker wrappedProofChecker;
@@ -67,7 +65,8 @@ public final class BAMPCCManager {
       Configuration pConfiguration,
       BlockPartitioning pPartitioning,
       Reducer pWrappedReducer,
-      BAMCPA pBamCPA, BAMDataManager pData)
+      BAMCPA pBamCPA,
+      BAMDataManager pData)
       throws InvalidConfigurationException {
     wrappedProofChecker = pWrappedProofChecker;
     partitioning = pPartitioning;
@@ -81,9 +80,8 @@ public final class BAMPCCManager {
     return doPCC;
   }
 
-  public boolean areAbstractSuccessors(AbstractState pState,
-                                       CFAEdge pCfaEdge,
-                                       Collection<? extends AbstractState> pSuccessors)
+  public boolean areAbstractSuccessors(
+      AbstractState pState, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors)
       throws CPATransferException, InterruptedException {
     if (pCfaEdge != null) {
       return wrappedProofChecker.areAbstractSuccessors(pState, pCfaEdge, pSuccessors);
@@ -94,7 +92,8 @@ public final class BAMPCCManager {
   private boolean areAbstractSuccessors0(
       AbstractState pState, Collection<? extends AbstractState> pSuccessors, final Block pBlock)
       throws CPATransferException, InterruptedException {
-    // currently cannot deal with blocks for which the set of call nodes and return nodes of that block is not disjunct
+    // currently cannot deal with blocks for which the set of call nodes and return nodes of that
+    // block is not disjunct
     boolean successorExists;
 
     CFANode node = extractLocation(pState);
@@ -105,21 +104,28 @@ public final class BAMPCCManager {
       try {
         if (!(pState instanceof BAMARGBlockStartState)
             || ((BAMARGBlockStartState) pState).getAnalyzedBlock() == null
-            || !bamCPA.isCoveredBy(wrappedReducer.getVariableReducedStateForProofChecking(pState, analyzedBlock, node),
-            ((BAMARGBlockStartState) pState).getAnalyzedBlock())) { return false; }
+            || !bamCPA.isCoveredBy(
+                wrappedReducer.getVariableReducedStateForProofChecking(pState, analyzedBlock, node),
+                ((BAMARGBlockStartState) pState).getAnalyzedBlock())) {
+          return false;
+        }
       } catch (CPAException e) {
-        throw new CPATransferException("Missing information about block whose analysis is expected to be started at "
-            + pState);
+        throw new CPATransferException(
+            "Missing information about block whose analysis is expected to be started at "
+                + pState);
       }
       try {
         Collection<ARGState> endOfBlock;
-        Pair<ARGState, Block> key = Pair.of(((BAMARGBlockStartState) pState).getAnalyzedBlock(), analyzedBlock);
+        Pair<ARGState, Block> key =
+            Pair.of(((BAMARGBlockStartState) pState).getAnalyzedBlock(), analyzedBlock);
         if (correctARGsForBlocks != null && correctARGsForBlocks.containsKey(key)) {
           endOfBlock = correctARGsForBlocks.get(key);
         } else {
           Pair<Boolean, Collection<ARGState>> result =
               checkARGBlock(((BAMARGBlockStartState) pState).getAnalyzedBlock(), analyzedBlock);
-          if (!result.getFirst()) { return false; }
+          if (!result.getFirst()) {
+            return false;
+          }
           endOfBlock = result.getSecond();
           setCorrectARG(key, endOfBlock);
         }
@@ -133,20 +139,25 @@ public final class BAMPCCManager {
           blockSuccessors.put(extractLocation(absElement), successorElem);
         }
 
-
         for (ARGState leaveB : endOfBlock) {
           successorExists = false;
-          expandedState = wrappedReducer.getVariableExpandedStateForProofChecking(pState, analyzedBlock, leaveB);
+          expandedState =
+              wrappedReducer.getVariableExpandedStateForProofChecking(
+                  pState, analyzedBlock, leaveB);
           for (AbstractState next : blockSuccessors.get(extractLocation(leaveB))) {
             if (bamCPA.isCoveredBy(expandedState, next)) {
               successorExists = true;
               notFoundSuccessors.remove(next);
             }
           }
-          if (!successorExists) { return false; }
+          if (!successorExists) {
+            return false;
+          }
         }
 
-        if (!notFoundSuccessors.isEmpty()) { return false; }
+        if (!notFoundSuccessors.isEmpty()) {
+          return false;
+        }
 
       } catch (CPAException e) {
         throw new CPATransferException(
@@ -163,7 +174,7 @@ public final class BAMPCCManager {
         usedEdges.add(((ARGState) pState).getEdgeToChild(successorElem));
       }
 
-      //no call node, check if successors can be constructed with help of CFA edges
+      // no call node, check if successors can be constructed with help of CFA edges
       for (CFAEdge leavingEdge : CFAUtils.leavingEdges(node)) {
         // edge leads to node in inner block
         Collection<Block> blocks = partitioning.getBlocksForReturnNode(node);
@@ -173,7 +184,9 @@ public final class BAMPCCManager {
         if (currentNodeBlock != null
             && !pBlock.equals(currentNodeBlock)
             && currentNodeBlock.getNodes().contains(leavingEdge.getSuccessor())) {
-          if (usedEdges.contains(leavingEdge)) { return false; }
+          if (usedEdges.contains(leavingEdge)) {
+            return false;
+          }
           continue;
         }
         // edge leaves block, do not analyze, check for call node since if call node is also return
@@ -181,7 +194,9 @@ public final class BAMPCCManager {
         if (!pBlock.isCallNode(node)
             && pBlock.isReturnNode(node)
             && !pBlock.getNodes().contains(leavingEdge.getSuccessor())) {
-          if (usedEdges.contains(leavingEdge)) { return false; }
+          if (usedEdges.contains(leavingEdge)) {
+            return false;
+          }
           continue;
         }
         if (!wrappedProofChecker.areAbstractSuccessors(pState, leavingEdge, pSuccessors)) {
@@ -276,7 +291,6 @@ public final class BAMPCCManager {
           waitlist.add(child);
         }
       }
-
     }
     if (!waitingForUnexploredParents.isEmpty()) {
       returnNodes = ImmutableList.of();
@@ -285,22 +299,21 @@ public final class BAMPCCManager {
     return Pair.of(true, returnNodes);
   }
 
-  public void setCorrectARG(Pair<ARGState, Block> pKey, Collection<ARGState>
-      pEndOfBlock) {
+  public void setCorrectARG(Pair<ARGState, Block> pKey, Collection<ARGState> pEndOfBlock) {
     if (correctARGsForBlocks == null) {
       correctARGsForBlocks = new HashMap<>();
     }
     correctARGsForBlocks.put(pKey, pEndOfBlock);
   }
 
-  /**
-   * Attach PCC-specific information to successors.
-   */
+  /** Attach PCC-specific information to successors. */
   Collection<? extends AbstractState> attachAdditionalInfoToCallNodes(
       Collection<? extends AbstractState> pSuccessors) {
     List<AbstractState> successorsWithExtendedInfo = new ArrayList<>(pSuccessors.size());
     for (AbstractState elem : pSuccessors) {
-      if (!(elem instanceof ARGState)) { return pSuccessors; }
+      if (!(elem instanceof ARGState)) {
+        return pSuccessors;
+      }
       if (!(elem instanceof BAMARGBlockStartState)) {
         successorsWithExtendedInfo.add(createAdditionalInfo((ARGState) elem));
       } else {
@@ -311,8 +324,7 @@ public final class BAMPCCManager {
   }
 
   AbstractState attachAdditionalInfoToCallNode(AbstractState pElem) {
-    if (!(pElem instanceof BAMARGBlockStartState)
-        && pElem instanceof ARGState) {
+    if (!(pElem instanceof BAMARGBlockStartState) && pElem instanceof ARGState) {
       return createAdditionalInfo((ARGState) pElem);
     }
     return pElem;
@@ -320,8 +332,8 @@ public final class BAMPCCManager {
 
   private ARGState createAdditionalInfo(ARGState pElem) {
     CFANode node = AbstractStates.extractLocation(pElem);
-    if (partitioning.isCallNode(node) &&
-        !partitioning.getBlockForCallNode(node).equals(currentBlock)) {
+    if (partitioning.isCallNode(node)
+        && !partitioning.getBlockForCallNode(node).equals(currentBlock)) {
       BAMARGBlockStartState replaceWith = new BAMARGBlockStartState(pElem.getWrappedState(), null);
       replaceInARG(pElem, replaceWith);
       return replaceWith;
@@ -340,7 +352,8 @@ public final class BAMPCCManager {
 
   @SuppressWarnings("deprecation")
   void addBlockAnalysisInfo(AbstractState pElement) throws CPATransferException {
-    if (data.getCache().getLastAnalyzedBlock() == null || !(pElement instanceof BAMARGBlockStartState)) {
+    if (data.getCache().getLastAnalyzedBlock() == null
+        || !(pElement instanceof BAMARGBlockStartState)) {
       throw new CPATransferException("Cannot build proof, ARG, for BAM analysis.");
     }
     ((BAMARGBlockStartState) pElement).setAnalyzedBlock(data.getCache().getLastAnalyzedBlock());

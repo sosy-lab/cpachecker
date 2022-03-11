@@ -37,13 +37,11 @@ public final class ThreadLabel implements Comparable<ThreadLabel> {
     if (this == obj) {
       return true;
     }
-    if (obj == null ||
-        getClass() != obj.getClass()) {
+    if (obj == null || getClass() != obj.getClass()) {
       return false;
     }
     ThreadLabel other = (ThreadLabel) obj;
-    return Objects.equals(threadName, other.threadName)
-        && Objects.equals(varName, other.varName);
+    return Objects.equals(threadName, other.threadName) && Objects.equals(varName, other.varName);
   }
 
   @Override

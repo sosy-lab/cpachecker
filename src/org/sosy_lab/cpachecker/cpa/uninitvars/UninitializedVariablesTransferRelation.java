@@ -60,8 +60,8 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
- * Needs typesCPA to properly deal with field references.
- * If run without typesCPA, uninitialized field references may not be detected.
+ * Needs typesCPA to properly deal with field references. If run without typesCPA, uninitialized
+ * field references may not be detected.
  */
 public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRelation {
 
@@ -74,11 +74,10 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
     this.printWarnings = Boolean.parseBoolean(printWarnings);
   }
 
-  private AbstractState getAbstractSuccessor(AbstractState element,
-                                              CFAEdge cfaEdge)
-                                              throws CPATransferException {
+  private AbstractState getAbstractSuccessor(AbstractState element, CFAEdge cfaEdge)
+      throws CPATransferException {
 
-    UninitializedVariablesState successor = ((UninitializedVariablesState)element).clone();
+    UninitializedVariablesState successor = ((UninitializedVariablesState) element).clone();
     successor.clearProperties();
 
     handleEdge(cfaEdge, successor);
@@ -109,7 +108,7 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
         break;
 
       case FunctionReturnEdge:
-        //handle statement like a = func(x) in the CFunctionSummaryEdge
+        // handle statement like a = func(x) in the CFunctionSummaryEdge
         CFunctionReturnEdge functionReturnEdge = (CFunctionReturnEdge) cfaEdge;
         CFunctionSummaryEdge ctrEdge = functionReturnEdge.getSummaryEdge();
         handleStatement(successor, ctrEdge.getExpression(), ctrEdge);
@@ -123,7 +122,7 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
         break;
 
       case FunctionCallEdge:
-        //on calling a function, check initialization status of the parameters
+        // on calling a function, check initialization status of the parameters
         handleFunctionCall(successor, (CFunctionCallEdge) cfaEdge);
         break;
 
@@ -135,9 +134,11 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
     }
   }
 
-
-  private void addWarning(CFAEdge edge, String variable, CRightHandSide expression,
-                                                      UninitializedVariablesState element) {
+  private void addWarning(
+      CFAEdge edge,
+      String variable,
+      CRightHandSide expression,
+      UninitializedVariablesState element) {
 
     if (printWarnings) {
 
@@ -145,12 +146,22 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
       String message;
 
       if (edge instanceof FunctionSummaryEdge && expression instanceof CFunctionCallExpression) {
-        message = "uninitialized return value of function call " + variable + " in line "
-        + lineNumber + ": " + edge.getDescription();
+        message =
+            "uninitialized return value of function call "
+                + variable
+                + " in line "
+                + lineNumber
+                + ": "
+                + edge.getDescription();
         element.addProperty(ElementProperty.UNINITIALIZED_RETURN_VALUE);
       } else {
-        message = "uninitialized variable " + variable + " used in line "
-        + lineNumber + ": " + edge.getDescription();
+        message =
+            "uninitialized variable "
+                + variable
+                + " used in line "
+                + lineNumber
+                + ": "
+                + edge.getDescription();
         element.addProperty(ElementProperty.UNINITIALIZED_VARIABLE_USED);
       }
 
@@ -174,14 +185,14 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
     }
   }
 
-  private void handleDeclaration(UninitializedVariablesState element,
-      CDeclarationEdge declarationEdge) {
+  private void handleDeclaration(
+      UninitializedVariablesState element, CDeclarationEdge declarationEdge) {
 
     if (!(declarationEdge.getDeclaration() instanceof CVariableDeclaration)) {
       // typedefs etc. do not concern this CPA
       return;
     }
-    CVariableDeclaration decl = (CVariableDeclaration)declarationEdge.getDeclaration();
+    CVariableDeclaration decl = (CVariableDeclaration) declarationEdge.getDeclaration();
     String varName = decl.getName();
     if (decl.isGlobal()) {
       globalVars.add(varName);
@@ -191,26 +202,27 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
     CInitializer initializer = decl.getInitializer();
     // initializers in CIL are always constant, so no need to check if
     // initializer expression contains uninitialized variables
-    if (initializer == null &&
-        !(decl.getCStorageClass() == CStorageClass.EXTERN) &&
-        !(type instanceof CArrayType) &&
-        !(type instanceof CFunctionType)) {
+    if (initializer == null
+        && !(decl.getCStorageClass() == CStorageClass.EXTERN)
+        && !(type instanceof CArrayType)
+        && !(type instanceof CFunctionType)) {
       setUninitialized(element, varName);
     } else {
       setInitialized(element, varName);
     }
 
     if (isStructType(type)) {
-      //only need to do this for non-external structs: add a variable for each field of the struct
-      //and set it uninitialized (since it is only declared at this point); do this recursively for all
-      //fields that are structs themselves
-      handleStructDeclaration(element, (CCompositeType)type, varName, decl.isGlobal());
+      // only need to do this for non-external structs: add a variable for each field of the struct
+      // and set it uninitialized (since it is only declared at this point); do this recursively for
+      // all
+      // fields that are structs themselves
+      handleStructDeclaration(element, (CCompositeType) type, varName, decl.isGlobal());
     }
   }
 
   private void handleFunctionCall(UninitializedVariablesState element, CFunctionCallEdge callEdge)
       throws UnrecognizedCodeException {
-    //find functions's parameters and arguments
+    // find functions's parameters and arguments
     CFunctionEntryNode functionEntryNode = callEdge.getSuccessor();
     List<String> paramNames = functionEntryNode.getFunctionParameterNames();
     List<CExpression> arguments = callEdge.getArguments();
@@ -219,9 +231,10 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
 
       int numOfParams = paramNames.size();
 
-      //if the following  is the case, this is a varargs function and thus can take any number of arguments
+      // if the following  is the case, this is a varargs function and thus can take any number of
+      // arguments
       if (numOfParams < arguments.size()) {
-        //then, for unnamed parameters, only check for use of uninitialized variables
+        // then, for unnamed parameters, only check for use of uninitialized variables
         for (int j = numOfParams; j < arguments.size(); j++) {
           isExpressionUninitialized(element, arguments.get(j), callEdge);
         }
@@ -230,7 +243,8 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
       List<String> uninitParameters = new ArrayList<>();
       List<String> initParameters = new ArrayList<>();
 
-      //collect initialization status of the called function's parameters from the context of the calling function
+      // collect initialization status of the called function's parameters from the context of the
+      // calling function
       for (int i = 0; i < numOfParams; i++) {
         if (isExpressionUninitialized(element, arguments.get(i), callEdge)) {
           uninitParameters.add(paramNames.get(i));
@@ -239,10 +253,10 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
         }
       }
 
-      //create local context of the called function
+      // create local context of the called function
       element.callFunction(functionEntryNode.getFunctionName());
 
-      //set initialization status of the function's parameters according to the arguments
+      // set initialization status of the function's parameters according to the arguments
       for (String param : uninitParameters) {
         setUninitialized(element, param);
       }
@@ -251,7 +265,7 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
       }
 
     } else {
-      //if there are no parameters, just create the local context
+      // if there are no parameters, just create the local context
       element.callFunction(functionEntryNode.getFunctionName());
     }
   }
@@ -261,14 +275,17 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
       throws UnrecognizedCodeException {
 
     if (expression instanceof CFunctionCallStatement) {
-      //in case of a return edge, remove the local context of the function from which we returned
+      // in case of a return edge, remove the local context of the function from which we returned
       if (cfaEdge instanceof FunctionSummaryEdge) {
         element.returnFromFunction();
       }
-      //a mere function call (func(a)) does not change the initialization status of variables
+      // a mere function call (func(a)) does not change the initialization status of variables
       // just check if there are uninitialized variable usages
       if (printWarnings) {
-        for (CExpression param : ((CFunctionCallStatement)expression).getFunctionCallExpression().getParameterExpressions()) {
+        for (CExpression param :
+            ((CFunctionCallStatement) expression)
+                .getFunctionCallExpression()
+                .getParameterExpressions()) {
           isExpressionUninitialized(element, param, cfaEdge);
         }
       }
@@ -277,13 +294,14 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
 
       // just check if there are uninitialized variable usages
       if (printWarnings) {
-        isExpressionUninitialized(element, ((CExpressionStatement)expression).getExpression(), cfaEdge);
+        isExpressionUninitialized(
+            element, ((CExpressionStatement) expression).getExpression(), cfaEdge);
       }
 
     } else if (expression instanceof CAssignment) {
       // expression is an assignment operation, e.g. a = b or a = a+b;
 
-      CAssignment assignExpression = (CAssignment)expression;
+      CAssignment assignExpression = (CAssignment) expression;
 
       // a = b
       handleAssign(element, assignExpression, cfaEdge);
@@ -303,7 +321,7 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
     if (op1 instanceof CIdExpression) {
       // assignment to simple variable
 
-      String leftName = ((CIdExpression)op1).getName();
+      String leftName = ((CIdExpression) op1).getName();
 
       if (isExpressionUninitialized(element, op2, cfaEdge)) {
         setUninitialized(element, leftName);
@@ -311,9 +329,9 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
         setInitialized(element, leftName);
       }
 
-
     } else if (op1 instanceof CFieldReference) {
-      //for field references, don't change the initialization status in case of a pointer dereference
+      // for field references, don't change the initialization status in case of a pointer
+      // dereference
       if (((CFieldReference) op1).isPointerDereference()) {
         if (printWarnings) {
           isExpressionUninitialized(element, op1, cfaEdge);
@@ -328,8 +346,7 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
         }
       }
 
-    } else if ((op1 instanceof CPointerExpression)
-            || (op1 instanceof CArraySubscriptExpression)) {
+    } else if ((op1 instanceof CPointerExpression) || (op1 instanceof CArraySubscriptExpression)) {
       // assignment to the target of a pointer or an array element,
       // this does not change the initialization status of the variable
 
@@ -348,20 +365,19 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
     CType t1 = op1.getExpressionType().getCanonicalType();
     CType t2 = op2.getExpressionType().getCanonicalType();
 
-    //only interested in structs being assigned to structs here
+    // only interested in structs being assigned to structs here
     if (isStructType(t1) && isStructType(t2)) {
 
-      //only structs of the same type can be assigned to each other
+      // only structs of the same type can be assigned to each other
       assert t1.equals(t2);
 
-      //check all fields of the structures' type and set their status
-      initializeFields(element, cfaEdge, op2, (CCompositeType)t1, leftName, rightName);
+      // check all fields of the structures' type and set their status
+      initializeFields(element, cfaEdge, op2, (CCompositeType) t1, leftName, rightName);
     }
   }
 
   private boolean isStructType(CType t) {
-    return t instanceof CCompositeType
-        && ((CCompositeType)t).getKind() == ComplexTypeKind.STRUCT;
+    return t instanceof CCompositeType && ((CCompositeType) t).getKind() == ComplexTypeKind.STRUCT;
   }
 
   @SuppressWarnings("ShortCircuitBoolean")
@@ -373,7 +389,7 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
       return false;
 
     } else if (expression instanceof CIdExpression) {
-      String variable = ((CIdExpression)expression).getName();
+      String variable = ((CIdExpression) expression).getName();
       if (element.isUninitialized(variable)) {
         addWarning(cfaEdge, variable, expression, element);
         return true;
@@ -400,38 +416,39 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
       }
 
     } else if (expression instanceof CArraySubscriptExpression) {
-      CArraySubscriptExpression arrayExpression = (CArraySubscriptExpression)expression;
+      CArraySubscriptExpression arrayExpression = (CArraySubscriptExpression) expression;
       return isExpressionUninitialized(element, arrayExpression.getArrayExpression(), cfaEdge)
-           | isExpressionUninitialized(element, arrayExpression.getSubscriptExpression(), cfaEdge);
+          | isExpressionUninitialized(element, arrayExpression.getSubscriptExpression(), cfaEdge);
 
     } else if (expression instanceof CUnaryExpression) {
-      CUnaryExpression unaryExpression = (CUnaryExpression)expression;
+      CUnaryExpression unaryExpression = (CUnaryExpression) expression;
 
       UnaryOperator typeOfOperator = unaryExpression.getOperator();
-      if (   (typeOfOperator == UnaryOperator.AMPER)
-          || (typeOfOperator == UnaryOperator.SIZEOF)) {
+      if ((typeOfOperator == UnaryOperator.AMPER) || (typeOfOperator == UnaryOperator.SIZEOF)) {
         return false;
 
       } else {
         return isExpressionUninitialized(element, unaryExpression.getOperand(), cfaEdge);
       }
 
-    } else if (expression instanceof  CPointerExpression) {
-      return isExpressionUninitialized(element, ((CPointerExpression)expression).getOperand(), cfaEdge);
+    } else if (expression instanceof CPointerExpression) {
+      return isExpressionUninitialized(
+          element, ((CPointerExpression) expression).getOperand(), cfaEdge);
 
     } else if (expression instanceof CBinaryExpression) {
       CBinaryExpression binExpression = (CBinaryExpression) expression;
       return isExpressionUninitialized(element, binExpression.getOperand1(), cfaEdge)
-           | isExpressionUninitialized(element, binExpression.getOperand2(), cfaEdge);
+          | isExpressionUninitialized(element, binExpression.getOperand2(), cfaEdge);
 
     } else if (expression instanceof CCastExpression) {
-      return isExpressionUninitialized(element, ((CCastExpression)expression).getOperand(), cfaEdge);
+      return isExpressionUninitialized(
+          element, ((CCastExpression) expression).getOperand(), cfaEdge);
 
     } else if (expression instanceof CFunctionCallExpression) {
-      CFunctionCallExpression funcExpression = (CFunctionCallExpression)expression;
-      //if the FunctionCallExpression is associated with a statement edge, then this is
-      //an external function call, and call to return edges for external calls are disabled.
-      //since we can not know its return value's initialization status, only check the parameters
+      CFunctionCallExpression funcExpression = (CFunctionCallExpression) expression;
+      // if the FunctionCallExpression is associated with a statement edge, then this is
+      // an external function call, and call to return edges for external calls are disabled.
+      // since we can not know its return value's initialization status, only check the parameters
       if (cfaEdge instanceof CStatementEdge) {
         for (CExpression param : funcExpression.getParameterExpressions()) {
           isExpressionUninitialized(element, param, cfaEdge);
@@ -439,14 +456,15 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
         return false;
 
       } else {
-        //for an internal function call, we can check the return value - for an external call
-        //(with enabled call to return edges), the return value is always assumed to be initialized
+        // for an internal function call, we can check the return value - for an external call
+        // (with enabled call to return edges), the return value is always assumed to be initialized
         boolean returnUninit = element.isUninitialized("CPAchecker_UninitVars_FunctionReturn");
         if (printWarnings && returnUninit) {
           addWarning(cfaEdge, funcExpression.toASTString(), expression, element);
         }
-        //get rid of the local context, as it is no longer needed and may be different on the next call.
-        //only do this in case of an internal call.
+        // get rid of the local context, as it is no longer needed and may be different on the next
+        // call.
+        // only do this in case of an internal call.
         if (cfaEdge instanceof FunctionSummaryEdge) {
           element.returnFromFunction();
         }
@@ -463,9 +481,7 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
 
   @Override
   public Collection<AbstractState> getAbstractSuccessorsForEdge(
-                                           AbstractState element,
-                                           Precision precision, CFAEdge cfaEdge)
-                       throws CPATransferException {
+      AbstractState element, Precision precision, CFAEdge cfaEdge) throws CPATransferException {
     return Collections.singleton(getAbstractSuccessor(element, cfaEdge));
   }
 
@@ -473,21 +489,29 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
    * recursively checks the initialization status of all fields of a struct being assigned to
    * another struct of the same type, setting the status of the assignee's fields accordingly
    */
-  private void initializeFields(UninitializedVariablesState element,
-                                CFAEdge cfaEdge, CRightHandSide exp,
-                                CCompositeType structType,
-                                String recursiveLeftName, String recursiveRightName) {
+  private void initializeFields(
+      UninitializedVariablesState element,
+      CFAEdge cfaEdge,
+      CRightHandSide exp,
+      CCompositeType structType,
+      String recursiveLeftName,
+      String recursiveRightName) {
 
-    //check all members
+    // check all members
     for (CCompositeTypeMemberDeclaration member : structType.getMembers()) {
       CType t = member.getType().getCanonicalType();
       String name = member.getName();
-      //for a field that is itself a struct, repeat the whole process
+      // for a field that is itself a struct, repeat the whole process
       if (isStructType(t)) {
-        initializeFields(element, cfaEdge, exp, (CCompositeType)t,
-                         recursiveLeftName + "." + name, recursiveRightName + "." + name);
-      //else, check the initialization status of the assigned variable
-      //and set the status of the assignee accordingly
+        initializeFields(
+            element,
+            cfaEdge,
+            exp,
+            (CCompositeType) t,
+            recursiveLeftName + "." + name,
+            recursiveRightName + "." + name);
+        // else, check the initialization status of the assigned variable
+        // and set the status of the assignee accordingly
       } else {
         if (element.isUninitialized(recursiveRightName + "." + name)) {
           if (printWarnings) {
@@ -502,22 +526,24 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
   /**
    * recursively sets all fields of a struct uninitialized, except if the field is itself a struct
    */
-  private void handleStructDeclaration(UninitializedVariablesState element,
-                                       CCompositeType structType,
-                                       String recursiveVarName,
-                                       boolean isGlobalDeclaration) {
+  private void handleStructDeclaration(
+      UninitializedVariablesState element,
+      CCompositeType structType,
+      String recursiveVarName,
+      boolean isGlobalDeclaration) {
 
-    //structs themselves are always considered initialized
+    // structs themselves are always considered initialized
     setInitialized(element, recursiveVarName);
 
     for (CCompositeTypeMemberDeclaration member : structType.getMembers()) {
       CType t = member.getType().getCanonicalType();
       String name = member.getName();
-      //for a field that is itself a struct, repeat the whole process
+      // for a field that is itself a struct, repeat the whole process
       if (isStructType(t)) {
-        handleStructDeclaration(element, (CCompositeType)t, recursiveVarName + "." + name, isGlobalDeclaration);
+        handleStructDeclaration(
+            element, (CCompositeType) t, recursiveVarName + "." + name, isGlobalDeclaration);
       } else {
-        //set non structure fields uninitialized, since they have only just been declared
+        // set non structure fields uninitialized, since they have only just been declared
         if (isGlobalDeclaration) {
           globalVars.add(recursiveVarName + "." + name);
         }
