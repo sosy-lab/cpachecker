@@ -129,13 +129,13 @@ public class ExpressionToFormulaVisitor
       MachineModel pMachineModel,
       MemoryLocationExtractor pVariableNameExtractor,
       Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
-    this.compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
-    this.machineModel = pMachineModel;
-    this.variableNameExtractor = pVariableNameExtractor;
-    this.environment = pEnvironment;
-    this.evaluationVisitor =
+    compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
+    machineModel = pMachineModel;
+    variableNameExtractor = pVariableNameExtractor;
+    environment = pEnvironment;
+    evaluationVisitor =
         new FormulaCompoundStateEvaluationVisitor(compoundIntervalManagerFactory);
-    this.compoundIntervalFormulaManager =
+    compoundIntervalFormulaManager =
         new CompoundIntervalFormulaManager(compoundIntervalManagerFactory);
   }
 
@@ -184,7 +184,7 @@ public class ExpressionToFormulaVisitor
       throws UnrecognizedCodeException {
     return asVariable(
         pCIdExpression.getExpressionType(),
-        this.variableNameExtractor.getMemoryLocation(pCIdExpression));
+        variableNameExtractor.getMemoryLocation(pCIdExpression));
   }
 
   @Override
@@ -192,7 +192,7 @@ public class ExpressionToFormulaVisitor
       throws UnrecognizedCodeException {
     return asVariable(
         pCFieldReference.getExpressionType(),
-        this.variableNameExtractor.getMemoryLocation(pCFieldReference));
+        variableNameExtractor.getMemoryLocation(pCFieldReference));
   }
 
   @Override
@@ -200,7 +200,7 @@ public class ExpressionToFormulaVisitor
       CArraySubscriptExpression pCArraySubscriptExpression) throws UnrecognizedCodeException {
     return asVariable(
         pCArraySubscriptExpression.getExpressionType(),
-        this.variableNameExtractor.getMemoryLocation(pCArraySubscriptExpression));
+        variableNameExtractor.getMemoryLocation(pCArraySubscriptExpression));
   }
 
   @Override

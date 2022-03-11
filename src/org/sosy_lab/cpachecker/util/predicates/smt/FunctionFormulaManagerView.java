@@ -27,7 +27,7 @@ public class FunctionFormulaManagerView extends BaseManagerView implements UFMan
 
   FunctionFormulaManagerView(FormulaWrappingHandler pWrappingHandler, UFManager pManager) {
     super(pWrappingHandler);
-    this.manager = checkNotNull(pManager);
+    manager = checkNotNull(pManager);
   }
 
   @Immutable

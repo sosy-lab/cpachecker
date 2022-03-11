@@ -113,7 +113,7 @@ public class DirectedGraph {
      */
     public boolean propagatePointerTargetsTo(DirectedGraph.Node other) {
 
-      return other.pointsToSet.addAll(this.pointsToSet);
+      return other.pointsToSet.addAll(pointsToSet);
     }
 
     /**
@@ -187,7 +187,7 @@ public class DirectedGraph {
         return false;
       }
       DirectedGraph.Edge o = (DirectedGraph.Edge) other;
-      return this.src.equals(o.src) && this.dest.equals(o.dest);
+      return src.equals(o.src) && dest.equals(o.dest);
     }
 
     @Override

@@ -305,7 +305,7 @@ public class PJBDDRegionManager implements RegionManager {
     @Override
     public void close() {
       cache.clear();
-      PJBDDRegionManager.this.bddCreator.shutDown();
+      bddCreator.shutDown();
     }
 
     @Override

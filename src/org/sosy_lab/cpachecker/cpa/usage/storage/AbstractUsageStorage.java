@@ -38,7 +38,7 @@ public abstract class AbstractUsageStorage
       NavigableSet<UsageInfo> storage;
       if (containsKey(id)) {
         // clone
-        storage = new TreeSet<>(this.get(id));
+        storage = new TreeSet<>(get(id));
       } else {
         storage = new TreeSet<>();
       }
@@ -72,7 +72,7 @@ public abstract class AbstractUsageStorage
   }
 
   public boolean isSubsetOf(AbstractUsageStorage pOther) {
-    for (Map.Entry<SingleIdentifier, NavigableSet<UsageInfo>> entry : this.entrySet()) {
+    for (Map.Entry<SingleIdentifier, NavigableSet<UsageInfo>> entry : entrySet()) {
       SingleIdentifier id = entry.getKey();
       if (pOther.containsKey(id)) {
         NavigableSet<UsageInfo> currentSet = entry.getValue();

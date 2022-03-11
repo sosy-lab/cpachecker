@@ -31,7 +31,7 @@ public final class FreshValueProvider implements Serializable {
   }
 
   public FreshValueProvider(PersistentSortedMap<String, Integer> diffVars) {
-    this.vars = diffVars;
+    vars = diffVars;
   }
 
   /** Get a new unused value based on the given one. */
@@ -54,7 +54,7 @@ public final class FreshValueProvider implements Serializable {
     }
     return new FreshValueProvider(
         PersistentSortedMaps.merge(
-            this.vars, other.vars, PersistentSortedMaps.getMaximumMergeConflictHandler()));
+            vars, other.vars, PersistentSortedMaps.getMaximumMergeConflictHandler()));
   }
 
   @Override

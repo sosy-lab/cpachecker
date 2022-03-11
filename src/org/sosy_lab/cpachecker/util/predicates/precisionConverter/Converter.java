@@ -32,14 +32,14 @@ public class Converter {
   protected final LogManager logger;
 
   public Converter(LogManager logger, CFA cfa) {
-    this.symbolEncoding = new SymbolEncoding(cfa);
+    symbolEncoding = new SymbolEncoding(cfa);
     this.logger = logger;
   }
 
   @VisibleForTesting
   public Converter() {
-    this.symbolEncoding = null;
-    this.logger = null;
+    symbolEncoding = null;
+    logger = null;
   }
 
   /**

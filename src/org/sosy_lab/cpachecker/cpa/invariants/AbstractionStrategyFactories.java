@@ -130,9 +130,9 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
                 Set<CFAEdge> pVisitedEdges,
                 Set<MemoryLocation> pWideningTargets,
                 Set<BooleanFormula<CompoundInterval>> pWideningHints) {
-              this.visitedEdges = pVisitedEdges;
-              this.wideningTargets = pWideningTargets;
-              this.wideningHints = pWideningHints;
+              visitedEdges = pVisitedEdges;
+              wideningTargets = pWideningTargets;
+              wideningHints = pWideningHints;
             }
 
             private ImmutableSet<MemoryLocation> determineWideningTargets(CFAEdge pEdge) {
@@ -373,16 +373,16 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
               if (pOther instanceof EnteringEdgesBasedAbstractionState) {
                 EnteringEdgesBasedAbstractionState other =
                     (EnteringEdgesBasedAbstractionState) pOther;
-                if ((this.visitedEdges == other.visitedEdges
-                        || other.visitedEdges.containsAll(this.visitedEdges))
-                    && (this.wideningTargets == other.wideningTargets
-                        || other.wideningTargets.containsAll(this.wideningTargets))
-                    && (this.wideningHints == other.wideningHints
-                        || other.wideningHints.containsAll(this.wideningHints))) {
+                if ((visitedEdges == other.visitedEdges
+                        || other.visitedEdges.containsAll(visitedEdges))
+                    && (wideningTargets == other.wideningTargets
+                        || other.wideningTargets.containsAll(wideningTargets))
+                    && (wideningHints == other.wideningHints
+                        || other.wideningHints.containsAll(wideningHints))) {
                   return other;
                 }
-                if (this.visitedEdges.containsAll(other.visitedEdges)
-                    && this.wideningTargets.containsAll(other.wideningTargets)) {
+                if (visitedEdges.containsAll(other.visitedEdges)
+                    && wideningTargets.containsAll(other.wideningTargets)) {
                   return this;
                 }
                 final Set<CFAEdge> edges = union(visitedEdges, other.visitedEdges);
@@ -425,14 +425,14 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
               if (pOther instanceof EnteringEdgesBasedAbstractionState) {
                 EnteringEdgesBasedAbstractionState other =
                     (EnteringEdgesBasedAbstractionState) pOther;
-                return other.visitedEdges.containsAll(this.visitedEdges);
+                return other.visitedEdges.containsAll(visitedEdges);
               }
               return !pOther.isLessThanOrEqualTo(this);
             }
 
             @Override
             public Set<BooleanFormula<CompoundInterval>> getWideningHints() {
-              return this.wideningHints;
+              return wideningHints;
             }
           }
           if (pWithEnteringEdges && pPrevious instanceof EnteringEdgesBasedAbstractionState) {

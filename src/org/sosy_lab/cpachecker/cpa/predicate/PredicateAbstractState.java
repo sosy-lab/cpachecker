@@ -275,10 +275,10 @@ public abstract class PredicateAbstractState
 
   private PredicateAbstractState(
       PathFormula pf, AbstractionFormula a, PersistentMap<CFANode, Integer> pAbstractionLocations) {
-    this.pathFormula = pf;
-    this.abstractionFormula = a;
-    this.abstractionLocations = pAbstractionLocations;
-    this.previousAbstractionState = null;
+    pathFormula = pf;
+    abstractionFormula = a;
+    abstractionLocations = pAbstractionLocations;
+    previousAbstractionState = null;
   }
 
   private PredicateAbstractState(
@@ -286,10 +286,10 @@ public abstract class PredicateAbstractState
       AbstractionFormula a,
       PersistentMap<CFANode, Integer> pAbstractionLocations,
       PredicateAbstractState pPreviousAbstractionState) {
-    this.pathFormula = pf;
-    this.abstractionFormula = a;
-    this.abstractionLocations = pAbstractionLocations;
-    this.previousAbstractionState = (AbstractionState) pPreviousAbstractionState;
+    pathFormula = pf;
+    abstractionFormula = a;
+    abstractionLocations = pAbstractionLocations;
+    previousAbstractionState = (AbstractionState) pPreviousAbstractionState;
   }
 
   public abstract boolean isAbstractionState();

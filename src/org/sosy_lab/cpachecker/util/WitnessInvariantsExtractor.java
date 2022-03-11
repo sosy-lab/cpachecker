@@ -103,12 +103,12 @@ public class WitnessInvariantsExtractor {
       ShutdownNotifier pShutdownNotifier,
       Path pPathToWitnessFile)
       throws InvalidConfigurationException, CPAException, InterruptedException {
-    this.config = pConfig;
+    config = pConfig;
     config.inject(this);
-    this.logger = pLogger;
-    this.cfa = pCFA;
-    this.shutdownNotifier = pShutdownNotifier;
-    this.automatonAsSpec = buildSpecification(pPathToWitnessFile);
+    logger = pLogger;
+    cfa = pCFA;
+    shutdownNotifier = pShutdownNotifier;
+    automatonAsSpec = buildSpecification(pPathToWitnessFile);
     analyzeWitness();
   }
 
@@ -132,11 +132,11 @@ public class WitnessInvariantsExtractor {
       CFA pCFA,
       ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException, CPAException {
-    this.config = pConfig;
-    this.logger = pLogger;
-    this.cfa = pCFA;
-    this.shutdownNotifier = pShutdownNotifier;
-    this.automatonAsSpec = Specification.fromAutomata(ImmutableList.of(pAutomaton));
+    config = pConfig;
+    logger = pLogger;
+    cfa = pCFA;
+    shutdownNotifier = pShutdownNotifier;
+    automatonAsSpec = Specification.fromAutomata(ImmutableList.of(pAutomaton));
     analyzeWitness();
   }
 

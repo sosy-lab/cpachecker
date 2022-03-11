@@ -39,7 +39,7 @@ public abstract class SingleLocationFormulaInvariant implements CandidateInvaria
 
   protected SingleLocationFormulaInvariant(CFANode pLocation) {
     Preconditions.checkNotNull(pLocation);
-    this.location = pLocation;
+    location = pLocation;
   }
 
   public final CFANode getLocation() {

@@ -267,21 +267,21 @@ class ASTConverter {
       MachineModel pMachineModel,
       String pStaticVariablePrefix,
       Sideassignments pSideAssignmentStack) {
-    this.options = pOptions;
-    this.scope = pScope;
-    this.logger = pLogger;
-    this.typeConverter = new ASTTypeConverter(scope, this, pStaticVariablePrefix, pParseContext);
-    this.literalConverter = new ASTLiteralConverter(pMachineModel, pParseContext);
-    this.operatorConverter = new ASTOperatorConverter(pParseContext);
-    this.parseContext = pParseContext;
-    this.machinemodel = pMachineModel;
-    this.staticVariablePrefix = pStaticVariablePrefix;
-    this.sideAssignmentStack = pSideAssignmentStack;
+    options = pOptions;
+    scope = pScope;
+    logger = pLogger;
+    typeConverter = new ASTTypeConverter(scope, this, pStaticVariablePrefix, pParseContext);
+    literalConverter = new ASTLiteralConverter(pMachineModel, pParseContext);
+    operatorConverter = new ASTOperatorConverter(pParseContext);
+    parseContext = pParseContext;
+    machinemodel = pMachineModel;
+    staticVariablePrefix = pStaticVariablePrefix;
+    sideAssignmentStack = pSideAssignmentStack;
 
-    this.expressionSimplificator = new ExpressionSimplificationVisitor(pMachineModel, pLogger);
-    this.nonRecursiveExpressionSimplificator =
+    expressionSimplificator = new ExpressionSimplificationVisitor(pMachineModel, pLogger);
+    nonRecursiveExpressionSimplificator =
         new NonRecursiveExpressionSimplificationVisitor(pMachineModel, pLogger);
-    this.binExprBuilder = new CBinaryExpressionBuilder(pMachineModel, pLogger);
+    binExprBuilder = new CBinaryExpressionBuilder(pMachineModel, pLogger);
   }
 
   public CExpression convertExpressionWithoutSideEffects(IASTExpression e) {

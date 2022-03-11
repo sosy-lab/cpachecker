@@ -129,7 +129,7 @@ public class CallstackState
   public Object evaluateProperty(String pProperty) throws InvalidQueryException {
     if (pProperty.compareToIgnoreCase("caller") == 0) {
       if (callerNode != null) {
-        return this.callerNode.getFunctionName();
+        return callerNode.getFunctionName();
       } else {
         return "";
       }

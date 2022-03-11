@@ -54,14 +54,14 @@ public enum SIGN implements Serializable {
   }
 
   public boolean covers(SIGN sign) {
-    if ((sign.numVal | this.numVal) == this.numVal) {
+    if ((sign.numVal | numVal) == numVal) {
       return true;
     }
     return false;
   }
 
   public boolean intersects(SIGN sign) {
-    if ((sign.numVal & this.numVal) != 0) {
+    if ((sign.numVal & numVal) != 0) {
       return true;
     }
     return false;
@@ -79,7 +79,7 @@ public enum SIGN implements Serializable {
       return true;
     }
     // Check if this is a subset using atomic signs
-    return sign.split().containsAll(this.split());
+    return sign.split().containsAll(split());
   }
 
   public ImmutableSet<SIGN> split() { // TODO performance

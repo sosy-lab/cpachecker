@@ -96,11 +96,11 @@ public final class SSAMap implements Serializable {
 
     private SSAMapBuilder(SSAMap ssa) {
       this.ssa = ssa;
-      this.vars = ssa.vars;
-      this.freshValueProvider = ssa.freshValueProvider;
+      vars = ssa.vars;
+      freshValueProvider = ssa.freshValueProvider;
 
-      this.varTypes = ssa.varTypes;
-      this.varsHashCode = ssa.varsHashCode;
+      varTypes = ssa.varTypes;
+      varsHashCode = ssa.varsHashCode;
     }
 
     public int getIndex(String variable) {
@@ -150,7 +150,7 @@ public final class SSAMap implements Serializable {
     }
 
     public void mergeFreshValueProviderWith(final FreshValueProvider fvp) {
-      this.freshValueProvider = freshValueProvider.merge(fvp);
+      freshValueProvider = freshValueProvider.merge(fvp);
     }
 
     public SSAMapBuilder deleteVariable(String variable) {
@@ -199,7 +199,7 @@ public final class SSAMap implements Serializable {
 
   public SSAMap withDefault(final int pDefaultValue) {
     return new SSAMap(
-        this.vars, this.freshValueProvider, this.varsHashCode, this.varTypes, pDefaultValue);
+        vars, freshValueProvider, varsHashCode, varTypes, pDefaultValue);
   }
 
   /**

@@ -40,8 +40,8 @@ public class SlicingAbstractionsRefiner implements Refiner, StatisticsProvider {
   private final ARGCPA argCpa;
 
   public SlicingAbstractionsRefiner(ARGBasedRefiner pRefiner, ARGCPA pCpa) {
-    this.refiner = pRefiner;
-    this.argCpa = pCpa;
+    refiner = pRefiner;
+    argCpa = pCpa;
   }
 
   public static Refiner create(ConfigurableProgramAnalysis pCpa)

@@ -85,9 +85,9 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
     config.inject(this);
 
     if (pCpa instanceof ProofChecker) {
-      this.wrappedProofChecker = (ProofChecker) pCpa;
+      wrappedProofChecker = (ProofChecker) pCpa;
     } else {
-      this.wrappedProofChecker = null;
+      wrappedProofChecker = null;
     }
 
     final BAMCache cache;

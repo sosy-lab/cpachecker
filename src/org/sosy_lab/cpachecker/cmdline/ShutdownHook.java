@@ -36,7 +36,7 @@ class ShutdownHook extends Thread {
 
   public void disableAndStop() {
     enabled = false;
-    this.interrupt(); // in case it is already running
+    interrupt(); // in case it is already running
   }
 
   public void disable() {

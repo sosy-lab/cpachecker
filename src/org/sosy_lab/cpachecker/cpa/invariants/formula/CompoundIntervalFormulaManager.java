@@ -58,10 +58,10 @@ public class CompoundIntervalFormulaManager {
 
   public CompoundIntervalFormulaManager(
       CompoundIntervalManagerFactory pCompoundIntervalManagerFactory) {
-    this.compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
-    this.evaluationVisitor =
+    compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
+    evaluationVisitor =
         new FormulaCompoundStateEvaluationVisitor(pCompoundIntervalManagerFactory);
-    this.partialEvaluator = new PartialEvaluator(compoundIntervalManagerFactory, this);
+    partialEvaluator = new PartialEvaluator(compoundIntervalManagerFactory, this);
   }
 
   CompoundIntervalManagerFactory getCompoundIntervalManagerFactory() {

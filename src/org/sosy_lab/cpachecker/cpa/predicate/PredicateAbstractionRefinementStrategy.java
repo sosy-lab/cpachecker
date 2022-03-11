@@ -252,7 +252,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
   private ListMultimap<LocationInstance, AbstractionPredicate> newPredicates;
 
   final void setUseAtomicPredicates(boolean pAtomicPredicates) {
-    this.atomicPredicates = pAtomicPredicates;
+    atomicPredicates = pAtomicPredicates;
   }
 
   @Override

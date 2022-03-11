@@ -64,7 +64,7 @@ public class SMGValue implements SMGNode, Comparable<SMGValue> {
    * @return True if this SMGValue is equal to 0.
    */
   public boolean isZero() {
-    return this.equals(ZERO_VALUE);
+    return equals(ZERO_VALUE);
   }
 
   @Override

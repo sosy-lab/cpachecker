@@ -80,8 +80,8 @@ final class CompositeField implements Comparable<CompositeField>, Serializable {
   @Override
   public int compareTo(final CompositeField other) {
     return ComparisonChain.start()
-        .compare(this.compositeTypeStr, other.compositeTypeStr)
-        .compare(this.getFieldName(), other.getFieldName())
+        .compare(compositeTypeStr, other.compositeTypeStr)
+        .compare(getFieldName(), other.getFieldName())
         .result();
   }
 

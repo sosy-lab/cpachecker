@@ -70,7 +70,7 @@ public class IntervalAnalysisState
   public IntervalAnalysisState(
       PersistentMap<String, Interval> intervals, PersistentMap<String, Integer> referencesMap) {
     this.intervals = intervals;
-    this.referenceCounts = referencesMap;
+    referenceCounts = referencesMap;
   }
 
   /**
@@ -267,10 +267,10 @@ public class IntervalAnalysisState
     }
 
     // second: learn new information
-    for (final String trackedVar : this.intervals.keySet()) {
+    for (final String trackedVar : intervals.keySet()) {
 
       if (!trackedVar.contains("::")) { // global -> override deleted value
-        rebuildState = rebuildState.addInterval(trackedVar, this.getInterval(trackedVar), -1);
+        rebuildState = rebuildState.addInterval(trackedVar, getInterval(trackedVar), -1);
 
       } else if (functionExit.getEntryNode().getReturnVariable().isPresent()
           && functionExit
@@ -282,8 +282,8 @@ public class IntervalAnalysisState
         assert !rebuildState.contains(trackedVar)
             : "calling function should not contain return-variable of called function: "
                 + trackedVar;
-        if (this.contains(trackedVar)) {
-          rebuildState = rebuildState.addInterval(trackedVar, this.getInterval(trackedVar), -1);
+        if (contains(trackedVar)) {
+          rebuildState = rebuildState.addInterval(trackedVar, getInterval(trackedVar), -1);
         }
       }
     }

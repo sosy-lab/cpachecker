@@ -54,12 +54,12 @@ class PushValueToEnvironmentVisitor
       CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
       FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor,
       NonRecursiveEnvironment.Builder pEnvironment) {
-    this.pushAssumptionToEnvironmentVisitor =
+    pushAssumptionToEnvironmentVisitor =
         new PushAssumptionToEnvironmentVisitor(
             this, pCompoundIntervalManagerFactory, pEvaluationVisitor, pEnvironment);
-    this.evaluationVisitor = pEvaluationVisitor;
-    this.environment = pEnvironment;
-    this.compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
+    evaluationVisitor = pEvaluationVisitor;
+    environment = pEnvironment;
+    compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
   }
 
   /**
@@ -79,10 +79,10 @@ class PushValueToEnvironmentVisitor
       CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
       FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor,
       NonRecursiveEnvironment.Builder pEnvironment) {
-    this.pushAssumptionToEnvironmentVisitor = pPushAssumptionToEnvironmentVisitor;
-    this.evaluationVisitor = pEvaluationVisitor;
-    this.environment = pEnvironment;
-    this.compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
+    pushAssumptionToEnvironmentVisitor = pPushAssumptionToEnvironmentVisitor;
+    evaluationVisitor = pEvaluationVisitor;
+    environment = pEnvironment;
+    compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
   }
 
   private CompoundInterval evaluate(NumeralFormula<CompoundInterval> pFormula) {
@@ -323,7 +323,7 @@ class PushValueToEnvironmentVisitor
                 LogicalNot.of(Equal.of(pUnion.getOperand1(), parameter)),
                 LogicalNot.of(Equal.of(pUnion.getOperand2(), parameter))));
     return disjunctiveForm.accept(
-        this.pushAssumptionToEnvironmentVisitor, BooleanConstant.<CompoundInterval>getTrue());
+        pushAssumptionToEnvironmentVisitor, BooleanConstant.<CompoundInterval>getTrue());
   }
 
   @Override

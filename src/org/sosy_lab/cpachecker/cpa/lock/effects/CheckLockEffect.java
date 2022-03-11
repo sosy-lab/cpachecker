@@ -51,7 +51,7 @@ public final class CheckLockEffect extends LockEffect {
 
   @Override
   public CheckLockEffect cloneWithTarget(LockIdentifier id) {
-    return createEffectForId(this.p, this.isTruth, id);
+    return createEffectForId(p, isTruth, id);
   }
 
   @Override

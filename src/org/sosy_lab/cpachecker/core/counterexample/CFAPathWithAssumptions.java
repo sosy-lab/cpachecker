@@ -216,7 +216,7 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
 
   public Optional<CFAPathWithAssumptions> mergePaths(CFAPathWithAssumptions pOtherPath) {
 
-    if (pOtherPath.size() != this.size()) {
+    if (pOtherPath.size() != size()) {
       return Optional.empty();
     }
 

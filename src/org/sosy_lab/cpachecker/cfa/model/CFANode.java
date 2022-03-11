@@ -226,7 +226,7 @@ public class CFANode implements Comparable<CFANode>, Serializable {
 
   @Override
   public final int compareTo(CFANode pOther) {
-    return Integer.compare(this.nodeNumber, pOther.nodeNumber);
+    return Integer.compare(nodeNumber, pOther.nodeNumber);
   }
 
   @Override

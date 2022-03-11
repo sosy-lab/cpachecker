@@ -349,7 +349,7 @@ public final class PredicatePrecision implements AdjustablePrecision {
 
   /** Create a new precision which contains all predicates of this precision and a second one. */
   public PredicatePrecision mergeWith(PredicatePrecision prec) {
-    if (this == prec || this.isEmpty()) {
+    if (this == prec || isEmpty()) {
       return prec;
     }
     if (prec.isEmpty()) {
@@ -374,20 +374,20 @@ public final class PredicatePrecision implements AdjustablePrecision {
    */
   public int calculateDifferenceTo(PredicatePrecision other) {
     int difference = 0;
-    difference += Sets.difference(this.getGlobalPredicates(), other.getGlobalPredicates()).size();
+    difference += Sets.difference(getGlobalPredicates(), other.getGlobalPredicates()).size();
 
     difference +=
         Sets.difference(
-                this.getFunctionPredicates().entries(), other.getFunctionPredicates().entries())
+                getFunctionPredicates().entries(), other.getFunctionPredicates().entries())
             .size();
 
     difference +=
-        Sets.difference(this.getLocalPredicates().entries(), other.getLocalPredicates().entries())
+        Sets.difference(getLocalPredicates().entries(), other.getLocalPredicates().entries())
             .size();
 
     difference +=
         Sets.difference(
-                this.getLocationInstancePredicates().entries(),
+                getLocationInstancePredicates().entries(),
                 other.getLocationInstancePredicates().entries())
             .size();
     return difference;
@@ -479,6 +479,6 @@ public final class PredicatePrecision implements AdjustablePrecision {
             mLocationInstancePredicates.entries(), other.getLocationInstancePredicates().entries()),
         Sets.difference(mLocalPredicates.entries(), other.getLocalPredicates().entries()),
         Sets.difference(mFunctionPredicates.entries(), other.getFunctionPredicates().entries()),
-        Sets.difference(this.getGlobalPredicates(), other.getGlobalPredicates()));
+        Sets.difference(getGlobalPredicates(), other.getGlobalPredicates()));
   }
 }

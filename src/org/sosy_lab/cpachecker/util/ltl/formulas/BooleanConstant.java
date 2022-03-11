@@ -22,7 +22,7 @@ public final class BooleanConstant implements LtlFormula {
   }
 
   private BooleanConstant(boolean pValue) {
-    this.value = pValue;
+    value = pValue;
   }
 
   @Override

@@ -244,16 +244,16 @@ public class InvariantsCPA
       CFA pCfa,
       Specification pSpecification)
       throws InvalidConfigurationException {
-    this.config = pConfig;
-    this.logManager = pLogManager;
-    this.shutdownNotifier = pShutdownNotifier;
-    this.cfa = pCfa;
-    this.specification = checkNotNull(pSpecification);
-    this.targetLocationProvider =
+    config = pConfig;
+    logManager = pLogManager;
+    shutdownNotifier = pShutdownNotifier;
+    cfa = pCfa;
+    specification = checkNotNull(pSpecification);
+    targetLocationProvider =
         new CachingTargetLocationProvider(shutdownNotifier, logManager, cfa);
-    this.options = pOptions;
-    this.conditionAdjuster = pOptions.conditionAdjusterFactory.createConditionAdjuster(this);
-    this.machineModel = pCfa.getMachineModel();
+    options = pOptions;
+    conditionAdjuster = pOptions.conditionAdjusterFactory.createConditionAdjuster(this);
+    machineModel = pCfa.getMachineModel();
     abstractDomain = DelegateAbstractDomain.<InvariantsState>getInstance();
     if (pOptions.merge.equalsIgnoreCase("precisiondependent")) {
       mergeOperator = new InvariantsMergeOperator();
@@ -263,8 +263,8 @@ public class InvariantsCPA
       assert pOptions.merge.equalsIgnoreCase("join");
       mergeOperator = new MergeJoinOperator(abstractDomain);
     }
-    this.writer = new StateToFormulaWriter(config, logManager, shutdownNotifier, cfa);
-    this.edgeAnalyzer = new EdgeAnalyzer(compoundIntervalManagerFactory, machineModel);
+    writer = new StateToFormulaWriter(config, logManager, shutdownNotifier, cfa);
+    edgeAnalyzer = new EdgeAnalyzer(compoundIntervalManagerFactory, machineModel);
   }
 
   @Override
@@ -330,8 +330,8 @@ public class InvariantsCPA
     // Collect relevant edges and guess that information might be interesting
     Set<CFAEdge> relevantEdges = new LinkedHashSet<>();
     Set<MemoryLocation> interestingVariables;
-    synchronized (this.currentInterestingVariables) {
-      interestingVariables = new LinkedHashSet<>(this.currentInterestingVariables);
+    synchronized (currentInterestingVariables) {
+      interestingVariables = new LinkedHashSet<>(currentInterestingVariables);
     }
 
     if (interestingVariableLimit > 0 && !determineTargetLocations) {
@@ -452,8 +452,8 @@ public class InvariantsCPA
   }
 
   public void addInterestingVariables(Iterable<MemoryLocation> pInterestingVariables) {
-    synchronized (this.currentInterestingVariables) {
-      Iterables.addAll(this.currentInterestingVariables, pInterestingVariables);
+    synchronized (currentInterestingVariables) {
+      Iterables.addAll(currentInterestingVariables, pInterestingVariables);
     }
   }
 
@@ -483,7 +483,7 @@ public class InvariantsCPA
   }
 
   public boolean isLikelyLongRunning() {
-    return this.options.abstractionStateFactory == AbstractionStrategyFactories.NEVER;
+    return options.abstractionStateFactory == AbstractionStrategyFactories.NEVER;
   }
 
   private static <T> boolean reachesLimit(Collection<T> pCollection, int pLimit) {
@@ -760,7 +760,7 @@ public class InvariantsCPA
       if (inner.adjustConditions()) {
         return true;
       } else {
-        this.innerAdjusters.remove(inner);
+        innerAdjusters.remove(inner);
         return adjustConditions();
       }
     }
@@ -823,13 +823,13 @@ public class InvariantsCPA
 
     @Override
     public int getInc() {
-      return this.inc;
+      return inc;
     }
 
     @Override
     public void setInc(int pInc) {
       Preconditions.checkArgument(pInc > 0);
-      this.inc = pInc;
+      inc = pInc;
     }
   }
 
@@ -859,13 +859,13 @@ public class InvariantsCPA
 
     @Override
     public int getInc() {
-      return this.inc;
+      return inc;
     }
 
     @Override
     public void setInc(int pInc) {
       Preconditions.checkArgument(pInc > 0);
-      this.inc = pInc;
+      inc = pInc;
     }
   }
 
@@ -874,7 +874,7 @@ public class InvariantsCPA
     private final InvariantsCPA cpa;
 
     public AbstractionStrategyAdjuster(InvariantsCPA pCPA) {
-      this.cpa = pCPA;
+      cpa = pCPA;
     }
 
     @Override

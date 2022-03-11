@@ -156,7 +156,7 @@ public class IntervalAnalysisTransferRelation
       // get value of actual parameter in caller function context
       Interval interval = evaluateInterval(state, arguments.get(i), callEdge);
       String formalParameterName = parameters.get(i).getQualifiedName();
-      newState = newState.addInterval(formalParameterName, interval, this.threshold);
+      newState = newState.addInterval(formalParameterName, interval, threshold);
     }
 
     return soleSuccessor(newState);
@@ -385,7 +385,7 @@ public class IntervalAnalysisTransferRelation
         interval = Interval.UNBOUND;
       }
 
-      newState = newState.addInterval(decl.getQualifiedName(), interval, this.threshold);
+      newState = newState.addInterval(decl.getQualifiedName(), interval, threshold);
     }
 
     return soleSuccessor(newState);

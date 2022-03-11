@@ -39,7 +39,7 @@ class BnBRegionManager extends AbstractMemoryRegionManager implements MemoryRegi
     private final CType type;
 
     GlobalBnBRegion(CType pType) {
-      this.type = pType;
+      type = pType;
     }
 
     @Override
@@ -146,7 +146,7 @@ class BnBRegionManager extends AbstractMemoryRegionManager implements MemoryRegi
       TypeHandlerWithPointerAliasing pTypeHandler) {
     super(pTypeHandler);
     this.fieldRegions = fieldRegions;
-    this.varClassification = var;
+    varClassification = var;
   }
 
   @Override

@@ -56,13 +56,13 @@ public class PushAssumptionToEnvironmentVisitor
       CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
       FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor,
       NonRecursiveEnvironment.Builder pEnvironment) {
-    this.pushValueToEnvironmentVisitor =
+    pushValueToEnvironmentVisitor =
         new PushValueToEnvironmentVisitor(
             this, pCompoundIntervalManagerFactory, pEvaluationVisitor, pEnvironment);
-    this.evaluationVisitor = pEvaluationVisitor;
-    this.environment = pEnvironment;
-    this.compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
-    this.compoundIntervalFormulaManager =
+    evaluationVisitor = pEvaluationVisitor;
+    environment = pEnvironment;
+    compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
+    compoundIntervalFormulaManager =
         new CompoundIntervalFormulaManager(compoundIntervalManagerFactory);
   }
 
@@ -93,11 +93,11 @@ public class PushAssumptionToEnvironmentVisitor
       CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
       FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor,
       NonRecursiveEnvironment.Builder pEnvironment) {
-    this.pushValueToEnvironmentVisitor = pPushValueToEnvironmentVisitor;
-    this.evaluationVisitor = pEvaluationVisitor;
-    this.environment = pEnvironment;
-    this.compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
-    this.compoundIntervalFormulaManager =
+    pushValueToEnvironmentVisitor = pPushValueToEnvironmentVisitor;
+    evaluationVisitor = pEvaluationVisitor;
+    environment = pEnvironment;
+    compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
+    compoundIntervalFormulaManager =
         new CompoundIntervalFormulaManager(compoundIntervalManagerFactory);
   }
 
@@ -159,8 +159,8 @@ public class PushAssumptionToEnvironmentVisitor
           environment.put(memoryLocation, previous);
         }
       }
-      return pEqual.getOperand1().accept(this.pushValueToEnvironmentVisitor, rightValue)
-          && pEqual.getOperand2().accept(this.pushValueToEnvironmentVisitor, leftValue);
+      return pEqual.getOperand1().accept(pushValueToEnvironmentVisitor, rightValue)
+          && pEqual.getOperand2().accept(pushValueToEnvironmentVisitor, leftValue);
     }
     // The equation is definitely false
 
@@ -178,11 +178,11 @@ public class PushAssumptionToEnvironmentVisitor
 
     // Push inverted singletons, if any
     if (rightValue.isSingleton()
-        && !pEqual.getOperand1().accept(this.pushValueToEnvironmentVisitor, rightValue.invert())) {
+        && !pEqual.getOperand1().accept(pushValueToEnvironmentVisitor, rightValue.invert())) {
       return false;
     }
     if (leftValue.isSingleton()
-        && !pEqual.getOperand2().accept(this.pushValueToEnvironmentVisitor, leftValue.invert())) {
+        && !pEqual.getOperand2().accept(pushValueToEnvironmentVisitor, leftValue.invert())) {
       return false;
     }
 
@@ -242,8 +242,8 @@ public class PushAssumptionToEnvironmentVisitor
         leftPushValue = rightValue.span().extendToMaxValue();
         rightPushValue = leftValue.span().extendToMinValue();
       }
-      return pLessThan.getOperand1().accept(this.pushValueToEnvironmentVisitor, leftPushValue)
-          && pLessThan.getOperand2().accept(this.pushValueToEnvironmentVisitor, rightPushValue);
+      return pLessThan.getOperand1().accept(pushValueToEnvironmentVisitor, leftPushValue)
+          && pLessThan.getOperand2().accept(pushValueToEnvironmentVisitor, rightPushValue);
     }
     return true;
   }
@@ -267,7 +267,7 @@ public class PushAssumptionToEnvironmentVisitor
           && pAnd.getOperand2().accept(this, pParameter);
     } else {
       NonRecursiveEnvironment.Builder env1 =
-          new NonRecursiveEnvironment.Builder(compoundIntervalManagerFactory, this.environment);
+          new NonRecursiveEnvironment.Builder(compoundIntervalManagerFactory, environment);
       boolean push1 =
           pAnd.getOperand1()
               .accept(
@@ -281,7 +281,7 @@ public class PushAssumptionToEnvironmentVisitor
       }
 
       NonRecursiveEnvironment.Builder env2 =
-          new NonRecursiveEnvironment.Builder(compoundIntervalManagerFactory, this.environment);
+          new NonRecursiveEnvironment.Builder(compoundIntervalManagerFactory, environment);
       boolean push2 =
           pAnd.getOperand2()
               .accept(
@@ -304,9 +304,9 @@ public class PushAssumptionToEnvironmentVisitor
               compoundIntervalFormulaManager
                   .union(value1, value2)
                   .accept(
-                      new PartialEvaluator(compoundIntervalManagerFactory, this.environment),
+                      new PartialEvaluator(compoundIntervalManagerFactory, environment),
                       evaluationVisitor);
-          if (newValueFormula.accept(this.evaluationVisitor, this.environment).isBottom()) {
+          if (newValueFormula.accept(evaluationVisitor, environment).isBottom()) {
             return false;
           }
           if (newValueFormula instanceof Constant<?>
@@ -315,7 +315,7 @@ public class PushAssumptionToEnvironmentVisitor
                   .containsAllPossibleValues()) {
             continue;
           }
-          this.environment.put(memoryLocation, newValueFormula);
+          environment.put(memoryLocation, newValueFormula);
         }
       }
     }

@@ -535,7 +535,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           } else {
             pf = pe.getPathFormula();
           }
-          pf = this.makeEmptyPathFormulaWithContextFrom(pf); // reset everything except SSAMap
+          pf = makeEmptyPathFormulaWithContextFrom(pf); // reset everything except SSAMap
           pf = this.makeAnd(pf, positiveEdge); // conjunct with edge
         }
         BooleanFormula equiv = bfmgr.equivalence(pred, pf.getFormula());

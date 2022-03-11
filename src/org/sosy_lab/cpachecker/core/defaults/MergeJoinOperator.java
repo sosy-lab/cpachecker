@@ -21,7 +21,7 @@ public class MergeJoinOperator implements MergeOperator {
 
   /** Creates a merge-join operator, based on the given join operator */
   public MergeJoinOperator(AbstractDomain d) {
-    this.domain = d;
+    domain = d;
   }
 
   @Override

@@ -186,7 +186,7 @@ public class ReachedSetFactory {
   public ReachedSetFactory(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
     pConfig.inject(this);
-    this.logger = checkNotNull(pLogger);
+    logger = checkNotNull(pLogger);
 
     if (useBlocks) {
       blockConfig = new BlockConfiguration(pConfig);

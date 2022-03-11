@@ -210,7 +210,7 @@ public class CtoWpConverter extends CtoFormulaConverter {
     }
 
     if (rhs instanceof CExpression) {
-      rhs = this.makeCastFromArrayToPointerIfNecessary((CExpression) rhs, lhsType);
+      rhs = makeCastFromArrayToPointerIfNecessary((CExpression) rhs, lhsType);
     }
 
     return makePreconditionForAssignement(lhs, rhs, pEdge, pPostcond, pFunction);

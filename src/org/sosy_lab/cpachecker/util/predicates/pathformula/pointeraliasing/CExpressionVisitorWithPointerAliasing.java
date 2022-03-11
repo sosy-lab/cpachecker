@@ -155,10 +155,10 @@ class CExpressionVisitorWithPointerAliasing
           }
         };
 
-    this.conv = cToFormulaConverter;
-    this.typeHandler = cToFormulaConverter.typeHandler;
-    this.ofmgr = new OverflowAssumptionManager(conv.machineModel, conv.logger);
-    this.edge = cfaEdge;
+    conv = cToFormulaConverter;
+    typeHandler = cToFormulaConverter.typeHandler;
+    ofmgr = new OverflowAssumptionManager(conv.machineModel, conv.logger);
+    edge = cfaEdge;
     this.ssa = ssa;
     this.constraints = constraints;
     this.errorConditions = errorConditions;

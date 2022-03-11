@@ -53,7 +53,7 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
 
   /** Constructs the bottom state. This should only be invoked by the constant declaration. */
   private CompoundMathematicalInterval() {
-    this.intervals = new SimpleInterval[0];
+    intervals = new SimpleInterval[0];
   }
 
   /**
@@ -63,7 +63,7 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
    * @param pInterval the interval to compose this state from. Must not be {@code null}.
    */
   private CompoundMathematicalInterval(SimpleInterval pInterval) {
-    this.intervals = new SimpleInterval[] {pInterval};
+    intervals = new SimpleInterval[] {pInterval};
   }
 
   /**
@@ -74,7 +74,7 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
    *     {@code null}.
    */
   private CompoundMathematicalInterval(SimpleInterval[] pIntervals) {
-    this.intervals = pIntervals;
+    intervals = pIntervals;
   }
 
   /**
@@ -135,7 +135,7 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
    * @return the number of intervals.
    */
   public int getNumberOfIntervals() {
-    return this.intervals.length;
+    return intervals.length;
   }
 
   /**
@@ -145,12 +145,12 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
    */
   @Override
   public List<SimpleInterval> getIntervals() {
-    return Collections.unmodifiableList(Arrays.asList(this.intervals));
+    return Collections.unmodifiableList(Arrays.asList(intervals));
   }
 
   @Override
   public List<CompoundMathematicalInterval> splitIntoIntervals() {
-    return Lists.transform(Arrays.asList(this.intervals), CompoundMathematicalInterval::of);
+    return Lists.transform(Arrays.asList(intervals), CompoundMathematicalInterval::of);
   }
 
   /**
@@ -191,18 +191,18 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
     SimpleInterval lastInterval = null;
     if (pOther.hasLowerBound() && hasUpperBound()) {
       BigInteger pOtherLB = pOther.getLowerBound();
-      SimpleInterval currentLocal = this.intervals[start];
+      SimpleInterval currentLocal = intervals[start];
       while (currentLocal != null && pOtherLB.compareTo(currentLocal.getUpperBound()) > 0) {
         resultIntervals.add(currentLocal);
         ++start;
         lastInterval = currentLocal;
-        currentLocal = start < this.intervals.length ? this.intervals[start] : null;
+        currentLocal = start < intervals.length ? intervals[start] : null;
         assert currentLocal == null || currentLocal.hasUpperBound() : toString();
       }
     }
     boolean inserted = false;
-    for (int index = start; index < this.intervals.length; ++index) {
-      SimpleInterval interval = this.intervals[index];
+    for (int index = start; index < intervals.length; ++index) {
+      SimpleInterval interval = intervals[index];
       boolean currentInserted = false;
       if (interval.touches(lastInterval)) {
         lastInterval = union(interval, lastInterval);
@@ -293,7 +293,7 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
     if (contains(pOther)) {
       return CompoundMathematicalInterval.of(pOther);
     }
-    if (this.intervals.length == 1 && pOther.contains(this.intervals[0])) {
+    if (intervals.length == 1 && pOther.contains(intervals[0])) {
       return this;
     }
     CompoundMathematicalInterval result = bottom();
@@ -309,7 +309,7 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
       int intervalIndex = intervalIndexOf(pOther.getUpperBound());
       ubIndex = intervalIndex >= 0 ? intervalIndex : (-intervalIndex - 1);
     } else {
-      ubIndex = this.intervals.length - 1;
+      ubIndex = intervals.length - 1;
     }
     for (int i = lbIndex; i <= ubIndex; ++i) {
       SimpleInterval interval = intervals[i];
@@ -395,10 +395,10 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
     BigInteger lb = hasLowerBound ? pInterval.getLowerBound() : null;
     BigInteger ub = hasUpperBound ? pInterval.getUpperBound() : null;
     int leftInclusive = 0;
-    int rightExclusive = this.intervals.length;
+    int rightExclusive = intervals.length;
     while (leftInclusive < rightExclusive) {
       int index = IntMath.mean(leftInclusive, rightExclusive);
-      SimpleInterval intervalAtIndex = this.intervals[index];
+      SimpleInterval intervalAtIndex = intervals[index];
       boolean lbIndexLeqLb =
           !intervalAtIndex.hasLowerBound()
               || (hasLowerBound && intervalAtIndex.getLowerBound().compareTo(lb) <= 0);
@@ -425,10 +425,10 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
       return 0;
     }
     int leftInclusive = 0;
-    int rightExclusive = this.intervals.length;
+    int rightExclusive = intervals.length;
     int index = rightExclusive / 2;
     while (leftInclusive < rightExclusive) {
-      SimpleInterval intervalAtIndex = this.intervals[index];
+      SimpleInterval intervalAtIndex = intervals[index];
       boolean lbIndexLeqValue =
           !intervalAtIndex.hasLowerBound() || intervalAtIndex.getLowerBound().compareTo(value) <= 0;
       boolean ubIndexGeqValue =
@@ -490,7 +490,7 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
    */
   @Override
   public boolean isBottom() {
-    return this.intervals.length == 0;
+    return intervals.length == 0;
   }
 
   /**
@@ -499,7 +499,7 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
    * @return <code>true</code> if this is the top state, <code>false</code> otherwise.
    */
   public boolean isTop() {
-    return !isBottom() && this.intervals[0].isTop();
+    return !isBottom() && intervals[0].isTop();
   }
 
   /**
@@ -523,7 +523,7 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
     StringBuilder sb = new StringBuilder();
     sb.append('{');
     if (!isBottom()) {
-      Iterator<SimpleInterval> intervalIterator = Arrays.asList(this.intervals).iterator();
+      Iterator<SimpleInterval> intervalIterator = Arrays.asList(intervals).iterator();
       sb.append(intervalIterator.next());
       while (intervalIterator.hasNext()) {
         sb.append(", ");
@@ -545,7 +545,7 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
     if (isTop() || isBottom()) {
       return false;
     }
-    return this.intervals[0].hasLowerBound();
+    return intervals[0].hasLowerBound();
   }
 
   /**
@@ -559,7 +559,7 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
     if (isTop() || isBottom()) {
       return false;
     }
-    return this.intervals[this.intervals.length - 1].hasUpperBound();
+    return intervals[intervals.length - 1].hasUpperBound();
   }
 
   /**
@@ -569,7 +569,7 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
    */
   @Override
   public BigInteger getLowerBound() {
-    return this.intervals[0].getLowerBound();
+    return intervals[0].getLowerBound();
   }
 
   /**
@@ -579,7 +579,7 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
    */
   @Override
   public BigInteger getUpperBound() {
-    return this.intervals[this.intervals.length - 1].getUpperBound();
+    return intervals[intervals.length - 1].getUpperBound();
   }
 
   /**
@@ -590,7 +590,7 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
    */
   @Override
   public boolean isSingleton() {
-    return !isBottom() && this.intervals.length == 1 && this.intervals[0].isSingleton();
+    return !isBottom() && intervals.length == 1 && intervals[0].isSingleton();
   }
 
   /**
@@ -608,7 +608,7 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
     if (isTop()) {
       return BigInteger.ZERO;
     }
-    for (SimpleInterval interval : this.intervals) {
+    for (SimpleInterval interval : intervals) {
       if (interval.hasLowerBound()) {
         return interval.getLowerBound();
       }
@@ -628,14 +628,14 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
       return false;
     }
     if (pOther instanceof CompoundMathematicalInterval) {
-      return Arrays.equals(this.intervals, ((CompoundMathematicalInterval) pOther).intervals);
+      return Arrays.equals(intervals, ((CompoundMathematicalInterval) pOther).intervals);
     }
     return false;
   }
 
   @Override
   public int hashCode() {
-    return Arrays.hashCode(this.intervals);
+    return Arrays.hashCode(intervals);
   }
 
   /**
@@ -694,10 +694,10 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
     int index = 0;
     BigInteger currentLowerBound = null;
     if (!hasLowerBound()) {
-      currentLowerBound = this.intervals[index++].getUpperBound().add(BigInteger.ONE);
+      currentLowerBound = intervals[index++].getUpperBound().add(BigInteger.ONE);
     }
-    while (index < this.intervals.length) {
-      SimpleInterval current = this.intervals[index++];
+    while (index < intervals.length) {
+      SimpleInterval current = intervals[index++];
       result =
           result.unionWith(
               createSimpleInterval(
@@ -727,7 +727,7 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
       return this;
     }
     CompoundMathematicalInterval result = bottom();
-    for (SimpleInterval simpleInterval : this.intervals) {
+    for (SimpleInterval simpleInterval : intervals) {
       result = result.unionWith(simpleInterval.negate());
     }
     return result;
@@ -746,7 +746,7 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
     if (isTop()) {
       return true;
     }
-    for (SimpleInterval interval : this.intervals) {
+    for (SimpleInterval interval : intervals) {
       if (interval.containsPositive()) {
         return true;
       }
@@ -767,7 +767,7 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
     if (isTop()) {
       return true;
     }
-    for (SimpleInterval interval : this.intervals) {
+    for (SimpleInterval interval : intervals) {
       if (interval.containsNegative()) {
         return true;
       }
@@ -796,9 +796,9 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
     if (!hasLowerBound()) {
       return this;
     }
-    SimpleInterval[] resultIntervals = new SimpleInterval[this.intervals.length];
-    resultIntervals[0] = this.intervals[0].extendToNegativeInfinity();
-    System.arraycopy(this.intervals, 1, resultIntervals, 1, this.intervals.length - 1);
+    SimpleInterval[] resultIntervals = new SimpleInterval[intervals.length];
+    resultIntervals[0] = intervals[0].extendToNegativeInfinity();
+    System.arraycopy(intervals, 1, resultIntervals, 1, intervals.length - 1);
     return getInternal(resultIntervals);
   }
 
@@ -814,10 +814,10 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
     if (!hasUpperBound()) {
       return this;
     }
-    SimpleInterval[] resultIntervals = new SimpleInterval[this.intervals.length];
-    int index = this.intervals.length - 1;
-    System.arraycopy(this.intervals, 0, resultIntervals, 0, index);
-    resultIntervals[index] = this.intervals[index].extendToPositiveInfinity();
+    SimpleInterval[] resultIntervals = new SimpleInterval[intervals.length];
+    int index = intervals.length - 1;
+    System.arraycopy(intervals, 0, resultIntervals, 0, index);
+    resultIntervals[index] = intervals[index].extendToPositiveInfinity();
     return getInternal(resultIntervals);
   }
 
@@ -1283,7 +1283,7 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
     CompoundMathematicalInterval result;
     if (pState.isSingleton()) {
       result = bottom();
-      for (SimpleInterval interval : this.intervals) {
+      for (SimpleInterval interval : intervals) {
         if (!interval.isSingleton()) {
           // x & 1 always yields either 0 or 1
           return pState.contains(1)
@@ -1379,7 +1379,7 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
     }
     if (pState.isSingleton()) {
       CompoundMathematicalInterval result = bottom();
-      for (SimpleInterval interval : this.intervals) {
+      for (SimpleInterval interval : intervals) {
         if (!interval.isSingleton()) {
           return top();
         }
@@ -1405,7 +1405,7 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
       return bottom();
     }
     CompoundMathematicalInterval result = bottom();
-    for (SimpleInterval interval : this.intervals) {
+    for (SimpleInterval interval : intervals) {
       if (!interval.isSingleton()) {
         // TODO maybe a more exact implementation is possible?
         if (!containsNegative()) {
@@ -1445,7 +1445,7 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
     }
     if (pState.isSingleton()) {
       CompoundMathematicalInterval result = bottom();
-      for (SimpleInterval interval : this.intervals) {
+      for (SimpleInterval interval : intervals) {
         if (!interval.isSingleton()) {
           return top();
         }
@@ -1558,7 +1558,7 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
   private <T> CompoundMathematicalInterval applyOperationToAllAndUnite(
       Operator<SimpleInterval, T, CompoundMathematicalInterval> pOperator, T pOperand) {
     CompoundMathematicalInterval result = bottom();
-    for (SimpleInterval interval : this.intervals) {
+    for (SimpleInterval interval : intervals) {
       CompoundMathematicalInterval current = pOperator.apply(interval, pOperand);
       if (current != null) {
         result = result.unionWith(current);

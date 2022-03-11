@@ -69,9 +69,9 @@ public class AutomatonTransferRelation implements TransferRelation {
       LogManager pLogger,
       MachineModel pMachineModel,
       AutomatonStatistics pStats) {
-    this.cpa = pCpa;
-    this.logger = pLogger;
-    this.machineModel = pMachineModel;
+    cpa = pCpa;
+    logger = pLogger;
+    machineModel = pMachineModel;
 
     totalPostTime = pStats.totalPostTime.getNewTimer();
     matchTime = pStats.matchTime.getNewTimer();

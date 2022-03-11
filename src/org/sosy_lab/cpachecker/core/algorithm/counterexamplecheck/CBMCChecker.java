@@ -88,7 +88,7 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
     }
 
     config.inject(this);
-    this.machineModel = cfa.getMachineModel();
+    machineModel = cfa.getMachineModel();
   }
 
   @Override

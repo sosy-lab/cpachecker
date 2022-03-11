@@ -499,7 +499,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   private List<SMGAddressValueAndState> removeOptionalObject(SMGOptionalObject pOptionalObject)
       throws SMGInconsistentException {
 
-    logger.log(Level.ALL, "Remove ", pOptionalObject, " in state id ", this.getId());
+    logger.log(Level.ALL, "Remove ", pOptionalObject, " in state id ", getId());
 
     /*Just remove the optional Object and merge all incoming pointer
      * with the one pointer in all fields of the optional edge.
@@ -533,7 +533,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       SMGOptionalObject pOptionalObject, SMGEdgePointsTo pPointerToAbstractObject) {
 
     /*Just replace the optional object with a region*/
-    logger.log(Level.ALL, "Materialise ", pOptionalObject, " in state id ", this.getId());
+    logger.log(Level.ALL, "Materialise ", pOptionalObject, " in state id ", getId());
 
     Set<SMGEdgePointsTo> pointer = SMGUtils.getPointerToThisObject(pOptionalObject, heap);
 
@@ -570,7 +570,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       SMGSingleLinkedList pListSeg, SMGEdgePointsTo pPointerToAbstractObject)
       throws SMGInconsistentException {
 
-    logger.log(Level.ALL, "Remove ", pListSeg, " in state id ", this.getId());
+    logger.log(Level.ALL, "Remove ", pListSeg, " in state id ", getId());
 
     /*First, set all sub smgs of sll to be removed to invalid.*/
     Set<Long> restriction = ImmutableSet.of(pListSeg.getNfo());
@@ -605,7 +605,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       SMGDoublyLinkedList pListSeg, SMGEdgePointsTo pPointerToAbstractObject)
       throws SMGInconsistentException {
 
-    logger.log(Level.ALL, "Remove ", pListSeg, " in state id ", this.getId());
+    logger.log(Level.ALL, "Remove ", pListSeg, " in state id ", getId());
 
     /*First, set all sub smgs of dll to be removed to invalid.*/
     Set<Long> restriction = ImmutableSet.of(pListSeg.getNfo(), pListSeg.getPfo());
@@ -657,7 +657,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       SMGSingleLinkedList pListSeg, SMGEdgePointsTo pPointerToAbstractObject)
       throws SMGInconsistentException {
 
-    logger.log(Level.ALL, "Materialise ", pListSeg, " in state id ", this.getId());
+    logger.log(Level.ALL, "Materialise ", pListSeg, " in state id ", getId());
 
     if (pPointerToAbstractObject.getTargetSpecifier() != SMGTargetSpecifier.FIRST) {
       throw new SMGInconsistentException(
@@ -769,7 +769,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       SMGDoublyLinkedList pListSeg, SMGEdgePointsTo pPointerToAbstractObject)
       throws SMGInconsistentException {
 
-    logger.log(Level.ALL, "Materialise ", pListSeg, " in state id ", this.getId());
+    logger.log(Level.ALL, "Materialise ", pListSeg, " in state id ", getId());
 
     SMGRegion newConcreteRegion =
         new SMGRegion(pListSeg.getSize(), "concrete dll segment ID " + SMGCPA.getNewValue(), 0);
@@ -1465,7 +1465,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       return reachedState;
     }
 
-    SMGJoin join = new SMGJoin(this.heap, reachedState.getHeap(), this, reachedState);
+    SMGJoin join = new SMGJoin(heap, reachedState.getHeap(), this, reachedState);
 
     if (!(join.getStatus() == SMGJoinStatus.INCOMPARABLE && join.isDefined())) {
       return reachedState;
@@ -1507,10 +1507,10 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       // Only stop if either reached has memleak or this state has no memleak
       // to avoid losing memleak information.
       SMGState s1 = reachedState.copyOf();
-      SMGState s2 = this.copyOf();
+      SMGState s2 = copyOf();
       s1.pruneUnreachable();
       s2.pruneUnreachable();
-      logger.log(Level.ALL, this.getId(), " is Less or Equal ", reachedState.getId());
+      logger.log(Level.ALL, getId(), " is Less or Equal ", reachedState.getId());
       return s1.errorInfo.hasMemoryLeak() == s2.errorInfo.hasMemoryLeak();
 
     } else {
@@ -1527,7 +1527,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   public Object evaluateProperty(String pProperty) throws InvalidQueryException {
     switch (pProperty) {
       case "toString":
-        return this.toString();
+        return toString();
       case "heapObjects":
         return heap.getHeapObjects();
       default:

@@ -64,12 +64,12 @@ public class AbstractionFormula implements Serializable {
       BooleanFormula pInstantiatedFormula,
       PathFormula pBlockFormula,
       Set<Integer> pIdOfStoredAbstractionReused) {
-    this.fMgr = checkNotNull(mgr);
-    this.region = checkNotNull(pRegion);
-    this.formula = checkNotNull(pFormula);
-    this.instantiatedFormula = checkNotNull(pInstantiatedFormula);
-    this.blockFormula = checkNotNull(pBlockFormula);
-    this.idsOfStoredAbstractionReused = ImmutableSet.copyOf(pIdOfStoredAbstractionReused);
+    fMgr = checkNotNull(mgr);
+    region = checkNotNull(pRegion);
+    formula = checkNotNull(pFormula);
+    instantiatedFormula = checkNotNull(pInstantiatedFormula);
+    blockFormula = checkNotNull(pBlockFormula);
+    idsOfStoredAbstractionReused = ImmutableSet.copyOf(pIdOfStoredAbstractionReused);
   }
 
   /**

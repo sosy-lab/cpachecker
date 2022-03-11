@@ -116,7 +116,7 @@ public class NumericValue implements Value, Serializable {
   @Override
   public boolean equals(Object other) {
     if (other instanceof NumericValue) {
-      return this.getNumber().equals(((NumericValue) other).getNumber());
+      return getNumber().equals(((NumericValue) other).getNumber());
     } else {
       return false;
     }
@@ -176,7 +176,7 @@ public class NumericValue implements Value, Serializable {
     }
 
     // if the stored number is a 'casual' number, just negate it
-    return new NumericValue(this.bigDecimalValue().negate());
+    return new NumericValue(bigDecimalValue().negate());
   }
 
   @Override

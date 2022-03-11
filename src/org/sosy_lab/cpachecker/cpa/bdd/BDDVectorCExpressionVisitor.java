@@ -64,11 +64,11 @@ public class BDDVectorCExpressionVisitor
       final BitvectorManager pBVmgr,
       final MachineModel pMachineModel,
       final CFANode pLocation) {
-    this.predMgr = pPredMgr;
-    this.precision = pPrecision;
-    this.bvmgr = pBVmgr;
-    this.machineModel = pMachineModel;
-    this.location = pLocation;
+    predMgr = pPredMgr;
+    precision = pPrecision;
+    bvmgr = pBVmgr;
+    machineModel = pMachineModel;
+    location = pLocation;
   }
 
   @Override

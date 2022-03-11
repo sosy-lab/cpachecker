@@ -26,7 +26,7 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
   BooleanFormulaManagerView(
       FormulaWrappingHandler pWrappingHandler, BooleanFormulaManager pManager) {
     super(pWrappingHandler);
-    this.manager = checkNotNull(pManager);
+    manager = checkNotNull(pManager);
   }
 
   public BooleanFormula makeVariable(String pVar, int pI) {

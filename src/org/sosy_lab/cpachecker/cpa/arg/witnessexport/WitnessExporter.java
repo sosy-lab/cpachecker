@@ -94,9 +94,9 @@ public class WitnessExporter {
     Preconditions.checkNotNull(pConfig);
     options = new WitnessOptions();
     pConfig.inject(options);
-    this.cfa = pCFA;
-    this.logger = pLogger;
-    this.verificationTaskMetaData = new VerificationTaskMetaData(pConfig, pSpecification);
+    cfa = pCFA;
+    logger = pLogger;
+    verificationTaskMetaData = new VerificationTaskMetaData(pConfig, pSpecification);
   }
 
   public ProofInvariantProvider getProofInvariantProvider() {

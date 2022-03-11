@@ -101,11 +101,11 @@ class AutomatonExpressionArguments {
   }
 
   void appendToLogMessage(String message) {
-    this.transitionLogMessages = transitionLogMessages + message;
+    transitionLogMessages = transitionLogMessages + message;
   }
 
   void appendToLogMessage(int message) {
-    this.transitionLogMessages = transitionLogMessages + message;
+    transitionLogMessages = transitionLogMessages + message;
   }
 
   String getLogMessage() {
@@ -117,16 +117,16 @@ class AutomatonExpressionArguments {
   }
 
   void clearTransitionVariables() {
-    this.transitionVariables.clear();
+    transitionVariables.clear();
   }
 
   AAstNode getTransitionVariable(int key) {
     // this is the variable adressed with $<key> in the automaton definition
-    return this.transitionVariables.get(key);
+    return transitionVariables.get(key);
   }
 
   void putTransitionVariable(int key, AAstNode value) {
-    this.transitionVariables.put(key, value);
+    transitionVariables.put(key, value);
   }
 
   /**
@@ -147,7 +147,7 @@ class AutomatonExpressionArguments {
         AAstNode var = this.getTransitionVariable(varKey);
         if (var == null) {
           // this variable has not been set.
-          this.getLogger()
+          getLogger()
               .log(
                   Level.WARNING,
                   "could not replace the transition variable $" + varKey + " (not found).");
@@ -156,7 +156,7 @@ class AutomatonExpressionArguments {
           result.append(var.toASTString());
         }
       } catch (NumberFormatException e) {
-        this.getLogger()
+        getLogger()
             .log(
                 Level.WARNING,
                 "could not parse the int in " + matcher.group() + " , leaving it untouched");
@@ -171,10 +171,10 @@ class AutomatonExpressionArguments {
     while (matcher.find()) {
       matcher.appendReplacement(result, "");
       String varName = matcher.group().substring(2); // matched string starts with $$
-      AutomatonVariable variable = this.getAutomatonVariables().get(varName);
+      AutomatonVariable variable = getAutomatonVariables().get(varName);
       if (variable == null) {
         // this variable has not been set.
-        this.getLogger()
+        getLogger()
             .log(
                 Level.WARNING,
                 "could not replace the Automaton variable reference " + varName + " (not found).");
@@ -192,11 +192,11 @@ class AutomatonExpressionArguments {
   }
 
   public Map<Integer, AAstNode> getTransitionVariables() {
-    return this.transitionVariables;
+    return transitionVariables;
   }
 
   public void putTransitionVariables(Map<Integer, AAstNode> pTransitionVariables) {
-    this.transitionVariables.putAll(pTransitionVariables);
+    transitionVariables.putAll(pTransitionVariables);
   }
 
   private AutomatonVariable getAutomatonVariable(String name) {

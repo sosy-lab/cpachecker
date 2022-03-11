@@ -29,7 +29,7 @@ public class LazyLocationMapping {
       new AtomicReference<>();
 
   public LazyLocationMapping(UnmodifiableReachedSet pReachedSet) {
-    this.reachedSet = Objects.requireNonNull(pReachedSet);
+    reachedSet = Objects.requireNonNull(pReachedSet);
   }
 
   public Iterable<AbstractState> get(
@@ -66,7 +66,7 @@ public class LazyLocationMapping {
           statesByLocation.put(location, state);
         }
       }
-      this.statesByLocationRef.set(statesByLocation);
+      statesByLocationRef.set(statesByLocation);
       return statesByLocation.get(pLocation);
     }
     return statesByLocationRef.get().get(pLocation);

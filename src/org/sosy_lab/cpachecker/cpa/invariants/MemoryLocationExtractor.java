@@ -101,10 +101,10 @@ public class MemoryLocationExtractor {
       final String pFunctionName,
       final Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>>
           pEnvironment) {
-    this.compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
-    this.machineModel = pMachineModel;
-    this.functionName = pFunctionName;
-    this.environment = pEnvironment;
+    compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
+    machineModel = pMachineModel;
+    functionName = pFunctionName;
+    environment = pEnvironment;
   }
 
   public MemoryLocation getMemoryLocation(AParameterDeclaration pParameterDeclaration) {

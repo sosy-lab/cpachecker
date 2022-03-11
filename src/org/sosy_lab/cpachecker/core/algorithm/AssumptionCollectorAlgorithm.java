@@ -167,7 +167,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     config.inject(this);
 
     this.logger = logger;
-    this.innerAlgorithm = algo;
+    innerAlgorithm = algo;
     shutdownNotifier = pShutdownNotifier;
     AssumptionStorageCPA asCpa =
         CPAs.retrieveCPAOrFail(pCpa, AssumptionStorageCPA.class, AssumptionStorageCPA.class);
@@ -175,10 +175,10 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       throw new InvalidConfigurationException(
           "ARGCPA needed for for export of assumption automaton in AssumptionCollectionAlgorithm");
     }
-    this.formulaManager = asCpa.getFormulaManager();
-    this.bfmgr = formulaManager.getBooleanFormulaManager();
-    this.exceptionAssumptions = new AssumptionWithLocation(formulaManager);
-    this.cpa = pCpa;
+    formulaManager = asCpa.getFormulaManager();
+    bfmgr = formulaManager.getBooleanFormulaManager();
+    exceptionAssumptions = new AssumptionWithLocation(formulaManager);
+    cpa = pCpa;
     this.cfa = cfa;
     this.config = config;
   }

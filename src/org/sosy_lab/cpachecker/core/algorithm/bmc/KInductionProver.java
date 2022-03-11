@@ -422,7 +422,7 @@ class KInductionProver implements AutoCloseable {
         AbstractStates.filterLocations(reached, loopHeads);
 
     BooleanFormula loopHeadInv = inductiveLoopHeadInvariantAssertion(loopHeadStates);
-    this.previousK = pK + 1;
+    previousK = pK + 1;
     stats.inductionPreparation.stop();
 
     // Attempt the induction proofs

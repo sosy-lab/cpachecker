@@ -73,8 +73,8 @@ public class ToCodeFormulaVisitor
    */
   public ToCodeFormulaVisitor(
       FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor, MachineModel pMachineModel) {
-    this.evaluationVisitor = pEvaluationVisitor;
-    this.machineModel = pMachineModel;
+    evaluationVisitor = pEvaluationVisitor;
+    machineModel = pMachineModel;
   }
 
   private CSimpleType determineType(TypeInfo pTypeInfo) {
@@ -118,7 +118,7 @@ public class ToCodeFormulaVisitor
   private @Nullable String evaluate(
       NumeralFormula<CompoundInterval> pFormula,
       Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
-    CompoundInterval intervals = pFormula.accept(this.evaluationVisitor, pEnvironment);
+    CompoundInterval intervals = pFormula.accept(evaluationVisitor, pEnvironment);
     if (intervals.isSingleton()) {
       TypeInfo info = pFormula.getTypeInfo();
       if (info instanceof BitVectorInfo) {

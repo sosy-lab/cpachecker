@@ -117,16 +117,16 @@ public final class ApronCPA implements ProofCheckerCPA, StatisticsProvider {
 
     apronManager = new ApronManager(domainType);
 
-    this.transferRelation =
+    transferRelation =
         new ApronTransferRelation(logger, cfa.getLoopStructure().orElseThrow(), splitDisequalities);
 
     MergeOperator apronMergeOp = ApronMergeOperator.getInstance(apronDomain, config);
 
     StopOperator apronStopOp = new StopSepOperator(apronDomain);
 
-    this.abstractDomain = apronDomain;
-    this.mergeOperator = apronMergeOp;
-    this.stopOperator = apronStopOp;
+    abstractDomain = apronDomain;
+    mergeOperator = apronMergeOp;
+    stopOperator = apronStopOp;
     this.config = config;
     this.shutdownNotifier = shutdownNotifier;
     this.cfa = cfa;

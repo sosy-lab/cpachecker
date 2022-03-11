@@ -95,7 +95,7 @@ public class TestGoalToConditionConverterAlgorithm extends NestingAlgorithm {
     }
     try {
       var backwardsCpaTriple =
-          this.createAlgorithm(
+          createAlgorithm(
               Path.of("config/components/goalConverterBackwardsSearch.properties"),
               pCfa.getMainFunction(),
               pCfa,

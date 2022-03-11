@@ -25,8 +25,8 @@ public class BDDState implements AbstractQueryableState, LatticeAbstractState<BD
   private final BitvectorManager bvmgr;
 
   public BDDState(NamedRegionManager mgr, BitvectorManager bvmgr, Region state) {
-    this.currentState = state;
-    this.manager = mgr;
+    currentState = state;
+    manager = mgr;
     this.bvmgr = bvmgr;
   }
 
@@ -37,7 +37,7 @@ public class BDDState implements AbstractQueryableState, LatticeAbstractState<BD
   @Override
   public boolean isLessOrEqual(BDDState other) throws CPAException, InterruptedException {
     try {
-      return manager.entails(this.currentState, other.currentState);
+      return manager.entails(currentState, other.currentState);
     } catch (SolverException e) {
       throw new CPAException("Solver Failure", e);
     }
@@ -45,14 +45,14 @@ public class BDDState implements AbstractQueryableState, LatticeAbstractState<BD
 
   @Override
   public BDDState join(BDDState other) {
-    Region result = manager.makeOr(this.currentState, other.currentState);
+    Region result = manager.makeOr(currentState, other.currentState);
 
     // FIRST check the other element
     if (result.equals(other.currentState)) {
       return other;
 
       // THEN check this element
-    } else if (result.equals(this.currentState)) {
+    } else if (result.equals(currentState)) {
       return this;
 
     } else {
@@ -74,7 +74,7 @@ public class BDDState implements AbstractQueryableState, LatticeAbstractState<BD
   public boolean equals(Object o) {
     if (o instanceof BDDState) {
       BDDState other = (BDDState) o;
-      return this.currentState.equals(other.currentState);
+      return currentState.equals(other.currentState);
     }
     return false;
   }
@@ -93,7 +93,7 @@ public class BDDState implements AbstractQueryableState, LatticeAbstractState<BD
   public Object evaluateProperty(String pProperty) throws InvalidQueryException {
     switch (pProperty) {
       case "VALUES":
-        return manager.dumpRegion(this.currentState).toString();
+        return manager.dumpRegion(currentState).toString();
       case "VARSET":
         return "(" + Joiner.on(", ").join(manager.getPredicates()) + ")";
       case "VARSETSIZE":

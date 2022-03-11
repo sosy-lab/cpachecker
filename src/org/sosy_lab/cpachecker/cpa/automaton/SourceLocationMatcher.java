@@ -31,7 +31,7 @@ class SourceLocationMatcher {
       if (!originFileName.isPresent()) {
         return true;
       }
-      String fileName = this.originFileName.orElseThrow();
+      String fileName = originFileName.orElseThrow();
       String fileLocationFileName = pFileLocation.getFileName().toString();
       fileName = getBaseName(fileName);
       fileLocationFileName = getBaseName(fileLocationFileName);
@@ -72,9 +72,9 @@ class SourceLocationMatcher {
         Optional<String> pFileName, int pStartLineNumber, int pEndLineNumber, boolean pOrigin) {
       super(pFileName);
       Preconditions.checkArgument(pStartLineNumber <= pEndLineNumber);
-      this.startLineNumber = pStartLineNumber;
-      this.endLineNumber = pEndLineNumber;
-      this.origin = pOrigin;
+      startLineNumber = pStartLineNumber;
+      endLineNumber = pEndLineNumber;
+      origin = pOrigin;
     }
 
     public LineMatcher(Optional<String> pFileName, int pStartLineNumber, int pEndLineNumber) {
@@ -134,8 +134,8 @@ class SourceLocationMatcher {
     OffsetMatcher(Optional<String> pOriginFileName, int pStartOffset, int pEndOffset) {
       super(pOriginFileName);
       Preconditions.checkArgument(pStartOffset <= pEndOffset);
-      this.startOffset = pStartOffset;
-      this.endOffset = pEndOffset;
+      startOffset = pStartOffset;
+      endOffset = pEndOffset;
     }
 
     @Override

@@ -35,7 +35,7 @@ public class ForwardingReachedSet implements ReachedSet, StatisticsProvider {
   private volatile ReachedSet delegate;
 
   public ForwardingReachedSet(ReachedSet pDelegate) {
-    this.delegate = checkNotNull(pDelegate);
+    delegate = checkNotNull(pDelegate);
   }
 
   public ReachedSet getDelegate() {

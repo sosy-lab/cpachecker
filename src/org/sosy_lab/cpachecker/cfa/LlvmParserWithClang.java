@@ -38,7 +38,7 @@ public class LlvmParserWithClang extends LlvmParser {
       final LogManager pLogger,
       final MachineModel pMachineModel) {
     super(pLogger, pMachineModel);
-    this.preprocessor = pPreprocessor;
+    preprocessor = pPreprocessor;
   }
 
   @Override

@@ -125,7 +125,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
       throws InvalidConfigurationException {
     pConfiguration.inject(this);
     this.logger = logger;
-    this.liveVariables = pLiveVariables;
+    liveVariables = pLiveVariables;
     machineModel = pMachineModel;
     if (useLiveness) {
       Preconditions.checkState(

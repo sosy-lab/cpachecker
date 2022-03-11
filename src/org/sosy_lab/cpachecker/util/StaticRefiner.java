@@ -40,7 +40,7 @@ public abstract class StaticRefiner {
   protected StaticRefiner(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
 
-    this.logger = pLogger;
+    logger = pLogger;
 
     pConfig.inject(this, StaticRefiner.class);
   }

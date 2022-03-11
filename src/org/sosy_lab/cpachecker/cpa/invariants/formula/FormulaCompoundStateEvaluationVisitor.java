@@ -39,8 +39,8 @@ public class FormulaCompoundStateEvaluationVisitor
   public FormulaCompoundStateEvaluationVisitor(
       CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
       boolean pWithOverflowEventHandlers) {
-    this.compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
-    this.withOverflowEventHandlers = pWithOverflowEventHandlers;
+    compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
+    withOverflowEventHandlers = pWithOverflowEventHandlers;
   }
 
   private CompoundIntervalManager getCompoundIntervalManager(TypeInfo pTypeInfo) {

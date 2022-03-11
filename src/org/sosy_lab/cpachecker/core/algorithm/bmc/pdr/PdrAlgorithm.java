@@ -1128,8 +1128,8 @@ public class PdrAlgorithm implements Algorithm {
     }
 
     stats.errorPathCreation.start();
-    Solver cexAnalysisSolver = this.solver;
-    PathFormulaManager cexAnalysisPmgr = this.pmgr;
+    Solver cexAnalysisSolver = solver;
+    PathFormulaManager cexAnalysisPmgr = pmgr;
     try {
       logger.log(Level.INFO, "Error found, creating error path");
 
@@ -1251,7 +1251,7 @@ public class PdrAlgorithm implements Algorithm {
 
     } finally {
       stats.errorPathCreation.stop();
-      if (cexAnalysisSolver != this.solver) {
+      if (cexAnalysisSolver != solver) {
         cexAnalysisSolver.close();
       }
     }

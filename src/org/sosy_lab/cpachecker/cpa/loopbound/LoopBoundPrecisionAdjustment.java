@@ -192,7 +192,7 @@ public class LoopBoundPrecisionAdjustment implements PrecisionAdjustment {
     private final LoopBoundPrecisionAdjustment precisionAdjustment;
 
     public IncrementalLoopIterationAdjuster(LoopBoundPrecisionAdjustment pPrecisionAdjustment) {
-      this.precisionAdjustment = pPrecisionAdjustment;
+      precisionAdjustment = pPrecisionAdjustment;
     }
 
     @Override
@@ -212,7 +212,7 @@ public class LoopBoundPrecisionAdjustment implements PrecisionAdjustment {
     private final LoopBoundPrecisionAdjustment precisionAdjustment;
 
     public DoublingLoopIterationAdjuster(LoopBoundPrecisionAdjustment pPrecisionAdjustment) {
-      this.precisionAdjustment = pPrecisionAdjustment;
+      precisionAdjustment = pPrecisionAdjustment;
     }
 
     @Override
@@ -229,7 +229,7 @@ public class LoopBoundPrecisionAdjustment implements PrecisionAdjustment {
 
   public boolean nextState() {
     MaxLoopIterationAdjuster maxLoopIterationAdjuster =
-        this.maxLoopIterationAdjusterFactory.getMaxLoopIterationAdjuster(this);
+        maxLoopIterationAdjusterFactory.getMaxLoopIterationAdjuster(this);
     if (maxLoopIterationAdjuster.canAdjust(getMaxLoopIterations())) {
       int adjustedMaxLoopIterations = maxLoopIterationAdjuster.adjust(getMaxLoopIterations());
       logger.log(Level.INFO, "Adjusting maxLoopIterations to " + adjustedMaxLoopIterations);

@@ -39,7 +39,7 @@ public class CompositeMergeAgreeCPAEnabledAnalysisOperator implements MergeOpera
       PredicateAbstractionManager pAbmgr) {
     this.mergeOperators = mergeOperators;
     this.stopOperators = stopOperators;
-    this.abmgr = pAbmgr;
+    abmgr = pAbmgr;
   }
 
   @Override

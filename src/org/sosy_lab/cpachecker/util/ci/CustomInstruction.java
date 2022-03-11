@@ -873,7 +873,7 @@ public class CustomInstruction {
                 + aciFieldRefExp
                 + " is a pointerDereference, while the other one not.");
       }
-      this.aciExp = aciFieldRefExp.getFieldOwner();
+      aciExp = aciFieldRefExp.getFieldOwner();
       ciExp.getFieldOwner().accept(this);
       return null;
     }
@@ -1017,7 +1017,7 @@ public class CustomInstruction {
                 + aciPExp.getExpressionType()
                 + ").");
       }
-      this.aciExp = aciPExp.getOperand();
+      aciExp = aciPExp.getOperand();
       ciExp.getOperand().accept(this);
       return null;
     }
@@ -1072,7 +1072,7 @@ public class CustomInstruction {
                 + aciCExp.getType()
                 + ").");
       }
-      this.aciExp = aciCExp.getOperand();
+      aciExp = aciCExp.getOperand();
       ciExp.getOperand().accept(this);
       return null;
     }
@@ -1147,7 +1147,7 @@ public class CustomInstruction {
                 + aciPExp.getExpressionType()
                 + ").");
       }
-      this.aciExp = aciPExp.getOperand();
+      aciExp = aciPExp.getOperand();
       ciExp.getOperand().accept(this);
       return null;
     }
@@ -1362,7 +1362,7 @@ public class CustomInstruction {
                   + " don't fit together!");
         }
 
-        this.aciExp = aciUnExp.getOperand();
+        aciExp = aciUnExp.getOperand();
         ciExp.getOperand().accept(this);
 
       } else {

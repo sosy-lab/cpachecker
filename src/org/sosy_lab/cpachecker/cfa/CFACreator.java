@@ -379,8 +379,8 @@ public class CFACreator {
 
     this.config = config;
     this.logger = logger;
-    this.shutdownNotifier = pShutdownNotifier;
-    this.stats = new CFACreatorStatistics(logger);
+    shutdownNotifier = pShutdownNotifier;
+    stats = new CFACreatorStatistics(logger);
 
     stats.parserInstantiationTime.start();
     String regExPattern;

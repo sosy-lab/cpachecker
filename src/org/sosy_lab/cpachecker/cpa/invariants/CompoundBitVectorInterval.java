@@ -40,8 +40,8 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    */
   private CompoundBitVectorInterval(BitVectorInfo pInfo) {
     Preconditions.checkNotNull(pInfo);
-    this.info = pInfo;
-    this.intervals = new BitVectorInterval[0];
+    info = pInfo;
+    intervals = new BitVectorInterval[0];
   }
 
   /**
@@ -51,8 +51,8 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    * @param pInterval the interval to compose this state from. Must not be {@code null}.
    */
   private CompoundBitVectorInterval(BitVectorInterval pInterval) {
-    this.info = pInterval.getTypeInfo();
-    this.intervals = new BitVectorInterval[] {pInterval};
+    info = pInterval.getTypeInfo();
+    intervals = new BitVectorInterval[] {pInterval};
   }
 
   /**
@@ -66,8 +66,8 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
   private CompoundBitVectorInterval(BitVectorInfo pInfo, BitVectorInterval[] pIntervals) {
     Preconditions.checkNotNull(pInfo);
     Preconditions.checkNotNull(pIntervals);
-    this.info = pInfo;
-    this.intervals = pIntervals;
+    info = pInfo;
+    intervals = pIntervals;
   }
 
   /**
@@ -109,7 +109,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    * @return the number of intervals.
    */
   public int getNumberOfIntervals() {
-    return this.intervals.length;
+    return intervals.length;
   }
 
   /**
@@ -118,7 +118,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    * @return an unmodifiable list containing the intervals this compound state consists of.
    */
   public List<BitVectorInterval> getBitVectorIntervals() {
-    return Collections.unmodifiableList(Arrays.asList(this.intervals));
+    return Collections.unmodifiableList(Arrays.asList(intervals));
   }
 
   /**
@@ -137,7 +137,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
 
   @Override
   public List<CompoundBitVectorInterval> splitIntoIntervals() {
-    return Lists.transform(Arrays.asList(this.intervals), CompoundBitVectorInterval::of);
+    return Lists.transform(Arrays.asList(intervals), CompoundBitVectorInterval::of);
   }
 
   public void checkBitVectorCompatibilityWith(BitVectorInfo pOtherInfo) {
@@ -185,18 +185,18 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
     BitVectorInterval lastInterval = null;
     if (pOther.hasLowerBound() && hasUpperBound()) {
       BigInteger pOtherLB = pOther.getLowerBound();
-      BitVectorInterval currentLocal = this.intervals[start];
+      BitVectorInterval currentLocal = intervals[start];
       while (currentLocal != null && pOtherLB.compareTo(currentLocal.getUpperBound()) > 0) {
         resultIntervals.add(currentLocal);
         ++start;
         lastInterval = currentLocal;
-        currentLocal = start < this.intervals.length ? this.intervals[start] : null;
+        currentLocal = start < intervals.length ? intervals[start] : null;
         assert currentLocal == null || currentLocal.hasUpperBound() : toString();
       }
     }
     boolean inserted = false;
-    for (int index = start; index < this.intervals.length; ++index) {
-      BitVectorInterval interval = this.intervals[index];
+    for (int index = start; index < intervals.length; ++index) {
+      BitVectorInterval interval = intervals[index];
       boolean currentInserted = false;
       if (interval.touches(lastInterval)) {
         lastInterval = union(interval, lastInterval);
@@ -289,7 +289,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
     if (contains(pOther)) {
       return CompoundBitVectorInterval.of(pOther);
     }
-    if (this.intervals.length == 1 && pOther.contains(this.intervals[0])) {
+    if (intervals.length == 1 && pOther.contains(intervals[0])) {
       return this;
     }
     CompoundBitVectorInterval result = bottom(info);
@@ -305,7 +305,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
       int intervalIndex = intervalIndexOf(pOther.getUpperBound());
       ubIndex = intervalIndex >= 0 ? intervalIndex : (-intervalIndex - 1);
     } else {
-      ubIndex = this.intervals.length - 1;
+      ubIndex = intervals.length - 1;
     }
     for (int i = lbIndex; i <= ubIndex; ++i) {
       BitVectorInterval interval = intervals[i];
@@ -388,10 +388,10 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
     BigInteger lb = hasLowerBound ? pInterval.getLowerBound() : null;
     BigInteger ub = hasUpperBound ? pInterval.getUpperBound() : null;
     int leftInclusive = 0;
-    int rightExclusive = this.intervals.length;
+    int rightExclusive = intervals.length;
     while (leftInclusive < rightExclusive) {
       int index = IntMath.mean(leftInclusive, rightExclusive);
-      BitVectorInterval intervalAtIndex = this.intervals[index];
+      BitVectorInterval intervalAtIndex = intervals[index];
       boolean lbIndexLeqLb =
           !intervalAtIndex.hasLowerBound()
               || (hasLowerBound && intervalAtIndex.getLowerBound().compareTo(lb) <= 0);
@@ -418,10 +418,10 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
       return 0;
     }
     int leftInclusive = 0;
-    int rightExclusive = this.intervals.length;
+    int rightExclusive = intervals.length;
     int index = rightExclusive / 2;
     while (leftInclusive < rightExclusive) {
-      BitVectorInterval intervalAtIndex = this.intervals[index];
+      BitVectorInterval intervalAtIndex = intervals[index];
       boolean lbIndexLeqValue =
           !intervalAtIndex.hasLowerBound() || intervalAtIndex.getLowerBound().compareTo(value) <= 0;
       boolean ubIndexGeqValue =
@@ -483,7 +483,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    */
   @Override
   public boolean isBottom() {
-    return this.intervals.length == 0;
+    return intervals.length == 0;
   }
 
   /**
@@ -504,7 +504,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
     StringBuilder sb = new StringBuilder();
     sb.append('{');
     if (!isBottom()) {
-      Iterator<BitVectorInterval> intervalIterator = Arrays.asList(this.intervals).iterator();
+      Iterator<BitVectorInterval> intervalIterator = Arrays.asList(intervals).iterator();
       sb.append(intervalIterator.next());
       while (intervalIterator.hasNext()) {
         sb.append(", ");
@@ -544,7 +544,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    */
   @Override
   public BigInteger getLowerBound() {
-    return this.intervals[0].getLowerBound();
+    return intervals[0].getLowerBound();
   }
 
   /**
@@ -554,7 +554,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    */
   @Override
   public BigInteger getUpperBound() {
-    return this.intervals[this.intervals.length - 1].getUpperBound();
+    return intervals[intervals.length - 1].getUpperBound();
   }
 
   /**
@@ -565,7 +565,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    */
   @Override
   public boolean isSingleton() {
-    return !isBottom() && this.intervals.length == 1 && this.intervals[0].isSingleton();
+    return !isBottom() && intervals.length == 1 && intervals[0].isSingleton();
   }
 
   /**
@@ -583,7 +583,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
     if (containsAllPossibleValues()) {
       return BigInteger.ZERO;
     }
-    for (BitVectorInterval interval : this.intervals) {
+    for (BitVectorInterval interval : intervals) {
       if (interval.hasLowerBound()) {
         return interval.getLowerBound();
       }
@@ -604,14 +604,14 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
     }
     if (pOther instanceof CompoundBitVectorInterval) {
       CompoundBitVectorInterval other = (CompoundBitVectorInterval) pOther;
-      return info.equals(other.info) && Arrays.equals(this.intervals, other.intervals);
+      return info.equals(other.info) && Arrays.equals(intervals, other.intervals);
     }
     return false;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(info, Arrays.hashCode(this.intervals));
+    return Objects.hash(info, Arrays.hashCode(intervals));
   }
 
   public CompoundBitVectorInterval cast(
@@ -808,7 +808,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
     CompoundBitVectorInterval result = bottom(info);
     int index = 0;
 
-    BitVectorInterval current = this.intervals[index++];
+    BitVectorInterval current = intervals[index++];
 
     // Add the interval before the first of the contained intervals
     if (!current.getLowerBound().equals(info.getMinValue())) {
@@ -820,8 +820,8 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
 
     BigInteger lastUpperBound = current.getUpperBound();
 
-    while (index < this.intervals.length) {
-      current = this.intervals[index++];
+    while (index < intervals.length) {
+      current = intervals[index++];
 
       // Add the interval between the last and the current contained interval
       result =
@@ -854,7 +854,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
       return this;
     }
     CompoundBitVectorInterval result = bottom(info);
-    for (BitVectorInterval simpleInterval : this.intervals) {
+    for (BitVectorInterval simpleInterval : intervals) {
       result =
           result.unionWith(
               negate(info, simpleInterval, pAllowSignedWrapAround, pOverflowEventHandler));
@@ -923,7 +923,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
     if (isBottom()) {
       return false;
     }
-    for (BitVectorInterval interval : this.intervals) {
+    for (BitVectorInterval interval : intervals) {
       if (interval.containsPositive()) {
         return true;
       }
@@ -941,7 +941,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
     if (isBottom()) {
       return false;
     }
-    for (BitVectorInterval interval : this.intervals) {
+    for (BitVectorInterval interval : intervals) {
       if (interval.containsNegative()) {
         return true;
       }
@@ -970,9 +970,9 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
     if (!hasLowerBound()) {
       return this;
     }
-    BitVectorInterval[] resultIntervals = new BitVectorInterval[this.intervals.length];
-    resultIntervals[0] = this.intervals[0].extendToMinValue();
-    System.arraycopy(this.intervals, 1, resultIntervals, 1, this.intervals.length - 1);
+    BitVectorInterval[] resultIntervals = new BitVectorInterval[intervals.length];
+    resultIntervals[0] = intervals[0].extendToMinValue();
+    System.arraycopy(intervals, 1, resultIntervals, 1, intervals.length - 1);
     return getInternal(info, resultIntervals);
   }
 
@@ -988,10 +988,10 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
     if (!hasUpperBound()) {
       return this;
     }
-    BitVectorInterval[] resultIntervals = new BitVectorInterval[this.intervals.length];
-    int index = this.intervals.length - 1;
-    System.arraycopy(this.intervals, 0, resultIntervals, 0, index);
-    resultIntervals[index] = this.intervals[index].extendToMaxValue();
+    BitVectorInterval[] resultIntervals = new BitVectorInterval[intervals.length];
+    int index = intervals.length - 1;
+    System.arraycopy(intervals, 0, resultIntervals, 0, index);
+    resultIntervals[index] = intervals[index].extendToMaxValue();
     return getInternal(info, resultIntervals);
   }
 
@@ -1564,7 +1564,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
     CompoundBitVectorInterval result;
     if (pState.isSingleton()) {
       result = bottom(info);
-      for (BitVectorInterval interval : this.intervals) {
+      for (BitVectorInterval interval : intervals) {
         if (!interval.isSingleton()) {
           // x & 1 always yields either 0 or 1
           return pState.contains(1) ? getZeroToOne(info) : getInternal(pState.info.getRange());
@@ -1671,7 +1671,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
     }
     if (pState.isSingleton()) {
       CompoundBitVectorInterval result = bottom(info);
-      for (BitVectorInterval interval : this.intervals) {
+      for (BitVectorInterval interval : intervals) {
         if (!interval.isSingleton()) {
           return getInternal(info.getRange());
         }
@@ -1702,7 +1702,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
       return bottom(info);
     }
     CompoundBitVectorInterval result = bottom(info);
-    for (BitVectorInterval interval : this.intervals) {
+    for (BitVectorInterval interval : intervals) {
       if (!interval.isSingleton()) {
         // TODO maybe a more exact implementation is possible?
         return getInternal(info.getRange());
@@ -1756,7 +1756,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
     }
     if (pState.isSingleton()) {
       CompoundBitVectorInterval result = bottom(info);
-      for (BitVectorInterval interval : this.intervals) {
+      for (BitVectorInterval interval : intervals) {
         if (!interval.isSingleton()) {
           return getInternal(info.getRange());
         }
@@ -1874,7 +1874,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
   private <T> CompoundBitVectorInterval applyOperationToAllAndUnite(
       Operator<BitVectorInterval, T, CompoundBitVectorInterval> pOperator, T pOperand) {
     CompoundBitVectorInterval result = bottom(info);
-    for (BitVectorInterval interval : this.intervals) {
+    for (BitVectorInterval interval : intervals) {
       CompoundBitVectorInterval current = pOperator.apply(interval, pOperand);
       if (current != null) {
         result = result.unionWith(current);

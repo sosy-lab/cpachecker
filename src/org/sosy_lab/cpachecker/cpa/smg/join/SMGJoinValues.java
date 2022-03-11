@@ -507,12 +507,12 @@ final class SMGJoinValues {
     /*Check if pointer was already joint*/
     if (mapping2.containsKey(pTarget)) {
       if (mapping2.containsKey(pValue2)) {
-        this.value = mapping2.get(pValue2);
-        this.defined = true;
-        this.inputSMG1 = pInputSMG1;
-        this.inputSMG2 = pInputSMG2;
-        this.destSMG = pDestSMG;
-        this.status = pStatus;
+        value = mapping2.get(pValue2);
+        defined = true;
+        inputSMG1 = pInputSMG1;
+        inputSMG2 = pInputSMG2;
+        destSMG = pDestSMG;
+        status = pStatus;
         return Pair.of(true, true);
       } else {
         return Pair.of(false, true);
@@ -580,12 +580,12 @@ final class SMGJoinValues {
         return Pair.of(false, false);
       }
 
-      this.status = jv.getStatus();
-      this.inputSMG1 = jv.getInputSMG1();
-      this.inputSMG2 = jv.getInputSMG2();
-      this.destSMG = jv.getDestinationSMG();
-      this.value = resultPointer;
-      this.defined = jv.defined;
+      status = jv.getStatus();
+      inputSMG1 = jv.getInputSMG1();
+      inputSMG2 = jv.getInputSMG2();
+      destSMG = jv.getDestinationSMG();
+      value = resultPointer;
+      defined = jv.defined;
 
     } else {
       return Pair.of(false, true);
@@ -768,12 +768,12 @@ final class SMGJoinValues {
     /*Check if pointer was already joint*/
     if (mapping1.containsKey(pTarget)) {
       if (mapping1.containsKey(pValue1)) {
-        this.value = mapping1.get(pValue1);
-        this.defined = true;
-        this.inputSMG1 = pInputSMG1;
-        this.inputSMG2 = pInputSMG2;
-        this.destSMG = pDestSMG;
-        this.status = pStatus;
+        value = mapping1.get(pValue1);
+        defined = true;
+        inputSMG1 = pInputSMG1;
+        inputSMG2 = pInputSMG2;
+        destSMG = pDestSMG;
+        status = pStatus;
         return Pair.of(true, true);
       } else {
         return Pair.of(false, true);
@@ -841,12 +841,12 @@ final class SMGJoinValues {
         return Pair.of(false, false);
       }
 
-      this.status = jv.getStatus();
-      this.inputSMG1 = jv.getInputSMG1();
-      this.inputSMG2 = jv.getInputSMG2();
-      this.destSMG = jv.getDestinationSMG();
-      this.value = resultPointer;
-      this.defined = jv.defined;
+      status = jv.getStatus();
+      inputSMG1 = jv.getInputSMG1();
+      inputSMG2 = jv.getInputSMG2();
+      destSMG = jv.getDestinationSMG();
+      value = resultPointer;
+      defined = jv.defined;
 
     } else {
       return Pair.of(false, true);
@@ -985,12 +985,12 @@ final class SMGJoinValues {
 
         mapping1.map(pointer1, resultPointer);
       } else {
-        this.value = mapping1.get(pointer1);
-        this.defined = true;
-        this.inputSMG1 = newInputSMG1;
-        this.inputSMG2 = newInputSMG2;
-        this.destSMG = newDestSMG;
-        this.status = newStatus;
+        value = mapping1.get(pointer1);
+        defined = true;
+        inputSMG1 = newInputSMG1;
+        inputSMG2 = newInputSMG2;
+        destSMG = newDestSMG;
+        status = newStatus;
         return Pair.of(true, true);
       }
 
@@ -1096,13 +1096,13 @@ final class SMGJoinValues {
 
     if (jv.isDefined()) {
 
-      this.status = jv.getStatus();
-      this.inputSMG1 = jv.getInputSMG1();
-      this.inputSMG2 = jv.getInputSMG2();
-      this.destSMG = jv.getDestinationSMG();
+      status = jv.getStatus();
+      inputSMG1 = jv.getInputSMG1();
+      inputSMG2 = jv.getInputSMG2();
+      destSMG = jv.getDestinationSMG();
       newAdressFromDLS = jv.getValue();
-      this.value = resultPointer;
-      this.defined = jv.defined;
+      value = resultPointer;
+      defined = jv.defined;
 
     } else {
       return Pair.of(false, false);
@@ -1257,12 +1257,12 @@ final class SMGJoinValues {
 
         mapping2.map(pointer2, resultPointer);
       } else {
-        this.value = mapping2.get(pointer2);
-        this.defined = true;
-        this.inputSMG1 = newInputSMG1;
-        this.inputSMG2 = newInputSMG2;
-        this.destSMG = newDestSMG;
-        this.status = newStatus;
+        value = mapping2.get(pointer2);
+        defined = true;
+        inputSMG1 = newInputSMG1;
+        inputSMG2 = newInputSMG2;
+        destSMG = newDestSMG;
+        status = newStatus;
         return Pair.of(true, true);
       }
 
@@ -1362,13 +1362,13 @@ final class SMGJoinValues {
 
     if (jv.isDefined()) {
 
-      this.status = jv.getStatus();
-      this.inputSMG1 = jv.getInputSMG1();
-      this.inputSMG2 = jv.getInputSMG2();
-      this.destSMG = jv.getDestinationSMG();
+      status = jv.getStatus();
+      inputSMG1 = jv.getInputSMG1();
+      inputSMG2 = jv.getInputSMG2();
+      destSMG = jv.getDestinationSMG();
       newAdressFromDLS = jv.getValue();
-      this.value = resultPointer;
-      this.defined = jv.defined;
+      value = resultPointer;
+      defined = jv.defined;
 
     } else {
       return Pair.of(false, false);

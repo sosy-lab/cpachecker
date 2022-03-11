@@ -80,7 +80,7 @@ abstract class VariableOrField implements Comparable<VariableOrField> {
         return false;
       } else {
         final Variable other = (Variable) o;
-        return this.scopedName.equals(other.scopedName);
+        return scopedName.equals(other.scopedName);
       }
     }
 
@@ -135,7 +135,7 @@ abstract class VariableOrField implements Comparable<VariableOrField> {
         return false;
       } else {
         final Field other = (Field) o;
-        return this.composite.equals(other.composite) && this.name.equals(other.name);
+        return composite.equals(other.composite) && name.equals(other.name);
       }
     }
 

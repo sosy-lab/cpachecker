@@ -128,9 +128,9 @@ public class InfeasiblePrefix {
         final List<BooleanFormula> pInterpolantSequence,
         final List<BooleanFormula> pPathFormulas) {
 
-      this.prefix = pInfeasiblePrefix;
-      this.interpolantSequence = pInterpolantSequence;
-      this.pathFormulas = pPathFormulas;
+      prefix = pInfeasiblePrefix;
+      interpolantSequence = pInterpolantSequence;
+      pathFormulas = pPathFormulas;
     }
   }
 }

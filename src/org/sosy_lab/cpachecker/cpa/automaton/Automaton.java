@@ -46,9 +46,9 @@ public class Automaton {
       List<AutomatonInternalState> pStates,
       String pInitialStateName)
       throws InvalidAutomatonException {
-    this.name = pName;
-    this.initVars = ImmutableMap.copyOf(pVars);
-    this.states = ImmutableList.copyOf(pStates);
+    name = pName;
+    initVars = ImmutableMap.copyOf(pVars);
+    states = ImmutableList.copyOf(pStates);
 
     Map<String, AutomatonInternalState> statesMap = Maps.newHashMapWithExpectedSize(pStates.size());
     for (AutomatonInternalState s : pStates) {
@@ -165,7 +165,7 @@ public class Automaton {
    * @throws InvalidConfigurationException if the requirements are not fulfilled
    */
   public void assertObserverAutomaton() throws InvalidConfigurationException {
-    for (AutomatonInternalState s : this.states) {
+    for (AutomatonInternalState s : states) {
       for (AutomatonTransition t : s.getTransitions()) {
         if (!t.meetsObserverRequirements()) {
           throw new InvalidConfigurationException(

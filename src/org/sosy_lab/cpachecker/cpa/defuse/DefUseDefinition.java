@@ -42,7 +42,7 @@ public class DefUseDefinition implements AbstractState {
     }
 
     DefUseDefinition otherDef = (DefUseDefinition) other;
-    return otherDef.variableName.equals(this.variableName)
-        && Objects.equals(otherDef.assigningEdge, this.assigningEdge);
+    return otherDef.variableName.equals(variableName)
+        && Objects.equals(otherDef.assigningEdge, assigningEdge);
   }
 }

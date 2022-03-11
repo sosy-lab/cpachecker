@@ -24,7 +24,7 @@ public class DefaultPathFormulaBuilder extends CachingPathFormulaBuilder {
     protected final DefaultPathFormulaBuilder previousPathFormula;
 
     private PathFormulaAndBuilder(DefaultPathFormulaBuilder pPathFormulaAndBuilder) {
-      this.previousPathFormula = pPathFormulaAndBuilder;
+      previousPathFormula = pPathFormulaAndBuilder;
     }
   }
 
@@ -35,7 +35,7 @@ public class DefaultPathFormulaBuilder extends CachingPathFormulaBuilder {
     protected EdgePathFormulaAndBuilder(
         DefaultPathFormulaBuilder pPathFormulaAndBuilder, CFAEdge pEdge) {
       super(pPathFormulaAndBuilder);
-      this.edge = pEdge;
+      edge = pEdge;
     }
 
     @Override
@@ -52,7 +52,7 @@ public class DefaultPathFormulaBuilder extends CachingPathFormulaBuilder {
     protected ExpressionPathFormulaAndBuilder(
         DefaultPathFormulaBuilder pPathFormulaAndBuilder, CExpression pAssumption) {
       super(pPathFormulaAndBuilder);
-      this.assumption = pAssumption;
+      assumption = pAssumption;
     }
 
     @Override

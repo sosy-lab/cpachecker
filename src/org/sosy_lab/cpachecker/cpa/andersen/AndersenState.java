@@ -26,7 +26,7 @@ public class AndersenState implements LatticeAbstractState<AndersenState> {
   }
 
   public AndersenState(ConstraintSystem pLocalConstraintSystem) {
-    this.localConstraintSystem =
+    localConstraintSystem =
         pLocalConstraintSystem == null ? new ConstraintSystem() : pLocalConstraintSystem;
   }
 
@@ -37,7 +37,7 @@ public class AndersenState implements LatticeAbstractState<AndersenState> {
    * @param pConstr {@link BaseConstraint} that should be added.
    */
   AndersenState addConstraint(BaseConstraint pConstr) {
-    return new AndersenState(this.localConstraintSystem.addConstraint(pConstr));
+    return new AndersenState(localConstraintSystem.addConstraint(pConstr));
   }
 
   /**
@@ -47,7 +47,7 @@ public class AndersenState implements LatticeAbstractState<AndersenState> {
    * @param pConstr {@link SimpleConstraint} that should be added.
    */
   AndersenState addConstraint(SimpleConstraint pConstr) {
-    return new AndersenState(this.localConstraintSystem.addConstraint(pConstr));
+    return new AndersenState(localConstraintSystem.addConstraint(pConstr));
   }
 
   /**
@@ -57,7 +57,7 @@ public class AndersenState implements LatticeAbstractState<AndersenState> {
    * @param pConstr {@link ComplexConstraint} that should be added.
    */
   AndersenState addConstraint(ComplexConstraint pConstr) {
-    return new AndersenState(this.localConstraintSystem.addConstraint(pConstr));
+    return new AndersenState(localConstraintSystem.addConstraint(pConstr));
   }
 
   /**
@@ -66,7 +66,7 @@ public class AndersenState implements LatticeAbstractState<AndersenState> {
    * @return points-to sets for the local constraint system.
    */
   public ImmutableListMultimap<String, String> getLocalPointsToSets() {
-    return this.localConstraintSystem.getPointsToSets();
+    return localConstraintSystem.getPointsToSets();
   }
 
   @Override
@@ -83,24 +83,24 @@ public class AndersenState implements LatticeAbstractState<AndersenState> {
 
   @Override
   public int hashCode() {
-    return this.localConstraintSystem.hashCode();
+    return localConstraintSystem.hashCode();
   }
 
   @Override
   public String toString() {
-    return this.localConstraintSystem.toString();
+    return localConstraintSystem.toString();
   }
 
   @Override
   public boolean isLessOrEqual(AndersenState pReachedState) {
     return Objects.equals(this, pReachedState)
-        || (this.localConstraintSystem
+        || (localConstraintSystem
                 .getBaseConstraints()
                 .containsAll(pReachedState.localConstraintSystem.getBaseConstraints())
-            && this.localConstraintSystem
+            && localConstraintSystem
                 .getSimpleConstraints()
                 .containsAll(pReachedState.localConstraintSystem.getSimpleConstraints())
-            && this.localConstraintSystem
+            && localConstraintSystem
                 .getComplexConstraints()
                 .containsAll(pReachedState.localConstraintSystem.getComplexConstraints()));
   }
@@ -113,6 +113,6 @@ public class AndersenState implements LatticeAbstractState<AndersenState> {
     if (pReachedState.isLessOrEqual(this)) {
       return this;
     }
-    return new AndersenState(this.localConstraintSystem.join(pReachedState.localConstraintSystem));
+    return new AndersenState(localConstraintSystem.join(pReachedState.localConstraintSystem));
   }
 }

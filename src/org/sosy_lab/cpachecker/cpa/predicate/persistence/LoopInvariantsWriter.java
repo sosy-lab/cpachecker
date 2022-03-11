@@ -51,11 +51,11 @@ public class LoopInvariantsWriter {
       AbstractionManager pAbsMgr,
       FormulaManagerView pFmMgr,
       RegionManager pRegMgr) {
-    this.cfa = pCfa;
-    this.logger = pLogger;
-    this.absmgr = pAbsMgr;
-    this.fmgr = pFmMgr;
-    this.rmgr = pRegMgr;
+    cfa = pCfa;
+    logger = pLogger;
+    absmgr = pAbsMgr;
+    fmgr = pFmMgr;
+    rmgr = pRegMgr;
   }
 
   private Map<CFANode, Region> getLoopHeadInvariants(UnmodifiableReachedSet reached) {

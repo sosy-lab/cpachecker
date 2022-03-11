@@ -77,7 +77,7 @@ public class CustomInstructionRequirementsExtractingAlgorithm
 
     analysis = analysisAlgorithm;
     this.logger = logger;
-    this.shutdownNotifier = sdNotifier;
+    shutdownNotifier = sdNotifier;
     this.cpa = cpa;
 
     if (!(cpa instanceof ARGCPA)) {

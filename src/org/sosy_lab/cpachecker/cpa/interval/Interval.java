@@ -37,9 +37,9 @@ public final class Interval implements Serializable {
    * @param value for the lower and upper bound
    */
   public Interval(Long value) {
-    this.low = value;
+    low = value;
 
-    this.high = value;
+    high = value;
 
     isSane();
   }
@@ -130,7 +130,7 @@ public final class Interval implements Serializable {
    * @return the new interval with the respective bounds
    */
   public Interval intersect(Interval other) {
-    if (this.intersects(other)) {
+    if (intersects(other)) {
       return new Interval(Math.max(low, other.low), Math.min(high, other.high));
     } else {
       return EMPTY;

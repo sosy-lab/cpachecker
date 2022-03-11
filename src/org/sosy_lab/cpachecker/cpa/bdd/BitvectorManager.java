@@ -27,7 +27,7 @@ public class BitvectorManager {
   private final RegionManager rmgr;
 
   public BitvectorManager(RegionManager pRmgr) {
-    this.rmgr = pRmgr;
+    rmgr = pRmgr;
   }
 
   private int getBitSize(Region[] r1, Region[] r2) {

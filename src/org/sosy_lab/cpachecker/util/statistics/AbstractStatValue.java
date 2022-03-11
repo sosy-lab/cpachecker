@@ -14,8 +14,8 @@ public abstract class AbstractStatValue {
   private StatKind mainStatisticKind;
 
   protected AbstractStatValue(StatKind pMainStatisticKind, String pTitle) {
-    this.title = pTitle;
-    this.mainStatisticKind = pMainStatisticKind;
+    title = pTitle;
+    mainStatisticKind = pMainStatisticKind;
   }
 
   public String getTitle() {

@@ -315,7 +315,7 @@ public class PredicateToValuePrecisionConverter implements Statistics {
 
     PredicateMapParser mapParser =
         new PredicateMapParser(
-            cfa, this.logger, pFMgr, abstractionManager, new InitialPredicatesOptions());
+            cfa, logger, pFMgr, abstractionManager, new InitialPredicatesOptions());
 
     try {
       return mapParser.parsePredicates(pPredPrecFile);

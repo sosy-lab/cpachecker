@@ -174,7 +174,7 @@ public class PredicateProvider {
       }
     }
 
-    BooleanFormula constraint = this.fmgr.parse(out.toString());
+    BooleanFormula constraint = fmgr.parse(out.toString());
     return predFmgr.getPredicatesForAtomsOf(constraint);
   }
 }

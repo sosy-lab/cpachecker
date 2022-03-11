@@ -61,12 +61,12 @@ public class BDDCompressExpressionVisitor extends DefaultCExpressionVisitor<Regi
       final BitvectorManager pBVmgr,
       final Partition pPartition) {
     Preconditions.checkNotNull(pPartition);
-    this.predMgr = pPredMgr;
-    this.precision = pPrecision;
-    this.bvmgr = pBVmgr;
+    predMgr = pPredMgr;
+    precision = pPrecision;
+    bvmgr = pBVmgr;
     this.size = size;
-    this.intToRegions = initMappingIntToRegions(pPartition);
-    this.location = pLocation;
+    intToRegions = initMappingIntToRegions(pPartition);
+    location = pLocation;
   }
 
   /**

@@ -31,8 +31,8 @@ public class OctagonInterval {
 
   /** This method acts as constructor for an empty OctInterval. */
   private OctagonInterval() {
-    this.low = null;
-    this.high = null;
+    low = null;
+    high = null;
   }
 
   /**
@@ -41,8 +41,8 @@ public class OctagonInterval {
    * @param value for the lower and upper bound
    */
   public OctagonInterval(Long value) {
-    this.low = OctagonIntValue.of(value);
-    this.high = OctagonIntValue.of(value);
+    low = OctagonIntValue.of(value);
+    high = OctagonIntValue.of(value);
   }
 
   /**
@@ -73,8 +73,8 @@ public class OctagonInterval {
   }
 
   public OctagonInterval(OctagonNumericValue<?> pValue) {
-    this.low = pValue;
-    this.high = pValue;
+    low = pValue;
+    high = pValue;
   }
 
   private boolean isSane() {
@@ -169,7 +169,7 @@ public class OctagonInterval {
   public OctagonInterval intersect(OctagonInterval other) {
     OctagonInterval OctInterval = null;
 
-    if (this.intersects(other)) {
+    if (intersects(other)) {
       OctInterval = new OctagonInterval(low.max(other.low), high.max(other.high));
     } else {
       OctInterval = createEmptyOctInterval();

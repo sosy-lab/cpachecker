@@ -27,9 +27,9 @@ class CompoundBitVectorIntervalManager implements CompoundIntervalManager {
       boolean pAllowSignedWrapAround,
       OverflowEventHandler pOverflowEventHandler) {
     Preconditions.checkNotNull(pInfo);
-    this.info = pInfo;
-    this.allowSignedWrapAround = pAllowSignedWrapAround;
-    this.overflowEventHandler = pOverflowEventHandler;
+    info = pInfo;
+    allowSignedWrapAround = pAllowSignedWrapAround;
+    overflowEventHandler = pOverflowEventHandler;
   }
 
   @Override

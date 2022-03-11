@@ -139,10 +139,10 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
     this.config = config;
     specification = pSpecification;
     config.inject(this);
-    this.shutdownNotifier = pShutdownNotifier;
-    this.cfa = pCfa;
+    shutdownNotifier = pShutdownNotifier;
+    cfa = pCfa;
     getCounterexampleInfo = Objects.requireNonNull(pGetCounterexampleInfo);
-    this.witnessExporter = new WitnessExporter(config, logger, specification, cfa);
+    witnessExporter = new WitnessExporter(config, logger, specification, cfa);
   }
 
   @Override

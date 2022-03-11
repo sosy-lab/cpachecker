@@ -108,14 +108,14 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       boolean pAllowOverapproximationOfUnsupportedFeatures,
       boolean pUsePointerAliasStrengthening,
       Optional<VariableClassification> pVariableClassification) {
-    this.compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
-    this.machineModel = pMachineModel;
-    this.edgeAnalyzer = new EdgeAnalyzer(compoundIntervalManagerFactory, machineModel);
-    this.compoundIntervalFormulaManager =
+    compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
+    machineModel = pMachineModel;
+    edgeAnalyzer = new EdgeAnalyzer(compoundIntervalManagerFactory, machineModel);
+    compoundIntervalFormulaManager =
         new CompoundIntervalFormulaManager(compoundIntervalManagerFactory);
-    this.allowOverapproximationOfUnsupportedFeatures = pAllowOverapproximationOfUnsupportedFeatures;
-    this.usePointerAliasStrengthening = pUsePointerAliasStrengthening;
-    this.variableClassification = Objects.requireNonNull(pVariableClassification);
+    allowOverapproximationOfUnsupportedFeatures = pAllowOverapproximationOfUnsupportedFeatures;
+    usePointerAliasStrengthening = pUsePointerAliasStrengthening;
+    variableClassification = Objects.requireNonNull(pVariableClassification);
   }
 
   private CompoundIntervalManager getCompoundIntervalManager(TypeInfo pTypeInfo) {

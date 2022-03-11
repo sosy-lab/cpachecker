@@ -38,7 +38,7 @@ public class CachingTargetLocationProvider implements TargetLocationProvider {
               });
 
   public CachingTargetLocationProvider(TargetLocationProvider pBackingTargetLocationProvider) {
-    this.backingTargetLocationProvider = pBackingTargetLocationProvider;
+    backingTargetLocationProvider = pBackingTargetLocationProvider;
   }
 
   public CachingTargetLocationProvider(

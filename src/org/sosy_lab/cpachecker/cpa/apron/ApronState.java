@@ -131,7 +131,7 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
     logger.log(Level.FINEST, "apron state: isEqual");
     return Objects.equals(integerToIndexMap, otherApron.integerToIndexMap)
         && Objects.equals(realToIndexMap, otherApron.realToIndexMap)
-        && this.apronState.isEqual(apronManager.getManager(), otherApron.apronState)
+        && apronState.isEqual(apronManager.getManager(), otherApron.apronState)
         && isLoopHead == otherApron.isLoopHead;
   }
 

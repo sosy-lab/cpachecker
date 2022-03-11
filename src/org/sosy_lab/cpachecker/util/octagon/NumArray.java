@@ -32,7 +32,7 @@ public class NumArray {
       return false;
     }
     NumArray otherArr = (NumArray) pObj;
-    return this.array == otherArr.array;
+    return array == otherArr.array;
   }
 
   @Override

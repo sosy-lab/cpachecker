@@ -66,9 +66,9 @@ public class OctagonSimpleCoefficients extends AOctagonCoefficients {
 
   @Override
   public OctagonSimpleCoefficients expandToSize(int pSize, OctagonState pOct) {
-    Preconditions.checkArgument(this.size <= pSize, "new size too small");
+    Preconditions.checkArgument(size <= pSize, "new size too small");
 
-    if (this.size == pSize) {
+    if (size == pSize) {
       return this;
     }
 
@@ -77,7 +77,7 @@ public class OctagonSimpleCoefficients extends AOctagonCoefficients {
     for (int i = 0; i < coefficients.length - 1; i++) {
       newCoeffs.coefficients[i] = coefficients[i];
     }
-    newCoeffs.coefficients[pSize] = coefficients[this.size];
+    newCoeffs.coefficients[pSize] = coefficients[size];
 
     return newCoeffs;
   }

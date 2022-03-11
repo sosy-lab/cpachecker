@@ -44,14 +44,14 @@ public class FormulaMeasuring {
     }
 
     public ImmutableSortedSet<String> getVariables() {
-      return ImmutableSortedSet.copyOf(this.variables);
+      return ImmutableSortedSet.copyOf(variables);
     }
   }
 
   private final FormulaManagerView managerView;
 
   public FormulaMeasuring(FormulaManagerView pManagerView) {
-    this.managerView = pManagerView;
+    managerView = pManagerView;
   }
 
   public FormulaMeasures measure(BooleanFormula formula) {

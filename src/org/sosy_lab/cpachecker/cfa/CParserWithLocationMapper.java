@@ -65,8 +65,8 @@ public class CParserWithLocationMapper implements CParser {
 
     pConfig.inject(this);
 
-    this.logger = pLogger;
-    this.realParser = pRealParser;
+    logger = pLogger;
+    realParser = pRealParser;
     readLineDirectives = pReadLineDirectives;
   }
 

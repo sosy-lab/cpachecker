@@ -29,7 +29,7 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
   ArrayFormulaManagerView(
       final FormulaWrappingHandler pWrappingHandler, final ArrayFormulaManager pManager) {
     super(pWrappingHandler);
-    this.manager = pManager;
+    manager = pManager;
   }
 
   /** {@inheritDoc} */

@@ -90,11 +90,11 @@ public class ThreadingState
   private final PersistentMap<String, Integer> threadIdsForWitness;
 
   public ThreadingState() {
-    this.threads = PathCopyingPersistentTreeMap.of();
-    this.locks = PathCopyingPersistentTreeMap.of();
-    this.activeThread = null;
-    this.entryFunction = null;
-    this.threadIdsForWitness = PathCopyingPersistentTreeMap.of();
+    threads = PathCopyingPersistentTreeMap.of();
+    locks = PathCopyingPersistentTreeMap.of();
+    activeThread = null;
+    entryFunction = null;
+    threadIdsForWitness = PathCopyingPersistentTreeMap.of();
   }
 
   private ThreadingState(
@@ -103,11 +103,11 @@ public class ThreadingState
       String pActiveThread,
       FunctionCallEdge entryFunction,
       PersistentMap<String, Integer> pThreadIdsForWitness) {
-    this.threads = pThreads;
-    this.locks = pLocks;
-    this.activeThread = pActiveThread;
+    threads = pThreads;
+    locks = pLocks;
+    activeThread = pActiveThread;
     this.entryFunction = entryFunction;
-    this.threadIdsForWitness = pThreadIdsForWitness;
+    threadIdsForWitness = pThreadIdsForWitness;
   }
 
   private ThreadingState withThreads(PersistentMap<String, ThreadState> pThreads) {

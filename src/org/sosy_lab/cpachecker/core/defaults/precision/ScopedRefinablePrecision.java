@@ -40,7 +40,7 @@ public class ScopedRefinablePrecision extends RefinablePrecision {
 
   @Override
   public ScopedRefinablePrecision withIncrement(Multimap<CFANode, MemoryLocation> increment) {
-    if (this.rawPrecision.containsAll(increment.values())) {
+    if (rawPrecision.containsAll(increment.values())) {
       return this;
     } else {
       Iterable<MemoryLocation> refinedPrec = Iterables.concat(rawPrecision, increment.values());

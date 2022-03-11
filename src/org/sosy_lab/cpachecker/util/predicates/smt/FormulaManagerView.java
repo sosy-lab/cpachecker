@@ -439,7 +439,7 @@ public class FormulaManagerView {
   public void dumpFormulaToFile(BooleanFormula f, @Nullable Path outputFile) {
     if (outputFile != null) {
       try {
-        IO.writeFile(outputFile, Charset.defaultCharset(), this.dumpFormula(f));
+        IO.writeFile(outputFile, Charset.defaultCharset(), dumpFormula(f));
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Failed to save formula to file");
       }

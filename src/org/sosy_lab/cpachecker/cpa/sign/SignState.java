@@ -51,7 +51,7 @@ public class SignState
     if (pToJoin.equals(this)) {
       return pToJoin;
     }
-    if (this.equals(TOP) || pToJoin.equals(TOP)) {
+    if (equals(TOP) || pToJoin.equals(TOP)) {
       return TOP;
     }
 
@@ -164,7 +164,7 @@ public class SignState
     if (!(pObj instanceof SignState)) {
       return false;
     }
-    return ((SignState) pObj).signMap.equals(this.signMap);
+    return ((SignState) pObj).signMap.equals(signMap);
   }
 
   @Override
@@ -173,7 +173,7 @@ public class SignState
   }
 
   private Object writeReplace() {
-    if (this.equals(TOP)) {
+    if (equals(TOP)) {
       return proxy;
     } else {
       return this;

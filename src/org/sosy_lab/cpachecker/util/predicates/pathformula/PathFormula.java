@@ -41,10 +41,10 @@ public final class PathFormula implements Serializable {
 
   // Do not make public, cf. createManually()
   PathFormula(BooleanFormula pf, SSAMap ssa, PointerTargetSet pts, int pLength) {
-    this.formula = checkNotNull(pf);
+    formula = checkNotNull(pf);
     this.ssa = checkNotNull(ssa);
     this.pts = checkNotNull(pts);
-    this.length = pLength;
+    length = pLength;
   }
 
   /**

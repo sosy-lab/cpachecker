@@ -23,7 +23,7 @@ interface AutomatonExpression<T> {
     private String toPrint;
 
     public StringExpression(String pString) {
-      this.toPrint = pString;
+      toPrint = pString;
     }
 
     @Override

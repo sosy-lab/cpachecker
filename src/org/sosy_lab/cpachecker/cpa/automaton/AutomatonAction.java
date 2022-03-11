@@ -120,8 +120,8 @@ abstract class AutomatonAction {
     private final AutomatonIntExpr var;
 
     public Assignment(String pVarId, AutomatonIntExpr pVar) {
-      this.varId = pVarId;
-      this.var = pVar;
+      varId = pVarId;
+      var = pVar;
     }
 
     @Override
@@ -163,9 +163,9 @@ abstract class AutomatonAction {
     private final String value;
 
     public SetAssignment(String pVarId, String pValue, boolean pAction) {
-      this.varId = pVarId;
-      this.action = pAction;
-      this.value = pValue;
+      varId = pVarId;
+      action = pAction;
+      value = pValue;
     }
 
     @Override

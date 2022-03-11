@@ -1311,7 +1311,7 @@ public class ExpressionToFormulaVisitor
       FormulaType<?> formulaReturnType = conv.getFormulaTypeFromCType(pReturnType);
 
       if (paramFormulaType.isBitvectorType()) {
-        BitvectorFormulaManagerView bvMgrv = this.mgr.getBitvectorFormulaManager();
+        BitvectorFormulaManagerView bvMgrv = mgr.getBitvectorFormulaManager();
         BitvectorFormula bvParameter = (BitvectorFormula) toFormula(pParameters.get(0));
         BitvectorType bvParamType = (BitvectorType) paramFormulaType;
         BitvectorType bvReturnType = (BitvectorType) formulaReturnType;

@@ -162,7 +162,7 @@ public class PredicateCPA
 
     this.config = config;
     this.logger = logger;
-    this.shutdownNotifier = pShutdownNotifier;
+    shutdownNotifier = pShutdownNotifier;
 
     cfa = pCfa;
     blk = pBlk;

@@ -28,7 +28,7 @@ public class UsageInfoSet extends TreeSet<UsageInfo> {
   }
 
   public boolean remove(UsageState pUstate) {
-    Iterator<UsageInfo> iterator = this.iterator();
+    Iterator<UsageInfo> iterator = iterator();
     boolean changed = false;
     while (iterator.hasNext()) {
       UsageInfo uinfo = iterator.next();

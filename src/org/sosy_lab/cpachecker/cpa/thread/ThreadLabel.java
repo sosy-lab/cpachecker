@@ -46,11 +46,11 @@ public final class ThreadLabel implements Comparable<ThreadLabel> {
 
   @Override
   public int compareTo(ThreadLabel pO) {
-    int result = this.threadName.compareTo(pO.threadName);
+    int result = threadName.compareTo(pO.threadName);
     if (result != 0) {
       return result;
     }
-    return this.varName.compareTo(pO.varName);
+    return varName.compareTo(pO.varName);
   }
 
   public String getName() {

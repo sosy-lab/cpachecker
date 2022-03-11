@@ -40,7 +40,7 @@ public class LoopBoundState
   }
 
   private LoopBoundState(LoopStack pLoopStack, boolean pStopIt) {
-    this.loopStack = Objects.requireNonNull(pLoopStack);
+    loopStack = Objects.requireNonNull(pLoopStack);
     Preconditions.checkArgument(
         !pLoopStack.isEmpty(),
         "Always initialize the stack with an UndeterminedLoopIterationState");
@@ -49,7 +49,7 @@ public class LoopBoundState
             || (pLoopStack.getSize() > 1 && pLoopStack.peek().isEntryKnown()),
         "The deepest element in the stack must be an UndeterminedLoopIterationState, and all other"
             + " elements must be determined.");
-    this.stopIt = pStopIt;
+    stopIt = pStopIt;
   }
 
   public LoopBoundState exit(Loop pOldLoop) throws CPATransferException {
@@ -99,7 +99,7 @@ public class LoopBoundState
 
   @Override
   public Object getPartitionKey() {
-    return this.setStop(false);
+    return setStop(false);
   }
 
   @Override
@@ -127,7 +127,7 @@ public class LoopBoundState
     }
 
     LoopBoundState other = (LoopBoundState) obj;
-    return this.stopIt == other.stopIt && this.loopStack.equals(other.loopStack);
+    return stopIt == other.stopIt && loopStack.equals(other.loopStack);
   }
 
   @Override

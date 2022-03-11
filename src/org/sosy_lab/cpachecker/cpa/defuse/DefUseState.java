@@ -52,7 +52,7 @@ public class DefUseState implements AbstractState, Iterable<DefUseDefinition> {
     }
 
     DefUseState otherDefUse = (DefUseState) other;
-    return otherDefUse.definitions.equals(this.definitions);
+    return otherDefUse.definitions.equals(definitions);
   }
 
   @Override

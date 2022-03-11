@@ -33,7 +33,7 @@ class CompositePrecisionAdjustment implements PrecisionAdjustment {
     for (int i = 0; i < precisionAdjustments.size(); i++) {
       stateProjections.add(getStateProjectionFunction(i));
     }
-    this.stateProjectionFunctions = stateProjections.build();
+    stateProjectionFunctions = stateProjections.build();
   }
 
   private Function<AbstractState, AbstractState> getStateProjectionFunction(int i) {

@@ -25,8 +25,8 @@ public class Constraint {
   }
 
   public Constraint(Constraint cn) {
-    this.cns = new ArrayList<>(cn.getConstraint());
-    this.vars = new HashMap<>(cn.getVars());
+    cns = new ArrayList<>(cn.getConstraint());
+    vars = new HashMap<>(cn.getVars());
   }
 
   public Constraint(List<Term> cns, Map<String, Term> vars) {
@@ -59,7 +59,7 @@ public class Constraint {
   }
 
   public void addVars(HashMap<String, Term> pVars) {
-    this.vars.putAll(pVars);
+    vars.putAll(pVars);
   }
 
   public void removeVar(String var) {

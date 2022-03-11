@@ -72,8 +72,8 @@ class EdgeAnalyzer {
 
   public EdgeAnalyzer(
       CompoundIntervalManagerFactory pCompoundIntervalManagerFactory, MachineModel pMachineModel) {
-    this.compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
-    this.machineModel = pMachineModel;
+    compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
+    machineModel = pMachineModel;
   }
 
   /**

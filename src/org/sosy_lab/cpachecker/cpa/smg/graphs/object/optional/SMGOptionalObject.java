@@ -76,7 +76,7 @@ public class SMGOptionalObject extends SMGObject implements SMGAbstractObject {
 
     assert getSize() == pOther.getSize();
 
-    int level = Math.max(this.getLevel(), pOther.getLevel());
+    int level = Math.max(getLevel(), pOther.getLevel());
 
     switch (pOther.getKind()) {
       case REG:

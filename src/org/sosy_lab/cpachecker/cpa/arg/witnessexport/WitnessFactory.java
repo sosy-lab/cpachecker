@@ -499,7 +499,7 @@ class WitnessFactory implements EdgeAppender {
     Optional<AIdExpression> resultVariable = Optional.empty();
     Optional<String> resultFunction = Optional.empty();
     String functionName = pEdge.getPredecessor().getFunctionName();
-    boolean functionScope = this.isFunctionScope;
+    boolean functionScope = isFunctionScope;
 
     for (ARGState state : pFromStates) {
 
@@ -1463,7 +1463,7 @@ class WitnessFactory implements EdgeAppender {
     Set<Edge> replacementEdges = new LinkedHashSet<>();
 
     // Move the leaving edges
-    Collection<Edge> leavingEdgesToMove = ImmutableList.copyOf(this.leavingEdges.get(nodeToRemove));
+    Collection<Edge> leavingEdgesToMove = ImmutableList.copyOf(leavingEdges.get(nodeToRemove));
     // Create the replacement edges,
     // Add them as leaving edges to the source node,
     // Add them as entering edges to their target nodes
@@ -1500,7 +1500,7 @@ class WitnessFactory implements EdgeAppender {
 
     // Move the entering edges
     Collection<Edge> enteringEdgesToMove =
-        ImmutableList.copyOf(this.enteringEdges.get(nodeToRemove));
+        ImmutableList.copyOf(enteringEdges.get(nodeToRemove));
     // Create the replacement edges,
     // Add them as entering edges to the source node,
     // Add add them as leaving edges to their source nodes
@@ -1800,7 +1800,7 @@ class WitnessFactory implements EdgeAppender {
       public TraversalProcess visitNode(CFANode pNode) {
         LoopEntryInfo loopEntryInformation = loopEntryInfoMemo.get(pEdge);
         if (loopEntryInformation != null) {
-          this.loopEntryInfo = loopEntryInformation;
+          loopEntryInfo = loopEntryInformation;
           return TraversalProcess.ABORT;
         }
         if (pNode.isLoopStart()) {
@@ -1814,8 +1814,8 @@ class WitnessFactory implements EdgeAppender {
               }
             }
           }
-          this.loopEntryInfo = new LoopEntryInfo(pNode, gotoLoop);
-          loopEntryInfoMemo.put(pEdge, this.loopEntryInfo);
+          loopEntryInfo = new LoopEntryInfo(pNode, gotoLoop);
+          loopEntryInfoMemo.put(pEdge, loopEntryInfo);
 
           return TraversalProcess.ABORT;
         }

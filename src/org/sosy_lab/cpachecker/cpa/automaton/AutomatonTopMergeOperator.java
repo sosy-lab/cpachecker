@@ -20,8 +20,8 @@ public class AutomatonTopMergeOperator implements MergeOperator {
   private final AbstractState topState;
 
   public AutomatonTopMergeOperator(AbstractDomain pDomain, AbstractState pTopState) {
-    this.domain = pDomain;
-    this.topState = pTopState;
+    domain = pDomain;
+    topState = pTopState;
   }
 
   @Override

@@ -48,8 +48,8 @@ public class CFloatImpl extends CFloat {
    *     actually corresponds to the given {@link CFloatWrapper}
    */
   public CFloatImpl(CFloatWrapper pWrapper, int pType) {
-    this.wrapper = pWrapper;
-    this.type = pType;
+    wrapper = pWrapper;
+    type = pType;
   }
 
   /**
@@ -63,10 +63,10 @@ public class CFloatImpl extends CFloat {
    * @param pType the type of the {@link CFloat} instance
    */
   public CFloatImpl(final String pRep, final int pType) {
-    this.type = pType;
+    type = pType;
 
     if (DEFAULT_VALUES.contains(pRep.toLowerCase())) {
-      this.wrapper = new CFloatWrapper();
+      wrapper = new CFloatWrapper();
       long exp = 0;
       long man = 0;
 
@@ -157,8 +157,8 @@ public class CFloatImpl extends CFloat {
           throw new RuntimeException("Default case '" + pRep + "' is not yet implemented!");
       }
 
-      this.wrapper.setExponent(exp);
-      this.wrapper.setMantissa(man);
+      wrapper.setExponent(exp);
+      wrapper.setMantissa(man);
     } else {
       List<String> parts = Splitter.on('.').splitToList(pRep);
       boolean negative = pRep.startsWith("-");
@@ -187,7 +187,7 @@ public class CFloatImpl extends CFloat {
         result = result.multiply(nOne);
       }
 
-      this.wrapper = result.castTo(pType).copyWrapper();
+      wrapper = result.castTo(pType).copyWrapper();
     }
   }
 
@@ -1328,8 +1328,8 @@ public class CFloatImpl extends CFloat {
 
   @Override
   public CFloat ceil() {
-    CFloat res = this.trunc();
-    if (this.greaterThan(res)) {
+    CFloat res = trunc();
+    if (greaterThan(res)) {
       res.add(new CFloatImpl("1", type));
     }
     return res;
@@ -1337,7 +1337,7 @@ public class CFloatImpl extends CFloat {
 
   @Override
   public CFloat floor() {
-    CFloat res = this.trunc();
+    CFloat res = trunc();
     if (res.greaterThan(this)) {
       res.add(new CFloatImpl("-1", type));
     }

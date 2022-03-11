@@ -21,7 +21,7 @@ public class MonitorStop implements StopOperator {
   private final ConfigurableProgramAnalysis wrappedCpa;
 
   public MonitorStop(ConfigurableProgramAnalysis cpa) {
-    this.wrappedCpa = cpa;
+    wrappedCpa = cpa;
   }
 
   @Override

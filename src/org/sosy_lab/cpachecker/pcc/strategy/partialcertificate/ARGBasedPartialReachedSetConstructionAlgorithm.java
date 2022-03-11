@@ -40,7 +40,7 @@ public class ARGBasedPartialReachedSetConstructionAlgorithm
       final Precision pRootPrecision, final ARGState pRoot, final ARGCPA pCpa)
       throws InvalidConfigurationException {
 
-    this.cpa = pCpa.getWrappedCPAs().get(0); // TODO this line looks dangerous!
+    cpa = pCpa.getWrappedCPAs().get(0); // TODO this line looks dangerous!
     return new ExtendedNodeSelectionARGPass(pRootPrecision, pRoot);
   }
 

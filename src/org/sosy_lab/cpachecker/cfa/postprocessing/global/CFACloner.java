@@ -38,7 +38,7 @@ public class CFACloner {
   private int numberOfCopies = 5;
 
   public CFACloner(final CFA pCfa, Configuration pConfig) throws InvalidConfigurationException {
-    this.cfa = pCfa;
+    cfa = pCfa;
     pConfig.inject(this);
   }
 

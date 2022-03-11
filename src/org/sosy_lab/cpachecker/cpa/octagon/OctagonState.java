@@ -160,7 +160,7 @@ public class OctagonState implements AbstractState {
 
     return isLoopHead == otherOct.isLoopHead
         && Objects.equals(variableToIndexMap, otherOct.variableToIndexMap)
-        && this.octagon.equals(otherOct.octagon);
+        && octagon.equals(otherOct.octagon);
   }
 
   protected int isLessOrEquals(OctagonState state) {

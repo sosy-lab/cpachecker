@@ -44,8 +44,8 @@ public class PredicateAbstractionsWriter {
   private final FormulaManagerView fmgr;
 
   public PredicateAbstractionsWriter(LogManager pLogger, FormulaManagerView pFmMgr) {
-    this.logger = pLogger;
-    this.fmgr = pFmMgr;
+    logger = pLogger;
+    fmgr = pFmMgr;
   }
 
   private int getAbstractionId(ARGState state) {

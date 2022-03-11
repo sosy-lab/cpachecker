@@ -140,8 +140,8 @@ public final class LoopStructure implements Serializable {
 
       assert !newIncomingEdges.isEmpty() : "Unreachable loop?";
 
-      this.incomingEdges = ImmutableSet.copyOf(newIncomingEdges);
-      this.outgoingEdges = ImmutableSet.copyOf(newOutgoingEdges);
+      incomingEdges = ImmutableSet.copyOf(newIncomingEdges);
+      outgoingEdges = ImmutableSet.copyOf(newOutgoingEdges);
     }
 
     private void addNodes(Loop l) {
@@ -166,11 +166,11 @@ public final class LoopStructure implements Serializable {
      * {@link Loop}).
      */
     public boolean isOuterLoopOf(Loop other) {
-      this.computeSets();
+      computeSets();
       other.computeSets();
 
-      return this.innerLoopEdges.containsAll(other.incomingEdges)
-          && this.innerLoopEdges.containsAll(other.outgoingEdges);
+      return innerLoopEdges.containsAll(other.incomingEdges)
+          && innerLoopEdges.containsAll(other.outgoingEdges);
     }
 
     /**

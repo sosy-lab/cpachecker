@@ -173,14 +173,14 @@ public class AutomatonState
       AutomatonTargetInformation pTargetInformation,
       boolean pTreatErrorAsTarget) {
 
-    this.vars = checkNotNull(pVars);
-    this.internalState = checkNotNull(pInternalState);
-    this.automaton = checkNotNull(pAutomaton);
-    this.matches = successfulMatches;
+    vars = checkNotNull(pVars);
+    internalState = checkNotNull(pInternalState);
+    automaton = checkNotNull(pAutomaton);
+    matches = successfulMatches;
     this.failedMatches = failedMatches;
-    this.assumptions = pAssumptions;
-    this.candidateInvariants = pCandidateInvariants;
-    this.treatErrorAsTarget = pTreatErrorAsTarget;
+    assumptions = pAssumptions;
+    candidateInvariants = pCandidateInvariants;
+    treatErrorAsTarget = pTreatErrorAsTarget;
 
     if (internalState.isTarget()) {
       checkNotNull(pTargetInformation);
@@ -331,7 +331,7 @@ public class AutomatonState
 
     @Override
     public int hashCode() {
-      return this.previousState.hashCode() + 724;
+      return previousState.hashCode() + 724;
     }
 
     @Override
@@ -365,7 +365,7 @@ public class AutomatonState
       String left = parts.get(0);
       String right = parts.get(1);
       if (left.equalsIgnoreCase("state")) {
-        return this.getInternalState().getName().equals(right);
+        return getInternalState().getName().equals(right);
       } else {
         AutomatonVariable var = vars.get(left);
         if (var != null) {
@@ -402,7 +402,7 @@ public class AutomatonState
     } else {
       String left = parts.get(0);
       String right = parts.get(1);
-      AutomatonVariable var = this.vars.get(left);
+      AutomatonVariable var = vars.get(left);
       if (var != null) {
         if (var instanceof AutomatonIntVariable) {
           try {

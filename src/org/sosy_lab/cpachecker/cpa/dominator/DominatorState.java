@@ -93,10 +93,10 @@ public class DominatorState extends ForwardingSet<CFANode>
 
   @Override
   public DominatorState join(DominatorState pOther) {
-    if (this.dominators.equals(pOther.dominators)) {
+    if (dominators.equals(pOther.dominators)) {
       return pOther;
     } else {
-      return new DominatorState(Sets.intersection(this.dominators, pOther.dominators));
+      return new DominatorState(Sets.intersection(dominators, pOther.dominators));
     }
   }
 

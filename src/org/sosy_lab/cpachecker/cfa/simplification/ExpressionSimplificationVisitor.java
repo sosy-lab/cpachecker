@@ -53,8 +53,8 @@ public class ExpressionSimplificationVisitor
   private final LogManagerWithoutDuplicates logger;
 
   public ExpressionSimplificationVisitor(MachineModel mm, LogManagerWithoutDuplicates pLogger) {
-    this.machineModel = mm;
-    this.logger = pLogger;
+    machineModel = mm;
+    logger = pLogger;
   }
 
   /** return a simplified version of the expression. */

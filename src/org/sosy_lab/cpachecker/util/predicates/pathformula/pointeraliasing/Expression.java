@@ -278,11 +278,11 @@ abstract class Expression {
   }
 
   boolean isAliasedLocation() {
-    return this.isLocation() && this.asLocation().isAliased();
+    return isLocation() && asLocation().isAliased();
   }
 
   boolean isUnaliasedLocation() {
-    return this.isLocation() && !this.asLocation().isAliased();
+    return isLocation() && !asLocation().isAliased();
   }
 
   abstract Location asLocation();

@@ -36,7 +36,7 @@ public interface CParser extends Parser {
     private final Path fileName;
 
     public FileToParse(Path pFileName) {
-      this.fileName = pFileName;
+      fileName = pFileName;
     }
 
     public Path getFileName() {
@@ -49,7 +49,7 @@ public interface CParser extends Parser {
 
     public FileContentToParse(Path pFileName, String pFileContent) {
       super(pFileName);
-      this.fileContent = pFileContent;
+      fileContent = pFileContent;
     }
 
     public String getFileContent() {

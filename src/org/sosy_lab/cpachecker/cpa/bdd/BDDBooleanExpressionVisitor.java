@@ -41,10 +41,10 @@ public class BDDBooleanExpressionVisitor extends DefaultCExpressionVisitor<Regio
       final RegionManager pRmgr,
       final VariableTrackingPrecision pPrecision,
       final CFANode pLocation) {
-    this.predMgr = pPredMgr;
-    this.rmgr = pRmgr;
-    this.precision = pPrecision;
-    this.location = pLocation;
+    predMgr = pPredMgr;
+    rmgr = pRmgr;
+    precision = pPrecision;
+    location = pLocation;
   }
 
   @Override

@@ -99,7 +99,7 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
       throws InvalidConfigurationException {
     config.inject(this);
     this.cpaClass = cpaClass;
-    this.vc = pVc;
+    vc = pVc;
   }
 
   @Override

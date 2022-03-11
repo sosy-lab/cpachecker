@@ -86,11 +86,11 @@ public class Partition implements Comparable<Partition>, Serializable {
 
   /** copies all data from other to current partition */
   void merge(Partition other) {
-    assert this.varToPartition == other.varToPartition;
+    assert varToPartition == other.varToPartition;
 
-    this.vars.addAll(other.vars);
-    this.values.addAll(other.values);
-    this.edges.putAll(other.edges);
+    vars.addAll(other.vars);
+    values.addAll(other.values);
+    edges.putAll(other.edges);
 
     // update mapping of vars
     for (String var : other.vars) {
@@ -120,6 +120,6 @@ public class Partition implements Comparable<Partition>, Serializable {
 
   @Override
   public int compareTo(Partition other) {
-    return Integer.compare(this.index, other.index);
+    return Integer.compare(index, other.index);
   }
 }

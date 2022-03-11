@@ -16,7 +16,7 @@ public class CFloatNative extends CFloat {
   private final int type;
 
   public CFloatNative(String rep, int type) {
-    this.wrapper = CFloatNativeAPI.createFp(rep, type);
+    wrapper = CFloatNativeAPI.createFp(rep, type);
     this.type = type;
   }
 

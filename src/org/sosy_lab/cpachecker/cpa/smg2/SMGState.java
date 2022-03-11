@@ -262,7 +262,7 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
     if (unreachableObjects.isEmpty()) {
       return this;
     }
-    return this.copyWithMemLeak(newHeap, unreachableObjects);
+    return copyWithMemLeak(newHeap, unreachableObjects);
   }
 
   private SMGState copyWithMemLeak(

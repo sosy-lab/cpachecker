@@ -24,10 +24,10 @@ public class StatisticsWriter {
       int pLevel,
       int pOutputNameColWidth,
       StatisticsWriter pParentLevelWriter) {
-    this.parentLevelWriter = pParentLevelWriter;
-    this.target = pTarget;
-    this.level = pLevel;
-    this.outputNameColWidth = pOutputNameColWidth;
+    parentLevelWriter = pParentLevelWriter;
+    target = pTarget;
+    level = pLevel;
+    outputNameColWidth = pOutputNameColWidth;
   }
 
   /** Use this method instead of direct calls to the constructor to allow overriding. */

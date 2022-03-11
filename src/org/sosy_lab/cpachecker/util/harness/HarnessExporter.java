@@ -927,8 +927,8 @@ public class HarnessExporter {
     private final TestVector testVector;
 
     private State(ARGState pARGState, TestVector pTestVector) {
-      this.argState = Objects.requireNonNull(pARGState);
-      this.testVector = Objects.requireNonNull(pTestVector);
+      argState = Objects.requireNonNull(pARGState);
+      testVector = Objects.requireNonNull(pTestVector);
     }
 
     @Override

@@ -188,7 +188,7 @@ public class ARGPathTest {
 
   @Test
   public void testGetInnerEdges() {
-    assertThat(path.getInnerEdges()).isEqualTo(this.innerEdges);
+    assertThat(path.getInnerEdges()).isEqualTo(innerEdges);
   }
 
   @Test

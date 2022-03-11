@@ -75,7 +75,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
   private final PathFormulaManager pfmgr;
 
   BlockFormulaSlicer(PathFormulaManager pPfmgr) {
-    this.pfmgr = pPfmgr;
+    pfmgr = pPfmgr;
   }
 
   @Override

@@ -59,9 +59,9 @@ public class ToBitvectorFormulaVisitor
    */
   public ToBitvectorFormulaVisitor(
       FormulaManagerView pFmgr, FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
-    this.bfmgr = pFmgr.getBooleanFormulaManager();
-    this.bvfmgr = pFmgr.getBitvectorFormulaManager();
-    this.evaluationVisitor = pEvaluationVisitor;
+    bfmgr = pFmgr.getBooleanFormulaManager();
+    bvfmgr = pFmgr.getBitvectorFormulaManager();
+    evaluationVisitor = pEvaluationVisitor;
   }
 
   /**
@@ -77,7 +77,7 @@ public class ToBitvectorFormulaVisitor
   private @Nullable BitvectorFormula evaluate(
       NumeralFormula<CompoundInterval> pFormula,
       Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
-    CompoundInterval intervals = pFormula.accept(this.evaluationVisitor, pEnvironment);
+    CompoundInterval intervals = pFormula.accept(evaluationVisitor, pEnvironment);
     if (intervals.isSingleton()) {
       TypeInfo typeInfo = pFormula.getTypeInfo();
       if (typeInfo instanceof BitVectorInfo) {
@@ -110,7 +110,7 @@ public class ToBitvectorFormulaVisitor
     } else if (!negative) {
       value = value.and(BigInteger.valueOf(2).pow(size).subtract(BigInteger.valueOf(1)));
     }
-    return this.bvfmgr.makeBitvector(size, value);
+    return bvfmgr.makeBitvector(size, value);
   }
 
   @Override
@@ -122,7 +122,7 @@ public class ToBitvectorFormulaVisitor
     if (summand1 == null || summand2 == null) {
       return evaluate(pAdd, pEnvironment);
     }
-    return this.bvfmgr.add(summand1, summand2);
+    return bvfmgr.add(summand1, summand2);
   }
 
   @Override
@@ -169,7 +169,7 @@ public class ToBitvectorFormulaVisitor
     if (numerator == null || denominator == null) {
       return evaluate(pDivide, pEnvironment);
     }
-    return this.bvfmgr.divide(numerator, denominator, true);
+    return bvfmgr.divide(numerator, denominator, true);
   }
 
   @Override
@@ -188,7 +188,7 @@ public class ToBitvectorFormulaVisitor
     if (numerator == null || denominator == null) {
       return evaluate(pModulo, pEnvironment);
     }
-    return this.bvfmgr.modulo(numerator, denominator, true);
+    return bvfmgr.modulo(numerator, denominator, true);
   }
 
   @Override
@@ -200,7 +200,7 @@ public class ToBitvectorFormulaVisitor
     if (factor1 == null || factor2 == null) {
       return evaluate(pMultiply, pEnvironment);
     }
-    return this.bvfmgr.multiply(factor1, factor2);
+    return bvfmgr.multiply(factor1, factor2);
   }
 
   @Override
@@ -230,7 +230,7 @@ public class ToBitvectorFormulaVisitor
       Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     TypeInfo typeInfo = pVariable.getTypeInfo();
     if (typeInfo instanceof BitVectorInfo) {
-      return this.bvfmgr.makeVariable(
+      return bvfmgr.makeVariable(
           ((BitVectorInfo) typeInfo).getSize(),
           pVariable.getMemoryLocation().getExtendedQualifiedName());
     }
@@ -286,7 +286,7 @@ public class ToBitvectorFormulaVisitor
     if (negativeCaseFormula == null) {
       return null;
     }
-    return this.bfmgr.ifThenElse(conditionFormula, positiveCaseFormula, negativeCaseFormula);
+    return bfmgr.ifThenElse(conditionFormula, positiveCaseFormula, negativeCaseFormula);
   }
 
   @Override
@@ -385,7 +385,7 @@ public class ToBitvectorFormulaVisitor
   public BooleanFormula visit(
       LogicalAnd<CompoundInterval> pAnd,
       Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
-    return this.bfmgr.and(
+    return bfmgr.and(
         pAnd.getOperand1().accept(this, pEnvironment),
         pAnd.getOperand2().accept(this, pEnvironment));
   }
@@ -394,7 +394,7 @@ public class ToBitvectorFormulaVisitor
   public BooleanFormula visit(
       LogicalNot<CompoundInterval> pNot,
       Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
-    return this.bfmgr.not(pNot.getNegated().accept(this, pEnvironment));
+    return bfmgr.not(pNot.getNegated().accept(this, pEnvironment));
   }
 
   @Override

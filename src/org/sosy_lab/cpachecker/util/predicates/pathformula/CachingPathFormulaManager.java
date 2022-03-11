@@ -237,9 +237,9 @@ public class CachingPathFormulaManager implements PathFormulaManager {
 
   @Override
   public void printStatistics(PrintStream out) {
-    int cacheHits = this.pathFormulaCacheHits.intValue();
+    int cacheHits = pathFormulaCacheHits.intValue();
     int totalPathFormulaComputations =
-        this.pathFormulaComputationTimer.getNumberOfIntervals() + cacheHits;
+        pathFormulaComputationTimer.getNumberOfIntervals() + cacheHits;
     out.println(
         "Number of path formula cache hits:   "
             + cacheHits

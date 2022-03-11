@@ -207,7 +207,7 @@ public class CFATraversal {
    */
   public Set<CFANode> collectNodesReachableFrom(final CFANode startingNode) {
     NodeCollectingCFAVisitor visitor = new NodeCollectingCFAVisitor();
-    this.traverse(startingNode, visitor);
+    traverse(startingNode, visitor);
     return visitor.getVisitedNodes();
   }
 
@@ -223,7 +223,7 @@ public class CFATraversal {
       final CFANode startingNode, final CFANode endingNode) {
     NodeCollectingCFAVisitor visitor = new NodeCollectingCFAVisitor();
     visitor.stopVisitingNode = endingNode;
-    this.traverse(startingNode, visitor);
+    traverse(startingNode, visitor);
     return visitor.getVisitedNodes();
   }
 

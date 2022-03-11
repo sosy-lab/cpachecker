@@ -49,9 +49,9 @@ public class StateEqualsVisitor
       FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor,
       Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment,
       CompoundIntervalManagerFactory pCompoundIntervalManagerFactory) {
-    this.evaluationVisitor = pEvaluationVisitor;
-    this.environment = pEnvironment;
-    this.compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
+    evaluationVisitor = pEvaluationVisitor;
+    environment = pEnvironment;
+    compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
   }
 
   @Override
@@ -300,7 +300,7 @@ public class StateEqualsVisitor
       return true;
     }
     MemoryLocation leftVarLocation = pVariable.getMemoryLocation();
-    NumeralFormula<CompoundInterval> resolvedLeft = this.environment.get(leftVarLocation);
+    NumeralFormula<CompoundInterval> resolvedLeft = environment.get(leftVarLocation);
     CompoundIntervalManager cim =
         compoundIntervalManagerFactory.createCompoundIntervalManager(pVariable.getTypeInfo());
     resolvedLeft =
@@ -313,7 +313,7 @@ public class StateEqualsVisitor
       if (leftVarLocation.equals(rightVarLocation)) {
         return true;
       }
-      NumeralFormula<CompoundInterval> resolvedRight = this.environment.get(rightVarLocation);
+      NumeralFormula<CompoundInterval> resolvedRight = environment.get(rightVarLocation);
       cim = compoundIntervalManagerFactory.createCompoundIntervalManager(pOther.getTypeInfo());
       resolvedRight =
           resolvedRight == null

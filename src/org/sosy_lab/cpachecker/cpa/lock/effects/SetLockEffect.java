@@ -44,7 +44,7 @@ public final class SetLockEffect extends LockEffect {
 
   @Override
   public SetLockEffect cloneWithTarget(LockIdentifier id) {
-    return createEffectForId(this.p, id);
+    return createEffectForId(p, id);
   }
 
   @Override

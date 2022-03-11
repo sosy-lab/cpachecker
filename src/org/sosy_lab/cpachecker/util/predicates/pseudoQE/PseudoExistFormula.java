@@ -68,7 +68,7 @@ class PseudoExistFormula {
    * @return A Map with variable names as keys and the formulas as value
    */
   Map<String, Formula> getQuantifiedVars() {
-    return this.quantifiedVars;
+    return quantifiedVars;
   }
 
   /**

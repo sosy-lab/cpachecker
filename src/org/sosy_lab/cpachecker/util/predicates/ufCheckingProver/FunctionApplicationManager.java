@@ -27,9 +27,9 @@ public class FunctionApplicationManager {
 
   protected FunctionApplicationManager(
       FormulaManagerView pFmgr, LogManager pLogger, UFCheckingProverOptions pOptions) {
-    this.fmgr = pFmgr;
-    this.logger = pLogger;
-    this.options = pOptions;
+    fmgr = pFmgr;
+    logger = pLogger;
+    options = pOptions;
   }
 
   /**

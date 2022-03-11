@@ -46,7 +46,7 @@ public class PartialReachedSetDirectedGraph implements Statistics {
     } else {
       nodes = pNodes.clone();
       numNodes = nodes.length;
-      this.adjacencyList = buildAdjacencyList(pNodes);
+      adjacencyList = buildAdjacencyList(pNodes);
     }
   }
 

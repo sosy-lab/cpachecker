@@ -275,7 +275,7 @@ public class CProgramScope implements Scope {
         }
       }
     }
-    this.retValDeclarations = Collections.unmodifiableMap(artificialRetValDeclarations);
+    retValDeclarations = Collections.unmodifiableMap(artificialRetValDeclarations);
     nonFunctionDcls =
         FluentIterable.from(
             Iterables.concat(nonFunctionDcls, artificialRetValDeclarations.values()));
@@ -732,7 +732,7 @@ public class CProgramScope implements Scope {
     }
 
     public TypeCollector(Set<CType> pCollectedTypes) {
-      this.collectedTypes = pCollectedTypes;
+      collectedTypes = pCollectedTypes;
     }
 
     public Set<CType> getCollectedTypes() {

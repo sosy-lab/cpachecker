@@ -168,11 +168,11 @@ class PredicateCPAStatistics implements Statistics {
 
     private MutablePredicateSets() {
       // Use special multimaps with set-semantics and an ordering only on keys (not on values)
-      this.locationInstance = MultimapBuilder.treeKeys().linkedHashSetValues().build();
+      locationInstance = MultimapBuilder.treeKeys().linkedHashSetValues().build();
 
-      this.location = MultimapBuilder.treeKeys().linkedHashSetValues().build();
-      this.function = MultimapBuilder.treeKeys().linkedHashSetValues().build();
-      this.global = new LinkedHashSet<>();
+      location = MultimapBuilder.treeKeys().linkedHashSetValues().build();
+      function = MultimapBuilder.treeKeys().linkedHashSetValues().build();
+      global = new LinkedHashSet<>();
     }
   }
 

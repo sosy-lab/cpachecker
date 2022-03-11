@@ -22,7 +22,7 @@ public class SLABStopOperator implements StopOperator {
   private final AbstractDomain domain;
 
   public SLABStopOperator(AbstractDomain pDomain) {
-    this.domain = pDomain;
+    domain = pDomain;
   }
 
   @Override

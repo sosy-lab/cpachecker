@@ -145,7 +145,7 @@ interface LoopIterationState {
       if (getMaxIterationCount() <= pLoopIterationsBeforeAbstraction) {
         return this;
       }
-      PersistentSortedMap<Loop, LoopIteration> iters = this.iterations;
+      PersistentSortedMap<Loop, LoopIteration> iters = iterations;
       for (Map.Entry<Loop, LoopIteration> entry : iters.entrySet()) {
         Loop loop = entry.getKey();
         LoopIteration oldIterationCount = entry.getValue();

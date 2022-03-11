@@ -26,10 +26,10 @@ public class SMGDoublyLinkedListSegment extends SMGObject {
       int pMinLength,
       BigInteger pHeadOffset) {
     super(pNestingLevel, pSize, pOffset);
-    this.minLength = pMinLength;
-    this.headOffset = pHeadOffset;
-    this.nextOffset = pNextOffset;
-    this.prevOffset = pPrevOffset;
+    minLength = pMinLength;
+    headOffset = pHeadOffset;
+    nextOffset = pNextOffset;
+    prevOffset = pPrevOffset;
   }
 
   public BigInteger getPrevOffset() {

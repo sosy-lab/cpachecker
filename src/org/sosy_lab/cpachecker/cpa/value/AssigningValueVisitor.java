@@ -63,10 +63,10 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
       LogManagerWithoutDuplicates logger,
       ValueTransferOptions options) {
     super(state, functionName, machineModel, logger);
-    this.nonAssigningValueVisitor =
+    nonAssigningValueVisitor =
         new ExpressionValueVisitor(state, functionName, machineModel, logger);
     this.assignableState = assignableState;
-    this.booleans = booleanVariables;
+    booleans = booleanVariables;
     this.truthValue = truthValue;
     this.options = options;
   }
@@ -87,8 +87,8 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
     CExpression lVarInBinaryExp = (CExpression) unwrap(pE.getOperand1());
     CExpression rVarInBinaryExp = pE.getOperand2();
 
-    Value leftValue = lVarInBinaryExp.accept(this.nonAssigningValueVisitor);
-    Value rightValue = rVarInBinaryExp.accept(this.nonAssigningValueVisitor);
+    Value leftValue = lVarInBinaryExp.accept(nonAssigningValueVisitor);
+    Value rightValue = rVarInBinaryExp.accept(nonAssigningValueVisitor);
 
     if (isEqualityAssumption(binaryOperator)) {
       if (leftValue.isExplicitlyKnown()) {
@@ -140,7 +140,7 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
       }
     }
 
-    return this.nonAssigningValueVisitor.visit(pE);
+    return nonAssigningValueVisitor.visit(pE);
   }
 
   private boolean isEligibleForAssignment(final Value pValue) {
@@ -184,8 +184,8 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
 
     JExpression rVarInBinaryExp = pE.getOperand2();
 
-    Value leftValueV = lVarInBinaryExp.accept(this.nonAssigningValueVisitor);
-    Value rightValueV = rVarInBinaryExp.accept(this.nonAssigningValueVisitor);
+    Value leftValueV = lVarInBinaryExp.accept(nonAssigningValueVisitor);
+    Value rightValueV = rVarInBinaryExp.accept(nonAssigningValueVisitor);
 
     if ((binaryOperator == JBinaryExpression.BinaryOperator.EQUALS && truthValue)
         || (binaryOperator == JBinaryExpression.BinaryOperator.NOT_EQUALS && !truthValue)) {

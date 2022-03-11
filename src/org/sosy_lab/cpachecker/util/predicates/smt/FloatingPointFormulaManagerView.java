@@ -33,8 +33,8 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
       FloatingPointFormulaManager pManager,
       UFManager pFunctionManager) {
     super(pWrappingHandler);
-    this.manager = Preconditions.checkNotNull(pManager);
-    this.functionManager = Preconditions.checkNotNull(pFunctionManager);
+    manager = Preconditions.checkNotNull(pManager);
+    functionManager = Preconditions.checkNotNull(pFunctionManager);
   }
 
   @Override

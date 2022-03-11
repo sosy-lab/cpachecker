@@ -88,8 +88,8 @@ public class AssignmentToPathAllocator {
       LogManager pLogger,
       MachineModel pMachineModel)
       throws InvalidConfigurationException {
-    this.shutdownNotifier = pShutdownNotifier;
-    this.assumptionToEdgeAllocator =
+    shutdownNotifier = pShutdownNotifier;
+    assumptionToEdgeAllocator =
         AssumptionToEdgeAllocator.create(pConfig, pLogger, pMachineModel);
     machineModel = pMachineModel;
     TypeHandlerWithPointerAliasing typeHandler =

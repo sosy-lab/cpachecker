@@ -36,7 +36,7 @@ public class StateSpacePartition implements Partitionable {
 
   private StateSpacePartition(Object pPartitionKey) {
     Preconditions.checkNotNull(pPartitionKey);
-    this.partitionKey = pPartitionKey;
+    partitionKey = pPartitionKey;
   }
 
   @Override

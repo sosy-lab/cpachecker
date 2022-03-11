@@ -37,7 +37,7 @@ public class AcquireLockEffect extends LockEffect {
 
     @Override
     public AcquireLockEffect cloneWithTarget(LockIdentifier id) {
-      return createEffectForId(id, this.maxRecursiveCounter, true);
+      return createEffectForId(id, maxRecursiveCounter, true);
     }
   }
 
@@ -97,7 +97,7 @@ public class AcquireLockEffect extends LockEffect {
 
   @Override
   public AcquireLockEffect cloneWithTarget(LockIdentifier id) {
-    return createEffectForId(id, this.maxRecursiveCounter, false);
+    return createEffectForId(id, maxRecursiveCounter, false);
   }
 
   @Override

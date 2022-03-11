@@ -78,11 +78,11 @@ public class AutomatonInternalState {
       boolean pIsTarget,
       boolean pAllTransitions,
       boolean pIsCycleStart) {
-    this.name = pName;
-    this.transitions = ImmutableList.copyOf(pTransitions);
-    this.mIsTarget = pIsTarget;
-    this.mAllTransitions = pAllTransitions;
-    this.isCycleStart = pIsCycleStart;
+    name = pName;
+    transitions = ImmutableList.copyOf(pTransitions);
+    mIsTarget = pIsTarget;
+    mAllTransitions = pAllTransitions;
+    isCycleStart = pIsCycleStart;
   }
 
   public AutomatonInternalState(
@@ -147,7 +147,7 @@ public class AutomatonInternalState {
 
   @Override
   public String toString() {
-    return this.name;
+    return name;
   }
 
   public boolean nontriviallyMatches(final CFAEdge pEdge, final LogManager pLogger) {

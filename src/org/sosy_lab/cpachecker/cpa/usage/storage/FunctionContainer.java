@@ -47,7 +47,7 @@ public class FunctionContainer extends AbstractUsageStorage {
   }
 
   public FunctionContainer clone(Multiset<LockEffect> pEffects) {
-    return new FunctionContainer(this.stats, pEffects);
+    return new FunctionContainer(stats, pEffects);
   }
 
   @Override

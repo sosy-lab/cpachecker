@@ -550,7 +550,7 @@ public class PredicateAbstractionManager {
               "for abstraction",
               tryBasedOnAbstractionId,
               ". Disabling abstraction reuse!");
-          this.abstractionReuseDisabledBecauseOfAmbiguity = true;
+          abstractionReuseDisabledBecauseOfAmbiguity = true;
           tryReuseBasedOnPredecessors.clear();
           continue;
         } else if (candidateAbstractions.isEmpty()) {

@@ -114,7 +114,7 @@ public class LocationState
         case "line":
           try {
             int queryLine = Integer.parseInt(parts.get(1));
-            for (CFAEdge edge : CFAUtils.enteringEdges(this.locationNode)) {
+            for (CFAEdge edge : CFAUtils.enteringEdges(locationNode)) {
               if (edge.getLineNumber() == queryLine) {
                 return true;
               }
@@ -129,15 +129,15 @@ public class LocationState
                     + "\"");
           }
         case "functionname":
-          return this.locationNode.getFunctionName().equals(parts.get(1));
+          return locationNode.getFunctionName().equals(parts.get(1));
         case "label":
-          return this.locationNode instanceof CFALabelNode
-              ? ((CFALabelNode) this.locationNode).getLabel().equals(parts.get(1))
+          return locationNode instanceof CFALabelNode
+              ? ((CFALabelNode) locationNode).getLabel().equals(parts.get(1))
               : false;
         case "nodenumber":
           try {
             int queryNumber = Integer.parseInt(parts.get(1));
-            return this.locationNode.getNodeNumber() == queryNumber;
+            return locationNode.getNodeNumber() == queryNumber;
           } catch (NumberFormatException nfe) {
             throw new InvalidQueryException(
                 "The Query \""
@@ -176,8 +176,8 @@ public class LocationState
   @Override
   public Object evaluateProperty(String pProperty) throws InvalidQueryException {
     if (pProperty.equalsIgnoreCase("lineno")) {
-      if (this.locationNode.getNumEnteringEdges() > 0) {
-        return this.locationNode.getEnteringEdge(0).getLineNumber();
+      if (locationNode.getNumEnteringEdges() > 0) {
+        return locationNode.getEnteringEdge(0).getLineNumber();
       }
       return 0; // DUMMY
     } else {

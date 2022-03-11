@@ -81,8 +81,8 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
   private String currentFunctionName = "";
 
   private PathToCWithLoopsTranslator(CFA pCFA, Map<Loop, Set<ARGState>> pLoopsInPathToRecreate) {
-    this.loopStructure = pCFA.getLoopStructure().orElseThrow();
-    this.loopsInPathToRecreate = pLoopsInPathToRecreate;
+    loopStructure = pCFA.getLoopStructure().orElseThrow();
+    loopsInPathToRecreate = pLoopsInPathToRecreate;
   }
 
   /**

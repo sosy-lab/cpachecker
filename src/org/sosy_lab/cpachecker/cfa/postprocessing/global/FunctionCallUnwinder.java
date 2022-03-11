@@ -58,7 +58,7 @@ public class FunctionCallUnwinder {
   public FunctionCallUnwinder(final MutableCFA pCfa, final Configuration config)
       throws InvalidConfigurationException {
     config.inject(this);
-    this.cfa = pCfa;
+    cfa = pCfa;
 
     if (cfa.getLanguage() != Language.C) {
       throw new InvalidConfigurationException(

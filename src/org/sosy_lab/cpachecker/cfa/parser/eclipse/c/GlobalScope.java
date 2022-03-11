@@ -65,7 +65,7 @@ class GlobalScope extends AbstractScope {
     this.types = types;
     this.typedefs = typedefs;
     this.programDeclarations = programDeclarations;
-    this.fallbackScope = pFallbackScope;
+    fallbackScope = pFallbackScope;
   }
 
   public GlobalScope() {

@@ -50,9 +50,9 @@ public class PredicateAbstractionsStorage {
     private final BooleanFormula formula;
 
     public AbstractionNode(int pId, BooleanFormula pFormula, OptionalInt pLocationId) {
-      this.id = pId;
-      this.formula = pFormula;
-      this.locationId = pLocationId;
+      id = pId;
+      formula = pFormula;
+      locationId = pLocationId;
     }
 
     public BooleanFormula getFormula() {
@@ -97,10 +97,10 @@ public class PredicateAbstractionsStorage {
   public PredicateAbstractionsStorage(
       Path pFile, LogManager pLogger, FormulaManagerView pFmgr, @Nullable Converter pConverter)
       throws PredicateParsingFailedException {
-    this.fmgr = pFmgr;
-    this.logger = pLogger;
-    this.abstractionsFile = pFile;
-    this.converter = pConverter;
+    fmgr = pFmgr;
+    logger = pLogger;
+    abstractionsFile = pFile;
+    converter = pConverter;
 
     if (pFile != null) {
       try {
@@ -216,14 +216,14 @@ public class PredicateAbstractionsStorage {
         Sets.difference(resultAbstractions.keySet(), abstractionsWithParents);
     assert nodesWithNoParents.size() <= 1;
     if (!nodesWithNoParents.isEmpty()) {
-      this.rootAbstractionId = nodesWithNoParents.iterator().next();
+      rootAbstractionId = nodesWithNoParents.iterator().next();
     } else {
-      this.rootAbstractionId = null;
+      rootAbstractionId = null;
     }
 
     // Set results
-    this.abstractions = ImmutableMap.copyOf(resultAbstractions);
-    this.abstractionTree = ImmutableListMultimap.copyOf(resultTree);
+    abstractions = ImmutableMap.copyOf(resultAbstractions);
+    abstractionTree = ImmutableListMultimap.copyOf(resultTree);
   }
 
   private String convert(String str) {

@@ -79,10 +79,10 @@ public class CPABuilder {
       ShutdownNotifier pShutdownNotifier,
       ReachedSetFactory pReachedSetFactory)
       throws InvalidConfigurationException {
-    this.config = pConfig;
-    this.logger = pLogger;
-    this.shutdownNotifier = pShutdownNotifier;
-    this.reachedSetFactory = pReachedSetFactory;
+    config = pConfig;
+    logger = pLogger;
+    shutdownNotifier = pShutdownNotifier;
+    reachedSetFactory = pReachedSetFactory;
     config.inject(this);
   }
 

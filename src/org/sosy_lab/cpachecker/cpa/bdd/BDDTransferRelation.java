@@ -90,12 +90,12 @@ public class BDDTransferRelation
       CFA cfa,
       int pBitsize,
       BitvectorComputer pBvComputer) {
-    this.rmgr = manager;
-    this.bvmgr = pBvmgr;
-    this.predmgr = pPredmgr;
+    rmgr = manager;
+    bvmgr = pBvmgr;
+    predmgr = pPredmgr;
     bitsize = pBitsize;
     assert cfa.getVarClassification().isPresent();
-    this.varClass = cfa.getVarClassification().orElseThrow();
+    varClass = cfa.getVarClassification().orElseThrow();
     bvComputer = pBvComputer;
   }
 

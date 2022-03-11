@@ -158,17 +158,17 @@ public class PredicateStaticRefiner extends StaticRefiner
 
     pConfig.inject(this);
 
-    this.shutdownNotifier = pShutdownNotifier;
-    this.cfa = pCfa;
-    this.pathFormulaManager = pPathFormulaManager;
-    this.predAbsManager = pPredAbsManager;
-    this.blockFormulaStrategy = pBlockFormulaStrategy;
-    this.itpManager = pItpManager;
-    this.pathChecker = pPathChecker;
-    this.solver = pSolver;
-    this.formulaManagerView = pSolver.getFormulaManager();
-    this.booleanManager = formulaManagerView.getBooleanFormulaManager();
-    this.delegate = pDelegate;
+    shutdownNotifier = pShutdownNotifier;
+    cfa = pCfa;
+    pathFormulaManager = pPathFormulaManager;
+    predAbsManager = pPredAbsManager;
+    blockFormulaStrategy = pBlockFormulaStrategy;
+    itpManager = pItpManager;
+    pathChecker = pPathChecker;
+    solver = pSolver;
+    formulaManagerView = pSolver.getFormulaManager();
+    booleanManager = formulaManagerView.getBooleanFormulaManager();
+    delegate = pDelegate;
 
     if (assumePredicatesFile != null) {
       dumpAssumePredicate(assumePredicatesFile);

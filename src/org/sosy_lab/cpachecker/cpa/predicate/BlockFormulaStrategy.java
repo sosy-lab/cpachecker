@@ -34,7 +34,7 @@ public class BlockFormulaStrategy {
     private @Nullable BooleanFormula branchingFormula;
 
     public BlockFormulas(List<BooleanFormula> pFormulas) {
-      this.formulas = ImmutableList.copyOf(pFormulas);
+      formulas = ImmutableList.copyOf(pFormulas);
     }
 
     public static BlockFormulas createFromPathFormulas(List<PathFormula> pPathFormulas) {
@@ -44,12 +44,12 @@ public class BlockFormulaStrategy {
 
     public BlockFormulas(List<BooleanFormula> pFormulas, BooleanFormula pBranchingFormula) {
       this(pFormulas);
-      this.branchingFormula = pBranchingFormula;
+      branchingFormula = pBranchingFormula;
     }
 
     public BlockFormulas withBranchingFormula(BooleanFormula pBranchingFormula) {
       checkState(branchingFormula == null);
-      return new BlockFormulas(this.formulas, pBranchingFormula);
+      return new BlockFormulas(formulas, pBranchingFormula);
     }
 
     public ImmutableList<BooleanFormula> getFormulas() {

@@ -73,7 +73,7 @@ public class ValueDeterminationManager {
 
     this.fmgr = fmgr;
     stateFormulaConversionManager = pStateFormulaConversionManager;
-    this.bfmgr = fmgr.getBooleanFormulaManager();
+    bfmgr = fmgr.getBooleanFormulaManager();
     this.logger = logger;
     pfmgr = pPfmgr;
   }

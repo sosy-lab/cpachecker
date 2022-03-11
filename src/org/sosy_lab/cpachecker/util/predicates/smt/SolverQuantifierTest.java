@@ -53,7 +53,7 @@ public class SolverQuantifierTest extends SolverViewBasedTest0 {
     requireArrays();
     requireQuantifiers();
 
-    this.qfm = mgrv.getQuantifiedFormulaManager();
+    qfm = mgrv.getQuantifiedFormulaManager();
     imgr = imgrv;
 
     _x = imgr.makeVariable("x");

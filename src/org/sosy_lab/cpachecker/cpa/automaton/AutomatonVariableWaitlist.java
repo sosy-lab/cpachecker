@@ -18,7 +18,7 @@ public class AutomatonVariableWaitlist extends AbstractSortedWaitlist<Integer> {
 
   private AutomatonVariableWaitlist(WaitlistFactory pSecondaryStrategy, String pVariableId) {
     super(pSecondaryStrategy);
-    this.variableId = pVariableId;
+    variableId = pVariableId;
   }
 
   @Override

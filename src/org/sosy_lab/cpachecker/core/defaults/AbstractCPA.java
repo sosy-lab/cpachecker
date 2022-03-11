@@ -39,10 +39,10 @@ public abstract class AbstractCPA implements ConfigurableProgramAnalysis {
    * initialized lazily.
    */
   protected AbstractCPA(AbstractDomain domain, TransferRelation transfer) {
-    this.abstractDomain = domain;
-    this.mergeType = null;
-    this.stopType = null;
-    this.transferRelation = transfer;
+    abstractDomain = domain;
+    mergeType = null;
+    stopType = null;
+    transferRelation = transfer;
   }
 
   /** Use this constructor, if Merge- and StopOperator are fixed. */
@@ -51,10 +51,10 @@ public abstract class AbstractCPA implements ConfigurableProgramAnalysis {
       String stopType,
       AbstractDomain domain,
       @Nullable TransferRelation transfer) {
-    this.abstractDomain = domain;
+    abstractDomain = domain;
     this.mergeType = mergeType;
     this.stopType = stopType;
-    this.transferRelation = transfer;
+    transferRelation = transfer;
   }
 
   @Override

@@ -33,9 +33,9 @@ public class QuantifiedFormulaManagerView extends BaseManagerView
       BooleanFormulaManagerView pBmgr,
       IntegerFormulaManager pImgr) {
     super(pWrappingHandler);
-    this.manager = pManager;
-    this.bfm = pBmgr;
-    this.ifm = pImgr;
+    manager = pManager;
+    bfm = pBmgr;
+    ifm = pImgr;
   }
 
   @Override

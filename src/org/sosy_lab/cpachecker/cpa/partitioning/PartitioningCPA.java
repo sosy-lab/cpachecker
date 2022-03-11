@@ -35,7 +35,7 @@ public class PartitioningCPA extends AbstractCPA {
     private final StateSpacePartition partition;
 
     public PartitionState(StateSpacePartition pPartition) {
-      this.partition = pPartition;
+      partition = pPartition;
     }
 
     public StateSpacePartition getStateSpacePartition() {

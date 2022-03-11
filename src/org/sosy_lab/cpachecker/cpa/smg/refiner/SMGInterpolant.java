@@ -254,9 +254,9 @@ public class SMGInterpolant implements Interpolant<Collection<SMGState>, SMGInte
 
     public SMGPrecisionIncrement join(SMGPrecisionIncrement pInc2) {
       return new SMGPrecisionIncrement(
-          Sets.union(this.pathsToTrack, pInc2.pathsToTrack),
-          Sets.union(this.abstractionBlock, pInc2.abstractionBlock),
-          Sets.union(this.stackVariablesToTrack, pInc2.stackVariablesToTrack));
+          Sets.union(pathsToTrack, pInc2.pathsToTrack),
+          Sets.union(abstractionBlock, pInc2.abstractionBlock),
+          Sets.union(stackVariablesToTrack, pInc2.stackVariablesToTrack));
     }
   }
 }

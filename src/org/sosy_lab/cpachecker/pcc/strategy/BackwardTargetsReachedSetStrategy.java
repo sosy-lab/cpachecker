@@ -152,7 +152,7 @@ public class BackwardTargetsReachedSetStrategy extends SequentialReadStrategy
   @Override
   protected void prepareForChecking(final Object pReadObject) throws InvalidConfigurationException {
     backwardTargets = (AbstractState[]) pReadObject;
-    this.stats.proofSize = backwardTargets.length;
+    stats.proofSize = backwardTargets.length;
   }
 
   @Override

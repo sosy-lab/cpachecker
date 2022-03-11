@@ -448,7 +448,7 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
         CommonResult pResult,
         PropertyChecker pPropCheck,
         ProofChecker pProofCheck) {
-      this.barrier = pBarrier;
+      barrier = pBarrier;
       result = pResult;
       propC = pPropCheck;
       proofC = pProofCheck;

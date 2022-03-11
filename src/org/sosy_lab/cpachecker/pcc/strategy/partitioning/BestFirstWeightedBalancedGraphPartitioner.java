@@ -103,9 +103,9 @@ public class BestFirstWeightedBalancedGraphPartitioner implements WeightedBalanc
         return -1;
       }
       return ComparisonChain.start()
-          .compare(this.getPriority(), compNode.getPriority())
+          .compare(getPriority(), compNode.getPriority())
           // same priority ==> use node with higher number
-          .compare(compNode.getNode().getNodeNumber(), this.getNode().getNodeNumber())
+          .compare(compNode.getNode().getNodeNumber(), getNode().getNodeNumber())
           .result();
     }
 
@@ -127,7 +127,7 @@ public class BestFirstWeightedBalancedGraphPartitioner implements WeightedBalanc
 
     @Override
     public int hashCode() {
-      return this.getPriority() + this.getNode().getNodeNumber();
+      return getPriority() + getNode().getNodeNumber();
     }
 
     @Override

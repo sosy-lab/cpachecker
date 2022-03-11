@@ -149,12 +149,12 @@ public class RankingRelation {
     }
 
     RankingRelation that = (RankingRelation) pObj;
-    return this.rankingRelationFormulas.equals(that.rankingRelationFormulas);
+    return rankingRelationFormulas.equals(that.rankingRelationFormulas);
   }
 
   @Override
   public int hashCode() {
-    return this.rankingRelationFormulas.hashCode();
+    return rankingRelationFormulas.hashCode();
   }
 
   @Override

@@ -45,7 +45,7 @@ public class CompositeState
   private transient Object pseudoHashCode; // lazily initialized
 
   public CompositeState(List<AbstractState> elements) {
-    this.states = ImmutableList.copyOf(elements);
+    states = ImmutableList.copyOf(elements);
   }
 
   int getNumberOfStates() {
@@ -206,7 +206,7 @@ public class CompositeState
         return false;
       }
 
-      return Arrays.equals(this.keys, ((CompositePartitionKey) pObj).keys);
+      return Arrays.equals(keys, ((CompositePartitionKey) pObj).keys);
     }
 
     @Override
@@ -240,7 +240,7 @@ public class CompositeState
         return false;
       }
 
-      return Arrays.equals(this.keys, ((CompositePseudoPartitionKey) pObj).keys);
+      return Arrays.equals(keys, ((CompositePseudoPartitionKey) pObj).keys);
     }
 
     @Override

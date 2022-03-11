@@ -124,8 +124,8 @@ class CompositePrecision implements WrapperPrecision, AdjustablePrecision {
 
     ImmutableList.Builder<Precision> newPrecisions = ImmutableList.builder();
 
-    for (int i = 0; i < this.precisions.size(); i++) {
-      Precision currentPrecision = this.get(i);
+    for (int i = 0; i < precisions.size(); i++) {
+      Precision currentPrecision = get(i);
       Precision adjustedPrecision;
 
       if (pOtherPrecision instanceof CompositePrecision) {

@@ -61,7 +61,7 @@ public class LockReducer implements Reducer, StatisticsProvider {
           .put(expandUselessLocksTimer)
           .put(expandLockCountersTimer)
           .endLevel()
-          .put("Size of unreducable map", LockReducer.this.notReducedLocks.size());
+          .put("Size of unreducable map", notReducedLocks.size());
     }
 
     @Override

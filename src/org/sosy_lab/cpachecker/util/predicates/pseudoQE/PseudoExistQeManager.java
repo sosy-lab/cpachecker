@@ -150,15 +150,15 @@ public class PseudoExistQeManager implements StatisticsProvider {
   public PseudoExistQeManager(Solver pSolver, Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
     pConfig.inject(this, PseudoExistQeManager.class);
-    this.solver = pSolver;
-    this.fmgr = pSolver.getFormulaManager();
-    this.bFmgr = fmgr.getBooleanFormulaManager();
-    this.logger = pLogger;
+    solver = pSolver;
+    fmgr = pSolver.getFormulaManager();
+    bFmgr = fmgr.getBooleanFormulaManager();
+    logger = pLogger;
     try {
       qFmgr = Optional.of(fmgr.getQuantifiedFormulaManager());
     } catch (UnsupportedOperationException e) {
       qFmgr = Optional.empty();
-      this.logger.log(
+      logger.log(
           Level.WARNING,
           "The selected SMT-Solver does not support Quantifier Elimination, but Solver-based QE is"
               + " enabled. Switched solverQeTactic configuration option to NONE.");

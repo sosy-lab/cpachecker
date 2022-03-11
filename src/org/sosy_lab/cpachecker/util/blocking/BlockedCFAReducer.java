@@ -82,8 +82,8 @@ public class BlockedCFAReducer implements BlockComputer {
       throws InvalidConfigurationException {
     pConfig.inject(this);
 
-    this.logger = checkNotNull(pLogger);
-    this.inliningStack = new ArrayDeque<>();
+    logger = checkNotNull(pLogger);
+    inliningStack = new ArrayDeque<>();
   }
 
   private boolean isAbstractionNode(ReducedNode pNode) {
@@ -159,12 +159,12 @@ public class BlockedCFAReducer implements BlockComputer {
           pApplyTo.removeEdge(v, w, f);
           if (!uvRemoved) {
             pApplyTo.removeEdge(u, v, e);
-            this.incSummarizationsOnNode(u, v.getSummarizations());
+            incSummarizationsOnNode(u, v.getSummarizations());
             uvRemoved = true;
           }
           pApplyTo.addEdge(u, w, sumEdge);
 
-          this.incSummarizationsOnNode(u, 1);
+          incSummarizationsOnNode(u, 1);
         }
 
         toTraverse.clear();
@@ -252,15 +252,15 @@ public class BlockedCFAReducer implements BlockComputer {
       if (result == null) {
         boolean isLoopHead = cfa.getAllLoopHeads().orElseThrow().contains(pNode);
         result = new ReducedNode(pNode, isLoopHead);
-        result.setFunctionCallId(this.functionCallId);
-        this.nodeMapping.put(pNode, result);
+        result.setFunctionCallId(functionCallId);
+        nodeMapping.put(pNode, result);
       }
       return result;
     }
 
     public FunctionNodeManager(int pFunctionCallId, CFA pCfa) {
-      this.functionCallId = pFunctionCallId;
-      this.cfa = pCfa;
+      functionCallId = pFunctionCallId;
+      cfa = pCfa;
     }
   }
 
@@ -269,12 +269,12 @@ public class BlockedCFAReducer implements BlockComputer {
    * get inlined.
    */
   private ReducedFunction inlineAndSummarize(FunctionEntryNode pFunctionNode, CFA cfa) {
-    this.functionCallSeq++;
-    this.inliningStack.push(pFunctionNode);
+    functionCallSeq++;
+    inliningStack.push(pFunctionNode);
 
     Set<CFAEdge> traversed = new HashSet<>();
     Deque<ReducedNode> openEndpoints = new ArrayDeque<>();
-    FunctionNodeManager functionNodes = new FunctionNodeManager(this.functionCallSeq, cfa);
+    FunctionNodeManager functionNodes = new FunctionNodeManager(functionCallSeq, cfa);
 
     ReducedNode entryNode = functionNodes.getWrapper(pFunctionNode);
     ReducedNode exitNode = functionNodes.getWrapper(pFunctionNode.getExitNode());
@@ -385,10 +385,10 @@ public class BlockedCFAReducer implements BlockComputer {
   @Override
   public ImmutableSet<CFANode> computeAbstractionNodes(final CFA pCfa) {
     assert pCfa != null;
-    assert this.inliningStack.isEmpty();
-    assert this.functionCallSeq == 0;
+    assert inliningStack.isEmpty();
+    assert functionCallSeq == 0;
 
-    this.functionCallSeq = 0;
+    functionCallSeq = 0;
     ReducedFunction reducedProgram = inlineAndSummarize(pCfa.getMainFunction(), pCfa);
 
     if (reducedCfaFile != null) {

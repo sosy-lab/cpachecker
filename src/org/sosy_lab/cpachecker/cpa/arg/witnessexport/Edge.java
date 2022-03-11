@@ -37,12 +37,12 @@ public class Edge implements Comparable<Edge> {
     Preconditions.checkNotNull(pSource);
     Preconditions.checkNotNull(pTarget);
     Preconditions.checkNotNull(pLabel);
-    this.source = pSource;
-    this.target = pTarget;
-    this.label = pLabel;
+    source = pSource;
+    target = pTarget;
+    label = pLabel;
 
     // we assume immutable members and can eagerly compute the hashcode
-    this.hashCode = Objects.hash(label, source, target);
+    hashCode = Objects.hash(label, source, target);
   }
 
   @Override

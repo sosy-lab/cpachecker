@@ -1756,7 +1756,7 @@ public class ValueAnalysisTransferRelation
   /** Load the FunctionValues for random functinos from the given Testcomp Testcase */
   private void setupFunctionValuesForRandom() {
     try {
-      this.valuesFromFile =
+      valuesFromFile =
           TestCompTestcaseLoader.loadTestcase(options.getFunctionValuesForRandom());
     } catch (ParserConfigurationException | SAXException | IOException e) {
       // Nothing to do here, as we are not able to lead the additional information, hence ignoring

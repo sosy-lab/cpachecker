@@ -195,7 +195,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       config.inject(this);
       this.cpa = cpa;
       this.logger = logger;
-      this.shutdownNotifier = pShutdownNotifier;
+      shutdownNotifier = pShutdownNotifier;
 
       if (forcedCoveringClass != null) {
         forcedCovering = forcedCoveringClass.create(config, logger, cpa);
@@ -247,8 +247,8 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     stopOperator = cpa.getStopOperator();
     precisionAdjustment = cpa.getPrecisionAdjustment();
     this.logger = logger;
-    this.shutdownNotifier = pShutdownNotifier;
-    this.forcedCovering = pForcedCovering;
+    shutdownNotifier = pShutdownNotifier;
+    forcedCovering = pForcedCovering;
     status = AlgorithmStatus.SOUND_AND_PRECISE.withPrecise(!pIsImprecise);
   }
 

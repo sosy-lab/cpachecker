@@ -34,9 +34,9 @@ public class ConstraintSystem {
   public ConstraintSystem() {}
 
   public ConstraintSystem(ConstraintSystem pToCopy) {
-    this.baseConstraints.addAll(pToCopy.baseConstraints);
-    this.simpleConstraints.addAll(pToCopy.simpleConstraints);
-    this.complexConstraints.addAll(pToCopy.complexConstraints);
+    baseConstraints.addAll(pToCopy.baseConstraints);
+    simpleConstraints.addAll(pToCopy.simpleConstraints);
+    complexConstraints.addAll(pToCopy.complexConstraints);
   }
 
   public Set<BaseConstraint> getBaseConstraints() {
@@ -62,7 +62,7 @@ public class ConstraintSystem {
           computeDynTransitiveClosure(baseConstraints, simpleConstraints, complexConstraints);
     }
 
-    return this.pointsToSets;
+    return pointsToSets;
   }
 
   @Override
@@ -82,9 +82,9 @@ public class ConstraintSystem {
     }
     if (pO instanceof ConstraintSystem) {
       ConstraintSystem other = (ConstraintSystem) pO;
-      return this.baseConstraints.equals(other.baseConstraints)
-          && this.complexConstraints.equals(other.complexConstraints)
-          && this.simpleConstraints.equals(other.simpleConstraints);
+      return baseConstraints.equals(other.baseConstraints)
+          && complexConstraints.equals(other.complexConstraints)
+          && simpleConstraints.equals(other.simpleConstraints);
     }
     return false;
   }

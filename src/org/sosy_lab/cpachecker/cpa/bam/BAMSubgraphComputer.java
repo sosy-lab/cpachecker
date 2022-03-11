@@ -49,10 +49,10 @@ public class BAMSubgraphComputer {
   private final boolean cleanupOnMissingBlock;
 
   BAMSubgraphComputer(AbstractBAMCPA bamCpa, boolean pCleanupOnMissingBlock) {
-    this.partitioning = bamCpa.getBlockPartitioning();
-    this.reducer = bamCpa.getReducer();
-    this.data = bamCpa.getData();
-    this.logger = bamCpa.getLogger();
+    partitioning = bamCpa.getBlockPartitioning();
+    reducer = bamCpa.getReducer();
+    data = bamCpa.getData();
+    logger = bamCpa.getLogger();
     useCopyOnWriteRefinement = bamCpa.useCopyOnWriteRefinement();
     cleanupOnMissingBlock = pCleanupOnMissingBlock;
   }

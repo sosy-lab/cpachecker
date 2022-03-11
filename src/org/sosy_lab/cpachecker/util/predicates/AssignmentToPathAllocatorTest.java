@@ -35,7 +35,7 @@ public class AssignmentToPathAllocatorTest {
 
   @Before
   public void setUp() throws InvalidConfigurationException {
-    this.allocator =
+    allocator =
         new AssignmentToPathAllocator(
             Configuration.defaultConfiguration(),
             ShutdownNotifier.createDummy(),

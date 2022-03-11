@@ -33,8 +33,8 @@ public class CFloatInf extends CFloat {
   }
 
   public CFloatInf(boolean pNegative, int pType) {
-    this.negative = pNegative;
-    this.type = pType;
+    negative = pNegative;
+    type = pType;
   }
 
   @Override
@@ -220,7 +220,7 @@ public class CFloatInf extends CFloat {
     if (pFloat.isNan() || (pFloat.isInfinity() && !pFloat.isNegative())) {
       return false;
     }
-    return !this.isNegative();
+    return !isNegative();
   }
 
   @Override

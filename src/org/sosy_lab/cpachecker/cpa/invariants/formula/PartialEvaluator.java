@@ -57,17 +57,17 @@ public class PartialEvaluator
   public PartialEvaluator(
       CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
       CompoundIntervalFormulaManager pCompoundIntervalFormulaManager) {
-    this.compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
-    this.environment = ImmutableMap.of();
-    this.compoundIntervalFormulaManager = pCompoundIntervalFormulaManager;
+    compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
+    environment = ImmutableMap.of();
+    compoundIntervalFormulaManager = pCompoundIntervalFormulaManager;
   }
 
   public PartialEvaluator(
       CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
       Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
-    this.compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
-    this.environment = pEnvironment;
-    this.compoundIntervalFormulaManager =
+    compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
+    environment = pEnvironment;
+    compoundIntervalFormulaManager =
         new CompoundIntervalFormulaManager(compoundIntervalManagerFactory);
   }
 
@@ -548,7 +548,7 @@ public class PartialEvaluator
   public NumeralFormula<CompoundInterval> visit(
       Variable<CompoundInterval> pVariable,
       FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
-    CompoundInterval value = pVariable.accept(pEvaluationVisitor, this.environment);
+    CompoundInterval value = pVariable.accept(pEvaluationVisitor, environment);
     if (value.isSingleton()) {
       return asConstant(pVariable, value);
     }
@@ -559,7 +559,7 @@ public class PartialEvaluator
   public NumeralFormula<CompoundInterval> visit(
       Exclusion<CompoundInterval> pExclusion,
       FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
-    CompoundInterval value = pExclusion.accept(pEvaluationVisitor, this.environment);
+    CompoundInterval value = pExclusion.accept(pEvaluationVisitor, environment);
     if (value.isSingleton() || pExclusion.getExcluded() instanceof Constant) {
       return asConstant(pExclusion, value);
     }
@@ -606,7 +606,7 @@ public class PartialEvaluator
   @Override
   public NumeralFormula<CompoundInterval> visit(
       Cast<CompoundInterval> pCast, FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
-    CompoundInterval value = pCast.accept(pEvaluationVisitor, this.environment);
+    CompoundInterval value = pCast.accept(pEvaluationVisitor, environment);
     if (value.isSingleton()) {
       return asConstant(pCast, value);
     }

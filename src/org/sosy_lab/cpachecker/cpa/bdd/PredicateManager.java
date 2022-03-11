@@ -79,7 +79,7 @@ public class PredicateManager {
   PredicateManager(final Configuration config, final NamedRegionManager pRmgr, final CFA pCfa)
       throws InvalidConfigurationException {
     config.inject(this);
-    this.rmgr = pRmgr;
+    rmgr = pRmgr;
 
     if (initPartitions) {
       varsToTmpVar = initVars(pCfa);

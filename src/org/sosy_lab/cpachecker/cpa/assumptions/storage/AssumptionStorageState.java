@@ -98,16 +98,16 @@ public class AssumptionStorageState implements AbstractState, Serializable {
     // so handle these special cases separately
     final BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
     final BooleanFormula newStopFormula;
-    if (this.isStopFormulaTrue()) {
+    if (isStopFormulaTrue()) {
       newStopFormula = other.getStopFormula();
     } else if (other.isStopFormulaTrue()) {
-      newStopFormula = this.getStopFormula();
+      newStopFormula = getStopFormula();
     } else {
-      newStopFormula = bfmgr.or(this.getStopFormula(), other.getStopFormula());
+      newStopFormula = bfmgr.or(getStopFormula(), other.getStopFormula());
     }
 
     return new AssumptionStorageState(
-        fmgr, bfmgr.and(this.getAssumption(), other.getAssumption()), newStopFormula);
+        fmgr, bfmgr.and(getAssumption(), other.getAssumption()), newStopFormula);
   }
 
   @Override

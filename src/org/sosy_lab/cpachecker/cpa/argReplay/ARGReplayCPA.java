@@ -46,12 +46,12 @@ public class ARGReplayCPA extends AbstractCPA {
   /** This method should be run directly after the constructor. */
   public void setARGAndCPA(ReachedSet pReached, ConfigurableProgramAnalysis pCpa) {
     Preconditions.checkNotNull(pReached);
-    Preconditions.checkState(this.reached == null, "ReachedSet should only be set once.");
-    this.reached = pReached;
+    Preconditions.checkState(reached == null, "ReachedSet should only be set once.");
+    reached = pReached;
 
     Preconditions.checkNotNull(pCpa);
-    Preconditions.checkState(this.cpa == null, "CPA should only be set once.");
-    this.cpa = pCpa;
+    Preconditions.checkState(cpa == null, "CPA should only be set once.");
+    cpa = pCpa;
   }
 
   @Override

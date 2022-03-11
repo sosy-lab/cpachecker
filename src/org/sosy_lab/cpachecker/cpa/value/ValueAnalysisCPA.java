@@ -141,7 +141,7 @@ public class ValueAnalysisCPA extends AbstractCPA
     super(DelegateAbstractDomain.<ValueAnalysisState>getInstance(), null);
     this.config = config;
     this.logger = logger;
-    this.shutdownNotifier = pShutdownNotifier;
+    shutdownNotifier = pShutdownNotifier;
     this.cfa = cfa;
 
     config.inject(this, ValueAnalysisCPA.class);

@@ -37,11 +37,11 @@ public class BAMPrecisionAdjustment implements PrecisionAdjustment {
       @Nullable BAMPCCManager pBamPccManager,
       LogManager pLogger,
       BlockPartitioning pBlockPartitioning) {
-    this.wrappedPrecisionAdjustment = pWrappedPrecisionAdjustment;
-    this.data = pData;
+    wrappedPrecisionAdjustment = pWrappedPrecisionAdjustment;
+    data = pData;
     bamPccManager = pBamPccManager;
-    this.logger = pLogger;
-    this.blockPartitioning = pBlockPartitioning;
+    logger = pLogger;
+    blockPartitioning = pBlockPartitioning;
   }
 
   @Override

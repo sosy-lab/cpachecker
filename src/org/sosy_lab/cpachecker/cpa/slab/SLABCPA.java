@@ -84,7 +84,7 @@ public class SLABCPA extends AbstractSingleWrapperCPA {
 
   @Override
   public StopOperator getStopOperator() {
-    return new SLABStopOperator(this.getAbstractDomain());
+    return new SLABStopOperator(getAbstractDomain());
   }
 
   public PredicateCPA getPredicateCpa() {

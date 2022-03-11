@@ -38,10 +38,10 @@ public class BlockPartitioning {
       }
     }
 
-    this.callNodeToBlock = callNodeToSubtree.build();
-    this.returnNodeToBlock = returnNodeToSubtree.build();
-    this.blocks = ImmutableSet.copyOf(subtrees);
-    this.mainBlock = callNodeToBlock.get(mainFunction);
+    callNodeToBlock = callNodeToSubtree.build();
+    returnNodeToBlock = returnNodeToSubtree.build();
+    blocks = ImmutableSet.copyOf(subtrees);
+    mainBlock = callNodeToBlock.get(mainFunction);
   }
 
   /**

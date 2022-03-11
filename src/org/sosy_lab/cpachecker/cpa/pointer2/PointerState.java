@@ -44,7 +44,7 @@ public class PointerState implements AbstractState {
    * @param pPointsToMap the points-to map of this state.
    */
   private PointerState(PersistentSortedMap<MemoryLocation, LocationSet> pPointsToMap) {
-    this.pointsToMap = pPointsToMap;
+    pointsToMap = pPointsToMap;
   }
 
   /**
@@ -103,7 +103,7 @@ public class PointerState implements AbstractState {
    * @return the points-to set of the given identifier.
    */
   public LocationSet getPointsToSet(MemoryLocation pSource) {
-    LocationSet result = this.pointsToMap.get(pSource);
+    LocationSet result = pointsToMap.get(pSource);
     if (result == null) {
       return LocationSetBot.INSTANCE;
     }
@@ -186,7 +186,7 @@ public class PointerState implements AbstractState {
    * @return the points-to map of this state.
    */
   public Map<MemoryLocation, LocationSet> getPointsToMap() {
-    return Collections.unmodifiableMap(this.pointsToMap);
+    return Collections.unmodifiableMap(pointsToMap);
   }
 
   @Override

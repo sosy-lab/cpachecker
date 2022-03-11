@@ -35,7 +35,7 @@ public class EdgeFormulaNegation extends SingleLocationFormulaInvariant
   public EdgeFormulaNegation(CFANode pLocation, AssumeEdge pEdge) {
     super(pLocation);
     Preconditions.checkNotNull(pEdge);
-    this.edge = pEdge;
+    edge = pEdge;
   }
 
   @Override

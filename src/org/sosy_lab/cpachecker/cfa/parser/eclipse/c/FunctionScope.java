@@ -81,7 +81,7 @@ class FunctionScope extends AbstractScope {
     varsList.push(pGlobalVars);
     varsListWithNewNames.push(pGlobalVars);
 
-    this.artificialScope = pArtificialScope;
+    artificialScope = pArtificialScope;
 
     enterBlock();
   }

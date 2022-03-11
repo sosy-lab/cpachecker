@@ -52,6 +52,6 @@ class FullPathPosition extends PathPosition {
     }
     FullPathPosition other = (FullPathPosition) pObj;
 
-    return super.equals(pObj) && other.offset == this.offset;
+    return super.equals(pObj) && other.offset == offset;
   }
 }

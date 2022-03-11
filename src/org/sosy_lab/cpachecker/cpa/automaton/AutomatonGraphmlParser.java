@@ -243,14 +243,14 @@ public class AutomatonGraphmlParser {
       throws InvalidConfigurationException {
     pConfig.inject(this);
 
-    this.scope = pScope;
-    this.logger = pLogger;
+    scope = pScope;
+    logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
-    this.cfa = pCFA;
-    this.config = pConfig;
-    this.parserTools =
+    cfa = pCFA;
+    config = pConfig;
+    parserTools =
         ParserTools.create(ExpressionTrees.newFactory(), cfa.getMachineModel(), logger);
-    this.stateInvariantsMap = new HashMap<>();
+    stateInvariantsMap = new HashMap<>();
   }
 
   /**
@@ -1771,7 +1771,7 @@ public class AutomatonGraphmlParser {
       Optional<String> pExplicitScope,
       Deque<String> pFunctionStack,
       Predicate<FileLocation> pLocationDescriptor) {
-    Scope result = this.scope;
+    Scope result = scope;
     if (result instanceof CProgramScope) {
       result = ((CProgramScope) result).withLocationDescriptor(pLocationDescriptor);
       if (pExplicitScope.isPresent() || !pFunctionStack.isEmpty()) {

@@ -116,12 +116,12 @@ public class BitVectorInterval implements BitVectorType {
     // The lower bound of this interval is a candidate for the new lower bound
     // The lower bound of the other interval is a candidate as well
     // The new lower bound is the maximum of both lower bounds.
-    BigInteger newLowerBound = this.lowerBound.max(pOther.getLowerBound());
+    BigInteger newLowerBound = lowerBound.max(pOther.getLowerBound());
 
     // The upper bound of this interval is a candidate for the new lower bound
     // The upper bound of the other interval is a candidate as well
     // The new upper bound is the minimum of both upper bounds.
-    BigInteger newUpperBound = this.upperBound.min(pOther.getUpperBound());
+    BigInteger newUpperBound = upperBound.min(pOther.getUpperBound());
 
     return new BitVectorInterval(info, newLowerBound, newUpperBound);
   }
@@ -386,8 +386,8 @@ public class BitVectorInterval implements BitVectorType {
     }
 
     BitVectorInterval other = (BitVectorInterval) pObj;
-    return Objects.equals(this.lowerBound, other.lowerBound)
-        && Objects.equals(this.upperBound, other.upperBound);
+    return Objects.equals(lowerBound, other.lowerBound)
+        && Objects.equals(upperBound, other.upperBound);
   }
 
   @Override
@@ -415,8 +415,8 @@ public class BitVectorInterval implements BitVectorType {
       return false;
     }
 
-    return this.lowerBound.compareTo(pOther.lowerBound) <= 0
-        && this.upperBound.compareTo(pOther.upperBound) >= 0;
+    return lowerBound.compareTo(pOther.lowerBound) <= 0
+        && upperBound.compareTo(pOther.upperBound) >= 0;
   }
 
   /**
@@ -435,8 +435,8 @@ public class BitVectorInterval implements BitVectorType {
     if (intersectsWith(pOther)) {
       return true;
     }
-    return pOther.upperBound.add(BigInteger.ONE).equals(this.lowerBound)
-        || this.upperBound.add(BigInteger.ONE).equals(pOther.lowerBound);
+    return pOther.upperBound.add(BigInteger.ONE).equals(lowerBound)
+        || upperBound.add(BigInteger.ONE).equals(pOther.lowerBound);
   }
 
   /**
@@ -453,8 +453,8 @@ public class BitVectorInterval implements BitVectorType {
 
     // this is [a, b]; other is [c, d]
     // result is true if a <= d and b >= c
-    boolean aLessThanOrEqB = this.lowerBound.compareTo(other.upperBound) <= 0;
-    boolean bGreaterThanOrEqC = this.upperBound.compareTo(other.lowerBound) >= 0;
+    boolean aLessThanOrEqB = lowerBound.compareTo(other.upperBound) <= 0;
+    boolean bGreaterThanOrEqC = upperBound.compareTo(other.lowerBound) >= 0;
     return aLessThanOrEqB && bGreaterThanOrEqC;
   }
 

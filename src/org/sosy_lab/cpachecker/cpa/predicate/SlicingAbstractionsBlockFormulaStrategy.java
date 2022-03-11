@@ -38,7 +38,7 @@ public class SlicingAbstractionsBlockFormulaStrategy extends BlockFormulaStrateg
   public SlicingAbstractionsBlockFormulaStrategy(
       Solver solver, Configuration pConfig, PathFormulaManager pPfmgr)
       throws InvalidConfigurationException {
-    this.pfmgr = pPfmgr;
+    pfmgr = pPfmgr;
     this.solver = solver;
     pConfig.inject(this);
   }

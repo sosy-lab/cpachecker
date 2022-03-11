@@ -183,7 +183,7 @@ public class StatisticsCPA extends AbstractCPA implements StatisticsProvider {
       analysisType = FactoryAnalysisType.Analysis;
     }
 
-    this.factory = new StatisticsStateFactory(analysisType);
+    factory = new StatisticsStateFactory(analysisType);
 
     // TODO: refactor this...
     MergeOption defMerge = MergeOption.Add;
@@ -242,7 +242,7 @@ public class StatisticsCPA extends AbstractCPA implements StatisticsProvider {
       factory.addProvider(SimpleIntProviderFactory.getAssumeCountProvider(defMerge));
     }
 
-    this.stats = new StatisticsCPAStatistics(config, pLogger, this);
+    stats = new StatisticsCPAStatistics(config, pLogger, this);
   }
 
   public StatisticsStateFactory getFactory() {

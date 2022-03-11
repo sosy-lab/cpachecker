@@ -192,7 +192,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
           "Need at least one configuration for restart algorithm!");
     }
 
-    this.stats = new RestartAlgorithmStatistics(configFiles.size(), pLogger);
+    stats = new RestartAlgorithmStatistics(configFiles.size(), pLogger);
 
     logShutdownListener =
         reason ->

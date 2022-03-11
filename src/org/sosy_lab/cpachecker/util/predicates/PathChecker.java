@@ -132,10 +132,10 @@ public class PathChecker {
       Solver pSolver,
       AssignmentToPathAllocator pAssignmentToPathAllocator)
       throws InvalidConfigurationException {
-    this.logger = pLogger;
-    this.pmgr = pPmgr;
-    this.solver = pSolver;
-    this.assignmentToPathAllocator = pAssignmentToPathAllocator;
+    logger = pLogger;
+    pmgr = pPmgr;
+    solver = pSolver;
+    assignmentToPathAllocator = pAssignmentToPathAllocator;
     pConfig.inject(this);
   }
 

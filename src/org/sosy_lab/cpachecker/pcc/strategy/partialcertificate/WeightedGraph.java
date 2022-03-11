@@ -299,7 +299,7 @@ public class WeightedGraph implements Iterable<WeightedNode> {
    * @return maximal weight of the partitions
    */
   public int computePartitionLoad(int numPartitions) {
-    return this.getTotalNodeWeight() / numPartitions + 1;
+    return getTotalNodeWeight() / numPartitions + 1;
   }
 
   /**

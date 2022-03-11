@@ -115,32 +115,32 @@ class AutomatonTransition {
     }
 
     Builder withAssertion(AutomatonBoolExpr pAssertion) {
-      this.assertions = ImmutableList.of(pAssertion);
+      assertions = ImmutableList.of(pAssertion);
       return this;
     }
 
     Builder withAssertions(List<AutomatonBoolExpr> pAssertions) {
-      this.assertions = pAssertions;
+      assertions = pAssertions;
       return this;
     }
 
     Builder withAssumptions(List<AExpression> pAssumptions) {
-      this.assumptions = pAssumptions;
+      assumptions = pAssumptions;
       return this;
     }
 
     Builder withActions(List<AutomatonAction> pActions) {
-      this.actions = pActions;
+      actions = pActions;
       return this;
     }
 
     Builder withCandidateInvariants(ExpressionTree<AExpression> pCandidateInvariants) {
-      this.candidateInvariants = pCandidateInvariants;
+      candidateInvariants = pCandidateInvariants;
       return this;
     }
 
     Builder withTargetInformation(StringExpression pTargetInformation) {
-      this.targetInformation = pTargetInformation;
+      targetInformation = pTargetInformation;
       return this;
     }
 
@@ -179,23 +179,23 @@ class AutomatonTransition {
       AutomatonInternalState pFollowState,
       StringExpression pTargetInformation) {
 
-    this.trigger = checkNotNull(pTrigger);
+    trigger = checkNotNull(pTrigger);
 
     if (pAssumptions == null) {
-      this.assumptions = ImmutableList.of();
+      assumptions = ImmutableList.of();
     } else {
-      this.assumptions = ImmutableList.copyOf(pAssumptions);
+      assumptions = ImmutableList.copyOf(pAssumptions);
     }
 
-    this.candidateInvariants = checkNotNull(pCandidateInvariants);
+    candidateInvariants = checkNotNull(pCandidateInvariants);
 
-    this.actions = ImmutableList.copyOf(pActions);
-    this.followStateName = checkNotNull(pFollowStateName);
-    this.followState = pFollowState;
-    this.targetInformation = pTargetInformation;
+    actions = ImmutableList.copyOf(pActions);
+    followStateName = checkNotNull(pFollowStateName);
+    followState = pFollowState;
+    targetInformation = pTargetInformation;
 
     if (pAssertions.isEmpty()) {
-      this.assertion = AutomatonBoolExpr.TRUE;
+      assertion = AutomatonBoolExpr.TRUE;
     } else {
       AutomatonBoolExpr lAssertion = null;
       for (AutomatonBoolExpr nextAssertion : pAssertions) {
@@ -207,7 +207,7 @@ class AutomatonTransition {
           lAssertion = new AutomatonBoolExpr.And(lAssertion, nextAssertion);
         }
       }
-      this.assertion = lAssertion;
+      assertion = lAssertion;
     }
   }
 
@@ -356,11 +356,11 @@ class AutomatonTransition {
    */
   boolean meetsObserverRequirements() {
     // assert followstate != BOTTOM
-    if (this.followState.equals(AutomatonInternalState.BOTTOM)) {
+    if (followState.equals(AutomatonInternalState.BOTTOM)) {
       return false;
     }
     // actions are not MODIFY actions
-    for (AutomatonAction action : this.actions) {
+    for (AutomatonAction action : actions) {
       if ((action instanceof CPAModification)) {
         return false;
       }

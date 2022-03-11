@@ -187,7 +187,7 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
      * for array subscript visitors.
      */
     void shift(final CType pContainerType) {
-      this.containerType = pContainerType;
+      containerType = pContainerType;
       if (containerOffset != null) {
         if (properOffset != null) {
           containerOffset += properOffset;
@@ -204,7 +204,7 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
      */
     void shift(final CType pContainerType, final long pProperOffset) {
       shift(pContainerType);
-      this.properOffset = pProperOffset;
+      properOffset = pProperOffset;
     }
 
     /** Unset everything, except base */

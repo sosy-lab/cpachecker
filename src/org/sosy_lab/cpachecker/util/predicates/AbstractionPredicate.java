@@ -51,7 +51,7 @@ public class AbstractionPredicate {
       return false;
     } else {
       AbstractionPredicate other = (AbstractionPredicate) pObj;
-      return this.abstractVariable.equals(other.abstractVariable);
+      return abstractVariable.equals(other.abstractVariable);
     }
   }
 

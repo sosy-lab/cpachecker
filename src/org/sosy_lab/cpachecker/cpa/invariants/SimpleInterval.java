@@ -92,7 +92,7 @@ public class SimpleInterval {
       return pOther;
     }
     // The lower bound of this interval is a candidate for the new lower bound
-    BigInteger newLowerBound = this.lowerBound;
+    BigInteger newLowerBound = lowerBound;
     // If the other interval has a finite lower bound, it is a candidate as well
     if (pOther.hasLowerBound()) {
       BigInteger otherLowerBound = pOther.getLowerBound();
@@ -109,7 +109,7 @@ public class SimpleInterval {
       }
     }
     // The upper bound of this interval is a candidate for the new lower bound
-    BigInteger newUpperBound = this.upperBound;
+    BigInteger newUpperBound = upperBound;
     // If the other interval has a finite upper bound, it is a candidate as well
     if (pOther.hasUpperBound()) {
       BigInteger otherUpperBound = pOther.getUpperBound();
@@ -263,8 +263,8 @@ public class SimpleInterval {
     }
 
     SimpleInterval other = (SimpleInterval) pObj;
-    return Objects.equals(this.lowerBound, other.lowerBound)
-        && Objects.equals(this.upperBound, other.upperBound);
+    return Objects.equals(lowerBound, other.lowerBound)
+        && Objects.equals(upperBound, other.upperBound);
   }
 
   @Override
@@ -302,16 +302,16 @@ public class SimpleInterval {
       return true;
     }
 
-    if (this.lowerBound != null && other.lowerBound == null) {
+    if (lowerBound != null && other.lowerBound == null) {
       return false;
     }
 
-    if (this.upperBound != null && other.upperBound == null) {
+    if (upperBound != null && other.upperBound == null) {
       return false;
     }
 
-    return (this.lowerBound == null || this.lowerBound.compareTo(other.lowerBound) <= 0)
-        && (this.upperBound == null || this.upperBound.compareTo(other.upperBound) >= 0);
+    return (lowerBound == null || lowerBound.compareTo(other.lowerBound) <= 0)
+        && (upperBound == null || upperBound.compareTo(other.upperBound) >= 0);
   }
 
   /**
@@ -330,12 +330,12 @@ public class SimpleInterval {
     if (intersectsWith(pOther)) {
       return true;
     }
-    return (this.lowerBound != null
+    return (lowerBound != null
             && pOther.upperBound != null
-            && pOther.upperBound.add(BigInteger.ONE).equals(this.lowerBound))
+            && pOther.upperBound.add(BigInteger.ONE).equals(lowerBound))
         || (pOther.lowerBound != null
-            && this.upperBound != null
-            && this.upperBound.add(BigInteger.ONE).equals(pOther.lowerBound));
+            && upperBound != null
+            && upperBound.add(BigInteger.ONE).equals(pOther.lowerBound));
   }
 
   /**
@@ -350,22 +350,22 @@ public class SimpleInterval {
       return true;
     }
 
-    if (this.lowerBound == null) {
-      if (this.upperBound == null || other.lowerBound == null) {
+    if (lowerBound == null) {
+      if (upperBound == null || other.lowerBound == null) {
         return true;
       } else {
         // this is (-INF, a]; other is [b, ?)
         // result is true if a >= b
-        return this.upperBound.compareTo(other.lowerBound) >= 0;
+        return upperBound.compareTo(other.lowerBound) >= 0;
       }
 
-    } else if (this.upperBound == null) {
+    } else if (upperBound == null) {
       if (other.upperBound == null) {
         return true;
       } else {
         // this is [a, INF); other is (?, b]
         // result is true if a <= b
-        return this.lowerBound.compareTo(other.upperBound) <= 0;
+        return lowerBound.compareTo(other.upperBound) <= 0;
       }
 
     } else {
@@ -375,16 +375,16 @@ public class SimpleInterval {
       } else if (other.lowerBound == null) {
         // this is [a, b]; other is (-INF, c]
         // result is true if a <= c
-        return this.lowerBound.compareTo(other.upperBound) <= 0;
+        return lowerBound.compareTo(other.upperBound) <= 0;
       } else if (other.upperBound == null) {
         // this is [a, b]; other is [c, INF)
         // result is true if b >= c
-        return this.upperBound.compareTo(other.lowerBound) >= 0;
+        return upperBound.compareTo(other.lowerBound) >= 0;
       } else {
         // this is [a, b]; other is [c, d]
         // result is true if a <= d and b >= c
-        boolean aLessThanOrEqB = this.lowerBound.compareTo(other.upperBound) <= 0;
-        boolean bGreaterThanOrEqC = this.upperBound.compareTo(other.lowerBound) >= 0;
+        boolean aLessThanOrEqB = lowerBound.compareTo(other.upperBound) <= 0;
+        boolean bGreaterThanOrEqC = upperBound.compareTo(other.lowerBound) >= 0;
         return aLessThanOrEqB && bGreaterThanOrEqC;
       }
     }

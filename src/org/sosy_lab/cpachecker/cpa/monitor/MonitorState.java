@@ -69,7 +69,7 @@ public class MonitorState extends AbstractSingleWrapperState implements Avoidanc
       return true;
     } else if (pObj instanceof MonitorState) {
       MonitorState otherElem = (MonitorState) pObj;
-      return this.getWrappedState().equals(otherElem.getWrappedState());
+      return getWrappedState().equals(otherElem.getWrappedState());
     } else {
       return false;
     }
@@ -96,7 +96,7 @@ public class MonitorState extends AbstractSingleWrapperState implements Avoidanc
   @Override
   public String toString() {
     return String.format(
-        "Total time: %s Wrapped elem: %s", this.totalTimeOnPath, getWrappedStates());
+        "Total time: %s Wrapped elem: %s", totalTimeOnPath, getWrappedStates());
   }
 
   @Override

@@ -41,7 +41,7 @@ public class InputTransferRelation extends SingleEdgeTransferRelation {
   private final CFA cfa;
 
   public InputTransferRelation(CFA pCFA) {
-    this.cfa = Objects.requireNonNull(pCFA);
+    cfa = Objects.requireNonNull(pCFA);
   }
 
   @Override

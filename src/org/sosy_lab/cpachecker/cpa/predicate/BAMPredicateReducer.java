@@ -84,14 +84,14 @@ public class BAMPredicateReducer
   public BAMPredicateReducer(BAMPredicateCPA cpa, Configuration pConfig)
       throws InvalidConfigurationException {
     pConfig.inject(this);
-    this.pmgr = cpa.getPathFormulaManager();
-    this.pamgr = cpa.getPredicateManager();
-    this.fmgr = cpa.getSolver().getFormulaManager();
-    this.bfmgr = cpa.getSolver().getFormulaManager().getBooleanFormulaManager();
-    this.rmgr = cpa.getAbstractionManager().getRegionCreator();
-    this.logger = cpa.getLogger();
-    this.shutdownNotifier = cpa.getShutdownNotifier();
-    this.addressedVariables =
+    pmgr = cpa.getPathFormulaManager();
+    pamgr = cpa.getPredicateManager();
+    fmgr = cpa.getSolver().getFormulaManager();
+    bfmgr = cpa.getSolver().getFormulaManager().getBooleanFormulaManager();
+    rmgr = cpa.getAbstractionManager().getRegionCreator();
+    logger = cpa.getLogger();
+    shutdownNotifier = cpa.getShutdownNotifier();
+    addressedVariables =
         cpa.getCfa().getVarClassification().orElseThrow().getAddressedVariables();
   }
 

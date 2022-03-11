@@ -69,7 +69,7 @@ public class MonitorCPA extends AbstractSingleWrapperCPA {
 
   @Override
   public MonitorTransferRelation getTransferRelation() {
-    return this.transferRelation;
+    return transferRelation;
   }
 
   @Override

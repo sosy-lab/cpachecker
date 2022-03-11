@@ -227,7 +227,7 @@ public class FormulaAbstractionVisitor
 
   @Override
   public int hashCode() {
-    return Objects.hash(this.evaluationVisitor, this.compoundIntervalManagerFactory);
+    return Objects.hash(evaluationVisitor, compoundIntervalManagerFactory);
   }
 
   @Override

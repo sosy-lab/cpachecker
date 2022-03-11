@@ -405,7 +405,7 @@ public class SMG {
     Predicate<SMGHasValueEdge> filterByOffsetAndSize =
         o -> o.getOffset().compareTo(offset) == 0 && o.getSizeInBits().compareTo(sizeInBits) == 0;
     Optional<SMGHasValueEdge> maybeValue =
-        this.getHasValueEdgeByPredicate(object, filterByOffsetAndSize);
+        getHasValueEdgeByPredicate(object, filterByOffsetAndSize);
 
     // if v != undefined then return (smg, v)
     if (maybeValue.isPresent()) {
@@ -415,12 +415,12 @@ public class SMG {
     // if the field to be read is covered by nullified blocks, i.e. if
     // forall . of <= i < of +  size(t) exists . e element H(o, of, t): i element I(e),
     // let v := 0. Otherwise extend V by a fresh value node v.
-    if (this.isCoveredByNullifiedBlocks(object, offset, sizeInBits)) {
+    if (isCoveredByNullifiedBlocks(object, offset, sizeInBits)) {
       return new SMGandValue(this, SMGValue.zeroValue());
     }
     int nestingLevel = object.getNestingLevel();
     SMGValue newValue = SMGValue.of(nestingLevel);
-    SMG newSMG = this.copyAndAddValue(newValue);
+    SMG newSMG = copyAndAddValue(newValue);
     // Extend H by the has-value edge o -> v with the offset and size and return (smg,v) based on
     // the newly obtained SMG.
     SMGHasValueEdge newHVEdge = new SMGHasValueEdge(newValue, offset, sizeInBits);
@@ -449,7 +449,7 @@ public class SMG {
     // If there exists a hasValueEdge in the specified object, with the specified field that equals
     // the specified value, simply return the original SMG
     Optional<SMGHasValueEdge> hvEdge =
-        this.getHasValueEdgeByPredicate(
+        getHasValueEdgeByPredicate(
             object,
             o ->
                 o.getOffset().compareTo(offset) == 0
@@ -458,7 +458,7 @@ public class SMG {
       return this;
     }
     // Add the value to the Values present in this SMG
-    SMG newSMG = this.copyAndAddValue(value);
+    SMG newSMG = copyAndAddValue(value);
     // Remove all HasValueEdges from the object with non-zero values overlapping with the given
     // field.
     FluentIterable<SMGHasValueEdge> nonZeroOverlappingEdges =

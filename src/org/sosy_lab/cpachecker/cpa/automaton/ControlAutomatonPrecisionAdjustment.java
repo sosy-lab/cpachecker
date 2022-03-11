@@ -29,9 +29,9 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
       AutomatonState pTopState,
       PrecisionAdjustment pWrappedPrecisionAdjustment,
       boolean pTopOnFinalSelfLoopingState) {
-    this.topState = pTopState;
-    this.wrappedPrec = pWrappedPrecisionAdjustment;
-    this.topOnFinalSelfLoopingState = pTopOnFinalSelfLoopingState;
+    topState = pTopState;
+    wrappedPrec = pWrappedPrecisionAdjustment;
+    topOnFinalSelfLoopingState = pTopOnFinalSelfLoopingState;
   }
 
   @Override

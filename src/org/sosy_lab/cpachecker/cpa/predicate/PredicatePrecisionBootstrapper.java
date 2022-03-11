@@ -150,8 +150,8 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
 
     config.inject(this);
 
-    this.options = new InitialPredicatesOptions();
-    config.inject(this.options);
+    options = new InitialPredicatesOptions();
+    config.inject(options);
   }
 
   private PredicatePrecision internalPrepareInitialPredicates()

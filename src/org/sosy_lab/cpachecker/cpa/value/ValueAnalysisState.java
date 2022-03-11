@@ -496,12 +496,12 @@ public final class ValueAnalysisState
 
     if (pProperty.startsWith("contains(")) {
       String varName = pProperty.substring("contains(".length(), pProperty.length() - 1);
-      return this.constantsMap.containsKey(MemoryLocation.parseExtendedQualifiedName(varName));
+      return constantsMap.containsKey(MemoryLocation.parseExtendedQualifiedName(varName));
     } else {
       List<String> parts = Splitter.on("==").trimResults().splitToList(pProperty);
       if (parts.size() != 2) {
         ValueAndType value =
-            this.constantsMap.get(MemoryLocation.parseExtendedQualifiedName(pProperty));
+            constantsMap.get(MemoryLocation.parseExtendedQualifiedName(pProperty));
         if (value != null && value.getValue().isExplicitlyKnown()) {
           return value.getValue();
         } else {
@@ -531,7 +531,7 @@ public final class ValueAnalysisState
     } else {
       // The following is a hack
       ValueAndType val =
-          this.constantsMap.get(MemoryLocation.parseExtendedQualifiedName(parts.get(0)));
+          constantsMap.get(MemoryLocation.parseExtendedQualifiedName(parts.get(0)));
       if (val == null) {
         return false;
       }
@@ -755,7 +755,7 @@ public final class ValueAnalysisState
     }
 
     // second: learn new information
-    for (Entry<MemoryLocation, ValueAndType> e : this.getConstants()) {
+    for (Entry<MemoryLocation, ValueAndType> e : getConstants()) {
       final MemoryLocation trackedVar = e.getKey();
 
       if (!trackedVar.isOnFunctionStack()) { // global -> override deleted value
@@ -770,7 +770,7 @@ public final class ValueAnalysisState
               .equals(trackedVar.getExtendedQualifiedName())) {
         /*assert (!rebuildState.contains(trackedVar)) :
         "calling function should not contain return-variable of called function: " + trackedVar;*/
-        if (this.contains(trackedVar)) {
+        if (contains(trackedVar)) {
           rebuildState.assignConstant(trackedVar, e.getValue().getValue(), e.getValue().getType());
         }
       }

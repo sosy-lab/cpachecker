@@ -285,7 +285,7 @@ public class BlockOperator {
   }
 
   public void setExplicitAbstractionNodes(ImmutableSet<CFANode> pNodes) {
-    this.explicitAbstractionNodes = pNodes;
+    explicitAbstractionNodes = pNodes;
   }
 
   public void setCFA(CFA cfa) {

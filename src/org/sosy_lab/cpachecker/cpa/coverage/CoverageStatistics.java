@@ -43,8 +43,8 @@ public class CoverageStatistics implements Statistics {
 
     pConfig.inject(this);
 
-    this.logger = pLogger;
-    this.cov = pCov;
+    logger = pLogger;
+    cov = pCov;
   }
 
   @Override

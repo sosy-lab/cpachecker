@@ -170,7 +170,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     private final ImmutableSet<CFANode> acceptedNodes;
 
     private MatchSuccessor(ImmutableSet<CFANode> pAcceptedNodes) {
-      this.acceptedNodes = pAcceptedNodes;
+      acceptedNodes = pAcceptedNodes;
     }
 
     @Override
@@ -244,7 +244,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
         private CPATransferException transferException;
 
         public EpsilonMatchVisitor(ResultValue<Boolean> pEvaluation) {
-          this.evaluation = pEvaluation;
+          evaluation = pEvaluation;
         }
 
         @Override
@@ -339,7 +339,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     private final String functionName;
 
     MatchFunctionCallStatement(String pFunctionName) {
-      this.functionName = pFunctionName;
+      functionName = pFunctionName;
     }
 
     @Override
@@ -384,7 +384,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     private final String functionName;
 
     MatchFunctionCall(String pFunctionName) {
-      this.functionName = pFunctionName;
+      functionName = pFunctionName;
     }
 
     @Override
@@ -490,7 +490,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     private final String functionName;
 
     MatchFunctionExit(String pFunctionName) {
-      this.functionName = pFunctionName;
+      functionName = pFunctionName;
     }
 
     @Override
@@ -630,7 +630,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     private final ASTMatcher patternAST;
 
     public MatchCFAEdgeASTComparison(ASTMatcher pPatternAST) {
-      this.patternAST = pPatternAST;
+      patternAST = pPatternAST;
     }
 
     @Override
@@ -1021,8 +1021,8 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
         FunctionEntryNode pMainEntry, java.util.function.Predicate<FileLocation> pDescriptor) {
       Preconditions.checkNotNull(pDescriptor);
 
-      this.mainEntry = pMainEntry;
-      this.matchDescriptor = pDescriptor;
+      mainEntry = pMainEntry;
+      matchDescriptor = pDescriptor;
     }
 
     @Override
@@ -1455,7 +1455,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     private final AutomatonBoolExpr a;
 
     public Negation(AutomatonBoolExpr pA) {
-      this.a = pA;
+      a = pA;
     }
 
     @Override

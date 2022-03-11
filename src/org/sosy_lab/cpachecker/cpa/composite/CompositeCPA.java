@@ -130,7 +130,7 @@ public final class CompositeCPA
       Configuration config, CFA pCfa, ImmutableList<ConfigurableProgramAnalysis> cpas)
       throws InvalidConfigurationException {
     config.inject(this);
-    this.cfa = pCfa;
+    cfa = pCfa;
     this.cpas = cpas;
     mergeSupplier = buildMergeOperatorSupplier();
   }

@@ -64,9 +64,9 @@ public class OctagonIntervalCoefficients extends AOctagonCoefficients {
 
   @Override
   public OctagonIntervalCoefficients expandToSize(int pSize, OctagonState pOct) {
-    Preconditions.checkArgument(this.size <= pSize, "new size too small");
+    Preconditions.checkArgument(size <= pSize, "new size too small");
 
-    if (this.size == pSize) {
+    if (size == pSize) {
       return this;
     }
 

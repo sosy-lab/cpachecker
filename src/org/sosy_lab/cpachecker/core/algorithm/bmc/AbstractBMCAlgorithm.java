@@ -918,8 +918,8 @@ abstract class AbstractBMCAlgorithm
       // replay error path for a more precise satisfying assignment
       PathChecker pathChecker;
       try {
-        Solver solverForPathChecker = this.solver;
-        PathFormulaManager pmgrForPathChecker = this.pmgr;
+        Solver solverForPathChecker = solver;
+        PathFormulaManager pmgrForPathChecker = pmgr;
 
         if (solverForPathChecker.getVersion().toLowerCase().contains("smtinterpol")) {
           // SMTInterpol does not support reusing the same solver

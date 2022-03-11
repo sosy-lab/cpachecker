@@ -163,15 +163,15 @@ public class UninitializedVariablesState implements AbstractQueryableState, Seri
    * @param pProp the property to add
    */
   void addProperty(ElementProperty pProp) {
-    this.properties.add(pProp);
+    properties.add(pProp);
   }
   /** Returns all properties set for this element. */
   Set<ElementProperty> getProperties() {
-    return this.properties;
+    return properties;
   }
   /** Removes all property of this element */
   void clearProperties() {
-    this.properties.clear();
+    properties.clear();
   }
 
   @Override
@@ -185,10 +185,10 @@ public class UninitializedVariablesState implements AbstractQueryableState, Seri
           "The Query \""
               + pProperty
               + "\" is not defined for this CPA (\""
-              + this.getCPAName()
+              + getCPAName()
               + "\"");
     }
-    return this.properties.contains(prop);
+    return properties.contains(prop);
   }
 
   @Override

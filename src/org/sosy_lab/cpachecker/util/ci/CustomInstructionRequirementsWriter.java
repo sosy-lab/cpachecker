@@ -55,7 +55,7 @@ public class CustomInstructionRequirementsWriter {
       boolean enableRequirementSlicing)
       throws CPAException {
     fileTemplate = ciReqFiles;
-    this.requirementsState = reqirementsState;
+    requirementsState = reqirementsState;
     logger = log;
     this.enableRequirementSlicing = enableRequirementSlicing;
     createRequirementTranslator(cpa);

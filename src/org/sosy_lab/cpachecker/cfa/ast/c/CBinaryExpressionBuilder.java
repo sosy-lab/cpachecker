@@ -91,8 +91,8 @@ public class CBinaryExpressionBuilder {
    * @param pLogger logging
    */
   public CBinaryExpressionBuilder(MachineModel pMachineModel, LogManager pLogger) {
-    this.logger = pLogger;
-    this.machineModel = pMachineModel;
+    logger = pLogger;
+    machineModel = pMachineModel;
   }
 
   /**

@@ -44,8 +44,8 @@ public class SymbolicLocationPathFormulaBuilder extends DefaultPathFormulaBuilde
         final CFAEdge pEdge,
         final CBinaryExpressionBuilder pCBinaryExpressionBuilder) {
       super(pCBinaryExpressionBuilder);
-      this.previousPathFormula = pPathFormulaAndBuilder;
-      this.edge = pEdge;
+      previousPathFormula = pPathFormulaAndBuilder;
+      edge = pEdge;
     }
 
     @Override

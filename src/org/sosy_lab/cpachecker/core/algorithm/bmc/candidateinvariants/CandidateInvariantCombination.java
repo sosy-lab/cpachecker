@@ -54,7 +54,7 @@ public class CandidateInvariantCombination {
           "It makes no sense to use a CandidateInvariantCombination unless there are at least two"
               + " operands.");
       conjunction = pConjunction;
-      this.operands = ImmutableSet.copyOf(pOperands);
+      operands = ImmutableSet.copyOf(pOperands);
     }
 
     @Override

@@ -17,7 +17,7 @@ public abstract class UnaryFormula implements LtlFormula {
   private final LtlFormula operand;
 
   UnaryFormula(LtlFormula pOperand) {
-    this.operand = requireNonNull(pOperand);
+    operand = requireNonNull(pOperand);
   }
 
   public LtlFormula getOperand() {
