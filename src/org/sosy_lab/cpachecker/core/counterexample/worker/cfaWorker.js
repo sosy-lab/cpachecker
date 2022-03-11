@@ -105,11 +105,11 @@ onmessage = (msg) => {
     console.log(n);
     if (n.covered) {
       return "cfa-node-covered";
-    } else if (n.considered) {
-      return "cfa-node-considered";
-    } else {
-      return "cfa-node";
     }
+    if (n.considered) {
+      return "cfa-node-considered";
+    }
+    return "cfa-node";
   }
 
   // Set nodes for the graph contained in the json nodes
