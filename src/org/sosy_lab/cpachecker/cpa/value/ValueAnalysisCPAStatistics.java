@@ -32,10 +32,10 @@ import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-@Options(prefix="cpa.value")
+@Options(prefix = "cpa.value")
 public class ValueAnalysisCPAStatistics implements Statistics {
 
-  @Option(secure=true, description="target file to hold the exported precision")
+  @Option(secure = true, description = "target file to hold the exported precision")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path precisionFile = null;
 
@@ -45,7 +45,8 @@ public class ValueAnalysisCPAStatistics implements Statistics {
       new StatCounter("Number of deterministic assumptions");
   private final ValueAnalysisCPA cpa;
 
-  public ValueAnalysisCPAStatistics(ValueAnalysisCPA cpa, Configuration config) throws InvalidConfigurationException {
+  public ValueAnalysisCPAStatistics(ValueAnalysisCPA cpa, Configuration config)
+      throws InvalidConfigurationException {
     this.cpa = cpa;
 
     config.inject(this, ValueAnalysisCPAStatistics.class);
@@ -63,7 +64,8 @@ public class ValueAnalysisCPAStatistics implements Statistics {
         new StatInt(StatKind.AVG, "Number of global variables per state");
 
     for (AbstractState currentAbstractState : reached) {
-      ValueAnalysisState currentState = AbstractStates.extractStateByType(currentAbstractState, ValueAnalysisState.class);
+      ValueAnalysisState currentState =
+          AbstractStates.extractStateByType(currentAbstractState, ValueAnalysisState.class);
 
       numberOfVariables.setNextValue(currentState.getSize());
       numberOfGlobalVariables.setNextValue(currentState.getNumberOfGlobalVariables());
@@ -94,10 +96,10 @@ public class ValueAnalysisCPAStatistics implements Statistics {
     try (Writer writer = IO.openOutputFile(precisionFile, Charset.defaultCharset())) {
       consolidatedPrecision.serialize(writer);
     } catch (IOException e) {
-      cpa.getLogger().logUserException(Level.WARNING, e, "Could not write value-analysis precision to file");
+      cpa.getLogger()
+          .logUserException(Level.WARNING, e, "Could not write value-analysis precision to file");
     }
   }
-
 
   void incrementIterations() {
     iterations.increment();

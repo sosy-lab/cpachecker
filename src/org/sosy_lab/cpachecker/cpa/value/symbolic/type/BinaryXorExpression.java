@@ -35,8 +35,8 @@ public final class BinaryXorExpression extends BinarySymbolicExpression {
 
   @Override
   public SymbolicExpression copyForLocation(final MemoryLocation pRepresentedLocation) {
-    return new BinaryXorExpression(getOperand1(), getOperand2(), getType(), getCalculationType(),
-        pRepresentedLocation);
+    return new BinaryXorExpression(
+        getOperand1(), getOperand2(), getType(), getCalculationType(), pRepresentedLocation);
   }
 
   @Override

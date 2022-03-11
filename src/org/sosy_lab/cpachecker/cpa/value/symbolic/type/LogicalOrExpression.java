@@ -35,8 +35,8 @@ public final class LogicalOrExpression extends BinarySymbolicExpression {
 
   @Override
   public LogicalOrExpression copyForLocation(final MemoryLocation pRepresentedLocation) {
-    return new LogicalOrExpression(getOperand1(), getOperand2(), getType(), getCalculationType(),
-        pRepresentedLocation);
+    return new LogicalOrExpression(
+        getOperand1(), getOperand2(), getType(), getCalculationType(), pRepresentedLocation);
   }
 
   @Override

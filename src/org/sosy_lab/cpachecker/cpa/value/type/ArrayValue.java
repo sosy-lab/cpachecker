@@ -23,19 +23,14 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 /**
  * Instances of this class represent arrays with characteristics of Java arrays.
  *
- * <p>
- * Each array has a specific, constant size and can hold up to &lt;size&gt; different values
- * with indexes from 0 to &lt;size - 1&gt;.<br />
- *
- * Each of its fields can be assigned a value with the same type, a subtype of the array or
- * an unknown value.
- * No other types can be stored in instances of this class.
- * </p>
+ * <p>Each array has a specific, constant size and can hold up to &lt;size&gt; different values with
+ * indexes from 0 to &lt;size - 1&gt;.<br>
+ * Each of its fields can be assigned a value with the same type, a subtype of the array or an
+ * unknown value. No other types can be stored in instances of this class.
  */
 public class ArrayValue implements Value {
 
   private static final long serialVersionUID = -3963825961335658001L;
-
 
   // Array type and element type are only used for checking correctness of parameters
   private final JArrayType arrayType;
@@ -50,18 +45,18 @@ public class ArrayValue implements Value {
   private final Value[] values;
 
   /**
-   * <p>Creates a new <code>ArrayValue</code> instance representing an array of the given type and
-   * size. No values are initialized.</p>
+   * Creates a new <code>ArrayValue</code> instance representing an array of the given type and
+   * size. No values are initialized.
    *
-   * <p>
-   * This constructor resembles slightly the following declaration of arrays in Java (for example):
+   * <p>This constructor resembles slightly the following declaration of arrays in Java (for
+   * example):
+   *
    * <pre>
    *   int[] a = new int[5];
    * </pre>
-   *</p>
    *
-   * @param pType the type of the array. Only values of this type's element type or subtypes
-   *    of this type's element type can be stored in the returned <code>ArrayValue</code> object
+   * @param pType the type of the array. Only values of this type's element type or subtypes of this
+   *     type's element type can be stored in the returned <code>ArrayValue</code> object
    * @param pArraySize the size of the array
    */
   public ArrayValue(JArrayType pType, int pArraySize) {
@@ -71,7 +66,6 @@ public class ArrayValue implements Value {
     // we can't use concrete Value types because UnknownValue must be allowed
     values = new Value[pArraySize];
 
-
     if (elementType != null) {
       Arrays.fill(values, getInitialValue(elementType));
     } else {
@@ -80,27 +74,24 @@ public class ArrayValue implements Value {
   }
 
   /**
-   * <p>Creates a new <code>ArrayValue</code> instance representing an array of the given type and
+   * Creates a new <code>ArrayValue</code> instance representing an array of the given type and
    * initialized with the given values. The size of the array is equal to the number of values
-   * given.</p>
+   * given.
    *
-   * <p>
-   * This constructor resembles slightly the following declaration of arrays in Java (for example):
+   * <p>This constructor resembles slightly the following declaration of arrays in Java (for
+   * example):
+   *
    * <pre>
    *   int[] a = { 1, 2, 3 };
    * </pre>
-   * </p>
    *
-   * <p>
-   * The given list of values may only contain values of types compatible with the given type
-   * (that is values of the type or subtypes of this type and instances of {@link Value.UnknownValue}).
-   * Otherwise, an <code>IllegalArgumentException</code> is thrown at runtime.
-   * </p>
+   * <p>The given list of values may only contain values of types compatible with the given type
+   * (that is values of the type or subtypes of this type and instances of {@link
+   * Value.UnknownValue}). Otherwise, an <code>IllegalArgumentException</code> is thrown at runtime.
    *
-   * @param pType the type of the array. Only values of this type's element type or subtypes
-   *    of this type's element type can be stored in the returned <code>ArrayValue</code> object
+   * @param pType the type of the array. Only values of this type's element type or subtypes of this
+   *     type's element type can be stored in the returned <code>ArrayValue</code> object
    * @param pValues a <code>List</code> containing the initial values the array should have
-   *
    * @throws IllegalArgumentException if a given value is not compatible with the array type
    */
   public ArrayValue(JArrayType pType, List<Value> pValues) {
@@ -165,7 +156,8 @@ public class ArrayValue implements Value {
   private void checkValidValue(Value pValue) {
     checkNotNull(pValue);
 
-    final String errorMessage = "Illegal value " + pValue + " to store in array of type " + arrayType;
+    final String errorMessage =
+        "Illegal value " + pValue + " to store in array of type " + arrayType;
 
     if (pValue.isUnknown() || arrayType == null) {
       // as we already check for unknown values here, we won't include it in checks below.
@@ -188,7 +180,8 @@ public class ArrayValue implements Value {
         case INT:
         case LONG:
           // check that, if Value is of NumericValue, it contains an integer
-          if (!(pValue instanceof NumericValue) || (((NumericValue) pValue).doubleValue() % 1) != 0) {
+          if (!(pValue instanceof NumericValue)
+              || (((NumericValue) pValue).doubleValue() % 1) != 0) {
             throw new IllegalArgumentException(errorMessage);
           }
           break;
@@ -212,7 +205,9 @@ public class ArrayValue implements Value {
   private boolean isValidComplexValue(Value pValue) {
     checkNotNull(pValue);
 
-    return pValue.isUnknown() || pValue instanceof NullValue || pValue instanceof EnumConstantValue
+    return pValue.isUnknown()
+        || pValue instanceof NullValue
+        || pValue instanceof EnumConstantValue
         || arrayType == null;
   }
 
@@ -226,19 +221,23 @@ public class ArrayValue implements Value {
   }
 
   /**
-   * Returns the type of this array. This includes information such as the element type and
-   * the number of dimensions this array has.
+   * Returns the type of this array. This includes information such as the element type and the
+   * number of dimensions this array has.
    *
    * @return the {@link JArrayType} of this array
    */
-  public JArrayType getArrayType() { return arrayType; }
+  public JArrayType getArrayType() {
+    return arrayType;
+  }
 
   /**
    * Returns the size of this array.
    *
    * @return the size of this array
    */
-  public int getArraySize() { return arraySize; }
+  public int getArraySize() {
+    return arraySize;
+  }
 
   /**
    * Returns the value stored at the specified index.
@@ -267,8 +266,12 @@ public class ArrayValue implements Value {
 
   private void checkValidIndex(int pIndex) {
     if (pIndex > values.length - 1 || pIndex < 0) {
-      throw new IllegalArgumentException("Array value has size " + (values.length - 1)
-          + " but asked for access at index " + pIndex + ".");
+      throw new IllegalArgumentException(
+          "Array value has size "
+              + (values.length - 1)
+              + " but asked for access at index "
+              + pIndex
+              + ".");
     }
   }
 

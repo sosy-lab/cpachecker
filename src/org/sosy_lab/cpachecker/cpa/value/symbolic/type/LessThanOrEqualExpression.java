@@ -37,8 +37,8 @@ public final class LessThanOrEqualExpression extends BinarySymbolicExpression
 
   @Override
   public LessThanOrEqualExpression copyForLocation(final MemoryLocation pRepresentedLocation) {
-    return new LessThanOrEqualExpression(getOperand1(), getOperand2(), getType(),
-        getCalculationType(), pRepresentedLocation);
+    return new LessThanOrEqualExpression(
+        getOperand1(), getOperand2(), getType(), getCalculationType(), pRepresentedLocation);
   }
 
   @Override

@@ -54,8 +54,8 @@ public class ValueTransferBasedStrongestPostOperator
       final ConstraintsSolver pSolver,
       final LogManager pLogger,
       final Configuration pConfig,
-      final CFA pCfa
-  ) throws InvalidConfigurationException {
+      final CFA pCfa)
+      throws InvalidConfigurationException {
 
     valueTransfer =
         new ValueAnalysisTransferRelation(
@@ -79,14 +79,11 @@ public class ValueTransferBasedStrongestPostOperator
 
   @Override
   public Optional<ForgettingCompositeState> getStrongestPost(
-      final ForgettingCompositeState pOrigin,
-      final Precision pPrecision,
-      final CFAEdge pOperation
-  ) throws CPAException, InterruptedException {
+      final ForgettingCompositeState pOrigin, final Precision pPrecision, final CFAEdge pOperation)
+      throws CPAException, InterruptedException {
 
     ValueAnalysisState oldValues = pOrigin.getValueState();
     ConstraintsState oldConstraints = pOrigin.getConstraintsState();
-
 
     assert oldValues != null && oldConstraints != null;
 
@@ -101,9 +98,7 @@ public class ValueTransferBasedStrongestPostOperator
 
       Collection<? extends AbstractState> constraintsSuccessors =
           constraintsTransfer.getAbstractSuccessorsForEdge(
-              oldConstraints,
-              SingletonPrecision.getInstance(),
-              pOperation);
+              oldConstraints, SingletonPrecision.getInstance(), pOperation);
 
       if (isContradiction(constraintsSuccessors)) {
         return Optional.empty();
@@ -137,8 +132,7 @@ public class ValueTransferBasedStrongestPostOperator
   public ForgettingCompositeState handleFunctionCall(
       final ForgettingCompositeState pStateBeforeCall,
       final CFAEdge pEdge,
-      final Deque<ForgettingCompositeState> pCallstack
-  ) {
+      final Deque<ForgettingCompositeState> pCallstack) {
     pCallstack.push(pStateBeforeCall);
     return pStateBeforeCall;
   }
@@ -147,8 +141,7 @@ public class ValueTransferBasedStrongestPostOperator
   public ForgettingCompositeState handleFunctionReturn(
       final ForgettingCompositeState pNext,
       final CFAEdge pEdge,
-      final Deque<ForgettingCompositeState> pCallstack
-  ) {
+      final Deque<ForgettingCompositeState> pCallstack) {
     final ForgettingCompositeState callState = pCallstack.pop();
 
     // Do not forget any information about constraints.
@@ -159,7 +152,8 @@ public class ValueTransferBasedStrongestPostOperator
     ValueAnalysisState currentValueState = pNext.getValueState();
     ValueAnalysisState callStateValueState = callState.getValueState();
 
-    currentValueState = currentValueState.rebuildStateAfterFunctionCall(
+    currentValueState =
+        currentValueState.rebuildStateAfterFunctionCall(
             callStateValueState, (FunctionExitNode) pEdge.getPredecessor());
 
     return getNewCompositeState(currentValueState, constraintsState);
@@ -170,8 +164,7 @@ public class ValueTransferBasedStrongestPostOperator
       final ForgettingCompositeState pNext,
       final CFANode pCurrNode,
       final ARGPath pErrorPath,
-      final Precision pPrecision
-  ) {
+      final Precision pPrecision) {
     ValueAnalysisState oldValueState = pNext.getValueState();
 
     assert pPrecision instanceof VariableTrackingPrecision;
@@ -185,8 +178,8 @@ public class ValueTransferBasedStrongestPostOperator
       final ValueAnalysisState pValues,
       final ConstraintsState pConstraints,
       final Precision pPrecision,
-      final CFAEdge pOperation
-  ) throws CPATransferException {
+      final CFAEdge pOperation)
+      throws CPATransferException {
 
     Collection<? extends AbstractState> strengthenResult =
         valueTransfer.strengthen(pValues, ImmutableList.of(pConstraints), pOperation, pPrecision);
@@ -201,12 +194,11 @@ public class ValueTransferBasedStrongestPostOperator
     }
   }
 
-
   private Optional<ConstraintsState> strengthenConstraintsState(
       final ConstraintsState pConstraintsState,
       final ValueAnalysisState pValueState,
-      final CFAEdge pOperation
-  ) throws CPATransferException, InterruptedException {
+      final CFAEdge pOperation)
+      throws CPATransferException, InterruptedException {
 
     Collection<? extends AbstractState> successors =
         constraintsTransfer.strengthen(
@@ -229,8 +221,8 @@ public class ValueTransferBasedStrongestPostOperator
     return pAbstractStates.isEmpty();
   }
 
-  private ForgettingCompositeState getNewCompositeState(final ValueAnalysisState pNextValueState,
-      final ConstraintsState pConstraints) {
+  private ForgettingCompositeState getNewCompositeState(
+      final ValueAnalysisState pNextValueState, final ConstraintsState pConstraints) {
 
     return new ForgettingCompositeState(pNextValueState, pConstraints);
   }
