@@ -51,10 +51,9 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 public class ProgramSplitAlgorithm implements Algorithm, StatisticsProvider, Statistics {
 
   @Option(
-    secure = true,
-    name = "exportAsCondition",
-    description = "export program splitting as conditions (assumption automata)"
-  )
+      secure = true,
+      name = "exportAsCondition",
+      description = "export program splitting as conditions (assumption automata)")
   private boolean exportCondition = true;
 
   @Option(secure = true, name = "conditionFile", description = "where to export conditions")
@@ -110,7 +109,8 @@ public class ProgramSplitAlgorithm implements Algorithm, StatisticsProvider, Sta
     if (pReachedSet.hasWaitingState()) {
       logger.log(
           Level.WARNING,
-          "The computation of the program splitting is not complete. The result remains a proper splitting, but may not be the expected one.");
+          "The computation of the program splitting is not complete. The result remains a proper"
+              + " splitting, but may not be the expected one.");
     }
 
     shutdownNotifier.shutdownIfNecessary();
@@ -199,7 +199,8 @@ public class ProgramSplitAlgorithm implements Algorithm, StatisticsProvider, Sta
     } catch (IOException e) {
       logger.log(
           Level.SEVERE,
-          "Failed to write a condition reflecting a part of program split. Abort writting conditions describing program splitting.",
+          "Failed to write a condition reflecting a part of program split. Abort writting"
+              + " conditions describing program splitting.",
           e);
     }
   }

@@ -13,9 +13,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 
-/**
- * Standard stop operator, which always returns true
- */
+/** Standard stop operator, which always returns true */
 public class StopAlwaysOperator implements StopOperator {
 
   @Override
@@ -28,5 +26,4 @@ public class StopAlwaysOperator implements StopOperator {
   public static StopOperator getInstance() {
     return instance;
   }
-
 }

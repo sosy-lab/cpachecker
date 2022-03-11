@@ -13,9 +13,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 
 /**
- * Interface to implement in order for an abstract state
- * to be able to be over-approximated by an ExpressionTree representing
- * the abstract state.
+ * Interface to implement in order for an abstract state to be able to be over-approximated by an
+ * ExpressionTree representing the abstract state.
  */
 public interface ExpressionTreeReportingState extends AbstractState {
 

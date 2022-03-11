@@ -12,5 +12,6 @@ import java.util.Collection;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public interface StopOperator {
-  boolean stop(AbstractState state, Collection<AbstractState> reached, Precision precision) throws CPAException, InterruptedException;
+  boolean stop(AbstractState state, Collection<AbstractState> reached, Precision precision)
+      throws CPAException, InterruptedException;
 }

@@ -147,7 +147,8 @@ public class FaultLocalizationWithCoverage implements Algorithm, StatisticsProvi
   }
 
   public List<Fault> getFaultsForCex(List<Fault> pFaults, CounterexampleInfo counterexample) {
-    ImmutableSet<CFAEdge> fullPath = ImmutableSet.copyOf(counterexample.getTargetPath().getFullPath());
+    ImmutableSet<CFAEdge> fullPath =
+        ImmutableSet.copyOf(counterexample.getTargetPath().getFullPath());
     return pFaults.stream()
         .filter(f -> f.stream().anyMatch(e -> fullPath.contains(e.correspondingEdge())))
         // cf.

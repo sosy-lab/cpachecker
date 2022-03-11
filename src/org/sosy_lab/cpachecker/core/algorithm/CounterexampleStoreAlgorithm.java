@@ -44,8 +44,7 @@ public final class CounterexampleStoreAlgorithm implements Algorithm, Statistics
       final ConfigurableProgramAnalysis pCpa,
       final Configuration pConfig,
       final LogManager pLogger,
-      final MachineModel pMachineModel
-  )
+      final MachineModel pMachineModel)
       throws InvalidConfigurationException {
 
     algorithm = pCpaAlgorithm;
@@ -54,8 +53,7 @@ public final class CounterexampleStoreAlgorithm implements Algorithm, Statistics
   }
 
   @Override
-  public AlgorithmStatus run(ReachedSet pReachedSet)
-      throws CPAException, InterruptedException {
+  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
 
     AlgorithmStatus status = algorithm.run(pReachedSet);
 
@@ -68,7 +66,6 @@ public final class CounterexampleStoreAlgorithm implements Algorithm, Statistics
           targetState.addCounterexampleInformation(e.getValue());
         }
       }
-
     }
 
     return status;
@@ -82,8 +79,7 @@ public final class CounterexampleStoreAlgorithm implements Algorithm, Statistics
     for (AbstractState targetState : from(pReached).filter(AbstractStates::isTargetState)) {
       ARGState s = (ARGState) targetState;
       CounterexampleInfo cex =
-          ARGUtils.tryGetOrCreateCounterexampleInformation(s, argCpa, allocator)
-              .orElse(null);
+          ARGUtils.tryGetOrCreateCounterexampleInformation(s, argCpa, allocator).orElse(null);
       if (cex != null) {
         counterexamples.put(s, cex);
       }
