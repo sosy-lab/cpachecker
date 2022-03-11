@@ -49,8 +49,7 @@ public class SMGCPAValueExpressionEvaluator {
   private final MachineModel machineModel;
 
   public SMGCPAValueExpressionEvaluator(
-      MachineModel pMachineModel,
-      LogManagerWithoutDuplicates pLogger) {
+      MachineModel pMachineModel, LogManagerWithoutDuplicates pLogger) {
     logger = pLogger;
     machineModel = pMachineModel;
   }

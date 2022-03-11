@@ -382,7 +382,9 @@ public class SymbolicProgramConfiguration {
         valueMapping);
   }
 
-  /** @return {@link SMGObject} reserved for the return value of the current StackFrame. */
+  /**
+   * @return {@link SMGObject} reserved for the return value of the current StackFrame.
+   */
   public Optional<SMGObject> getReturnObjectForCurrentStackFrame() {
     return stackVariableMapping.peek().getReturnObject();
   }
@@ -609,11 +611,10 @@ public class SymbolicProgramConfiguration {
    * @param pSizeofInBits - the chunks size
    * @return edgeOffset + edgeSize >= pFieldOffset + pSizeofInBits
    */
-  private boolean
-      reachedBlockEnd(SMGHasValueEdge pEdge, BigInteger pFieldOffset, BigInteger pSizeofInBits) {
-    return pEdge.getOffset()
-        .add(pEdge.getSizeInBits())
-        .compareTo(pSizeofInBits.add(pFieldOffset)) >= 0;
+  private boolean reachedBlockEnd(
+      SMGHasValueEdge pEdge, BigInteger pFieldOffset, BigInteger pSizeofInBits) {
+    return pEdge.getOffset().add(pEdge.getSizeInBits()).compareTo(pSizeofInBits.add(pFieldOffset))
+        >= 0;
   }
 
   /**

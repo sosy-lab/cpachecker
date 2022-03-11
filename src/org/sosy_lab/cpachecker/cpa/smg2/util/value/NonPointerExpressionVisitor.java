@@ -57,8 +57,7 @@ public class NonPointerExpressionVisitor
   public List<ValueAndSMGState> visit(CArraySubscriptExpression exp) throws CPATransferException {
     // Cyclic call to evaluate addresses
     return readAddressValueAndState(
-        evaluator.evaluateArraySubscriptAddress(initialSmgState, exp),
-        exp);
+        evaluator.evaluateArraySubscriptAddress(initialSmgState, exp), exp);
   }
 
   @Override
@@ -72,9 +71,7 @@ public class NonPointerExpressionVisitor
     // Cyclic calls to evaluate addresses
     if (operandType instanceof CPointerType) {
       return dereference(
-          operand,
-          expType,
-          evaluator.evaluateArrayAddress(initialSmgState, operand));
+          operand, expType, evaluator.evaluateArrayAddress(initialSmgState, operand));
     } else if (operandType instanceof CArrayType) {
       return dereference(operand, expType, evaluator.evaluateAddress(initialSmgState, operand));
     } else {
@@ -119,8 +116,7 @@ public class NonPointerExpressionVisitor
   public List<ValueAndSMGState> visit(CFieldReference fieldReference) throws CPATransferException {
     // Cyclic call to evaluate addresses
     return readAddressValueAndState(
-        evaluator.getAddressOfField(initialSmgState, fieldReference),
-        fieldReference);
+        evaluator.getAddressOfField(initialSmgState, fieldReference), fieldReference);
   }
 
   /**
@@ -271,5 +267,4 @@ public class NonPointerExpressionVisitor
       throws CPATransferException {
     return Collections.singletonList(ValueAndSMGState.ofUnknownValue(initialSmgState));
   }
-
 }

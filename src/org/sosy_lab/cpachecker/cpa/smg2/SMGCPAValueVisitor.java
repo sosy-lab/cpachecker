@@ -118,7 +118,8 @@ public class SMGCPAValueVisitor
     // Just get a default value and log
     logger.logf(
         Level.INFO,
-        "%s, Default value: CExpression %s could not be recognized and the default value %s was used for its value. Related CFAEdge: %s",
+        "%s, Default value: CExpression %s could not be recognized and the default value %s was"
+            + " used for its value. Related CFAEdge: %s",
         cfaEdge.getFileLocation(),
         pExp,
         SMGValue.zeroValue(),
@@ -267,7 +268,14 @@ public class SMGCPAValueVisitor
     }
 
     if (leftValue instanceof AddressExpression || rightValue instanceof AddressExpression) {
-      return ImmutableList.of(calculatePointerArithmetics(leftValue, rightValue, binaryOperator, e.getExpressionType(), calculationType, currentState));
+      return ImmutableList.of(
+          calculatePointerArithmetics(
+              leftValue,
+              rightValue,
+              binaryOperator,
+              e.getExpressionType(),
+              calculationType,
+              currentState));
     }
 
     if (leftValue instanceof FunctionValue || rightValue instanceof FunctionValue) {
@@ -321,8 +329,10 @@ public class SMGCPAValueVisitor
    */
   @Override
   public List<ValueAndSMGState> visit(CCastExpression e) throws CPATransferException {
-    // Casts are not trivial within SMGs as there might be type reinterpretation used inside the SMGs,
-    // but this should be taken care of by the SMGCPAValueExpressionEvaluator and no longer be a problem here!
+    // Casts are not trivial within SMGs as there might be type reinterpretation used inside the
+    // SMGs,
+    // but this should be taken care of by the SMGCPAValueExpressionEvaluator and no longer be a
+    // problem here!
     // Get the type and value from the nested expression (might be SMG) and cast the value
     // Also most of this code is taken from the value analysis CPA and modified
     CType targetType = e.getExpressionType();
@@ -385,7 +395,8 @@ public class SMGCPAValueVisitor
     // Owner expression; the struct/union with this field. Use this to get the address of the
     // general object.
     CExpression ownerExpression = explicitReference.getFieldOwner();
-    CType fieldType = SMGCPAValueExpressionEvaluator.getCanonicalType(explicitReference.getExpressionType());
+    CType fieldType =
+        SMGCPAValueExpressionEvaluator.getCanonicalType(explicitReference.getExpressionType());
     // For (*pointer).field case or struct.field case the visitor returns the Value for the
     // correct SMGObject (if it exists)
     List<ValueAndSMGState> structValuesAndStates = ownerExpression.accept(this);
@@ -417,24 +428,24 @@ public class SMGCPAValueVisitor
       // This is either a stack/global variable of the form struct.field or a pointer of the form
       // (*structP).field. The later needs a pointer deref
       if (ownerExpression instanceof CPointerExpression) {
-          // In the pointer case, the Value needs to be a AddressExpression
-          Preconditions.checkArgument(structValue instanceof AddressExpression);
-          AddressExpression addressAndOffsetValue = (AddressExpression) structValue;
-          // This AddressExpr theoretically can have a offset
-          Value structPointerOffsetExpr = addressAndOffsetValue.getOffset();
-          if (!structPointerOffsetExpr.isNumericValue()) {
-            // The offset is some non numeric Value and therefore not useable!
+        // In the pointer case, the Value needs to be a AddressExpression
+        Preconditions.checkArgument(structValue instanceof AddressExpression);
+        AddressExpression addressAndOffsetValue = (AddressExpression) structValue;
+        // This AddressExpr theoretically can have a offset
+        Value structPointerOffsetExpr = addressAndOffsetValue.getOffset();
+        if (!structPointerOffsetExpr.isNumericValue()) {
+          // The offset is some non numeric Value and therefore not useable!
 
-          }
-          BigInteger finalFieldOffset =
-              structPointerOffsetExpr.asNumericValue().bigInteger().add(fieldOffset);
+        }
+        BigInteger finalFieldOffset =
+            structPointerOffsetExpr.asNumericValue().bigInteger().add(fieldOffset);
 
-          builder.add(
-              evaluator.readValueWithPointerDereference(
-                  currentState,
-                  addressAndOffsetValue.getMemoryAddress(),
-                  finalFieldOffset,
-                  sizeOfField));
+        builder.add(
+            evaluator.readValueWithPointerDereference(
+                currentState,
+                addressAndOffsetValue.getMemoryAddress(),
+                finalFieldOffset,
+                sizeOfField));
 
       } else if (ownerExpression instanceof CBinaryExpression
           || ownerExpression instanceof CIdExpression) {
@@ -444,18 +455,18 @@ public class SMGCPAValueVisitor
         MemoryLocation maybeVariableIdent =
             ((SymbolicValue) structValue).getRepresentedLocation().orElseThrow();
 
-          BigInteger finalFieldOffset = fieldOffset;
-          if (maybeVariableIdent.isReference()) {
-            finalFieldOffset = fieldOffset.add(BigInteger.valueOf(maybeVariableIdent.getOffset()));
-          }
+        BigInteger finalFieldOffset = fieldOffset;
+        if (maybeVariableIdent.isReference()) {
+          finalFieldOffset = fieldOffset.add(BigInteger.valueOf(maybeVariableIdent.getOffset()));
+        }
 
-          builder.add(
-              evaluator.readStackOrGlobalVariable(
-                  currentState, maybeVariableIdent.getIdentifier(), finalFieldOffset, sizeOfField));
+        builder.add(
+            evaluator.readStackOrGlobalVariable(
+                currentState, maybeVariableIdent.getIdentifier(), finalFieldOffset, sizeOfField));
 
       } else {
-          // TODO: improve error and check if its even needed
-          throw new SMG2Exception("Unknown field type in field expression.");
+        // TODO: improve error and check if its even needed
+        throw new SMG2Exception("Unknown field type in field expression.");
       }
     }
     return builder.build();
@@ -649,8 +660,8 @@ public class SMGCPAValueVisitor
         builder.add(readValue);
 
       } else if ((type instanceof CFunctionType
-              && expr instanceof CUnaryExpression
-              && ((CUnaryExpression) expr).getOperator() == CUnaryExpression.UnaryOperator.AMPER)) {
+          && expr instanceof CUnaryExpression
+          && ((CUnaryExpression) expr).getOperator() == CUnaryExpression.UnaryOperator.AMPER)) {
         // Special cases
         // TODO:
       } else {
@@ -741,16 +752,16 @@ public class SMGCPAValueVisitor
             // if number is a float and float can not be exactly represented as integer, the
             // result of the conversion of float to integer is undefined
             return UnknownValue.getInstance();
-        }
+          }
 
-        final BigInteger valueToCastAsInt;
-        if (numericValue.getNumber() instanceof BigInteger) {
-          valueToCastAsInt = numericValue.bigInteger();
-        } else if (numericValue.getNumber() instanceof BigDecimal) {
-          valueToCastAsInt = numericValue.bigDecimalValue().toBigInteger();
-        } else {
-          valueToCastAsInt = BigInteger.valueOf(numericValue.longValue());
-        }
+          final BigInteger valueToCastAsInt;
+          if (numericValue.getNumber() instanceof BigInteger) {
+            valueToCastAsInt = numericValue.bigInteger();
+          } else if (numericValue.getNumber() instanceof BigDecimal) {
+            valueToCastAsInt = numericValue.bigDecimalValue().toBigInteger();
+          } else {
+            valueToCastAsInt = BigInteger.valueOf(numericValue.longValue());
+          }
           final boolean targetIsSigned = machineModel.isSigned(st);
 
           final BigInteger maxValue = BigInteger.ONE.shiftLeft(size); // 2^size
@@ -795,9 +806,9 @@ public class SMGCPAValueVisitor
 
           if (isNan(numericValue) || isInfinity(numericValue)) {
             result = numericValue;
-        } else if (size == machineModel.getSizeofFloat128() * 8) {
-          result = new NumericValue(numericValue.bigDecimalValue());
-        } else if (size == machineModel.getSizeofLongDouble() * bitPerByte) {
+          } else if (size == machineModel.getSizeofFloat128() * 8) {
+            result = new NumericValue(numericValue.bigDecimalValue());
+          } else if (size == machineModel.getSizeofLongDouble() * bitPerByte) {
 
             if (numericValue.bigDecimalValue().doubleValue() == numericValue.doubleValue()) {
               result = new NumericValue(numericValue.doubleValue());
@@ -810,7 +821,7 @@ public class SMGCPAValueVisitor
             // TODO: Think of floating point types!
             throw new AssertionError("Unhandled floating point type: " + type);
           }
-        return result;
+          return result;
         }
 
       default:

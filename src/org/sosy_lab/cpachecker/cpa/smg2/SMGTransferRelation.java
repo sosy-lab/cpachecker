@@ -60,8 +60,10 @@ public class SMGTransferRelation
     extends ForwardingTransferRelation<Collection<SMGState>, SMGState, SMGPrecision> {
 
   private final SMGOptions options;
+
   @SuppressWarnings("unused")
   private final MachineModel machineModel;
+
   @SuppressWarnings("unused")
   private final ShutdownNotifier shutdownNotifier;
 
@@ -81,10 +83,12 @@ public class SMGTransferRelation
   @Override
   protected Collection<SMGState> postProcessing(Collection<SMGState> pSuccessors, CFAEdge edge) {
     Set<CSimpleDeclaration> outOfScopeVars = edge.getSuccessor().getOutOfScopeVariables();
-    return transformedImmutableSetCopy(pSuccessors, successorState -> {
-      SMGState prunedState = successorState.copyAndPruneOutOfScopeVariables(outOfScopeVars);
-      return checkAndSetErrorRelation(prunedState);
-    });
+    return transformedImmutableSetCopy(
+        pSuccessors,
+        successorState -> {
+          SMGState prunedState = successorState.copyAndPruneOutOfScopeVariables(outOfScopeVars);
+          return checkAndSetErrorRelation(prunedState);
+        });
   }
 
   @SuppressWarnings("unused")
@@ -105,13 +109,15 @@ public class SMGTransferRelation
   }
 
   private Set<SMGState> handleReturnEntryFunction(Collection<SMGState> pSuccessors) {
-   return pSuccessors.stream().map(pState -> {
-      if (options.isHandleNonFreedMemoryInMainAsMemLeak()) {
-        pState = pState.dropStackFrame();
-      }
-      return pState.copyAndPruneUnreachable();
-    }).collect(ImmutableSet.toImmutableSet());
-
+    return pSuccessors.stream()
+        .map(
+            pState -> {
+              if (options.isHandleNonFreedMemoryInMainAsMemLeak()) {
+                pState = pState.dropStackFrame();
+              }
+              return pState.copyAndPruneUnreachable();
+            })
+        .collect(ImmutableSet.toImmutableSet());
   }
 
   private boolean isEntryFunction(CFAEdge pCfaEdge) {
@@ -142,8 +148,7 @@ public class SMGTransferRelation
     Collection<SMGState> successors = Collections.singleton(state);
     // If there is an (SMG)Object returned, assign it to the successor state
     if (returnObjectOptional.isPresent()) {
-      successors =
-          assignStatementToField(state, returnObjectOptional.orElseThrow(), returnEdge);
+      successors = assignStatementToField(state, returnObjectOptional.orElseThrow(), returnEdge);
     }
 
     // Handle entry function return (check for mem leaks)
@@ -199,16 +204,15 @@ public class SMGTransferRelation
   }
 
   @Override
-  protected void
-      setInfo(AbstractState abstractState, Precision abstractPrecision, CFAEdge cfaEdge) {
+  protected void setInfo(
+      AbstractState abstractState, Precision abstractPrecision, CFAEdge cfaEdge) {
     super.setInfo(abstractState, abstractPrecision, cfaEdge);
-
   }
 
   @Override
-  protected Collection<SMGState>
-      handleAssumption(CAssumeEdge cfaEdge, CExpression expression, boolean truthAssumption)
-          throws CPATransferException, InterruptedException {
+  protected Collection<SMGState> handleAssumption(
+      CAssumeEdge cfaEdge, CExpression expression, boolean truthAssumption)
+      throws CPATransferException, InterruptedException {
     // Assumptions are essentially all value analysis in nature. We get the values from the SMGs
     // though.
     // Assumptions are for example all comparisons like ==, !=, <.... and should always be a
@@ -227,7 +231,6 @@ public class SMGTransferRelation
   protected List<SMGState> handleDeclarationEdge(CDeclarationEdge edge, CDeclaration cDecl)
       throws CPATransferException {
     return null;
-
   }
 
   @Override
@@ -331,7 +334,6 @@ public class SMGTransferRelation
    * TODO: move this. Structs get a seperate assignment method because we need to potentially copy
    * from one struct to another. TODO: Do we have to do more? They might have pointers in them.
    * (might even have methods)
-   *
    */
   @SuppressWarnings("unused")
   private SMGState assignStruct(
@@ -357,7 +359,8 @@ public class SMGTransferRelation
     // TODO: Does this work with DLS?
     logger.logf(
         Level.INFO,
-        "%s, Out of range: Attempting to write %d bytes at offset %d into a field with size %d bytes: %s",
+        "%s, Out of range: Attempting to write %d bytes at offset %d into a field with size %d"
+            + " bytes: %s",
         cfaEdge.getFileLocation(),
         valueSize,
         valueOffset,

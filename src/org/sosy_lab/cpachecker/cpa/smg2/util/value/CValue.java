@@ -155,7 +155,7 @@ public class CValue implements Comparable<CValue> {
   }
 
   public CValue shiftRight(int shiftBy) {
-    if (isUnknown()|| isZero()) {
+    if (isUnknown() || isZero()) {
       return this;
     }
     if (shiftBy < 0) {
@@ -174,7 +174,6 @@ public class CValue implements Comparable<CValue> {
     return valueOf(value.shiftRight(shiftBy));
   }
 
-
   public CValue clearBit(int n) {
     if (isUnknown() || isZero()) {
       return this;
@@ -185,7 +184,8 @@ public class CValue implements Comparable<CValue> {
   public CValue concat(CValue pOverlappingBitsCValue) {
     if (isUnknown()) {
       return this;
-    } if (isZero()) {
+    }
+    if (isZero()) {
       return pOverlappingBitsCValue;
     }
     BigInteger otherValue = pOverlappingBitsCValue.getExplicitValue();
@@ -206,5 +206,4 @@ public class CValue implements Comparable<CValue> {
 
     return valueOf(value.add(other.getExplicitValue()));
   }
-
 }

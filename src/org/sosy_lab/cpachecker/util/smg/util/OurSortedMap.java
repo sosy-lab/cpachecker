@@ -30,8 +30,7 @@ interface OurSortedMap<K, V> extends NavigableMap<K, V> {
 
   Iterator<Entry<K, V>> descendingEntryIterator();
 
-  @Nullable
-  Entry<K, V> getEntry(Object pKey);
+  @Nullable Entry<K, V> getEntry(Object pKey);
 
   @Override
   NavigableSet<K> keySet();

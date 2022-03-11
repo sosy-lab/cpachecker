@@ -155,11 +155,7 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
       LogManager logManager,
       SMGOptions opts,
       SMGErrorInfo pErrorInfo) {
-    return new SMGState(
-        pMachineModel,
-        pSPC,
-        logManager,
-        opts, pErrorInfo);
+    return new SMGState(pMachineModel, pSPC, logManager, opts, pErrorInfo);
   }
 
   public SMGState withViolationsOf(SMGState pOther) {
@@ -392,7 +388,8 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
     String errorMSG =
         "Usage of uninitialized variable: "
             + uninitializedVariableName
-            + ". A unknown value was assumed, but behaviour is of this variable is generally undefined.";
+            + ". A unknown value was assumed, but behaviour is of this variable is generally"
+            + " undefined.";
     SMGErrorInfo newErrorInfo =
         errorInfo
             .withProperty(Property.INVALID_READ)
@@ -577,7 +574,9 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
     return copy;
   }
 
-  /** @return memory model, including Heap, stack and global vars. */
+  /**
+   * @return memory model, including Heap, stack and global vars.
+   */
   public SymbolicProgramConfiguration getMemoryModel() {
     return memoryModel;
   }
@@ -679,9 +678,10 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
         copyAndReplaceMemoryModel(
             newState.getMemoryModel().copyAndPutValue(unknownValue, readSMGValue)));
   }
-  public SMGState writeValue(SMGObject object, BigInteger offset, BigInteger sizeInBits, SMGValue value) {
+
+  public SMGState writeValue(
+      SMGObject object, BigInteger offset, BigInteger sizeInBits, SMGValue value) {
     // TODO: decide if we need more checks here
     return copyAndReplaceMemoryModel(memoryModel.writeValue(object, offset, sizeInBits, value));
   }
-
 }

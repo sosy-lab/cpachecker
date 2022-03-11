@@ -591,7 +591,8 @@ public class SMGCPAValueVisitorTest {
             arrayVariableName, sizeOfCurrentTypeInBits * k, sizeOfCurrentTypeInBits, arrayValue);
       }
 
-      // Now we read the entire array twice.(twice because values may change when reading in SMGs, and we don't want that)
+      // Now we read the entire array twice.(twice because values may change when reading in SMGs,
+      // and we don't want that)
       for (int j = 0; j < 2; j++) {
         for (int k = 0; k < arrayLength; k++) {
           CArraySubscriptExpression arraySubscriptExpr =
@@ -1447,7 +1448,8 @@ public class SMGCPAValueVisitorTest {
       // and we don't want that)
       for (int j = 0; j < TEST_ARRAY_LENGTH; j++) {
         for (int k = 0; k < TEST_ARRAY_LENGTH; k++) {
-          // Obviously a smaller minus a larger offset makes no sense (if you don't want useless values)
+          // Obviously a smaller minus a larger offset makes no sense (if you don't want useless
+          // values)
           CBinaryExpression arrayDistanceExpr =
               arrayPointerMinusArrayPointer(
                   arrayVariableName + j, arrayVariableName + k, currentArrayType);
@@ -1499,7 +1501,6 @@ public class SMGCPAValueVisitorTest {
         // Chars are translated into their numeric values by the value analysis
         // Also, the numeric value is max 255, therefore every datatype should be able to hold that!
         Value value = result.get(0).getValue();
-
 
         assertThat(value).isInstanceOf(NumericValue.class);
         assertThat(value.asNumericValue().bigInteger())
@@ -1775,7 +1776,8 @@ public class SMGCPAValueVisitorTest {
     if (value.compareTo(BigInteger.ZERO) == 0) {
       return value;
     }
-    //int byteSize = MachineModel.LINUX64.getSizeofInBits(type.getCanonicalType()).intValueExact() / 8;
+    // int byteSize = MachineModel.LINUX64.getSizeofInBits(type.getCanonicalType()).intValueExact()
+    // / 8;
     if (type == CHAR_TYPE) {
       return BigInteger.valueOf(value.byteValue());
     } else if (type == SHORT_TYPE) {
