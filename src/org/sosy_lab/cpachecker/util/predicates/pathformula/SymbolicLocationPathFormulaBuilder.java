@@ -32,7 +32,8 @@ public class SymbolicLocationPathFormulaBuilder extends DefaultPathFormulaBuilde
 
   private final CBinaryExpressionBuilder cBinaryExpressionBuilder;
 
-  private static class SymbolicLocationPathFormulaAndBuilder extends SymbolicLocationPathFormulaBuilder {
+  private static class SymbolicLocationPathFormulaAndBuilder
+      extends SymbolicLocationPathFormulaBuilder {
 
     private final DefaultPathFormulaBuilder previousPathFormula;
 

@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
  */
 public class DefaultPathFormulaBuilder extends CachingPathFormulaBuilder {
 
-  private static abstract class PathFormulaAndBuilder extends DefaultPathFormulaBuilder {
+  private abstract static class PathFormulaAndBuilder extends DefaultPathFormulaBuilder {
 
     protected final DefaultPathFormulaBuilder previousPathFormula;
 
@@ -33,8 +33,7 @@ public class DefaultPathFormulaBuilder extends CachingPathFormulaBuilder {
     private CFAEdge edge;
 
     protected EdgePathFormulaAndBuilder(
-        DefaultPathFormulaBuilder pPathFormulaAndBuilder,
-        CFAEdge pEdge) {
+        DefaultPathFormulaBuilder pPathFormulaAndBuilder, CFAEdge pEdge) {
       super(pPathFormulaAndBuilder);
       this.edge = pEdge;
     }
@@ -51,8 +50,7 @@ public class DefaultPathFormulaBuilder extends CachingPathFormulaBuilder {
     private CExpression assumption;
 
     protected ExpressionPathFormulaAndBuilder(
-        DefaultPathFormulaBuilder pPathFormulaAndBuilder,
-        CExpression pAssumption) {
+        DefaultPathFormulaBuilder pPathFormulaAndBuilder, CExpression pAssumption) {
       super(pPathFormulaAndBuilder);
       this.assumption = pAssumption;
     }

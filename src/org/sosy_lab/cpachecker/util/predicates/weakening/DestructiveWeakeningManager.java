@@ -25,9 +25,7 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
 
-/**
- * Perform weakening by destructive iterations.
- */
+/** Perform weakening by destructive iterations. */
 public class DestructiveWeakeningManager {
 
   private final Solver solver;
@@ -66,20 +64,13 @@ public class DestructiveWeakeningManager {
     } else {
       selectorsToAbstractOverApproximation = selectionsVarsInfo.keySet();
     }
-    BooleanFormula query = bfmgr.and(
-        fromState, transition.getFormula(), bfmgr.not(toState)
-    );
+    BooleanFormula query = bfmgr.and(fromState, transition.getFormula(), bfmgr.not(toState));
     return destructiveWeakening(
-        selectionsVarsInfo.keySet(),
-        selectorsToAbstractOverApproximation,
-        query
-    );
+        selectionsVarsInfo.keySet(), selectorsToAbstractOverApproximation, query);
   }
 
   private BooleanFormula generateNegations(
-      Set<BooleanFormula> selectors,
-      Set<BooleanFormula> toAbstract
-  ) {
+      Set<BooleanFormula> selectors, Set<BooleanFormula> toAbstract) {
     return selectors.stream()
         .filter(sel -> !toAbstract.contains(sel))
         .map(bfmgr::not)
@@ -87,38 +78,31 @@ public class DestructiveWeakeningManager {
   }
 
   /**
-   * Implements the destructive algorithm for MUS extraction.
-   * Starts with everything abstracted ("true" is inductive),
-   * remove selectors which can be removed while keeping the overall query
+   * Implements the destructive algorithm for MUS extraction. Starts with everything abstracted
+   * ("true" is inductive), remove selectors which can be removed while keeping the overall query
    * inductive.
    *
-   * <p>This is a standard algorithm, however it pays the cost of N SMT calls
-   * upfront.
-   * Note that since at every iteration the set of abstracted variables is
-   * inductive, the algorithm can be terminated early.
+   * <p>This is a standard algorithm, however it pays the cost of N SMT calls upfront. Note that
+   * since at every iteration the set of abstracted variables is inductive, the algorithm can be
+   * terminated early.
    *
    * @param selectors All selection variables.
-   * @param selectionVars List of selection variables, already determined to
-   *    be inductive.
-   * @return Set of selectors which correspond to atoms which *should*
-   *   be abstracted.
+   * @param selectionVars List of selection variables, already determined to be inductive.
+   * @return Set of selectors which correspond to atoms which *should* be abstracted.
    */
   public Set<BooleanFormula> destructiveWeakening(
-      Set<BooleanFormula> selectors,
-      Set<BooleanFormula> selectionVars,
-      BooleanFormula query) throws SolverException, InterruptedException {
+      Set<BooleanFormula> selectors, Set<BooleanFormula> selectionVars, BooleanFormula query)
+      throws SolverException, InterruptedException {
 
     Set<BooleanFormula> walked = new HashSet<>();
     Set<BooleanFormula> toWalk;
     Set<BooleanFormula> toAbstract;
 
-    try (ProverEnvironment pe = solver.newProverEnvironment(
-        GENERATE_UNSAT_CORE_OVER_ASSUMPTIONS)) {
+    try (ProverEnvironment pe = solver.newProverEnvironment(GENERATE_UNSAT_CORE_OVER_ASSUMPTIONS)) {
       pe.push();
       pe.addConstraint(query);
 
-      Optional<List<BooleanFormula>> core =
-          pe.unsatCoreOverAssumptions(selectionVars);
+      Optional<List<BooleanFormula>> core = pe.unsatCoreOverAssumptions(selectionVars);
 
       if (core.isPresent()) {
 

@@ -11,9 +11,7 @@ package org.sosy_lab.cpachecker.util.predicates.bdd;
 import net.sf.javabdd.BDD;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 
-/**
- * Regions represented using BDDs from JavaBDD.
- */
+/** Regions represented using BDDs from JavaBDD. */
 class JavaBDDRegion implements Region {
 
   private final BDD bddRepr;
@@ -39,7 +37,7 @@ class JavaBDDRegion implements Region {
   @Override
   public boolean equals(Object o) {
     if (o instanceof JavaBDDRegion) {
-      return bddRepr.equals(((JavaBDDRegion)o).bddRepr);
+      return bddRepr.equals(((JavaBDDRegion) o).bddRepr);
     }
     return false;
   }
