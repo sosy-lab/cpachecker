@@ -48,7 +48,9 @@ public class BestFirstEvaluationFunctionFactory {
           @Override
           public int computePriority(Set<Integer> partition, int priority, WeightedNode node,
               WeightedGraph wGraph) {
-            return priority - 1; //expand next level nodes, as next step (assumption: PriorityQueue preserves order of inserting)
+            // expand next level nodes, as next step (assumption: PriorityQueue preserves order of
+            // inserting)
+            return priority - 1;
           }
         };
 
@@ -64,8 +66,8 @@ public class BestFirstEvaluationFunctionFactory {
             Set<Integer> successors = wGraph.getIntSuccessors(node); //successors of this node
             successors.removeAll(partition); // successors, that are not in given partition
             int gain = node.getWeight();
-            return WeightedGraph.computeWeight(successors, wGraph) - gain; //chance +/- since least priority is chosen first
-
+            // chance +/- since least priority is chosen first
+            return WeightedGraph.computeWeight(successors, wGraph) - gain;
           }
         };
 

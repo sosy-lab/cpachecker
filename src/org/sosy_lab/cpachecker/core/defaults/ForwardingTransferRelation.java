@@ -82,29 +82,34 @@ import org.sosy_lab.cpachecker.util.Pair;
  * A user can either override the method itself, or the C- or Java-specific method.
  * If a C- or Java-specific method is called, but not overridden, it throws an assertion.
  *
- * 1. setInfo
- * 2. preCheck
- *
- * 3. getAbstractSuccessors:
- *   - handleAssumption -> C,J
- *   - handleFunctionCallEdge -> C,J
- *   - handleFunctionReturnEdge -> C,J
- *   - handleMultiEdge
- *   - handleSimpleEdge:
- *     -- handleDeclarationEdge -> C,J
- *     -- handleStatementEdge -> C,J
- *     -- handleReturnStatementEdge -> C,J
- *     -- handleBlankEdge
- *     -- handleFunctionSummaryEdge
- *
- * 4. postProcessing
- * 5. resetInfo
+ * <ol>
+ *   <li>setInfo
+ *   <li>preCheck
+ *   <li>getAbstractSuccessors:
+ *       <ul>
+ *         <li>handleAssumption -> C,J
+ *         <li>handleFunctionCallEdge -> C,J
+ *         <li>handleFunctionReturnEdge -> C,J
+ *         <li>handleMultiEdge
+ *         <li>handleSimpleEdge:
+ *         <li>handleDeclarationEdge -> C,J
+ *         <li>handleStatementEdge -> C,J
+ *         <li>handleReturnStatementEdge -> C,J
+ *         <li>handleBlankEdge
+ *         <li>handleFunctionSummaryEdge
+ *       </ul>
+ *   <li>postProcessing
+ *   <li>resetInfo
+ * </ol>
  *
  * Generics:
- *  - S type of intermediate result, should be equal to T or Collection<T>,
- *      should be converted/copied into an Object of type Collection<T> in method 'postProcessing'.
- *  - T type of State
- *  - P type of Precision
+ *
+ * <ul>
+ *   <li>S type of intermediate result, should be equal to T or Collection<T>, should be
+ *       converted/copied into an Object of type Collection<T> in method 'postProcessing'.
+ *   <li>T type of State
+ *   <li>P type of Precision
+ * </ul>
  */
 public abstract class ForwardingTransferRelation<S, T extends AbstractState, P extends Precision>
     extends SingleEdgeTransferRelation {

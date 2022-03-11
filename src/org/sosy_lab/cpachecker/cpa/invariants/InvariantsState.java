@@ -309,7 +309,8 @@ public class InvariantsState implements AbstractState,
     CompoundInterval value = pSubscript.accept(fev, this.environment);
     if (value.isSingleton()) { // Exact subscript value is known
       return assignInternal(MemoryLocation.parseExtendedQualifiedName(pArray.getExtendedQualifiedName() + "[" + value.getValue() + "]"), pValue);
-    } else { // Multiple subscript values are possible: All possible subscript targets are now unknown
+    } else {
+      // Multiple subscript values are possible: All possible subscript targets are now unknown
       InvariantsState result = overapproximateUnsupportedFeature();
       for (MemoryLocation memoryLocation : this.environment.keySet()) {
         String prefix = pArray.getExtendedQualifiedName() + "[";

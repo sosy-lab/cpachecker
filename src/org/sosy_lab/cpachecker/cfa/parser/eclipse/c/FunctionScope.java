@@ -117,7 +117,8 @@ class FunctionScope extends AbstractScope {
     if (currentFunction.getType().getReturnType().getCanonicalType() instanceof CVoidType) {
       returnVariable = Optional.empty();
     } else {
-      @SuppressWarnings("deprecation") // As soon as this is the only usage of the deprecated constant, it should be inlined here
+      @SuppressWarnings("deprecation")
+      // As soon as this is the only usage of the deprecated constant, it should be inlined here
       String name = VariableClassificationBuilder.FUNCTION_RETURN_VARIABLE;
       returnVariable = Optional.of(
           new CVariableDeclaration(currentFunction.getFileLocation(), false,

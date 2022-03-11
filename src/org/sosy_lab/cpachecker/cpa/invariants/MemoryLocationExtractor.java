@@ -149,7 +149,9 @@ public class MemoryLocationExtractor {
       return MemoryLocation.parseExtendedQualifiedName(String.format("&(%s)", getMemoryLocation(((CUnaryExpression) pLhs).getOperand())));
     } else {
       // TODO
-      return scope(pLhs.toString()); // This actually seems wrong but is currently the only way to deal with some cases of pointer arithmetics
+      // This actually seems wrong but is currently the only way to deal with some cases of pointer
+      // arithmetics
+      return scope(pLhs.toString());
     }
   }
 

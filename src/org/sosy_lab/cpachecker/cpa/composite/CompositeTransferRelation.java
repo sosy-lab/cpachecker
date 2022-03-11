@@ -486,11 +486,15 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
       resultCount *= componentSuccessors.size();
       ProofChecker componentProofChecker = (ProofChecker)cpas.get(i);
       if (!componentProofChecker.areAbstractSuccessors(compositeState.get(i), pCfaEdge, componentSuccessors)) {
-        result = false; //if there are no successors it might be still ok if one of the other components is fine with the empty set
+        // if there are no successors it might be still ok if one of the other components is fine
+        // with the empty set
+        result = false;
       } else {
         if (componentSuccessors.isEmpty()) {
           assert pSuccessors.isEmpty();
-          return true; //another component is indeed fine with the empty set as set of successors; transition is ok
+          // another component is indeed fine with the empty set as set of successors; transition is
+          // ok
+          return true;
         }
       }
     }

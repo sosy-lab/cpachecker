@@ -43,7 +43,8 @@ public class AssumptionStorageState implements AbstractState, Serializable {
     stopFormula = Preconditions.checkNotNull(pStopFormula);
     fmgr = pFmgr;
 
-    assert !fmgr.getBooleanFormulaManager().isFalse(assumption); // FALSE would mean "stop the analysis", but this should be signaled by stopFormula
+    // FALSE would mean "stop the analysis", but this should be signaled by stopFormula
+    assert !fmgr.getBooleanFormulaManager().isFalse(assumption);
   }
 
   public FormulaManagerView getFormulaManager() {

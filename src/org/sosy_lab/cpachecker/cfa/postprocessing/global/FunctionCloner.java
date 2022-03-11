@@ -102,7 +102,8 @@ class FunctionCloner implements CFAVisitor {
   private static final String SUPERGRAPH_BUILD_TOO_EARLY = "functions should be cloned before building the supergraph";
 
   // local caches
-  private final Map<CFANode, CFANode> nodeCache = new HashMap<>(); // values will be used as CFANodes-Set for building new CFAs
+  // values will be used as CFANodes-Set for building new CFAs
+  private final Map<CFANode, CFANode> nodeCache = new HashMap<>();
   private final IdentityHashMap<AAstNode, AAstNode> astCache = new IdentityHashMap<>();
   private final IdentityHashMap<Type, Type> typeCache = new IdentityHashMap<>();
   private final CExpressionCloner expCloner = new CExpressionCloner();
@@ -110,7 +111,8 @@ class FunctionCloner implements CFAVisitor {
 
   private final String oldFunctionName;
   private final String newFunctionName;
-  private final boolean replaceFunctionOnly; // needed to replace functioncalls, where args stay equal, but functionname changes
+  // needed to replace functioncalls, where args stay equal, but functionname changes
+  private final boolean replaceFunctionOnly;
 
   /** FunctionCloner clones a function of the cfa and uses a new functionName. */
   public FunctionCloner(

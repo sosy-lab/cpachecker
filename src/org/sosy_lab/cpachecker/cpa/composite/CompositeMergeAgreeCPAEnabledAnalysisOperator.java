@@ -71,6 +71,7 @@ public class CompositeMergeAgreeCPAEnabledAnalysisOperator implements MergeOpera
           && predReachedState.isAbstractionState()) {
         // check if same abstraction state, test formula for equivalence
         try {
+          // TODO do we need functional equivalence or is something else faster and sufficient?
           if (predSuccessorState.getAbstractionFormula().asFormula()
                   == predReachedState.getAbstractionFormula().asFormula()
               || (abmgr.checkCoverage(
@@ -78,8 +79,7 @@ public class CompositeMergeAgreeCPAEnabledAnalysisOperator implements MergeOpera
                       predReachedState.getAbstractionFormula())
                   && abmgr.checkCoverage(
                       predReachedState.getAbstractionFormula(),
-                      predSuccessorState
-                          .getAbstractionFormula()))) { // TODO do we need functional equivalence or is something else faster and sufficient?
+                      predSuccessorState.getAbstractionFormula()))) {
             mergeIfPredicateEnabler = true;
           }
         } catch (SolverException e) {
