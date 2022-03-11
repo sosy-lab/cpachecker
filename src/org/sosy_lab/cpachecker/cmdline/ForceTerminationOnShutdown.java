@@ -21,16 +21,16 @@ import org.sosy_lab.common.annotations.SuppressForbidden;
 import org.sosy_lab.common.log.LogManager;
 
 /**
- * This class implements a mechanism to forcefully terminate CPAchecker
- * and even the whole JVM some time after a shutdown request was received
- * and the analysis did not terminate gracefully.
+ * This class implements a mechanism to forcefully terminate CPAchecker and even the whole JVM some
+ * time after a shutdown request was received and the analysis did not terminate gracefully.
  */
 class ForceTerminationOnShutdown implements Runnable {
 
   // static state, currently only one instance can be alive
   // (which is fully sufficient given that all instance would just kill the JVM)
   // We need this instance to be able to cancel the forced termination.
-  private static final AtomicReference<Thread> forceTerminationOnShutdownThread = new AtomicReference<>();
+  private static final AtomicReference<Thread> forceTerminationOnShutdownThread =
+      new AtomicReference<>();
 
   private static final AtomicBoolean canceled = new AtomicBoolean();
 
@@ -42,17 +42,16 @@ class ForceTerminationOnShutdown implements Runnable {
   private final Thread mainThread;
   private final ShutdownHook shutdownHook;
 
-  private ForceTerminationOnShutdown(LogManager pLogger, Thread pMainThread,
-      ShutdownHook pShutdownHook) {
+  private ForceTerminationOnShutdown(
+      LogManager pLogger, Thread pMainThread, ShutdownHook pShutdownHook) {
     logger = pLogger;
     mainThread = pMainThread;
     shutdownHook = pShutdownHook;
   }
 
   /**
-   * Create a {@link ShutdownRequestListener} that will kill the current thread
-   * and the JVM after some time.
-   * When doing so, it will disable the given shutdown hook.
+   * Create a {@link ShutdownRequestListener} that will kill the current thread and the JVM after
+   * some time. When doing so, it will disable the given shutdown hook.
    */
   static ShutdownRequestListener createShutdownListener(
       final LogManager logger, final ShutdownHook shutdownHook) {
@@ -90,10 +89,8 @@ class ForceTerminationOnShutdown implements Runnable {
   }
 
   /**
-   * If a shutdown request was signalled,
-   * and we are currently waiting to kill the JVM after some time,
-   * this method cancels the pending termination process,
-   * so that no action will be done.
+   * If a shutdown request was signalled, and we are currently waiting to kill the JVM after some
+   * time, this method cancels the pending termination process, so that no action will be done.
    */
   static void cancelPendingTermination() {
     canceled.set(true);
@@ -119,15 +116,23 @@ class ForceTerminationOnShutdown implements Runnable {
     if (canceled.get()) {
       return;
     }
-    logger.log(Level.WARNING, "Shutdown was requested but CPAchecker is still running after",
+    logger.log(
+        Level.WARNING,
+        "Shutdown was requested but CPAchecker is still running after",
         SHUTDOWN_GRACE_PERIOD + "s, forcing immediate termination now.");
 
     if (mainThread.isAlive()) {
-      logger.log(Level.INFO, "For your information: CPAchecker is currently hanging at\n",
-          Joiner.on('\n').join(mainThread.getStackTrace()), "\n");
+      logger.log(
+          Level.INFO,
+          "For your information: CPAchecker is currently hanging at\n",
+          Joiner.on('\n').join(mainThread.getStackTrace()),
+          "\n");
 
     } else {
-      logger.log(Level.INFO, "For your information: CPAchecker is currently hanging because the following threads did not yet terminate:\n",
+      logger.log(
+          Level.INFO,
+          "For your information: CPAchecker is currently hanging because the following threads did"
+              + " not yet terminate:\n",
           buildLiveThreadInfo());
     }
 
@@ -157,8 +162,8 @@ class ForceTerminationOnShutdown implements Runnable {
   }
 
   /**
-   * Create a short summary of all running non-daemon threads
-   * (those threads are prevent JVM termination).
+   * Create a short summary of all running non-daemon threads (those threads are prevent JVM
+   * termination).
    */
   private StringBuilder buildLiveThreadInfo() {
     Map<Thread, StackTraceElement[]> traces = Thread.getAllStackTraces();
@@ -169,7 +174,7 @@ class ForceTerminationOnShutdown implements Runnable {
       if (thread.isAlive() && !thread.isDaemon()) {
         output.append(thread);
         if (trace.length > 0) {
-            output.append(" at " + trace[0]);
+          output.append(" at " + trace[0]);
         }
         output.append("\n");
       }

@@ -29,7 +29,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 
-
 public class PartitionChecker {
 
   private final Multimap<CFANode, AbstractState> partitionParts = HashMultimap.create();
@@ -45,9 +44,14 @@ public class PartitionChecker {
   private final ShutdownNotifier shutdownNotifier;
   private final LogManager logger;
 
-  public PartitionChecker(final Precision pInitPrecision, final StopOperator pStop, final TransferRelation pTransfer,
-      final PartitioningIOHelper pIOHelper, final PartitioningCheckingHelper pHelperInfo,
-      final ShutdownNotifier pShutdownNotifier, final LogManager pLogger) {
+  public PartitionChecker(
+      final Precision pInitPrecision,
+      final StopOperator pStop,
+      final TransferRelation pTransfer,
+      final PartitioningIOHelper pIOHelper,
+      final PartitioningCheckingHelper pHelperInfo,
+      final ShutdownNotifier pShutdownNotifier,
+      final LogManager pLogger) {
     initPrec = pInitPrecision;
     stop = pStop;
     transfer = pTransfer;
@@ -59,7 +63,7 @@ public class PartitionChecker {
     logger = pLogger;
   }
 
-  public void checkPartition(int pIndex){
+  public void checkPartition(int pIndex) {
     Multimap<CFANode, AbstractState> statesPerLocation = HashMultimap.create();
     Pair<AbstractState[], AbstractState[]> partition = ioHelper.getPartition(pIndex);
     Preconditions.checkNotNull(partition);
@@ -79,15 +83,17 @@ public class PartitionChecker {
     Collection<? extends AbstractState> successors;
     int nextPos = 0;
 
-    while (nextPos<certificatePart.size()) {
+    while (nextPos < certificatePart.size()) {
       if (shutdownNotifier.shouldShutdown()) {
         partitionHelper.abortCheckingPreparation();
         return;
       }
 
-      if (certificatePart.size() + partitionHelper.getCurrentCertificateSize() > ioHelper
-          .getSavedReachedSetSize()) {
-        logger.log(Level.SEVERE, "Checking failed, recomputed certificate bigger than original reached set.");
+      if (certificatePart.size() + partitionHelper.getCurrentCertificateSize()
+          > ioHelper.getSavedReachedSetSize()) {
+        logger.log(
+            Level.SEVERE,
+            "Checking failed, recomputed certificate bigger than original reached set.");
         partitionHelper.abortCheckingPreparation();
         return;
       }
@@ -97,7 +103,6 @@ public class PartitionChecker {
       // compute successors
       try {
         successors = transfer.getAbstractSuccessors(checkedState, initPrec);
-
 
         for (AbstractState successor : successors) {
           // check if covered
@@ -122,11 +127,12 @@ public class PartitionChecker {
     pCertificate.addAll(certificatePart);
   }
 
-  public void addElementsCheckedInOtherPartitions(final Collection<AbstractState> pStatesMustBeInCertificate) {
+  public void addElementsCheckedInOtherPartitions(
+      final Collection<AbstractState> pStatesMustBeInCertificate) {
     pStatesMustBeInCertificate.addAll(mustBeInCertificate);
   }
 
-  public void addPartitionElements(final Multimap<CFANode, AbstractState> pPartitionElements){
+  public void addPartitionElements(final Multimap<CFANode, AbstractState> pPartitionElements) {
     pPartitionElements.putAll(partitionParts);
   }
 
@@ -140,7 +146,9 @@ public class PartitionChecker {
     mustBeInCertificate.clear();
   }
 
-  private void addElement(final AbstractState element, final boolean inCertificate,
+  private void addElement(
+      final AbstractState element,
+      final boolean inCertificate,
       final Multimap<CFANode, AbstractState> pStatesPerLocation) {
     CFANode node = AbstractStates.extractLocation(element);
     pStatesPerLocation.put(node, element);

@@ -11,10 +11,10 @@ package org.sosy_lab.cpachecker.util.octagon;
 @SuppressWarnings("AlmostJavadoc")
 class OctWrapper {
 
-  private OctWrapper() { }
+  private OctWrapper() {}
 
   /* Initialization */
-  static native boolean J_init();        //int oct_init()
+  static native boolean J_init(); // int oct_init()
 
   /* num handling function*/
 
@@ -36,7 +36,9 @@ class OctWrapper {
   static native void J_num_set_inf(long n, int pos);
 
   static native long J_num_get_int(long n, int pos); // long num_get_int (const num_t* a)
+
   static native double J_num_get_float(long n, int pos); // double num_get_float (const num_t* a)
+
   static native boolean J_num_infty(long n, int pos); // bool num_infty(const num_t* a)
 
   // call void num_clear_n (num_t* a, size_t n) and oct_mm_free(c) afterwards
@@ -50,15 +52,20 @@ class OctWrapper {
   /* Octagon handling functions */
 
   /* Octagon Creation */
-  static native long J_empty(int n);      //oct_t* oct_empty (var_t n)
-  static native long J_universe(int n);    //oct_t* oct_universe (var_t n)
-  static native void J_free(long oct);    //void oct_free (oct_t* m)
-  static native long J_copy(long oct); //oct_t* oct_copy (oct_t* m)
-  static native long J_full_copy(long oct); //oct_t* oct_full_copy (oct_t* m)
+  static native long J_empty(int n); // oct_t* oct_empty (var_t n)
+
+  static native long J_universe(int n); // oct_t* oct_universe (var_t n)
+
+  static native void J_free(long oct); // void oct_free (oct_t* m)
+
+  static native long J_copy(long oct); // oct_t* oct_copy (oct_t* m)
+
+  static native long J_full_copy(long oct); // oct_t* oct_full_copy (oct_t* m)
 
   /* Query Functions */
-  static native int J_dimension(long oct);      //var_t oct_dimension (oct_t* m)
-  static native int J_nbconstraints(long oct);    //size_t oct_nbconstraints (oct_t* m)
+  static native int J_dimension(long oct); // var_t oct_dimension (oct_t* m)
+
+  static native int J_nbconstraints(long oct); // size_t oct_nbconstraints (oct_t* m)
 
   /* Test Functions */
   // bool oct_is_empty (oct_t* m)
@@ -131,8 +138,10 @@ class OctWrapper {
 
   // TODO implement rest of the functions
 
-  static native void J_print(long oct);    //void oct_print (const oct_t* m)
+  static native void J_print(long oct); // void oct_print (const oct_t* m)
+
   static native void J_printNum(long numArr, int k);
+
   static native double J_getValueFor(long oct, long valI, long valJ);
 
   /* For debuggin purposes */

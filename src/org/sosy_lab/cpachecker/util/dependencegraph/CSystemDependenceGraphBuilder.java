@@ -617,84 +617,81 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
       boolean pIsDeclaration) {
 
     Optional<AFunctionDeclaration> defFunction = getOptionalFunction(pDefEdge);
-            Optional<AFunctionDeclaration> useFunction = getOptionalFunction(pUseEdge);
-            Optional<CFAEdge> defEdge = Optional.of(pDefEdge);
-            Optional<CFAEdge> useEdge = Optional.of(pUseEdge);
+    Optional<AFunctionDeclaration> useFunction = getOptionalFunction(pUseEdge);
+    Optional<CFAEdge> defEdge = Optional.of(pDefEdge);
+    Optional<CFAEdge> useEdge = Optional.of(pUseEdge);
 
-            if (pDefEdge instanceof CFunctionSummaryEdge && pUseEdge instanceof CFunctionCallEdge) {
-              insertDefSummaryUseCallEdges(defFunction, useFunction, defEdge, pCause);
-            } else if (pDefEdge instanceof CFunctionReturnEdge
-                && pUseEdge instanceof CFunctionSummaryEdge) {
-              insertDefReturnUseSummaryEdges(defFunction, useFunction, useEdge, pCause);
-            } else {
+    if (pDefEdge instanceof CFunctionSummaryEdge && pUseEdge instanceof CFunctionCallEdge) {
+      insertDefSummaryUseCallEdges(defFunction, useFunction, defEdge, pCause);
+    } else if (pDefEdge instanceof CFunctionReturnEdge
+        && pUseEdge instanceof CFunctionSummaryEdge) {
+      insertDefReturnUseSummaryEdges(defFunction, useFunction, useEdge, pCause);
+    } else {
 
-              EdgeType edgeType =
-                  pIsDeclaration ? EdgeType.DECLARATION_EDGE : EdgeType.FLOW_DEPENDENCY;
-              NodeType defNodeType;
-              Optional<MemoryLocation> defNodeVariable = Optional.empty();
+      EdgeType edgeType = pIsDeclaration ? EdgeType.DECLARATION_EDGE : EdgeType.FLOW_DEPENDENCY;
+      NodeType defNodeType;
+      Optional<MemoryLocation> defNodeVariable = Optional.empty();
 
-              if (pDefEdge instanceof CFunctionCallEdge) {
-                defEdge = Optional.empty();
-                defNodeType = NodeType.FORMAL_IN;
-                defNodeVariable = Optional.of(pCause);
-              } else if (pDefEdge instanceof CFunctionReturnEdge) {
-                defEdge = Optional.empty();
-                defNodeType = NodeType.FORMAL_OUT;
-                defNodeVariable = Optional.of(pCause);
-              } else if (pDefEdge instanceof CFunctionSummaryEdge) {
+      if (pDefEdge instanceof CFunctionCallEdge) {
+        defEdge = Optional.empty();
+        defNodeType = NodeType.FORMAL_IN;
+        defNodeVariable = Optional.of(pCause);
+      } else if (pDefEdge instanceof CFunctionReturnEdge) {
+        defEdge = Optional.empty();
+        defNodeType = NodeType.FORMAL_OUT;
+        defNodeVariable = Optional.of(pCause);
+      } else if (pDefEdge instanceof CFunctionSummaryEdge) {
 
-                defNodeType = NodeType.ACTUAL_OUT;
-                defNodeVariable = Optional.of(pCause);
+        defNodeType = NodeType.ACTUAL_OUT;
+        defNodeVariable = Optional.of(pCause);
 
-                CFunctionSummaryEdge summaryEdge = (CFunctionSummaryEdge) pDefEdge;
-                CFunctionCall functionCall = getFunctionCallWithoutParameters(summaryEdge);
-                EdgeDefUseData defUseData = defUseExtractor.extract(functionCall);
+        CFunctionSummaryEdge summaryEdge = (CFunctionSummaryEdge) pDefEdge;
+        CFunctionCall functionCall = getFunctionCallWithoutParameters(summaryEdge);
+        EdgeDefUseData defUseData = defUseExtractor.extract(functionCall);
 
-                if (defUseData.getDefs().contains(pCause)) {
-                  defNodeVariable = getReturnVariable(summaryEdge);
-                } else {
-                  for (CExpression pointeeExpression : defUseData.getPointeeDefs()) {
-                    if (pointerState
-                        .getPossiblePointees(pDefEdge, pointeeExpression)
-                        .contains(pCause)) {
-                      defNodeVariable = getReturnVariable(summaryEdge);
-                    }
-                  }
-                }
-              } else {
-                defNodeType = NodeType.STATEMENT;
-              }
-
-              if (pUseEdge instanceof CFunctionCallEdge) {
-                builder
-                    .node(NodeType.FORMAL_IN, useFunction, Optional.empty(), Optional.of(pCause))
-                    .depends(edgeType, Optional.of(pCause))
-                    .on(defNodeType, defFunction, defEdge, defNodeVariable);
-              } else if (pUseEdge instanceof CFunctionReturnEdge) {
-                builder
-                    .node(NodeType.FORMAL_OUT, useFunction, Optional.empty(), Optional.of(pCause))
-                    .depends(edgeType, Optional.of(pCause))
-                    .on(defNodeType, defFunction, defEdge, defNodeVariable);
-              } else if (pUseEdge instanceof CFunctionSummaryEdge) {
-
-                insertUseSummaryEdges(
-                    pointerState,
-                    foreignDefUseData,
-                    defNodeType,
-                    defFunction,
-                    defEdge,
-                    defNodeVariable,
-                    pUseEdge,
-                    pCause,
-                    edgeType);
-
-              } else {
-                builder
-                    .node(NodeType.STATEMENT, useFunction, useEdge, Optional.empty())
-                    .depends(edgeType, Optional.of(pCause))
-                    .on(defNodeType, defFunction, defEdge, defNodeVariable);
-              }
+        if (defUseData.getDefs().contains(pCause)) {
+          defNodeVariable = getReturnVariable(summaryEdge);
+        } else {
+          for (CExpression pointeeExpression : defUseData.getPointeeDefs()) {
+            if (pointerState.getPossiblePointees(pDefEdge, pointeeExpression).contains(pCause)) {
+              defNodeVariable = getReturnVariable(summaryEdge);
             }
+          }
+        }
+      } else {
+        defNodeType = NodeType.STATEMENT;
+      }
+
+      if (pUseEdge instanceof CFunctionCallEdge) {
+        builder
+            .node(NodeType.FORMAL_IN, useFunction, Optional.empty(), Optional.of(pCause))
+            .depends(edgeType, Optional.of(pCause))
+            .on(defNodeType, defFunction, defEdge, defNodeVariable);
+      } else if (pUseEdge instanceof CFunctionReturnEdge) {
+        builder
+            .node(NodeType.FORMAL_OUT, useFunction, Optional.empty(), Optional.of(pCause))
+            .depends(edgeType, Optional.of(pCause))
+            .on(defNodeType, defFunction, defEdge, defNodeVariable);
+      } else if (pUseEdge instanceof CFunctionSummaryEdge) {
+
+        insertUseSummaryEdges(
+            pointerState,
+            foreignDefUseData,
+            defNodeType,
+            defFunction,
+            defEdge,
+            defNodeVariable,
+            pUseEdge,
+            pCause,
+            edgeType);
+
+      } else {
+        builder
+            .node(NodeType.STATEMENT, useFunction, useEdge, Optional.empty())
+            .depends(edgeType, Optional.of(pCause))
+            .on(defNodeType, defFunction, defEdge, defNodeVariable);
+      }
+    }
   }
 
   private void insertFlowDependencies(ImmutableSet<AFunctionDeclaration> pReachableFunctions)

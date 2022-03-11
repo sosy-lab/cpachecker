@@ -42,9 +42,7 @@ public class CachingTargetLocationProvider implements TargetLocationProvider {
   }
 
   public CachingTargetLocationProvider(
-      ShutdownNotifier pShutdownNotifier,
-      LogManager pLogManager,
-      CFA pCfa) {
+      ShutdownNotifier pShutdownNotifier, LogManager pLogManager, CFA pCfa) {
     this(new TargetLocationProviderImpl(pShutdownNotifier, pLogManager, pCfa));
   }
 
@@ -86,7 +84,5 @@ public class CachingTargetLocationProvider implements TargetLocationProvider {
       }
       return false;
     }
-
   }
-
 }

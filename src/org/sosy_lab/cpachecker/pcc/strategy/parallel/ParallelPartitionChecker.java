@@ -25,7 +25,6 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.PartitioningCheckingHelper;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitionChecker;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningIOHelper;
 
-
 public class ParallelPartitionChecker implements Runnable, PartitioningCheckingHelper {
 
   private final AtomicInteger numPartitionsAcquiredForChecking;
@@ -44,12 +43,22 @@ public class ParallelPartitionChecker implements Runnable, PartitioningCheckingH
 
   private final ShutdownNotifier shutdownNotifier;
 
-  public ParallelPartitionChecker(final AtomicInteger pAvailablePartitions, final AtomicInteger pNextId,
-      final AtomicBoolean pCheckResult, final Semaphore pReadButUnprocessed, final Semaphore pPartitionsChecked,
-      final Lock pMutex, final PartitioningIOHelper pIOHelper,
-      final Multimap<CFANode, AbstractState> partitionElements, final Collection<AbstractState> pCertificate,
-      final Collection<AbstractState> pInOtherPartition, final Precision init, final StopOperator stop,
-      final TransferRelation transfer, final ShutdownNotifier pShutdownNotifier, final LogManager pLogger) {
+  public ParallelPartitionChecker(
+      final AtomicInteger pAvailablePartitions,
+      final AtomicInteger pNextId,
+      final AtomicBoolean pCheckResult,
+      final Semaphore pReadButUnprocessed,
+      final Semaphore pPartitionsChecked,
+      final Lock pMutex,
+      final PartitioningIOHelper pIOHelper,
+      final Multimap<CFANode, AbstractState> partitionElements,
+      final Collection<AbstractState> pCertificate,
+      final Collection<AbstractState> pInOtherPartition,
+      final Precision init,
+      final StopOperator stop,
+      final TransferRelation transfer,
+      final ShutdownNotifier pShutdownNotifier,
+      final LogManager pLogger) {
     numPartitionsAcquiredForChecking = pAvailablePartitions;
     nextPartition = pNextId;
     checkResult = pCheckResult;
@@ -64,7 +73,8 @@ public class ParallelPartitionChecker implements Runnable, PartitioningCheckingH
 
     shutdownNotifier = pShutdownNotifier;
 
-    checker = new PartitionChecker(init, stop, transfer, ioHelper, this, pShutdownNotifier, pLogger);
+    checker =
+        new PartitionChecker(init, stop, transfer, ioHelper, this, pShutdownNotifier, pLogger);
   }
 
   @Override
@@ -109,7 +119,6 @@ public class ParallelPartitionChecker implements Runnable, PartitioningCheckingH
 
       checker.clearAllSavedPartitioningElements();
     }
-
   }
 
   @Override
@@ -123,5 +132,4 @@ public class ParallelPartitionChecker implements Runnable, PartitioningCheckingH
     readAndUnprocessedPartitions.release(ioHelper.getNumPartitions());
     checkedPartitions.release(ioHelper.getNumPartitions());
   }
-
 }

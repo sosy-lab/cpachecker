@@ -298,7 +298,8 @@ final class VariableAndFieldRelevancyComputer {
         return this;
       }
       // This shouldn't matter much as merging has linear complexity anyway
-      // But probably we can get slightly faster by cloning the larger hash sets and iterating over smaller ones
+      // But probably we can get slightly faster by cloning the larger hash sets and iterating over
+      // smaller ones
       // As we don't have exact hash set sizes this is only a heuristic
       if (currentSize >= other.currentSize) {
         return new VarFieldDependencies(
@@ -516,9 +517,10 @@ final class VariableAndFieldRelevancyComputer {
             }
           } else if (statement instanceof CFunctionCallStatement) {
             result =
-              result.withDependencies(
-                  ((CFunctionCallStatement) statement).getFunctionCallExpression()
-                      .accept(CollectingRHSVisitor.create(pCfa, VariableOrField.unknown())));
+                result.withDependencies(
+                    ((CFunctionCallStatement) statement)
+                        .getFunctionCallExpression()
+                        .accept(CollectingRHSVisitor.create(pCfa, VariableOrField.unknown())));
           }
           break;
         }

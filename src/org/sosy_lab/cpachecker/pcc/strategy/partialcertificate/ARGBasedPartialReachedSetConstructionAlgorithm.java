@@ -25,12 +25,13 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-public class ARGBasedPartialReachedSetConstructionAlgorithm extends
-    MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm {
+public class ARGBasedPartialReachedSetConstructionAlgorithm
+    extends MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm {
 
   private ConfigurableProgramAnalysis cpa;
 
-  public ARGBasedPartialReachedSetConstructionAlgorithm(final boolean pReturnARGStatesInsteadOfWrappedStates) {
+  public ARGBasedPartialReachedSetConstructionAlgorithm(
+      final boolean pReturnARGStatesInsteadOfWrappedStates) {
     super(pReturnARGStatesInsteadOfWrappedStates, false);
   }
 
@@ -51,7 +52,8 @@ public class ARGBasedPartialReachedSetConstructionAlgorithm extends
     public ExtendedNodeSelectionARGPass(final Precision pRootPrecision, final ARGState pRoot) {
       super(pRoot);
       precision = pRootPrecision;
-      handlePredicateStates = AbstractStates.extractStateByType(pRoot, PredicateAbstractState.class) != null;
+      handlePredicateStates =
+          AbstractStates.extractStateByType(pRoot, PredicateAbstractState.class) != null;
     }
 
     @Override
@@ -82,16 +84,20 @@ public class ARGBasedPartialReachedSetConstructionAlgorithm extends
         Collection<AbstractState> successors;
         if (edge == null) {
           successors =
-              new ArrayList<>(cpa.getTransferRelation().getAbstractSuccessors(
-                  pPredecessor.getWrappedState(), precision));
+              new ArrayList<>(
+                  cpa.getTransferRelation()
+                      .getAbstractSuccessors(pPredecessor.getWrappedState(), precision));
         } else {
           successors =
               new ArrayList<>(
-                  cpa.getTransferRelation().getAbstractSuccessorsForEdge(
-                      pPredecessor.getWrappedState(), precision, edge));
+                  cpa.getTransferRelation()
+                      .getAbstractSuccessorsForEdge(
+                          pPredecessor.getWrappedState(), precision, edge));
         }
         // check if child is the successor computed by transfer relation
-        if (successors.contains(pChild.getWrappedState())) { return true; }
+        if (successors.contains(pChild.getWrappedState())) {
+          return true;
+        }
         // check if check only failed because it is not the same object
         if (!cpa.getStopOperator().stop(pChild.getWrappedState(), successors, precision)) {
           return false;
@@ -111,7 +117,5 @@ public class ARGBasedPartialReachedSetConstructionAlgorithm extends
     private boolean isPredicateAbstractionState(ARGState pChild) {
       return PredicateAbstractState.getPredicateState(pChild).isAbstractionState();
     }
-
   }
-
 }

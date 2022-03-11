@@ -13,9 +13,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import java.util.concurrent.TimeUnit;
 import org.sosy_lab.common.time.TimeSpan;
 
-/**
- * A limit that measures the elapsed time as returned by {@link System#nanoTime()}.
- */
+/** A limit that measures the elapsed time as returned by {@link System#nanoTime()}. */
 public class WalltimeLimit implements ResourceLimit {
 
   private final long duration;

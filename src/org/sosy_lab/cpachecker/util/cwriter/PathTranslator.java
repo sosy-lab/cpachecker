@@ -60,7 +60,8 @@ public abstract class PathTranslator {
     //       because interleaving threads are not handled.
     return FluentIterable.from(extractLocations(state))
         .filter(CFunctionEntryNode.class)
-        .first().orNull();
+        .first()
+        .orNull();
   }
 
   protected final List<String> mGlobalDefinitionsList = new ArrayList<>();
@@ -73,16 +74,16 @@ public abstract class PathTranslator {
   protected PathTranslator() {}
 
   /**
-   * Gets the piece of code that should appear at the target state; e.g. <code>assert(0)</code> or <code>exit(-1)</code>
+   * Gets the piece of code that should appear at the target state; e.g. <code>assert(0)</code> or
+   * <code>exit(-1)</code>
+   *
    * @return Line of code for target state
    */
   protected abstract String getTargetState();
 
   protected Appender generateCCode() {
-    return Appenders.forIterable(Joiner.on('\n'),
-        concat(mGlobalDefinitionsList,
-            mFunctionDecls,
-            mFunctionBodies));
+    return Appenders.forIterable(
+        Joiner.on('\n'), concat(mGlobalDefinitionsList, mFunctionDecls, mFunctionBodies));
   }
 
   /**
@@ -119,7 +120,8 @@ public abstract class PathTranslator {
     }
   }
 
-  protected final void translatePaths0(final ARGState firstElement, Set<ARGState> elementsOnPath, EdgeVisitor callback) {
+  protected final void translatePaths0(
+      final ARGState firstElement, Set<ARGState> elementsOnPath, EdgeVisitor callback) {
     // waitlist for the edges to be processed
     List<Edge> waitlist = new ArrayList<>();
 
@@ -161,12 +163,12 @@ public abstract class PathTranslator {
     CFunctionEntryNode functionStartNode = extractFunctionCallLocation(firstFunctionElement);
     String freshFunctionName = getFreshFunctionName(functionStartNode);
 
-    String lFunctionHeader = functionStartNode.getFunctionDefinition().getType().toASTString(freshFunctionName);
+    String lFunctionHeader =
+        functionStartNode.getFunctionDefinition().getType().toASTString(freshFunctionName);
     // lFunctionHeader is for example "void foo_99(int a)"
 
     // create a new function
-    FunctionBody newFunction = new FunctionBody(firstFunctionElement.getStateId(),
-        lFunctionHeader);
+    FunctionBody newFunction = new FunctionBody(firstFunctionElement.getStateId(), lFunctionHeader);
 
     // register function
     mFunctionDecls.add(lFunctionHeader + ";");
@@ -209,7 +211,9 @@ public abstract class PathTranslator {
     }
   }
 
-  private Collection<Edge> handleEdge(Edge nextEdge, Map<Integer, MergeNode> mergeNodes,
+  private Collection<Edge> handleEdge(
+      Edge nextEdge,
+      Map<Integer, MergeNode> mergeNodes,
       Set<ARGState> elementsOnPath,
       EdgeVisitor callback) {
     ARGState childElement = nextEdge.getChildState();
@@ -281,7 +285,8 @@ public abstract class PathTranslator {
       ARGState currentElement, Deque<FunctionBody> functionStack, Set<ARGState> elementsOnPath) {
     // find the next elements to add to the waitlist
 
-    List<ARGState> relevantChildrenOfElement = from(currentElement.getChildren()).filter(in(elementsOnPath)).toList();
+    List<ARGState> relevantChildrenOfElement =
+        from(currentElement.getChildren()).filter(in(elementsOnPath)).toList();
     relevantChildrenOfElement = chooseIfArbitrary(currentElement, relevantChildrenOfElement);
 
     switch (relevantChildrenOfElement.size()) {
@@ -327,7 +332,8 @@ public abstract class PathTranslator {
     }
   }
 
-  private List<ARGState> chooseIfArbitrary(ARGState parent, List<ARGState> pRelevantChildrenOfElement) {
+  private List<ARGState> chooseIfArbitrary(
+      ARGState parent, List<ARGState> pRelevantChildrenOfElement) {
     if (pRelevantChildrenOfElement.size() <= 1) {
       return pRelevantChildrenOfElement;
     }
@@ -381,8 +387,7 @@ public abstract class PathTranslator {
     return new Edge(child, parent, dummyEdge, newStack);
   }
 
-  private static FunctionBody processIncomingStacks(
-      List<FunctionBody> pIncomingStacks) {
+  private static FunctionBody processIncomingStacks(List<FunctionBody> pIncomingStacks) {
 
     FunctionBody maxStack = null;
     int maxSizeOfStack = 0;
@@ -398,43 +403,44 @@ public abstract class PathTranslator {
     }
 
     return maxStack;
-
   }
 
   protected String processSimpleEdge(CFAEdge pCFAEdge, BasicBlock currentBlock) {
 
     switch (pCFAEdge.getEdgeType()) {
+      case BlankEdge:
+      case StatementEdge:
+      case ReturnStatementEdge:
+        return pCFAEdge.getCode();
 
-    case BlankEdge:
-    case StatementEdge:
-    case ReturnStatementEdge:
-      return pCFAEdge.getCode();
+      case AssumeEdge:
+        {
+          CAssumeEdge lAssumeEdge = (CAssumeEdge) pCFAEdge;
+          return ("__CPROVER_assume(" + lAssumeEdge.getCode() + ");");
+          //    return ("if(! (" + lAssumptionString + ")) { return (0); }");
+        }
 
-    case AssumeEdge: {
-      CAssumeEdge lAssumeEdge = (CAssumeEdge) pCFAEdge;
-      return ("__CPROVER_assume(" + lAssumeEdge.getCode() + ");");
-      //    return ("if(! (" + lAssumptionString + ")) { return (0); }");
-    }
+      case DeclarationEdge:
+        {
+          CDeclarationEdge lDeclarationEdge = (CDeclarationEdge) pCFAEdge;
 
-    case DeclarationEdge: {
-      CDeclarationEdge lDeclarationEdge = (CDeclarationEdge) pCFAEdge;
+          if (lDeclarationEdge.getDeclaration().isGlobal()) {
+            mGlobalDefinitionsList.add(lDeclarationEdge.getCode());
+            return "";
+          }
 
-      if (lDeclarationEdge.getDeclaration().isGlobal()) {
-        mGlobalDefinitionsList.add(lDeclarationEdge.getCode());
-        return "";
-      }
+          // avoid having the same declaration edge twice in one basic block
+          if (currentBlock.hasDeclaration(lDeclarationEdge)) {
+            return "";
+          } else {
+            currentBlock.addDeclaration(lDeclarationEdge);
+            return lDeclarationEdge.getCode();
+          }
+        }
 
-      // avoid having the same declaration edge twice in one basic block
-      if (currentBlock.hasDeclaration(lDeclarationEdge)) {
-        return "";
-      } else {
-        currentBlock.addDeclaration(lDeclarationEdge);
-        return lDeclarationEdge.getCode();
-      }
-    }
-
-    default:
-      throw new AssertionError("Unexpected edge " + pCFAEdge + " of type " + pCFAEdge.getEdgeType());
+      default:
+        throw new AssertionError(
+            "Unexpected edge " + pCFAEdge + " of type " + pCFAEdge.getEdgeType());
     }
   }
 
@@ -442,7 +448,8 @@ public abstract class PathTranslator {
 
     CFunctionCallEdge lFunctionCallEdge = (CFunctionCallEdge) pCFAEdge;
 
-    List<String> lArguments = Lists.transform(lFunctionCallEdge.getArguments(), CExpression::toASTString);
+    List<String> lArguments =
+        Lists.transform(lFunctionCallEdge.getArguments(), CExpression::toASTString);
     String lArgumentString = "(" + Joiner.on(", ").join(lArguments) + ")";
 
     CFunctionSummaryEdge summaryEdge = lFunctionCallEdge.getSummaryEdge();
@@ -454,7 +461,8 @@ public abstract class PathTranslator {
 
     CFunctionCall expressionOnSummaryEdge = summaryEdge.getExpression();
     if (expressionOnSummaryEdge instanceof CFunctionCallAssignmentStatement) {
-      CFunctionCallAssignmentStatement assignExp = (CFunctionCallAssignmentStatement) expressionOnSummaryEdge;
+      CFunctionCallAssignmentStatement assignExp =
+          (CFunctionCallAssignmentStatement) expressionOnSummaryEdge;
       String assignedVarName = assignExp.getLeftHandSide().toASTString();
       return assignedVarName + " = " + functionName + lArgumentString + ";";
 

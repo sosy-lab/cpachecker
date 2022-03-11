@@ -45,7 +45,7 @@ public class CustomInstructionTest {
   private AppliedCustomInstruction aci;
   private Map<CFANode, AppliedCustomInstruction> cis;
   private CustomInstruction ci;
-  private Constructor<?extends AbstractState> locConstructor;
+  private Constructor<? extends AbstractState> locConstructor;
   private CFA cfa;
   private CFANode startNode;
   private Set<CFANode> endNodes;
@@ -100,7 +100,8 @@ public class CustomInstructionTest {
   @Test
   public void testIsStartState() throws Exception {
     ARGState notStart =
-        new ARGState(locConstructor.newInstance(startNode.getLeavingEdge(0).getSuccessor(), true), start);
+        new ARGState(
+            locConstructor.newInstance(startNode.getLeavingEdge(0).getSuccessor(), true), start);
     ARGState noLocation = new ARGState(new CallstackState(null, "main", startNode), null);
 
     // test applied custom instruction
@@ -157,7 +158,8 @@ public class CustomInstructionTest {
     }
     // test if input parameter does not contain location state
     try {
-      cia.getAppliedCustomInstructionFor(new ARGState(new CallstackState(null, "main", startNode), null));
+      cia.getAppliedCustomInstructionFor(
+          new ARGState(new CallstackState(null, "main", startNode), null));
       assert_().fail();
     } catch (CPAException e) {
     }
@@ -178,7 +180,8 @@ public class CustomInstructionTest {
     inputVars = ImmutableList.of("f::var1", "var2");
     outputVars = ImmutableList.of("var3", "f::var4", "var5");
     ci = new CustomInstruction(null, null, inputVars, outputVars, ShutdownNotifier.createDummy());
-    Truth.assertThat(ci.getSignature()).isEqualTo("(|f::var1|, var2) -> (var3@1, |f::var4@1|, var5@1)");
+    Truth.assertThat(ci.getSignature())
+        .isEqualTo("(|f::var1|, var2) -> (var3@1, |f::var4@1|, var5@1)");
   }
 
   @Test
@@ -215,7 +218,8 @@ public class CustomInstructionTest {
     Truth.assertThat(pair.getFirst()).hasSize(2);
     Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun var1 () Int)");
     Truth.assertThat(pair.getFirst().get(1)).isEqualTo("(declare-fun var2@1 () Int)");
-    Truth.assertThat(pair.getSecond()).isEqualTo("(define-fun ci() Bool(and (= var1 0) (= var2@1 0)))");
+    Truth.assertThat(pair.getSecond())
+        .isEqualTo("(define-fun ci() Bool(and (= var1 0) (= var2@1 0)))");
 
     inputVars = ImmutableList.of("var", "f::var1", "var2");
     outputVars = ImmutableList.of("var3", "f::var4");
@@ -227,7 +231,10 @@ public class CustomInstructionTest {
     Truth.assertThat(pair.getFirst().get(2)).isEqualTo("(declare-fun var2 () Int)");
     Truth.assertThat(pair.getFirst().get(3)).isEqualTo("(declare-fun var3@1 () Int)");
     Truth.assertThat(pair.getFirst().get(4)).isEqualTo("(declare-fun |f::var4@1| () Int)");
-    Truth.assertThat(pair.getSecond()).isEqualTo("(define-fun ci() Bool(and (= var 0)(and (= |f::var1| 0)(and (= var2 0)(and (= var3@1 0) (= |f::var4@1| 0))))))");
+    Truth.assertThat(pair.getSecond())
+        .isEqualTo(
+            "(define-fun ci() Bool(and (= var 0)(and (= |f::var1| 0)(and (= var2 0)(and (= var3@1"
+                + " 0) (= |f::var4@1| 0))))))");
   }
 
   @Test
@@ -319,7 +326,10 @@ public class CustomInstructionTest {
     Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun |main::b| () Int)");
     Truth.assertThat(pair.getFirst().get(1)).isEqualTo("(declare-fun |main::a@1| () Int)");
     Truth.assertThat(pair.getFirst().get(2)).isEqualTo("(declare-fun |main::b@1| () Int)");
-    Truth.assertThat(pair.getSecond()).isEqualTo("(define-fun ci() Bool(and (= 7 0)(and (= |main::b| 0)(and (= |main::a@1| 0) (= |main::b@1| 0)))))");
+    Truth.assertThat(pair.getSecond())
+        .isEqualTo(
+            "(define-fun ci() Bool(and (= 7 0)(and (= |main::b| 0)(and (= |main::a@1| 0) (="
+                + " |main::b@1| 0)))))");
 
     SSAMap ssaMap = aci.getIndicesForReturnVars();
     List<String> variables = new ArrayList<>();
@@ -387,6 +397,8 @@ public class CustomInstructionTest {
             inputVarsAndConstants,
             Pair.of(ImmutableList.of(), ""),
             SSAMap.emptySSAMap());
-    Truth.assertThat(aci.getInputVariablesAndConstants()).containsExactlyElementsIn(inputVarsAndConstants).inOrder();
+    Truth.assertThat(aci.getInputVariablesAndConstants())
+        .containsExactlyElementsIn(inputVarsAndConstants)
+        .inOrder();
   }
 }

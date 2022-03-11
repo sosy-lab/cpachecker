@@ -21,11 +21,8 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 
-/**
- * Class implementing join algorithm from FIT-TR-2013-4 (Appendix C.5)
- */
+/** Class implementing join algorithm from FIT-TR-2013-4 (Appendix C.5) */
 public class SMGInsertLeftDlsAndJoin extends SMGAbstractJoin {
-
 
   public SMGInsertLeftDlsAndJoin(
       SMGJoinStatus pStatus,
@@ -70,8 +67,9 @@ public class SMGInsertLeftDlsAndJoin extends SMGAbstractJoin {
     Optional<SMGHasValueEdge> edgeToNextSmgValue =
         inputSMG1.getHasValueEdgeByPredicate(
             dlls1,
-            edge -> nextFieldOffset.equals(edge.getOffset())
-                && dlls1.getSize().equals(edge.getSizeInBits()));
+            edge ->
+                nextFieldOffset.equals(edge.getOffset())
+                    && dlls1.getSize().equals(edge.getSizeInBits()));
 
     SMGValue nextValue = edgeToNextSmgValue.orElseThrow().hasValue();
 
@@ -113,18 +111,17 @@ public class SMGInsertLeftDlsAndJoin extends SMGAbstractJoin {
 
     // step 9
     Optional<SMGValue> resultOptional =
-        destSMG
-            .findAddressForEdge(freshCopyDLLS1, pToEdge1.getOffset(), pToEdge1.targetSpecifier());
-    if(resultOptional.isEmpty()) {
+        destSMG.findAddressForEdge(
+            freshCopyDLLS1, pToEdge1.getOffset(), pToEdge1.targetSpecifier());
+    if (resultOptional.isEmpty()) {
       value = SMGValue.of(pValue1.getNestingLevel() + pNestingLevelDiff);
       mapping1.addMapping(pValue1, value);
       destSMG =
-          destSMG.copyAndAddValue(value)
+          destSMG
+              .copyAndAddValue(value)
               .copyAndAddPTEdge(
                   new SMGPointsToEdge(
-                      freshCopyDLLS1,
-                      pToEdge1.getOffset(),
-                      pToEdge1.targetSpecifier()),
+                      freshCopyDLLS1, pToEdge1.getOffset(), pToEdge1.targetSpecifier()),
                   value);
     } else {
       value = resultOptional.orElseThrow();
@@ -150,7 +147,6 @@ public class SMGInsertLeftDlsAndJoin extends SMGAbstractJoin {
     SMGHasValueEdge resultHasValueEdge =
         new SMGHasValueEdge(value, nextFieldOffset, dlls1.getSize());
     destSMG = destSMG.copyAndAddHVEdge(resultHasValueEdge, freshCopyDLLS1);
-
   }
 
   /**
@@ -252,7 +248,6 @@ public class SMGInsertLeftDlsAndJoin extends SMGAbstractJoin {
       SMGValue nextValue,
       BigInteger offset,
       int pNestingLevelDiff,
-
       SMGTargetSpecifier targetSpecifier) {
     // step 4 - 2
     if (mapping2.mappingExists(pMappedObject)) {
@@ -298,11 +293,4 @@ public class SMGInsertLeftDlsAndJoin extends SMGAbstractJoin {
     SMGObject object = pToEdge.pointsTo();
     checkArgument(isDLLS(object), "Value 1 does not point to dlls.");
   }
-
-
-
-
-
-
-
 }

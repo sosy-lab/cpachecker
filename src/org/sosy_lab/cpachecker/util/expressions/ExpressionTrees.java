@@ -93,9 +93,7 @@ public final class ExpressionTrees {
         }
       };
 
-  private ExpressionTrees() {
-
-  }
+  private ExpressionTrees() {}
 
   public static <LeafType> boolean isConstant(ExpressionTree<LeafType> pExpressionTree) {
     ExpressionTreeVisitor<LeafType, Boolean, NoException> visitor =
@@ -187,77 +185,79 @@ public final class ExpressionTrees {
   }
 
   public static <LeafType> boolean isInCNF(ExpressionTree<LeafType> pExpressionTree) {
-    ExpressionTreeVisitor<LeafType, Boolean, NoException> visitor = new ExpressionTreeVisitor<>() {
+    ExpressionTreeVisitor<LeafType, Boolean, NoException> visitor =
+        new ExpressionTreeVisitor<>() {
 
-      @Override
-      public Boolean visit(And<LeafType> pAnd) {
-        // A clause may be a single literal or a disjunction of literals
-        assert getChildren(pAnd).allMatch(pClause -> !isAnd(pClause))
-            : "A conjunction must not contain child conjunctions";
-        return getChildren(pAnd).allMatch(pClause -> isCNFClause(pClause));
-      }
+          @Override
+          public Boolean visit(And<LeafType> pAnd) {
+            // A clause may be a single literal or a disjunction of literals
+            assert getChildren(pAnd).allMatch(pClause -> !isAnd(pClause))
+                : "A conjunction must not contain child conjunctions";
+            return getChildren(pAnd).allMatch(pClause -> isCNFClause(pClause));
+          }
 
-      @Override
-      public Boolean visit(Or<LeafType> pOr) {
-        return getChildren(pOr).allMatch(ExpressionTrees::isLeaf);
-      }
+          @Override
+          public Boolean visit(Or<LeafType> pOr) {
+            return getChildren(pOr).allMatch(ExpressionTrees::isLeaf);
+          }
 
-      @Override
-      public Boolean visit(LeafExpression<LeafType> pLeafExpression) {
-        // Check: One clause with one literal
-        return true;
-      }
+          @Override
+          public Boolean visit(LeafExpression<LeafType> pLeafExpression) {
+            // Check: One clause with one literal
+            return true;
+          }
 
-      @Override
-      public Boolean visitTrue() {
-        // Check: One clause with one literal
-        return true;
-      }
+          @Override
+          public Boolean visitTrue() {
+            // Check: One clause with one literal
+            return true;
+          }
 
-      @Override
-      public Boolean visitFalse() {
-        // Check: One clause with one literal
-        return true;
-      }
-    };
+          @Override
+          public Boolean visitFalse() {
+            // Check: One clause with one literal
+            return true;
+          }
+        };
     return pExpressionTree.accept(visitor);
   }
 
   public static <LeafType> boolean isInDNF(ExpressionTree<LeafType> pExpressionTree) {
-    ExpressionTreeVisitor<LeafType, Boolean, NoException> visitor = new ExpressionTreeVisitor<>() {
+    ExpressionTreeVisitor<LeafType, Boolean, NoException> visitor =
+        new ExpressionTreeVisitor<>() {
 
-      @Override
-      public Boolean visit(And<LeafType> pAnd) {
-        // Check: One clause with more than one literal
-        return getChildren(pAnd).allMatch(ExpressionTrees::isLeaf);
-      }
+          @Override
+          public Boolean visit(And<LeafType> pAnd) {
+            // Check: One clause with more than one literal
+            return getChildren(pAnd).allMatch(ExpressionTrees::isLeaf);
+          }
 
-      @Override
-      public Boolean visit(Or<LeafType> pOr) {
-        // A clause may be a single literal or a conjunction of literals
-        assert getChildren(pOr).allMatch(pClause -> !isOr(pClause))
-            : "A disjunction must not contain child disjunctions";
-        return getChildren(pOr).allMatch(pClause -> isDNFClause(pClause));
-      }
+          @Override
+          public Boolean visit(Or<LeafType> pOr) {
+            // A clause may be a single literal or a conjunction of literals
+            assert getChildren(pOr).allMatch(pClause -> !isOr(pClause))
+                : "A disjunction must not contain child disjunctions";
+            return getChildren(pOr).allMatch(pClause -> isDNFClause(pClause));
+          }
 
-      @Override
-      public Boolean visit(LeafExpression<LeafType> pLeafExpression) {
-        // Check: One clause with one literal
-        return true;
-      }
+          @Override
+          public Boolean visit(LeafExpression<LeafType> pLeafExpression) {
+            // Check: One clause with one literal
+            return true;
+          }
 
-      @Override
-      public Boolean visitTrue() {
-        // Check: One clause with one literal
-        return true;
-      }
+          @Override
+          public Boolean visitTrue() {
+            // Check: One clause with one literal
+            return true;
+          }
 
-      @Override
-      public Boolean visitFalse() {
-        // Check: One clause with one literal
-        return true;
-      }
-    };
+          @Override
+          public Boolean visitFalse() {
+            // Check: One clause with one literal
+            return true;
+          }
+        };
     return pExpressionTree.accept(visitor);
   }
 
@@ -532,14 +532,12 @@ public final class ExpressionTrees {
   }
 
   /**
-   * Cast an expression tree with a source leaf type
-   * to an expression tree with a target leaf type.
+   * Cast an expression tree with a source leaf type to an expression tree with a target leaf type.
    *
-   * This unchecked cast is safe if the expression tree is immutable,
-   * which every expression tree is required to be by convention.
+   * <p>This unchecked cast is safe if the expression tree is immutable, which every expression tree
+   * is required to be by convention.
    *
    * @param pToCast the tree to be casted.
-   *
    * @return the casted tree.
    */
   @SuppressWarnings("unchecked")
@@ -568,12 +566,10 @@ public final class ExpressionTrees {
     public int compare(final ExpressionTree<LeafType> pO1, final ExpressionTree<LeafType> pO2) {
       @SuppressWarnings("unchecked")
       int typeOrder1 =
-          pO1.accept(
-              (ExpressionTreeVisitor<LeafType, Integer, NoException>) TYPE_ORDER_VISITOR);
+          pO1.accept((ExpressionTreeVisitor<LeafType, Integer, NoException>) TYPE_ORDER_VISITOR);
       @SuppressWarnings("unchecked")
       int typeOrder2 =
-          pO2.accept(
-              (ExpressionTreeVisitor<LeafType, Integer, NoException>) TYPE_ORDER_VISITOR);
+          pO2.accept((ExpressionTreeVisitor<LeafType, Integer, NoException>) TYPE_ORDER_VISITOR);
       final int typeOrderComp = Integer.compare(typeOrder1, typeOrder2);
       return pO1.accept(
           new CachingVisitor<LeafType, Integer, NoException>() {
@@ -628,7 +624,6 @@ public final class ExpressionTrees {
             }
           });
     }
-
   }
 
   private static class SimplificationVisitor<LeafType>
@@ -796,7 +791,8 @@ public final class ExpressionTrees {
         Iterator<ExpressionTree<LeafType>> operandIt = operands.iterator();
         while (operandIt.hasNext()) {
           ExpressionTree<LeafType> operand = operandIt.next();
-          Iterable<ExpressionTree<LeafType>> relevantInnerOperands = thorough || changedOps.contains(operand) ? operands : changedOps;
+          Iterable<ExpressionTree<LeafType>> relevantInnerOperands =
+              thorough || changedOps.contains(operand) ? operands : changedOps;
           if (operand instanceof LeafExpression) {
             if (isImplied(operand, relevantInnerOperands, true)) {
               // we proved !a -> b, so a v b v ... has to be a tautology:

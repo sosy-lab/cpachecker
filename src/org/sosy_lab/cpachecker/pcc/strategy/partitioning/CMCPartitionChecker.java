@@ -55,10 +55,13 @@ public class CMCPartitionChecker {
   private Collection<AbstractState> externalNodes;
   private Multimap<CFANode, AbstractState> partitionNodes;
 
-
-
-  public CMCPartitionChecker(final ConfigurableProgramAnalysis pCpa, final AtomicBoolean pCheckResult,
-      final ShutdownNotifier pShutdown, final LogManager pLogger, final AbstractState pRoot) throws InterruptedException {
+  public CMCPartitionChecker(
+      final ConfigurableProgramAnalysis pCpa,
+      final AtomicBoolean pCheckResult,
+      final ShutdownNotifier pShutdown,
+      final LogManager pLogger,
+      final AbstractState pRoot)
+      throws InterruptedException {
     cpa = pCpa;
     stopOp = cpa.getStopOperator();
     transfer = cpa.getTransferRelation();
@@ -98,10 +101,14 @@ public class CMCPartitionChecker {
 
       for (int i = 0; i < pPartitionNodes.length; i++) {
         shutdown.shutdownIfNecessary();
-        if (!checkResult.get()) { return; }
+        if (!checkResult.get()) {
+          return;
+        }
         if (moreThanMaxSizeInspected(maxProofSize)) {
 
-          logger.log(Level.SEVERE, "Checking failed, recomputed certificate bigger than original reached set.");
+          logger.log(
+              Level.SEVERE,
+              "Checking failed, recomputed certificate bigger than original reached set.");
           abortChecking();
           return;
         }
@@ -114,7 +121,8 @@ public class CMCPartitionChecker {
 
         if (successorEdges == null) {
           // standard case
-          checkSuccessorsStandard(transfer.getAbstractSuccessors(current, initPrec), statesPerLocation, maxProofSize);
+          checkSuccessorsStandard(
+              transfer.getAbstractSuccessors(current, initPrec), statesPerLocation, maxProofSize);
 
         } else {
           if (toARGState.get(current) == null) {
@@ -143,8 +151,10 @@ public class CMCPartitionChecker {
     }
   }
 
-  private Collection<AbstractState> getARGSuccessors(final int[] pSuccessorEdges,
-      final AbstractState[] pPartitionNodes, final AbstractState[] pExternalNodes) {
+  private Collection<AbstractState> getARGSuccessors(
+      final int[] pSuccessorEdges,
+      final AbstractState[] pPartitionNodes,
+      final AbstractState[] pExternalNodes) {
     List<AbstractState> result = new ArrayList<>(pSuccessorEdges.length);
 
     for (int successor : pSuccessorEdges) {
@@ -162,8 +172,8 @@ public class CMCPartitionChecker {
     checkResult.set(false);
   }
 
-  private Multimap<CFANode, AbstractState> computeMappingStatesToLocation(final AbstractState[] pPartitionNodes,
-      final AbstractState[] pExternalNodes) {
+  private Multimap<CFANode, AbstractState> computeMappingStatesToLocation(
+      final AbstractState[] pPartitionNodes, final AbstractState[] pExternalNodes) {
     Multimap<CFANode, AbstractState> result = HashMultimap.create();
 
     addStatesToMapping(pPartitionNodes, result);
@@ -172,8 +182,9 @@ public class CMCPartitionChecker {
     return result;
   }
 
-  private void addStatesToMapping(final AbstractState[] stateSet, final Multimap<CFANode, AbstractState>  mapping) {
-    for(AbstractState state : stateSet) {
+  private void addStatesToMapping(
+      final AbstractState[] stateSet, final Multimap<CFANode, AbstractState> mapping) {
+    for (AbstractState state : stateSet) {
       mapping.put(AbstractStates.extractLocation(state), state);
     }
   }
@@ -182,21 +193,25 @@ public class CMCPartitionChecker {
     return inspectedStates.size() > maxSize;
   }
 
-  private void checkSuccessorsStandard(final Collection<? extends AbstractState> pCollection,
-      final Multimap<CFANode, AbstractState> pStatesPerLocation, final int maxSize) throws CPAException, InterruptedException {
+  private void checkSuccessorsStandard(
+      final Collection<? extends AbstractState> pCollection,
+      final Multimap<CFANode, AbstractState> pStatesPerLocation,
+      final int maxSize)
+      throws CPAException, InterruptedException {
     Deque<AbstractState> successorsToInspect = new ArrayDeque<>(pCollection);
 
     AbstractState successor;
 
-    while(!successorsToInspect.isEmpty()){
+    while (!successorsToInspect.isEmpty()) {
       shutdown.shutdownIfNecessary();
 
       successor = successorsToInspect.pop();
 
-      if(!stopOp.stop(successor, pStatesPerLocation.get(AbstractStates.extractLocation(successor)), initPrec)){
+      if (!stopOp.stop(
+          successor, pStatesPerLocation.get(AbstractStates.extractLocation(successor)), initPrec)) {
         // recomputed state
         inspectedStates.add(successor);
-        if(moreThanMaxSizeInspected(maxSize)) {
+        if (moreThanMaxSizeInspected(maxSize)) {
           abortChecking();
           return;
         }
@@ -207,8 +222,11 @@ public class CMCPartitionChecker {
     }
   }
 
-  private void checkSuccessorsInRecomputedARG(final Collection<? extends AbstractState> pAbstractSuccessors,
-      final Collection<AbstractState> pArgSuccessors, final int pMaxProofSize, final ARGState predecessor)
+  private void checkSuccessorsInRecomputedARG(
+      final Collection<? extends AbstractState> pAbstractSuccessors,
+      final Collection<AbstractState> pArgSuccessors,
+      final int pMaxProofSize,
+      final ARGState predecessor)
       throws CPAException, InterruptedException {
     if (pAbstractSuccessors.size() != 1 || pArgSuccessors.size() > 1) {
       // successors must be covered directly by saved successors
@@ -249,7 +267,9 @@ public class CMCPartitionChecker {
         successors = transfer.getAbstractSuccessors(singleState, initPrec);
 
         if (successors.size() > 1) {
-          logger.log(Level.SEVERE, "More than one successor cannot be recomputed if ARG is reconstructed.");
+          logger.log(
+              Level.SEVERE,
+              "More than one successor cannot be recomputed if ARG is reconstructed.");
           abortChecking();
           return;
         }
@@ -259,12 +279,10 @@ public class CMCPartitionChecker {
         }
 
         singleState = successors.iterator().next();
-
       }
 
       addChild(currentPredecessor, pArgSuccessors.iterator().next());
     }
-
   }
 
   private void addChild(final ARGState parent, final AbstractState child) {
@@ -283,16 +301,21 @@ public class CMCPartitionChecker {
     return inspectedStates;
   }
 
-  private void prepareCoverageInspectionOfExternalNodes(AbstractState[] pPartitionNodes, AbstractState[] pExternalNodes) {
+  private void prepareCoverageInspectionOfExternalNodes(
+      AbstractState[] pPartitionNodes, AbstractState[] pExternalNodes) {
     externalNodes.addAll(Arrays.asList(pExternalNodes));
 
     addStatesToMapping(pPartitionNodes, partitionNodes);
-
   }
 
-  public boolean checkCoverageOfExternalsAndInitialState() throws CPAException, InterruptedException {
-    return stopOp.stop(cpa.getInitialState(AbstractStates.extractLocation(root), StateSpacePartition.getDefaultPartition()),
-           Collections.singleton(root.getWrappedState()), initPrec)
-        && PartitioningUtils.areElementsCoveredByPartitionElement(externalNodes, partitionNodes, stopOp, initPrec);
+  public boolean checkCoverageOfExternalsAndInitialState()
+      throws CPAException, InterruptedException {
+    return stopOp.stop(
+            cpa.getInitialState(
+                AbstractStates.extractLocation(root), StateSpacePartition.getDefaultPartition()),
+            Collections.singleton(root.getWrappedState()),
+            initPrec)
+        && PartitioningUtils.areElementsCoveredByPartitionElement(
+            externalNodes, partitionNodes, stopOp, initPrec);
   }
 }

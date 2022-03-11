@@ -56,8 +56,7 @@ public class SMGProveNequality {
       return false;
     }
     // check if reached sets share regions
-    if (targetValueAndReachedSet1.getObjectSet()
-        .stream()
+    if (targetValueAndReachedSet1.getObjectSet().stream()
         .anyMatch(targetValueAndReachedSet2.getObjectSet()::contains)) {
       return false;
     }
@@ -90,14 +89,14 @@ public class SMGProveNequality {
         || pToEdge.getOffset().signum() < 0;
   }
 
-  private boolean
-      checkEdgeLabelsForEqualTargets(SMGPointsToEdge pTagetEdge1, SMGPointsToEdge pTagetEdge2) {
+  private boolean checkEdgeLabelsForEqualTargets(
+      SMGPointsToEdge pTagetEdge1, SMGPointsToEdge pTagetEdge2) {
     // same object, different offsets
     if (pTagetEdge1.targetSpecifier().equals(pTagetEdge2.targetSpecifier())) {
       return true;
     }
     if ((pTagetEdge1.targetSpecifier().equals(SMGTargetSpecifier.IS_FIRST_POINTER)
-        || pTagetEdge1.targetSpecifier().equals(SMGTargetSpecifier.IS_LAST_POINTER))
+            || pTagetEdge1.targetSpecifier().equals(SMGTargetSpecifier.IS_LAST_POINTER))
         && (pTagetEdge2.targetSpecifier().equals(SMGTargetSpecifier.IS_FIRST_POINTER)
             || pTagetEdge2.targetSpecifier().equals(SMGTargetSpecifier.IS_LAST_POINTER))) {
       return ((SMGDoublyLinkedListSegment) pTagetEdge1.pointsTo()).getMinLength() >= 2;
@@ -151,12 +150,11 @@ public class SMGProveNequality {
    * @param pSize the size
    * @return the value address (pointer) at a given offset of a dlls.
    */
-  private SMGValue
-      findHVETargetValue(SMGDoublyLinkedListSegment dlls, BigInteger pOffset, BigInteger pSize) {
+  private SMGValue findHVETargetValue(
+      SMGDoublyLinkedListSegment dlls, BigInteger pOffset, BigInteger pSize) {
     Optional<SMGHasValueEdge> hveOptional =
         smg.getHasValueEdgeByPredicate(
-            dlls,
-            edge -> edge.getOffset().equals(pOffset) && edge.getSizeInBits().equals(pSize));
+            dlls, edge -> edge.getOffset().equals(pOffset) && edge.getSizeInBits().equals(pSize));
     checkArgument(
         hveOptional.isPresent(),
         "No pointer for DLLS %s with offset %s and Size %s found.",
@@ -165,5 +163,4 @@ public class SMGProveNequality {
         pSize);
     return hveOptional.orElseThrow().hasValue();
   }
-
 }

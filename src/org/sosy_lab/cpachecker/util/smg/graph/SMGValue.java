@@ -53,12 +53,16 @@ public class SMGValue implements SMGNode, Comparable<SMGValue> {
     return nestingLevel;
   }
 
-  /** @return The static SMGValue = 0. */
+  /**
+   * @return The static SMGValue = 0.
+   */
   public static SMGValue zeroValue() {
     return ZERO_VALUE;
   }
 
-  /** @return True if this SMGValue is equal to 0. */
+  /**
+   * @return True if this SMGValue is equal to 0.
+   */
   public boolean isZero() {
     return this.equals(ZERO_VALUE);
   }

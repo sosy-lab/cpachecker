@@ -14,11 +14,8 @@ class SMGJoinTest0 extends SMGTest0 {
 
   protected NodeMapping cloneMapping(NodeMapping oldMapping) {
     NodeMapping copyMapping = new NodeMapping();
-    oldMapping.getValueMap()
-        .forEach((key, value) -> copyMapping.addMapping(key, value));
-    oldMapping.getObjectMap()
-    .forEach((key, value) -> copyMapping.addMapping(key, value));
+    oldMapping.getValueMap().forEach((key, value) -> copyMapping.addMapping(key, value));
+    oldMapping.getObjectMap().forEach((key, value) -> copyMapping.addMapping(key, value));
     return copyMapping;
   }
-
 }

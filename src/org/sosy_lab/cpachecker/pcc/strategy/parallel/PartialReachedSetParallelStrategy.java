@@ -36,8 +36,11 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 @Options(prefix = "pcc.partial")
 public class PartialReachedSetParallelStrategy extends PartialReachedSetStrategy {
 
-  @Option(secure=true,
-      description = "If enabled, distributes checking of partial elements depending on actual checking costs, else uses the number of elements")
+  @Option(
+      secure = true,
+      description =
+          "If enabled, distributes checking of partial elements depending on actual checking costs,"
+              + " else uses the number of elements")
   private boolean enableLoadDistribution = false;
 
   public PartialReachedSetParallelStrategy(
@@ -52,7 +55,8 @@ public class PartialReachedSetParallelStrategy extends PartialReachedSetStrategy
   }
 
   @Override
-  public boolean checkCertificate(final ReachedSet pReachedSet) throws CPAException, InterruptedException {
+  public boolean checkCertificate(final ReachedSet pReachedSet)
+      throws CPAException, InterruptedException {
 
     List<AbstractState> certificate = new ArrayList<>(savedReachedSetSize);
     Precision initialPrec = pReachedSet.getPrecision(pReachedSet.getFirstState());
@@ -65,9 +69,10 @@ public class PartialReachedSetParallelStrategy extends PartialReachedSetStrategy
     PartialChecker[] transitiveClosureThreads = new PartialChecker[numThreads];
     for (int i = 0; i < transitiveClosureThreads.length; i++) {
       transitiveClosureThreads[i] =
-          enableLoadDistribution ? new PartialChecker(nextElement, certificate, initialPrec, result, lock,
-              waitForThreads) :
-              new PartialChecker(i, certificate, initialPrec, result, lock, waitForThreads);
+          enableLoadDistribution
+              ? new PartialChecker(
+                  nextElement, certificate, initialPrec, result, lock, waitForThreads)
+              : new PartialChecker(i, certificate, initialPrec, result, lock, waitForThreads);
       transitiveClosureThreads[i].start();
     }
 
@@ -85,8 +90,11 @@ public class PartialReachedSetParallelStrategy extends PartialReachedSetStrategy
 
       try {
         stats.getStopTimer().start();
-        if (!cpa.getStopOperator().stop(initialState,
-            statesPerLocation.get(AbstractStates.extractLocation(initialState)), initialPrec)) {
+        if (!cpa.getStopOperator()
+            .stop(
+                initialState,
+                statesPerLocation.get(AbstractStates.extractLocation(initialState)),
+                initialPrec)) {
           logger.log(Level.FINE, "Initial element not in partial reached set.");
           return false;
         }
@@ -96,7 +104,6 @@ public class PartialReachedSetParallelStrategy extends PartialReachedSetStrategy
       } finally {
         stats.getStopTimer().stop();
       }
-
 
       stats.getPropertyCheckingTimer().start();
       try {
@@ -122,8 +129,13 @@ public class PartialReachedSetParallelStrategy extends PartialReachedSetStrategy
     private final Lock mutex;
     private final Semaphore coordination;
 
-    public PartialChecker(final int pStartIndex, final List<AbstractState> pCertificate, final Precision pInitPrec,
-        final AtomicBoolean pResult, final Lock pMutex, final Semaphore pCoordinate) {
+    public PartialChecker(
+        final int pStartIndex,
+        final List<AbstractState> pCertificate,
+        final Precision pInitPrec,
+        final AtomicBoolean pResult,
+        final Lock pMutex,
+        final Semaphore pCoordinate) {
       startIndex = pStartIndex;
       certificate = pCertificate;
       initPrec = pInitPrec;
@@ -134,8 +146,13 @@ public class PartialReachedSetParallelStrategy extends PartialReachedSetStrategy
       indexProvider = null;
     }
 
-    public PartialChecker(final AtomicInteger pIndexProvider, final List<AbstractState> pCertificate, final Precision pInitPrec,
-        final AtomicBoolean pResult, final Lock pMutex, final Semaphore pCoordinate) {
+    public PartialChecker(
+        final AtomicInteger pIndexProvider,
+        final List<AbstractState> pCertificate,
+        final Precision pInitPrec,
+        final AtomicBoolean pResult,
+        final Lock pMutex,
+        final Semaphore pCoordinate) {
       assert enableLoadDistribution;
       startIndex = 0;
       certificate = pCertificate;
@@ -152,26 +169,31 @@ public class PartialReachedSetParallelStrategy extends PartialReachedSetStrategy
       try {
         int index = 0;
 
-        for (int i = enableLoadDistribution ? indexProvider.getAndIncrement() : startIndex; i < reachedSet.length
-            && result.get(); i = enableLoadDistribution ? indexProvider.getAndIncrement() : i + numThreads) {
+        for (int i = enableLoadDistribution ? indexProvider.getAndIncrement() : startIndex;
+            i < reachedSet.length && result.get();
+            i = enableLoadDistribution ? indexProvider.getAndIncrement() : i + numThreads) {
           shutdownNotifier.shutdownIfNecessary();
           currentStates.add(reachedSet[i]);
 
           while (index < currentStates.size() && result.get()) {
             shutdownNotifier.shutdownIfNecessary();
 
-            for (AbstractState succ : cpa.getTransferRelation().getAbstractSuccessors(currentStates.get(index++),
-                initPrec)) {
-              if (!cpa.getStopOperator().stop(succ, statesPerLocation.get(AbstractStates.extractLocation(succ)),
-                  initPrec)) {
-                if (stopAddingAtReachedSetSize && savedReachedSetSize <= certificate.size() + currentStates.size()) {
+            for (AbstractState succ :
+                cpa.getTransferRelation()
+                    .getAbstractSuccessors(currentStates.get(index++), initPrec)) {
+              if (!cpa.getStopOperator()
+                  .stop(
+                      succ,
+                      statesPerLocation.get(AbstractStates.extractLocation(succ)),
+                      initPrec)) {
+                if (stopAddingAtReachedSetSize
+                    && savedReachedSetSize <= certificate.size() + currentStates.size()) {
                   logger.log(Level.FINE, "Too many states recomputed");
                   abort();
                   return;
                 }
                 currentStates.add(succ);
               }
-
             }
           }
         }

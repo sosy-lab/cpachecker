@@ -32,7 +32,7 @@ class MergeNode {
     incomingState.add(currentFunction);
     Set<Integer> processedConditions = new HashSet<>();
 
-    for (BasicBlock elementInStack: currentFunction) {
+    for (BasicBlock elementInStack : currentFunction) {
       int idOfElementInStack = elementInStack.getStateId();
       boolean nextConditionValue = elementInStack.isCondition();
       boolean isClosedBefore = elementInStack.isClosedBefore();
@@ -44,9 +44,8 @@ class MergeNode {
         boolean firstConditionValue = conditionPair.getFirst();
         boolean secondConditionValue = conditionPair.getSecond();
         // if this is the end of the branch
-        if (isClosedBefore || secondConditionValue ||
-            (firstConditionValue ^ nextConditionValue)) {
-//          elementInStack.setClosedBefore(true);
+        if (isClosedBefore || secondConditionValue || (firstConditionValue ^ nextConditionValue)) {
+          //          elementInStack.setClosedBefore(true);
           processedConditions.add(idOfElementInStack);
         }
         // else do nothing
@@ -62,8 +61,8 @@ class MergeNode {
   }
 
   private void setProcessedStates(Set<Integer> pProcessedConditions) {
-    for (FunctionBody stack: incomingState) {
-      for (BasicBlock elem: stack) {
+    for (FunctionBody stack : incomingState) {
+      for (BasicBlock elem : stack) {
         if (pProcessedConditions.contains(elem.getStateId())) {
           elem.setClosedBefore(true);
         }

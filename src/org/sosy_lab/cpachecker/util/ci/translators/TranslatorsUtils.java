@@ -8,11 +8,9 @@
 
 package org.sosy_lab.cpachecker.util.ci.translators;
 
-
 public class TranslatorsUtils {
 
-  private TranslatorsUtils() {
-  }
+  private TranslatorsUtils() {}
 
   public static String getVarLessOrEqualValRequirement(final String pVar, final Number pVal) {
     StringBuilder sb = new StringBuilder();
@@ -34,7 +32,8 @@ public class TranslatorsUtils {
     return sb.toString();
   }
 
-  public static String getVarInBoundsRequirement(final String pVar, final Number pLow, final Number pHigh) {
+  public static String getVarInBoundsRequirement(
+      final String pVar, final Number pLow, final Number pHigh) {
     StringBuilder sb = new StringBuilder();
     sb.append("(and ");
     sb.append(getVarGreaterOrEqualValRequirement(pVar, pLow));

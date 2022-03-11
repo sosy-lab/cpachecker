@@ -61,10 +61,7 @@ abstract class CmdLineArgument implements Comparable<CmdLineArgument> {
     }
   }
 
-  boolean apply(
-      Map<String, String> properties,
-      String currentArg,
-      Iterator<String> argsIt)
+  boolean apply(Map<String, String> properties, String currentArg, Iterator<String> argsIt)
       throws InvalidCmdlineArgumentException {
     if (names.contains(currentArg)) {
       apply0(properties, currentArg, argsIt);
@@ -73,10 +70,7 @@ abstract class CmdLineArgument implements Comparable<CmdLineArgument> {
     return false;
   }
 
-  abstract void apply0(
-      Map<String, String> properties,
-      String currentArg,
-      Iterator<String> argsIt)
+  abstract void apply0(Map<String, String> properties, String currentArg, Iterator<String> argsIt)
       throws InvalidCmdlineArgumentException;
 
   /** The arg is a short replacement for an option with 'one' value given as next argument. */
@@ -104,10 +98,7 @@ abstract class CmdLineArgument implements Comparable<CmdLineArgument> {
     }
 
     @Override
-    final void apply0(
-        Map<String, String> properties,
-        String currentArg,
-        Iterator<String> args)
+    final void apply0(Map<String, String> properties, String currentArg, Iterator<String> args)
         throws InvalidCmdlineArgumentException {
       if (args.hasNext()) {
         handleArg(properties, args.next());
@@ -122,9 +113,7 @@ abstract class CmdLineArgument implements Comparable<CmdLineArgument> {
      * @param pProperties the map of configuration properties.
      * @param pArg the value of the configuration option represented by this argument.
      */
-    void handleArg(
-        Map<String, String> pProperties,
-        String pArg)
+    void handleArg(Map<String, String> pProperties, String pArg)
         throws InvalidCmdlineArgumentException {
       putIfNotExistent(pProperties, option, pArg);
     }
@@ -151,10 +140,7 @@ abstract class CmdLineArgument implements Comparable<CmdLineArgument> {
     }
 
     @Override
-    void apply0(
-        Map<String, String> properties,
-        String currentArg,
-        Iterator<String> args)
+    void apply0(Map<String, String> properties, String currentArg, Iterator<String> args)
         throws InvalidCmdlineArgumentException {
       for (Entry<String, String> e : additionalIfNotExistentArgs.entrySet()) {
         putIfNotExistent(properties, e.getKey(), e.getValue());
