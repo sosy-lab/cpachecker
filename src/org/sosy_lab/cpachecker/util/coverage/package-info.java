@@ -7,7 +7,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Package for reporting what proportion of code was analyzed by the verifier.
- * Can report results in Gcov format.
+ * Package for reporting what proportion of code was analyzed by the verifier. Can report results in
+ * Gcov format.
  */
 package org.sosy_lab.cpachecker.util.coverage;

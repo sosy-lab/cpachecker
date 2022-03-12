@@ -28,15 +28,15 @@ final class SMGJoinMatchObjects {
     return pObj1 == SMGNullObject.INSTANCE || pObj2 == SMGNullObject.INSTANCE;
   }
 
-  private static boolean checkMatchingMapping(SMGObject pObj1, SMGObject pObj2,
-                                                    SMGNodeMapping pMapping1, SMGNodeMapping pMapping2) {
+  private static boolean checkMatchingMapping(
+      SMGObject pObj1, SMGObject pObj2, SMGNodeMapping pMapping1, SMGNodeMapping pMapping2) {
     return pMapping1.containsKey(pObj1)
         && pMapping2.containsKey(pObj2)
         && pMapping1.get(pObj1) != pMapping2.get(pObj2);
   }
 
-  private static boolean checkConsistentMapping(SMGObject pObj1, SMGObject pObj2,
-                                                      SMGNodeMapping pMapping1, SMGNodeMapping pMapping2) {
+  private static boolean checkConsistentMapping(
+      SMGObject pObj1, SMGObject pObj2, SMGNodeMapping pMapping1, SMGNodeMapping pMapping2) {
     return (pMapping1.containsKey(pObj1) && pMapping2.containsValue(pMapping1.get(pObj1)))
         || (pMapping2.containsKey(pObj2) && pMapping1.containsValue(pMapping2.get(pObj2)));
   }
@@ -89,8 +89,8 @@ final class SMGJoinMatchObjects {
 
   private static boolean checkMatchingAbstractions(SMGObject pObj1, SMGObject pObj2) {
     if (pObj1.isAbstract() && pObj2.isAbstract()) {
-      SMGAbstractObject pAbstract1 = (SMGAbstractObject)pObj1;
-      SMGAbstractObject pAbstract2 = (SMGAbstractObject)pObj2;
+      SMGAbstractObject pAbstract1 = (SMGAbstractObject) pObj1;
+      SMGAbstractObject pAbstract2 = (SMGAbstractObject) pObj2;
 
       // TODO: It should be possible to join some of the different generic shapes, i.e. a SLL
       //      might be a more general segment than a DLL
@@ -159,7 +159,8 @@ final class SMGJoinMatchObjects {
     defined = true;
   }
 
-  private static SMGJoinStatus updateStatusForAbstractions(SMGObject pObj1, SMGObject pObj2, SMGJoinStatus pStatus) {
+  private static SMGJoinStatus updateStatusForAbstractions(
+      SMGObject pObj1, SMGObject pObj2, SMGJoinStatus pStatus) {
     SMGJoinStatus result = pStatus;
 
     if (pObj1.join(pObj2, pObj1.getLevel()).isMoreGeneral(pObj2)) {

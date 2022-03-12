@@ -34,7 +34,7 @@ public final class Variable implements Term {
       return false;
     }
 
-    Variable lVariable = (Variable)pOther;
+    Variable lVariable = (Variable) pOther;
 
     return mName.equals(lVariable.mName);
   }
@@ -53,5 +53,4 @@ public final class Variable implements Term {
   public <T> T accept(TermVisitor<T> pVisitor) {
     return pVisitor.visit(this);
   }
-
 }

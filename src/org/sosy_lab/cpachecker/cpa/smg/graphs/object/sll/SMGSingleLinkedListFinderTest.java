@@ -40,7 +40,8 @@ public class SMGSingleLinkedListFinderTest {
     assertThat(!candidates.isEmpty()).isTrue();
     SMGAbstractionCandidate candidate = getBestCandidate(candidates);
     assertThat(candidate).isInstanceOf(SMGSingleLinkedListCandidateSequence.class);
-    SMGSingleLinkedListCandidateSequence sllCandidate = (SMGSingleLinkedListCandidateSequence)candidate;
+    SMGSingleLinkedListCandidateSequence sllCandidate =
+        (SMGSingleLinkedListCandidateSequence) candidate;
     assertThat(sllCandidate.getLength()).isEqualTo(5);
     assertThat(sllCandidate.getCandidate().getShape().getNfo()).isEqualTo(64);
     SMGRegion expectedStart = (SMGRegion) smg.getPointer(root.getValue()).getObject();
@@ -66,7 +67,7 @@ public class SMGSingleLinkedListFinderTest {
 
     TestHelpers.createGlobalList(smg, 2, 128, 64, "pointer");
 
-    SMGSingleLinkedListFinder finder = new SMGSingleLinkedListFinder(2,2,2);
+    SMGSingleLinkedListFinder finder = new SMGSingleLinkedListFinder(2, 2, 2);
     Set<SMGAbstractionCandidate> candidates = finder.traverse(smg, null, ImmutableSet.of());
     assertThat(candidates).hasSize(1);
   }
@@ -81,10 +82,7 @@ public class SMGSingleLinkedListFinderTest {
     SMGObject inside = new SMGRegion(128, "pointed_at");
     SMGEdgeHasValue tailConnection =
         new SMGEdgeHasValue(
-            smg.getMachineModel().getSizeofInBits(CPointerType.POINTER_TO_VOID),
-            64,
-            inside,
-            tail);
+            smg.getMachineModel().getSizeofInBits(CPointerType.POINTER_TO_VOID), 64, inside, tail);
 
     SMGValue addressOfInside = SMGKnownSymValue.of();
     SMGEdgePointsTo insidePT = new SMGEdgePointsTo(addressOfInside, inside, 0);

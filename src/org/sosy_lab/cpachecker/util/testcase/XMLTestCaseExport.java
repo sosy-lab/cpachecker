@@ -36,7 +36,8 @@ public class XMLTestCaseExport {
 
     pWriter.append(
         "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n"
-            + "<!DOCTYPE test-metadata SYSTEM \"https://gitlab.com/sosy-lab/software/test-format/blob/master/test-metadata.dtd\">\n");
+            + "<!DOCTYPE test-metadata SYSTEM"
+            + " \"https://gitlab.com/sosy-lab/software/test-format/blob/master/test-metadata.dtd\">\n");
     pWriter.append("<test-metadata>\n");
 
     pWriter.append("\t<sourcecodelang>");
@@ -86,7 +87,8 @@ public class XMLTestCaseExport {
         StringBuilder strB = new StringBuilder();
         strB.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
         strB.append(
-            "<!DOCTYPE testcase SYSTEM \"https://gitlab.com/sosy-lab/software/test-format/blob/master/testcase.dtd\">\n");
+            "<!DOCTYPE testcase SYSTEM"
+                + " \"https://gitlab.com/sosy-lab/software/test-format/blob/master/testcase.dtd\">\n");
         strB.append("<testcase>\n");
         for (String value : valueList) {
           strB.append("\t<input>");

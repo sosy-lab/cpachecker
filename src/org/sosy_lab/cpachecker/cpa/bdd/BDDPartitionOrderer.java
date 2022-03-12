@@ -33,8 +33,10 @@ import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.variableclassification.Partition;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
-/** This Visitor collects a graph of dependencies of partitions.
- * They can be used for ordering variables in the BDD. */
+/**
+ * This Visitor collects a graph of dependencies of partitions. They can be used for ordering
+ * variables in the BDD.
+ */
 public class BDDPartitionOrderer {
 
   /** this graph contains all dependencies between partitions */
@@ -44,7 +46,7 @@ public class BDDPartitionOrderer {
 
   public BDDPartitionOrderer(CFA cfa) {
     assert cfa.getVarClassification().isPresent();
-    this.varClass = cfa.getVarClassification().orElseThrow();
+    varClass = cfa.getVarClassification().orElseThrow();
 
     // collect assumption, they are split-points
     CFAAssumptionCollector aCol = new CFAAssumptionCollector();
@@ -56,8 +58,10 @@ public class BDDPartitionOrderer {
     }
   }
 
-  /** This function collects some edges, that are dependent from the assumption,
-   * and puts them into the graph. */
+  /**
+   * This function collects some edges, that are dependent from the assumption, and puts them into
+   * the graph.
+   */
   private void collectDependentPartitions(CAssumeEdge assumption) {
     CFANode root = assumption.getPredecessor();
     assert root.getNumLeavingEdges() == 2 : "assumption must have 2 branches.";
@@ -69,7 +73,9 @@ public class BDDPartitionOrderer {
     Partition assPartition = varClass.getPartitionForEdge(ass1);
     assert varClass.getPartitionForEdge(ass2) == assPartition;
 
-    if (assPartition == null) { return; } // assumption is like "3==4"
+    if (assPartition == null) {
+      return;
+    } // assumption is like "3==4"
 
     // left branch
     CFAUntilSplitCollector fCol1 = new CFAUntilSplitCollector();
@@ -135,9 +141,10 @@ public class BDDPartitionOrderer {
     }
   }
 
-  /** This Visitor collects all edges reachable from the a node
-   * until a split-point (assumption) is reached.
-   * The leaving edges of the splitpoint are cllected, too. */
+  /**
+   * This Visitor collects all edges reachable from the a node until a split-point (assumption) is
+   * reached. The leaving edges of the splitpoint are cllected, too.
+   */
   private static class CFAUntilSplitCollector implements CFAVisitor {
 
     private Set<CFAEdge> edges = new LinkedHashSet<>();
@@ -165,9 +172,10 @@ public class BDDPartitionOrderer {
     }
   }
 
-
-  /** This Visitor collects all assumptionEdges from the CFA.
-   * For each assumption only the true-edge is collected. */
+  /**
+   * This Visitor collects all assumptionEdges from the CFA. For each assumption only the true-edge
+   * is collected.
+   */
   private static class CFAAssumptionCollector extends DefaultCFAVisitor {
 
     private Collection<CAssumeEdge> assumptions = new ArrayList<>();

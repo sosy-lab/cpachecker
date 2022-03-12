@@ -29,18 +29,24 @@ import org.sosy_lab.cpachecker.pcc.strategy.arg.ARGProofCheckerStrategy;
 public class PCCStrategyBuilder {
 
   @Option(
-    secure = true,
-    description =
-        "Qualified name for class which implements certification strategy, hence proof writing, to be used."
-  )
+      secure = true,
+      description =
+          "Qualified name for class which implements certification strategy, hence proof writing,"
+              + " to be used.")
   @ClassOption(
-    packagePrefix = {
-      "org.sosy_lab.cpachecker.pcc.strategy",
-      "org.sosy_lab.cpachecker.pcc.strategy.parallel"
-    }
-  )
+      packagePrefix = {
+        "org.sosy_lab.cpachecker.pcc.strategy",
+        "org.sosy_lab.cpachecker.pcc.strategy.parallel"
+      })
   private PCCStrategy.Factory strategy =
-      (config, logger, shutdownNotifier, proofFile, cfa, specification, proofChecker, propertyChecker) ->
+      (config,
+          logger,
+          shutdownNotifier,
+          proofFile,
+          cfa,
+          specification,
+          proofChecker,
+          propertyChecker) ->
           new ARGProofCheckerStrategy(config, logger, shutdownNotifier, proofFile, proofChecker);
 
   private PCCStrategyBuilder() {}
@@ -63,6 +69,13 @@ public class PCCStrategyBuilder {
         pCpa instanceof PropertyCheckerCPA ? (PropertyCheckerCPA) pCpa : null;
 
     return builder.strategy.create(
-        pConfig, pLogger, pShutdownNotifier, pProofFile, pCfa, pSpecification, proofChecker, propertyChecker);
+        pConfig,
+        pLogger,
+        pShutdownNotifier,
+        pProofFile,
+        pCfa,
+        pSpecification,
+        proofChecker,
+        propertyChecker);
   }
 }

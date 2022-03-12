@@ -37,7 +37,9 @@ public class SMGPointsToEdge implements SMGEdge, Comparable<SMGPointsToEdge> {
     targetSpecifier = pTargetSpecifier;
   }
 
-  /** @return the SMGObject this edge points to. */
+  /**
+   * @return the SMGObject this edge points to.
+   */
   public SMGObject pointsTo() {
     return pointsToObject;
   }
@@ -90,5 +92,4 @@ public class SMGPointsToEdge implements SMGEdge, Comparable<SMGPointsToEdge> {
   public void setTargetSpecifier(SMGTargetSpecifier pTargetSpecifier) {
     targetSpecifier = pTargetSpecifier;
   }
-
 }

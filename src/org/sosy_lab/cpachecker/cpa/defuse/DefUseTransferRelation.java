@@ -23,7 +23,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class DefUseTransferRelation extends SingleEdgeTransferRelation {
-  private DefUseState handleExpression(DefUseState defUseState, CStatement expression, CFAEdge cfaEdge) {
+  private DefUseState handleExpression(
+      DefUseState defUseState, CStatement expression, CFAEdge cfaEdge) {
     if (expression instanceof CAssignment) {
       CAssignment assignExpression = (CAssignment) expression;
 
@@ -38,7 +39,7 @@ public class DefUseTransferRelation extends SingleEdgeTransferRelation {
 
   private DefUseState handleDeclaration(DefUseState defUseState, CDeclarationEdge cfaEdge) {
     if (cfaEdge.getDeclaration() instanceof CVariableDeclaration) {
-      CVariableDeclaration decl = (CVariableDeclaration)cfaEdge.getDeclaration();
+      CVariableDeclaration decl = (CVariableDeclaration) cfaEdge.getDeclaration();
       CInitializer initializer = decl.getInitializer();
       if (initializer != null) {
         String varName = decl.getName();
@@ -52,25 +53,26 @@ public class DefUseTransferRelation extends SingleEdgeTransferRelation {
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
-      AbstractState element, Precision prec, CFAEdge cfaEdge)
-          throws CPATransferException {
+      AbstractState element, Precision prec, CFAEdge cfaEdge) throws CPATransferException {
     DefUseState defUseState = (DefUseState) element;
 
     switch (cfaEdge.getEdgeType()) {
-    case StatementEdge: {
-      CStatementEdge statementEdge = (CStatementEdge) cfaEdge;
-      CStatement expression = statementEdge.getStatement();
-      defUseState = handleExpression(defUseState, expression, cfaEdge);
-      break;
-    }
-    case DeclarationEdge: {
-      CDeclarationEdge declarationEdge = (CDeclarationEdge) cfaEdge;
-      defUseState = handleDeclaration(defUseState, declarationEdge);
-      break;
-    }
-    default:
-      // not relevant for def-use
-      break;
+      case StatementEdge:
+        {
+          CStatementEdge statementEdge = (CStatementEdge) cfaEdge;
+          CStatement expression = statementEdge.getStatement();
+          defUseState = handleExpression(defUseState, expression, cfaEdge);
+          break;
+        }
+      case DeclarationEdge:
+        {
+          CDeclarationEdge declarationEdge = (CDeclarationEdge) cfaEdge;
+          defUseState = handleDeclaration(defUseState, declarationEdge);
+          break;
+        }
+      default:
+        // not relevant for def-use
+        break;
     }
 
     return Collections.singleton(defUseState);

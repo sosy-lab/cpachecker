@@ -17,9 +17,7 @@ import org.sosy_lab.cpachecker.core.algorithm.residualprogram.TestGoalToConditio
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-/**
- * A strategy to determine all (un)covered nodes we eventually wil generate our condition from.
- */
+/** A strategy to determine all (un)covered nodes we eventually wil generate our condition from. */
 public interface IGoalFindingStrategy {
   /**
    * Finds all goals that are interesting for our analysis.
@@ -27,6 +25,7 @@ public interface IGoalFindingStrategy {
    * @param pWaitlist A list of all exit nodes of the program.
    * @return A map of all intersting goals, partitioned into covered/ not covered.
    */
-  Map<LeafStates, List<CFANode>> findGoals(Deque<ARGState> pWaitlist, final Set<String> coveredGoals)
+  Map<LeafStates, List<CFANode>> findGoals(
+      Deque<ARGState> pWaitlist, final Set<String> coveredGoals)
       throws CPAException, InterruptedException;
 }

@@ -14,8 +14,8 @@ import java.util.Deque;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 /**
- * Waitlist implementation that supports either a breadth-first (BFS) or
- * depth-first (DFS) strategy for pop().
+ * Waitlist implementation that supports either a breadth-first (BFS) or depth-first (DFS) strategy
+ * for pop().
  */
 public class SimpleWaitlist extends AbstractWaitlist<Deque<AbstractState>> {
 
@@ -23,21 +23,22 @@ public class SimpleWaitlist extends AbstractWaitlist<Deque<AbstractState>> {
 
   protected SimpleWaitlist(TraversalMethod pTraversal) {
     super(new ArrayDeque<>());
-    Preconditions.checkArgument(pTraversal == TraversalMethod.BFS || pTraversal == TraversalMethod.DFS);
+    Preconditions.checkArgument(
+        pTraversal == TraversalMethod.BFS || pTraversal == TraversalMethod.DFS);
     traversal = pTraversal;
   }
 
   @Override
   public AbstractState pop() {
     switch (traversal) {
-    case BFS:
-      return waitlist.removeFirst();
+      case BFS:
+        return waitlist.removeFirst();
 
-    case DFS:
-      return waitlist.removeLast();
+      case DFS:
+        return waitlist.removeLast();
 
-    default:
-      throw new AssertionError();
+      default:
+        throw new AssertionError();
     }
   }
 }

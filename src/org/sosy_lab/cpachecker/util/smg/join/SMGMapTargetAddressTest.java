@@ -80,14 +80,7 @@ public class SMGMapTargetAddressTest extends SMGJoinTest0 {
 
     SMGMapTargetAddress mta =
         new SMGMapTargetAddress(
-            SMGJoinStatus.EQUAL,
-            smg1,
-            smg1,
-            destSMG,
-            mapping1,
-            mapping1,
-            value1,
-            value1);
+            SMGJoinStatus.EQUAL, smg1, smg1, destSMG, mapping1, mapping1, value1, value1);
     assertThat(mta.getDestinationSMG()).isEqualTo(destSMG);
     assertThat(mta.mapping1).isEqualTo(origMapping1);
     assertThat(mta.getValue()).isSameInstanceAs(destValue);
@@ -108,14 +101,7 @@ public class SMGMapTargetAddressTest extends SMGJoinTest0 {
 
     SMGMapTargetAddress mta =
         new SMGMapTargetAddress(
-            SMGJoinStatus.EQUAL,
-            smg1,
-            smg1,
-            destSMG,
-            mapping1,
-            mapping2,
-            value1,
-            value2);
+            SMGJoinStatus.EQUAL, smg1, smg1, destSMG, mapping1, mapping2, value1, value2);
     assertThat(mta.getDestinationSMG()).isNotEqualTo(destSMG);
     assertThat(mta.mapping1).isNotEqualTo(origMapping1);
     assertThat(mta.mapping2).isNotEqualTo(origMapping2);

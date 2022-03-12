@@ -51,7 +51,8 @@ public final class Add<ConstantType> extends AbstractBinaryFormula<ConstantType>
 
   @Override
   public <ReturnType, ParamType> ReturnType accept(
-      ParameterizedNumeralFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
+      ParameterizedNumeralFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor,
+      ParamType pParameter) {
     return pVisitor.visit(this, pParameter);
   }
 
@@ -60,11 +61,10 @@ public final class Add<ConstantType> extends AbstractBinaryFormula<ConstantType>
    *
    * @param pSummand1 the first summand.
    * @param pSummand2 the second summand.
-   *
    * @return the sum of the given formulae.
    */
-  static <ConstantType> Add<ConstantType> of(NumeralFormula<ConstantType> pSummand1, NumeralFormula<ConstantType> pSummand2) {
+  static <ConstantType> Add<ConstantType> of(
+      NumeralFormula<ConstantType> pSummand1, NumeralFormula<ConstantType> pSummand2) {
     return new Add<>(pSummand1, pSummand2);
   }
-
 }

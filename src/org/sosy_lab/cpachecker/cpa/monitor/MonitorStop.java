@@ -21,14 +21,15 @@ public class MonitorStop implements StopOperator {
   private final ConfigurableProgramAnalysis wrappedCpa;
 
   public MonitorStop(ConfigurableProgramAnalysis cpa) {
-    this.wrappedCpa = cpa;
+    wrappedCpa = cpa;
   }
 
   @Override
-  public boolean stop(AbstractState pElement,
-      Collection<AbstractState> pReached, Precision pPrecision) throws CPAException, InterruptedException {
+  public boolean stop(
+      AbstractState pElement, Collection<AbstractState> pReached, Precision pPrecision)
+      throws CPAException, InterruptedException {
 
-    MonitorState monitorState = (MonitorState)pElement;
+    MonitorState monitorState = (MonitorState) pElement;
     if (monitorState.mustDumpAssumptionForAvoidance()) {
       return false;
     }
@@ -38,7 +39,7 @@ public class MonitorStop implements StopOperator {
 
     for (AbstractState reachedState : pReached) {
 
-      MonitorState monitorReachedState = (MonitorState)reachedState;
+      MonitorState monitorReachedState = (MonitorState) reachedState;
       if (monitorReachedState.mustDumpAssumptionForAvoidance()) {
         return false;
       }

@@ -83,11 +83,16 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
         String name =
             String.format("%03d-%03d-after-stack-abstraction", result.getId(), newState.getId());
         String description = "after-stack-abstraction-of-smg-" + result.getId();
-        SMGUtils.plotWhenConfigured(name, newState, description, logger,
-            SMGExportLevel.EVERY, exportOptions);
+        SMGUtils.plotWhenConfigured(
+            name, newState, description, logger, SMGExportLevel.EVERY, exportOptions);
 
         result = newState;
-        logger.log(Level.ALL, "Precision adjustment on node ", node.getNodeNumber(), " with result state id: ", result.getId());
+        logger.log(
+            Level.ALL,
+            "Precision adjustment on node ",
+            node.getNodeNumber(),
+            " with result state id: ",
+            result.getId());
       }
     }
 
@@ -97,14 +102,19 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
           newState.forgetNonTrackedHve(pPrecision.getTrackedMemoryPathsOnNode(node));
 
       if (fieldAbstractionChange) {
-        String name = String.format("%03d-%03d-after-field-abstraction", result.getId(), newState.getId());
+        String name =
+            String.format("%03d-%03d-after-field-abstraction", result.getId(), newState.getId());
         String description = "after-field-abstraction-of-smg-" + result.getId();
-        SMGUtils.plotWhenConfigured(name, newState, description, logger,
-            SMGExportLevel.EVERY, exportOptions);
+        SMGUtils.plotWhenConfigured(
+            name, newState, description, logger, SMGExportLevel.EVERY, exportOptions);
 
         result = newState;
-        logger.log(Level.ALL, "Precision adjustment on node ", node.getNodeNumber(),
-             " with result state id: ", result.getId());
+        logger.log(
+            Level.ALL,
+            "Precision adjustment on node ",
+            node.getNodeNumber(),
+            " with result state id: ",
+            result.getId());
       }
     }
 
@@ -118,12 +128,16 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
         String name2 = String.format("%03d-after-heap-abstraction", result.getId());
         String description = "before-heap-abstraction-of-smg-" + result.getId();
         String description2 = "after-heap-abstraction-of-smg-" + result.getId();
-        SMGUtils.plotWhenConfigured(name, result, description, logger,
-            SMGExportLevel.EVERY, exportOptions);
-        SMGUtils.plotWhenConfigured(name2, newState, description2, logger,
-            SMGExportLevel.EVERY, exportOptions);
-        logger.log(Level.ALL, "Heap abstraction on node ", node.getNodeNumber(),
-            " with state id: ", pState.getId());
+        SMGUtils.plotWhenConfigured(
+            name, result, description, logger, SMGExportLevel.EVERY, exportOptions);
+        SMGUtils.plotWhenConfigured(
+            name2, newState, description2, logger, SMGExportLevel.EVERY, exportOptions);
+        logger.log(
+            Level.ALL,
+            "Heap abstraction on node ",
+            node.getNodeNumber(),
+            " with state id: ",
+            pState.getId());
         result = newState;
       }
     }

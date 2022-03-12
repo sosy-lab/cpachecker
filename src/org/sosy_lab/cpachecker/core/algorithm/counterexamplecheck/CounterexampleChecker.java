@@ -15,14 +15,14 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 /**
  * Interface for components that can verify the feasibility of a counterexample.
  *
- * A counterexample is a finite set of loop-free paths in the ARG that form a
- * DAG with a single source (the root state of the ARG) and a single sink
- * (the target state).
+ * <p>A counterexample is a finite set of loop-free paths in the ARG that form a DAG with a single
+ * source (the root state of the ARG) and a single sink (the target state).
  */
 public interface CounterexampleChecker {
 
   /**
    * Check feasibility of counterexample.
+   *
    * @param rootState The source of the counterexample paths.
    * @param errorState The sink of the counterexample paths.
    * @param errorPathStates All state that belong to the counterexample paths.
@@ -30,8 +30,7 @@ public interface CounterexampleChecker {
    * @throws CPAException If something goes wrong.
    * @throws InterruptedException If the thread was interrupted.
    */
-  boolean checkCounterexample(ARGState rootState, ARGState errorState,
-            Set<ARGState> errorPathStates)
-            throws CPAException, InterruptedException;
-
+  boolean checkCounterexample(
+      ARGState rootState, ARGState errorState, Set<ARGState> errorPathStates)
+      throws CPAException, InterruptedException;
 }

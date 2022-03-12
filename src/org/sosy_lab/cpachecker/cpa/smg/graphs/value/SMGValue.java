@@ -35,12 +35,12 @@ public interface SMGValue extends Comparable<SMGValue> {
   default int compareTo(SMGValue other) {
 
     // UNKNOWN
-    if (this.isUnknown()) {
+    if (isUnknown()) {
       return other.isUnknown() ? 0 : -1;
     }
 
     // ZERO
-    if (this.isZero()) {
+    if (isZero()) {
       if (other.isUnknown()) {
         return 1;
       } else if (other.isZero()) {
@@ -55,7 +55,9 @@ public interface SMGValue extends Comparable<SMGValue> {
       if (other.isUnknown() || other.isZero()) {
         return 1;
       } else if (other instanceof SMGExplicitValue) {
-        return ((SMGExplicitValue) this).getValue().compareTo(((SMGExplicitValue) other).getValue());
+        return ((SMGExplicitValue) this)
+            .getValue()
+            .compareTo(((SMGExplicitValue) other).getValue());
       } else {
         return -1;
       }

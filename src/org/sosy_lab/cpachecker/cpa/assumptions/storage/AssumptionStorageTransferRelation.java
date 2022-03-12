@@ -29,9 +29,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-/**
- * Transfer relation and strengthening for the DumpInvariant CPA
- */
+/** Transfer relation and strengthening for the DumpInvariant CPA */
 public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelation {
 
   private final CtoFormulaConverter converter;
@@ -39,8 +37,8 @@ public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelatio
 
   private final Collection<AbstractState> topStateSet;
 
-  public AssumptionStorageTransferRelation(CtoFormulaConverter pConverter,
-      FormulaManagerView pFormulaManager, AbstractState pTopState) {
+  public AssumptionStorageTransferRelation(
+      CtoFormulaConverter pConverter, FormulaManagerView pFormulaManager, AbstractState pTopState) {
     converter = pConverter;
     formulaManager = pFormulaManager;
     topStateSet = Collections.singleton(pTopState);
@@ -49,7 +47,7 @@ public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelatio
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge) {
-    AssumptionStorageState element = (AssumptionStorageState)pElement;
+    AssumptionStorageState element = (AssumptionStorageState) pElement;
 
     // If we must stop, then let's stop by returning an empty set
     if (element.isStop()) {
@@ -63,7 +61,7 @@ public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelatio
   public Collection<? extends AbstractState> strengthen(
       AbstractState el, Iterable<AbstractState> others, CFAEdge edge, Precision p)
       throws CPATransferException, InterruptedException {
-    AssumptionStorageState asmptStorageElem = (AssumptionStorageState)el;
+    AssumptionStorageState asmptStorageElem = (AssumptionStorageState) el;
     return Collections.singleton(strengthen(asmptStorageElem, others, edge));
   }
 
@@ -88,15 +86,16 @@ public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelatio
 
     for (AbstractState element : AbstractStates.asFlatIterable(pOthers)) {
       if (element instanceof AssumptionReportingState) {
-        List<CExpression> assumptions = ((AssumptionReportingState)element).getAssumptions();
+        List<CExpression> assumptions = ((AssumptionReportingState) element).getAssumptions();
         for (CExpression inv : assumptions) {
-          BooleanFormula invFormula = converter.makePredicate(inv, pEdge, function, SSAMap.emptySSAMap().builder());
+          BooleanFormula invFormula =
+              converter.makePredicate(inv, pEdge, function, SSAMap.emptySSAMap().builder());
           assumption = bfmgr.and(assumption, formulaManager.uninstantiate(invFormula));
         }
       }
 
       if (element instanceof AvoidanceReportingState) {
-        AvoidanceReportingState e = (AvoidanceReportingState)element;
+        AvoidanceReportingState e = (AvoidanceReportingState) element;
 
         if (e.mustDumpAssumptionForAvoidance()) {
           stopFormula = bfmgr.or(stopFormula, e.getReasonFormula(formulaManager));

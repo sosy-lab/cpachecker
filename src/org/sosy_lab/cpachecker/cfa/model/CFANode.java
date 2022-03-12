@@ -102,8 +102,8 @@ public class CFANode implements Comparable<CFANode>, Serializable {
 
   public void removeLeavingEdge(CFAEdge pEdge) {
     boolean removed = leavingEdges.remove(pEdge);
-    checkArgument(removed,
-        "Cannot remove non-existing leaving edge \"%s\" from node %s", pEdge, this);
+    checkArgument(
+        removed, "Cannot remove non-existing leaving edge \"%s\" from node %s", pEdge, this);
   }
 
   public int getNumLeavingEdges() {
@@ -125,8 +125,8 @@ public class CFANode implements Comparable<CFANode>, Serializable {
 
   public void removeEnteringEdge(CFAEdge pEdge) {
     boolean removed = enteringEdges.remove(pEdge);
-    checkArgument(removed,
-        "Cannot remove non-existing entering edge \"%s\" from node %s", pEdge, this);
+    checkArgument(
+        removed, "Cannot remove non-existing entering edge \"%s\" from node %s", pEdge, this);
   }
 
   public int getNumEnteringEdges() {
@@ -183,8 +183,8 @@ public class CFANode implements Comparable<CFANode>, Serializable {
   }
 
   public void addEnteringSummaryEdge(FunctionSummaryEdge pEdge) {
-    checkState(enteringSummaryEdge == null,
-        "Cannot add two entering summary edges to node %s", this);
+    checkState(
+        enteringSummaryEdge == null, "Cannot add two entering summary edges to node %s", this);
     enteringSummaryEdge = pEdge;
   }
 
@@ -226,7 +226,7 @@ public class CFANode implements Comparable<CFANode>, Serializable {
 
   @Override
   public final int compareTo(CFANode pOther) {
-    return Integer.compare(this.nodeNumber, pOther.nodeNumber);
+    return Integer.compare(nodeNumber, pOther.nodeNumber);
   }
 
   @Override
@@ -244,25 +244,27 @@ public class CFANode implements Comparable<CFANode>, Serializable {
   }
 
   /**
-   * Return a human-readable string describing to which point in the program
-   * this state belongs to.
+   * Return a human-readable string describing to which point in the program this state belongs to.
    * Returns the empty string if no suitable description can be found.
    *
-   * Normally CFANodes do not belong to a file location,
-   * so this should be used only as a best-effort guess to give a user
-   * at least something to hold on.
-   * Whenever possible, use the file locations of edges instead.
+   * <p>Normally CFANodes do not belong to a file location, so this should be used only as a
+   * best-effort guess to give a user at least something to hold on. Whenever possible, use the file
+   * locations of edges instead.
    */
   public String describeFileLocation() {
     if (this instanceof FunctionEntryNode) {
-      return "entry of function " + getFunctionName()
-          + " in " + ((FunctionEntryNode)this).getFileLocation();
+      return "entry of function "
+          + getFunctionName()
+          + " in "
+          + ((FunctionEntryNode) this).getFileLocation();
     }
 
     if (this instanceof FunctionExitNode) {
       // these nodes do not belong to a location
-      return "exit of function " + getFunctionName()
-          + " in " + ((FunctionExitNode)this).getEntryNode().getFileLocation();
+      return "exit of function "
+          + getFunctionName()
+          + " in "
+          + ((FunctionExitNode) this).getEntryNode().getFileLocation();
     }
 
     if (getNumLeavingEdges() > 0) {

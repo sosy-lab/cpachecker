@@ -18,8 +18,8 @@ public class RestrictedProgramDomainAlgorithm implements Algorithm {
   private final CFA cfa;
 
   public RestrictedProgramDomainAlgorithm(Algorithm pAlgorithm, CFA pCfa) {
-    this.innerAlgorithm = pAlgorithm;
-    this.cfa = pCfa;
+    innerAlgorithm = pAlgorithm;
+    cfa = pCfa;
   }
 
   @Override

@@ -6,7 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * This package related to refinement process of obtained potential race conditions
- */
+/** This package related to refinement process of obtained potential race conditions */
 package org.sosy_lab.cpachecker.cpa.usage.refinement;

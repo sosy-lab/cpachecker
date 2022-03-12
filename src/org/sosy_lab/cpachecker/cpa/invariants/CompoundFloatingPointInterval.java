@@ -17,7 +17,7 @@ public class CompoundFloatingPointInterval implements CompoundInterval, Floating
   private final FloatingPointTypeInfo typeInfo;
 
   public CompoundFloatingPointInterval(FloatingPointTypeInfo pTypeInfo) {
-    this.typeInfo = pTypeInfo;
+    typeInfo = pTypeInfo;
   }
 
   @Override

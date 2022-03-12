@@ -63,21 +63,29 @@ import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
-/**
- * This class can check feasibility of a simple path using an SMT solver.
- */
-@Options(prefix="counterexample.export", deprecatedPrefix="cpa.predicate")
+/** This class can check feasibility of a simple path using an SMT solver. */
+@Options(prefix = "counterexample.export", deprecatedPrefix = "cpa.predicate")
 public class PathChecker {
 
-  @Option(secure=true, name="formula", deprecatedName="dumpCounterexampleFormula",
-      description="where to dump the counterexample formula in case a specification violation is found")
+  @Option(
+      secure = true,
+      name = "formula",
+      deprecatedName = "dumpCounterexampleFormula",
+      description =
+          "where to dump the counterexample formula in case a specification violation is found")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate dumpCounterexampleFormula = PathTemplate.ofFormatString("Counterexample.%d.smt2");
+  private PathTemplate dumpCounterexampleFormula =
+      PathTemplate.ofFormatString("Counterexample.%d.smt2");
 
-  @Option(secure=true, name="model", deprecatedName="dumpCounterexampleModel",
-      description="where to dump the counterexample model in case a specification violation is found")
+  @Option(
+      secure = true,
+      name = "model",
+      deprecatedName = "dumpCounterexampleModel",
+      description =
+          "where to dump the counterexample model in case a specification violation is found")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate dumpCounterexampleModel = PathTemplate.ofFormatString("Counterexample.%d.assignment.txt");
+  private PathTemplate dumpCounterexampleModel =
+      PathTemplate.ofFormatString("Counterexample.%d.assignment.txt");
 
   @Option(
       secure = true,
@@ -101,13 +109,20 @@ public class PathChecker {
   private final Solver solver;
   private final AssignmentToPathAllocator assignmentToPathAllocator;
 
-  public PathChecker(Configuration pConfig,
+  public PathChecker(
+      Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       MachineModel pMachineModel,
       PathFormulaManager pPmgr,
-      Solver pSolver) throws InvalidConfigurationException {
-    this(pConfig, pLogger, pPmgr, pSolver, new AssignmentToPathAllocator(pConfig, pShutdownNotifier, pLogger, pMachineModel));
+      Solver pSolver)
+      throws InvalidConfigurationException {
+    this(
+        pConfig,
+        pLogger,
+        pPmgr,
+        pSolver,
+        new AssignmentToPathAllocator(pConfig, pShutdownNotifier, pLogger, pMachineModel));
   }
 
   public PathChecker(
@@ -115,17 +130,20 @@ public class PathChecker {
       LogManager pLogger,
       PathFormulaManager pPmgr,
       Solver pSolver,
-      AssignmentToPathAllocator pAssignmentToPathAllocator) throws InvalidConfigurationException {
-    this.logger = pLogger;
-    this.pmgr = pPmgr;
-    this.solver = pSolver;
-    this.assignmentToPathAllocator = pAssignmentToPathAllocator;
+      AssignmentToPathAllocator pAssignmentToPathAllocator)
+      throws InvalidConfigurationException {
+    logger = pLogger;
+    pmgr = pPmgr;
+    solver = pSolver;
+    assignmentToPathAllocator = pAssignmentToPathAllocator;
     pConfig.inject(this);
   }
 
-  public CounterexampleInfo handleFeasibleCounterexample(final ARGPath allStatesTrace,
-      CounterexampleTraceInfo counterexample, boolean branchingOccurred)
-          throws InterruptedException {
+  public CounterexampleInfo handleFeasibleCounterexample(
+      final ARGPath allStatesTrace,
+      CounterexampleTraceInfo counterexample,
+      boolean branchingOccurred)
+      throws InterruptedException {
     ARGPath targetPath;
 
     if (alwaysUseImpreciseCounterexamples) {
@@ -163,11 +181,10 @@ public class PathChecker {
   }
 
   /**
-   * Create a {@link CounterexampleInfo} object for a given counterexample.
-   * The path will be checked again with an SMT solver to extract a model
-   * that is as precise and simple as possible.
-   * We assume that one additional SMT query will not cause too much overhead.
-   * If the double-check fails, an imprecise result is returned.
+   * Create a {@link CounterexampleInfo} object for a given counterexample. The path will be checked
+   * again with an SMT solver to extract a model that is as precise and simple as possible. We
+   * assume that one additional SMT query will not cause too much overhead. If the double-check
+   * fails, an imprecise result is returned.
    *
    * @param precisePath The precise ARGPath that represents the counterexample.
    * @param pInfo More information about the counterexample
@@ -179,21 +196,22 @@ public class PathChecker {
     CFAPathWithAssumptions pathWithAssignments;
     CounterexampleTraceInfo preciseInfo;
     try {
-        Pair<CounterexampleTraceInfo, CFAPathWithAssumptions> replayedPathResult =
-            checkPath(precisePath);
+      Pair<CounterexampleTraceInfo, CFAPathWithAssumptions> replayedPathResult =
+          checkPath(precisePath);
 
-        if (replayedPathResult.getFirst().isSpurious()) {
-          logger.log(Level.WARNING, "Inconsistent replayed error path!");
-          logger.log(Level.WARNING, "The satisfying assignment may be imprecise!");
-          return createImpreciseCounterexample(precisePath, pInfo);
+      if (replayedPathResult.getFirst().isSpurious()) {
+        logger.log(Level.WARNING, "Inconsistent replayed error path!");
+        logger.log(Level.WARNING, "The satisfying assignment may be imprecise!");
+        return createImpreciseCounterexample(precisePath, pInfo);
 
-        } else {
-          preciseInfo = replayedPathResult.getFirst();
-          pathWithAssignments = replayedPathResult.getSecond();
-        }
+      } else {
+        preciseInfo = replayedPathResult.getFirst();
+        pathWithAssignments = replayedPathResult.getSecond();
+      }
     } catch (SolverException | CPATransferException e) {
       // path is now suddenly a problem
-      logger.logUserException(Level.WARNING, e, "Could not replay error path to get a more precise model");
+      logger.logUserException(
+          Level.WARNING, e, "Could not replay error path to get a more precise model");
       logger.log(Level.WARNING, "The satisfying assignment may be imprecise!");
       return createImpreciseCounterexample(precisePath, pInfo);
     }
@@ -205,8 +223,8 @@ public class PathChecker {
   }
 
   /**
-   * Create a {@link CounterexampleInfo} object for a given counterexample.
-   * Use this method if a precise {@link ARGPath} for the counterexample could not be constructed.
+   * Create a {@link CounterexampleInfo} object for a given counterexample. Use this method if a
+   * precise {@link ARGPath} for the counterexample could not be constructed.
    *
    * @param imprecisePath Some ARGPath that is related to the counterexample.
    * @param pInfo More information about the counterexample
@@ -222,8 +240,7 @@ public class PathChecker {
               + "set counterexample.export.allowImpreciseCounterexamples=true. "
               + "Otherwise please report this as a bug.");
     }
-    CounterexampleInfo cex =
-        CounterexampleInfo.feasibleImprecise(imprecisePath);
+    CounterexampleInfo cex = CounterexampleInfo.feasibleImprecise(imprecisePath);
     if (!alwaysUseImpreciseCounterexamples) {
       addCounterexampleFormula(pInfo, cex);
       addCounterexampleModel(pInfo, cex);
@@ -361,7 +378,9 @@ public class PathChecker {
     try {
       return thmProver.getModelAssignments();
     } catch (SolverException e) {
-      logger.log(Level.WARNING, "Solver could not produce model, variable assignment of error path can not be dumped.");
+      logger.log(
+          Level.WARNING,
+          "Solver could not produce model, variable assignment of error path can not be dumped.");
       logger.logDebugException(e);
       return ImmutableList.of();
     }

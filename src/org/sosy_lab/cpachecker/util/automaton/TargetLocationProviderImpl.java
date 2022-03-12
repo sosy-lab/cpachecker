@@ -40,9 +40,7 @@ public class TargetLocationProviderImpl implements TargetLocationProvider {
   private final ImmutableSet<CFANode> allNodes;
 
   public TargetLocationProviderImpl(
-      ShutdownNotifier pShutdownNotifier,
-      LogManager pLogManager,
-      CFA pCfa) {
+      ShutdownNotifier pShutdownNotifier, LogManager pLogManager, CFA pCfa) {
     shutdownNotifier = pShutdownNotifier;
     logManager = pLogManager.withComponentName("TargetLocationProvider");
     cfa = pCfa;
@@ -59,14 +57,16 @@ public class TargetLocationProviderImpl implements TargetLocationProvider {
       Configuration configuration = configurationBuilder.build();
 
       ReachedSetFactory reachedSetFactory = new ReachedSetFactory(configuration, logManager);
-      CPABuilder cpaBuilder = new CPABuilder(configuration, logManager, shutdownNotifier, reachedSetFactory);
+      CPABuilder cpaBuilder =
+          new CPABuilder(configuration, logManager, shutdownNotifier, reachedSetFactory);
       final ConfigurableProgramAnalysis cpa =
           cpaBuilder.buildCPAs(cfa, specification, AggregatedReachedSets.empty());
 
       ReachedSet reached =
           reachedSetFactory.createAndInitialize(
               cpa, pRootNode, StateSpacePartition.getDefaultPartition());
-      CPAAlgorithm targetFindingAlgorithm = CPAAlgorithm.create(cpa, logManager, configuration, shutdownNotifier);
+      CPAAlgorithm targetFindingAlgorithm =
+          CPAAlgorithm.create(cpa, logManager, configuration, shutdownNotifier);
       try {
 
         while (reached.hasWaitingState()) {
@@ -93,14 +93,22 @@ public class TargetLocationProviderImpl implements TargetLocationProvider {
       logManager.logUserException(
           Level.INFO,
           e,
-          "Unable to find precise set of target locations. Defaulting to selecting all locations as potential target locations.");
+          "Unable to find precise set of target locations. Defaulting to selecting all locations as"
+              + " potential target locations.");
       return allNodes;
 
     } catch (CPAException e) {
       if (!e.toString().toLowerCase().contains("recursion")) {
-        logManager.logUserException(Level.WARNING, e, "Unable to find target locations. Defaulting to selecting all locations as potential target locations.");
+        logManager.logUserException(
+            Level.WARNING,
+            e,
+            "Unable to find target locations. Defaulting to selecting all locations as potential"
+                + " target locations.");
       } else {
-        logManager.log(Level.INFO, "Recursion detected. Defaulting to selecting all locations as potential target locations.");
+        logManager.log(
+            Level.INFO,
+            "Recursion detected. Defaulting to selecting all locations as potential target"
+                + " locations.");
         logManager.logDebugException(e);
       }
 
@@ -111,13 +119,15 @@ public class TargetLocationProviderImpl implements TargetLocationProvider {
         logManager.logException(
             Level.WARNING,
             e,
-            "Unable to find target locations. Defaulting to selecting all locations as potential target locations.");
+            "Unable to find target locations. Defaulting to selecting all locations as potential"
+                + " target locations.");
       } else {
         // can happen, if several algorithms are executed in parallel,
         // one of them finishes earlier and kills the other one.
         logManager.log(
             Level.WARNING,
-            "Finding target locations was interrupted. Defaulting to select all locations as potential target locations.");
+            "Finding target locations was interrupted. Defaulting to select all locations as"
+                + " potential target locations.");
       }
       return allNodes;
     }

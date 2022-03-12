@@ -21,13 +21,17 @@ import org.sosy_lab.cpachecker.cpa.invariants.Typed;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
- * Instances of this class are visitors for compound state invariants formulae
- * which are used to evaluate the visited formulae to compound states. This
- * visitor deliberately uses a weaker evaluation strategy than a
- * {@link FormulaCompoundStateEvaluationVisitor} in order to enable the CPA
- * strategy to prevent infeasible interpretation of the analyzed code.
+ * Instances of this class are visitors for compound state invariants formulae which are used to
+ * evaluate the visited formulae to compound states. This visitor deliberately uses a weaker
+ * evaluation strategy than a {@link FormulaCompoundStateEvaluationVisitor} in order to enable the
+ * CPA strategy to prevent infeasible interpretation of the analyzed code.
  */
-public class FormulaAbstractionVisitor extends DefaultParameterizedNumeralFormulaVisitor<CompoundInterval, Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>>, CompoundInterval> implements FormulaEvaluationVisitor<CompoundInterval> {
+public class FormulaAbstractionVisitor
+    extends DefaultParameterizedNumeralFormulaVisitor<
+        CompoundInterval,
+        Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>>,
+        CompoundInterval>
+    implements FormulaEvaluationVisitor<CompoundInterval> {
 
   private final FormulaCompoundStateEvaluationVisitor evaluationVisitor;
 
@@ -47,7 +51,9 @@ public class FormulaAbstractionVisitor extends DefaultParameterizedNumeralFormul
   }
 
   @Override
-  public CompoundInterval visit(Add<CompoundInterval> pAdd, Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+  public CompoundInterval visit(
+      Add<CompoundInterval> pAdd,
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     return weakAdd(
         pAdd.getTypeInfo(),
         pAdd.getSummand1().accept(evaluationVisitor, pEnvironment),
@@ -55,12 +61,16 @@ public class FormulaAbstractionVisitor extends DefaultParameterizedNumeralFormul
   }
 
   @Override
-  public CompoundInterval visit(Constant<CompoundInterval> pConstant, Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+  public CompoundInterval visit(
+      Constant<CompoundInterval> pConstant,
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     return pConstant.getValue();
   }
 
   @Override
-  public CompoundInterval visit(Multiply<CompoundInterval> pMultiply, Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+  public CompoundInterval visit(
+      Multiply<CompoundInterval> pMultiply,
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     return weakMultiply(
         pMultiply.getTypeInfo(),
         pMultiply.getFactor1().accept(this, pEnvironment),
@@ -68,10 +78,13 @@ public class FormulaAbstractionVisitor extends DefaultParameterizedNumeralFormul
   }
 
   @Override
-  public CompoundInterval visit(ShiftLeft<CompoundInterval> pShiftLeft, Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+  public CompoundInterval visit(
+      ShiftLeft<CompoundInterval> pShiftLeft,
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     CompoundInterval toShift = pShiftLeft.getShifted().accept(this, pEnvironment);
     CompoundInterval shiftDistance = pShiftLeft.getShiftDistance().accept(this, pEnvironment);
-    CompoundInterval evaluation = getCompoundIntervalManager(pShiftLeft).shiftLeft(toShift, shiftDistance);
+    CompoundInterval evaluation =
+        getCompoundIntervalManager(pShiftLeft).shiftLeft(toShift, shiftDistance);
     if (!shiftDistance.containsPositive()) {
       return evaluation;
     }
@@ -79,7 +92,9 @@ public class FormulaAbstractionVisitor extends DefaultParameterizedNumeralFormul
   }
 
   @Override
-  public CompoundInterval visit(Variable<CompoundInterval> pVariable, Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+  public CompoundInterval visit(
+      Variable<CompoundInterval> pVariable,
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     NumeralFormula<CompoundInterval> varState = pEnvironment.get(pVariable.getMemoryLocation());
     if (varState == null) {
       return getCompoundIntervalManager(pVariable).allPossibleValues();
@@ -88,7 +103,8 @@ public class FormulaAbstractionVisitor extends DefaultParameterizedNumeralFormul
   }
 
   @Override
-  protected CompoundInterval visitDefault(NumeralFormula<CompoundInterval> pFormula,
+  protected CompoundInterval visitDefault(
+      NumeralFormula<CompoundInterval> pFormula,
       Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pParam) {
     return abstractionOf(pFormula.getTypeInfo(), pFormula.accept(evaluationVisitor, pParam));
   }
@@ -114,17 +130,15 @@ public class FormulaAbstractionVisitor extends DefaultParameterizedNumeralFormul
   }
 
   /**
-   * Compute a compound state representing possible results of adding the
-   * given summand compound states up. This method provides a much weaker
-   * implementation of compound state addition than using the methods from
-   * {@link CompoundBitVectorInterval} or {@link CompoundMathematicalInterval}
-   * and will thus usually return a much larger result range.
+   * Compute a compound state representing possible results of adding the given summand compound
+   * states up. This method provides a much weaker implementation of compound state addition than
+   * using the methods from {@link CompoundBitVectorInterval} or {@link
+   * CompoundMathematicalInterval} and will thus usually return a much larger result range.
    *
    * @param pTypeInfo the type information.
    * @param pA the first summand.
    * @param pB the second summand.
-   * @return a state representing possible results of adding the given summand
-   * compound states up.
+   * @return a state representing possible results of adding the given summand compound states up.
    */
   private CompoundInterval weakAdd(TypeInfo pTypeInfo, CompoundInterval pA, CompoundInterval pB) {
     if (pA.isSingleton() && pA.contains(BigInteger.ZERO)) {
@@ -137,17 +151,15 @@ public class FormulaAbstractionVisitor extends DefaultParameterizedNumeralFormul
   }
 
   /**
-   * Compute a compound state representing possible results of multiplying the
-   * given factor compound states. This method provides a much weaker
-   * implementation of compound state addition than using the methods from
-   * {@link CompoundBitVectorInterval} or {@link CompoundMathematicalInterval}
-   * and will thus usually return a much larger result range.
+   * Compute a compound state representing possible results of multiplying the given factor compound
+   * states. This method provides a much weaker implementation of compound state addition than using
+   * the methods from {@link CompoundBitVectorInterval} or {@link CompoundMathematicalInterval} and
+   * will thus usually return a much larger result range.
    *
    * @param pTypeInfo the type information.
    * @param a the first factor.
    * @param b the second factor.
-   * @return a state representing possible results of multiplying the given
-   * factor compound states.
+   * @return a state representing possible results of multiplying the given factor compound states.
    */
   private CompoundInterval weakMultiply(
       TypeInfo pTypeInfo, CompoundInterval a, CompoundInterval b) {
@@ -174,25 +186,29 @@ public class FormulaAbstractionVisitor extends DefaultParameterizedNumeralFormul
   }
 
   @Override
-  public BooleanConstant<CompoundInterval> visit(Equal<CompoundInterval> pEqual,
+  public BooleanConstant<CompoundInterval> visit(
+      Equal<CompoundInterval> pEqual,
       Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     return evaluationVisitor.visit(pEqual, pEnvironment);
   }
 
   @Override
-  public BooleanConstant<CompoundInterval> visit(LessThan<CompoundInterval> pLessThan,
+  public BooleanConstant<CompoundInterval> visit(
+      LessThan<CompoundInterval> pLessThan,
       Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     return evaluationVisitor.visit(pLessThan, pEnvironment);
   }
 
   @Override
-  public BooleanConstant<CompoundInterval> visit(LogicalAnd<CompoundInterval> pAnd,
+  public BooleanConstant<CompoundInterval> visit(
+      LogicalAnd<CompoundInterval> pAnd,
       Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     return evaluationVisitor.visit(pAnd, pEnvironment);
   }
 
   @Override
-  public BooleanConstant<CompoundInterval> visit(LogicalNot<CompoundInterval> pNot,
+  public BooleanConstant<CompoundInterval> visit(
+      LogicalNot<CompoundInterval> pNot,
       Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     return evaluationVisitor.visit(pNot, pEnvironment);
   }
@@ -211,7 +227,7 @@ public class FormulaAbstractionVisitor extends DefaultParameterizedNumeralFormul
 
   @Override
   public int hashCode() {
-    return Objects.hash(this.evaluationVisitor, this.compoundIntervalManagerFactory);
+    return Objects.hash(evaluationVisitor, compoundIntervalManagerFactory);
   }
 
   @Override
@@ -226,5 +242,4 @@ public class FormulaAbstractionVisitor extends DefaultParameterizedNumeralFormul
     }
     return false;
   }
-
 }

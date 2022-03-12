@@ -48,7 +48,8 @@ public class TreeInterpolation extends AbstractTreeInterpolation {
         ImmutableList.builderWithExpectedSize(p.getFirst().size());
     final Deque<Pair<BooleanFormula, Integer>> itpStack = new ArrayDeque<>();
     for (int positionOfA = 0; positionOfA < p.getFirst().size() - 1; positionOfA++) {
-      itps.add(getTreeInterpolant(interpolator, itpStack, p.getFirst(), p.getSecond(), positionOfA));
+      itps.add(
+          getTreeInterpolant(interpolator, itpStack, p.getFirst(), p.getSecond(), positionOfA));
     }
     return flattenTreeItps(formulasWithStatesAndGroupdIds, itps.build());
   }
@@ -68,14 +69,20 @@ public class TreeInterpolation extends AbstractTreeInterpolation {
       // build partitions A and B
       final List<T> A = new ArrayList<>();
       final List<T> B = new ArrayList<>();
-      while(!itpStack.isEmpty() && currentSubtree <= itpStack.peekLast().getSecond()) {
+      while (!itpStack.isEmpty() && currentSubtree <= itpStack.peekLast().getSecond()) {
         A.add(itpProver.push(itpStack.pollLast().getFirst()));
       }
       A.add(itpProver.push(formulas.get(positionOfA).getFirst()));
 
-      assert itpStack.isEmpty() == (currentSubtree == 0) :
-              "empty stack is only allowed, if we are in the left-most branch" +
-                      startOfSubTree + "@" + positionOfA + "=" + currentSubtree + " vs " + itpStack.size();
+      assert itpStack.isEmpty() == (currentSubtree == 0)
+          : "empty stack is only allowed, if we are in the left-most branch"
+              + startOfSubTree
+              + "@"
+              + positionOfA
+              + "="
+              + currentSubtree
+              + " vs "
+              + itpStack.size();
 
       // build partition B
       for (Pair<BooleanFormula, Integer> externalChild : itpStack) {

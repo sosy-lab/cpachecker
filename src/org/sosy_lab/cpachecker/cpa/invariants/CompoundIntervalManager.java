@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.invariants;
 
 import java.math.BigInteger;
 
-
 public interface CompoundIntervalManager {
 
   CompoundInterval allPossibleValues();
@@ -41,10 +40,9 @@ public interface CompoundIntervalManager {
    * Gets a compound interval for the given value.
    *
    * @param pValue the value to convert to a compound interval.
-   *
    * @return a compound interval for the given value.
-   * @throws IllegalArgumentException if the given value does not fit into the
-   * maximum interval range.
+   * @throws IllegalArgumentException if the given value does not fit into the maximum interval
+   *     range.
    */
   CompoundInterval singleton(long pValue);
 
@@ -52,10 +50,9 @@ public interface CompoundIntervalManager {
    * Gets a compound interval for the given value.
    *
    * @param pValue the value to convert to a compound interval.
-   *
    * @return a compound interval for the given value.
-   * @throws IllegalArgumentException if the given value does not fit into the
-   * maximum interval range.
+   * @throws IllegalArgumentException if the given value does not fit into the maximum interval
+   *     range.
    */
   CompoundInterval singleton(BigInteger pValue);
 
@@ -63,20 +60,17 @@ public interface CompoundIntervalManager {
    * Gets a compound interval for the given value.
    *
    * @param pValue the value to convert to a compound interval.
-   *
    * @return a compound interval for the given value.
-   * @throws IllegalArgumentException if the given value does not fit into the
-   * maximum interval range.
+   * @throws IllegalArgumentException if the given value does not fit into the maximum interval
+   *     range.
    */
   CompoundInterval singleton(Number pValue);
 
   /**
-   * Gets a compound interval for the given value.
-   * If the given value does not fit into the maximum interval range,
-   * this function will apply a cast to fit the value into the range.
+   * Gets a compound interval for the given value. If the given value does not fit into the maximum
+   * interval range, this function will apply a cast to fit the value into the range.
    *
    * @param pValue the value to convert to a compound interval.
-   *
    * @return a compound interval for the given value.
    */
   CompoundInterval castedSingleton(BigInteger pValue);
@@ -110,5 +104,4 @@ public interface CompoundIntervalManager {
   CompoundInterval negate(CompoundInterval pToNegate);
 
   CompoundInterval cast(TypeInfo pTypeInfo, CompoundInterval pToCast);
-
 }

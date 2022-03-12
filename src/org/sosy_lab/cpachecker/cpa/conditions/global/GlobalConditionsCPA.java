@@ -36,8 +36,8 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-
-public class GlobalConditionsCPA implements ConfigurableProgramAnalysisWithBAM, AdjustableConditionCPA, ProofChecker {
+public class GlobalConditionsCPA
+    implements ConfigurableProgramAnalysisWithBAM, AdjustableConditionCPA, ProofChecker {
 
   private final PrecisionAdjustment precisionAdjustment;
   private final GlobalConditionsThresholds thresholds;
@@ -48,12 +48,14 @@ public class GlobalConditionsCPA implements ConfigurableProgramAnalysisWithBAM, 
     return AutomaticCPAFactory.forType(GlobalConditionsCPA.class);
   }
 
-  private GlobalConditionsCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
+  private GlobalConditionsCPA(Configuration config, LogManager logger)
+      throws InvalidConfigurationException {
     thresholds = new GlobalConditionsThresholds(config, logger);
 
     if (thresholds.isLimitEnabled()) {
       logger.log(Level.INFO, "Analyzing with the following", thresholds);
-      GlobalConditionsSimplePrecisionAdjustment prec = new GlobalConditionsSimplePrecisionAdjustment(logger, thresholds);
+      GlobalConditionsSimplePrecisionAdjustment prec =
+          new GlobalConditionsSimplePrecisionAdjustment(logger, thresholds);
 
       if (thresholds.getReachedSetSizeThreshold() >= 0) {
         precisionAdjustment = new GlobalConditionsPrecisionAdjustment(logger, thresholds, prec);
@@ -62,7 +64,9 @@ public class GlobalConditionsCPA implements ConfigurableProgramAnalysisWithBAM, 
       }
 
     } else {
-      logger.log(Level.WARNING, "GlobalConditionsCPA used without any limits, you can remove it from the list of CPAs.");
+      logger.log(
+          Level.WARNING,
+          "GlobalConditionsCPA used without any limits, you can remove it from the list of CPAs.");
       precisionAdjustment = StaticPrecisionAdjustment.getInstance();
     }
 
@@ -105,12 +109,15 @@ public class GlobalConditionsCPA implements ConfigurableProgramAnalysisWithBAM, 
   }
 
   @Override
-  public boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
+  public boolean areAbstractSuccessors(
+      AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors)
+      throws CPATransferException, InterruptedException {
     return pSuccessors.size() == 1 && pSuccessors.contains(pElement);
   }
 
   @Override
-  public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException {
+  public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement)
+      throws CPAException {
     return pElement == pOtherElement;
   }
 }

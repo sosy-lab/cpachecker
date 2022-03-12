@@ -22,7 +22,7 @@ public class CFAInfo {
     for (CFANode node : cfa.getAllNodes()) {
       nodeNumberToNode0.put(node.getNodeNumber(), node);
     }
-    this.nodeNumberToNode = nodeNumberToNode0.build();
+    nodeNumberToNode = nodeNumberToNode0.build();
   }
 
   public CFANode getNodeByNodeNumber(int nodeNumber) {

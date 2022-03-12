@@ -20,8 +20,8 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
 
 /**
- * Statistics for UninitializedVariablesCPA.
- * Displays warnings about all uninitialized variables found.
+ * Statistics for UninitializedVariablesCPA. Displays warnings about all uninitialized variables
+ * found.
  */
 public class UninitializedVariablesStatistics implements Statistics {
 
@@ -44,23 +44,23 @@ public class UninitializedVariablesStatistics implements Statistics {
     if (printWarnings) {
 
       Set<Pair<Integer, String>> warningsDisplayed = new HashSet<>();
-      Iterable<UninitializedVariablesState> projectedReached = AbstractStates.projectToType(pReached, UninitializedVariablesState.class);
+      Iterable<UninitializedVariablesState> projectedReached =
+          AbstractStates.projectToType(pReached, UninitializedVariablesState.class);
 
-      //find all UninitializedVariablesElements and get their warnings
+      // find all UninitializedVariablesElements and get their warnings
       for (UninitializedVariablesState uninitElement : projectedReached) {
 
         Collection<Triple<Integer, String, String>> warnings = uninitElement.getWarnings();
-        //warnings are identified by line number and variable name
+        // warnings are identified by line number and variable name
         Pair<Integer, String> warningIndex;
         for (Triple<Integer, String, String> warning : warnings) {
-          //check if a warning has already been displayed
+          // check if a warning has already been displayed
           warningIndex = Pair.of(warning.getFirst(), warning.getSecond());
           if (warningsDisplayed.add(warningIndex)) {
             pOut.println(warning.getThird());
             noOfWarnings++;
           }
         }
-
       }
       if (warningsDisplayed.isEmpty()) {
         pOut.println("No uninitialized variables found");

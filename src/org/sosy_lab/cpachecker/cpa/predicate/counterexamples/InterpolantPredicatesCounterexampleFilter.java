@@ -30,44 +30,48 @@ import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /**
- * A {@link CounterexampleFilter} that defines counterexamples as similar,
- * if the interpolants of their "negated paths" contain the same set of predicates.
- * The "negated path" of a counterexample is defined as the prefix of the path
- * until before the last AssumeEdge, and then the negation of that last AssumeEdge.
+ * A {@link CounterexampleFilter} that defines counterexamples as similar, if the interpolants of
+ * their "negated paths" contain the same set of predicates. The "negated path" of a counterexample
+ * is defined as the prefix of the path until before the last AssumeEdge, and then the negation of
+ * that last AssumeEdge.
  *
- * If the negated path is not infeasible, the counterexample is considered
- * relevant (because no interpolants can be computed).
- * The location of the inteprolant predicates along the path is ignored,
- * all predicates are merged into a single set.
+ * <p>If the negated path is not infeasible, the counterexample is considered relevant (because no
+ * interpolants can be computed). The location of the inteprolant predicates along the path is
+ * ignored, all predicates are merged into a single set.
  */
-public class InterpolantPredicatesCounterexampleFilter extends AbstractNegatedPathCounterexampleFilter<ImmutableSet<AbstractionPredicate>> {
+public class InterpolantPredicatesCounterexampleFilter
+    extends AbstractNegatedPathCounterexampleFilter<ImmutableSet<AbstractionPredicate>> {
 
   private final LogManager logger;
 
   private final Solver solver;
   private final PredicateAbstractionManager predAbsMgr;
 
-  public InterpolantPredicatesCounterexampleFilter(Configuration pConfig, LogManager pLogger,
-      ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
+  public InterpolantPredicatesCounterexampleFilter(
+      Configuration pConfig, LogManager pLogger, ConfigurableProgramAnalysis pCpa)
+      throws InvalidConfigurationException {
     super(pConfig, pLogger, pCpa);
     logger = pLogger;
 
-    PredicateCPA predicateCpa = CPAs.retrieveCPAOrFail(pCpa, PredicateCPA.class, InterpolantPredicatesCounterexampleFilter.class);
+    PredicateCPA predicateCpa =
+        CPAs.retrieveCPAOrFail(
+            pCpa, PredicateCPA.class, InterpolantPredicatesCounterexampleFilter.class);
     solver = predicateCpa.getSolver();
     predAbsMgr = predicateCpa.getPredicateManager();
   }
 
   @Override
-  protected Optional<ImmutableSet<AbstractionPredicate>> getCounterexampleRepresentation(List<BooleanFormula> pFormulas)
-      throws InterruptedException {
+  protected Optional<ImmutableSet<AbstractionPredicate>> getCounterexampleRepresentation(
+      List<BooleanFormula> pFormulas) throws InterruptedException {
     return getCounterexampleRepresentation0(pFormulas);
   }
 
-  private <T> Optional<ImmutableSet<AbstractionPredicate>> getCounterexampleRepresentation0(List<BooleanFormula> formulas) throws InterruptedException {
+  private <T> Optional<ImmutableSet<AbstractionPredicate>> getCounterexampleRepresentation0(
+      List<BooleanFormula> formulas) throws InterruptedException {
 
     try (@SuppressWarnings("unchecked")
-         InterpolatingProverEnvironment<T> itpProver =
-           (InterpolatingProverEnvironment<T>) solver.newProverEnvironmentWithInterpolation()) {
+        InterpolatingProverEnvironment<T> itpProver =
+            (InterpolatingProverEnvironment<T>) solver.newProverEnvironmentWithInterpolation()) {
 
       List<T> itpGroupIds = new ArrayList<>(formulas.size());
       for (BooleanFormula f : formulas) {
@@ -87,7 +91,10 @@ public class InterpolantPredicatesCounterexampleFilter extends AbstractNegatedPa
       }
       return Optional.of(ImmutableSet.copyOf(predicates));
     } catch (SolverException e) {
-      logger.logUserException(Level.WARNING, e, "Interpolation failed on counterexample path, cannot filter this counterexample");
+      logger.logUserException(
+          Level.WARNING,
+          e,
+          "Interpolation failed on counterexample path, cannot filter this counterexample");
       return Optional.empty();
     }
   }

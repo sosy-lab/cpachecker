@@ -26,8 +26,8 @@ public class CacheMergeOperator implements MergeOperator {
   }
 
   @Override
-  public AbstractState merge(AbstractState pElement1,
-      AbstractState pElement2, Precision pPrecision) throws CPAException, InterruptedException {
+  public AbstractState merge(AbstractState pElement1, AbstractState pElement2, Precision pPrecision)
+      throws CPAException, InterruptedException {
 
     Map<AbstractState, Map<AbstractState, AbstractState>> lCache1 = mCache.get(pPrecision);
 
@@ -52,5 +52,4 @@ public class CacheMergeOperator implements MergeOperator {
 
     return lMergedElement;
   }
-
 }

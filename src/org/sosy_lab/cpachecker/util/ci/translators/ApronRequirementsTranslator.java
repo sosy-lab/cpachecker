@@ -54,7 +54,8 @@ public class ApronRequirementsTranslator extends CartesianRequirementsTranslator
   }
 
   @Override
-  protected List<String> getVarsInRequirements(final ApronState pRequirement, final @Nullable Collection<String> pRequiredVars) {
+  protected List<String> getVarsInRequirements(
+      final ApronState pRequirement, final @Nullable Collection<String> pRequiredVars) {
     if (pRequiredVars == null) {
       return getVarsInRequirements(pRequirement);
     }
@@ -64,7 +65,8 @@ public class ApronRequirementsTranslator extends CartesianRequirementsTranslator
   }
 
   @Override
-  protected List<String> getListOfIndependentRequirements(ApronState pRequirement, SSAMap pIndices, final @Nullable Collection<String> pRequiredVars) {
+  protected List<String> getListOfIndependentRequirements(
+      ApronState pRequirement, SSAMap pIndices, final @Nullable Collection<String> pRequiredVars) {
     List<String> result = new ArrayList<>();
     List<String> varNames = getAllVarNames(pRequirement);
     Collection<String> requiredVarNames = null;
@@ -85,9 +87,10 @@ public class ApronRequirementsTranslator extends CartesianRequirementsTranslator
     }
 
     String converted;
-    for(Tcons0 constraint: pRequirement.getApronNativeState().toTcons(pRequirement.getManager().getManager())) {
+    for (Tcons0 constraint :
+        pRequirement.getApronNativeState().toTcons(pRequirement.getManager().getManager())) {
       converted = convertConstraintToFormula(constraint, varNames, pIndices, requiredVarNames);
-      if(converted != null) {
+      if (converted != null) {
         result.add(converted);
       }
     }
@@ -96,8 +99,10 @@ public class ApronRequirementsTranslator extends CartesianRequirementsTranslator
   }
 
   private List<String> getAllVarNames(final ApronState pRequirement) {
-    List<String> result = new ArrayList<>(pRequirement.getIntegerVariableToIndexMap().size()
-        + pRequirement.getRealVariableToIndexMap().size());
+    List<String> result =
+        new ArrayList<>(
+            pRequirement.getIntegerVariableToIndexMap().size()
+                + pRequirement.getRealVariableToIndexMap().size());
 
     for (MemoryLocation mem : pRequirement.getIntegerVariableToIndexMap()) {
       result.add(mem.getExtendedQualifiedName());
@@ -115,7 +120,8 @@ public class ApronRequirementsTranslator extends CartesianRequirementsTranslator
     Preconditions.checkNotNull(requiredVars);
     Set<String> required = new HashSet<>(requiredVars);
     List<String> varNames = getAllVarNames(pRequirement);
-    Tcons0[] constraints = pRequirement.getApronNativeState().toTcons(pRequirement.getManager().getManager());
+    Tcons0[] constraints =
+        pRequirement.getApronNativeState().toTcons(pRequirement.getManager().getManager());
     List<Set<String>> constraintVars = new ArrayList<>(constraints.length);
 
     for (Tcons0 constraint : constraints) {
@@ -126,9 +132,9 @@ public class ApronRequirementsTranslator extends CartesianRequirementsTranslator
 
     Set<String> intermediate;
 
-    while(it.hasNext()) {
+    while (it.hasNext()) {
       intermediate = it.next();
-      if(!Sets.intersection(required, intermediate).isEmpty()) {
+      if (!Sets.intersection(required, intermediate).isEmpty()) {
         if (required.addAll(intermediate)) {
           it = constraintVars.iterator();
         }
@@ -172,33 +178,36 @@ public class ApronRequirementsTranslator extends CartesianRequirementsTranslator
     return vars;
   }
 
-  private @Nullable String convertConstraintToFormula(final Tcons0 constraint, final List<String> varNames,
-      final SSAMap map, final Collection<String> varsConsidered) {
+  private @Nullable String convertConstraintToFormula(
+      final Tcons0 constraint,
+      final List<String> varNames,
+      final SSAMap map,
+      final Collection<String> varsConsidered) {
     StringBuilder sb = new StringBuilder();
     sb.append("(");
 
     switch (constraint.kind) {
-    case Tcons0.EQ:
-      sb.append("=");
-      break;
-    case Tcons0.SUPEQ:
-      sb.append(">=");
-      break;
-    case Tcons0.SUP:
-      sb.append(">");
-      break;
-    case Tcons0.DISEQ:
-      sb.append("not (=");
-      break;
-    case Tcons0.EQMOD:
-      sb.append("= (mod");
-      break;
-    default:
+      case Tcons0.EQ:
+        sb.append("=");
+        break;
+      case Tcons0.SUPEQ:
+        sb.append(">=");
+        break;
+      case Tcons0.SUP:
+        sb.append(">");
+        break;
+      case Tcons0.DISEQ:
+        sb.append("not (=");
+        break;
+      case Tcons0.EQMOD:
+        sb.append("= (mod");
+        break;
+      default:
         throw new AssertionError();
     }
 
     String left = convertLeftConstraintPartToFormula(constraint, varNames, map, varsConsidered);
-    if(left == null) {
+    if (left == null) {
       return null;
     }
 
@@ -212,7 +221,7 @@ public class ApronRequirementsTranslator extends CartesianRequirementsTranslator
 
     sb.append(" 0)");
 
-    if(constraint.kind == Tcons0.DISEQ) {
+    if (constraint.kind == Tcons0.DISEQ) {
       sb.append(")");
     }
 
@@ -258,23 +267,23 @@ public class ApronRequirementsTranslator extends CartesianRequirementsTranslator
         sb.append(" (");
 
         switch (((Texpr0BinNode) current).getOperation()) {
-        case Texpr0BinNode.OP_ADD:
-          sb.append("+");
-          break;
-        case Texpr0BinNode.OP_SUB:
-          sb.append("-");
-          break;
+          case Texpr0BinNode.OP_ADD:
+            sb.append("+");
+            break;
+          case Texpr0BinNode.OP_SUB:
+            sb.append("-");
+            break;
           case Texpr0BinNode.OP_MUL:
             sb.append("*");
             break;
-        case Texpr0BinNode.OP_DIV:
-          sb.append("/");
-          break;
-        case Texpr0BinNode.OP_MOD:
-          sb.append("mod");
-          break;
-        default:
-          throw new AssertionError("Unsupported binary operator.");
+          case Texpr0BinNode.OP_DIV:
+            sb.append("/");
+            break;
+          case Texpr0BinNode.OP_MOD:
+            sb.append("mod");
+            break;
+          default:
+            throw new AssertionError("Unsupported binary operator.");
         }
 
         stack.push(
@@ -283,11 +292,11 @@ public class ApronRequirementsTranslator extends CartesianRequirementsTranslator
       } else if (current instanceof Texpr0UnNode) {
 
         switch (((Texpr0UnNode) current).getOperation()) {
-        case Texpr0UnNode.OP_NEG:
-          sb.append(" (-");
-          break;
-        default:
-          throw new AssertionError("Unsupported unary operator.");
+          case Texpr0UnNode.OP_NEG:
+            sb.append(" (-");
+            break;
+          default:
+            throw new AssertionError("Unsupported unary operator.");
         }
 
         stack.push(Pair.of(((Texpr0UnNode) current).getArgument(), currentPair.getSecond() + 1));
@@ -320,5 +329,4 @@ public class ApronRequirementsTranslator extends CartesianRequirementsTranslator
       sb.append(")");
     }
   }
-
 }

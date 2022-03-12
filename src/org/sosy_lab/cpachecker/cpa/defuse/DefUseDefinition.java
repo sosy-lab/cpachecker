@@ -14,36 +14,35 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 public class DefUseDefinition implements AbstractState {
-    private final String variableName;
-    private final CFAEdge assigningEdge;
+  private final String variableName;
+  private final CFAEdge assigningEdge;
 
-    public DefUseDefinition(String variableName, CFAEdge assigningEdge) {
-        this.variableName = Preconditions.checkNotNull(variableName);
-        this.assigningEdge = assigningEdge;
+  public DefUseDefinition(String variableName, CFAEdge assigningEdge) {
+    this.variableName = Preconditions.checkNotNull(variableName);
+    this.assigningEdge = assigningEdge;
+  }
+
+  public String getVariableName() {
+    return variableName;
+  }
+
+  public CFAEdge getAssigningEdge() {
+    return assigningEdge;
+  }
+
+  @Override
+  public int hashCode() {
+    return variableName.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object other) {
+    if (!(other instanceof DefUseDefinition)) {
+      return false;
     }
 
-    public String getVariableName() {
-        return variableName;
-    }
-
-    public CFAEdge getAssigningEdge() {
-        return assigningEdge;
-    }
-
-    @Override
-    public int hashCode() {
-        return variableName.hashCode();
-    }
-
-    @Override
-    public boolean equals(Object other) {
-        if (!(other instanceof DefUseDefinition)) {
-          return false;
-        }
-
-        DefUseDefinition otherDef = (DefUseDefinition) other;
-        return otherDef.variableName.equals(this.variableName)
-            && Objects.equals(otherDef.assigningEdge, this.assigningEdge);
-    }
-
+    DefUseDefinition otherDef = (DefUseDefinition) other;
+    return otherDef.variableName.equals(variableName)
+        && Objects.equals(otherDef.assigningEdge, assigningEdge);
+  }
 }

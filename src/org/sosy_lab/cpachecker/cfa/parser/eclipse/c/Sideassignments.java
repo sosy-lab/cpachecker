@@ -21,7 +21,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.util.Pair;
 
-
 class Sideassignments {
 
   private final Deque<List<CAstNode>> preSideAssignments;
@@ -34,7 +33,10 @@ class Sideassignments {
     conditionalExpressions = new ArrayDeque<>();
   }
 
-  public Sideassignments(Deque<List<CAstNode>> preSideAssignments, Deque<List<CAstNode>> postSideAssignments, Deque<List<Pair<IASTExpression, CIdExpression>>> conditionalExpressions) {
+  public Sideassignments(
+      Deque<List<CAstNode>> preSideAssignments,
+      Deque<List<CAstNode>> postSideAssignments,
+      Deque<List<Pair<IASTExpression, CIdExpression>>> conditionalExpressions) {
     this.preSideAssignments = preSideAssignments;
     this.postSideAssignments = postSideAssignments;
     this.conditionalExpressions = conditionalExpressions;
@@ -47,9 +49,13 @@ class Sideassignments {
   }
 
   public void leaveBlock() {
-    Preconditions.checkArgument(!preSideAssignments.isEmpty(), "leaving sideassignment block before handling all of them");
-    Preconditions.checkArgument(!postSideAssignments.isEmpty(), "leaving sideassignment block before handling all of them");
-    Preconditions.checkArgument(!conditionalExpressions.isEmpty(), "leaving sideassignment block before handling all of them");
+    Preconditions.checkArgument(
+        !preSideAssignments.isEmpty(), "leaving sideassignment block before handling all of them");
+    Preconditions.checkArgument(
+        !postSideAssignments.isEmpty(), "leaving sideassignment block before handling all of them");
+    Preconditions.checkArgument(
+        !conditionalExpressions.isEmpty(),
+        "leaving sideassignment block before handling all of them");
     preSideAssignments.pop();
     postSideAssignments.pop();
     conditionalExpressions.pop();
@@ -68,7 +74,8 @@ class Sideassignments {
   }
 
   public List<Pair<IASTExpression, CIdExpression>> getAndResetConditionalExpressions() {
-    List<Pair<IASTExpression, CIdExpression>> result = new ArrayList<>(conditionalExpressions.peek());
+    List<Pair<IASTExpression, CIdExpression>> result =
+        new ArrayList<>(conditionalExpressions.peek());
     conditionalExpressions.peek().clear();
     return result;
   }

@@ -126,7 +126,7 @@ public final class SymbolicInterpolant
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    SymbolicInterpolant that = (SymbolicInterpolant)o;
+    SymbolicInterpolant that = (SymbolicInterpolant) o;
     return Objects.equals(constraintsInformation, that.constraintsInformation)
         && Objects.equals(valueInterpolant, that.valueInterpolant);
   }

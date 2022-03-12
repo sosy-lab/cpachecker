@@ -29,8 +29,8 @@ class CFloatWrapper {
   }
 
   CFloatWrapper(long pExp, long pMan) {
-    this.exponent = pExp;
-    this.mantissa = pMan;
+    exponent = pExp;
+    mantissa = pMan;
   }
 
   long getExponent() {

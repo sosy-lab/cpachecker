@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy.PCStrategyStatistic
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
 import org.sosy_lab.cpachecker.util.Pair;
 
-public class CMCPartitioningIOHelper extends PartitioningIOHelper{
+public class CMCPartitioningIOHelper extends PartitioningIOHelper {
 
   private List<int[][]> savedSuccessors;
   private AbstractState root;
@@ -39,18 +39,25 @@ public class CMCPartitioningIOHelper extends PartitioningIOHelper{
   private final Set<ARGState> automatonStates;
   private final Set<ARGState> unexploredStates;
 
-  public CMCPartitioningIOHelper(final Configuration pConfig, final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier, final Set<ARGState> pAutomatonStates,
-      final Set<ARGState> pUnexploredStates, final @Nullable ARGState pRoot) throws InvalidConfigurationException {
+  public CMCPartitioningIOHelper(
+      final Configuration pConfig,
+      final LogManager pLogger,
+      final ShutdownNotifier pShutdownNotifier,
+      final Set<ARGState> pAutomatonStates,
+      final Set<ARGState> pUnexploredStates,
+      final @Nullable ARGState pRoot)
+      throws InvalidConfigurationException {
     super(pConfig, pLogger, pShutdownNotifier, true);
     automatonStates = pAutomatonStates;
     unexploredStates = pUnexploredStates;
-    if(pRoot != null) {
+    if (pRoot != null) {
       root = pRoot.getWrappedState();
     }
   }
 
-  public CMCPartitioningIOHelper(final Configuration pConfig, final LogManager pLogger,
+  public CMCPartitioningIOHelper(
+      final Configuration pConfig,
+      final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     this(pConfig, pLogger, pShutdownNotifier, ImmutableSet.of(), ImmutableSet.of(), null);
@@ -64,7 +71,8 @@ public class CMCPartitioningIOHelper extends PartitioningIOHelper{
   }
 
   @Override
-  protected void saveInternalProof(final int size,
+  protected void saveInternalProof(
+      final int size,
       final Pair<PartialReachedSetDirectedGraph, List<Set<Integer>>> pPartitionDescription) {
     super.saveInternalProof(size, pPartitionDescription);
     savedSuccessors = new ArrayList<>(pPartitionDescription.getSecond().size());
@@ -97,9 +105,12 @@ public class CMCPartitioningIOHelper extends PartitioningIOHelper{
             partitionSuccessors[j] = new int[successors.size()];
 
             for (int k = 0; k < partitionSuccessors[j].length; k++) {
-              partitionSuccessors[j][k] = findSuccessorIndex(
-                  ((ARGState) pPartitionDescription.getFirst().getNode(successors.get(k))).getWrappedState(),
-                  partition.getFirst(), partition.getSecond());
+              partitionSuccessors[j][k] =
+                  findSuccessorIndex(
+                      ((ARGState) pPartitionDescription.getFirst().getNode(successors.get(k)))
+                          .getWrappedState(),
+                      partition.getFirst(),
+                      partition.getSecond());
             }
           }
         }
@@ -108,12 +119,16 @@ public class CMCPartitioningIOHelper extends PartitioningIOHelper{
   }
 
   @Override
-  public void writePartition(final ObjectOutputStream pOut, final Set<Integer> pPartition,
-      final PartialReachedSetDirectedGraph pPartialReachedSetDirectedGraph) throws IOException {
+  public void writePartition(
+      final ObjectOutputStream pOut,
+      final Set<Integer> pPartition,
+      final PartialReachedSetDirectedGraph pPartialReachedSetDirectedGraph)
+      throws IOException {
     super.writePartition(pOut, pPartition, pPartialReachedSetDirectedGraph);
 
     AbstractState[] partitionNodes = pPartialReachedSetDirectedGraph.getSetNodes(pPartition, true);
-    AbstractState[] externalNodes = pPartialReachedSetDirectedGraph.getSuccessorNodesOutsideSet(pPartition, true);
+    AbstractState[] externalNodes =
+        pPartialReachedSetDirectedGraph.getSuccessorNodesOutsideSet(pPartition, true);
     int[][] successorLinks = new int[pPartition.size()][];
 
     int count = 0;
@@ -130,7 +145,9 @@ public class CMCPartitioningIOHelper extends PartitioningIOHelper{
           successorLinks[count] = new int[successors.size()];
           for (int i = 0; i < successorLinks[count].length; i++) {
             successorLinks[count][i] =
-                findSuccessorIndex(pPartialReachedSetDirectedGraph.getNode(successors.get(i)), partitionNodes,
+                findSuccessorIndex(
+                    pPartialReachedSetDirectedGraph.getNode(successors.get(i)),
+                    partitionNodes,
                     externalNodes);
             Preconditions.checkState(successorLinks[count][i] != -1);
           }
@@ -141,12 +158,19 @@ public class CMCPartitioningIOHelper extends PartitioningIOHelper{
     pOut.writeObject(successorLinks);
   }
 
-  private int findSuccessorIndex(final AbstractState pNode, final AbstractState[] pPartitionNodes, final AbstractState[] pExternalNodes) {
+  private int findSuccessorIndex(
+      final AbstractState pNode,
+      final AbstractState[] pPartitionNodes,
+      final AbstractState[] pExternalNodes) {
     for (int i = 0; i < pPartitionNodes.length; i++) {
-      if (pNode == pPartitionNodes[i]) { return i; }
+      if (pNode == pPartitionNodes[i]) {
+        return i;
+      }
     }
     for (int i = 0; i < pExternalNodes.length; i++) {
-      if (pNode == pPartitionNodes[i]) { return pPartitionNodes.length + i; }
+      if (pNode == pPartitionNodes[i]) {
+        return pPartitionNodes.length + i;
+      }
     }
     return -1;
   }
@@ -166,9 +190,9 @@ public class CMCPartitioningIOHelper extends PartitioningIOHelper{
     savedSuccessors.add((int[][]) pIn.readObject());
   }
 
-
   @Override
-  public void readPartition(final ObjectInputStream pIn, final PCStrategyStatistics pStats, final Lock pLock)
+  public void readPartition(
+      final ObjectInputStream pIn, final PCStrategyStatistics pStats, final Lock pLock)
       throws ClassNotFoundException, IOException {
     checkArgument(pLock != null, "Cannot protect against parallel access");
     pLock.lock();
@@ -180,7 +204,8 @@ public class CMCPartitioningIOHelper extends PartitioningIOHelper{
   }
 
   @Override
-  public void writeMetadata(final ObjectOutputStream pOut, final int pReachedSetSize, final int pNumPartitions)
+  public void writeMetadata(
+      final ObjectOutputStream pOut, final int pReachedSetSize, final int pNumPartitions)
       throws IOException {
     super.writeMetadata(pOut, pReachedSetSize, pNumPartitions);
     pOut.writeObject(root);
@@ -208,5 +233,4 @@ public class CMCPartitioningIOHelper extends PartitioningIOHelper{
   public @Nullable AbstractState getRoot() {
     return root;
   }
-
 }

@@ -16,9 +16,8 @@ import java.util.List;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 
 /**
- * Implementation of ReachedSet that forwards all calls to another instance.
- * The target instance is changeable. Remembers and provides all instances
- * to which calls are forwarded
+ * Implementation of ReachedSet that forwards all calls to another instance. The target instance is
+ * changeable. Remembers and provides all instances to which calls are forwarded
  */
 public class HistoryForwardingReachedSet extends ForwardingReachedSet {
 
@@ -49,5 +48,4 @@ public class HistoryForwardingReachedSet extends ForwardingReachedSet {
   public List<ConfigurableProgramAnalysis> getCPAs() {
     return ImmutableList.copyOf(cpas);
   }
-
 }

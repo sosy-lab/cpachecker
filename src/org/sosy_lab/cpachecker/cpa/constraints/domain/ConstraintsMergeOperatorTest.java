@@ -23,9 +23,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-/**
- * Unit tests for {@link ConstraintsMergeOperator}
- */
+/** Unit tests for {@link ConstraintsMergeOperator} */
 public class ConstraintsMergeOperatorTest {
 
   private final ConstraintsMergeOperator op =
@@ -39,7 +37,8 @@ public class ConstraintsMergeOperatorTest {
   private final SymbolicExpression numExp1 = factory.asConstant(new NumericValue(1), defType);
 
   private final Constraint posConst = factory.equal(idExp1, numExp1, defType, defType);
-  private final Constraint negConst = (Constraint) factory.notEqual(idExp1, numExp1, defType, defType);
+  private final Constraint negConst =
+      (Constraint) factory.notEqual(idExp1, numExp1, defType, defType);
 
   @Test
   public void testMerge_mergePossible() throws Exception {
@@ -53,7 +52,8 @@ public class ConstraintsMergeOperatorTest {
     ConstraintsState state2 = new ConstraintsState(constraints);
     state2.add(negConst);
 
-    ConstraintsState mergeResult = (ConstraintsState) op.merge(state1, state2, SingletonPrecision.getInstance());
+    ConstraintsState mergeResult =
+        (ConstraintsState) op.merge(state1, state2, SingletonPrecision.getInstance());
 
     assertThat(mergeResult).hasSize(state2.size() - 1);
     assertThat(mergeResult).doesNotContain(negConst);
@@ -71,8 +71,9 @@ public class ConstraintsMergeOperatorTest {
     Constraint currConstr = (Constraint) factory.greaterThan(idExp2, numExp1, defType, defType);
     constraints.add(currConstr);
 
-    currConstr = (Constraint)
-        factory.logicalNot(factory.lessThanOrEqual(idExp2, numExp1, defType, defType), defType);
+    currConstr =
+        (Constraint)
+            factory.logicalNot(factory.lessThanOrEqual(idExp2, numExp1, defType, defType), defType);
 
     constraints.add(currConstr);
 

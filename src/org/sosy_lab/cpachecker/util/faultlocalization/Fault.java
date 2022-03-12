@@ -20,12 +20,12 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 
 /**
- * A Fault is a set of FaultContributions.
- * The set has to be obtained by a fault localizing algorithm.
- * FaultReasons can be appended to a Fault to explain why this set of FaultContributions caused an error.
- * The score of a Fault is used to rank the Faults. The higher the score the higher the rank.
+ * A Fault is a set of FaultContributions. The set has to be obtained by a fault localizing
+ * algorithm. FaultReasons can be appended to a Fault to explain why this set of FaultContributions
+ * caused an error. The score of a Fault is used to rank the Faults. The higher the score the higher
+ * the rank.
  */
-public class Fault extends ForwardingSet<FaultContribution> implements Comparable<Fault>{
+public class Fault extends ForwardingSet<FaultContribution> implements Comparable<Fault> {
 
   private Set<FaultContribution> errorSet;
   private List<FaultInfo> infos;
@@ -41,21 +41,23 @@ public class Fault extends ForwardingSet<FaultContribution> implements Comparabl
 
   /**
    * Error Indicators indicate a subset of all edges that most likely contain an error.
+   *
    * @param pErrorSet set to forward
    */
-  public Fault(Collection<FaultContribution> pErrorSet){
+  public Fault(Collection<FaultContribution> pErrorSet) {
     this(pErrorSet, 0);
   }
 
-  public Fault(){
+  public Fault() {
     this(new HashSet<>(), 0);
   }
 
   /**
    * Creates a mutable set with only one member
+   *
    * @param singleton a FaultContribution that is transformed into a singleton set
    */
-  public Fault(FaultContribution singleton){
+  public Fault(FaultContribution singleton) {
     this(Collections.singleton(singleton), 0);
   }
 
@@ -70,11 +72,13 @@ public class Fault extends ForwardingSet<FaultContribution> implements Comparabl
   }
 
   /**
-   * Add a reason to explain why this set indicates an error.
-   * Appending reasons in heuristics is the recommended way.
-   * @param reason Fix, Hint or Reason why this might be an error or why a ranking did add a FaultInfo to this set.
+   * Add a reason to explain why this set indicates an error. Appending reasons in heuristics is the
+   * recommended way.
+   *
+   * @param reason Fix, Hint or Reason why this might be an error or why a ranking did add a
+   *     FaultInfo to this set.
    */
-  public void addInfo(FaultInfo reason){
+  public void addInfo(FaultInfo reason) {
     infos.add(reason);
   }
 
@@ -87,9 +91,10 @@ public class Fault extends ForwardingSet<FaultContribution> implements Comparabl
   }
 
   /**
-   * Set the score for this Fault.
-   * There exists a default implementation of calculating the score for this class.
-   * @see  FaultRankingUtils#assignScoreTo(Fault)
+   * Set the score for this Fault. There exists a default implementation of calculating the score
+   * for this class.
+   *
+   * @see FaultRankingUtils#assignScoreTo(Fault)
    * @param pScore the score
    */
   public void setScore(double pScore) {
@@ -97,14 +102,13 @@ public class Fault extends ForwardingSet<FaultContribution> implements Comparabl
   }
 
   @Override
-  public String toString(){
+  public String toString() {
     List<FaultInfo> copy = ImmutableList.sortedCopyOf(infos);
 
-    StringBuilder out = new StringBuilder("Error suspected on line(s): "
-        + listDistinctLinesAndJoin()
-        + ".\n");
+    StringBuilder out =
+        new StringBuilder("Error suspected on line(s): " + listDistinctLinesAndJoin() + ".\n");
     for (FaultInfo faultInfo : copy) {
-      switch(faultInfo.getType()){
+      switch (faultInfo.getType()) {
         case RANK_INFO:
           out.append(" ".repeat(2));
           break;
@@ -120,7 +124,7 @@ public class Fault extends ForwardingSet<FaultContribution> implements Comparabl
     return out.toString();
   }
 
-  private String listDistinctLinesAndJoin(){
+  private String listDistinctLinesAndJoin() {
     List<String> lines =
         errorSet.stream()
             .mapToInt(l -> l.correspondingEdge().getFileLocation().getStartingLineInOrigin())
@@ -142,6 +146,7 @@ public class Fault extends ForwardingSet<FaultContribution> implements Comparabl
   /**
    * Set an intended index. Call sortIntended on FaultLocalizationInfo to sort ascending by intended
    * index
+   *
    * @param pIntendedIndex the intended place in the final list for this fault
    */
   public void setIntendedIndex(int pIntendedIndex) {
@@ -153,7 +158,7 @@ public class Fault extends ForwardingSet<FaultContribution> implements Comparabl
   }
 
   @Override
-  public boolean equals(Object q){
+  public boolean equals(Object q) {
     if (!(q instanceof Fault)) {
       return false;
     }
@@ -163,7 +168,7 @@ public class Fault extends ForwardingSet<FaultContribution> implements Comparabl
   }
 
   @Override
-  public int hashCode(){
+  public int hashCode() {
     return Objects.hash(errorSet, infos);
   }
 

@@ -36,13 +36,19 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 
-@Options(prefix="counterexample.export", deprecatedPrefix="counterexample")
+@Options(prefix = "counterexample.export", deprecatedPrefix = "counterexample")
 public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider {
 
-  @Option(secure=true, name="presenceCondition", deprecatedName="presenceConditionFile",
-      description="The files where the BDDCPARestrictionAlgorithm should write the presence conditions for the counterexamples to.")
+  @Option(
+      secure = true,
+      name = "presenceCondition",
+      deprecatedName = "presenceConditionFile",
+      description =
+          "The files where the BDDCPARestrictionAlgorithm should write the presence conditions for"
+              + " the counterexamples to.")
   @FileOption(Type.OUTPUT_FILE)
-  private PathTemplate presenceConditionFile = PathTemplate.ofFormatString("Counterexample.%d.presenceCondition.txt");
+  private PathTemplate presenceConditionFile =
+      PathTemplate.ofFormatString("Counterexample.%d.presenceCondition.txt");
 
   private final Algorithm algorithm;
   private final LogManager logger;
@@ -50,8 +56,12 @@ public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider
   private final NamedRegionManager manager;
   private Region errorSummary;
 
-  public BDDCPARestrictionAlgorithm(Algorithm algorithm, ConfigurableProgramAnalysis pCpa,
-      Configuration config, LogManager logger) throws InvalidConfigurationException {
+  public BDDCPARestrictionAlgorithm(
+      Algorithm algorithm,
+      ConfigurableProgramAnalysis pCpa,
+      Configuration config,
+      LogManager logger)
+      throws InvalidConfigurationException {
     this.algorithm = algorithm;
     this.logger = logger;
     config.inject(this);
@@ -72,8 +82,7 @@ public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider
       assert ARGUtils.checkARG(reached);
 
       final AbstractState lastState = reached.getLastState();
-      if (!(lastState instanceof Targetable)
-          || !((Targetable)lastState).isTarget()) {
+      if (!(lastState instanceof Targetable) || !((Targetable) lastState).isTarget()) {
         // no target state
         break;
       }
@@ -115,7 +124,7 @@ public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     if (algorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider)algorithm).collectStatistics(pStatsCollection);
+      ((StatisticsProvider) algorithm).collectStatistics(pStatsCollection);
     }
   }
 }

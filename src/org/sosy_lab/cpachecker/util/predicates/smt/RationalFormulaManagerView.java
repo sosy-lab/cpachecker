@@ -14,8 +14,8 @@ import org.sosy_lab.java_smt.api.NumeralFormulaManager;
 import org.sosy_lab.java_smt.api.RationalFormulaManager;
 
 public class RationalFormulaManagerView
-  extends NumeralFormulaManagerView<NumeralFormula, RationalFormula>
-  implements RationalFormulaManager{
+    extends NumeralFormulaManagerView<NumeralFormula, RationalFormula>
+    implements RationalFormulaManager {
   RationalFormulaManagerView(
       FormulaWrappingHandler pWrappingHandler,
       NumeralFormulaManager<NumeralFormula, RationalFormula> pManager) {

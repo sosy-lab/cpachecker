@@ -65,18 +65,17 @@ public final class UsagePoint implements Comparable<UsagePoint> {
     if (this == obj) {
       return true;
     }
-    if (obj == null ||
-        getClass() != obj.getClass()) {
+    if (obj == null || getClass() != obj.getClass()) {
       return false;
     }
     UsagePoint other = (UsagePoint) obj;
-    return access == other.access
-        && Objects.equals(compatibleNodes, other.compatibleNodes);
+    return access == other.access && Objects.equals(compatibleNodes, other.compatibleNodes);
   }
 
   @Override
   public int compareTo(UsagePoint o) {
-    //It is very important to compare at first the accesses, because an algorithm base on this suggestion
+    // It is very important to compare at first the accesses, because an algorithm base on this
+    // suggestion
     int result = access.compareTo(o.access);
     if (result != 0) {
       return result;
@@ -93,7 +92,7 @@ public final class UsagePoint implements Comparable<UsagePoint> {
     return result;
   }
 
-  //TODO CompareTo? with enums
+  // TODO CompareTo? with enums
   public boolean covers(UsagePoint o) {
     // access 'write' is higher than 'read', but only for nonempty locksets
     if (access.compareTo(o.access) > 0) {
@@ -101,12 +100,12 @@ public final class UsagePoint implements Comparable<UsagePoint> {
     }
 
     return from(Pair.zipList(compatibleNodes, o.compatibleNodes))
-           .allMatch(p -> p.getFirst().cover(p.getSecond()));
+        .allMatch(p -> p.getFirst().cover(p.getSecond()));
   }
 
   public boolean isCompatible(UsagePoint other) {
     return from(Pair.zipList(compatibleNodes, other.compatibleNodes))
-           .allMatch(p -> p.getFirst().isCompatibleWith(p.getSecond()));
+        .allMatch(p -> p.getFirst().isCompatibleWith(p.getSecond()));
   }
 
   public boolean isEmpty() {

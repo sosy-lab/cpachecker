@@ -57,35 +57,39 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
-/** This static analyzer for edges checks whether there exists
- * read- or write-access to global variables or shared memory along edges. */
+/**
+ * This static analyzer for edges checks whether there exists read- or write-access to global
+ * variables or shared memory along edges.
+ */
 public class GlobalAccessChecker {
 
   /** cache elements, edges and their content never change. */
   private final IdentityHashMap<AAstNode, Boolean> astCache = new IdentityHashMap<>();
 
-  /** check, whether the edge might have a write- or read-access to
-   * global variables or shared memory, i.e. whether the edge might
-   * influence other threads or uses only scoped variables of the thread. */
+  /**
+   * check, whether the edge might have a write- or read-access to global variables or shared
+   * memory, i.e. whether the edge might influence other threads or uses only scoped variables of
+   * the thread.
+   */
   boolean hasGlobalAccess(CFAEdge edge) {
     switch (edge.getEdgeType()) {
-    case BlankEdge:
-      return false;
-    case AssumeEdge:
-      return hasGlobalAccess(((CAssumeEdge) edge).getExpression());
-    case StatementEdge:
-      return hasGlobalAccess(((CStatementEdge) edge).getStatement());
-    case DeclarationEdge:
-      return hasGlobalAccess(((CDeclarationEdge)edge).getDeclaration());
-    case ReturnStatementEdge:
+      case BlankEdge:
+        return false;
+      case AssumeEdge:
+        return hasGlobalAccess(((CAssumeEdge) edge).getExpression());
+      case StatementEdge:
+        return hasGlobalAccess(((CStatementEdge) edge).getStatement());
+      case DeclarationEdge:
+        return hasGlobalAccess(((CDeclarationEdge) edge).getDeclaration());
+      case ReturnStatementEdge:
         return ((CReturnStatementEdge) edge).getExpression().isPresent()
             && hasGlobalAccess(((CReturnStatementEdge) edge).getExpression().orElseThrow());
-    case FunctionCallEdge:
+      case FunctionCallEdge:
         return hasGlobalAccess(((CFunctionCallEdge) edge).getFunctionCall());
-    case FunctionReturnEdge:
-      return hasGlobalAccess(((FunctionReturnEdge) edge).getSummaryEdge().getExpression());
-    default:
-      throw new AssertionError("unexpected edge: " + edge);
+      case FunctionReturnEdge:
+        return hasGlobalAccess(((FunctionReturnEdge) edge).getSummaryEdge().getExpression());
+      default:
+        throw new AssertionError("unexpected edge: " + edge);
     }
   }
 
@@ -207,12 +211,11 @@ public class GlobalAccessChecker {
   }
 
   /** returns whether there might be a read- or write-access to global variables. */
-  private static class GlobalAccessVisitor
-      extends DefaultCExpressionVisitor<Boolean, NoException>
+  private static class GlobalAccessVisitor extends DefaultCExpressionVisitor<Boolean, NoException>
       implements CRightHandSideVisitor<Boolean, NoException> {
 
     // we can use singleton, because there is no internal storage or state.
-    final static GlobalAccessVisitor INSTANCE = new GlobalAccessVisitor();
+    static final GlobalAccessVisitor INSTANCE = new GlobalAccessVisitor();
 
     @Override
     public Boolean visit(CIdExpression pE) {
@@ -222,14 +225,12 @@ public class GlobalAccessChecker {
 
     @Override
     public Boolean visit(CArraySubscriptExpression pE) {
-      return pE.getArrayExpression().accept(this)
-          || pE.getSubscriptExpression().accept(this);
+      return pE.getArrayExpression().accept(this) || pE.getSubscriptExpression().accept(this);
     }
 
     @Override
     public Boolean visit(CBinaryExpression pE) {
-      return pE.getOperand1().accept(this)
-          || pE.getOperand2().accept(this);
+      return pE.getOperand1().accept(this) || pE.getOperand2().accept(this);
     }
 
     @Override
@@ -272,7 +273,8 @@ public class GlobalAccessChecker {
 
     @Override
     protected Boolean visitDefault(CExpression pExp) {
-      // all further (inherited, not directly implemented) methods only access local data, e.g. IntegerLiteralExpression.
+      // all further (inherited, not directly implemented) methods only access local data, e.g.
+      // IntegerLiteralExpression.
       return false;
     }
   }

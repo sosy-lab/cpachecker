@@ -127,7 +127,9 @@ public class LeafExpression<LeafType> extends AbstractExpressionTree<LeafType> {
         return assumeTruth ? ExpressionTrees.getTrue() : ExpressionTrees.getFalse();
       }
     }
-    return new LeafExpression<>(leafExpression, assumeTruth, assumeTruth ? leafExpression.hashCode() : -leafExpression.hashCode());
+    return new LeafExpression<>(
+        leafExpression,
+        assumeTruth,
+        assumeTruth ? leafExpression.hashCode() : -leafExpression.hashCode());
   }
-
 }

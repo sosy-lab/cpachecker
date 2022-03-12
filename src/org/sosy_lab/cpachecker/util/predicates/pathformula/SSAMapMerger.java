@@ -50,18 +50,17 @@ public class SSAMapMerger {
   }
 
   /**
-   * builds a formula that represents the necessary variable assignments
-   * to "merge" the two ssa maps. That is, for every variable X that has two
-   * different ssa indices i and j in the maps, creates a new formula
-   * (X_k = X_i) | (X_k = X_j), where k is a fresh ssa index.
-   * Returns the formula described above, plus a new SSAMap that is the merge
-   * of the two.
+   * builds a formula that represents the necessary variable assignments to "merge" the two ssa
+   * maps. That is, for every variable X that has two different ssa indices i and j in the maps,
+   * creates a new formula (X_k = X_i) | (X_k = X_j), where k is a fresh ssa index. Returns the
+   * formula described above, plus a new SSAMap that is the merge of the two.
    *
    * @param ssa1 an SSAMap
    * @param pts1 the PointerTargetSet for ssa1
    * @param ssa2 an SSAMap
    * @param pts2 the PointerTargetSet for ssa1
-   * @return The new SSAMap and the formulas that need to be added to the path formulas before disjuncting them.
+   * @return The new SSAMap and the formulas that need to be added to the path formulas before
+   *     disjuncting them.
    */
   MergeResult<SSAMap> mergeSSAMaps(
       final SSAMap ssa1,
@@ -104,8 +103,8 @@ public class SSAMapMerger {
   }
 
   /**
-   * Create the necessary equivalence terms for adjusting the SSA indices
-   * of a given symbol (of any type) from oldIndex to newIndex.
+   * Create the necessary equivalence terms for adjusting the SSA indices of a given symbol (of any
+   * type) from oldIndex to newIndex.
    */
   private BooleanFormula makeSsaMerger(
       final String symbolName,
@@ -143,8 +142,7 @@ public class SSAMapMerger {
     return bfmgr.and(lResult);
   }
 
-
-   BooleanFormula addMergeAssumptions(
+  BooleanFormula addMergeAssumptions(
       final BooleanFormula pFormula,
       final SSAMap ssa1,
       final PointerTargetSet pts1,
@@ -185,8 +183,8 @@ public class SSAMapMerger {
   }
 
   /**
-   * Class representing the result of the operation of merging (disjuncting)
-   * additional parts of {@link PathFormula}s beyond the actual formula.
+   * Class representing the result of the operation of merging (disjuncting) additional parts of
+   * {@link PathFormula}s beyond the actual formula.
    */
   public static class MergeResult<T> {
 
@@ -213,24 +211,22 @@ public class SSAMapMerger {
     }
 
     /**
-     * This is a formula that needs to be conjuncted to the left formula
-     * before it is used in the disjunction.
+     * This is a formula that needs to be conjuncted to the left formula before it is used in the
+     * disjunction.
      */
     BooleanFormula getLeftConjunct() {
       return leftConjunct;
     }
 
     /**
-     * This is a formula that needs to be conjuncted to the right formula
-     * before it is used in the disjunction.
+     * This is a formula that needs to be conjuncted to the right formula before it is used in the
+     * disjunction.
      */
     BooleanFormula getRightConjunct() {
       return rightConjunct;
     }
 
-    /**
-     * This is a formula that needs to be conjuncted to the result of the disjunction.
-     */
+    /** This is a formula that needs to be conjuncted to the result of the disjunction. */
     BooleanFormula getFinalConjunct() {
       return finalConjunct;
     }

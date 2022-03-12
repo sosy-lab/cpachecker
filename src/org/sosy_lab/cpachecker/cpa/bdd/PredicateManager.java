@@ -38,27 +38,28 @@ import org.sosy_lab.cpachecker.util.variableclassification.Partition;
 @Options(prefix = "cpa.bdd")
 public class PredicateManager {
 
-  @Option(secure=true, description = "declare first bit of all vars, then second bit,...")
+  @Option(secure = true, description = "declare first bit of all vars, then second bit,...")
   private boolean initBitwise = true;
 
-  @Option(secure=true, description = "declare the bits of a var from 0 to N or from N to 0")
+  @Option(secure = true, description = "declare the bits of a var from 0 to N or from N to 0")
   private boolean initBitsIncreasing = true;
 
-  @Option(secure=true, description = "declare partitions ordered")
+  @Option(secure = true, description = "declare partitions ordered")
   private boolean initPartitionsOrdered = true;
 
-  @Option(secure=true, description = "declare vars partitionwise")
+  @Option(secure = true, description = "declare vars partitionwise")
   private boolean initPartitions = true;
 
   protected static final String TMP_VARIABLE_PREFIX = "__CPAchecker_tmp_var_";
 
   @Option(
-    secure = true,
-    description = "add some additional variables (with prefix) for each variable "
-        + "that can be used for more complex BDD operations later. "
-        + "In the ordering, we declare them as narrow as possible to the original variable, "
-        + "such that the overhead for using them stays small. "
-        + "A value 0 disables this feature.")
+      secure = true,
+      description =
+          "add some additional variables (with prefix) for each variable "
+              + "that can be used for more complex BDD operations later. "
+              + "In the ordering, we declare them as narrow as possible to the original variable, "
+              + "such that the overhead for using them stays small. "
+              + "A value 0 disables this feature.")
   private int initAdditionalVariables = 0;
 
   protected static final String TMP_VARIABLE = "__CPAchecker_tmp_var";
@@ -78,7 +79,7 @@ public class PredicateManager {
   PredicateManager(final Configuration config, final NamedRegionManager pRmgr, final CFA pCfa)
       throws InvalidConfigurationException {
     config.inject(this);
-    this.rmgr = pRmgr;
+    rmgr = pRmgr;
 
     if (initPartitions) {
       varsToTmpVar = initVars(pCfa);
@@ -120,10 +121,7 @@ public class PredicateManager {
     for (Partition partition : partitions) {
       // maxBitSize is too much for most variables. we only create an order here, so this should not
       // matter.
-      createPredicates(
-          partition,
-          bitsize,
-          partitionToTmpVar);
+      createPredicates(partition, bitsize, partitionToTmpVar);
     }
     return ImmutableMap.copyOf(partitionToTmpVar);
   }
@@ -201,9 +199,7 @@ public class PredicateManager {
     return TMP_VARIABLE_PREFIX + i + "__" + varName;
   }
 
-  /**
-   * This function returns a region for a variable. This function does not track any statistics.
-   */
+  /** This function returns a region for a variable. This function does not track any statistics. */
   private Region createPredicateDirectly0(final String varName, final int index) {
     return rmgr.createPredicate(varName + "@" + index);
   }
@@ -230,7 +226,8 @@ public class PredicateManager {
     }
     final Region[] newRegions = new Region[size];
     for (int i = size - 1; i >= 0; i--) {
-      // inverse order should be faster, because 'most changing bits' are at bottom position in BDDs.
+      // inverse order should be faster, because 'most changing bits' are at bottom position in
+      // BDDs.
       newRegions[i] = createPredicateDirectly0(varName, i);
     }
     return newRegions;

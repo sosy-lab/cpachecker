@@ -49,50 +49,41 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  */
 public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
 
-  /**
-   * A container for object found on the stack:
-   *  - local variables
-   *  - parameters
-   */
+  /** A container for object found on the stack: - local variables - parameters */
   private PersistentStack<CLangStackFrame> stack_objects = PersistentStack.of();
 
-  /**
-   * A container for objects allocated on heap
-   */
+  /** A container for objects allocated on heap */
   private PersistentSet<SMGObject> heap_objects;
 
-  /**
-   * A container for global objects
-   */
+  /** A container for global objects */
   private PersistentMap<String, SMGRegion> global_objects;
 
   /** logger is always NULL, except for JUnit-tests */
   private static LogManager logger = null;
 
   /**
-   * A flag setting if the class should perform additional consistency checks.
-   * It should be useful only during debugging, when is should find bad
-   * external calls closer to their origin. We probably do not want t
-   * run the checks in the production build.
+   * A flag setting if the class should perform additional consistency checks. It should be useful
+   * only during debugging, when is should find bad external calls closer to their origin. We
+   * probably do not want t run the checks in the production build.
    */
-  static private boolean perform_checks = false;
+  private static boolean perform_checks = false;
 
   public static void setPerformChecks(boolean pSetting, LogManager pLogger) {
     CLangSMG.perform_checks = pSetting;
     CLangSMG.logger = pLogger;
   }
 
-  static public boolean performChecks() {
+  public static boolean performChecks() {
     return CLangSMG.perform_checks;
   }
 
   /**
    * Constructor.
    *
-   * Keeps consistency: yes
+   * <p>Keeps consistency: yes
    *
-   * Newly constructed CLangSMG contains a single nullObject with an address
-   * pointing to it, and is empty otherwise.
+   * <p>Newly constructed CLangSMG contains a single nullObject with an address pointing to it, and
+   * is empty otherwise.
    */
   public CLangSMG(MachineModel pMachineModel) {
     super(pMachineModel);
@@ -124,10 +115,10 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
   /**
    * Add a object to the heap.
    *
-   * Keeps consistency: no
+   * <p>Keeps consistency: no
    *
-   * With checks: throws {@link IllegalArgumentException} when asked to add
-   * an object already present.
+   * <p>With checks: throws {@link IllegalArgumentException} when asked to add an object already
+   * present.
    *
    * @param pObject Object to add.
    */
@@ -142,12 +133,11 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
   /**
    * Add a global object to the SMG
    *
-   * Keeps consistency: no
+   * <p>Keeps consistency: no
    *
-   * With checks: throws {@link IllegalArgumentException} when asked to add
-   * an object already present, or an global object with a label identifying
-   * different object
-
+   * <p>With checks: throws {@link IllegalArgumentException} when asked to add an object already
+   * present, or an global object with a label identifying different object
+   *
    * @param pObject Object to add
    */
   public void addGlobalObject(SMGRegion pObject) {
@@ -167,29 +157,28 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
   /**
    * Adds an object to the current stack frame
    *
-   * Keeps consistency: no
+   * <p>Keeps consistency: no
    *
    * @param pObject Object to add
-   *
-   * TODO: [SCOPES] Scope visibility vs. stack frame issues: handle cases where a variable is visible
-   * but is is allowed to override (inner blocks)
-   * TODO: Consistency check (allow): different objects with same label inside a frame, but in different block
-   * TODO: Test for this consistency check
-   *
-   * TODO: Shall we need an extension for putting objects to upper frames?
+   *     <p>TODO: [SCOPES] Scope visibility vs. stack frame issues: handle cases where a variable is
+   *     visible but is is allowed to override (inner blocks) TODO: Consistency check (allow):
+   *     different objects with same label inside a frame, but in different block TODO: Test for
+   *     this consistency check
+   *     <p>TODO: Shall we need an extension for putting objects to upper frames?
    */
   public void addStackObject(SMGRegion pObject) {
     super.addObject(pObject);
     CLangStackFrame top = stack_objects.peek();
     Preconditions.checkArgument(
         !top.hasVariable(pObject.getLabel()), "object with same label cannot be added twice");
-    stack_objects = stack_objects.popAndCopy().pushAndCopy(top.addStackVariable(pObject.getLabel(), pObject));
+    stack_objects =
+        stack_objects.popAndCopy().pushAndCopy(top.addStackVariable(pObject.getLabel(), pObject));
   }
 
   /**
    * Add a new stack frame for the passed function.
    *
-   * Keeps consistency: yes
+   * <p>Keeps consistency: yes
    *
    * @param pFunctionDeclaration A function for which to create a new stack frame
    */
@@ -205,14 +194,13 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
   }
 
   /**
-   * Remove a top stack frame from the SMG, along with all objects in it, and
-   * any edges leading from/to it.
+   * Remove a top stack frame from the SMG, along with all objects in it, and any edges leading
+   * from/to it.
    *
-   * TODO: A testcase with (invalid) passing of an address of a dropped frame object
-   * outside, and working with them. For that, we should probably keep those as invalid, so
-   * we can spot such bug.
+   * <p>TODO: A testcase with (invalid) passing of an address of a dropped frame object outside, and
+   * working with them. For that, we should probably keep those as invalid, so we can spot such bug.
    *
-   * Keeps consistency: yes
+   * <p>Keeps consistency: yes
    */
   public void dropStackFrame() {
     CLangStackFrame frame = stack_objects.peek();
@@ -349,13 +337,21 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
   @Override
   public String toString() {
     return "CLangSMG ["
-        + "\n  stack_objects=" + stack_objects
-        + "\n  heap_objects=" + heap_objects
-        + "\n  global_objects=" + global_objects
-        + "\n  values=" + getValues()
-        + "\n  pointsTo=" + getPTEdges()
-        + "\n  hasValue=" + getHVEdges()
-        + "\n  " + getMapOfMemoryLocationsWithValue() + "\n]";
+        + "\n  stack_objects="
+        + stack_objects
+        + "\n  heap_objects="
+        + heap_objects
+        + "\n  global_objects="
+        + global_objects
+        + "\n  values="
+        + getValues()
+        + "\n  pointsTo="
+        + getPTEdges()
+        + "\n  hasValue="
+        + getHVEdges()
+        + "\n  "
+        + getMapOfMemoryLocationsWithValue()
+        + "\n]";
   }
 
   private Map<MemoryLocation, SMGValue> getMapOfMemoryLocationsWithValue() {
@@ -374,14 +370,12 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
   }
 
   /**
-   * Returns an SMGObject tied to the variable name. The name must be visible in
-   * the current scope: it needs to be visible either in the current frame, or it
-   * is a global variable. Constant.
+   * Returns an SMGObject tied to the variable name. The name must be visible in the current scope:
+   * it needs to be visible either in the current frame, or it is a global variable. Constant.
    *
    * @param pVariableName A name of the variable
    * @return An object tied to the name, if such exists in the visible scope. Null otherwise.
-   *
-   * TODO: [SCOPES] Test for getting visible local object hiding other local object
+   *     <p>TODO: [SCOPES] Test for getting visible local object hiding other local object
    */
   @Override
   public SMGRegion getObjectForVisibleVariable(String pVariableName) {
@@ -417,11 +411,10 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
   /**
    * Constant.
    *
-   * Checks whether given object is on the heap.
+   * <p>Checks whether given object is on the heap.
    *
    * @param object SMGObject to be checked.
    * @return True, if the given object is referenced in the set of heap objects, false otherwise.
-   *
    */
   @Override
   public boolean isHeapObject(SMGObject object) {
@@ -594,9 +587,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     }
   }
 
-  /**
-   * Remove all values and every edge from the smg.
-   */
+  /** Remove all values and every edge from the smg. */
   public void clearValues() {
     clearValuesHvePte();
   }
@@ -614,7 +605,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
           newStack.pushAndCopy(
               new CLangStackFrame(frame.getFunctionDeclaration(), getMachineModel()));
 
-      if(frame.getReturnObject() != null) {
+      if (frame.getReturnObject() != null) {
         addObject(frame.getReturnObject());
       }
     }
@@ -713,8 +704,8 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     return null;
   }
 
-  public void remember(MemoryLocation pMemoryLocation, SMGRegion pRegion,
-      SMGStateInformation pInfo) {
+  public void remember(
+      MemoryLocation pMemoryLocation, SMGRegion pRegion, SMGStateInformation pInfo) {
 
     rememberRegion(pMemoryLocation, pRegion, pInfo);
     rememberEdges(pInfo);
@@ -739,13 +730,14 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     }
   }
 
-  private void rememberRegion(MemoryLocation pMemoryLocation, SMGRegion pRegion,
-      SMGStateInformation pInfo) {
+  private void rememberRegion(
+      MemoryLocation pMemoryLocation, SMGRegion pRegion, SMGStateInformation pInfo) {
 
     if (pMemoryLocation.isOnFunctionStack()) {
       CLangStackFrame frame = getFrame(pMemoryLocation);
       if (frame != null) {
-        stack_objects = stack_objects.replace(
+        stack_objects =
+            stack_objects.replace(
                 f -> f == frame, frame.addStackVariable(pMemoryLocation.getIdentifier(), pRegion));
       }
     } else {

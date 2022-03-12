@@ -33,7 +33,8 @@ public class ReducerExtractor extends AllTargetsExtractor {
       secure = true,
       name = "conditionFiles",
       description =
-          "path to condition files plus additional assumption guiding automaton when condition itself is in propriertary format and not in witness format")
+          "path to condition files plus additional assumption guiding automaton when condition"
+              + " itself is in propriertary format and not in witness format")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private Set<Path> conditionFiles =
       ImmutableSet.of(
@@ -63,7 +64,8 @@ public class ReducerExtractor extends AllTargetsExtractor {
       logger.logException(
           Level.WARNING,
           e,
-          "Failed to build composite specification of condition and property specification. Continue with property specification only.");
+          "Failed to build composite specification of condition and property specification."
+              + " Continue with property specification only.");
       compositeSpec = pError;
     }
     return super.getSlicingCriteria(pCfa, compositeSpec, shutdownNotifier, logger);

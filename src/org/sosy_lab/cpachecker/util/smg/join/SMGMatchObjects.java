@@ -26,12 +26,8 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.smg.util.OffsetAndSize;
 
-/**
- * Class implementing join algorithm from FIT-TR-2013-4 (Appendix C.4) Algorithm 8.
- *
- */
+/** Class implementing join algorithm from FIT-TR-2013-4 (Appendix C.4) Algorithm 8. */
 public class SMGMatchObjects extends SMGAbstractJoin {
-
 
   public SMGMatchObjects(
       SMGJoinStatus pStatus,
@@ -135,8 +131,7 @@ public class SMGMatchObjects extends SMGAbstractJoin {
     // step 2
     if (mapping1.hasMapping(pObj1)
         && mapping2.hasMapping(pObj2)
-        && !mapping1.getMappedObject(pObj1)
-            .equals(mapping2.getMappedObject(pObj2))) {
+        && !mapping1.getMappedObject(pObj1).equals(mapping2.getMappedObject(pObj2))) {
       return false;
     }
     // step 3
@@ -156,8 +151,7 @@ public class SMGMatchObjects extends SMGAbstractJoin {
     if (isDLLS(pObj1)
         && isDLLS(pObj2)
         && !checkIfLabelMatches(
-            (SMGDoublyLinkedListSegment) pObj1,
-            (SMGDoublyLinkedListSegment) pObj2)) {
+            (SMGDoublyLinkedListSegment) pObj1, (SMGDoublyLinkedListSegment) pObj2)) {
       return false;
     }
     // step7-8
@@ -171,11 +165,10 @@ public class SMGMatchObjects extends SMGAbstractJoin {
    * @param dlls2 second argument
    * @return true if all dlls labels are equal, false else.
    */
-  private boolean
-      checkIfLabelMatches(SMGDoublyLinkedListSegment dlls1, SMGDoublyLinkedListSegment dlls2) {
+  private boolean checkIfLabelMatches(
+      SMGDoublyLinkedListSegment dlls1, SMGDoublyLinkedListSegment dlls2) {
     return dlls1.getHeadOffset().equals(dlls2.getHeadOffset())
         && dlls1.getPrevOffset().equals(dlls2.getPrevOffset())
         && dlls1.getNextOffset().equals(dlls2.getNextOffset());
   }
-
 }

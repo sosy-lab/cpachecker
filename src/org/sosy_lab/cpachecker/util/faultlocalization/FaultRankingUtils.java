@@ -16,9 +16,7 @@ import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo.InfoType;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.RankInfo;
 
-/**
- * Provides a variety of methods that are useful for ranking and assigning scores.
- */
+/** Provides a variety of methods that are useful for ranking and assigning scores. */
 public class FaultRankingUtils {
 
   private static double computeScore(List<FaultInfo> faultInfos) {
@@ -34,7 +32,8 @@ public class FaultRankingUtils {
 
       @Override
       public RankInfo scoreFault(Fault fault) {
-        return FaultInfo.rankInfo("After concatenating rankings there is no need to call scoreFault.",0);
+        return FaultInfo.rankInfo(
+            "After concatenating rankings there is no need to call scoreFault.", 0);
       }
 
       @Override
@@ -59,23 +58,25 @@ public class FaultRankingUtils {
     return ImmutableList.sortedCopyOf(rankedList);
   }
 
-
   /**
-   * Assign a score to a Fault with the default score evaluation function (average of all likelihoods).
-   * When implementing an own method that assigns a score to a Fault make sure that hints are not included in the calculation.
+   * Assign a score to a Fault with the default score evaluation function (average of all
+   * likelihoods). When implementing an own method that assigns a score to a Fault make sure that
+   * hints are not included in the calculation.
+   *
    * @param fault Assigns a score to the Fault.
    */
-  public static void assignScoreTo(Fault fault){
+  public static void assignScoreTo(Fault fault) {
     fault.setScore(computeScore(fault.getInfos()));
   }
 
   /**
-   * Assign a score to a FaultContribution with the default score evaluation function (average of all likelihoods).
-   * When implementing an own method that assigns a score to a FaultContribution make sure that hints are not included in the calculation.
+   * Assign a score to a FaultContribution with the default score evaluation function (average of
+   * all likelihoods). When implementing an own method that assigns a score to a FaultContribution
+   * make sure that hints are not included in the calculation.
+   *
    * @param faultContribution Assigns a score to the FaultContribution.
    */
-  public static void assignScoreTo(FaultContribution faultContribution){
+  public static void assignScoreTo(FaultContribution faultContribution) {
     faultContribution.setScore(computeScore(faultContribution.getInfos()));
   }
-
 }

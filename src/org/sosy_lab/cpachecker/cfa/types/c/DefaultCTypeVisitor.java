@@ -8,9 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.types.c;
 
-
-public abstract class DefaultCTypeVisitor<R, X extends Exception>
-  implements CTypeVisitor<R, X> {
+public abstract class DefaultCTypeVisitor<R, X extends Exception> implements CTypeVisitor<R, X> {
 
   public abstract R visitDefault(final CType t) throws X;
 
@@ -69,4 +67,3 @@ public abstract class DefaultCTypeVisitor<R, X extends Exception>
     return visitDefault(t);
   }
 }
-

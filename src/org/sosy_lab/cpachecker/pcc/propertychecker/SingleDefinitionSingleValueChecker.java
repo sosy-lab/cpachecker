@@ -13,23 +13,27 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PropertyChecker;
 
 /**
- * Checks if a certain variable is defined at most once by the program and
- * checks if a certain variable has a specific value at a specific location marked by a label in the program.
+ * Checks if a certain variable is defined at most once by the program and checks if a certain
+ * variable has a specific value at a specific location marked by a label in the program.
  */
 public class SingleDefinitionSingleValueChecker implements PropertyChecker {
 
   private SingleDefinitionChecker defChecker;
   private SingleValueChecker valChecker;
 
-
-  public SingleDefinitionSingleValueChecker(String varWithSingleDef, String varWithSingleValue, String varValue,
+  public SingleDefinitionSingleValueChecker(
+      String varWithSingleDef,
+      String varWithSingleValue,
+      String varValue,
       String labelForLocationWithSingleValue) {
     defChecker = new SingleDefinitionChecker(varWithSingleDef);
-    valChecker = new SingleValueChecker(varWithSingleValue, varValue, labelForLocationWithSingleValue);
+    valChecker =
+        new SingleValueChecker(varWithSingleValue, varValue, labelForLocationWithSingleValue);
   }
 
   @Override
-  public boolean satisfiesProperty(AbstractState pElemToCheck) throws UnsupportedOperationException {
+  public boolean satisfiesProperty(AbstractState pElemToCheck)
+      throws UnsupportedOperationException {
     throw new UnsupportedOperationException();
   }
 

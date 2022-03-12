@@ -52,7 +52,7 @@ public class UsageContainer {
   private final Set<SingleIdentifier> falseUnsafes;
 
   private final Set<SingleIdentifier> processedUnsafes = new HashSet<>();
-  //Only for statistics
+  // Only for statistics
   private Set<SingleIdentifier> initialSet = null;
   private int initialUsages;
 
@@ -131,7 +131,7 @@ public class UsageContainer {
   }
 
   public void forceAddNewUsages(TemporaryUsageStorage storage) {
-    //This is a case of 'abort'-functions
+    // This is a case of 'abort'-functions
     assert unsafeUsages == -1;
     copyUsages(storage);
   }
@@ -258,12 +258,12 @@ public class UsageContainer {
   }
 
   public Iterator<SingleIdentifier> getUnrefinedUnsafeIterator() {
-    //New set to avoid concurrent modification exception
+    // New set to avoid concurrent modification exception
     return getKeySetIterator(unrefinedIds);
   }
 
   private Iterator<SingleIdentifier> getTrueUnsafeIterator() {
-    //New set to avoid concurrent modification exception
+    // New set to avoid concurrent modification exception
     return getKeySetIterator(refinedIds);
   }
 
@@ -297,21 +297,22 @@ public class UsageContainer {
   public void resetUnrefinedUnsafes() {
     resetTimer.start();
     unsafeUsages = -1;
-    unrefinedIds.values()
-      .forEach(UnrefinedUsagePointSet::reset);
+    unrefinedIds.values().forEach(UnrefinedUsagePointSet::reset);
     logger.log(Level.FINE, "Unsafes are reseted");
     resetTimer.stop();
   }
 
   public void removeState(final UsageState pUstate) {
     unrefinedIds.forEach((id, uset) -> uset.remove(pUstate));
-    logger.log(Level.ALL, "All unsafes related to key state " + pUstate + " were removed from reached set");
+    logger.log(
+        Level.ALL,
+        "All unsafes related to key state " + pUstate + " were removed from reached set");
   }
 
   public AbstractUsagePointSet getUsages(SingleIdentifier id) {
     if (unrefinedIds.containsKey(id)) {
       return unrefinedIds.get(id);
-    } else if (refinedIds.containsKey(id)){
+    } else if (refinedIds.containsKey(id)) {
       return refinedIds.get(id);
     } else {
       return failedIds.get(id);
@@ -324,7 +325,8 @@ public class UsageContainer {
   }
 
   public void setAsRefined(SingleIdentifier id, RefinementResult result) {
-    Preconditions.checkArgument(result.isTrue(), "Result is not true, can not set the set as refined");
+    Preconditions.checkArgument(
+        result.isTrue(), "Result is not true, can not set the set as refined");
     checkArgument(
         detector.isUnsafe(getUsages(id)),
         "Refinement is successful, but the unsafe is absent for identifier %s",
@@ -357,8 +359,7 @@ public class UsageContainer {
     }
 
     final int generalRefinedSize = refinedIds.size();
-    refinedIds.forEach(
-        (id, rset) -> refinedUsages.setNextValue(rset.size()));
+    refinedIds.forEach((id, rset) -> refinedUsages.setNextValue(rset.size()));
 
     final int generalFailedSize = failedIds.size();
     for (RefinedUsagePointSet uset : failedIds.values()) {

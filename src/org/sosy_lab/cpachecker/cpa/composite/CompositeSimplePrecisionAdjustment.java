@@ -18,13 +18,12 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
- * Alternative to {@link CompositeSimplePrecisionAdjustment} which is faster
- * but can only be used if all child prec operators are either
- * {@link BreakOnTargetsPrecisionAdjustment} or {@link StaticPrecisionAdjustment}.
+ * Alternative to {@link CompositeSimplePrecisionAdjustment} which is faster but can only be used if
+ * all child prec operators are either {@link BreakOnTargetsPrecisionAdjustment} or {@link
+ * StaticPrecisionAdjustment}.
  *
- * It works by storing a list of indices and then just checks the elements at
- * these indexes if they are targets.
- * It does never call other precision adjustment operators.
+ * <p>It works by storing a list of indices and then just checks the elements at these indexes if
+ * they are targets. It does never call other precision adjustment operators.
  */
 class CompositeSimplePrecisionAdjustment extends SimplePrecisionAdjustment {
 

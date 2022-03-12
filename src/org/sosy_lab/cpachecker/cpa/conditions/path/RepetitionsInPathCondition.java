@@ -32,24 +32,23 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
- * A {@link PathCondition} where the condition is based on the number of appearances
- * of edges in a path. I.e., if the threshold is 3, a path is cut off as soon
- * as any edge is seen the third time in the path.
- * However, only FunctionCallEdges and outgoing edges of a loop head are tracked.
+ * A {@link PathCondition} where the condition is based on the number of appearances of edges in a
+ * path. I.e., if the threshold is 3, a path is cut off as soon as any edge is seen the third time
+ * in the path. However, only FunctionCallEdges and outgoing edges of a loop head are tracked.
  */
-@Options(prefix="cpa.conditions.path.repetitions")
+@Options(prefix = "cpa.conditions.path.repetitions")
 public class RepetitionsInPathCondition implements PathCondition, Statistics {
 
-  @Option(secure=true, description="maximum repetitions of any edge in a path (-1 for infinite)",
-      name="limit")
-  @IntegerOption(min=-1)
+  @Option(
+      secure = true,
+      description = "maximum repetitions of any edge in a path (-1 for infinite)",
+      name = "limit")
+  @IntegerOption(min = -1)
   private int threshold = -1;
 
   private int increaseThresholdBy = 0;
 
   private int maxRepetitionsInPath = 0;
-
-
 
   public RepetitionsInPathCondition(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
@@ -67,7 +66,7 @@ public class RepetitionsInPathCondition implements PathCondition, Statistics {
 
   @Override
   public AvoidanceReportingState getAbstractSuccessor(AbstractState pState, CFAEdge pEdge) {
-    RepetitionsInPathConditionState current = (RepetitionsInPathConditionState)pState;
+    RepetitionsInPathConditionState current = (RepetitionsInPathConditionState) pState;
 
     if (!isInteresting(pEdge)) {
       return current;
@@ -97,7 +96,8 @@ public class RepetitionsInPathCondition implements PathCondition, Statistics {
   public boolean adjustPrecision() {
     if (threshold == -1) {
       // set the initial threshold value
-      // TODO PW: Do this calculations make sense? I just copied them from RepetitionsInPathHeuristicsPrecision.
+      // TODO PW: Do this calculations make sense? I just copied them from
+      // RepetitionsInPathHeuristicsPrecision.
       threshold = maxRepetitionsInPath / 5;
       increaseThresholdBy = threshold;
 
@@ -118,8 +118,8 @@ public class RepetitionsInPathCondition implements PathCondition, Statistics {
     out.println("Threshold value:               " + threshold);
   }
 
-
-  private static class RepetitionsInPathConditionState implements AbstractState, AvoidanceReportingState {
+  private static class RepetitionsInPathConditionState
+      implements AbstractState, AvoidanceReportingState {
 
     private final ImmutableMultiset<CFAEdge> frequencyMap;
     private final int threshold;
@@ -156,5 +156,4 @@ public class RepetitionsInPathCondition implements PathCondition, Statistics {
   public Reducer getReducer() {
     return NoOpReducer.getInstance();
   }
-
 }

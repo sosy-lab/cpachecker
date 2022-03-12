@@ -20,27 +20,27 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.BalancedGraphPartitioner;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
 
-
 public class ExplorationOrderBalancedGraphPartitioner implements BalancedGraphPartitioner {
 
   private final ShutdownNotifier shutdownNotifier;
   private final boolean useDFS;
 
-  public ExplorationOrderBalancedGraphPartitioner(final boolean pDFS, final ShutdownNotifier pShutdownNotifier) {
+  public ExplorationOrderBalancedGraphPartitioner(
+      final boolean pDFS, final ShutdownNotifier pShutdownNotifier) {
     useDFS = pDFS;
     shutdownNotifier = pShutdownNotifier;
   }
 
   @Override
-  public List<Set<Integer>> computePartitioning(int pNumPartitions, PartialReachedSetDirectedGraph pGraph)
-      throws InterruptedException {
+  public List<Set<Integer>> computePartitioning(
+      int pNumPartitions, PartialReachedSetDirectedGraph pGraph) throws InterruptedException {
     Deque<Integer> waitlist = new ArrayDeque<>();
     BitSet inPartition = new BitSet(pGraph.getNumNodes());
     int partitionSize = pGraph.getNumNodes() / pNumPartitions + 1;
 
     List<Set<Integer>> result = new ArrayList<>(pNumPartitions);
     for (int i = 0; i < pNumPartitions; i++) {
-      result.add(Sets.<Integer> newHashSetWithExpectedSize(partitionSize));
+      result.add(Sets.<Integer>newHashSetWithExpectedSize(partitionSize));
     }
 
     waitlist.add(0);
@@ -72,5 +72,4 @@ public class ExplorationOrderBalancedGraphPartitioner implements BalancedGraphPa
 
     return result;
   }
-
 }

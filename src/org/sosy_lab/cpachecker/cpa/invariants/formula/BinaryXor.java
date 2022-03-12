@@ -16,9 +16,9 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 final class BinaryXor<ConstantType> extends AbstractBinaryFormula<ConstantType>
     implements NumeralFormula<ConstantType> {
 
-  private BinaryXor(NumeralFormula<ConstantType> pOperand1, NumeralFormula<ConstantType> pOperand2) {
+  private BinaryXor(
+      NumeralFormula<ConstantType> pOperand1, NumeralFormula<ConstantType> pOperand2) {
     super("^", true, pOperand1, pOperand2);
-
   }
 
   @Override
@@ -28,22 +28,22 @@ final class BinaryXor<ConstantType> extends AbstractBinaryFormula<ConstantType>
 
   @Override
   public <ReturnType, ParamType> ReturnType accept(
-      ParameterizedNumeralFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
+      ParameterizedNumeralFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor,
+      ParamType pParameter) {
     return pVisitor.visit(this, pParameter);
   }
 
   /**
-   * Gets an invariants formula representing the binary exclusive or operation
-   * over the given operands.
+   * Gets an invariants formula representing the binary exclusive or operation over the given
+   * operands.
    *
    * @param pOperand1 the first operand.
    * @param pOperand2 the second operand.
-   *
-   * @return an invariants formula representing the binary exclusive or operation
-   * over the given operands.
+   * @return an invariants formula representing the binary exclusive or operation over the given
+   *     operands.
    */
-  static <ConstantType> BinaryXor<ConstantType> of(NumeralFormula<ConstantType> pOperand1, NumeralFormula<ConstantType> pOperand2) {
+  static <ConstantType> BinaryXor<ConstantType> of(
+      NumeralFormula<ConstantType> pOperand1, NumeralFormula<ConstantType> pOperand2) {
     return new BinaryXor<>(pOperand1, pOperand2);
   }
-
 }

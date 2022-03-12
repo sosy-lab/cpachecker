@@ -54,13 +54,12 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvider {
 
   @Option(
-    secure = true,
-    description =
-        "configuration for the verification of the residual program which is constructed from another verifier's condition"
-  )
+      secure = true,
+      description =
+          "configuration for the verification of the residual program which is constructed from"
+              + " another verifier's condition")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private @Nullable Path verifierConfig;
-
 
   @Option(secure = true, description = "configuration of the residual program generator")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
@@ -73,8 +72,12 @@ public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvid
   private final Configuration globalConfig;
   private final ConditionalVerifierStats stats = new ConditionalVerifierStats();
 
-  public ConditionalVerifierAlgorithm(final Configuration pConfig, final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier, final Specification pSpecification, final CFA pCfa)
+  public ConditionalVerifierAlgorithm(
+      final Configuration pConfig,
+      final LogManager pLogger,
+      final ShutdownNotifier pShutdownNotifier,
+      final Specification pSpecification,
+      final CFA pCfa)
       throws InvalidConfigurationException {
     pConfig.inject(this);
 
@@ -102,9 +105,12 @@ public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvid
 
       shutdown.shutdownIfNecessary();
 
-      status = status.update(
-          verifyResidualProgram(entryFunction.getFunctionName(), residProg.toString(),
-          (ForwardingReachedSet) pReachedSet));
+      status =
+          status.update(
+              verifyResidualProgram(
+                  entryFunction.getFunctionName(),
+                  residProg.toString(),
+                  (ForwardingReachedSet) pReachedSet));
 
     } catch (IOException e) {
       logger.logException(Level.SEVERE, e, "Failed to create temporary file for residual program");
@@ -187,8 +193,11 @@ public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvid
     }
   }
 
-  private AlgorithmStatus verifyResidualProgram(final String pEntryFunctionName,
-      final String pResidProgPath, final ForwardingReachedSet reached) throws InterruptedException, CPAException {
+  private AlgorithmStatus verifyResidualProgram(
+      final String pEntryFunctionName,
+      final String pResidProgPath,
+      final ForwardingReachedSet reached)
+      throws InterruptedException, CPAException {
     stats.residVerif.start();
     try {
       logger.log(Level.INFO, "Start verification of residual program");

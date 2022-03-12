@@ -11,16 +11,13 @@ package org.sosy_lab.cpachecker.util.predicates.regions;
 import org.sosy_lab.common.ShutdownNotifier;
 
 /**
- * RegionCreator is an interface that contains all methods for creating
- * {@link Region} instances.
- * It is a super-interface of {@link RegionManager} with a subset of methods
- * intended to be used for code that needs only limited access.
+ * RegionCreator is an interface that contains all methods for creating {@link Region} instances. It
+ * is a super-interface of {@link RegionManager} with a subset of methods intended to be used for
+ * code that needs only limited access.
  */
 public interface RegionCreator {
 
-  /**
-   * Return a new {@link RegionBuilder} instance.
-   */
+  /** Return a new {@link RegionBuilder} instance. */
   RegionBuilder builder(ShutdownNotifier pShutdownNotifier);
 
   /** Returns a representation of logical truth. */
@@ -66,6 +63,7 @@ public interface RegionCreator {
 
   /**
    * Creates a region representing an disequality (XOR) of the two argument
+   *
    * @param f1 an AbstractFormula
    * @param f2 an AbstractFormula
    * @return (f1 ^ f2)
@@ -83,8 +81,9 @@ public interface RegionCreator {
   Region makeIte(Region f1, Region f2, Region f3);
 
   /**
-   * Creates a region representing an existential quantification of the second
-   * argument. If there are more arguments, each of them is quantified.
+   * Creates a region representing an existential quantification of the second argument. If there
+   * are more arguments, each of them is quantified.
+   *
    * @param f1 an AbstractFormula
    * @param f2 one or more AbstractFormulas
    * @return (exists f2... : f1)
@@ -92,37 +91,25 @@ public interface RegionCreator {
   Region makeExists(Region f1, Region... f2);
 
   /**
-   * A stateful region builder for regions that are disjunctions
-   * of conjunctive literals.
-   * Using this can be more efficient than calling {@link RegionCreator#makeOr(Region, Region)}
-   * and {@link RegionCreator#makeAnd(Region, Region)} repeatedly.
+   * A stateful region builder for regions that are disjunctions of conjunctive literals. Using this
+   * can be more efficient than calling {@link RegionCreator#makeOr(Region, Region)} and {@link
+   * RegionCreator#makeAnd(Region, Region)} repeatedly.
    */
   interface RegionBuilder extends AutoCloseable {
 
-    /**
-     * Start a new conjunctive clause.
-     */
+    /** Start a new conjunctive clause. */
     void startNewConjunction();
 
-    /**
-     * Add a region to the current conjunctive clause.
-     */
+    /** Add a region to the current conjunctive clause. */
     void addPositiveRegion(Region r);
 
-    /**
-     * Add the negation of a region to the current conjunctive clause.
-     */
+    /** Add the negation of a region to the current conjunctive clause. */
     void addNegativeRegion(Region r);
 
-    /**
-     * End the current conjunctive clause and add it to the global disjunction.
-     */
+    /** End the current conjunctive clause and add it to the global disjunction. */
     void finishConjunction();
 
-    /**
-     * Retrieve the disjunction of all the conjunctive clauses created
-     * with this builder so far.
-     */
+    /** Retrieve the disjunction of all the conjunctive clauses created with this builder so far. */
     Region getResult() throws InterruptedException;
 
     @Override
