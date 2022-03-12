@@ -50,7 +50,7 @@ const cfaWorkerErrorCallback = (e) => {
 // Add desired events to CFA nodes and edges
 function addEventsToCfa() {
   addPanEvent(".cfa-svg");
-  d3.selectAll(".cfa-node")
+  d3.selectAll(".cfa-node,.cfa-node-covered,.cfa-node-considered")
     .on("mouseover", (d) => {
       let message;
       if (Number(d) > 100000) {
