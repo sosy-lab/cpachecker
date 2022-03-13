@@ -45,13 +45,12 @@ public class CoverageCPA implements ConfigurableProgramAnalysis, StatisticsProvi
   // STATIC!! only one instance for CPAchecker
   private static final CoverageData cov = new CoverageData();
 
-  public CoverageCPA(Configuration pConfig, LogManager pLogger, CFA pCFA) throws InvalidConfigurationException {
+  public CoverageCPA(Configuration pConfig, LogManager pLogger, CFA pCFA)
+      throws InvalidConfigurationException {
     cov.putCFA(pCFA);
-
     domain = new FlatLatticeDomain(SingletonAbstractState.INSTANCE);
     stop = new StopSepOperator(domain);
     transfer = new CoverageTransferRelation(cov);
-
     stats = new CoverageStatistics(pConfig, pLogger, cov);
   }
 
@@ -84,5 +83,4 @@ public class CoverageCPA implements ConfigurableProgramAnalysis, StatisticsProvi
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);
   }
-
 }
