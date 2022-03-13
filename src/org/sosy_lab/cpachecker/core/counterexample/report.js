@@ -1002,7 +1002,14 @@ let argTabDisabled = false;
           );
           d3.selectAll(".cfa-node-covered").each(function cfaNode() {
             const node = d3.select(this.firstChild);
-            node.attr("style", "fill: #fff; stroke: #999;");
+            const hexGradient = node
+              .attr("style")
+              .split("comment: ")
+              .slice(-1)[0];
+            node.attr(
+              "style",
+              `fill: #fff; stroke: #999; comment: ${hexGradient};`
+            );
           });
           d3.selectAll(".cfa-node-considered").each(function cfaNode() {
             const node = d3.select(this.firstChild);
@@ -1015,7 +1022,14 @@ let argTabDisabled = false;
           );
           d3.selectAll(".cfa-node-covered").each(function cfaNode() {
             const node = d3.select(this.firstChild);
-            node.attr("style", "");
+            const hexGradient = node
+              .attr("style")
+              .split("comment: ")
+              .slice(-1)[0];
+            node.attr(
+              "style",
+              `fill: ${hexGradient}; stroke: #999; comment: ${hexGradient};`
+            );
           });
           d3.selectAll(".cfa-node-considered").each(function cfaNode() {
             const node = d3.select(this.firstChild);

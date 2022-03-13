@@ -41,6 +41,9 @@ describe("ReportController", () => {
           "<p>&#9634; &nbsp; combined normal elements</p>" +
           "<p>&#9645; &nbsp; function node</p>" +
           "<p>&#9671; &nbsp; loop head</p>" +
+          '<p><span style="background-color:#3aec49;">&#9675;</span> covered state: state was visited during the analysis</p>' +
+          '<p><span style="background-color:#4df8bd;">&#9675;</span> considered state: state was not visited during analysis, but it has a parent state which was visited</p>' +
+          '<p><span style="background-color:white;">&#9675;</span> dead state: state was not visited during the analysis</p>' +
           "<p>- doubleclick on a function node to select the CFA for this function</p>" +
           "<p>- doubleclick on edges to jump to the relating line in the Source tab</p>" +
           "<p>- use the Displayed CFA select box to display only the CFA for the desired function </p>" +

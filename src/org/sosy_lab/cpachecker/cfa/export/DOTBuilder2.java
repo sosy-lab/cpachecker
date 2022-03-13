@@ -362,15 +362,27 @@ public final class DOTBuilder2 {
     private final Map<String, Object> edges = new HashMap<>();
     private final Optional<UnmodifiableReachedSet> reached;
     private final Set<CFANode> consideredNodes;
+    private final Map<CFANode, Double> nodesVisitedMap;
 
     public CFAJSONBuilder(Optional<UnmodifiableReachedSet> pReached, CFA cfa) {
       this.reached = pReached;
-      this.consideredNodes = generateConsideredNodes(cfa);
+      this.consideredNodes = generateConsideredNodes(pReached, cfa);
+      this.nodesVisitedMap = generateNodesVisitedMap(pReached);
     }
 
-    private Set<CFANode> generateConsideredNodes(CFA cfa) {
-      if (reached.isPresent()) {
-        Set<CFANode> visitedNodes = CoverageUtility.getVisitedNodes(reached.orElseThrow(), cfa);
+    private Map<CFANode, Double> generateNodesVisitedMap(
+        Optional<UnmodifiableReachedSet> pReached) {
+      if (pReached.isPresent()) {
+        return CoverageUtility.getNodesVisitedMap(pReached.orElseThrow());
+      } else {
+        return new HashMap<>();
+      }
+    }
+
+    private Set<CFANode> generateConsideredNodes(Optional<UnmodifiableReachedSet> pReached,
+                                                 CFA cfa) {
+      if (pReached.isPresent()) {
+        Set<CFANode> visitedNodes = CoverageUtility.getVisitedNodes(pReached.orElseThrow(), cfa);
         CoverageUtility.addIndirectlyCoveredNodes(visitedNodes);
         return visitedNodes;
       } else {
@@ -386,6 +398,7 @@ public final class DOTBuilder2 {
       jnode.put("func", node.getFunctionName());
       jnode.put("type", determineNodeType(node));
       jnode.put("loop", node.isLoopStart());
+      jnode.put("visited", nodesVisitedMap.getOrDefault(node, 0.0));
       if (reached.isPresent()) {
         jnode.put("covered", CoverageUtility.isNodeConsidered(node, reached.orElseThrow()));
       } else {
