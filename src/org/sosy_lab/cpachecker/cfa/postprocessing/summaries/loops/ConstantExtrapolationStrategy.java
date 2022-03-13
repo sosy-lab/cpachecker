@@ -121,7 +121,7 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
               (CType) var.getType(),
               var.getName() + "TmpVariableReallyReallyTmp" + nameCounter,
               var.getOrigName() + "TmpVariableReallyReallyTmp" + nameCounter,
-              var.getQualifiedName() + "::TmpVariableReallyReallyTmp" + nameCounter,
+              var.getQualifiedName() + "TmpVariableReallyReallyTmp" + nameCounter,
               null);
 
       CFAEdge newVarInitEdge =
