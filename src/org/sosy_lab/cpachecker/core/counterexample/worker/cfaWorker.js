@@ -102,7 +102,6 @@ onmessage = (msg) => {
   }
 
   function nodeColorDecider(n) {
-    console.log(n);
     if (n.covered) {
       return "cfa-node-covered";
     }
@@ -122,6 +121,7 @@ onmessage = (msg) => {
           class: nodeColorDecider(n),
           id: `cfa-node${n.index}`,
           shape: nodeShapeDecider(n),
+          style: "fill: #fff; stroke: #999;",
         });
       }
     });

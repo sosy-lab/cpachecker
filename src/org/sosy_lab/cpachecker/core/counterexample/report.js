@@ -937,10 +937,7 @@ let argTabDisabled = false;
         }
         $scope.selectedCFAFunction = $scope.functions[0];
         $scope.zoomEnabled = false;
-        $scope.cfaColoringEnabled = true;
-        d3.select("#cfa-considered-button").html(
-          "<i class='far fa-check-square'></i>"
-        );
+        $scope.cfaColoringEnabled = false;
       }
 
       $scope.setCFAFunction = () => {
