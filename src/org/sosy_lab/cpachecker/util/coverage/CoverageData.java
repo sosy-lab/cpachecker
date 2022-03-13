@@ -8,9 +8,12 @@
 
 package org.sosy_lab.cpachecker.util.coverage;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -24,6 +27,8 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 public final class CoverageData {
 
   private final Map<String, FileCoverageInformation> infosPerFile = new LinkedHashMap<>();
+  private final Map<Long, Double> timeStampsPerCoverage = new LinkedHashMap<>();
+  private Instant startTime = Instant.now();
 
   public static boolean coversLine(CFAEdge pEdge) {
     FileLocation loc = pEdge.getFileLocation();
@@ -107,6 +112,32 @@ public final class CoverageData {
     }
   }
 
+  public void addTimeStamp(final CFAEdge pEdge) {
+    if (!coversLine(pEdge)) {
+      return;
+    }
+    final FileLocation loc = pEdge.getFileLocation();
+    final FileCoverageInformation collector = getFileInfoTarget(loc, infosPerFile);
+    int numTotalLines = collector.allLines.size();
+    int numVisitedLines = collector.visitedLines.entrySet().size();
+    double visitedLinesCoverage = 0.0;
+    if (numTotalLines > 0) {
+      visitedLinesCoverage = numVisitedLines / (double) numTotalLines;
+    }
+    if (timeStampsPerCoverage.isEmpty()) {
+      startTime = Instant.now();
+      timeStampsPerCoverage.put(0L, visitedLinesCoverage);
+    } else {
+      long durationInNanos = Duration.between(startTime, Instant.now()).toNanos();
+      long durationInMicros = TimeUnit.NANOSECONDS.toMicros(durationInNanos);
+      timeStampsPerCoverage.put(durationInMicros, visitedLinesCoverage);
+    }
+  }
+
+  public Map<Long, Double> timeStampsPerCoverage() {
+    return timeStampsPerCoverage;
+  }
+
   public void addVisitedEdge(final CFAEdge pEdge) {
     if (!coversLine(pEdge)) {
       return;
@@ -128,13 +159,15 @@ public final class CoverageData {
     }
   }
 
-  public void addConsideredNodes(final Collection<CFANode> nodes, final FileCoverageInformation collector) {
+  public void addConsideredNodes(
+      final Collection<CFANode> nodes, final FileCoverageInformation collector) {
     for (CFANode node : nodes) {
       collector.addConsideredNode(node.getNodeNumber());
     }
   }
 
-  public void addExistingNodes(final Collection<CFANode> nodes, final FileCoverageInformation collector) {
+  public void addExistingNodes(
+      final Collection<CFANode> nodes, final FileCoverageInformation collector) {
     for (CFANode node : nodes) {
       collector.addExistingNode(node.getNodeNumber());
     }

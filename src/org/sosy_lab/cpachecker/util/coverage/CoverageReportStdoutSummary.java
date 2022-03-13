@@ -64,7 +64,8 @@ public class CoverageReportStdoutSummary {
       final double consideredCoverage = numConsideredNodes / (double) numTotalNodes;
       StatisticsUtils.write(pStdOut, 1, 25, "Considered nodes", numConsideredNodes);
       StatisticsUtils.write(pStdOut, 1, 25, "Total nodes", numTotalNodes);
-      StatisticsUtils.write(pStdOut, 1, 25, "Considered coverage", String.format("%.3f", consideredCoverage));
+      StatisticsUtils.write(
+          pStdOut, 1, 25, "Considered coverage", String.format("%.3f", consideredCoverage));
     }
   }
 }

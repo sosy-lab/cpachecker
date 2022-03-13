@@ -34,11 +34,15 @@ public class CoverageReportGcov {
 
       // Convert ./test.c -> /full/path/test.c
       w.append(TEXTNAME + "\n");
-      w.append(SOURCEFILE).append(String.valueOf(Path.of(sourcefile).toAbsolutePath()))
+      w.append(SOURCEFILE)
+          .append(String.valueOf(Path.of(sourcefile).toAbsolutePath()))
           .append("\n");
 
       for (FunctionInfo info : fileInfos.allFunctions) {
-        w.append(FUNCTION).append(String.valueOf(info.firstLine)).append(",").append(info.name)
+        w.append(FUNCTION)
+            .append(String.valueOf(info.firstLine))
+            .append(",")
+            .append(info.name)
             .append("\n");
         // Information about function end isn't used by lcov, but it is useful for some
         // postprocessing
@@ -48,15 +52,21 @@ public class CoverageReportGcov {
       }
 
       for (Multiset.Entry<String> functionEntry : fileInfos.visitedFunctions.entrySet()) {
-        w.append(FUNCTIONDATA).append(String.valueOf(functionEntry.getCount())).append(",")
-            .append(functionEntry.getElement()).append("\n");
+        w.append(FUNCTIONDATA)
+            .append(String.valueOf(functionEntry.getCount()))
+            .append(",")
+            .append(functionEntry.getElement())
+            .append("\n");
       }
 
       /* Now save information about lines
        */
       for (Integer line : fileInfos.allLines) {
-        w.append(LINEDATA).append(String.valueOf(line)).append(",")
-            .append(String.valueOf(fileInfos.getVisitedLine(line))).append("\n");
+        w.append(LINEDATA)
+            .append(String.valueOf(line))
+            .append(",")
+            .append(String.valueOf(fileInfos.getVisitedLine(line)))
+            .append("\n");
       }
       w.append("end_of_record\n");
     }

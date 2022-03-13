@@ -116,10 +116,10 @@ class ReachedSetCoverageCollector {
     Set<CFANode> consideredNodes = CoverageUtility.getVisitedNodes(reached, cfa);
     CoverageUtility.addIndirectlyCoveredNodes(consideredNodes);
 
-    cov.addExistingNodes(cfa.getAllNodes(),
-        cov.getInfosPerFile().values().stream().findFirst().orElseThrow());
-    cov.addConsideredNodes(consideredNodes,
-        cov.getInfosPerFile().values().stream().findFirst().orElseThrow());
+    cov.addExistingNodes(
+        cfa.getAllNodes(), cov.getInfosPerFile().values().stream().findFirst().orElseThrow());
+    cov.addConsideredNodes(
+        consideredNodes, cov.getInfosPerFile().values().stream().findFirst().orElseThrow());
   }
 
   private void collectVisitedEdges(Iterable<AbstractState> reached, CoverageData cov) {
