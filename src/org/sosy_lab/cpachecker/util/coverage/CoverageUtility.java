@@ -52,7 +52,7 @@ public class CoverageUtility {
   }
 
   public static Map<CFANode, Double> getNodesVisitedMap(Iterable<AbstractState> reached) {
-    HashMap<CFANode, Double> nodesVisitedMap = new HashMap<>();
+    Map<CFANode, Double> nodesVisitedMap = new HashMap<>();
     for (AbstractState state : reached) {
       ARGState argState = AbstractStates.extractStateByType(state, ARGState.class);
       if (argState != null) {
@@ -67,7 +67,7 @@ public class CoverageUtility {
     }
     double maxVisited =
         nodesVisitedMap.values().stream().max(Comparator.naturalOrder()).orElse(0.0);
-    nodesVisitedMap.replaceAll((k,v) -> v /= maxVisited);
+    nodesVisitedMap.replaceAll((k, v) -> v /= maxVisited);
     return nodesVisitedMap;
   }
 

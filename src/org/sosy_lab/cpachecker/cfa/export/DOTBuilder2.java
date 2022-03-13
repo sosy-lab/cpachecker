@@ -379,8 +379,8 @@ public final class DOTBuilder2 {
       }
     }
 
-    private Set<CFANode> generateConsideredNodes(Optional<UnmodifiableReachedSet> pReached,
-                                                 CFA cfa) {
+    private Set<CFANode> generateConsideredNodes(
+        Optional<UnmodifiableReachedSet> pReached, CFA cfa) {
       if (pReached.isPresent()) {
         Set<CFANode> visitedNodes = CoverageUtility.getVisitedNodes(pReached.orElseThrow(), cfa);
         CoverageUtility.addIndirectlyCoveredNodes(visitedNodes);
