@@ -84,7 +84,7 @@ public class ResultWorker extends Worker {
         return ImmutableSet.of();
       case BLOCK_POSTCONDITION:
         // we need a block to first send an own error condition or the first BLOCKPOSTCONDITION
-        return ImmutableSet.of();
+        return response(pMessage);
       default:
         throw new AssertionError(type + " does not exist");
     }
