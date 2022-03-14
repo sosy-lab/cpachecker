@@ -767,22 +767,22 @@ text {
 }
 
 .cfa-node-considered rect {
-  stroke: #14e59a;
-  fill: #4df8bd;
+  stroke: #ff0000;
+  fill: #ff6e6e;
   stroke-width: 1.5px;
   rx: 5;
   ry: 5;
 }
 
 .cfa-node-considered circle {
-  stroke: #14e59a;
-  fill: #4df8bd;
+  stroke: #ff0000;
+  fill: #ff6e6e;
   stroke-width: 1.5px;
 }
 
 .cfa-node-considered polygon {
-  stroke: #14e59a;
-  fill: #4df8bd;
+  stroke: #ff0000;
+  fill: #ff6e6e;
   stroke-width: 1.5px;
 }
 
