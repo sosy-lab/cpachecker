@@ -1,0 +1,20 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+../programs/benchmarks/ldv-linux-3.4-simple/32*
+../programs/benchmarks/ldv-linux-3.7.3/*
+../programs/benchmarks/ldv-commit-tester/*
+../programs/benchmarks/ldv-consumption/*
+../programs/benchmarks/ldv-linux-3.12-rc1/*
+../programs/benchmarks/ldv-linux-3.16-rc1/*
+../programs/benchmarks/ldv-validator-v0.6/*
+../programs/benchmarks/ldv-validator-v0.8/*
+../programs/benchmarks/ldv-linux-4.2-rc1/*
+../programs/benchmarks/ldv-linux-3.14/*
+../programs/benchmarks/ldv-challenges/*
+../programs/benchmarks/ldv-linux-4.0-rc1-mav/*

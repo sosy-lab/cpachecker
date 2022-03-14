@@ -1,0 +1,33 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# This is a Docker image for running the latest development version of CPAchecker.
+# It is built automatically using GitLab CI and pushed to
+# registry.gitlab.com/sosy-lab/software/cpachecker:dev.
+#
+# Commands for building the image manually:
+# ant clean dist-unix-tar -Dnamet=cpachecker
+# mkdir tmp
+# mv cpachecker.tar.bz2 tmp/
+# cp build/Dockerfile.dev tmp/Dockerfile
+# docker build --pull -t registry.gitlab.com/sosy-lab/software/cpachecker:dev tmp
+# docker push registry.gitlab.com/sosy-lab/software/cpachecker:dev
+
+FROM ubuntu:latest
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  gcc \
+  libgmp10 \
+  libgomp1 \
+  openjdk-11-jre-headless \
+  python3
+
+ADD cpachecker.tar.bz2 /
+RUN mkdir /workdir
+WORKDIR /workdir
+ENTRYPOINT ["/cpachecker/scripts/cpa.sh"]
