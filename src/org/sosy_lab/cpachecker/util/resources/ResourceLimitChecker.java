@@ -35,11 +35,10 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 
 /**
- * This class handles one or more limits for the usage of external resources.
- * It does not contain code for any specific limits,
- * but instead uses instances of {@link ResourceLimit}.
- * It periodically checks whether any of the given limits is exceeded,
- * and signals this via an instance of {@link ShutdownNotifier}.
+ * This class handles one or more limits for the usage of external resources. It does not contain
+ * code for any specific limits, but instead uses instances of {@link ResourceLimit}. It
+ * periodically checks whether any of the given limits is exceeded, and signals this via an instance
+ * of {@link ShutdownNotifier}.
  */
 public final class ResourceLimitChecker {
 
@@ -47,11 +46,11 @@ public final class ResourceLimitChecker {
   private final List<ResourceLimit> limits;
 
   /**
-   * Create a new instance with a list of limits to check and a {@link ShutdownNotifier}
-   * that gets notified when a limit is exceeded.
-   * It is safe (but useless) to call this constructor with an empty list of limits,
-   * limits that have already been exceeded, or a shutdown notifier that has
+   * Create a new instance with a list of limits to check and a {@link ShutdownNotifier} that gets
+   * notified when a limit is exceeded. It is safe (but useless) to call this constructor with an
+   * empty list of limits, limits that have already been exceeded, or a shutdown notifier that has
    * already been triggered.
+   *
    * @param shutdownManager A non-null shutdown notifier instance.
    * @param limits A (possibly empty) list without null entries of resource limits.
    */
@@ -69,19 +68,14 @@ public final class ResourceLimitChecker {
     }
   }
 
-  /**
-   * Actually start enforcing the limits.
-   * May be called only once.
-   */
+  /** Actually start enforcing the limits. May be called only once. */
   public void start() {
     if (thread != null) {
       thread.start();
     }
   }
 
-  /**
-   * Cancel enforcing the limits (without triggering the stop request if not done before).
-   */
+  /** Cancel enforcing the limits (without triggering the stop request if not done before). */
   public void cancel() {
     if (thread != null) {
       thread.interrupt();
@@ -93,8 +87,8 @@ public final class ResourceLimitChecker {
   }
 
   /**
-   * Create an instance of this class from some configuration options.
-   * The returned instance is not started yet.
+   * Create an instance of this class from some configuration options. The returned instance is not
+   * started yet.
    */
   public static ResourceLimitChecker fromConfiguration(
       Configuration config, LogManager logger, ShutdownManager shutdownManager)
@@ -111,9 +105,17 @@ public final class ResourceLimitChecker {
     if (options.cpuTimeRequired.compareTo(TimeSpan.empty()) >= 0) {
       if (!options.cpuTimeRequired.equals(options.cpuTime)) {
         if (!cpuTimeLimitSet) {
-          throw new InvalidConfigurationException("CPU time limit was not specified but is required to be explicitly set to " + options.cpuTimeRequired + " in this configuration.");
+          throw new InvalidConfigurationException(
+              "CPU time limit was not specified but is required to be explicitly set to "
+                  + options.cpuTimeRequired
+                  + " in this configuration.");
         } else {
-          throw new InvalidConfigurationException("CPU time limit was set to " + options.cpuTime + "  but is required to be explicitly set to " + options.cpuTimeRequired + " in this configuration.");
+          throw new InvalidConfigurationException(
+              "CPU time limit was set to "
+                  + options.cpuTime
+                  + "  but is required to be explicitly set to "
+                  + options.cpuTimeRequired
+                  + " in this configuration.");
         }
       }
     }
@@ -122,7 +124,9 @@ public final class ResourceLimitChecker {
         limits.add(ProcessCpuTimeLimit.fromNowOn(options.cpuTime));
       } catch (JMException e) {
         logger.logDebugException(e, "Querying cpu time failed");
-        logger.log(Level.WARNING, "Your Java VM does not support measuring the cpu time, cpu time threshold disabled.");
+        logger.log(
+            Level.WARNING,
+            "Your Java VM does not support measuring the cpu time, cpu time threshold disabled.");
       }
     }
     if (options.threadTime.compareTo(TimeSpan.empty()) >= 0) {
@@ -162,38 +166,42 @@ public final class ResourceLimitChecker {
     return new ResourceLimitChecker(shutdownManager, ImmutableList.of());
   }
 
-  @Options(prefix="limits")
+  @Options(prefix = "limits")
   private static class ResourceLimitOptions {
 
-    @Option(secure=true, name="time.wall",
-        description="Limit for wall time used by CPAchecker (use seconds or specify a unit; -1 for infinite)")
-    @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
-        defaultUserUnit=TimeUnit.SECONDS,
-        min=-1)
+    @Option(
+        secure = true,
+        name = "time.wall",
+        description =
+            "Limit for wall time used by CPAchecker (use seconds or specify a unit; -1 for"
+                + " infinite)")
+    @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = -1)
     private TimeSpan walltime = TimeSpan.ofNanos(-1);
 
-    @Option(secure=true, name="time.cpu",
-        description="Limit for cpu time used by CPAchecker (use seconds or specify a unit; -1 for infinite)")
-    @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
-        defaultUserUnit=TimeUnit.SECONDS,
-        min=-1)
+    @Option(
+        secure = true,
+        name = "time.cpu",
+        description =
+            "Limit for cpu time used by CPAchecker (use seconds or specify a unit; -1 for"
+                + " infinite)")
+    @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = -1)
     private TimeSpan cpuTime = TimeSpan.ofNanos(-1);
 
-    @Option(secure=true, name="time.cpu::required",
-        description="Enforce that the given CPU time limit is set as the value of limits.time.cpu.")
-    @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
-        defaultUserUnit=TimeUnit.SECONDS,
-        min=-1)
+    @Option(
+        secure = true,
+        name = "time.cpu::required",
+        description =
+            "Enforce that the given CPU time limit is set as the value of limits.time.cpu.")
+    @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = -1)
     private TimeSpan cpuTimeRequired = TimeSpan.ofNanos(-1);
 
     @Option(
-      secure = true,
-      name = "time.cpu.thread",
-      description =
-          "Limit for thread cpu time used by CPAchecker. This option will in general not work when"
-              + " multi-threading is used in more than one place, use only with great caution!"
-              + " (use seconds or specify a unit; -1 for infinite)"
-    )
+        secure = true,
+        name = "time.cpu.thread",
+        description =
+            "Limit for thread cpu time used by CPAchecker. This option will in general not work"
+                + " when multi-threading is used in more than one place, use only with great"
+                + " caution! (use seconds or specify a unit; -1 for infinite)")
     @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = -1)
     private TimeSpan threadTime = TimeSpan.ofNanos(-1);
   }
@@ -206,7 +214,7 @@ public final class ResourceLimitChecker {
     // A minimal interval of measuring granularity.
     // We never check the limits more often than this.
     // This could be made configurable if necessary.
-    private final static long PRECISION = TimeUnit.MILLISECONDS.toNanos(500);
+    private static final long PRECISION = TimeUnit.MILLISECONDS.toNanos(500);
 
     private final ShutdownManager shutdownManager;
 
@@ -257,8 +265,8 @@ public final class ResourceLimitChecker {
 
         // Sleep until next check
         long timeOfNextCheck = Longs.min(timesOfNextCheck);
-        long nanosToSleep = Math.max(timeOfNextCheck-currentTime, PRECISION);
-        long millisToSleep = LongMath.divide(nanosToSleep, 1000*1000, RoundingMode.UP);
+        long nanosToSleep = Math.max(timeOfNextCheck - currentTime, PRECISION);
+        long millisToSleep = LongMath.divide(nanosToSleep, 1000 * 1000, RoundingMode.UP);
 
         try {
           Thread.sleep(millisToSleep);
@@ -272,11 +280,11 @@ public final class ResourceLimitChecker {
     }
 
     /**
-     * For each limit call getCurrentValue() a last time, to (possibly) update the
-     * last used value in the resource limit, this is especially important for ThreadCPULimits
-     * as the used cpu time of a thread can only be determined while it is running, afterwards
-     * this is not possible any more so this limit needs to cache the amount time in order
-     * to be able to return it to the user
+     * For each limit call getCurrentValue() a last time, to (possibly) update the last used value
+     * in the resource limit, this is especially important for ThreadCPULimits as the used cpu time
+     * of a thread can only be determined while it is running, afterwards this is not possible any
+     * more so this limit needs to cache the amount time in order to be able to return it to the
+     * user
      */
     private void updateCurrentValuesOfAllLimits() {
       for (ResourceLimit l : limits) {

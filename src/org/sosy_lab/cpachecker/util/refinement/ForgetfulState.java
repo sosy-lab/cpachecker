@@ -9,15 +9,14 @@
 package org.sosy_lab.cpachecker.util.refinement;
 
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * State that allows forgetting values of {@link MemoryLocation}s and re-adding them.
  *
- * @param <T> arbitrary type containing all information necessary for the implementation
- *    to recreate the previous state after a delete
+ * @param <T> arbitrary type containing all information necessary for the implementation to recreate
+ *     the previous state after a delete
  */
 public interface ForgetfulState<T> extends AbstractState {
 
@@ -29,17 +28,15 @@ public interface ForgetfulState<T> extends AbstractState {
   T forget(MemoryLocation location);
 
   /**
-   * Modify the abstract state to undo the effect of {@link #forget(MemoryLocation)} by
-   * re-inserting the removed information.
+   * Modify the abstract state to undo the effect of {@link #forget(MemoryLocation)} by re-inserting
+   * the removed information.
    *
    * @param location memory location associated with removed data.
    * @param forgottenInformation data which was removed.
    */
   void remember(MemoryLocation location, T forgottenInformation);
 
-  /**
-   * Return the set of all tracked memory locations.
-   */
+  /** Return the set of all tracked memory locations. */
   Set<MemoryLocation> getTrackedMemoryLocations();
 
   int getSize();

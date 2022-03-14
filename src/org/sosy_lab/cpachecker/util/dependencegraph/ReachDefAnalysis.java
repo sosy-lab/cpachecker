@@ -36,9 +36,7 @@ abstract class ReachDefAnalysis<D, N, E> {
   private final Map<D, Deque<Def<D, E>>> variableDefStacks;
 
   protected ReachDefAnalysis(
-      Graph<N, E> pGraph,
-      Dominance.DomTree<N> pDomTree,
-      Dominance.DomFrontiers<N> pDomFrontiers) {
+      Graph<N, E> pGraph, Dominance.DomTree<N> pDomTree, Dominance.DomFrontiers<N> pDomFrontiers) {
 
     graph = pGraph;
 

@@ -28,13 +28,12 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 
 /**
- * Creator for {@link Formula}s using a given {@link CtoFormulaConverter} for creating
- * {@link BooleanFormula}s out of {@link Constraint}s.
+ * Creator for {@link Formula}s using a given {@link CtoFormulaConverter} for creating {@link
+ * BooleanFormula}s out of {@link Constraint}s.
  *
- * The properties responsible for the behaviour of PredicateCPA's formula handling influence the
- * behaviour of this class, too.
- * A number of important properties can be found in the classes {@link FormulaEncodingOptions}
- * and {@link FormulaManagerView}.
+ * <p>The properties responsible for the behaviour of PredicateCPA's formula handling influence the
+ * behaviour of this class, too. A number of important properties can be found in the classes {@link
+ * FormulaEncodingOptions} and {@link FormulaManagerView}.
  */
 public class FormulaCreatorUsingCConverter implements FormulaCreator {
 
@@ -43,9 +42,7 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
   private final String functionName;
 
   public FormulaCreatorUsingCConverter(
-      final CtoFormulaConverter pConverter,
-      final String pFunctionName
-  ) {
+      final CtoFormulaConverter pConverter, final String pFunctionName) {
     toFormulaTransformer = pConverter;
     functionName = pFunctionName;
   }

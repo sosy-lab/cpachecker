@@ -12,16 +12,15 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-
 public class CArrayDesignator extends CDesignator {
 
   private static final long serialVersionUID = 6803448218616765608L;
   private final AExpression subscriptExpression;
 
-  public CArrayDesignator(final FileLocation pFileLocation,
-                          final CExpression pSubscriptExpression) {
-     super(pFileLocation);
-     subscriptExpression = pSubscriptExpression;
+  public CArrayDesignator(
+      final FileLocation pFileLocation, final CExpression pSubscriptExpression) {
+    super(pFileLocation);
+    subscriptExpression = pSubscriptExpression;
   }
 
   public CExpression getSubscriptExpression() {
@@ -63,8 +62,7 @@ public class CArrayDesignator extends CDesignator {
       return true;
     }
 
-    if (!(obj instanceof CArrayDesignator)
-        || !super.equals(obj)) {
+    if (!(obj instanceof CArrayDesignator) || !super.equals(obj)) {
       return false;
     }
 
@@ -72,5 +70,4 @@ public class CArrayDesignator extends CDesignator {
 
     return Objects.equals(other.subscriptExpression, subscriptExpression);
   }
-
 }

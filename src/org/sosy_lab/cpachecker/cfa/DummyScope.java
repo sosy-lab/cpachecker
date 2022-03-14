@@ -17,8 +17,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
 
 /**
- * For all languages, where parsing of single or blocks of statements is not yet implemented,
- * use this dummy scope when parsing an automaton {@link AutomatonParser}.
+ * For all languages, where parsing of single or blocks of statements is not yet implemented, use
+ * this dummy scope when parsing an automaton {@link AutomatonParser}.
  */
 public class DummyScope implements Scope {
 
@@ -84,5 +84,4 @@ public class DummyScope implements Scope {
   public boolean isFileSpecificTypeName(String pType) {
     throw new UnsupportedOperationException();
   }
-
 }

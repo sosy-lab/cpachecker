@@ -114,7 +114,7 @@ public class SMGEdgeHasValueTest {
     assertThat(obj1_at0.equals(obj2_12at0)).isFalse();
   }
 
-  @Test(expected=IllegalArgumentException.class)
+  @Test(expected = IllegalArgumentException.class)
   public void testIllegalOverlapsWith() {
     SMGObject object1 = new SMGRegion(96, "object1");
     SMGObject object2 = new SMGRegion(96, "object2");

@@ -33,11 +33,11 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.CPAs;
 
 /**
- * Base implementation for {@link Refiner}s that provides access to ARG utilities
- * (e.g., it provide an error path to the actual refinement code).
+ * Base implementation for {@link Refiner}s that provides access to ARG utilities (e.g., it provide
+ * an error path to the actual refinement code).
  *
- * To use this, implement {@link ARGBasedRefiner} and call
- * {@link AbstractARGBasedRefiner#forARGBasedRefiner(ARGBasedRefiner, ConfigurableProgramAnalysis)}.
+ * <p>To use this, implement {@link ARGBasedRefiner} and call {@link
+ * AbstractARGBasedRefiner#forARGBasedRefiner(ARGBasedRefiner, ConfigurableProgramAnalysis)}.
  */
 public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
 
@@ -66,9 +66,7 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
         (rs, path) -> CounterexampleInfo.feasibleImprecise(path), pCpa);
   }
 
-  /**
-   * Create a {@link Refiner} instance from a {@link ARGBasedRefiner} instance.
-   */
+  /** Create a {@link Refiner} instance from a {@link ARGBasedRefiner} instance. */
   public static Refiner forARGBasedRefiner(
       final ARGBasedRefiner pRefiner, final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
@@ -80,20 +78,24 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
   }
 
   @Override
-  public final boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
+  public final boolean performRefinement(ReachedSet pReached)
+      throws CPAException, InterruptedException {
     logger.log(Level.FINEST, "Starting ARG based refinement");
 
     assert ARGUtils.checkARG(pReached) : "ARG and reached set do not match before refinement";
 
-    final ARGState lastElement = (ARGState)pReached.getLastState();
-    assert lastElement.isTarget() : "Last element in reached is not a target state before refinement";
+    final ARGState lastElement = (ARGState) pReached.getLastState();
+    assert lastElement.isTarget()
+        : "Last element in reached is not a target state before refinement";
     ARGReachedSet reached = new ARGReachedSet(pReached, argCpa, refinementNumber++);
 
     final @Nullable ARGPath path = computePath(lastElement, reached);
 
     if (logger.wouldBeLogged(Level.ALL) && path != null) {
       logger.log(Level.ALL, "Error path:\n", path);
-      logger.log(Level.ALL, "Function calls on Error path:\n",
+      logger.log(
+          Level.ALL,
+          "Function calls on Error path:\n",
           Joiner.on("\n ").join(Iterables.filter(path.getFullPath(), CFunctionCallEdge.class)));
     }
 
@@ -121,12 +123,10 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
 
       // new targetPath must contain root and error node
       assert path != null : "Counterexample should come from a correct path.";
-      assert Objects.equals(
-          targetPath.getFirstState(),
-          path.getFirstState()) : "Target path from refiner does not contain root node";
-      assert Objects.equals(
-          targetPath.getLastState(),
-          path.getLastState()) : "Target path from refiner does not contain target state";
+      assert Objects.equals(targetPath.getFirstState(), path.getFirstState())
+          : "Target path from refiner does not contain root node";
+      assert Objects.equals(targetPath.getLastState(), path.getLastState())
+          : "Target path from refiner does not contain target state";
 
       lastElement.addCounterexampleInformation(counterexample);
 
@@ -136,14 +136,15 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
       argCpa.getARGExporter().exportCounterexampleOnTheFly(lastElement, counterexample);
     }
 
-    logger.log(Level.FINEST, "ARG based refinement finished, result is", counterexample.isSpurious());
+    logger.log(
+        Level.FINEST, "ARG based refinement finished, result is", counterexample.isSpurious());
 
     return counterexample.isSpurious();
   }
 
-
   /**
    * Perform refinement.
+   *
    * @param pReached the reached set
    * @param pPath the potential error path
    * @return Information about the counterexample.
@@ -158,10 +159,10 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
   }
 
   /**
-   * This method may be overwritten if the standard behavior of <code>ARGUtils.getOnePathTo()</code> is not
-   * appropriate in the implementations context.
+   * This method may be overwritten if the standard behavior of <code>ARGUtils.getOnePathTo()</code>
+   * is not appropriate in the implementations context.
    *
-   * TODO: Currently this function may return null.
+   * <p>TODO: Currently this function may return null.
    *
    * @param pLastElement Last ARGState of the given reached set
    * @param pReached ReachedSet
@@ -171,7 +172,8 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
    */
   @ForOverride
   @Nullable
-  protected ARGPath computePath(ARGState pLastElement, ARGReachedSet pReached) throws InterruptedException, CPATransferException {
+  protected ARGPath computePath(ARGState pLastElement, ARGReachedSet pReached)
+      throws InterruptedException, CPATransferException {
     return ARGUtils.getOnePathTo(pLastElement);
   }
 

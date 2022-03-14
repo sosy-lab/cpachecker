@@ -20,23 +20,21 @@ import org.sosy_lab.cpachecker.cpa.invariants.TypeInfo;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
- * Instances of this class are parameterized compound state invariants formula
- * visitors used to push information from an assumption into the environment.
- * The visited formulae are the expressions for which the states provided as
- * the additional parameters are assumed.
+ * Instances of this class are parameterized compound state invariants formula visitors used to push
+ * information from an assumption into the environment. The visited formulae are the expressions for
+ * which the states provided as the additional parameters are assumed.
  */
-public class PushAssumptionToEnvironmentVisitor implements ParameterizedBooleanFormulaVisitor<CompoundInterval, BooleanConstant<CompoundInterval>, Boolean> {
+public class PushAssumptionToEnvironmentVisitor
+    implements ParameterizedBooleanFormulaVisitor<
+        CompoundInterval, BooleanConstant<CompoundInterval>, Boolean> {
 
   private final PushValueToEnvironmentVisitor pushValueToEnvironmentVisitor;
 
-  /**
-   * The environment to push the gained information into.
-   */
+  /** The environment to push the gained information into. */
   private final NonRecursiveEnvironment.Builder environment;
 
   /**
-   * The evaluation visitor used to evaluate compound state invariants formulae
-   * to compound states.
+   * The evaluation visitor used to evaluate compound state invariants formulae to compound states.
    */
   private final FormulaEvaluationVisitor<CompoundInterval> evaluationVisitor;
 
@@ -45,58 +43,62 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedBooleanF
   private final CompoundIntervalFormulaManager compoundIntervalFormulaManager;
 
   /**
-   * Creates a new visitor for pushing information obtained from assuming given
-   * states for the visited formulae into the given environment.
+   * Creates a new visitor for pushing information obtained from assuming given states for the
+   * visited formulae into the given environment.
    *
-   * @param pCompoundIntervalManagerFactory a factory for compound interval
-   * managers.
-   * @param pEvaluationVisitor the evaluation visitor used to evaluate compound
-   * state invariants formulae to compound states.
-   * @param pEnvironment the environment to push the gained information into.
-   * Obviously, this environment must be mutable.
+   * @param pCompoundIntervalManagerFactory a factory for compound interval managers.
+   * @param pEvaluationVisitor the evaluation visitor used to evaluate compound state invariants
+   *     formulae to compound states.
+   * @param pEnvironment the environment to push the gained information into. Obviously, this
+   *     environment must be mutable.
    */
   public PushAssumptionToEnvironmentVisitor(
       CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
       FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor,
       NonRecursiveEnvironment.Builder pEnvironment) {
-    this.pushValueToEnvironmentVisitor = new PushValueToEnvironmentVisitor(this, pCompoundIntervalManagerFactory ,pEvaluationVisitor, pEnvironment);
-    this.evaluationVisitor = pEvaluationVisitor;
-    this.environment = pEnvironment;
-    this.compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
-    this.compoundIntervalFormulaManager = new CompoundIntervalFormulaManager(compoundIntervalManagerFactory);
+    pushValueToEnvironmentVisitor =
+        new PushValueToEnvironmentVisitor(
+            this, pCompoundIntervalManagerFactory, pEvaluationVisitor, pEnvironment);
+    evaluationVisitor = pEvaluationVisitor;
+    environment = pEnvironment;
+    compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
+    compoundIntervalFormulaManager =
+        new CompoundIntervalFormulaManager(compoundIntervalManagerFactory);
   }
 
   private CompoundIntervalManager createCompoundIntervalManager(TypeInfo pTypeInfo) {
     if (compoundIntervalManagerFactory instanceof CompoundBitVectorIntervalManagerFactory) {
-      CompoundBitVectorIntervalManagerFactory compoundBitVectorIntervalManagerFactory = (CompoundBitVectorIntervalManagerFactory) compoundIntervalManagerFactory;
-      return compoundBitVectorIntervalManagerFactory.createCompoundIntervalManager(pTypeInfo, false);
+      CompoundBitVectorIntervalManagerFactory compoundBitVectorIntervalManagerFactory =
+          (CompoundBitVectorIntervalManagerFactory) compoundIntervalManagerFactory;
+      return compoundBitVectorIntervalManagerFactory.createCompoundIntervalManager(
+          pTypeInfo, false);
     }
     return compoundIntervalManagerFactory.createCompoundIntervalManager(pTypeInfo);
   }
 
   /**
-   * Creates a new visitor for pushing information obtained from assuming given
-   * states for the visited formulae into the given environment.
+   * Creates a new visitor for pushing information obtained from assuming given states for the
+   * visited formulae into the given environment.
    *
-   * @param pPushValueToEnvironmentVisitor the visitor used to push numeral
-   * values into the environment.
-   * @param pCompoundIntervalManagerFactory a factory for compound interval
-   * managers.
-   * @param pEvaluationVisitor the evaluation visitor used to evaluate compound
-   * state invariants formulae to compound states.
-   * @param pEnvironment the environment to push the gained information into.
-   * Obviously, this environment must be mutable.
+   * @param pPushValueToEnvironmentVisitor the visitor used to push numeral values into the
+   *     environment.
+   * @param pCompoundIntervalManagerFactory a factory for compound interval managers.
+   * @param pEvaluationVisitor the evaluation visitor used to evaluate compound state invariants
+   *     formulae to compound states.
+   * @param pEnvironment the environment to push the gained information into. Obviously, this
+   *     environment must be mutable.
    */
   public PushAssumptionToEnvironmentVisitor(
       PushValueToEnvironmentVisitor pPushValueToEnvironmentVisitor,
       CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
       FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor,
       NonRecursiveEnvironment.Builder pEnvironment) {
-    this.pushValueToEnvironmentVisitor = pPushValueToEnvironmentVisitor;
-    this.evaluationVisitor = pEvaluationVisitor;
-    this.environment = pEnvironment;
-    this.compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
-    this.compoundIntervalFormulaManager = new CompoundIntervalFormulaManager(compoundIntervalManagerFactory);
+    pushValueToEnvironmentVisitor = pPushValueToEnvironmentVisitor;
+    evaluationVisitor = pEvaluationVisitor;
+    environment = pEnvironment;
+    compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
+    compoundIntervalFormulaManager =
+        new CompoundIntervalFormulaManager(compoundIntervalManagerFactory);
   }
 
   private CompoundInterval evaluate(NumeralFormula<CompoundInterval> pFormula) {
@@ -107,7 +109,8 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedBooleanF
     return pFormula.accept(evaluationVisitor, environment);
   }
 
-  private boolean areContradictory(BooleanFormula<CompoundInterval> pFormula, BooleanConstant<CompoundInterval> pConstant) {
+  private boolean areContradictory(
+      BooleanFormula<CompoundInterval> pFormula, BooleanConstant<CompoundInterval> pConstant) {
     if (pFormula == null || pConstant == null) {
       return false;
     }
@@ -119,7 +122,8 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedBooleanF
   }
 
   @Override
-  public Boolean visit(Equal<CompoundInterval> pEqual, BooleanConstant<CompoundInterval> pParameter) {
+  public Boolean visit(
+      Equal<CompoundInterval> pEqual, BooleanConstant<CompoundInterval> pParameter) {
     // If the truth of the equation is undecided, anything is possible and
     // no information can be gained
     if (pParameter == null) {
@@ -141,8 +145,7 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedBooleanF
         environment.put(memoryLocation, op2);
         if (previous != null
             && !compoundIntervalFormulaManager.definitelyImplies(
-                environment,
-                compoundIntervalFormulaManager.equal(op1, previous))) {
+                environment, compoundIntervalFormulaManager.equal(op1, previous))) {
           environment.put(memoryLocation, previous);
         }
       }
@@ -152,13 +155,12 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedBooleanF
         environment.put(memoryLocation, op1);
         if (previous != null
             && !compoundIntervalFormulaManager.definitelyImplies(
-                environment,
-                compoundIntervalFormulaManager.equal(op2, previous))) {
+                environment, compoundIntervalFormulaManager.equal(op2, previous))) {
           environment.put(memoryLocation, previous);
         }
       }
-      return pEqual.getOperand1().accept(this.pushValueToEnvironmentVisitor, rightValue)
-          && pEqual.getOperand2().accept(this.pushValueToEnvironmentVisitor, leftValue);
+      return pEqual.getOperand1().accept(pushValueToEnvironmentVisitor, rightValue)
+          && pEqual.getOperand2().accept(pushValueToEnvironmentVisitor, leftValue);
     }
     // The equation is definitely false
 
@@ -175,10 +177,12 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedBooleanF
     }
 
     // Push inverted singletons, if any
-    if (rightValue.isSingleton() && !pEqual.getOperand1().accept(this.pushValueToEnvironmentVisitor, rightValue.invert())) {
+    if (rightValue.isSingleton()
+        && !pEqual.getOperand1().accept(pushValueToEnvironmentVisitor, rightValue.invert())) {
       return false;
     }
-    if (leftValue.isSingleton() && !pEqual.getOperand2().accept(this.pushValueToEnvironmentVisitor, leftValue.invert())) {
+    if (leftValue.isSingleton()
+        && !pEqual.getOperand2().accept(pushValueToEnvironmentVisitor, leftValue.invert())) {
       return false;
     }
 
@@ -186,7 +190,8 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedBooleanF
   }
 
   @Override
-  public Boolean visit(LessThan<CompoundInterval> pLessThan, BooleanConstant<CompoundInterval> pParameter) {
+  public Boolean visit(
+      LessThan<CompoundInterval> pLessThan, BooleanConstant<CompoundInterval> pParameter) {
     // If the truth of the equation is undecided, anything is possible and
     // no information can be gained
     if (pParameter == null) {
@@ -217,8 +222,7 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedBooleanF
       // (negative infinity to (left upper bound)) to the right.
       if (pParameter.getValue()) {
         TypeInfo typeInfo = pLessThan.getOperand1().getTypeInfo();
-        CompoundIntervalManager cim =
-            createCompoundIntervalManager(typeInfo);
+        CompoundIntervalManager cim = createCompoundIntervalManager(typeInfo);
         leftPushValue =
             rightValue.isSingleton()
                 ? cim.intersect(rightValue.invert(), rightValue.extendToMinValue())
@@ -238,14 +242,15 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedBooleanF
         leftPushValue = rightValue.span().extendToMaxValue();
         rightPushValue = leftValue.span().extendToMinValue();
       }
-      return pLessThan.getOperand1().accept(this.pushValueToEnvironmentVisitor, leftPushValue)
-          && pLessThan.getOperand2().accept(this.pushValueToEnvironmentVisitor, rightPushValue);
+      return pLessThan.getOperand1().accept(pushValueToEnvironmentVisitor, leftPushValue)
+          && pLessThan.getOperand2().accept(pushValueToEnvironmentVisitor, rightPushValue);
     }
     return true;
   }
 
   @Override
-  public Boolean visit(LogicalAnd<CompoundInterval> pAnd, BooleanConstant<CompoundInterval> pParameter) {
+  public Boolean visit(
+      LogicalAnd<CompoundInterval> pAnd, BooleanConstant<CompoundInterval> pParameter) {
     // If the truth of the equation is undecided, anything is possible and
     // no information can be gained
     if (pParameter == null) {
@@ -261,18 +266,28 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedBooleanF
       return pAnd.getOperand1().accept(this, pParameter)
           && pAnd.getOperand2().accept(this, pParameter);
     } else {
-      NonRecursiveEnvironment.Builder env1 = new NonRecursiveEnvironment.Builder(compoundIntervalManagerFactory, this.environment);
-      boolean push1 = pAnd.getOperand1().accept(
-          new PushAssumptionToEnvironmentVisitor(compoundIntervalManagerFactory, evaluationVisitor, env1), pParameter);
+      NonRecursiveEnvironment.Builder env1 =
+          new NonRecursiveEnvironment.Builder(compoundIntervalManagerFactory, environment);
+      boolean push1 =
+          pAnd.getOperand1()
+              .accept(
+                  new PushAssumptionToEnvironmentVisitor(
+                      compoundIntervalManagerFactory, evaluationVisitor, env1),
+                  pParameter);
 
       // If operand1 cannot be false, operand2 must be false
       if (!push1) {
         return pAnd.getOperand2().accept(this, pParameter);
       }
 
-      NonRecursiveEnvironment.Builder env2 = new NonRecursiveEnvironment.Builder(compoundIntervalManagerFactory, this.environment);
-      boolean push2 = pAnd.getOperand2().accept(
-          new PushAssumptionToEnvironmentVisitor(compoundIntervalManagerFactory, evaluationVisitor, env2), pParameter);
+      NonRecursiveEnvironment.Builder env2 =
+          new NonRecursiveEnvironment.Builder(compoundIntervalManagerFactory, environment);
+      boolean push2 =
+          pAnd.getOperand2()
+              .accept(
+                  new PushAssumptionToEnvironmentVisitor(
+                      compoundIntervalManagerFactory, evaluationVisitor, env2),
+                  pParameter);
       // If operand2 cannot be false, operand1 must be false
       if (!push2) {
         return pAnd.getOperand1().accept(this, pParameter);
@@ -285,16 +300,22 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedBooleanF
         // Only if BOTH parts produced an environment value, they can be united to a non-top value
         if (value1 != null) {
           NumeralFormula<CompoundInterval> value2 = entry.getValue();
-          final NumeralFormula<CompoundInterval> newValueFormula = compoundIntervalFormulaManager
-              .union(value1, value2)
-              .accept(new PartialEvaluator(compoundIntervalManagerFactory, this.environment), evaluationVisitor);
-          if (newValueFormula.accept(this.evaluationVisitor, this.environment).isBottom()) {
+          final NumeralFormula<CompoundInterval> newValueFormula =
+              compoundIntervalFormulaManager
+                  .union(value1, value2)
+                  .accept(
+                      new PartialEvaluator(compoundIntervalManagerFactory, environment),
+                      evaluationVisitor);
+          if (newValueFormula.accept(evaluationVisitor, environment).isBottom()) {
             return false;
           }
-          if (newValueFormula instanceof Constant<?> && ((Constant<CompoundInterval>) newValueFormula).getValue().containsAllPossibleValues()) {
+          if (newValueFormula instanceof Constant<?>
+              && ((Constant<CompoundInterval>) newValueFormula)
+                  .getValue()
+                  .containsAllPossibleValues()) {
             continue;
           }
-          this.environment.put(memoryLocation, newValueFormula);
+          environment.put(memoryLocation, newValueFormula);
         }
       }
     }
@@ -302,7 +323,8 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedBooleanF
   }
 
   @Override
-  public Boolean visit(LogicalNot<CompoundInterval> pNot, BooleanConstant<CompoundInterval> pParameter) {
+  public Boolean visit(
+      LogicalNot<CompoundInterval> pNot, BooleanConstant<CompoundInterval> pParameter) {
     // If the truth of the equation is undecided, anything is possible and
     // no information can be gained
     if (pParameter == null) {
@@ -324,5 +346,4 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedBooleanF
   public Boolean visitTrue(BooleanConstant<CompoundInterval> pParameter) {
     return pParameter == null || pParameter.getValue();
   }
-
 }

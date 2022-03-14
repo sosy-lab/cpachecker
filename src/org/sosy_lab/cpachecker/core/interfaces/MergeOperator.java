@@ -14,33 +14,29 @@ import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
- * This interface defines the merge operator used by {@link CPAAlgorithm}.
- * This operator is used to (optionally) merge newly-created abstract states
- * with existing abstract states from the reached set.
+ * This interface defines the merge operator used by {@link CPAAlgorithm}. This operator is used to
+ * (optionally) merge newly-created abstract states with existing abstract states from the reached
+ * set.
  *
- * There are several default implementations available,
- * that should be sufficient for many analyses:
- * {@link MergeSepOperator}, {@link MergeJoinOperator}.
+ * <p>There are several default implementations available, that should be sufficient for many
+ * analyses: {@link MergeSepOperator}, {@link MergeJoinOperator}.
  */
 public interface MergeOperator {
 
   /**
-   * The actual method for merging abstract states.
-   * Merging abstract states is defined by weakening the state in the second parameter
-   * by taking information from the state in the first parameter.
+   * The actual method for merging abstract states. Merging abstract states is defined by weakening
+   * the state in the second parameter by taking information from the state in the first parameter.
    *
-   * This method may decide to not merge the states at all
-   * (i.e., returning simply the state from the second input parameter),
-   * or to join them by delegating to {@link AbstractDomain#join(AbstractState, AbstractState)},
-   * or to somehow otherwise weaken the state from the second input parameter.
-   * It may also decide to use any of these options only sometimes,
-   * depending for example on the input states or the precision.
-   * For trivial cases, check the default implementations of this class.
+   * <p>This method may decide to not merge the states at all (i.e., returning simply the state from
+   * the second input parameter), or to join them by delegating to {@link
+   * AbstractDomain#join(AbstractState, AbstractState)}, or to somehow otherwise weaken the state
+   * from the second input parameter. It may also decide to use any of these options only sometimes,
+   * depending for example on the input states or the precision. For trivial cases, check the
+   * default implementations of this class.
    *
-   * For soundness, the resulting state needs to be as least as abstract
-   * as the state in the second parameter,
-   * i.e., state2 <= result <= top
-   * (as defined by the {@link AbstractDomain#isLessOrEqual(AbstractState, AbstractState)} method).
+   * <p>For soundness, the resulting state needs to be as least as abstract as the state in the
+   * second parameter, i.e., state2 <= result <= top (as defined by the {@link
+   * AbstractDomain#isLessOrEqual(AbstractState, AbstractState)} method).
    *
    * @param state1 The first input state.
    * @param state2 The second input state, from which the result is produced.

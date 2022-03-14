@@ -35,7 +35,4 @@ public class CValueAndSMGState {
   public SMGState getState() {
     return state;
   }
-
-
-
 }

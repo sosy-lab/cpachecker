@@ -35,5 +35,4 @@ public class CTypeAndCValue {
   public CType getCType() {
     return cType;
   }
-
 }

@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-
 public interface BooleanFormula<ConstantType> {
 
   <ReturnType> ReturnType accept(BooleanFormulaVisitor<ConstantType, ReturnType> pVisitor);
@@ -18,10 +17,9 @@ public interface BooleanFormula<ConstantType> {
    *
    * @param pVisitor the visitor to accept.
    * @param pParameter the parameter to be handed to the visitor for this visit.
-   *
-   * @return the result computed by the visitor for this specific boolean
-   * formula.
+   * @return the result computed by the visitor for this specific boolean formula.
    */
-  <ReturnType, ParamType> ReturnType accept(ParameterizedBooleanFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter);
-
+  <ReturnType, ParamType> ReturnType accept(
+      ParameterizedBooleanFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor,
+      ParamType pParameter);
 }

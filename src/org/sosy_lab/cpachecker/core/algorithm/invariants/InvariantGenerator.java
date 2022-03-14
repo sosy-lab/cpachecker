@@ -30,20 +30,17 @@ public interface InvariantGenerator {
   /**
    * Checks if the invariant generator has already been started.
    *
-   * @return {@code true} if the invariant generator has already been started,
-   * {@code false} otherwise.
+   * @return {@code true} if the invariant generator has already been started, {@code false}
+   *     otherwise.
    */
   boolean isStarted();
 
-  /**
-   * Prepare invariant generation, and optionally start the algorithm.
-   * May be called only once.
-   */
+  /** Prepare invariant generation, and optionally start the algorithm. May be called only once. */
   void start(CFANode initialLocation);
 
   /**
-   * Cancel the invariant generation algorithm, if running.
-   * Can be called only after {@link #start(CFANode)} was called.
+   * Cancel the invariant generation algorithm, if running. Can be called only after {@link
+   * #start(CFANode)} was called.
    */
   void cancel();
 
@@ -80,10 +77,8 @@ public interface InvariantGenerator {
   ExpressionTreeSupplier getExpressionTreeSupplier() throws CPAException, InterruptedException;
 
   /**
-   * Return whether the invariant generation has already proved
-   * that the specification holds, and no further checks are necessary.
-   * If possible, this method should be cheap.
+   * Return whether the invariant generation has already proved that the specification holds, and no
+   * further checks are necessary. If possible, this method should be cheap.
    */
   boolean isProgramSafe();
-
 }

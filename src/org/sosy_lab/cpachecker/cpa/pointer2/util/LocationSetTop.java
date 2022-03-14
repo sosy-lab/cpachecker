@@ -10,10 +10,7 @@ package org.sosy_lab.cpachecker.cpa.pointer2.util;
 
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-
-
 public enum LocationSetTop implements LocationSet {
-
   INSTANCE;
 
   @Override
@@ -27,14 +24,11 @@ public enum LocationSetTop implements LocationSet {
   }
 
   /**
-   * This operation does not remove the given target from the set, thus
-   * the resulting set is only an over-approximation of the represented
-   * conceptual set. For a precise representation, it is necessary to
-   * know the complete set of potential targets and remove the given
-   * target from it.
+   * This operation does not remove the given target from the set, thus the resulting set is only an
+   * over-approximation of the represented conceptual set. For a precise representation, it is
+   * necessary to know the complete set of potential targets and remove the given target from it.
    *
    * @param pTarget the target to remove.
-   *
    * @return the same unchanged object.
    */
   @Override
@@ -71,5 +65,4 @@ public enum LocationSetTop implements LocationSet {
   public String toString() {
     return Character.toString('\u22A4');
   }
-
 }

@@ -59,27 +59,35 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Interpolant<S, I>>
     implements ARGBasedRefiner, StatisticsProvider {
 
-  @Option(secure = true, description = "when to export the interpolation tree"
-      + "\nNEVER:   never export the interpolation tree"
-      + "\nFINAL:   export the interpolation tree once after each refinement"
-      + "\nALWAYS:  export the interpolation tree once after each interpolation, i.e. multiple times per refinement",
-      values = { "NEVER", "FINAL", "ALWAYS" })
+  @Option(
+      secure = true,
+      description =
+          "when to export the interpolation tree\n"
+              + "NEVER:   never export the interpolation tree\n"
+              + "FINAL:   export the interpolation tree once after each refinement\n"
+              + "ALWAYS:  export the interpolation tree once after each interpolation, i.e."
+              + " multiple times per refinement",
+      values = {"NEVER", "FINAL", "ALWAYS"})
   private String exportInterpolationTree = "NEVER";
 
   @Option(secure = true, description = "export interpolation trees to this file template")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate interpolationTreeExportFile = PathTemplate.ofFormatString("interpolationTree.%d-%d.dot");
+  private PathTemplate interpolationTreeExportFile =
+      PathTemplate.ofFormatString("interpolationTree.%d-%d.dot");
 
   /* This option is broken with BAM, because BAM expects the refinementRoot belongs to origin path
    * (see ARGSubtreeRemover.removeSubtree)
    * If we here find a further path, refine it, try to remove a different subtree and fail*/
-  @Option(secure = true, description="instead of reporting a repeated counter-example, "
-      + "search and refine another error-path for the same target-state.")
+  @Option(
+      secure = true,
+      description =
+          "instead of reporting a repeated counter-example, "
+              + "search and refine another error-path for the same target-state.")
   private boolean searchForFurtherErrorPaths = false;
 
   /* This option is useful for BAM configuration with Predicate analysis
    */
-  @Option(secure = true, description="store all refined paths")
+  @Option(secure = true, description = "store all refined paths")
   private boolean storeAllRefinedPaths = false;
 
   @Option(
@@ -91,8 +99,11 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
   // however, they should (in an ideal world) never occur in an analysis.
   private boolean disableErrorPathTracking = false;
 
-  @Option(secure = true, description="whether or not to add assumptions to counterexamples,"
-      + " e.g., for supporting counterexample checks")
+  @Option(
+      secure = true,
+      description =
+          "whether or not to add assumptions to counterexamples,"
+              + " e.g., for supporting counterexample checks")
   private boolean addAssumptionsToCex = true;
 
   protected final LogManager logger;
@@ -135,7 +146,8 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
       return true;
     }
 
-    boolean progress = (previousErrorPathIds.isEmpty() || !previousErrorPathIds.contains(obtainErrorPathId(path)));
+    boolean progress =
+        (previousErrorPathIds.isEmpty() || !previousErrorPathIds.contains(obtainErrorPathId(path)));
 
     if (!storeAllRefinedPaths) {
       previousErrorPathIds.clear();
@@ -157,12 +169,17 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
     // this can happen when the predicate-analysis refinement returns back-to-back target paths
     // that are feasible under predicate-analysis semantics and hands those into the value-analysis
     // refiner, where the in-between value-analysis refinement happens to only affect paths in a
-    // (ABE) block, which may not be visible when constructing the target path in the next refinement.
+    // (ABE) block, which may not be visible when constructing the target path in the next
+    // refinement.
     // Possible problem: alternating error-paths
     if (repeatingCEX && searchForFurtherErrorPaths) {
       for (ARGPath targetPath : pathExtractor.getTargetPaths(targets)) {
         if (madeProgress(targetPath)) {
-          logger.log(Level.INFO, "The error path given to", getClass().getSimpleName(), "is a repeated counterexample,",
+          logger.log(
+              Level.INFO,
+              "The error path given to",
+              getClass().getSimpleName(),
+              "is a repeated counterexample,",
               "so instead, refiner uses a new error path extracted from the reachset.");
           targetPathToUse = targetPath;
           repeatingCEX = false;
@@ -192,9 +209,8 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
   }
 
   protected abstract void refineUsingInterpolants(
-      final ARGReachedSet pReached,
-      final InterpolationTree<S, I> pInterpolationTree
-      ) throws InterruptedException;
+      final ARGReachedSet pReached, final InterpolationTree<S, I> pInterpolationTree)
+      throws InterruptedException;
 
   private InterpolationTree<S, I> obtainInterpolants(ARGPath pTargetPath)
       throws CPAException, InterruptedException {
@@ -210,21 +226,20 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
     return interpolationTree;
   }
 
-  /**
-   * This method creates the interpolation tree.
-   */
+  /** This method creates the interpolation tree. */
   @ForOverride
   protected InterpolationTree<S, I> createInterpolationTree(List<ARGPath> targets) {
     return new InterpolationTree<>(interpolantManager, logger, targets, true);
   }
 
-  private void performPathInterpolation(InterpolationTree<S, I> interpolationTree) throws CPAException,
-      InterruptedException {
+  private void performPathInterpolation(InterpolationTree<S, I> interpolationTree)
+      throws CPAException, InterruptedException {
     ARGPath errorPath = interpolationTree.getNextPathForInterpolation();
 
     if (errorPath == InterpolationTree.EMPTY_PATH) {
-      logger.log(Level.FINEST, "skipping interpolation,"
-          + " because false interpolant on path to target state");
+      logger.log(
+          Level.FINEST,
+          "skipping interpolation," + " because false interpolant on path to target state");
       return;
     }
 
@@ -235,8 +250,12 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
       initialItp = interpolantManager.createInitialInterpolant();
     }
 
-    logger.log(Level.FINEST, "performing interpolation, starting at ", errorPath.getFirstState().getStateId(),
-        ", using interpolant ", initialItp);
+    logger.log(
+        Level.FINEST,
+        "performing interpolation, starting at ",
+        errorPath.getFirstState().getStateId(),
+        ", using interpolant ",
+        initialItp);
 
     interpolationTree.addInterpolants(interpolator.performInterpolation(errorPath, initialItp));
     exportTree(interpolationTree, "ALWAYS");
@@ -250,13 +269,13 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
       return false;
     }
 
-    // for all other cases, check if the path is feasible when using the interpolant as initial state
+    // for all other cases, check if the path is feasible when using the interpolant as initial
+    // state
     return checker.isFeasible(errorPath, initialItp.reconstructState());
   }
 
-  private CounterexampleInfo isPathFeasible(
-      final ARGPath pErrorPaths
-  ) throws CPAException, InterruptedException {
+  private CounterexampleInfo isPathFeasible(final ARGPath pErrorPaths)
+      throws CPAException, InterruptedException {
 
     if (isErrorPathFeasible(pErrorPaths)) {
       madeProgress(pErrorPaths);
@@ -267,9 +286,8 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
       // we use the imprecise version of the CounterexampleInfo, due to the possible
       // merges which are done in the used CPAs, but if we (can) compute a path with assignments,
       // it is probably precise.
-      CFAPathWithAssumptions assignments = addAssumptionsToCex
-                                           ? createModel(pErrorPaths)
-                                           : CFAPathWithAssumptions.empty();
+      CFAPathWithAssumptions assignments =
+          addAssumptionsToCex ? createModel(pErrorPaths) : CFAPathWithAssumptions.empty();
       if (!assignments.isEmpty()) {
         return CounterexampleInfo.feasiblePrecise(pErrorPaths, assignments);
       } else {
@@ -294,37 +312,40 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
    * @throws InterruptedException may be thrown in subclass
    * @throws CPAException may be thrown in subclass
    */
-  protected CFAPathWithAssumptions createModel(ARGPath errorPath) throws InterruptedException, CPAException {
+  protected CFAPathWithAssumptions createModel(ARGPath errorPath)
+      throws InterruptedException, CPAException {
     return CFAPathWithAssumptions.empty();
   }
 
   @Override
   public void collectStatistics(final Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(new Statistics() {
+    pStatsCollection.add(
+        new Statistics() {
 
-      @Override
-      public String getName() {
-        return GenericRefiner.this.getClass().getSimpleName();
-      }
+          @Override
+          public String getName() {
+            return GenericRefiner.this.getClass().getSimpleName();
+          }
 
-      @Override
-      public void printStatistics(final PrintStream pOut, final Result pResult, final UnmodifiableReachedSet pReached) {
-        GenericRefiner.this.printStatistics(pOut, pResult, pReached);
-      }
-    });
+          @Override
+          public void printStatistics(
+              final PrintStream pOut, final Result pResult, final UnmodifiableReachedSet pReached) {
+            GenericRefiner.this.printStatistics(pOut, pResult, pReached);
+          }
+        });
     pStatsCollection.add(pathExtractor);
     pStatsCollection.add(interpolator);
   }
 
-  private void printStatistics(final PrintStream pOut, final Result pResult, final UnmodifiableReachedSet pReached) {
+  private void printStatistics(
+      final PrintStream pOut, final Result pResult, final UnmodifiableReachedSet pReached) {
     StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut);
-    writer.put(refinementCounter)
-        .put(numberOfTargets)
-        .put(refinementTime);
-    printAdditionalStatistics(pOut, pResult, pReached); //hook
+    writer.put(refinementCounter).put(numberOfTargets).put(refinementTime);
+    printAdditionalStatistics(pOut, pResult, pReached); // hook
   }
 
-  protected abstract void printAdditionalStatistics(final PrintStream out, final Result pResult, final UnmodifiableReachedSet pReached);
+  protected abstract void printAdditionalStatistics(
+      final PrintStream out, final Result pResult, final UnmodifiableReachedSet pReached);
 
   private int obtainErrorPathId(ARGPath path) {
     return path.toString().hashCode();
@@ -338,11 +359,11 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
   }
 
   /**
-   * The strategy to determine where to restart the analysis after a successful refinement.
-   * {@link #ROOT} means that the analysis is restarted from the root of the ARG
-   * {@link #PIVOT} means that the analysis is restarted from the lowest possible refinement root, i.e.,
-   *  the first ARGNode associated with a non-trivial interpolant (cf. Lazy Abstraction, 2002)
-   * {@link #COMMON} means that the analysis is restarted from lowest ancestor common to all refinement roots, if more
+   * The strategy to determine where to restart the analysis after a successful refinement. {@link
+   * #ROOT} means that the analysis is restarted from the root of the ARG {@link #PIVOT} means that
+   * the analysis is restarted from the lowest possible refinement root, i.e., the first ARGNode
+   * associated with a non-trivial interpolant (cf. Lazy Abstraction, 2002) {@link #COMMON} means
+   * that the analysis is restarted from lowest ancestor common to all refinement roots, if more
    * than two refinement roots where identified
    */
   public enum RestartStrategy {
@@ -351,5 +372,3 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
     COMMON
   }
 }
-
-

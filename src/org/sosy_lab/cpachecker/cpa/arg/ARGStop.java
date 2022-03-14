@@ -83,7 +83,8 @@ abstract class ARGStop implements ForcedCoveringStopOperator {
         // unexpected case, not sure if it this possible
         logger.log(
             Level.FINEST,
-            "Element was merged into an element that's not in the reached set, merged-with element is",
+            "Element was merged into an element that's not in the reached set, merged-with element"
+                + " is",
             mergedWith);
       }
     }

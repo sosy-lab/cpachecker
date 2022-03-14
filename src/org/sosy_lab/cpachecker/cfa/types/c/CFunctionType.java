@@ -26,14 +26,12 @@ public class CFunctionType extends AFunctionType implements CType {
     return new CFunctionType(checkNotNull(pReturnType), ImmutableList.of(), false);
   }
 
-  public final static CFunctionType NO_ARGS_VOID_FUNCTION = functionTypeWithReturnType(CVoidType.VOID);
+  public static final CFunctionType NO_ARGS_VOID_FUNCTION =
+      functionTypeWithReturnType(CVoidType.VOID);
 
   private @Nullable String name = null;
 
-  public CFunctionType(
-      CType pReturnType,
-      List<CType> pParameters,
-      boolean pTakesVarArgs) {
+  public CFunctionType(CType pReturnType, List<CType> pParameters, boolean pTakesVarArgs) {
     super(pReturnType, pParameters, pTakesVarArgs);
   }
 
@@ -60,13 +58,10 @@ public class CFunctionType extends AFunctionType implements CType {
   @Override
   public String toASTString(final String pDeclarator) {
     return toASTString(
-        pDeclarator,
-        Lists.transform(getParameters(), pInput -> pInput.toASTString("")));
+        pDeclarator, Lists.transform(getParameters(), pInput -> pInput.toASTString("")));
   }
 
-  String toASTString(
-      final String pDeclarator,
-      final Iterable<?> pParameters) {
+  String toASTString(final String pDeclarator, final Iterable<?> pParameters) {
     checkNotNull(pDeclarator);
     final StringBuilder lASTString = new StringBuilder();
 
@@ -120,9 +115,9 @@ public class CFunctionType extends AFunctionType implements CType {
   }
 
   /**
-   * Be careful, this method compares the CType as it is to the given object,
-   * typedefs won't be resolved. If you want to compare the type without having
-   * typedefs in it use #getCanonicalType().equals()
+   * Be careful, this method compares the CType as it is to the given object, typedefs won't be
+   * resolved. If you want to compare the type without having typedefs in it use
+   * #getCanonicalType().equals()
    */
   @Override
   public boolean equals(@Nullable Object obj) {
@@ -150,8 +145,6 @@ public class CFunctionType extends AFunctionType implements CType {
       newParameterTypes.add(parameter.getCanonicalType());
     }
     return new CFunctionType(
-        getReturnType().getCanonicalType(),
-        newParameterTypes.build(),
-        takesVarArgs());
+        getReturnType().getCanonicalType(), newParameterTypes.build(), takesVarArgs());
   }
 }

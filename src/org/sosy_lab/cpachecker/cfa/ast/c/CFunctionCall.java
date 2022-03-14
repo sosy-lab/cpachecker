@@ -10,10 +10,7 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 
-
-/**
- * Interface for all statements that contain function calls.
- */
+/** Interface for all statements that contain function calls. */
 public interface CFunctionCall extends AFunctionCall, CStatement {
 
   @Override

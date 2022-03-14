@@ -84,8 +84,7 @@ public class InterpolationAutomatonBuilder {
             .collect(ImmutableList.toImmutableList());
 
     ImmutableList<BooleanFormula> distinctInterpolants =
-        interpolants
-            .stream()
+        interpolants.stream()
             .filter(x -> !bFMgrView.isTrue(x))
             .filter(x -> !bFMgrView.isFalse(x))
             .distinct()

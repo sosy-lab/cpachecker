@@ -18,13 +18,13 @@ final class Divide<ConstantType> extends AbstractBinaryFormula<ConstantType>
     implements NumeralFormula<ConstantType> {
 
   /**
-   * Creates a new fraction invariants formula for the given numerator and
-   * denominator.
+   * Creates a new fraction invariants formula for the given numerator and denominator.
    *
    * @param pNumerator the numerator of the fraction.
    * @param pDenominator the denominator of the fraction.
    */
-  private Divide(NumeralFormula<ConstantType> pNumerator, NumeralFormula<ConstantType> pDenominator) {
+  private Divide(
+      NumeralFormula<ConstantType> pNumerator, NumeralFormula<ConstantType> pDenominator) {
     super("/", false, pNumerator, pDenominator);
   }
 
@@ -53,22 +53,22 @@ final class Divide<ConstantType> extends AbstractBinaryFormula<ConstantType>
 
   @Override
   public <ReturnType, ParamType> ReturnType accept(
-      ParameterizedNumeralFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
+      ParameterizedNumeralFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor,
+      ParamType pParameter) {
     return pVisitor.visit(this, pParameter);
   }
 
   /**
-   * Gets an invariants formula representing the division of the given
-   * numerator formula by the given denominator formula.
+   * Gets an invariants formula representing the division of the given numerator formula by the
+   * given denominator formula.
    *
    * @param pNumerator the numerator of the fraction.
    * @param pDenominator the denominator of the fraction.
-   *
-   * @return an invariants formula representing the division of the given
-   * numerator formula by the given denominator formula.
+   * @return an invariants formula representing the division of the given numerator formula by the
+   *     given denominator formula.
    */
-  static <ConstantType> Divide<ConstantType> of(NumeralFormula<ConstantType> pNumerator, NumeralFormula<ConstantType> pDenominator) {
+  static <ConstantType> Divide<ConstantType> of(
+      NumeralFormula<ConstantType> pNumerator, NumeralFormula<ConstantType> pDenominator) {
     return new Divide<>(pNumerator, pDenominator);
   }
-
 }

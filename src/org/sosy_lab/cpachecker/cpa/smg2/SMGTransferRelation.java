@@ -48,8 +48,10 @@ public class SMGTransferRelation
     extends ForwardingTransferRelation<Collection<SMGState>, SMGState, SMGPrecision> {
 
   private final SMGOptions options;
+
   @SuppressWarnings("unused")
   private final MachineModel machineModel;
+
   @SuppressWarnings("unused")
   private final ShutdownNotifier shutdownNotifier;
 
@@ -69,13 +71,13 @@ public class SMGTransferRelation
   @Override
   protected Collection<SMGState> postProcessing(Collection<SMGState> pSuccessors, CFAEdge edge) {
     Set<CSimpleDeclaration> outOfScopeVars = edge.getSuccessor().getOutOfScopeVariables();
-    return transformedImmutableSetCopy(pSuccessors, successorState -> {
-      SMGState prunedState = successorState.copyAndPruneOutOfScopeVariables(outOfScopeVars);
-      return checkAndSetErrorRelation(prunedState);
-    });
+    return transformedImmutableSetCopy(
+        pSuccessors,
+        successorState -> {
+          SMGState prunedState = successorState.copyAndPruneOutOfScopeVariables(outOfScopeVars);
+          return checkAndSetErrorRelation(prunedState);
+        });
   }
-
-
 
   @SuppressWarnings("unused")
   private SMGState checkAndSetErrorRelation(SMGState pPrunedState) {
@@ -95,13 +97,15 @@ public class SMGTransferRelation
   }
 
   private Set<SMGState> handleReturnEntryFunction(Collection<SMGState> pSuccessors) {
-   return pSuccessors.stream().map(pState -> {
-      if (options.isHandleNonFreedMemoryInMainAsMemLeak()) {
-        pState = pState.dropStackFrame();
-      }
-      return pState.copyAndPruneUnreachable();
-    }).collect(ImmutableSet.toImmutableSet());
-
+    return pSuccessors.stream()
+        .map(
+            pState -> {
+              if (options.isHandleNonFreedMemoryInMainAsMemLeak()) {
+                pState = pState.dropStackFrame();
+              }
+              return pState.copyAndPruneUnreachable();
+            })
+        .collect(ImmutableSet.toImmutableSet());
   }
 
   private boolean isEntryFunction(CFAEdge pCfaEdge) {
@@ -114,9 +118,8 @@ public class SMGTransferRelation
     Optional<SMGObject> returnObjectOptional =
         state.getHeap().getReturnObjectForCurrentStackFrame();
     Collection<SMGState> successors = Collections.singleton(state);
-    if(returnObjectOptional.isPresent()) {
-      successors =
-          assignStatementToField(state, returnObjectOptional.orElseThrow(), returnEdge);
+    if (returnObjectOptional.isPresent()) {
+      successors = assignStatementToField(state, returnObjectOptional.orElseThrow(), returnEdge);
     }
 
     if (isEntryFunction(returnEdge)) {
@@ -126,12 +129,9 @@ public class SMGTransferRelation
   }
 
   @SuppressWarnings("unused")
-  private Collection<SMGState>
-      assignStatementToField(
-      SMGState pState,
-      SMGObject pRegion,
-          CReturnStatementEdge pReturnEdge)
-          throws CPATransferException {
+  private Collection<SMGState> assignStatementToField(
+      SMGState pState, SMGObject pRegion, CReturnStatementEdge pReturnEdge)
+      throws CPATransferException {
     CExpression returnExp = pReturnEdge.getExpression().orElse(CIntegerLiteralExpression.ZERO);
     SMGCPAValueExpressionEvaluator valueExpressionVisitor =
         new SMGCPAValueExpressionEvaluator(machineModel, logger);
@@ -160,16 +160,15 @@ public class SMGTransferRelation
   }
 
   @Override
-  protected void
-      setInfo(AbstractState abstractState, Precision abstractPrecision, CFAEdge cfaEdge) {
+  protected void setInfo(
+      AbstractState abstractState, Precision abstractPrecision, CFAEdge cfaEdge) {
     super.setInfo(abstractState, abstractPrecision, cfaEdge);
-
   }
 
   @Override
-  protected Collection<SMGState>
-      handleAssumption(CAssumeEdge cfaEdge, CExpression expression, boolean truthAssumption)
-          throws CPATransferException, InterruptedException {
+  protected Collection<SMGState> handleAssumption(
+      CAssumeEdge cfaEdge, CExpression expression, boolean truthAssumption)
+      throws CPATransferException, InterruptedException {
     return null;
   }
 
@@ -184,9 +183,7 @@ public class SMGTransferRelation
   protected List<SMGState> handleDeclarationEdge(CDeclarationEdge edge, CDeclaration cDecl)
       throws CPATransferException {
     return null;
-
   }
-
 
   @Override
   public Collection<? extends AbstractState> strengthen(
@@ -198,5 +195,4 @@ public class SMGTransferRelation
 
     return null;
   }
-
 }

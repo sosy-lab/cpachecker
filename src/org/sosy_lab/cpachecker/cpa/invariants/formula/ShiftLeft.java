@@ -24,8 +24,8 @@ final class ShiftLeft<ConstantType> extends AbstractBinaryFormula<ConstantType>
    * @param pShiftDistance the distance by which to shift the first operand to
    * the left.
    */
-  private ShiftLeft(NumeralFormula<ConstantType> pToShift,
-      NumeralFormula<ConstantType> pShiftDistance) {
+  private ShiftLeft(
+      NumeralFormula<ConstantType> pToShift, NumeralFormula<ConstantType> pShiftDistance) {
     super("<<", false, pToShift, pShiftDistance);
   }
 
@@ -54,23 +54,22 @@ final class ShiftLeft<ConstantType> extends AbstractBinaryFormula<ConstantType>
 
   @Override
   public <ReturnType, ParamType> ReturnType accept(
-      ParameterizedNumeralFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
+      ParameterizedNumeralFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor,
+      ParamType pParameter) {
     return pVisitor.visit(this, pParameter);
   }
 
   /**
-   * Gets an invariants formula representing the left shift of the first given
-   * operand by the second given operand.
+   * Gets an invariants formula representing the left shift of the first given operand by the second
+   * given operand.
    *
    * @param pToShift the operand to be shifted.
    * @param pShiftDistance the shift distance.
-   *
-   * @return an invariants formula representing the left shift of the first
-   * given operand by the second given operand.
+   * @return an invariants formula representing the left shift of the first given operand by the
+   *     second given operand.
    */
-  static <ConstantType> ShiftLeft<ConstantType> of(NumeralFormula<ConstantType> pToShift,
-      NumeralFormula<ConstantType> pShiftDistance) {
+  static <ConstantType> ShiftLeft<ConstantType> of(
+      NumeralFormula<ConstantType> pToShift, NumeralFormula<ConstantType> pShiftDistance) {
     return new ShiftLeft<>(pToShift, pShiftDistance);
   }
-
 }

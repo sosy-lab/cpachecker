@@ -6,7 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * Utilities for invariants.
- */
+/** Utilities for invariants. */
 package org.sosy_lab.cpachecker.util.predicates.invariants;

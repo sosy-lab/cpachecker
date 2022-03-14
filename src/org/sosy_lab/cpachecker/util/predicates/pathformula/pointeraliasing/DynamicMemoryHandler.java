@@ -55,9 +55,8 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 
 /**
- * This class is responsible for handling everything related to dynamic memory,
- * e.g. calls to malloc() and free(),
- * and for handling deferred allocations (calls to malloc() where the assumed
+ * This class is responsible for handling everything related to dynamic memory, e.g. calls to
+ * malloc() and free(), and for handling deferred allocations (calls to malloc() where the assumed
  * type of the memory is not yet known).
  */
 class DynamicMemoryHandler {
@@ -85,10 +84,14 @@ class DynamicMemoryHandler {
    * @param pConstraints Additional constraints.
    * @param pErrorConditions Additional error conditions.
    */
-  DynamicMemoryHandler(CToFormulaConverterWithPointerAliasing pConv,
-      CFAEdge pEdge, SSAMapBuilder pSsa,
-      PointerTargetSetBuilder pPts, Constraints pConstraints,
-      ErrorConditions pErrorConditions, MemoryRegionManager pRegionMgr) {
+  DynamicMemoryHandler(
+      CToFormulaConverterWithPointerAliasing pConv,
+      CFAEdge pEdge,
+      SSAMapBuilder pSsa,
+      PointerTargetSetBuilder pPts,
+      Constraints pConstraints,
+      ErrorConditions pErrorConditions,
+      MemoryRegionManager pRegionMgr) {
     conv = pConv;
     typeHandler = pConv.typeHandler;
     edge = pEdge;
@@ -109,15 +112,19 @@ class DynamicMemoryHandler {
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution was interrupted.
    */
-  Value handleDynamicMemoryFunction(final CFunctionCallExpression e, final String functionName,
-      final CExpressionVisitorWithPointerAliasing expressionVisitor) throws UnrecognizedCodeException, InterruptedException {
+  Value handleDynamicMemoryFunction(
+      final CFunctionCallExpression e,
+      final String functionName,
+      final CExpressionVisitorWithPointerAliasing expressionVisitor)
+      throws UnrecognizedCodeException, InterruptedException {
 
-    if ((conv.options.isSuccessfulAllocFunctionName(functionName) ||
-        conv.options.isSuccessfulZallocFunctionName(functionName))) {
-      return Value.ofValue(handleSuccessfulMemoryAllocation(functionName, e.getParameterExpressions(), e));
+    if ((conv.options.isSuccessfulAllocFunctionName(functionName)
+        || conv.options.isSuccessfulZallocFunctionName(functionName))) {
+      return Value.ofValue(
+          handleSuccessfulMemoryAllocation(functionName, e.getParameterExpressions(), e));
 
-    } else if ((conv.options.isMemoryAllocationFunction(functionName) ||
-            conv.options.isMemoryAllocationFunctionWithZeroing(functionName))) {
+    } else if ((conv.options.isMemoryAllocationFunction(functionName)
+        || conv.options.isMemoryAllocationFunctionWithZeroing(functionName))) {
       return Value.ofValue(handleMemoryAllocation(e, functionName));
 
     } else if (conv.options.isMemoryFreeFunction(functionName)) {
@@ -128,8 +135,8 @@ class DynamicMemoryHandler {
   }
 
   /**
-   * Handle memory allocation functions that may fail (i.e., return null)
-   * and that may or may not zero the memory.
+   * Handle memory allocation functions that may fail (i.e., return null) and that may or may not
+   * zero the memory.
    *
    * @param e The function call expression.
    * @param functionName The name of the allocation function.
@@ -137,8 +144,8 @@ class DynamicMemoryHandler {
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution was interrupted.
    */
-  private Formula handleMemoryAllocation(final CFunctionCallExpression e,
-      final String functionName) throws UnrecognizedCodeException, InterruptedException {
+  private Formula handleMemoryAllocation(final CFunctionCallExpression e, final String functionName)
+      throws UnrecognizedCodeException, InterruptedException {
     final boolean isZeroing = conv.options.isMemoryAllocationFunctionWithZeroing(functionName);
     List<CExpression> parameters = e.getParameterExpressions();
 
@@ -147,9 +154,10 @@ class DynamicMemoryHandler {
       CExpression param1 = parameters.get(1);
 
       // Build expression for param0 * param1 as new parameter.
-      CBinaryExpressionBuilder builder = new CBinaryExpressionBuilder(conv.machineModel, conv.logger);
-      CBinaryExpression multiplication = builder.buildBinaryExpression(
-          param0, param1, BinaryOperator.MULTIPLY);
+      CBinaryExpressionBuilder builder =
+          new CBinaryExpressionBuilder(conv.machineModel, conv.logger);
+      CBinaryExpression multiplication =
+          builder.buildBinaryExpression(param0, param1, BinaryOperator.MULTIPLY);
 
       // Try to evaluate the multiplication if possible.
       Integer value0 = tryEvaluateExpression(param0);
@@ -164,9 +172,11 @@ class DynamicMemoryHandler {
                     conv.logger)
                 .asLong(multiplication.getExpressionType());
 
-        CExpression newParam = new CIntegerLiteralExpression(param0.getFileLocation(),
-            multiplication.getExpressionType(),
-            BigInteger.valueOf(result));
+        CExpression newParam =
+            new CIntegerLiteralExpression(
+                param0.getFileLocation(),
+                multiplication.getExpressionType(),
+                BigInteger.valueOf(result));
         parameters = Collections.singletonList(newParam);
 
       } else {
@@ -178,30 +188,34 @@ class DynamicMemoryHandler {
         parameters = Collections.singletonList(parameters.get(0));
       } else {
         throw new UnrecognizedCodeException(
-            String.format("Memory allocation function %s() called with %d parameters instead of 1",
-                          functionName, parameters.size()), edge, e);
+            String.format(
+                "Memory allocation function %s() called with %d parameters instead of 1",
+                functionName, parameters.size()),
+            edge,
+            e);
       }
     }
 
-    final String delegateFunctionName = !isZeroing ?
-                                          conv.options.getSuccessfulAllocFunctionName() :
-                                          conv.options.getSuccessfulZallocFunctionName();
+    final String delegateFunctionName =
+        !isZeroing
+            ? conv.options.getSuccessfulAllocFunctionName()
+            : conv.options.getSuccessfulZallocFunctionName();
 
     if (!conv.options.makeMemoryAllocationsAlwaysSucceed()) {
-      final Formula nondet = conv.makeFreshVariable(functionName,
-                                                    CPointerType.POINTER_TO_VOID,
-                                                    ssa);
-      return conv.bfmgr.ifThenElse(conv.bfmgr.not(conv.fmgr.makeEqual(nondet, conv.nullPointer)),
-                                    handleSuccessfulMemoryAllocation(delegateFunctionName, parameters, e),
-                                    conv.nullPointer);
+      final Formula nondet =
+          conv.makeFreshVariable(functionName, CPointerType.POINTER_TO_VOID, ssa);
+      return conv.bfmgr.ifThenElse(
+          conv.bfmgr.not(conv.fmgr.makeEqual(nondet, conv.nullPointer)),
+          handleSuccessfulMemoryAllocation(delegateFunctionName, parameters, e),
+          conv.nullPointer);
     } else {
       return handleSuccessfulMemoryAllocation(delegateFunctionName, parameters, e);
     }
   }
 
   /**
-   * Handle memory allocation functions that cannot fail
-   * (i.e., do not return NULL) and do not zero the memory.
+   * Handle memory allocation functions that cannot fail (i.e., do not return NULL) and do not zero
+   * the memory.
    *
    * @param functionName The name of the memory allocation function.
    * @param parameters The list of function parameters.
@@ -210,9 +224,9 @@ class DynamicMemoryHandler {
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution was interrupted.
    */
-  private Formula handleSuccessfulMemoryAllocation(final String functionName,
-      List<CExpression> parameters,
-      final CFunctionCallExpression e) throws UnrecognizedCodeException, InterruptedException {
+  private Formula handleSuccessfulMemoryAllocation(
+      final String functionName, List<CExpression> parameters, final CFunctionCallExpression e)
+      throws UnrecognizedCodeException, InterruptedException {
     // e.getFunctionNameExpression() should not be used
     // as it might refer to another function if this method is called from handleMemoryAllocation()
     if (parameters.size() != 1) {
@@ -220,8 +234,11 @@ class DynamicMemoryHandler {
         parameters = Collections.singletonList(parameters.get(0));
       } else {
         throw new UnrecognizedCodeException(
-            String.format("Memory allocation function %s() called with %d parameters instead of 1",
-                          functionName, parameters.size()), edge, e);
+            String.format(
+                "Memory allocation function %s() called with %d parameters instead of 1",
+                functionName, parameters.size()),
+            edge,
+            e);
       }
     }
 
@@ -239,7 +256,8 @@ class DynamicMemoryHandler {
       } else if (operand2Type != null) {
         newType = new CArrayType(false, false, operand2Type, product.getOperand1());
       } else {
-        throw new UnrecognizedCodeException("Can't determine type for internal memory allocation", edge, e);
+        throw new UnrecognizedCodeException(
+            "Can't determine type for internal memory allocation", edge, e);
       }
     } else {
       size = tryEvaluateExpression(parameter);
@@ -247,9 +265,11 @@ class DynamicMemoryHandler {
         final CExpression length;
         if (size == null) {
           size = conv.options.defaultAllocationSize();
-          length = new CIntegerLiteralExpression(parameter.getFileLocation(),
-                                                 parameter.getExpressionType(),
-                                                 BigInteger.valueOf(size));
+          length =
+              new CIntegerLiteralExpression(
+                  parameter.getFileLocation(),
+                  parameter.getExpressionType(),
+                  BigInteger.valueOf(size));
         } else {
           length = parameter;
         }
@@ -293,7 +313,8 @@ class DynamicMemoryHandler {
                           BigInteger.valueOf(s))),
           sizeExp,
           newBase);
-      address = conv.makeConstant(PointerTargetSet.getBaseName(newBase), CPointerType.POINTER_TO_VOID);
+      address =
+          conv.makeConstant(PointerTargetSet.getBaseName(newBase), CPointerType.POINTER_TO_VOID);
       constraints.addConstraint(
           conv.fmgr.makeGreaterThan(
               address, conv.fmgr.makeNumber(typeHandler.getPointerType(), 0L), true));
@@ -314,8 +335,10 @@ class DynamicMemoryHandler {
    * @return The return value of the function call.
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
    */
-  private Value handleMemoryFree(final CFunctionCallExpression e,
-      final CExpressionVisitorWithPointerAliasing expressionVisitor) throws UnrecognizedCodeException {
+  private Value handleMemoryFree(
+      final CFunctionCallExpression e,
+      final CExpressionVisitorWithPointerAliasing expressionVisitor)
+      throws UnrecognizedCodeException {
     final List<CExpression> parameters = e.getParameterExpressions();
     if (parameters.size() != 1) {
       throw new UnrecognizedCodeException(
@@ -356,7 +379,9 @@ class DynamicMemoryHandler {
       throws UnrecognizedCodeException, InterruptedException {
     final Formula result = conv.makeBaseAddress(base, type);
     if (isZeroing) {
-      AssignmentHandler assignmentHandler = new AssignmentHandler(conv, edge, base, ssa, pts, constraints, errorConditions, regionMgr);
+      AssignmentHandler assignmentHandler =
+          new AssignmentHandler(
+              conv, edge, base, ssa, pts, constraints, errorConditions, regionMgr);
       final BooleanFormula initialization =
           assignmentHandler.makeDestructiveAssignment(
               type,
@@ -422,7 +447,7 @@ class DynamicMemoryHandler {
    */
   private static @Nullable Integer tryEvaluateExpression(CExpression e) {
     if (e instanceof CIntegerLiteralExpression) {
-      return ((CIntegerLiteralExpression)e).getValue().intValue();
+      return ((CIntegerLiteralExpression) e).getValue().intValue();
     }
     return null;
   }
@@ -445,13 +470,13 @@ class DynamicMemoryHandler {
    *
    * @param e The expression type.
    * @return True, if the expression is a multiplication of the {@code sizeof} operator, false
-   * otherwise.
+   *     otherwise.
    */
   private static boolean isSizeofMultiple(final CExpression e) {
-    return e instanceof CBinaryExpression &&
-           ((CBinaryExpression) e).getOperator() == BinaryOperator.MULTIPLY &&
-           (isSizeof(((CBinaryExpression) e).getOperand1()) ||
-            isSizeof(((CBinaryExpression) e).getOperand2()));
+    return e instanceof CBinaryExpression
+        && ((CBinaryExpression) e).getOperator() == BinaryOperator.MULTIPLY
+        && (isSizeof(((CBinaryExpression) e).getOperand1())
+            || isSizeof(((CBinaryExpression) e).getOperand2()));
   }
 
   /**
@@ -461,27 +486,28 @@ class DynamicMemoryHandler {
    * @return The size of the expression.
    */
   private @Nullable CType getSizeofType(CExpression e) {
-    if (e instanceof CUnaryExpression &&
-        ((CUnaryExpression) e).getOperator() == UnaryOperator.SIZEOF) {
+    if (e instanceof CUnaryExpression
+        && ((CUnaryExpression) e).getOperator() == UnaryOperator.SIZEOF) {
       return typeHandler.getSimplifiedType(((CUnaryExpression) e).getOperand());
-    } else if (e instanceof CTypeIdExpression &&
-               ((CTypeIdExpression) e).getOperator() == TypeIdOperator.SIZEOF) {
+    } else if (e instanceof CTypeIdExpression
+        && ((CTypeIdExpression) e).getOperator() == TypeIdOperator.SIZEOF) {
       return typeHandler.simplifyType(((CTypeIdExpression) e).getType());
     } else {
       return null;
     }
   }
 
-
   // Handling of deferred allocations
 
   /**
-   * The function tries to recover dynamically allocated array type from the pointer type it was casted or assigned to.
+   * The function tries to recover dynamically allocated array type from the pointer type it was
+   * casted or assigned to.
    *
-   * @param type the revealing <em>pointed</em> type (e.g. {@code char} for {@code char *}) of the pointer
-   *        to which the void * variable was casted or assigned to.
+   * @param type the revealing <em>pointed</em> type (e.g. {@code char} for {@code char *}) of the
+   *     pointer to which the void * variable was casted or assigned to.
    * @param sizeLiteral the size specified at the allocation site.
-   * @return the recovered array type or the {@code type} parameter in case the type can't be recovered
+   * @return the recovered array type or the {@code type} parameter in case the type can't be
+   *     recovered
    */
   private CType refineType(final CType type, final CIntegerLiteralExpression sizeLiteral) {
     assert sizeLiteral.getValue() != null;
@@ -489,14 +515,16 @@ class DynamicMemoryHandler {
     final int size = sizeLiteral.getValue().intValue();
     final int typeSize = conv.getSizeof(type);
     if (type instanceof CArrayType) {
-      // An array type is used in the cast or assignment, so its size should likely match the allocated size.
+      // An array type is used in the cast or assignment, so its size should likely match the
+      // allocated size.
       // Issue a warning if this isn't the case
       if (typeSize != size) {
-        conv.logger.logf(Level.WARNING,
-                         "Array size of the revealed type differs form the allocation size: %s : %d != %d",
-                         type,
-                         typeSize,
-                         size);
+        conv.logger.logf(
+            Level.WARNING,
+            "Array size of the revealed type differs form the allocation size: %s : %d != %d",
+            type,
+            typeSize,
+            size);
       }
       // The type used is already an array type, nothing to recover
       return type;
@@ -507,17 +535,23 @@ class DynamicMemoryHandler {
       final int n = size / typeSize;
       final int remainder = size % typeSize;
       if (n == 0 || remainder != 0) {
-        conv.logger.logf(Level.WARNING,
-                         "Can't refine allocation type, but the sizes differ: %s : %d != %d",
-                         type,
-                         typeSize,
-                         size);
+        conv.logger.logf(
+            Level.WARNING,
+            "Can't refine allocation type, but the sizes differ: %s : %d != %d",
+            type,
+            typeSize,
+            size);
         return type;
       }
 
-      return new CArrayType(false, false, type, new CIntegerLiteralExpression(sizeLiteral.getFileLocation(),
-                                                                              sizeLiteral.getExpressionType(),
-                                                                              BigInteger.valueOf(n)));
+      return new CArrayType(
+          false,
+          false,
+          type,
+          new CIntegerLiteralExpression(
+              sizeLiteral.getFileLocation(),
+              sizeLiteral.getExpressionType(),
+              BigInteger.valueOf(n)));
     }
   }
 
@@ -571,8 +605,10 @@ class DynamicMemoryHandler {
    * @param rhs The right hand side of the C expression.
    * @param rhsExpression The expression of the right hand side.
    * @param lhsType The type of the left hand side.
-   * @param lhsLearnedPointerTypes A map of all used deferred allocation pointers on the left hand side.
-   * @param rhsLearnedPointerTypes A map of all used deferred allocation pointers on the right hand side.
+   * @param lhsLearnedPointerTypes A map of all used deferred allocation pointers on the left hand
+   *     side.
+   * @param rhsLearnedPointerTypes A map of all used deferred allocation pointers on the right hand
+   *     side.
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution was interrupted.
    */
@@ -584,15 +620,19 @@ class DynamicMemoryHandler {
       final Map<String, CType> lhsLearnedPointerTypes,
       final Map<String, CType> rhsLearnedPointerTypes)
       throws UnrecognizedCodeException, InterruptedException {
-    // Handle allocations: reveal the actual type form the LHS type or defer the allocation until later
+    // Handle allocations: reveal the actual type form the LHS type or defer the allocation until
+    // later
     boolean isAllocation = false;
-    if ((conv.options.revealAllocationTypeFromLHS() || conv.options.deferUntypedAllocations()) &&
-        rhs instanceof CFunctionCallExpression &&
-        !rhsExpression.isNondetValue() && rhsExpression.isValue()) {
-      // TODO: can we store this information in a different way than as a Formula and avoid the need for extractVariableNames?
+    if ((conv.options.revealAllocationTypeFromLHS() || conv.options.deferUntypedAllocations())
+        && rhs instanceof CFunctionCallExpression
+        && !rhsExpression.isNondetValue()
+        && rhsExpression.isValue()) {
+      // TODO: can we store this information in a different way than as a Formula and avoid the need
+      // for extractVariableNames?
       final Set<String> rhsVariables =
           conv.fmgr.extractVariableNames(rhsExpression.asValue().getValue());
-      // Actually there is always either 1 variable (just address) or 2 variables (nondet + allocation address)
+      // Actually there is always either 1 variable (just address) or 2 variables (nondet +
+      // allocation address)
       for (final String mangledVariable : rhsVariables) {
         if (PointerTargetSet.isBaseName(mangledVariable)) {
           final String variable =
@@ -618,7 +658,8 @@ class DynamicMemoryHandler {
                 if (!lhsPointer.isPresent()) {
                   conv.logger.logfOnce(
                       Level.WARNING,
-                      "Can't start tracking deferred allocation -- can't approximate this LHS: %s (here: %s)",
+                      "Can't start tracking deferred allocation -- can't approximate this LHS: %s"
+                          + " (here: %s)",
                       lhs,
                       edge);
                   pts.removeDeferredAllocationPointer(variable)
@@ -648,8 +689,10 @@ class DynamicMemoryHandler {
    *
    * @param lhs The left hand side of the C expression.
    * @param rhs The right hand side of the C expression.
-   * @param lhsLearnedPointerTypes A map of all used deferred allocation pointers on the left hand side.
-   * @param rhsLearnedPointerTypes A map of all used deferred allocation pointers on the right hand side.
+   * @param lhsLearnedPointerTypes A map of all used deferred allocation pointers on the left hand
+   *     side.
+   * @param rhsLearnedPointerTypes A map of all used deferred allocation pointers on the right hand
+   *     side.
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution was interrupted.
    */
@@ -750,15 +793,16 @@ class DynamicMemoryHandler {
   private void handleDeferredAllocationPointerRemoval(final Object pointer) {
     conv.logger.logfOnce(
         Level.WARNING,
-        "%s: Assignment to the void* pointer %s produces garbage or the memory pointed by it is unused: %s",
+        "%s: Assignment to the void* pointer %s produces garbage or the memory pointed by it is"
+            + " unused: %s",
         edge.getFileLocation(),
         pointer,
         edge.getDescription());
   }
 
   /**
-   * The function removes local void * pointers (deferred allocations)
-   * declared in current function scope from tracking after returning from the function.
+   * The function removes local void * pointers (deferred allocations) declared in current function
+   * scope from tracking after returning from the function.
    *
    * @param function The name of the function.
    */
@@ -769,7 +813,8 @@ class DynamicMemoryHandler {
       if (!pts.removeDeferredAllocationPointer(v).isEmpty()) {
         conv.logger.logfOnce(
             Level.WARNING,
-            "%s: Destroying the void* pointer %s produces garbage or the memory pointed by it is unused: %s",
+            "%s: Destroying the void* pointer %s produces garbage or the memory pointed by it is"
+                + " unused: %s",
             edge.getFileLocation(),
             v,
             edge.getDescription());

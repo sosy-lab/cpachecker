@@ -8,16 +8,11 @@
 
 package org.sosy_lab.cpachecker.cfa.ast;
 
-
-
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
-/**
- * This is the abstract Class for all Expressions with two Operands and one Operator.
- */
+/** This is the abstract Class for all Expressions with two Operands and one Operator. */
 public abstract class ABinaryExpression extends AbstractExpression {
-
 
   private static final long serialVersionUID = 516716556428189182L;
   private final AExpression operand1;
@@ -35,8 +30,6 @@ public abstract class ABinaryExpression extends AbstractExpression {
     operand2 = pOperand2;
     operator = pOperator;
   }
-
-
 
   public AExpression getOperand1() {
     return operand1;
@@ -70,31 +63,32 @@ public abstract class ABinaryExpression extends AbstractExpression {
     return result;
   }
 
-
-
   @Override
   public boolean equals(Object obj) {
     if (this == obj) {
       return true;
     }
 
-    if (!(obj instanceof ABinaryExpression)
-        || !super.equals(obj)) {
+    if (!(obj instanceof ABinaryExpression) || !super.equals(obj)) {
       return false;
     }
 
     ABinaryExpression other = (ABinaryExpression) obj;
 
     return Objects.equals(other.operand1, operand1)
-            && Objects.equals(other.operand2, operand2)
-            && Objects.equals(other.operator, operator);
+        && Objects.equals(other.operand2, operand2)
+        && Objects.equals(other.operator, operator);
   }
 
   @Override
   public String toString() {
-    return "operand1=[" + getOperand1() +
-        "], operand2=[" + getOperand2() +
-        "], operator=[" + getOperator() + "]";
+    return "operand1=["
+        + getOperand1()
+        + "], operand2=["
+        + getOperand2()
+        + "], operator=["
+        + getOperator()
+        + "]";
   }
 
   public interface ABinaryOperator {

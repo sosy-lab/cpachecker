@@ -29,9 +29,8 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CPAs;
 
 /**
- * Adds intermediate {@link CFAEdge}s created by {@link TerminationTransferRelation}
- * during the analysis to the {@link ARGPath} returned by
- * {@link #computePath(ARGState, ARGReachedSet)}.
+ * Adds intermediate {@link CFAEdge}s created by {@link TerminationTransferRelation} during the
+ * analysis to the {@link ARGPath} returned by {@link #computePath(ARGState, ARGReachedSet)}.
  */
 public class TerminationARGBasedRefiner extends AbstractARGBasedRefiner {
 
@@ -39,15 +38,14 @@ public class TerminationARGBasedRefiner extends AbstractARGBasedRefiner {
   private static class TerminationARGBasedRefinerConfig {
 
     @Option(
-      secure = true,
-      name = "refiner",
-      required = true,
-      description =
-          "Which refinement algorithm to use? "
-              + "(give class name, required for termination algorithm with CEGAR) "
-              + "If the package name starts with 'org.sosy_lab.cpachecker.',"
-              + " this prefix can be omitted."
-    )
+        secure = true,
+        name = "refiner",
+        required = true,
+        description =
+            "Which refinement algorithm to use? "
+                + "(give class name, required for termination algorithm with CEGAR) "
+                + "If the package name starts with 'org.sosy_lab.cpachecker.',"
+                + " this prefix can be omitted.")
     @ClassOption(packagePrefix = "org.sosy_lab.cpachecker")
     @SuppressFBWarnings("NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR")
     private Refiner.Factory refinerFactory;
@@ -61,7 +59,8 @@ public class TerminationARGBasedRefiner extends AbstractARGBasedRefiner {
   public static TerminationARGBasedRefiner create(
       ConfigurableProgramAnalysis pCpa, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
-    TerminationCPA terminationCPA = CPAs.retrieveCPAOrFail(pCpa, TerminationCPA.class, TerminationCPA.class);
+    TerminationCPA terminationCPA =
+        CPAs.retrieveCPAOrFail(pCpa, TerminationCPA.class, TerminationCPA.class);
     Refiner.Factory refinerFactory =
         new TerminationARGBasedRefinerConfig(terminationCPA.getConfig()).refinerFactory;
     Refiner refiner = refinerFactory.create(pCpa, pLogger, pShutdownNotifier);

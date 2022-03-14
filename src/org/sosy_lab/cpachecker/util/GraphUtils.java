@@ -36,34 +36,32 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.StronglyConnectedComponent;
 
-/**
- * Some utilities for generic graphs.
- */
+/** Some utilities for generic graphs. */
 public class GraphUtils {
 
-  private GraphUtils() { }
+  private GraphUtils() {}
 
   /**
-   * Project a graph to a subset of "relevant" nodes.
-   * The result is a SetMultimap containing the successor relationships between all relevant nodes.
-   * A pair of nodes (a, b) is in the SetMultimap,
-   * if there is a path through the graph from a to b which does not pass through
-   * any other relevant node.
+   * Project a graph to a subset of "relevant" nodes. The result is a SetMultimap containing the
+   * successor relationships between all relevant nodes. A pair of nodes (a, b) is in the
+   * SetMultimap, if there is a path through the graph from a to b which does not pass through any
+   * other relevant node.
    *
-   * To get the predecessor relationship, you can use {@link Multimaps#invertFrom(com.google.common.collect.Multimap, com.google.common.collect.Multimap)}.
+   * <p>To get the predecessor relationship, you can use {@link
+   * Multimaps#invertFrom(com.google.common.collect.Multimap, com.google.common.collect.Multimap)}.
    *
    * @param root The start of the graph to project (always considered relevant).
    * @param isRelevant The predicate determining which nodes are in the resulting relationship.
    * @param successorFunction A function giving the direct successors of any node.
    * @param <N> The node type of the graph.
    */
-  public static <N> SetMultimap<N, N> projectARG(final N root,
+  public static <N> SetMultimap<N, N> projectARG(
+      final N root,
       final Function<? super N, ? extends Iterable<N>> successorFunction,
       Predicate<? super N> isRelevant) {
     checkNotNull(root);
 
-    isRelevant = Predicates.or(Predicates.equalTo(root),
-                               isRelevant);
+    isRelevant = Predicates.or(Predicates.equalTo(root), isRelevant);
 
     SetMultimap<N, N> successors = LinkedHashMultimap.create();
 

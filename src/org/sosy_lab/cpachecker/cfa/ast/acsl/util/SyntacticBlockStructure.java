@@ -49,7 +49,7 @@ public class SyntacticBlockStructure {
     return false;
   }
 
-  public Set<CFAEdge> getPrevEdges(SyntacticBlock pBlock, FileLocation location) {
+  public Iterable<CFAEdge> getPrevEdges(SyntacticBlock pBlock, FileLocation location) {
     Set<CFAEdge> edges = new HashSet<>();
     for (CFANode node : pBlock.getContainedNodes()) {
       CFAUtils.enteringEdges(node).copyInto(edges);
@@ -74,7 +74,7 @@ public class SyntacticBlockStructure {
 
     SyntacticBlock innermostBlockOfPrevEdge = getInnermostBlockOf(prev.getFileLocation());
     if (innermostBlockOfPrevEdge.equals(pBlock)) {
-      return CFAUtils.enteringEdges(prev.getSuccessor()).toSet();
+      return CFAUtils.enteringEdges(prev.getSuccessor());
     }
 
     // There is at least one block end directly before the specified location, so return all leaving

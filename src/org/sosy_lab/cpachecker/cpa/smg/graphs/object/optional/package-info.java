@@ -6,7 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * Package with the classes representing an optional object in the smg.
- */
+/** Package with the classes representing an optional object in the smg. */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.optional;

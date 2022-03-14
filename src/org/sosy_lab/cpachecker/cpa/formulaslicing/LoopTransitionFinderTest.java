@@ -47,84 +47,95 @@ public class LoopTransitionFinderTest {
 
   @Before
   public void setUp() throws Exception {
-    config = TestDataTools.configurationForTest().setOptions(
-        ImmutableMap.of("solver.solver", "z3")
-    ).build();
+    config =
+        TestDataTools.configurationForTest()
+            .setOptions(ImmutableMap.of("solver.solver", "z3"))
+            .build();
     notifier = ShutdownNotifier.createDummy();
     logger = LogManager.createTestLogManager();
     solver = Solver.create(config, logger, notifier);
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
-    pfmgr = new PathFormulaManagerImpl(fmgr, config, logger, notifier, MachineModel.LINUX32, Optional.empty(),
-        AnalysisDirection.FORWARD);
+    pfmgr =
+        new PathFormulaManagerImpl(
+            fmgr,
+            config,
+            logger,
+            notifier,
+            MachineModel.LINUX32,
+            Optional.empty(),
+            AnalysisDirection.FORWARD);
     creator = new CFACreator(config, logger, notifier);
-
   }
 
   @Test
   public void testGetEdgesInLoop() throws Exception {
-    CFA cfa = TestDataTools.toSingleFunctionCFA(creator,
-        "int x = 0; int y = 0;",
-        "while (1) {",
-          "x += 1; y += 1;",
-        "}"
-    );
+    CFA cfa =
+        TestDataTools.toSingleFunctionCFA(
+            creator, "int x = 0; int y = 0;", "while (1) {", "x += 1; y += 1;", "}");
     CFANode loopHead = cfa.getAllLoopHeads().orElseThrow().iterator().next();
     LoopTransitionFinder loopTransitionFinder =
         new LoopTransitionFinder(
             config, cfa.getLoopStructure().orElseThrow(), pfmgr, logger, notifier);
 
-    PathFormula loopTransition = loopTransitionFinder.generateLoopTransition(
-        SSAMap.emptySSAMap(), PointerTargetSet.emptyPointerTargetSet(), loopHead);
+    PathFormula loopTransition =
+        loopTransitionFinder.generateLoopTransition(
+            SSAMap.emptySSAMap(), PointerTargetSet.emptyPointerTargetSet(), loopHead);
 
     PathFormula expected = fromLine("int x, y; x += 1; y += 1;");
 
     assertEquivalent(loopTransition.getFormula(), expected.getFormula());
   }
 
-  @Test public void testWithConditional() throws Exception {
-    CFA cfa = TestDataTools.toSingleFunctionCFA(creator,
-        "int x = 0; int y = 0; int p = 1;",
-        "while (1) {",
-          "if (p) { x += 1; } else { y += 1; }",
-        "}"
-    );
+  @Test
+  public void testWithConditional() throws Exception {
+    CFA cfa =
+        TestDataTools.toSingleFunctionCFA(
+            creator,
+            "int x = 0; int y = 0; int p = 1;",
+            "while (1) {",
+            "if (p) { x += 1; } else { y += 1; }",
+            "}");
     CFANode loopHead = cfa.getAllLoopHeads().orElseThrow().iterator().next();
     LoopTransitionFinder loopTransitionFinder =
         new LoopTransitionFinder(
             config, cfa.getLoopStructure().orElseThrow(), pfmgr, logger, notifier);
-    PathFormula summary = loopTransitionFinder.generateLoopTransition(
-        SSAMap.emptySSAMap(), PointerTargetSet.emptyPointerTargetSet(), loopHead);
+    PathFormula summary =
+        loopTransitionFinder.generateLoopTransition(
+            SSAMap.emptySSAMap(), PointerTargetSet.emptyPointerTargetSet(), loopHead);
 
     PathFormula expected = fromLine("int x, y, p; if (p) { x += 1; } else { y += 1; }; ");
 
     assertEquivalent(summary.getFormula(), expected.getFormula());
   }
 
-  @Test public void testInterproceduralSummary() throws Exception {
-    CFA cfa = TestDataTools.toMultiFunctionCFA(creator,
-        "void log() {}",
-        "int main() {",
-        "int x;",
-        "while (__VERIFIER_nondet_int()) {",
-          "log();",
-          "x += 1;",
-          "log();",
-        "}",
-        "while (__VERIFIER_nondet_int()) {",
-          "log();",
-          "x += 2;",
-          "log();",
-        "}",
-        "}"
-    );
+  @Test
+  public void testInterproceduralSummary() throws Exception {
+    CFA cfa =
+        TestDataTools.toMultiFunctionCFA(
+            creator,
+            "void log() {}",
+            "int main() {",
+            "int x;",
+            "while (__VERIFIER_nondet_int()) {",
+            "log();",
+            "x += 1;",
+            "log();",
+            "}",
+            "while (__VERIFIER_nondet_int()) {",
+            "log();",
+            "x += 2;",
+            "log();",
+            "}",
+            "}");
 
     CFANode loopHead = cfa.getAllLoopHeads().orElseThrow().iterator().next();
     LoopTransitionFinder loopTransitionFinder =
         new LoopTransitionFinder(
             config, cfa.getLoopStructure().orElseThrow(), pfmgr, logger, notifier);
-    PathFormula summary = loopTransitionFinder.generateLoopTransition(
-        SSAMap.emptySSAMap(), PointerTargetSet.emptyPointerTargetSet(), loopHead);
+    PathFormula summary =
+        loopTransitionFinder.generateLoopTransition(
+            SSAMap.emptySSAMap(), PointerTargetSet.emptyPointerTargetSet(), loopHead);
 
     PathFormula expected = fromLine("int x; x += 1;");
 

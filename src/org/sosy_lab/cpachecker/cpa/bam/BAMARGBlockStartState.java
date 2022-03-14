@@ -25,7 +25,6 @@ public class BAMARGBlockStartState extends ARGState {
     analyzedBlock = pRootOfBlock;
   }
 
-
   public ARGState getAnalyzedBlock() {
     return analyzedBlock;
   }

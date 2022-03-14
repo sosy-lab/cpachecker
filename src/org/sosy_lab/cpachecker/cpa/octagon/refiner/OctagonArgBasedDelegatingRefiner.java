@@ -55,36 +55,33 @@ import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
- * Refiner implementation that delegates to {@link ValueAnalysisPathInterpolator},
- * and if this fails, optionally delegates also to {@link PredicateCPARefiner}.
+ * Refiner implementation that delegates to {@link ValueAnalysisPathInterpolator}, and if this
+ * fails, optionally delegates also to {@link PredicateCPARefiner}.
  */
-@Options(prefix="cpa.octagon.refiner")
+@Options(prefix = "cpa.octagon.refiner")
 class OctagonArgBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, StatisticsProvider {
 
-  /**
-   * refiner used for value-analysis interpolation refinement
-   */
+  /** refiner used for value-analysis interpolation refinement */
   private final ValueAnalysisPathInterpolator interpolatingRefiner;
 
-  /**
-   * the hash code of the previous error path
-   */
+  /** the hash code of the previous error path */
   private int previousErrorPathID = -1;
 
-  @Option(secure=true, description="Timelimit for the backup feasibility check with the octagon analysis."
-      + "(use seconds or specify a unit; 0 for infinite)")
-  @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
-                  defaultUserUnit=TimeUnit.SECONDS,
-                  min=0)
+  @Option(
+      secure = true,
+      description =
+          "Timelimit for the backup feasibility check with the octagon analysis."
+              + "(use seconds or specify a unit; 0 for infinite)")
+  @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = 0)
   private TimeSpan timeForOctagonFeasibilityCheck = TimeSpan.ofNanos(0);
 
   // statistics
-  private int numberOfValueAnalysisRefinements           = 0;
+  private int numberOfValueAnalysisRefinements = 0;
   private int numberOfSuccessfulValueAnalysisRefinements = 0;
 
-  /** if this variable is toggled, only octagon refinements will be done as
-   * value analysis refinements will make no sense any more because they are too
-   * imprecise
+  /**
+   * if this variable is toggled, only octagon refinements will be done as value analysis
+   * refinements will make no sense any more because they are too imprecise
    */
   private boolean existsExplicitOctagonRefinement = false;
 
@@ -158,18 +155,24 @@ class OctagonArgBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, S
    * @return true, if the value-analysis refinement was successful, else false
    * @throws CPAException when value-analysis interpolation fails
    */
-  private boolean performValueAnalysisRefinement(final ARGReachedSet reached, final ARGPath errorPath) throws CPAException, InterruptedException {
+  private boolean performValueAnalysisRefinement(
+      final ARGReachedSet reached, final ARGPath errorPath)
+      throws CPAException, InterruptedException {
     numberOfValueAnalysisRefinements++;
 
     UnmodifiableReachedSet reachedSet = reached.asReachedSet();
-    Precision precision               = reachedSet.getPrecision(reachedSet.getLastState());
-    VariableTrackingPrecision octPrecision         = (VariableTrackingPrecision) Precisions.asIterable(precision).filter(VariableTrackingPrecision.isMatchingCPAClass(OctagonCPA.class)).get(0);
+    Precision precision = reachedSet.getPrecision(reachedSet.getLastState());
+    VariableTrackingPrecision octPrecision =
+        (VariableTrackingPrecision)
+            Precisions.asIterable(precision)
+                .filter(VariableTrackingPrecision.isMatchingCPAClass(OctagonCPA.class))
+                .get(0);
 
     VariableTrackingPrecision refinedOctPrecision;
     Pair<ARGState, CFAEdge> refinementRoot;
 
-
-    Multimap<CFANode, MemoryLocation> increment = interpolatingRefiner.determinePrecisionIncrement(errorPath);
+    Multimap<CFANode, MemoryLocation> increment =
+        interpolatingRefiner.determinePrecisionIncrement(errorPath);
     refinementRoot = interpolatingRefiner.determineRefinementRoot(errorPath, increment);
 
     // no increment - value-analysis refinement was not successful
@@ -177,13 +180,14 @@ class OctagonArgBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, S
       return false;
     }
 
-    refinedOctPrecision  = octPrecision.withIncrement(increment);
+    refinedOctPrecision = octPrecision.withIncrement(increment);
 
     if (valueAnalysisRefinementWasSuccessful(errorPath, octPrecision, refinedOctPrecision)) {
       numberOfSuccessfulValueAnalysisRefinements++;
-      reached.removeSubtree(refinementRoot.getFirst(),
-                            refinedOctPrecision,
-                            VariableTrackingPrecision.isMatchingCPAClass(OctagonCPA.class));
+      reached.removeSubtree(
+          refinementRoot.getFirst(),
+          refinedOctPrecision,
+          VariableTrackingPrecision.isMatchingCPAClass(OctagonCPA.class));
       return true;
     } else {
       return false;
@@ -194,39 +198,53 @@ class OctagonArgBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, S
       final ARGReachedSet reached, final OctagonAnalysisFeasibilityChecker checker)
       throws InterruptedException {
     UnmodifiableReachedSet reachedSet = reached.asReachedSet();
-    Precision precision               = reachedSet.getPrecision(reachedSet.getLastState());
-    VariableTrackingPrecision octPrecision         = (VariableTrackingPrecision) Precisions.asIterable(precision).filter(VariableTrackingPrecision.isMatchingCPAClass(OctagonCPA.class)).get(0);
+    Precision precision = reachedSet.getPrecision(reachedSet.getLastState());
+    VariableTrackingPrecision octPrecision =
+        (VariableTrackingPrecision)
+            Precisions.asIterable(precision)
+                .filter(VariableTrackingPrecision.isMatchingCPAClass(OctagonCPA.class))
+                .get(0);
 
     Multimap<CFANode, MemoryLocation> increment = checker.getPrecisionIncrement();
-    // no newly tracked variables, so the refinement was not successful, TODO why is this code commented out?
+    // no newly tracked variables, so the refinement was not successful, TODO why is this code
+    // commented out?
     if (increment.isEmpty()) {
-    //  return false;
+      //  return false;
     }
 
-    reached.removeSubtree(((ARGState)reachedSet.getFirstState()).getChildren().iterator().next(),
-                           octPrecision.withIncrement(increment),
-                          VariableTrackingPrecision.isMatchingCPAClass(OctagonCPA.class));
-    logger.log(Level.INFO, "Refinement successful, precision incremented, following variables are now tracked additionally:\n" + new TreeSet<>(increment.values()));
+    reached.removeSubtree(
+        ((ARGState) reachedSet.getFirstState()).getChildren().iterator().next(),
+        octPrecision.withIncrement(increment),
+        VariableTrackingPrecision.isMatchingCPAClass(OctagonCPA.class));
+    logger.log(
+        Level.INFO,
+        "Refinement successful, precision incremented, following variables are now tracked"
+            + " additionally:\n"
+            + new TreeSet<>(increment.values()));
 
     return true;
   }
 
   /**
-   * This helper method checks if the refinement was successful, i.e.,
-   * that either the counterexample is not a repeated counterexample, or that the precision did grow.
+   * This helper method checks if the refinement was successful, i.e., that either the
+   * counterexample is not a repeated counterexample, or that the precision did grow.
    *
-   * Repeated counterexamples might occur when combining the analysis with thresholding,
-   * or when ignoring variable classes, i.e. when combined with BDD analysis (i.e. cpa.value.precision.ignoreBoolean).
+   * <p>Repeated counterexamples might occur when combining the analysis with thresholding, or when
+   * ignoring variable classes, i.e. when combined with BDD analysis (i.e.
+   * cpa.value.precision.ignoreBoolean).
    *
    * @param errorPath the current error path
    * @param valueAnalysisPrecision the previous precision
    * @param refinedValueAnalysisPrecision the refined precision
    */
-  private boolean valueAnalysisRefinementWasSuccessful(ARGPath errorPath, VariableTrackingPrecision valueAnalysisPrecision,
+  private boolean valueAnalysisRefinementWasSuccessful(
+      ARGPath errorPath,
+      VariableTrackingPrecision valueAnalysisPrecision,
       VariableTrackingPrecision refinedValueAnalysisPrecision) {
     // new error path or precision refined -> success
-    boolean success = (errorPath.toString().hashCode() != previousErrorPathID)
-        || (refinedValueAnalysisPrecision.getSize() > valueAnalysisPrecision.getSize());
+    boolean success =
+        (errorPath.toString().hashCode() != previousErrorPathID)
+            || (refinedValueAnalysisPrecision.getSize() > valueAnalysisPrecision.getSize());
 
     previousErrorPathID = errorPath.toString().hashCode();
 
@@ -246,8 +264,12 @@ class OctagonArgBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, S
 
   @Override
   public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
-    out.println("  number of value analysis refinements:                " + numberOfValueAnalysisRefinements);
-    out.println("  number of successful valueAnalysis refinements:      " + numberOfSuccessfulValueAnalysisRefinements);
+    out.println(
+        "  number of value analysis refinements:                "
+            + numberOfValueAnalysisRefinements);
+    out.println(
+        "  number of successful valueAnalysis refinements:      "
+            + numberOfSuccessfulValueAnalysisRefinements);
   }
 
   /**
@@ -261,10 +283,9 @@ class OctagonArgBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, S
     return valueChecker.isFeasible(path);
   }
 
-  /**
-   * Creates a new OctagonAnalysisPathChecker, which checks the given path at full precision.
-   */
-  private OctagonAnalysisFeasibilityChecker createOctagonFeasibilityChecker(ARGPath path) throws CPAException, InterruptedException {
+  /** Creates a new OctagonAnalysisPathChecker, which checks the given path at full precision. */
+  private OctagonAnalysisFeasibilityChecker createOctagonFeasibilityChecker(ARGPath path)
+      throws CPAException, InterruptedException {
     try {
       OctagonAnalysisFeasibilityChecker checker;
 
@@ -283,7 +304,8 @@ class OctagonArgBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, S
       } else {
         ShutdownManager shutdown = ShutdownManager.createWithParent(shutdownNotifier);
         WalltimeLimit l = WalltimeLimit.fromNowOn(timeForOctagonFeasibilityCheck);
-        ResourceLimitChecker limits = new ResourceLimitChecker(shutdown, Collections.<ResourceLimit>singletonList(l));
+        ResourceLimitChecker limits =
+            new ResourceLimitChecker(shutdown, Collections.<ResourceLimit>singletonList(l));
 
         limits.start();
         checker =

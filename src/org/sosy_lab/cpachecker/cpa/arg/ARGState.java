@@ -361,7 +361,7 @@ public class ARGState extends AbstractSerializableSingleWrapperState
   /** The ordering of this class is the chronological creation order. */
   @Override
   public final int compareTo(ARGState pO) {
-    return Integer.compare(this.stateId, pO.stateId);
+    return Integer.compare(stateId, pO.stateId);
   }
 
   @Override
@@ -518,7 +518,7 @@ public class ARGState extends AbstractSerializableSingleWrapperState
     assert !replacement.destroyed : "Don't use destroyed ARGState " + replacement;
     assert !isCovered() : "Not implemented: Replacement of covered element " + this;
     assert !replacement.isCovered() : "Cannot replace with covered element " + replacement;
-    assert !this.equals(replacement) : "Don't replace ARGState " + this + " with itself";
+    assert !equals(replacement) : "Don't replace ARGState " + this + " with itself";
 
     // copy children
     for (ARGState child : children) {
@@ -562,7 +562,7 @@ public class ARGState extends AbstractSerializableSingleWrapperState
 
   @Override
   public ARGState forkWithReplacements(Collection<AbstractState> pReplacementStates) {
-    AbstractState wrappedState = this.getWrappedState();
+    AbstractState wrappedState = getWrappedState();
     AbstractState newWrappedState = null;
     if (wrappedState instanceof Splitable) {
       newWrappedState = ((Splitable) wrappedState).forkWithReplacements(pReplacementStates);
@@ -578,13 +578,13 @@ public class ARGState extends AbstractSerializableSingleWrapperState
 
   public void makeTwinOf(ARGState pTemplateState) {
 
-    checkState(this.stateId != pTemplateState.stateId);
+    checkState(stateId != pTemplateState.stateId);
     checkState(!pTemplateState.destroyed);
     checkState(pTemplateState.counterexample == null);
 
-    this.wasExpanded = pTemplateState.wasExpanded;
-    this.mayCover = pTemplateState.mayCover;
-    this.hasCoveredParent = pTemplateState.hasCoveredParent;
+    wasExpanded = pTemplateState.wasExpanded;
+    mayCover = pTemplateState.mayCover;
+    hasCoveredParent = pTemplateState.hasCoveredParent;
   }
 
   public void removeParent(ARGState pOtherParent) {

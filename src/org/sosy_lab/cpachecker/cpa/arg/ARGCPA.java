@@ -74,7 +74,8 @@ public class ARGCPA extends AbstractSingleWrapperCPA
   @Option(
       secure = true,
       description =
-          "whether to keep covered states in the reached set as addition to keeping them in the ARG")
+          "whether to keep covered states in the reached set as addition to keeping them in the"
+              + " ARG")
   private boolean keepCoveredStatesInReached = false;
 
   @Option(
@@ -87,13 +88,16 @@ public class ARGCPA extends AbstractSingleWrapperCPA
   @Option(
       secure = true,
       description =
-          "prevent the stop-operator from aborting the stop-check early when it crosses a target state")
+          "prevent the stop-operator from aborting the stop-check early when it crosses a target"
+              + " state")
   private boolean coverTargetStates = false;
 
   @Option(
       secure = true,
       description =
-          "Enable reduction for nested abstract states when entering or leaving a block abstraction for BAM. The reduction can lead to a higher cache-hit-rate for BAM and a faster sub-analysis for blocks.")
+          "Enable reduction for nested abstract states when entering or leaving a block abstraction"
+              + " for BAM. The reduction can lead to a higher cache-hit-rate for BAM and a faster"
+              + " sub-analysis for blocks.")
   private boolean enableStateReduction = true;
 
   @Option(

@@ -8,18 +8,16 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 /**
- * This class represents the core components that occur in each declaration:
- * a type and an (optional) name.
+ * This class represents the core components that occur in each declaration: a type and an
+ * (optional) name.
  *
- * It is part of the declaration of types and variables (see {@link CDeclaration})
- * and functions (see {@link CFunctionDeclaration}).
- * It is also used stand-alone for the declaration of members of composite types
- * (e.g. structs) and for the declaration of function parameters.
+ * <p>It is part of the declaration of types and variables (see {@link CDeclaration}) and functions
+ * (see {@link CFunctionDeclaration}). It is also used stand-alone for the declaration of members of
+ * composite types (e.g. structs) and for the declaration of function parameters.
  */
 public interface CSimpleDeclaration extends ASimpleDeclaration, CAstNode {
 

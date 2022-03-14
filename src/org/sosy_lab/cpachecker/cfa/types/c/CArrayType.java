@@ -25,8 +25,7 @@ public final class CArrayType extends AArrayType implements CType {
   private final boolean isConst;
   private final boolean isVolatile;
 
-  public CArrayType(boolean pConst, boolean pVolatile,
-      CType pType, @Nullable CExpression pLength) {
+  public CArrayType(boolean pConst, boolean pVolatile, CType pType, @Nullable CExpression pLength) {
     super(pType);
     isConst = pConst;
     isVolatile = pVolatile;
@@ -110,11 +109,10 @@ public final class CArrayType extends AArrayType implements CType {
     return Objects.hash(length, isConst, isVolatile) * 31 + super.hashCode();
   }
 
-
   /**
-   * Be careful, this method compares the CType as it is to the given object,
-   * typedefs won't be resolved. If you want to compare the type without having
-   * typedefs in it use #getCanonicalType().equals()
+   * Be careful, this method compares the CType as it is to the given object, typedefs won't be
+   * resolved. If you want to compare the type without having typedefs in it use
+   * #getCanonicalType().equals()
    */
   @Override
   public boolean equals(@Nullable Object obj) {
@@ -128,8 +126,11 @@ public final class CArrayType extends AArrayType implements CType {
 
     CArrayType other = (CArrayType) obj;
 
-    if (length instanceof CIntegerLiteralExpression && other.length instanceof CIntegerLiteralExpression) {
-      if (!((CIntegerLiteralExpression)length).getValue().equals(((CIntegerLiteralExpression)other.length).getValue())) {
+    if (length instanceof CIntegerLiteralExpression
+        && other.length instanceof CIntegerLiteralExpression) {
+      if (!((CIntegerLiteralExpression) length)
+          .getValue()
+          .equals(((CIntegerLiteralExpression) other.length).getValue())) {
         return false;
       }
     } else {
@@ -151,10 +152,10 @@ public final class CArrayType extends AArrayType implements CType {
     // C11 standard 6.7.3 (9) specifies that qualifiers like const and volatile
     // on an array type always refer to the element type, not the array type.
     // So we push these modifiers down to the element type here.
-    return new CArrayType(false, false,
-        getType().getCanonicalType(isConst || pForceConst,
-                                   isVolatile || pForceVolatile),
+    return new CArrayType(
+        false,
+        false,
+        getType().getCanonicalType(isConst || pForceConst, isVolatile || pForceVolatile),
         length);
   }
-
 }

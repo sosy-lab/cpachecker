@@ -17,62 +17,49 @@ import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
- * This class represents simple convex ranges of BigIntegers.
- * It has an lower bound and an upper bound, both of which may either be a
- * concrete value or infinity. In case of a concrete value, the bound is assumed
- * to be included in the range.
+ * This class represents simple convex ranges of BigIntegers. It has an lower bound and an upper
+ * bound, both of which may either be a concrete value or infinity. In case of a concrete value, the
+ * bound is assumed to be included in the range.
  *
- * All instances of this class are immutable.
+ * <p>All instances of this class are immutable.
  */
 public class SimpleInterval {
 
-  /**
-   * The lower bound of the interval. <code>null</code> represents
-   * negative infinity.
-   */
+  /** The lower bound of the interval. <code>null</code> represents negative infinity. */
   private final BigInteger lowerBound; // null means negative infinity
 
-  /**
-   * The upper bound of the interval. <code>null</code> represents
-   * positive infinity.
-   */
+  /** The upper bound of the interval. <code>null</code> represents positive infinity. */
   private final BigInteger upperBound; // null means positive infinity
 
   /**
-   * Creates a new interval from the given lower bound to the given
-   * upper bound. <code>null</code> values are allowed and represent
-   * negative infinity for the lower bound or positive infinity for
+   * Creates a new interval from the given lower bound to the given upper bound. <code>null</code>
+   * values are allowed and represent negative infinity for the lower bound or positive infinity for
    * the upper bound.
    *
-   * If both bounds are not <code>null</code>, the lower bound must be
-   * a value less than or equal to the upper bound.
+   * <p>If both bounds are not <code>null</code>, the lower bound must be a value less than or equal
+   * to the upper bound.
    *
-   * @param pLowerBound the lower bound of the interval. <code>null</code> represents
-   * negative infinity.
-   * @param pUpperBound the upper bound of the interval. <code>null</code> represents
-   * positive infinity.
+   * @param pLowerBound the lower bound of the interval. <code>null</code> represents negative
+   *     infinity.
+   * @param pUpperBound the upper bound of the interval. <code>null</code> represents positive
+   *     infinity.
    */
   private SimpleInterval(@Nullable BigInteger pLowerBound, @Nullable BigInteger pUpperBound) {
-    checkArgument((pLowerBound == null)
-        || (pUpperBound == null)
-        || (pLowerBound.compareTo(pUpperBound) <= 0)
-        , "lower endpoint greater than upper end point");
+    checkArgument(
+        (pLowerBound == null) || (pUpperBound == null) || (pLowerBound.compareTo(pUpperBound) <= 0),
+        "lower endpoint greater than upper end point");
 
     lowerBound = pLowerBound;
     upperBound = pUpperBound;
   }
 
-  /**
-   * Return lower bound (may only be called if {@link #hasLowerBound()} returns true.
-   */
+  /** Return lower bound (may only be called if {@link #hasLowerBound()} returns true. */
   public BigInteger getLowerBound() {
     checkState(lowerBound != null);
     return lowerBound;
   }
 
-  /**
-   * Return upper bound (may only be called if {@link #hasUpperBound()} returns true.
-   */
+  /** Return upper bound (may only be called if {@link #hasUpperBound()} returns true. */
   public BigInteger getUpperBound() {
     checkState(upperBound != null);
     return upperBound;
@@ -80,15 +67,17 @@ public class SimpleInterval {
 
   /**
    * Checks if the interval includes every value.
-   * @return <code>true</code> if the interval has neither a lower nor an upper bound, <code>false</code> otherwise.
+   *
+   * @return <code>true</code> if the interval has neither a lower nor an upper bound, <code>false
+   *     </code> otherwise.
    */
   public boolean isTop() {
     return upperBound == null && lowerBound == null;
   }
 
   /**
-   * Intersects this interval with the given interval. May only be called
-   * if {@link #intersectsWith(SimpleInterval)} returns true.
+   * Intersects this interval with the given interval. May only be called if {@link
+   * #intersectsWith(SimpleInterval)} returns true.
    *
    * @param pOther the interval to intersect this interval with.
    * @return the intersection of this interval with the given interval.
@@ -103,7 +92,7 @@ public class SimpleInterval {
       return pOther;
     }
     // The lower bound of this interval is a candidate for the new lower bound
-    BigInteger newLowerBound = this.lowerBound;
+    BigInteger newLowerBound = lowerBound;
     // If the other interval has a finite lower bound, it is a candidate as well
     if (pOther.hasLowerBound()) {
       BigInteger otherLowerBound = pOther.getLowerBound();
@@ -120,7 +109,7 @@ public class SimpleInterval {
       }
     }
     // The upper bound of this interval is a candidate for the new lower bound
-    BigInteger newUpperBound = this.upperBound;
+    BigInteger newUpperBound = upperBound;
     // If the other interval has a finite upper bound, it is a candidate as well
     if (pOther.hasUpperBound()) {
       BigInteger otherUpperBound = pOther.getUpperBound();
@@ -139,26 +128,21 @@ public class SimpleInterval {
     return new SimpleInterval(newLowerBound, newUpperBound);
   }
 
-  /**
-   * Return whether this interval has a concrete lower bound
-   * (otherwise it's positive infinity).
-   */
+  /** Return whether this interval has a concrete lower bound (otherwise it's positive infinity). */
   public boolean hasLowerBound() {
     return lowerBound != null;
   }
 
-  /**
-   * Return whether this interval has a concrete upper bound
-   * (otherwise it's positive infinity).
-   */
+  /** Return whether this interval has a concrete upper bound (otherwise it's positive infinity). */
   public boolean hasUpperBound() {
     return upperBound != null;
   }
 
   /**
    * Checks if this interval contains at least one positive value.
-   * @return <code>true</code> if this interval contains at least one
-   * positive value, <code>false</code> otherwise.
+   *
+   * @return <code>true</code> if this interval contains at least one positive value, <code>false
+   *     </code> otherwise.
    */
   public boolean containsPositive() {
     return (upperBound == null || upperBound.signum() == 1);
@@ -166,8 +150,9 @@ public class SimpleInterval {
 
   /**
    * Checks if this interval contains the value zero.
-   * @return <code>true</code> if this interval contains the value zero,
-   * <code>false</code> otherwise.
+   *
+   * @return <code>true</code> if this interval contains the value zero, <code>false</code>
+   *     otherwise.
    */
   public boolean containsZero() {
     return (upperBound == null || upperBound.signum() >= 0)
@@ -176,8 +161,9 @@ public class SimpleInterval {
 
   /**
    * Checks if this interval contains the value zero.
-   * @return <code>true</code> if this interval contains the value zero,
-   * <code>false</code> otherwise.
+   *
+   * @return <code>true</code> if this interval contains the value zero, <code>false</code>
+   *     otherwise.
    */
   public boolean contains(BigInteger pValue) {
     return (upperBound == null || upperBound.compareTo(pValue) >= 0)
@@ -186,20 +172,20 @@ public class SimpleInterval {
 
   /**
    * Checks if this interval contains at least one negative value.
-   * @return <code>true</code> if this interval contains at least one
-   * negative value, <code>false</code> otherwise.
+   *
+   * @return <code>true</code> if this interval contains at least one negative value, <code>false
+   *     </code> otherwise.
    */
   public boolean containsNegative() {
     return (lowerBound == null || lowerBound.signum() == -1);
   }
 
   /**
-   * Computes the size of this interval. If any of the two bounds are
-   * infinity, <code>null</code> is returned, otherwise the result
-   * is the upper bound minus the lower bound plus one.
+   * Computes the size of this interval. If any of the two bounds are infinity, <code>null</code> is
+   * returned, otherwise the result is the upper bound minus the lower bound plus one.
    *
-   * @return <code>null</code> if any of the two bounds are
-   * infinity, otherwise the upper bound minus the lower bound plus one.
+   * @return <code>null</code> if any of the two bounds are infinity, otherwise the upper bound
+   *     minus the lower bound plus one.
    */
   public @Nullable BigInteger size() {
     if (hasLowerBound() && hasUpperBound()) {
@@ -210,22 +196,20 @@ public class SimpleInterval {
   }
 
   /**
-   * Checks if this interval contains exactly one single value. If this
-   * function returns <code>true</code>, {@link #getLowerBound()} may
-   * safely be called to retrieve the value.
+   * Checks if this interval contains exactly one single value. If this function returns <code>true
+   * </code>, {@link #getLowerBound()} may safely be called to retrieve the value.
    *
-   * @return <code>true</code> if this interval contains exactly one
-   * single value, <code>false</code> otherwise.
+   * @return <code>true</code> if this interval contains exactly one single value, <code>false
+   *     </code> otherwise.
    */
   public boolean isSingleton() {
     return hasLowerBound() && lowerBound.equals(upperBound);
   }
 
   /**
-   * Returns the mathematical negation of this interval. The lower bound
-   * of the resulting interval is the negated upper bound of this interval
-   * and vice versa. This, of course, includes infinity becoming negative
-   * infinity and negative infinity becoming infinity.
+   * Returns the mathematical negation of this interval. The lower bound of the resulting interval
+   * is the negated upper bound of this interval and vice versa. This, of course, includes infinity
+   * becoming negative infinity and negative infinity becoming infinity.
    *
    * @return the mathematical negation of this interval.
    */
@@ -241,11 +225,9 @@ public class SimpleInterval {
   }
 
   /**
-   * Returns an interval from this interval's lower bound to positive
-   * infinity.
+   * Returns an interval from this interval's lower bound to positive infinity.
    *
-   * @return an interval from this interval's lower bound to positive
-   * infinity.
+   * @return an interval from this interval's lower bound to positive infinity.
    */
   public SimpleInterval extendToPositiveInfinity() {
     if (lowerBound == null) {
@@ -258,11 +240,9 @@ public class SimpleInterval {
   }
 
   /**
-   * Returns an interval from this interval's lower bound to negative
-   * infinity.
+   * Returns an interval from this interval's lower bound to negative infinity.
    *
-   * @return an interval from this interval's lower bound to negative
-   * infinity.
+   * @return an interval from this interval's lower bound to negative infinity.
    */
   public SimpleInterval extendToNegativeInfinity() {
     if (upperBound == null) {
@@ -283,8 +263,8 @@ public class SimpleInterval {
     }
 
     SimpleInterval other = (SimpleInterval) pObj;
-    return Objects.equals(this.lowerBound, other.lowerBound)
-        && Objects.equals(this.upperBound, other.upperBound);
+    return Objects.equals(lowerBound, other.lowerBound)
+        && Objects.equals(upperBound, other.upperBound);
   }
 
   @Override
@@ -312,73 +292,80 @@ public class SimpleInterval {
 
   /**
    * Checks if this interval contains the given interval.
+   *
    * @param other the interval that this interval is checked for containing.
-   * @return <code>true</code> if this interval contains the given
-   * interval, <code>false</code> otherwise.
+   * @return <code>true</code> if this interval contains the given interval, <code>false</code>
+   *     otherwise.
    */
   public boolean contains(SimpleInterval other) {
     if (this == other) {
       return true;
     }
 
-    if (this.lowerBound != null && other.lowerBound == null) {
+    if (lowerBound != null && other.lowerBound == null) {
       return false;
     }
 
-    if (this.upperBound != null && other.upperBound == null) {
+    if (upperBound != null && other.upperBound == null) {
       return false;
     }
 
-    return (this.lowerBound == null || this.lowerBound.compareTo(other.lowerBound) <= 0)
-        && (this.upperBound == null || this.upperBound.compareTo(other.upperBound) >= 0);
+    return (lowerBound == null || lowerBound.compareTo(other.lowerBound) <= 0)
+        && (upperBound == null || upperBound.compareTo(other.upperBound) >= 0);
   }
 
   /**
-   * Checks if this interval touches the given interval, which means the
-   * intervals either intersect each other or there is one upper bound
-   * in one of the two intervals that is exactly the lower bound of the
-   * other interval minus one.
+   * Checks if this interval touches the given interval, which means the intervals either intersect
+   * each other or there is one upper bound in one of the two intervals that is exactly the lower
+   * bound of the other interval minus one.
    *
    * @param pOther the interval to check for touching this interval.
-   * @return <code>true</code> if this interval touches the given
-   * interval, <code>false</code> otherwise.
+   * @return <code>true</code> if this interval touches the given interval, <code>false</code>
+   *     otherwise.
    */
   public boolean touches(SimpleInterval pOther) {
-    if (pOther == null) { return false; }
-    if (intersectsWith(pOther)) { return true; }
-    return (this.lowerBound != null
+    if (pOther == null) {
+      return false;
+    }
+    if (intersectsWith(pOther)) {
+      return true;
+    }
+    return (lowerBound != null
             && pOther.upperBound != null
-            && pOther.upperBound.add(BigInteger.ONE).equals(this.lowerBound))
+            && pOther.upperBound.add(BigInteger.ONE).equals(lowerBound))
         || (pOther.lowerBound != null
-            && this.upperBound != null
-            && this.upperBound.add(BigInteger.ONE).equals(pOther.lowerBound));
+            && upperBound != null
+            && upperBound.add(BigInteger.ONE).equals(pOther.lowerBound));
   }
 
   /**
    * Checks if the given interval intersects with this interval.
+   *
    * @param other the interval to check for intersecting this interval.
-   * @return <code>true</code> if this interval intersects with the
-   * given interval, <code>false</code> otherwise.
+   * @return <code>true</code> if this interval intersects with the given interval, <code>false
+   *     </code> otherwise.
    */
   public boolean intersectsWith(SimpleInterval other) {
-    if (this == other) { return true; }
+    if (this == other) {
+      return true;
+    }
 
-    if (this.lowerBound == null) {
-      if (this.upperBound == null || other.lowerBound == null) {
+    if (lowerBound == null) {
+      if (upperBound == null || other.lowerBound == null) {
         return true;
       } else {
         // this is (-INF, a]; other is [b, ?)
         // result is true if a >= b
-        return this.upperBound.compareTo(other.lowerBound) >= 0;
+        return upperBound.compareTo(other.lowerBound) >= 0;
       }
 
-    } else if (this.upperBound == null) {
+    } else if (upperBound == null) {
       if (other.upperBound == null) {
         return true;
       } else {
         // this is [a, INF); other is (?, b]
         // result is true if a <= b
-        return this.lowerBound.compareTo(other.upperBound) <= 0;
+        return lowerBound.compareTo(other.upperBound) <= 0;
       }
 
     } else {
@@ -388,44 +375,52 @@ public class SimpleInterval {
       } else if (other.lowerBound == null) {
         // this is [a, b]; other is (-INF, c]
         // result is true if a <= c
-        return this.lowerBound.compareTo(other.upperBound) <= 0;
+        return lowerBound.compareTo(other.upperBound) <= 0;
       } else if (other.upperBound == null) {
         // this is [a, b]; other is [c, INF)
         // result is true if b >= c
-        return this.upperBound.compareTo(other.lowerBound) >= 0;
+        return upperBound.compareTo(other.lowerBound) >= 0;
       } else {
         // this is [a, b]; other is [c, d]
         // result is true if a <= d and b >= c
-        boolean aLessThanOrEqB = this.lowerBound.compareTo(other.upperBound) <= 0;
-        boolean bGreaterThanOrEqC = this.upperBound.compareTo(other.lowerBound) >= 0;
+        boolean aLessThanOrEqB = lowerBound.compareTo(other.upperBound) <= 0;
+        boolean bGreaterThanOrEqC = upperBound.compareTo(other.lowerBound) >= 0;
         return aLessThanOrEqB && bGreaterThanOrEqC;
       }
     }
   }
 
   /**
-   * Gets the closest negative value to zero of this interval.
-   * May only be called if {@link #containsNegative()} returns true.
+   * Gets the closest negative value to zero of this interval. May only be called if {@link
+   * #containsNegative()} returns true.
    *
    * @return the closest negative value to zero of this interval.
    */
   public BigInteger closestNegativeToZero() {
     checkState(containsNegative());
-    if (isSingleton()) { return getLowerBound(); }
-    if (hasUpperBound() && getUpperBound().signum() < 0) { return getUpperBound(); }
+    if (isSingleton()) {
+      return getLowerBound();
+    }
+    if (hasUpperBound() && getUpperBound().signum() < 0) {
+      return getUpperBound();
+    }
     return BigInteger.ONE.negate();
   }
 
   /**
-   * Gets the closest positive value to zero of this interval.
-   * May only be called if {@link #containsPositive()} returns true.
+   * Gets the closest positive value to zero of this interval. May only be called if {@link
+   * #containsPositive()} returns true.
    *
    * @return the closest positive value to zero of this interval.
    */
   public BigInteger closestPositiveToZero() {
     checkState(containsPositive());
-    if (isSingleton()) { return getLowerBound(); }
-    if (hasLowerBound() && getLowerBound().signum() > 0) { return getLowerBound(); }
+    if (isSingleton()) {
+      return getLowerBound();
+    }
+    if (hasLowerBound() && getLowerBound().signum() > 0) {
+      return getLowerBound();
+    }
     return BigInteger.ONE;
   }
 
@@ -451,9 +446,7 @@ public class SimpleInterval {
     return new SimpleInterval(checkNotNull(lowerBound), checkNotNull(upperBound));
   }
 
-  /**
-   * Create the smallest interval that contains two given intervals;
-   */
+  /** Create the smallest interval that contains two given intervals; */
   public static SimpleInterval span(SimpleInterval a, SimpleInterval b) {
     BigInteger lower;
     if (a.lowerBound == null || b.lowerBound == null) {

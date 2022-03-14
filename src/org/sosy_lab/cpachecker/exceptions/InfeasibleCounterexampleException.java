@@ -11,14 +11,10 @@ package org.sosy_lab.cpachecker.exceptions;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.List;
-
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 
-/**
- * Exception raised when the refinement procedure fails, or was
- * abandoned.
- */
+/** Exception raised when the refinement procedure fails, or was abandoned. */
 public class InfeasibleCounterexampleException extends CPAException {
 
   private static final long serialVersionUID = 513019120577549278L;

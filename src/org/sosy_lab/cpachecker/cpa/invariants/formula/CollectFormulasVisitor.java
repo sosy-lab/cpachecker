@@ -15,12 +15,14 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 /**
- * Instances of this class are visitors that are used to collect (sub)formulas
- * that match a given predicate.
+ * Instances of this class are visitors that are used to collect (sub)formulas that match a given
+ * predicate.
  *
  * @param <T> the type of the constants used in the formulas.
  */
-public class CollectFormulasVisitor<T> implements NumeralFormulaVisitor<T, Set<NumeralFormula<T>>>, BooleanFormulaVisitor<T, Set<NumeralFormula<T>>> {
+public class CollectFormulasVisitor<T>
+    implements NumeralFormulaVisitor<T, Set<NumeralFormula<T>>>,
+        BooleanFormulaVisitor<T, Set<NumeralFormula<T>>> {
 
   private final Predicate<? super NumeralFormula<T>> condition;
 
@@ -30,7 +32,8 @@ public class CollectFormulasVisitor<T> implements NumeralFormulaVisitor<T, Set<N
 
   @Override
   public Set<NumeralFormula<T>> visit(Add<T> pAdd) {
-    Set<NumeralFormula<T>> result = concat(pAdd.getSummand1().accept(this), pAdd.getSummand2().accept(this));
+    Set<NumeralFormula<T>> result =
+        concat(pAdd.getSummand1().accept(this), pAdd.getSummand2().accept(this));
     if (condition.apply(pAdd)) {
       result = add(result, pAdd);
     }
@@ -39,7 +42,8 @@ public class CollectFormulasVisitor<T> implements NumeralFormulaVisitor<T, Set<N
 
   @Override
   public Set<NumeralFormula<T>> visit(BinaryAnd<T> pAnd) {
-    Set<NumeralFormula<T>> result = concat(pAnd.getOperand1().accept(this), pAnd.getOperand2().accept(this));
+    Set<NumeralFormula<T>> result =
+        concat(pAnd.getOperand1().accept(this), pAnd.getOperand2().accept(this));
     if (condition.apply(pAnd)) {
       result = add(result, pAnd);
     }
@@ -57,7 +61,8 @@ public class CollectFormulasVisitor<T> implements NumeralFormulaVisitor<T, Set<N
 
   @Override
   public Set<NumeralFormula<T>> visit(BinaryOr<T> pOr) {
-    Set<NumeralFormula<T>> result = concat(pOr.getOperand1().accept(this), pOr.getOperand2().accept(this));
+    Set<NumeralFormula<T>> result =
+        concat(pOr.getOperand1().accept(this), pOr.getOperand2().accept(this));
     if (condition.apply(pOr)) {
       result = add(result, pOr);
     }
@@ -66,7 +71,8 @@ public class CollectFormulasVisitor<T> implements NumeralFormulaVisitor<T, Set<N
 
   @Override
   public Set<NumeralFormula<T>> visit(BinaryXor<T> pXor) {
-    Set<NumeralFormula<T>> result = concat(pXor.getOperand1().accept(this), pXor.getOperand2().accept(this));
+    Set<NumeralFormula<T>> result =
+        concat(pXor.getOperand1().accept(this), pXor.getOperand2().accept(this));
     if (condition.apply(pXor)) {
       result = add(result, pXor);
     }
@@ -83,7 +89,8 @@ public class CollectFormulasVisitor<T> implements NumeralFormulaVisitor<T, Set<N
 
   @Override
   public Set<NumeralFormula<T>> visit(Divide<T> pDivide) {
-    Set<NumeralFormula<T>> result = concat(pDivide.getNumerator().accept(this), pDivide.getDenominator().accept(this));
+    Set<NumeralFormula<T>> result =
+        concat(pDivide.getNumerator().accept(this), pDivide.getDenominator().accept(this));
     if (condition.apply(pDivide)) {
       result = add(result, pDivide);
     }
@@ -121,7 +128,8 @@ public class CollectFormulasVisitor<T> implements NumeralFormulaVisitor<T, Set<N
 
   @Override
   public Set<NumeralFormula<T>> visit(Modulo<T> pModulo) {
-    Set<NumeralFormula<T>> result = concat(pModulo.getNumerator().accept(this), pModulo.getDenominator().accept(this));
+    Set<NumeralFormula<T>> result =
+        concat(pModulo.getNumerator().accept(this), pModulo.getDenominator().accept(this));
     if (condition.apply(pModulo)) {
       result = add(result, pModulo);
     }
@@ -130,7 +138,8 @@ public class CollectFormulasVisitor<T> implements NumeralFormulaVisitor<T, Set<N
 
   @Override
   public Set<NumeralFormula<T>> visit(Multiply<T> pMultiply) {
-    Set<NumeralFormula<T>> result = concat(pMultiply.getFactor1().accept(this), pMultiply.getFactor2().accept(this));
+    Set<NumeralFormula<T>> result =
+        concat(pMultiply.getFactor1().accept(this), pMultiply.getFactor2().accept(this));
     if (condition.apply(pMultiply)) {
       result = add(result, pMultiply);
     }
@@ -139,7 +148,8 @@ public class CollectFormulasVisitor<T> implements NumeralFormulaVisitor<T, Set<N
 
   @Override
   public Set<NumeralFormula<T>> visit(ShiftLeft<T> pShiftLeft) {
-    Set<NumeralFormula<T>> result = concat(pShiftLeft.getShifted().accept(this), pShiftLeft.getShiftDistance().accept(this));
+    Set<NumeralFormula<T>> result =
+        concat(pShiftLeft.getShifted().accept(this), pShiftLeft.getShiftDistance().accept(this));
     if (condition.apply(pShiftLeft)) {
       result = add(result, pShiftLeft);
     }
@@ -148,7 +158,8 @@ public class CollectFormulasVisitor<T> implements NumeralFormulaVisitor<T, Set<N
 
   @Override
   public Set<NumeralFormula<T>> visit(ShiftRight<T> pShiftRight) {
-    Set<NumeralFormula<T>> result = concat(pShiftRight.getShifted().accept(this), pShiftRight.getShiftDistance().accept(this));
+    Set<NumeralFormula<T>> result =
+        concat(pShiftRight.getShifted().accept(this), pShiftRight.getShiftDistance().accept(this));
     if (condition.apply(pShiftRight)) {
       result = add(result, pShiftRight);
     }
@@ -157,7 +168,8 @@ public class CollectFormulasVisitor<T> implements NumeralFormulaVisitor<T, Set<N
 
   @Override
   public Set<NumeralFormula<T>> visit(Union<T> pUnion) {
-    Set<NumeralFormula<T>> result = concat(pUnion.getOperand1().accept(this), pUnion.getOperand2().accept(this));
+    Set<NumeralFormula<T>> result =
+        concat(pUnion.getOperand1().accept(this), pUnion.getOperand2().accept(this));
     if (condition.apply(pUnion)) {
       result = add(result, pUnion);
     }
@@ -188,8 +200,7 @@ public class CollectFormulasVisitor<T> implements NumeralFormulaVisitor<T, Set<N
         pIfThenElse.getCondition().accept(this),
         concat(
             pIfThenElse.getPositiveCase().accept(this),
-            pIfThenElse.getNegativeCase().accept(this))
-        );
+            pIfThenElse.getNegativeCase().accept(this)));
   }
 
   @Override
@@ -206,7 +217,6 @@ public class CollectFormulasVisitor<T> implements NumeralFormulaVisitor<T, Set<N
    *
    * @param a the first set.
    * @param b the second set.
-   *
    * @return the concatenation of the given sets.
    */
   private static <T> Set<T> concat(Set<T> a, Set<T> b) {
@@ -254,5 +264,4 @@ public class CollectFormulasVisitor<T> implements NumeralFormulaVisitor<T, Set<N
     a.addAll(b);
     return a;
   }
-
 }

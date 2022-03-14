@@ -28,5 +28,4 @@ public class SingletonCPAFactory extends AbstractCPAFactory {
   public ConfigurableProgramAnalysis createInstance() {
     return instance;
   }
-
 }

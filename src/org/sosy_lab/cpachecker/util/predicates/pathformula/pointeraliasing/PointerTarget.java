@@ -16,10 +16,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 @javax.annotation.concurrent.Immutable // cannot prove deep immutability
 public final class PointerTarget implements Serializable {
 
-  /**
-   * This constructor is for fields of nested structures and arrays
-   */
-  PointerTarget(String base, @Nullable CType containerType, long properOffset, long containerOffset) {
+  /** This constructor is for fields of nested structures and arrays */
+  PointerTarget(
+      String base, @Nullable CType containerType, long properOffset, long containerOffset) {
     this.base = base;
     this.containerType = containerType;
     this.properOffset = properOffset;
@@ -47,8 +46,7 @@ public final class PointerTarget implements Serializable {
     return containerType == null;
   }
 
-  @Nullable
-  CType getContainerType() {
+  @Nullable CType getContainerType() {
     return containerType;
   }
 
@@ -65,12 +63,13 @@ public final class PointerTarget implements Serializable {
       return false;
     } else {
       final PointerTarget o = (PointerTarget) other;
-      return properOffset == o.properOffset &&
-             containerOffset == o.containerOffset &&
-             base.equals(o.base) &&
-             (containerType != null ?
-                o.containerType != null && containerType.getCanonicalType().equals(o.containerType.getCanonicalType()) :
-                o.containerType == null);
+      return properOffset == o.properOffset
+          && containerOffset == o.containerOffset
+          && base.equals(o.base)
+          && (containerType != null
+              ? o.containerType != null
+                  && containerType.getCanonicalType().equals(o.containerType.getCanonicalType())
+              : o.containerType == null);
     }
   }
 
@@ -81,7 +80,9 @@ public final class PointerTarget implements Serializable {
 
   @Override
   public String toString() {
-    return String.format("(Base: %s, type: %s, prop. offset: %d, cont. offset: %d)", base, containerType, properOffset, containerOffset);
+    return String.format(
+        "(Base: %s, type: %s, prop. offset: %d, cont. offset: %d)",
+        base, containerType, properOffset, containerOffset);
   }
 
   final String base;

@@ -17,22 +17,25 @@ public class CFunctionSummaryEdge extends FunctionSummaryEdge implements CCfaEdg
 
   private static final long serialVersionUID = -2005621000523551217L;
 
-  public CFunctionSummaryEdge(String pRawStatement, FileLocation pFileLocation,
-      CFANode pPredecessor, CFANode pSuccessor, CFunctionCall pExpression,
+  public CFunctionSummaryEdge(
+      String pRawStatement,
+      FileLocation pFileLocation,
+      CFANode pPredecessor,
+      CFANode pSuccessor,
+      CFunctionCall pExpression,
       CFunctionEntryNode pFunctionEntry) {
 
-    super(pRawStatement, pFileLocation, pPredecessor, pSuccessor, pExpression,
-        pFunctionEntry);
+    super(pRawStatement, pFileLocation, pPredecessor, pSuccessor, pExpression, pFunctionEntry);
   }
 
   @Override
   public CFunctionCall getExpression() {
-    return (CFunctionCall)super.getExpression();
+    return (CFunctionCall) super.getExpression();
   }
 
   @Override
   public CFunctionEntryNode getFunctionEntry() {
-    return (CFunctionEntryNode)super.getFunctionEntry();
+    return (CFunctionEntryNode) super.getFunctionEntry();
   }
 
   @Override

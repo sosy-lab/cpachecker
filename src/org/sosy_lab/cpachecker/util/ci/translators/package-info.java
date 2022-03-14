@@ -7,7 +7,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Translates abstract states into SMT formulae, the format used to describe
- * requirements (pre & postconditions for custom instructions
+ * Translates abstract states into SMT formulae, the format used to describe requirements (pre &
+ * postconditions for custom instructions
  */
 package org.sosy_lab.cpachecker.util.ci.translators;

@@ -12,7 +12,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 
 enum EmptyAbstractionCandidate implements SMGAbstractionCandidate {
-
   INSTANCE;
 
   @Override

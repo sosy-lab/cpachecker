@@ -8,10 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.andersen.util;
 
-
 /**
- * This class models a ComplexConstraint in pointer analysis. This constraint has the
- * structure <code>*a \subseteq b</code>, or <code>a \subseteq *b</code>.
+ * This class models a ComplexConstraint in pointer analysis. This constraint has the structure
+ * <code>*a \subseteq b</code>, or <code>a \subseteq *b</code>.
  */
 public class ComplexConstraint extends Constraint {
 
@@ -23,7 +22,7 @@ public class ComplexConstraint extends Constraint {
    * @param subVar Indentifies the only element of the subset in this Constraint.
    * @param superVar Indentifies the superset variable in this Constraint.
    * @param isSubDerefed <code>true</code> if the subset is dereferenced, <code>false</code> if the
-   *      superset is dereferenced.
+   *     superset is dereferenced.
    */
   public ComplexConstraint(String subVar, String superVar, boolean isSubDerefed) {
     super(subVar, superVar);
@@ -35,8 +34,8 @@ public class ComplexConstraint extends Constraint {
    * Returns if the subset in this complex constraints is dereferenced. If not, the superset is
    * dereferenced.
    *
-   * @return <code>true</code> if the subset is dereferenced, <code>false</code> if the
-   *      superset is dereferenced.
+   * @return <code>true</code> if the subset is dereferenced, <code>false</code> if the superset is
+   *     dereferenced.
    */
   public boolean isSubDerefed() {
     return isSubDerefed;
@@ -45,7 +44,7 @@ public class ComplexConstraint extends Constraint {
   @Override
   public boolean equals(Object other) {
 
-    if (super.equals(other) && this.isSubDerefed == ((ComplexConstraint) other).isSubDerefed) {
+    if (super.equals(other) && isSubDerefed == ((ComplexConstraint) other).isSubDerefed) {
       return true;
     } else {
       return false;

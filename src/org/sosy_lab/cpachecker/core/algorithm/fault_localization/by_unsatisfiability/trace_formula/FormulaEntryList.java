@@ -82,13 +82,13 @@ public class FormulaEntryList extends ForwardingList<FormulaEntry> {
   }
 
   public ImmutableList<CFAEdge> toEdgeList() {
-    return toTStream(entry -> entry.selector).map(Selector::correspondingEdge).collect(ImmutableList.toImmutableList());
+    return toTStream(entry -> entry.selector)
+        .map(Selector::correspondingEdge)
+        .collect(ImmutableList.toImmutableList());
   }
 
   private <T> Stream<T> toTStream(Function<FormulaEntry, T> mapping) {
-    return entries.stream()
-        .map(mapping)
-        .filter(Objects::nonNull);
+    return entries.stream().map(mapping).filter(Objects::nonNull);
   }
 
   @Override
@@ -103,7 +103,7 @@ public class FormulaEntryList extends ForwardingList<FormulaEntry> {
     private @Nullable BooleanFormula atom;
     private final int atomId;
 
-    public FormulaEntry(int pAtomId,  SSAMap pSSAMap, Selector pSelector, BooleanFormula pAtom) {
+    public FormulaEntry(int pAtomId, SSAMap pSSAMap, Selector pSelector, BooleanFormula pAtom) {
       Preconditions.checkNotNull(pSSAMap);
       map = pSSAMap;
       selector = pSelector;
