@@ -15,7 +15,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.TreeMultimap;
 import java.util.List;
 import java.util.NavigableMap;
-import java.util.Optional;
 import java.util.TreeMap;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -128,11 +127,10 @@ final class SliceToCfaConversion {
   private static BiFunction<CFANode, CAstNode, @Nullable CAstNode>
       createAstNodeSubstitutionForCfaNodes(
           Slice pSlice,
-          Function<AFunctionDeclaration, Optional<CVariableDeclaration>>
-              pFunctionToReturnVariable) {
+          Function<AFunctionDeclaration, @Nullable FunctionEntryNode> pFunctionToEntryNode) {
 
     var transformingVisitor =
-        new RelevantFunctionDeclarationTransformingVisitor(pSlice, pFunctionToReturnVariable);
+        new RelevantFunctionDeclarationTransformingVisitor(pSlice, pFunctionToEntryNode);
 
     return (cfaNode, astNode) -> {
       CFunctionDeclaration functionDeclaration = (CFunctionDeclaration) cfaNode.getFunction();
@@ -163,25 +161,14 @@ final class SliceToCfaConversion {
    */
   private static BiFunction<CFAEdge, CAstNode, CAstNode> createAstNodeSubstitutionForCfaEdges(
       Slice pSlice,
-      Function<AFunctionDeclaration, Optional<CVariableDeclaration>> pFunctionToReturnVariable) {
+      Function<AFunctionDeclaration, @Nullable FunctionEntryNode> pFunctionToEntryNode) {
 
     return (edge, astNode) -> {
       var transformingVisitor =
-          new RelevantCAstNodeTransformingVisitor(pSlice, pFunctionToReturnVariable, edge);
+          new RelevantCAstNodeTransformingVisitor(pSlice, pFunctionToEntryNode, edge);
 
       return astNode.accept(transformingVisitor);
     };
-  }
-
-  /**
-   * Returns the optional return variable (void functions don't have return variables) for the
-   * specified function.
-   */
-  private static Optional<CVariableDeclaration> getReturnVariable(FunctionEntryNode pEntryNode) {
-
-    return pEntryNode
-        .getReturnVariable()
-        .map(returnVariable -> (CVariableDeclaration) returnVariable);
   }
 
   /**
@@ -255,11 +242,11 @@ final class SliceToCfaConversion {
             .collect(ImmutableList.toImmutableList());
     irrelevantNodes.forEach(graph::removeNode);
 
-    ImmutableMap<AFunctionDeclaration, Optional<CVariableDeclaration>> functionToReturnVariableMap =
+    ImmutableMap<AFunctionDeclaration, FunctionEntryNode> functionToEntryNodeMap =
         pSlice.getOriginalCfa().getAllFunctionHeads().stream()
             .collect(
                 ImmutableMap.toImmutableMap(
-                    entryNode -> entryNode.getFunction(), SliceToCfaConversion::getReturnVariable));
+                    entryNode -> entryNode.getFunction(), entryNode -> entryNode));
 
     CFA sliceCfa =
         CCfaTransformer.createCfa(
@@ -267,8 +254,8 @@ final class SliceToCfaConversion {
             pLogger,
             pSlice.getOriginalCfa(),
             graph,
-            createAstNodeSubstitutionForCfaEdges(pSlice, functionToReturnVariableMap::get),
-            createAstNodeSubstitutionForCfaNodes(pSlice, functionToReturnVariableMap::get));
+            createAstNodeSubstitutionForCfaEdges(pSlice, functionToEntryNodeMap::get),
+            createAstNodeSubstitutionForCfaNodes(pSlice, functionToEntryNodeMap::get));
 
     return createSimplifiedCfa(sliceCfa);
   }
@@ -281,19 +268,25 @@ final class SliceToCfaConversion {
       extends AbstractTransformingCAstNodeVisitor<NoException> {
 
     private final Slice slice;
-    private final Function<AFunctionDeclaration, Optional<CVariableDeclaration>>
-        functionToReturnVariable;
+    private final Function<AFunctionDeclaration, @Nullable FunctionEntryNode> functionToEntryNode;
 
     private RelevantFunctionDeclarationTransformingVisitor(
         Slice pSlice,
-        Function<AFunctionDeclaration, Optional<CVariableDeclaration>> pFunctionToReturnVariable) {
+        Function<AFunctionDeclaration, @Nullable FunctionEntryNode> pFunctionToEntryNode) {
 
       slice = pSlice;
-      functionToReturnVariable = pFunctionToReturnVariable;
+      functionToEntryNode = pFunctionToEntryNode;
     }
 
     @Override
     public CAstNode visit(CFunctionDeclaration pFunctionDeclaration) {
+
+      @Nullable FunctionEntryNode entryNode = functionToEntryNode.apply(pFunctionDeclaration);
+      // If a function lacks a corresponding function entry node, the function is defined somewhere
+      // else and we cannot change the declaration.
+      if (entryNode == null) {
+        return pFunctionDeclaration;
+      }
 
       ImmutableSet<ASimpleDeclaration> relevantDeclarations = slice.getRelevantDeclarations();
       List<CParameterDeclaration> parameters = pFunctionDeclaration.getParameters();
@@ -304,10 +297,10 @@ final class SliceToCfaConversion {
               .map(parameter -> (CParameterDeclaration) parameter.accept(this))
               .collect(ImmutableList.toImmutableList());
 
-      Optional<CVariableDeclaration> returnVariable =
-          functionToReturnVariable.apply(pFunctionDeclaration);
       CType relevantReturnType =
-          returnVariable
+          entryNode
+              .getReturnVariable()
+              .map(returnVariable -> (CVariableDeclaration) returnVariable)
               .filter(relevantDeclarations::contains)
               .map(variable -> variable.getType())
               .orElse(CVoidType.VOID);
@@ -346,9 +339,9 @@ final class SliceToCfaConversion {
 
     private RelevantCAstNodeTransformingVisitor(
         Slice pSlice,
-        Function<AFunctionDeclaration, Optional<CVariableDeclaration>> pFunctionToReturnVariable,
+        Function<AFunctionDeclaration, @Nullable FunctionEntryNode> pFunctionToEntryNode,
         CFAEdge pEdge) {
-      super(pSlice, pFunctionToReturnVariable);
+      super(pSlice, pFunctionToEntryNode);
 
       slice = pSlice;
       edge = pEdge;
