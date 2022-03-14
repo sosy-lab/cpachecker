@@ -32,14 +32,14 @@ public class Converter {
   protected final LogManager logger;
 
   public Converter(LogManager logger, CFA cfa) {
-    this.symbolEncoding = new SymbolEncoding(cfa);
+    symbolEncoding = new SymbolEncoding(cfa);
     this.logger = logger;
   }
 
   @VisibleForTesting
   public Converter() {
-    this.symbolEncoding = null;
-    this.logger = null;
+    symbolEncoding = null;
+    logger = null;
   }
 
   /**
@@ -47,19 +47,22 @@ public class Converter {
    */
   public String convertFunctionDeclaration(String symbol, Type<String> pFt)
       throws UnknownFormulaSymbolException {
-    return format("%s (%s) %s",
-      symbol, Joiner.on(' ').join(pFt.getParameterTypes()), pFt.getReturnType());
+    return format(
+        "%s (%s) %s", symbol, Joiner.on(' ').join(pFt.getParameterTypes()), pFt.getReturnType());
   }
 
   /**
    * @throws UnknownFormulaSymbolException may be thrown in subclasses
    */
-  public String convertFunctionDefinition(String symbol,
-      Type<String> type, Pair<String, Type<FormulaType<?>>> initializerTerm)
-          throws UnknownFormulaSymbolException {
-    return format("%s (%s) %s %s",
-        symbol, Joiner.on(' ').join(type.getParameterTypes()),
-        type.getReturnType(), initializerTerm.getFirst());
+  public String convertFunctionDefinition(
+      String symbol, Type<String> type, Pair<String, Type<FormulaType<?>>> initializerTerm)
+      throws UnknownFormulaSymbolException {
+    return format(
+        "%s (%s) %s %s",
+        symbol,
+        Joiner.on(' ').join(type.getParameterTypes()),
+        type.getReturnType(),
+        initializerTerm.getFirst());
   }
 
   public Pair<String, Type<FormulaType<?>>> convertNumeral(String num) {
@@ -79,7 +82,7 @@ public class Converter {
    */
   public Pair<String, Type<FormulaType<?>>> convertTerm(
       Pair<String, Type<FormulaType<?>>> op, List<Pair<String, Type<FormulaType<?>>>> terms)
-          throws UnknownFormulaSymbolException {
+      throws UnknownFormulaSymbolException {
     if (terms.isEmpty()) {
       return wrap("(" + op.getFirst() + ")"); // should not happen?
     } else {
@@ -94,24 +97,32 @@ public class Converter {
 
   private static Pair<String, Type<FormulaType<?>>> wrap(String s) {
     // return dummy type with size 0
-    return Pair.of(s,  new Type<FormulaType<?>>(FormulaType.getBitvectorTypeWithSize(0)));
+    return Pair.of(s, new Type<FormulaType<?>>(FormulaType.getBitvectorTypeWithSize(0)));
   }
 
-  public enum PrecisionConverter {DISABLE, INT2BV, BV2INT}
+  public enum PrecisionConverter {
+    DISABLE,
+    INT2BV,
+    BV2INT
+  }
 
-  public static Converter getConverter(PrecisionConverter encodePredicates, CFA cfa, LogManager logger) {
+  public static Converter getConverter(
+      PrecisionConverter encodePredicates, CFA cfa, LogManager logger) {
     switch (encodePredicates) {
-    case INT2BV: {
-      return new BVConverter(cfa, logger);
-    }
-    case BV2INT: {
-      return new IntConverter(cfa, logger);
-    }
-    case DISABLE: {
-      return null;
-    }
-    default:
-      throw new AssertionError("invalid value for option");
+      case INT2BV:
+        {
+          return new BVConverter(cfa, logger);
+        }
+      case BV2INT:
+        {
+          return new IntConverter(cfa, logger);
+        }
+      case DISABLE:
+        {
+          return null;
+        }
+      default:
+        throw new AssertionError("invalid value for option");
     }
   }
 }

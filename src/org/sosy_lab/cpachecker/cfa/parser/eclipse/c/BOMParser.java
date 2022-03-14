@@ -110,7 +110,7 @@ public class BOMParser {
     if (isPureAscii(codeBeginning)) {
       return ByteOrderMark.NO_BOM;
     }
-    for(ByteOrderMark bom : ByteOrderMark.values()) {
+    for (ByteOrderMark bom : ByteOrderMark.values()) {
       if (codeBeginning.equals(bom.sequence)) {
         return bom;
       }
@@ -126,5 +126,4 @@ public class BOMParser {
     }
     return true;
   }
-
 }

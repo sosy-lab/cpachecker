@@ -50,7 +50,11 @@ class OctagonDomain implements AbstractDomain {
       return false;
     } else {
       assert result == 3;
-      boolean included = octState1.getOctagon().getManager().isIncludedIn(octState1.getOctagon(), octState2.getOctagon());
+      boolean included =
+          octState1
+              .getOctagon()
+              .getManager()
+              .isIncludedIn(octState1.getOctagon(), octState2.getOctagon());
       if (included) {
         Set<OctagonState> s;
         if (covers.containsKey(octState2)) {
@@ -68,20 +72,27 @@ class OctagonDomain implements AbstractDomain {
 
   @Override
   public AbstractState join(AbstractState successor, AbstractState reached) {
-    Pair<OctagonState, OctagonState> shrinkedStates = getShrinkedStates((OctagonState)successor, (OctagonState)reached);
-    Octagon newOctagon = shrinkedStates.getFirst().getOctagon().getManager()
-                           .union(shrinkedStates.getFirst().getOctagon(), shrinkedStates.getSecond().getOctagon());
+    Pair<OctagonState, OctagonState> shrinkedStates =
+        getShrinkedStates((OctagonState) successor, (OctagonState) reached);
+    Octagon newOctagon =
+        shrinkedStates
+            .getFirst()
+            .getOctagon()
+            .getManager()
+            .union(shrinkedStates.getFirst().getOctagon(), shrinkedStates.getSecond().getOctagon());
 
-    //TODO this should not be necessary however it occurs that a widened state is bottom
+    // TODO this should not be necessary however it occurs that a widened state is bottom
     if (shrinkedStates.getFirst().getOctagon().getManager().isEmpty(newOctagon)) {
       throw new AssertionError("bottom state occured where it should not be");
     }
 
-    OctagonState newState = new OctagonState(newOctagon,
-                                     shrinkedStates.getFirst().getVariableToIndexMap(),
-                                     shrinkedStates.getFirst().getVariableToTypeMap(),
-                                     logger);
-    if (((OctagonState)reached).isLoopHead()) {
+    OctagonState newState =
+        new OctagonState(
+            newOctagon,
+            shrinkedStates.getFirst().getVariableToIndexMap(),
+            shrinkedStates.getFirst().getVariableToTypeMap(),
+            logger);
+    if (((OctagonState) reached).isLoopHead()) {
       newState = newState.asLoopHead();
     }
     if (newState.equals(reached)) {
@@ -98,23 +109,34 @@ class OctagonDomain implements AbstractDomain {
     successorOct = shrinkedStates.getFirst();
     reachedOct = shrinkedStates.getSecond();
 
-    Octagon newOctagon = reachedOct.getOctagon().getManager()
-                            .widening(reachedOct.getOctagon(), successorOct.getOctagon());
+    Octagon newOctagon =
+        reachedOct
+            .getOctagon()
+            .getManager()
+            .widening(reachedOct.getOctagon(), successorOct.getOctagon());
 
-    //TODO this should not be necessary however it occurs that a widened state is bottom
+    // TODO this should not be necessary however it occurs that a widened state is bottom
     if (reachedOct.getOctagon().getManager().isEmpty(newOctagon)) {
-      newOctagon = reachedOct.getOctagon().getManager()
-                        .union(reachedOct.getOctagon(), successorOct.getOctagon());
-      logger.log(Level.WARNING, "bottom state occured where it should not be, using union instead of widening as a fallback");
+      newOctagon =
+          reachedOct
+              .getOctagon()
+              .getManager()
+              .union(reachedOct.getOctagon(), successorOct.getOctagon());
+      logger.log(
+          Level.WARNING,
+          "bottom state occured where it should not be, using union instead of widening as a"
+              + " fallback");
       if (reachedOct.getOctagon().getManager().isEmpty(newOctagon)) {
-         throw new AssertionError("bottom state occured where it should not be");
+        throw new AssertionError("bottom state occured where it should not be");
       }
     }
 
-    OctagonState newState = new OctagonState(newOctagon,
-                                     successorOct.getVariableToIndexMap(),
-                                     successorOct.getVariableToTypeMap(),
-                                     logger);
+    OctagonState newState =
+        new OctagonState(
+            newOctagon,
+            successorOct.getVariableToIndexMap(),
+            successorOct.getVariableToTypeMap(),
+            logger);
     if (reachedOct.isLoopHead()) {
       newState = newState.asLoopHead();
     }
@@ -127,7 +149,8 @@ class OctagonDomain implements AbstractDomain {
     }
   }
 
-  private Pair<OctagonState, OctagonState> getShrinkedStates(OctagonState succ, OctagonState reached) {
+  private Pair<OctagonState, OctagonState> getShrinkedStates(
+      OctagonState succ, OctagonState reached) {
     if (succ.sizeOfVariables() > reached.sizeOfVariables()) {
       Pair<OctagonState, OctagonState> tmp = succ.shrinkToFittingSize(reached);
       succ = tmp.getFirst();

@@ -207,7 +207,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
           Interval toMerge = (Interval) summarizedList.remove(summarizedList.size() - 3);
           Interval lastInterval = (Interval) summarizedList.remove(summarizedList.size() - 1);
           Interval merged = Interval.merge(toMerge, lastInterval, bmgr);
-          summarizedList.add(summarizedList.size()-1, merged);
+          summarizedList.add(summarizedList.size() - 1, merged);
         } else {
           summarizedList.add(abstractTraceElement);
           lastSelector = (Selector) abstractTraceElement;
@@ -241,7 +241,8 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
         faults.add(singleton);
       } else if (errorInvariant instanceof Interval) {
         Interval curr = (Interval) errorInvariant;
-        // curr.invariant = formulaContext.getSolver().getFormulaManager().uninstantiate(curr.invariant);
+        // curr.invariant =
+        // formulaContext.getSolver().getFormulaManager().uninstantiate(curr.invariant);
         Selector next;
         if (i + 1 < abstractTrace.size()) {
           next = (Selector) abstractTrace.get(i + 1);
@@ -273,8 +274,12 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
         "tfresult=",
         FluentIterable.from(abstractTrace)
             .filter(tr -> !(tr instanceof Interval))
-            .transform(fc -> ((Selector) fc).correspondingEdge().getFileLocation()
-                .getStartingLineInOrigin()));
+            .transform(
+                fc ->
+                    ((Selector) fc)
+                        .correspondingEdge()
+                        .getFileLocation()
+                        .getStartingLineInOrigin()));
 
     return faults;
   }
@@ -393,10 +398,12 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
       invariant = pInvariant;
     }
 
-    public static Interval merge(final Interval pFirst, final Interval pSecond, final BooleanFormulaManager pBmgr) {
-        int newStart = Integer.min(pFirst.start, pSecond.start);
-        int newEnd = Integer.max(pFirst.end, pSecond.end);
-        return new Interval(newStart, newEnd, pBmgr.and(pFirst.getInvariant(), pSecond.getInvariant()));
+    public static Interval merge(
+        final Interval pFirst, final Interval pSecond, final BooleanFormulaManager pBmgr) {
+      int newStart = Integer.min(pFirst.start, pSecond.start);
+      int newEnd = Integer.max(pFirst.end, pSecond.end);
+      return new Interval(
+          newStart, newEnd, pBmgr.and(pFirst.getInvariant(), pSecond.getInvariant()));
     }
 
     public int getEnd() {

@@ -15,20 +15,20 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 
-
 public class ThreadReducer implements Reducer {
 
   public ThreadReducer() {}
 
   @Override
-  public AbstractState getVariableReducedState(AbstractState pExpandedState, Block pContext,
-      CFANode pCallNode) throws InterruptedException {
+  public AbstractState getVariableReducedState(
+      AbstractState pExpandedState, Block pContext, CFANode pCallNode) throws InterruptedException {
     return pExpandedState;
   }
 
   @Override
-  public AbstractState getVariableExpandedState(AbstractState pRootState, Block pReducedContext,
-      AbstractState pReducedState) throws InterruptedException {
+  public AbstractState getVariableExpandedState(
+      AbstractState pRootState, Block pReducedContext, AbstractState pReducedState)
+      throws InterruptedException {
     return pReducedState;
   }
 
@@ -38,8 +38,8 @@ public class ThreadReducer implements Reducer {
   }
 
   @Override
-  public Precision getVariableExpandedPrecision(Precision pRootPrecision, Block pRootContext,
-      Precision pReducedPrecision) {
+  public Precision getVariableExpandedPrecision(
+      Precision pRootPrecision, Block pRootContext, Precision pReducedPrecision) {
     return pReducedPrecision;
   }
 
@@ -54,8 +54,11 @@ public class ThreadReducer implements Reducer {
   }
 
   @Override
-  public AbstractState rebuildStateAfterFunctionCall(AbstractState pRootState,
-      AbstractState pEntryState, AbstractState pExpandedState, FunctionExitNode pExitLocation) {
+  public AbstractState rebuildStateAfterFunctionCall(
+      AbstractState pRootState,
+      AbstractState pEntryState,
+      AbstractState pExpandedState,
+      FunctionExitNode pExitLocation) {
     return pExpandedState;
   }
 }

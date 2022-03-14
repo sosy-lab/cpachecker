@@ -12,9 +12,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.Binder.Quantifier;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
-/**
- * Visitor that replaces all identifiers captured by the given binders with bound identifiers.
- */
+/** Visitor that replaces all identifiers captured by the given binders with bound identifiers. */
 public class BinderApplicationVisitor
     implements ACSLTermVisitor<ACSLTerm, NoException>,
         ACSLPredicateVisitor<ACSLPredicate, NoException> {

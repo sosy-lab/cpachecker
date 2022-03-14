@@ -44,4 +44,3 @@ public abstract class SMGKnownValue {
     return value.toString();
   }
 }
-

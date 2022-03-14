@@ -13,16 +13,19 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-
-public  class FunctionSummaryEdge extends AbstractCFAEdge {
+public class FunctionSummaryEdge extends AbstractCFAEdge {
 
   private static final long serialVersionUID = -99016347135694310L;
   private final AFunctionCall expression;
   private final FunctionEntryNode functionEntry;
 
-  protected FunctionSummaryEdge(String pRawStatement, FileLocation pFileLocation,
-      CFANode pPredecessor, CFANode pSuccessor,
-      AFunctionCall pExpression, FunctionEntryNode pFunctionEntry) {
+  protected FunctionSummaryEdge(
+      String pRawStatement,
+      FileLocation pFileLocation,
+      CFANode pPredecessor,
+      CFANode pSuccessor,
+      AFunctionCall pExpression,
+      FunctionEntryNode pFunctionEntry) {
     super(pRawStatement, pFileLocation, pPredecessor, pSuccessor);
     expression = pExpression;
     functionEntry = checkNotNull(pFunctionEntry);
@@ -45,5 +48,4 @@ public  class FunctionSummaryEdge extends AbstractCFAEdge {
   public String getCode() {
     return expression.toASTString();
   }
-
 }

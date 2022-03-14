@@ -11,12 +11,10 @@ package org.sosy_lab.cpachecker.cpa.alwaystop;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 enum AlwaysTopState implements AbstractState {
-
   INSTANCE;
 
   @Override
   public String toString() {
     return "TRUE";
   }
-
 }

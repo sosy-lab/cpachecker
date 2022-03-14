@@ -39,10 +39,9 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /**
- * This class stores a mapping between abstract regions and the corresponding
- * symbolic formula. It is therefore the bridge between the abstract and the
- * symbolic "worlds".
- * It is also responsible for the creation of {@link AbstractionPredicate}s.
+ * This class stores a mapping between abstract regions and the corresponding symbolic formula. It
+ * is therefore the bridge between the abstract and the symbolic "worlds". It is also responsible
+ * for the creation of {@link AbstractionPredicate}s.
  */
 @Options(prefix = "cpa.predicate")
 public final class AbstractionManager {
@@ -80,18 +79,24 @@ public final class AbstractionManager {
   private final Map<BooleanFormula, AbstractionPredicate> atomToPredicate = new HashMap<>();
 
   // Properties for BDD variable ordering:
-  @Option(secure = true, name = "abs.predicateOrdering.method",
-      description = "Predicate ordering")
+  @Option(secure = true, name = "abs.predicateOrdering.method", description = "Predicate ordering")
   private PredicateOrderingStrategy varOrderMethod = PredicateOrderingStrategy.CHRONOLOGICAL;
 
   private final Map<Region, BooleanFormula> toConcreteCache;
 
-  @SuppressFBWarnings(value = "VO_VOLATILE_INCREMENT",
-      justification = "Class is not thread-safe, but concurrent read access to this variable is needed for the MBean")
+  @SuppressFBWarnings(
+      value = "VO_VOLATILE_INCREMENT",
+      justification =
+          "Class is not thread-safe, but concurrent read access to this variable is needed for the"
+              + " MBean")
   private volatile int numberOfPredicates = 0;
 
-  @Option(secure = true, name = "abs.useCache", description = "use caching of region to formula conversions")
+  @Option(
+      secure = true,
+      name = "abs.useCache",
+      description = "use caching of region to formula conversions")
   private boolean useCache = true;
+
   private BooleanFormulaManagerView bfmgr;
 
   public AbstractionManager(
@@ -117,9 +122,7 @@ public final class AbstractionManager {
     return numberOfPredicates;
   }
 
-  /**
-   * creates a Predicate from the Boolean symbolic variable (var) and the atom that defines it
-   */
+  /** creates a Predicate from the Boolean symbolic variable (var) and the atom that defines it */
   @SuppressWarnings("NonAtomicVolatileUpdate") // no thread-safe anyway
   public AbstractionPredicate makePredicate(BooleanFormula atom) {
     AbstractionPredicate result = atomToPredicate.get(atom);
@@ -137,7 +140,8 @@ public final class AbstractionManager {
               ? ((SymbolicRegionManager) rmgr).createPredicate(atom)
               : rmgr.createPredicate();
 
-      logger.log(Level.FINEST, "Created predicate", absVar, "from variable", symbVar, "and atom", atom);
+      logger.log(
+          Level.FINEST, "Created predicate", absVar, "from variable", symbVar, "and atom", atom);
 
       result = new AbstractionPredicate(absVar, symbVar, atom);
       symbVarToPredicate.put(symbVar, result);
@@ -150,18 +154,14 @@ public final class AbstractionManager {
     return result;
   }
 
-  /**
-   * Reorders the BDD variables.
-   */
+  /** Reorders the BDD variables. */
   public void reorderPredicates() {
     if (varOrderMethod != PredicateOrderingStrategy.CHRONOLOGICAL) {
       rmgr.reorder(verifyNotNull(varOrderMethod.frameworkStrategy));
     }
   }
 
-  /**
-   * creates a Predicate that represents "false"
-   */
+  /** creates a Predicate that represents "false" */
   public AbstractionPredicate makeFalsePredicate() {
     return makePredicate(bfmgr.makeFalse());
   }
@@ -169,29 +169,27 @@ public final class AbstractionManager {
   /**
    * Get predicate corresponding to a variable.
    *
-   * @param var A symbolic formula representing the variable. The same formula has to been passed to makePredicate
-   * earlier.
+   * @param var A symbolic formula representing the variable. The same formula has to been passed to
+   *     makePredicate earlier.
    * @return a Predicate
    */
   public AbstractionPredicate getPredicate(BooleanFormula var) {
     AbstractionPredicate result = symbVarToPredicate.get(var);
     if (result == null) {
       throw new IllegalArgumentException(
-          var
-              + " seems not to be a formula corresponding to a single predicate variable.");
+          var + " seems not to be a formula corresponding to a single predicate variable.");
     }
     return result;
   }
 
   /**
-   * Convert a Region (typically a BDD over the AbstractionPredicates)
-   * into a BooleanFormula (an SMT formula).
-   * Each predicate is replaced by its corresponding SMT definition
-   * ({@link AbstractionPredicate#getSymbolicAtom()}).
+   * Convert a Region (typically a BDD over the AbstractionPredicates) into a BooleanFormula (an SMT
+   * formula). Each predicate is replaced by its corresponding SMT definition ({@link
+   * AbstractionPredicate#getSymbolicAtom()}).
    *
-   * The inverse of this method is {@link #convertFormulaToRegion(BooleanFormula)},
-   * except in cases where the predicates in the given regions do not correspond to SMT atoms
-   * but to larger SMT formulas.
+   * <p>The inverse of this method is {@link #convertFormulaToRegion(BooleanFormula)}, except in
+   * cases where the predicates in the given regions do not correspond to SMT atoms but to larger
+   * SMT formulas.
    *
    * @param af A Region.
    * @return An uninstantiated BooleanFormula.
@@ -199,7 +197,7 @@ public final class AbstractionManager {
   public BooleanFormula convertRegionToFormula(Region af) {
     if (rmgr instanceof SymbolicRegionManager) {
       // optimization shortcut
-      return ((SymbolicRegionManager)rmgr).toFormula(af);
+      return ((SymbolicRegionManager) rmgr).toFormula(af);
     }
 
     Map<Region, BooleanFormula> cache;
@@ -294,20 +292,18 @@ public final class AbstractionManager {
    * @param f2 an AbstractFormula
    * @return true if (f1 => f2), false otherwise
    */
-  public boolean entails(Region f1, Region f2) throws SolverException,
-      InterruptedException {
+  public boolean entails(Region f1, Region f2) throws SolverException, InterruptedException {
     return rmgr.entails(f1, f2);
   }
 
   /**
    * Return the set of predicates that occur in a region.
    *
-   * Note: this method currently fails with SymbolicRegionManager,
-   * and it probably cannot really be fixed either, because when using symbolic regions
-   * we do not know what are the predicates (a predicate does not need to be an SMT atom,
-   * it can be larger).
+   * <p>Note: this method currently fails with SymbolicRegionManager, and it probably cannot really
+   * be fixed either, because when using symbolic regions we do not know what are the predicates (a
+   * predicate does not need to be an SMT atom, it can be larger).
    *
-   * Thus better avoid using this method if possible.
+   * <p>Thus better avoid using this method if possible.
    */
   public Set<AbstractionPredicate> extractPredicates(Region af) {
     Set<AbstractionPredicate> vars = new HashSet<>();
@@ -341,13 +337,12 @@ public final class AbstractionManager {
   }
 
   /**
-   * Convert a BooleanFormula (an SMT formula) into a Region (typically a BDD over predicates).
-   * Each atom of the BooleanFormula will be one predicate of the Region.
-   * To allow more control over what is represented by each predicate,
-   * use {@link #makePredicate(BooleanFormula)} and construct the region out of the predicates
-   * using {@link #getRegionCreator()}.
+   * Convert a BooleanFormula (an SMT formula) into a Region (typically a BDD over predicates). Each
+   * atom of the BooleanFormula will be one predicate of the Region. To allow more control over what
+   * is represented by each predicate, use {@link #makePredicate(BooleanFormula)} and construct the
+   * region out of the predicates using {@link #getRegionCreator()}.
    *
-   * The inverse of this function is {@link #convertRegionToFormula(Region)}.
+   * <p>The inverse of this function is {@link #convertRegionToFormula(Region)}.
    *
    * @param pF An uninstantiated BooleanFormula.
    * @return A region that represents the same state space.
@@ -381,13 +376,11 @@ public final class AbstractionManager {
     String getPredicates();
   }
 
-  private class AbstractionPredicatesMBean extends AbstractMBean implements
-      AbstractionPredicatesMXBean {
+  private class AbstractionPredicatesMBean extends AbstractMBean
+      implements AbstractionPredicatesMXBean {
 
     public AbstractionPredicatesMBean() {
-      super(
-          "org.sosy_lab.cpachecker:type=predicate,name=AbstractionPredicates",
-          logger);
+      super("org.sosy_lab.cpachecker:type=predicate,name=AbstractionPredicates", logger);
     }
 
     @Override

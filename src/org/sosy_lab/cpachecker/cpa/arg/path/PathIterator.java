@@ -46,8 +46,8 @@ public abstract class PathIterator {
   protected final ARGPath path;
 
   PathIterator(ARGPath pPath, int pPos) {
-    this.path = pPath;
-    this.pos = pPos;
+    path = pPath;
+    pos = pPos;
   }
 
   /** Check whether there is at least one more state in the path. */

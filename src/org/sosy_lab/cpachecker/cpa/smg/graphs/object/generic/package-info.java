@@ -6,7 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * Package with the classes representing a generic abstraction.
- */
+/** Package with the classes representing a generic abstraction. */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic;

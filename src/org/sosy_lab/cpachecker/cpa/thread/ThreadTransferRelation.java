@@ -41,15 +41,17 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 @Options(prefix = "cpa.thread")
 public class ThreadTransferRelation extends SingleEdgeTransferRelation {
   @Option(
-    secure = true,
-    description = "The case when the same thread is created several times we do not support."
-        + "We may skip or fail in this case.")
+      secure = true,
+      description =
+          "The case when the same thread is created several times we do not support."
+              + "We may skip or fail in this case.")
   private boolean skipTheSameThread = false;
 
   @Option(
-    secure = true,
-    description = "The case when the same thread is created several times we do not support."
-        + "We may try to support it with self-parallelizm.")
+      secure = true,
+      description =
+          "The case when the same thread is created several times we do not support."
+              + "We may try to support it with self-parallelizm.")
   private boolean supportSelfCreation = false;
 
   @Option(secure = true, description = "Simple thread analysis from theory paper")
@@ -63,11 +65,12 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(AbstractState pState,
-      Precision pPrecision, CFAEdge pCfaEdge) throws CPATransferException, InterruptedException {
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+      AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
+      throws CPATransferException, InterruptedException {
 
     threadStatistics.transfer.start();
-    ThreadState tState = (ThreadState)pState;
+    ThreadState tState = (ThreadState) pState;
     ThreadState newState = tState;
 
     try {
@@ -107,9 +110,7 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
     }
   }
 
-  private ThreadState handleFunctionCall(
-      ThreadState state,
-      CFunctionCallEdge pCfaEdge)
+  private ThreadState handleFunctionCall(ThreadState state, CFunctionCallEdge pCfaEdge)
       throws CPATransferException {
 
     ThreadState newState = state;
@@ -141,9 +142,9 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
         tCall.isSelfParallel() ? ThreadStatus.SELF_PARALLEL_THREAD : ThreadStatus.CREATED_THREAD);
   }
 
-  private ThreadState
-      createThread(ThreadState state, CThreadCreateStatement tCall, ThreadStatus pParentThread)
-          throws CPATransferException {
+  private ThreadState createThread(
+      ThreadState state, CThreadCreateStatement tCall, ThreadStatus pParentThread)
+      throws CPATransferException {
     final String pVarName = tCall.getVariableName();
     // Just to info
     final String pFunctionName =

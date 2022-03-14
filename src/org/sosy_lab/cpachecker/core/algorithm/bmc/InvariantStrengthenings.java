@@ -145,8 +145,9 @@ public class InvariantStrengthenings {
 
       Map<BooleanFormula, SymbolicCandiateInvariant> remainingLiterals = new LinkedHashMap<>();
 
-      for (BooleanFormula literal : SymbolicCandiateInvariant.getConjunctionOperands(
-          pFmgr, pInvariant.getPlainFormula(pFmgr), true)) {
+      for (BooleanFormula literal :
+          SymbolicCandiateInvariant.getConjunctionOperands(
+              pFmgr, pInvariant.getPlainFormula(pFmgr), true)) {
         if (!pChosenLiterals.contains(literal)) {
           SymbolicCandiateInvariant symbolicLiteral =
               SymbolicCandiateInvariant.makeSymbolicInvariant(
@@ -209,7 +210,8 @@ public class InvariantStrengthenings {
               remainingLiterals.entrySet().iterator();
           boolean isUnsat = false;
           do {
-            Map.Entry<BooleanFormula, SymbolicCandiateInvariant> remainingLiteral = remainingLiteralIterator.next();
+            Map.Entry<BooleanFormula, SymbolicCandiateInvariant> remainingLiteral =
+                remainingLiteralIterator.next();
             pProver.push(pAssertPredecessor.assertCandidate(remainingLiteral.getValue()));
             isUnsat = pProver.isUnsat();
             pProver.pop(); // Pop the literal
@@ -314,7 +316,8 @@ public class InvariantStrengthenings {
     }
   }
 
-  public static <T extends CandidateInvariant> InvariantStrengthening<T, T> unsatCoreBasedStrengthening() {
+  public static <T extends CandidateInvariant>
+      InvariantStrengthening<T, T> unsatCoreBasedStrengthening() {
     return new InvariantStrengthening<>() {
 
       @SuppressWarnings("unchecked")

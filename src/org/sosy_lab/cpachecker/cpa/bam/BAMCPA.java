@@ -52,9 +52,13 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
   private final BAMDataManager data;
   private final BAMPCCManager bamPccManager;
 
-  @Option(name = "handleRecursiveProcedures", secure = true,
-      description = "BAM allows to analyse recursive procedures. This strongly depends on the underlying CPA. "
-          + "The current support includes only ValueAnalysis and PredicateAnalysis (with tree interpolation enabled).")
+  @Option(
+      name = "handleRecursiveProcedures",
+      secure = true,
+      description =
+          "BAM allows to analyse recursive procedures. This strongly depends on the underlying CPA."
+              + " The current support includes only ValueAnalysis and PredicateAnalysis (with tree"
+              + " interpolation enabled).")
   private boolean handleRecursiveProcedures = false;
 
   @Option(
@@ -81,9 +85,9 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
     config.inject(this);
 
     if (pCpa instanceof ProofChecker) {
-      this.wrappedProofChecker = (ProofChecker) pCpa;
+      wrappedProofChecker = (ProofChecker) pCpa;
     } else {
-      this.wrappedProofChecker = null;
+      wrappedProofChecker = null;
     }
 
     final BAMCache cache;
@@ -94,13 +98,8 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
     }
     data = new BAMDataManagerImpl(this, cache, pReachedSetFactory, pLogger);
 
-    bamPccManager = new BAMPCCManager(
-        wrappedProofChecker,
-        config,
-        blockPartitioning,
-        getReducer(),
-        this,
-        data);
+    bamPccManager =
+        new BAMPCCManager(wrappedProofChecker, config, blockPartitioning, getReducer(), this, data);
 
     AlgorithmFactory factory = new CPAAlgorithmFactory(this, logger, config, pShutdownNotifier);
     if (useCEGAR) {
@@ -136,8 +135,7 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
   @Override
   public BAMPrecisionAdjustment getPrecisionAdjustment() {
     return new BAMPrecisionAdjustment(
-        getWrappedCpa().getPrecisionAdjustment(), data, bamPccManager,
-        logger, blockPartitioning);
+        getWrappedCpa().getPrecisionAdjustment(), data, bamPccManager, logger, blockPartitioning);
   }
 
   @Override
@@ -156,15 +154,19 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
   }
 
   @Override
-  public boolean areAbstractSuccessors(AbstractState pState, CFAEdge pCfaEdge,
-      Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
-    Preconditions.checkNotNull(wrappedProofChecker, "Wrapped CPA has to implement ProofChecker interface");
+  public boolean areAbstractSuccessors(
+      AbstractState pState, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors)
+      throws CPATransferException, InterruptedException {
+    Preconditions.checkNotNull(
+        wrappedProofChecker, "Wrapped CPA has to implement ProofChecker interface");
     return bamPccManager.areAbstractSuccessors(pState, pCfaEdge, pSuccessors);
   }
 
   @Override
-  public boolean isCoveredBy(AbstractState pState, AbstractState pOtherState) throws CPAException, InterruptedException {
-    Preconditions.checkNotNull(wrappedProofChecker, "Wrapped CPA has to implement ProofChecker interface");
+  public boolean isCoveredBy(AbstractState pState, AbstractState pOtherState)
+      throws CPAException, InterruptedException {
+    Preconditions.checkNotNull(
+        wrappedProofChecker, "Wrapped CPA has to implement ProofChecker interface");
     return wrappedProofChecker.isCoveredBy(pState, pOtherState);
   }
 

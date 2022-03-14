@@ -8,13 +8,11 @@
 
 package org.sosy_lab.cpachecker.cfa.ast;
 
-
 /**
- * Interface for all statements that contain an assignment.
- * Only sub-classes of {@link AStatement} may implement this interface.
+ * Interface for all statements that contain an assignment. Only sub-classes of {@link AStatement}
+ * may implement this interface.
  */
 public interface AAssignment extends AAstNode {
-
 
   ALeftHandSide getLeftHandSide();
 

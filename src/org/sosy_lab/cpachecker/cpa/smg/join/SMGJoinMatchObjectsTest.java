@@ -27,10 +27,10 @@ public class SMGJoinMatchObjectsTest {
   private SMG smg1;
   private SMG smg2;
 
-  final private SMGObject srcObj1 = new SMGRegion(64, "Source object 1");
-  final private SMGObject destObj1 = new SMGRegion(64, "Destination object 1");
-  final private SMGObject srcObj2 = new SMGRegion(64, "Source object 2");
-  final private SMGObject destObj2 = new SMGRegion(64, "Destination object 2");
+  private final SMGObject srcObj1 = new SMGRegion(64, "Source object 1");
+  private final SMGObject destObj1 = new SMGRegion(64, "Destination object 1");
+  private final SMGObject srcObj2 = new SMGRegion(64, "Source object 2");
+  private final SMGObject destObj2 = new SMGRegion(64, "Destination object 2");
 
   private SMGNodeMapping mapping1;
   private SMGNodeMapping mapping2;
@@ -46,11 +46,21 @@ public class SMGJoinMatchObjectsTest {
 
   @Test
   public void nullObjectTest() {
-    SMGJoinMatchObjects mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, null, null, SMGNullObject.INSTANCE, SMGNullObject.INSTANCE);
+    SMGJoinMatchObjects mo =
+        new SMGJoinMatchObjects(
+            SMGJoinStatus.EQUAL,
+            smg1,
+            smg2,
+            null,
+            null,
+            SMGNullObject.INSTANCE,
+            SMGNullObject.INSTANCE);
     assertThat(mo.isDefined()).isFalse();
 
     smg1.addObject(srcObj1);
-    mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, null, null, srcObj1, SMGNullObject.INSTANCE);
+    mo =
+        new SMGJoinMatchObjects(
+            SMGJoinStatus.EQUAL, smg1, smg2, null, null, srcObj1, SMGNullObject.INSTANCE);
     assertThat(mo.isDefined()).isFalse();
   }
 
@@ -78,7 +88,9 @@ public class SMGJoinMatchObjectsTest {
     smg2.addObject(srcObj2);
     mapping2.map(srcObj2, destObj1);
 
-    SMGJoinMatchObjects mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, srcObj1, srcObj2);
+    SMGJoinMatchObjects mo =
+        new SMGJoinMatchObjects(
+            SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, srcObj1, srcObj2);
     assertThat(mo.isDefined()).isFalse();
   }
 
@@ -90,7 +102,9 @@ public class SMGJoinMatchObjectsTest {
     smg1.addObject(srcObj1);
     mapping1.map(srcObj1, destObj2);
 
-    SMGJoinMatchObjects mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, srcObj1, srcObj2);
+    SMGJoinMatchObjects mo =
+        new SMGJoinMatchObjects(
+            SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, srcObj1, srcObj2);
     assertThat(mo.isDefined()).isFalse();
   }
 
@@ -99,11 +113,15 @@ public class SMGJoinMatchObjectsTest {
     SMGObject diffSizeObject = new SMGRegion(128, "Object with different size");
     smg1.addObject(srcObj1);
     smg2.addObject(diffSizeObject);
-    SMGJoinMatchObjects mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL,  smg1, smg2, mapping1, mapping2, srcObj1, diffSizeObject);
+    SMGJoinMatchObjects mo =
+        new SMGJoinMatchObjects(
+            SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, srcObj1, diffSizeObject);
     assertThat(mo.isDefined()).isFalse();
 
     smg2.addObject(srcObj2, false, false);
-    mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, srcObj1, srcObj2);
+    mo =
+        new SMGJoinMatchObjects(
+            SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, srcObj1, srcObj2);
     assertThat(mo.isDefined()).isFalse();
   }
 
@@ -117,7 +135,9 @@ public class SMGJoinMatchObjectsTest {
     smg2.addObject(destObj2);
     mapping2.map(srcObj2, destObj2);
 
-    SMGJoinMatchObjects mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, srcObj1, srcObj2);
+    SMGJoinMatchObjects mo =
+        new SMGJoinMatchObjects(
+            SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, srcObj1, srcObj2);
     assertThat(mo.isDefined()).isFalse();
   }
 
@@ -143,19 +163,27 @@ public class SMGJoinMatchObjectsTest {
     smg2.addValue(hvMatching2.getValue());
     smg2.addHasValueEdge(hvMatching2);
 
-    SMGJoinMatchObjects mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, srcObj1, srcObj2);
+    SMGJoinMatchObjects mo =
+        new SMGJoinMatchObjects(
+            SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, srcObj1, srcObj2);
     assertThat(mo.isDefined()).isTrue();
 
     mapping1.map(hvMatching1.getValue(), SMGKnownSymValue.of());
-    mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, srcObj1, srcObj2);
+    mo =
+        new SMGJoinMatchObjects(
+            SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, srcObj1, srcObj2);
     assertThat(mo.isDefined()).isTrue();
 
     mapping2.map(hvMatching2.getValue(), mapping1.get(hvMatching1.getValue()));
-    mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, srcObj1, srcObj2);
+    mo =
+        new SMGJoinMatchObjects(
+            SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, srcObj1, srcObj2);
     assertThat(mo.isDefined()).isTrue();
 
     mapping2.map(hvMatching2.getValue(), SMGKnownSymValue.of());
-    mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, srcObj1, srcObj2);
+    mo =
+        new SMGJoinMatchObjects(
+            SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, srcObj1, srcObj2);
     assertThat(mo.isDefined()).isFalse();
   }
 
@@ -167,7 +195,8 @@ public class SMGJoinMatchObjectsTest {
     smg1.addObject(sll1);
     smg2.addObject(sll2);
 
-    SMGJoinMatchObjects mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, sll1, sll2);
+    SMGJoinMatchObjects mo =
+        new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, sll1, sll2);
     assertThat(mo.isDefined()).isFalse();
   }
 
@@ -180,7 +209,8 @@ public class SMGJoinMatchObjectsTest {
     smg1.addObject(sll);
     smg2.addObject(dummy);
 
-    SMGJoinMatchObjects mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, sll, dummy);
+    SMGJoinMatchObjects mo =
+        new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, sll, dummy);
     assertThat(mo.isDefined()).isFalse();
   }
 
@@ -191,7 +221,8 @@ public class SMGJoinMatchObjectsTest {
     smg1.addObject(sll1);
     smg2.addObject(sll2);
 
-    SMGJoinMatchObjects mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, sll1, sll2);
+    SMGJoinMatchObjects mo =
+        new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, sll1, sll2);
     assertThat(mo.isDefined()).isTrue();
     assertThat(mo.getStatus()).isEqualTo(SMGJoinStatus.LEFT_ENTAIL);
 
@@ -218,11 +249,15 @@ public class SMGJoinMatchObjectsTest {
     smg1.addObject(prototype);
     smg2.addObject(prototype);
 
-    SMGJoinMatchObjects mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, sll, prototype);
+    SMGJoinMatchObjects mo =
+        new SMGJoinMatchObjects(
+            SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, sll, prototype);
     assertThat(mo.isDefined()).isTrue();
     assertThat(mo.getStatus()).isEqualTo(SMGJoinStatus.INCOMPARABLE);
 
-    mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, prototype, sll);
+    mo =
+        new SMGJoinMatchObjects(
+            SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, prototype, sll);
     assertThat(mo.isDefined()).isTrue();
     assertThat(mo.getStatus()).isEqualTo(SMGJoinStatus.INCOMPARABLE);
 
@@ -231,11 +266,15 @@ public class SMGJoinMatchObjectsTest {
     smg1.addObject(sll);
     smg2.addObject(sll);
 
-    mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, sll, prototype);
+    mo =
+        new SMGJoinMatchObjects(
+            SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, sll, prototype);
     assertThat(mo.isDefined()).isTrue();
     assertThat(mo.getStatus()).isEqualTo(SMGJoinStatus.LEFT_ENTAIL);
 
-    mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, prototype, sll);
+    mo =
+        new SMGJoinMatchObjects(
+            SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, prototype, sll);
     assertThat(mo.isDefined()).isTrue();
     assertThat(mo.getStatus()).isEqualTo(SMGJoinStatus.RIGHT_ENTAIL);
   }
@@ -245,7 +284,9 @@ public class SMGJoinMatchObjectsTest {
     SMGRegion object = new SMGRegion(128, "prototype");
     smg1.addObject(object);
     smg2.addObject(object);
-    SMGJoinMatchObjects mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, object, object);
+    SMGJoinMatchObjects mo =
+        new SMGJoinMatchObjects(
+            SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, object, object);
     assertThat(mo.isDefined()).isTrue();
     assertThat(mo.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
   }

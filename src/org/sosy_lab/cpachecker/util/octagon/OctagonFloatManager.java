@@ -17,7 +17,6 @@ import com.google.common.collect.BiMap;
 import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonInterval;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-
 public class OctagonFloatManager extends OctagonManager {
 
   public OctagonFloatManager() {
@@ -70,14 +69,14 @@ public class OctagonFloatManager extends OctagonManager {
     if (lowerInfinite && upperInfinite) {
       retVal = new OctagonInterval(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
     } else if (lowerInfinite) {
-      retVal = new OctagonInterval(Double.NEGATIVE_INFINITY,
-                               J_num_get_float(upper.getArray(), 0));
+      retVal = new OctagonInterval(Double.NEGATIVE_INFINITY, J_num_get_float(upper.getArray(), 0));
     } else if (upperInfinite) {
-      retVal = new OctagonInterval(J_num_get_float(lower.getArray(), 0) * -1,
-                               Double.POSITIVE_INFINITY);
+      retVal =
+          new OctagonInterval(J_num_get_float(lower.getArray(), 0) * -1, Double.POSITIVE_INFINITY);
     } else {
-      retVal = new OctagonInterval(J_num_get_float(lower.getArray(), 0) * -1,
-                               J_num_get_float(upper.getArray(), 0));
+      retVal =
+          new OctagonInterval(
+              J_num_get_float(lower.getArray(), 0) * -1, J_num_get_float(upper.getArray(), 0));
     }
 
     J_num_clear_n(lower.getArray(), 1);

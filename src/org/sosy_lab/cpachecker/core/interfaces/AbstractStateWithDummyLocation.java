@@ -11,9 +11,7 @@ package org.sosy_lab.cpachecker.core.interfaces;
 import java.util.Collection;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
-/**
- * An {@link AbstractState} that might have a dummy location.
- */
+/** An {@link AbstractState} that might have a dummy location. */
 public interface AbstractStateWithDummyLocation extends AbstractState {
 
   /**

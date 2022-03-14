@@ -48,14 +48,13 @@ import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.Tactic;
 
-/**
- * Updating LPI precision using interpolants.
- */
-@Options(prefix="cpa.lpi.refinement")
+/** Updating LPI precision using interpolants. */
+@Options(prefix = "cpa.lpi.refinement")
 public class PolicyInterpolationRefiner implements Refiner {
 
-  @Option(secure=true, description="Attempt to weaken interpolants in order to make them more "
-      + "general")
+  @Option(
+      secure = true,
+      description = "Attempt to weaken interpolants in order to make them more " + "general")
   private boolean generalizeInterpolants = true;
 
   private final PathExtractor pathExtractor;
@@ -65,14 +64,12 @@ public class PolicyInterpolationRefiner implements Refiner {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManager bfmgr;
 
-  /**
-   * Cache for variable names contained in a formula.
-   */
+  /** Cache for variable names contained in a formula. */
   private final Map<BooleanFormula, Set<String>> extractedVarsCache;
 
   public static PolicyInterpolationRefiner create(
-      ConfigurableProgramAnalysis pConfigurableProgramAnalysis
-  ) throws InvalidConfigurationException {
+      ConfigurableProgramAnalysis pConfigurableProgramAnalysis)
+      throws InvalidConfigurationException {
     PolicyCPA policyCPA =
         CPAs.retrieveCPAOrFail(
             pConfigurableProgramAnalysis, PolicyCPA.class, PolicyInterpolationRefiner.class);
@@ -84,9 +81,7 @@ public class PolicyInterpolationRefiner implements Refiner {
     LogManager logger = policyCPA.getLogger();
     Solver solver = policyCPA.getSolver();
     PathExtractor pathExtractor = new PathExtractor(logger, config);
-    return new PolicyInterpolationRefiner(
-        config, policyCPA, pathExtractor, argCPA, solver
-    );
+    return new PolicyInterpolationRefiner(config, policyCPA, pathExtractor, argCPA, solver);
   }
 
   private PolicyInterpolationRefiner(
@@ -94,7 +89,8 @@ public class PolicyInterpolationRefiner implements Refiner {
       PolicyCPA pPolicyCPA,
       PathExtractor pPathExtractor,
       ARGCPA pArgCpa,
-      Solver pSolver) throws InvalidConfigurationException {
+      Solver pSolver)
+      throws InvalidConfigurationException {
     config.inject(this);
     fmgr = pSolver.getFormulaManager();
     solver = pSolver;
@@ -132,7 +128,8 @@ public class PolicyInterpolationRefiner implements Refiner {
     assert policyState != null;
 
     // todo: verify the precondition below on benchmarks.
-    Preconditions.checkState(!policyState.isAbstract(),
+    Preconditions.checkState(
+        !policyState.isAbstract(),
         "Property violation should be associated with an intermediate state.");
 
     try (InterpolatingProverEnvironment<?> itp = solver.newProverEnvironmentWithInterpolation()) {
@@ -141,12 +138,12 @@ public class PolicyInterpolationRefiner implements Refiner {
   }
 
   /**
-   * Inject precision derived from interpolants into PolicyCPA.
-   * Return whether the precision was changed.
+   * Inject precision derived from interpolants into PolicyCPA. Return whether the precision was
+   * changed.
    */
   private <T> boolean injectPrecision(
-      InterpolatingProverEnvironment<T> itp,
-      final PolicyIntermediateState iState) throws SolverException, InterruptedException {
+      InterpolatingProverEnvironment<T> itp, final PolicyIntermediateState iState)
+      throws SolverException, InterruptedException {
     List<Set<T>> handles = new ArrayList<>();
 
     int pushed = 0;
@@ -163,7 +160,7 @@ public class PolicyInterpolationRefiner implements Refiner {
 
     boolean changed = injectPrecisionFromInterpolants(interpolants, iState);
 
-    for (int i=0; i<pushed; i++) {
+    for (int i = 0; i < pushed; i++) {
       // todo: a nicer way to pop everything at one time.
       itp.pop();
     }
@@ -179,12 +176,10 @@ public class PolicyInterpolationRefiner implements Refiner {
   }
 
   /**
-   * Inject precision derived from {@code interpolants} to all states from
-   * root to {@code iState}.
+   * Inject precision derived from {@code interpolants} to all states from root to {@code iState}.
    */
   private boolean injectPrecisionFromInterpolants(
-      List<BooleanFormula> interpolants,
-      final PolicyIntermediateState iState) {
+      List<BooleanFormula> interpolants, final PolicyIntermediateState iState) {
 
     boolean changed = false;
 
@@ -192,27 +187,22 @@ public class PolicyInterpolationRefiner implements Refiner {
       for (PolicyIntermediateState iterState : iState.allStatesToRoot()) {
         CFANode node = iterState.getBackpointerState().getNode();
         Set<String> interpolantVars = fmgr.extractVariableNames(fmgr.uninstantiate(interpolant));
-        boolean precisionChanged = policyCPA.injectPrecisionFromInterpolant(
-            node, interpolantVars
-        );
+        boolean precisionChanged = policyCPA.injectPrecisionFromInterpolant(node, interpolantVars);
         changed |= precisionChanged;
-
       }
     }
     return changed;
   }
 
-
   /**
    * Attempt to generalize interpolants by weakening the input formulas.
    *
-   * @return new interpolants or {@code Optional.empty()} if the generalized
-   * conjunction is satisfiable.
+   * @return new interpolants or {@code Optional.empty()} if the generalized conjunction is
+   *     satisfiable.
    */
   private <T> Optional<List<BooleanFormula>> getGeneralizedInterpolants(
-      final PolicyIntermediateState pState,
-      InterpolatingProverEnvironment<T> itp
-      ) throws SolverException, InterruptedException {
+      final PolicyIntermediateState pState, InterpolatingProverEnvironment<T> itp)
+      throws SolverException, InterruptedException {
 
     List<Set<T>> handles = new ArrayList<>();
 
@@ -237,22 +227,16 @@ public class PolicyInterpolationRefiner implements Refiner {
 
   /** Return all instantiated variables mentioned in templates associated with {@code pState}. */
   private Set<String> getRelevantInstantiatedVars(PolicyAbstractedState pState) {
-    return pState
-        .getAbstraction()
-        .keySet()
-        .stream()
+    return pState.getAbstraction().keySet().stream()
         .flatMap(t -> t.getLinearExpression().getMap().keySet().stream())
         .map(id -> id.getDeclaration().getQualifiedName())
         .map(var -> FormulaManagerView.instantiateVariableName(var, pState.getSSA()))
         .collect(toImmutableSet());
   }
 
-
-  /**
-   * Weaken {@code input}, such that it no longer contains any variables in {@code varsToDrop}.
-   */
-  private BooleanFormula weaken(BooleanFormula input,
-                                Set<String> varsToDrop) throws InterruptedException {
+  /** Weaken {@code input}, such that it no longer contains any variables in {@code varsToDrop}. */
+  private BooleanFormula weaken(BooleanFormula input, Set<String> varsToDrop)
+      throws InterruptedException {
     if (varsToDrop.isEmpty()) {
       return input;
     }
@@ -265,20 +249,18 @@ public class PolicyInterpolationRefiner implements Refiner {
     return fmgr.simplify(input);
   }
 
-  /**
-   * Drop all literals which have variables given in the constructor.
-   */
+  /** Drop all literals which have variables given in the constructor. */
   private class FormulaWeakeningManager extends BooleanFormulaTransformationVisitor {
     private final Set<String> varsToDrop;
 
-    FormulaWeakeningManager(FormulaManagerView pFmgr,
-                                      Set<String> pVarsToDrop) {
+    FormulaWeakeningManager(FormulaManagerView pFmgr, Set<String> pVarsToDrop) {
       super(pFmgr);
       varsToDrop = pVarsToDrop;
     }
 
     @Override
-    public BooleanFormula visitAtom(BooleanFormula pAtom, FunctionDeclaration<BooleanFormula> decl) {
+    public BooleanFormula visitAtom(
+        BooleanFormula pAtom, FunctionDeclaration<BooleanFormula> decl) {
       if (!Sets.intersection(varsToDrop, extractVariableNames(pAtom)).isEmpty()) {
         return bfmgr.makeTrue();
       }
@@ -296,9 +278,7 @@ public class PolicyInterpolationRefiner implements Refiner {
     }
   }
 
-  /**
-   * Extract stored variable names, store the results in cache.
-   */
+  /** Extract stored variable names, store the results in cache. */
   private Set<String> extractVariableNames(BooleanFormula pFormula) {
     Set<String> cache = extractedVarsCache.get(pFormula);
     if (cache == null) {
@@ -309,8 +289,8 @@ public class PolicyInterpolationRefiner implements Refiner {
   }
 
   private void forceRestart(ReachedSet reached) throws InterruptedException {
-    ARGState firstChild = Iterables
-        .getOnlyElement(((ARGState)reached.getFirstState()).getChildren());
+    ARGState firstChild =
+        Iterables.getOnlyElement(((ARGState) reached.getFirstState()).getChildren());
 
     new ARGReachedSet(reached).removeSubtree(firstChild);
   }

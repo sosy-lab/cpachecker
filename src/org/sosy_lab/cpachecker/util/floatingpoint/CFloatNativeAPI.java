@@ -12,8 +12,8 @@ import org.sosy_lab.common.NativeLibraries;
 
 /**
  * This class is an JNI interface to the FloatingPoints C library.
- * <p>
- * Its purpose is to transport information about bit-masks of floating point number types between
+ *
+ * <p>Its purpose is to transport information about bit-masks of floating point number types between
  * Java and C via instances of the {@link CFloatWrapper} class and therefore to (in a way) more
  * easily compare expectations towards how certain floating point operations on a given system and C
  * compilation should work with the reality from inside a Java based framework.
@@ -96,26 +96,26 @@ public class CFloatNativeAPI {
 
   public static native String printFp(CFloatWrapper fp, int fp_type);
 
-  public static native CFloatWrapper
-      addFp(CFloatWrapper fp1, int fp_type1, CFloatWrapper fp2, int fp_type2);
+  public static native CFloatWrapper addFp(
+      CFloatWrapper fp1, int fp_type1, CFloatWrapper fp2, int fp_type2);
 
-  public static native CFloatWrapper
-      subtractFp(CFloatWrapper fp1, int fp_type1, CFloatWrapper fp2, int fp_type2);
+  public static native CFloatWrapper subtractFp(
+      CFloatWrapper fp1, int fp_type1, CFloatWrapper fp2, int fp_type2);
 
-  public static native CFloatWrapper
-      multiplyFp(CFloatWrapper fp1, int fp_type1, CFloatWrapper fp2, int fp_type2);
+  public static native CFloatWrapper multiplyFp(
+      CFloatWrapper fp1, int fp_type1, CFloatWrapper fp2, int fp_type2);
 
-  public static native CFloatWrapper
-      divideFp(CFloatWrapper fp1, int fp_type1, CFloatWrapper fp2, int fp_type2);
+  public static native CFloatWrapper divideFp(
+      CFloatWrapper fp1, int fp_type1, CFloatWrapper fp2, int fp_type2);
 
-  public static native CFloatWrapper
-      addManyFp(CFloatWrapper fp1, int[] fp_types, CFloatWrapper... fps);
+  public static native CFloatWrapper addManyFp(
+      CFloatWrapper fp1, int[] fp_types, CFloatWrapper... fps);
 
-  public static native CFloatWrapper
-      multiplyManyFp(CFloatWrapper fp1, int[] fp_types, CFloatWrapper... fps);
+  public static native CFloatWrapper multiplyManyFp(
+      CFloatWrapper fp1, int[] fp_types, CFloatWrapper... fps);
 
-  public static native CFloatWrapper
-      powFp(CFloatWrapper fp1, int fp_type1, CFloatWrapper fp2, int fp_type2);
+  public static native CFloatWrapper powFp(
+      CFloatWrapper fp1, int fp_type1, CFloatWrapper fp2, int fp_type2);
 
   public static native CFloatWrapper powIntegralFp(CFloatWrapper fp, int exp, int fp_type);
 

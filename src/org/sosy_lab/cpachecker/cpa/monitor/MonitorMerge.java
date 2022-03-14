@@ -23,14 +23,13 @@ public class MonitorMerge implements MergeOperator {
   }
 
   @Override
-  public AbstractState merge(
-      AbstractState pElement1,
-      AbstractState pElement2, Precision pPrecision)
-  throws CPAException, InterruptedException {
-    MonitorState monitorState1= (MonitorState)pElement1;
-    MonitorState monitorState2 = (MonitorState)pElement2;
+  public AbstractState merge(AbstractState pElement1, AbstractState pElement2, Precision pPrecision)
+      throws CPAException, InterruptedException {
+    MonitorState monitorState1 = (MonitorState) pElement1;
+    MonitorState monitorState2 = (MonitorState) pElement2;
 
-    if (monitorState1.mustDumpAssumptionForAvoidance() || monitorState2.mustDumpAssumptionForAvoidance()) {
+    if (monitorState1.mustDumpAssumptionForAvoidance()
+        || monitorState2.mustDumpAssumptionForAvoidance()) {
       return pElement2;
     }
 
@@ -42,13 +41,11 @@ public class MonitorMerge implements MergeOperator {
       return pElement2;
     }
 
-    long totalTimeOnPath = Math.max(monitorState1.getTotalTimeOnPath(),
-                                    monitorState2.getTotalTimeOnPath());
+    long totalTimeOnPath =
+        Math.max(monitorState1.getTotalTimeOnPath(), monitorState2.getTotalTimeOnPath());
 
-    MonitorState mergedElement = new MonitorState(
-        retElement, totalTimeOnPath);
+    MonitorState mergedElement = new MonitorState(retElement, totalTimeOnPath);
 
     return mergedElement;
   }
-
 }

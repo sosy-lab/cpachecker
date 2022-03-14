@@ -22,11 +22,10 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
 /**
- * Implementation of a CPA with only one element in the abstract state space.
- * Contains various assertions that may be used to test algorithms and wrapper CPAs.
+ * Implementation of a CPA with only one element in the abstract state space. Contains various
+ * assertions that may be used to test algorithms and wrapper CPAs.
  */
 public enum AlwaysTopCPA implements ConfigurableProgramAnalysis {
-
   INSTANCE;
 
   public static CPAFactory factory() {
@@ -67,5 +66,4 @@ public enum AlwaysTopCPA implements ConfigurableProgramAnalysis {
   public TransferRelation getTransferRelation() {
     return AlwaysTopTransferRelation.INSTANCE;
   }
-
 }

@@ -94,8 +94,8 @@ public final class ExpressionSubstitution {
 
     public SubstitutingVisitor(
         Substitution pSubstitution, CBinaryExpressionBuilder pBinExpBuilder) {
-      this.substitution = pSubstitution;
-      this.binExpBuilder = pBinExpBuilder;
+      substitution = pSubstitution;
+      binExpBuilder = pBinExpBuilder;
     }
 
     @Override

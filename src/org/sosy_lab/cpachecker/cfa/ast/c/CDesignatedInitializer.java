@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-
 import static com.google.common.collect.Lists.transform;
 
 import com.google.common.base.Joiner;
@@ -20,12 +19,12 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public class CDesignatedInitializer extends AbstractInitializer implements CInitializer {
 
-
   private static final long serialVersionUID = -2567254248669651550L;
   private final List<CDesignator> designators;
   private final CInitializer right;
 
-  public CDesignatedInitializer(FileLocation pFileLocation, final List<CDesignator> pLeft, final CInitializer pRight) {
+  public CDesignatedInitializer(
+      FileLocation pFileLocation, final List<CDesignator> pLeft, final CInitializer pRight) {
     super(pFileLocation);
     designators = ImmutableList.copyOf(pLeft);
     right = pRight;
@@ -75,8 +74,7 @@ public class CDesignatedInitializer extends AbstractInitializer implements CInit
       return true;
     }
 
-    if (!(obj instanceof CDesignatedInitializer)
-        || !super.equals(obj)) {
+    if (!(obj instanceof CDesignatedInitializer) || !super.equals(obj)) {
       return false;
     }
 
@@ -84,5 +82,4 @@ public class CDesignatedInitializer extends AbstractInitializer implements CInit
 
     return Objects.equals(other.designators, designators) && Objects.equals(other.right, right);
   }
-
 }

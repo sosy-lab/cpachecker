@@ -34,8 +34,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
-public class CExpressionToOrinalCodeVisitor
-    implements CExpressionVisitor<String, NoException> {
+public class CExpressionToOrinalCodeVisitor implements CExpressionVisitor<String, NoException> {
 
   public static final CExpressionToOrinalCodeVisitor BASIC_TRANSFORMER =
       new CExpressionToOrinalCodeVisitor();

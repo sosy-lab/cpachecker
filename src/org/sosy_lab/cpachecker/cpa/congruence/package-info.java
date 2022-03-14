@@ -7,7 +7,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * A very simple congruence analysis.
- */
+/** A very simple congruence analysis. */
 package org.sosy_lab.cpachecker.cpa.congruence;

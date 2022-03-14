@@ -19,20 +19,23 @@ public class StatisticsWriter {
   private final int level;
   private final int outputNameColWidth;
 
-  private StatisticsWriter(PrintStream pTarget, int pLevel,
-      int pOutputNameColWidth, StatisticsWriter pParentLevelWriter) {
-    this.parentLevelWriter = pParentLevelWriter;
-    this.target = pTarget;
-    this.level = pLevel;
-    this.outputNameColWidth = pOutputNameColWidth;
+  private StatisticsWriter(
+      PrintStream pTarget,
+      int pLevel,
+      int pOutputNameColWidth,
+      StatisticsWriter pParentLevelWriter) {
+    parentLevelWriter = pParentLevelWriter;
+    target = pTarget;
+    level = pLevel;
+    outputNameColWidth = pOutputNameColWidth;
   }
 
-  /**
-   * Use this method instead of direct calls to the constructor
-   * to allow overriding.
-   */
-  protected StatisticsWriter newInstance(PrintStream pTarget, int pLevel,
-      int pOutputNameColWidth, StatisticsWriter pParentLevelWriter) {
+  /** Use this method instead of direct calls to the constructor to allow overriding. */
+  protected StatisticsWriter newInstance(
+      PrintStream pTarget,
+      int pLevel,
+      int pOutputNameColWidth,
+      StatisticsWriter pParentLevelWriter) {
     return new StatisticsWriter(pTarget, pLevel, pOutputNameColWidth, pParentLevelWriter);
   }
 
@@ -123,14 +126,20 @@ public class StatisticsWriter {
 
   private static class DisabledStatisticsWriter extends StatisticsWriter {
 
-    DisabledStatisticsWriter(PrintStream pTarget, int pLevel,
-        int pOutputNameColWidth, StatisticsWriter pParentLevelWriter) {
+    DisabledStatisticsWriter(
+        PrintStream pTarget,
+        int pLevel,
+        int pOutputNameColWidth,
+        StatisticsWriter pParentLevelWriter) {
       super(pTarget, pLevel, pOutputNameColWidth, pParentLevelWriter);
     }
 
     @Override
-    protected DisabledStatisticsWriter newInstance(PrintStream pTarget, int pLevel,
-        int pOutputNameColWidth, StatisticsWriter pParentLevelWriter) {
+    protected DisabledStatisticsWriter newInstance(
+        PrintStream pTarget,
+        int pLevel,
+        int pOutputNameColWidth,
+        StatisticsWriter pParentLevelWriter) {
       return new DisabledStatisticsWriter(pTarget, pLevel, pOutputNameColWidth, pParentLevelWriter);
     }
 

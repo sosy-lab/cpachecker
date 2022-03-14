@@ -123,8 +123,10 @@ public class PropertyFileParser {
     if (entryFunction == null) {
       entryFunction = matcher.group(1);
     } else if (!entryFunction.equals(matcher.group(1))) {
-      throw new InvalidPropertyFileException(String.format(
-          "Specifying two different entry functions %s and %s is not supported.", entryFunction, matcher.group(1)));
+      throw new InvalidPropertyFileException(
+          String.format(
+              "Specifying two different entry functions %s and %s is not supported.",
+              entryFunction, matcher.group(1)));
     }
 
     String rawLtlProperty = matcher.group(2);

@@ -14,7 +14,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.defaults.GenericReducer;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
-
 class CallstackReducer extends GenericReducer<CallstackState, Precision> {
 
   @Override
@@ -29,10 +28,10 @@ class CallstackReducer extends GenericReducer<CallstackState, Precision> {
       return new CallstackState(null, element.getCurrentFunction(), callNode);
     } else {
       assert element.getPreviousState() != null;
-      CallstackState recursiveResult = copyCallstackUpToCallNode(element.getPreviousState(), callNode);
-      return new CallstackState(recursiveResult,
-          element.getCurrentFunction(),
-          element.getCallNode());
+      CallstackState recursiveResult =
+          copyCallstackUpToCallNode(element.getPreviousState(), callNode);
+      return new CallstackState(
+          recursiveResult, element.getCurrentFunction(), element.getCallNode());
     }
   }
 
@@ -48,16 +47,17 @@ class CallstackReducer extends GenericReducer<CallstackState, Precision> {
   private CallstackState copyCallstackExceptLast(CallstackState target, CallstackState source) {
     if (source.getDepth() == 1) {
       assert source.getPreviousState() == null;
-      assert source.getCurrentFunction().equals(target.getCurrentFunction()):
-              "names of functions do not match: '" + source.getCurrentFunction() + "' != '" + target.getCurrentFunction() + "'";
+      assert source.getCurrentFunction().equals(target.getCurrentFunction())
+          : "names of functions do not match: '"
+              + source.getCurrentFunction()
+              + "' != '"
+              + target.getCurrentFunction()
+              + "'";
       return target;
     } else {
       CallstackState recursiveResult = copyCallstackExceptLast(target, source.getPreviousState());
 
-      return new CallstackState(
-          recursiveResult,
-          source.getCurrentFunction(),
-          source.getCallNode());
+      return new CallstackState(recursiveResult, source.getCurrentFunction(), source.getCallNode());
     }
   }
 

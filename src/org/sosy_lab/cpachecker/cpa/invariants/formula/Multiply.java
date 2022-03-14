@@ -22,8 +22,7 @@ public final class Multiply<ConstantType> extends AbstractBinaryFormula<Constant
    * @param pFactor1 the first factor.
    * @param pFactor2 the second factor.
    */
-  private Multiply(NumeralFormula<ConstantType> pFactor1,
-      NumeralFormula<ConstantType> pFactor2) {
+  private Multiply(NumeralFormula<ConstantType> pFactor1, NumeralFormula<ConstantType> pFactor2) {
     super("*", true, pFactor1, pFactor2);
   }
 
@@ -52,22 +51,20 @@ public final class Multiply<ConstantType> extends AbstractBinaryFormula<Constant
 
   @Override
   public <ReturnType, ParamType> ReturnType accept(
-      ParameterizedNumeralFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
+      ParameterizedNumeralFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor,
+      ParamType pParameter) {
     return pVisitor.visit(this, pParameter);
   }
 
   /**
-   * Gets an invariants formula representing the multiplication of the given
-   * factors.
+   * Gets an invariants formula representing the multiplication of the given factors.
    *
    * @param pFactor1 the first factor.
    * @param pFactor2 the second factor.
-   *
-   * @return an invariants formula representing the multiplication of the given
-   * factors.
+   * @return an invariants formula representing the multiplication of the given factors.
    */
-  static <ConstantType> Multiply<ConstantType> of(NumeralFormula<ConstantType> pFactor1, NumeralFormula<ConstantType> pFactor2) {
+  static <ConstantType> Multiply<ConstantType> of(
+      NumeralFormula<ConstantType> pFactor1, NumeralFormula<ConstantType> pFactor2) {
     return new Multiply<>(pFactor1, pFactor2);
   }
-
 }

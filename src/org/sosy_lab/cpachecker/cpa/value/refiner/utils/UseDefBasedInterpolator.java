@@ -46,49 +46,42 @@ import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
 import org.sosy_lab.cpachecker.util.refinement.UseDefRelation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-/**
- * This class allows to obtain interpolants statically from a given ARGPath.
- */
+/** This class allows to obtain interpolants statically from a given ARGPath. */
 public class UseDefBasedInterpolator {
 
-  /**
-   * the use-def relation of the final, failing (assume) edge
-   */
+  /** the use-def relation of the final, failing (assume) edge */
   private final UseDefRelation useDefRelation;
 
-  /**
-   * the sliced infeasible prefix for which to compute the interpolants
-   */
+  /** the sliced infeasible prefix for which to compute the interpolants */
   private final ARGPath slicedPrefix;
 
-  /**
-   * the machine model in use
-   */
+  /** the machine model in use */
   private final MachineModel machineModel;
 
   /**
-   * This class allows the creation of (fake) interpolants by using the use-def-relation.
-   * This interpolation approach only works if the given path is a sliced prefix,
-   * obtained via {@link PrefixSelector#selectSlicedPrefix(List, List)}.
+   * This class allows the creation of (fake) interpolants by using the use-def-relation. This
+   * interpolation approach only works if the given path is a sliced prefix, obtained via {@link
+   * PrefixSelector#selectSlicedPrefix(List, List)}.
    */
   public UseDefBasedInterpolator(
       final ARGPath pSlicedPrefix,
       final UseDefRelation pUseDefRelation,
-      final MachineModel pMachineModel
-  ) {
-    slicedPrefix   = pSlicedPrefix;
+      final MachineModel pMachineModel) {
+    slicedPrefix = pSlicedPrefix;
     useDefRelation = pUseDefRelation;
-    machineModel   = pMachineModel;
+    machineModel = pMachineModel;
   }
 
   /**
-   * This method obtains the interpolation sequence as pairs of {@link ARGState}s
-   * and their respective {@link ValueAnalysisInterpolant}s.
+   * This method obtains the interpolation sequence as pairs of {@link ARGState}s and their
+   * respective {@link ValueAnalysisInterpolant}s.
    *
-   * @return the (ordered) list of {@link ARGState}s and their respective {@link ValueAnalysisInterpolant}s
+   * @return the (ordered) list of {@link ARGState}s and their respective {@link
+   *     ValueAnalysisInterpolant}s
    */
   public List<Pair<ARGState, ValueAnalysisInterpolant>> obtainInterpolants() {
-    Map<ARGState, Collection<ASimpleDeclaration>> useDefSequence = useDefRelation.getExpandedUses(slicedPrefix);
+    Map<ARGState, Collection<ASimpleDeclaration>> useDefSequence =
+        useDefRelation.getExpandedUses(slicedPrefix);
     ValueAnalysisInterpolant trivialItp = ValueAnalysisInterpolant.FALSE;
 
     // reverse order!
@@ -100,9 +93,7 @@ public class UseDefBasedInterpolator {
 
       Collection<ASimpleDeclaration> uses = useDefSequence.get(state);
 
-      ValueAnalysisInterpolant interpolant = uses.isEmpty()
-          ? trivialItp
-          : createInterpolant(uses);
+      ValueAnalysisInterpolant interpolant = uses.isEmpty() ? trivialItp : createInterpolant(uses);
 
       interpolants.add(Pair.of(state, interpolant));
 
@@ -117,15 +108,16 @@ public class UseDefBasedInterpolator {
   }
 
   /**
-   * This method obtains the interpolation sequence as mapping from {@link ARGState}s
-   * to their respective {@link ValueAnalysisInterpolant}s.
+   * This method obtains the interpolation sequence as mapping from {@link ARGState}s to their
+   * respective {@link ValueAnalysisInterpolant}s.
    *
-   * @return the (ordered) mapping from {@link ARGState}s to their respective {@link ValueAnalysisInterpolant}s
+   * @return the (ordered) mapping from {@link ARGState}s to their respective {@link
+   *     ValueAnalysisInterpolant}s
    */
   public Map<ARGState, ValueAnalysisInterpolant> obtainInterpolantsAsMap() {
 
     Map<ARGState, ValueAnalysisInterpolant> interpolants = new LinkedHashMap<>();
-    for(Pair<ARGState, ValueAnalysisInterpolant> itp : obtainInterpolants()) {
+    for (Pair<ARGState, ValueAnalysisInterpolant> itp : obtainInterpolants()) {
       interpolants.put(itp.getFirst(), itp.getSecond());
     }
 
@@ -135,10 +127,10 @@ public class UseDefBasedInterpolator {
   /**
    * This method creates an interpolant for the given variable declaration.
    *
-   * As this interpolation strategy is static, memory locations for the whole type are created,
-   * i.e, even if only a single offset in an array would suffice, still the whole array is add
-   * here, because interesting offsets are not known statically. The same applies for complex
-   * types, where also the whole type ends up in the interpolant and not only partially.
+   * <p>As this interpolation strategy is static, memory locations for the whole type are created,
+   * i.e, even if only a single offset in an array would suffice, still the whole array is add here,
+   * because interesting offsets are not known statically. The same applies for complex types, where
+   * also the whole type ends up in the interpolant and not only partially.
    *
    * @param uses the variable declaration for which to create the interpolant
    * @return the interpolant for the given variable declaration
@@ -165,8 +157,8 @@ public class UseDefBasedInterpolator {
    */
   private ImmutableList<MemoryLocation> obtainMemoryLocationsForType(ASimpleDeclaration use) {
 
-    return ((CType) use.getType()).accept(
-        new MemoryLocationCreator(use.getQualifiedName(), machineModel));
+    return ((CType) use.getType())
+        .accept(new MemoryLocationCreator(use.getQualifiedName(), machineModel));
   }
 
   /**
@@ -178,24 +170,16 @@ public class UseDefBasedInterpolator {
   private static class MemoryLocationCreator
       implements CTypeVisitor<ImmutableList<MemoryLocation>, IllegalArgumentException> {
 
-    /**
-     * the qualified name of the actual variable identifier for which to create memory location
-     */
+    /** the qualified name of the actual variable identifier for which to create memory location */
     private final String qualifiedName;
 
-    /**
-     * the machine model to use
-     */
+    /** the machine model to use */
     private final MachineModel model;
 
-    /**
-     * the current offset for which to create the next memory location
-     */
+    /** the current offset for which to create the next memory location */
     private long currentOffset = 0L;
 
-    /**
-     * marker to know if traversal went through a complex type
-     */
+    /** marker to know if traversal went through a complex type */
     private boolean withinComplexType = false;
 
     private MemoryLocationCreator(final String pQualifiedName, final MachineModel pModel) {
@@ -210,7 +194,7 @@ public class UseDefBasedInterpolator {
       CExpression arrayLength = pArrayType.getLength();
 
       if (arrayLength instanceof CIntegerLiteralExpression) {
-        int length = ((CIntegerLiteralExpression)arrayLength).getValue().intValue();
+        int length = ((CIntegerLiteralExpression) arrayLength).getValue().intValue();
 
         return createMemoryLocationsForArray(length, pArrayType.getType());
       }
@@ -224,10 +208,13 @@ public class UseDefBasedInterpolator {
       withinComplexType = true;
 
       switch (pCompositeType.getKind()) {
-        case STRUCT: return createMemoryLocationsForStructure(pCompositeType);
-        case UNION:  return createMemoryLocationsForUnion(pCompositeType);
-        case ENUM:   // there is no such kind of CompositeType
-        default: throw new AssertionError();
+        case STRUCT:
+          return createMemoryLocationsForStructure(pCompositeType);
+        case UNION:
+          return createMemoryLocationsForUnion(pCompositeType);
+        case ENUM: // there is no such kind of CompositeType
+        default:
+          throw new AssertionError();
       }
     }
 
@@ -241,11 +228,11 @@ public class UseDefBasedInterpolator {
       }
 
       switch (pElaboratedType.getKind()) {
-      case ENUM:
-      case STRUCT: // TODO: UNDEFINED
-      case UNION:  // TODO: UNDEFINED
-      default:
-        return createSingleMemoryLocation(model.getSizeofInt());
+        case ENUM:
+        case STRUCT: // TODO: UNDEFINED
+        case UNION: // TODO: UNDEFINED
+        default:
+          return createSingleMemoryLocation(model.getSizeofInt());
       }
     }
 

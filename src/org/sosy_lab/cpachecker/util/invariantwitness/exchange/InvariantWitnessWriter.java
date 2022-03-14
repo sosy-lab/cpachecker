@@ -76,7 +76,6 @@ public final class InvariantWitnessWriter {
       throws InvalidConfigurationException {
     pConfig.inject(this);
 
-
     logger = Objects.requireNonNull(pLogger);
     lineOffsetsByFile = ArrayListMultimap.create(pLineOffsetsByFile);
     mapper =
@@ -210,4 +209,3 @@ public final class InvariantWitnessWriter {
     return entry;
   }
 }
-

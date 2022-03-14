@@ -34,13 +34,13 @@ public class PartitioningCPATest {
 
   @Test
   public void testIsLessOrEqual_EqualPartition() throws CPAException, InterruptedException {
-    AbstractState p1 = cpa.getInitialState(
-        DUMMY_CFA_NODE,
-        StateSpacePartition.getPartitionWithKey(InitialStatesFor.ENTRY));
+    AbstractState p1 =
+        cpa.getInitialState(
+            DUMMY_CFA_NODE, StateSpacePartition.getPartitionWithKey(InitialStatesFor.ENTRY));
 
-    AbstractState p2 = cpa.getInitialState(
-        DUMMY_CFA_NODE,
-        StateSpacePartition.getPartitionWithKey(InitialStatesFor.ENTRY));
+    AbstractState p2 =
+        cpa.getInitialState(
+            DUMMY_CFA_NODE, StateSpacePartition.getPartitionWithKey(InitialStatesFor.ENTRY));
 
     assertThat(p1).isEqualTo(p2);
 
@@ -49,32 +49,32 @@ public class PartitioningCPATest {
 
   @Test
   public void testMerge_EqualPartition() throws CPAException, InterruptedException {
-    AbstractState p1 = cpa.getInitialState(
-        DUMMY_CFA_NODE,
-        StateSpacePartition.getPartitionWithKey(InitialStatesFor.ENTRY));
+    AbstractState p1 =
+        cpa.getInitialState(
+            DUMMY_CFA_NODE, StateSpacePartition.getPartitionWithKey(InitialStatesFor.ENTRY));
 
-    AbstractState p2 = cpa.getInitialState(
-        DUMMY_CFA_NODE,
-        StateSpacePartition.getPartitionWithKey(InitialStatesFor.ENTRY));
+    AbstractState p2 =
+        cpa.getInitialState(
+            DUMMY_CFA_NODE, StateSpacePartition.getPartitionWithKey(InitialStatesFor.ENTRY));
 
-    AbstractState mergeResult = cpa.getMergeOperator().merge(p1, p2, SingletonPrecision.getInstance());
+    AbstractState mergeResult =
+        cpa.getMergeOperator().merge(p1, p2, SingletonPrecision.getInstance());
 
     assertThat(mergeResult).isEqualTo(p2); // MERGE-SEP
   }
 
   @Test
   public void testIsLessOrEqual_DifferentPartitions() throws CPAException, InterruptedException {
-    AbstractState p1 = cpa.getInitialState(
-        DUMMY_CFA_NODE,
-        StateSpacePartition.getPartitionWithKey(InitialStatesFor.ENTRY));
+    AbstractState p1 =
+        cpa.getInitialState(
+            DUMMY_CFA_NODE, StateSpacePartition.getPartitionWithKey(InitialStatesFor.ENTRY));
 
-    AbstractState p2 = cpa.getInitialState(
-        DUMMY_CFA_NODE,
-        StateSpacePartition.getPartitionWithKey(InitialStatesFor.EXIT));
+    AbstractState p2 =
+        cpa.getInitialState(
+            DUMMY_CFA_NODE, StateSpacePartition.getPartitionWithKey(InitialStatesFor.EXIT));
 
     assertThat(p1).isNotEqualTo(p2);
 
     assertThat(domain.isLessOrEqual(p1, p2)).isFalse();
   }
-
 }

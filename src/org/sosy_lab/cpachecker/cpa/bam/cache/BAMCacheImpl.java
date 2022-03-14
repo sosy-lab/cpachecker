@@ -36,8 +36,11 @@ import org.sosy_lab.cpachecker.util.statistics.StatHist;
 @Options(prefix = "cpa.bam")
 public class BAMCacheImpl implements BAMCache {
 
-  @Option(secure=true, description = "If enabled, the reached set cache is analysed "
-      + "for each cache miss to find the cause of the miss.")
+  @Option(
+      secure = true,
+      description =
+          "If enabled, the reached set cache is analysed "
+              + "for each cache miss to find the cause of the miss.")
   private boolean gatherCacheMissStatistics = false;
 
   private final Timer hashingTimer = new Timer();
@@ -58,16 +61,15 @@ public class BAMCacheImpl implements BAMCache {
   protected final Reducer reducer;
   protected final LogManager logger;
 
-  public BAMCacheImpl(
-      Configuration config,
-      Reducer reducer,
-      LogManager logger) throws InvalidConfigurationException {
+  public BAMCacheImpl(Configuration config, Reducer reducer, LogManager logger)
+      throws InvalidConfigurationException {
     config.inject(this, BAMCacheImpl.class);
     this.reducer = reducer;
     this.logger = logger;
   }
 
-  protected AbstractStateHash getHashCode(AbstractState stateKey, Precision precisionKey, Block context) {
+  protected AbstractStateHash getHashCode(
+      AbstractState stateKey, Precision precisionKey, Block context) {
     return new AbstractStateHash(stateKey, precisionKey, context);
   }
 
@@ -81,7 +83,8 @@ public class BAMCacheImpl implements BAMCache {
     return entry;
   }
 
-  protected static boolean allStatesContainedInReachedSet(Collection<AbstractState> pElements, ReachedSet reached) {
+  protected static boolean allStatesContainedInReachedSet(
+      Collection<AbstractState> pElements, ReachedSet reached) {
     return reached.asCollection().containsAll(pElements);
   }
 
@@ -141,21 +144,24 @@ public class BAMCacheImpl implements BAMCache {
     return lastAnalyzedEntry.getRootOfBlock();
   }
 
-  private void findCacheMissCause(AbstractState pStateKey, Precision pPrecisionKey, Block pContext) {
+  private void findCacheMissCause(
+      AbstractState pStateKey, Precision pPrecisionKey, Block pContext) {
     AbstractStateHash searchKey = getHashCode(pStateKey, pPrecisionKey, pContext);
     for (AbstractStateHash cacheKey : preciseReachedCache.keySet()) {
       assert !searchKey.equals(cacheKey);
 
       // searchKey != cacheKey, check whether it is the same if we ignore the
       // precision
-      AbstractStateHash ignorePrecisionSearchKey = getHashCode(pStateKey, cacheKey.precisionKey, pContext);
+      AbstractStateHash ignorePrecisionSearchKey =
+          getHashCode(pStateKey, cacheKey.precisionKey, pContext);
       if (ignorePrecisionSearchKey.equals(cacheKey)) {
         precisionCausedMisses++;
         return;
       }
 
       // Precision was not the cause. Check abstraction.
-      AbstractStateHash ignoreAbsSearchKey = getHashCode(cacheKey.stateKey, pPrecisionKey, pContext);
+      AbstractStateHash ignoreAbsSearchKey =
+          getHashCode(cacheKey.stateKey, pPrecisionKey, pContext);
       if (ignoreAbsSearchKey.equals(cacheKey)) {
         abstractionCausedMisses++;
         return;
@@ -200,8 +206,7 @@ public class BAMCacheImpl implements BAMCache {
       AbstractStateHash other = (AbstractStateHash) pObj;
       equalsTimer.start();
       try {
-        return context.equals(other.context)
-                && wrappedHash.equals(other.wrappedHash);
+        return context.equals(other.context) && wrappedHash.equals(other.wrappedHash);
       } finally {
         equalsTimer.stop();
       }
@@ -219,8 +224,17 @@ public class BAMCacheImpl implements BAMCache {
 
     @Override
     public String toString() {
-      return "AbstractStateHash [hash=" + hashCode() + ", wrappedHash=" + wrappedHash + ", context="
-              + context + ", predicateKey=" + stateKey + ", precisionKey=" + precisionKey + "]";
+      return "AbstractStateHash [hash="
+          + hashCode()
+          + ", wrappedHash="
+          + wrappedHash
+          + ", context="
+          + context
+          + ", predicateKey="
+          + stateKey
+          + ", precisionKey="
+          + precisionKey
+          + "]";
     }
   }
 
@@ -229,11 +243,13 @@ public class BAMCacheImpl implements BAMCache {
 
     int sumCalls = cacheMisses + partialCacheHits + fullCacheHits;
 
-    StatHist argStats = new StatHist("") {
+    StatHist argStats =
+        new StatHist("") {
           @Override
           public String toString() {
             // overriding, because printing all sizes is not that interesting
-            return String.format("%.0f (#=%d, avg=%.2f, dev=%.2f, min=%d, max=%d)",
+            return String.format(
+                "%.0f (#=%d, avg=%.2f, dev=%.2f, min=%d, max=%d)",
                 getSum(), getUpdateCount(), getAvg(), getStdDeviation(), getMin(), getMax());
           }
         };
@@ -243,17 +259,57 @@ public class BAMCacheImpl implements BAMCache {
 
     out.println("Total size of all ARGs:                              " + argStats);
     out.println("Total number of recursive CPA calls:                 " + sumCalls);
-    out.println("  Number of cache misses:                            " + cacheMisses + " (" + toPercent(cacheMisses, sumCalls) + " of all calls)");
-    out.println("  Number of partial cache hits:                      " + partialCacheHits + " (" + toPercent(partialCacheHits, sumCalls) + " of all calls)");
-    out.println("  Number of full cache hits:                         " + fullCacheHits + " (" + toPercent(fullCacheHits, sumCalls) + " of all calls)");
+    out.println(
+        "  Number of cache misses:                            "
+            + cacheMisses
+            + " ("
+            + toPercent(cacheMisses, sumCalls)
+            + " of all calls)");
+    out.println(
+        "  Number of partial cache hits:                      "
+            + partialCacheHits
+            + " ("
+            + toPercent(partialCacheHits, sumCalls)
+            + " of all calls)");
+    out.println(
+        "  Number of full cache hits:                         "
+            + fullCacheHits
+            + " ("
+            + toPercent(fullCacheHits, sumCalls)
+            + " of all calls)");
     if (gatherCacheMissStatistics) {
       out.println("Cause for cache misses:                              ");
-      out.println("  Number of abstraction caused misses:               " + abstractionCausedMisses + " (" + toPercent(abstractionCausedMisses, cacheMisses) + " of all misses)");
-      out.println("  Number of precision caused misses:                 " + precisionCausedMisses + " (" + toPercent(precisionCausedMisses, cacheMisses) + " of all misses)");
-      out.println("  Number of misses with no similar elements:         " + noSimilarCausedMisses + " (" + toPercent(noSimilarCausedMisses, cacheMisses) + " of all misses)");
+      out.println(
+          "  Number of abstraction caused misses:               "
+              + abstractionCausedMisses
+              + " ("
+              + toPercent(abstractionCausedMisses, cacheMisses)
+              + " of all misses)");
+      out.println(
+          "  Number of precision caused misses:                 "
+              + precisionCausedMisses
+              + " ("
+              + toPercent(precisionCausedMisses, cacheMisses)
+              + " of all misses)");
+      out.println(
+          "  Number of misses with no similar elements:         "
+              + noSimilarCausedMisses
+              + " ("
+              + toPercent(noSimilarCausedMisses, cacheMisses)
+              + " of all misses)");
     }
-    out.println("Time for checking equality of abstract states:       " + equalsTimer + " (Calls: " + equalsTimer.getNumberOfIntervals() + ")");
-    out.println("Time for computing the hashCode of abstract states:  " + hashingTimer + " (Calls: " + hashingTimer.getNumberOfIntervals() + ")");
+    out.println(
+        "Time for checking equality of abstract states:       "
+            + equalsTimer
+            + " (Calls: "
+            + equalsTimer.getNumberOfIntervals()
+            + ")");
+    out.println(
+        "Time for computing the hashCode of abstract states:  "
+            + hashingTimer
+            + " (Calls: "
+            + hashingTimer.getNumberOfIntervals()
+            + ")");
   }
 
   @Override

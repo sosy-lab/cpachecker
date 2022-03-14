@@ -36,7 +36,7 @@ public class UnsafeDetector {
     if (set instanceof RefinedUsagePointSet) {
       return true;
     }
-    return isUnsafe((UnrefinedUsagePointSet)set);
+    return isUnsafe((UnrefinedUsagePointSet) set);
   }
 
   public boolean isUnsafe(Set<UsageInfo> set) {
@@ -57,14 +57,15 @@ public class UnsafeDetector {
     assert isUnsafe(set);
 
     if (set instanceof RefinedUsagePointSet) {
-      return ((RefinedUsagePointSet)set).getUnsafePair();
+      return ((RefinedUsagePointSet) set).getUnsafePair();
     } else {
       UnrefinedUsagePointSet unrefinedSet = (UnrefinedUsagePointSet) set;
       Pair<UsagePoint, UsagePoint> result = getUnsafePair(unrefinedSet.getTopUsages());
 
       assert result != null;
 
-      return Pair.of(unrefinedSet.getUsageInfo(result.getFirst()).getOneExample(),
+      return Pair.of(
+          unrefinedSet.getUsageInfo(result.getFirst()).getOneExample(),
           unrefinedSet.getUsageInfo(result.getSecond()).getOneExample());
     }
   }
@@ -107,7 +108,7 @@ public class UnsafeDetector {
         }
       }
     }
-    //If we can not find an unsafe here, fail
+    // If we can not find an unsafe here, fail
     return null;
   }
 
@@ -129,7 +130,6 @@ public class UnsafeDetector {
     }
     return false;
   }
-
 
   private boolean isRace(UsagePoint point1, UsagePoint point2) {
     if (point1.getAccess() == Access.WRITE || point2.getAccess() == Access.WRITE) {
@@ -160,7 +160,7 @@ public class UnsafeDetector {
   }
 
   private boolean isDeadlockCircular(UsagePoint point1, UsagePoint point2) {
-    //Deadlocks
+    // Deadlocks
     DeadLockTreeNode node1 = point1.get(DeadLockTreeNode.class);
     DeadLockTreeNode node2 = point2.get(DeadLockTreeNode.class);
 
@@ -170,13 +170,14 @@ public class UnsafeDetector {
         int index2 = node1.indexOf(lock2);
         int otherIndex1 = node2.indexOf(lock1);
         int otherIndex2 = node2.indexOf(lock2);
-        if (otherIndex1 >= 0 && index2 >= 0 &&
-            ((index1 > index2 && otherIndex1 < otherIndex2) ||
-             (index1 < index2 && otherIndex1 > otherIndex2))) {
+        if (otherIndex1 >= 0
+            && index2 >= 0
+            && ((index1 > index2 && otherIndex1 < otherIndex2)
+                || (index1 < index2 && otherIndex1 > otherIndex2))) {
           return true;
         }
       }
     }
     return false;
   }
- }
+}

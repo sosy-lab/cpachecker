@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.slicing;
 
-
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;

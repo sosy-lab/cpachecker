@@ -55,9 +55,11 @@ public interface BAMCache extends Statistics {
   /** Return all cached reached-sets. Useful for statistics. */
   Collection<ReachedSet> getAllCachedReachedStates();
 
-  /** Some benchmarks are complicated and
-   *  all intermediate cache entries can not be stored due to large memory consumption,
-   *  then there is a way to clear all caches and to restore ARG completely. */
+  /**
+   * Some benchmarks are complicated and all intermediate cache entries can not be stored due to
+   * large memory consumption, then there is a way to clear all caches and to restore ARG
+   * completely.
+   */
   void clear();
 
   class BAMCacheEntry {

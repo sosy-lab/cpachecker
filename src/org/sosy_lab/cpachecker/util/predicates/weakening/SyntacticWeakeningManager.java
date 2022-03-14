@@ -16,9 +16,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-/**
- * Perform weakening based on the syntactic information.
- */
+/** Perform weakening based on the syntactic information. */
 public class SyntacticWeakeningManager {
   private final FormulaManagerView fmgr;
 
@@ -48,8 +46,7 @@ public class SyntacticWeakeningManager {
       BooleanFormula instantiatedFrom = fmgr.instantiate(lemma, pFromSSA);
       BooleanFormula instantiatedTo = fmgr.instantiate(lemma, pToSSA);
 
-      if (!pFromStateLemmas.contains(lemma) ||
-            !instantiatedFrom.equals(instantiatedTo)) {
+      if (!pFromStateLemmas.contains(lemma) || !instantiatedFrom.equals(instantiatedTo)) {
         out.add(selector);
       }
     }

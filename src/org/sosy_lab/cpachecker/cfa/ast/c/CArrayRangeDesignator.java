@@ -12,19 +12,19 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-
 public class CArrayRangeDesignator extends CDesignator {
 
   private static final long serialVersionUID = -2956484289176841585L;
   private final AExpression rangeFloor;
   private final AExpression rangeCeiling;
 
-  public CArrayRangeDesignator(final FileLocation pFileLocation,
-                          final CExpression pRangeFloor,
-                          final CExpression pRangeCeiling) {
-     super(pFileLocation);
-     rangeFloor = pRangeFloor;
-     rangeCeiling = pRangeCeiling;
+  public CArrayRangeDesignator(
+      final FileLocation pFileLocation,
+      final CExpression pRangeFloor,
+      final CExpression pRangeCeiling) {
+    super(pFileLocation);
+    rangeFloor = pRangeFloor;
+    rangeCeiling = pRangeCeiling;
   }
 
   public CExpression getFloorExpression() {
@@ -75,8 +75,7 @@ public class CArrayRangeDesignator extends CDesignator {
       return true;
     }
 
-    if (!(obj instanceof CArrayRangeDesignator)
-        || !super.equals(obj)) {
+    if (!(obj instanceof CArrayRangeDesignator) || !super.equals(obj)) {
       return false;
     }
 
@@ -85,5 +84,4 @@ public class CArrayRangeDesignator extends CDesignator {
     return Objects.equals(other.rangeCeiling, rangeCeiling)
         && Objects.equals(other.rangeFloor, rangeFloor);
   }
-
 }

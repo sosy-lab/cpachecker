@@ -17,35 +17,28 @@ import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 
 /**
- * This interface defines an abstraction for counterexample filter.
- * When ARGCPA handles multiple counterexamples,
- * there might be many similar counterexamples in the reached set,
- * but the user would probably like to see not all of them,
- * only those that differ significantly.
- * A counterexample filter is used to filter all those unwanted counterexamples.
+ * This interface defines an abstraction for counterexample filter. When ARGCPA handles multiple
+ * counterexamples, there might be many similar counterexamples in the reached set, but the user
+ * would probably like to see not all of them, only those that differ significantly. A
+ * counterexample filter is used to filter all those unwanted counterexamples.
  *
- * It is expected that a counterexample filter is stateful.
- * It usually keeps track of all previously seen counterexamples
- * (at least of the relevant ones), and compares a new counterexample
- * against this set.
+ * <p>It is expected that a counterexample filter is stateful. It usually keeps track of all
+ * previously seen counterexamples (at least of the relevant ones), and compares a new
+ * counterexample against this set.
  *
- * IMPORTANT: A counterexample filter should try hard to not have a reference
- * on ARGStates!
- * Doing so would retain a lot of memory, because every ARGState has (transitive)
- * references to the full ARG.
- * Also ARGStates may be deleted later on, which changes their state
- * and thus makes them useless.
+ * <p>IMPORTANT: A counterexample filter should try hard to not have a reference on ARGStates! Doing
+ * so would retain a lot of memory, because every ARGState has (transitive) references to the full
+ * ARG. Also ARGStates may be deleted later on, which changes their state and thus makes them
+ * useless.
  *
- * Instead, prefer keeping references to objects like CFAEdges,
- * or representations of program state in a different form (variable assignments,
- * formulas, etc.).
+ * <p>Instead, prefer keeping references to objects like CFAEdges, or representations of program
+ * state in a different form (variable assignments, formulas, etc.).
  *
- * Counterexample filters do not need to be thread-safe.
+ * <p>Counterexample filters do not need to be thread-safe.
  *
- * Implementations need to have exactly one public constructor or a static method named "create"
- * which may take a {@link Configuration}, a {@link LogManager}, and a
- * {@link ConfigurableProgramAnalysis}, and throw at most an
- * {@link InvalidConfigurationException}.
+ * <p>Implementations need to have exactly one public constructor or a static method named "create"
+ * which may take a {@link Configuration}, a {@link LogManager}, and a {@link
+ * ConfigurableProgramAnalysis}, and throw at most an {@link InvalidConfigurationException}.
  */
 public interface CounterexampleFilter {
 

@@ -29,9 +29,8 @@ import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
- * Class for creating precisions and updating the ARGTree with them.
- * Can create precisions for {@link ValueAnalysisCPA} and {@link ConstraintsCPA} out of
- * precision increments.
+ * Class for creating precisions and updating the ARGTree with them. Can create precisions for
+ * {@link ValueAnalysisCPA} and {@link ConstraintsCPA} out of precision increments.
  */
 public class ARGTreePrecisionUpdater {
 
@@ -78,10 +77,10 @@ public class ARGTreePrecisionUpdater {
 
   private static VariableTrackingPrecision extractValuePrecision(
       final ARGReachedSet pReached, final ARGState pState) {
-    return (VariableTrackingPrecision) Precisions
-        .asIterable(pReached.asReachedSet().getPrecision(pState))
-        .filter(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class))
-        .get(0);
+    return (VariableTrackingPrecision)
+        Precisions.asIterable(pReached.asReachedSet().getPrecision(pState))
+            .filter(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class))
+            .get(0);
   }
 
   /**
@@ -123,8 +122,7 @@ public class ARGTreePrecisionUpdater {
 
   private static ConstraintsPrecision extractConstraintsPrecision(
       final ARGReachedSet pReached, final ARGState pState) {
-    return Precisions
-        .asIterable(pReached.asReachedSet().getPrecision(pState))
+    return Precisions.asIterable(pReached.asReachedSet().getPrecision(pState))
         .filter(ConstraintsPrecision.class)
         .get(0);
   }

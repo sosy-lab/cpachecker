@@ -22,7 +22,7 @@ public class StatisticsUtils {
 
   private static final TimeSpan STATISTICS_WARNING_TIME = TimeSpan.ofSeconds(10);
 
-  private StatisticsUtils() { }
+  private StatisticsUtils() {}
 
   public static String toPercent(double val, double full) {
     return String.format("%1.0f%%", val / full * 100);
@@ -36,15 +36,15 @@ public class StatisticsUtils {
     return String.format("%.2f", val / full);
   }
 
-  public static void write(PrintStream target, int indentLevel, int outputNameColWidth,
-      String name, Object value) {
+  public static void write(
+      PrintStream target, int indentLevel, int outputNameColWidth, String name, Object value) {
     String indentation = "  ".repeat(indentLevel);
-    target.println(String.format("%-" + outputNameColWidth + "s %s",
-                                 indentation + name + ":", value));
+    target.println(
+        String.format("%-" + outputNameColWidth + "s %s", indentation + name + ":", value));
   }
 
-  public static void write(PrintStream target, int indentLevel, int outputNameColWidth,
-      AbstractStatValue stat) {
+  public static void write(
+      PrintStream target, int indentLevel, int outputNameColWidth, AbstractStatValue stat) {
     write(target, indentLevel, outputNameColWidth, stat.getTitle(), stat.toString());
   }
 

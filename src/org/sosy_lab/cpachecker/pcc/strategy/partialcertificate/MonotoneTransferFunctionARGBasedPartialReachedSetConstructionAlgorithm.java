@@ -21,7 +21,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.CPAs;
 
-public class MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm implements PartialReachedConstructionAlgorithm {
+public class MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm
+    implements PartialReachedConstructionAlgorithm {
 
   private final boolean returnARGStates;
   private final boolean withCMC;
@@ -36,8 +37,11 @@ public class MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgori
   public AbstractState[] computePartialReachedSet(
       final UnmodifiableReachedSet pReached, final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
-    if (!(pReached.getFirstState() instanceof ARGState)) { throw new InvalidConfigurationException(
-        "May only compute partial reached set with this algorithm if an ARG is constructed and ARG is top level state."); }
+    if (!(pReached.getFirstState() instanceof ARGState)) {
+      throw new InvalidConfigurationException(
+          "May only compute partial reached set with this algorithm if an ARG is constructed and"
+              + " ARG is top level state.");
+    }
     ARGCPA argCpa =
         CPAs.retrieveCPAOrFail(
             pCpa, ARGCPA.class, ARGBasedPartialReachedSetConstructionAlgorithm.class);
@@ -63,7 +67,6 @@ public class MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgori
       throws InvalidConfigurationException {
     return new NodeSelectionARGPass(pRoot);
   }
-
 
   protected class NodeSelectionARGPass extends AbstractARGPass {
 
@@ -111,8 +114,5 @@ public class MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgori
         return wrappedARGStates;
       }
     }
-
   }
-
-
 }

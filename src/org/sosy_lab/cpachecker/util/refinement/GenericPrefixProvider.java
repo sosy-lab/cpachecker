@@ -41,8 +41,8 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 /**
  * PrefixProvider that extracts all infeasible prefixes for a path, starting with an initial empty
- * or given state.
- * Uses a {@link StrongestPostOperator} for interpreting the semantics of operations.
+ * or given state. Uses a {@link StrongestPostOperator} for interpreting the semantics of
+ * operations.
  */
 public class GenericPrefixProvider<S extends ForgetfulState<?>> implements PrefixProvider {
 
@@ -69,18 +69,19 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
       final ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     logger = pLogger;
-    cfa    = pCfa;
+    cfa = pCfa;
 
     strongestPost = pStrongestPost;
     initialState = pEmptyState;
-    precision = VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification(), pCpaToRefine);
+    precision =
+        VariableTrackingPrecision.createStaticPrecision(
+            config, cfa.getVarClassification(), pCpaToRefine);
     shutdownNotifier = pShutdownNotifier;
   }
 
   /**
-   * This method obtains a list of prefixes of the path, that are infeasible by themselves.
-   * If the path is feasible, the whole path
-   * is returned as the only element of the list.
+   * This method obtains a list of prefixes of the path, that are infeasible by themselves. If the
+   * path is feasible, the whole path is returned as the only element of the list.
    *
    * @param path the path to check
    * @return the list of prefix of the path that are feasible by themselves
@@ -92,18 +93,15 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
   }
 
   /**
-   * This method obtains a list of prefixes of the path, that are infeasible by themselves.
-   * If the path is feasible, the whole path
-   * is returned as the only element of the list.
+   * This method obtains a list of prefixes of the path, that are infeasible by themselves. If the
+   * path is feasible, the whole path is returned as the only element of the list.
    *
    * @param path the path to check
    * @param pInitial the initial state
    * @return the list of prefix of the path that are feasible by themselves
    */
-  public List<InfeasiblePrefix> extractInfeasiblePrefixes(
-      final ARGPath path,
-      final S pInitial
-  ) throws CPAException, InterruptedException {
+  public List<InfeasiblePrefix> extractInfeasiblePrefixes(final ARGPath path, final S pInitial)
+      throws CPAException, InterruptedException {
 
     List<InfeasiblePrefix> prefixes = new ArrayList<>();
     Deque<S> callstack = new ArrayDeque<>();
@@ -142,7 +140,8 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
 
         // no successors => path is infeasible
         if (!successor.isPresent()) {
-          logger.log(Level.FINE, "found infeasible prefix: ", outgoingEdge, " did not yield a successor");
+          logger.log(
+              Level.FINE, "found infeasible prefix: ", outgoingEdge, " did not yield a successor");
 
           // last state is the one which is infeasible
           ARGPath infeasiblePrefix = feasiblePrefixBuilder.build(iterator.getNextAbstractState());
@@ -151,7 +150,6 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
           prefixes.add(buildInfeasiblePrefix(infeasiblePrefix));
 
           feasiblePrefixBuilder.removeLast();
-
 
           // continue with feasible prefix
           if (iterator.hasNext()) {
@@ -186,9 +184,7 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
     }
   }
 
-  private Optional<S> getSuccessor(final S pNext,
-      final CFAEdge pEdge,
-      final Deque<S> pCallstack)
+  private Optional<S> getSuccessor(final S pNext, final CFAEdge pEdge, final Deque<S> pCallstack)
       throws CPAException, InterruptedException {
 
     S next = pNext;
@@ -213,10 +209,9 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
                 : ImmutableSet.of(),
             false);
 
-    List<Pair<ARGState, ValueAnalysisInterpolant>> interpolants = new UseDefBasedInterpolator(
-        infeasiblePrefix,
-        useDefRelation,
-        cfa.getMachineModel()).obtainInterpolants();
+    List<Pair<ARGState, ValueAnalysisInterpolant>> interpolants =
+        new UseDefBasedInterpolator(infeasiblePrefix, useDefRelation, cfa.getMachineModel())
+            .obtainInterpolants();
 
     return InfeasiblePrefix.buildForValueDomain(
         infeasiblePrefix, transformedImmutableListCopy(interpolants, Pair::getSecond));

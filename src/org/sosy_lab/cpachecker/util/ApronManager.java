@@ -30,8 +30,8 @@ public class ApronManager {
 
   public ApronManager(AbstractDomain pAbstractDomain) {
     try {
-      SetUp.init(NativeLibraries.getNativeLibraryPath().resolve("apron")
-          .toAbsolutePath().toString());
+      SetUp.init(
+          NativeLibraries.getNativeLibraryPath().resolve("apron").toAbsolutePath().toString());
     } catch (RuntimeException e) {
       if ("Could not add the necessary path to java.library.path".equals(e.getMessage())) {
         UnsatisfiedLinkError error = new UnsatisfiedLinkError();
@@ -61,8 +61,7 @@ public class ApronManager {
       case POLKA_EQ:
         return new PolkaEq();
       default:
-        throw new UnsupportedOperationException(
-            "Unexpected argument for domain option.");
+        throw new UnsupportedOperationException("Unexpected argument for domain option.");
     }
   }
 }

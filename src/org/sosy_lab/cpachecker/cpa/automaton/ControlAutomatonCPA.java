@@ -125,7 +125,8 @@ public class ControlAutomatonCPA
       secure = true,
       name = "prec.topOnFinalSelfLoopingState",
       description =
-          "An implicit precision: consider states with a self-loop and no other outgoing edges as TOP.")
+          "An implicit precision: consider states with a self-loop and no other outgoing edges as"
+              + " TOP.")
   private boolean topOnFinalSelfLoopingState = false;
 
   @Option(
@@ -161,14 +162,14 @@ public class ControlAutomatonCPA
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
     if (pAutomaton != null) {
-      this.automaton = pAutomaton;
+      automaton = pAutomaton;
 
     } else if (inputFile == null) {
       throw new InvalidConfigurationException(
           "Explicitly specified automaton CPA needs option cpa.automaton.inputFile!");
 
     } else {
-      this.automaton = constructAutomataFromFile(pConfig, inputFile);
+      automaton = constructAutomataFromFile(pConfig, inputFile);
     }
 
     pLogger.log(Level.FINEST, "Automaton", automaton.getName(), "loaded.");
@@ -232,7 +233,7 @@ public class ControlAutomatonCPA
   }
 
   Automaton getAutomaton() {
-    return this.automaton;
+    return automaton;
   }
 
   public void registerInAutomatonInfo(AutomatonInfo info) {
@@ -314,11 +315,11 @@ public class ControlAutomatonCPA
   }
 
   public AutomatonState getBottomState() {
-    return this.bottomState;
+    return bottomState;
   }
 
   public AutomatonState getTopState() {
-    return this.topState;
+    return topState;
   }
 
   @Override

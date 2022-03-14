@@ -39,10 +39,9 @@ public class ConfigurationParser {
   private Set<String> lockinfo = ImmutableSet.of();
 
   @Option(
-    name = "annotate",
-    description = " annotated functions, which are known to works right",
-    secure = true
-  )
+      name = "annotate",
+      description = " annotated functions, which are known to works right",
+      secure = true)
   private Set<String> annotated;
 
   ConfigurationParser(Configuration pConfig) throws InvalidConfigurationException {

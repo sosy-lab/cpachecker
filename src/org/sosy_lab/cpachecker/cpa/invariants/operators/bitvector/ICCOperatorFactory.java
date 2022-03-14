@@ -14,26 +14,24 @@ import org.sosy_lab.cpachecker.cpa.invariants.OverflowEventHandler;
 import org.sosy_lab.cpachecker.cpa.invariants.operators.Operator;
 
 /**
- * Instances of implementations of this interface are operators that can
- * be applied to a simple interval and a compound state, producing a
- * compound state representing the result of the operation.
+ * Instances of implementations of this interface are operators that can be applied to a simple
+ * interval and a compound state, producing a compound state representing the result of the
+ * operation.
  */
 public enum ICCOperatorFactory {
-
   INSTANCE;
 
-  /**
-   * The addition operator for adding compound states to simple intervals.
-   */
-  public Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval> getAdd(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
+  /** The addition operator for adding compound states to simple intervals. */
+  public Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval> getAdd(
+      final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
     return (pFirstOperand, pSecondOperand) ->
         pSecondOperand.add(pFirstOperand, pAllowSignedWrapAround, pOverflowEventHandler);
   }
 
-  /**
-   * The division operator for dividing simple intervals by compound states.
-   */
-  public Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval> getDivide(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
+  /** The division operator for dividing simple intervals by compound states. */
+  public Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval>
+      getDivide(
+          final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
     return new Operator<>() {
 
       @Override
@@ -58,10 +56,10 @@ public enum ICCOperatorFactory {
     };
   }
 
-  /**
-   * The modulo operator for computing the remainders of dividing intervals by compound states.
-   */
-  public Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval> getModulo(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
+  /** The modulo operator for computing the remainders of dividing intervals by compound states. */
+  public Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval>
+      getModulo(
+          final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
     return new Operator<>() {
 
       @Override
@@ -86,18 +84,18 @@ public enum ICCOperatorFactory {
     };
   }
 
-  /**
-   * The multiplication operator for multiplying simple intervals with compound states.
-   */
-  public Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval> getMultiply(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
+  /** The multiplication operator for multiplying simple intervals with compound states. */
+  public Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval>
+      getMultiply(
+          final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
     return (pFirstOperand, pSecondOperand) ->
         pSecondOperand.multiply(pFirstOperand, pAllowSignedWrapAround, pOverflowEventHandler);
   }
 
-  /**
-   * The left shift operator for left shifting simple intervals by compound states.
-   */
-  public Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval> getShiftLeft(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
+  /** The left shift operator for left shifting simple intervals by compound states. */
+  public Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval>
+      getShiftLeft(
+          final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
     return new Operator<>() {
 
       @Override
@@ -122,10 +120,10 @@ public enum ICCOperatorFactory {
     };
   }
 
-  /**
-   * The right shift operator for right shifting simple intervals by compound states.
-   */
-  public Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval> getShiftRight(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
+  /** The right shift operator for right shifting simple intervals by compound states. */
+  public Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval>
+      getShiftRight(
+          final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
     return new Operator<>() {
 
       @Override
@@ -149,5 +147,4 @@ public enum ICCOperatorFactory {
       }
     };
   }
-
 }

@@ -20,15 +20,13 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-/**
- * The transfer relation of the StatisticsCPA.
- */
+/** The transfer relation of the StatisticsCPA. */
 public class StatisticsTransferRelation extends SingleEdgeTransferRelation {
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
-          throws CPATransferException, InterruptedException {
+      throws CPATransferException, InterruptedException {
     StatisticsState state = (StatisticsState) pState;
     CFANode node = state.getLocationNode();
     if (pCfaEdge != null) {
@@ -46,6 +44,5 @@ public class StatisticsTransferRelation extends SingleEdgeTransferRelation {
     }
 
     return allSuccessors.build();
-
   }
 }

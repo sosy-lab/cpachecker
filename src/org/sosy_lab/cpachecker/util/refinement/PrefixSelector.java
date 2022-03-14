@@ -25,12 +25,13 @@ public class PrefixSelector {
   private final ScorerFactory factory;
   private final Optional<VariableClassification> classification;
 
-  public InfeasiblePrefix selectSlicedPrefix(List<PrefixPreference> pPrefixPreference,
-      List<InfeasiblePrefix> pInfeasiblePrefixes) {
+  public InfeasiblePrefix selectSlicedPrefix(
+      List<PrefixPreference> pPrefixPreference, List<InfeasiblePrefix> pInfeasiblePrefixes) {
     return Ordering.compound(createComparators(pPrefixPreference)).min(pInfeasiblePrefixes);
   }
 
-  public int obtainScoreForPrefixes(final List<InfeasiblePrefix> pPrefixes, final PrefixPreference pPreference) {
+  public int obtainScoreForPrefixes(
+      final List<InfeasiblePrefix> pPrefixes, final PrefixPreference pPreference) {
 
     if (!classification.isPresent()) {
       return Scorer.DEFAULT_SCORE;
@@ -43,7 +44,8 @@ public class PrefixSelector {
         .orElse(Scorer.DEFAULT_SCORE);
   }
 
-  private List<Comparator<InfeasiblePrefix>> createComparators(List<PrefixPreference> pPrefixPreference) {
+  private List<Comparator<InfeasiblePrefix>> createComparators(
+      List<PrefixPreference> pPrefixPreference) {
     return Lists.transform(pPrefixPreference, p -> factory.createScorer(p).getComparator());
   }
 
@@ -72,11 +74,13 @@ public class PrefixSelector {
     WIDTH_MIN,
     WIDTH_MAX,
 
-    // heuristic based on counting the number of assignments over variables in the interpolant sequence
+    // heuristic based on counting the number of assignments over variables in the interpolant
+    // sequence
     ASSIGNMENTS_MIN,
     ASSIGNMENTS_MAX,
 
-    // heuristic based on counting the number of assumptions over variables in the interpolant sequence
+    // heuristic based on counting the number of assumptions over variables in the interpolant
+    // sequence
     ASSUMPTIONS_MIN,
     ASSUMPTIONS_MAX,
 
@@ -140,10 +144,11 @@ public class PrefixSelector {
         case RANDOM:
           return randomScorer;
 
-        // illegal arguments
+          // illegal arguments
         case NONE:
         default:
-          throw new IllegalArgumentException("Illegal prefix preference " + pPreference + " given!");
+          throw new IllegalArgumentException(
+              "Illegal prefix preference " + pPreference + " given!");
       }
     }
   }
@@ -305,6 +310,6 @@ public class PrefixSelector {
       Optional<LoopStructure> pLoopStructure,
       LogManager pLogger) {
     factory = new ScorerFactory(pClassification, pLoopStructure, pLogger);
-    classification  = pClassification;
+    classification = pClassification;
   }
 }

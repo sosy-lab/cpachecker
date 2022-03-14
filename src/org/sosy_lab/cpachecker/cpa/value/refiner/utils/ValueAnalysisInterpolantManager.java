@@ -12,9 +12,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.util.refinement.InterpolantManager;
 
-/**
- * InterpolantManager for interpolants of {@link ValueAnalysisState}.
- */
+/** InterpolantManager for interpolants of {@link ValueAnalysisState}. */
 public class ValueAnalysisInterpolantManager
     implements InterpolantManager<ValueAnalysisState, ValueAnalysisInterpolant> {
 
