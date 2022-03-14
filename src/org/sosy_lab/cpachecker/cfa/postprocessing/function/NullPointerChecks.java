@@ -68,23 +68,28 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * Using detectNullPointers, before every occurrence of *p we insert a test on
  * p == 0 in order to detect null pointers.
  */
-@Options(prefix="cfa.checkNullPointers")
+@Options(prefix = "cfa.checkNullPointers")
 public class NullPointerChecks {
 
-  @Option(secure=true, description="Whether to have a single target node per function"
-      + " for all invalid null pointer dereferences or to have separate nodes for each dereference")
+  @Option(
+      secure = true,
+      description =
+          "Whether to have a single target node per function for all invalid null pointer"
+              + " dereferences or to have separate nodes for each dereference")
   private boolean singleTargetPerFunction = true;
 
   private final LogManager logger;
 
-  public NullPointerChecks(LogManager pLogger, Configuration config) throws InvalidConfigurationException {
+  public NullPointerChecks(LogManager pLogger, Configuration config)
+      throws InvalidConfigurationException {
     config.inject(this);
     logger = pLogger;
   }
 
   public void addNullPointerChecks(final MutableCFA cfa) throws CParserException {
 
-    CBinaryExpressionBuilder binBuilder = new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);
+    CBinaryExpressionBuilder binBuilder =
+        new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);
 
     for (final String functionName : cfa.getAllFunctionNames()) {
 
@@ -119,50 +124,53 @@ public class NullPointerChecks {
 
       for (CFANode node : ImmutableList.copyOf(cfa.getFunctionNodes(functionName))) {
         switch (node.getNumLeavingEdges()) {
-        case 0:
-          break;
-        case 1:
-          handleEdge(node.getLeavingEdge(0), cfa, targetNodeSupplier, binBuilder);
-          break;
-        case 2:
-          if (node.getLeavingEdge(0) instanceof AssumeEdge
-              && node.getLeavingEdge(1) instanceof AssumeEdge) {
-            // handle only one edge, both contain the same expression
+          case 0:
+            break;
+          case 1:
             handleEdge(node.getLeavingEdge(0), cfa, targetNodeSupplier, binBuilder);
-          } else {
-            handleEdge(node.getLeavingEdge(0), cfa, targetNodeSupplier, binBuilder);
-            handleEdge(node.getLeavingEdge(1), cfa, targetNodeSupplier, binBuilder);
-          }
-          break;
-        default:
-          throw new AssertionError("Too many leaving edges on CFANode");
+            break;
+          case 2:
+            if (node.getLeavingEdge(0) instanceof AssumeEdge
+                && node.getLeavingEdge(1) instanceof AssumeEdge) {
+              // handle only one edge, both contain the same expression
+              handleEdge(node.getLeavingEdge(0), cfa, targetNodeSupplier, binBuilder);
+            } else {
+              handleEdge(node.getLeavingEdge(0), cfa, targetNodeSupplier, binBuilder);
+              handleEdge(node.getLeavingEdge(1), cfa, targetNodeSupplier, binBuilder);
+            }
+            break;
+          default:
+            throw new AssertionError("Too many leaving edges on CFANode");
         }
       }
     }
   }
 
-  private static void handleEdge(CFAEdge edge, MutableCFA cfa, Supplier<CFANode> targetNode, CBinaryExpressionBuilder builder) throws CParserException {
+  private static void handleEdge(
+      CFAEdge edge, MutableCFA cfa, Supplier<CFANode> targetNode, CBinaryExpressionBuilder builder)
+      throws CParserException {
     ContainsPointerVisitor visitor = new ContainsPointerVisitor();
     if (edge instanceof CReturnStatementEdge) {
-      Optional<CExpression> returnExp = ((CReturnStatementEdge)edge).getExpression();
+      Optional<CExpression> returnExp = ((CReturnStatementEdge) edge).getExpression();
       if (returnExp.isPresent()) {
         returnExp.orElseThrow().accept(visitor);
       }
     } else if (edge instanceof CStatementEdge) {
-      CStatement stmt = ((CStatementEdge)edge).getStatement();
+      CStatement stmt = ((CStatementEdge) edge).getStatement();
       if (stmt instanceof CFunctionCallStatement) {
-        ((CFunctionCallStatement)stmt).getFunctionCallExpression().accept(visitor);
+        ((CFunctionCallStatement) stmt).getFunctionCallExpression().accept(visitor);
       } else if (stmt instanceof CExpressionStatement) {
-        ((CExpressionStatement)stmt).getExpression().accept(visitor);
+        ((CExpressionStatement) stmt).getExpression().accept(visitor);
       } else if (stmt instanceof CAssignment) {
-        ((CAssignment)stmt).getRightHandSide().accept(visitor);
-        ((CAssignment)stmt).getLeftHandSide().accept(visitor);
+        ((CAssignment) stmt).getRightHandSide().accept(visitor);
+        ((CAssignment) stmt).getLeftHandSide().accept(visitor);
       }
     } else if (edge instanceof CDeclarationEdge) {
-      CDeclaration decl = ((CDeclarationEdge)edge).getDeclaration();
+      CDeclaration decl = ((CDeclarationEdge) edge).getDeclaration();
       if (!decl.isGlobal() && decl instanceof CVariableDeclaration) {
         try {
-          for (CAssignment assignment : CInitializers.convertToAssignments((CVariableDeclaration)decl, edge)) {
+          for (CAssignment assignment :
+              CInitializers.convertToAssignments((CVariableDeclaration) decl, edge)) {
             // left-hand side can be ignored (it is the currently declared variable
             assignment.getRightHandSide().accept(visitor);
           }
@@ -171,7 +179,7 @@ public class NullPointerChecks {
         }
       }
     } else if (edge instanceof CAssumeEdge) {
-      ((CAssumeEdge)edge).getExpression().accept(visitor);
+      ((CAssumeEdge) edge).getExpression().accept(visitor);
     }
 
     for (CExpression exp : Lists.reverse(visitor.dereferencedExpressions)) {
@@ -179,7 +187,12 @@ public class NullPointerChecks {
     }
   }
 
-  private static CFAEdge insertNullPointerCheck(CFAEdge edge, CExpression exp, MutableCFA cfa, Supplier<CFANode> targetNode, CBinaryExpressionBuilder binBuilder) {
+  private static CFAEdge insertNullPointerCheck(
+      CFAEdge edge,
+      CExpression exp,
+      MutableCFA cfa,
+      Supplier<CFANode> targetNode,
+      CBinaryExpressionBuilder binBuilder) {
     CFANode predecessor = edge.getPredecessor();
     CFANode successor = edge.getSuccessor();
     CFACreationUtils.removeEdgeFromNodes(edge);
@@ -192,20 +205,28 @@ public class NullPointerChecks {
       CFACreationUtils.addEdgeUnconditionallyToCFA(newEdge);
     }
 
-    CBinaryExpression assumeExpression = binBuilder.buildBinaryExpressionUnchecked(
-        exp,
-        new CIntegerLiteralExpression(exp.getFileLocation(), CNumericTypes.INT,BigInteger.valueOf(0)),
-        BinaryOperator.EQUALS);
-    AssumeEdge trueEdge = new CAssumeEdge(edge.getRawStatement(),
-                                         edge.getFileLocation(),
-                                         predecessor, targetNode.get(),
-                                         assumeExpression,
-                                         true);
-    AssumeEdge falseEdge = new CAssumeEdge(edge.getRawStatement(),
-                                           edge.getFileLocation(),
-                                           predecessor, falseNode,
-                                           assumeExpression,
-                                           false);
+    CBinaryExpression assumeExpression =
+        binBuilder.buildBinaryExpressionUnchecked(
+            exp,
+            new CIntegerLiteralExpression(
+                exp.getFileLocation(), CNumericTypes.INT, BigInteger.valueOf(0)),
+            BinaryOperator.EQUALS);
+    AssumeEdge trueEdge =
+        new CAssumeEdge(
+            edge.getRawStatement(),
+            edge.getFileLocation(),
+            predecessor,
+            targetNode.get(),
+            assumeExpression,
+            true);
+    AssumeEdge falseEdge =
+        new CAssumeEdge(
+            edge.getRawStatement(),
+            edge.getFileLocation(),
+            predecessor,
+            falseNode,
+            assumeExpression,
+            false);
 
     CFACreationUtils.addEdgeUnconditionallyToCFA(trueEdge);
     CFACreationUtils.addEdgeUnconditionallyToCFA(falseEdge);
@@ -218,9 +239,10 @@ public class NullPointerChecks {
     return newEdge;
   }
 
-  private static CFAEdge createOldEdgeWithNewNodes(CFANode predecessor, CFANode successor, CFAEdge edge) {
+  private static CFAEdge createOldEdgeWithNewNodes(
+      CFANode predecessor, CFANode successor, CFAEdge edge) {
     switch (edge.getEdgeType()) {
-    case AssumeEdge:
+      case AssumeEdge:
         return new CAssumeEdge(
             edge.getRawStatement(),
             edge.getFileLocation(),
@@ -230,33 +252,37 @@ public class NullPointerChecks {
             ((CAssumeEdge) edge).getTruthAssumption(),
             ((CAssumeEdge) edge).isSwapped(),
             ((CAssumeEdge) edge).isArtificialIntermediate());
-    case ReturnStatementEdge:
+      case ReturnStatementEdge:
         return new CReturnStatementEdge(
             edge.getRawStatement(),
             ((CReturnStatementEdge) edge).getReturnStatement(),
             edge.getFileLocation(),
             predecessor,
             ((CReturnStatementEdge) edge).getSuccessor());
-    case StatementEdge:
-      return new CStatementEdge(edge.getRawStatement(), ((CStatementEdge)edge).getStatement(),
-                                edge.getFileLocation(), predecessor, successor);
-    case DeclarationEdge:
-      return new CDeclarationEdge(edge.getRawStatement(), edge.getFileLocation(),
-                                  predecessor, successor,
-                                  ((CDeclarationEdge)edge).getDeclaration());
-    case CallToReturnEdge:
-      throw new AssertionError();
-    default:
-      throw new AssertionError("more edge types valid than expected, more work to do here");
+      case StatementEdge:
+        return new CStatementEdge(
+            edge.getRawStatement(),
+            ((CStatementEdge) edge).getStatement(),
+            edge.getFileLocation(),
+            predecessor,
+            successor);
+      case DeclarationEdge:
+        return new CDeclarationEdge(
+            edge.getRawStatement(),
+            edge.getFileLocation(),
+            predecessor,
+            successor,
+            ((CDeclarationEdge) edge).getDeclaration());
+      case CallToReturnEdge:
+        throw new AssertionError();
+      default:
+        throw new AssertionError("more edge types valid than expected, more work to do here");
     }
   }
 
-
-  /**
-   * This visitor returns all Expressions where a Pointer is included
-   */
+  /** This visitor returns all Expressions where a Pointer is included */
   static class ContainsPointerVisitor extends DefaultCExpressionVisitor<Void, NoException>
-                                      implements CRightHandSideVisitor<Void, NoException> {
+      implements CRightHandSideVisitor<Void, NoException> {
 
     private final List<CExpression> dereferencedExpressions = new ArrayList<>();
 
@@ -275,6 +301,7 @@ public class NullPointerChecks {
       e.getSubscriptExpression().accept(this);
       return null;
     }
+
     @Override
     public Void visit(CCastExpression e) {
       return e.getOperand().accept(this);
@@ -301,10 +328,10 @@ public class NullPointerChecks {
       }
       if (e.getOperator() == UnaryOperator.AMPER) {
         if (e.getOperand() instanceof CFieldReference
-            && ((CFieldReference)e.getOperand()).isPointerDereference()) {
+            && ((CFieldReference) e.getOperand()).isPointerDereference()) {
           // &(s->f)
           // ignore this dereference and visit "s"
-          return ((CFieldReference)e.getOperand()).getFieldOwner().accept(this);
+          return ((CFieldReference) e.getOperand()).getFieldOwner().accept(this);
         }
       }
       return e.getOperand().accept(this);
@@ -328,6 +355,5 @@ public class NullPointerChecks {
     protected Void visitDefault(CExpression pExp) {
       return null;
     }
-
   }
 }

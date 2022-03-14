@@ -90,7 +90,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
 
   @SuppressWarnings("unchecked")
   private T unwrap(BitvectorFormula pNumber) {
-    return (T)super.unwrap(pNumber);
+    return (T) super.unwrap(pNumber);
   }
 
   private FunctionDeclaration<T> createUnaryFunction(String name) {
@@ -101,8 +101,10 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
     return functionManager.declareUF(name, formulaType, formulaType, formulaType);
   }
 
-  private BitvectorFormula makeUf(FormulaType<BitvectorFormula> realreturn, FunctionDeclaration<T> decl,
-                                  BitvectorFormula... t1) {
+  private BitvectorFormula makeUf(
+      FormulaType<BitvectorFormula> realreturn,
+      FunctionDeclaration<T> decl,
+      BitvectorFormula... t1) {
     List<Formula> args = unwrap(Arrays.<Formula>asList(t1));
 
     return wrap(realreturn, functionManager.callUF(decl, args));
@@ -115,7 +117,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
     Pair<Integer, Integer> hasKey = Pair.of(pMsb, pLsb);
     FunctionDeclaration<T> value = extractMethods.get(hasKey);
     if (value == null) {
-      value = createUnaryFunction("_extract("+ pMsb + "," + pLsb + ")_");
+      value = createUnaryFunction("_extract(" + pMsb + "," + pLsb + ")_");
       extractMethods.put(hasKey, value);
     }
     return value;
@@ -127,13 +129,14 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
     Pair<Integer, Integer> hasKey = Pair.of(firstSize, secoundSize);
     FunctionDeclaration<T> value = concatMethods.get(hasKey);
     if (value == null) {
-      value = createUnaryFunction("_concat("+ firstSize + "," + secoundSize + ")_");
+      value = createUnaryFunction("_concat(" + firstSize + "," + secoundSize + ")_");
       concatMethods.put(hasKey, value);
     }
     return value;
   }
 
-  private final Map<Triple<String, Boolean, Integer>, FunctionDeclaration<T>> UFDeclarations = new HashMap<>();
+  private final Map<Triple<String, Boolean, Integer>, FunctionDeclaration<T>> UFDeclarations =
+      new HashMap<>();
 
   private FunctionDeclaration<T> getUFDecl(String name, int id, boolean signed) {
     Triple<String, Boolean, Integer> key = Triple.of(name, signed, id);
@@ -148,16 +151,16 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
 
   @Override
   public BitvectorFormula makeBitvector(int pLength, long pI) {
-    assert BigInteger.valueOf(pI).bitLength() <= pLength:
-      String.format("numeral value %s is too big for bitvector of length %d.", pI, pLength);
+    assert BigInteger.valueOf(pI).bitLength() <= pLength
+        : String.format("numeral value %s is too big for bitvector of length %d.", pI, pLength);
     T number = numericFormulaManager.makeNumber(pI);
     return wrap(getBitvectorTypeWithSize(pLength), number);
   }
 
   @Override
   public BitvectorFormula makeBitvector(int pLength, BigInteger pI) {
-    assert pI.bitLength() <= pLength:
-      String.format("numeral value %s is too big for bitvector of length %d.", pI, pLength);
+    assert pI.bitLength() <= pLength
+        : String.format("numeral value %s is too big for bitvector of length %d.", pI, pLength);
     T number = numericFormulaManager.makeNumber(pI);
     return wrap(getBitvectorTypeWithSize(pLength), number);
   }
@@ -174,7 +177,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
 
   @Override
   public int getLength(BitvectorFormula pNumber) {
-    return ((BitvectorType)getFormulaType(pNumber)).getSize();
+    return ((BitvectorType) getFormulaType(pNumber)).getSize();
   }
 
   @Override
@@ -185,23 +188,30 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
   @Override
   public BitvectorFormula add(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {
     assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
-    return wrap(getFormulaType(pNumber1), numericFormulaManager.add(unwrap(pNumber1), unwrap(pNumber2)));
+    return wrap(
+        getFormulaType(pNumber1), numericFormulaManager.add(unwrap(pNumber1), unwrap(pNumber2)));
   }
 
   @Override
   public BitvectorFormula subtract(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {
     assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
-    return wrap(getFormulaType(pNumber1), numericFormulaManager.subtract(unwrap(pNumber1), unwrap(pNumber2)));
+    return wrap(
+        getFormulaType(pNumber1),
+        numericFormulaManager.subtract(unwrap(pNumber1), unwrap(pNumber2)));
   }
 
   @Override
-  public BitvectorFormula divide(BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean pSigned) {
+  public BitvectorFormula divide(
+      BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean pSigned) {
     assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
-    return wrap(getFormulaType(pNumber1), getC99ReplacementForSMTlib2Division(unwrap(pNumber1), unwrap(pNumber2)));
+    return wrap(
+        getFormulaType(pNumber1),
+        getC99ReplacementForSMTlib2Division(unwrap(pNumber1), unwrap(pNumber2)));
   }
 
   @Override
-  public BitvectorFormula modulo(BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean pSigned) {
+  public BitvectorFormula modulo(
+      BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean pSigned) {
     assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
     if (numericFormulaManager instanceof IntegerFormulaManager) {
       return wrap(
@@ -212,17 +222,17 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
     }
   }
 
-
   /**
    * @see BitvectorFormulaManagerView#divide(BitvectorFormula, BitvectorFormula, boolean)
    */
   private Formula getC99ReplacementForSMTlib2Division(final T f1, final T f2) {
 
     final T zero = numericFormulaManager.makeNumber(0);
-    final T additionalUnit = booleanFormulaManager.ifThenElse(
-        numericFormulaManager.greaterOrEquals(f2, zero),
-        numericFormulaManager.makeNumber(1),
-        numericFormulaManager.makeNumber(-1));
+    final T additionalUnit =
+        booleanFormulaManager.ifThenElse(
+            numericFormulaManager.greaterOrEquals(f2, zero),
+            numericFormulaManager.makeNumber(1),
+            numericFormulaManager.makeNumber(-1));
     final T div = numericFormulaManager.divide(f1, f2);
 
     // IF   first operand is positive or is divisible by second operand
@@ -237,14 +247,15 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
         numericFormulaManager.add(div, additionalUnit));
   }
 
-  /** @see BitvectorFormulaManagerView#modulo(BitvectorFormula, BitvectorFormula, boolean) */
+  /**
+   * @see BitvectorFormulaManagerView#modulo(BitvectorFormula, BitvectorFormula, boolean)
+   */
   @SuppressWarnings("unchecked")
   private Formula getC99ReplacementForSMTlib2Modulo(final T f1, final T f2) {
     final T zero = numericFormulaManager.makeNumber(0);
-    final T additionalUnit = booleanFormulaManager.ifThenElse(
-        numericFormulaManager.greaterOrEquals(f2, zero),
-        numericFormulaManager.negate(f2),
-        f2);
+    final T additionalUnit =
+        booleanFormulaManager.ifThenElse(
+            numericFormulaManager.greaterOrEquals(f2, zero), numericFormulaManager.negate(f2), f2);
 
     final T mod;
     mod =
@@ -267,7 +278,9 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
   @Override
   public BitvectorFormula multiply(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {
     assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
-    return wrap(getFormulaType(pNumber1), numericFormulaManager.multiply(unwrap(pNumber1), unwrap(pNumber2)));
+    return wrap(
+        getFormulaType(pNumber1),
+        numericFormulaManager.multiply(unwrap(pNumber1), unwrap(pNumber2)));
   }
 
   @Override
@@ -277,35 +290,40 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
   }
 
   @Override
-  public BooleanFormula greaterThan(BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean pSigned) {
+  public BooleanFormula greaterThan(
+      BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean pSigned) {
     assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
     return numericFormulaManager.greaterThan(unwrap(pNumber1), unwrap(pNumber2));
   }
 
   @Override
-  public BooleanFormula greaterOrEquals(BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean pSigned) {
+  public BooleanFormula greaterOrEquals(
+      BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean pSigned) {
     assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
     return numericFormulaManager.greaterOrEquals(unwrap(pNumber1), unwrap(pNumber2));
   }
 
   @Override
-  public BooleanFormula lessThan(BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean pSigned) {
+  public BooleanFormula lessThan(
+      BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean pSigned) {
     assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
     return numericFormulaManager.lessThan(unwrap(pNumber1), unwrap(pNumber2));
   }
 
   @Override
-  public BooleanFormula lessOrEquals(BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean pSigned) {
+  public BooleanFormula lessOrEquals(
+      BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean pSigned) {
     assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
     return numericFormulaManager.lessOrEquals(unwrap(pNumber1), unwrap(pNumber2));
   }
 
-
   /**
-   * Returns a term representing the (arithmetic if signed is true) right shift of number by toShift.
+   * Returns a term representing the (arithmetic if signed is true) right shift of number by
+   * toShift.
    */
   @Override
-  public BitvectorFormula shiftRight(BitvectorFormula pNumber, BitvectorFormula pToShift, boolean signed) {
+  public BitvectorFormula shiftRight(
+      BitvectorFormula pNumber, BitvectorFormula pToShift, boolean signed) {
     assert getLength(pNumber) == getLength(pToShift) : "Expect operators to have the same size";
     return makeUf(getFormulaType(pNumber), rightShiftUfDecl, pNumber, pToShift);
   }
@@ -320,7 +338,8 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
   public BitvectorFormula concat(BitvectorFormula pFirst, BitvectorFormula pSecound) {
     int firstLength = getLength(pFirst);
     int secoundLength = getLength(pSecound);
-    FormulaType<BitvectorFormula> returnType = getBitvectorTypeWithSize(firstLength + secoundLength);
+    FormulaType<BitvectorFormula> returnType =
+        getBitvectorTypeWithSize(firstLength + secoundLength);
     if (ignoreExtractConcat) {
       return wrap(returnType, unwrap(pSecound));
     }
@@ -340,7 +359,8 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
 
   @Override
   public BitvectorFormula extend(BitvectorFormula pNumber, int pExtensionBits, boolean pSigned) {
-    FormulaType<BitvectorFormula> returnType = getBitvectorTypeWithSize(getLength(pNumber) + pExtensionBits);
+    FormulaType<BitvectorFormula> returnType =
+        getBitvectorTypeWithSize(getLength(pNumber) + pExtensionBits);
     if (ignoreExtractConcat) {
       return wrap(returnType, unwrap(pNumber));
     }
@@ -393,7 +413,11 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
       return booleanFormulaManager.makeTrue();
     }
     int bitsize = getLength(pBits.get(0));
-    pBits.forEach(bit -> { Preconditions.checkArgument(bitsize == getLength(bit), "Expect operators to have the same size"); });
+    pBits.forEach(
+        bit -> {
+          Preconditions.checkArgument(
+              bitsize == getLength(bit), "Expect operators to have the same size");
+        });
     return numericFormulaManager.distinct(Lists.transform(pBits, this::unwrap));
   }
 }

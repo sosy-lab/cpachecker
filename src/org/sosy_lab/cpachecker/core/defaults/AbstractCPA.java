@@ -17,9 +17,8 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
 /**
- * This is an abstract class for building CPAs. It uses the flat lattice domain
- * if no other domain is given, and the standard implementations for merge-(sep|join)
- * and stop-sep.
+ * This is an abstract class for building CPAs. It uses the flat lattice domain if no other domain
+ * is given, and the standard implementations for merge-(sep|join) and stop-sep.
  */
 public abstract class AbstractCPA implements ConfigurableProgramAnalysis {
 
@@ -34,21 +33,28 @@ public abstract class AbstractCPA implements ConfigurableProgramAnalysis {
     this(mergeType, stopType, new FlatLatticeDomain(), transfer);
   }
 
-  /** When using this constructor, you have to override the methods for getting Merge- and StopOperator.
-   * This can be useful for cases where the operators are configurable or are initialized lazily. */
+  /**
+   * When using this constructor, you have to override the methods for getting Merge- and
+   * StopOperator. This can be useful for cases where the operators are configurable or are
+   * initialized lazily.
+   */
   protected AbstractCPA(AbstractDomain domain, TransferRelation transfer) {
-    this.abstractDomain = domain;
-    this.mergeType = null;
-    this.stopType = null;
-    this.transferRelation = transfer;
+    abstractDomain = domain;
+    mergeType = null;
+    stopType = null;
+    transferRelation = transfer;
   }
 
   /** Use this constructor, if Merge- and StopOperator are fixed. */
-  protected AbstractCPA(String mergeType, String stopType, AbstractDomain domain, @Nullable TransferRelation transfer) {
-    this.abstractDomain = domain;
+  protected AbstractCPA(
+      String mergeType,
+      String stopType,
+      AbstractDomain domain,
+      @Nullable TransferRelation transfer) {
+    abstractDomain = domain;
     this.mergeType = mergeType;
     this.stopType = stopType;
-    this.transferRelation = transfer;
+    transferRelation = transfer;
   }
 
   @Override

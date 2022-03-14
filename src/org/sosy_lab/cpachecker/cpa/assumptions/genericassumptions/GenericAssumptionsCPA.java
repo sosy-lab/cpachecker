@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions;
 
 import com.google.common.collect.ImmutableList;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -27,9 +26,7 @@ public class GenericAssumptionsCPA extends AbstractCPA {
     return AutomaticCPAFactory.forType(GenericAssumptionsCPA.class);
   }
 
-  private GenericAssumptionsCPA(CFA pCFA,
-                                LogManager pLogManager,
-                                Configuration pConfiguration)
+  private GenericAssumptionsCPA(CFA pCFA, LogManager pLogManager, Configuration pConfiguration)
       throws InvalidConfigurationException {
     super(
         "sep",
@@ -42,5 +39,4 @@ public class GenericAssumptionsCPA extends AbstractCPA {
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return new GenericAssumptionsState(ImmutableList.of());
   }
-
 }

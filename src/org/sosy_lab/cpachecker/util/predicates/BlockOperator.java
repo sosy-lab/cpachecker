@@ -22,64 +22,104 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 
 /**
- * This class implements the blk operator from the paper
- * "Adjustable Block-Encoding" [Beyer/Keremoglu/Wendler FMCAD'10],
- * i.e., an operator that determines when a block ends and an abstraction step
- * should be done.
+ * This class implements the blk operator from the paper "Adjustable Block-Encoding"
+ * [Beyer/Keremoglu/Wendler FMCAD'10], i.e., an operator that determines when a block ends and an
+ * abstraction step should be done.
  *
- * This operator is configurable by the user.
+ * <p>This operator is configurable by the user.
  */
-@Options(prefix="cpa.predicate.blk")
+@Options(prefix = "cpa.predicate.blk")
 public class BlockOperator {
 
-  @Option(secure=true,
-      description="maximum blocksize before abstraction is forced\n"
-        + "(non-negative number, special values: 0 = don't check threshold, 1 = SBE)")
+  @Option(
+      secure = true,
+      description =
+          "maximum blocksize before abstraction is forced\n"
+              + "(non-negative number, special values: 0 = don't check threshold, 1 = SBE)")
   private int threshold = 0;
 
-  @Option(secure=true, name="functions",
-      description="abstractions at function calls/returns if threshold has been reached (no effect if threshold = 0)")
+  @Option(
+      secure = true,
+      name = "functions",
+      description =
+          "abstractions at function calls/returns if threshold has been reached (no effect if"
+              + " threshold = 0)")
   private boolean absOnFunction = false;
 
-  @Option(secure=true, name="loops",
-      description="abstractions at loop heads if threshold has been reached (no effect if threshold = 0)")
+  @Option(
+      secure = true,
+      name = "loops",
+      description =
+          "abstractions at loop heads if threshold has been reached (no effect if threshold = 0)")
   private boolean absOnLoop = false;
 
-  @Option(secure=true, name="join",
-      description="abstractions at CFA nodes with more than one incoming edge if threshold has been reached (no effect if threshold = 0)")
+  @Option(
+      secure = true,
+      name = "join",
+      description =
+          "abstractions at CFA nodes with more than one incoming edge if threshold has been reached"
+              + " (no effect if threshold = 0)")
   private boolean absOnJoin = false;
 
-  @Option(secure=true, description="force abstractions immediately after threshold is reached (no effect if threshold = 0)")
+  @Option(
+      secure = true,
+      description =
+          "force abstractions immediately after threshold is reached (no effect if threshold = 0)")
   private boolean alwaysAfterThreshold = true;
 
-  @Option(secure=true, description="force abstractions at loop heads, regardless of threshold")
+  @Option(secure = true, description = "force abstractions at loop heads, regardless of threshold")
   private boolean alwaysAtLoops = true;
 
-  @Option(secure=true, description="force abstractions at each function calls/returns, regardless of threshold")
+  @Option(
+      secure = true,
+      description = "force abstractions at each function calls/returns, regardless of threshold")
   private boolean alwaysAtFunctions = true;
 
-  @Option(secure=true, description="force abstractions at each function head (first node in the body), regardless of threshold")
+  @Option(
+      secure = true,
+      description =
+          "force abstractions at each function head (first node in the body), regardless of"
+              + " threshold")
   private boolean alwaysAtFunctionHeads = false;
 
-  @Option(secure=true, description="force abstractions at the head of the analysis-entry function (first node in the body), regardless of threshold")
+  @Option(
+      secure = true,
+      description =
+          "force abstractions at the head of the analysis-entry function (first node in the body),"
+              + " regardless of threshold")
   private boolean alwaysAtEntryFunctionHead = false;
 
-  @Option(secure=true, description="force abstractions at each function call (node before entering the body), regardless of threshold")
+  @Option(
+      secure = true,
+      description =
+          "force abstractions at each function call (node before entering the body), regardless of"
+              + " threshold")
   private boolean alwaysAtFunctionCallNodes = false;
 
-  @Option(secure=true, description="force abstractions at each join node, regardless of threshold")
+  @Option(
+      secure = true,
+      description = "force abstractions at each join node, regardless of threshold")
   private boolean alwaysAtJoin = false;
 
-  @Option(secure=true, description="force abstractions at each branch node, regardless of threshold")
+  @Option(
+      secure = true,
+      description = "force abstractions at each branch node, regardless of threshold")
   private boolean alwaysAtBranch = false;
 
-  @Option(secure = true, description="force abstractions at program exit (program end, abort, etc.), regardless of threshold")
+  @Option(
+      secure = true,
+      description =
+          "force abstractions at program exit (program end, abort, etc.), regardless of threshold")
   private boolean alwaysAtProgramExit = false;
 
-  @Option(secure=true, description="abstraction always and only on explicitly computed abstraction nodes.")
+  @Option(
+      secure = true,
+      description = "abstraction always and only on explicitly computed abstraction nodes.")
   private boolean alwaysAndOnlyAtExplicitNodes = false;
 
-  @Option(secure=true, description="abstraction always at explicitly computed abstraction nodes.")
+  @Option(
+      secure = true,
+      description = "abstraction always at explicitly computed abstraction nodes.")
   private boolean alwaysAtExplicitNodes = false;
 
   private ImmutableSet<CFANode> explicitAbstractionNodes = null;
@@ -108,7 +148,8 @@ public class BlockOperator {
       return explicitAbstractionNodes.contains(loc);
     }
 
-    if (alwaysAtExplicitNodes && explicitAbstractionNodes != null
+    if (alwaysAtExplicitNodes
+        && explicitAbstractionNodes != null
         && explicitAbstractionNodes.contains(loc)) {
       return true;
     }
@@ -202,9 +243,8 @@ public class BlockOperator {
   }
 
   /**
-   * If this method returns true, {@link #isBlockEnd(CFANode, int)}
-   * is guaranteed to always return false.
-   * This can be used to add optimizations.
+   * If this method returns true, {@link #isBlockEnd(CFANode, int)} is guaranteed to always return
+   * false. This can be used to add optimizations.
    */
   public boolean alwaysReturnsFalse() {
     if (alwaysAndOnlyAtExplicitNodes) {
@@ -217,7 +257,9 @@ public class BlockOperator {
         && !alwaysAtJoin
         && !alwaysAtBranch
         && !alwaysAtProgramExit
-        && (!alwaysAtExplicitNodes || explicitAbstractionNodes == null || explicitAbstractionNodes.isEmpty())
+        && (!alwaysAtExplicitNodes
+            || explicitAbstractionNodes == null
+            || explicitAbstractionNodes.isEmpty())
         && (threshold == 0)
         && !absOnFunction
         && !absOnLoop
@@ -225,7 +267,7 @@ public class BlockOperator {
   }
 
   protected boolean isJoinNode(CFANode pSuccLoc) {
-    return pSuccLoc.getNumEnteringEdges()>1;
+    return pSuccLoc.getNumEnteringEdges() > 1;
   }
 
   protected boolean isThresholdFulfilled(int thresholdValue) {
@@ -243,7 +285,7 @@ public class BlockOperator {
   }
 
   public void setExplicitAbstractionNodes(ImmutableSet<CFANode> pNodes) {
-    this.explicitAbstractionNodes = pNodes;
+    explicitAbstractionNodes = pNodes;
   }
 
   public void setCFA(CFA cfa) {
@@ -271,8 +313,8 @@ public class BlockOperator {
   }
 
   private static boolean isFirstLocationInMainFunctionBody(CFANode pLoc) {
-    for (CFAEdge edge: CFAUtils.leavingEdges(pLoc)) {
-      if (edge instanceof BlankEdge)  {
+    for (CFAEdge edge : CFAUtils.leavingEdges(pLoc)) {
+      if (edge instanceof BlankEdge) {
         if (edge.getDescription().equals("Function start dummy edge")) {
           return true;
         }

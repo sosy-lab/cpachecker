@@ -43,9 +43,8 @@ public class TestTargetReductionSpanningSet {
                 constructSubsumptionGraph(pTargets, pCfa.getMainFunction()))));
   }
 
-
-  private ImmutableSet<CFAEdgeNode>
-      constructSubsumptionGraph(final Set<CFAEdge> pTargets, FunctionEntryNode pStartNode) {
+  private ImmutableSet<CFAEdgeNode> constructSubsumptionGraph(
+      final Set<CFAEdge> pTargets, FunctionEntryNode pStartNode) {
     ImmutableSet.Builder<CFAEdgeNode> nodeBuilder = ImmutableSet.builder();
 
     CFAEdgeNode node;
@@ -100,7 +99,7 @@ public class TestTargetReductionSpanningSet {
            * entry arc to e contains e’ or else if every path from e to the exit arc contains e’
            * [4], i.e., if AL(eo,e’,e) or AL(e,e’,e~).
            */
-            edgeToNode.get(targetPred).addEdgeTo(edgeToNode.get(targetSucc));
+          edgeToNode.get(targetPred).addEdgeTo(edgeToNode.get(targetSucc));
         }
       }
     }
@@ -108,8 +107,8 @@ public class TestTargetReductionSpanningSet {
     return nodeBuilder.build();
   }
 
-  private ImmutableSet<Collection<CFAEdgeNode>>
-      computeStronglyConnectedComponents(final ImmutableSet<CFAEdgeNode> nodes) {
+  private ImmutableSet<Collection<CFAEdgeNode>> computeStronglyConnectedComponents(
+      final ImmutableSet<CFAEdgeNode> nodes) {
     ImmutableSet.Builder<Collection<CFAEdgeNode>> componentsBuilder = ImmutableSet.builder();
     Deque<CFAEdgeNode> componentElems, ordered = new ArrayDeque<>(nodes.size());
 
@@ -143,8 +142,8 @@ public class TestTargetReductionSpanningSet {
     }
   }
 
-  private ImmutableSet<CFAEdgeNode>
-      reduceSubsumptionGraph(final ImmutableSet<Collection<CFAEdgeNode>> pComponents) {
+  private ImmutableSet<CFAEdgeNode> reduceSubsumptionGraph(
+      final ImmutableSet<Collection<CFAEdgeNode>> pComponents) {
     ImmutableSet.Builder<CFAEdgeNode> nodeBuilder = ImmutableSet.builder();
 
     for (Collection<CFAEdgeNode> component : pComponents) {
@@ -158,7 +157,7 @@ public class TestTargetReductionSpanningSet {
     // set must not be immutable
     return new HashSet<>(
         FluentIterable.from(pNodes)
-        .filter(node -> node.isLeave())
+            .filter(node -> node.isLeave())
             .transform(node -> node.representativeTarget)
             .toSet());
   }
@@ -227,5 +226,4 @@ public class TestTargetReductionSpanningSet {
           + "\n";
     }
   }
-
 }

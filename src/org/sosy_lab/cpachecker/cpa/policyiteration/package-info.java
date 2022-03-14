@@ -7,7 +7,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * Policy iteration implementation.
- */
+/** Policy iteration implementation. */
 package org.sosy_lab.cpachecker.cpa.policyiteration;

@@ -102,11 +102,11 @@ public class TraceFormulaTest {
   }
 
   private void checkIfExpectedValuesMatchResultValues(
-          String program,
-          FLAlgorithm algorithm,
-          Map<String, String> options,
-          Map<LogKeys, Object> expected)
-          throws Exception {
+      String program,
+      FLAlgorithm algorithm,
+      Map<String, String> options,
+      Map<LogKeys, Object> expected)
+      throws Exception {
 
     TestResults test = runFaultLocalization(program, algorithm, options);
     FaultLocalizationInfo faultInfo =
@@ -119,9 +119,8 @@ public class TraceFormulaTest {
     Multimap<LogKeys, Object> found = findFLPatterns(test.getLog(), expected.keySet());
 
     List<Integer> lines = new ArrayList<>();
-    for (Fault fault: faultInfo.getRankedList()) {
+    for (Fault fault : faultInfo.getRankedList()) {
       switch (algorithm) {
-
         case ERRINV:
           if (!(fault instanceof ErrorInvariantsAlgorithm.Interval)) {
             // Faults produced by ErrorInvariantsAlgorithm always have exactly one member
@@ -131,7 +130,7 @@ public class TraceFormulaTest {
           break;
 
         case MAXSAT:
-          for (FaultContribution contribution: fault) {
+          for (FaultContribution contribution : fault) {
             Selector traceElement = (Selector) contribution;
             lines.add(traceElement.correspondingEdge().getFileLocation().getStartingLineInOrigin());
           }

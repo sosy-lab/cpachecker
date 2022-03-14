@@ -36,7 +36,8 @@ public abstract class AbstractSerializableSingleWrapperState
   private final @Nullable AbstractState wrappedState;
 
   protected AbstractSerializableSingleWrapperState(@Nullable AbstractState pWrappedState) {
-    // TODO this collides with some CPAs' way of handling dummy states, but it should really be not null here
+    // TODO this collides with some CPAs' way of handling dummy states, but it should really be not
+    // null here
     // Preconditions.checkNotNull(pWrappedState);
     wrappedState = pWrappedState;
   }
@@ -48,7 +49,7 @@ public abstract class AbstractSerializableSingleWrapperState
   @Override
   public boolean isTarget() {
     if (wrappedState instanceof Targetable) {
-      return ((Targetable)wrappedState).isTarget();
+      return ((Targetable) wrappedState).isTarget();
     } else {
       return false;
     }
@@ -63,7 +64,7 @@ public abstract class AbstractSerializableSingleWrapperState
   @Override
   public @Nullable Object getPartitionKey() {
     if (wrappedState instanceof Partitionable) {
-      return ((Partitionable)wrappedState).getPartitionKey();
+      return ((Partitionable) wrappedState).getPartitionKey();
     } else {
       return null;
     }

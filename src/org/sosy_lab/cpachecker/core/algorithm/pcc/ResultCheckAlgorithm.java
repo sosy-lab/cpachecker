@@ -67,18 +67,21 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
       pOut.println("Time for Result Check:      " + checkTimer);
 
       if (checkTimer.getNumberOfIntervals() > 0) {
-         pOut.println("Speed up checking:        " + ((float) analysisTimer.getSumTime().asNanos()) / checkTimer.getSumTime().asNanos());
+        pOut.println(
+            "Speed up checking:        "
+                + ((float) analysisTimer.getSumTime().asNanos())
+                    / checkTimer.getSumTime().asNanos());
       }
 
-      if(proofGenStats != null) {
+      if (proofGenStats != null) {
         StatisticsUtils.printStatistics(proofGenStats, pOut, logger, pResult, pReached);
       }
 
-      if(checkingStatsProvider != null) {
+      if (checkingStatsProvider != null) {
         if (checkingStats.isEmpty()) {
           checkingStatsProvider.collectStatistics(checkingStats);
         }
-        for(Statistics stats: checkingStats) {
+        for (Statistics stats : checkingStats) {
           StatisticsUtils.printStatistics(stats, pOut, logger, pResult, pReached);
         }
       }
@@ -103,7 +106,6 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
     public String getName() {
       return "ResultCheckAlgorithm";
     }
-
   }
 
   private final LogManager logger;
@@ -113,11 +115,17 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
   private final CFA analyzedProgram;
   private final Specification specification;
   private final ResultCheckStatistics stats;
-  @Option(secure=true,
+
+  @Option(
+      secure = true,
       name = "pcc.resultcheck.writeProof",
-      description = "Enable to write proof and read it again for validation instead of using the in memory solution")
+      description =
+          "Enable to write proof and read it again for validation instead of using the in memory"
+              + " solution")
   private boolean writeProof = false;
-  @Option(secure=true,
+
+  @Option(
+      secure = true,
       name = "pcc.resultcheck.checkerConfig",
       description = "Configuration for proof checking if differs from analysis configuration")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
@@ -158,7 +166,7 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
     if (status.isSound() && !pReachedSet.hasWaitingState()) {
       logger.log(Level.INFO, "Analysis successful.", "Start checking analysis result");
       try {
-        if(writeProof) {
+        if (writeProof) {
           status = writeProofAndValidateWrittenProof(pReachedSet);
         } else {
           status = resultCheckingWithoutWritingProof(pReachedSet);
@@ -179,8 +187,8 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
         logger.log(Level.INFO, "Analysis result checked successfully.");
         return status;
       } else {
-        pReachedSet.add(new DummyErrorState(pReachedSet.getFirstState()),
-            SingletonPrecision.getInstance());
+        pReachedSet.add(
+            new DummyErrorState(pReachedSet.getFirstState()), SingletonPrecision.getInstance());
       }
       logger.log(Level.INFO, "Analysis result could not be checked.");
 
@@ -204,38 +212,36 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
     stats.checkTimer.start();
     ProofCheckAlgorithm checker =
         new ProofCheckAlgorithm(
-            config,
-            logger,
-            shutdownNotifier,
-            pVerificationResult,
-            analyzedProgram,
-            specification);
+            config, logger, shutdownNotifier, pVerificationResult, analyzedProgram, specification);
     stats.checkingStatsProvider = checker;
     return checker.run(initializeReachedSetForChecking(config, pVerificationResult.getCPA()));
   }
 
-  private ReachedSet initializeReachedSetForChecking(Configuration pConfig,
-      ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException, IllegalArgumentException, InterruptedException {
+  private ReachedSet initializeReachedSetForChecking(
+      Configuration pConfig, ConfigurableProgramAnalysis pCpa)
+      throws InvalidConfigurationException, IllegalArgumentException, InterruptedException {
     CoreComponentsFactory factory =
         new CoreComponentsFactory(pConfig, logger, shutdownNotifier, AggregatedReachedSets.empty());
     ReachedSet reached = factory.createReachedSet(pCpa);
 
-   reached.add(pCpa.getInitialState(analyzedProgram.getMainFunction(),
-            StateSpacePartition.getDefaultPartition()),
-        pCpa.getInitialPrecision(analyzedProgram.getMainFunction(),
-            StateSpacePartition.getDefaultPartition()));
+    reached.add(
+        pCpa.getInitialState(
+            analyzedProgram.getMainFunction(), StateSpacePartition.getDefaultPartition()),
+        pCpa.getInitialPrecision(
+            analyzedProgram.getMainFunction(), StateSpacePartition.getDefaultPartition()));
 
     return reached;
   }
 
-  private AlgorithmStatus writeProofAndValidateWrittenProof(final ReachedSet pVerificationResult) throws InvalidConfigurationException, CPAException, InterruptedException {
-    logger.log(Level.INFO,"Write Proof");
+  private AlgorithmStatus writeProofAndValidateWrittenProof(final ReachedSet pVerificationResult)
+      throws InvalidConfigurationException, CPAException, InterruptedException {
+    logger.log(Level.INFO, "Write Proof");
     ProofGenerator proofGen = new ProofGenerator(config, logger, shutdownNotifier);
     stats.proofGenStats = proofGen.generateProofUnchecked(pVerificationResult);
 
     Configuration checkConfig = config;
     ConfigurableProgramAnalysis checkerCPA = pVerificationResult.getCPA();
-    if(checkerConfig != null) {
+    if (checkerConfig != null) {
       try {
         checkConfig = Configuration.builder().copyFrom(config).loadFromFile(checkerConfig).build();
         ReachedSetFactory factory = new ReachedSetFactory(checkConfig, logger);
@@ -244,7 +250,7 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
                 .buildCPAs(analyzedProgram, specification, AggregatedReachedSets.empty());
 
       } catch (IOException e) {
-        logger.log(Level.SEVERE,"Cannot read proof checking configuration.");
+        logger.log(Level.SEVERE, "Cannot read proof checking configuration.");
         return AlgorithmStatus.UNSOUND_AND_PRECISE;
       }
     }

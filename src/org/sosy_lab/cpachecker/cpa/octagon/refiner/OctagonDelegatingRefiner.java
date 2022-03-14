@@ -28,12 +28,13 @@ import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 
 /**
- * Refiner implementation that delegates to {@link ValueAnalysisPathInterpolator},
- * and if this fails, optionally delegates also to {@link PredicateCPARefiner}.
+ * Refiner implementation that delegates to {@link ValueAnalysisPathInterpolator}, and if this
+ * fails, optionally delegates also to {@link PredicateCPARefiner}.
  */
 public abstract class OctagonDelegatingRefiner implements Refiner {
 
-  public static Refiner create(ConfigurableProgramAnalysis cpa) throws InvalidConfigurationException {
+  public static Refiner create(ConfigurableProgramAnalysis cpa)
+      throws InvalidConfigurationException {
     OctagonCPA octagonCPA =
         CPAs.retrieveCPAOrFail(cpa, OctagonCPA.class, OctagonDelegatingRefiner.class);
     final LogManager logger = octagonCPA.getLogger();

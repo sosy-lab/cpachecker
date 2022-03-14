@@ -66,26 +66,23 @@ public class LocalTransferRelation
     extends ForwardingTransferRelation<LocalState, LocalState, Precision> {
 
   @Option(
-    name = "allocatefunctions",
-    description = "functions, which allocate new free memory",
-    secure = true
-  )
+      name = "allocatefunctions",
+      description = "functions, which allocate new free memory",
+      secure = true)
   private Set<String> allocate = ImmutableSet.of();
 
   // Use it carefully: just alloc is not enough, because EMG generates
   // ldv_random_allocationless_scenario_callback_*
   @Option(
-    name = "allocateFunctionPattern",
-    description = "functions, which allocate new free memory",
-    secure = true
-  )
+      name = "allocateFunctionPattern",
+      description = "functions, which allocate new free memory",
+      secure = true)
   private Set<String> allocatePattern = ImmutableSet.of();
 
   @Option(
-    name = "conservativefunctions",
-    description = "functions, which do not change sharedness of parameters",
-    secure = true
-  )
+      name = "conservativefunctions",
+      description = "functions, which do not change sharedness of parameters",
+      secure = true)
   private Set<String> conservationOfSharedness = ImmutableSet.of();
 
   private final Map<String, Integer> allocateInfo;
@@ -159,7 +156,6 @@ public class LocalTransferRelation
     CFunctionEntryNode entry = sEdge.getFunctionEntry();
     String funcName = entry.getFunctionName();
     assert funcName.equals(getFunctionName());
-
 
     int allocParameter = isParameterAllocatedFunction(funcName) ? allocateInfo.get(funcName) : 0;
     List<String> paramNames = entry.getFunctionParameterNames();
@@ -365,8 +361,8 @@ public class LocalTransferRelation
       AbstractIdentifier leftId,
       int dereference,
       AbstractIdentifier rightId) {
-    //assign leftId = rightId
-    //alias *leftId <-> *rightId
+    // assign leftId = rightId
+    // alias *leftId <-> *rightId
 
     if (dereference > 0) {
       leftId = incrementDereference(leftId);
@@ -387,8 +383,7 @@ public class LocalTransferRelation
     }
   }
 
-  private void alias(
-      LocalState pSuccessor, AbstractIdentifier leftId, AbstractIdentifier rightId) {
+  private void alias(LocalState pSuccessor, AbstractIdentifier leftId, AbstractIdentifier rightId) {
     if (leftId.isGlobal() && !pSuccessor.checkIsAlwaysLocal(leftId)) {
       // Variable is global, not memory location!
       // So, we should set the type of 'right' to global
@@ -441,7 +436,6 @@ public class LocalTransferRelation
   }
 
   private boolean isParameterAllocatedFunction(String funcName) {
-    return allocateInfo.containsKey(funcName)
-        && allocateInfo.get(funcName) > 0;
+    return allocateInfo.containsKey(funcName) && allocateInfo.get(funcName) > 0;
   }
 }

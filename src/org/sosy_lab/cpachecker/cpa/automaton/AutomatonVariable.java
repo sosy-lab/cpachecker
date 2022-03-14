@@ -19,7 +19,7 @@ public abstract class AutomatonVariable implements Cloneable, Serializable {
   protected final String name;
 
   private AutomatonVariable(String pName) {
-    this.name = pName;
+    name = pName;
   }
 
   public static AutomatonVariable createAutomatonVariable(
@@ -114,12 +114,12 @@ public abstract class AutomatonVariable implements Cloneable, Serializable {
         return false;
       }
       AutomatonIntVariable otherVar = (AutomatonIntVariable) pObj;
-      return (this.value == otherVar.value) && this.name.equals(otherVar.name);
+      return (value == otherVar.value) && name.equals(otherVar.name);
     }
 
     @Override
     public int hashCode() {
-      return this.value + this.name.hashCode();
+      return value + name.hashCode();
     }
 
     @Override
@@ -191,12 +191,12 @@ public abstract class AutomatonVariable implements Cloneable, Serializable {
         return false;
       }
       AutomatonSetVariable<?> otherVar = (AutomatonSetVariable<?>) pObj;
-      return this.set.equals(otherVar.set) && this.name.equals(otherVar.name);
+      return this.set.equals(otherVar.set) && name.equals(otherVar.name);
     }
 
     @Override
     public int hashCode() {
-      return this.set.hashCode() + this.name.hashCode();
+      return this.set.hashCode() + name.hashCode();
     }
 
     @Override

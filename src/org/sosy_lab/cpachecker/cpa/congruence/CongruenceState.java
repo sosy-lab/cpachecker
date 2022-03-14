@@ -25,10 +25,10 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.templates.Template;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-public class CongruenceState implements
-                             Iterable<Entry<Template, Congruence>>,
-                             ABEAbstractedState<CongruenceState>,
-                             Graphable {
+public class CongruenceState
+    implements Iterable<Entry<Template, Congruence>>,
+        ABEAbstractedState<CongruenceState>,
+        Graphable {
 
   private final ImmutableMap<Template, Congruence> data;
   private final CongruenceManager congruenceManager;
@@ -56,13 +56,14 @@ public class CongruenceState implements
     return data;
   }
 
-  public static CongruenceState empty(CongruenceManager pCongruenceManager,
-                                      CFANode pNode) {
+  public static CongruenceState empty(CongruenceManager pCongruenceManager, CFANode pNode) {
     return new CongruenceState(
         ImmutableMap.of(),
         pCongruenceManager,
         PointerTargetSet.emptyPointerTargetSet(),
-        SSAMap.emptySSAMap(), Optional.empty(), pNode);
+        SSAMap.emptySSAMap(),
+        Optional.empty(),
+        pNode);
   }
 
   public Optional<Congruence> get(Template template) {
@@ -113,8 +114,7 @@ public class CongruenceState implements
   }
 
   /**
-   * Convert the state to <b>instantiated</b> formula with respect to the
-   * PathFormula {@code ref}.
+   * Convert the state to <b>instantiated</b> formula with respect to the PathFormula {@code ref}.
    */
   @Override
   public BooleanFormula instantiate() {

@@ -25,46 +25,44 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 public class MaterlisationStep {
 
-  /**
-   * Indicates, if no further abstraction remains in this step.
-   */
+  /** Indicates, if no further abstraction remains in this step. */
   private final boolean stop;
 
   /**
    * These addresses templates represent concrete target addresses of pointers from outside of the
-   * abstraction, that point to a region in this abstraction. They are used to
-   * create the concrete addresses while materializing a concrete region from this step
-   * using existing pointer in the smg.
+   * abstraction, that point to a region in this abstraction. They are used to create the concrete
+   * addresses while materializing a concrete region from this step using existing pointer in the
+   * smg.
    */
   private final Set<SMGEdgePointsToTemplate> targetAdressTemplateOfPointer;
 
   /**
-   * Abstract pointers representing concrete pointers that lead to
-   * an smgObject within this abstraction generated when materializing this step.
+   * Abstract pointers representing concrete pointers that lead to an smgObject within this
+   * abstraction generated when materializing this step.
    */
   private final Set<SMGEdgePointsToTemplate> pointerTemplate;
 
   /**
-   * These abstract fields with abstract values represent pointers leading from this
-   * abstraction to the outside smg.
+   * These abstract fields with abstract values represent pointers leading from this abstraction to
+   * the outside smg.
    */
   private final Set<SMGEdgeHasValueTemplate> fieldTemplateContainingPointer;
 
   /**
-   * These abstract fields with abstract values represent pointers leading from a region within
-   * this abstraction to another region within this abstraction.
+   * These abstract fields with abstract values represent pointers leading from a region within this
+   * abstraction to another region within this abstraction.
    */
   private final Set<SMGEdgeHasValueTemplate> fieldTemplateContainingPointerTemplate;
 
   /**
-   * Abstract fields represent concrete fields that are generated
-   * when materializing the fields and values of smgObjects with this step.
+   * Abstract fields represent concrete fields that are generated when materializing the fields and
+   * values of smgObjects with this step.
    */
   private final Set<SMGEdgeHasValueTemplateWithConcreteValue> fieldTemplateContainingValue;
 
   /**
-   * These abstract smgObjects represent concrete regions or abstractions
-   *  that are generated when materializing smgObjects with this step.
+   * These abstract smgObjects represent concrete regions or abstractions that are generated when
+   * materializing smgObjects with this step.
    */
   private final Set<SMGObjectTemplate> objectTemplates;
 
@@ -85,7 +83,8 @@ public class MaterlisationStep {
     fieldTemplateContainingValue = ImmutableSet.copyOf(pAbstractFields);
     fieldTemplateContainingPointerTemplate = ImmutableSet.copyOf(pAbstractFieldsToIPointer);
     fieldTemplateContainingPointer = ImmutableSet.copyOf(pAbstractFieldsToOPointer);
-    uniquePointerTemplateToInterfacePointerTemplate = pUniquePointerTemplateToInterfacePointerTemplate;
+    uniquePointerTemplateToInterfacePointerTemplate =
+        pUniquePointerTemplateToInterfacePointerTemplate;
     stop = pStop;
   }
 
@@ -100,7 +99,6 @@ public class MaterlisationStep {
   public Set<SMGEdgeHasValueTemplateWithConcreteValue> getAbstractFields() {
     return fieldTemplateContainingValue;
   }
-
 
   public Set<SMGEdgeHasValueTemplate> getAbstractFieldsToOPointer() {
     return fieldTemplateContainingPointer;
@@ -126,19 +124,23 @@ public class MaterlisationStep {
     Map<SMGObjectTemplate, Map<SMGValue, SMGValue>> abstractObjectToPointersMap = new HashMap<>();
 
     for (SMGEdgePointsToTemplate edge : pointerTemplate) {
-      assignAbstractToConcretePointer(edge, abstractObjectToPointersMap, pAbstractToConcretePointerMap, true);
+      assignAbstractToConcretePointer(
+          edge, abstractObjectToPointersMap, pAbstractToConcretePointerMap, true);
     }
 
-    for(SMGEdgePointsToTemplate edge : targetAdressTemplateOfPointer) {
-      assignAbstractToConcretePointer(edge, abstractObjectToPointersMap, pAbstractToConcretePointerMap, false);
+    for (SMGEdgePointsToTemplate edge : targetAdressTemplateOfPointer) {
+      assignAbstractToConcretePointer(
+          edge, abstractObjectToPointersMap, pAbstractToConcretePointerMap, false);
     }
 
-    for(SMGEdgeHasValueTemplate edge : fieldTemplateContainingPointerTemplate) {
-      assignAbstractToConcretePointer(edge, abstractObjectToPointersMap, pAbstractToConcretePointerMap, true);
+    for (SMGEdgeHasValueTemplate edge : fieldTemplateContainingPointerTemplate) {
+      assignAbstractToConcretePointer(
+          edge, abstractObjectToPointersMap, pAbstractToConcretePointerMap, true);
     }
 
     for (SMGEdgeHasValueTemplate edge : fieldTemplateContainingPointer) {
-      assignAbstractToConcretePointer(edge, abstractObjectToPointersMap, pAbstractToConcretePointerMap, false);
+      assignAbstractToConcretePointer(
+          edge, abstractObjectToPointersMap, pAbstractToConcretePointerMap, false);
     }
 
     /*Second, create the new concrete Objects from abstract smgObjects.*/
@@ -159,12 +161,13 @@ public class MaterlisationStep {
 
     /*Third, create all pointers that point to this abstraction and from this abstraction.*/
     for (SMGEdgePointsToTemplate abstractPointer : pointerTemplate) {
-      createPointer(abstractPointer, abstractObjectToPointersMap, concreteObjectMap, concretePointer);
+      createPointer(
+          abstractPointer, abstractObjectToPointersMap, concreteObjectMap, concretePointer);
     }
 
     for (SMGEdgePointsToTemplate abstractPointer : targetAdressTemplateOfPointer) {
-      createPointer(abstractPointer, abstractObjectToPointersMap, concreteObjectMap,
-          concretePointer);
+      createPointer(
+          abstractPointer, abstractObjectToPointersMap, concreteObjectMap, concretePointer);
     }
 
     Set<SMGEdgeHasValue> concreteHves = new HashSet<>();
@@ -275,7 +278,9 @@ public class MaterlisationStep {
 
   public Set<SMGRegion> getEntryRegions() {
     return FluentIterable.from(targetAdressTemplateOfPointer)
-        .transform(edge -> edge.getObjectTemplate()).filter(SMGRegion.class).toSet();
+        .transform(edge -> edge.getObjectTemplate())
+        .filter(SMGRegion.class)
+        .toSet();
   }
 
   public Set<SMGEdgePointsToTemplate> getPointerToThisTemplate(SMGObjectTemplate pTemplate) {
@@ -288,7 +293,7 @@ public class MaterlisationStep {
   }
 
   public FieldsOfTemplate getFieldsOfThisTemplate(SMGObjectTemplate pTemplate) {
-    assert  objectTemplates.contains(pTemplate);
+    assert objectTemplates.contains(pTemplate);
 
     Set<SMGEdgeHasValueTemplateWithConcreteValue> lFieldTemplateContainingValue =
         FluentIterable.from(fieldTemplateContainingValue)
@@ -303,7 +308,11 @@ public class MaterlisationStep {
             .filter(ptEdge -> ptEdge.getObjectTemplate() == pTemplate)
             .toSet();
 
-    return new FieldsOfTemplate(lFieldTemplateContainingValue, lFieldTemplateContainingPointerTemplate, lFieldTemplateContainingPointer, pTemplate);
+    return new FieldsOfTemplate(
+        lFieldTemplateContainingValue,
+        lFieldTemplateContainingPointerTemplate,
+        lFieldTemplateContainingPointer,
+        pTemplate);
   }
 
   public Set<SMGEdgeHasValueTemplate> getFieldsOfValue(SMGValue value) {
@@ -337,8 +346,8 @@ public class MaterlisationStep {
     private final SMGObjectTemplate template;
 
     /**
-     * These abstract fields with abstract values represent pointers leading from this
-     * abstraction to the outside smg.
+     * These abstract fields with abstract values represent pointers leading from this abstraction
+     * to the outside smg.
      */
     private final Set<SMGEdgeHasValueTemplate> fieldTemplateContainingPointer;
 
@@ -349,8 +358,8 @@ public class MaterlisationStep {
     private final Set<SMGEdgeHasValueTemplate> fieldTemplateContainingPointerTemplate;
 
     /**
-     * Abstract fields represent concrete fields that are generated
-     * when materializing the fields and values of smgObjects with this step.
+     * Abstract fields represent concrete fields that are generated when materializing the fields
+     * and values of smgObjects with this step.
      */
     private final Set<SMGEdgeHasValueTemplateWithConcreteValue> fieldTemplateContainingValue;
 
@@ -370,7 +379,9 @@ public class MaterlisationStep {
     }
 
     public int size() {
-      return fieldTemplateContainingPointer.size() + fieldTemplateContainingPointerTemplate.size() + fieldTemplateContainingValue.size();
+      return fieldTemplateContainingPointer.size()
+          + fieldTemplateContainingPointerTemplate.size()
+          + fieldTemplateContainingValue.size();
     }
 
     public Set<SMGEdgeHasValueTemplate> getFieldTemplateContainingPointerTemplate() {

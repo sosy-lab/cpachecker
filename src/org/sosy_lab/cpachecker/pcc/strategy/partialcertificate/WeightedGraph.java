@@ -21,24 +21,20 @@ import java.util.Map;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-/**
- * Store and access a weighted graph structure
- */
+/** Store and access a weighted graph structure */
 public class WeightedGraph implements Iterable<WeightedNode> {
 
   private final int numNodes;
   private int totalNodeWeight;
   private final WeightedNode[] nodes;
-  /**
-   * store for each node its out- and incoming edges (each edge is stored twice)
-   */
+  /** store for each node its out- and incoming edges (each edge is stored twice) */
   private final Map<Integer, Set<WeightedEdge>> outgoingEdges;
-  private final Map<Integer, Set<WeightedEdge>> incomingEdges;
 
+  private final Map<Integer, Set<WeightedEdge>> incomingEdges;
 
   public WeightedGraph(PartialReachedSetDirectedGraph pGraph) {
     checkArgument(pGraph != null, "Graph may not be null.");
-    totalNodeWeight=0;
+    totalNodeWeight = 0;
     numNodes = pGraph.getNumNodes();
     nodes = new WeightedNode[numNodes];
     outgoingEdges = new HashMap<>(numNodes);
@@ -48,21 +44,22 @@ public class WeightedGraph implements Iterable<WeightedNode> {
     ImmutableList<ImmutableList<Integer>> adjacencyList = pGraph.getAdjacencyList();
 
     for (int actualNode = 0; actualNode < numNodes; actualNode++) {
-      WeightedNode start = new WeightedNode(actualNode, weight); //start node of newly found edges
-      for (Integer successorNode : adjacencyList.get(actualNode)) { //iterate over successors of actual node
+      WeightedNode start = new WeightedNode(actualNode, weight); // start node of newly found edges
+      for (Integer successorNode :
+          adjacencyList.get(actualNode)) { // iterate over successors of actual node
         WeightedNode end = new WeightedNode(successorNode, weight);
         WeightedEdge edge = new WeightedEdge(start, end, weight);
         addEdge(edge);
       }
-      if(nodes[actualNode] == null) {
+      if (nodes[actualNode] == null) {
         nodes[actualNode] = start;
       }
     }
   }
 
-
   /**
    * Create empty graph, for successively construction
+   *
    * @param pNumNodes number of nodes it should contain
    */
   public WeightedGraph(int pNumNodes) {
@@ -73,26 +70,29 @@ public class WeightedGraph implements Iterable<WeightedNode> {
     incomingEdges = new HashMap<>(numNodes);
   }
 
-
-/**
- * Inserts a new node into the graph structure. This method automatically updates the graph's total node-weight.
- * @param node node to be inserted into the structure
- */
+  /**
+   * Inserts a new node into the graph structure. This method automatically updates the graph's
+   * total node-weight.
+   *
+   * @param node node to be inserted into the structure
+   */
   public void insertNode(WeightedNode node) {
-    int nodeNum=node.getNodeNumber();
-    int nodeWeight=node.getWeight();
-    if(nodes[nodeNum]!=null){//The node stored before is deleted, so its weight needs to be subtracted
-      totalNodeWeight-=nodes[nodeNum].getWeight();
+    int nodeNum = node.getNodeNumber();
+    int nodeWeight = node.getWeight();
+    if (nodes[nodeNum]
+        != null) { // The node stored before is deleted, so its weight needs to be subtracted
+      totalNodeWeight -= nodes[nodeNum].getWeight();
     }
-    nodes[nodeNum]=node;
-    totalNodeWeight+=nodeWeight;
-
-}
-
+    nodes[nodeNum] = node;
+    totalNodeWeight += nodeWeight;
+  }
 
   /**
-   * Insert an edge into structure. If edge between both end-nodes already exists, the edge's weight is updated
-   * @param edge edge to be inserted; corresponding nodes' weights are changed according to the edge's nodes
+   * Insert an edge into structure. If edge between both end-nodes already exists, the edge's weight
+   * is updated
+   *
+   * @param edge edge to be inserted; corresponding nodes' weights are changed according to the
+   *     edge's nodes
    */
   public void addEdge(WeightedEdge edge) {
     WeightedNode start = edge.getStartNode();
@@ -103,20 +103,25 @@ public class WeightedGraph implements Iterable<WeightedNode> {
     insertNode(end);
     boolean edgeExisted = false;
 
-    //Check if for the end node already an incoming edge from start node existed
-    //==> if yes: change the edges weight
-    if (!incomingEdges.containsKey(endNumber)) {//neither start nor end-node had edge until now
+    // Check if for the end node already an incoming edge from start node existed
+    // ==> if yes: change the edges weight
+    if (!incomingEdges.containsKey(endNumber)) { // neither start nor end-node had edge until now
       incomingEdges.put(endNumber, new HashSet<WeightedEdge>());
     }
-    if (!outgoingEdges.containsKey(startNumber)) {//neither start nor end-node had edge until now
+    if (!outgoingEdges.containsKey(startNumber)) { // neither start nor end-node had edge until now
       outgoingEdges.put(startNumber, new HashSet<WeightedEdge>());
     }
 
-    if (!incomingEdges.get(endNumber).isEmpty() && !outgoingEdges.get(startNumber).isEmpty()) {//check if edge between nodes already existed
-      Set<WeightedEdge> inEdges = incomingEdges.get(endNumber); //incoming edges for endNode are updated
+    if (!incomingEdges.get(endNumber).isEmpty()
+        && !outgoingEdges
+            .get(startNumber)
+            .isEmpty()) { // check if edge between nodes already existed
+      Set<WeightedEdge> inEdges =
+          incomingEdges.get(endNumber); // incoming edges for endNode are updated
       for (WeightedEdge inEdge : inEdges) {
-        if (inEdge.getStartNode().getNodeNumber() == startNumber) {//edge with same end- and start-node
-          inEdge.addWeight(edge.getWeight()); //This updates the edge in outgoing edges as well
+        if (inEdge.getStartNode().getNodeNumber()
+            == startNumber) { // edge with same end- and start-node
+          inEdge.addWeight(edge.getWeight()); // This updates the edge in outgoing edges as well
           edgeExisted = true;
           break;
         }
@@ -127,11 +132,11 @@ public class WeightedGraph implements Iterable<WeightedNode> {
       incomingEdges.get(endNumber).add(edge);
       outgoingEdges.get(startNumber).add(edge);
     }
-
   }
 
   /**
    * Insert a whole set of weighted edges into the graph structure
+   *
    * @param edges the edges to be inserted
    */
   public void addEdges(Set<WeightedEdge> edges) {
@@ -146,6 +151,7 @@ public class WeightedGraph implements Iterable<WeightedNode> {
 
   /**
    * Get a node via its number, if it is contained in the graph
+   *
    * @param node the node number
    * @return The weighted node, or null, if not contained in graph
    */
@@ -194,7 +200,6 @@ public class WeightedGraph implements Iterable<WeightedNode> {
 
   public Set<Integer> getIntSuccessors(WeightedNode node) {
     return getIntSuccessors(node.getNodeNumber());
-
   }
 
   public Set<WeightedNode> getNeighbors(WeightedNode node) {
@@ -207,9 +212,7 @@ public class WeightedGraph implements Iterable<WeightedNode> {
     return neighbors;
   }
 
-
-
-  static public int computeWeight(Set<WeightedNode> nodes) {
+  public static int computeWeight(Set<WeightedNode> nodes) {
     int weight = 0;
     for (WeightedNode node : nodes) {
       weight += node.getWeight();
@@ -217,14 +220,13 @@ public class WeightedGraph implements Iterable<WeightedNode> {
     return weight;
   }
 
-  static public int computeWeight(Set<Integer> nodes, WeightedGraph wGraph) {
+  public static int computeWeight(Set<Integer> nodes, WeightedGraph wGraph) {
     int weight = 0;
     for (Integer node : nodes) {
       weight += wGraph.getNode(node).getWeight();
     }
     return weight;
   }
-
 
   public int getNumNodes() {
     return numNodes;
@@ -261,7 +263,7 @@ public class WeightedGraph implements Iterable<WeightedNode> {
     StringBuilder s = new StringBuilder();
 
     for (int node = 0; node < numNodes; node++) {
-      if(nodes[node]==null){
+      if (nodes[node] == null) {
         continue;
       }
       int nodeWeight = getNode(node).getWeight();
@@ -277,15 +279,14 @@ public class WeightedGraph implements Iterable<WeightedNode> {
 
   /**
    * Compute sum of all contained nodes' weights of
+   *
    * @return the total node weight of graph
    */
   public int getTotalNodeWeight() {
     return totalNodeWeight;
   }
 
-  /**
-   * Iterates in increasing node-number order over all nodes contained in graph
-   */
+  /** Iterates in increasing node-number order over all nodes contained in graph */
   @Override
   public Iterator<WeightedNode> iterator() {
     return Iterators.forArray(nodes);
@@ -293,15 +294,17 @@ public class WeightedGraph implements Iterable<WeightedNode> {
 
   /**
    * Computes a partition's weight, if graph is split up into numPartitions equal parts
+   *
    * @param numPartitions The number of partitions to be created
    * @return maximal weight of the partitions
    */
   public int computePartitionLoad(int numPartitions) {
-    return this.getTotalNodeWeight() / numPartitions + 1;
+    return getTotalNodeWeight() / numPartitions + 1;
   }
 
   /**
    * Generates a partition consisting of all nodes
+   *
    * @return All nodes in one partition
    */
   public List<Set<Integer>> getGraphAsOnePartition() {
@@ -315,25 +318,26 @@ public class WeightedGraph implements Iterable<WeightedNode> {
   }
 
   /**
-   * Generates a partitioning, in which each node has its own partition.
-   * If there are more partitions needed, than nodes in graph exist, empty partitions are added
-   * @param numPartitions number of Partitions to be at least created. if numNodes<numPartitions==> empty partitions necessary
+   * Generates a partitioning, in which each node has its own partition. If there are more
+   * partitions needed, than nodes in graph exist, empty partitions are added
+   *
+   * @param numPartitions number of Partitions to be at least created. if numNodes<numPartitions==>
+   *     empty partitions necessary
    * @return A partitioning consisting of numNodes partitions
    */
   public List<Set<Integer>> getNodesSeperatelyPartitioned(int numPartitions) {
     List<Set<Integer>> partitioning = new ArrayList<>(numNodes);
-    int currentPartition=0;
+    int currentPartition = 0;
     for (WeightedNode node : nodes) {
       Set<Integer> partition = new HashSet<>(1);
       partition.add(node.getNodeNumber());
       partitioning.add(partition);
       currentPartition++;
     }
-    while(currentPartition<numPartitions){
+    while (currentPartition < numPartitions) {
       partitioning.add(new HashSet<Integer>(1));
       currentPartition++;
     }
     return partitioning;
   }
-
 }

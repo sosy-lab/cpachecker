@@ -88,7 +88,7 @@ public class SymbolicExpressionToCExpressionTransformer
     }
   }
 
-/* We can't use function calls in expressions and they are no CExpressions,
+  /* We can't use function calls in expressions and they are no CExpressions,
    so we can't use builtin functions to represent NaN and infinity.
    Instead, a hack is used below that _should_ produce the correct values, but is
    implementation dependent.
@@ -156,15 +156,15 @@ public class SymbolicExpressionToCExpressionTransformer
   }
 
   private CExpression getIdentifierCExpression(SymbolicIdentifier pIdentifier, CType pType) {
-    String name = SymbolicIdentifier.Converter.getInstance().convertToStringEncoding(
-        pIdentifier);
+    String name = SymbolicIdentifier.Converter.getInstance().convertToStringEncoding(pIdentifier);
     CSimpleDeclaration declaration = getIdentifierDeclaration(name, pType);
 
     return new CIdExpression(DUMMY_LOCATION, pType, name, declaration);
   }
 
   private CVariableDeclaration getIdentifierDeclaration(String pIdentifierName, CType pType) {
-    return new CVariableDeclaration(DUMMY_LOCATION,
+    return new CVariableDeclaration(
+        DUMMY_LOCATION,
         false,
         CStorageClass.AUTO,
         pType,
@@ -174,8 +174,10 @@ public class SymbolicExpressionToCExpressionTransformer
         null);
   }
 
-  private CExpression createBinaryExpression(BinarySymbolicExpression pExpression, CBinaryExpression.BinaryOperator pOperator) {
-    return new CBinaryExpression(DUMMY_LOCATION,
+  private CExpression createBinaryExpression(
+      BinarySymbolicExpression pExpression, CBinaryExpression.BinaryOperator pOperator) {
+    return new CBinaryExpression(
+        DUMMY_LOCATION,
         getCType(pExpression.getType()),
         getCType(pExpression.getCalculationType()),
         pExpression.getOperand1().accept(this),
@@ -183,8 +185,10 @@ public class SymbolicExpressionToCExpressionTransformer
         pOperator);
   }
 
-  private CExpression createUnaryExpression(UnarySymbolicExpression pExpression, CUnaryExpression.UnaryOperator pOperator) {
-    return new CUnaryExpression(DUMMY_LOCATION,
+  private CExpression createUnaryExpression(
+      UnarySymbolicExpression pExpression, CUnaryExpression.UnaryOperator pOperator) {
+    return new CUnaryExpression(
+        DUMMY_LOCATION,
         getCType(pExpression.getType()),
         pExpression.getOperand().accept(this),
         pOperator);
@@ -260,12 +264,14 @@ public class SymbolicExpressionToCExpressionTransformer
         return createBinaryExpression(innerExpression, CBinaryExpression.BinaryOperator.NOT_EQUALS);
 
       } else if (operand instanceof LessThanExpression) {
-        return createBinaryExpression(innerExpression, CBinaryExpression.BinaryOperator.GREATER_EQUAL);
+        return createBinaryExpression(
+            innerExpression, CBinaryExpression.BinaryOperator.GREATER_EQUAL);
 
       } else if (operand instanceof LessThanOrEqualExpression) {
-        return createBinaryExpression(innerExpression, CBinaryExpression.BinaryOperator.GREATER_THAN);
+        return createBinaryExpression(
+            innerExpression, CBinaryExpression.BinaryOperator.GREATER_THAN);
 
-      } else  {
+      } else {
         throw new AssertionError("Unhandled operation " + operand);
       }
     }

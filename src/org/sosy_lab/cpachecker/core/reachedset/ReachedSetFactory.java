@@ -40,105 +40,98 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariableWaitlist;
 import org.sosy_lab.cpachecker.cpa.usage.UsageReachedSet;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UsageConfiguration;
 
-@Options(prefix="analysis")
+@Options(prefix = "analysis")
 public class ReachedSetFactory {
 
   private enum ReachedSetType {
-    NORMAL, LOCATIONMAPPED, PARTITIONED, PSEUDOPARTITIONED, USAGE
+    NORMAL,
+    LOCATIONMAPPED,
+    PARTITIONED,
+    PSEUDOPARTITIONED,
+    USAGE
   }
 
   @Option(
-    secure = true,
-    name = "traversal.order",
-    description = "which strategy to adopt for visiting states?"
-  )
+      secure = true,
+      name = "traversal.order",
+      description = "which strategy to adopt for visiting states?")
   private Waitlist.TraversalMethod traversalMethod = Waitlist.TraversalMethod.DFS;
 
   @Option(
-    secure = true,
-    name = "traversal.useCallstack",
-    description =
-        "handle states with a deeper callstack first"
-            + "\nThis needs the CallstackCPA instance to have any effect."
-  )
+      secure = true,
+      name = "traversal.useCallstack",
+      description =
+          "handle states with a deeper callstack first"
+              + "\nThis needs the CallstackCPA instance to have any effect.")
   private boolean useCallstack = false;
 
   @Option(
-    secure = true,
-    name = "traversal.useLoopIterationCount",
-    description = "handle states with more loop iterations first."
-  )
+      secure = true,
+      name = "traversal.useLoopIterationCount",
+      description = "handle states with more loop iterations first.")
   private boolean useLoopIterationCount = false;
 
   @Option(
-    secure = true,
-    name = "traversal.useReverseLoopIterationCount",
-    description = "handle states with fewer loop iterations first."
-  )
+      secure = true,
+      name = "traversal.useReverseLoopIterationCount",
+      description = "handle states with fewer loop iterations first.")
   private boolean useReverseLoopIterationCount = false;
 
   @Option(
-    secure = true,
-    name = "traversal.useLoopstack",
-    description = "handle states with a deeper loopstack first."
-  )
+      secure = true,
+      name = "traversal.useLoopstack",
+      description = "handle states with a deeper loopstack first.")
   private boolean useLoopstack = false;
 
   @Option(
-    secure = true,
-    name = "traversal.useReverseLoopstack",
-    description = "handle states with a more shallow loopstack first."
-  )
+      secure = true,
+      name = "traversal.useReverseLoopstack",
+      description = "handle states with a more shallow loopstack first.")
   private boolean useReverseLoopstack = false;
 
   @Option(
-    secure = true,
-    name = "traversal.useReversePostorder",
-    description =
-        "Use an implementation of reverse postorder strategy that allows to select "
-            + "a secondary strategy that is used if there are two states with the same reverse postorder id. "
-            + "The secondary strategy is selected with 'analysis.traversal.order'."
-  )
+      secure = true,
+      name = "traversal.useReversePostorder",
+      description =
+          "Use an implementation of reverse postorder strategy that allows to select a secondary"
+              + " strategy that is used if there are two states with the same reverse postorder id."
+              + " The secondary strategy is selected with 'analysis.traversal.order'.")
   private boolean useReversePostorder = false;
 
   @Option(
-    secure = true,
-    name = "traversal.usePostorder",
-    description =
-        "Use an implementation of postorder strategy that allows to select "
-            + "a secondary strategy that is used if there are two states with the same postorder id. "
-            + "The secondary strategy is selected with 'analysis.traversal.order'."
-  )
+      secure = true,
+      name = "traversal.usePostorder",
+      description =
+          "Use an implementation of postorder strategy that allows to select a secondary strategy"
+              + " that is used if there are two states with the same postorder id. The secondary"
+              + " strategy is selected with 'analysis.traversal.order'.")
   private boolean usePostorder = false;
 
   @Option(
-    secure = true,
-    name = "traversal.useExplicitInformation",
-    description =
-        "handle more abstract states (with less information) first? (only for ExplicitCPA)"
-  )
+      secure = true,
+      name = "traversal.useExplicitInformation",
+      description =
+          "handle more abstract states (with less information) first? (only for ExplicitCPA)")
   private boolean useExplicitInformation = false;
 
   @Option(
-    secure = true,
-    name = "traversal.useAutomatonInformation",
-    description =
-        "handle abstract states with more automaton matches first? (only if AutomatonCPA enabled)"
-  )
+      secure = true,
+      name = "traversal.useAutomatonInformation",
+      description =
+          "handle abstract states with more automaton matches first? (only if AutomatonCPA"
+              + " enabled)")
   private boolean useAutomatonInformation = false;
 
   @Option(
-    secure = true,
-    name = "traversal.byAutomatonVariable",
-    description = "traverse in the order defined by the values of an automaton variable"
-  )
+      secure = true,
+      name = "traversal.byAutomatonVariable",
+      description = "traverse in the order defined by the values of an automaton variable")
   private @Nullable String byAutomatonVariable = null;
 
   @Option(
-    secure = true,
-    name = "traversal.useNumberOfThreads",
-    description = "handle abstract states with fewer running threads first? (needs ThreadingCPA)"
-  )
+      secure = true,
+      name = "traversal.useNumberOfThreads",
+      description = "handle abstract states with fewer running threads first? (needs ThreadingCPA)")
   private boolean useNumberOfThreads = false;
 
   @Option(
@@ -154,32 +147,29 @@ public class ReachedSetFactory {
   private boolean useWeightedDepthOrder = false;
 
   @Option(
-    secure = true,
-    name = "traversal.weightedBranches",
-    description = "perform a weighted random selection based on the branching depth"
-  )
+      secure = true,
+      name = "traversal.weightedBranches",
+      description = "perform a weighted random selection based on the branching depth")
   private boolean useWeightedBranchOrder = false;
 
   @Option(
-    secure = true,
-    name = "traversal.useBlocks",
-    description =
-        "use blocks and set resource limits for its traversal, blocks are handled in DFS order"
-  )
+      secure = true,
+      name = "traversal.useBlocks",
+      description =
+          "use blocks and set resource limits for its traversal, blocks are handled in DFS order")
   private boolean useBlocks = false;
 
   @Option(
-    secure = true,
-    name = "reachedSet",
-    description =
-        "which reached set implementation to use?"
-            + "\nNORMAL: just a simple set"
-            + "\nLOCATIONMAPPED: a different set per location "
-            + "(faster, states with different locations cannot be merged)"
-            + "\nPARTITIONED: partitioning depending on CPAs (e.g Location, Callstack etc.)"
-            + "\nPSEUDOPARTITIONED: based on PARTITIONED, uses additional info about the states' lattice "
-            + "(maybe faster for some special analyses which use merge_sep and stop_sep"
-  )
+      secure = true,
+      name = "reachedSet",
+      description =
+          "which reached set implementation to use?\n"
+              + "NORMAL: just a simple set\n"
+              + "LOCATIONMAPPED: a different set per location (faster, states with different"
+              + " locations cannot be merged)\n"
+              + "PARTITIONED: partitioning depending on CPAs (e.g Location, Callstack etc.)\n"
+              + "PSEUDOPARTITIONED: based on PARTITIONED, uses additional info about the states'"
+              + " lattice (maybe faster for some special analyses which use merge_sep and stop_sep")
   private ReachedSetType reachedSet = ReachedSetType.PARTITIONED;
 
   @Option(
@@ -196,7 +186,7 @@ public class ReachedSetFactory {
   public ReachedSetFactory(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
     pConfig.inject(this);
-    this.logger = checkNotNull(pLogger);
+    logger = checkNotNull(pLogger);
 
     if (useBlocks) {
       blockConfig = new BlockConfiguration(pConfig);
@@ -277,20 +267,20 @@ public class ReachedSetFactory {
 
     ReachedSet reached;
     switch (reachedSet) {
-    case PARTITIONED:
+      case PARTITIONED:
         reached = new PartitionedReachedSet(cpa, waitlistFactory);
         break;
-    case PSEUDOPARTITIONED:
+      case PSEUDOPARTITIONED:
         reached = new PseudoPartitionedReachedSet(cpa, waitlistFactory);
         break;
-    case LOCATIONMAPPED:
+      case LOCATIONMAPPED:
         reached = new LocationMappedReachedSet(cpa, waitlistFactory);
         break;
-    case USAGE:
+      case USAGE:
         reached = new UsageReachedSet(cpa, waitlistFactory, usageConfig, logger);
         break;
-    case NORMAL:
-    default:
+      case NORMAL:
+      default:
         reached = new DefaultReachedSet(cpa, waitlistFactory);
     }
 

@@ -20,37 +20,33 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 
-
-/**
- * <code>PartitioningHeuristic</code> that creates a block for each function-body.
- */
+/** <code>PartitioningHeuristic</code> that creates a block for each function-body. */
 @Options(prefix = "cpa.bam.blockHeuristic.functionPartitioning")
 public class FunctionPartitioning extends PartitioningHeuristic {
 
-  private static final CFATraversal TRAVERSE_CFA_INSIDE_FUNCTION = CFATraversal.dfs().ignoreFunctionCalls();
+  private static final CFATraversal TRAVERSE_CFA_INSIDE_FUNCTION =
+      CFATraversal.dfs().ignoreFunctionCalls();
 
   @Option(
-    secure = true,
-    description =
-        "only consider function with a minimum number of CFA nodes. "
-            + "This approach is similar to 'inlining' small functions, when using BAM."
-  )
+      secure = true,
+      description =
+          "only consider function with a minimum number of CFA nodes. "
+              + "This approach is similar to 'inlining' small functions, when using BAM.")
   private int minFunctionSize = 0;
 
   @Option(
-    secure = true,
-    description =
-        "only consider function with a minimum number of calls. "
-            + "This approach is similar to 'inlining' functions used only a few times. "
-            + "Info: If a function is called several times in a loop, we only count 'one' call."
-  )
+      secure = true,
+      description =
+          "only consider function with a minimum number of calls. "
+              + "This approach is similar to 'inlining' functions used only a few times. "
+              + "Info: If a function is called several times in a loop, we only count 'one' call.")
   private int minFunctionCalls = 0;
 
   @Option(
       secure = true,
       description =
-          "only consider functions with a matching name, i.e., select only some functions directly."
-    )
+          "only consider functions with a matching name, i.e., select only some functions"
+              + " directly.")
   private ImmutableSet<String> matchFunctions = null;
 
   /** Do not change signature! Constructor will be created with Reflections. */

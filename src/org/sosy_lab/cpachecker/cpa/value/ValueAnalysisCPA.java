@@ -80,8 +80,12 @@ public class ValueAnalysisCPA extends AbstractCPA
     INTRODUCE_SYMBOLIC,
   }
 
-  @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN"},
-      description="which merge operator to use for ValueAnalysisCPA")
+  @Option(
+      secure = true,
+      name = "merge",
+      toUppercase = true,
+      values = {"SEP", "JOIN"},
+      description = "which merge operator to use for ValueAnalysisCPA")
   private String mergeType = "SEP";
 
   @Option(
@@ -92,7 +96,7 @@ public class ValueAnalysisCPA extends AbstractCPA
       description = "which stop operator to use for ValueAnalysisCPA")
   private String stopType = "SEP";
 
-  @Option(secure=true, description="get an initial precision from file")
+  @Option(secure = true, description = "get an initial precision from file")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path initialPrecisionFile = null;
 
@@ -131,27 +135,28 @@ public class ValueAnalysisCPA extends AbstractCPA
 
   private SymbolicStatistics symbolicStats;
 
-  private ValueAnalysisCPA(Configuration config, LogManager logger,
-      ShutdownNotifier pShutdownNotifier, CFA cfa) throws InvalidConfigurationException {
+  private ValueAnalysisCPA(
+      Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier, CFA cfa)
+      throws InvalidConfigurationException {
     super(DelegateAbstractDomain.<ValueAnalysisState>getInstance(), null);
-    this.config           = config;
-    this.logger           = logger;
-    this.shutdownNotifier = pShutdownNotifier;
-    this.cfa              = cfa;
+    this.config = config;
+    this.logger = logger;
+    shutdownNotifier = pShutdownNotifier;
+    this.cfa = cfa;
 
     config.inject(this, ValueAnalysisCPA.class);
 
     predToValPrec = new PredicateToValuePrecisionConverter(config, logger, pShutdownNotifier, cfa);
 
-    precision           = initializePrecision(config, cfa);
-    statistics          = new ValueAnalysisCPAStatistics(this, config);
+    precision = initializePrecision(config, cfa);
+    statistics = new ValueAnalysisCPAStatistics(this, config);
     writer = new StateToFormulaWriter(config, logger, shutdownNotifier, cfa);
-    errorPathAllocator = new ValueAnalysisConcreteErrorPathAllocator(config, logger, cfa.getMachineModel());
+    errorPathAllocator =
+        new ValueAnalysisConcreteErrorPathAllocator(config, logger, cfa.getMachineModel());
 
     unknownValueHandler = createUnknownValueHandler();
 
-    constraintsStrengthenOperator =
-        new ConstraintsStrengthenOperator(config, logger);
+    constraintsStrengthenOperator = new ConstraintsStrengthenOperator(config, logger);
     transferOptions = new ValueTransferOptions(config);
     precisionAdjustmentOptions = new PrecAdjustmentOptions(config, cfa);
     precisionAdjustmentStatistics = new PrecAdjustmentStatistics();
@@ -169,9 +174,11 @@ public class ValueAnalysisCPA extends AbstractCPA
     }
   }
 
-  private VariableTrackingPrecision initializePrecision(Configuration pConfig, CFA pCfa) throws InvalidConfigurationException {
+  private VariableTrackingPrecision initializePrecision(Configuration pConfig, CFA pCfa)
+      throws InvalidConfigurationException {
     if (initialPrecisionFile == null && initialPredicatePrecisionFile == null) {
-      return VariableTrackingPrecision.createStaticPrecision(pConfig, pCfa.getVarClassification(), getClass());
+      return VariableTrackingPrecision.createStaticPrecision(
+          pConfig, pCfa.getVarClassification(), getClass());
     }
 
     // Initialize precision
@@ -200,15 +207,14 @@ public class ValueAnalysisCPA extends AbstractCPA
     return initialPrecision;
   }
 
-
-
   private Multimap<CFANode, MemoryLocation> restoreMappingFromFile(CFA pCfa) {
     Multimap<CFANode, MemoryLocation> mapping = HashMultimap.create();
     List<String> contents = null;
     try {
       contents = Files.readAllLines(initialPrecisionFile, Charset.defaultCharset());
     } catch (IOException e) {
-      logger.logUserException(Level.WARNING, e, "Could not read precision from file named " + initialPrecisionFile);
+      logger.logUserException(
+          Level.WARNING, e, "Could not read precision from file named " + initialPrecisionFile);
       return mapping;
     }
 
@@ -219,7 +225,7 @@ public class ValueAnalysisCPA extends AbstractCPA
       if (currentLine.trim().isEmpty()) {
         continue;
 
-      } else if(currentLine.endsWith(":")) {
+      } else if (currentLine.endsWith(":")) {
         String scopeSelectors = currentLine.substring(0, currentLine.indexOf(":"));
         Matcher matcher = CFAUtils.CFA_NODE_NAME_PATTERN.matcher(scopeSelectors);
         if (matcher.matches()) {

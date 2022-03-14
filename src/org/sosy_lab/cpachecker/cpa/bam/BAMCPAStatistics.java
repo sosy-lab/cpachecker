@@ -185,7 +185,8 @@ class BAMCPAStatistics implements Statistics {
     if (blockStatisticsFile != null) {
       try (Writer w = IO.openOutputFile(blockStatisticsFile, Charset.defaultCharset())) {
         w.write(
-            "start; end; #locations; #variables; sumtime; maxtime; avgtime; #intervals; variables;");
+            "start; end; #locations; #variables; sumtime; maxtime; avgtime; #intervals;"
+                + " variables;");
         w.write("\n");
         for (Entry<Block, Timer> entry : timeForBlock.entrySet()) {
           Block block = entry.getKey();

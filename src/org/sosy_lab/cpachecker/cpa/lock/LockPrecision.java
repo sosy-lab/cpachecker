@@ -38,13 +38,13 @@ public class LockPrecision implements AdjustablePrecision {
   @Override
   public AdjustablePrecision add(AdjustablePrecision pOtherPrecision) {
     LockPrecision other = (LockPrecision) pOtherPrecision;
-    return new LockPrecision(Iterables.concat(other.precision.entries(), this.precision.entries()));
+    return new LockPrecision(Iterables.concat(other.precision.entries(), precision.entries()));
   }
 
   @Override
   public AdjustablePrecision subtract(AdjustablePrecision pOtherPrecision) {
     LockPrecision other = (LockPrecision) pOtherPrecision;
-    return new LockPrecision(Sets.difference(other.precision.entries(), this.precision.entries()));
+    return new LockPrecision(Sets.difference(other.precision.entries(), precision.entries()));
   }
 
   @Override

@@ -18,7 +18,7 @@ public abstract class AStringLiteralExpression extends ALiteralExpression {
 
   protected AStringLiteralExpression(FileLocation pFileLocation, Type pType, String pValue) {
     super(pFileLocation, pType);
-     value = pValue;
+    value = pValue;
   }
 
   @Override
@@ -46,8 +46,7 @@ public abstract class AStringLiteralExpression extends ALiteralExpression {
       return true;
     }
 
-    if (!(obj instanceof AStringLiteralExpression)
-        || !super.equals(obj)) {
+    if (!(obj instanceof AStringLiteralExpression) || !super.equals(obj)) {
       return false;
     }
 
@@ -55,5 +54,4 @@ public abstract class AStringLiteralExpression extends ALiteralExpression {
 
     return Objects.equals(other.value, value);
   }
-
 }

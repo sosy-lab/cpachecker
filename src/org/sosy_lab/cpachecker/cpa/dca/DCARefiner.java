@@ -155,9 +155,9 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
   @Option(
       secure = true,
       description =
-          "The max amount of refinements for the trace abstraction algorithm. "
-              + "Setting it to 0 leads to an analysis of the ARG without executing any refinements. "
-              + "This is used for debugging purposes.")
+          "The max amount of refinements for the trace abstraction algorithm. Setting it to 0 leads"
+              + " to an analysis of the ARG without executing any refinements. This is used for"
+              + " debugging purposes.")
   private int maxRefinementIterations = 10;
 
   @Option(
@@ -362,14 +362,14 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
     } else {
       logger.logf(
           Level.INFO,
-          "Not removing any infeasible predicate dummy states. There are in total %d of such states",
+          "Not removing any infeasible predicate dummy states. There are in total %d of such"
+              + " states",
           infeasibleDummyStates.size());
     }
 
     shutdownNotifier.shutdownIfNecessary();
     Set<StronglyConnectedComponent> SCCs =
-        GraphUtils.retrieveSCCs(reached)
-            .stream()
+        GraphUtils.retrieveSCCs(reached).stream()
             .filter(x -> x.getNodes().size() > 1)
             .filter(StronglyConnectedComponent::hasTargetStates)
             .collect(ImmutableSet.toImmutableSet());
@@ -674,11 +674,11 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
         if (dotExportFile != null) {
           try (Writer w =
               IO.openOutputFile(
-                  dotExportFile.getPath(automaton.getName()),
-                  Charset.defaultCharset())) {
+                  dotExportFile.getPath(automaton.getName()), Charset.defaultCharset())) {
             automaton.writeDotFile(w);
           } catch (IOException e) {
-            logger.logUserException(Level.WARNING, e, "Could not write the automaton to a DOT file");
+            logger.logUserException(
+                Level.WARNING, e, "Could not write the automaton to a DOT file");
           }
         }
       }

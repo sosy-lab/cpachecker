@@ -70,26 +70,32 @@ public class AssumptionAutomatonGenerator {
     return uncoveredAncestors;
   }
 
-  public void writeAutomaton(final ARGState root, final List<ARGState> incompleteNodes) throws CPAException {
+  public void writeAutomaton(final ARGState root, final List<ARGState> incompleteNodes)
+      throws CPAException {
     assert notCovered(incompleteNodes);
 
     try (Writer w = IO.openOutputFile(assumptionsFile, Charset.defaultCharset())) {
       logger.log(Level.FINEST, "Write assumption automaton to file ", assumptionsFile);
-      AssumptionCollectorAlgorithm.writeAutomaton(w, root, getAllAncestorsFor(incompleteNodes),
-          new HashSet<AbstractState>(incompleteNodes), 0, true);
+      AssumptionCollectorAlgorithm.writeAutomaton(
+          w,
+          root,
+          getAllAncestorsFor(incompleteNodes),
+          new HashSet<AbstractState>(incompleteNodes),
+          0,
+          true);
     } catch (IOException e) {
-      logger.log(Level.SEVERE, "Could not write assumption automaton for next partial ARG checking");
+      logger.log(
+          Level.SEVERE, "Could not write assumption automaton for next partial ARG checking");
       throw new CPAException("Assumption automaton writing failed", e);
     }
   }
 
-  private boolean notCovered(final List<ARGState> nodes){
-    for(ARGState state: nodes) {
-      if(state.isCovered()){
+  private boolean notCovered(final List<ARGState> nodes) {
+    for (ARGState state : nodes) {
+      if (state.isCovered()) {
         return false;
       }
     }
     return true;
   }
-
 }

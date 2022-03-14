@@ -75,7 +75,9 @@ class GraphMLTransition {
 
   @Override
   public boolean equals(Object pOther) {
-    if (this == pOther) { return true; }
+    if (this == pOther) {
+      return true;
+    }
     if (pOther instanceof GraphMLTransition) {
       GraphMLTransition other = (GraphMLTransition) pOther;
       return getSource().equals(other.getSource())

@@ -13,7 +13,5 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 interface AbstractionStrategyFactory {
 
   AbstractionStrategy createStrategy(
-      CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
-      MachineModel pMachineModel);
-
+      CompoundIntervalManagerFactory pCompoundIntervalManagerFactory, MachineModel pMachineModel);
 }

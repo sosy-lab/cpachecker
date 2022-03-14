@@ -313,7 +313,8 @@ public class PdrAlgorithm implements Algorithm {
             Set<CandidateInvariant> frameInvariants = frameSet.getInvariants(i);
             frameInvariants =
                 Sets.union(
-                    frameInvariants, Collections.singleton(getCurrentInvariant(pTransitionRelation)));
+                    frameInvariants,
+                    Collections.singleton(getCurrentInvariant(pTransitionRelation)));
             List<CandidateInvariant> toPush = new ArrayList<>();
             for (CandidateInvariant frameClause : frameSet.getPushableFrameClauses(i)) {
               InductionResult<CandidateInvariant> pushAttempt =
@@ -380,8 +381,7 @@ public class PdrAlgorithm implements Algorithm {
       logger.log(
           Level.INFO,
           "Terminating because none of the following CPAs' precision can be adjusted any further ",
-          conditionCPAs
-              .stream()
+          conditionCPAs.stream()
               .map(Object::getClass)
               .map(Class::getSimpleName)
               .collect(Collectors.joining(", ")));
@@ -667,9 +667,7 @@ public class PdrAlgorithm implements Algorithm {
       ProofObligation pOldObligation,
       DetectingLiftingAbstractionFailureStrategy pLafsForCheck,
       InductionResult<? extends CandidateInvariant> pCheckResult) {
-    return pCheckResult
-        .getBadStateBlockingClauses()
-        .stream()
+    return pCheckResult.getBadStateBlockingClauses().stream()
         .map(
             badStateBlockingClause ->
                 pOldObligation.causeProofObligation(
@@ -745,8 +743,10 @@ public class PdrAlgorithm implements Algorithm {
             predecessorAssertions, Collections.singleton(getCurrentInvariant(pTransitionRelation)));
     ProverEnvironmentWithFallback prover = pFrameSet.getFrameProver(oldFrontierIndex);
 
-    boolean eagerLiftingRefinement = oldFrontierIndex == 0 || basicPdrOptions.liftingAbstractionFailureThreshold <= 0;
-    DetectingLiftingAbstractionFailureStrategy lafs = new DetectingLiftingAbstractionFailureStrategy(eagerLiftingRefinement);
+    boolean eagerLiftingRefinement =
+        oldFrontierIndex == 0 || basicPdrOptions.liftingAbstractionFailureThreshold <= 0;
+    DetectingLiftingAbstractionFailureStrategy lafs =
+        new DetectingLiftingAbstractionFailureStrategy(eagerLiftingRefinement);
 
     InductionResult<CandidateInvariant> inductionResult =
         checkInduction(
@@ -815,7 +815,8 @@ public class PdrAlgorithm implements Algorithm {
     Object candidateAssertionId =
         pProver.push(pTransitionRelation.getPredecessorAssertion(pCandidateInvariant));
 
-    Multimap<BooleanFormula, BooleanFormula> successorViolationAssertions = pTransitionRelation.getSuccessorViolationAssertions(pCandidateInvariant);
+    Multimap<BooleanFormula, BooleanFormula> successorViolationAssertions =
+        pTransitionRelation.getSuccessorViolationAssertions(pCandidateInvariant);
     BooleanFormula successorViolation =
         BMCHelper.disjoinStateViolationAssertions(bfmgr, successorViolationAssertions);
     pProver.push(successorViolation);
@@ -1084,7 +1085,6 @@ public class PdrAlgorithm implements Algorithm {
     return safe;
   }
 
-
   private boolean boundedModelCheck(
       UnrolledReachedSet pReachedSet,
       ProverEnvironmentWithFallback pProver,
@@ -1128,8 +1128,8 @@ public class PdrAlgorithm implements Algorithm {
     }
 
     stats.errorPathCreation.start();
-    Solver cexAnalysisSolver = this.solver;
-    PathFormulaManager cexAnalysisPmgr = this.pmgr;
+    Solver cexAnalysisSolver = solver;
+    PathFormulaManager cexAnalysisPmgr = pmgr;
     try {
       logger.log(Level.INFO, "Error found, creating error path");
 
@@ -1251,7 +1251,7 @@ public class PdrAlgorithm implements Algorithm {
 
     } finally {
       stats.errorPathCreation.stop();
-      if (cexAnalysisSolver != this.solver) {
+      if (cexAnalysisSolver != solver) {
         cexAnalysisSolver.close();
       }
     }
@@ -1277,41 +1277,37 @@ public class PdrAlgorithm implements Algorithm {
     private int spuriousTransitionCountThreshold = 0;
 
     @Option(
-      secure = true,
-      description =
-          "Maximum number of ignored lifting abstraction failures within a proof-obligation trace."
-    )
+        secure = true,
+        description =
+            "Maximum number of ignored lifting abstraction failures within a proof-obligation"
+                + " trace.")
     private int liftingAbstractionFailureThreshold = 0;
 
     @Option(
-      secure = true,
-      description = "Which strategy to use to abstract counterexamples to inductivity."
-    )
+        secure = true,
+        description = "Which strategy to use to abstract counterexamples to inductivity.")
     private LiftingStrategyFactories liftingStrategy = LiftingStrategyFactories.NO_LIFTING;
 
     @Option(
-      secure = true,
-      name = "abstractionStrategy",
-      description =
-          "Which strategy to use to perform abstraction of successful proof results"
-              + " or when lifting with the lifting strategy ABSTRACTION_BASED_LIFTING."
-    )
+        secure = true,
+        name = "abstractionStrategy",
+        description =
+            "Which strategy to use to perform abstraction of successful proof results"
+                + " or when lifting with the lifting strategy ABSTRACTION_BASED_LIFTING.")
     private AbstractionStrategyFactories abstractionStrategyFactory =
         AbstractionStrategyFactories.NO_ABSTRACTION;
 
     @Option(
-      secure = true,
-      name = "invariantRefinementStrategy",
-      description =
-          "Which strategy to use to perform invariant refinement on successful proof results."
-    )
+        secure = true,
+        name = "invariantRefinementStrategy",
+        description =
+            "Which strategy to use to perform invariant refinement on successful proof results.")
     private InvariantStrengtheningStrategies invariantRefinementStrategy =
         InvariantStrengtheningStrategies.NO_STRENGTHENING;
 
     @Option(
-      secure = true,
-      description = "Whether to adjust conditions (i.e. increment k) after frontier extension."
-    )
+        secure = true,
+        description = "Whether to adjust conditions (i.e. increment k) after frontier extension.")
     private ConditionAdjustmentCriterion conditionAdjustmentCriterion =
         ConditionAdjustmentCriterion.NEVER;
 

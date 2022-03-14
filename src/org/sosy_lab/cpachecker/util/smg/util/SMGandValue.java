@@ -41,7 +41,7 @@ public class SMGandValue {
       return false;
     }
     SMGandValue otherSMGaV = (SMGandValue) other;
-    return this.smg.equals(otherSMGaV.getSMG()) && this.value.equals(otherSMGaV.getValue());
+    return smg.equals(otherSMGaV.getSMG()) && value.equals(otherSMGaV.getValue());
   }
 
   @Override

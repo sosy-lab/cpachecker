@@ -31,16 +31,16 @@ public class ThreadCPAStatistics implements Statistics {
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
     StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut);
-    writer.put(transfer)
-          .put(threadCreates)
-          .put("Names of created threads:", createdThreads)
-          .put(threadJoins)
-          .put(maxNumberOfThreads);
+    writer
+        .put(transfer)
+        .put(threadCreates)
+        .put("Names of created threads:", createdThreads)
+        .put(threadJoins)
+        .put(maxNumberOfThreads);
   }
 
   @Override
   public String getName() {
     return "ThreadCPA";
   }
-
 }

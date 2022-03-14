@@ -167,7 +167,8 @@ class TraceAbstractionPrecisionAdjustment implements PrecisionAdjustment {
 
     verify(
         abstractionFormula.isTrue(),
-        "AbstractionFormula was modified. This is not expected when using the TraceAbstraction refinement");
+        "AbstractionFormula was modified. This is not expected when using the TraceAbstraction"
+            + " refinement");
 
     Optional<CallstackStateEqualsWrapper> callstackWrapper =
         AbstractStates.extractOptionalCallstackWraper(pFullState);
@@ -339,7 +340,8 @@ class TraceAbstractionPrecisionAdjustment implements PrecisionAdjustment {
           // that the current predicate just does not hold anymore in the next state.
           logger.log(
               Level.FINEST,
-              "Abstraction is contradictory to current input predicates. The node is not reachable");
+              "Abstraction is contradictory to current input predicates. The node is not"
+                  + " reachable");
           continue;
         }
 

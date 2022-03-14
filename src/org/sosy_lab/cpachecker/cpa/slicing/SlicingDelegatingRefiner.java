@@ -40,11 +40,10 @@ public class SlicingDelegatingRefiner implements Refiner, StatisticsProvider {
   private static class SlicingDelegatingRefinerOptions {
 
     @Option(
-      secure = true,
-      name = "refiner",
-      required = true,
-      description = "Refiner that SlicingDelegatingRefiner should delegate to"
-    )
+        secure = true,
+        name = "refiner",
+        required = true,
+        description = "Refiner that SlicingDelegatingRefiner should delegate to")
     @ClassOption(packagePrefix = "org.sosy_lab.cpachecker")
     private Refiner.Factory delegate = null;
   }

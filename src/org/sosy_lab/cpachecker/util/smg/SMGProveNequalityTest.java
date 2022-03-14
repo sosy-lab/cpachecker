@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.smg.test.SMGTest0;
 
-//TODO write more test cases which test not only base cases
+// TODO write more test cases which test not only base cases
 public class SMGProveNequalityTest extends SMGTest0 {
 
   private SMG smg;
@@ -46,7 +46,6 @@ public class SMGProveNequalityTest extends SMGTest0 {
     assertThat(nequality.proveInequality(value1, value1)).isFalse();
     assertThat(nequality.proveInequality(value2, value2)).isFalse();
     assertThat(nequality.proveInequality(value3, value3)).isFalse();
-
   }
 
   @Test
@@ -71,7 +70,6 @@ public class SMGProveNequalityTest extends SMGTest0 {
 
     SMGProveNequality nequality = new SMGProveNequality(smg);
     assertThat(nequality.proveInequality(value1, value2)).isFalse();
-
   }
 
   @Test
@@ -117,7 +115,5 @@ public class SMGProveNequalityTest extends SMGTest0 {
 
     SMGProveNequality nequality = new SMGProveNequality(smg);
     assertThat(nequality.proveInequality(value1, value2)).isFalse();
-
   }
-
 }

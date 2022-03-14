@@ -28,8 +28,7 @@ public class CBMCExecutor extends ProcessExecutor<CounterexampleAnalysisFailed> 
   private volatile Boolean result = null;
   private boolean unwindingAssertionFailed = false;
 
-  @SuppressFBWarnings(value = "VO_VOLATILE_INCREMENT",
-      justification = "Written only by one thread")
+  @SuppressFBWarnings(value = "VO_VOLATILE_INCREMENT", justification = "Written only by one thread")
   private volatile int errorOutputCount = 0;
 
   public CBMCExecutor(LogManager logger, List<String> args) throws IOException {
@@ -40,7 +39,7 @@ public class CBMCExecutor extends ProcessExecutor<CounterexampleAnalysisFailed> 
     String[] cmd = new String[args.size() + 1];
     cmd[0] = NativeLibraries.getNativeLibraryPath().resolve("cbmc").toString();
     for (int i = 0; i < args.size(); i++) {
-      cmd[i+1] = args.get(i);
+      cmd[i + 1] = args.get(i);
     }
     return cmd;
   }
@@ -48,29 +47,31 @@ public class CBMCExecutor extends ProcessExecutor<CounterexampleAnalysisFailed> 
   @Override
   protected synchronized void handleExitCode(int pCode) throws CounterexampleAnalysisFailed {
     switch (pCode) {
-    case 0: // Verification successful (Path is infeasible)
-      result = false;
-      break;
+      case 0: // Verification successful (Path is infeasible)
+        result = false;
+        break;
 
-    case 10: // Verification failed (Path is feasible)
-      result = true;
-      break;
+      case 10: // Verification failed (Path is feasible)
+        result = true;
+        break;
 
-    default:
-      super.handleExitCode(pCode);
+      default:
+        super.handleExitCode(pCode);
     }
   }
 
   @Override
   protected synchronized void handleErrorOutput(String pLine) throws CounterexampleAnalysisFailed {
     // CBMC does not seem to print this anymore to stderr
-    //if (!(pLine.startsWith("Verified ") && pLine.endsWith("original clauses.")))
+    // if (!(pLine.startsWith("Verified ") && pLine.endsWith("original clauses.")))
 
-    if (pLine.contains("Out of memory") || pLine.equals("terminate called after throwing an instance of 'Minisat::OutOfMemoryException'")) {
+    if (pLine.contains("Out of memory")
+        || pLine.equals(
+            "terminate called after throwing an instance of 'Minisat::OutOfMemoryException'")) {
       throw new CounterexampleAnalysisFailed("CBMC run out of memory.");
 
     } else if (pLine.startsWith("**** WARNING: no body for function ")
-             || pLine.contains("warning: #pragma once in main file")) {
+        || pLine.contains("warning: #pragma once in main file")) {
       // ignore warning that are not interesting for us
 
     } else {
@@ -106,7 +107,10 @@ public class CBMCExecutor extends ProcessExecutor<CounterexampleAnalysisFailed> 
     checkState(isFinished());
 
     if (errorOutputCount > 0) {
-      logger.log(Level.WARNING, "CBMC returned successfully, but printed warnings, ignoring the result. Please check the log above!");
+      logger.log(
+          Level.WARNING,
+          "CBMC returned successfully, but printed warnings, ignoring the result. Please check the"
+              + " log above!");
       errorOutputCount = 0; // print warning only once
       result = null;
     }

@@ -23,18 +23,20 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
- * An implementation of {@link CounterexampleFilter} that bases path similarity
- * on the ABE blocks the path contains
- * (to be more precise, on the sequence of abstraction locations along the path).
+ * An implementation of {@link CounterexampleFilter} that bases path similarity on the ABE blocks
+ * the path contains (to be more precise, on the sequence of abstraction locations along the path).
  */
-public class ABEBlockCounterexampleFilter extends AbstractSetBasedCounterexampleFilter<ImmutableList<CFANode>> {
+public class ABEBlockCounterexampleFilter
+    extends AbstractSetBasedCounterexampleFilter<ImmutableList<CFANode>> {
 
-  public ABEBlockCounterexampleFilter(Configuration pConfig, LogManager pLogger, ConfigurableProgramAnalysis pCpa) {
+  public ABEBlockCounterexampleFilter(
+      Configuration pConfig, LogManager pLogger, ConfigurableProgramAnalysis pCpa) {
     super(pConfig, pLogger, pCpa);
   }
 
   @Override
-  protected Optional<ImmutableList<CFANode>> getCounterexampleRepresentation(CounterexampleInfo counterexample) {
+  protected Optional<ImmutableList<CFANode>> getCounterexampleRepresentation(
+      CounterexampleInfo counterexample) {
     return Optional.of(
         from(counterexample.getTargetPath().asStatesList())
             .filter(PredicateAbstractState::containsAbstractionState)

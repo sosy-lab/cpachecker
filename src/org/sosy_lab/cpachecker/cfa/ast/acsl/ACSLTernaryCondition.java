@@ -18,7 +18,8 @@ public class ACSLTernaryCondition extends ACSLPredicate {
     this(p1, p2, p3, false);
   }
 
-  public ACSLTernaryCondition(ACSLPredicate p1, ACSLPredicate p2, ACSLPredicate p3, boolean negated) {
+  public ACSLTernaryCondition(
+      ACSLPredicate p1, ACSLPredicate p2, ACSLPredicate p3, boolean negated) {
     super(negated);
     condition = p1;
     then = p2;

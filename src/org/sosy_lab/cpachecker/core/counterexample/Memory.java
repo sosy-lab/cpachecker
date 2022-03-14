@@ -14,18 +14,15 @@ import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.CFA;
 
 /**
- * This class represent the memory of a concrete State.
- * It contains a map of values, and the addresses, which contain
- * the location the values are stored at in the memory. It also contains
- * the name of the memory. Each concrete State can hold a finite
- * amount of memories with different names.
+ * This class represent the memory of a concrete State. It contains a map of values, and the
+ * addresses, which contain the location the values are stored at in the memory. It also contains
+ * the name of the memory. Each concrete State can hold a finite amount of memories with different
+ * names.
  *
- * The addresses the values are stored at have to
- * match the types of the assignments stored in the {@link CFA} bit precisely.
+ * <p>The addresses the values are stored at have to match the types of the assignments stored in
+ * the {@link CFA} bit precisely.
  *
- * e.g:
- *  int a[5] = {1,2,3}; may be represented as {0 = 1, 4 = 2, 8 = 3}.
- *
+ * <p>e.g: int a[5] = {1,2,3}; may be represented as {0 = 1, 4 = 2, 8 = 3}.
  */
 public class Memory {
 

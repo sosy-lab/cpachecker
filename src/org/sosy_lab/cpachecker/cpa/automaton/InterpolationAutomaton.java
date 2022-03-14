@@ -75,8 +75,7 @@ public class InterpolationAutomaton {
             .put(initState.getInterpolant(), initState)
             .put(finalState.getInterpolant(), finalState)
             .putAll(
-                itpStates
-                    .stream()
+                itpStates.stream()
                     .collect(
                         ImmutableMap.toImmutableMap(
                             ItpAutomatonState::getInterpolant, Functions.identity())))
@@ -193,8 +192,7 @@ public class InterpolationAutomaton {
       stateName = pStateName;
       interpolant = checkNotNull(pInterpolant);
       isTarget = pIsTarget;
-      targetInformation =
-          isTarget ? new StringExpression(itpAutomaton.getAutomatonName()) : null;
+      targetInformation = isTarget ? new StringExpression(itpAutomaton.getAutomatonName()) : null;
 
       boolExpressions = new HashSet<>();
       coveredExpressionsCache = new HashSet<>();

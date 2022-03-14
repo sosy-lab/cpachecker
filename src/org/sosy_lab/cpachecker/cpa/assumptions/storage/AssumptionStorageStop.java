@@ -9,19 +9,16 @@
 package org.sosy_lab.cpachecker.cpa.assumptions.storage;
 
 import java.util.Collection;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 
-/**
- * Stop operator for the assumption storage CPA. Stops if the stop flag is
- * true.
- */
+/** Stop operator for the assumption storage CPA. Stops if the stop flag is true. */
 public class AssumptionStorageStop implements StopOperator {
 
   @Override
-  public boolean stop(AbstractState pElement, Collection<AbstractState> reached, Precision precision) {
+  public boolean stop(
+      AbstractState pElement, Collection<AbstractState> reached, Precision precision) {
     AssumptionStorageState element = (AssumptionStorageState) pElement;
 
     if (element.isStop()) {
@@ -29,10 +26,10 @@ public class AssumptionStorageStop implements StopOperator {
       // but we may return true if the new assumption is implied by the old ones
 
       for (AbstractState ae : reached) {
-        AssumptionStorageState reachedState = (AssumptionStorageState)ae;
+        AssumptionStorageState reachedState = (AssumptionStorageState) ae;
 
         // implication check is costly, so we do a fast syntactical approximation
-        if (   reachedState.isStopFormulaFalse()
+        if (reachedState.isStopFormulaFalse()
             || reachedState.getStopFormula().equals(element.getStopFormula())) {
           return true;
         }

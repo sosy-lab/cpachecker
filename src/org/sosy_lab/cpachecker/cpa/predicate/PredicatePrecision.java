@@ -35,20 +35,18 @@ import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
 /**
- * This class represents the precision of the PredicateCPA.
- * It is basically a map which assigns to each node in the CFA a (possibly empty)
- * set of predicates which should be used at this location.
- * Additionally, there may be some predicates which are used for all locations
- * ("global" predicates), and some predicates which are used for all locations
- * within a specific function.
+ * This class represents the precision of the PredicateCPA. It is basically a map which assigns to
+ * each node in the CFA a (possibly empty) set of predicates which should be used at this location.
+ * Additionally, there may be some predicates which are used for all locations ("global"
+ * predicates), and some predicates which are used for all locations within a specific function.
  *
- * All instances of this class are immutable.
+ * <p>All instances of this class are immutable.
  */
 public final class PredicatePrecision implements AdjustablePrecision {
 
   /**
-   * This class identifies a position in the ARG where predicates can be applied.
-   * It matches the n-th occurrence of a given CFANode on an ARGPath.
+   * This class identifies a position in the ARG where predicates can be applied. It matches the
+   * n-th occurrence of a given CFANode on an ARGPath.
    */
   public static final class LocationInstance implements Comparable<LocationInstance> {
     private final CFANode location;
@@ -191,9 +189,7 @@ public final class PredicatePrecision implements AdjustablePrecision {
     }
   }
 
-  /**
-   * Create a new, empty precision.
-   */
+  /** Create a new, empty precision. */
   public static PredicatePrecision empty() {
     return EMPTY;
   }
@@ -216,9 +212,8 @@ public final class PredicatePrecision implements AdjustablePrecision {
 
   /**
    * Create a new precision that is the union of the predicate precisions of all given precisions.
-   * This method can be called even with a lot of duplicate precisions in the input
-   * (for example, all precisions occurring in the reached set)
-   * and will handle the union computation efficiently.
+   * This method can be called even with a lot of duplicate precisions in the input (for example,
+   * all precisions occurring in the reached set) and will handle the union computation efficiently.
    */
   public static PredicatePrecision unionOf(Iterable<Precision> precisions) {
     // We want to do a fast deduplication of precisions in order to speed up the actual union
@@ -243,38 +238,32 @@ public final class PredicatePrecision implements AdjustablePrecision {
   }
 
   /**
-   * Return a table of the location-instance-specific predicates.
-   * These are the predicates that should be used at the n-th instance
-   * of an abstraction location l in the current path.
+   * Return a table of the location-instance-specific predicates. These are the predicates that
+   * should be used at the n-th instance of an abstraction location l in the current path.
    */
   public ImmutableSetMultimap<LocationInstance, AbstractionPredicate>
       getLocationInstancePredicates() {
     return mLocationInstancePredicates;
   }
 
-  /**
-   * Return a map view of the location-specific predicates of this precision.
-   */
+  /** Return a map view of the location-specific predicates of this precision. */
   public ImmutableSetMultimap<CFANode, AbstractionPredicate> getLocalPredicates() {
     return mLocalPredicates;
   }
 
-  /**
-   * Return a map view of the function-specific predicates of this precision.
-   */
+  /** Return a map view of the function-specific predicates of this precision. */
   public ImmutableSetMultimap<String, AbstractionPredicate> getFunctionPredicates() {
     return mFunctionPredicates;
   }
 
-  /**
-   * Return all global predicates in this precision.
-   */
+  /** Return all global predicates in this precision. */
   public ImmutableSet<AbstractionPredicate> getGlobalPredicates() {
     return mGlobalPredicates;
   }
 
   /**
    * Return all predicates for one specific location in this precision.
+   *
    * @param loc A CFA location.
    * @param locInstance How often this location has appeared in the current path.
    */
@@ -282,9 +271,7 @@ public final class PredicatePrecision implements AdjustablePrecision {
     return getPredicates(new LocationInstance(loc, locInstance));
   }
 
-  /**
-   * Return all predicates for one specific location in this precision.
-   */
+  /** Return all predicates for one specific location in this precision. */
   public ImmutableSet<AbstractionPredicate> getPredicates(LocationInstance locationInstance) {
     ImmutableSet<AbstractionPredicate> result =
         getLocationInstancePredicates().get(locationInstance);
@@ -301,8 +288,8 @@ public final class PredicatePrecision implements AdjustablePrecision {
   }
 
   /**
-   * Create a new precision which is a copy of the current one with some
-   * additional global predicates.
+   * Create a new precision which is a copy of the current one with some additional global
+   * predicates.
    */
   public PredicatePrecision addGlobalPredicates(Collection<AbstractionPredicate> newPredicates) {
     return new PredicatePrecision(
@@ -313,8 +300,8 @@ public final class PredicatePrecision implements AdjustablePrecision {
   }
 
   /**
-   * Create a new precision which is a copy of the current one with some
-   * additional function-specific predicates.
+   * Create a new precision which is a copy of the current one with some additional
+   * function-specific predicates.
    */
   public PredicatePrecision addFunctionPredicates(
       Iterable<Map.Entry<String, AbstractionPredicate>> newPredicates) {
@@ -329,8 +316,8 @@ public final class PredicatePrecision implements AdjustablePrecision {
   }
 
   /**
-   * Create a new precision which is a copy of the current one with some
-   * additional location-specific predicates.
+   * Create a new precision which is a copy of the current one with some additional
+   * location-specific predicates.
    */
   public PredicatePrecision addLocalPredicates(
       Iterable<Map.Entry<CFANode, AbstractionPredicate>> newPredicates) {
@@ -345,8 +332,8 @@ public final class PredicatePrecision implements AdjustablePrecision {
   }
 
   /**
-   * Create a new precision which is a copy of the current one with some
-   * additional location-instance-specific predicates.
+   * Create a new precision which is a copy of the current one with some additional
+   * location-instance-specific predicates.
    */
   public PredicatePrecision addLocationInstancePredicates(
       Iterable<Map.Entry<LocationInstance, AbstractionPredicate>> newPredicates) {
@@ -360,12 +347,9 @@ public final class PredicatePrecision implements AdjustablePrecision {
         getGlobalPredicates());
   }
 
-  /**
-   * Create a new precision which contains all predicates of this precision
-   * and a second one.
-   */
+  /** Create a new precision which contains all predicates of this precision and a second one. */
   public PredicatePrecision mergeWith(PredicatePrecision prec) {
-    if (this == prec || this.isEmpty()) {
+    if (this == prec || isEmpty()) {
       return prec;
     }
     if (prec.isEmpty()) {
@@ -381,28 +365,30 @@ public final class PredicatePrecision implements AdjustablePrecision {
   }
 
   /**
-   * Calculates a "difference" from this precision to another precision.
-   * The difference is the number of predicates which are present in this precision,
-   * and are missing in the other precision.
-   * If a predicate is present in both precisions, but for different locations,
-   * this counts as a difference.
+   * Calculates a "difference" from this precision to another precision. The difference is the
+   * number of predicates which are present in this precision, and are missing in the other
+   * precision. If a predicate is present in both precisions, but for different locations, this
+   * counts as a difference.
    *
-   * Note that this difference is not symmetric!
-   * (Similar to {@link Sets#difference(Set, Set)}).
+   * <p>Note that this difference is not symmetric! (Similar to {@link Sets#difference(Set, Set)}).
    */
   public int calculateDifferenceTo(PredicatePrecision other) {
     int difference = 0;
-    difference += Sets.difference(this.getGlobalPredicates(),
-                                  other.getGlobalPredicates()).size();
+    difference += Sets.difference(getGlobalPredicates(), other.getGlobalPredicates()).size();
 
-    difference += Sets.difference(this.getFunctionPredicates().entries(),
-                                  other.getFunctionPredicates().entries()).size();
+    difference +=
+        Sets.difference(getFunctionPredicates().entries(), other.getFunctionPredicates().entries())
+            .size();
 
-    difference += Sets.difference(this.getLocalPredicates().entries(),
-                                  other.getLocalPredicates().entries()).size();
+    difference +=
+        Sets.difference(getLocalPredicates().entries(), other.getLocalPredicates().entries())
+            .size();
 
-    difference += Sets.difference(this.getLocationInstancePredicates().entries(),
-                                  other.getLocationInstancePredicates().entries()).size();
+    difference +=
+        Sets.difference(
+                getLocationInstancePredicates().entries(),
+                other.getLocationInstancePredicates().entries())
+            .size();
     return difference;
   }
 
@@ -416,10 +402,11 @@ public final class PredicatePrecision implements AdjustablePrecision {
 
   @Override
   public int hashCode() {
-    return Objects.hash(getGlobalPredicates(),
-                             getFunctionPredicates(),
-                             getLocalPredicates(),
-                             getLocationInstancePredicates());
+    return Objects.hash(
+        getGlobalPredicates(),
+        getFunctionPredicates(),
+        getLocalPredicates(),
+        getLocationInstancePredicates());
   }
 
   @Override
@@ -431,7 +418,7 @@ public final class PredicatePrecision implements AdjustablePrecision {
     } else if (!pObj.getClass().equals(this.getClass())) {
       return false;
     } else {
-      PredicatePrecision other = (PredicatePrecision)pObj;
+      PredicatePrecision other = (PredicatePrecision) pObj;
       return getLocationInstancePredicates().equals(other.getLocationInstancePredicates())
           && getLocalPredicates().equals(other.getLocalPredicates())
           && getFunctionPredicates().equals(other.getFunctionPredicates())
@@ -442,7 +429,7 @@ public final class PredicatePrecision implements AdjustablePrecision {
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    if (!getGlobalPredicates().isEmpty())  {
+    if (!getGlobalPredicates().isEmpty()) {
       sb.append("global predicates: ");
       sb.append(getGlobalPredicates());
     }
@@ -487,9 +474,10 @@ public final class PredicatePrecision implements AdjustablePrecision {
     PredicatePrecision other = (PredicatePrecision) pOtherPrecision;
 
     return new PredicatePrecision(
-        Sets.difference(mLocationInstancePredicates.entries(), other.getLocationInstancePredicates().entries()),
+        Sets.difference(
+            mLocationInstancePredicates.entries(), other.getLocationInstancePredicates().entries()),
         Sets.difference(mLocalPredicates.entries(), other.getLocalPredicates().entries()),
         Sets.difference(mFunctionPredicates.entries(), other.getFunctionPredicates().entries()),
-        Sets.difference(this.getGlobalPredicates(), other.getGlobalPredicates()));
+        Sets.difference(getGlobalPredicates(), other.getGlobalPredicates()));
   }
 }

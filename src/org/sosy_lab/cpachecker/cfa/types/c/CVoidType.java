@@ -16,18 +16,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * This class represents the type "void".
- * It does not allow any modifiers and has only a single instance.
+ * This class represents the type "void". It does not allow any modifiers and has only a single
+ * instance.
  */
 public final class CVoidType implements CType {
 
   private static final long serialVersionUID = 1385808708190595556L;
 
-  public final static CVoidType VOID = new CVoidType(false, false);
+  public static final CVoidType VOID = new CVoidType(false, false);
 
-  private final static CVoidType CONST_VOID = new CVoidType(true, false);
-  private final static CVoidType VOLATILE_VOID = new CVoidType(false, true);
-  private final static CVoidType CONST_VOLATILE_VOID = new CVoidType(true, true);
+  private static final CVoidType CONST_VOID = new CVoidType(true, false);
+  private static final CVoidType VOLATILE_VOID = new CVoidType(false, true);
+  private static final CVoidType CONST_VOLATILE_VOID = new CVoidType(true, true);
 
   public static CVoidType create(boolean pIsConst, boolean pIsVolatile) {
     if (pIsConst) {

@@ -250,5 +250,4 @@ enum CompoundMathematicalIntervalManager implements CompoundIntervalManager {
     checkOperand(pOperand1);
     checkOperand(pOperand2);
   }
-
 }

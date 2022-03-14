@@ -66,9 +66,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 
-/**
- * Implements a handler for assignments.
- */
+/** Implements a handler for assignments. */
 class AssignmentHandler {
 
   private final FormulaEncodingWithPointerAliasingOptions options;
@@ -96,8 +94,14 @@ class AssignmentHandler {
    * @param pConstraints Additional constraints.
    * @param pErrorConditions Additional error conditions.
    */
-  AssignmentHandler(CToFormulaConverterWithPointerAliasing pConv, CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa,
-      PointerTargetSetBuilder pPts, Constraints pConstraints, ErrorConditions pErrorConditions,
+  AssignmentHandler(
+      CToFormulaConverterWithPointerAliasing pConv,
+      CFAEdge pEdge,
+      String pFunction,
+      SSAMapBuilder pSsa,
+      PointerTargetSetBuilder pPts,
+      Constraints pConstraints,
+      ErrorConditions pErrorConditions,
       MemoryRegionManager pRegionMgr) {
     conv = pConv;
 
@@ -180,18 +184,15 @@ class AssignmentHandler {
     // the pattern matching possibly aliased locations
 
     if (conv.options.revealAllocationTypeFromLHS() || conv.options.deferUntypedAllocations()) {
-      DynamicMemoryHandler memoryHandler = new DynamicMemoryHandler(conv, edge, ssa, pts, constraints, errorConditions, regionMgr);
+      DynamicMemoryHandler memoryHandler =
+          new DynamicMemoryHandler(conv, edge, ssa, pts, constraints, errorConditions, regionMgr);
       memoryHandler.handleDeferredAllocationsInAssignment(
-          lhs,
-          rhs,
-          rhsExpression,
-          lhsType,
-          lhsLearnedPointerTypes,
-          rhsLearnedPointersTypes);
+          lhs, rhs, rhsExpression, lhsType, lhsLearnedPointerTypes, rhsLearnedPointersTypes);
     }
 
     // necessary only for update terms for new UF indices
-    Set<MemoryRegion> updatedRegions = useOldSSAIndices || options.useArraysForHeap() ? null : new HashSet<>();
+    Set<MemoryRegion> updatedRegions =
+        useOldSSAIndices || options.useArraysForHeap() ? null : new HashSet<>();
 
     final BooleanFormula result =
         makeDestructiveAssignment(
@@ -232,8 +233,8 @@ class AssignmentHandler {
 
     if (!useOldSSAIndices && !options.useArraysForHeap()) {
       if (lhsLocation.isAliased()) {
-        final PointerTargetPattern pattern
-            = PointerTargetPattern.forLeftHandSide(lhs, typeHandler, edge, pts);
+        final PointerTargetPattern pattern =
+            PointerTargetPattern.forLeftHandSide(lhs, typeHandler, edge, pts);
         finishAssignmentsForUF(lhsType, lhsLocation.asAliased(), pattern, updatedRegions);
       } else { // Unaliased lvalue
         assert updatedRegions != null && updatedRegions.isEmpty();
@@ -285,7 +286,10 @@ class AssignmentHandler {
    * @throws InterruptedException It the execution was interrupted.
    */
   BooleanFormula handleInitializationAssignments(
-      final CIdExpression variable, final CType declarationType, final List<CExpressionAssignmentStatement> assignments) throws UnrecognizedCodeException, InterruptedException {
+      final CIdExpression variable,
+      final CType declarationType,
+      final List<CExpressionAssignmentStatement> assignments)
+      throws UnrecognizedCodeException, InterruptedException {
     if (options.useQuantifiersOnArrays()
         && (declarationType instanceof CArrayType)
         && !assignments.isEmpty()) {
@@ -362,7 +366,7 @@ class AssignmentHandler {
       return handleInitializationAssignmentsWithoutQuantifier(pAssignments);
     } else {
       MemoryRegion region = lhsLocation.asAliased().getMemoryRegion();
-      if(region == null) {
+      if (region == null) {
         region = regionMgr.makeMemoryRegion(lhsType);
       }
       final String targetName = regionMgr.getPointerAccessName(region);
@@ -443,16 +447,13 @@ class AssignmentHandler {
       final Set<MemoryRegion> updatedRegions)
       throws InterruptedException {
     MemoryRegion region = lvalue.getMemoryRegion();
-    if(region == null) {
+    if (region == null) {
       region = regionMgr.makeMemoryRegion(lvalueType);
     }
     if (isSimpleType(lvalueType)) {
       assert updatedRegions.contains(region);
     }
-    addRetentionForAssignment(region,
-                              lvalueType,
-                              lvalue.getAddress(),
-                              pattern, updatedRegions);
+    addRetentionForAssignment(region, lvalueType, lvalue.getAddress(), pattern, updatedRegions);
     updateSSA(updatedRegions, ssa);
   }
 
@@ -544,7 +545,8 @@ class AssignmentHandler {
           rvalueType);
       checkArgument(
           ((CArrayType) rvalueType).getType().equals(lvalueElementType),
-          "Impossible array assignment due to incompatible types: assignment of %s with type %s to %s with type %s",
+          "Impossible array assignment due to incompatible types: assignment of %s with type %s to"
+              + " %s with type %s",
           rvalue,
           rvalueType,
           lvalue,
@@ -598,7 +600,8 @@ class AssignmentHandler {
     // - Structure assignment
     checkArgument(
         (rvalue.isValue() && isSimpleType(rvalueType)) || rvalueType.equals(lvalueCompositeType),
-        "Impossible assignment due to incompatible types: assignment of %s with type %s to %s with type %s",
+        "Impossible assignment due to incompatible types: assignment of %s with type %s to %s with"
+            + " type %s",
         rvalue,
         rvalueType,
         lvalue,
@@ -792,12 +795,16 @@ class AssignmentHandler {
     switch (pRValue.getKind()) {
       case ALIASED_LOCATION:
         MemoryRegion region = pRValue.asAliasedLocation().getMemoryRegion();
-        if(region == null) {
+        if (region == null) {
           region = regionMgr.makeMemoryRegion(pRValueType);
         }
         return Optional.of(
             conv.makeDereference(
-                pRValueType, pRValue.asAliasedLocation().getAddress(), ssa, errorConditions, region));
+                pRValueType,
+                pRValue.asAliasedLocation().getAddress(),
+                ssa,
+                errorConditions,
+                region));
       case UNALIASED_LOCATION:
         return Optional.of(
             conv.makeVariable(pRValue.asUnaliasedLocation().getVariableName(), pRValueType, ssa));
@@ -909,8 +916,7 @@ class AssignmentHandler {
           if (!(memberFormula instanceof BitvectorFormula)) {
             CType interType = TypeUtils.createTypeWithLength(innerMemberSize);
             memberFormula =
-                conv.makeCast(
-                    innerMember.getType(), interType, memberFormula, constraints, edge);
+                conv.makeCast(innerMember.getType(), interType, memberFormula, constraints, edge);
             memberFormula =
                 conv.makeValueReinterpretation(innerMember.getType(), interType, memberFormula);
           }
@@ -925,8 +931,7 @@ class AssignmentHandler {
             if (!(newLhsType instanceof CPointerType)) {
               lhsSigned = ((CSimpleType) newLhsType).isSigned();
             }
-            memberFormula =
-                fmgr.makeExtend(memberFormula, targetSize - innerMemberSize, lhsSigned);
+            memberFormula = fmgr.makeExtend(memberFormula, targetSize - innerMemberSize, lhsSigned);
             memberFormula =
                 fmgr.makeShiftLeft(
                     memberFormula,
@@ -1040,8 +1045,8 @@ class AssignmentHandler {
   }
 
   /**
-   * Add terms to the {@link #constraints} object that specify that unwritten heap cells
-   * keep their value when the SSA index is updated. Only used for the UF encoding.
+   * Add terms to the {@link #constraints} object that specify that unwritten heap cells keep their
+   * value when the SSA index is updated. Only used for the UF encoding.
    *
    * @param lvalueType The LHS type of the current assignment.
    * @param startAddress The start address of the written heap region.
@@ -1075,11 +1080,10 @@ class AssignmentHandler {
   }
 
   /**
-   * Add retention constraints as specified by
-   * {@link #addRetentionForAssignment(MemoryRegion, CType, Formula, PointerTargetPattern, Set)}
-   * with the help of quantifiers.
-   * Such a constraint is simply {@code forall i : !matches(i) => retention(i)}
-   * where {@code matches(i)} specifies whether address {@code i} was written.
+   * Add retention constraints as specified by {@link #addRetentionForAssignment(MemoryRegion,
+   * CType, Formula, PointerTargetPattern, Set)} with the help of quantifiers. Such a constraint is
+   * simply {@code forall i : !matches(i) => retention(i)} where {@code matches(i)} specifies
+   * whether address {@code i} was written.
    */
   private void addRetentionConstraintsWithQuantifiers(
       final CType lvalueType,
@@ -1121,10 +1125,9 @@ class AssignmentHandler {
   }
 
   /**
-   * Add retention constraints as specified by
-   * {@link #addRetentionForAssignment(MemoryRegion, CType, Formula, PointerTargetPattern, Set)}
-   * in a bounded way by manually iterating over all possibly written heap cells
-   * and adding a constraint for each of them.
+   * Add retention constraints as specified by {@link #addRetentionForAssignment(MemoryRegion,
+   * CType, Formula, PointerTargetPattern, Set)} in a bounded way by manually iterating over all
+   * possibly written heap cells and adding a constraint for each of them.
    */
   private void addRetentionConstraintsWithoutQuantifiers(
       MemoryRegion region,
@@ -1148,10 +1151,11 @@ class AssignmentHandler {
         lvalueType = checkIsSimplified(((CArrayType) lvalueType).getType());
         region = regionMgr.makeMemoryRegion(lvalueType);
       } else { // CCompositeType
-        CCompositeTypeMemberDeclaration memberDeclaration = ((CCompositeType) lvalueType).getMembers().get(0);
+        CCompositeTypeMemberDeclaration memberDeclaration =
+            ((CCompositeType) lvalueType).getMembers().get(0);
         region = regionMgr.makeMemoryRegion(lvalueType, memberDeclaration);
       }
-      //for lvalueType
+      // for lvalueType
       addSemiexactRetentionConstraints(pattern, region, startAddress, size, regionsToRetain);
 
     } else { // Inexact pointer target pattern
@@ -1161,9 +1165,12 @@ class AssignmentHandler {
 
   /**
    * Create formula constraints that retain values from the current SSA index to the next one.
+   *
    * @param regions The set of regions for which constraints should be created.
-   * @param targetLookup A function that gives the PointerTargets for a type for which constraints should be created.
-   * @param constraintConsumer A function that accepts a Formula with the address of the current target and the respective constraint.
+   * @param targetLookup A function that gives the PointerTargets for a type for which constraints
+   *     should be created.
+   * @param constraintConsumer A function that accepts a Formula with the address of the current
+   *     target and the respective constraint.
    */
   private void makeRetentionConstraints(
       final Set<MemoryRegion> regions,
@@ -1191,12 +1198,13 @@ class AssignmentHandler {
   /**
    * Add retention constraints without quantifiers for writing a simple (non-composite) type.
    *
-   * All heap cells where the pattern does not match retained,
-   * and if the pattern is not exact there are also conditional constraints
-   * for cells that might be matched by the pattern.
+   * <p>All heap cells where the pattern does not match retained, and if the pattern is not exact
+   * there are also conditional constraints for cells that might be matched by the pattern.
    */
   private void addSimpleTypeRetentionConstraints(
-      final PointerTargetPattern pattern, final Set<MemoryRegion> regions, final Formula startAddress)
+      final PointerTargetPattern pattern,
+      final Set<MemoryRegion> regions,
+      final Formula startAddress)
       throws InterruptedException {
     if (!pattern.isExact()) {
       makeRetentionConstraints(
@@ -1212,12 +1220,12 @@ class AssignmentHandler {
   }
 
   /**
-   * Add retention constraints without quantifiers for the case where the written memory region
-   * is known exactly.
-   * All heap cells where the pattern does not match retained.
+   * Add retention constraints without quantifiers for the case where the written memory region is
+   * known exactly. All heap cells where the pattern does not match retained.
    */
   private void addExactRetentionConstraints(
-      final Predicate<PointerTarget> pattern, final Set<MemoryRegion> regions) throws InterruptedException {
+      final Predicate<PointerTarget> pattern, final Set<MemoryRegion> regions)
+      throws InterruptedException {
     makeRetentionConstraints(
         regions,
         region -> pts.getNonMatchingTargets(region, pattern),
@@ -1226,9 +1234,8 @@ class AssignmentHandler {
 
   /**
    * Add retention constraints without quantifiers for the case where some information is known
-   * about the written memory region.
-   * For each of the potentially written target candidates we add retention constraints
-   * under the condition that it was this target that was actually written.
+   * about the written memory region. For each of the potentially written target candidates we add
+   * retention constraints under the condition that it was this target that was actually written.
    */
   private void addSemiexactRetentionConstraints(
       final PointerTargetPattern pattern,
@@ -1254,9 +1261,8 @@ class AssignmentHandler {
   }
 
   /**
-   * Add retention constraints without quantifiers for the case where nothing is known
-   * about the written memory region.
-   * For every heap cell we add a conditional constraint to retain it.
+   * Add retention constraints without quantifiers for the case where nothing is known about the
+   * written memory region. For every heap cell we add a conditional constraint to retain it.
    */
   private void addInexactRetentionConstraints(
       final Formula startAddress, final int size, final Set<MemoryRegion> regions)

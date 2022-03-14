@@ -50,43 +50,40 @@ import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
 import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
 
 /**
- * Convert the formula to a quantifier-free form *resembling* CNF (relaxed
- * conjunctive normal
- * form), but without exponential explosion and without introducing extra
- * existential quantifiers.
+ * Convert the formula to a quantifier-free form *resembling* CNF (relaxed conjunctive normal form),
+ * but without exponential explosion and without introducing extra existential quantifiers.
  */
-@Options(prefix="rcnf")
+@Options(prefix = "rcnf")
 public class RCNFManager implements StatisticsProvider {
 
-  @Option(description="Limit on the size of the resulting number of lemmas "
-      + "from the explicit expansion", secure=true)
+  @Option(
+      description =
+          "Limit on the size of the resulting number of lemmas " + "from the explicit expansion",
+      secure = true)
   private int expansionResultSizeLimit = 100;
 
-  @Option(secure=true, description="Quantifier elimination strategy",
-      toUppercase=true)
-  private BOUND_VARS_HANDLING boundVarsHandling =
-      BOUND_VARS_HANDLING.QE_LIGHT_THEN_DROP;
+  @Option(secure = true, description = "Quantifier elimination strategy", toUppercase = true)
+  private BOUND_VARS_HANDLING boundVarsHandling = BOUND_VARS_HANDLING.QE_LIGHT_THEN_DROP;
 
-  @Option(secure=true, description="Expand equality atoms. E.g. 'x=a' gets "
-      + "expanded into 'x >= a AND x <= a'. Can lead to stronger weakenings.")
+  @Option(
+      secure = true,
+      description =
+          "Expand equality atoms. E.g. 'x=a' gets "
+              + "expanded into 'x >= a AND x <= a'. Can lead to stronger weakenings.")
   private boolean expandEquality = false;
 
   public enum BOUND_VARS_HANDLING {
 
     /**
-     * Run best-effort quantifier elimination and then over-approximate lemmas
-     * which still have quantifiers.
+     * Run best-effort quantifier elimination and then over-approximate lemmas which still have
+     * quantifiers.
      */
     QE_LIGHT_THEN_DROP,
 
-    /**
-     * Run proper quantifier elimination.
-     */
+    /** Run proper quantifier elimination. */
     QE,
 
-    /**
-     * Over-approximate all lemmas with quantifiers.
-      */
+    /** Over-approximate all lemmas with quantifiers. */
     DROP
   }
 
@@ -95,8 +92,7 @@ public class RCNFManager implements StatisticsProvider {
   private final RCNFConversionStatistics statistics;
   private final Map<BooleanFormula, ImmutableSet<BooleanFormula>> conversionCache;
 
-  public RCNFManager(Configuration options)
-      throws InvalidConfigurationException{
+  public RCNFManager(Configuration options) throws InvalidConfigurationException {
     options.inject(this);
     statistics = new RCNFConversionStatistics();
     conversionCache = new HashMap<>();
@@ -118,15 +114,15 @@ public class RCNFManager implements StatisticsProvider {
   }
 
   /**
-   * Convert an input formula to RCNF form.
-   * A formula in RCNF form is a conjunction over quantifier-free formulas.
+   * Convert an input formula to RCNF form. A formula in RCNF form is a conjunction over
+   * quantifier-free formulas.
    *
-   * @param input Formula over-approximation with at most one parent-level
-   *              existential quantifier.
-   *              Contains only latest SSA indexes.
+   * @param input Formula over-approximation with at most one parent-level existential quantifier.
+   *     Contains only latest SSA indexes.
    * @param pFmgr Formula manager which performs the conversion.
    */
-  public ImmutableSet<BooleanFormula> toLemmas(BooleanFormula input, FormulaManagerView pFmgr) throws InterruptedException {
+  public ImmutableSet<BooleanFormula> toLemmas(BooleanFormula input, FormulaManagerView pFmgr)
+      throws InterruptedException {
     Preconditions.checkNotNull(pFmgr);
     fmgr = pFmgr;
     bfmgr = pFmgr.getBooleanFormulaManager();
@@ -176,11 +172,9 @@ public class RCNFManager implements StatisticsProvider {
   }
 
   /**
-   * @param input Formula with at most one outer-level existential
-   *              quantifier, in NNF.
+   * @param input Formula with at most one outer-level existential quantifier, in NNF.
    */
-  private BooleanFormula dropBoundVariables(BooleanFormula input)
-      throws InterruptedException {
+  private BooleanFormula dropBoundVariables(BooleanFormula input) throws InterruptedException {
 
     Optional<BooleanFormula> body = fmgr.visit(input, quantifiedBodyExtractor);
     if (body.isPresent()) {
@@ -193,98 +187,94 @@ public class RCNFManager implements StatisticsProvider {
   }
 
   private BooleanFormula factorize(BooleanFormula input) {
-    return bfmgr.transformRecursively(input, new BooleanFormulaTransformationVisitor(fmgr) {
+    return bfmgr.transformRecursively(
+        input,
+        new BooleanFormulaTransformationVisitor(fmgr) {
 
-      /**
-       * Flatten AND-.
-       */
-      @Override
-      public BooleanFormula visitAnd(List<BooleanFormula> processed) {
-        return bfmgr.and(bfmgr.toConjunctionArgs(bfmgr.and(processed), false));
-      }
-
-      /**
-       * Factorize OR-.
-       */
-      @Override
-      public BooleanFormula visitOr(List<BooleanFormula> processed) {
-
-        Set<BooleanFormula> intersection = null;
-        List<Set<BooleanFormula>> argsAsConjunctions = new ArrayList<>();
-        for (BooleanFormula op : processed) {
-          Set<BooleanFormula> args = bfmgr.toConjunctionArgs(op, false);
-
-          argsAsConjunctions.add(args);
-
-          // Factor out the common term.
-          if (intersection == null) {
-            intersection = args;
-          } else {
-            intersection = Sets.intersection(intersection, args);
+          /** Flatten AND-. */
+          @Override
+          public BooleanFormula visitAnd(List<BooleanFormula> processed) {
+            return bfmgr.and(bfmgr.toConjunctionArgs(bfmgr.and(processed), false));
           }
-        }
 
-        assert intersection != null
-            : "Should not be null for a non-zero number of operands.";
-        Set<BooleanFormula> commonTerms = intersection;
+          /** Factorize OR-. */
+          @Override
+          public BooleanFormula visitOr(List<BooleanFormula> processed) {
 
-        BooleanFormula common = bfmgr.and(commonTerms);
-        BooleanFormula branches =
-            argsAsConjunctions
-                .stream()
-                .map(args -> bfmgr.and(Sets.difference(args, commonTerms)))
-                .collect(bfmgr.toDisjunction());
+            Set<BooleanFormula> intersection = null;
+            List<Set<BooleanFormula>> argsAsConjunctions = new ArrayList<>();
+            for (BooleanFormula op : processed) {
+              Set<BooleanFormula> args = bfmgr.toConjunctionArgs(op, false);
 
-        return bfmgr.and(common, branches);
-      }
-    });
+              argsAsConjunctions.add(args);
+
+              // Factor out the common term.
+              if (intersection == null) {
+                intersection = args;
+              } else {
+                intersection = Sets.intersection(intersection, args);
+              }
+            }
+
+            assert intersection != null : "Should not be null for a non-zero number of operands.";
+            Set<BooleanFormula> commonTerms = intersection;
+
+            BooleanFormula common = bfmgr.and(commonTerms);
+            BooleanFormula branches =
+                argsAsConjunctions.stream()
+                    .map(args -> bfmgr.and(Sets.difference(args, commonTerms)))
+                    .collect(bfmgr.toDisjunction());
+
+            return bfmgr.and(common, branches);
+          }
+        });
   }
 
   private Iterable<BooleanFormula> expandClause(final BooleanFormula input) {
-    return bfmgr.visit(input, new DefaultBooleanFormulaVisitor<Iterable<BooleanFormula>>() {
-      @Override
-      protected Iterable<BooleanFormula> visitDefault() {
-        return ImmutableList.of(input);
-      }
-
-      @Override
-      public Iterable<BooleanFormula> visitOr(List<BooleanFormula> operands) {
-        long sizeAfterExpansion = 1;
-
-        List<Set<BooleanFormula>> asConjunctions = new ArrayList<>();
-        for (BooleanFormula op : operands) {
-          Set<BooleanFormula> out = bfmgr.toConjunctionArgs(op, true);
-          try {
-            sizeAfterExpansion = Math.multiplyExact(sizeAfterExpansion, out.size());
-          } catch (ArithmeticException ex) {
-            sizeAfterExpansion = expansionResultSizeLimit + 1L;
-            break;
+    return bfmgr.visit(
+        input,
+        new DefaultBooleanFormulaVisitor<Iterable<BooleanFormula>>() {
+          @Override
+          protected Iterable<BooleanFormula> visitDefault() {
+            return ImmutableList.of(input);
           }
-          asConjunctions.add(out);
-        }
 
-        if (sizeAfterExpansion <= expansionResultSizeLimit) {
-          // Perform recursive expansion.
-          Set<List<BooleanFormula>> product = Sets.cartesianProduct(asConjunctions);
-          return from(product).transform(bfmgr::or);
-        } else {
-          return ImmutableList.of(bfmgr.or(operands));
-        }
-      }
-    });
+          @Override
+          public Iterable<BooleanFormula> visitOr(List<BooleanFormula> operands) {
+            long sizeAfterExpansion = 1;
+
+            List<Set<BooleanFormula>> asConjunctions = new ArrayList<>();
+            for (BooleanFormula op : operands) {
+              Set<BooleanFormula> out = bfmgr.toConjunctionArgs(op, true);
+              try {
+                sizeAfterExpansion = Math.multiplyExact(sizeAfterExpansion, out.size());
+              } catch (ArithmeticException ex) {
+                sizeAfterExpansion = expansionResultSizeLimit + 1L;
+                break;
+              }
+              asConjunctions.add(out);
+            }
+
+            if (sizeAfterExpansion <= expansionResultSizeLimit) {
+              // Perform recursive expansion.
+              Set<List<BooleanFormula>> product = Sets.cartesianProduct(asConjunctions);
+              return from(product).transform(bfmgr::or);
+            } else {
+              return ImmutableList.of(bfmgr.or(operands));
+            }
+          }
+        });
   }
 
   private ImmutableSet<BooleanFormula> convert(BooleanFormula input) {
     BooleanFormula factorized = factorize(input);
-    Set<BooleanFormula> factorizedLemmas =
-        bfmgr.toConjunctionArgs(factorized, true);
+    Set<BooleanFormula> factorizedLemmas = bfmgr.toConjunctionArgs(factorized, true);
     ImmutableSet.Builder<BooleanFormula> out = ImmutableSet.builder();
     for (BooleanFormula lemma : factorizedLemmas) {
       Iterable<BooleanFormula> expandedLemmas = expandClause(lemma);
       for (BooleanFormula l : expandedLemmas) {
         if (expandEquality) {
-          out.addAll(bfmgr.toConjunctionArgs(
-              transformEquality(l), false));
+          out.addAll(bfmgr.toConjunctionArgs(transformEquality(l), false));
         } else {
           out.add(l);
         }
@@ -293,57 +283,54 @@ public class RCNFManager implements StatisticsProvider {
     return out.build();
   }
 
-  /**
-   * Transform {@code a = b} to {@code a >= b /\ a <= b}.
-   */
+  /** Transform {@code a = b} to {@code a >= b /\ a <= b}. */
   private BooleanFormula transformEquality(BooleanFormula input) {
-    return fmgr.visit(input, new DefaultFormulaVisitor<BooleanFormula>() {
-      @Override
-      protected BooleanFormula visitDefault(Formula f) {
-        return (BooleanFormula) f;
-      }
+    return fmgr.visit(
+        input,
+        new DefaultFormulaVisitor<BooleanFormula>() {
+          @Override
+          protected BooleanFormula visitDefault(Formula f) {
+            return (BooleanFormula) f;
+          }
 
-      @Override
-      public BooleanFormula visitFunction(
-          Formula f,
-          List<Formula> newArgs,
-          FunctionDeclaration<?> functionDeclaration) {
-        if (functionDeclaration.getKind() == FunctionDeclarationKind.EQ &&
-            fmgr.getFormulaType(newArgs.get(0)).isNumeralType()) {
-          Preconditions.checkState(newArgs.size() == 2);
-          Formula a = newArgs.get(0);
-          Formula b = newArgs.get(1);
-          return bfmgr.and(
-              fmgr.makeGreaterOrEqual(a, b, true),
-              fmgr.makeLessOrEqual(a, b, true)
-          );
-        } else {
-          return (BooleanFormula) f;
-        }
-      }
-    });
+          @Override
+          public BooleanFormula visitFunction(
+              Formula f, List<Formula> newArgs, FunctionDeclaration<?> functionDeclaration) {
+            if (functionDeclaration.getKind() == FunctionDeclarationKind.EQ
+                && fmgr.getFormulaType(newArgs.get(0)).isNumeralType()) {
+              Preconditions.checkState(newArgs.size() == 2);
+              Formula a = newArgs.get(0);
+              Formula b = newArgs.get(1);
+              return bfmgr.and(
+                  fmgr.makeGreaterOrEqual(a, b, true), fmgr.makeLessOrEqual(a, b, true));
+            } else {
+              return (BooleanFormula) f;
+            }
+          }
+        });
   }
 
   private boolean hasBoundVariables(BooleanFormula input) {
     final AtomicBoolean hasBound = new AtomicBoolean(false);
-    fmgr.visitRecursively(input, new DefaultFormulaVisitor<TraversalProcess>() {
-      @Override
-      protected TraversalProcess visitDefault(Formula f) {
-        return TraversalProcess.CONTINUE;
-      }
+    fmgr.visitRecursively(
+        input,
+        new DefaultFormulaVisitor<TraversalProcess>() {
+          @Override
+          protected TraversalProcess visitDefault(Formula f) {
+            return TraversalProcess.CONTINUE;
+          }
 
-      @Override
-      public TraversalProcess visitBoundVariable(Formula f, int deBruijnIdx) {
-        hasBound.set(true);
-        return TraversalProcess.ABORT;
-      }
-    });
+          @Override
+          public TraversalProcess visitBoundVariable(Formula f, int deBruijnIdx) {
+            hasBound.set(true);
+            return TraversalProcess.ABORT;
+          }
+        });
     return hasBound.get();
   }
 
-  private final DefaultFormulaVisitor<Optional<BooleanFormula>>
-      quantifiedBodyExtractor = new
-      DefaultFormulaVisitor<> () {
+  private final DefaultFormulaVisitor<Optional<BooleanFormula>> quantifiedBodyExtractor =
+      new DefaultFormulaVisitor<>() {
         @Override
         protected Optional<BooleanFormula> visitDefault(Formula f) {
           return Optional.empty();
@@ -373,10 +360,8 @@ public class RCNFManager implements StatisticsProvider {
     @Override
     public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
       printTimer(out, conversion, "RCNF conversion");
-      printTimer(out, lightQuantifierElimination, "light quantifier "
-          + "elimination");
+      printTimer(out, lightQuantifierElimination, "light quantifier " + "elimination");
       printTimer(out, quantifierElimination, "quantifier elimination");
-
     }
 
     @Override
@@ -385,8 +370,8 @@ public class RCNFManager implements StatisticsProvider {
     }
 
     private void printTimer(PrintStream out, Timer t, String name) {
-      out.printf("Time spent in %s: %s (Max: %s), (Avg: %s), (#calls = %s), "
-          + "(#cached = %d) %n",
+      out.printf(
+          "Time spent in %s: %s (Max: %s), (Avg: %s), (#calls = %s), " + "(#cached = %d) %n",
           name,
           t.getSumTime().formatAs(TimeUnit.SECONDS),
           t.getMaxTime().formatAs(TimeUnit.SECONDS),
@@ -398,26 +383,26 @@ public class RCNFManager implements StatisticsProvider {
 
   private boolean hasDeadUf(BooleanFormula atom, final SSAMap pSSAMap, FormulaManagerView pFmgr) {
     final AtomicBoolean out = new AtomicBoolean(false);
-    pFmgr.visitRecursively(atom, new DefaultFormulaVisitor<TraversalProcess>() {
-      @Override
-      protected TraversalProcess visitDefault(Formula f) {
-        return TraversalProcess.CONTINUE;
-      }
-
-      @Override
-      public TraversalProcess visitFunction(
-          Formula f,
-          List<Formula> args,
-          FunctionDeclaration<?> functionDeclaration) {
-        if (functionDeclaration.getKind() == FunctionDeclarationKind.UF) {
-          if (pFmgr.isIntermediate(functionDeclaration.getName(), pSSAMap)) {
-            out.set(true);
-            return TraversalProcess.ABORT;
+    pFmgr.visitRecursively(
+        atom,
+        new DefaultFormulaVisitor<TraversalProcess>() {
+          @Override
+          protected TraversalProcess visitDefault(Formula f) {
+            return TraversalProcess.CONTINUE;
           }
-        }
-        return TraversalProcess.CONTINUE;
-      }
-    });
+
+          @Override
+          public TraversalProcess visitFunction(
+              Formula f, List<Formula> args, FunctionDeclaration<?> functionDeclaration) {
+            if (functionDeclaration.getKind() == FunctionDeclarationKind.UF) {
+              if (pFmgr.isIntermediate(functionDeclaration.getName(), pSSAMap)) {
+                out.set(true);
+                return TraversalProcess.ABORT;
+              }
+            }
+            return TraversalProcess.CONTINUE;
+          }
+        });
     return out.get();
   }
 }

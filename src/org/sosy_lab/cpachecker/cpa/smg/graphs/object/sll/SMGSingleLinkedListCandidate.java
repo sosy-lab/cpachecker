@@ -24,8 +24,13 @@ public class SMGSingleLinkedListCandidate extends SMGListCandidate<SMGSingleLink
 
   @Override
   public String toString() {
-    return "SMGSingleLinkedListCandidate [startObject=" + getStartObject()
-    + ", nfo=" + getShape().getNfo() + ", hfo=" + getShape().getHfo() + "]";
+    return "SMGSingleLinkedListCandidate [startObject="
+        + getStartObject()
+        + ", nfo="
+        + getShape().getNfo()
+        + ", hfo="
+        + getShape().getHfo()
+        + "]";
   }
 
   @Override

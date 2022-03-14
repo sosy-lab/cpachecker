@@ -19,11 +19,9 @@ abstract class DefaultNumeralFormulaVisitor<ConstantType, ReturnType>
     implements NumeralFormulaVisitor<ConstantType, ReturnType> {
 
   /**
-   * Provides a generic visit method that can be applied to any invariants
-   * formula type.
+   * Provides a generic visit method that can be applied to any invariants formula type.
    *
    * @param pFormula the visited formula.
-   *
    * @return the result of the generic visit.
    */
   protected abstract ReturnType visitDefault(NumeralFormula<ConstantType> pFormula);
@@ -107,5 +105,4 @@ abstract class DefaultNumeralFormulaVisitor<ConstantType, ReturnType>
   public ReturnType visit(Cast<ConstantType> pCast) {
     return visitDefault(pCast);
   }
-
 }

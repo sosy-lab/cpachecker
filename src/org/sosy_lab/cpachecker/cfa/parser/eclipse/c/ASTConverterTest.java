@@ -57,47 +57,47 @@ public class ASTConverterTest {
     assertThat(converter32.parseCharacterLiteral("'´'", null)).isEqualTo('´');
   }
 
-  @Test(expected=CFAGenerationRuntimeException.class)
+  @Test(expected = CFAGenerationRuntimeException.class)
   public final void testInvalidCharacterExpression1() {
     converter32.parseCharacterLiteral("", null);
   }
 
-  @Test(expected=CFAGenerationRuntimeException.class)
+  @Test(expected = CFAGenerationRuntimeException.class)
   public final void testInvalidCharacterExpression2() {
     converter32.parseCharacterLiteral("'\\'", null);
   }
 
-  @Test(expected=CFAGenerationRuntimeException.class)
+  @Test(expected = CFAGenerationRuntimeException.class)
   public final void testInvalidCharacterExpression3() {
     converter32.parseCharacterLiteral("'aa'", null);
   }
 
-  @Test(expected=CFAGenerationRuntimeException.class)
+  @Test(expected = CFAGenerationRuntimeException.class)
   public final void testInvalidCharacterExpression4() {
     converter32.parseCharacterLiteral("'\\777'", null);
   }
 
-  @Test(expected=CFAGenerationRuntimeException.class)
+  @Test(expected = CFAGenerationRuntimeException.class)
   public final void testInvalidCharacterExpression5() {
     converter32.parseCharacterLiteral("'\\xFFF'", null);
   }
 
-  @Test(expected=CFAGenerationRuntimeException.class)
+  @Test(expected = CFAGenerationRuntimeException.class)
   public final void testInvalidCharacterExpression6() {
     converter32.parseCharacterLiteral("'\\z'", null);
   }
 
-  @Test(expected=CFAGenerationRuntimeException.class)
+  @Test(expected = CFAGenerationRuntimeException.class)
   public final void testInvalidCharacterExpression7() {
     converter32.parseCharacterLiteral("'\\0777'", null);
   }
 
-  @Test(expected=CFAGenerationRuntimeException.class)
+  @Test(expected = CFAGenerationRuntimeException.class)
   public final void testInvalidCharacterExpression8() {
     converter32.parseCharacterLiteral("'\\088'", null);
   }
 
-  @Test(expected=CFAGenerationRuntimeException.class)
+  @Test(expected = CFAGenerationRuntimeException.class)
   public final void testInvalidCharacterExpression9() {
     converter32.parseCharacterLiteral("'\\xGG'", null);
   }
@@ -120,7 +120,8 @@ public class ASTConverterTest {
         } catch (CFAGenerationRuntimeException e) {
           assertThat(e.getMessage())
               .contains(
-                  "Integer value is too large to be represented by the highest possible type (unsigned long long int):");
+                  "Integer value is too large to be represented by the highest possible type"
+                      + " (unsigned long long int):");
         }
       }
     }
@@ -141,7 +142,7 @@ public class ASTConverterTest {
 
   @Test
   public final void testIntegerExpression() {
-    check("0","0");
+    check("0", "0");
     check("1", "1");
     check("2", "2");
     check("3", "3u");

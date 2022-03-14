@@ -26,9 +26,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
-/**
- * State for Constraints Analysis. Stores constraints and whether they are solvable.
- */
+/** State for Constraints Analysis. Stores constraints and whether they are solvable. */
 public final class ConstraintsState implements AbstractState, Graphable, Set<Constraint> {
 
   /** The constraints of this state */
@@ -45,9 +43,7 @@ public final class ConstraintsState implements AbstractState, Graphable, Set<Con
   private ImmutableList<ValueAssignment> definiteAssignment;
   private ImmutableList<ValueAssignment> lastModelAsAssignment = ImmutableList.of();
 
-  /**
-   * Creates a new, initial <code>ConstraintsState</code> object.
-   */
+  /** Creates a new, initial <code>ConstraintsState</code> object. */
   public ConstraintsState() {
     this(ImmutableSet.of());
   }
@@ -60,7 +56,7 @@ public final class ConstraintsState implements AbstractState, Graphable, Set<Con
   /**
    * Creates a new <code>ConstraintsState</code> copy of the given <code>ConstraintsState</code>.
    *
-   * <p>This constructor should only be used by {@link #copyOf()} and subtypes of this class.</p>
+   * <p>This constructor should only be used by {@link #copyOf()} and subtypes of this class.
    *
    * @param pState the state to copy
    */
@@ -72,9 +68,7 @@ public final class ConstraintsState implements AbstractState, Graphable, Set<Con
     lastModelAsAssignment = pState.lastModelAsAssignment;
   }
 
-  /**
-   * Returns a new copy of the given <code>ConstraintsState</code> object.
-   */
+  /** Returns a new copy of the given <code>ConstraintsState</code> object. */
   // We use a method here so subtypes can override it, in contrast to a public copy constructor
   public ConstraintsState copyOf() {
     return new ConstraintsState(this);
@@ -84,8 +78,8 @@ public final class ConstraintsState implements AbstractState, Graphable, Set<Con
    * Adds the given {@link Constraint} to this state.
    *
    * @param pConstraint the <code>Constraint</code> to add
-   * @return <code>true</code> if this state did not already contain the given <code>Constraint</code>,
-   *    <code>false</code> otherwise
+   * @return <code>true</code> if this state did not already contain the given <code>Constraint
+   *     </code>, <code>false</code> otherwise
    */
   @Override
   public boolean add(Constraint pConstraint) {
@@ -219,7 +213,8 @@ public final class ConstraintsState implements AbstractState, Graphable, Set<Con
 
     ConstraintsState that = (ConstraintsState) o;
 
-    return constraints.equals(that.constraints) && definiteAssignment.equals(that.definiteAssignment);
+    return constraints.equals(that.constraints)
+        && definiteAssignment.equals(that.definiteAssignment);
   }
 
   @Override

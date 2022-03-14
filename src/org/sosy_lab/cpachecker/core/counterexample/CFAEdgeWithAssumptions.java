@@ -19,9 +19,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 /**
- * Contains assumptions {@link AExpressionStatement} for a
- * given statement, which is represented as cfa edge {@link CFAEdge},
- * in the error path.
+ * Contains assumptions {@link AExpressionStatement} for a given statement, which is represented as
+ * cfa edge {@link CFAEdge}, in the error path.
  */
 public class CFAEdgeWithAssumptions {
 
@@ -90,7 +89,9 @@ public class CFAEdgeWithAssumptions {
 
     for (AExpressionStatement expressionStmt : expressionStmts) {
       if (expressionStmt instanceof CExpressionStatement) {
-        result.append(((CExpressionStatement) expressionStmt).accept(CStatementToOriginalCodeVisitor.INSTANCE));
+        result.append(
+            ((CExpressionStatement) expressionStmt)
+                .accept(CStatementToOriginalCodeVisitor.INSTANCE));
       } else {
         return "";
       }
@@ -100,8 +101,7 @@ public class CFAEdgeWithAssumptions {
   }
 
   /**
-   * Print code for user output only. Typedefs are not resolved.
-   * Should not be parsed.
+   * Print code for user output only. Typedefs are not resolved. Should not be parsed.
    *
    * @param numberOfTabsPerLine the number of tabs per line.
    * @return pretty-printed code

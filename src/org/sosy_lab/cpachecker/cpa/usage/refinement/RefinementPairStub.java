@@ -12,26 +12,29 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-
-public class RefinementPairStub implements ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>{
+public class RefinementPairStub
+    implements ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> {
 
   @Override
-  public void update(Class<? extends RefinementInterface> pCallerClass, Class<? extends RefinementInterface> pDstClass,
+  public void update(
+      Class<? extends RefinementInterface> pCallerClass,
+      Class<? extends RefinementInterface> pDstClass,
       Object pData) {}
 
   @Override
   public void start(Class<? extends RefinementInterface> pCallerClass) {}
 
   @Override
-  public void finish(Class<? extends RefinementInterface> pCallerClass) throws CPAException, InterruptedException {}
+  public void finish(Class<? extends RefinementInterface> pCallerClass)
+      throws CPAException, InterruptedException {}
 
   @Override
   public void printStatistics(StatisticsWriter pOut) {}
 
   @Override
-  public RefinementResult performBlockRefinement(Pair<ExtendedARGPath, ExtendedARGPath> pInput) throws CPAException, InterruptedException {
+  public RefinementResult performBlockRefinement(Pair<ExtendedARGPath, ExtendedARGPath> pInput)
+      throws CPAException, InterruptedException {
 
     return RefinementResult.createTrue(pInput.getFirst(), pInput.getSecond());
   }
-
 }

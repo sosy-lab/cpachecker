@@ -12,12 +12,14 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 
-public class UFCheckingProverEnvironment
-    extends UFCheckingBasicProverEnvironment<Void>
+public class UFCheckingProverEnvironment extends UFCheckingBasicProverEnvironment<Void>
     implements ProverEnvironment {
 
-  public UFCheckingProverEnvironment(LogManager pLogger, ProverEnvironment pe,
-      FormulaManagerView pFmgr, UFCheckingProverOptions options) {
+  public UFCheckingProverEnvironment(
+      LogManager pLogger,
+      ProverEnvironment pe,
+      FormulaManagerView pFmgr,
+      UFCheckingProverOptions options) {
     super(pLogger, pe, pFmgr, options);
   }
 }

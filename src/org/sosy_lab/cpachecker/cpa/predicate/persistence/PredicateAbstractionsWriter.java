@@ -43,10 +43,9 @@ public class PredicateAbstractionsWriter {
   private final LogManager logger;
   private final FormulaManagerView fmgr;
 
-  public PredicateAbstractionsWriter(LogManager pLogger,
-      FormulaManagerView pFmMgr) {
-    this.logger = pLogger;
-    this.fmgr = pFmMgr;
+  public PredicateAbstractionsWriter(LogManager pLogger, FormulaManagerView pFmMgr) {
+    logger = pLogger;
+    fmgr = pFmMgr;
   }
 
   private int getAbstractionId(ARGState state) {
@@ -139,10 +138,8 @@ public class PredicateAbstractionsWriter {
         writer.append("\n\n");
       }
 
-
     } catch (IOException e) {
       logger.logUserException(Level.WARNING, e, "Could not write abstractions to file");
     }
   }
-
 }
