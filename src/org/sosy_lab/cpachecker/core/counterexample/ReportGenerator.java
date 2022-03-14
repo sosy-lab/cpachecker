@@ -99,22 +99,22 @@ public class ReportGenerator {
   private final LogManager logger;
 
   @Option(
-      secure = true,
-      name = "report.export",
-      description = "Generate HTML report with analysis result.")
+    secure = true,
+    name = "report.export",
+    description = "Generate HTML report with analysis result.")
   private boolean generateReport = true;
 
   @Option(
-      secure = true,
-      name = "report.file",
-      description = "File name for analysis report in case no counterexample was found.")
+    secure = true,
+    name = "report.file",
+    description = "File name for analysis report in case no counterexample was found.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path reportFile = Path.of("Report.html");
 
   @Option(
-      secure = true,
-      name = "counterexample.export.report",
-      description = "File name for analysis report in case a counterexample was found.")
+    secure = true,
+    name = "counterexample.export.report",
+    description = "File name for analysis report in case a counterexample was found.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate counterExampleFiles = PathTemplate.ofFormatString("Counterexample.%d.html");
 
@@ -257,7 +257,8 @@ public class ReportGenerator {
       DOTBuilder2 dotBuilder,
       String statistics) {
 
-    try (BufferedReader reader =
+    try (
+        BufferedReader reader =
             Resources.asCharSource(Resources.getResource(getClass(), HTML_TEMPLATE), Charsets.UTF_8)
                 .openBufferedStream();
         Writer writer = IO.openOutputFile(reportPath, Charsets.UTF_8)) {
@@ -289,21 +290,26 @@ public class ReportGenerator {
       }
     } catch (IOException e) {
       logger.logUserException(
-          WARNING, e, "Could not create report: Processing of HTML template failed.");
+          WARNING,
+          e,
+          "Could not create report: Processing of HTML template failed.");
     }
   }
 
-  private void insertJsFile(Writer writer, String file) throws IOException {
-    try (BufferedReader reader =
-        Resources.asCharSource(Resources.getResource(getClass(), file), Charsets.UTF_8)
-            .openBufferedStream(); ) {
-      String line;
-      while (null != (line = reader.readLine())) {
-        writer.write(line);
-        writer.write('\n');
+  private void insertJsFile(
+      Writer writer,
+      String file)
+      throws IOException {
+        try (BufferedReader reader =
+            Resources.asCharSource(Resources.getResource(getClass(), file), Charsets.UTF_8)
+                .openBufferedStream();) {
+          String line;
+          while (null != (line = reader.readLine())) {
+              writer.write(line);
+              writer.write('\n');
+          }
+        }
       }
-    }
-  }
 
   private void insertJs(
       Writer writer,
@@ -312,14 +318,14 @@ public class ReportGenerator {
       DOTBuilder2 dotBuilder,
       @Nullable CounterexampleInfo counterExample)
       throws IOException {
-    insertCfaJson(writer, cfa, dotBuilder, counterExample);
-    insertArgJson(writer);
-    insertSourceFileNames(writer, allInputFiles);
+        insertCfaJson(writer, cfa, dotBuilder, counterExample);
+        insertArgJson(writer);
+        insertSourceFileNames(writer, allInputFiles);
 
-    insertJsFile(writer, WORKER_DATA_TEMPLATE);
-    insertJsFile(writer, VENDOR_JS_TEMPLATE);
-    insertJsFile(writer, JS_TEMPLATE);
-  }
+        insertJsFile(writer, WORKER_DATA_TEMPLATE);
+        insertJsFile(writer, VENDOR_JS_TEMPLATE);
+        insertJsFile(writer, JS_TEMPLATE);
+      }
 
   private void insertCfaJson(
       Writer writer, CFA cfa, DOTBuilder2 dotBuilder, @Nullable CounterexampleInfo counterExample)
@@ -349,7 +355,7 @@ public class ReportGenerator {
 
     if (counterExample != null) {
       if (counterExample instanceof FaultLocalizationInfo) {
-        FaultLocalizationInfo flInfo = (FaultLocalizationInfo) counterExample;
+        FaultLocalizationInfo flInfo = (FaultLocalizationInfo)counterExample;
         flInfo.prepare();
         writer.write(",\n\"errorPath\":");
         counterExample.toJSON(writer);
@@ -398,7 +404,8 @@ public class ReportGenerator {
 
   private void insertCssFile(Writer writer, String file) throws IOException {
     writer.write("<style>\n");
-    Resources.asCharSource(Resources.getResource(getClass(), file), Charsets.UTF_8).copyTo(writer);
+    Resources.asCharSource(Resources.getResource(getClass(), file), Charsets.UTF_8)
+        .copyTo(writer);
     writer.write("</style>");
   }
 
@@ -500,7 +507,8 @@ public class ReportGenerator {
       try (BufferedReader source =
           new BufferedReader(
               new InputStreamReader(
-                  new FileInputStream(sourcePath.toFile()), Charset.defaultCharset()))) {
+                  new FileInputStream(sourcePath.toFile()),
+                  Charset.defaultCharset()))) {
         writer.write(
             "<div id=\"source-file\" class=\"sourceContent\" ng-show = \"sourceFileIsSet("
                 + sourceFileNumber
@@ -707,8 +715,7 @@ public class ReportGenerator {
       return;
     }
     Witness witness = witnessOptional.orElseThrow();
-    WitnessToOutputFormatsUtils.witnessToMapsForHTMLReport(
-        witness, argReducedNodes, argReducedEdges);
+    WitnessToOutputFormatsUtils.witnessToMapsForHTMLReport(witness, argReducedNodes, argReducedEdges);
   }
 
   private Map<String, Object> createArgNode(int parentStateId, CFANode node, ARGState argState) {
