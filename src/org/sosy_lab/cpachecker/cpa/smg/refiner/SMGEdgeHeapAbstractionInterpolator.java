@@ -37,23 +37,25 @@ public class SMGEdgeHeapAbstractionInterpolator {
   }
 
   /**
-   * Calculates necessary blocks for heap abstractions to keep an infeasible
-   * error path without heap abstraction infeasible when executing heap abstraction
-   * on the given node of the path, based on the given precision.
+   * Calculates necessary blocks for heap abstractions to keep an infeasible error path without heap
+   * abstraction infeasible when executing heap abstraction on the given node of the path, based on
+   * the given precision.
    *
    * @param pState the smg state on the node of the given cfaNode.
-   * @param pRemainingErrorPath the remaining infeasible error path,that starts with
-   *        given cfa node.
+   * @param pRemainingErrorPath the remaining infeasible error path,that starts with given cfa node.
    * @param pPrecision the current precision of the program.
    * @param pStateLocation the location of the given smgState.
    * @param pAllTargets should we check for all errors, or only the one in the target
-   * @return a set of abstraction blocks that refine the given precision, so that the resulting
-   * smg state after heap abstraction is strong enough for the given precision to
-   * enable
+   * @return a set of abstraction blocks that refine the given precision, so that the resulting smg
+   *     state after heap abstraction is strong enough for the given precision to enable
    */
-  public SMGHeapAbstractionInterpoaltionResult calculateHeapAbstractionBlocks(SMGState pState,
-      ARGPath pRemainingErrorPath, SMGPrecision pPrecision, CFANode pStateLocation,
-      CFAEdge pCurrentEdge, boolean pAllTargets)
+  public SMGHeapAbstractionInterpoaltionResult calculateHeapAbstractionBlocks(
+      SMGState pState,
+      ARGPath pRemainingErrorPath,
+      SMGPrecision pPrecision,
+      CFANode pStateLocation,
+      CFAEdge pCurrentEdge,
+      boolean pAllTargets)
       throws CPAException, InterruptedException {
 
     SMGState state = pState;
@@ -62,7 +64,9 @@ public class SMGEdgeHeapAbstractionInterpolator {
       return SMGHeapAbstractionInterpoaltionResult.emptyAndUnchanged();
     }
 
-    logger.log(Level.ALL, "Begin interpolating heap abstraction on node " + pStateLocation.getNodeNumber());
+    logger.log(
+        Level.ALL,
+        "Begin interpolating heap abstraction on node " + pStateLocation.getNodeNumber());
 
     SMGState abstractionTest = pState.copyOf();
     Set<SMGAbstractionBlock> result =
@@ -72,8 +76,8 @@ public class SMGEdgeHeapAbstractionInterpolator {
 
     while (!candidate.isEmpty()) {
 
-      if (isRemainingPathFeasible(pRemainingErrorPath, abstractionTest, pCurrentEdge,
-          pAllTargets)) {
+      if (isRemainingPathFeasible(
+          pRemainingErrorPath, abstractionTest, pCurrentEdge, pAllTargets)) {
         result.add(candidate.createAbstractionBlock(state));
         abstractionTest = state.copyOf();
       } else {
@@ -84,7 +88,9 @@ public class SMGEdgeHeapAbstractionInterpolator {
       candidate = abstractionTest.executeHeapAbstractionOneStep(result);
     }
 
-    logger.log(Level.ALL, "Finish interpolating heap abstraction on node " + pStateLocation.getNodeNumber());
+    logger.log(
+        Level.ALL,
+        "Finish interpolating heap abstraction on node " + pStateLocation.getNodeNumber());
 
     if (!change && result.isEmpty()) {
       return SMGHeapAbstractionInterpoaltionResult.emptyAndUnchanged();
@@ -100,6 +106,7 @@ public class SMGEdgeHeapAbstractionInterpolator {
       boolean pAllTargets)
       throws CPAException, InterruptedException {
 
-    return checker.isRemainingPathFeasible(pRemainingErrorPath, pAbstractionTest, pCurrentEdge, pAllTargets);
+    return checker.isRemainingPathFeasible(
+        pRemainingErrorPath, pAbstractionTest, pCurrentEdge, pAllTargets);
   }
 }

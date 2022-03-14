@@ -47,31 +47,51 @@ public class CustomInstructionRequirementsWriter {
   private final boolean enableRequirementSlicing;
   private final PathCounterTemplate fileTemplate;
 
-  public CustomInstructionRequirementsWriter(final PathCounterTemplate ciReqFiles,
-      final Class<?> reqirementsState, final LogManager log, final ConfigurableProgramAnalysis cpa,
-      boolean enableRequirementSlicing) throws CPAException {
+  public CustomInstructionRequirementsWriter(
+      final PathCounterTemplate ciReqFiles,
+      final Class<?> reqirementsState,
+      final LogManager log,
+      final ConfigurableProgramAnalysis cpa,
+      boolean enableRequirementSlicing)
+      throws CPAException {
     fileTemplate = ciReqFiles;
-    this.requirementsState = reqirementsState;
+    requirementsState = reqirementsState;
     logger = log;
     this.enableRequirementSlicing = enableRequirementSlicing;
     createRequirementTranslator(cpa);
   }
 
-  public void writeCIRequirement(final ARGState pState, final Collection<ARGState> pSet,
-      final AppliedCustomInstruction pACI) throws IOException, CPAException {
+  public void writeCIRequirement(
+      final ARGState pState, final Collection<ARGState> pSet, final AppliedCustomInstruction pACI)
+      throws IOException, CPAException {
     Pair<Pair<List<String>, String>, Pair<List<String>, String>> convertedRequirements;
     if (enableRequirementSlicing) {
-      convertedRequirements = abstractReqTranslator.convertRequirements(pState, pSet, pACI.getIndicesForReturnVars(), pACI.getInputVariables(), pACI.getOutputVariables());
+      convertedRequirements =
+          abstractReqTranslator.convertRequirements(
+              pState,
+              pSet,
+              pACI.getIndicesForReturnVars(),
+              pACI.getInputVariables(),
+              pACI.getOutputVariables());
     } else {
-      convertedRequirements = abstractReqTranslator.convertRequirements(pState, pSet, pACI.getIndicesForReturnVars(), null, null);
+      convertedRequirements =
+          abstractReqTranslator.convertRequirements(
+              pState, pSet, pACI.getIndicesForReturnVars(), null, null);
     }
-    if(convertedRequirements.getSecond().getSecond().matches("\\(define-fun post \\(\\) Bool(\\s)+true\\)")) {
+    if (convertedRequirements
+        .getSecond()
+        .getSecond()
+        .matches("\\(define-fun post \\(\\) Bool(\\s)+true\\)")) {
       // post condition true, do not need to consider this requirement
       return;
     }
 
     Pair<List<String>, String> fakeSMTDesc = pACI.getFakeSMTDescription();
-    List<String> set = removeDuplicates(convertedRequirements.getFirst().getFirst(), convertedRequirements.getSecond().getFirst(), fakeSMTDesc.getFirst());
+    List<String> set =
+        removeDuplicates(
+            convertedRequirements.getFirst().getFirst(),
+            convertedRequirements.getSecond().getFirst(),
+            fakeSMTDesc.getFirst());
 
     try (Writer br = IO.openOutputFile(fileTemplate.getFreshPath(), Charset.defaultCharset())) {
       for (String element : set) {
@@ -83,16 +103,16 @@ public class CustomInstructionRequirementsWriter {
       br.write(pACI.getFakeSMTDescription().getSecond());
 
       br.write("\n\n;Pre and Post Conditions\n");
-        br.write(convertedRequirements.getFirst().getSecond());
-        br.write("\n");
-        br.write(convertedRequirements.getSecond().getSecond());
-        br.write("\n");
+      br.write(convertedRequirements.getFirst().getSecond());
+      br.write("\n");
+      br.write(convertedRequirements.getSecond().getSecond());
+      br.write("\n");
     }
   }
 
-  private List<String> removeDuplicates(final List<String> pre, final List<String> post,
-      final List<String> ci) {
-    int sumSize =pre.size()+post.size()+ci.size();
+  private List<String> removeDuplicates(
+      final List<String> pre, final List<String> post, final List<String> ci) {
+    int sumSize = pre.size() + post.size() + ci.size();
     List<String> duplicateFreeSet = new ArrayList<>(sumSize);
     Set<String> set = Sets.newHashSetWithExpectedSize(sumSize);
 
@@ -102,7 +122,8 @@ public class CustomInstructionRequirementsWriter {
     return duplicateFreeSet;
   }
 
-  private void addNonMembersToList(final List<String> candidates, final List<String> list, final Set<String> listElems) {
+  private void addNonMembersToList(
+      final List<String> candidates, final List<String> list, final Set<String> listElems) {
     for (String next : candidates) {
       if (listElems.add(next)) {
         list.add(next);
@@ -110,7 +131,8 @@ public class CustomInstructionRequirementsWriter {
     }
   }
 
-  private void createRequirementTranslator(final ConfigurableProgramAnalysis cpa) throws CPAException {
+  private void createRequirementTranslator(final ConfigurableProgramAnalysis cpa)
+      throws CPAException {
     if (requirementsState.equals(SignState.class)) {
       abstractReqTranslator = new SignRequirementsTranslator(logger);
     } else if (requirementsState.equals(ValueAnalysisState.class)) {
@@ -122,8 +144,11 @@ public class CustomInstructionRequirementsWriter {
       if (pCpa == null) {
         pCpa = CPAs.retrieveCPA(cpa, BAMPredicateCPA.class);
       }
-      if (pCpa == null) { throw new CPAException(
-          "Cannot extract analysis which was responsible for construction PredicateAbstract States"); }
+      if (pCpa == null) {
+        throw new CPAException(
+            "Cannot extract analysis which was responsible for construction PredicateAbstract"
+                + " States");
+      }
       abstractReqTranslator =
           new PredicateRequirementsTranslator(pCpa.getSolver().getFormulaManager());
     } else if (requirementsState.equals(ApronState.class)) {

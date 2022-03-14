@@ -19,28 +19,42 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 
 /**
- * This class represents variable declarations.
- * Example code:
+ * This class represents variable declarations. Example code:
  *
- * int x = 0;
- * struct s { ... } st;
+ * <p>int x = 0; struct s { ... } st;
  */
 public final class CVariableDeclaration extends AVariableDeclaration implements CDeclaration {
 
   private static final long serialVersionUID = 8303959164064236061L;
-  private final CStorageClass    cStorageClass;
+  private final CStorageClass cStorageClass;
 
-  public CVariableDeclaration(FileLocation pFileLocation, boolean pIsGlobal,
-      CStorageClass pCStorageClass, CType pType, String pName, String pOrigName,
+  public CVariableDeclaration(
+      FileLocation pFileLocation,
+      boolean pIsGlobal,
+      CStorageClass pCStorageClass,
+      CType pType,
+      String pName,
+      String pOrigName,
       String pQualifiedName,
       CInitializer pInitializer) {
 
-    super(pFileLocation, pIsGlobal, pType, checkNotNull(pName), pOrigName, pQualifiedName, pInitializer);
+    super(
+        pFileLocation,
+        pIsGlobal,
+        pType,
+        checkNotNull(pName),
+        pOrigName,
+        pQualifiedName,
+        pInitializer);
     cStorageClass = pCStorageClass;
 
-    checkArgument(!(cStorageClass == CStorageClass.EXTERN && getInitializer() != null), "Extern declarations cannot have an initializer");
-    checkArgument(cStorageClass == CStorageClass.EXTERN || cStorageClass == CStorageClass.AUTO,
-        "CStorageClass is %s", cStorageClass);
+    checkArgument(
+        !(cStorageClass == CStorageClass.EXTERN && getInitializer() != null),
+        "Extern declarations cannot have an initializer");
+    checkArgument(
+        cStorageClass == CStorageClass.EXTERN || cStorageClass == CStorageClass.AUTO,
+        "CStorageClass is %s",
+        cStorageClass);
     checkArgument(pIsGlobal || cStorageClass == CStorageClass.AUTO);
     checkArgument(
         cStorageClass == CStorageClass.EXTERN || !(pType.getCanonicalType() instanceof CVoidType),
@@ -50,12 +64,10 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
 
   @Override
   public CType getType() {
-    return (CType)super.getType();
+    return (CType) super.getType();
   }
 
-  /**
-   * The storage class of this variable (either extern or auto).
-   */
+  /** The storage class of this variable (either extern or auto). */
   public CStorageClass getCStorageClass() {
     return cStorageClass;
   }
@@ -66,9 +78,9 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
   }
 
   /**
-   * Add an initializer.
-   * This is only possible if there is no initializer already.
-   * DO NOT CALL this method after CFA construction!
+   * Add an initializer. This is only possible if there is no initializer already. DO NOT CALL this
+   * method after CFA construction!
+   *
    * @param pCInitializer the new initializer
    */
   public void addInitializer(CInitializer pCInitializer) {
@@ -107,10 +119,11 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) { return true; }
+    if (this == obj) {
+      return true;
+    }
 
-    if (!(obj instanceof CVariableDeclaration)
-        || !super.equals(obj)) {
+    if (!(obj instanceof CVariableDeclaration) || !super.equals(obj)) {
       return false;
     }
 
@@ -138,5 +151,4 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
   public <R, X extends Exception> R accept(CAstNodeVisitor<R, X> pV) throws X {
     return pV.visit(this);
   }
-
 }

@@ -68,16 +68,16 @@ public interface Slice {
   boolean isRelevantDef(CFAEdge pEdge, MemoryLocation pMemoryLocation);
 
   /**
-   * Returns whether the read of the specified memory location at the specified edge is relevant
-   * to this program slice.
+   * Returns whether the read of the specified memory location at the specified edge is relevant to
+   * this program slice.
    *
    * <p>If the specified memory location is not actually read at the specified edge, either {@code
    * true} or {@code false} is returned.
    *
    * @param pEdge the {@link CFAEdge} at which the memory location is read
    * @param pMemoryLocation the {@link MemoryLocation} that is read
-   * @return whether the read of the specified memory location at the specified edge is relevant
-   *     to this program slice
+   * @return whether the read of the specified memory location at the specified edge is relevant to
+   *     this program slice
    * @throws IllegalArgumentException if {@code pEdge} is not a relevant edge to this program slice
    * @throws NullPointerException if any parameter is {@code null}
    */

@@ -41,18 +41,18 @@ public class ARGReplayState implements LatticeAbstractState<ARGReplayState> {
 
   @Override
   public ARGReplayState join(ARGReplayState other) {
-    if (this.equals(other)) {
+    if (equals(other)) {
       return this;
     }
-    return new ARGReplayState(Sets.union(this.states, other.states), cpa);
+    return new ARGReplayState(Sets.union(states, other.states), cpa);
   }
 
   @Override
   public boolean isLessOrEqual(ARGReplayState other) {
-    if (this.equals(other)) {
+    if (equals(other)) {
       return true;
     }
-    return other.states.containsAll(this.states);
+    return other.states.containsAll(states);
   }
 
   @Override
@@ -63,7 +63,7 @@ public class ARGReplayState implements LatticeAbstractState<ARGReplayState> {
   @Override
   public boolean equals(Object other) {
     return other instanceof ARGReplayState
-        && this.states.equals(((ARGReplayState)other).states)
-        && this.cpa.equals(((ARGReplayState)other).cpa);
+        && states.equals(((ARGReplayState) other).states)
+        && cpa.equals(((ARGReplayState) other).cpa);
   }
 }

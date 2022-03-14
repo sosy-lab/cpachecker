@@ -51,27 +51,24 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /**
- * Refinement strategy for a global predicate abstraction refinement. Global means
- * that we do not have only one error path in the reached set but multiple, and
- * they all need to be refined.
+ * Refinement strategy for a global predicate abstraction refinement. Global means that we do not
+ * have only one error path in the reached set but multiple, and they all need to be refined.
  */
 @Options(prefix = "cpa.predicate")
 class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrategy {
 
   @Option(
-    secure = true,
-    name = "refinement.sharePredicates",
-    description =
-        "During refinement, add all new predicates to the precisions "
-            + "of all abstract states in the reached set."
-  )
+      secure = true,
+      name = "refinement.sharePredicates",
+      description =
+          "During refinement, add all new predicates to the precisions "
+              + "of all abstract states in the reached set.")
   private boolean sharePredicates = false;
 
   @Option(
-    secure = true,
-    name = "refinement.global.restartAfterRefinement",
-    description = "Do a complete restart (clearing the reached set) after the refinement"
-  )
+      secure = true,
+      name = "refinement.global.restartAfterRefinement",
+      description = "Do a complete restart (clearing the reached set) after the refinement")
   private boolean restartAfterRefinement = false;
 
   private boolean atomicPredicates = false;
@@ -295,10 +292,9 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
   }
 
   /**
-   * After a path was strengthened, we need to take care of the coverage relation.
-   * We also remove the infeasible part from the ARG,
-   * and re-establish the coverage invariant (i.e., that states on the path
-   * are either covered or cannot be covered).
+   * After a path was strengthened, we need to take care of the coverage relation. We also remove
+   * the infeasible part from the ARG, and re-establish the coverage invariant (i.e., that states on
+   * the path are either covered or cannot be covered).
    */
   @Override
   protected void finishRefinementOfPath(
@@ -316,10 +312,10 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
       refinementRoot = (ARGState) reached.asReachedSet().getFirstState();
 
     } else if (refinementRoot == null) {
-        refinementRoot = changedElements.get(0);
+      refinementRoot = changedElements.get(0);
 
-        // search parent of both refinement roots and use this as the new
-        // refinement root
+      // search parent of both refinement roots and use this as the new
+      // refinement root
     } else {
       PathIterator firstPath = ARGUtils.getOnePathTo(refinementRoot).pathIterator();
       PathIterator secondPath = ARGUtils.getOnePathTo(changedElements.get(0)).pathIterator();

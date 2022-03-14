@@ -29,5 +29,4 @@ public class SMGObjectsAndValues {
   public Set<SMGValue> getValues() {
     return values;
   }
-
 }

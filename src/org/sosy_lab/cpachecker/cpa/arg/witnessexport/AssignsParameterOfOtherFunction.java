@@ -48,8 +48,8 @@ class AssignsParameterOfOtherFunction implements Predicate<AExpressionStatement>
   }
 
   @Override
-  public boolean apply(AExpressionStatement pArg0) {
-    AExpression exp = pArg0.getExpression();
+  public boolean apply(AExpressionStatement pStmt) {
+    AExpression exp = pStmt.getExpression();
     if (!(exp instanceof CExpression)) {
       return false;
     }

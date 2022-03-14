@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.util.cwriter;
 
 import java.util.Set;
-
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
@@ -19,12 +18,10 @@ public class PathToCTranslator extends PathTranslator {
   PathToCTranslator() {}
 
   /**
-   * Transform a single linear path into C code.
-   * The path needs to be loop free.
+   * Transform a single linear path into C code. The path needs to be loop free.
    *
-   * TODO: Detect loops in the paths and signal an error.
-   * Currently when there are loops, the generated C code is invalid
-   * because there is a goto to a missing label.
+   * <p>TODO: Detect loops in the paths and signal an error. Currently when there are loops, the
+   * generated C code is invalid because there is a goto to a missing label.
    *
    * @param pPath The path.
    * @return An appender that generates C code.
@@ -38,13 +35,11 @@ public class PathToCTranslator extends PathTranslator {
   }
 
   /**
-   * Transform a set of paths into C code.
-   * All paths need to have a single root,
-   * and all paths need to be loop free.
+   * Transform a set of paths into C code. All paths need to have a single root, and all paths need
+   * to be loop free.
    *
-   * TODO: Detect loops in the paths and signal an error.
-   * Currently when there are loops, the generated C code is invalid
-   * because there is a goto to a missing label.
+   * <p>TODO: Detect loops in the paths and signal an error. Currently when there are loops, the
+   * generated C code is invalid because there is a goto to a missing label.
    *
    * @param argRoot The root of all given paths.
    * @param elementsOnErrorPath The set of states that are on all paths.
@@ -68,5 +63,4 @@ public class PathToCTranslator extends PathTranslator {
   protected String getTargetState() {
     return "__VERIFIER_error(); // target state";
   }
-
 }

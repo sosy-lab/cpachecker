@@ -18,7 +18,8 @@ import org.sosy_lab.cpachecker.cpa.interval.Interval;
 import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisState;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
-public class IntervalRequirementsTranslator extends CartesianRequirementsTranslator<IntervalAnalysisState> {
+public class IntervalRequirementsTranslator
+    extends CartesianRequirementsTranslator<IntervalAnalysisState> {
 
   public IntervalRequirementsTranslator(final LogManager pLog) {
     super(IntervalAnalysisState.class, pLog);
@@ -30,8 +31,10 @@ public class IntervalRequirementsTranslator extends CartesianRequirementsTransla
   }
 
   @Override
-  protected List<String> getListOfIndependentRequirements(final IntervalAnalysisState pRequirement,
-      final SSAMap pIndices, final @Nullable Collection<String> pRequiredVars) {
+  protected List<String> getListOfIndependentRequirements(
+      final IntervalAnalysisState pRequirement,
+      final SSAMap pIndices,
+      final @Nullable Collection<String> pRequiredVars) {
     List<String> list = new ArrayList<>();
     for (String var : pRequirement.getIntervalMap().keySet()) {
       if (pRequiredVars == null || pRequiredVars.contains(var)) {
@@ -49,7 +52,8 @@ public class IntervalRequirementsTranslator extends CartesianRequirementsTransla
     Preconditions.checkArgument(!interval.isEmpty());
 
     if (!isMin && !isMax) {
-      sb.append(TranslatorsUtils.getVarInBoundsRequirement(var, interval.getLow(), interval.getHigh()));
+      sb.append(
+          TranslatorsUtils.getVarInBoundsRequirement(var, interval.getLow(), interval.getHigh()));
 
     } else if (!isMin) {
       sb.append(TranslatorsUtils.getVarGreaterOrEqualValRequirement(var, interval.getLow()));
@@ -60,5 +64,4 @@ public class IntervalRequirementsTranslator extends CartesianRequirementsTransla
 
     return sb.toString();
   }
-
 }

@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 
-
 public class BooleanConstant<ConstantType> implements BooleanFormula<ConstantType> {
 
   private static final BooleanConstant<?> FALSE = new BooleanConstant<>(false);
@@ -54,17 +53,20 @@ public class BooleanConstant<ConstantType> implements BooleanFormula<ConstantTyp
 
   @Override
   public <ReturnType> ReturnType accept(BooleanFormulaVisitor<ConstantType, ReturnType> pVisitor) {
-    return value? pVisitor.visitTrue() : pVisitor.visitFalse();
+    return value ? pVisitor.visitTrue() : pVisitor.visitFalse();
   }
 
   @Override
   public <ReturnType, ParamType> ReturnType accept(
-      ParameterizedBooleanFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
+      ParameterizedBooleanFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor,
+      ParamType pParameter) {
     return value ? pVisitor.visitTrue(pParameter) : pVisitor.visitFalse(pParameter);
   }
 
   public static <ConstantType> BooleanConstant<ConstantType> fromBool(boolean pBoolean) {
-    return pBoolean ? BooleanConstant.<ConstantType>getTrue() : BooleanConstant.<ConstantType>getFalse();
+    return pBoolean
+        ? BooleanConstant.<ConstantType>getTrue()
+        : BooleanConstant.<ConstantType>getFalse();
   }
 
   @SuppressWarnings("unchecked")
@@ -84,5 +86,4 @@ public class BooleanConstant<ConstantType> implements BooleanFormula<ConstantTyp
   public static boolean isFalse(BooleanFormula<?> pConstant) {
     return FALSE.equals(pConstant);
   }
-
 }

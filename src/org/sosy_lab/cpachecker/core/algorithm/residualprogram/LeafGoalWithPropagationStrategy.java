@@ -25,27 +25,25 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-/**
- * Finds all un-/covered goals based on propagation.
- */
+/** Finds all un-/covered goals based on propagation. */
 public class LeafGoalWithPropagationStrategy implements IGoalFindingStrategy {
   /**
-   * Returns a map of (un-)/covered goals based on propagation. This means that first all
-   * leaf nodes are calculated. If all of a node's children share the same state then the
-   * parent is also in this state.
+   * Returns a map of (un-)/covered goals based on propagation. This means that first all leaf nodes
+   * are calculated. If all of a node's children share the same state then the parent is also in
+   * this state.
    *
-   * @param pWaitlist    An initial list of ARGstates to check. Should be the exit node(s)
-   *                     of the function.
+   * @param pWaitlist An initial list of ARGstates to check. Should be the exit node(s) of the
+   *     function.
    * @param coveredGoals A list of all covered goals (or rather their corresponding labels).
    * @return A map of (un-)/covered goals.
    */
   @Override
   public Map<LeafStates, List<CFANode>> findGoals(
-      Deque<ARGState> pWaitlist,
-      final Set<String> coveredGoals) {
-    var waitList = pWaitlist.stream()
-        .map(AbstractStates::extractLocation)
-        .collect(Collectors.toCollection(ArrayDeque::new));
+      Deque<ARGState> pWaitlist, final Set<String> coveredGoals) {
+    var waitList =
+        pWaitlist.stream()
+            .map(AbstractStates::extractLocation)
+            .collect(Collectors.toCollection(ArrayDeque::new));
     Set<CFANode> reachedNodes = new HashSet<>();
 
     var nodes = new HashMap<NodeStates, HashSet<CFANode>>();
@@ -70,8 +68,8 @@ public class LeafGoalWithPropagationStrategy implements IGoalFindingStrategy {
           nodes.get(NodeStates.UNCOVERED).add(node);
         }
 
-      } else if (childrenNodes.isEmpty() || nodes.get(NodeStates.VIRGIN)
-          .containsAll(childrenNodes)) {
+      } else if (childrenNodes.isEmpty()
+          || nodes.get(NodeStates.VIRGIN).containsAll(childrenNodes)) {
         nodes.get(NodeStates.VIRGIN).add(node);
       } else if (nodes.get(NodeStates.COVERED).containsAll(childrenNodes)) {
         nodes.get(NodeStates.COVERED).add(node);
@@ -100,29 +98,18 @@ public class LeafGoalWithPropagationStrategy implements IGoalFindingStrategy {
     return leafGoals;
   }
 
-
-  /**
-   * All states a node can be in.
-   */
+  /** All states a node can be in. */
   private enum NodeStates {
-    /**
-     * There was no label/ goal prior to this node and we don't know if it covered or not.
-     */
+    /** There was no label/ goal prior to this node and we don't know if it covered or not. */
     VIRGIN,
 
-    /**
-     * The node is uncovered.
-     */
+    /** The node is uncovered. */
     UNCOVERED,
 
-    /**
-     * The node is covered.
-     */
+    /** The node is covered. */
     COVERED,
 
-    /**
-     * Thid node's children are both covered and uncovered.
-     */
+    /** Thid node's children are both covered and uncovered. */
     BOTH
   }
 }

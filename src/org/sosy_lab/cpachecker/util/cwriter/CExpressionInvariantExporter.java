@@ -42,11 +42,13 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 
-@Options(prefix="cinvariants")
+@Options(prefix = "cinvariants")
 public class CExpressionInvariantExporter {
 
-  @Option(secure=true, description="Attempt to simplify the invariant before "
-      + "exporting [may be very expensive].")
+  @Option(
+      secure = true,
+      description =
+          "Attempt to simplify the invariant before " + "exporting [may be very expensive].")
   private boolean simplify = false;
 
   private final PathTemplate prefix;
@@ -108,8 +110,7 @@ public class CExpressionInvariantExporter {
         if (invariant.isPresent()) {
           out.append("__VERIFIER_assume(").append(invariant.orElseThrow()).append(");\n");
         }
-        out.append(line)
-            .append('\n');
+        out.append(line).append('\n');
         lineNo++;
       }
     }
@@ -149,9 +150,7 @@ public class CExpressionInvariantExporter {
         }
       }
     }
-    return Maps.transformValues(
-        byState.asMap(), invariants -> bfmgr.or(invariants)
-    );
+    return Maps.transformValues(byState.asMap(), invariants -> bfmgr.or(invariants));
   }
 
   private BooleanFormula simplifyInvariant(BooleanFormula pInvariant)

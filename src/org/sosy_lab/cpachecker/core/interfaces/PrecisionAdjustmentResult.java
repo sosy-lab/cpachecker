@@ -29,8 +29,8 @@ public class PrecisionAdjustmentResult {
   private final Action action;
 
   /**
-   * The precision adjustment operator can tell the CPAAlgorithm whether
-   * to continue with the analysis or whether to break immediately.
+   * The precision adjustment operator can tell the CPAAlgorithm whether to continue with the
+   * analysis or whether to break immediately.
    */
   public enum Action {
     CONTINUE,
@@ -38,16 +38,14 @@ public class PrecisionAdjustmentResult {
     ;
   }
 
-  private PrecisionAdjustmentResult(AbstractState pState, Precision pPrecision,
-      Action pAction) {
+  private PrecisionAdjustmentResult(AbstractState pState, Precision pPrecision, Action pAction) {
     abstractState = checkNotNull(pState);
     precision = checkNotNull(pPrecision);
     action = checkNotNull(pAction);
   }
 
-
-  public static PrecisionAdjustmentResult create(AbstractState pState,
-      Precision pPrecision, Action pAction) {
+  public static PrecisionAdjustmentResult create(
+      AbstractState pState, Precision pPrecision, Action pAction) {
     return new PrecisionAdjustmentResult(pState, pPrecision, pAction);
   }
 

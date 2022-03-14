@@ -9,21 +9,18 @@
 package org.sosy_lab.cpachecker.util;
 
 import java.util.regex.Pattern;
-
 import org.sosy_lab.cpachecker.cpa.sign.SIGN;
-
 
 public class CheckTypesOfStringsUtil {
 
-  private CheckTypesOfStringsUtil(){
-  }
+  private CheckTypesOfStringsUtil() {}
 
-  public static boolean isLong (String s) {
+  public static boolean isLong(String s) {
     return Pattern.matches("-?\\d+", s);
   }
 
-  public static boolean isSIGN (String s) {
-    try{
+  public static boolean isSIGN(String s) {
+    try {
       SIGN.valueOf(s);
     } catch (IllegalArgumentException ex) {
       return false;

@@ -31,22 +31,26 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
 public abstract class VariableTrackingPrecision implements Precision {
 
   /**
-   * This method creates a precision which cannot be refined, all decisions about
-   * the tracking of variables depend on the configuration options and the variable
-   * classification.
+   * This method creates a precision which cannot be refined, all decisions about the tracking of
+   * variables depend on the configuration options and the variable classification.
    */
-  public static VariableTrackingPrecision createStaticPrecision(Configuration config, Optional<VariableClassification> vc, Class<? extends ConfigurableProgramAnalysis> cpaClass)
-          throws InvalidConfigurationException {
+  public static VariableTrackingPrecision createStaticPrecision(
+      Configuration config,
+      Optional<VariableClassification> vc,
+      Class<? extends ConfigurableProgramAnalysis> cpaClass)
+      throws InvalidConfigurationException {
     return new ConfigurablePrecision(config, vc, cpaClass);
   }
 
   /**
-   * This method iterates of every state of the reached set and joins their respective precision into one map.
+   * This method iterates of every state of the reached set and joins their respective precision
+   * into one map.
    *
    * @param reached the set of reached states
    * @return the join over precisions of states in the reached set
    */
-  public static VariableTrackingPrecision joinVariableTrackingPrecisionsInReachedSet(UnmodifiableReachedSet reached) {
+  public static VariableTrackingPrecision joinVariableTrackingPrecisionsInReachedSet(
+      UnmodifiableReachedSet reached) {
     Preconditions.checkArgument(reached != null);
     VariableTrackingPrecision joinedPrecision = null;
     for (Precision precision : reached.getPrecisions()) {
@@ -64,33 +68,37 @@ public abstract class VariableTrackingPrecision implements Precision {
   }
 
   /**
-   * This method creates a refinable precision. The baseline should usually be
-   * a static precision, where the most configuration options are handled.
+   * This method creates a refinable precision. The baseline should usually be a static precision,
+   * where the most configuration options are handled.
    *
    * @param pBaseline The precision which should be used as baseline.
    */
-  public static VariableTrackingPrecision createRefineablePrecision(Configuration config, VariableTrackingPrecision pBaseline) throws InvalidConfigurationException {
+  public static VariableTrackingPrecision createRefineablePrecision(
+      Configuration config, VariableTrackingPrecision pBaseline)
+      throws InvalidConfigurationException {
     Preconditions.checkNotNull(pBaseline);
     RefinablePrecisionOptions options = new RefinablePrecisionOptions(config);
     switch (options.sharing) {
-    case LOCATION:
-      return new LocalizedRefinablePrecision(pBaseline);
-    case SCOPE:
-      return new ScopedRefinablePrecision(pBaseline);
+      case LOCATION:
+        return new LocalizedRefinablePrecision(pBaseline);
+      case SCOPE:
+        return new ScopedRefinablePrecision(pBaseline);
       default:
         throw new AssertionError("Unhandled case in switch statement");
     }
   }
 
-  public static Predicate<Precision> isMatchingCPAClass(final Class<? extends ConfigurableProgramAnalysis> cpaClass) {
-     return pPrecision -> pPrecision instanceof VariableTrackingPrecision
-         && ((VariableTrackingPrecision) pPrecision).getCPAClass() == cpaClass;
+  public static Predicate<Precision> isMatchingCPAClass(
+      final Class<? extends ConfigurableProgramAnalysis> cpaClass) {
+    return pPrecision ->
+        pPrecision instanceof VariableTrackingPrecision
+            && ((VariableTrackingPrecision) pPrecision).getCPAClass() == cpaClass;
   }
 
   /**
-   * This method determines if this precision allows for abstraction, i.e., if
-   * it ignores variables from some variable class, if it maintains a refinable
-   * precision, or if it contains a variable blacklist.
+   * This method determines if this precision allows for abstraction, i.e., if it ignores variables
+   * from some variable class, if it maintains a refinable precision, or if it contains a variable
+   * blacklist.
    *
    * @return true, if this precision allows for abstraction, else false
    */
@@ -99,12 +107,12 @@ public abstract class VariableTrackingPrecision implements Precision {
   /**
    * This method tells if the precision demands the given variable to be tracked.
    *
-   * A variable is demanded to be tracked if
-   * it is on the white-list (when not null), and is not on the black-list.
+   * <p>A variable is demanded to be tracked if it is on the white-list (when not null), and is not
+   * on the black-list.
    *
    * @param variable the scoped name of the variable to check
-   * @param pType the type of the variable, necessary for checking if the variable
-   *              should be handled (necessary for floats / doubles)
+   * @param pType the type of the variable, necessary for checking if the variable should be handled
+   *     (necessary for floats / doubles)
    * @param location the location of the variable
    * @return true, if the variable has to be tracked, else false
    */
@@ -116,10 +124,12 @@ public abstract class VariableTrackingPrecision implements Precision {
    * @param increment the increment to refine the precision with
    * @return the refined precision
    */
-  public abstract VariableTrackingPrecision withIncrement(Multimap<CFANode, MemoryLocation> increment);
+  public abstract VariableTrackingPrecision withIncrement(
+      Multimap<CFANode, MemoryLocation> increment);
 
   /**
-   * This method returns the size of the refinable precision, i.e., the number of elements contained.
+   * This method returns the size of the refinable precision, i.e., the number of elements
+   * contained.
    */
   public abstract int getSize();
 
@@ -138,25 +148,24 @@ public abstract class VariableTrackingPrecision implements Precision {
   public abstract VariableTrackingPrecision join(VariableTrackingPrecision otherPrecision);
 
   /**
-   * This methods compares if this precision tracks the same variables as another precision.
-   * Only precisions of the same class can track the same variables.
+   * This methods compares if this precision tracks the same variables as another precision. Only
+   * precisions of the same class can track the same variables.
    *
    * @param otherPrecision the precision to compare the tracking behavior
    */
   public abstract boolean tracksTheSameVariablesAs(VariableTrackingPrecision otherPrecision);
 
   /**
-   * This method checks if the caller precision is empty, thus there is
-   * no variable that should be tracked.
+   * This method checks if the caller precision is empty, thus there is no variable that should be
+   * tracked.
    *
    * @return indicates whether there are variables that should be tracked or not
    */
   public abstract boolean isEmpty();
 
   /**
-   * This method returns the CPA class to which this Precision belongs. This way
-   * more CPAs can have a VariableTrackingPrecision without interfering with
-   * each other.
+   * This method returns the CPA class to which this Precision belongs. This way more CPAs can have
+   * a VariableTrackingPrecision without interfering with each other.
    *
    * @return the owner CPA of this precision
    */
@@ -164,12 +173,12 @@ public abstract class VariableTrackingPrecision implements Precision {
   protected abstract Class<? extends ConfigurableProgramAnalysis> getCPAClass();
 
   @Override
-  abstract public boolean equals(Object other);
+  public abstract boolean equals(Object other);
 
   @Override
-  abstract public int hashCode();
+  public abstract int hashCode();
 
-  @Options(prefix="precision")
+  @Options(prefix = "precision")
   private static class RefinablePrecisionOptions {
 
     enum Sharing {
@@ -177,9 +186,12 @@ public abstract class VariableTrackingPrecision implements Precision {
       LOCATION
     }
 
-    @Option(secure=true, description = "whether to track relevant variables only at the exact "
-        + "program location (sharing=location), or within their respective"
-        + " (function-/global-) scope (sharing=scoped).")
+    @Option(
+        secure = true,
+        description =
+            "whether to track relevant variables only at the exact "
+                + "program location (sharing=location), or within their respective"
+                + " (function-/global-) scope (sharing=scoped).")
     private Sharing sharing = Sharing.SCOPE;
 
     private RefinablePrecisionOptions(Configuration config) throws InvalidConfigurationException {

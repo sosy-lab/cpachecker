@@ -33,7 +33,7 @@ class CompositePrecisionAdjustment implements PrecisionAdjustment {
     for (int i = 0; i < precisionAdjustments.size(); i++) {
       stateProjections.add(getStateProjectionFunction(i));
     }
-    this.stateProjectionFunctions = stateProjections.build();
+    stateProjectionFunctions = stateProjections.build();
   }
 
   private Function<AbstractState, AbstractState> getStateProjectionFunction(int i) {
@@ -64,11 +64,13 @@ class CompositePrecisionAdjustment implements PrecisionAdjustment {
       PrecisionAdjustment precisionAdjustment = precisionAdjustments.get(i);
       AbstractState oldElement = comp.get(i);
       Precision oldPrecision = prec.get(i);
-      Optional<PrecisionAdjustmentResult> out = precisionAdjustment.prec(
-          oldElement, oldPrecision, pElements,
-          Functions.compose(stateProjectionFunctions.get(i), projection),
-          fullState
-      );
+      Optional<PrecisionAdjustmentResult> out =
+          precisionAdjustment.prec(
+              oldElement,
+              oldPrecision,
+              pElements,
+              Functions.compose(stateProjectionFunctions.get(i), projection),
+              fullState);
 
       if (!out.isPresent()) {
         return Optional.empty();

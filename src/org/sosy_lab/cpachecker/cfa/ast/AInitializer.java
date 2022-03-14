@@ -8,8 +8,4 @@
 
 package org.sosy_lab.cpachecker.cfa.ast;
 
-
-public interface AInitializer extends AAstNode {
-
-
-}
+public interface AInitializer extends AAstNode {}

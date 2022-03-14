@@ -110,8 +110,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     private void printIntermediateStatistics(
         PrintStream pOut, Result pResult, ReachedSet pReached) {
 
-      String text =
-          "Statistics for " + noOfRuns + ". execution of composition algorithm";
+      String text = "Statistics for " + noOfRuns + ". execution of composition algorithm";
       pOut.println(text);
       pOut.println("=".repeat(text.length()));
 
@@ -132,15 +131,11 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     private void printSubStatistics(
         PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
       pOut.println();
-      pOut.println(
-          "Statistics for the component analysis in run "
-              + noOfRuns
-              + " of "
-              + getName());
+      pOut.println("Statistics for the component analysis in run " + noOfRuns + " of " + getName());
 
-         for (Statistics s : currentSubStat) {
-          StatisticsUtils.printStatistics(s, pOut, logger, pResult, pReached);
-        }
+      for (Statistics s : currentSubStat) {
+        StatisticsUtils.printStatistics(s, pOut, logger, pResult, pReached);
+      }
     }
 
     @Override
@@ -160,63 +155,59 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Option(
-    secure = true,
-    required = true,
-    description =
-        "list of files with configurations to use, which are optionally suffixed "
-            + "according to one of the followig schemes:"
-            + "either ::MODE or ::MODE_LIMIT, where MODE and LIMIT are place holders."
-            + "MODE may take one of the following values continue (i.e., continue analysis with same CPA and reached set), "
-            + "reuse-precision (i.e., reuse the aggregation of the precisions from the previous analysis run), "
-            + "noreuse (i.e., start from scratch)."
-            + "LIMIT is a positive integer number specifying the time limit of the analysis in each round."
-            + "If no (correct) limit is given a default limit is used."
-  )
+      secure = true,
+      required = true,
+      description =
+          "list of files with configurations to use, which are optionally suffixed according to one"
+              + " of the followig schemes:either ::MODE or ::MODE_LIMIT, where MODE and LIMIT are"
+              + " place holders.MODE may take one of the following values continue (i.e., continue"
+              + " analysis with same CPA and reached set), reuse-precision (i.e., reuse the"
+              + " aggregation of the precisions from the previous analysis run), noreuse (i.e.,"
+              + " start from scratch).LIMIT is a positive integer number specifying the time limit"
+              + " of the analysis in each round.If no (correct) limit is given a default limit is"
+              + " used.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<AnnotatedValue<Path>> configFiles;
 
   public enum INTERMEDIATESTATSOPT {
-    EXECUTE, NONE, PRINT
+    EXECUTE,
+    NONE,
+    PRINT
   }
 
   @Option(
-    secure = true,
-    description =
-    "print the statistics of each component of the composition algorithm"
-            + " directly after the component's computation is finished"
-  )
-  private  INTERMEDIATESTATSOPT intermediateStatistics = INTERMEDIATESTATSOPT.NONE;
+      secure = true,
+      description =
+          "print the statistics of each component of the composition algorithm"
+              + " directly after the component's computation is finished")
+  private INTERMEDIATESTATSOPT intermediateStatistics = INTERMEDIATESTATSOPT.NONE;
 
   @Option(
-    secure = true,
-    description =
-    "let each analysis part of the composition algorithm write output files"
-            + " and not only the last one that is executed"
-  )
+      secure = true,
+      description =
+          "let each analysis part of the composition algorithm write output files"
+              + " and not only the last one that is executed")
   private boolean writeIntermediateOutputFiles = true;
 
   @Option(
-    secure = true,
-    name = "initCondition",
-    description =
-        "Whether or not to create an initial condition, that excludes no paths, "
-            + "before first analysis is run."
-            + "Required when first analysis uses condition from conditional model checking"
-  )
+      secure = true,
+      name = "initCondition",
+      description =
+          "Whether or not to create an initial condition, that excludes no paths, "
+              + "before first analysis is run."
+              + "Required when first analysis uses condition from conditional model checking")
   private boolean generateInitialFalseCondition = false;
 
   @Option(
-    secure = true,
-    name = "propertyChecked",
-    description = "Enable when composition algorithm is used to check a specification"
-  )
+      secure = true,
+      name = "propertyChecked",
+      description = "Enable when composition algorithm is used to check a specification")
   private boolean isPropertyChecked = true;
 
   @Option(
-    secure = true,
-    name = "condition.file",
-    description = "where to store initial condition, when generated"
-  )
+      secure = true,
+      name = "condition.file",
+      description = "where to store initial condition, when generated")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path initialCondition = Path.of("AssumptionAutomaton.txt");
 
@@ -251,15 +242,15 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     stats = new CompositionAlgorithmStatistics();
 
     selectionStrategy =
-        AlgorithmCompositionStrategyBuilder
-            .buildStrategy(pConfig, logger, shutdownNotifier, cfa, specification);
+        AlgorithmCompositionStrategyBuilder.buildStrategy(
+            pConfig, logger, shutdownNotifier, cfa, specification);
 
     logShutdownListener =
         reason ->
             logger.logf(
                 Level.WARNING,
-            "Shutdown of analysis run %d requested (%s).",
-            stats.noOfRuns,
+                "Shutdown of analysis run %d requested (%s).",
+                stats.noOfRuns,
                 reason);
     if (generateInitialFalseCondition) {
       generateInitialFalseCondition();
@@ -287,7 +278,8 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
         "CompositionAlgorithm needs ForwardingReachedSet");
     checkArgument(
         pReached.size() <= 1,
-        "CompositionAlgorithm does not support being called several times with the same reached set");
+        "CompositionAlgorithm does not support being called several times with the same reached"
+            + " set");
     checkArgument(!pReached.isEmpty(), "CompositionAlgorithm needs non-empty reached set");
 
     stats.totalTimer.start();
@@ -333,18 +325,17 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
 
           // if configuration is still null, skip it in this iteration
           if (currentConfig == null) {
-            logger
-                .log(Level.WARNING, "Skip current analysis because no configuration is available.");
+            logger.log(
+                Level.WARNING, "Skip current analysis because no configuration is available.");
             continue;
           }
 
-            currentRun = createNextAlgorithm(currentContext, mainFunction, previousContext);
+          currentRun = createNextAlgorithm(currentContext, mainFunction, previousContext);
           if (currentRun == null) {
-            logger
-                .log(Level.WARNING, "Skip current analysis because analysis could not be set up.");
+            logger.log(
+                Level.WARNING, "Skip current analysis because analysis could not be set up.");
             continue;
           }
-
 
           if (fReached instanceof HistoryForwardingReachedSet) {
             ((HistoryForwardingReachedSet) fReached).saveCPA(currentContext.getCPA());
@@ -362,7 +353,8 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
           if (status.wasPropertyChecked() != isPropertyChecked) {
             logger.logf(
                 Level.WARNING,
-                "Component algorithm and composition algorithm do not agree on property checking (%b, %b).",
+                "Component algorithm and composition algorithm do not agree on property checking"
+                    + " (%b, %b).",
                 status.wasPropertyChecked(),
                 isPropertyChecked);
           }
@@ -382,7 +374,8 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
           } else if (currentContext.getReachedSet().hasWaitingState()) {
             logger.logf(
                 Level.FINE,
-                "Analysis %s in run %d terminated but did not finish: There are still states to be processed.",
+                "Analysis %s in run %d terminated but did not finish: There are still states to be"
+                    + " processed.",
                 currentContext.configToString(),
                 stats.noOfRuns);
 
@@ -478,17 +471,13 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     switch (intermediateStatistics) {
       case PRINT:
         stats.printIntermediateStatistics(
-            System.out,
-            Result.UNKNOWN,
-            currentContext.getReachedSet());
+            System.out, Result.UNKNOWN, currentContext.getReachedSet());
         break;
       case EXECUTE:
         @SuppressWarnings("checkstyle:IllegalInstantiation") // ok for statistics
         final PrintStream dummyStream = new PrintStream(ByteStreams.nullOutputStream());
         stats.printIntermediateStatistics(
-            dummyStream,
-            Result.UNKNOWN,
-            currentContext.getReachedSet());
+            dummyStream, Result.UNKNOWN, currentContext.getReachedSet());
         break;
       default: // do nothing
     }
@@ -500,11 +489,9 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     stats.resetSubStatistics();
   }
 
-
   private void tidyUpShutdownManager(ShutdownManager pShutdownManager) {
     pShutdownManager.getNotifier().unregister(logShutdownListener);
     pShutdownManager.requestShutdown("Analysis terminated.");
-
   }
 
   private @Nullable Pair<Algorithm, ShutdownManager> createNextAlgorithm(
@@ -545,10 +532,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
           // create cpa only once when not initialized, use global limits (i.e. shutdownNotifier)
           CoreComponentsFactory globalCoreComponents =
               new CoreComponentsFactory(
-                  pCurrentContext.getConfig(),
-                  logger,
-                  shutdownNotifier,
-                  aggregateReached);
+                  pCurrentContext.getConfig(), logger, shutdownNotifier, aggregateReached);
           cpa = globalCoreComponents.createCPA(cfa, specification);
           pCurrentContext.setCPA(cpa);
           if (!pCurrentContext.reusePrecision()) {
@@ -609,8 +593,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
       }
 
       // always create algorithm with new "local" shutdown manager
-      Algorithm algorithm =
-          localCoreComponents.createAlgorithm(cpa, cfa, specification);
+      Algorithm algorithm = localCoreComponents.createAlgorithm(cpa, cfa, specification);
 
       if (algorithm instanceof CompositionAlgorithm) {
         // To avoid accidental infinitely-recursive nesting.
@@ -727,25 +710,26 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
 
           constrPrec = new RefinableConstraintsPrecision(pConfig);
         }
-      ConstraintsPrecision constrPrecInter;
+        ConstraintsPrecision constrPrecInter;
         boolean changed = false;
 
-      for (ReachedSet previousReached : pPreviousReachedSets) {
-        if (previousReached != null) {
-          for (Precision prec : previousReached.getPrecisions()) {
-            constrPrecInter = Precisions.extractPrecisionByType(prec, ConstraintsPrecision.class);
-            if (constrPrecInter != null && !(constrPrecInter instanceof FullConstraintsPrecision)) {
-              constrPrec = constrPrec.join(constrPrecInter);
+        for (ReachedSet previousReached : pPreviousReachedSets) {
+          if (previousReached != null) {
+            for (Precision prec : previousReached.getPrecisions()) {
+              constrPrecInter = Precisions.extractPrecisionByType(prec, ConstraintsPrecision.class);
+              if (constrPrecInter != null
+                  && !(constrPrecInter instanceof FullConstraintsPrecision)) {
+                constrPrec = constrPrec.join(constrPrecInter);
                 changed = true;
+              }
             }
           }
         }
-      }
         if (changed) {
-        resultPrec =
-            Precisions.replaceByType(
-                resultPrec, constrPrec, Predicates.instanceOf(ConstraintsPrecision.class));
-      }
+          resultPrec =
+              Precisions.replaceByType(
+                  resultPrec, constrPrec, Predicates.instanceOf(ConstraintsPrecision.class));
+        }
       } catch (InvalidConfigurationException e) {
         logger.logException(Level.INFO, e, "Reuse of precision failed. Continue without reuse");
       }
@@ -788,14 +772,12 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
 
     for (AbstractionPredicate pred : predicates) {
       for (String var : pFMgr.extractVariables(pred.getSymbolicAtom()).keySet()) {
-          trackedVariables.put(dummyNode, MemoryLocation.parseExtendedQualifiedName(var));
+        trackedVariables.put(dummyNode, MemoryLocation.parseExtendedQualifiedName(var));
       }
     }
 
     return trackedVariables;
   }
-
-
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {

@@ -180,8 +180,7 @@ public class UndefinedFunctionCollectorAlgorithm
     pOut.println("Total undeclared functions called:        " + undeclaredFunctions.size());
     pOut.println(
         "Non-standard undeclared functions called: "
-            + undeclaredFunctions
-                .stream()
+            + undeclaredFunctions.stream()
                 .filter(name -> !allowedUndeclaredFunctionsRegexp.matcher(name).matches())
                 .count());
   }

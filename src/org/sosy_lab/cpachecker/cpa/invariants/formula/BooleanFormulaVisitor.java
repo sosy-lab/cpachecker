@@ -28,7 +28,6 @@ interface BooleanFormulaVisitor<ConstantType, ReturnType> {
    * Visits the given equation invariants formula.
    *
    * @param pEqual the equation invariants formula to visit.
-   *
    * @return the result of the visit.
    */
   ReturnType visit(Equal<ConstantType> pEqual);
@@ -37,7 +36,6 @@ interface BooleanFormulaVisitor<ConstantType, ReturnType> {
    * Visits the given less-than inequation invariants formula.
    *
    * @param pLessThan the less-than inequation invariants formula to visit.
-   *
    * @return the result of the visit.
    */
   ReturnType visit(LessThan<ConstantType> pLessThan);
@@ -46,7 +44,6 @@ interface BooleanFormulaVisitor<ConstantType, ReturnType> {
    * Visits the given logical conjunction invariants formula.
    *
    * @param pAnd the logical conjunction invariants formula to visit.
-   *
    * @return the result of the visit.
    */
   ReturnType visit(LogicalAnd<ConstantType> pAnd);
@@ -55,9 +52,7 @@ interface BooleanFormulaVisitor<ConstantType, ReturnType> {
    * Visits the given logical negation invariants formula.
    *
    * @param pNot the logical negation invariants formula to visit.
-   *
    * @return the result of the visit.
    */
   ReturnType visit(LogicalNot<ConstantType> pNot);
-
 }

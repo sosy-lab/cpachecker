@@ -19,8 +19,8 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.refinement.DelegatingARGBasedRefiner;
 
 /**
- * This class allows to create a delegating BAM-refiner
- * for a combination of value analysis and predicate analysis (in this order!).
+ * This class allows to create a delegating BAM-refiner for a combination of value analysis and
+ * predicate analysis (in this order!).
  */
 public abstract class ValueAnalysisDelegatingBAMRefiner implements Refiner {
 

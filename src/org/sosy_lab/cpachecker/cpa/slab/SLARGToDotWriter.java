@@ -130,8 +130,7 @@ public class SLARGToDotWriter {
    */
   public static void writeRankedAbstractions(
       Appendable sb, final Collection<SLARGState> states, String label) throws IOException {
-    ARGState root =
-        FluentIterable.from(states).filter(x -> x.isInit()).toList().get(0);
+    ARGState root = FluentIterable.from(states).filter(x -> x.isInit()).toList().get(0);
     int maxrank = 0;
     ARGToDotWriter toDotWriter = new ARGToDotWriter(sb);
     Deque<ARGState> waitlist = new ArrayDeque<>();

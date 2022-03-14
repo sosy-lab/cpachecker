@@ -46,10 +46,12 @@ public class ExternModelLoader {
   }
 
   /**
-   * Loads a formula from an external dimacs file and returns it as BooleanFormula object.
-   * Each variable in the dimacs file will be associated with a program variable if a corresponding (name equality) variable is known.
-   * Otherwise we use internal SMT variable to represent the dimacs variable and do not introduce a program variable.
-   * Might lead to problems when the program variable is introduced afterwards.
+   * Loads a formula from an external dimacs file and returns it as BooleanFormula object. Each
+   * variable in the dimacs file will be associated with a program variable if a corresponding (name
+   * equality) variable is known. Otherwise we use internal SMT variable to represent the dimacs
+   * variable and do not introduce a program variable. Might lead to problems when the program
+   * variable is introduced afterwards.
+   *
    * @param pModelFile File with the dimacs model.
    * @return BooleanFormula
    */
@@ -60,7 +62,7 @@ public class ExternModelLoader {
     }
     try (BufferedReader br = Files.newBufferedReader(pModelFile, StandardCharsets.UTF_8)) {
       List<String> predicates = new ArrayList<>(10000);
-      //var ids in dimacs files start with 1, so we want the first var at position 1
+      // var ids in dimacs files start with 1, so we want the first var at position 1
       predicates.add("RheinDummyVar");
       BooleanFormula externalModel = bfmgr.makeTrue();
       Formula zero = fmgr.makeNumber(FormulaType.getBitvectorTypeWithSize(32), 0);
@@ -85,7 +87,7 @@ public class ExternModelLoader {
           assert predicates.size() == Integer.parseInt(parts.get(2)) + 1
               : "did not get all dimcas variables?";
         } else if (!line.trim().isEmpty()) {
-          //-17552 -11882 1489 48905 0
+          // -17552 -11882 1489 48905 0
           // constraints
           BooleanFormula constraint = bfmgr.makeFalse();
           for (String elementStr : Splitter.on(' ').split(line)) {
@@ -105,7 +107,8 @@ public class ExternModelLoader {
                     fmgr.makeVariable(
                         conv.getFormulaTypeFromCType(ssa.getType(predName)), predName, ssaIndex);
                 if (elem > 0) {
-                  constraintPart = fmgr.makeNot(fmgr.makeEqual(formulaVar, zero)); // C semantics (x) <=> (x!=0)
+                  constraintPart =
+                      fmgr.makeNot(fmgr.makeEqual(formulaVar, zero)); // C semantics (x) <=> (x!=0)
                 } else {
                   constraintPart = fmgr.makeEqual(formulaVar, zero);
                 }
@@ -124,10 +127,10 @@ public class ExternModelLoader {
           }
           externalModel = bfmgr.and(externalModel, constraint);
         }
-      }// end of while
+      } // end of while
       return externalModel;
     } catch (IOException e) {
-      throw new RuntimeException(e); //TODO: find the proper exception
+      throw new RuntimeException(e); // TODO: find the proper exception
     }
   }
 }

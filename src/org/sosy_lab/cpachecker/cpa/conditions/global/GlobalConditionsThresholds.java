@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.conditions.global;
 
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -19,66 +18,93 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.log.LogManager;
 
-@Options(prefix="cpa.conditions.global")
+@Options(prefix = "cpa.conditions.global")
 class GlobalConditionsThresholds {
 
-  @Option(secure=true, name="reached.size",
-      description="Limit for size of reached set (-1 for infinite)")
-  @IntegerOption(min=-1)
+  @Option(
+      secure = true,
+      name = "reached.size",
+      description = "Limit for size of reached set (-1 for infinite)")
+  @IntegerOption(min = -1)
   private int reachedSetSize = -1;
 
-
-  @Option(secure=true, name="time.wall",
-      description="Limit for wall time used by CPAchecker (use milliseconds or specify a unit; -1 for infinite)")
-  @TimeSpanOption(codeUnit=TimeUnit.MILLISECONDS,
-      defaultUserUnit=TimeUnit.MILLISECONDS,
-      min=-1)
+  @Option(
+      secure = true,
+      name = "time.wall",
+      description =
+          "Limit for wall time used by CPAchecker (use milliseconds or specify a unit; -1 for"
+              + " infinite)")
+  @TimeSpanOption(
+      codeUnit = TimeUnit.MILLISECONDS,
+      defaultUserUnit = TimeUnit.MILLISECONDS,
+      min = -1)
   private long wallTime = -1;
 
   private long wallEndTime; // when to end analysis (according to wall time limit)
 
-  @Option(secure=true, name="time.wall.hardlimit",
-      description="Hard limit for wall time used by CPAchecker (use milliseconds or specify a unit; -1 for infinite)" +
-                  "\nWhen using adjustable conditions, analysis will end after this threshold")
-  @TimeSpanOption(codeUnit=TimeUnit.MILLISECONDS,
-      defaultUserUnit=TimeUnit.MILLISECONDS,
-      min=-1)
+  @Option(
+      secure = true,
+      name = "time.wall.hardlimit",
+      description =
+          "Hard limit for wall time used by CPAchecker (use milliseconds or specify a unit; -1 for"
+              + " infinite)\n"
+              + "When using adjustable conditions, analysis will end after this threshold")
+  @TimeSpanOption(
+      codeUnit = TimeUnit.MILLISECONDS,
+      defaultUserUnit = TimeUnit.MILLISECONDS,
+      min = -1)
   private long wallTimeHardLimit = -1;
 
   private long wallEndTimeHardLimit;
 
-  @Option(secure=true, name="time.cpu",
-      description="Limit for cpu time used by CPAchecker (use milliseconds or specify a unit; -1 for infinite)")
-  @TimeSpanOption(codeUnit=TimeUnit.MILLISECONDS,
-      defaultUserUnit=TimeUnit.MILLISECONDS,
-      min=-1)
+  @Option(
+      secure = true,
+      name = "time.cpu",
+      description =
+          "Limit for cpu time used by CPAchecker (use milliseconds or specify a unit; -1 for"
+              + " infinite)")
+  @TimeSpanOption(
+      codeUnit = TimeUnit.MILLISECONDS,
+      defaultUserUnit = TimeUnit.MILLISECONDS,
+      min = -1)
   private long cpuTime = -1;
 
-  private long cpuEndTime;  // when to end analysis (according to cpu time limit)
+  private long cpuEndTime; // when to end analysis (according to cpu time limit)
 
-  @Option(secure=true, name="time.cpu.hardlimit",
-      description="Hard limit for cpu time used by CPAchecker (use milliseconds or specify a unit; -1 for infinite)" +
-          "\nWhen using adjustable conditions, analysis will end after this threshold")
-  @TimeSpanOption(codeUnit=TimeUnit.MILLISECONDS,
-      defaultUserUnit=TimeUnit.MILLISECONDS,
-      min=-1)
+  @Option(
+      secure = true,
+      name = "time.cpu.hardlimit",
+      description =
+          "Hard limit for cpu time used by CPAchecker (use milliseconds or specify a unit; -1 for"
+              + " infinite)\n"
+              + "When using adjustable conditions, analysis will end after this threshold")
+  @TimeSpanOption(
+      codeUnit = TimeUnit.MILLISECONDS,
+      defaultUserUnit = TimeUnit.MILLISECONDS,
+      min = -1)
   private long cpuTimeHardLimit = -1;
 
-
-  @Option(secure=true, name="memory.heap",
-      description="Limit for Java heap memory used by CPAchecker (in MB, not MiB!; -1 for infinite)")
-  @IntegerOption(min=-1)
+  @Option(
+      secure = true,
+      name = "memory.heap",
+      description =
+          "Limit for Java heap memory used by CPAchecker (in MB, not MiB!; -1 for infinite)")
+  @IntegerOption(min = -1)
   private long heapMemory = -1;
 
-  @Option(secure=true, name="memory.process",
-      description="Limit for process memory used by CPAchecker (in MB, not MiB!; -1 for infinite)")
-  @IntegerOption(min=-1)
+  @Option(
+      secure = true,
+      name = "memory.process",
+      description =
+          "Limit for process memory used by CPAchecker (in MB, not MiB!; -1 for infinite)")
+  @IntegerOption(min = -1)
   private long processMemory = -1;
 
   private final LogManager logger;
   private String humanReadableString;
 
-  GlobalConditionsThresholds(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
+  GlobalConditionsThresholds(Configuration config, LogManager pLogger)
+      throws InvalidConfigurationException {
     config.inject(this);
     logger = pLogger;
 
@@ -113,7 +139,7 @@ class GlobalConditionsThresholds {
 
     if (wallTime >= 0) {
       wallEndTime = System.currentTimeMillis() + wallTime;
-      wallEndTime = Math.min(wallEndTime,  wallEndTimeHardLimit);
+      wallEndTime = Math.min(wallEndTime, wallEndTimeHardLimit);
       changed = true;
     }
 
@@ -154,22 +180,22 @@ class GlobalConditionsThresholds {
     }
     if (wallTime >= 0) {
       sb.append("timeout (walltime): ");
-      sb.append(wallTime/1000);
+      sb.append(wallTime / 1000);
       sb.append(" s");
       if (wallTimeHardLimit >= 0) {
         sb.append(" (up to ");
-        sb.append(wallTimeHardLimit/1000);
+        sb.append(wallTimeHardLimit / 1000);
         sb.append(" s)");
       }
       sb.append("; ");
     }
     if (cpuTime >= 0) {
       sb.append("timeout (cputime): ");
-      sb.append(cpuTime/1000);
+      sb.append(cpuTime / 1000);
       sb.append(" s; ");
       if (cpuTimeHardLimit >= 0) {
         sb.append(" (up to ");
-        sb.append(cpuTimeHardLimit/1000);
+        sb.append(cpuTimeHardLimit / 1000);
         sb.append(" s)");
       }
     }
@@ -184,11 +210,10 @@ class GlobalConditionsThresholds {
       sb.append(" MiB; ");
     }
 
-    sb.setLength(sb.length()-2); // remove trailing "; "
+    sb.setLength(sb.length() - 2); // remove trailing "; "
 
     return sb.toString();
   }
-
 
   int getReachedSetSizeThreshold() {
     return reachedSetSize;
@@ -210,10 +235,8 @@ class GlobalConditionsThresholds {
     return processMemory;
   }
 
-
   @Override
   public String toString() {
     return humanReadableString;
   }
-
 }

@@ -21,9 +21,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 
 public class TerminationUtils {
 
-  private final static String PRIMED_VARIABLE_POSTFIX = "__TERMINATION_PRIMED";
+  private static final String PRIMED_VARIABLE_POSTFIX = "__TERMINATION_PRIMED";
 
-  private final static String DEREFERENCE_POSTFIX = "__TERMINATION_DEREFERENCED";
+  private static final String DEREFERENCE_POSTFIX = "__TERMINATION_DEREFERENCED";
 
   private TerminationUtils() {}
 

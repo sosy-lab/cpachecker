@@ -193,7 +193,7 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
       programEdgesNumber.setNextValue(countProgramEdges(pCfa));
     }
 
-      return slice;
+    return slice;
   }
 
   private int countProgramEdges(CFA pCfa) {
@@ -271,7 +271,7 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
               .map(ActualNode::new)
               .collect(ImmutableSet.toImmutableSet());
     }
-    
+
     private static boolean isFormalNode(CSystemDependenceGraph.Node pNode) {
       return pNode.getType() == SystemDependenceGraph.NodeType.FORMAL_IN
           || pNode.getType() == SystemDependenceGraph.NodeType.FORMAL_OUT;

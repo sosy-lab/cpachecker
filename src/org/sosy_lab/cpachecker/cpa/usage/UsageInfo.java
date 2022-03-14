@@ -201,18 +201,18 @@ public final class UsageInfo implements Comparable<UsageInfo> {
       }
     }
 
-    result = this.core.node.compareTo(pO.core.node);
+    result = core.node.compareTo(pO.core.node);
     if (result != 0) {
       return result;
     }
-    result = this.core.accessType.compareTo(pO.core.accessType);
+    result = core.accessType.compareTo(pO.core.accessType);
     if (result != 0) {
       return result;
     }
     /* We can't use key states for ordering, because the treeSets can't understand,
      * that old refined usage with zero key state is the same as new one
      */
-    if (this.core.id != null && pO.core.id != null) {
+    if (core.id != null && pO.core.id != null) {
       // Identifiers may not be equal here:
       // if (a.b > c.b)
       // FieldIdentifiers are the same (when we add to container),
@@ -234,7 +234,7 @@ public final class UsageInfo implements Comparable<UsageInfo> {
   public UsageInfo expand(LockState expandedState) {
     ImmutableList.Builder<CompatibleState> builder = ImmutableList.builder();
 
-    for (CompatibleState state : this.compatibleStates) {
+    for (CompatibleState state : compatibleStates) {
       if (state instanceof AbstractLockState) {
         builder.add(expandedState);
       } else {

@@ -50,7 +50,7 @@ public final class LockIdentifierWithVariable extends LockIdentifier {
       return result;
     }
     if (pO instanceof LockIdentifierWithVariable) {
-      return this.varName.compareTo(((LockIdentifierWithVariable) pO).varName);
+      return varName.compareTo(((LockIdentifierWithVariable) pO).varName);
     } else {
       return 1;
     }

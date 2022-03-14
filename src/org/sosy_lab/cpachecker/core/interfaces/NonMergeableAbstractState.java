@@ -9,13 +9,10 @@
 package org.sosy_lab.cpachecker.core.interfaces;
 
 /**
- * This is a marker interface that tells other CPAs that this state
- * should not be merged with other states. Other CPAs may or may not reflect
- * this.
+ * This is a marker interface that tells other CPAs that this state should not be merged with other
+ * states. Other CPAs may or may not reflect this.
  *
- * It is primarily used to tell the merge operator of CompositeCPA to not merge
- * an abstract state.
+ * <p>It is primarily used to tell the merge operator of CompositeCPA to not merge an abstract
+ * state.
  */
-public interface NonMergeableAbstractState extends AbstractState {
-
-}
+public interface NonMergeableAbstractState extends AbstractState {}

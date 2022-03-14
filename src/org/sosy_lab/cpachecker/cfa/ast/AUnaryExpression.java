@@ -15,7 +15,7 @@ public abstract class AUnaryExpression extends AbstractExpression {
 
   private static final long serialVersionUID = 8458828004302590886L;
   private final AExpression operand;
-  private final AUnaryOperator  operator;
+  private final AUnaryOperator operator;
 
   protected AUnaryExpression(
       FileLocation pFileLocation,
@@ -56,20 +56,17 @@ public abstract class AUnaryExpression extends AbstractExpression {
       return true;
     }
 
-    if (!(obj instanceof AUnaryExpression)
-        || !super.equals(obj)) {
+    if (!(obj instanceof AUnaryExpression) || !super.equals(obj)) {
       return false;
     }
 
     AUnaryExpression other = (AUnaryExpression) obj;
 
-    return Objects.equals(other.operand, operand)
-            && Objects.equals(other.operator, operator);
+    return Objects.equals(other.operand, operand) && Objects.equals(other.operator, operator);
   }
 
   public interface AUnaryOperator {
     /** Returns the string representation of this operator (e.g. "*", "+"). */
     String getOperator();
   }
-
 }

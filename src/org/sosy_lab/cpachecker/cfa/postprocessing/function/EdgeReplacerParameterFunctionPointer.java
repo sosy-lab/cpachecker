@@ -31,10 +31,9 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 @Options
 public class EdgeReplacerParameterFunctionPointer extends EdgeReplacer {
   @Option(
-    secure = true,
-    name = "analysis.replacedFunctionsWithParameters",
-    description = "Functions with function pointer parameter which will be instrumented"
-  )
+      secure = true,
+      name = "analysis.replacedFunctionsWithParameters",
+      description = "Functions with function pointer parameter which will be instrumented")
   protected Set<String> replacedFunctionsWithParameters = ImmutableSet.of("pthread_create");
 
   public EdgeReplacerParameterFunctionPointer(

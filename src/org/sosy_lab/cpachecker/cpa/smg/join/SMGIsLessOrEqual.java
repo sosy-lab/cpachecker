@@ -63,7 +63,8 @@ public class SMGIsLessOrEqual {
         return true;
       }
 
-      // if smg1 has not allocated the same number of SMGObjects in the heap, it is not equal to smg2
+      // if smg1 has not allocated the same number of SMGObjects in the heap, it is not equal to
+      // smg2
       if (pSMG1.getHeapObjects().size() != pSMG2.getHeapObjects().size()) {
         return false;
       }
@@ -115,7 +116,7 @@ public class SMGIsLessOrEqual {
     Map<String, SMGRegion> globals_in_smg1 = pSMG1.getGlobalObjects();
     Map<String, SMGRegion> globals_in_smg2 = pSMG2.getGlobalObjects();
 
-    //technically, one should look if any SMGHVE exist in additional region in SMG1
+    // technically, one should look if any SMGHVE exist in additional region in SMG1
     if (globals_in_smg1.size() > globals_in_smg2.size()) {
       return false;
     }
@@ -125,8 +126,8 @@ public class SMGIsLessOrEqual {
       SMGObject globalInSMG1 = entry.getValue();
       String globalVar = entry.getKey();
 
-      //technically, one should look if any SMGHVE exist in additional region in SMG1
-      if(!globals_in_smg2.containsKey(globalVar)) {
+      // technically, one should look if any SMGHVE exist in additional region in SMG1
+      if (!globals_in_smg2.containsKey(globalVar)) {
         return false;
       }
 
@@ -150,26 +151,30 @@ public class SMGIsLessOrEqual {
       CLangStackFrame frameInSMG1 = smg1stackIterator.next();
       CLangStackFrame frameInSMG2 = smg2stackIterator.next();
 
-      //check, whether it is the same stack
-      if (!frameInSMG1.getFunctionDeclaration().getOrigName()
+      // check, whether it is the same stack
+      if (!frameInSMG1
+          .getFunctionDeclaration()
+          .getOrigName()
           .equals(frameInSMG2.getFunctionDeclaration().getOrigName())) {
         return false;
       }
 
-      //technically, one should look if any SMGHVE exist in additional region in SMG1
+      // technically, one should look if any SMGHVE exist in additional region in SMG1
       if (frameInSMG1.getAllObjects().size() > frameInSMG2.getAllObjects().size()) {
         return false;
       }
 
       // check, whether they have different return values if present
-      if (!(frameInSMG1.getFunctionDeclaration().getType().getReturnType().getCanonicalType() instanceof CVoidType)
-          && !isLessOrEqualFields(pSMG1, pSMG2, frameInSMG1.getReturnObject(), frameInSMG2.getReturnObject())) {
+      if (!(frameInSMG1.getFunctionDeclaration().getType().getReturnType().getCanonicalType()
+              instanceof CVoidType)
+          && !isLessOrEqualFields(
+              pSMG1, pSMG2, frameInSMG1.getReturnObject(), frameInSMG2.getReturnObject())) {
         return false;
       }
 
       for (String localVar : frameInSMG1.getVariables().keySet()) {
 
-        //technically, one should look if any SMGHVE exist in additional region in SMG1
+        // technically, one should look if any SMGHVE exist in additional region in SMG1
         if (!frameInSMG2.containsVariable(localVar)) {
           return false;
         }
@@ -194,12 +199,12 @@ public class SMGIsLessOrEqual {
 
     for (SMGObject object_in_smg1 : heap_in_smg1) {
 
-      //technically, one should look if any SMGHVE exist in additional region in SMG1
+      // technically, one should look if any SMGHVE exist in additional region in SMG1
       if (!heap_in_smg2.contains(object_in_smg1)) {
         return false;
       }
 
-      //FIXME SMG Objects in heap have to be the same object to be comparable
+      // FIXME SMG Objects in heap have to be the same object to be comparable
       if (!isLessOrEqualFields(pSMG1, pSMG2, object_in_smg1, object_in_smg1)) {
         return false;
       }
@@ -258,7 +263,8 @@ public class SMGIsLessOrEqual {
         long offset1 = ptE1.getOffset();
         long offset2 = ptE2.getOffset();
 
-        //TODO How does one check, if two pointers point to the same region? You would have to recover the stack frame.
+        // TODO How does one check, if two pointers point to the same region? You would have to
+        // recover the stack frame.
         if (!(offset1 == offset2 && label1.equals(label2))) {
           return false;
         }

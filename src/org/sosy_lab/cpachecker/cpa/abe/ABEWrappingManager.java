@@ -39,37 +39,26 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 
-/**
- * Implementation of {@link ABECPA}.
- */
-@Options(prefix="cpa.abe")
+/** Implementation of {@link ABECPA}. */
+@Options(prefix = "cpa.abe")
 public class ABEWrappingManager<A extends ABEAbstractedState<A>, P extends Precision> {
 
-  @Option(secure = true,
-      description = "Where to perform abstraction")
+  @Option(secure = true, description = "Where to perform abstraction")
   private AbstractionLocations abstractionLocations = AbstractionLocations.LOOPHEAD;
 
-  @Option(secure=true, description="Check target states reachability")
+  @Option(secure = true, description = "Check target states reachability")
   private boolean checkTargetStates = true;
 
-  /**
-   * Where an abstraction should be performed.
-   */
+  /** Where an abstraction should be performed. */
   public enum AbstractionLocations {
 
-    /**
-     * At every node.
-     */
+    /** At every node. */
     ALL,
 
-    /**
-     * Only at loop heads (the most sensible choice).
-     */
+    /** Only at loop heads (the most sensible choice). */
     LOOPHEAD,
 
-    /**
-     * Whenever multiple paths are merged.
-     */
+    /** Whenever multiple paths are merged. */
     MERGE
   }
 
@@ -101,8 +90,7 @@ public class ABEWrappingManager<A extends ABEAbstractedState<A>, P extends Preci
   }
 
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
-      ABEState<A> pState,
-      CFAEdge edge) throws CPATransferException, InterruptedException {
+      ABEState<A> pState, CFAEdge edge) throws CPATransferException, InterruptedException {
 
     CFANode node = edge.getSuccessor();
     ABEIntermediateState<A> iOldState;
@@ -120,10 +108,8 @@ public class ABEWrappingManager<A extends ABEAbstractedState<A>, P extends Preci
     }
 
     PathFormula outPath = pfmgr.makeAnd(iOldState.getPathFormula(), edge);
-    ABEIntermediateState<A> out = ABEIntermediateState.of(
-        node,
-        outPath,
-        iOldState.getBackpointerState());
+    ABEIntermediateState<A> out =
+        ABEIntermediateState.of(node, outPath, iOldState.getBackpointerState());
 
     return Collections.singleton(out);
   }
@@ -133,22 +119,14 @@ public class ABEWrappingManager<A extends ABEAbstractedState<A>, P extends Preci
     if (!pState.isAbstract()) {
       return Optional.of(pState);
     }
-    return clientManager.strengthen(
-        pState.asAbstracted(),
-        pPrecision,
-        pOtherStates
-    );
+    return clientManager.strengthen(pState.asAbstracted(), pPrecision, pOtherStates);
   }
 
-  public A getInitialState(
-      CFANode pNode, StateSpacePartition pPartition
-  ) {
+  public A getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return clientManager.getInitialState(pNode, pPartition);
   }
 
-  public P getInitialPrecision(
-      CFANode pNode, StateSpacePartition pPartition
-  ) {
+  public P getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
     return clientManager.getInitialPrecision(pNode, pPartition);
   }
 
@@ -161,16 +139,14 @@ public class ABEWrappingManager<A extends ABEAbstractedState<A>, P extends Preci
               && clientManager.isLessOrEqual(
                   iState1.getBackpointerState(), iState2.getBackpointerState()));
     } else {
-      return clientManager.isLessOrEqual(
-          pState1.asAbstracted(), pState2.asAbstracted()
-      );
+      return clientManager.isLessOrEqual(pState1.asAbstracted(), pState2.asAbstracted());
     }
   }
 
-  public ABEState<A> merge(ABEState<A> state1, ABEState<A> state2)
-      throws InterruptedException {
+  public ABEState<A> merge(ABEState<A> state1, ABEState<A> state2) throws InterruptedException {
 
-    Preconditions.checkState(state1.isAbstract() == state2.isAbstract(),
+    Preconditions.checkState(
+        state1.isAbstract() == state2.isAbstract(),
         "Only states with the same abstraction status should be allowed to merge");
     if (state1.isAbstract()) {
 
@@ -194,12 +170,9 @@ public class ABEWrappingManager<A extends ABEAbstractedState<A>, P extends Preci
       return iState1;
     }
 
-    PathFormula mergedPath = pfmgr.makeOr(iState1.getPathFormula(),
-        iState2.getPathFormula());
-    ABEIntermediateState<A> out = ABEIntermediateState.of(
-        iState1.getNode(),
-        mergedPath,
-        iState2.getBackpointerState());
+    PathFormula mergedPath = pfmgr.makeOr(iState1.getPathFormula(), iState2.getPathFormula());
+    ABEIntermediateState<A> out =
+        ABEIntermediateState.of(iState1.getNode(), mergedPath, iState2.getBackpointerState());
 
     iState1.setMergedInto(out);
     iState2.setMergedInto(out);
@@ -207,20 +180,15 @@ public class ABEWrappingManager<A extends ABEAbstractedState<A>, P extends Preci
   }
 
   public Optional<PrecisionAdjustmentResult> prec(
-      ABEState<A> pState,
-      P pPrecision,
-      UnmodifiableReachedSet pStates,
-      AbstractState pFullState)
+      ABEState<A> pState, P pPrecision, UnmodifiableReachedSet pStates, AbstractState pFullState)
       throws CPATransferException, InterruptedException {
 
     Preconditions.checkState(!pState.isAbstract());
     ABEIntermediateState<A> iState = pState.asIntermediate();
-    boolean hasTargetState = AbstractStates.asIterable(pFullState).anyMatch(
-        AbstractStates::isTargetState
-    );
+    boolean hasTargetState =
+        AbstractStates.asIterable(pFullState).anyMatch(AbstractStates::isTargetState);
 
-    final boolean shouldPerformAbstraction = shouldPerformAbstraction(
-        iState.getNode(), pFullState);
+    final boolean shouldPerformAbstraction = shouldPerformAbstraction(iState.getNode(), pFullState);
 
     BooleanFormula extraInvariant = extractFormula(pFullState);
 
@@ -232,31 +200,23 @@ public class ABEWrappingManager<A extends ABEAbstractedState<A>, P extends Preci
       return Optional.empty();
     }
     if (shouldPerformAbstraction) {
-      return Optional.of(clientManager.performAbstraction(
-          iState, pPrecision, pStates, pFullState));
+      return Optional.of(clientManager.performAbstraction(iState, pPrecision, pStates, pFullState));
     }
-    return Optional.of(
-        PrecisionAdjustmentResult.create(
-            iState, pPrecision, Action.CONTINUE
-        )
-    );
+    return Optional.of(PrecisionAdjustmentResult.create(iState, pPrecision, Action.CONTINUE));
   }
 
-  private boolean isUnreachable(
-      ABEIntermediateState<A> pIState,
-      BooleanFormula pExtraInvariant)
+  private boolean isUnreachable(ABEIntermediateState<A> pIState, BooleanFormula pExtraInvariant)
       throws CPATransferException, InterruptedException {
 
     BooleanFormula backpointerFormula = pIState.getBackpointerState().instantiate();
-    BooleanFormula constraint = bfmgr.and(
-        backpointerFormula,
-        pIState.getPathFormula().getFormula(),
-        fmgr.instantiate(pExtraInvariant, pIState.getPathFormula().getSsa())
-    );
+    BooleanFormula constraint =
+        bfmgr.and(
+            backpointerFormula,
+            pIState.getPathFormula().getFormula(),
+            fmgr.instantiate(pExtraInvariant, pIState.getPathFormula().getSsa()));
 
     try {
-      return solver.isUnsat(
-          bfmgr.toConjunctionArgs(constraint, true), pIState.getNode());
+      return solver.isUnsat(bfmgr.toConjunctionArgs(constraint, true), pIState.getNode());
     } catch (SolverException e) {
       throw new CPATransferException("Failed solving", e);
     }
@@ -264,12 +224,10 @@ public class ABEWrappingManager<A extends ABEAbstractedState<A>, P extends Preci
 
   /**
    * @param totalState Encloses all other parallel states.
-   * @return Whether to compute the abstraction when creating a new
-   * state associated with <code>node</code>.
+   * @return Whether to compute the abstraction when creating a new state associated with <code>node
+   *     </code>.
    */
-  private boolean shouldPerformAbstraction(
-      CFANode node,
-      AbstractState totalState) {
+  private boolean shouldPerformAbstraction(CFANode node, AbstractState totalState) {
 
     switch (abstractionLocations) {
       case ALL:

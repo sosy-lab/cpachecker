@@ -20,19 +20,17 @@ import org.sosy_lab.cpachecker.cpa.invariants.operators.Operator;
  */
 enum ISIOperator implements Operator<SimpleInterval, BigInteger, SimpleInterval> {
 
-  /**
-   * The addition operator for adding intervals to big integers.
-   */
+  /** The addition operator for adding intervals to big integers. */
   ADD {
 
     /**
-     * Computes the interval of possible results from adding any value of
-     * this interval to the given value <code>pValue</code>.
+     * Computes the interval of possible results from adding any value of this interval to the given
+     * value <code>pValue</code>.
      *
      * @param pFirstOperand the simple interval to add the big integer value to.
      * @param pSecondOperand the value to add to any of the values of the first operand interval.
-     * @return the interval of possible results from adding any value of
-     * the first operand interval to the second operand big integer value.
+     * @return the interval of possible results from adding any value of the first operand interval
+     *     to the second operand big integer value.
      */
     @Override
     public SimpleInterval apply(SimpleInterval pFirstOperand, BigInteger pSecondOperand) {
@@ -50,26 +48,19 @@ enum ISIOperator implements Operator<SimpleInterval, BigInteger, SimpleInterval>
       }
       return IntervalHelper.ofNullableBounds(lowerBound, upperBound);
     }
-
   },
 
-  /**
-   * The multiplication operator for multiplying intervals with big integers.
-   */
+  /** The multiplication operator for multiplying intervals with big integers. */
   MULTIPLY {
 
     /**
-     * Calculates a superset of the possible results obtained by multiplying
-     * any value of the first operand interval with the second operand big
-     * integer value.
+     * Calculates a superset of the possible results obtained by multiplying any value of the first
+     * operand interval with the second operand big integer value.
      *
-     * @param pFirstOperand the simple interval to multiply with the second
-     * operand.
-     * @param pSecondOperand the value to multiply the values of the first
-     * operand interval with.
-     * @return a superset of the possible results obtained by multiplying any
-     * value of the first operand interval with the second operand big
-     * integer value.
+     * @param pFirstOperand the simple interval to multiply with the second operand.
+     * @param pSecondOperand the value to multiply the values of the first operand interval with.
+     * @return a superset of the possible results obtained by multiplying any value of the first
+     *     operand interval with the second operand big integer value.
      */
     @Override
     public SimpleInterval apply(SimpleInterval pFirstOperand, BigInteger pSecondOperand) {
@@ -113,28 +104,23 @@ enum ISIOperator implements Operator<SimpleInterval, BigInteger, SimpleInterval>
       }
       return IntervalHelper.ofNullableBounds(lowerBound, upperBound);
     }
-
   },
 
-  /**
-   * The division operator for dividing intervals by big integers.
-   */
+  /** The division operator for dividing intervals by big integers. */
   DIVIDE {
 
     /**
-     * Calculates a superset of the possible results from dividing any
-     * value of the first operand interval by the second operand big
-     * integer.
+     * Calculates a superset of the possible results from dividing any value of the first operand
+     * interval by the second operand big integer.
      *
-     * This will return <code>null</code> iff the second operand is zero.
+     * <p>This will return <code>null</code> iff the second operand is zero.
      *
-     * @param pFirstOperand the interval of values to divide by the
-     * second operand big integer value.
+     * @param pFirstOperand the interval of values to divide by the second operand big integer
+     *     value.
      * @param pSecondOperand the value to divide the values of this range by.
-     * @return a superset of the possible results from dividing
-     * any value of the first operand interval by the given second
-     * operand big integer or <code>null</code> if
-     * <code>pSecondOperand</code> is zero.
+     * @return a superset of the possible results from dividing any value of the first operand
+     *     interval by the given second operand big integer or <code>null</code> if <code>
+     *     pSecondOperand</code> is zero.
      */
     @Override
     public @Nullable SimpleInterval apply(SimpleInterval pFirstOperand, BigInteger pSecondOperand) {
@@ -167,40 +153,31 @@ enum ISIOperator implements Operator<SimpleInterval, BigInteger, SimpleInterval>
       }
       return IntervalHelper.ofNullableBounds(lowerBound, upperBound);
     }
-
   },
 
-  /**
-   * The modulo operator for computing the remainder of dividing intervals
-   * by big integers.
-   */
+  /** The modulo operator for computing the remainder of dividing intervals by big integers. */
   MODULO {
 
     /**
-     * Computes a superset of the possible values resulting from calculating
-     * for any value <code>a</code> of the first operand interval and the
-     * second operand big integer value <code>pSecondOperand</code> the
-     * operation <code>a%pSecondOperand</code>.
+     * Computes a superset of the possible values resulting from calculating for any value <code>a
+     * </code> of the first operand interval and the second operand big integer value <code>
+     * pSecondOperand</code> the operation <code>a%pSecondOperand</code>.
      *
-     * However, if the second operand (the divisor) is zero, such a superset
-     * cannot be calculated because division by zero is undefined and
-     * therefore the same applies to the modulo operation; in such a case
-     * this function will return <code>null</code>.
+     * <p>However, if the second operand (the divisor) is zero, such a superset cannot be calculated
+     * because division by zero is undefined and therefore the same applies to the modulo operation;
+     * in such a case this function will return <code>null</code>.
      *
-     * Another important fact is that the modulo operation is not fully
-     * standardized. This implementation will round towards zero and the
-     * sign of the result will only depend on the sign of the first operand
-     * interval values, not on the sign of the second operand (the divisor), which means that
-     * only the absolute value of the divisor is used. This is also the usual
-     * behavior in C on modern machines.
+     * <p>Another important fact is that the modulo operation is not fully standardized. This
+     * implementation will round towards zero and the sign of the result will only depend on the
+     * sign of the first operand interval values, not on the sign of the second operand (the
+     * divisor), which means that only the absolute value of the divisor is used. This is also the
+     * usual behavior in C on modern machines.
      *
-     * @param pFirstOperand the interval of values to be divided by the
-     * second operand.
+     * @param pFirstOperand the interval of values to be divided by the second operand.
      * @param pSecondOperand the modulo divisor.
-     * @return a superset of the possible results from calculating the modulo
-     * operation between any value of the first operand interval as numerators
-     * and the second operand big integer value as divisor or
-     * <code>null</code> if the given divisor is zero.
+     * @return a superset of the possible results from calculating the modulo operation between any
+     *     value of the first operand interval as numerators and the second operand big integer
+     *     value as divisor or <code>null</code> if the given divisor is zero.
      */
     @Override
     public SimpleInterval apply(SimpleInterval pFirstOperand, BigInteger pSecondOperand) {
@@ -325,27 +302,20 @@ enum ISIOperator implements Operator<SimpleInterval, BigInteger, SimpleInterval>
       }
       return moduloRange;
     }
-
   },
 
-  /**
-   * The left shift operator for left shifting a simple interval by a big
-   * integer value.
-   */
+  /** The left shift operator for left shifting a simple interval by a big integer value. */
   SHIFT_LEFT {
 
     /**
-     * Computes an interval representing a superset of the possible values of
-     * left-shifting any value contained in the first operand interval by the
-     * second operand big integer value.
+     * Computes an interval representing a superset of the possible values of left-shifting any
+     * value contained in the first operand interval by the second operand big integer value.
      *
-     * @param pFirstOperand the interval to shift by the second operand big
-     * integer value.
-     * @param pSecondOperand the second interval big integer value to shift
-     * the values of the first operand interval by.
-     * @return an interval representing a superset of the possible values of
-     * left-shifting any value contained in the first operand interval by the
-     * second operand big integer value.
+     * @param pFirstOperand the interval to shift by the second operand big integer value.
+     * @param pSecondOperand the second interval big integer value to shift the values of the first
+     *     operand interval by.
+     * @return an interval representing a superset of the possible values of left-shifting any value
+     *     contained in the first operand interval by the second operand big integer value.
      */
     @Override
     public SimpleInterval apply(SimpleInterval pFirstOperand, BigInteger pSecondOperand) {
@@ -385,27 +355,22 @@ enum ISIOperator implements Operator<SimpleInterval, BigInteger, SimpleInterval>
        */
       return SimpleInterval.infinite();
     }
-
   },
 
-  /**
-   * The right shift operator for right shifting a simple interval by a big
-   * integer value.
-   */
+  /** The right shift operator for right shifting a simple interval by a big integer value. */
   SHIFT_RIGHT {
 
     /**
-     * Computes an interval representing a superset of the possible values
-     * of right-shifting any value contained in the first operand simple
-     * interval by the second operand big integer value.
+     * Computes an interval representing a superset of the possible values of right-shifting any
+     * value contained in the first operand simple interval by the second operand big integer value.
      *
-     * @param pFirstOperand the simple interval to be shifted by the second
-     * operand big integer value.
-     * @param pSecondOperand the value to shift the values of the first
-     * operand big integer value by.
-     * @return an interval representing a superset of the possible values
-     * of right-shifting any value contained in the first operand simple
-     * interval by the second operand big integer given value.
+     * @param pFirstOperand the simple interval to be shifted by the second operand big integer
+     *     value.
+     * @param pSecondOperand the value to shift the values of the first operand big integer value
+     *     by.
+     * @return an interval representing a superset of the possible values of right-shifting any
+     *     value contained in the first operand simple interval by the second operand big integer
+     *     given value.
      */
     @Override
     public SimpleInterval apply(SimpleInterval pFirstOperand, BigInteger pSecondOperand) {
@@ -451,7 +416,6 @@ enum ISIOperator implements Operator<SimpleInterval, BigInteger, SimpleInterval>
       }
       return SimpleInterval.singleton(BigInteger.ZERO);
     }
-
   };
 
   /**
@@ -459,10 +423,8 @@ enum ISIOperator implements Operator<SimpleInterval, BigInteger, SimpleInterval>
    *
    * @param pFirstOperand the simple interval operand to apply the operator to.
    * @param pSecondOperand the big integer operand to apply the operator to.
-   * @return the simple interval resulting from applying the first operand to the
-   * second operand.
+   * @return the simple interval resulting from applying the first operand to the second operand.
    */
   @Override
   public abstract SimpleInterval apply(SimpleInterval pFirstOperand, BigInteger pSecondOperand);
-
 }

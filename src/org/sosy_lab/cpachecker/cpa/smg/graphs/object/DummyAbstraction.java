@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object;
 
-
 public class DummyAbstraction extends SMGObject implements SMGAbstractObject {
 
   public DummyAbstraction(SMGObject pPrototype) {

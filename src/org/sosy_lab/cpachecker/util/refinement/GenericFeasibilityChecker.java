@@ -24,9 +24,7 @@ import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-/**
- * Generic feasibility checker
- */
+/** Generic feasibility checker */
 public class GenericFeasibilityChecker<S extends ForgetfulState<?>>
     implements FeasibilityChecker<S> {
 
@@ -36,21 +34,21 @@ public class GenericFeasibilityChecker<S extends ForgetfulState<?>>
   private final S initialState;
   private final VariableTrackingPrecision precision;
 
-
   public GenericFeasibilityChecker(
       final StrongestPostOperator<S> pStrongestPostOp,
       final S pInitialState,
       final Class<? extends ConfigurableProgramAnalysis> pCpaToRefine,
       final LogManager pLogger,
       final Configuration pConfig,
-      final CFA pCfa
-  ) throws InvalidConfigurationException {
+      final CFA pCfa)
+      throws InvalidConfigurationException {
 
     strongestPostOp = pStrongestPostOp;
     initialState = pInitialState;
     logger = pLogger;
-    precision = VariableTrackingPrecision.createStaticPrecision(
-        pConfig, pCfa.getVarClassification(), pCpaToRefine);
+    precision =
+        VariableTrackingPrecision.createStaticPrecision(
+            pConfig, pCfa.getVarClassification(), pCpaToRefine);
   }
 
   @Override
@@ -59,19 +57,15 @@ public class GenericFeasibilityChecker<S extends ForgetfulState<?>>
   }
 
   @Override
-  public boolean isFeasible(
-      final ARGPath pPath,
-      final S pStartingPoint
-  ) throws CPAException, InterruptedException {
+  public boolean isFeasible(final ARGPath pPath, final S pStartingPoint)
+      throws CPAException, InterruptedException {
     return isFeasible(pPath, pStartingPoint, new ArrayDeque<S>());
   }
 
   @Override
   public final boolean isFeasible(
-      final ARGPath pPath,
-      final S pStartingPoint,
-      final Deque<S> pCallstack
-  ) throws CPAException, InterruptedException {
+      final ARGPath pPath, final S pStartingPoint, final Deque<S> pCallstack)
+      throws CPAException, InterruptedException {
 
     try {
       S next = pStartingPoint;
@@ -82,8 +76,8 @@ public class GenericFeasibilityChecker<S extends ForgetfulState<?>>
         Optional<S> maybeNext = strongestPostOp.step(next, edge, precision, pCallstack, pPath);
 
         if (!maybeNext.isPresent()) {
-          logger.log(Level.FINE, "found path to be infeasible: ", edge,
-              " did not yield a successor");
+          logger.log(
+              Level.FINE, "found path to be infeasible: ", edge, " did not yield a successor");
           return false;
         } else {
           next = maybeNext.orElseThrow();
@@ -94,7 +88,8 @@ public class GenericFeasibilityChecker<S extends ForgetfulState<?>>
 
       return true;
     } catch (CPATransferException e) {
-      throw new CPAException("Computation of successor failed for checking path: " + e.getMessage(), e);
+      throw new CPAException(
+          "Computation of successor failed for checking path: " + e.getMessage(), e);
     }
   }
 }

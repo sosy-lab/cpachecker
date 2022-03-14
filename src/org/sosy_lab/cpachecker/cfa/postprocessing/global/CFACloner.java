@@ -37,9 +37,8 @@ public class CFACloner {
   @Option(secure = true, description = "how often do we clone a function?")
   private int numberOfCopies = 5;
 
-  public CFACloner(final CFA pCfa, Configuration pConfig)
-      throws InvalidConfigurationException {
-    this.cfa = pCfa;
+  public CFACloner(final CFA pCfa, Configuration pConfig) throws InvalidConfigurationException {
+    cfa = pCfa;
     pConfig.inject(this);
   }
 
@@ -52,9 +51,10 @@ public class CFACloner {
     for (final String function : cfa.getAllFunctionNames()) {
       if (cfa instanceof MutableCFA) {
         // it is more efficient to directly copy the nodes
-        nodes.putAll(function, ((MutableCFA)cfa).getFunctionNodes(function));
+        nodes.putAll(function, ((MutableCFA) cfa).getFunctionNodes(function));
       } else {
-        nodes.putAll(function, CFATraversal.dfs().collectNodesReachableFrom(cfa.getFunctionHead(function)));
+        nodes.putAll(
+            function, CFATraversal.dfs().collectNodesReachableFrom(cfa.getFunctionHead(function)));
       }
     }
 
@@ -68,12 +68,14 @@ public class CFACloner {
         final String newFunctionName = getFunctionName(functionName, i);
 
         Preconditions.checkArgument(!cfa.getAllFunctionNames().contains(newFunctionName));
-        final Pair<FunctionEntryNode, Collection<CFANode>> newFunction = FunctionCloner.cloneCFA(entryNode, newFunctionName);
+        final Pair<FunctionEntryNode, Collection<CFANode>> newFunction =
+            FunctionCloner.cloneCFA(entryNode, newFunctionName);
         functions.put(newFunctionName, newFunction.getFirst());
         nodes.putAll(newFunctionName, newFunction.getSecond());
 
         // get functioncalls from the CFA
-        Preconditions.checkArgument(functions.containsKey(newFunctionName), "function %s not available", newFunctionName);
+        Preconditions.checkArgument(
+            functions.containsKey(newFunctionName), "function %s not available", newFunctionName);
         final FunctionCallCollector visitor = new FunctionCallCollector();
         CFATraversal.dfs().traverseOnce(functions.get(newFunctionName), visitor);
         final Collection<AStatementEdge> functionCalls = visitor.getFunctionCalls();

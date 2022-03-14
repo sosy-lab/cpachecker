@@ -97,18 +97,15 @@ public class KInductionInvariantChecker {
             false);
   }
 
-  /**
-   * Determines if the program could be successfully proven to be safe with k-induction.
-   */
+  /** Determines if the program could be successfully proven to be safe with k-induction. */
   public boolean isProgramSafe() {
     checkState(isComputationFinished);
     return invGen.isProgramSafe();
   }
 
   /**
-   * This method starts the inductiveness check.
-   * Candidates that are proved to be invariant can be retrieved by calling
-   * {@link CandidateGenerator#getConfirmedCandidates()}.
+   * This method starts the inductiveness check. Candidates that are proved to be invariant can be
+   * retrieved by calling {@link CandidateGenerator#getConfirmedCandidates()}.
    */
   public void checkCandidates() throws CPAException, InterruptedException {
     checkState(!isComputationFinished);

@@ -7,6 +7,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * This package contains different implementations of <code>Value</code> and classes used for their creation.
+ * This package contains different implementations of <code>Value</code> and classes used for their
+ * creation.
  */
 package org.sosy_lab.cpachecker.cpa.value.type;

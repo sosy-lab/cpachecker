@@ -31,8 +31,8 @@ public class InfeasiblePrefix {
 
   private final List<BooleanFormula> pathFormulas;
 
-  private InfeasiblePrefix(final ARGPath pInfeasiblePrefix,
-      final List<Set<String>> pSimpleInterpolantSequence) {
+  private InfeasiblePrefix(
+      final ARGPath pInfeasiblePrefix, final List<Set<String>> pSimpleInterpolantSequence) {
 
     prefix = pInfeasiblePrefix;
     interpolantSequence = pSimpleInterpolantSequence;
@@ -40,7 +40,8 @@ public class InfeasiblePrefix {
     pathFormulas = null;
   }
 
-  private InfeasiblePrefix(final ARGPath pInfeasiblePrefix,
+  private InfeasiblePrefix(
+      final ARGPath pInfeasiblePrefix,
       final List<Set<String>> pSimpleInterpolantSequence,
       final List<BooleanFormula> pPathFormulas) {
 
@@ -50,26 +51,26 @@ public class InfeasiblePrefix {
     pathFormulas = pPathFormulas;
   }
 
-  public static InfeasiblePrefix buildForPredicateDomain(final RawInfeasiblePrefix pRawInfeasiblePrefix,
-      final FormulaManagerView pFmgr) {
+  public static InfeasiblePrefix buildForPredicateDomain(
+      final RawInfeasiblePrefix pRawInfeasiblePrefix, final FormulaManagerView pFmgr) {
 
     List<Set<String>> simpleInterpolantSequence = new ArrayList<>();
     for (BooleanFormula itp : pRawInfeasiblePrefix.interpolantSequence) {
       simpleInterpolantSequence.add(pFmgr.extractVariableNames(pFmgr.uninstantiate(itp)));
     }
 
-    return new InfeasiblePrefix(pRawInfeasiblePrefix.prefix,
-        simpleInterpolantSequence,
-        pRawInfeasiblePrefix.pathFormulas);
+    return new InfeasiblePrefix(
+        pRawInfeasiblePrefix.prefix, simpleInterpolantSequence, pRawInfeasiblePrefix.pathFormulas);
   }
 
-  public static InfeasiblePrefix buildForValueDomain(final ARGPath pInfeasiblePrefix,
-      final List<ValueAnalysisInterpolant> pInterpolantSequence) {
+  public static InfeasiblePrefix buildForValueDomain(
+      final ARGPath pInfeasiblePrefix, final List<ValueAnalysisInterpolant> pInterpolantSequence) {
 
     List<Set<String>> simpleInterpolantSequence = new ArrayList<>();
     for (ValueAnalysisInterpolant itp : pInterpolantSequence) {
       simpleInterpolantSequence.add(
-          transformedImmutableSetCopy(itp.getMemoryLocations(), MemoryLocation::getExtendedQualifiedName));
+          transformedImmutableSetCopy(
+              itp.getMemoryLocations(), MemoryLocation::getExtendedQualifiedName));
     }
 
     return new InfeasiblePrefix(pInfeasiblePrefix, simpleInterpolantSequence);
@@ -87,7 +88,7 @@ public class InfeasiblePrefix {
     int depth = 0;
 
     for (Set<String> itp : interpolantSequence) {
-      if(!itp.isEmpty()) {
+      if (!itp.isEmpty()) {
         return depth;
       }
 
@@ -104,7 +105,8 @@ public class InfeasiblePrefix {
     }
 
     // for the value analysis, this must never be reached
-    throw new AssertionError("There must be at least one non-trivial interpolant along the prefix.");
+    throw new AssertionError(
+        "There must be at least one non-trivial interpolant along the prefix.");
   }
 
   public ARGPath getPath() {
@@ -121,13 +123,14 @@ public class InfeasiblePrefix {
     private final List<BooleanFormula> interpolantSequence;
     private final List<BooleanFormula> pathFormulas;
 
-    public RawInfeasiblePrefix(final ARGPath pInfeasiblePrefix,
+    public RawInfeasiblePrefix(
+        final ARGPath pInfeasiblePrefix,
         final List<BooleanFormula> pInterpolantSequence,
         final List<BooleanFormula> pPathFormulas) {
 
-      this.prefix = pInfeasiblePrefix;
-      this.interpolantSequence = pInterpolantSequence;
-      this.pathFormulas = pPathFormulas;
+      prefix = pInfeasiblePrefix;
+      interpolantSequence = pInterpolantSequence;
+      pathFormulas = pPathFormulas;
     }
   }
 }

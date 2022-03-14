@@ -57,7 +57,7 @@ class TraceAbstractionState extends AbstractSingleWrapperState implements Grapha
   boolean isLessOrEqual(TraceAbstractionState pOther) {
     // TODO: For now the states are only checked for equality.
     // 'activePredicates' might need to be additionally checked for a lesser-relation.
-    return this.equals(pOther);
+    return equals(pOther);
   }
 
   @Override
@@ -99,9 +99,7 @@ class TraceAbstractionState extends AbstractSingleWrapperState implements Grapha
     }
 
     sb.append(
-        activePredicates
-            .values()
-            .stream()
+        activePredicates.values().stream()
             .map(indexedPred -> indexedPred.getPredicate().getSymbolicAtom().toString())
             .collect(Collectors.joining("\n")));
     return sb.toString();

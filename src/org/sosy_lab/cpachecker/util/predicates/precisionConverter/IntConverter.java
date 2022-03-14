@@ -31,9 +31,9 @@ import org.sosy_lab.java_smt.api.FormulaType;
 
 public class IntConverter extends Converter {
 
-  private final Map<String,String> unaryOps; // input-type == output-type
-  private final Map<String,String> binOps; // type is Bool
-  private final Map<String,String> arithmeticOps; // type is Int
+  private final Map<String, String> unaryOps; // input-type == output-type
+  private final Map<String, String> binOps; // type is Bool
+  private final Map<String, String> arithmeticOps; // type is Int
   private final Set<String> ignorableFunctions = new HashSet<>();
 
   public IntConverter(CFA pCfa, LogManager pLogger) {
@@ -62,14 +62,15 @@ public class IntConverter extends Converter {
     arithmeticOps.put("bvsub", "-");
 
     // TODO encode as UFs?
-    arithmeticOps.put("bvmul", "Integer__*_"); // TODO direct handling of plain numeral multiplication
+    arithmeticOps.put(
+        "bvmul", "Integer__*_"); // TODO direct handling of plain numeral multiplication
     arithmeticOps.put("bvsdiv", "Integer__/_");
     arithmeticOps.put("bvudiv", "Integer__/_");
     arithmeticOps.put("bvsrem", "Integer__%_");
     arithmeticOps.put("bvurem", "Integer__%_");
-//    arithmeticOps.put("Rational__*_", Pair.of("bvmul", "bvmul"));
-//    arithmeticOps.put("Rational__/_", Pair.of("bvsdiv", "bvudiv"));
-//    arithmeticOps.put("Rational__%_", Pair.of("bvsrem)", "bvurem"));
+    //    arithmeticOps.put("Rational__*_", Pair.of("bvmul", "bvmul"));
+    //    arithmeticOps.put("Rational__/_", Pair.of("bvsdiv", "bvudiv"));
+    //    arithmeticOps.put("Rational__%_", Pair.of("bvsrem)", "bvurem"));
     arithmeticOps.put("bvand", "_&_");
     arithmeticOps.put("bvor", "_!!_");
     arithmeticOps.put("bvxor", "_^_");
@@ -85,9 +86,10 @@ public class IntConverter extends Converter {
     return symbol;
   }
 
-  /** returns the type of a variable as (N,{}),
-   * and the type of a uninterpreted function as (N,{N1,N2,...}),
-   * where N is the return-type and {N1,N2,...} are the parameter-types. */
+  /**
+   * returns the type of a variable as (N,{}), and the type of a uninterpreted function as
+   * (N,{N1,N2,...}), where N is the return-type and {N1,N2,...} are the parameter-types.
+   */
   private Type<FormulaType<?>> getType(String symbol) throws UnknownFormulaSymbolException {
     symbol = unescapeSymbol(symbol);
     return symbolEncoding.getType(symbol);
@@ -132,27 +134,29 @@ public class IntConverter extends Converter {
       retType = t.getReturnType();
     }
 
-    return format("%s (%s) %s",
-        symbol, Joiner.on(" ").join(lst), getSMTType(retType));
+    return format("%s (%s) %s", symbol, Joiner.on(" ").join(lst), getSMTType(retType));
   }
 
   @Override
-  public String convertFunctionDefinition(String symbol,
-      Type<String> type, @Nullable Pair<String, Type<FormulaType<?>>> initializerTerm)
-          throws UnknownFormulaSymbolException {
+  public String convertFunctionDefinition(
+      String symbol,
+      Type<String> type,
+      @Nullable Pair<String, Type<FormulaType<?>>> initializerTerm)
+      throws UnknownFormulaSymbolException {
     assert !symbolEncoding.containsSymbol(symbol) : "function re-defined";
     assert type.getParameterTypes().isEmpty() : "tmp-function with complex type";
     symbolEncoding.put(symbol, checkNotNull(initializerTerm.getSecond(), initializerTerm));
-    return format("%s (%s) %s %s",
-        symbol, Joiner.on(' ').join(type.getParameterTypes()),
-        getSMTType(getType(symbol).getReturnType()), initializerTerm.getFirst());
+    return format(
+        "%s (%s) %s %s",
+        symbol,
+        Joiner.on(' ').join(type.getParameterTypes()),
+        getSMTType(getType(symbol).getReturnType()),
+        initializerTerm.getFirst());
   }
 
   @Override
   public Pair<String, Type<FormulaType<?>>> convertNumeral(String num) {
-    return Pair.of(
-        num,
-        new Type<FormulaType<?>>(FormulaType.IntegerType));
+    return Pair.of(num, new Type<FormulaType<?>>(FormulaType.IntegerType));
   }
 
   @Override
@@ -178,11 +182,13 @@ public class IntConverter extends Converter {
       assert op.getSecond() == null : "type of EXTRACT/EXTEND should be unknown.";
       return Iterables.getOnlyElement(terms);
 
-    } else if (terms.size() == 2 && op.getFirst().equals("_")
+    } else if (terms.size() == 2
+        && op.getFirst().equals("_")
         && terms.get(0).getFirst().startsWith("bv")) {
       // we convert "(_ bvN L)" into "N" and ignore the bit-length L.
       assert op.getSecond() == null : "type of BV-NUMBER should be unknown.";
-      return Pair.of(terms.get(0).getFirst().substring(2), new Type<FormulaType<?>>(FormulaType.IntegerType));
+      return Pair.of(
+          terms.get(0).getFirst().substring(2), new Type<FormulaType<?>>(FormulaType.IntegerType));
 
     } else if (terms.size() == 1 && unaryOps.containsKey(op.getFirst())) {
       return Pair.of(
@@ -193,7 +199,8 @@ public class IntConverter extends Converter {
           Iterables.getOnlyElement(terms).getSecond());
 
     } else if (terms.size() == 1 && ignorableFunctions.contains(op.getFirst())) {
-      // ignore and remove ignorable functions, e.g. casts from INT to REAL, we do not need them in BV-theory
+      // ignore and remove ignorable functions, e.g. casts from INT to REAL, we do not need them in
+      // BV-theory
       return Iterables.getOnlyElement(terms);
 
     } else if (terms.size() == 2
@@ -209,11 +216,7 @@ public class IntConverter extends Converter {
         operator = arithmeticOps.get(op.getFirst());
         type = new Type<>(FormulaType.IntegerType);
       }
-      return Pair.of(format("(%s %s %s)",
-          operator,
-          e1.getFirst(),
-          e2.getFirst()),
-          type);
+      return Pair.of(format("(%s %s %s)", operator, e1.getFirst(), e2.getFirst()), type);
 
     } else if (terms.size() == 3 && "ite".equals(op.getFirst())) {
       Pair<String, Type<FormulaType<?>>> cond = terms.get(0);
@@ -225,18 +228,15 @@ public class IntConverter extends Converter {
       } else {
         type = FormulaType.IntegerType;
       }
-      return Pair.of(format("(ite %s %s %s)",
-          cond.getFirst(),
-          eIf.getFirst(),
-          eElse.getFirst()),
+      return Pair.of(
+          format("(ite %s %s %s)", cond.getFirst(), eIf.getFirst(), eElse.getFirst()),
           new Type<FormulaType<?>>(type));
 
     } else if (binBooleanOps.contains(op.getFirst())) {
       return Pair.of(
           format(
               "(%s %s)",
-              op.getFirst(),
-              Joiner.on(' ').join(Lists.transform(terms, Pair::getFirst))),
+              op.getFirst(), Joiner.on(' ').join(Lists.transform(terms, Pair::getFirst))),
           new Type<FormulaType<?>>(FormulaType.BooleanType));
 
     } else if (symbolEncoding.containsSymbol(op.getFirst())) {
@@ -246,10 +246,7 @@ public class IntConverter extends Converter {
       for (Pair<String, Type<FormulaType<?>>> term : terms) {
         params.add(term.getFirst());
       }
-      return Pair.of(
-          format("(%s %s)",
-              op.getFirst(), Joiner.on(' ').join(params)),
-          op.getSecond());
+      return Pair.of(format("(%s %s)", op.getFirst(), Joiner.on(' ').join(params)), op.getSecond());
 
     } else { // UF
       if (!"_".equals(op.getFirst())) {
@@ -258,8 +255,7 @@ public class IntConverter extends Converter {
       return Pair.of(
           format(
               "(%s %s)",
-              op.getFirst(),
-              Joiner.on(' ').join(Lists.transform(terms, Pair::getFirst))),
+              op.getFirst(), Joiner.on(' ').join(Lists.transform(terms, Pair::getFirst))),
           op.getSecond());
     }
   }

@@ -22,23 +22,22 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 
 @RunWith(Parameterized.class)
 @SuppressFBWarnings(
-  value = "NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR",
-  justification = "Fields are filled by parameterization of JUnit"
-)
+    value = "NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR",
+    justification = "Fields are filled by parameterization of JUnit")
 public class MachineModelTest {
 
-  @Parameters(name="{4}: {0}")
+  @Parameters(name = "{4}: {0}")
   public static Object[][] machineModels() {
     Object[][] types = {
-        // type          // size in bits // min value // max value
-        {CNumericTypes.BOOL,          8,           0L,          1L},
-        {CNumericTypes.CHAR,          8,        -128L,        127L},
-        {CNumericTypes.SIGNED_CHAR,   8,        -128L,        127L},
-        {CNumericTypes.UNSIGNED_CHAR, 8,           0L,        255L},
-        {CNumericTypes.SHORT_INT,    16,      -32768L,      32767L},
-        {CNumericTypes.INT,          32, -2147483648L, 2147483647L},
-        {CNumericTypes.SIGNED_INT,   32, -2147483648L, 2147483647L},
-        {CNumericTypes.UNSIGNED_INT, 32,           0L, 4294967295L},
+      // type          // size in bits // min value // max value
+      {CNumericTypes.BOOL, 8, 0L, 1L},
+      {CNumericTypes.CHAR, 8, -128L, 127L},
+      {CNumericTypes.SIGNED_CHAR, 8, -128L, 127L},
+      {CNumericTypes.UNSIGNED_CHAR, 8, 0L, 255L},
+      {CNumericTypes.SHORT_INT, 16, -32768L, 32767L},
+      {CNumericTypes.INT, 32, -2147483648L, 2147483647L},
+      {CNumericTypes.SIGNED_INT, 32, -2147483648L, 2147483647L},
+      {CNumericTypes.UNSIGNED_INT, 32, 0L, 4294967295L},
     };
 
     // Create a copy of types for each MachineModel and append the MachineModel instance in each row

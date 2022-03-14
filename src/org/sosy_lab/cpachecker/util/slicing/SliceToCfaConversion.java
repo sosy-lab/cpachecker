@@ -310,7 +310,8 @@ final class SliceToCfaConversion {
           relevantFunctionType,
           pFunctionDeclaration.getName(),
           pFunctionDeclaration.getOrigName(),
-          relevantParameters);
+          relevantParameters,
+          pFunctionDeclaration.getAttributes());
     }
   }
 
@@ -420,7 +421,7 @@ final class SliceToCfaConversion {
           }
 
         } else { // parameter not relevant
-          
+
           assert !slice.isRelevantDef(edge, parameterMemLoc)
               : "Argument is relevant but corresponding parameter is not";
         }

@@ -22,7 +22,8 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-public class ValueRequirementsTranslator extends CartesianRequirementsTranslator<ValueAnalysisState> {
+public class ValueRequirementsTranslator
+    extends CartesianRequirementsTranslator<ValueAnalysisState> {
 
   public ValueRequirementsTranslator(final LogManager pLog) {
     super(ValueAnalysisState.class, pLog);

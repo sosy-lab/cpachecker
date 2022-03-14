@@ -45,9 +45,9 @@ public class TraceAbstractionRefinementStrategy extends PredicateAbstractionRefi
   @Option(
       secure = true,
       description =
-          "The max amount of refinements for the trace abstraction algorithm. "
-              + "Setting it to 0 leads to an analysis of the ARG without executing any refinements. "
-              + "This is used for debugging purposes.")
+          "The max amount of refinements for the trace abstraction algorithm. Setting it to 0 leads"
+              + " to an analysis of the ARG without executing any refinements. This is used for"
+              + " debugging purposes.")
   private int maxRefinementIterations = -1;
 
   private int curRefinementIteration = 0;
@@ -162,9 +162,7 @@ public class TraceAbstractionRefinementStrategy extends PredicateAbstractionRefi
         Level.INFO,
         "Refinement root: %d (Parents: %s)",
         refinementRoot.getStateId(),
-        refinementRoot
-            .getParents()
-            .stream()
+        refinementRoot.getParents().stream()
             .map(ARGState::getStateId)
             .collect(ImmutableList.toImmutableList()));
     return refinementRoot;

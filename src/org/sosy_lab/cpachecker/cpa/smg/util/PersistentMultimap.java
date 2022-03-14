@@ -104,7 +104,7 @@ public class PersistentMultimap<K, V> {
   @Override
   public boolean equals(Object o) {
     return o instanceof PersistentMultimap
-        && delegate.equals(((PersistentMultimap<?,?>)o).delegate);
+        && delegate.equals(((PersistentMultimap<?, ?>) o).delegate);
   }
 
   @Override

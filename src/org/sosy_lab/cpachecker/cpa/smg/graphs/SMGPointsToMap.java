@@ -69,7 +69,7 @@ public class SMGPointsToMap implements SMGPointsToEdges {
 
   @Override
   public boolean equals(Object o) {
-    return o instanceof SMGPointsToMap && map.equals(((SMGPointsToMap)o).map);
+    return o instanceof SMGPointsToMap && map.equals(((SMGPointsToMap) o).map);
   }
 
   @Override
