@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFASimplifier;
@@ -88,6 +89,22 @@ final class SliceToCfaConversion {
 
     return !pRelevantFunctions.contains(pEdge.getPredecessor().getFunction())
         || !pRelevantFunctions.contains(pEdge.getSuccessor().getFunction());
+  }
+
+  /**
+   * Returns whether the specified CFA node should be removed because it doesn't serve any
+   * meaningful purpose in the specified {@link CfaMutableNetwork}.
+   */
+  private static boolean isIrrelevantNode(
+      ImmutableSet<AFunctionDeclaration> pRelevantFunctions,
+      CfaMutableNetwork pGraph,
+      CFANode pNode) {
+
+    if (pNode instanceof FunctionExitNode) {
+      return !pRelevantFunctions.contains(pNode.getFunction());
+    }
+
+    return pGraph.adjacentNodes(pNode).isEmpty();
   }
 
   /**
@@ -234,7 +251,7 @@ final class SliceToCfaConversion {
 
     ImmutableList<CFANode> irrelevantNodes =
         graph.nodes().stream()
-            .filter(node -> graph.adjacentNodes(node).isEmpty())
+            .filter(node -> isIrrelevantNode(relevantFunctions, graph, node))
             .collect(ImmutableList.toImmutableList());
     irrelevantNodes.forEach(graph::removeNode);
 
