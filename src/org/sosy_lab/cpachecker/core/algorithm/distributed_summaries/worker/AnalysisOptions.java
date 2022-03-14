@@ -33,14 +33,19 @@ public class AnalysisOptions {
 
   @Option(description = "define the configuration for the desired forward analysis")
   @FileOption(Type.OPTIONAL_INPUT_FILE)
-  private Path forwardConfiguration = Path.of("config/includes/predicateAnalysis-block-forward.properties");
+  private Path forwardConfiguration =
+      Path.of("config/distributed-block-summaries/predicateAnalysis-block-forward.properties");
 
   @Option(description = "define the configuration for the desired backward analysis")
   @FileOption(Type.OPTIONAL_INPUT_FILE)
-  private Path backwardConfiguration = Path.of("config/includes/predicateAnalysis-block-backward.properties");
+  private Path backwardConfiguration =
+      Path.of("config/distributed-block-summaries/predicateAnalysis-block-backward.properties");
+
+  private final Configuration parentConfig;
 
   public AnalysisOptions(Configuration pConfig) throws InvalidConfigurationException {
     pConfig.inject(this);
+    parentConfig = pConfig;
   }
 
   public boolean isFlPreconditionAlwaysTrue() {
@@ -65,5 +70,9 @@ public class AnalysisOptions {
 
   public Path getForwardConfiguration() {
     return forwardConfiguration;
+  }
+
+  public Configuration getParentConfig() {
+    return parentConfig;
   }
 }

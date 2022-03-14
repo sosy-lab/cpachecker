@@ -33,8 +33,7 @@ public class WorkerStatistics implements Statistics {
   final StatTimerSum faultLocalizationTime = new StatTimerSum("Time for fault localization");
 
   @Override
-  public void printStatistics(
-      PrintStream out, Result result, UnmodifiableReachedSet reached) {
+  public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
     StatisticsWriter.writingStatisticsTo(out)
         .put(forwardAnalysis)
         .put(backwardAnalysis)

@@ -3539,7 +3539,7 @@ distributedSummaries.observer.resultFile = "faults.txt"
 distributedSummaries.spawnUtilWorkers = true
 
 # define the configuration for the desired backward analysis
-distributedSummaries.worker.backwardConfiguration = "config/predicateAnalysis-block-backward.properties"
+distributedSummaries.worker.backwardConfiguration = "config/distributed-block-summaries/predicateAnalysis-block-backward.properties"
 
 # whether error conditions are always checked for unsatisfiability
 distributedSummaries.worker.checkEveryErrorCondition = true
@@ -3551,7 +3551,7 @@ distributedSummaries.worker.doStoreCircularPostConditions = false
 distributedSummaries.worker.flPreconditionAlwaysTrue = false
 
 # define the configuration for the desired forward analysis
-distributedSummaries.worker.forwardConfiguration = "config/predicateAnalysis-block-forward.properties"
+distributedSummaries.worker.forwardConfiguration = "config/distributed-block-summaries/predicateAnalysis-block-forward.properties"
 
 # loop free programs do not require to deny all possible error messages
 distributedSummaries.worker.sendEveryErrorMessage = false

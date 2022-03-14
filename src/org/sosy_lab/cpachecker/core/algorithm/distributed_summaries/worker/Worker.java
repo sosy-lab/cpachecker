@@ -13,6 +13,8 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.logging.Level;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Message;
@@ -31,24 +33,22 @@ public abstract class Worker implements Runnable, StatisticsProvider {
   protected Connection connection;
   protected boolean finished;
 
-  protected final static WorkerStatistics stats = new WorkerStatistics();
+  protected static final WorkerStatistics stats = new WorkerStatistics();
 
   /**
-   * Abstract definition of a Worker.
-   * All workers enter the same routine of receiving and producing messages.
+   * Abstract definition of a Worker. All workers enter the same routine of receiving and producing
+   * messages.
    *
-   * @param pId     the id of the worker
-   * @param pLogger a logger to log messages
+   * @param pId the id of the worker
    */
-  protected Worker(String pId, LogManager pLogger, AnalysisOptions pOptions) {
-    logger = pLogger;
+  protected Worker(String pId, AnalysisOptions pOptions) throws InvalidConfigurationException {
     id = pId;
     analysisOptions = pOptions;
+    logger = BasicLogManager.create(pOptions.getParentConfig()).withComponentName(pId);
   }
 
   /**
-   * Get the next message from the connection.
-   * Note that the connection requires a blocking read()
+   * Get the next message from the connection. Note that the connection requires a blocking read()
    *
    * @return the current message to be processed
    * @throws InterruptedException thrown if thread is interrupted
@@ -58,15 +58,15 @@ public abstract class Worker implements Runnable, StatisticsProvider {
   }
 
   public abstract Collection<Message> processMessage(Message pMessage)
-      throws InterruptedException, IOException,
-             SolverException, CPAException;
+      throws InterruptedException, IOException, SolverException, CPAException;
 
   public void broadcast(Collection<Message> pMessage) throws IOException, InterruptedException {
     Objects.requireNonNull(connection, "Connection cannot be null.");
-    pMessage.forEach(m -> {
-      logger.log(Level.ALL, m);
-      stats.sentMessages.inc();
-    });
+    pMessage.forEach(
+        m -> {
+          logger.log(Level.ALL, m);
+          stats.sentMessages.inc();
+        });
     for (Message message : pMessage) {
       connection.write(message);
     }
@@ -85,7 +85,8 @@ public abstract class Worker implements Runnable, StatisticsProvider {
         broadcast(ImmutableList.of(Message.newErrorMessage(getId(), pE)));
       } catch (IOException | InterruptedException pEx) {
         logger.logException(Level.SEVERE, pE, "Failed broadcasting an error message.");
-        logger.logfException(Level.SEVERE, pEx, "%s faced a problem while processing messages.", getId());
+        logger.logfException(
+            Level.SEVERE, pEx, "%s faced a problem while processing messages.", getId());
       }
     }
   }
@@ -105,13 +106,16 @@ public abstract class Worker implements Runnable, StatisticsProvider {
 
   final void setConnection(Connection pConnection) {
     connection = pConnection;
-    connection.setOrdering(MessageType.FOUND_RESULT, MessageType.ERROR, MessageType.ERROR_CONDITION,
-        MessageType.ERROR_CONDITION_UNREACHABLE, MessageType.BLOCK_POSTCONDITION);
+    connection.setOrdering(
+        MessageType.FOUND_RESULT,
+        MessageType.ERROR,
+        MessageType.ERROR_CONDITION,
+        MessageType.ERROR_CONDITION_UNREACHABLE,
+        MessageType.BLOCK_POSTCONDITION);
   }
 
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
     statsCollection.add(stats);
   }
-
 }

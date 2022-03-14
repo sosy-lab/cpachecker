@@ -19,7 +19,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
-import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Message;
@@ -35,12 +35,9 @@ public class ResultWorker extends Worker {
   private final Map<String, Integer> expectAnswer;
   private final int numWorkers;
 
-  ResultWorker(
-      LogManager pLogger,
-      Collection<BlockNode> pNodes,
-      AnalysisOptions pOptions
-  ) {
-    super("result-worker", pLogger, pOptions);
+  ResultWorker(Collection<BlockNode> pNodes, AnalysisOptions pOptions)
+      throws InvalidConfigurationException {
+    super("result-worker", pOptions);
     nodeMap = new HashMap<>();
     pNodes.forEach(node -> nodeMap.put(node.getId(), node));
     messageReceived = new HashSet<>();
@@ -70,7 +67,9 @@ public class ResultWorker extends Worker {
           expectAnswer.merge(senderId, 1, Integer::sum);
         } else {
           expectAnswer.merge(senderId, -1, Integer::sum);
-          nodeMap.get(senderId).getPredecessors()
+          nodeMap
+              .get(senderId)
+              .getPredecessors()
               .forEach(b -> expectAnswer.merge(b.getId(), 1, Integer::sum));
         }
         return response(pMessage);
@@ -118,5 +117,4 @@ public class ResultWorker extends Worker {
     }
     return ImmutableSet.of();
   }
-
 }

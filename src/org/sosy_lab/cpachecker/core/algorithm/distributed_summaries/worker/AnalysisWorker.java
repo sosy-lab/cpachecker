@@ -16,7 +16,6 @@ import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.BlockAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.BlockAnalysis.BackwardAnalysis;
@@ -46,30 +45,52 @@ public class AnalysisWorker extends Worker {
       String pId,
       AnalysisOptions pOptions,
       BlockNode pBlock,
-      LogManager pLogger,
       CFA pCFA,
       Specification pSpecification,
       ShutdownManager pShutdownManager,
       UpdatedTypeMap pTypeMap)
       throws CPAException, InterruptedException, InvalidConfigurationException, IOException {
-    super("analysis-worker-" + pBlock.getId(), pLogger, pOptions);
+    super("analysis-worker-" + pId, pOptions);
     block = pBlock;
 
-    Configuration forwardConfiguration = Configuration.builder().loadFromFile(pOptions.getForwardConfiguration()).build();
-    Configuration backwardConfiguration = Configuration.builder().loadFromFile(pOptions.getBackwardConfiguration()).build();
+    Configuration forwardConfiguration =
+        Configuration.builder().loadFromFile(pOptions.getForwardConfiguration()).build();
+    Configuration backwardConfiguration =
+        Configuration.builder().loadFromFile(pOptions.getBackwardConfiguration()).build();
 
     Specification backwardSpecification =
-        Specification.fromFiles(ImmutableSet.of(Path.of("config/specification/MainEntry.spc"),
+        Specification.fromFiles(
+            ImmutableSet.of(
+                Path.of("config/specification/MainEntry.spc"),
                 Path.of("config/specification/TerminatingFunctions.spc")),
-            pCFA, backwardConfiguration, logger, pShutdownManager.getNotifier());
+            pCFA,
+            backwardConfiguration,
+            logger,
+            pShutdownManager.getNotifier());
 
-    forwardAnalysis = new ForwardAnalysis(pId, pLogger, pBlock, pCFA, pTypeMap, pSpecification,
-        forwardConfiguration,
-        pShutdownManager, pOptions);
+    forwardAnalysis =
+        new ForwardAnalysis(
+            pId,
+            logger,
+            pBlock,
+            pCFA,
+            pTypeMap,
+            pSpecification,
+            forwardConfiguration,
+            pShutdownManager,
+            pOptions);
 
-    backwardAnalysis = new BackwardAnalysis(pId, pLogger, pBlock, pCFA,
-        pTypeMap, backwardSpecification,
-        backwardConfiguration, pShutdownManager, pOptions);
+    backwardAnalysis =
+        new BackwardAnalysis(
+            pId,
+            logger,
+            pBlock,
+            pCFA,
+            pTypeMap,
+            backwardSpecification,
+            backwardConfiguration,
+            pShutdownManager,
+            pOptions);
 
     addTimer(forwardAnalysis);
     addTimer(backwardAnalysis);
@@ -156,16 +177,25 @@ public class AnalysisWorker extends Worker {
   }
 
   private void addTimer(BlockAnalysis pBlockAnalysis) {
-    pBlockAnalysis.getDistributedCPA().registerTimer(stats.proceedSerializeTime, StatTimerType.SERIALIZE);
-    pBlockAnalysis.getDistributedCPA().registerTimer(stats.proceedDeserializeTime, StatTimerType.DESERIALIZE);
-    pBlockAnalysis.getDistributedCPA().registerTimer(stats.proceedForwardTime, StatTimerType.PROCEED_F);
-    pBlockAnalysis.getDistributedCPA().registerTimer(stats.proceedBackwardTime, StatTimerType.PROCEED_B);
-    pBlockAnalysis.getDistributedCPA().registerTimer(stats.proceedCombineTime, StatTimerType.COMBINE);
+    pBlockAnalysis
+        .getDistributedCPA()
+        .registerTimer(stats.proceedSerializeTime, StatTimerType.SERIALIZE);
+    pBlockAnalysis
+        .getDistributedCPA()
+        .registerTimer(stats.proceedDeserializeTime, StatTimerType.DESERIALIZE);
+    pBlockAnalysis
+        .getDistributedCPA()
+        .registerTimer(stats.proceedForwardTime, StatTimerType.PROCEED_F);
+    pBlockAnalysis
+        .getDistributedCPA()
+        .registerTimer(stats.proceedBackwardTime, StatTimerType.PROCEED_B);
+    pBlockAnalysis
+        .getDistributedCPA()
+        .registerTimer(stats.proceedCombineTime, StatTimerType.COMBINE);
   }
 
   @Override
   public String toString() {
     return "Worker{" + "block=" + block + ", finished=" + finished + '}';
   }
-
 }

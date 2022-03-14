@@ -22,7 +22,6 @@ import java.util.Set;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -66,7 +65,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 public class FaultLocalizationWorker extends AnalysisWorker {
 
-  private final static String POSTCONDITION_KEY = "fl-post";
+  private static final String POSTCONDITION_KEY = "fl-post";
   private final FormulaContext context;
   private final TraceFormulaOptions options;
   private final BooleanFormulaManagerView bmgr;
@@ -81,36 +80,38 @@ public class FaultLocalizationWorker extends AnalysisWorker {
       String pId,
       AnalysisOptions pOptions,
       BlockNode pBlock,
-      LogManager pLogger,
       CFA pCFA,
       Specification pSpecification,
       Configuration pConfiguration,
       ShutdownManager pShutdownManager,
       UpdatedTypeMap pTypeMap)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
-    super(pId, pOptions, pBlock, pLogger, pCFA, pSpecification, pShutdownManager,
-        pTypeMap);
-    PredicateCPA predicateCPA = backwardAnalysis.getDistributedCPA().getOriginalCPA(PredicateCPA.class);
-    Configuration config = Configuration.builder().copyFrom(pConfiguration)
-        .setOption("cpa.predicate.handlePointerAliasing", "false").build();
+    super("fl-worker-" + pId, pOptions, pBlock, pCFA, pSpecification, pShutdownManager, pTypeMap);
+    PredicateCPA predicateCPA =
+        backwardAnalysis.getDistributedCPA().getOriginalCPA(PredicateCPA.class);
+    Configuration config =
+        Configuration.builder()
+            .copyFrom(pConfiguration)
+            .setOption("cpa.predicate.handlePointerAliasing", "false")
+            .build();
     if (predicateCPA == null) {
       throw new InvalidConfigurationException(
           this.getClass().getCanonicalName() + " needs PredicateCPA to be activated.");
     }
-    context = new FormulaContext(
-        predicateCPA.getSolver(),
-        new PathFormulaManagerImpl(
-            predicateCPA.getSolver().getFormulaManager(),
-            config,
-            pLogger,
-            pShutdownManager.getNotifier(),
+    context =
+        new FormulaContext(
+            predicateCPA.getSolver(),
+            new PathFormulaManagerImpl(
+                predicateCPA.getSolver().getFormulaManager(),
+                config,
+                logger,
+                pShutdownManager.getNotifier(),
+                pCFA,
+                AnalysisDirection.BACKWARD),
             pCFA,
-            AnalysisDirection.BACKWARD),
-        pCFA,
-        pLogger,
-        config,
-        pShutdownManager.getNotifier()
-    );
+            logger,
+            config,
+            pShutdownManager.getNotifier());
     options = new TraceFormulaOptions(config);
     fmgr = predicateCPA.getSolver().getFormulaManager();
     bmgr = fmgr.getBooleanFormulaManager();
@@ -139,7 +140,8 @@ public class FaultLocalizationWorker extends AnalysisWorker {
   protected Collection<Message> backwardAnalysis(MessageProcessing pMessageProcessing)
       throws CPAException, InterruptedException, SolverException {
     Collection<Message> responses = super.backwardAnalysis(pMessageProcessing);
-    assert responses.size() == 1 : "Every backward analysis must result in exactly one message: " + responses;
+    assert responses.size() == 1
+        : "Every backward analysis must result in exactly one message: " + responses;
     Message currentResult = responses.stream().findFirst().orElseThrow();
     // early return for non error condition messages;
     if (currentResult.getType() != MessageType.ERROR_CONDITION) {
@@ -149,19 +151,24 @@ public class FaultLocalizationWorker extends AnalysisWorker {
     try {
       maxSatTimer.start();
       Message message = pMessageProcessing.stream().findFirst().orElseThrow();
-      DistributedPredicateCPA dpcpa = (DistributedPredicateCPA) backwardAnalysis.getDistributedCPA()
-          .getDistributedAnalysis(PredicateCPA.class);
+      DistributedPredicateCPA dpcpa =
+          (DistributedPredicateCPA)
+              backwardAnalysis.getDistributedCPA().getDistributedAnalysis(PredicateCPA.class);
       if (message.getPayload().containsKey(POSTCONDITION_KEY)) {
         actualPost = dpcpa.getPathFormula(message.getPayload().get(POSTCONDITION_KEY)).getFormula();
       }
       PredicateAbstractState state = (PredicateAbstractState) dpcpa.deserialize(message);
       TraceFormula tf = createTraceFormula(state.getPathFormula());
-      if (!tf.isCalculationPossible() && Boolean.parseBoolean(message.getPayload().get(Payload.FIRST))) {
+      if (!tf.isCalculationPossible()
+          && Boolean.parseBoolean(message.getPayload().get(Payload.FIRST))) {
         for (int i = tf.getEntries().size() - 1; i >= 0; i--) {
           FormulaEntry entry = tf.getEntries().get(i);
           if (entry.getSelector().correspondingEdge() instanceof AssumeEdge) {
-            Payload updated = Payload.builder().putAll(currentResult.getPayload())
-                .addEntry(POSTCONDITION_KEY, fmgr.dumpFormula(entry.getAtom()).toString()).build();
+            Payload updated =
+                Payload.builder()
+                    .putAll(currentResult.getPayload())
+                    .addEntry(POSTCONDITION_KEY, fmgr.dumpFormula(entry.getAtom()).toString())
+                    .build();
             currentResult = Message.replacePayload(currentResult, updated);
             return ImmutableSet.of(currentResult);
           }
@@ -169,23 +176,35 @@ public class FaultLocalizationWorker extends AnalysisWorker {
       }
       Set<Fault> faults = performFaultLocalization(tf);
       actualPost =
-          (actualPost == null || dpcpa.getSolver().getFormulaManager().getBooleanFormulaManager()
-              .isTrue(actualPost)) ? tf.getPostConditionStatement() : actualPost;
+          (actualPost == null
+                  || dpcpa
+                      .getSolver()
+                      .getFormulaManager()
+                      .getBooleanFormulaManager()
+                      .isTrue(actualPost))
+              ? tf.getPostConditionStatement()
+              : actualPost;
       actualPost = fmgr.substitute(actualPost, dpcpa.getSubstitutions());
-      Payload updated = Payload.builder().putAll(currentResult.getPayload())
-          .addEntry(POSTCONDITION_KEY, fmgr.dumpFormula(actualPost).toString()).build();
+      Payload updated =
+          Payload.builder()
+              .putAll(currentResult.getPayload())
+              .addEntry(POSTCONDITION_KEY, fmgr.dumpFormula(actualPost).toString())
+              .build();
       currentResult = Message.replacePayload(currentResult, updated);
       if (faults.isEmpty()) {
         return ImmutableSet.of(currentResult);
       }
       List<Fault> ranked = FaultRankingUtils.rank(new EdgeTypeScoring(), faults);
       // get the smallest fault with the highest score
-      minimalFault = ranked.stream()
-          .min(Comparator.comparingInt(Fault::size).thenComparingDouble(f -> 1d / f.getScore()))
-          .orElseThrow();
-      updated = Payload.builder().putAll(currentResult.getPayload())
-          .addEntry(Payload.FAULT_LOCALIZATION, getBlockId() + ": " + minimalFault)
-          .build();
+      minimalFault =
+          ranked.stream()
+              .min(Comparator.comparingInt(Fault::size).thenComparingDouble(f -> 1d / f.getScore()))
+              .orElseThrow();
+      updated =
+          Payload.builder()
+              .putAll(currentResult.getPayload())
+              .addEntry(Payload.FAULT_LOCALIZATION, getBlockId() + ": " + minimalFault)
+              .build();
       currentResult = Message.replacePayload(currentResult, updated);
     } catch (TraceFormulaUnsatisfiableException pE) {
       // current block does most likely not lead to an error
@@ -206,7 +225,7 @@ public class FaultLocalizationWorker extends AnalysisWorker {
 
   private TraceFormula createTraceFormula(PathFormula pPostCondition)
       throws CPATransferException, InterruptedException, SolverException,
-             TraceFormulaUnsatisfiableException {
+          TraceFormulaUnsatisfiableException {
     PathFormulaManagerImpl pathFormulaManager = context.getManager();
     FormulaEntryList entries = new FormulaEntryList();
     PathFormula current = pPostCondition;
@@ -238,8 +257,11 @@ public class FaultLocalizationWorker extends AnalysisWorker {
         throw new AssertionError(
             "Splitting a BooleanFormula has to result in exactly two formulas: " + parts);
       }
-      entries.addEntry(intId, current.getSsa(),
-          selectorFactory.makeSelector(context, correctPart, cfaEdge), correctPart);
+      entries.addEntry(
+          intId,
+          current.getSsa(),
+          selectorFactory.makeSelector(context, correctPart, cfaEdge),
+          correctPart);
       oldFormula = current.getFormula();
       intId++;
     }
@@ -247,8 +269,8 @@ public class FaultLocalizationWorker extends AnalysisWorker {
     if (!analysisOptions.isFlPreconditionAlwaysTrue()) {
       Map<String, Integer> minimalIndices = new HashMap<>();
       Map<String, BooleanFormula> minimalFormulas = new HashMap<>();
-      try (ProverEnvironment prover = context.getSolver()
-          .newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+      try (ProverEnvironment prover =
+          context.getSolver().newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
         prover.push(current.getFormula());
         if (prover.isUnsat()) {
           throw new TraceFormulaUnsatisfiableException(
@@ -269,8 +291,13 @@ public class FaultLocalizationWorker extends AnalysisWorker {
       }
       precondition = bmgr.and(minimalFormulas.values());
     }
-    return new SelectorTraceWithKnownConditions(context, options, entries, precondition,
-        transformPostCondition(pPostCondition.getFormula()), errorPath);
+    return new SelectorTraceWithKnownConditions(
+        context,
+        options,
+        entries,
+        precondition,
+        transformPostCondition(pPostCondition.getFormula()),
+        errorPath);
   }
 
   private BooleanFormula transformPostCondition(BooleanFormula pPostCondition) {

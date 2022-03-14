@@ -15,9 +15,6 @@ import java.util.List;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.BasicLogManager;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.log.LoggingOptions;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
@@ -55,10 +52,6 @@ public class DistributedComponentsBuilder {
   private String nextId(String pAdditionalIdentifier) {
     return "W" + workers.size() + pAdditionalIdentifier;
   }
-  
-  private LogManager nextLogger() throws InvalidConfigurationException {
-    return BasicLogManager.create(new LoggingOptions(configuration));
-  }
 
   public DistributedComponentsBuilder createAdditionalConnections(int numberConnections) {
     additionalConnections = numberConnections;
@@ -66,55 +59,55 @@ public class DistributedComponentsBuilder {
   }
 
   public DistributedComponentsBuilder addAnalysisWorker(
-      BlockNode pNode,
-      UpdatedTypeMap pTypeMap,
-      AnalysisOptions pOptions)
+      BlockNode pNode, UpdatedTypeMap pTypeMap, AnalysisOptions pOptions)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     workers.add(
-        new AnalysisWorker(nextId(pNode.getId()), pOptions, pNode, nextLogger(), cfa, specification,
-            shutdownManager, pTypeMap));
+        new AnalysisWorker(
+            nextId(pNode.getId()), pOptions, pNode, cfa, specification, shutdownManager, pTypeMap));
     return this;
   }
 
   public DistributedComponentsBuilder addSmartAnalysisWorker(
-      BlockNode pNode,
-      UpdatedTypeMap pTypeMap,
-      AnalysisOptions pOptions)
+      BlockNode pNode, UpdatedTypeMap pTypeMap, AnalysisOptions pOptions)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     workers.add(
-        new SmartAnalysisWorker(nextId(pNode.getId()), pOptions, pNode, nextLogger(), cfa, specification,
-            shutdownManager, pTypeMap));
+        new SmartAnalysisWorker(
+            nextId(pNode.getId()), pOptions, pNode, cfa, specification, shutdownManager, pTypeMap));
     return this;
   }
 
   public DistributedComponentsBuilder addFaultLocalizationWorker(
-      BlockNode pNode,
-      UpdatedTypeMap pTypeMap,
-      AnalysisOptions pOptions)
+      BlockNode pNode, UpdatedTypeMap pTypeMap, AnalysisOptions pOptions)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     workers.add(
-        new FaultLocalizationWorker(nextId(pNode.getId()), pOptions, pNode, nextLogger(), cfa,
+        new FaultLocalizationWorker(
+            nextId(pNode.getId()),
+            pOptions,
+            pNode,
+            cfa,
             specification,
-            configuration, shutdownManager, pTypeMap));
+            configuration,
+            shutdownManager,
+            pTypeMap));
     return this;
   }
 
   public DistributedComponentsBuilder addResultCollectorWorker(
-      Collection<BlockNode> nodes,
-      AnalysisOptions pOptions) throws InvalidConfigurationException {
-    workers.add(new ResultWorker(nextLogger(), nodes, pOptions));
+      Collection<BlockNode> nodes, AnalysisOptions pOptions) throws InvalidConfigurationException {
+    workers.add(new ResultWorker(nodes, pOptions));
     return this;
   }
 
   public DistributedComponentsBuilder addTimeoutWorker(TimeSpan pTimeout, AnalysisOptions pOptions)
       throws InvalidConfigurationException {
-    workers.add(new TimeoutWorker(nextLogger(), pTimeout, pOptions));
+    workers.add(new TimeoutWorker(pTimeout, pOptions));
     return this;
   }
 
-  public DistributedComponentsBuilder addVisualizationWorker(BlockTree pBlockTree, AnalysisOptions pOptions, Configuration pConfiguration)
+  public DistributedComponentsBuilder addVisualizationWorker(
+      BlockTree pBlockTree, AnalysisOptions pOptions, Configuration pConfiguration)
       throws InvalidConfigurationException {
-    workers.add(new VisualizationWorker(nextLogger(), pBlockTree, pOptions, pConfiguration));
+    workers.add(new VisualizationWorker(pBlockTree, pOptions, pConfiguration));
     return this;
   }
 
@@ -135,7 +128,12 @@ public class DistributedComponentsBuilder {
   public DistributedComponentsBuilder addRootWorker(BlockNode pNode, AnalysisOptions pOptions)
       throws CPAException, InterruptedException, InvalidConfigurationException {
     workers.add(
-        new RootWorker(nextId(pNode.getId()), pOptions, pNode, nextLogger(), cfa, specification,
+        new RootWorker(
+            nextId(pNode.getId()),
+            pOptions,
+            pNode,
+            cfa,
+            specification,
             configuration,
             shutdownManager));
     return this;
@@ -146,9 +144,7 @@ public class DistributedComponentsBuilder {
     private final List<Worker> workers;
     private final List<Connection> additionalConnections;
 
-    private Components(
-        List<Worker> pWorkers,
-        List<Connection> pAdditionalConnections) {
+    private Components(List<Worker> pWorkers, List<Connection> pAdditionalConnections) {
       workers = pWorkers;
       additionalConnections = pAdditionalConnections;
     }
@@ -161,5 +157,4 @@ public class DistributedComponentsBuilder {
       return additionalConnections;
     }
   }
-
 }

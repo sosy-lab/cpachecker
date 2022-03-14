@@ -14,7 +14,7 @@ import java.util.Collection;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.logging.Level;
-import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Message;
@@ -28,34 +28,37 @@ public class TimeoutWorker extends Worker {
   private final TimerTask task;
   private boolean shouldScheduleTimer;
 
-  protected TimeoutWorker(LogManager pLogger, TimeSpan pTimeSpan, AnalysisOptions pOptions) {
-    super("timeout-worker", pLogger, pOptions);
+  protected TimeoutWorker(TimeSpan pTimeSpan, AnalysisOptions pOptions)
+      throws InvalidConfigurationException {
+    super("timeout-worker", pOptions);
     waitTime = pTimeSpan.asMillis();
     shouldScheduleTimer = true;
     timer = new Timer();
-    task = new TimerTask() {
-      @Override
-      public void run() {
-        try {
-          broadcast(ImmutableSet.of(
-              Message.newResultMessage("timeout", 0, Result.UNKNOWN, ImmutableSet.of())));
-          shutdown();
-        } catch (IOException pE) {
-          logger.log(Level.SEVERE, "Cannot broadcast timeout message properly because of", pE);
-          logger.log(Level.INFO, "Trying to send timeout message one last time...");
-          shouldScheduleTimer = false;
-          TimeoutWorker.this.run();
-        } catch (InterruptedException pE) {
-          shouldScheduleTimer = false;
-          TimeoutWorker.this.run();
-        }
-      }
-    };
+    task =
+        new TimerTask() {
+          @Override
+          public void run() {
+            try {
+              broadcast(
+                  ImmutableSet.of(
+                      Message.newResultMessage("timeout", 0, Result.UNKNOWN, ImmutableSet.of())));
+              shutdown();
+            } catch (IOException pE) {
+              logger.log(Level.SEVERE, "Cannot broadcast timeout message properly because of", pE);
+              logger.log(Level.INFO, "Trying to send timeout message one last time...");
+              shouldScheduleTimer = false;
+              TimeoutWorker.this.run();
+            } catch (InterruptedException pE) {
+              shouldScheduleTimer = false;
+              TimeoutWorker.this.run();
+            }
+          }
+        };
   }
 
   @Override
-  public Collection<Message> processMessage(
-      Message pMessage) throws InterruptedException, IOException, SolverException, CPAException {
+  public Collection<Message> processMessage(Message pMessage)
+      throws InterruptedException, IOException, SolverException, CPAException {
     switch (pMessage.getType()) {
       case ERROR:
         // fall through
@@ -71,7 +74,10 @@ public class TimeoutWorker extends Worker {
         break;
       default:
         throw new AssertionError(
-            "Unknown type of " + pMessage.getType().getDeclaringClass() + ": " + pMessage.getType());
+            "Unknown type of "
+                + pMessage.getType().getDeclaringClass()
+                + ": "
+                + pMessage.getType());
     }
     return ImmutableSet.of();
   }
@@ -86,8 +92,9 @@ public class TimeoutWorker extends Worker {
     } else {
       // if the timer encounters a problem with sending the timeout message try it one last time...
       try {
-        broadcast(ImmutableSet.of(
-            Message.newResultMessage("timeout", 0, Result.UNKNOWN, ImmutableSet.of())));
+        broadcast(
+            ImmutableSet.of(
+                Message.newResultMessage("timeout", 0, Result.UNKNOWN, ImmutableSet.of())));
       } catch (IOException | InterruptedException pE) {
         logger.log(Level.SEVERE, "TimeoutWorker failed to send message.", pE);
       }
@@ -100,5 +107,4 @@ public class TimeoutWorker extends Worker {
     timer.purge();
     super.shutdown();
   }
-
 }

@@ -6,7 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * Describes and implements parallel workers for block analysis
- */
+/** Describes and implements parallel workers for block analysis */
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
