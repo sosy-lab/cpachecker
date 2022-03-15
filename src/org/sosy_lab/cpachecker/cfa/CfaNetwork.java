@@ -352,6 +352,7 @@ public final class CfaNetwork implements Network<CFANode, CFAEdge> {
           private final Iterator<CFAEdge> inEdgeIterator = inEdges(pNode).iterator();
           private final Iterator<CFAEdge> outEdgeIterator = outEdges(pNode).iterator();
 
+          @Override
           protected @Nullable CFANode peek() {
 
             // predecessor iteration
@@ -401,6 +402,7 @@ public final class CfaNetwork implements Network<CFANode, CFAEdge> {
           private final Iterator<CFAEdge> successorEdgeIterator =
               incidentEdges(pEdge.getSuccessor()).iterator();
 
+          @Override
           protected @Nullable CFAEdge peek() {
 
             while (predecessorEdgeIterator.hasNext()) {
