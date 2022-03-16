@@ -58,7 +58,9 @@ class ImpactRefinementStrategy extends RefinementStrategy implements StatisticsP
       out.println("  Coverage checks:                    " + coverTime);
       out.println("  ARG update:                         " + argUpdate);
       out.println();
-      out.println("Number of abstractions during refinements:  " + impact.abstractionTime.getNumberOfIntervals());
+      out.println(
+          "Number of abstractions during refinements:  "
+              + impact.abstractionTime.getNumberOfIntervals());
 
       ImpactRefinementStrategy.this.printStatistics(out);
     }
@@ -75,8 +77,11 @@ class ImpactRefinementStrategy extends RefinementStrategy implements StatisticsP
   // (we sometimes needs this to refer to the previous block).
   private AbstractionFormula lastAbstraction = null;
 
-  protected ImpactRefinementStrategy(final Configuration config, final Solver pSolver,
-      final PredicateAbstractionManager pPredAbsMgr) throws InvalidConfigurationException {
+  protected ImpactRefinementStrategy(
+      final Configuration config,
+      final Solver pSolver,
+      final PredicateAbstractionManager pPredAbsMgr)
+      throws InvalidConfigurationException {
     super(pSolver);
 
     bfmgr = pSolver.getFormulaManager().getBooleanFormulaManager();
@@ -91,19 +96,17 @@ class ImpactRefinementStrategy extends RefinementStrategy implements StatisticsP
   }
 
   /**
-   * For each interpolant, we strengthen the corresponding state by
-   * conjunctively adding the interpolant to its state formula.
-   * This is all implemented in
-   * {@link ImpactUtility#strengthenStateWithInterpolant(BooleanFormula, ARGState, AbstractionFormula)}.
+   * For each interpolant, we strengthen the corresponding state by conjunctively adding the
+   * interpolant to its state formula. This is all implemented in {@link
+   * ImpactUtility#strengthenStateWithInterpolant(BooleanFormula, ARGState, AbstractionFormula)}.
    */
   @Override
-  protected boolean performRefinementForState(BooleanFormula itp,
-      ARGState s) throws SolverException, InterruptedException {
+  protected boolean performRefinementForState(BooleanFormula itp, ARGState s)
+      throws SolverException, InterruptedException {
     checkArgument(!bfmgr.isTrue(itp));
     checkArgument(!bfmgr.isFalse(itp));
 
-    boolean stateChanged = impact.strengthenStateWithInterpolant(
-                                                       itp, s, lastAbstraction);
+    boolean stateChanged = impact.strengthenStateWithInterpolant(itp, s, lastAbstraction);
 
     // Get the abstraction formula of the current state
     // (whether changed or not) to have it ready for the next call to this method).
@@ -113,15 +116,17 @@ class ImpactRefinementStrategy extends RefinementStrategy implements StatisticsP
   }
 
   /**
-   * After a path was strengthened, we need to take care of the coverage relation.
-   * We also remove the infeasible part from the ARG,
-   * and re-establish the coverage invariant (i.e., that states on the path
-   * are either covered or cannot be covered).
+   * After a path was strengthened, we need to take care of the coverage relation. We also remove
+   * the infeasible part from the ARG, and re-establish the coverage invariant (i.e., that states on
+   * the path are either covered or cannot be covered).
    */
   @Override
-  protected void finishRefinementOfPath(ARGState infeasiblePartOfART,
-      List<ARGState> changedElements, ARGReachedSet pReached,
-      List<ARGState> abstractionStatesTrace, boolean pRepeatedCounterexample)
+  protected void finishRefinementOfPath(
+      ARGState infeasiblePartOfART,
+      List<ARGState> changedElements,
+      ARGReachedSet pReached,
+      List<ARGState> abstractionStatesTrace,
+      boolean pRepeatedCounterexample)
       throws CPAException, InterruptedException {
     checkState(lastAbstraction != null);
     lastAbstraction = null;

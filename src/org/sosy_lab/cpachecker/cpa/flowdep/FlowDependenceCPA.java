@@ -34,11 +34,9 @@ import org.sosy_lab.cpachecker.cpa.pointer2.PointerCPA;
 import org.sosy_lab.cpachecker.cpa.reachdef.ReachingDefCPA;
 
 /**
- * CPA that tracks the flow dependence of variable assignments.
- * A statement 'a' is flow dependent on some variable assignment 'b',
- * if 1) 'a' uses the variable x that 'b' assigns a new value to,
- * and 2) there is a program path from 'b' to 'a' without any additional
- * assignment to x.
+ * CPA that tracks the flow dependence of variable assignments. A statement 'a' is flow dependent on
+ * some variable assignment 'b', if 1) 'a' uses the variable x that 'b' assigns a new value to, and
+ * 2) there is a program path from 'b' to 'a' without any additional assignment to x.
  *
  * @see org.sosy_lab.cpachecker.util.refinement.UseDefRelation
  */
@@ -57,10 +55,8 @@ public class FlowDependenceCPA extends AbstractSingleWrapperCPA {
   }
 
   private FlowDependenceCPA(
-      final LogManager pLogger,
-      final CFA pCfa,
-      final ConfigurableProgramAnalysis pCpaToWrap
-  ) throws InvalidConfigurationException {
+      final LogManager pLogger, final CFA pCfa, final ConfigurableProgramAnalysis pCpaToWrap)
+      throws InvalidConfigurationException {
     super(pCpaToWrap);
 
     logger = pLogger;
@@ -87,8 +83,8 @@ public class FlowDependenceCPA extends AbstractSingleWrapperCPA {
     }
 
     if (pCfa.getLanguage() != Language.C) {
-      throw new InvalidConfigurationException(FlowDependenceCPA.class.getSimpleName() + " only"
-          + " supports C");
+      throw new InvalidConfigurationException(
+          FlowDependenceCPA.class.getSimpleName() + " only" + " supports C");
     }
   }
 

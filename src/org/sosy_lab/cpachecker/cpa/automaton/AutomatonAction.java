@@ -23,31 +23,32 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 /**
- * Implements an Action with side-effects that has no return value.
- * The Action can be executed multiple times.
+ * Implements an Action with side-effects that has no return value. The Action can be executed
+ * multiple times.
  */
 abstract class AutomatonAction {
   private AutomatonAction() {}
+
   private static ResultValue<String> defaultResultValue = new ResultValue<>("");
 
-  // in this method the Value inside the resultValueObject is not important (most ActionClasses will return "" as inner value)
+  // in this method the Value inside the resultValueObject is not important (most ActionClasses will
+  // return "" as inner value)
   // more important is if the action was evaluated (ResultValue.canNotEvaluate())
   abstract ResultValue<?> eval(AutomatonExpressionArguments pArgs) throws CPATransferException;
 
   /**
-   * Returns if the action can execute on the given AutomatonExpressionArguments.
-   * If it cannot execute this is probably because of missing AbstractStates (from other CPAs).
+   * Returns if the action can execute on the given AutomatonExpressionArguments. If it cannot
+   * execute this is probably because of missing AbstractStates (from other CPAs).
+   *
    * @param pArgs the arguments that should be used for execution
    * @throws CPATransferException may be thrown in subclasses
    */
   boolean canExecuteOn(AutomatonExpressionArguments pArgs) throws CPATransferException {
     return true;
   }
-  //abstract void execute(AutomatonExpressionArguments pArgs);
+  // abstract void execute(AutomatonExpressionArguments pArgs);
 
-  /**
-   * Logs a String when executed.
-   */
+  /** Logs a String when executed. */
   static class Print extends AutomatonAction {
     protected final List<AutomatonExpression<?>> toPrint;
 
@@ -113,15 +114,14 @@ abstract class AutomatonAction {
     }
   }
 
-  /** Assigns the value of a AutomatonIntExpr to a AutomatonVariable determined by its name.
-   */
+  /** Assigns the value of a AutomatonIntExpr to a AutomatonVariable determined by its name. */
   static class Assignment extends AutomatonAction {
     private final String varId;
     private final AutomatonIntExpr var;
 
     public Assignment(String pVarId, AutomatonIntExpr pVar) {
-      this.varId = pVarId;
-      this.var = pVar;
+      varId = pVarId;
+      var = pVar;
     }
 
     @Override
@@ -163,9 +163,9 @@ abstract class AutomatonAction {
     private final String value;
 
     public SetAssignment(String pVarId, String pValue, boolean pAction) {
-      this.varId = pVarId;
-      this.action = pAction;
-      this.value = pValue;
+      varId = pVarId;
+      action = pAction;
+      value = pValue;
     }
 
     @Override
@@ -203,9 +203,7 @@ abstract class AutomatonAction {
     }
   }
 
-  /**
-   * Modifies the state of a CPA
-   */
+  /** Modifies the state of a CPA */
   static class CPAModification extends AutomatonAction {
     private final String cpaName;
     private final String modificationString;
@@ -214,6 +212,7 @@ abstract class AutomatonAction {
       cpaName = pCPAName;
       modificationString = pModification;
     }
+
     @Override
     boolean canExecuteOn(AutomatonExpressionArguments pArgs) {
       if (pArgs.replaceVariables(modificationString) == null) {
@@ -229,13 +228,24 @@ abstract class AutomatonAction {
       }
       return false;
     }
+
     @Override
     ResultValue<?> eval(AutomatonExpressionArguments pArgs) {
       // replace transition variables
       String processedModificationString = pArgs.replaceVariables(modificationString);
       if (processedModificationString == null) {
-        pArgs.getLogger().log(Level.WARNING, "Modification String \"" + modificationString + "\" could not be processed (Variable not found).");
-        return new ResultValue<>("Modification String \"" + modificationString + "\" could not be processed (Variable not found).", "AutomatonActionExpr.CPAModification");
+        pArgs
+            .getLogger()
+            .log(
+                Level.WARNING,
+                "Modification String \""
+                    + modificationString
+                    + "\" could not be processed (Variable not found).");
+        return new ResultValue<>(
+            "Modification String \""
+                + modificationString
+                + "\" could not be processed (Variable not found).",
+            "AutomatonActionExpr.CPAModification");
       }
       for (AbstractState ae : pArgs.getAbstractStates()) {
         if (ae instanceof AbstractQueryableState) {
@@ -244,21 +254,30 @@ abstract class AutomatonAction {
             try {
               aqe.modifyProperty(processedModificationString);
             } catch (InvalidQueryException e) {
-              pArgs.getLogger().logException(Level.WARNING, e,
-                  "Automaton encountered an Exception during Query of the "
-                  + cpaName + " CPA (Element " + aqe + ") on Edge " + pArgs.getCfaEdge().getDescription());
+              pArgs
+                  .getLogger()
+                  .logException(
+                      Level.WARNING,
+                      e,
+                      "Automaton encountered an Exception during Query of the "
+                          + cpaName
+                          + " CPA (Element "
+                          + aqe
+                          + ") on Edge "
+                          + pArgs.getCfaEdge().getDescription());
               return defaultResultValue; // try to carry on with the further evaluation
             }
           }
         }
       }
-      return new ResultValue<>("Did not find an element of the CPA \"" + cpaName + "\" to be modified.", "AutomatonActionExpr.CPAModification");
+      return new ResultValue<>(
+          "Did not find an element of the CPA \"" + cpaName + "\" to be modified.",
+          "AutomatonActionExpr.CPAModification");
     }
 
     @Override
     public String toString() {
       return "MODIFY(" + cpaName + "(\"" + modificationString + "\"))";
     }
-
   }
 }

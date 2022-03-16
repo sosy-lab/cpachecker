@@ -11,7 +11,7 @@
  * configuration stopped with an unknown result. A strategy selects the analysis configuration,
  * which is used to continue the analysis.
  *
- * One example, for a composition is CoVeriTest (D. Beyer, M.-C. Jakobs: CoVeriTest: Cooperative
+ * <p>One example, for a composition is CoVeriTest (D. Beyer, M.-C. Jakobs: CoVeriTest: Cooperative
  * Verifier-Based Testing, FASE 2019.), which uses a circular combination of analyses for test
  * generation.
  */

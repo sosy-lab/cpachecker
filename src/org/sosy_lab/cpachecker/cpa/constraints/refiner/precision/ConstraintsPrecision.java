@@ -8,25 +8,19 @@
 
 package org.sosy_lab.cpachecker.cpa.constraints.refiner.precision;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
-
-/**
- * Precision for {@link org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA ConstraintsCPA}.
- */
+/** Precision for {@link org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA ConstraintsCPA}. */
 public interface ConstraintsPrecision extends Precision {
 
-  /**
-   * Returns whether the given <code>Constraint</code> is tracked by this precision.
-   */
+  /** Returns whether the given <code>Constraint</code> is tracked by this precision. */
   boolean isTracked(Constraint pConstraint, CFANode pLocation);
 
   ConstraintsPrecision join(ConstraintsPrecision pOther);
@@ -41,8 +35,7 @@ public interface ConstraintsPrecision extends Precision {
     private Increment(
         final Multimap<CFANode, Constraint> pTrackedLocally,
         final Multimap<String, Constraint> pTrackedInFunction,
-        final Set<Constraint> pTrackedGlobally
-    ) {
+        final Set<Constraint> pTrackedGlobally) {
       trackedLocally = pTrackedLocally;
       trackedInFunction = pTrackedInFunction;
       trackedGlobally = pTrackedGlobally;
@@ -94,40 +87,28 @@ public interface ConstraintsPrecision extends Precision {
         // DO NOTHING
       }
 
-      public Builder locallyTracked(
-          final CFANode pNode,
-          final Constraint pConstraint
-      ) {
+      public Builder locallyTracked(final CFANode pNode, final Constraint pConstraint) {
         trackedLocally.put(pNode, pConstraint);
         return this;
       }
 
       public Builder locallyTracked(
-          final CFANode pNode,
-          final Collection<Constraint> pConstraints
-      ) {
+          final CFANode pNode, final Collection<Constraint> pConstraints) {
         trackedLocally.putAll(pNode, pConstraints);
         return this;
       }
 
-      public Builder locallyTracked(
-          final Multimap<CFANode, Constraint> pTrackedLocally
-      ) {
+      public Builder locallyTracked(final Multimap<CFANode, Constraint> pTrackedLocally) {
         trackedLocally.putAll(pTrackedLocally);
         return this;
       }
 
-      public Builder functionWiseTracked(
-          final String pFunctionName,
-          final Constraint pConstraint
-      ) {
+      public Builder functionWiseTracked(final String pFunctionName, final Constraint pConstraint) {
         trackedInFunction.put(pFunctionName, pConstraint);
         return this;
       }
 
-      public Builder functionWiseTracked(
-          final Multimap<String, Constraint> pTrackedFunctionWise
-      ) {
+      public Builder functionWiseTracked(final Multimap<String, Constraint> pTrackedFunctionWise) {
         trackedInFunction.putAll(pTrackedFunctionWise);
         return this;
       }
@@ -145,7 +126,6 @@ public interface ConstraintsPrecision extends Precision {
       public Increment build() {
         return new Increment(trackedLocally, trackedInFunction, trackedGlobally);
       }
-
     }
   }
 }

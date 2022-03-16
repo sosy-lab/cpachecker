@@ -52,9 +52,9 @@ import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-
-@Options(prefix="cpa.usage")
-public class IdentifierIterator extends WrappedConfigurableRefinementBlock<ReachedSet, SingleIdentifier> implements Refiner {
+@Options(prefix = "cpa.usage")
+public class IdentifierIterator
+    extends WrappedConfigurableRefinementBlock<ReachedSet, SingleIdentifier> implements Refiner {
 
   private class Stats implements Statistics {
 
@@ -68,22 +68,22 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
     public String getName() {
       return "UsageStatisticsRefiner";
     }
-
   }
 
   private final ConfigurableProgramAnalysis cpa;
   private final LogManager logger;
 
-  @Option(name="precisionReset", description="The value of marked unsafes, after which the precision should be cleaned",
+  @Option(
+      name = "precisionReset",
+      description = "The value of marked unsafes, after which the precision should be cleaned",
       secure = true)
   private int precisionReset = Integer.MAX_VALUE;
 
   // TODO Option is broken!!
   @Option(
-    name = "totalARGCleaning",
-    description = "clean all ARG or try to reuse some parts of it (memory consuming)",
-    secure = true
-  )
+      name = "totalARGCleaning",
+      description = "clean all ARG or try to reuse some parts of it (memory consuming)",
+      secure = true)
   private boolean totalARGCleaning = true;
 
   @Option(
@@ -100,8 +100,12 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
 
   private final Map<SingleIdentifier, AdjustablePrecision> precisionMap = new HashMap<>();
 
-  public IdentifierIterator(ConfigurableRefinementBlock<SingleIdentifier> pWrapper, Configuration config,
-      ConfigurableProgramAnalysis pCpa, BAMTransferRelation pTransfer) throws InvalidConfigurationException {
+  public IdentifierIterator(
+      ConfigurableRefinementBlock<SingleIdentifier> pWrapper,
+      Configuration config,
+      ConfigurableProgramAnalysis pCpa,
+      BAMTransferRelation pTransfer)
+      throws InvalidConfigurationException {
     super(pWrapper);
     config.inject(this);
     cpa = pCpa;
@@ -111,21 +115,25 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
     transfer = pTransfer;
   }
 
-  public static Refiner create(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
+  public static Refiner create(ConfigurableProgramAnalysis pCpa)
+      throws InvalidConfigurationException {
     if (!(pCpa instanceof WrapperCPA)) {
-      throw new InvalidConfigurationException(BAMPredicateRefiner.class.getSimpleName() + " could not find the PredicateCPA");
+      throw new InvalidConfigurationException(
+          BAMPredicateRefiner.class.getSimpleName() + " could not find the PredicateCPA");
     }
 
-    BAMPredicateCPA predicateCpa = ((WrapperCPA)pCpa).retrieveWrappedCpa(BAMPredicateCPA.class);
+    BAMPredicateCPA predicateCpa = ((WrapperCPA) pCpa).retrieveWrappedCpa(BAMPredicateCPA.class);
     if (predicateCpa == null) {
-      throw new InvalidConfigurationException(BAMPredicateRefiner.class.getSimpleName() + " needs an BAMPredicateCPA");
+      throw new InvalidConfigurationException(
+          BAMPredicateRefiner.class.getSimpleName() + " needs an BAMPredicateCPA");
     }
 
     return new RefinementBlockFactory(pCpa, predicateCpa.getConfiguration()).create();
   }
 
   @Override
-  public RefinementResult performBlockRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
+  public RefinementResult performBlockRefinement(ReachedSet pReached)
+      throws CPAException, InterruptedException {
 
     UsageReachedSet uReached = (UsageReachedSet) pReached;
     UsageContainer container = uReached.getUsageContainer();
@@ -171,9 +179,9 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
         container.setAsRefined(currentId, result);
         processedUnsafes.add(currentId);
       } else if (hideFilteredUnsafes && result.isFalse() && !isPrecisionChanged) {
-        //We do not add a precision, but consider the unsafe as false
-        //set it as false now, because it will occur again, as precision is not changed
-        //We can not look at precision size here - the result can be false due to heuristics
+        // We do not add a precision, but consider the unsafe as false
+        // set it as false now, because it will occur again, as precision is not changed
+        // We can not look at precision size here - the result can be false due to heuristics
         container.setAsFalseUnsafe(currentId);
         processedUnsafes.add(currentId);
       }
@@ -182,11 +190,13 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
     counter += (newTrueUnsafeSize - lastTrueUnsafes);
     if (counter >= precisionReset) {
       Precision p = pReached.getPrecision(pReached.getFirstState());
-      pReached.updatePrecision(pReached.getFirstState(),
-          Precisions.replaceByType(p, PredicatePrecision.empty(), Predicates.instanceOf(PredicatePrecision.class)));
+      pReached.updatePrecision(
+          pReached.getFirstState(),
+          Precisions.replaceByType(
+              p, PredicatePrecision.empty(), Predicates.instanceOf(PredicatePrecision.class)));
 
-      //TODO will we need other finish signal?
-      //wrappedRefiner.finish(getClass());
+      // TODO will we need other finish signal?
+      // wrappedRefiner.finish(getClass());
       lastFalseUnsafeSize = originUnsafeSize;
       lastTrueUnsafes = newTrueUnsafeSize;
     }
@@ -194,7 +204,7 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
       BAMPredicateCPA bamcpa = CPAs.retrieveCPA(cpa, BAMPredicateCPA.class);
       assert bamcpa != null;
       bamcpa.clearAllCaches();
-      //ARGState.clearIdGenerator();
+      // ARGState.clearIdGenerator();
       if (totalARGCleaning) {
         transfer.cleanCaches();
       } else {
@@ -206,21 +216,21 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
       processedUnsafes.addAll(
           Sets.intersection(precisionMap.keySet(), container.getFalseUnsafes()));
       for (AdjustablePrecision prec :
-              from(processedUnsafes)
-              .transform(precisionMap::remove)
-              .filter(Predicates.notNull())) {
+          from(processedUnsafes).transform(precisionMap::remove).filter(Predicates.notNull())) {
         finalPrecision = finalPrecision.subtract(prec);
       }
 
       CFANode firstNode = AbstractStates.extractLocation(firstState);
-      //Get new state to remove all links to the old ARG
-      pReached.add(cpa.getInitialState(firstNode, StateSpacePartition.getDefaultPartition()), finalPrecision);
+      // Get new state to remove all links to the old ARG
+      pReached.add(
+          cpa.getInitialState(firstNode, StateSpacePartition.getDefaultPartition()),
+          finalPrecision);
 
-      //TODO should we signal about removed ids?
+      // TODO should we signal about removed ids?
 
       sendFinishSignal();
     }
-    //pStat.UnsafeCheck.stopIfRunning();
+    // pStat.UnsafeCheck.stopIfRunning();
     if (newPrecisionFound) {
       return RefinementResult.createTrue();
     } else {

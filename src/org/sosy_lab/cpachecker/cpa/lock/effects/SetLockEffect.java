@@ -14,7 +14,7 @@ import org.sosy_lab.cpachecker.cpa.lock.LockIdentifier;
 
 public final class SetLockEffect extends LockEffect {
 
-  private final static SetLockEffect instance = new SetLockEffect();
+  private static final SetLockEffect instance = new SetLockEffect();
 
   final int p;
 
@@ -44,7 +44,7 @@ public final class SetLockEffect extends LockEffect {
 
   @Override
   public SetLockEffect cloneWithTarget(LockIdentifier id) {
-    return createEffectForId(this.p, id);
+    return createEffectForId(p, id);
   }
 
   @Override

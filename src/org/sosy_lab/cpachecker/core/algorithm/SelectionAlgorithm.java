@@ -212,10 +212,7 @@ public class SelectionAlgorithm extends NestingAlgorithm {
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path preAnalysisAlgorithmConfig = null;
 
-  @Option(
-    secure = true,
-    description = "Configuration for programs containing recursion."
-  )
+  @Option(secure = true, description = "Configuration for programs containing recursion.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path recursionConfig;
 

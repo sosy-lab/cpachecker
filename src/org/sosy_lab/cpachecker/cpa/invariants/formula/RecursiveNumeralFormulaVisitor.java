@@ -13,8 +13,7 @@ abstract class RecursiveNumeralFormulaVisitor<T>
     implements NumeralFormulaVisitor<T, NumeralFormula<T>> {
 
   /**
-   * Visits the (possibly modified) formula after its child formulae were
-   * visited by this visitor.
+   * Visits the (possibly modified) formula after its child formulae were visited by this visitor.
    *
    * @param pFormula the formula to visit.
    * @return the (possible modified) visited formula.
@@ -190,13 +189,13 @@ abstract class RecursiveNumeralFormulaVisitor<T>
     NumeralFormula<T> positiveCase = pIfThenElse.getPositiveCase().accept(this);
     NumeralFormula<T> negativeCase = pIfThenElse.getNegativeCase().accept(this);
     final NumeralFormula<T> toVisit;
-    if (positiveCase == pIfThenElse.getPositiveCase() && negativeCase == pIfThenElse.getNegativeCase()) {
+    if (positiveCase == pIfThenElse.getPositiveCase()
+        && negativeCase == pIfThenElse.getNegativeCase()) {
       toVisit = pIfThenElse;
     } else {
-      toVisit = InvariantsFormulaManager.INSTANCE.ifThenElse(
-          pIfThenElse.getCondition(),
-          positiveCase,
-          negativeCase);
+      toVisit =
+          InvariantsFormulaManager.INSTANCE.ifThenElse(
+              pIfThenElse.getCondition(), positiveCase, negativeCase);
     }
     return visitPost(toVisit);
   }
@@ -212,5 +211,4 @@ abstract class RecursiveNumeralFormulaVisitor<T>
     }
     return visitPost(toVisit);
   }
-
 }

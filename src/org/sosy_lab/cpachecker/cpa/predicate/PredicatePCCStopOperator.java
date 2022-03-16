@@ -37,7 +37,8 @@ public class PredicatePCCStopOperator implements StopOperator {
   }
 
   @Override
-  public boolean stop(AbstractState pState, Collection<AbstractState> pReached, Precision pPrecision)
+  public boolean stop(
+      AbstractState pState, Collection<AbstractState> pReached, Precision pPrecision)
       throws CPAException, InterruptedException {
 
     PredicateAbstractState e1 = (PredicateAbstractState) pState;
@@ -46,14 +47,14 @@ public class PredicatePCCStopOperator implements StopOperator {
       PredicateAbstractState e2 = (PredicateAbstractState) reachedState;
 
       try {
-        if (isCoveredBy(e1, e2)) { return true; }
+        if (isCoveredBy(e1, e2)) {
+          return true;
+        }
       } catch (SolverException e) {
         throw new CPAException("Solver Failure", e);
       }
-
     }
     return false;
-
   }
 
   private boolean isCoveredBy(final PredicateAbstractState e1, final PredicateAbstractState e2)
@@ -62,7 +63,8 @@ public class PredicatePCCStopOperator implements StopOperator {
       return paMgr.checkCoverage(e1.getAbstractionFormula(), e2.getAbstractionFormula());
 
     } else if (e2.isAbstractionState()) {
-      return paMgr.checkCoverage(e1.getAbstractionFormula(), e1.getPathFormula(), e2.getAbstractionFormula());
+      return paMgr.checkCoverage(
+          e1.getAbstractionFormula(), e1.getPathFormula(), e2.getAbstractionFormula());
 
     } else if (e1.isAbstractionState()) {
       return false;

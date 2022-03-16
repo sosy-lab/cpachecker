@@ -36,7 +36,8 @@ public class RedundancyRemoverTest {
     // intervals [-1,3], [-1,7] (expected -1)
     // intervals [3,9], [5,7] (expected -1)
 
-    RedundantRequirementsRemoverIntervalStateImplementation intervalStateImpl = new RedundantRequirementsRemoverIntervalStateImplementation();
+    RedundantRequirementsRemoverIntervalStateImplementation intervalStateImpl =
+        new RedundantRequirementsRemoverIntervalStateImplementation();
 
     Interval i01 = Interval.UNBOUND;
     Interval i02 = Interval.UNBOUND;
@@ -65,7 +66,8 @@ public class RedundancyRemoverTest {
     // [1,7],[-5,7] (false)
     // [0,3],[9,12] (false)
 
-    RedundantRequirementsRemoverIntervalStateImplementation intervalStateImpl = new RedundantRequirementsRemoverIntervalStateImplementation();
+    RedundantRequirementsRemoverIntervalStateImplementation intervalStateImpl =
+        new RedundantRequirementsRemoverIntervalStateImplementation();
 
     Interval i_35 = new Interval(-3L, 5L);
     Interval i01 = new Interval(0L, 1L);
@@ -93,26 +95,35 @@ public class RedundancyRemoverTest {
 
   @Test
   public void testGetAbstractValueIntervalState() {
-    // IntervalAnalysisState intervalState = new IntervalAnalysisState().addInterval("x", new Interval(-1L,4L), 0);
+    // IntervalAnalysisState intervalState = new IntervalAnalysisState().addInterval("x", new
+    // Interval(-1L,4L), 0);
     // varOrConst 1 -> Interval [1,1]
     // varOrConst x -> Interval [-1,4]
     // varOrConst y -> unbound interval
 
-    IntervalAnalysisState intervalState1 = new IntervalAnalysisState().addInterval("1", new Interval(1L, 1L), 0);
-    //IntervalAnalysisState intervalState2 = new IntervalAnalysisState().addInterval("x", new Interval(-1L, 4L), 0);
-    IntervalAnalysisState intervalState3 = new IntervalAnalysisState().addInterval("y", Interval.UNBOUND, 0);
+    IntervalAnalysisState intervalState1 =
+        new IntervalAnalysisState().addInterval("1", new Interval(1L, 1L), 0);
+    // IntervalAnalysisState intervalState2 = new IntervalAnalysisState().addInterval("x", new
+    // Interval(-1L, 4L), 0);
+    IntervalAnalysisState intervalState3 =
+        new IntervalAnalysisState().addInterval("y", Interval.UNBOUND, 0);
 
-    RedundantRequirementsRemoverIntervalStateImplementation intervalStateImpl = new RedundantRequirementsRemoverIntervalStateImplementation();
-    Truth.assertThat(intervalStateImpl.getAbstractValue(intervalState1, "1")).isEqualTo(new Interval(1L, 1L));
-//    Truth.assertThat(intervalStateImpl.getAbstractValue(intervalState2, "x")).isEqualTo(new Interval(-1L, 4L)); // TODO
-    Truth.assertThat(intervalStateImpl.getAbstractValue(intervalState3, "y")).isEqualTo(Interval.UNBOUND);
+    RedundantRequirementsRemoverIntervalStateImplementation intervalStateImpl =
+        new RedundantRequirementsRemoverIntervalStateImplementation();
+    Truth.assertThat(intervalStateImpl.getAbstractValue(intervalState1, "1"))
+        .isEqualTo(new Interval(1L, 1L));
+    //    Truth.assertThat(intervalStateImpl.getAbstractValue(intervalState2, "x")).isEqualTo(new
+    // Interval(-1L, 4L)); // TODO
+    Truth.assertThat(intervalStateImpl.getAbstractValue(intervalState3, "y"))
+        .isEqualTo(Interval.UNBOUND);
   }
 
   @Test
   public void testCompareSignState() {
     // use following pairs, test that correct expected value
     // test for each pair (a,b) that compare(a,b)=-compare(b,a)
-    RedundantRequirementsRemoverSignStateImplementation signImpl = new RedundantRequirementsRemoverSignStateImplementation();
+    RedundantRequirementsRemoverSignStateImplementation signImpl =
+        new RedundantRequirementsRemoverSignStateImplementation();
     // EMPTY, EMPTY (expected 0)
 
     Truth.assertThat(signImpl.compare(SIGN.EMPTY, SIGN.EMPTY)).isEqualTo(0);
@@ -222,12 +233,12 @@ public class RedundancyRemoverTest {
     // PLUS0, ZERO (true)
     // MINUS0, PLUSMINUS (false)
     // ALL, EMPTY (true)
-    RedundantRequirementsRemoverSignStateImplementation signImpl = new RedundantRequirementsRemoverSignStateImplementation();
+    RedundantRequirementsRemoverSignStateImplementation signImpl =
+        new RedundantRequirementsRemoverSignStateImplementation();
     Truth.assertThat(signImpl.covers(SIGN.PLUS, SIGN.MINUS)).isFalse();
     Truth.assertThat(signImpl.covers(SIGN.PLUS0, SIGN.ZERO)).isTrue();
     Truth.assertThat(signImpl.covers(SIGN.MINUS0, SIGN.PLUSMINUS)).isFalse();
     Truth.assertThat(signImpl.covers(SIGN.ALL, SIGN.EMPTY)).isTrue();
-
   }
 
   @Test
@@ -238,7 +249,8 @@ public class RedundancyRemoverTest {
     // varOrConst 1 -> PLUS
     // varOrConst x -> PLUSMINUS
     // varOrConst y -> ALL
-    RedundantRequirementsRemoverSignStateImplementation signImpl = new RedundantRequirementsRemoverSignStateImplementation();
+    RedundantRequirementsRemoverSignStateImplementation signImpl =
+        new RedundantRequirementsRemoverSignStateImplementation();
     SignState signState1 = SignState.TOP.assignSignToVariable("-1", SIGN.MINUS);
     SignState signState2 = SignState.TOP.assignSignToVariable("0", SIGN.ZERO);
     SignState signState3 = SignState.TOP.assignSignToVariable("1", SIGN.PLUS);
@@ -261,7 +273,8 @@ public class RedundancyRemoverTest {
     // both Numeric value 7 (expected 0)
     // Numeric value -5 and numeric value 9 (expected -1)
 
-    RedundantRequirementsValueAnalysisStateImplementation valueImpl = new RedundantRequirementsValueAnalysisStateImplementation();
+    RedundantRequirementsValueAnalysisStateImplementation valueImpl =
+        new RedundantRequirementsValueAnalysisStateImplementation();
 
     Value v11 = Value.UnknownValue.getInstance();
     Value v12 = Value.UnknownValue.getInstance();
@@ -288,7 +301,8 @@ public class RedundancyRemoverTest {
     // Numeric Value 7, Numeric Value 7 (two distinct objects) (true)
     // Numeric Value 7, Numeric Value -4 (false)
 
-    RedundantRequirementsValueAnalysisStateImplementation valueImpl = new RedundantRequirementsValueAnalysisStateImplementation();
+    RedundantRequirementsValueAnalysisStateImplementation valueImpl =
+        new RedundantRequirementsValueAnalysisStateImplementation();
 
     Value v11 = Value.UnknownValue.getInstance();
     Value v12 = new NumericValue(7);
@@ -312,7 +326,8 @@ public class RedundancyRemoverTest {
     // varOrConst x -> NumericValue with value 7
     // varOrConst y -> UnknownValue
 
-    RedundantRequirementsValueAnalysisStateImplementation valueImpl = new RedundantRequirementsValueAnalysisStateImplementation();
+    RedundantRequirementsValueAnalysisStateImplementation valueImpl =
+        new RedundantRequirementsValueAnalysisStateImplementation();
 
     ValueAnalysisState valState1 = new ValueAnalysisState(machineModel);
     NumericValue val1 = new NumericValue(1L);
@@ -331,43 +346,39 @@ public class RedundancyRemoverTest {
   }
 
   @Test
-  public void testIdentifyAndRemoveRedundantRequirements() {//throws IOException, ParserException, InterruptedException, InvalidConfigurationException {
-//    CFA cfa = TestDataTools.makeCFA("void main() { int x = 5;}");
-//    AbstractState loc =
-//        new LocationCPA(cfa, TestDataTools.configurationForTest().build()).getInitialState(
-//            cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
-//
-//    final int NUMCONSTRAINTS = 5;
-//    List<String> input = new ArrayList<>(2);
-//    input.add("x");
-//    input.add("y");
-//    List<String> output = new ArrayList<>(2);
-//    output.add("u");
-//    output.add("v");
-//    Pair<List<String>, List<String>> inout = Pair.of(input, output);
-//    List<Pair<List<String>, List<String>>> inputOutputSignatures = new ArrayList<>(NUMCONSTRAINTS);
-//    for(int i=0;i<NUMCONSTRAINTS;i++) {
-//      inputOutputSignatures.add(inout);
-//    }
-//
-//    List<Pair<ARGState, Collection<ARGState>>> requirements, expectedResult, result;
-//    ValueAnalysisState valState;
-//    ARGState argState;
-//    Collection<ARGState> ends;
-//
-//    requirements = new ArrayList<>(NUMCONSTRAINTS);
-//    expectedResult = new ArrayList<>();
+  public void testIdentifyAndRemoveRedundantRequirements() {
+    //    CFA cfa = TestDataTools.makeCFA("void main() { int x = 5;}");
+    //    AbstractState loc =
+    //        new LocationCPA(cfa, TestDataTools.configurationForTest().build()).getInitialState(
+    //            cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
+    //
+    //    final int NUMCONSTRAINTS = 5;
+    //    List<String> input = new ArrayList<>(2);
+    //    input.add("x");
+    //    input.add("y");
+    //    List<String> output = new ArrayList<>(2);
+    //    output.add("u");
+    //    output.add("v");
+    //    Pair<List<String>, List<String>> inout = Pair.of(input, output);
+    //    List<Pair<List<String>, List<String>>> inputOutputSignatures = new
+    // ArrayList<>(NUMCONSTRAINTS);
+    //    for(int i=0;i<NUMCONSTRAINTS;i++) {
+    //      inputOutputSignatures.add(inout);
+    //    }
+    //
+    //    List<Pair<ARGState, Collection<ARGState>>> requirements, expectedResult, result;
+    //    ValueAnalysisState valState;
+    //    ARGState argState;
+    //    Collection<ARGState> ends;
+    //
+    //    requirements = new ArrayList<>(NUMCONSTRAINTS);
+    //    expectedResult = new ArrayList<>();
 
+    //    requirements.add(Pair.of(new ARGState(new CompositeState()), second));
 
-//    requirements.add(Pair.of(new ARGState(new CompositeState()), second));
-
-
-
-
-
-    //result = RedundantRequirementsRemover.removeRedundantRequirements(requirements, inputOutputSignatures, ValueAnalysisState.class);
-//     test Truth.assertThat(result).containsExactlyElementsIn(expectedResult);
+    // result = RedundantRequirementsRemover.removeRedundantRequirements(requirements,
+    // inputOutputSignatures, ValueAnalysisState.class);
+    //     test Truth.assertThat(result).containsExactlyElementsIn(expectedResult);
 
   }
-
 }

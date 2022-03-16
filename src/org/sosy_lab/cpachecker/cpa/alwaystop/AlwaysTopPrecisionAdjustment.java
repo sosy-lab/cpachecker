@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.alwaystop;
 
+import com.google.common.base.Function;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -15,16 +17,13 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
-import com.google.common.base.Function;
-import java.util.Optional;
-
 enum AlwaysTopPrecisionAdjustment implements PrecisionAdjustment {
-
   INSTANCE;
 
   @Override
   public Optional<PrecisionAdjustmentResult> prec(
-      AbstractState pElement, Precision pPrecision,
+      AbstractState pElement,
+      Precision pPrecision,
       UnmodifiableReachedSet pElements,
       Function<AbstractState, AbstractState> projection,
       AbstractState fullState) {
@@ -32,7 +31,8 @@ enum AlwaysTopPrecisionAdjustment implements PrecisionAdjustment {
     assert pElement == AlwaysTopState.INSTANCE;
     assert pPrecision == AlwaysTopPrecision.INSTANCE;
 
-    return Optional.of(PrecisionAdjustmentResult.create(
-        AlwaysTopState.INSTANCE, AlwaysTopPrecision.INSTANCE, Action.CONTINUE));
+    return Optional.of(
+        PrecisionAdjustmentResult.create(
+            AlwaysTopState.INSTANCE, AlwaysTopPrecision.INSTANCE, Action.CONTINUE));
   }
 }

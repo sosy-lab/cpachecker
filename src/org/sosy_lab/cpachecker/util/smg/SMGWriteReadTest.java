@@ -208,8 +208,7 @@ public class SMGWriteReadTest extends SMGTest0 {
         new SMGHasValueEdge(value3, BigInteger.valueOf(3 * 8), BigInteger.valueOf(8 * 8));
 
     SMGHasValueEdge expectedZeroEdgeBeginningObject2 =
-        new SMGHasValueEdge(
-            SMGValue.zeroValue(), BigInteger.ZERO, BigInteger.valueOf(3 * 8));
+        new SMGHasValueEdge(SMGValue.zeroValue(), BigInteger.ZERO, BigInteger.valueOf(3 * 8));
 
     SMGHasValueEdge expectedZeroEdgeEndObject2 =
         new SMGHasValueEdge(
@@ -237,9 +236,16 @@ public class SMGWriteReadTest extends SMGTest0 {
     // Check that nothing changed for the points to edges
     assertThat(smg.getPTEdges().toList()).isEqualTo(ImmutableList.of(nullPointer));
     assertThat(smg.getValues())
-        .isEqualTo(PersistentSet.of(SMGValue.zeroValue()).addAndCopy(value1).addAndCopy(value2).addAndCopy(value3));
+        .isEqualTo(
+            PersistentSet.of(SMGValue.zeroValue())
+                .addAndCopy(value1)
+                .addAndCopy(value2)
+                .addAndCopy(value3));
     assertThat(smg.getObjects())
-        .isEqualTo(PersistentSet.of(SMGObject.nullInstance()).addAndCopy(testObject1).addAndCopy(testObject2));
+        .isEqualTo(
+            PersistentSet.of(SMGObject.nullInstance())
+                .addAndCopy(testObject1)
+                .addAndCopy(testObject2));
     // Check that only the expected HVEdges exists for the objects
     assertThat(smg.getEdges(testObject1)).containsExactlyElementsIn(expectedEdgesObject1);
     assertThat(smg.getEdges(testObject2)).containsExactlyElementsIn(expectedEdgesObject2);

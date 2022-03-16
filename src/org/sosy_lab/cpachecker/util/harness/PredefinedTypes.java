@@ -28,9 +28,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 
 public final class PredefinedTypes {
 
-  private PredefinedTypes() {
-
-  }
+  private PredefinedTypes() {}
 
   public static boolean isPredefinedType(@Nullable CTypeDeclaration pDeclaration) {
     if (pDeclaration == null) {
@@ -40,8 +38,7 @@ public final class PredefinedTypes {
     if (originalName == null) {
       return false;
     }
-    return ImmutableSet.of("size_t", "wchar_t").contains(originalName)
-        || isCalledDiv(originalName);
+    return ImmutableSet.of("size_t", "wchar_t").contains(originalName) || isCalledDiv(originalName);
   }
 
   public static boolean isPredefinedFunction(@Nullable AFunctionDeclaration pDeclaration) {
@@ -151,13 +148,14 @@ public final class PredefinedTypes {
   }
 
   private static boolean isSwprintf(@Nullable AFunctionDeclaration pDeclaration) {
-    Predicate<Type> isPointerToIntegral = t -> {
-      Type type = getCanonicalType(t);
-      if (!(type instanceof CPointerType)) {
-        return false;
-      }
-      return isIntegerType(((CPointerType) type).getType());
-    };
+    Predicate<Type> isPointerToIntegral =
+        t -> {
+          Type type = getCanonicalType(t);
+          if (!(type instanceof CPointerType)) {
+            return false;
+          }
+          return isIntegerType(((CPointerType) type).getType());
+        };
     return functionMatchesExactType(
         pDeclaration,
         "swprintf",
@@ -166,13 +164,14 @@ public final class PredefinedTypes {
   }
 
   private static boolean isWcstombs(@Nullable AFunctionDeclaration pDeclaration) {
-    Predicate<Type> isPointerToIntegral = t -> {
-      Type type = getCanonicalType(t);
-      if (!(type instanceof CPointerType)) {
-        return false;
-      }
-      return isIntegerType(((CPointerType) type).getType());
-    };
+    Predicate<Type> isPointerToIntegral =
+        t -> {
+          Type type = getCanonicalType(t);
+          if (!(type instanceof CPointerType)) {
+            return false;
+          }
+          return isIntegerType(((CPointerType) type).getType());
+        };
     return functionMatches(
         pDeclaration,
         "wcstombs",
@@ -186,17 +185,16 @@ public final class PredefinedTypes {
         "div",
         PredefinedTypes::isDivType,
         ImmutableList.of(
-            Predicate.isEqual(CNumericTypes.INT),
-            Predicate.isEqual(CNumericTypes.INT)))) {
+            Predicate.isEqual(CNumericTypes.INT), Predicate.isEqual(CNumericTypes.INT)))) {
       return true;
     }
     if (functionMatches(
-            pDeclaration,
-            "ldiv",
-            PredefinedTypes::isDivType,
-            ImmutableList.of(
-                Predicate.isEqual(CNumericTypes.LONG_INT),
-                Predicate.isEqual(CNumericTypes.LONG_INT)))) {
+        pDeclaration,
+        "ldiv",
+        PredefinedTypes::isDivType,
+        ImmutableList.of(
+            Predicate.isEqual(CNumericTypes.LONG_INT),
+            Predicate.isEqual(CNumericTypes.LONG_INT)))) {
       return true;
     }
     return functionMatches(
@@ -217,7 +215,8 @@ public final class PredefinedTypes {
   }
 
   private static boolean isVerifierError(@Nullable AFunctionDeclaration pDeclaration) {
-    return functionMatchesExactType(pDeclaration, "__VERIFIER_error", CVoidType.VOID, ImmutableList.of());
+    return functionMatchesExactType(
+        pDeclaration, "__VERIFIER_error", CVoidType.VOID, ImmutableList.of());
   }
 
   public static boolean isVerifierAssume(@Nullable AFunctionDeclaration pDeclaration) {
@@ -244,7 +243,11 @@ public final class PredefinedTypes {
       String pExpectedName,
       Type pExpectedReturnType,
       List<Predicate<Type>> pExpectedParameterTypes) {
-    return functionMatches(pDeclaration, pExpectedName, Predicate.isEqual(getCanonicalType(pExpectedReturnType)), pExpectedParameterTypes);
+    return functionMatches(
+        pDeclaration,
+        pExpectedName,
+        Predicate.isEqual(getCanonicalType(pExpectedReturnType)),
+        pExpectedParameterTypes);
   }
 
   private static boolean functionMatches(
@@ -252,7 +255,11 @@ public final class PredefinedTypes {
       String pExpectedName,
       Predicate<Type> pExpectedReturnType,
       List<Predicate<Type>> pExpectedParameterTypes) {
-    return functionMatches(pDeclaration, Predicate.isEqual(pExpectedName), pExpectedReturnType, pExpectedParameterTypes);
+    return functionMatches(
+        pDeclaration,
+        Predicate.isEqual(pExpectedName),
+        pExpectedReturnType,
+        pExpectedParameterTypes);
   }
 
   private static boolean functionMatches(

@@ -11,14 +11,14 @@ package org.sosy_lab.cpachecker.cpa.value.type;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serializable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 /**
  * Base class for values that can be tracked by the ValueAnalysisCPA.
  *
- * Traditionally, ValueAnalysisCPA would only keep track of long type values.
- * For the future, floats, symbolic values, and SMG nodes should
- * also be supported.
+ * <p>Traditionally, ValueAnalysisCPA would only keep track of long type values. For the future,
+ * floats, symbolic values, and SMG nodes should also be supported.
  */
 public interface Value extends Serializable {
   boolean isNumericValue();
@@ -30,17 +30,17 @@ public interface Value extends Serializable {
   boolean isExplicitlyKnown();
 
   /**
-   * Returns the NumericValue if the stored value can be explicitly represented
-   * by a numeric value, null otherwise.
-   **/
-  NumericValue asNumericValue();
+   * Returns the NumericValue if the stored value can be explicitly represented by a numeric value,
+   * null otherwise.
+   */
+  @Nullable NumericValue asNumericValue();
 
-  /** Return the long value if this is a long value, null otherwise. **/
-  Long asLong(CType type);
+  /** Return the long value if this is a long value, null otherwise. * */
+  @Nullable Long asLong(CType type);
 
   <T> T accept(ValueVisitor<T> pVisitor);
 
-  /** Singleton class used to signal that the value is unknown (could be anything). **/
+  /** Singleton class used to signal that the value is unknown (could be anything). * */
   public static final class UnknownValue implements Value, Serializable {
 
     private static final long serialVersionUID = -300842115868319184L;
@@ -61,12 +61,12 @@ public interface Value extends Serializable {
     }
 
     @Override
-    public NumericValue asNumericValue() {
+    public @Nullable NumericValue asNumericValue() {
       return null;
     }
 
     @Override
-    public Long asLong(CType type) {
+    public @Nullable Long asLong(CType type) {
       checkNotNull(type);
       return null;
     }
@@ -89,6 +89,5 @@ public interface Value extends Serializable {
     Object readResolve() {
       return instance;
     }
-
   }
 }

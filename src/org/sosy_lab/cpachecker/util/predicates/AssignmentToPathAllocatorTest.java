@@ -35,7 +35,7 @@ public class AssignmentToPathAllocatorTest {
 
   @Before
   public void setUp() throws InvalidConfigurationException {
-    this.allocator =
+    allocator =
         new AssignmentToPathAllocator(
             Configuration.defaultConfiguration(),
             ShutdownNotifier.createDummy(),
@@ -91,5 +91,4 @@ public class AssignmentToPathAllocatorTest {
     assertThat(allocator.findFirstOccurrenceOf(varY, ssaMaps)).isEqualTo(2);
     assertThat(allocator.findFirstOccurrenceOf(varZ, ssaMaps)).isEqualTo(2);
   }
-
 }

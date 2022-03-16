@@ -20,7 +20,6 @@ import org.sosy_lab.cpachecker.util.faultlocalization.appendables.RankInfo;
 
 public class OverallOccurrenceScoring implements FaultScoring {
 
-
   private Map<Fault, Double> faultValue = new HashMap<>();
 
   @Override
@@ -30,9 +29,9 @@ public class OverallOccurrenceScoring implements FaultScoring {
 
   @Override
   public void balancedScore(Set<Fault> faults) {
-    for(Fault f1: faults) {
+    for (Fault f1 : faults) {
       double value = 0;
-      for(Fault f2: faults) {
+      for (Fault f2 : faults) {
         Set<FaultContribution> intersection = new HashSet<>(f1);
         intersection.removeAll(f2);
         value += f1.size() - intersection.size();
@@ -40,14 +39,15 @@ public class OverallOccurrenceScoring implements FaultScoring {
       faultValue.put(f1, value);
     }
     double sum = faultValue.values().stream().mapToDouble(Double::valueOf).sum();
-    if(sum == 0) {
-      for(Fault f: faults) {
-        f.addInfo(FaultInfo.rankInfo("Sorted by overall occurrence in all faults.", 1d/faults.size()));
+    if (sum == 0) {
+      for (Fault f : faults) {
+        f.addInfo(
+            FaultInfo.rankInfo("Sorted by overall occurrence in all faults.", 1d / faults.size()));
       }
     } else {
-      for(Fault f: faults) {
+      for (Fault f : faults) {
         RankInfo info = scoreFault(f);
-        info.setScore(info.getScore()/sum);
+        info.setScore(info.getScore() / sum);
         f.addInfo(info);
       }
     }

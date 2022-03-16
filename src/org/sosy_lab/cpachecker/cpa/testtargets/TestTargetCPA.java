@@ -30,43 +30,41 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-@Options(prefix="testcase")
+@Options(prefix = "testcase")
 public class TestTargetCPA extends AbstractCPA {
 
   private final TestTargetPrecisionAdjustment precisionAdjustment;
   private final TransferRelation transferRelation;
 
   @Option(
-    secure = true,
-    name = "generate.parallel",
-    description = "set to true if run multiple test case generation instances in parallel"
-  )
+      secure = true,
+      name = "generate.parallel",
+      description = "set to true if run multiple test case generation instances in parallel")
   private boolean runParallel = false;
 
   @Option(
-    secure = true,
-    name = "targets.type", // adapt CPAMain.java if adjust name
-    description = "Which CFA edges to use as test targets"
-  )
+      secure = true,
+      name = "targets.type", // adapt CPAMain.java if adjust name
+      description = "Which CFA edges to use as test targets")
   private TestTargetType targetType = TestTargetType.ASSUME;
 
   @Option(
-    secure = true,
-    name = "targets.funName", // adapt CPAMain.java if adjust name
-    description = "Name of target function if target type is FUN_CALL")
+      secure = true,
+      name = "targets.funName", // adapt CPAMain.java if adjust name
+      description = "Name of target function if target type is FUN_CALL")
   private String targetFun = null;
 
   @Option(
-    secure = true,
-    name = "targets.optimization.strategy",
-    description = "Which strategy to use to optimize set of test target edges"
-  )
+      secure = true,
+      name = "targets.optimization.strategy",
+      description = "Which strategy to use to optimize set of test target edges")
   private TestTargetAdaption targetOptimization = TestTargetAdaption.NONE;
 
   @Option(
-    secure = true,
-    name = "targets.edge",
-    description = "CFA edge if only a specific edge should be considered, e.g., in counterexample check")
+      secure = true,
+      name = "targets.edge",
+      description =
+          "CFA edge if only a specific edge should be considered, e.g., in counterexample check")
   private String targetEdge = null;
 
   public static CPAFactory factory() {
@@ -85,10 +83,11 @@ public class TestTargetCPA extends AbstractCPA {
 
     precisionAdjustment = new TestTargetPrecisionAdjustment();
     transferRelation =
-        new TestTargetTransferRelation(targetEdge == null ?
-            TestTargetProvider
-                .getTestTargets(pCfa, runParallel, targetType, targetFun, targetOptimization)
-            : findTargetEdge(pCfa));
+        new TestTargetTransferRelation(
+            targetEdge == null
+                ? TestTargetProvider.getTestTargets(
+                    pCfa, runParallel, targetType, targetFun, targetOptimization)
+                : findTargetEdge(pCfa));
   }
 
   private Set<CFAEdge> findTargetEdge(final CFA pCfa) {
@@ -99,8 +98,7 @@ public class TestTargetCPA extends AbstractCPA {
         int predNum = Integer.parseInt(components.get(0));
         int edgeID = Integer.parseInt(components.get(1));
         Optional<CFANode> pred =
-            pCfa.getAllNodes()
-                .stream()
+            pCfa.getAllNodes().stream()
                 .filter(node -> (node.getNodeNumber() == predNum))
                 .findFirst();
         if (pred.isPresent()) {
@@ -117,7 +115,6 @@ public class TestTargetCPA extends AbstractCPA {
     }
 
     return ImmutableSet.of();
-
   }
 
   @Override
@@ -135,5 +132,4 @@ public class TestTargetCPA extends AbstractCPA {
   public TestTargetPrecisionAdjustment getPrecisionAdjustment() {
     return precisionAdjustment;
   }
-
 }

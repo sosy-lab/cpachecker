@@ -32,7 +32,8 @@ public class SymbolicLocationPathFormulaBuilder extends DefaultPathFormulaBuilde
 
   private final CBinaryExpressionBuilder cBinaryExpressionBuilder;
 
-  private static class SymbolicLocationPathFormulaAndBuilder extends SymbolicLocationPathFormulaBuilder {
+  private static class SymbolicLocationPathFormulaAndBuilder
+      extends SymbolicLocationPathFormulaBuilder {
 
     private final DefaultPathFormulaBuilder previousPathFormula;
 
@@ -43,8 +44,8 @@ public class SymbolicLocationPathFormulaBuilder extends DefaultPathFormulaBuilde
         final CFAEdge pEdge,
         final CBinaryExpressionBuilder pCBinaryExpressionBuilder) {
       super(pCBinaryExpressionBuilder);
-      this.previousPathFormula = pPathFormulaAndBuilder;
-      this.edge = pEdge;
+      previousPathFormula = pPathFormulaAndBuilder;
+      edge = pEdge;
     }
 
     @Override

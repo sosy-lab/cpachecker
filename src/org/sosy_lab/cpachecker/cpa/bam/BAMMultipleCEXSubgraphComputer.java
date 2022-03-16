@@ -30,14 +30,14 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 
 /**
- * The subgraph computer is used to restore paths not to target states, but to any other.
- * The difficulty is to determine the outer block.
+ * The subgraph computer is used to restore paths not to target states, but to any other. The
+ * difficulty is to determine the outer block.
  *
- * One more feature of the computer is skipping such paths, which contains special (repeated) states.
- * The feature is extremely important for refinement optimization: we do not refine and even not compute the similar paths
+ * <p>One more feature of the computer is skipping such paths, which contains special (repeated)
+ * states. The feature is extremely important for refinement optimization: we do not refine and even
+ * not compute the similar paths
  */
-
-public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
+public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer {
 
   private Set<ArrayDeque<Integer>> remainingStates = new HashSet<>();
   private final Function<ARGState, Integer> getStateId;
@@ -47,14 +47,14 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
     getStateId = idExtractor;
   }
 
-
-  private ARGState findPath(BackwardARGState newTreeTarget, Set<List<Integer>> pProcessedStates) throws InterruptedException, MissingBlockException {
+  private ARGState findPath(BackwardARGState newTreeTarget, Set<List<Integer>> pProcessedStates)
+      throws InterruptedException, MissingBlockException {
 
     Map<ARGState, BackwardARGState> elementsMap = new HashMap<>();
     ARGState root = null;
     boolean inCallstackFunction = false;
 
-    //Deep clone to be patient about modification
+    // Deep clone to be patient about modification
     remainingStates.clear();
     for (List<Integer> newList : pProcessedStates) {
       remainingStates.add(new ArrayDeque<>(newList));
@@ -103,13 +103,13 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
             }
           }
 
-          //The first state
+          // The first state
           root = newCurrentElement;
           break;
         }
 
-        //Try to find path.
-        //Exchange the reduced state by the expanded one
+        // Try to find path.
+        // Exchange the reduced state by the expanded one
         currentState = (ARGState) expandedStates.iterator().next();
         newCurrentElement = new BackwardARGState(currentState);
         elementsMap.put(currentState, newCurrentElement);
@@ -122,9 +122,12 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
       if (data.hasInitialState(currentState) && !inCallstackFunction) {
         // If child-state is an expanded state, the child is at the exit-location of a block.
         // In this case, we enter the block (backwards).
-        // We must use a cached reachedSet to process further, because the block has its own reachedSet.
-        // The returned 'innerTreeRoot' is the rootNode of the subtree, created from the cached reachedSet.
-        // The current subtree (successors of child) is appended beyond the innerTree, to get a complete subgraph.
+        // We must use a cached reachedSet to process further, because the block has its own
+        // reachedSet.
+        // The returned 'innerTreeRoot' is the rootNode of the subtree, created from the cached
+        // reachedSet.
+        // The current subtree (successors of child) is appended beyond the innerTree, to get a
+        // complete subgraph.
         computeCounterexampleSubgraphForBlock(newCurrentElement, childrenInSubgraph);
         assert childrenInSubgraph.size() == 1;
         BackwardARGState tmpState = childrenInSubgraph.iterator().next();
@@ -152,7 +155,7 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
         }
 
         if (currentState.getParents().isEmpty()) {
-          //The first state
+          // The first state
           root = newCurrentElement;
           break;
         }
@@ -181,8 +184,8 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
   }
 
   ARGPath restorePathFrom(BackwardARGState pLastElement, Set<List<Integer>> pRefinedStates) {
-    //Note pLastElement may not be the last indeed
-    //The path may be recomputed from the middle
+    // Note pLastElement may not be the last indeed
+    // The path may be recomputed from the middle
 
     assert (pLastElement != null && !pLastElement.isDestroyed());
 
@@ -213,20 +216,19 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
   boolean checkThePathHasRepeatedStates(ARGPath path, Set<List<Integer>> pRefinedStates) {
     List<Integer> ids = transformedImmutableListCopy(path.asStatesList(), getStateId);
 
-    return from(pRefinedStates)
-        .anyMatch(ids::containsAll);
+    return from(pRefinedStates).anyMatch(ids::containsAll);
   }
 
-  /** This states is used for UsageStatisticsRefinement:
-   *  If after some refinement iterations the path goes through already processed states,
-   *  this marked state is returned.
-   */
-  public final static BackwardARGState DUMMY_STATE_FOR_REPEATED_STATE = new BackwardARGState(new ARGState(null, null));
   /**
-   * This is a ARGState, that counts backwards, used to build the Pseudo-ARG for CEX-retrieval.
-   * As the Pseudo-ARG is build backwards starting at its end-state, we count the ID backwards.
+   * This states is used for UsageStatisticsRefinement: If after some refinement iterations the path
+   * goes through already processed states, this marked state is returned.
    */
-
+  public static final BackwardARGState DUMMY_STATE_FOR_REPEATED_STATE =
+      new BackwardARGState(new ARGState(null, null));
+  /**
+   * This is a ARGState, that counts backwards, used to build the Pseudo-ARG for CEX-retrieval. As
+   * the Pseudo-ARG is build backwards starting at its end-state, we count the ID backwards.
+   */
   public BAMSubgraphIterator iterator(ARGState target) {
     return new BAMSubgraphIterator(target, this, data);
   }

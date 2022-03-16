@@ -51,21 +51,28 @@ class ApronDomain implements AbstractDomain {
     Abstract0 newApronState;
     ApronState firstState;
     try {
-      shrinkedStates = getShrinkedStates((ApronState)successor, (ApronState)reached);
+      shrinkedStates = getShrinkedStates((ApronState) successor, (ApronState) reached);
       firstState = shrinkedStates.getFirst();
-      newApronState = firstState.getApronNativeState().joinCopy(firstState.getManager().getManager(), shrinkedStates.getSecond().getApronNativeState());
+      newApronState =
+          firstState
+              .getApronNativeState()
+              .joinCopy(
+                  firstState.getManager().getManager(),
+                  shrinkedStates.getSecond().getApronNativeState());
 
     } catch (ApronException e) {
       throw new RuntimeException("An error occured while operating with the apron library", e);
     }
 
-    ApronState newState = new ApronState(newApronState,
-                                         firstState.getManager(),
-                                         shrinkedStates.getFirst().getIntegerVariableToIndexMap(),
-                                         shrinkedStates.getFirst().getRealVariableToIndexMap(),
-                                         shrinkedStates.getFirst().getVariableToTypeMap(),
-                                         ((ApronState)successor).isLoopHead(),
-                                         logger);
+    ApronState newState =
+        new ApronState(
+            newApronState,
+            firstState.getManager(),
+            shrinkedStates.getFirst().getIntegerVariableToIndexMap(),
+            shrinkedStates.getFirst().getRealVariableToIndexMap(),
+            shrinkedStates.getFirst().getVariableToTypeMap(),
+            ((ApronState) successor).isLoopHead(),
+            logger);
     if (newState.equals(reached)) {
       return reached;
     } else if (newState.equals(successor)) {
@@ -83,19 +90,25 @@ class ApronDomain implements AbstractDomain {
       successorState = shrinkedStates.getFirst();
       reachedState = shrinkedStates.getSecond();
 
-      newApronState = reachedState.getApronNativeState().widening(reachedState.getManager().getManager(), successorState.getApronNativeState());
+      newApronState =
+          reachedState
+              .getApronNativeState()
+              .widening(
+                  reachedState.getManager().getManager(), successorState.getApronNativeState());
 
     } catch (ApronException e) {
       throw new RuntimeException("An error occured while operating with the apron library", e);
     }
 
-    ApronState newState = new ApronState(newApronState,
-                                         reachedState.getManager(),
-                                         successorState.getIntegerVariableToIndexMap(),
-                                         successorState.getRealVariableToIndexMap(),
-                                         successorState.getVariableToTypeMap(),
-                                         successorState.isLoopHead(),
-                                         logger);
+    ApronState newState =
+        new ApronState(
+            newApronState,
+            reachedState.getManager(),
+            successorState.getIntegerVariableToIndexMap(),
+            successorState.getRealVariableToIndexMap(),
+            successorState.getVariableToTypeMap(),
+            successorState.isLoopHead(),
+            logger);
     if (newState.equals(successorState)) {
       return successorState;
     } else if (newState.equals(reachedState)) {
@@ -105,7 +118,8 @@ class ApronDomain implements AbstractDomain {
     }
   }
 
-  private Pair<ApronState, ApronState> getShrinkedStates(ApronState succ, ApronState reached) throws ApronException {
+  private Pair<ApronState, ApronState> getShrinkedStates(ApronState succ, ApronState reached)
+      throws ApronException {
     if (succ.sizeOfVariables() > reached.sizeOfVariables()) {
       Pair<ApronState, ApronState> tmp = succ.shrinkToFittingSize(reached);
       succ = tmp.getFirst();

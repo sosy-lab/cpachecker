@@ -42,7 +42,6 @@ public class PersistentSet<K extends Comparable<? super K>> implements Set<K> {
     return retSet.addAndCopy(entry);
   }
 
-
   public static <K extends Comparable<? super K>> PersistentSet<K> copyOf(Collection<K> entries) {
     PersistentSet<K> retSet = new PersistentSet<K>(PathCopyingPersistentTreeMap.of());
     for (K e : entries) {
@@ -149,7 +148,9 @@ public class PersistentSet<K extends Comparable<? super K>> implements Set<K> {
 
   @Override
   public boolean equals(Object o) {
-    if (!(o instanceof PersistentSet)) { return false; }
+    if (!(o instanceof PersistentSet)) {
+      return false;
+    }
     @SuppressWarnings("unchecked")
     PersistentSet<K> other = (PersistentSet<K>) o;
     return delegate.equals(other.delegate);
@@ -159,5 +160,4 @@ public class PersistentSet<K extends Comparable<? super K>> implements Set<K> {
   public String toString() {
     return delegate.keySet().toString();
   }
-
 }

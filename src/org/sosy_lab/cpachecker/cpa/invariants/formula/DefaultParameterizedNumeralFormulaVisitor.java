@@ -21,15 +21,14 @@ abstract class DefaultParameterizedNumeralFormulaVisitor<ConstantType, ParamType
     implements ParameterizedNumeralFormulaVisitor<ConstantType, ParamType, ReturnType> {
 
   /**
-   * Provides a generic visit method that can be applied to any invariants
-   * formula type.
+   * Provides a generic visit method that can be applied to any invariants formula type.
    *
    * @param pFormula the visited formula.
    * @param pParam the visit parameter.
-   *
    * @return the result of the generic visit.
    */
-  protected abstract ReturnType visitDefault(NumeralFormula<ConstantType> pFormula, ParamType pParam);
+  protected abstract ReturnType visitDefault(
+      NumeralFormula<ConstantType> pFormula, ParamType pParam);
 
   @Override
   public ReturnType visit(Add<ConstantType> pAdd, ParamType pParam) {
@@ -110,5 +109,4 @@ abstract class DefaultParameterizedNumeralFormulaVisitor<ConstantType, ParamType
   public ReturnType visit(Cast<ConstantType> pCast, ParamType pParam) {
     return visitDefault(pCast, pParam);
   }
-
 }

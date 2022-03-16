@@ -18,24 +18,24 @@ import org.sosy_lab.cpachecker.cpa.invariants.OverflowEventHandler;
 import org.sosy_lab.cpachecker.cpa.invariants.operators.Operator;
 
 /**
- * Unit test for the operator used to add simple intervals to simple
- * intervals to produce simple intervals.
+ * Unit test for the operator used to add simple intervals to simple intervals to produce simple
+ * intervals.
  */
 public class IIIOperatorTest {
 
   private static final BitVectorInfo INT = BitVectorInfo.from(32, true);
 
-  private static final Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval> ADD
-    = IIIOperatorFactory.INSTANCE.getAdd(true, OverflowEventHandler.EMPTY);
+  private static final Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval> ADD =
+      IIIOperatorFactory.INSTANCE.getAdd(true, OverflowEventHandler.EMPTY);
 
-  private static final Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval> MULTIPLY
-    = IIIOperatorFactory.INSTANCE.getMultiply(true, OverflowEventHandler.EMPTY);
+  private static final Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval> MULTIPLY =
+      IIIOperatorFactory.INSTANCE.getMultiply(true, OverflowEventHandler.EMPTY);
 
-  private static final Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval> DIVIDE
-    = IIIOperatorFactory.INSTANCE.getDivide(true, OverflowEventHandler.EMPTY);
+  private static final Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval> DIVIDE =
+      IIIOperatorFactory.INSTANCE.getDivide(true, OverflowEventHandler.EMPTY);
 
-  private static final Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval> MODULO
-    = IIIOperatorFactory.INSTANCE.getModulo(true, OverflowEventHandler.EMPTY);
+  private static final Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval> MODULO =
+      IIIOperatorFactory.INSTANCE.getModulo(true, OverflowEventHandler.EMPTY);
 
   @Test
   public void testAdd() {
@@ -51,10 +51,14 @@ public class IIIOperatorTest {
     BitVectorInterval five = BitVectorInterval.singleton(INT, scalarFive);
     BitVectorInterval negFourToFour = BitVectorInterval.of(INT, scalarFour.negate(), scalarFour);
     BitVectorInterval zeroToFour = BitVectorInterval.of(INT, BigInteger.ZERO, scalarFour);
-    BitVectorInterval zeroToMax = BitVectorInterval.singleton(INT, BigInteger.ZERO).extendToMaxValue();
-    BitVectorInterval minToZero = BitVectorInterval.singleton(INT, BigInteger.ZERO).extendToMinValue();
-    BitVectorInterval tenToEleven = BitVectorInterval.of(INT, BigInteger.valueOf(10), BigInteger.valueOf(11));
-    BitVectorInterval twoToThree = BitVectorInterval.of(INT, BigInteger.valueOf(2), BigInteger.valueOf(3));
+    BitVectorInterval zeroToMax =
+        BitVectorInterval.singleton(INT, BigInteger.ZERO).extendToMaxValue();
+    BitVectorInterval minToZero =
+        BitVectorInterval.singleton(INT, BigInteger.ZERO).extendToMinValue();
+    BitVectorInterval tenToEleven =
+        BitVectorInterval.of(INT, BigInteger.valueOf(10), BigInteger.valueOf(11));
+    BitVectorInterval twoToThree =
+        BitVectorInterval.of(INT, BigInteger.valueOf(2), BigInteger.valueOf(3));
     BitVectorInterval zeroToTwo = BitVectorInterval.of(INT, BigInteger.ZERO, BigInteger.valueOf(2));
     BitVectorInterval eightToTen = BitVectorInterval.of(INT, BigInteger.valueOf(8), BigInteger.TEN);
 
@@ -117,8 +121,10 @@ public class IIIOperatorTest {
                 INT.getRange(), BitVectorInterval.of(INT, scalarFive.negate(), scalarFour)))
         .isEqualTo(BitVectorInterval.of(INT, scalarFour.negate(), scalarFour));
 
-    BitVectorInterval fiftyNine = BitVectorInterval.of(INT, BigInteger.valueOf(59), BigInteger.valueOf(59));
-    BitVectorInterval zeroTo255 = BitVectorInterval.of(INT, BigInteger.ZERO, BigInteger.valueOf(255));
+    BitVectorInterval fiftyNine =
+        BitVectorInterval.of(INT, BigInteger.valueOf(59), BigInteger.valueOf(59));
+    BitVectorInterval zeroTo255 =
+        BitVectorInterval.of(INT, BigInteger.ZERO, BigInteger.valueOf(255));
     assertThat(MODULO.apply(fiftyNine, zeroTo255))
         .isEqualTo(BitVectorInterval.of(INT, BigInteger.valueOf(0), BigInteger.valueOf(59)));
   }
@@ -126,18 +132,26 @@ public class IIIOperatorTest {
   @Test
   public void testMultiply() {
     BigInteger hundred = BigInteger.valueOf(100);
-    BitVectorInterval negTenToZero = BitVectorInterval.of(INT, BigInteger.TEN.negate(), BigInteger.ZERO);
+    BitVectorInterval negTenToZero =
+        BitVectorInterval.of(INT, BigInteger.TEN.negate(), BigInteger.ZERO);
     BitVectorInterval zeroToTen = BitVectorInterval.of(INT, BigInteger.ZERO, BigInteger.TEN);
     BitVectorInterval negHundredToHundred = BitVectorInterval.of(INT, hundred.negate(), hundred);
-    BitVectorInterval negHundredToZero = BitVectorInterval.of(INT, hundred.negate(), BigInteger.ZERO);
-    BitVectorInterval negTenToTen = BitVectorInterval.of(INT, BigInteger.TEN.negate(), BigInteger.TEN);
+    BitVectorInterval negHundredToZero =
+        BitVectorInterval.of(INT, hundred.negate(), BigInteger.ZERO);
+    BitVectorInterval negTenToTen =
+        BitVectorInterval.of(INT, BigInteger.TEN.negate(), BigInteger.TEN);
     BitVectorInterval zero = BitVectorInterval.singleton(INT, BigInteger.ZERO);
     BitVectorInterval zeroToOne = BitVectorInterval.of(INT, BigInteger.ZERO, BigInteger.ONE);
-    BitVectorInterval minToFive = BitVectorInterval.singleton(INT, BigInteger.valueOf(5)).extendToMinValue();
-    BitVectorInterval minToNegFive = BitVectorInterval.singleton(INT, BigInteger.valueOf(-5)).extendToMinValue();
-    BitVectorInterval twentyToTwentyFive = BitVectorInterval.of(INT, BigInteger.valueOf(20), BigInteger.valueOf(25));
-    BitVectorInterval twoToFour = BitVectorInterval.of(INT, BigInteger.valueOf(2), BigInteger.valueOf(4));
-    BitVectorInterval fortyToHundred = BitVectorInterval.of(INT, BigInteger.valueOf(40), BigInteger.valueOf(100));
+    BitVectorInterval minToFive =
+        BitVectorInterval.singleton(INT, BigInteger.valueOf(5)).extendToMinValue();
+    BitVectorInterval minToNegFive =
+        BitVectorInterval.singleton(INT, BigInteger.valueOf(-5)).extendToMinValue();
+    BitVectorInterval twentyToTwentyFive =
+        BitVectorInterval.of(INT, BigInteger.valueOf(20), BigInteger.valueOf(25));
+    BitVectorInterval twoToFour =
+        BitVectorInterval.of(INT, BigInteger.valueOf(2), BigInteger.valueOf(4));
+    BitVectorInterval fortyToHundred =
+        BitVectorInterval.of(INT, BigInteger.valueOf(40), BigInteger.valueOf(100));
 
     assertThat(MULTIPLY.apply(negTenToZero, zeroToTen)).isEqualTo(negHundredToZero);
     assertThat(MULTIPLY.apply(negTenToZero, negTenToTen)).isEqualTo(negHundredToHundred);
@@ -150,22 +164,38 @@ public class IIIOperatorTest {
 
   @Test
   public void testDivide() {
-    BitVectorInterval negFourToNegTwo = BitVectorInterval.of(INT, BigInteger.valueOf(-4), BigInteger.valueOf(-2));
-    BitVectorInterval negFourToNegOne = BitVectorInterval.of(INT, BigInteger.valueOf(-4), BigInteger.valueOf(-1));
-    BitVectorInterval negTwoToNegOne = BitVectorInterval.of(INT, BigInteger.valueOf(-2), BigInteger.valueOf(-1));
-    BitVectorInterval oneToFour = BitVectorInterval.of(INT, BigInteger.valueOf(1), BigInteger.valueOf(4));
-    BitVectorInterval oneToTwo = BitVectorInterval.of(INT, BigInteger.valueOf(1), BigInteger.valueOf(2));
-    BitVectorInterval twoToFour = BitVectorInterval.of(INT, BigInteger.valueOf(2), BigInteger.valueOf(4));
-    BitVectorInterval negTwentyToTwenty = BitVectorInterval.of(INT, BigInteger.valueOf(-20), BigInteger.valueOf(20));
-    BitVectorInterval negTwoToTwo = BitVectorInterval.of(INT, BigInteger.valueOf(-2), BigInteger.valueOf(2));
-    BitVectorInterval minToTen = BitVectorInterval.singleton(INT, BigInteger.valueOf(10)).extendToMinValue();
-    BitVectorInterval minToFive = BitVectorInterval.singleton(INT, BigInteger.valueOf(5)).extendToMinValue();
-    BitVectorInterval minToNegFive = BitVectorInterval.singleton(INT, BigInteger.valueOf(-5)).extendToMinValue();
-    BitVectorInterval fiveToMax = BitVectorInterval.singleton(INT, BigInteger.valueOf(5)).extendToMaxValue();
-    BitVectorInterval negTwentyToTen = BitVectorInterval.of(INT, BigInteger.valueOf(-20), BigInteger.valueOf(10));
-    BitVectorInterval negTwoToMax = BitVectorInterval.singleton(INT, BigInteger.valueOf(-2)).extendToMaxValue();
-    BitVectorInterval zeroToMax = BitVectorInterval.singleton(INT, BigInteger.ZERO).extendToMaxValue();
-    BitVectorInterval minToZero = BitVectorInterval.singleton(INT, BigInteger.ZERO).extendToMinValue();
+    BitVectorInterval negFourToNegTwo =
+        BitVectorInterval.of(INT, BigInteger.valueOf(-4), BigInteger.valueOf(-2));
+    BitVectorInterval negFourToNegOne =
+        BitVectorInterval.of(INT, BigInteger.valueOf(-4), BigInteger.valueOf(-1));
+    BitVectorInterval negTwoToNegOne =
+        BitVectorInterval.of(INT, BigInteger.valueOf(-2), BigInteger.valueOf(-1));
+    BitVectorInterval oneToFour =
+        BitVectorInterval.of(INT, BigInteger.valueOf(1), BigInteger.valueOf(4));
+    BitVectorInterval oneToTwo =
+        BitVectorInterval.of(INT, BigInteger.valueOf(1), BigInteger.valueOf(2));
+    BitVectorInterval twoToFour =
+        BitVectorInterval.of(INT, BigInteger.valueOf(2), BigInteger.valueOf(4));
+    BitVectorInterval negTwentyToTwenty =
+        BitVectorInterval.of(INT, BigInteger.valueOf(-20), BigInteger.valueOf(20));
+    BitVectorInterval negTwoToTwo =
+        BitVectorInterval.of(INT, BigInteger.valueOf(-2), BigInteger.valueOf(2));
+    BitVectorInterval minToTen =
+        BitVectorInterval.singleton(INT, BigInteger.valueOf(10)).extendToMinValue();
+    BitVectorInterval minToFive =
+        BitVectorInterval.singleton(INT, BigInteger.valueOf(5)).extendToMinValue();
+    BitVectorInterval minToNegFive =
+        BitVectorInterval.singleton(INT, BigInteger.valueOf(-5)).extendToMinValue();
+    BitVectorInterval fiveToMax =
+        BitVectorInterval.singleton(INT, BigInteger.valueOf(5)).extendToMaxValue();
+    BitVectorInterval negTwentyToTen =
+        BitVectorInterval.of(INT, BigInteger.valueOf(-20), BigInteger.valueOf(10));
+    BitVectorInterval negTwoToMax =
+        BitVectorInterval.singleton(INT, BigInteger.valueOf(-2)).extendToMaxValue();
+    BitVectorInterval zeroToMax =
+        BitVectorInterval.singleton(INT, BigInteger.ZERO).extendToMaxValue();
+    BitVectorInterval minToZero =
+        BitVectorInterval.singleton(INT, BigInteger.ZERO).extendToMinValue();
     BitVectorInterval zeroToTwo = BitVectorInterval.of(INT, BigInteger.ZERO, BigInteger.valueOf(2));
 
     assertThat(DIVIDE.apply(minToZero, minToFive)).isEqualTo(INT.getRange());
@@ -201,5 +231,4 @@ public class IIIOperatorTest {
     assertThat(DIVIDE.apply(negTwentyToTwenty, zeroToMax)).isEqualTo(negTwentyToTwenty);
     assertThat(DIVIDE.apply(twoToFour, zeroToTwo)).isEqualTo(oneToFour);
   }
-
 }

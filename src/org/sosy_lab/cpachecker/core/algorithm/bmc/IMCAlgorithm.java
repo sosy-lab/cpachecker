@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundCPA;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -41,6 +42,8 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
+import org.sosy_lab.java_smt.api.ProverEnvironment;
+import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /**
@@ -81,8 +84,11 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final Solver solver;
+  private final PredicateAbstractionManager predAbsMgr;
 
   private final CFA cfa;
+
+  private BooleanFormula finalFixedPoint;
 
   public IMCAlgorithm(
       Algorithm pAlgorithm,
@@ -117,8 +123,11 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     PredicateCPA predCpa = CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, IMCAlgorithm.class);
     solver = predCpa.getSolver();
     pfmgr = predCpa.getPathFormulaManager();
+    predAbsMgr = predCpa.getPredicateManager();
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
+
+    finalFixedPoint = bfmgr.makeFalse();
   }
 
   @Override
@@ -168,11 +177,17 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       stats.bmcPreparation.stop();
       shutdownNotifier.shutdownIfNecessary();
       // BMC
-      boolean isTargetStateReachable =
-          !solver.isUnsat(InterpolationHelper.buildReachTargetStateFormula(bfmgr, pReachedSet));
-      if (isTargetStateReachable) {
-        logger.log(Level.FINE, "A target state is reached by BMC");
-        return AlgorithmStatus.UNSOUND_AND_PRECISE;
+      try (ProverEnvironment bmcProver =
+          solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+        BooleanFormula targetFormula =
+            InterpolationHelper.buildReachTargetStateFormula(bfmgr, pReachedSet);
+        bmcProver.push(targetFormula);
+        boolean isTargetStateReachable = !bmcProver.isUnsat();
+        if (isTargetStateReachable) {
+          logger.log(Level.FINE, "A target state is reached by BMC");
+          analyzeCounterexample(targetFormula, pReachedSet, bmcProver);
+          return AlgorithmStatus.UNSOUND_AND_PRECISE;
+        }
       }
       // Check if interpolation or forward-condition check is applicable
       if (interpolation
@@ -216,6 +231,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             solver.newProverEnvironmentWithInterpolation()) {
           if (reachFixedPointByInterpolation(itpProver, formulas)) {
             InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
+            InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
+                pReachedSet, finalFixedPoint, predAbsMgr, pfmgr);
             return AlgorithmStatus.SOUND_AND_PRECISE;
           }
         }
@@ -323,6 +340,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       logger.log(Level.ALL, "After changing SSA", interpolant);
       if (solver.implies(interpolant, currentImage)) {
         logger.log(Level.INFO, "The current image reaches a fixed point");
+        finalFixedPoint = fmgr.uninstantiate(currentImage);
         return true;
       }
       currentImage = bfmgr.or(currentImage, interpolant);

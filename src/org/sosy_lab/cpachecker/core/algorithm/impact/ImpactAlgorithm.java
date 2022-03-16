@@ -64,10 +64,10 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /**
- * This is an implementation of McMillan's algorithm which was presented in the
- * paper "Lazy Abstraction with Interpolants" and implemented in the tool IMPACT.
+ * This is an implementation of McMillan's algorithm which was presented in the paper "Lazy
+ * Abstraction with Interpolants" and implemented in the tool IMPACT.
  */
-@Options(prefix="impact")
+@Options(prefix = "impact")
 public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
 
   private final LogManager logger;
@@ -116,13 +116,16 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  @Option(secure=true, description="enable the Forced Covering optimization")
+  @Option(secure = true, description = "enable the Forced Covering optimization")
   private boolean useForcedCovering = true;
 
-
-  public ImpactAlgorithm(Configuration config, LogManager pLogger,
+  public ImpactAlgorithm(
+      Configuration config,
+      LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
-      ConfigurableProgramAnalysis pCpa, CFA cfa) throws InvalidConfigurationException {
+      ConfigurableProgramAnalysis pCpa,
+      CFA cfa)
+      throws InvalidConfigurationException {
     config.inject(this);
     logger = pLogger;
     cpa = pCpa;
@@ -130,12 +133,26 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     solver = Solver.create(config, pLogger, pShutdownNotifier);
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
-    pfmgr = new CachingPathFormulaManager(new PathFormulaManagerImpl(fmgr, config, logger, pShutdownNotifier, cfa, AnalysisDirection.FORWARD));
-    imgr = new InterpolationManager(pfmgr, solver, cfa.getLoopStructure(), cfa.getVarClassification(), config, pShutdownNotifier, logger);
+    pfmgr =
+        new CachingPathFormulaManager(
+            new PathFormulaManagerImpl(
+                fmgr, config, logger, pShutdownNotifier, cfa, AnalysisDirection.FORWARD));
+    imgr =
+        new InterpolationManager(
+            pfmgr,
+            solver,
+            cfa.getLoopStructure(),
+            cfa.getVarClassification(),
+            config,
+            pShutdownNotifier,
+            logger);
   }
 
   public AbstractState getInitialState(CFANode location) throws InterruptedException {
-    return new Vertex(bfmgr, bfmgr.makeTrue(), cpa.getInitialState(location, StateSpacePartition.getDefaultPartition()));
+    return new Vertex(
+        bfmgr,
+        bfmgr.makeTrue(),
+        cpa.getInitialState(location, StateSpacePartition.getDefaultPartition()));
   }
 
   public Precision getInitialPrecision(CFANode location) throws InterruptedException {
@@ -165,7 +182,8 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
       CFANode loc = extractLocation(v);
       for (CFAEdge edge : leavingEdges(loc)) {
 
-        Collection<? extends AbstractState> successors = cpa.getTransferRelation().getAbstractSuccessorsForEdge(predecessor, precision, edge);
+        Collection<? extends AbstractState> successors =
+            cpa.getTransferRelation().getAbstractSuccessorsForEdge(predecessor, precision, edge);
         if (successors.isEmpty()) {
           // edge not feasible, create fake vertex
           @SuppressWarnings("unused") // needs to be created because it attaches to parent
@@ -187,7 +205,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
       throws CPAException, SolverException, InterruptedException {
     refinementTime.start();
     try {
-      assert (v.isTarget() && ! bfmgr.isFalse(v.getStateFormula()));
+      assert (v.isTarget() && !bfmgr.isFalse(v.getStateFormula()));
 
       logger.log(Level.FINER, "Refinement on " + v);
 
@@ -208,12 +226,13 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
 
       logger.log(Level.FINER, "Refinement successful");
 
-      path = path.subList(0, path.size()-1); // skip last element, itp is always false there
-      assert cex.getInterpolants().size() ==  path.size();
+      path = path.subList(0, path.size() - 1); // skip last element, itp is always false there
+      assert cex.getInterpolants().size() == path.size();
 
       ImmutableList.Builder<Vertex> changedElements = ImmutableList.builder();
 
-      for (Pair<BooleanFormula, Vertex> interpolationPoint : Pair.zipList(cex.getInterpolants(), path)) {
+      for (Pair<BooleanFormula, Vertex> interpolationPoint :
+          Pair.zipList(cex.getInterpolants(), path)) {
         BooleanFormula itp = interpolationPoint.getFirst();
         Vertex w = interpolationPoint.getSecond();
 
@@ -232,7 +251,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
       }
 
       // itp of last element is always false, set it
-      if (! bfmgr.isFalse(v.getStateFormula())) {
+      if (!bfmgr.isFalse(v.getStateFormula())) {
         v.setStateFormula(bfmgr.makeFalse());
         v.cleanCoverage();
         changedElements.add(v);
@@ -245,15 +264,17 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   /**
-   * Check if a vertex v may potentially be covered by another vertex w.
-   * It checks everything except their state formulas.
+   * Check if a vertex v may potentially be covered by another vertex w. It checks everything except
+   * their state formulas.
    */
-  private boolean mayCover(Vertex v, Vertex w, Precision prec) throws CPAException, InterruptedException {
+  private boolean mayCover(Vertex v, Vertex w, Precision prec)
+      throws CPAException, InterruptedException {
     return (v != w)
         && !w.isCovered() // ???
         && w.isOlderThan(v)
         && !v.isAncestorOf(w)
-        && cpa.getStopOperator().stop(v.getWrappedState(), Collections.singleton(w.getWrappedState()), prec);
+        && cpa.getStopOperator()
+            .stop(v.getWrappedState(), Collections.singleton(w.getWrappedState()), prec);
   }
 
   private boolean cover(Vertex v, Vertex w, Precision prec)
@@ -262,8 +283,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     try {
       assert !v.isCovered();
 
-      if (mayCover(v, w, prec)
-          && solver.implies(v.getStateFormula(), w.getStateFormula())) {
+      if (mayCover(v, w, prec) && solver.implies(v.getStateFormula(), w.getStateFormula())) {
 
         for (Vertex y : v.getSubtree()) {
           y.cleanCoverage();
@@ -280,9 +300,8 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   /**
-   * Preconditions:
-   * v may be covered by w ({@link #mayCover(Vertex, Vertex, Precision)}).
-   * v is not coverable by w in its current state.
+   * Preconditions: v may be covered by w ({@link #mayCover(Vertex, Vertex, Precision)}). v is not
+   * coverable by w in its current state.
    */
   private boolean forceCover(Vertex v, Vertex w, Precision prec)
       throws CPAException, InterruptedException, SolverException {
@@ -303,7 +322,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     // x is common ancestor
     // path is ]x; v] (path from x to v, excluding x, including v)
 
-    List<BooleanFormula> formulas = new ArrayList<>(path.size()+2);
+    List<BooleanFormula> formulas = new ArrayList<>(path.size() + 2);
     {
       PathFormula pf = pfmgr.makeEmptyPathFormula();
       formulas.add(fmgr.instantiate(x.getStateFormula(), SSAMap.emptySSAMap().withDefault(1)));
@@ -331,10 +350,9 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     successfulForcedCovering++;
     logger.log(Level.FINER, "Forced covering successful.");
 
-
     List<BooleanFormula> interpolants = interpolantInfo.getInterpolants();
     assert interpolants.size() == formulas.size() - 1;
-    assert interpolants.size() ==  path.size();
+    assert interpolants.size() == path.size();
 
     for (Pair<BooleanFormula, Vertex> interpolationPoint : Pair.zipList(interpolants, path)) {
       BooleanFormula itp = interpolationPoint.getFirst();
@@ -369,7 +387,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
 
       Precision prec = reached.getPrecision(v);
       for (AbstractState ae : reached.getReached(v)) {
-        Vertex w = (Vertex)ae;
+        Vertex w = (Vertex) ae;
 
         if (cover(v, w, prec)) {
           return true; // v is now covered
@@ -446,17 +464,18 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     return true;
   }
 
-  private void unwind(ReachedSet reached) throws CPAException, InterruptedException, SolverException {
+  private void unwind(ReachedSet reached)
+      throws CPAException, InterruptedException, SolverException {
 
     outer:
     while (true) {
       for (AbstractState ae : reached) {
-        Vertex v = (Vertex)ae;
+        Vertex v = (Vertex) ae;
         if (v.isLeaf() && !v.isCovered()) {
 
           // close parents of v
           List<Vertex> path = getPathFromRootTo(v);
-          path = path.subList(0, path.size()-1); // skip v itself
+          path = path.subList(0, path.size() - 1); // skip v itself
           for (Vertex w : path) {
             if (close(w, reached)) {
               continue outer; // v is now covered
@@ -475,7 +494,8 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  private void addPathFormulasToList(List<Vertex> path, List<BooleanFormula> pathFormulas) throws CPATransferException, InterruptedException {
+  private void addPathFormulasToList(List<Vertex> path, List<BooleanFormula> pathFormulas)
+      throws CPATransferException, InterruptedException {
     PathFormula pf = pfmgr.makeEmptyPathFormula();
     for (Vertex w : path) {
       pf = pfmgr.makeAnd(pf, w.getIncomingEdge());

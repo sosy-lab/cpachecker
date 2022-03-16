@@ -77,7 +77,8 @@ public class CacheCPA implements ConfigurableProgramAnalysis, WrapperCPA {
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) throws InterruptedException {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
+      throws InterruptedException {
     AbstractState lInitialState = mInitialStatesCache.get(pNode);
 
     if (lInitialState == null) {
@@ -89,7 +90,8 @@ public class CacheCPA implements ConfigurableProgramAnalysis, WrapperCPA {
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) throws InterruptedException {
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition)
+      throws InterruptedException {
     Precision lInitialPrecision = mInitialPrecisionsCache.get(pNode);
 
     if (lInitialPrecision == null) {
@@ -101,8 +103,7 @@ public class CacheCPA implements ConfigurableProgramAnalysis, WrapperCPA {
   }
 
   @Override
-  public <T extends ConfigurableProgramAnalysis> T retrieveWrappedCpa(
-      Class<T> pType) {
+  public <T extends ConfigurableProgramAnalysis> T retrieveWrappedCpa(Class<T> pType) {
     if (pType.isAssignableFrom(getClass())) {
       return pType.cast(this);
     }
@@ -110,7 +111,7 @@ public class CacheCPA implements ConfigurableProgramAnalysis, WrapperCPA {
     if (pType.isAssignableFrom(mCachedCPA.getClass())) {
       return pType.cast(mCachedCPA);
     } else if (mCachedCPA instanceof WrapperCPA) {
-      return ((WrapperCPA)mCachedCPA).retrieveWrappedCpa(pType);
+      return ((WrapperCPA) mCachedCPA).retrieveWrappedCpa(pType);
     }
 
     return null;

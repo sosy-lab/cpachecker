@@ -59,17 +59,12 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.globalinfo.AutomatonInfo;
 
-/**
- * This class implements an AutomatonAnalysis as described in the related Documentation.
- */
-@Options(prefix="cpa.automaton")
+/** This class implements an AutomatonAnalysis as described in the related Documentation. */
+@Options(prefix = "cpa.automaton")
 public class ControlAutomatonCPA
-    implements StatisticsProvider,
-        ConfigurableProgramAnalysisWithBAM,
-        ProofCheckerCPA {
+    implements StatisticsProvider, ConfigurableProgramAnalysisWithBAM, ProofCheckerCPA {
 
-  @Option(secure=true, name="dotExport",
-      description="export automaton to file")
+  @Option(secure = true, name = "dotExport", description = "export automaton to file")
   private boolean export = false;
 
   @Option(
@@ -123,15 +118,15 @@ public class ControlAutomatonCPA
               + "state as targets. This should be the standard use case.")
   private boolean treatErrorsAsTargets = true;
 
-  @Option(secure=true, description="Merge two automata states if one of them is TOP.")
-  private boolean mergeOnTop  = false;
+  @Option(secure = true, description = "Merge two automata states if one of them is TOP.")
+  private boolean mergeOnTop = false;
 
   @Option(
-    secure = true,
-    name = "prec.topOnFinalSelfLoopingState",
-    description =
-        "An implicit precision: consider states with a self-loop and no other outgoing edges as TOP."
-  )
+      secure = true,
+      name = "prec.topOnFinalSelfLoopingState",
+      description =
+          "An implicit precision: consider states with a self-loop and no other outgoing edges as"
+              + " TOP.")
   private boolean topOnFinalSelfLoopingState = false;
 
   private final Automaton automaton;
@@ -158,13 +153,14 @@ public class ControlAutomatonCPA
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
     if (pAutomaton != null) {
-      this.automaton = pAutomaton;
+      automaton = pAutomaton;
 
     } else if (inputFile == null) {
-      throw new InvalidConfigurationException("Explicitly specified automaton CPA needs option cpa.automaton.inputFile!");
+      throw new InvalidConfigurationException(
+          "Explicitly specified automaton CPA needs option cpa.automaton.inputFile!");
 
     } else {
-      this.automaton = constructAutomataFromFile(pConfig, inputFile);
+      automaton = constructAutomataFromFile(pConfig, inputFile);
     }
 
     pLogger.log(Level.FINEST, "Automaton", automaton.getName(), "loaded.");
@@ -199,9 +195,8 @@ public class ControlAutomatonCPA
   private Automaton constructAutomataFromFile(Configuration pConfig, Path pFile)
       throws InvalidConfigurationException {
 
-    Scope scope = cfa.getLanguage() == Language.C
-        ? new CProgramScope(cfa, logger)
-        : DummyScope.getInstance();
+    Scope scope =
+        cfa.getLanguage() == Language.C ? new CProgramScope(cfa, logger) : DummyScope.getInstance();
 
     List<Automaton> lst =
         AutomatonParser.parseAutomatonFile(
@@ -214,18 +209,22 @@ public class ControlAutomatonCPA
             shutdownNotifier);
 
     if (lst.isEmpty()) {
-      throw new InvalidConfigurationException("Could not find automata in the file " + inputFile.toAbsolutePath());
+      throw new InvalidConfigurationException(
+          "Could not find automata in the file " + inputFile.toAbsolutePath());
     } else if (lst.size() > 1) {
-      throw new InvalidConfigurationException("Found " + lst.size()
-          + " automata in the File " + inputFile.toAbsolutePath()
-          + " The CPA can only handle ONE Automaton!");
+      throw new InvalidConfigurationException(
+          "Found "
+              + lst.size()
+              + " automata in the File "
+              + inputFile.toAbsolutePath()
+              + " The CPA can only handle ONE Automaton!");
     }
 
     return lst.get(0);
   }
 
   Automaton getAutomaton() {
-    return this.automaton;
+    return automaton;
   }
 
   public void registerInAutomatonInfo(AutomatonInfo info) {
@@ -249,8 +248,7 @@ public class ControlAutomatonCPA
       for (AutomatonTransition t : initState.getTransitions()) {
         if (t.getFollowState().isTarget()) {
           Optional<AExpression> assumptionOpt =
-              t.getAssumptions(null, logger, cfa.getMachineModel())
-                  .stream()
+              t.getAssumptions(null, logger, cfa.getMachineModel()).stream()
                   .collect(MoreCollectors.toOptional());
           safetyProp =
               assumptionOpt.isPresent()
@@ -298,7 +296,7 @@ public class ControlAutomatonCPA
 
   @Override
   public StopOperator getStopOperator() {
-      return new StopSepOperator(getAbstractDomain());
+    return new StopSepOperator(getAbstractDomain());
   }
 
   @Override
@@ -307,11 +305,11 @@ public class ControlAutomatonCPA
   }
 
   public AutomatonState getBottomState() {
-    return this.bottomState;
+    return bottomState;
   }
 
   public AutomatonState getTopState() {
-    return this.topState;
+    return topState;
   }
 
   @Override
@@ -320,7 +318,9 @@ public class ControlAutomatonCPA
   }
 
   @Override
-  public boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
+  public boolean areAbstractSuccessors(
+      AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors)
+      throws CPATransferException, InterruptedException {
     ImmutableSet<? extends AbstractState> successors = ImmutableSet.copyOf(pSuccessors);
     ImmutableSet<? extends AbstractState> actualSuccessors =
         ImmutableSet.copyOf(

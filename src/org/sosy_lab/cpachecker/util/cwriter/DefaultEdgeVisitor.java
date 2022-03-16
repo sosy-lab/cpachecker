@@ -12,7 +12,6 @@ import java.util.Deque;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
-
 public class DefaultEdgeVisitor implements EdgeVisitor {
 
   protected PathTranslator translator;
@@ -25,5 +24,4 @@ public class DefaultEdgeVisitor implements EdgeVisitor {
   public void visit(ARGState childElement, CFAEdge edge, Deque<FunctionBody> functionStack) {
     translator.processEdge(childElement, edge, functionStack);
   }
-
 }

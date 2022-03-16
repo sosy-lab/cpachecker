@@ -10,6 +10,4 @@ package org.sosy_lab.cpachecker.cpa.cfapath;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
-public interface CFAPathState extends AbstractState {
-
-}
+public interface CFAPathState extends AbstractState {}

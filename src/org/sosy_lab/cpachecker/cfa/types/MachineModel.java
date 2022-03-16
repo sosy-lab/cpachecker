@@ -61,20 +61,20 @@ public enum MachineModel {
 
       // alignof numeric types
       2, // short
-      4, //int
-      4, //long int
+      4, // int
+      4, // long int
       4, // long long int
-      4, //float
-      4, //double
-      4, //long double
+      4, // float
+      4, // double
+      4, // long double
 
       // alignof other
       1, // void
-      1, //bool
-      4, //pointer
+      1, // bool
+      4, // pointer
       true, // char is signed
       ByteOrder.LITTLE_ENDIAN // endianness
-  ),
+      ),
 
   /** Machine model representing a 64bit Linux machine with alignment: */
   LINUX64(
@@ -107,7 +107,7 @@ public enum MachineModel {
       8, // pointer
       true, // char is signed
       ByteOrder.LITTLE_ENDIAN // endianness
-  ),
+      ),
 
   /** Machine model representing an ARM machine with alignment: */
   ARM(
@@ -547,8 +547,7 @@ public enum MachineModel {
 
   @SuppressFBWarnings("SE_BAD_FIELD")
   @SuppressWarnings("ImmutableEnumChecker")
-  private final BaseSizeofVisitor sizeofVisitor =
-      new BaseSizeofVisitor(this);
+  private final BaseSizeofVisitor sizeofVisitor = new BaseSizeofVisitor(this);
 
   public static class BaseSizeofVisitor
       implements CTypeVisitor<BigInteger, IllegalArgumentException> {
@@ -565,8 +564,7 @@ public enum MachineModel {
       CExpression arrayLength = pArrayType.getLength();
 
       if (arrayLength instanceof CIntegerLiteralExpression) {
-        BigInteger length =
-            ((CIntegerLiteralExpression) arrayLength).getValue();
+        BigInteger length = ((CIntegerLiteralExpression) arrayLength).getValue();
 
         BigInteger sizeOfType = model.getSizeof(pArrayType.getType());
         return length.multiply(sizeOfType);
@@ -604,8 +602,7 @@ public enum MachineModel {
     }
 
     private BigInteger handleSizeOfStruct(CCompositeType pCompositeType) {
-      return model.getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(
-          pCompositeType, null, null);
+      return model.getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(pCompositeType, null, null);
     }
 
     private BigInteger handleSizeOfUnion(CCompositeType pCompositeType) {
@@ -705,10 +702,7 @@ public enum MachineModel {
     if (pType instanceof CBitFieldType) {
       return BigInteger.valueOf(((CBitFieldType) pType).getBitFieldSize());
     } else {
-      return getSizeof(pType, pSizeofVisitor)
-          .multiply(
-              BigInteger.valueOf(
-                  getSizeofCharInBits()));
+      return getSizeof(pType, pSizeofVisitor).multiply(BigInteger.valueOf(getSizeofCharInBits()));
     }
   }
 
@@ -860,7 +854,7 @@ public enum MachineModel {
 
     getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(pOwnerType, null, outParameterMap);
 
-    return outParameterMap.build();
+    return outParameterMap.buildOrThrow();
   }
 
   /**
@@ -920,7 +914,8 @@ public enum MachineModel {
       }
     } else if (ownerTypeKind == ComplexTypeKind.STRUCT) {
 
-      for (Iterator<CCompositeTypeMemberDeclaration> iterator = typeMembers.iterator(); iterator.hasNext();) {
+      for (Iterator<CCompositeTypeMemberDeclaration> iterator = typeMembers.iterator();
+          iterator.hasNext(); ) {
         CCompositeTypeMemberDeclaration typeMember = iterator.next();
         CType type = typeMember.getType();
 

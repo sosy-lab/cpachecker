@@ -29,15 +29,19 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundCPA;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
+import org.sosy_lab.java_smt.api.ProverEnvironment;
+import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /**
@@ -79,11 +83,15 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   private final Algorithm algorithm;
 
+  private final PathFormulaManager pfmgr;
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final Solver solver;
+  private final PredicateAbstractionManager predAbsMgr;
 
   private final CFA cfa;
+
+  private BooleanFormula finalFixedPoint;
 
   public ISMCAlgorithm(
       Algorithm pAlgorithm,
@@ -117,8 +125,12 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     @SuppressWarnings("resource")
     PredicateCPA predCpa = CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, ISMCAlgorithm.class);
     solver = predCpa.getSolver();
+    pfmgr = predCpa.getPathFormulaManager();
+    predAbsMgr = predCpa.getPredicateManager();
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
+
+    finalFixedPoint = bfmgr.makeFalse();
   }
 
   @Override
@@ -173,11 +185,17 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       stats.bmcPreparation.stop();
       shutdownNotifier.shutdownIfNecessary();
       // BMC
-      boolean isTargetStateReachable =
-          !solver.isUnsat(InterpolationHelper.buildReachTargetStateFormula(bfmgr, pReachedSet));
-      if (isTargetStateReachable) {
-        logger.log(Level.FINE, "A target state is reached by BMC");
-        return AlgorithmStatus.UNSOUND_AND_PRECISE;
+      try (ProverEnvironment bmcProver =
+          solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+        BooleanFormula targetFormula =
+            InterpolationHelper.buildReachTargetStateFormula(bfmgr, pReachedSet);
+        bmcProver.push(targetFormula);
+        boolean isTargetStateReachable = !bmcProver.isUnsat();
+        if (isTargetStateReachable) {
+          logger.log(Level.FINE, "A target state is reached by BMC");
+          analyzeCounterexample(targetFormula, pReachedSet, bmcProver);
+          return AlgorithmStatus.UNSOUND_AND_PRECISE;
+        }
       }
       // Check if interpolation or forward-condition check is applicable
       if (interpolation
@@ -222,6 +240,8 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
         if (reachFixedPoint(reachVector)) {
           InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
+          InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
+              pReachedSet, finalFixedPoint, predAbsMgr, pfmgr);
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
       }
@@ -350,6 +370,7 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         BooleanFormula imageAtI = reachVector.get(i);
         if (solver.implies(lastImage, imageAtI)) {
           logger.log(Level.INFO, "Fixed point reached");
+          finalFixedPoint = bfmgr.or(reachVector);
           return true;
         }
       }
@@ -359,6 +380,7 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         BooleanFormula imageAtI = reachVector.get(i);
         if (solver.implies(imageAtI, currentImage)) {
           logger.log(Level.INFO, "Fixed point reached");
+          finalFixedPoint = currentImage;
           return true;
         }
         currentImage = bfmgr.or(currentImage, imageAtI);

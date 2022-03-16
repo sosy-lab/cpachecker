@@ -31,8 +31,7 @@ import org.sosy_lab.cpachecker.util.coverage.CoverageReportStdoutSummary;
 @Options
 public class CoverageStatistics implements Statistics {
 
-  @Option(secure=true, name="coverage.file",
-      description="print coverage info to file")
+  @Option(secure = true, name = "coverage.file", description = "print coverage info to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path outputCoverageFile = Path.of("coverage.info");
 
@@ -44,8 +43,8 @@ public class CoverageStatistics implements Statistics {
 
     pConfig.inject(this);
 
-    this.logger = pLogger;
-    this.cov = pCov;
+    logger = pLogger;
+    cov = pCov;
   }
 
   @Override

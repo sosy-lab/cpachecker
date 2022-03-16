@@ -49,11 +49,9 @@ public class BAMDataManagerImpl implements BAMDataManager {
   private final LogManager logger;
 
   /**
-   * Main data structure.
-   * Contains every {@link ReachedSet} of every recursive
-   * {@link org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm}
-   * invocation.
-   * */
+   * Main data structure. Contains every {@link ReachedSet} of every recursive {@link
+   * org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm} invocation.
+   */
   private final BAMCache bamCache;
 
   private final AbstractBAMCPA bamCpa;
@@ -88,9 +86,7 @@ public class BAMDataManagerImpl implements BAMDataManager {
     }
   }
 
-  /**
-   * The corresponding blocks will not start the recursive analysis
-   */
+  /** The corresponding blocks will not start the recursive analysis */
   private final Set<CFANode> uncachedBlockEntries = new HashSet<>();
 
   public BAMDataManagerImpl(
@@ -105,11 +101,10 @@ public class BAMDataManagerImpl implements BAMDataManager {
   }
 
   /**
-   * Associate the value previously associated with {@code oldState} with
-   * {@code newState}.
+   * Associate the value previously associated with {@code oldState} with {@code newState}.
    *
-   * @param oldStateMustExist If set, assumes that {@code oldState} is in the
-   *                          cache, otherwise, fails silently if it isn't.
+   * @param oldStateMustExist If set, assumes that {@code oldState} is in the cache, otherwise,
+   *     fails silently if it isn't.
    */
   @Override
   public void replaceStateInCaches(
@@ -138,12 +133,15 @@ public class BAMDataManagerImpl implements BAMDataManager {
   }
 
   /**
-   * Register an expanded state in our data-manager,
-   * such that we know later, which state in which block was expanded to the state.
-   * */
+   * Register an expanded state in our data-manager, such that we know later, which state in which
+   * block was expanded to the state.
+   */
   @Override
-  public void registerExpandedState(AbstractState expandedState, Precision expandedPrecision,
-      AbstractState reducedState, Block innerBlock) {
+  public void registerExpandedState(
+      AbstractState expandedState,
+      Precision expandedPrecision,
+      AbstractState reducedState,
+      Block innerBlock) {
     BlockExitData previousValue =
         expandedStateToBlockExit.put(
             expandedState, new BlockExitData(reducedState, innerBlock, expandedPrecision));
@@ -213,7 +211,8 @@ public class BAMDataManagerImpl implements BAMDataManager {
       // This happens, when the reducer changes, e.g., BAMPredicateRefiner.refineRelevantPredicates.
       logger.logf(
           Level.ALL,
-          "New root state %s with exit state %s overrides old reachedset %s with new reachedset %s.",
+          "New root state %s with exit state %s overrides old reachedset %s with new reachedset"
+              + " %s.",
           initialState,
           exitState,
           oldReachedSet.getFirstState(),

@@ -54,13 +54,16 @@ public abstract class ARGSubtreeRemover {
   }
 
   /**
-   *  Update the reached-sets such that the subtree below the given state is removed and
-   * the state itself is updated with the new precision. The sub-class can decide how many
-   * other states are updated and whether the cache is touched.
+   * Update the reached-sets such that the subtree below the given state is removed and the state
+   * itself is updated with the new precision. The sub-class can decide how many other states are
+   * updated and whether the cache is touched.
    */
-  abstract void removeSubtree(ARGReachedSet pMainReachedSet, ARGPath pPath,
-                     ARGState pState, List<Precision> pNewPrecisions,
-                     List<Predicate<? super Precision>> pNewPrecisionTypes)
+  abstract void removeSubtree(
+      ARGReachedSet pMainReachedSet,
+      ARGPath pPath,
+      ARGState pState,
+      List<Precision> pNewPrecisions,
+      List<Predicate<? super Precision>> pNewPrecisionTypes)
       throws InterruptedException;
 
   protected ARGState getReachedState(ARGState state) {
@@ -71,7 +74,8 @@ public abstract class ARGSubtreeRemover {
    * Returns a mapping of wrapped non-reduced init-state towards non-wrapped reduced exit-state
    * along the path.
    */
-  protected Map<BackwardARGState, ARGState> getBlockInitAndExitStates(ImmutableList<ARGState> path) {
+  protected Map<BackwardARGState, ARGState> getBlockInitAndExitStates(
+      ImmutableList<ARGState> path) {
     final Map<BackwardARGState, ARGState> blockInitAndExitStates = new LinkedHashMap<>();
     final Deque<BackwardARGState> openCallStates = new ArrayDeque<>();
     for (final ARGState bamState : path) {
@@ -92,7 +96,8 @@ public abstract class ARGSubtreeRemover {
 
       if (data.hasInitialState(state)) {
         assert partitioning.isCallNode(extractLocation(state))
-            : "the mapping of initial state to reached-set should only exist for block-start-locations";
+            : "the mapping of initial state to reached-set should only exist for"
+                + " block-start-locations";
         // we start a new sub-reached-set, add state as start-state of a (possibly) open block.
         // if we are at lastState, we do not want to enter the block
         openCallStates.push((BackwardARGState) bamState);
@@ -104,22 +109,27 @@ public abstract class ARGSubtreeRemover {
     return blockInitAndExitStates;
   }
 
-  /** returns only those states, where a block starts that is 'open' at the cutState.
-   * main-RS-root is only included, if it was reduced in TransferRelation. */
-  protected List<BackwardARGState> getRelevantCallStates(List<ARGState> path, ARGState bamCutState) {
+  /**
+   * returns only those states, where a block starts that is 'open' at the cutState. main-RS-root is
+   * only included, if it was reduced in TransferRelation.
+   */
+  protected List<BackwardARGState> getRelevantCallStates(
+      List<ARGState> path, ARGState bamCutState) {
     final Deque<BackwardARGState> openCallStates = new ArrayDeque<>();
     for (final ARGState pathState : path) {
 
       final BackwardARGState bamState = (BackwardARGState) pathState;
       final ARGState state = bamState.getARGState();
 
-      // ASSUMPTION: there can be several block-exits at once per location, but only one block-entry per location.
+      // ASSUMPTION: there can be several block-exits at once per location, but only one block-entry
+      // per location.
 
       // we use a loop here, because a return-node can be the exit of several blocks at once.
       ARGState tmp = state;
       while (data.hasExpandedState(tmp) && !bamCutState.equals(bamState)) {
         assert partitioning.isReturnNode(extractLocation(tmp))
-            : "the mapping of expanded to reduced state should only exist for block-return-locations";
+            : "the mapping of expanded to reduced state should only exist for"
+                + " block-return-locations";
         // we are leaving a block, remove the start-state from the stack.
         tmp = (ARGState) data.getReducedStateForExpandedState(tmp);
         openCallStates.removeLast();
@@ -136,7 +146,8 @@ public abstract class ARGSubtreeRemover {
 
       if (data.hasInitialState(state)) {
         assert partitioning.isCallNode(extractLocation(state))
-            : "the mapping of initial state to reached-set should only exist for block-start-locations";
+            : "the mapping of initial state to reached-set should only exist for"
+                + " block-start-locations";
         // we start a new sub-reached-set, add state as start-state of a (possibly) open block.
         // if we are at lastState, we do not want to enter the block
         openCallStates.addLast(bamState);

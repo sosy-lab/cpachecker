@@ -47,33 +47,41 @@ public class CHCTransferRelation extends SingleEdgeTransferRelation {
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState state, Precision precision, CFAEdge cfaEdge)
-          throws CPATransferException, InterruptedException {
+      throws CPATransferException, InterruptedException {
 
-    logger.log(Level.FINEST,
-      "\n * " + cfaEdge.getEdgeType() + ", " +
-      "description: \"" + cfaEdge.getDescription() + "\", " +
-      "from " + cfaEdge.getPredecessor().getNodeNumber()  + " "  +
-      "to " +   cfaEdge.getSuccessor().getNodeNumber() + ".");
+    logger.log(
+        Level.FINEST,
+        "\n * "
+            + cfaEdge.getEdgeType()
+            + ", "
+            + "description: \""
+            + cfaEdge.getDescription()
+            + "\", "
+            + "from "
+            + cfaEdge.getPredecessor().getNodeNumber()
+            + " "
+            + "to "
+            + cfaEdge.getSuccessor().getNodeNumber()
+            + ".");
 
-    CHCState currentState = (CHCState)state;
+    CHCState currentState = (CHCState) state;
 
     CHCState newState = null;
 
     switch (cfaEdge.getEdgeType()) {
+      case AssumeEdge:
+        return handleAssumeEdge(currentState, (AssumeEdge) cfaEdge);
 
-    case AssumeEdge:
-      return handleAssumeEdge(currentState, (AssumeEdge)cfaEdge);
+      case FunctionCallEdge:
+        newState = handleFunctionCallEdge(currentState, (FunctionCallEdge) cfaEdge);
+        break;
 
-    case FunctionCallEdge:
-      newState = handleFunctionCallEdge(currentState, (FunctionCallEdge)cfaEdge);
-      break;
+      case FunctionReturnEdge:
+        newState = handleFunctionReturnEdge(currentState, (FunctionReturnEdge) cfaEdge);
+        break;
 
-    case FunctionReturnEdge:
-      newState = handleFunctionReturnEdge(currentState, (FunctionReturnEdge)cfaEdge);
-      break;
-
-    default:
-      newState = handleSimpleEdge(currentState, cfaEdge);
+      default:
+        newState = handleSimpleEdge(currentState, cfaEdge);
     }
 
     if (newState == null) {
@@ -83,13 +91,9 @@ public class CHCTransferRelation extends SingleEdgeTransferRelation {
     }
   }
 
-
   private Collection<CHCState> handleAssumeEdge(CHCState currentState, AssumeEdge cfaEdge) {
     List<Constraint> cns = ConstraintManager.getConstraint(cfaEdge);
-    return createStatesFromConstraints(
-        currentState,
-        cfaEdge.getSuccessor().getNodeNumber(),
-        cns);
+    return createStatesFromConstraints(currentState, cfaEdge.getSuccessor().getNodeNumber(), cns);
   }
 
   private Collection<CHCState> createStatesFromConstraints(
@@ -101,7 +105,7 @@ public class CHCTransferRelation extends SingleEdgeTransferRelation {
         newState = new CHCState(current);
         newState.setNodeNumber(nodeId);
         newState.updateConstraint(cn);
-        if (! newState.isBottom()) {
+        if (!newState.isBottom()) {
           newStates.add(newState);
         }
       }
@@ -118,68 +122,64 @@ public class CHCTransferRelation extends SingleEdgeTransferRelation {
     }
   }
 
-
   /** handler for simple edges */
-  private CHCState handleSimpleEdge(CHCState state, CFAEdge cfaEdge)
-    throws CPATransferException {
+  private CHCState handleSimpleEdge(CHCState state, CFAEdge cfaEdge) throws CPATransferException {
 
     CHCState newState = new CHCState(state);
 
     switch (cfaEdge.getEdgeType()) {
-    case DeclarationEdge:
-      newState.setNodeNumber(cfaEdge.getSuccessor().getNodeNumber());
-      newState.updateConstraint(ConstraintManager.getConstraint((CDeclarationEdge) cfaEdge));
-      return newState;
+      case DeclarationEdge:
+        newState.setNodeNumber(cfaEdge.getSuccessor().getNodeNumber());
+        newState.updateConstraint(ConstraintManager.getConstraint((CDeclarationEdge) cfaEdge));
+        return newState;
 
-    case StatementEdge:
-      return handleStatementEdge(state, (CStatementEdge) cfaEdge);
+      case StatementEdge:
+        return handleStatementEdge(state, (CStatementEdge) cfaEdge);
 
-    case ReturnStatementEdge:
-      newState.setNodeNumber(cfaEdge.getSuccessor().getNodeNumber());
-      newState.updateConstraint(ConstraintManager.getConstraint((AReturnStatementEdge) cfaEdge));
-      return newState;
+      case ReturnStatementEdge:
+        newState.setNodeNumber(cfaEdge.getSuccessor().getNodeNumber());
+        newState.updateConstraint(ConstraintManager.getConstraint((AReturnStatementEdge) cfaEdge));
+        return newState;
 
-    case BlankEdge:
-    case CallToReturnEdge:
-      return state;
+      case BlankEdge:
+      case CallToReturnEdge:
+        return state;
 
-    default:
-      throw new UnrecognizedCFAEdgeException(cfaEdge);
+      default:
+        throw new UnrecognizedCFAEdgeException(cfaEdge);
     }
   }
 
-
-  /** This function handles statements like "a = 0;" and "b = !a;" and
-   * calls of external functions. */
+  /**
+   * This function handles statements like "a = 0;" and "b = !a;" and calls of external functions.
+   */
   private CHCState handleStatementEdge(CHCState state, CStatementEdge cfaEdge) {
 
     CHCState newState = new CHCState(state);
     newState.setNodeNumber(cfaEdge.getSuccessor().getNodeNumber());
     final CStatement statement = cfaEdge.getStatement();
 
-      // assignment
-      if (statement instanceof CAssignment) {
-      final CAssignment ca = (CAssignment)statement;
+    // assignment
+    if (statement instanceof CAssignment) {
+      final CAssignment ca = (CAssignment) statement;
       final CRightHandSide rhs = ca.getRightHandSide();
-        // regular assignment, "a = ..."
-        if (rhs instanceof CExpression) {
-          newState.updateConstraint(ConstraintManager.getConstraint(ca));
-          if (newState.isBottom()) {
-            return null;
-          }
-        // call to external function
-        //(internal function calls are handled as FunctionCallEdges)
-        } else if (rhs instanceof CFunctionCallExpression) {
-          newState.updateConstraint(
-            ConstraintManager.getConstraint(ca.getLeftHandSide(),
-                  (CFunctionCallExpression)rhs));
-        } else {
-          throw new AssertionError("unhandled assignment: " + cfaEdge.getRawStatement());
+      // regular assignment, "a = ..."
+      if (rhs instanceof CExpression) {
+        newState.updateConstraint(ConstraintManager.getConstraint(ca));
+        if (newState.isBottom()) {
+          return null;
         }
+        // call to external function
+        // (internal function calls are handled as FunctionCallEdges)
+      } else if (rhs instanceof CFunctionCallExpression) {
+        newState.updateConstraint(
+            ConstraintManager.getConstraint(ca.getLeftHandSide(), (CFunctionCallExpression) rhs));
+      } else {
+        throw new AssertionError("unhandled assignment: " + cfaEdge.getRawStatement());
       }
+    }
     return newState;
   }
-
 
   private CHCState handleFunctionCallEdge(CHCState state, FunctionCallEdge fcallEdge) {
 

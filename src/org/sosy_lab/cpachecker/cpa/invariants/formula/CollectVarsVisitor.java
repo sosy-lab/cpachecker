@@ -15,15 +15,16 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
- * Instances of this class are visitors that are used to collect the variables
- * used in the given formulae. Possible environments are ignored by these
- * visitors, thus variables are not evaluated any further. This means, that in
- * a formula ((x + y) * z) only the variables x, y and z are found, even if for
- * example an environment exists that states that x = a + b.
+ * Instances of this class are visitors that are used to collect the variables used in the given
+ * formulae. Possible environments are ignored by these visitors, thus variables are not evaluated
+ * any further. This means, that in a formula ((x + y) * z) only the variables x, y and z are found,
+ * even if for example an environment exists that states that x = a + b.
  *
  * @param <T> the type of the constants used in the formulae.
  */
-public class CollectVarsVisitor<T> implements NumeralFormulaVisitor<T, Set<MemoryLocation>>, BooleanFormulaVisitor<T, Set<MemoryLocation>> {
+public class CollectVarsVisitor<T>
+    implements NumeralFormulaVisitor<T, Set<MemoryLocation>>,
+        BooleanFormulaVisitor<T, Set<MemoryLocation>> {
 
   @Override
   public Set<MemoryLocation> visit(Add<T> pAdd) {
@@ -102,7 +103,8 @@ public class CollectVarsVisitor<T> implements NumeralFormulaVisitor<T, Set<Memor
 
   @Override
   public Set<MemoryLocation> visit(ShiftRight<T> pShiftRight) {
-    return concat(pShiftRight.getShifted().accept(this), pShiftRight.getShiftDistance().accept(this));
+    return concat(
+        pShiftRight.getShifted().accept(this), pShiftRight.getShiftDistance().accept(this));
   }
 
   @Override
@@ -131,8 +133,7 @@ public class CollectVarsVisitor<T> implements NumeralFormulaVisitor<T, Set<Memor
         pIfThenElse.getCondition().accept(this),
         concat(
             pIfThenElse.getPositiveCase().accept(this),
-            pIfThenElse.getNegativeCase().accept(this))
-        );
+            pIfThenElse.getNegativeCase().accept(this)));
   }
 
   @Override
@@ -145,7 +146,6 @@ public class CollectVarsVisitor<T> implements NumeralFormulaVisitor<T, Set<Memor
    *
    * @param a the first set.
    * @param b the second set.
-   *
    * @return the concatenation of the given sets.
    */
   private static <T> Set<T> concat(Set<T> a, Set<T> b) {
@@ -193,5 +193,4 @@ public class CollectVarsVisitor<T> implements NumeralFormulaVisitor<T, Set<Memor
     a.addAll(b);
     return a;
   }
-
 }

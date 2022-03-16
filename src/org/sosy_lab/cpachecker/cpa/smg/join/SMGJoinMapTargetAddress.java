@@ -75,7 +75,7 @@ final class SMGJoinMapTargetAddress {
       return;
     }
 
-    if(pAddress1.equals(pAddress2)) {
+    if (pAddress1.equals(pAddress2)) {
       value = pAddress1;
     } else {
       value = SMGKnownSymValue.of();

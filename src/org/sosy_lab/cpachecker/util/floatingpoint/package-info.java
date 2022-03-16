@@ -6,8 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * A package to model C floating-point types
- * in Java.
- */
+/** A package to model C floating-point types in Java. */
 package org.sosy_lab.cpachecker.util.floatingpoint;

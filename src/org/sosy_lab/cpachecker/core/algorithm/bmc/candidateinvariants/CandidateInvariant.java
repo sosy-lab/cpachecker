@@ -20,7 +20,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-
 public interface CandidateInvariant {
 
   /**
@@ -29,11 +28,8 @@ public interface CandidateInvariant {
    * @param pFMGR the formula manager.
    * @param pPFMGR the path formula manager.
    * @param pContext the path formula context.
-   *
    * @return the uninstantiated invariant formula.
-   *
-   * @throws CPATransferException if a CPA transfer required to produce the
-   * assertion failed.
+   * @throws CPATransferException if a CPA transfer required to produce the assertion failed.
    * @throws InterruptedException if the formula creation was interrupted.
    */
   BooleanFormula getFormula(
@@ -56,8 +52,8 @@ public interface CandidateInvariant {
       throws CPATransferException, InterruptedException;
 
   /**
-   * Assume that the invariant holds and remove states from the given reached
-   * set that must therefore be unreachable.
+   * Assume that the invariant holds and remove states from the given reached set that must
+   * therefore be unreachable.
    *
    * @param pReachedSet the reached set to remove unreachable states from.
    */

@@ -549,7 +549,9 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
     // add dependencies for actual-out nodes that use pCause
     EdgeDefUseData defUseDataWithoutParams =
         defUseExtractor.extract(getFunctionCallWithoutParameters(summaryEdge));
-    if (defUseDataWithoutParams.getUses().contains(pCause)) {
+    if (defUseDataWithoutParams.getUses().contains(pCause)
+        || (defUseDataWithoutParams.getDefs().contains(pCause)
+            && pEdgeType == EdgeType.DECLARATION_EDGE)) {
       builder
           .node(NodeType.ACTUAL_OUT, pDefFunction, useEdge, returnVariable)
           .depends(pEdgeType, Optional.of(pCause))
@@ -615,84 +617,81 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
       boolean pIsDeclaration) {
 
     Optional<AFunctionDeclaration> defFunction = getOptionalFunction(pDefEdge);
-            Optional<AFunctionDeclaration> useFunction = getOptionalFunction(pUseEdge);
-            Optional<CFAEdge> defEdge = Optional.of(pDefEdge);
-            Optional<CFAEdge> useEdge = Optional.of(pUseEdge);
+    Optional<AFunctionDeclaration> useFunction = getOptionalFunction(pUseEdge);
+    Optional<CFAEdge> defEdge = Optional.of(pDefEdge);
+    Optional<CFAEdge> useEdge = Optional.of(pUseEdge);
 
-            if (pDefEdge instanceof CFunctionSummaryEdge && pUseEdge instanceof CFunctionCallEdge) {
-              insertDefSummaryUseCallEdges(defFunction, useFunction, defEdge, pCause);
-            } else if (pDefEdge instanceof CFunctionReturnEdge
-                && pUseEdge instanceof CFunctionSummaryEdge) {
-              insertDefReturnUseSummaryEdges(defFunction, useFunction, useEdge, pCause);
-            } else {
+    if (pDefEdge instanceof CFunctionSummaryEdge && pUseEdge instanceof CFunctionCallEdge) {
+      insertDefSummaryUseCallEdges(defFunction, useFunction, defEdge, pCause);
+    } else if (pDefEdge instanceof CFunctionReturnEdge
+        && pUseEdge instanceof CFunctionSummaryEdge) {
+      insertDefReturnUseSummaryEdges(defFunction, useFunction, useEdge, pCause);
+    } else {
 
-              EdgeType edgeType =
-                  pIsDeclaration ? EdgeType.DECLARATION_EDGE : EdgeType.FLOW_DEPENDENCY;
-              NodeType defNodeType;
-              Optional<MemoryLocation> defNodeVariable = Optional.empty();
+      EdgeType edgeType = pIsDeclaration ? EdgeType.DECLARATION_EDGE : EdgeType.FLOW_DEPENDENCY;
+      NodeType defNodeType;
+      Optional<MemoryLocation> defNodeVariable = Optional.empty();
 
-              if (pDefEdge instanceof CFunctionCallEdge) {
-                defEdge = Optional.empty();
-                defNodeType = NodeType.FORMAL_IN;
-                defNodeVariable = Optional.of(pCause);
-              } else if (pDefEdge instanceof CFunctionReturnEdge) {
-                defEdge = Optional.empty();
-                defNodeType = NodeType.FORMAL_OUT;
-                defNodeVariable = Optional.of(pCause);
-              } else if (pDefEdge instanceof CFunctionSummaryEdge) {
+      if (pDefEdge instanceof CFunctionCallEdge) {
+        defEdge = Optional.empty();
+        defNodeType = NodeType.FORMAL_IN;
+        defNodeVariable = Optional.of(pCause);
+      } else if (pDefEdge instanceof CFunctionReturnEdge) {
+        defEdge = Optional.empty();
+        defNodeType = NodeType.FORMAL_OUT;
+        defNodeVariable = Optional.of(pCause);
+      } else if (pDefEdge instanceof CFunctionSummaryEdge) {
 
-                defNodeType = NodeType.ACTUAL_OUT;
-                defNodeVariable = Optional.of(pCause);
+        defNodeType = NodeType.ACTUAL_OUT;
+        defNodeVariable = Optional.of(pCause);
 
-                CFunctionSummaryEdge summaryEdge = (CFunctionSummaryEdge) pDefEdge;
-                CFunctionCall functionCall = getFunctionCallWithoutParameters(summaryEdge);
-                EdgeDefUseData defUseData = defUseExtractor.extract(functionCall);
+        CFunctionSummaryEdge summaryEdge = (CFunctionSummaryEdge) pDefEdge;
+        CFunctionCall functionCall = getFunctionCallWithoutParameters(summaryEdge);
+        EdgeDefUseData defUseData = defUseExtractor.extract(functionCall);
 
-                if (defUseData.getDefs().contains(pCause)) {
-                  defNodeVariable = getReturnVariable(summaryEdge);
-                } else {
-                  for (CExpression pointeeExpression : defUseData.getPointeeDefs()) {
-                    if (pointerState
-                        .getPossiblePointees(pDefEdge, pointeeExpression)
-                        .contains(pCause)) {
-                      defNodeVariable = getReturnVariable(summaryEdge);
-                    }
-                  }
-                }
-              } else {
-                defNodeType = NodeType.STATEMENT;
-              }
-
-              if (pUseEdge instanceof CFunctionCallEdge) {
-                builder
-                    .node(NodeType.FORMAL_IN, useFunction, Optional.empty(), Optional.of(pCause))
-                    .depends(edgeType, Optional.of(pCause))
-                    .on(defNodeType, defFunction, defEdge, defNodeVariable);
-              } else if (pUseEdge instanceof CFunctionReturnEdge) {
-                builder
-                    .node(NodeType.FORMAL_OUT, useFunction, Optional.empty(), Optional.of(pCause))
-                    .depends(edgeType, Optional.of(pCause))
-                    .on(defNodeType, defFunction, defEdge, defNodeVariable);
-              } else if (pUseEdge instanceof CFunctionSummaryEdge) {
-
-                insertUseSummaryEdges(
-                    pointerState,
-                    foreignDefUseData,
-                    defNodeType,
-                    defFunction,
-                    defEdge,
-                    defNodeVariable,
-                    pUseEdge,
-                    pCause,
-                    edgeType);
-
-              } else {
-                builder
-                    .node(NodeType.STATEMENT, useFunction, useEdge, Optional.empty())
-                    .depends(edgeType, Optional.of(pCause))
-                    .on(defNodeType, defFunction, defEdge, defNodeVariable);
-              }
+        if (defUseData.getDefs().contains(pCause)) {
+          defNodeVariable = getReturnVariable(summaryEdge);
+        } else {
+          for (CExpression pointeeExpression : defUseData.getPointeeDefs()) {
+            if (pointerState.getPossiblePointees(pDefEdge, pointeeExpression).contains(pCause)) {
+              defNodeVariable = getReturnVariable(summaryEdge);
             }
+          }
+        }
+      } else {
+        defNodeType = NodeType.STATEMENT;
+      }
+
+      if (pUseEdge instanceof CFunctionCallEdge) {
+        builder
+            .node(NodeType.FORMAL_IN, useFunction, Optional.empty(), Optional.of(pCause))
+            .depends(edgeType, Optional.of(pCause))
+            .on(defNodeType, defFunction, defEdge, defNodeVariable);
+      } else if (pUseEdge instanceof CFunctionReturnEdge) {
+        builder
+            .node(NodeType.FORMAL_OUT, useFunction, Optional.empty(), Optional.of(pCause))
+            .depends(edgeType, Optional.of(pCause))
+            .on(defNodeType, defFunction, defEdge, defNodeVariable);
+      } else if (pUseEdge instanceof CFunctionSummaryEdge) {
+
+        insertUseSummaryEdges(
+            pointerState,
+            foreignDefUseData,
+            defNodeType,
+            defFunction,
+            defEdge,
+            defNodeVariable,
+            pUseEdge,
+            pCause,
+            edgeType);
+
+      } else {
+        builder
+            .node(NodeType.STATEMENT, useFunction, useEdge, Optional.empty())
+            .depends(edgeType, Optional.of(pCause))
+            .on(defNodeType, defFunction, defEdge, defNodeVariable);
+      }
+    }
   }
 
   private void insertFlowDependencies(ImmutableSet<AFunctionDeclaration> pReachableFunctions)
@@ -790,6 +789,46 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
     pStatsCollection.add(
         new Statistics() {
 
+          private String getNodeCountDescription(SystemDependenceGraph.NodeType pNodeType) {
+            // TODO: use switch expression when project is on Java >= 14
+            switch (pNodeType) {
+              case ENTRY:
+                return "Number of entry nodes";
+              case STATEMENT:
+                return "Number of statement nodes";
+              case FORMAL_IN:
+                return "Number of formal-in nodes";
+              case FORMAL_OUT:
+                return "Number of formal-out nodes";
+              case ACTUAL_IN:
+                return "Number of actual-in nodes";
+              case ACTUAL_OUT:
+                return "Number of actual-out nodes";
+              default:
+                return "Number of " + pNodeType + " nodes";
+            }
+          }
+
+          private String getEdgeCountDescription(SystemDependenceGraph.EdgeType pEdgeType) {
+            // TODO: use switch expression when project is on Java >= 14
+            switch (pEdgeType) {
+              case FLOW_DEPENDENCY:
+                return "Number of flow dependencies";
+              case CONTROL_DEPENDENCY:
+                return "Number of control dependencies";
+              case DECLARATION_EDGE:
+                return "Number of declaration edges";
+              case CALL_EDGE:
+                return "Number of call edges";
+              case PARAMETER_EDGE:
+                return "Number of parameter edges";
+              case SUMMARY_EDGE:
+                return "Number of summary edges";
+              default:
+                return "Number of " + pEdgeType + " edges";
+            }
+          }
+
           @Override
           public void printStatistics(
               final PrintStream pOut, final Result pResult, final UnmodifiableReachedSet pReached) {
@@ -804,85 +843,17 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
               put(pOut, detailsIndentation, controlDependenceTimer);
               put(pOut, detailsIndentation, summaryEdgeTimer);
 
-              int entryNodeCount = systemDependenceGraph.getNodeCount(NodeType.ENTRY);
-              put(
-                  pOut,
-                  detailsIndentation,
-                  "Number of entry nodes",
-                  String.valueOf(entryNodeCount));
+              for (var nodeType : SystemDependenceGraph.NodeType.values()) {
+                int nodeCount = systemDependenceGraph.getNodeCount(nodeType);
+                String description = getNodeCountDescription(nodeType);
+                put(pOut, detailsIndentation, description, String.valueOf(nodeCount));
+              }
 
-              int statementCount = systemDependenceGraph.getNodeCount(NodeType.STATEMENT);
-              put(
-                  pOut,
-                  detailsIndentation,
-                  "Number of statement nodes",
-                  String.valueOf(statementCount));
-
-              int formalInCount = systemDependenceGraph.getNodeCount(NodeType.FORMAL_IN);
-              put(
-                  pOut,
-                  detailsIndentation,
-                  "Number of formal-in nodes",
-                  String.valueOf(formalInCount));
-
-              int formalOutCount = systemDependenceGraph.getNodeCount(NodeType.FORMAL_OUT);
-              put(
-                  pOut,
-                  detailsIndentation,
-                  "Number of formal-out nodes",
-                  String.valueOf(formalOutCount));
-
-              int actualInCount = systemDependenceGraph.getNodeCount(NodeType.ACTUAL_IN);
-              put(
-                  pOut,
-                  detailsIndentation,
-                  "Number of actual-in nodes",
-                  String.valueOf(actualInCount));
-
-              int actualOutCount = systemDependenceGraph.getNodeCount(NodeType.ACTUAL_OUT);
-              put(
-                  pOut,
-                  detailsIndentation,
-                  "Number of actual-out nodes",
-                  String.valueOf(actualOutCount));
-
-              int flowDepCount = systemDependenceGraph.getEdgeCount(EdgeType.FLOW_DEPENDENCY);
-              put(
-                  pOut,
-                  detailsIndentation,
-                  "Number of flow dependencies",
-                  String.valueOf(flowDepCount));
-
-              int controlDepCount = systemDependenceGraph.getEdgeCount(EdgeType.CONTROL_DEPENDENCY);
-              put(
-                  pOut,
-                  detailsIndentation,
-                  "Number of control dependencies",
-                  String.valueOf(controlDepCount));
-
-              int declEdgeCount = systemDependenceGraph.getEdgeCount(EdgeType.DECLARATION_EDGE);
-              put(
-                  pOut,
-                  detailsIndentation,
-                  "Number of declaration edges",
-                  String.valueOf(declEdgeCount));
-
-              int callEdgeCount = systemDependenceGraph.getEdgeCount(EdgeType.CALL_EDGE);
-              put(pOut, detailsIndentation, "Number of call edges", String.valueOf(callEdgeCount));
-
-              int paramEdgeCount = systemDependenceGraph.getEdgeCount(EdgeType.PARAMETER_EDGE);
-              put(
-                  pOut,
-                  detailsIndentation,
-                  "Number of parameter edges",
-                  String.valueOf(paramEdgeCount));
-
-              int summaryEdgeCount = systemDependenceGraph.getEdgeCount(EdgeType.SUMMARY_EDGE);
-              put(
-                  pOut,
-                  detailsIndentation,
-                  "Number of summary edges",
-                  String.valueOf(summaryEdgeCount));
+              for (var edgeType : SystemDependenceGraph.EdgeType.values()) {
+                int edgeCount = systemDependenceGraph.getEdgeCount(edgeType);
+                String description = getEdgeCountDescription(edgeType);
+                put(pOut, detailsIndentation, description, String.valueOf(edgeCount));
+              }
 
               put(pOut, detailsIndentation, "Used GlobalPointerState", usedGlobalPointerState);
             }

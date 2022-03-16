@@ -7,8 +7,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Parsers based on packages from the Eclipse project, e.g. CDT and JDT.
- * The responsibility of a parser in this package is to implement the Parser interface,
- * and build CFAs for each method/function in a program.
+ * Parsers based on packages from the Eclipse project, e.g. CDT and JDT. The responsibility of a
+ * parser in this package is to implement the Parser interface, and build CFAs for each
+ * method/function in a program.
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse;

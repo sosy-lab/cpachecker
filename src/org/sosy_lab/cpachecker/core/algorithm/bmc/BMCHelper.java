@@ -404,6 +404,46 @@ public final class BMCHelper {
             });
   }
 
+  /**
+   * Compute all states whose loop-bound state is contained within the checked range of the base
+   * case. For example, if we have two loops and loop-bound state (1,0) was checked by BMC. Then
+   * loop-bound states (0,-1), (1,0), and (0,0) are contained in the checked range, but (0,1) falls
+   * out of the range.
+   *
+   * @param pStates the set of states to consider.
+   * @param pCheckedKeys the loop-bound states checked in the base case.
+   * @param pLoops the loops of the CFA.
+   * @return all states whose loop-bound state is contained within the checked range of the base
+   *     case.
+   */
+  static FluentIterable<AbstractState> filterBmcCheckedWithin(
+      Iterable<AbstractState> pStates, Set<Object> pCheckedKeys, Iterable<Loop> pLoops) {
+    return from(pStates).filter(pState -> isWithinBmcCheckedRange(pState, pCheckedKeys, pLoops));
+  }
+
+  private static boolean isWithinBmcCheckedRange(
+      AbstractState pState, Set<Object> pCheckedKeys, Iterable<Loop> pLoops) {
+    LoopIterationReportingState loopState =
+        AbstractStates.extractStateByType(pState, LoopIterationReportingState.class);
+    if (loopState == null) {
+      return false;
+    }
+    for (Object key : pCheckedKeys) {
+      LoopIterationReportingState checkedState = (LoopIterationReportingState) key;
+      boolean withinCheckedRange = true;
+      for (Loop loop : pLoops) {
+        if (loopState.getIteration(loop) > checkedState.getIteration(loop)) {
+          withinCheckedRange = false;
+          break;
+        }
+      }
+      if (withinCheckedRange) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   public interface FormulaInContext {
 
     BooleanFormula getFormulaInContext(PathFormula pContext)

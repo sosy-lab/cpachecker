@@ -17,26 +17,25 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 
 public interface AddressEvaluator {
 
-  public Collection<CValueAndSMGState>
-      evaluateArraySubscriptAddress(SMGState pInitialSmgState, CExpression pExp);
+  Collection<CValueAndSMGState> evaluateArraySubscriptAddress(
+      SMGState pInitialSmgState, CExpression pExp);
 
-  public Collection<CValueAndSMGState>
-      evaluateAddress(SMGState pInitialSmgState, CExpression pOperand);
+  Collection<CValueAndSMGState> evaluateAddress(SMGState pInitialSmgState, CExpression pOperand);
 
-  public Collection<CValueAndSMGState>
-      evaluateArrayAddress(SMGState pInitialSmgState, CExpression pOperand);
+  Collection<CValueAndSMGState> evaluateArrayAddress(
+      SMGState pInitialSmgState, CExpression pOperand);
 
-  public Collection<CValueAndSMGState> createAddress(SMGState pState, CValue pValue);
+  Collection<CValueAndSMGState> createAddress(SMGState pState, CValue pValue);
 
-  public Collection<CValueAndSMGState>
-      getAddressOfField(SMGState pInitialSmgState, CFieldReference pFieldReference);
+  Collection<CValueAndSMGState> getAddressOfField(
+      SMGState pInitialSmgState, CFieldReference pFieldReference);
 
-  public CValueAndSMGState handleUnknownDereference(SMGState pInitialSmgState);
+  CValueAndSMGState handleUnknownDereference(SMGState pInitialSmgState);
 
-  public CValueAndSMGState readValue(SMGState pState, CValue value, CExpression pExp);
+  CValueAndSMGState readValue(SMGState pState, CValue value, CExpression pExp);
 
-  public CValueAndSMGState
-      readValue(SMGState pSmgState, SMGObject pVariableObject, CExpression pIdExpression);
+  CValueAndSMGState readValue(
+      SMGState pSmgState, SMGObject pVariableObject, CExpression pIdExpression);
 
-  public BigInteger getBitSizeof(SMGState pInitialSmgState, CExpression pUnaryOperand);
+  BigInteger getBitSizeof(SMGState pInitialSmgState, CExpression pUnaryOperand);
 }

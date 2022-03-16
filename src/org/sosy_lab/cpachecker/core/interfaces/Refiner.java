@@ -18,9 +18,9 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 /**
  * Strategy for refinement of ARG used by {@link CEGARAlgorithm}.
  *
- * Implementations need to have exactly one public constructor or a static method named "create"
- * which may take a {@link ConfigurableProgramAnalysis}, and throw at most a
- * {@link InvalidConfigurationException} and a {@link CPAException}.
+ * <p>Implementations need to have exactly one public constructor or a static method named "create"
+ * which may take a {@link ConfigurableProgramAnalysis}, and throw at most a {@link
+ * InvalidConfigurationException} and a {@link CPAException}.
  */
 public interface Refiner {
 

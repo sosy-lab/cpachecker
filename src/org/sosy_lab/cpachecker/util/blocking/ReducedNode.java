@@ -26,27 +26,27 @@ class ReducedNode {
   }
 
   public ReducedNode(CFANode pWrappedNode, boolean pIsLoopHead) {
-    this.wrappedNode = pWrappedNode;
-    this.uniqueNodeId = ReducedNode.uniqueNodeIdSequence++;
-    this.summarizations = 0;
-    this.functionCallId = 0;
-    this.isLoopHead = pIsLoopHead;
+    wrappedNode = pWrappedNode;
+    uniqueNodeId = ReducedNode.uniqueNodeIdSequence++;
+    summarizations = 0;
+    functionCallId = 0;
+    isLoopHead = pIsLoopHead;
   }
 
   public CFANode getWrapped() {
-    return this.wrappedNode;
+    return wrappedNode;
   }
 
   public int getUniqueNodeId() {
-    return this.uniqueNodeId;
+    return uniqueNodeId;
   }
 
   public int getSummarizations() {
-    return this.summarizations;
+    return summarizations;
   }
 
   public void incSummarizations(int pIncBy) {
-    this.summarizations += pIncBy;
+    summarizations += pIncBy;
   }
 
   public boolean isFunctionEntry() {
@@ -74,10 +74,10 @@ class ReducedNode {
   }
 
   public void setFunctionCallId(int pCallId) {
-    this.functionCallId = pCallId;
+    functionCallId = pCallId;
   }
 
   public int getFunctionCallId() {
-    return this.functionCallId;
+    return functionCallId;
   }
 }

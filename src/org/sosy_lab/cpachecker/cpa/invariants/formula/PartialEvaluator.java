@@ -25,19 +25,26 @@ import org.sosy_lab.cpachecker.cpa.invariants.Typed;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
- * The singleton instance of this class is a compound state invariants formula
- * visitor used to partially evaluate compound state invariants formulae to
- * eliminate complex expressions consisting only of constants.
+ * The singleton instance of this class is a compound state invariants formula visitor used to
+ * partially evaluate compound state invariants formulae to eliminate complex expressions consisting
+ * only of constants.
  */
-public class PartialEvaluator implements
-    ParameterizedNumeralFormulaVisitor<CompoundInterval, FormulaEvaluationVisitor<CompoundInterval>, NumeralFormula<CompoundInterval>>,
-    ParameterizedBooleanFormulaVisitor<CompoundInterval, FormulaEvaluationVisitor<CompoundInterval>, BooleanFormula<CompoundInterval>> {
+public class PartialEvaluator
+    implements ParameterizedNumeralFormulaVisitor<
+            CompoundInterval,
+            FormulaEvaluationVisitor<CompoundInterval>,
+            NumeralFormula<CompoundInterval>>,
+        ParameterizedBooleanFormulaVisitor<
+            CompoundInterval,
+            FormulaEvaluationVisitor<CompoundInterval>,
+            BooleanFormula<CompoundInterval>> {
 
   /**
-   * A map representing an empty environment; since only constants are
-   * evaluated, no real environment is required.
+   * A map representing an empty environment; since only constants are evaluated, no real
+   * environment is required.
    */
-  private final Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> environment;
+  private final Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>>
+      environment;
 
   private final CompoundIntervalManagerFactory compoundIntervalManagerFactory;
 
@@ -50,17 +57,18 @@ public class PartialEvaluator implements
   public PartialEvaluator(
       CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
       CompoundIntervalFormulaManager pCompoundIntervalFormulaManager) {
-    this.compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
-    this.environment = ImmutableMap.of();
-    this.compoundIntervalFormulaManager = pCompoundIntervalFormulaManager;
+    compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
+    environment = ImmutableMap.of();
+    compoundIntervalFormulaManager = pCompoundIntervalFormulaManager;
   }
 
   public PartialEvaluator(
       CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
       Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
-    this.compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
-    this.environment = pEnvironment;
-    this.compoundIntervalFormulaManager = new CompoundIntervalFormulaManager(compoundIntervalManagerFactory);
+    compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
+    environment = pEnvironment;
+    compoundIntervalFormulaManager =
+        new CompoundIntervalFormulaManager(compoundIntervalManagerFactory);
   }
 
   @Override
@@ -91,7 +99,9 @@ public class PartialEvaluator implements
     return getCompoundIntervalManager(pTyped.getTypeInfo());
   }
 
-  private NumeralFormula<CompoundInterval> evaluateAndWrap(NumeralFormula<CompoundInterval> pFormula, FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
+  private NumeralFormula<CompoundInterval> evaluateAndWrap(
+      NumeralFormula<CompoundInterval> pFormula,
+      FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
     return InvariantsFormulaManager.INSTANCE.asConstant(
         pFormula.getTypeInfo(), pFormula.accept(pEvaluationVisitor, environment));
   }
@@ -103,12 +113,12 @@ public class PartialEvaluator implements
   private NumeralFormula<CompoundInterval> singleton(Typed pTyped, BigInteger pValue) {
     TypeInfo info = pTyped.getTypeInfo();
     return InvariantsFormulaManager.INSTANCE.asConstant(
-        info,
-        getCompoundIntervalManager(info).singleton(pValue));
+        info, getCompoundIntervalManager(info).singleton(pValue));
   }
 
   @Override
-  public NumeralFormula<CompoundInterval> visit(Add<CompoundInterval> pAdd, FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
+  public NumeralFormula<CompoundInterval> visit(
+      Add<CompoundInterval> pAdd, FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
     NumeralFormula<CompoundInterval> summand1 = pAdd.getSummand1().accept(this, pEvaluationVisitor);
     NumeralFormula<CompoundInterval> summand2 = pAdd.getSummand2().accept(this, pEvaluationVisitor);
     // If both summands are constants, calculate a new constant
@@ -151,7 +161,9 @@ public class PartialEvaluator implements
   }
 
   @Override
-  public NumeralFormula<CompoundInterval> visit(BinaryAnd<CompoundInterval> pAnd, FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
+  public NumeralFormula<CompoundInterval> visit(
+      BinaryAnd<CompoundInterval> pAnd,
+      FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
     NumeralFormula<CompoundInterval> operand1 = pAnd.getOperand1().accept(this, pEvaluationVisitor);
     NumeralFormula<CompoundInterval> operand2 = pAnd.getOperand2().accept(this, pEvaluationVisitor);
     if (operand1 instanceof Constant<?> && operand2 instanceof Constant<?>) {
@@ -164,7 +176,9 @@ public class PartialEvaluator implements
   }
 
   @Override
-  public NumeralFormula<CompoundInterval> visit(BinaryNot<CompoundInterval> pNot, FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
+  public NumeralFormula<CompoundInterval> visit(
+      BinaryNot<CompoundInterval> pNot,
+      FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
     NumeralFormula<CompoundInterval> operand = pNot.getFlipped().accept(this, pEvaluationVisitor);
     if (operand instanceof Constant<?>) {
       return evaluateAndWrap(pNot, pEvaluationVisitor);
@@ -176,7 +190,9 @@ public class PartialEvaluator implements
   }
 
   @Override
-  public NumeralFormula<CompoundInterval> visit(BinaryOr<CompoundInterval> pOr, FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
+  public NumeralFormula<CompoundInterval> visit(
+      BinaryOr<CompoundInterval> pOr,
+      FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
     NumeralFormula<CompoundInterval> operand1 = pOr.getOperand1().accept(this, pEvaluationVisitor);
     NumeralFormula<CompoundInterval> operand2 = pOr.getOperand2().accept(this, pEvaluationVisitor);
     if (operand1 instanceof Constant<?> && operand2 instanceof Constant<?>) {
@@ -189,7 +205,9 @@ public class PartialEvaluator implements
   }
 
   @Override
-  public NumeralFormula<CompoundInterval> visit(BinaryXor<CompoundInterval> pXor, FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
+  public NumeralFormula<CompoundInterval> visit(
+      BinaryXor<CompoundInterval> pXor,
+      FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
     NumeralFormula<CompoundInterval> operand1 = pXor.getOperand1().accept(this, pEvaluationVisitor);
     NumeralFormula<CompoundInterval> operand2 = pXor.getOperand2().accept(this, pEvaluationVisitor);
     if (operand1 instanceof Constant<?> && operand2 instanceof Constant<?>) {
@@ -202,14 +220,20 @@ public class PartialEvaluator implements
   }
 
   @Override
-  public NumeralFormula<CompoundInterval> visit(Constant<CompoundInterval> pConstant, FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
+  public NumeralFormula<CompoundInterval> visit(
+      Constant<CompoundInterval> pConstant,
+      FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
     return pConstant;
   }
 
   @Override
-  public NumeralFormula<CompoundInterval> visit(Divide<CompoundInterval> pDivide, FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
-    NumeralFormula<CompoundInterval> numerator = pDivide.getNumerator().accept(this, pEvaluationVisitor);
-    NumeralFormula<CompoundInterval> denominator = pDivide.getDenominator().accept(this, pEvaluationVisitor);
+  public NumeralFormula<CompoundInterval> visit(
+      Divide<CompoundInterval> pDivide,
+      FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
+    NumeralFormula<CompoundInterval> numerator =
+        pDivide.getNumerator().accept(this, pEvaluationVisitor);
+    NumeralFormula<CompoundInterval> denominator =
+        pDivide.getDenominator().accept(this, pEvaluationVisitor);
     if (numerator instanceof Constant<?> && denominator instanceof Constant<?>) {
       return evaluateAndWrap(pDivide, pEvaluationVisitor);
     }
@@ -232,9 +256,13 @@ public class PartialEvaluator implements
   }
 
   @Override
-  public BooleanFormula<CompoundInterval> visit(Equal<CompoundInterval> pEqual, FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
-    NumeralFormula<CompoundInterval> operand1 = pEqual.getOperand1().accept(this, pEvaluationVisitor);
-    NumeralFormula<CompoundInterval> operand2 = pEqual.getOperand2().accept(this, pEvaluationVisitor);
+  public BooleanFormula<CompoundInterval> visit(
+      Equal<CompoundInterval> pEqual,
+      FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
+    NumeralFormula<CompoundInterval> operand1 =
+        pEqual.getOperand1().accept(this, pEvaluationVisitor);
+    NumeralFormula<CompoundInterval> operand2 =
+        pEqual.getOperand2().accept(this, pEvaluationVisitor);
     if (operand1 instanceof Constant<?> && operand2 instanceof Constant<?>) {
       BooleanFormula<CompoundInterval> result = pEqual.accept(pEvaluationVisitor, environment);
       if (result != null) {
@@ -248,9 +276,13 @@ public class PartialEvaluator implements
   }
 
   @Override
-  public BooleanFormula<CompoundInterval> visit(LessThan<CompoundInterval> pLessThan, FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
-    NumeralFormula<CompoundInterval> operand1 = pLessThan.getOperand1().accept(this, pEvaluationVisitor);
-    NumeralFormula<CompoundInterval> operand2 = pLessThan.getOperand2().accept(this, pEvaluationVisitor);
+  public BooleanFormula<CompoundInterval> visit(
+      LessThan<CompoundInterval> pLessThan,
+      FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
+    NumeralFormula<CompoundInterval> operand1 =
+        pLessThan.getOperand1().accept(this, pEvaluationVisitor);
+    NumeralFormula<CompoundInterval> operand2 =
+        pLessThan.getOperand2().accept(this, pEvaluationVisitor);
     if (operand1 instanceof Constant<?> && operand2 instanceof Constant<?>) {
       BooleanFormula<CompoundInterval> result = pLessThan.accept(pEvaluationVisitor, environment);
       if (result != null) {
@@ -264,7 +296,9 @@ public class PartialEvaluator implements
   }
 
   @Override
-  public BooleanFormula<CompoundInterval> visit(LogicalAnd<CompoundInterval> pAnd, FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
+  public BooleanFormula<CompoundInterval> visit(
+      LogicalAnd<CompoundInterval> pAnd,
+      FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
     BooleanFormula<CompoundInterval> operand1 = pAnd.getOperand1().accept(this, pEvaluationVisitor);
     BooleanFormula<CompoundInterval> operand2 = pAnd.getOperand2().accept(this, pEvaluationVisitor);
     if (operand1 instanceof Constant<?> && operand2 instanceof Constant<?>) {
@@ -281,8 +315,10 @@ public class PartialEvaluator implements
       return operand2;
     }
     // If both operands are true, return the first one
-    if (operand1 instanceof BooleanConstant<?> && ((BooleanConstant<?>) operand1).getValue()
-        && operand2 instanceof BooleanConstant<?> && ((BooleanConstant<?>) operand2).getValue()) {
+    if (operand1 instanceof BooleanConstant<?>
+        && ((BooleanConstant<?>) operand1).getValue()
+        && operand2 instanceof BooleanConstant<?>
+        && ((BooleanConstant<?>) operand2).getValue()) {
       return operand1;
     }
     if (operand1 == pAnd.getOperand1() && operand2 == pAnd.getOperand2()) {
@@ -292,7 +328,9 @@ public class PartialEvaluator implements
   }
 
   @Override
-  public BooleanFormula<CompoundInterval> visit(LogicalNot<CompoundInterval> pNot, FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
+  public BooleanFormula<CompoundInterval> visit(
+      LogicalNot<CompoundInterval> pNot,
+      FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
     BooleanFormula<CompoundInterval> operand = pNot.getNegated().accept(this, pEvaluationVisitor);
     if (operand instanceof Constant<?>) {
       BooleanFormula<CompoundInterval> result = pNot.accept(pEvaluationVisitor, environment);
@@ -314,9 +352,13 @@ public class PartialEvaluator implements
   }
 
   @Override
-  public NumeralFormula<CompoundInterval> visit(Modulo<CompoundInterval> pModulo, FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
-    NumeralFormula<CompoundInterval> numerator = pModulo.getNumerator().accept(this, pEvaluationVisitor);
-    NumeralFormula<CompoundInterval> denominator = pModulo.getDenominator().accept(this, pEvaluationVisitor);
+  public NumeralFormula<CompoundInterval> visit(
+      Modulo<CompoundInterval> pModulo,
+      FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
+    NumeralFormula<CompoundInterval> numerator =
+        pModulo.getNumerator().accept(this, pEvaluationVisitor);
+    NumeralFormula<CompoundInterval> denominator =
+        pModulo.getDenominator().accept(this, pEvaluationVisitor);
     if (numerator instanceof Constant<?> && denominator instanceof Constant<?>) {
       return evaluateAndWrap(pModulo, pEvaluationVisitor);
     }
@@ -324,8 +366,9 @@ public class PartialEvaluator implements
     if (denominator instanceof Constant<?>) {
       Constant<CompoundInterval> c = (Constant<CompoundInterval>) denominator;
       CompoundInterval value = c.getValue();
-      if (value.isSingleton() && (value.getValue().equals(BigInteger.ONE)
-          || value.getValue().equals(BigInteger.valueOf(-1)))) {
+      if (value.isSingleton()
+          && (value.getValue().equals(BigInteger.ONE)
+              || value.getValue().equals(BigInteger.valueOf(-1)))) {
         return singleton(pModulo, BigInteger.ZERO);
       }
     }
@@ -336,9 +379,13 @@ public class PartialEvaluator implements
   }
 
   @Override
-  public NumeralFormula<CompoundInterval> visit(Multiply<CompoundInterval> pMultiply, FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
-    NumeralFormula<CompoundInterval> factor1 = pMultiply.getFactor1().accept(this, pEvaluationVisitor);
-    NumeralFormula<CompoundInterval> factor2 = pMultiply.getFactor2().accept(this, pEvaluationVisitor);
+  public NumeralFormula<CompoundInterval> visit(
+      Multiply<CompoundInterval> pMultiply,
+      FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
+    NumeralFormula<CompoundInterval> factor1 =
+        pMultiply.getFactor1().accept(this, pEvaluationVisitor);
+    NumeralFormula<CompoundInterval> factor2 =
+        pMultiply.getFactor2().accept(this, pEvaluationVisitor);
     if (factor1 instanceof Constant<?> && factor2 instanceof Constant<?>) {
       return evaluateAndWrap(pMultiply, pEvaluationVisitor);
     }
@@ -375,9 +422,13 @@ public class PartialEvaluator implements
   }
 
   @Override
-  public NumeralFormula<CompoundInterval> visit(ShiftLeft<CompoundInterval> pShiftLeft, FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
-    NumeralFormula<CompoundInterval> shifted = pShiftLeft.getShifted().accept(this, pEvaluationVisitor);
-    NumeralFormula<CompoundInterval> shiftDistance = pShiftLeft.getShiftDistance().accept(this, pEvaluationVisitor);
+  public NumeralFormula<CompoundInterval> visit(
+      ShiftLeft<CompoundInterval> pShiftLeft,
+      FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
+    NumeralFormula<CompoundInterval> shifted =
+        pShiftLeft.getShifted().accept(this, pEvaluationVisitor);
+    NumeralFormula<CompoundInterval> shiftDistance =
+        pShiftLeft.getShiftDistance().accept(this, pEvaluationVisitor);
     if (shifted instanceof Constant<?> && shiftDistance instanceof Constant<?>) {
       return evaluateAndWrap(pShiftLeft, pEvaluationVisitor);
     }
@@ -395,9 +446,13 @@ public class PartialEvaluator implements
   }
 
   @Override
-  public NumeralFormula<CompoundInterval> visit(ShiftRight<CompoundInterval> pShiftRight, FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
-    NumeralFormula<CompoundInterval> shifted = pShiftRight.getShifted().accept(this, pEvaluationVisitor);
-    NumeralFormula<CompoundInterval> shiftDistance = pShiftRight.getShiftDistance().accept(this, pEvaluationVisitor);
+  public NumeralFormula<CompoundInterval> visit(
+      ShiftRight<CompoundInterval> pShiftRight,
+      FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
+    NumeralFormula<CompoundInterval> shifted =
+        pShiftRight.getShifted().accept(this, pEvaluationVisitor);
+    NumeralFormula<CompoundInterval> shiftDistance =
+        pShiftRight.getShiftDistance().accept(this, pEvaluationVisitor);
     if (shifted instanceof Constant<?> && shiftDistance instanceof Constant<?>) {
       return evaluateAndWrap(pShiftRight, pEvaluationVisitor);
     }
@@ -415,15 +470,20 @@ public class PartialEvaluator implements
   }
 
   @Override
-  public NumeralFormula<CompoundInterval> visit(Union<CompoundInterval> pUnion, FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
-    NumeralFormula<CompoundInterval> operand1 = pUnion.getOperand1().accept(this, pEvaluationVisitor);
-    NumeralFormula<CompoundInterval> operand2 = pUnion.getOperand2().accept(this, pEvaluationVisitor);
+  public NumeralFormula<CompoundInterval> visit(
+      Union<CompoundInterval> pUnion,
+      FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
+    NumeralFormula<CompoundInterval> operand1 =
+        pUnion.getOperand1().accept(this, pEvaluationVisitor);
+    NumeralFormula<CompoundInterval> operand2 =
+        pUnion.getOperand2().accept(this, pEvaluationVisitor);
     if (operand1 instanceof Constant<?> && operand2 instanceof Constant<?>) {
       return evaluateAndWrap(pUnion, pEvaluationVisitor);
     }
     // Union with top yields top
     CompoundIntervalManager compoundIntervalManager = getCompoundIntervalManager(pUnion);
-    NumeralFormula<CompoundInterval> allPossibleValues = asConstant(pUnion, compoundIntervalManager.allPossibleValues());
+    NumeralFormula<CompoundInterval> allPossibleValues =
+        asConstant(pUnion, compoundIntervalManager.allPossibleValues());
     if (operand1.equals(allPossibleValues) || operand2.equals(allPossibleValues)) {
       return allPossibleValues;
     }
@@ -449,7 +509,9 @@ public class PartialEvaluator implements
         unionParts.add(currentUnion.getOperand2());
         partsFound += 2;
       } else if (currentPart instanceof Constant<?>) {
-        constantPart = compoundIntervalManager.union(constantPart, ((Constant<CompoundInterval>) currentPart).getValue());
+        constantPart =
+            compoundIntervalManager.union(
+                constantPart, ((Constant<CompoundInterval>) currentPart).getValue());
       } else {
         atomicUnionParts.add(currentPart);
       }
@@ -457,7 +519,8 @@ public class PartialEvaluator implements
     if (partsFound > atomicUnionParts.size()) {
       NumeralFormula<CompoundInterval> result = null;
       if (!atomicUnionParts.isEmpty()) {
-        Iterator<NumeralFormula<CompoundInterval>> atomicUnionPartsIterator = atomicUnionParts.iterator();
+        Iterator<NumeralFormula<CompoundInterval>> atomicUnionPartsIterator =
+            atomicUnionParts.iterator();
         result = atomicUnionPartsIterator.next();
         while (atomicUnionPartsIterator.hasNext()) {
           result = compoundIntervalFormulaManager.union(result, atomicUnionPartsIterator.next());
@@ -465,7 +528,10 @@ public class PartialEvaluator implements
       }
       if (!constantPart.isBottom()) {
         NumeralFormula<CompoundInterval> constantPartFormula = asConstant(pUnion, constantPart);
-        result = result == null ? constantPartFormula : compoundIntervalFormulaManager.union(result, constantPartFormula);
+        result =
+            result == null
+                ? constantPartFormula
+                : compoundIntervalFormulaManager.union(result, constantPartFormula);
       }
       if (result != null) {
         return result;
@@ -479,8 +545,10 @@ public class PartialEvaluator implements
   }
 
   @Override
-  public NumeralFormula<CompoundInterval> visit(Variable<CompoundInterval> pVariable, FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
-    CompoundInterval value = pVariable.accept(pEvaluationVisitor, this.environment);
+  public NumeralFormula<CompoundInterval> visit(
+      Variable<CompoundInterval> pVariable,
+      FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
+    CompoundInterval value = pVariable.accept(pEvaluationVisitor, environment);
     if (value.isSingleton()) {
       return asConstant(pVariable, value);
     }
@@ -488,9 +556,10 @@ public class PartialEvaluator implements
   }
 
   @Override
-  public NumeralFormula<CompoundInterval> visit(Exclusion<CompoundInterval> pExclusion,
+  public NumeralFormula<CompoundInterval> visit(
+      Exclusion<CompoundInterval> pExclusion,
       FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
-    CompoundInterval value = pExclusion.accept(pEvaluationVisitor, this.environment);
+    CompoundInterval value = pExclusion.accept(pEvaluationVisitor, environment);
     if (value.isSingleton() || pExclusion.getExcluded() instanceof Constant) {
       return asConstant(pExclusion, value);
     }
@@ -498,24 +567,30 @@ public class PartialEvaluator implements
   }
 
   @Override
-  public BooleanFormula<CompoundInterval> visitFalse(FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
+  public BooleanFormula<CompoundInterval> visitFalse(
+      FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
     return pEvaluationVisitor.visitFalse(environment);
   }
 
   @Override
-  public BooleanFormula<CompoundInterval> visitTrue(FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
+  public BooleanFormula<CompoundInterval> visitTrue(
+      FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
     return pEvaluationVisitor.visitTrue(environment);
   }
 
   @Override
-  public NumeralFormula<CompoundInterval> visit(IfThenElse<CompoundInterval> pIfThenElse,
+  public NumeralFormula<CompoundInterval> visit(
+      IfThenElse<CompoundInterval> pIfThenElse,
       FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
-    BooleanFormula<CompoundInterval> condition = pIfThenElse.getCondition().accept(this, pEvaluationVisitor);
-    NumeralFormula<CompoundInterval> positiveCase = pIfThenElse.getPositiveCase().accept(this, pEvaluationVisitor);
+    BooleanFormula<CompoundInterval> condition =
+        pIfThenElse.getCondition().accept(this, pEvaluationVisitor);
+    NumeralFormula<CompoundInterval> positiveCase =
+        pIfThenElse.getPositiveCase().accept(this, pEvaluationVisitor);
     if (BooleanConstant.isTrue(condition)) {
       return positiveCase;
     }
-    NumeralFormula<CompoundInterval> negativeCase = pIfThenElse.getNegativeCase().accept(this, pEvaluationVisitor);
+    NumeralFormula<CompoundInterval> negativeCase =
+        pIfThenElse.getNegativeCase().accept(this, pEvaluationVisitor);
     if (BooleanConstant.isFalse(condition)) {
       return negativeCase;
     }
@@ -529,9 +604,9 @@ public class PartialEvaluator implements
   }
 
   @Override
-  public NumeralFormula<CompoundInterval> visit(Cast<CompoundInterval> pCast,
-      FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
-    CompoundInterval value = pCast.accept(pEvaluationVisitor, this.environment);
+  public NumeralFormula<CompoundInterval> visit(
+      Cast<CompoundInterval> pCast, FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
+    CompoundInterval value = pCast.accept(pEvaluationVisitor, environment);
     if (value.isSingleton()) {
       return asConstant(pCast, value);
     }
@@ -541,5 +616,4 @@ public class PartialEvaluator implements
     }
     return compoundIntervalFormulaManager.cast(pCast.getTypeInfo(), operand);
   }
-
 }

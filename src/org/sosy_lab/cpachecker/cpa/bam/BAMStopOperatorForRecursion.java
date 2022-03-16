@@ -29,7 +29,8 @@ public class BAMStopOperatorForRecursion extends AbstractWrapperStopOperator {
   }
 
   @Override
-  public boolean stop(AbstractState pState, Collection<AbstractState> pReached, Precision pPrecision)
+  public boolean stop(
+      AbstractState pState, Collection<AbstractState> pReached, Precision pPrecision)
       throws CPAException, InterruptedException {
     // we never 'stop' at a function-call, because of the influence
     // of the predecessor of the function-call in the 'rebuild'-step.

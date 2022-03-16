@@ -14,14 +14,14 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Instances of this class are invariants formula visitors used to split the
- * visited formulae on their outer conjunctions into lists of the conjunction
- * operands. This is done recursively so that nested conjunctions are split
- * as well.
+ * Instances of this class are invariants formula visitors used to split the visited formulae on
+ * their outer conjunctions into lists of the conjunction operands. This is done recursively so that
+ * nested conjunctions are split as well.
  *
  * @param <T> the type of the constants used in the formulae.
  */
-public class SplitConjunctionsVisitor<T> implements BooleanFormulaVisitor<T, List<BooleanFormula<T>>> {
+public class SplitConjunctionsVisitor<T>
+    implements BooleanFormulaVisitor<T, List<BooleanFormula<T>>> {
 
   @Override
   public List<BooleanFormula<T>> visit(Equal<T> pEqual) {
@@ -64,12 +64,10 @@ public class SplitConjunctionsVisitor<T> implements BooleanFormulaVisitor<T, Lis
   }
 
   /**
-   * Concatenates two lists with respect to the types of lists occurring within
-   * this visitor class.
+   * Concatenates two lists with respect to the types of lists occurring within this visitor class.
    *
    * @param a the first list.
    * @param b the second list.
-   *
    * @return a list containing all elements from both lists.
    */
   private static <T> List<T> concat(List<T> a, List<T> b) {
@@ -107,5 +105,4 @@ public class SplitConjunctionsVisitor<T> implements BooleanFormulaVisitor<T, Lis
     a.addAll(b);
     return a;
   }
-
 }

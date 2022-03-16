@@ -86,23 +86,20 @@ public class AssumeEdge extends AbstractCFAEdge {
   }
 
   /**
-   * <p>{@code true} if and only if the value of {@code pTruthAssumption}
-   * corresponds inversely to the then/else branches of the branching statement
-   * in the source code.</p>
+   * {@code true} if and only if the value of {@code pTruthAssumption} corresponds inversely to the
+   * then/else branches of the branching statement in the source code.
    *
-   * <p>You will <em>never</em> need to call this method to implement the
-   * {@link TransferRelation} of a {@link ConfigurableProgramAnalysis};
-   * instead, you are looking for {@link #getTruthAssumption()}.</p>
+   * <p>You will <em>never</em> need to call this method to implement the {@link TransferRelation}
+   * of a {@link ConfigurableProgramAnalysis}; instead, you are looking for {@link
+   * #getTruthAssumption()}.
    *
-   * <p><em>Only</em> call this method if your use case requires you to map this
-   * specific edge back to a specific branch in the source code.
-   * Valid use cases are exporting counterexample information to the user,
-   * e.g. as a witness, or reading such information back in,
-   * e.g. for witness validation.</p>
+   * <p><em>Only</em> call this method if your use case requires you to map this specific edge back
+   * to a specific branch in the source code. Valid use cases are exporting counterexample
+   * information to the user, e.g. as a witness, or reading such information back in, e.g. for
+   * witness validation.
    *
-   * @return {@code true} if and only if the value of {@code pTruthAssumption}
-   * corresponds inversely to the then/else branches of the branching statement
-   * in the source code.
+   * @return {@code true} if and only if the value of {@code pTruthAssumption} corresponds inversely
+   *     to the then/else branches of the branching statement in the source code.
    */
   public boolean isSwapped() {
     return swapped;
