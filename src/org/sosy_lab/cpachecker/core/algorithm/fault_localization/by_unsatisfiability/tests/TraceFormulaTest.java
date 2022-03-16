@@ -210,7 +210,7 @@ public class TraceFormulaTest {
         ImmutableMap.<LogKeys, Object>builder()
             .put(LogKeys.TFPRECONDITION, preconditionValues)
             .put(LogKeys.TFPOSTCONDITION, postConditionLocation)
-            .build());
+            .buildOrThrow());
   }
 
   @Test

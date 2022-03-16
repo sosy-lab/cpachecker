@@ -465,7 +465,7 @@ public class CPAMain {
           .put(CommonCoverageProperty.COVERAGE_CONDITION, TestTargetType.ASSUME)
           .put(CommonCoverageProperty.COVERAGE_ERROR, TestTargetType.ERROR_CALL)
           .put(CommonCoverageProperty.COVERAGE_STATEMENT, TestTargetType.STATEMENT)
-          .build();
+          .buildOrThrow();
 
   private static Configuration handlePropertyOptions(
       Configuration config,

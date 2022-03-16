@@ -178,7 +178,7 @@ class ASTConverter {
           .put("java.lang.Short", JBasicType.SHORT)
           .put("java.lang.Double", JBasicType.DOUBLE)
           .put("java.lang.Void", JBasicType.VOID)
-          .build();
+          .buildOrThrow();
 
   /**
    * Create a new AST Converter, which can be used to convert JDT AST Statements to CFA AST

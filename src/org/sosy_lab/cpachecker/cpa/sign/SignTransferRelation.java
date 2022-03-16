@@ -100,7 +100,7 @@ public class SignTransferRelation
           scopedVarId,
           ((CRightHandSide) exp).accept(new SignCExpressionVisitor(pCfaEdge, state, this)));
     }
-    ImmutableMap<String, SIGN> argumentMap = mapBuilder.build();
+    ImmutableMap<String, SIGN> argumentMap = mapBuilder.buildOrThrow();
     logger.log(
         Level.FINE, "Entering function " + pCalledFunctionName + " with arguments " + argumentMap);
     return state.enterFunction(argumentMap);

@@ -946,7 +946,7 @@ public class PredicateAbstractionManager {
       // info.put(negated, rmgr.makeNot(r));
     }
 
-    Map<BooleanFormula, Region> info = infoBuilder.build();
+    Map<BooleanFormula, Region> info = infoBuilder.buildOrThrow();
     Set<BooleanFormula> toStateLemmas = info.keySet();
     Set<BooleanFormula> filteredLemmas;
     @SuppressWarnings("deprecation")
