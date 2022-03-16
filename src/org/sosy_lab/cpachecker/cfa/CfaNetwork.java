@@ -11,9 +11,8 @@ package org.sosy_lab.cpachecker.cfa;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import com.google.common.graph.ElementOrder;
 import com.google.common.graph.EndpointPair;
 import com.google.common.graph.Graph;
@@ -23,7 +22,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -44,13 +42,9 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
  * try to modify the underlying CFA while iterating though such a view as correctness of the
  * iteration cannot be guaranteed anymore.
  */
-public final class CfaNetwork implements Network<CFANode, CFAEdge> {
+public abstract class CfaNetwork implements Network<CFANode, CFAEdge> {
 
-  private final CFA cfa;
-
-  private CfaNetwork(CFA pCfa) {
-    cfa = pCfa;
-  }
+  protected CfaNetwork() {}
 
   /**
    * Returns a {@link CfaNetwork} that represents the specified {@link CFA} as a {@link Network}.
@@ -66,80 +60,115 @@ public final class CfaNetwork implements Network<CFANode, CFAEdge> {
    * @throws NullPointerException if {@code pCfa == null}
    */
   public static CfaNetwork of(CFA pCfa) {
-    return new CfaNetwork(checkNotNull(pCfa));
-  }
 
-  private boolean hasIncidentParallelEdges(CFANode pNode) {
-    return CFAUtils.allEnteringEdges(pNode).toList().size()
-            == CFAUtils.allEnteringEdges(pNode).toSet().size()
-        && CFAUtils.allLeavingEdges(pNode).toList().size()
-            == CFAUtils.allLeavingEdges(pNode).toSet().size();
+    checkNotNull(pCfa);
+
+    return new CfaNetwork() {
+
+      @Override
+      public int inDegree(CFANode pNode) {
+
+        int inDegree = pNode.getNumEnteringEdges();
+
+        if (pNode.getEnteringSummaryEdge() != null) {
+          inDegree++;
+        }
+
+        return inDegree;
+      }
+
+      @Override
+      public Set<CFAEdge> inEdges(CFANode pNode) {
+
+        checkNotNull(pNode);
+
+        return new UnmodifiableSetView<>() {
+
+          @Override
+          public Iterator<CFAEdge> iterator() {
+            return CFAUtils.allEnteringEdges(pNode).iterator();
+          }
+
+          @Override
+          public int size() {
+            return inDegree(pNode);
+          }
+        };
+      }
+
+      @Override
+      public int outDegree(CFANode pNode) {
+
+        int outDegree = pNode.getNumLeavingEdges();
+
+        if (pNode.getLeavingSummaryEdge() != null) {
+          outDegree++;
+        }
+
+        return outDegree;
+      }
+
+      @Override
+      public Set<CFAEdge> outEdges(CFANode pNode) {
+
+        checkNotNull(pNode);
+
+        return new UnmodifiableSetView<>() {
+
+          @Override
+          public Iterator<CFAEdge> iterator() {
+            return CFAUtils.allLeavingEdges(pNode).iterator();
+          }
+
+          @Override
+          public int size() {
+            return outDegree(pNode);
+          }
+        };
+      }
+
+      @Override
+      public EndpointPair<CFANode> incidentNodes(CFAEdge pEdge) {
+        return EndpointPair.ordered(pEdge.getPredecessor(), pEdge.getSuccessor());
+      }
+
+      @Override
+      public Set<CFANode> nodes() {
+        return new UnmodifiableSetView<>() {
+
+          @Override
+          public Iterator<CFANode> iterator() {
+            return Iterators.unmodifiableIterator(pCfa.getAllNodes().iterator());
+          }
+
+          @Override
+          public int size() {
+            return pCfa.getAllNodes().size();
+          }
+
+          @Override
+          public boolean contains(Object pObject) {
+            return pCfa.getAllNodes().contains(pObject);
+          }
+
+          @Override
+          public boolean containsAll(Collection<?> pCollection) {
+            return pCfa.getAllNodes().containsAll(pCollection);
+          }
+        };
+      }
+    };
   }
 
   // in-edges / predecessors
 
   @Override
   public int inDegree(CFANode pNode) {
-
-    assert !hasIncidentParallelEdges(pNode);
-
-    int inDegree = pNode.getNumEnteringEdges();
-
-    if (pNode.getEnteringSummaryEdge() != null) {
-      inDegree++;
-    }
-
-    return inDegree;
+    return Iterables.size(inEdges(pNode));
   }
 
-  @Override
-  public Set<CFAEdge> inEdges(CFANode pNode) {
-
-    checkNotNull(pNode);
-
-    assert !hasIncidentParallelEdges(pNode);
-
-    return new UnmodifiableSetView<>() {
-
-      @Override
-      public Iterator<CFAEdge> iterator() {
-        return new Iterator<>() {
-
-          private int index = 0;
-
-          @Override
-          public boolean hasNext() {
-            return pNode.getEnteringSummaryEdge() == null
-                ? index < pNode.getNumEnteringEdges()
-                : index <= pNode.getNumEnteringEdges();
-          }
-
-          @Override
-          public CFAEdge next() {
-
-            CFAEdge nextEdge;
-            if (index < pNode.getNumEnteringEdges()) {
-              nextEdge = pNode.getEnteringEdge(index);
-            } else if (index == pNode.getNumEnteringEdges()) {
-              CFAEdge enteringSummaryEdge = pNode.getEnteringSummaryEdge();
-              assert enteringSummaryEdge != null;
-              nextEdge = enteringSummaryEdge;
-            } else {
-              throw new NoSuchElementException();
-            }
-
-            index++;
-
-            return nextEdge;
-          }
-        };
-      }
-
-      @Override
-      public int size() {
-        return inDegree(pNode);
-      }
-    };
+  private CFANode predecessor(CFAEdge pEdge) {
+    return incidentNodes(pEdge).source();
   }
 
   @Override
@@ -147,26 +176,11 @@ public final class CfaNetwork implements Network<CFANode, CFAEdge> {
 
     checkNotNull(pNode);
 
-    assert !hasIncidentParallelEdges(pNode);
-
     return new UnmodifiableSetView<>() {
 
       @Override
       public Iterator<CFANode> iterator() {
-        return new Iterator<>() {
-
-          private final Iterator<CFAEdge> inEdgeIterator = inEdges(pNode).iterator();
-
-          @Override
-          public boolean hasNext() {
-            return inEdgeIterator.hasNext();
-          }
-
-          @Override
-          public CFANode next() {
-            return inEdgeIterator.next().getPredecessor();
-          }
-        };
+        return Iterators.transform(inEdges(pNode).iterator(), CfaNetwork.this::predecessor);
       }
 
       @Override
@@ -180,66 +194,11 @@ public final class CfaNetwork implements Network<CFANode, CFAEdge> {
 
   @Override
   public int outDegree(CFANode pNode) {
-
-    assert !hasIncidentParallelEdges(pNode);
-
-    int outDegree = pNode.getNumLeavingEdges();
-
-    if (pNode.getLeavingSummaryEdge() != null) {
-      outDegree++;
-    }
-
-    return outDegree;
+    return Iterables.size(outEdges(pNode));
   }
 
-  @Override
-  public Set<CFAEdge> outEdges(CFANode pNode) {
-
-    checkNotNull(pNode);
-
-    assert !hasIncidentParallelEdges(pNode);
-
-    return new UnmodifiableSetView<>() {
-
-      @Override
-      public Iterator<CFAEdge> iterator() {
-        return new Iterator<>() {
-
-          private int index = 0;
-
-          @Override
-          public boolean hasNext() {
-            return pNode.getLeavingSummaryEdge() == null
-                ? index < pNode.getNumLeavingEdges()
-                : index <= pNode.getNumLeavingEdges();
-          }
-
-          @Override
-          public CFAEdge next() {
-
-            CFAEdge nextEdge;
-            if (index < pNode.getNumLeavingEdges()) {
-              nextEdge = pNode.getLeavingEdge(index);
-            } else if (index == pNode.getNumLeavingEdges()) {
-              CFAEdge leavingSummaryEdge = pNode.getLeavingSummaryEdge();
-              assert leavingSummaryEdge != null;
-              nextEdge = leavingSummaryEdge;
-            } else {
-              throw new NoSuchElementException();
-            }
-
-            index++;
-
-            return nextEdge;
-          }
-        };
-      }
-
-      @Override
-      public int size() {
-        return outDegree(pNode);
-      }
-    };
+  private CFANode successor(CFAEdge pEdge) {
+    return incidentNodes(pEdge).target();
   }
 
   @Override
@@ -247,26 +206,11 @@ public final class CfaNetwork implements Network<CFANode, CFAEdge> {
 
     checkNotNull(pNode);
 
-    assert !hasIncidentParallelEdges(pNode);
-
     return new UnmodifiableSetView<>() {
 
       @Override
       public Iterator<CFANode> iterator() {
-        return new Iterator<>() {
-
-          private final Iterator<CFAEdge> outEdgeIterator = outEdges(pNode).iterator();
-
-          @Override
-          public boolean hasNext() {
-            return outEdgeIterator.hasNext();
-          }
-
-          @Override
-          public CFANode next() {
-            return outEdgeIterator.next().getSuccessor();
-          }
-        };
+        return Iterators.transform(outEdges(pNode).iterator(), CfaNetwork.this::successor);
       }
 
       @Override
@@ -287,39 +231,32 @@ public final class CfaNetwork implements Network<CFANode, CFAEdge> {
   }
 
   @Override
-  public EndpointPair<CFANode> incidentNodes(CFAEdge pEdge) {
-    return EndpointPair.ordered(pEdge.getPredecessor(), pEdge.getSuccessor());
-  }
-
-  @Override
   public Set<CFAEdge> incidentEdges(CFANode pNode) {
 
     checkNotNull(pNode);
-
-    assert !hasIncidentParallelEdges(pNode);
 
     return new UnmodifiableSetView<>() {
 
       @Override
       public Iterator<CFAEdge> iterator() {
-        return new PeekIterator<>() {
+        return new PrepareNextIterator<>() {
 
-          private final Iterator<CFAEdge> inEdgeIterator = inEdges(pNode).iterator();
-          private final Iterator<CFAEdge> outEdgeIterator = outEdges(pNode).iterator();
+          private final Iterator<CFAEdge> inEdges = inEdges(pNode).iterator();
+          private final Iterator<CFAEdge> outEdges = outEdges(pNode).iterator();
 
           @Override
-          protected @Nullable CFAEdge peek() {
+          protected @Nullable CFAEdge prepareNext() {
 
-            if (inEdgeIterator.hasNext()) {
-              return inEdgeIterator.next();
+            if (inEdges.hasNext()) {
+              return inEdges.next();
             }
 
-            while (outEdgeIterator.hasNext()) {
+            while (outEdges.hasNext()) {
 
-              CFAEdge edge = outEdgeIterator.next();
+              CFAEdge edge = outEdges.next();
 
               // don't iterate over self-loop edges twice
-              if (!edge.getPredecessor().equals(edge.getSuccessor())) {
+              if (!predecessor(edge).equals(successor(edge))) {
                 return edge;
               }
             }
@@ -341,30 +278,28 @@ public final class CfaNetwork implements Network<CFANode, CFAEdge> {
 
     checkNotNull(pNode);
 
-    assert !hasIncidentParallelEdges(pNode);
-
     return new UnmodifiableSetView<>() {
 
       @Override
       public Iterator<CFANode> iterator() {
-        return new PeekIterator<>() {
+        return new PrepareNextIterator<>() {
 
-          private final Iterator<CFAEdge> inEdgeIterator = inEdges(pNode).iterator();
-          private final Iterator<CFAEdge> outEdgeIterator = outEdges(pNode).iterator();
+          private final Iterator<CFAEdge> inEdges = inEdges(pNode).iterator();
+          private final Iterator<CFAEdge> outEdges = outEdges(pNode).iterator();
 
           @Override
-          protected @Nullable CFANode peek() {
+          protected @Nullable CFANode prepareNext() {
 
             // predecessor iteration
-            if (inEdgeIterator.hasNext()) {
-              return inEdgeIterator.next().getPredecessor();
+            if (inEdges.hasNext()) {
+              return predecessor(inEdges.next());
             }
 
             // successor iteration
-            while (outEdgeIterator.hasNext()) {
+            while (outEdges.hasNext()) {
 
-              CFAEdge edge = outEdgeIterator.next();
-              CFANode successor = edge.getSuccessor();
+              CFAEdge edge = outEdges.next();
+              CFANode successor = successor(edge);
 
               // ignore nodes that were already iterated during predecessor iteration
               if (!successor.equals(pNode) && !successors(successor).contains(pNode)) {
@@ -389,51 +324,23 @@ public final class CfaNetwork implements Network<CFANode, CFAEdge> {
 
     checkNotNull(pEdge);
 
-    assert !hasIncidentParallelEdges(pEdge.getPredecessor());
-
     return new UnmodifiableSetView<>() {
 
       @Override
       public Iterator<CFAEdge> iterator() {
-        return new PeekIterator<>() {
 
-          private final Iterator<CFAEdge> predecessorEdgeIterator =
-              incidentEdges(pEdge.getPredecessor()).iterator();
-          private final Iterator<CFAEdge> successorEdgeIterator =
-              incidentEdges(pEdge.getSuccessor()).iterator();
+        Iterator<CFAEdge> edges =
+            Iterators.concat(
+                incidentEdges(predecessor(pEdge)).iterator(),
+                incidentEdges(successor(pEdge)).iterator());
 
-          @Override
-          protected @Nullable CFAEdge peek() {
-
-            while (predecessorEdgeIterator.hasNext()) {
-
-              CFAEdge edge = predecessorEdgeIterator.next();
-
-              // an edge is not considered adjacent to itself
-              if (!edge.equals(pEdge)) {
-                return edge;
-              }
-            }
-
-            while (successorEdgeIterator.hasNext()) {
-
-              CFAEdge edge = successorEdgeIterator.next();
-
-              // an edge is not considered adjacent to itself
-              if (!edge.equals(pEdge)) {
-                return edge;
-              }
-            }
-
-            return null;
-          }
-        };
+        return Iterators.filter(edges, edge -> !edge.equals(pEdge));
       }
 
       @Override
       public int size() {
         // an edge is not considered adjacent to itself, so it has to be subtracted
-        return (degree(pEdge.getPredecessor()) - 1) + (degree(pEdge.getSuccessor()) - 1);
+        return (degree(predecessor(pEdge)) - 1) + (degree(successor(pEdge)) - 1);
       }
     };
   }
@@ -447,7 +354,7 @@ public final class CfaNetwork implements Network<CFANode, CFAEdge> {
     checkNotNull(pSuccessor);
 
     for (CFAEdge edge : outEdges(pPredecessor)) {
-      if (edge.getSuccessor().equals(pSuccessor)) {
+      if (successor(edge).equals(pSuccessor)) {
         return edge;
       }
     }
@@ -479,8 +386,6 @@ public final class CfaNetwork implements Network<CFANode, CFAEdge> {
     checkNotNull(pPredecessor);
     checkNotNull(pSuccessor);
 
-    assert !hasIncidentParallelEdges(pPredecessor);
-
     return new UnmodifiableSetView<>() {
 
       @Override
@@ -490,24 +395,32 @@ public final class CfaNetwork implements Network<CFANode, CFAEdge> {
 
       @Override
       public boolean contains(Object pObject) {
-        return Objects.equals(pObject, edgeConnectingOrNull(pPredecessor, pSuccessor));
+
+        if (pObject == null) {
+          return false;
+        }
+
+        return pObject.equals(edgeConnectingOrNull(pPredecessor, pSuccessor));
       }
 
       @Override
       public Iterator<CFAEdge> iterator() {
         return new Iterator<>() {
 
-          private boolean finished = false;
+          private @Nullable CFAEdge edge = edgeConnectingOrNull(pPredecessor, pSuccessor);
 
           @Override
           public boolean hasNext() {
-            return !finished && edgeConnectingOrNull(pPredecessor, pSuccessor) != null;
+            return edge != null;
           }
 
           @Override
           public CFAEdge next() {
-            finished = true;
-            return edgeConnectingOrNull(pPredecessor, pSuccessor);
+
+            CFAEdge nextEdge = edge;
+            edge = null;
+
+            return nextEdge;
           }
         };
       }
@@ -516,8 +429,6 @@ public final class CfaNetwork implements Network<CFANode, CFAEdge> {
 
   @Override
   public Set<CFAEdge> edgesConnecting(EndpointPair<CFANode> pEndpoints) {
-
-    assert !hasIncidentParallelEdges(pEndpoints.source());
 
     checkArgument(pEndpoints.isOrdered(), "endpoints must be ordered");
 
@@ -557,31 +468,6 @@ public final class CfaNetwork implements Network<CFANode, CFAEdge> {
   }
 
   @Override
-  public Set<CFANode> nodes() {
-
-    Collection<CFANode> nodes = cfa.getAllNodes();
-
-    if (nodes instanceof Set) {
-      return (Set<CFANode>) nodes;
-    }
-
-    assert ImmutableSet.copyOf(nodes).size() == ImmutableList.copyOf(nodes).size();
-
-    return new UnmodifiableSetView<>() {
-
-      @Override
-      public Iterator<CFANode> iterator() {
-        return nodes.iterator();
-      }
-
-      @Override
-      public int size() {
-        return nodes.size();
-      }
-    };
-  }
-
-  @Override
   public ElementOrder<CFANode> nodeOrder() {
     return ElementOrder.unordered();
   }
@@ -592,26 +478,25 @@ public final class CfaNetwork implements Network<CFANode, CFAEdge> {
 
       @Override
       public Iterator<CFAEdge> iterator() {
-        return new PeekIterator<>() {
+        return new PrepareNextIterator<>() {
 
           private final Iterator<CFANode> nodeIterator = nodes().iterator();
 
-          private Iterator<CFAEdge> outEdgeIterator = Collections.emptyIterator();
+          private Iterator<CFAEdge> outEdges = Collections.emptyIterator();
 
           @Override
-          protected @Nullable CFAEdge peek() {
+          protected @Nullable CFAEdge prepareNext() {
 
-            while (!outEdgeIterator.hasNext()) {
+            while (!outEdges.hasNext()) {
               if (nodeIterator.hasNext()) {
                 CFANode node = nodeIterator.next();
-                assert !hasIncidentParallelEdges(node);
-                outEdgeIterator = outEdges(node).iterator();
+                outEdges = outEdges(node).iterator();
               } else {
                 return null;
               }
             }
 
-            return outEdgeIterator.next();
+            return outEdges.next();
           }
         };
       }
@@ -662,30 +547,12 @@ public final class CfaNetwork implements Network<CFANode, CFAEdge> {
 
         checkNotNull(pNode);
 
-        assert !hasIncidentParallelEdges(pNode);
-
         return new UnmodifiableSetView<>() {
 
           @Override
           public Iterator<EndpointPair<CFANode>> iterator() {
-            return new Iterator<>() {
-
-              private final Iterator<CFAEdge> edgeIterator =
-                  CfaNetwork.this.incidentEdges(pNode).iterator();
-
-              @Override
-              public boolean hasNext() {
-                return edgeIterator.hasNext();
-              }
-
-              @Override
-              public EndpointPair<CFANode> next() {
-
-                CFAEdge nextEdge = edgeIterator.next();
-
-                return EndpointPair.ordered(nextEdge.getPredecessor(), nextEdge.getSuccessor());
-              }
-            };
+            return Iterators.transform(
+                CfaNetwork.this.incidentEdges(pNode).iterator(), CfaNetwork.this::incidentNodes);
           }
 
           @Override
@@ -741,23 +608,8 @@ public final class CfaNetwork implements Network<CFANode, CFAEdge> {
 
           @Override
           public Iterator<EndpointPair<CFANode>> iterator() {
-            return new Iterator<>() {
-
-              private final Iterator<CFAEdge> edgeIterator = CfaNetwork.this.edges().iterator();
-
-              @Override
-              public boolean hasNext() {
-                return edgeIterator.hasNext();
-              }
-
-              @Override
-              public EndpointPair<CFANode> next() {
-
-                CFAEdge nextEdge = edgeIterator.next();
-
-                return EndpointPair.ordered(nextEdge.getPredecessor(), nextEdge.getSuccessor());
-              }
-            };
+            return Iterators.transform(
+                CfaNetwork.this.edges().iterator(), CfaNetwork.this::incidentNodes);
           }
 
           @Override
@@ -768,8 +620,6 @@ public final class CfaNetwork implements Network<CFANode, CFAEdge> {
       }
     };
   }
-
-  // abstract classes
 
   private abstract static class UnmodifiableSetView<E> extends AbstractCollection<E>
       implements Set<E> {
@@ -805,17 +655,17 @@ public final class CfaNetwork implements Network<CFANode, CFAEdge> {
     }
   }
 
-  private abstract static class PeekIterator<E> implements Iterator<E> {
+  private abstract static class PrepareNextIterator<E> implements Iterator<E> {
 
     private @Nullable E nextElement = null;
 
-    protected abstract @Nullable E peek();
+    protected abstract @Nullable E prepareNext();
 
     @Override
     public final boolean hasNext() {
 
       if (nextElement == null) {
-        nextElement = peek();
+        nextElement = prepareNext();
       }
 
       return nextElement != null;
@@ -825,7 +675,7 @@ public final class CfaNetwork implements Network<CFANode, CFAEdge> {
     public final E next() {
 
       if (nextElement == null) {
-        nextElement = peek();
+        nextElement = prepareNext();
       }
 
       if (nextElement == null) {
