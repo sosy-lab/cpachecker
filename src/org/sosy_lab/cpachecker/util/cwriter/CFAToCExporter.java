@@ -7,12 +7,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 package org.sosy_lab.cpachecker.util.cwriter;
-
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 
 public class CFAToCExporter {
+
+  private static final boolean NAMES_QUALIFIED = false;
 
   /**
    * Exports the given {@link CFA} to a C program.
@@ -27,6 +29,18 @@ public class CFAToCExporter {
           "CFA can only be exported to C for C input programs, at the moment");
     }
 
-    return ""; // TODO
+    StringBuilder buffer = new StringBuilder();
+
+    for (FunctionEntryNode functionEntryNode : pCfa.getAllFunctionHeads()) {
+      buffer.append(
+          functionEntryNode
+              .getFunctionDefinition()
+              .toASTString(NAMES_QUALIFIED)
+              .replace(";", " {\n"));
+      // TODO
+      buffer.append("}\n");
+    }
+
+    return buffer.toString();
   }
 }

@@ -196,7 +196,6 @@ public class CFACreator {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path exportCfaToCFile = Path.of("cfa.c");
 
-
   @Option(
       secure = true,
       name = "cfa.exportToC.prettyPrint",
