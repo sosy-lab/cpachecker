@@ -604,7 +604,7 @@ public class SMGCPAValueVisitor
     // Get the expression that is dereferenced
     CExpression expr = e.getOperand();
     // Evaluate the expression to a Value; this should return a Symbolic Value with the address of
-    // the target and a offset. If this fails this returns a UnknownValue
+    // the target and a offset. If this fails this returns a UnknownValue.
     List<ValueAndSMGState> evaluatedExpr = expr.accept(this);
     // Take the last state as thats the most up to date one
     SMGState currentState = evaluatedExpr.get(evaluatedExpr.size() - 1).getState();
@@ -653,11 +653,15 @@ public class SMGCPAValueVisitor
         BigInteger offsetInBits = offset.asNumericValue().bigInteger();
 
         // Dereference the Value and return it. The read checks for validity etc.
-        ValueAndSMGState readValue =
+        ValueAndSMGState readValueAndState =
             evaluator.readValueWithPointerDereference(
                 currentState, pointerValue.getMemoryAddress(), offsetInBits, sizeInBits);
-        currentState = readValue.getState();
-        builder.add(readValue);
+        currentState = readValueAndState.getState();
+        // The read value may be a pointer! In that case we would need to encapsule it
+        builder.add(
+            ValueAndSMGState.of(
+                AddressExpression.withZeroOffset(readValueAndState.getValue(), type),
+                currentState));
 
       } else if ((type instanceof CFunctionType
           && expr instanceof CUnaryExpression
