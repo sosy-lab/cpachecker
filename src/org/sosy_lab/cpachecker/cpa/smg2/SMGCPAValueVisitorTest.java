@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAValueExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
@@ -857,6 +858,73 @@ public class SMGCPAValueVisitorTest {
         for (int k = 0; k < TEST_ARRAY_LENGTH; k++) {
           CPointerExpression arrayPointerExpr =
               arrayPointerAccess(arrayVariableName, currentArrayType, k);
+
+          List<ValueAndSMGState> resultList = arrayPointerExpr.accept(visitor);
+
+          // Assert the correct return values depending on type
+          assertThat(resultList).hasSize(1);
+          Value resultValue = resultList.get(0).getValue();
+          checkValue(currentArrayType, k, resultValue);
+        }
+      }
+      // Reset memory model
+      resetSMGStateAndVisitor();
+    }
+  }
+
+  /*
+   * Read an array thats behind 2 pointers.
+   * Example: **array or *(*array + 1).
+   * Creation could be int * arrayP = malloc(); int ** array = &arrayP;
+   */
+  @Test
+  public void readHeapArrayConst2PointersMultipleTypesRepeated()
+      throws CPATransferException, InvalidConfigurationException {
+    String arrayVariableName = "arrayVariable";
+    String addressToAddressVariableName = "addressToAddressVariableName";
+
+    // We want to test the arrays for all basic types
+    for (int i = 0; i < ARRAY_TEST_TYPES.size(); i++) {
+      CType currentArrayType = ARRAY_TEST_TYPES.get(i);
+
+      int sizeOfCurrentTypeInBits = MACHINE_MODEL.getSizeof(currentArrayType).intValue() * 8;
+      // address to the heap where the array starts
+      Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
+      // address for addressValue
+      Value addressForAddressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
+      // Create the array on the heap; size is type size in bits * size of array
+      addHeapVariableToMemoryModel(0, sizeOfCurrentTypeInBits * TEST_ARRAY_LENGTH, addressValue);
+      // Stack variable holding the address (the pointer) to the array
+      addStackVariableToMemoryModel(arrayVariableName, POINTER_SIZE);
+      writeToStackVariableInMemoryModel(arrayVariableName, 0, POINTER_SIZE, addressValue);
+      // Stack variable holding the address (the pointer) to the address of the array
+      addStackVariableToMemoryModel(addressToAddressVariableName, POINTER_SIZE);
+      writeToStackVariableInMemoryModel(
+          addressToAddressVariableName, 0, POINTER_SIZE, addressForAddressValue);
+      // We need a mapping from addressForAddressValue to a SMGValue that is mapped to a
+      // SMGPointsToEdge (modeling the pointer)
+      SMGObject objectForAddressValue =
+          currentState.getMemoryModel().getStackFrames().peek().getVariable(arrayVariableName);
+
+      addPointerTo(addressForAddressValue, objectForAddressValue, 0);
+
+      // Now write some distinct values into the array, for signed we want to test negatives!
+      for (int k = 0; k < TEST_ARRAY_LENGTH; k++) {
+        // Create a Value that we want to be mapped to a SMGValue to write into the array depending
+        // on the type
+        Value arrayValue = transformInputIntoValue(currentArrayType, k);
+
+        // Write to the heap array
+        writeToHeapObjectByAddress(
+            addressValue, sizeOfCurrentTypeInBits * k, sizeOfCurrentTypeInBits, arrayValue);
+      }
+
+      // Now we read the entire array twice.(twice because values may change when reading in SMGs,
+      // and we don't want that)
+      for (int j = 0; j < 2; j++) {
+        for (int k = 0; k < TEST_ARRAY_LENGTH; k++) {
+          CPointerExpression arrayPointerExpr =
+              pointerOfPointerAccess(addressToAddressVariableName, currentArrayType, k);
 
           List<ValueAndSMGState> resultList = arrayPointerExpr.accept(visitor);
 
@@ -2060,6 +2128,24 @@ public class SMGCPAValueVisitorTest {
     visitor = new SMGCPAValueVisitor(evaluator, currentState, new DummyCFAEdge(null, null), logger);
   }
 
+  private void addPointerTo(Value pAddress, SMGObject pTarget, int offset)
+      throws InvalidConfigurationException {
+    SymbolicProgramConfiguration spc = currentState.getMemoryModel();
+
+    // Mapping to the smg points to edge
+    spc = spc.copyAndAddPointerFromAddressToRegion(pAddress, pTarget, BigInteger.valueOf(offset));
+
+    // This state now has the stack variable that is the pointer to the struct and the struct with a
+    // value in the second int, and none in the first
+    currentState =
+        SMGState.of(
+            MachineModel.LINUX64,
+            spc,
+            logger,
+            new SMGOptions(Configuration.defaultConfiguration()));
+    visitor = new SMGCPAValueVisitor(evaluator, currentState, new DummyCFAEdge(null, null), logger);
+  }
+
   private void addPointerToExistingHeapObject(
       int offset, Value addressOfTargetWith0Offset, Value newPointerValue)
       throws InvalidConfigurationException {
@@ -2352,6 +2438,69 @@ public class SMGCPAValueVisitorTest {
 
     // *(array +- something)
     return new CPointerExpression(FileLocation.DUMMY, elementType, arrayExpr);
+  }
+
+  /**
+   * Access of an pointer on the heap with a pointer binary expr, i.e. *(*pointerOfPointer + 1) with
+   * pointerOfPointer typed **.
+   *
+   * @param outerVariableName name of the pointer variable on the stack (qualified name!).
+   * @param indiceInt the index to be read. 1 in the example above.
+   * @param elementType {@link CType} return element in the end.
+   * @return {@link CPointerExpression} for the pointer of the pointer at the index given.
+   */
+  public CPointerExpression pointerOfPointerAccess(
+      String outerVariableName, CType elementType, int indiceInt) {
+    CIntegerLiteralExpression arrayIndice =
+        new CIntegerLiteralExpression(
+            FileLocation.DUMMY, INT_TYPE, BigInteger.valueOf(Math.abs(indiceInt)));
+
+    // The type for the returned value after the first deref type*
+    CPointerType cPointerReturnType = new CPointerType(false, false, elementType);
+    // outermost type; type**
+    CPointerType cPointerPointerReturnType = new CPointerType(false, false, cPointerReturnType);
+    // The type for the returned value after the binary expr
+    // TODO: why the f does this change?
+    CPointerType cPointerBinaryOperType = new CPointerType(false, false, elementType);
+
+    // initializer = null because we model values/memory using the SMG!
+    CVariableDeclaration declararation =
+        new CVariableDeclaration(
+            FileLocation.DUMMY,
+            false,
+            CStorageClass.AUTO,
+            cPointerPointerReturnType, // pointer(pointer(elementType))
+            outerVariableName + "NotQual",
+            outerVariableName + "NotQual",
+            outerVariableName,
+            null);
+
+    CIdExpression idExpr = new CIdExpression(FileLocation.DUMMY, declararation);
+    CPointerExpression pointerToArray =
+        new CPointerExpression(FileLocation.DUMMY, cPointerReturnType, idExpr);
+    if (indiceInt == 0) {
+      // **pointerOfPointer
+      return new CPointerExpression(FileLocation.DUMMY, elementType, pointerToArray);
+    }
+
+    CBinaryExpression.BinaryOperator cBinOperator;
+    if (indiceInt >= 0) {
+      cBinOperator = CBinaryExpression.BinaryOperator.PLUS;
+    } else {
+      cBinOperator = CBinaryExpression.BinaryOperator.MINUS;
+    }
+
+    CBinaryExpression binaryExpr =
+        new CBinaryExpression(
+            FileLocation.DUMMY,
+            cPointerReturnType,
+            cPointerBinaryOperType,
+            pointerToArray,
+            arrayIndice,
+            cBinOperator);
+
+    // *(*pointerOfPointer +- something)
+    return new CPointerExpression(FileLocation.DUMMY, elementType, binaryExpr);
   }
 
   /**
