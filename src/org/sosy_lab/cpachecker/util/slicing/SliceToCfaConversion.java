@@ -25,6 +25,9 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CCfaTransformer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CfaMutableNetwork;
+import org.sosy_lab.cpachecker.cfa.CfaTransformer;
+import org.sosy_lab.cpachecker.cfa.CfaTransformer.CfaConnectedness;
+import org.sosy_lab.cpachecker.cfa.CfaTransformer.CfaMetadata;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
@@ -248,14 +251,20 @@ final class SliceToCfaConversion {
                 ImmutableMap.toImmutableMap(
                     entryNode -> entryNode.getFunction(), entryNode -> entryNode));
 
-    CFA sliceCfa =
-        CCfaTransformer.createCfa(
-            pConfig,
-            pLogger,
-            pSlice.getOriginalCfa(),
-            graph,
-            createAstNodeSubstitutionForCfaEdges(pSlice, functionToEntryNodeMap::get),
-            createAstNodeSubstitutionForCfaNodes(pSlice, functionToEntryNodeMap::get));
+    CfaTransformer cfaTransformer =
+        CCfaTransformer.builder()
+            .add(createAstNodeSubstitutionForCfaEdges(pSlice, functionToEntryNodeMap::get)::apply)
+            .add(createAstNodeSubstitutionForCfaNodes(pSlice, functionToEntryNodeMap::get)::apply)
+            .build();
+    CfaMetadata cfaMetadata =
+        new CfaMetadata(
+            pSlice.getOriginalCfa().getMachineModel(),
+            pSlice.getOriginalCfa().getLanguage(),
+            ImmutableList.copyOf(pSlice.getOriginalCfa().getFileNames()),
+            pSlice.getOriginalCfa().getMainFunction(),
+            CfaConnectedness.SUPERGRAPH);
+
+    CFA sliceCfa = cfaTransformer.transform(graph.getCfaNetwork(), cfaMetadata, pLogger);
 
     return createSimplifiedCfa(sliceCfa);
   }

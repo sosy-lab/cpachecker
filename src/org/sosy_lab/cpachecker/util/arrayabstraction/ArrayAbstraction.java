@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.arrayabstraction;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -22,13 +23,18 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiFunction;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CCfaTransformer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CfaMutableNetwork;
+import org.sosy_lab.cpachecker.cfa.CfaTransformer;
+import org.sosy_lab.cpachecker.cfa.CfaTransformer.CfaConnectedness;
+import org.sosy_lab.cpachecker.cfa.CfaTransformer.CfaMetadata;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -819,16 +825,22 @@ public class ArrayAbstraction {
       }
     }
 
-    CFA transformedCfa =
-        CCfaTransformer.createCfa(
-            pConfiguration,
-            pLogger,
-            simplifiedCfa,
-            graph,
-            (edge, originalAstNode) ->
-                originalAstNode.accept(
-                    new SubstitutingCAstNodeVisitor(
-                        node -> substitution.getSubstitute(edge, node))));
+    BiFunction<CFAEdge, CAstNode, CAstNode> edgeAstSubstitution =
+        (edge, originalAstNode) ->
+            originalAstNode.accept(
+                new SubstitutingCAstNodeVisitor(node -> substitution.getSubstitute(edge, node)));
+
+    CfaTransformer cfaTransformer =
+        CCfaTransformer.builder().add(edgeAstSubstitution::apply).build();
+    CfaMetadata cfaMetadata =
+        new CfaMetadata(
+            pCfa.getMachineModel(),
+            pCfa.getLanguage(),
+            ImmutableList.copyOf(pCfa.getFileNames()),
+            pCfa.getMainFunction(),
+            CfaConnectedness.SUPERGRAPH);
+
+    CFA transformedCfa = cfaTransformer.transform(graph.getCfaNetwork(), cfaMetadata, pLogger);
 
     return new ArrayAbstractionResult(
         status, transformedCfa, transformableArrays, transformableLoops);

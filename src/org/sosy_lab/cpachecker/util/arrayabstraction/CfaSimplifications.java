@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.arrayabstraction;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -26,6 +27,9 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CCfaTransformer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CfaMutableNetwork;
+import org.sosy_lab.cpachecker.cfa.CfaTransformer;
+import org.sosy_lab.cpachecker.cfa.CfaTransformer.CfaConnectedness;
+import org.sosy_lab.cpachecker.cfa.CfaTransformer.CfaMetadata;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.AbstractTransformingCAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
@@ -208,7 +212,17 @@ final class CfaSimplifications {
           return originalAstNode.accept(new SubstitutingCAstNodeVisitor(astNodeSubstitution::get));
         };
 
-    return CCfaTransformer.createCfa(pConfiguration, pLogger, pCfa, graph, substitutionFunction);
+    CfaTransformer cfaTransformer =
+        CCfaTransformer.builder().add(substitutionFunction::apply).build();
+    CfaMetadata cfaMetadata =
+        new CfaMetadata(
+            pCfa.getMachineModel(),
+            pCfa.getLanguage(),
+            ImmutableList.copyOf(pCfa.getFileNames()),
+            pCfa.getMainFunction(),
+            CfaConnectedness.SUPERGRAPH);
+
+    return cfaTransformer.transform(graph.getCfaNetwork(), cfaMetadata, pLogger);
   }
 
   /**
@@ -447,14 +461,21 @@ final class CfaSimplifications {
       }
     }
 
-    return CCfaTransformer.createCfa(
-        pConfiguration,
-        pLogger,
-        pCfa,
-        graph,
+    BiFunction<CFAEdge, CAstNode, CAstNode> edgeAstSubstitution =
         (edge, originalAstNode) ->
-            IdExpressionSubstitutingCAstNodeVisitor.substitute(
-                substitution, edge, originalAstNode));
+            IdExpressionSubstitutingCAstNodeVisitor.substitute(substitution, edge, originalAstNode);
+
+    CfaTransformer cfaTransformer =
+        CCfaTransformer.builder().add(edgeAstSubstitution::apply).build();
+    CfaMetadata cfaMetadata =
+        new CfaMetadata(
+            pCfa.getMachineModel(),
+            pCfa.getLanguage(),
+            ImmutableList.copyOf(pCfa.getFileNames()),
+            pCfa.getMainFunction(),
+            CfaConnectedness.SUPERGRAPH);
+
+    return cfaTransformer.transform(graph.getCfaNetwork(), cfaMetadata, pLogger);
   }
 
   private static final class IdExpressionSubstitutingCAstNodeVisitor
