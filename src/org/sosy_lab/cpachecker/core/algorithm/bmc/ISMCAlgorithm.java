@@ -235,7 +235,7 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       if (interpolation
           && maxLoopIterations > 1
           && !AbstractStates.getTargetStates(pReachedSet).isEmpty()) {
-        partitionedFormulas.update(pReachedSet);
+        partitionedFormulas.collectFormulasFromARG(pReachedSet);
         List<BooleanFormula> itpSequence = getInterpolationSequence(itpMgr, partitionedFormulas);
         updateReachabilityVector(reachVector, itpSequence);
 
@@ -275,7 +275,7 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   /**
-   * A method to update the reachability vector with newly derived interpolants
+   * A method to collectFormulasFromARG the reachability vector with newly derived interpolants
    *
    * @param reachVector the reachability vector of the previous iteration
    * @param itpSequence the interpolation sequence derived at the current iteration

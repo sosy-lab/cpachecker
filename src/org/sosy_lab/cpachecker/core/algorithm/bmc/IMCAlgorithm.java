@@ -226,7 +226,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       if (interpolation
           && maxLoopIterations > 1
           && !AbstractStates.getTargetStates(pReachedSet).isEmpty()) {
-        partitionedFormulas.update(pReachedSet);
+        partitionedFormulas.collectFormulasFromARG(pReachedSet);
 
         logger.log(Level.FINE, "Computing fixed points by interpolation");
         if (reachFixedPointByInterpolation(itpMgr, partitionedFormulas)) {

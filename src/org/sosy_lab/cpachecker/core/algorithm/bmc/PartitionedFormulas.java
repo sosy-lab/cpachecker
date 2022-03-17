@@ -91,7 +91,7 @@ class PartitionedFormulas {
    *
    * @param reachedSet Abstract Reachability Graph
    */
-  void update(final ReachedSet reachedSet) {
+  void collectFormulasFromARG(final ReachedSet reachedSet) {
     logger.log(Level.FINE, "Collecting BMC-partitioning formulas");
     FluentIterable<AbstractState> targetStatesAfterLoop =
         InterpolationHelper.getTargetStatesAfterLoop(reachedSet);
