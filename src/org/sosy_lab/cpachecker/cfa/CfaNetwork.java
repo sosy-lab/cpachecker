@@ -168,7 +168,7 @@ public abstract class CfaNetwork implements Network<CFANode, CFAEdge> {
     };
   }
 
-  public static CfaNetwork of(CfaNetwork pNetwork, Predicate<CFAEdge> pFilter) {
+  public static CfaNetwork filterEdges(CfaNetwork pNetwork, Predicate<CFAEdge> pFilter) {
 
     checkNotNull(pNetwork);
     checkNotNull(pFilter);
@@ -220,10 +220,11 @@ public abstract class CfaNetwork implements Network<CFANode, CFAEdge> {
   }
 
   public static CfaNetwork of(CFA pCfa, Predicate<CFAEdge> pFilter) {
-    return of(of(pCfa), pFilter);
+    return filterEdges(of(pCfa), pFilter);
   }
 
-  public static CfaNetwork of(CfaNetwork pNetwork, Function<CFAEdge, CFAEdge> pTransformer) {
+  public static CfaNetwork transformEdges(
+      CfaNetwork pNetwork, Function<CFAEdge, CFAEdge> pTransformer) {
 
     checkNotNull(pNetwork);
     checkNotNull(pTransformer);
