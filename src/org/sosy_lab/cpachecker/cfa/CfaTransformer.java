@@ -176,7 +176,7 @@ public abstract class CfaTransformer {
     }
   }
 
-  private final class CfaCreator implements Substitution {
+  private static final class CfaCreator implements Substitution {
 
     private final ImmutableList<CfaProcessor> cfaProcessors;
 
