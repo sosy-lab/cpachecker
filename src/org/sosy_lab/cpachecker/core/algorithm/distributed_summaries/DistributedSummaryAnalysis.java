@@ -35,11 +35,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.GivenSizeDecomposer;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.SingleBlockDecomposer;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ConnectionProvider;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.UpdatedTypeMap;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.classic_network.ClassicNetworkConnectionProvider;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.memory.InMemoryConnectionProvider;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.nio_network.NetworkConnectionProvider;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.observer.ErrorMessageObserver;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.observer.FaultLocalizationMessageObserver;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.observer.MessageListener;
@@ -82,9 +78,6 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
   @Option(description = "algorithm to decompose the CFA")
   private DecompositionType decompositionType = DecompositionType.BLOCK_OPERATOR;
 
-  @Option(description = "how to send messages")
-  private ConnectionType connectionType = ConnectionType.NETWORK_NIO_UNSTABLE;
-
   @Option(description = "which worker to use")
   private WorkerType workerType = WorkerType.DEFAULT;
 
@@ -105,12 +98,6 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
     BLOCK_OPERATOR,
     GIVEN_SIZE,
     SINGLE_BLOCK
-  }
-
-  private enum ConnectionType {
-    NETWORK_NIO_UNSTABLE,
-    NETWORK,
-    IN_MEMORY
   }
 
   private enum WorkerType {
@@ -186,19 +173,6 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
     }
   }
 
-  private ConnectionProvider<?> getConnectionProvider() {
-    switch (connectionType) {
-      case NETWORK_NIO_UNSTABLE:
-        return new NetworkConnectionProvider();
-      case IN_MEMORY:
-        return new InMemoryConnectionProvider();
-      case NETWORK:
-        return new ClassicNetworkConnectionProvider();
-      default:
-        throw new AssertionError("Unknown ConnectionType " + connectionType);
-    }
-  }
-
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
     logger.log(Level.INFO, "Starting block analysis...");
@@ -213,9 +187,6 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
       if (!removed.isEmpty()) {
         logger.log(Level.INFO, "Removed " + removed.size() + " empty BlockNodes from the tree.");
       }
-      if (tree.isEmpty()) {
-        return AlgorithmStatus.SOUND_AND_PRECISE;
-      }
 
       // create type map (maps variables to their type)
       SSAMap ssaMap = getTypeMap(tree);
@@ -224,7 +195,7 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
       // create workers
       Collection<BlockNode> blocks = tree.getDistinctNodes();
       DistributedComponentsBuilder builder =
-          new DistributedComponentsBuilder(cfa, getConnectionProvider(), specification, configuration, shutdownManager);
+          new DistributedComponentsBuilder(cfa, specification, configuration, shutdownManager);
       builder = builder.createAdditionalConnections(1);
       for (BlockNode distinctNode : blocks) {
         if (distinctNode.isRoot()) {

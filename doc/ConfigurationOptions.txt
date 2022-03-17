@@ -3514,10 +3514,6 @@ differential.ignoreDeclarations = false
 # Program to check against
 differential.program = no default value
 
-# how to send messages
-distributedSummaries.connectionType = NETWORK_NIO_UNSTABLE
-  enum:     [NETWORK_NIO_UNSTABLE, NETWORK, IN_MEMORY]
-
 # whether to use daemon threads for workers
 distributedSummaries.daemon = true
 

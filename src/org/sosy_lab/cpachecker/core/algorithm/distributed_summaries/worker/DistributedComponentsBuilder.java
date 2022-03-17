@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ConnectionProvider;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.UpdatedTypeMap;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.memory.InMemoryConnectionProvider;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -37,7 +38,6 @@ public class DistributedComponentsBuilder {
 
   public DistributedComponentsBuilder(
       CFA pCFA,
-      ConnectionProvider<?> pConnectionProvider,
       Specification pSpecification,
       Configuration pConfiguration,
       ShutdownManager pShutdownManager) {
@@ -45,7 +45,7 @@ public class DistributedComponentsBuilder {
     configuration = pConfiguration;
     shutdownManager = pShutdownManager;
     specification = pSpecification;
-    connectionProvider = pConnectionProvider;
+    connectionProvider = new InMemoryConnectionProvider();
     workers = new ArrayList<>();
   }
 

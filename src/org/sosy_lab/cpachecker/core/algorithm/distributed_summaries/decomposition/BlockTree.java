@@ -27,10 +27,6 @@ public class BlockTree {
     factory = pFactory;
   }
 
-  public boolean isEmpty() {
-    return root.getSuccessors().isEmpty();
-  }
-
   public BlockNode getRoot() {
     return root;
   }
