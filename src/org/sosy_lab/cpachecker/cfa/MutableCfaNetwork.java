@@ -30,8 +30,8 @@ public final class MutableCfaNetwork extends CfaNetwork
     mutableCfaView = pMutableCfaView;
   }
 
-  public MutableCfaNetwork of(MutableCFA pMutableCfa) {
-    return new MutableCfaNetwork(mutableCfa, CfaNetwork.of(pMutableCfa));
+  public static MutableCfaNetwork of(MutableCFA pMutableCfa) {
+    return new MutableCfaNetwork(pMutableCfa, CfaNetwork.of(pMutableCfa));
   }
 
   @Override
