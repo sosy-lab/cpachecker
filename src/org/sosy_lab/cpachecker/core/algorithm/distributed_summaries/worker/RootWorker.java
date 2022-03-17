@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analys
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.BlockAnalysis.NoopAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.MessageProcessing;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.UpdatedTypeMap;
@@ -39,6 +40,7 @@ public class RootWorker extends Worker {
 
   public RootWorker(
       String pId,
+      Connection pConnection,
       AnalysisOptions pOptions,
       BlockNode pNode,
       CFA pCfa,
@@ -46,10 +48,10 @@ public class RootWorker extends Worker {
       Configuration pConfiguration,
       ShutdownManager pShutdownManager)
       throws CPAException, InterruptedException, InvalidConfigurationException {
-    super("root-worker-" + pId, pOptions);
+    super("root-worker-" + pId, pConnection, pOptions);
     root = pNode;
     if (!root.isRoot() || !root.isEmpty() || !root.getLastNode().equals(root.getStartNode())) {
-      throw new AssertionError("Root nodes must be empty and do not have predecessors: " + pNode);
+      throw new AssertionError("Root node must be empty and cannot have predecessors: " + pNode);
     }
     analysis =
         new NoopAnalysis(
@@ -110,10 +112,9 @@ public class RootWorker extends Worker {
           .setLatestOwnPostConditionMessage(initialMessage.stream().findAny().orElseThrow());
       broadcast(initialMessage);
       super.run();
-    } catch (InterruptedException | IOException | CPAException pE) {
-      logger.log(Level.SEVERE, "Worker run into an error: %s", pE);
-      logger.log(Level.SEVERE, "Stopping analysis...");
-      throw new AssertionError(pE);
+    } catch (InterruptedException | CPAException pE) {
+      logger.logException(Level.SEVERE, pE, "Root worker stopped unexpectedly.");
+      broadcastOrLogException(ImmutableSet.of(Message.newErrorMessage(id, pE)));
     }
   }
 }

@@ -18,7 +18,6 @@ import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Message;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Message.MessageType;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -29,8 +28,8 @@ public abstract class Worker implements Runnable, StatisticsProvider {
   protected final LogManager logger;
   protected final String id;
   protected final AnalysisOptions analysisOptions;
+  protected final Connection connection;
 
-  protected Connection connection;
   protected boolean finished;
 
   protected static final WorkerStatistics stats = new WorkerStatistics();
@@ -41,10 +40,12 @@ public abstract class Worker implements Runnable, StatisticsProvider {
    *
    * @param pId the id of the worker
    */
-  protected Worker(String pId, AnalysisOptions pOptions) throws InvalidConfigurationException {
+  protected Worker(String pId, Connection pConnection, AnalysisOptions pOptions)
+      throws InvalidConfigurationException {
     id = pId;
     analysisOptions = pOptions;
     logger = BasicLogManager.create(pOptions.getParentConfig()).withComponentName(pId);
+    connection = pConnection;
   }
 
   /**
@@ -60,7 +61,7 @@ public abstract class Worker implements Runnable, StatisticsProvider {
   public abstract Collection<Message> processMessage(Message pMessage)
       throws InterruptedException, IOException, SolverException, CPAException;
 
-  public void broadcast(Collection<Message> pMessage) throws IOException, InterruptedException {
+  protected void broadcast(Collection<Message> pMessage) throws InterruptedException {
     Objects.requireNonNull(connection, "Connection cannot be null.");
     pMessage.forEach(
         m -> {
@@ -72,28 +73,32 @@ public abstract class Worker implements Runnable, StatisticsProvider {
     }
   }
 
+  protected void broadcastOrLogException(Collection<Message> pMessage) {
+    try {
+      broadcast(pMessage);
+    } catch (InterruptedException pE) {
+      logger.logException(Level.SEVERE, pE, "Broadcasting messages interrupted unexpectedly.");
+    }
+  }
+
   @Override
   public void run() {
-    try {
+    try (connection) {
       while (!finished) {
         broadcast(processMessage(nextMessage()));
         finished |= Thread.currentThread().isInterrupted();
       }
     } catch (CPAException | InterruptedException | IOException | SolverException pE) {
-      try {
-        // result unknown if error occurs, terminate other workers.
-        broadcast(ImmutableList.of(Message.newErrorMessage(getId(), pE)));
-      } catch (IOException | InterruptedException pEx) {
-        logger.logException(Level.SEVERE, pE, "Failed broadcasting an error message.");
-        logger.logfException(
-            Level.SEVERE, pEx, "%s faced a problem while processing messages.", getId());
-      }
+      logger.logfException(
+          Level.SEVERE, pE, "%s faced a problem while processing messages.", getId());
+      broadcastOrLogException(ImmutableList.of(Message.newErrorMessage(getId(), pE)));
+    } finally {
+      logger.logf(Level.INFO, "Worker %s stopped working.", id);
     }
   }
 
-  public synchronized void shutdown() throws IOException {
+  public synchronized void shutdown() {
     finished = true;
-    connection.close();
   }
 
   public boolean hasPendingMessages() {
@@ -102,16 +107,6 @@ public abstract class Worker implements Runnable, StatisticsProvider {
 
   public final String getId() {
     return id;
-  }
-
-  final void setConnection(Connection pConnection) {
-    connection = pConnection;
-    connection.setOrdering(
-        MessageType.FOUND_RESULT,
-        MessageType.ERROR,
-        MessageType.ERROR_CONDITION,
-        MessageType.ERROR_CONDITION_UNREACHABLE,
-        MessageType.BLOCK_POSTCONDITION);
   }
 
   @Override

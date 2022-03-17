@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedPredicateCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.MessageProcessing;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Message.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
@@ -79,6 +80,7 @@ public class FaultLocalizationWorker extends AnalysisWorker {
   FaultLocalizationWorker(
       String pId,
       AnalysisOptions pOptions,
+      Connection pConnection,
       BlockNode pBlock,
       CFA pCFA,
       Specification pSpecification,
@@ -86,7 +88,7 @@ public class FaultLocalizationWorker extends AnalysisWorker {
       ShutdownManager pShutdownManager,
       UpdatedTypeMap pTypeMap)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
-    super("fl-worker-" + pId, pOptions, pBlock, pCFA, pSpecification, pShutdownManager, pTypeMap);
+    super("fl-worker-" + pId, pOptions, pConnection, pBlock, pCFA, pSpecification, pShutdownManager, pTypeMap);
     PredicateCPA predicateCPA =
         backwardAnalysis.getDistributedCPA().getOriginalCPA(PredicateCPA.class);
     Configuration config =

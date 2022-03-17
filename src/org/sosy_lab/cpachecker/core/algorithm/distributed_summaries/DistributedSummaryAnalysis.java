@@ -160,7 +160,7 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
       DistributedComponentsBuilder pBuilder,
       BlockNode pNode,
       UpdatedTypeMap pMap)
-      throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
+      throws IOException, InvalidConfigurationException {
     switch (workerType) {
       case DEFAULT:
         return pBuilder.addAnalysisWorker(pNode, pMap, options);
@@ -248,9 +248,9 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
 
         // finish and shutdown
         listener.finish();
-        for (Worker worker : components.getWorkers()) {
-          worker.shutdown();
-        }
+
+        // shutting down workers is not necessary because they will react to result/error messages
+        // correctly themselves. (components.getWorkers().forEach(Worker::shutdown);)
       }
 
       return listener.getObserver(StatusObserver.class).getStatus();
@@ -294,7 +294,7 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
 
   @Override
   public @Nullable String getName() {
-    return "Block Statistics";
+    return "DistributedSummaryAnalysis";
   }
 
 }

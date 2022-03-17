@@ -18,6 +18,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.MessageProcessing;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Message.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
@@ -32,6 +33,7 @@ public class SmartAnalysisWorker extends AnalysisWorker {
   SmartAnalysisWorker(
       String pId,
       AnalysisOptions pOptions,
+      Connection pConnection,
       BlockNode pBlock,
       CFA pCFA,
       Specification pSpecification,
@@ -39,7 +41,14 @@ public class SmartAnalysisWorker extends AnalysisWorker {
       UpdatedTypeMap pTypeMap)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     super(
-        "smart-worker-" + pId, pOptions, pBlock, pCFA, pSpecification, pShutdownManager, pTypeMap);
+        "smart-worker-" + pId,
+        pOptions,
+        pConnection,
+        pBlock,
+        pCFA,
+        pSpecification,
+        pShutdownManager,
+        pTypeMap);
     smartQueue = new PriorityBlockingQueue<>();
   }
 

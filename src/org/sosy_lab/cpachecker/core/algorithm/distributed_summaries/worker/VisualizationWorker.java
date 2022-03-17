@@ -15,6 +15,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockTree;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Message.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.visualization.MessageLogger;
@@ -26,14 +27,16 @@ public class VisualizationWorker extends Worker {
   private final MessageLogger messageLogger;
 
   protected VisualizationWorker(
-      BlockTree pTree, AnalysisOptions pOptions, Configuration pConfiguration)
+      BlockTree pTree, Connection pConnection, AnalysisOptions pOptions, Configuration pConfiguration)
       throws InvalidConfigurationException {
-    super("visualization-worker", pOptions);
+    super("visualization-worker", pConnection, pOptions);
     messageLogger = new MessageLogger(pTree, pConfiguration);
     try {
       messageLogger.logTree();
     } catch (IOException pE) {
-      logger.log(Level.WARNING, "Logger was not able to print the tree to a file because of " + pE);
+      logger.logException(Level.WARNING, pE, "VisualizationWorker failed to log the BlockTree. "
+          + "The visualization might contain old data or will not work. "
+          + "However, the analysis continues normally.");
     }
   }
 

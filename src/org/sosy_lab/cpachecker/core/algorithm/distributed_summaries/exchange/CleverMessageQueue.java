@@ -24,14 +24,22 @@ public class CleverMessageQueue extends ForwardingBlockingQueue<Message> {
   private final MessageType[] ordering;
 
   /**
-   * Mimics a blocking queue but changes the blocking method <code>take</code> to prioritize messages
+   * Mimics a blocking queue but changes the blocking method <code>take</code> to prioritize
+   * messages
    *
    * @param pQueue the queue to forward
    */
   public CleverMessageQueue(BlockingQueue<Message> pQueue) {
     queue = pQueue;
     messages = ArrayListMultimap.create();
-    ordering = MessageType.values();
+    ordering =
+        new MessageType[] {
+          MessageType.FOUND_RESULT,
+          MessageType.ERROR,
+          MessageType.ERROR_CONDITION,
+          MessageType.ERROR_CONDITION_UNREACHABLE,
+          MessageType.BLOCK_POSTCONDITION
+        };
   }
 
   public CleverMessageQueue() {

@@ -48,7 +48,7 @@ public class InMemoryConnection implements Connection, StatisticsProvider {
   }
 
   @Override
-  public void write(Message message) throws IOException, InterruptedException {
+  public void write(Message message) throws InterruptedException {
     stats.averageMessageSize.setNextValue(
         (message.getUniqueBlockId() + message.getType() + message.getPayload()
             + message.getTargetNodeNumber()).length());

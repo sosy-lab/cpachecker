@@ -22,6 +22,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Message.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
@@ -35,9 +36,9 @@ public class ResultWorker extends Worker {
   private final Map<String, Integer> expectAnswer;
   private final int numWorkers;
 
-  ResultWorker(Collection<BlockNode> pNodes, AnalysisOptions pOptions)
+  ResultWorker(Collection<BlockNode> pNodes, Connection pConnection, AnalysisOptions pOptions)
       throws InvalidConfigurationException {
-    super("result-worker", pOptions);
+    super("result-worker", pConnection, pOptions);
     nodeMap = new HashMap<>();
     pNodes.forEach(node -> nodeMap.put(node.getId(), node));
     messageReceived = new HashSet<>();

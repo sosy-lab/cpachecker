@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedCompositeCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.MessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.StatTimerSum.StatTimerType;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.UpdatedTypeMap;
 import org.sosy_lab.cpachecker.core.specification.Specification;
@@ -44,13 +45,14 @@ public class AnalysisWorker extends Worker {
   AnalysisWorker(
       String pId,
       AnalysisOptions pOptions,
+      Connection pConnection,
       BlockNode pBlock,
       CFA pCFA,
       Specification pSpecification,
       ShutdownManager pShutdownManager,
       UpdatedTypeMap pTypeMap)
       throws CPAException, InterruptedException, InvalidConfigurationException, IOException {
-    super("analysis-worker-" + pId, pOptions);
+    super("analysis-worker-" + pId, pConnection, pOptions);
     block = pBlock;
 
     Configuration forwardConfiguration =
@@ -166,9 +168,9 @@ public class AnalysisWorker extends Worker {
     try {
       broadcast(forwardAnalysis.initialAnalysis());
       super.run();
-    } catch (CPAException | InterruptedException | IOException pE) {
-      logger.log(Level.SEVERE, "Worker run into an error: %s", pE);
-      logger.log(Level.SEVERE, "Stopping analysis...");
+    } catch (CPAException | InterruptedException pE) {
+      logger.logException(Level.SEVERE, pE, "Thread interrupted unexpectedly.");
+      broadcastOrLogException(ImmutableSet.of(Message.newErrorMessage(getBlockId(), pE)));
     }
   }
 
