@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.graph.ElementOrder;
@@ -543,41 +544,26 @@ public abstract class CfaNetwork implements Network<CFANode, CFAEdge> {
 
     return new UnmodifiableSetView<>() {
 
+      private ImmutableSet<CFAEdge> createImmutableSet() {
+
+        @Nullable CFAEdge edge = edgeConnectingOrNull(pPredecessor, pSuccessor);
+
+        return edge == null ? ImmutableSet.of() : ImmutableSet.of(edge);
+      }
+
       @Override
       public int size() {
-        return edgeConnectingOrNull(pPredecessor, pSuccessor) != null ? 1 : 0;
+        return createImmutableSet().size();
       }
 
       @Override
       public boolean contains(Object pObject) {
-
-        if (pObject == null) {
-          return false;
-        }
-
-        return pObject.equals(edgeConnectingOrNull(pPredecessor, pSuccessor));
+        return createImmutableSet().contains(pObject);
       }
 
       @Override
       public Iterator<CFAEdge> iterator() {
-        return new Iterator<>() {
-
-          private @Nullable CFAEdge edge = edgeConnectingOrNull(pPredecessor, pSuccessor);
-
-          @Override
-          public boolean hasNext() {
-            return edge != null;
-          }
-
-          @Override
-          public CFAEdge next() {
-
-            CFAEdge nextEdge = edge;
-            edge = null;
-
-            return nextEdge;
-          }
-        };
+        return createImmutableSet().iterator();
       }
     };
   }
