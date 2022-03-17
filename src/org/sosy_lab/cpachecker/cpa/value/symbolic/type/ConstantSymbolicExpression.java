@@ -40,7 +40,7 @@ public final class ConstantSymbolicExpression extends SymbolicExpression {
    * @param pType the type of the value of the new object
    * @param pRepresentedLocation the memory location this symbolic expression represents
    */
-  ConstantSymbolicExpression(
+  public ConstantSymbolicExpression(
       final Value pValue, final Type pType, final MemoryLocation pRepresentedLocation) {
     super(pRepresentedLocation);
     value = pValue;
