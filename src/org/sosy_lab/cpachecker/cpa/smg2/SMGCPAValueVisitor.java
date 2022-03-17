@@ -440,12 +440,21 @@ public class SMGCPAValueVisitor
         BigInteger finalFieldOffset =
             structPointerOffsetExpr.asNumericValue().bigInteger().add(fieldOffset);
 
-        builder.add(
+        ValueAndSMGState readValueAndState =
             evaluator.readValueWithPointerDereference(
                 currentState,
                 addressAndOffsetValue.getMemoryAddress(),
                 finalFieldOffset,
-                sizeOfField));
+                sizeOfField);
+
+        if (fieldType instanceof CPointerType) {
+          readValueAndState =
+              ValueAndSMGState.of(
+                  AddressExpression.withZeroOffset(readValueAndState.getValue(), fieldType),
+                  readValueAndState.getState());
+        }
+
+        builder.add(readValueAndState);
 
       } else if (ownerExpression instanceof CBinaryExpression
           || ownerExpression instanceof CIdExpression) {
@@ -460,9 +469,18 @@ public class SMGCPAValueVisitor
           finalFieldOffset = fieldOffset.add(BigInteger.valueOf(maybeVariableIdent.getOffset()));
         }
 
-        builder.add(
+        ValueAndSMGState readValueAndState =
             evaluator.readStackOrGlobalVariable(
-                currentState, maybeVariableIdent.getIdentifier(), finalFieldOffset, sizeOfField));
+                currentState, maybeVariableIdent.getIdentifier(), finalFieldOffset, sizeOfField);
+
+        if (fieldType instanceof CPointerType) {
+          readValueAndState =
+              ValueAndSMGState.of(
+                  AddressExpression.withZeroOffset(readValueAndState.getValue(), fieldType),
+                  readValueAndState.getState());
+        }
+
+        builder.add(readValueAndState);
 
       } else {
         // TODO: improve error and check if its even needed
@@ -671,8 +689,8 @@ public class SMGCPAValueVisitor
       } else {
         // "Normal" return types
         // Default case either *pointer or *(pointer + smth), but both get transformed into a
-        // AddressExpression Value type with the correct offset build in
-        // Just dereference the pointer with the correct type
+        // AddressExpression Value type with the correct offset build in, so
+        // just dereference the pointer with the correct type
         BigInteger sizeInBits = evaluator.getBitSizeof(currentState, type);
         BigInteger offsetInBits = offset.asNumericValue().bigInteger();
 
