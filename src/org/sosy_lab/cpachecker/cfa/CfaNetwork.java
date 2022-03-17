@@ -29,6 +29,7 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -220,6 +221,57 @@ public abstract class CfaNetwork implements Network<CFANode, CFAEdge> {
 
   public static CfaNetwork of(CFA pCfa, Predicate<CFAEdge> pFilter) {
     return of(of(pCfa), pFilter);
+  }
+
+  public static CfaNetwork of(CfaNetwork pNetwork, Function<CFAEdge, CFAEdge> pTransformer) {
+
+    checkNotNull(pNetwork);
+    checkNotNull(pTransformer);
+
+    return new CfaNetwork() {
+
+      @Override
+      public Set<CFAEdge> inEdges(CFANode pNode) {
+        return new UnmodifiableSetView<>() {
+
+          @Override
+          public Iterator<CFAEdge> iterator() {
+            return Iterators.transform(pNetwork.inEdges(pNode).iterator(), pTransformer::apply);
+          }
+
+          @Override
+          public int size() {
+            return Iterables.size(this);
+          }
+        };
+      }
+
+      @Override
+      public Set<CFAEdge> outEdges(CFANode pNode) {
+        return new UnmodifiableSetView<>() {
+
+          @Override
+          public Iterator<CFAEdge> iterator() {
+            return Iterators.transform(pNetwork.outEdges(pNode).iterator(), pTransformer::apply);
+          }
+
+          @Override
+          public int size() {
+            return Iterables.size(this);
+          }
+        };
+      }
+
+      @Override
+      public EndpointPair<CFANode> incidentNodes(CFAEdge pEdge) {
+        return pNetwork.incidentNodes(pEdge);
+      }
+
+      @Override
+      public Set<CFANode> nodes() {
+        return pNetwork.nodes();
+      }
+    };
   }
 
   public static CfaNetwork of(CFA pCfa, Set<String> pFunctions) {
