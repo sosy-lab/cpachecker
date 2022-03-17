@@ -213,7 +213,7 @@ class InterpolationManager<T> {
     for (int i = fromIndex; i < toIndex; ++i) {
       itpSequence.add(getInterpolantAt(i, reverse));
     }
-    return itpSequence;
+    return ImmutableList.copyOf(itpSequence);
   }
 
   /**
