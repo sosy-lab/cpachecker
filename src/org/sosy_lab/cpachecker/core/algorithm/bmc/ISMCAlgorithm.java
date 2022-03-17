@@ -304,7 +304,7 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    */
   private boolean reachFixedPoint(List<BooleanFormula> reachVector)
       throws InterruptedException, SolverException {
-    logger.log(Level.FINE, "Checking fiexd point");
+    logger.log(Level.FINE, "Checking fixed point");
 
     if (impactLikeCovering) {
       BooleanFormula lastImage = reachVector.get(reachVector.size() - 1);

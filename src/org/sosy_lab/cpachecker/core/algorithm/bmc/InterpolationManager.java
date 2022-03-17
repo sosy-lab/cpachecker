@@ -22,7 +22,8 @@ import org.sosy_lab.java_smt.api.SolverException;
  *
  * <ul>
  *   <li>pushing/popping formulas onto/from the solver stack, and
- *   <li>deriving interpolants from nsatisfiable path formulas with different derivation directions.
+ *   <li>deriving interpolants from unsatisfiable path formulas with different derivation
+ *       directions.
  * </ul>
  */
 public class InterpolationManager<T> {
