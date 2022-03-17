@@ -26,7 +26,7 @@ import org.sosy_lab.java_smt.api.SolverException;
  *       directions.
  * </ul>
  */
-public class InterpolationManager<T> {
+class InterpolationManager<T> {
   /**
    * Represent the direction to derive interpolants.
    *
@@ -39,7 +39,7 @@ public class InterpolationManager<T> {
    *       and disjunct the two <i>itp(A, B) &or; !itp(B, A)</i>.
    * </ul>
    */
-  public enum ItpDeriveDirection {
+  enum ItpDeriveDirection {
     FORWARD,
     BACKWARD,
     BIDIRECTION_CONJUNCT,
