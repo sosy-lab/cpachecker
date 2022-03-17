@@ -159,8 +159,7 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
   private DistributedComponentsBuilder analysisWorker(
       DistributedComponentsBuilder pBuilder,
       BlockNode pNode,
-      UpdatedTypeMap pMap)
-      throws IOException, InvalidConfigurationException {
+      UpdatedTypeMap pMap) {
     switch (workerType) {
       case DEFAULT:
         return pBuilder.addAnalysisWorker(pNode, pMap, options);
