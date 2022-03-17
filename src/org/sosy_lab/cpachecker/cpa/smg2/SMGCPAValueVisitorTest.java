@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.smg2;
 
 import static com.google.common.truth.Truth.assertThat;
+import static java.util.stream.Collectors.toList;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.base.Preconditions;
@@ -52,6 +53,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAValueExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
@@ -194,6 +196,70 @@ public class SMGCPAValueVisitorTest {
       assertThat(resultValue.asNumericValue().bigInteger()).isEqualTo(BigInteger.valueOf(i));
 
       resetSMGStateAndVisitor();
+    }
+  }
+
+  /*
+   * This tests the struct field read struct->field with pointers as values.
+   * We test pointers of all types. We also fill the struct first completely and don't reset.
+   * The result should always be a AddressExpression with the correct address value and no offset.
+   */
+  @Test
+  public void readFieldDerefWithPointerValuesTest() throws InvalidConfigurationException, CPATransferException {
+
+    String structVariableName = "structVariable";
+    String structDeclrName = "structDeclaration";
+
+    List<Value> addresses = new ArrayList<>();
+    Value addressOfStructValue = SymbolicValueFactory.getInstance().newIdentifier(null);
+
+    addHeapVariableToMemoryModel(
+        0, STRUCT_UNION_TEST_TYPES.size() * POINTER_SIZE_IN_BITS, addressOfStructValue);
+    addStackVariableToMemoryModel(structVariableName, POINTER_SIZE_IN_BITS);
+    writeToStackVariableInMemoryModel(
+        structVariableName, 0, POINTER_SIZE_IN_BITS, addressOfStructValue);
+
+    for (int i = 0; i < STRUCT_UNION_TEST_TYPES.size(); i++) {
+      // Create a Value as address
+      Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
+
+      writeToHeapObjectByAddress(
+          addressOfStructValue, i * POINTER_SIZE_IN_BITS, POINTER_SIZE_IN_BITS, addressValue);
+
+      // remember the address for the index
+      addresses.add(addressValue);
+    }
+
+    // Read twice to check that there are no side effects when reading
+    for (int repeatRead = 0; repeatRead < 2; repeatRead++) {
+      for (int i = 0; i < STRUCT_UNION_TEST_TYPES.size(); i++) {
+        CFieldReference fieldRef =
+            createFieldRefForStackVar(
+                structDeclrName,
+                structVariableName,
+                i,
+                STRUCT_UNION_TEST_TYPES
+                    .stream()
+                    .map(n -> new CPointerType(false, false, n))
+                    .collect(toList()),
+                true,
+                ComplexTypeKind.STRUCT);
+
+        List<ValueAndSMGState> resultList = fieldRef.accept(visitor);
+
+        // Assert the correct returns
+        assertThat(resultList).hasSize(1);
+        Value resultValue = resultList.get(0).getValue();
+
+        // The return should always be a AddressExpression with the address as memory address
+        assertThat(resultValue).isInstanceOf(AddressExpression.class);
+        assertThat(((AddressExpression) resultValue).getMemoryAddress())
+            .isEqualTo(addresses.get(i));
+        // Offset is always 0 as there is no binary expr around them
+        assertThat(((AddressExpression) resultValue).getOffset().isNumericValue()).isTrue();
+        assertThat(((AddressExpression) resultValue).getOffset().asNumericValue().bigInteger())
+            .isEqualTo(BigInteger.ZERO);
+      }
     }
   }
 
