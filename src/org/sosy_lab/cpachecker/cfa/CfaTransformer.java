@@ -291,23 +291,62 @@ public abstract class CfaTransformer {
       }
     }
 
+    private MutableCFA runModifyingIndependentFunctionPostProcessors(
+        MutableCFA pMutableCfa, LogManager pLogger) {
+
+      MutableCFA mutableCfa = pMutableCfa;
+
+      for (CfaProcessor cfaProcessor : cfaProcessors) {
+        if (cfaProcessor instanceof ModifyingIndependentFunctionPostProcessor) {
+          mutableCfa =
+              ((ModifyingIndependentFunctionPostProcessor) cfaProcessor)
+                  .process(mutableCfa, pLogger);
+        }
+      }
+
+      return mutableCfa;
+    }
+
+    private void runReadOnlyIndependentFunctionPostProcessors(
+        MutableCFA pMutableCfa, LogManager pLogger) {
+
+      for (CfaProcessor cfaProcessor : cfaProcessors) {
+        if (cfaProcessor instanceof ReadOnlyIndependentFunctionPostProcessor) {
+          ((ReadOnlyIndependentFunctionPostProcessor) cfaProcessor).process(pMutableCfa, pLogger);
+        }
+      }
+    }
+
+    private MutableCFA runModifyingSupergraphPostProcessors(
+        MutableCFA pMutableCfa, LogManager pLogger) {
+
+      MutableCFA mutableCfa = pMutableCfa;
+
+      for (CfaProcessor cfaProcessor : cfaProcessors) {
+        if (cfaProcessor instanceof ModifyingSupergraphPostProcessor) {
+          mutableCfa =
+              ((ModifyingSupergraphPostProcessor) cfaProcessor).process(mutableCfa, pLogger);
+        }
+      }
+
+      return mutableCfa;
+    }
+
+    private void runReadOnlySupergraphPostProcessors(MutableCFA pMutableCfa, LogManager pLogger) {
+
+      for (CfaProcessor cfaProcessor : cfaProcessors) {
+        if (cfaProcessor instanceof ReadOnlySupergraphPostProcessor) {
+          ((ReadOnlySupergraphPostProcessor) cfaProcessor).process(pMutableCfa, pLogger);
+        }
+      }
+    }
+
     private CFA createCfa(CfaMetadata pCfaMetadata, LogManager pLogger) {
 
       MutableCFA newMutableCfa = createIndependentFunctionCfa(pCfaMetadata);
 
-      for (CfaProcessor cfaProcessor : cfaProcessors) {
-        if (cfaProcessor instanceof ModifyingIndependentFunctionPostProcessor) {
-          newMutableCfa =
-              ((ModifyingIndependentFunctionPostProcessor) cfaProcessor)
-                  .process(newMutableCfa, pLogger);
-        }
-      }
-
-      for (CfaProcessor cfaProcessor : cfaProcessors) {
-        if (cfaProcessor instanceof ReadOnlyIndependentFunctionPostProcessor) {
-          ((ReadOnlyIndependentFunctionPostProcessor) cfaProcessor).process(newMutableCfa, pLogger);
-        }
-      }
+      newMutableCfa = runModifyingIndependentFunctionPostProcessors(newMutableCfa, pLogger);
+      runReadOnlyIndependentFunctionPostProcessors(newMutableCfa, pLogger);
 
       if (pCfaMetadata.getConnectedness() == CfaConnectedness.SUPERGRAPH) {
 
@@ -329,18 +368,8 @@ public abstract class CfaTransformer {
         }
       }
 
-      for (CfaProcessor cfaProcessor : cfaProcessors) {
-        if (cfaProcessor instanceof ModifyingSupergraphPostProcessor) {
-          newMutableCfa =
-              ((ModifyingSupergraphPostProcessor) cfaProcessor).process(newMutableCfa, pLogger);
-        }
-      }
-
-      for (CfaProcessor cfaProcessor : cfaProcessors) {
-        if (cfaProcessor instanceof ReadOnlySupergraphPostProcessor) {
-          ((ReadOnlySupergraphPostProcessor) cfaProcessor).process(newMutableCfa, pLogger);
-        }
-      }
+      newMutableCfa = runModifyingSupergraphPostProcessors(newMutableCfa, pLogger);
+      runReadOnlySupergraphPostProcessors(newMutableCfa, pLogger);
 
       return newMutableCfa.makeImmutableCFA(newMutableCfa.getVarClassification());
     }
