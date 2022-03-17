@@ -14,6 +14,7 @@ import static org.junit.Assert.assertThrows;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
@@ -91,7 +92,7 @@ public class SMGCPAValueVisitorTest {
 
   private static final MachineModel MACHINE_MODEL = MachineModel.LINUX64;
   // Pointer size for the machine model in bits
-  private static final int POINTER_SIZE =
+  private static final int POINTER_SIZE_IN_BITS =
       MACHINE_MODEL.getSizeof(MACHINE_MODEL.getPointerEquivalentSimpleType()) * 8;
 
   // Note: padding is on per default, meaning that the types get padding to allign to their
@@ -118,7 +119,8 @@ public class SMGCPAValueVisitorTest {
           UNSIGNED_LONG_TYPE,
           CHAR_TYPE);
 
-  private static final int TEST_ARRAY_LENGTH = 100;
+  // Reduce if the tests take to long; should be at the very least 4 however!
+  private static final int TEST_ARRAY_LENGTH = 40;
 
   private LogManagerWithoutDuplicates logger;
   private SMGCPAValueExpressionEvaluator evaluator;
@@ -172,8 +174,8 @@ public class SMGCPAValueVisitorTest {
 
       addHeapVariableToMemoryModel(
           0, getSizeInBitsForListOfCTypeWithPadding(STRUCT_UNION_TEST_TYPES), addressValue);
-      addStackVariableToMemoryModel(structVariableName, POINTER_SIZE);
-      writeToStackVariableInMemoryModel(structVariableName, 0, POINTER_SIZE, addressValue);
+      addStackVariableToMemoryModel(structVariableName, POINTER_SIZE_IN_BITS);
+      writeToStackVariableInMemoryModel(structVariableName, 0, POINTER_SIZE_IN_BITS, addressValue);
 
       writeToHeapObjectByAddress(
           addressValue,
@@ -213,8 +215,8 @@ public class SMGCPAValueVisitorTest {
     // Add the heap object with padding, then map to stack var
     addHeapVariableToMemoryModel(
         0, getSizeInBitsForListOfCTypeWithPadding(STRUCT_UNION_TEST_TYPES), addressValue);
-    addStackVariableToMemoryModel(structVariableName, POINTER_SIZE);
-    writeToStackVariableInMemoryModel(structVariableName, 0, POINTER_SIZE, addressValue);
+    addStackVariableToMemoryModel(structVariableName, POINTER_SIZE_IN_BITS);
+    writeToStackVariableInMemoryModel(structVariableName, 0, POINTER_SIZE_IN_BITS, addressValue);
 
     // Fill struct completely
     for (int i = 0; i < STRUCT_UNION_TEST_TYPES.size(); i++) {
@@ -268,8 +270,8 @@ public class SMGCPAValueVisitorTest {
 
       addHeapVariableToMemoryModel(
           0, getSizeInBitsForListOfCTypeWithPadding(STRUCT_UNION_TEST_TYPES), addressValue);
-      addStackVariableToMemoryModel(structVariableName, POINTER_SIZE);
-      writeToStackVariableInMemoryModel(structVariableName, 0, POINTER_SIZE, addressValue);
+      addStackVariableToMemoryModel(structVariableName, POINTER_SIZE_IN_BITS);
+      writeToStackVariableInMemoryModel(structVariableName, 0, POINTER_SIZE_IN_BITS, addressValue);
 
       writeToHeapObjectByAddress(
           addressValue,
@@ -309,8 +311,8 @@ public class SMGCPAValueVisitorTest {
 
     addHeapVariableToMemoryModel(
         0, getSizeInBitsForListOfCTypeWithPadding(STRUCT_UNION_TEST_TYPES), addressValue);
-    addStackVariableToMemoryModel(structVariableName, POINTER_SIZE);
-    writeToStackVariableInMemoryModel(structVariableName, 0, POINTER_SIZE, addressValue);
+    addStackVariableToMemoryModel(structVariableName, POINTER_SIZE_IN_BITS);
+    writeToStackVariableInMemoryModel(structVariableName, 0, POINTER_SIZE_IN_BITS, addressValue);
 
     for (int i = 0; i < STRUCT_UNION_TEST_TYPES.size(); i++) {
       // Create a Value that we want to be mapped to a SMGValue to write into the struct
@@ -708,8 +710,8 @@ public class SMGCPAValueVisitorTest {
       // Create the array on the heap; size is type size in bits * size of array
       addHeapVariableToMemoryModel(0, sizeOfCurrentTypeInBits * arrayLength, addressValue);
       // Stack variable holding the address (the pointer)
-      addStackVariableToMemoryModel(arrayVariableName, POINTER_SIZE);
-      writeToStackVariableInMemoryModel(arrayVariableName, 0, POINTER_SIZE, addressValue);
+      addStackVariableToMemoryModel(arrayVariableName, POINTER_SIZE_IN_BITS);
+      writeToStackVariableInMemoryModel(arrayVariableName, 0, POINTER_SIZE_IN_BITS, addressValue);
 
       // Now write some distinct values into the array, for signed we want to test negatives!
       for (int k = 0; k < arrayLength; k++) {
@@ -772,8 +774,8 @@ public class SMGCPAValueVisitorTest {
       // Create the array on the heap; size is type size in bits * size of array
       addHeapVariableToMemoryModel(0, sizeOfCurrentTypeInBits * arrayLength, addressValue);
       // Stack variable holding the address (the pointer)
-      addStackVariableToMemoryModel(arrayVariableName, POINTER_SIZE);
-      writeToStackVariableInMemoryModel(arrayVariableName, 0, POINTER_SIZE, addressValue);
+      addStackVariableToMemoryModel(arrayVariableName, POINTER_SIZE_IN_BITS);
+      writeToStackVariableInMemoryModel(arrayVariableName, 0, POINTER_SIZE_IN_BITS, addressValue);
 
       // Now write some distinct values into the array, for signed we want to test negatives!
       for (int k = 0; k < arrayLength; k++) {
@@ -824,6 +826,128 @@ public class SMGCPAValueVisitorTest {
    * @throws InvalidConfigurationException should never be thrown!
    */
   @Test
+  public void readNestedPointerHeapArrayLeadingToConstMultipleTypesRepeated()
+      throws CPATransferException, InvalidConfigurationException {
+    String pointerArrayName = "pointerArrayVariable";
+
+    // We want to test the arrays for all basic types
+    for (int i = 0; i < ARRAY_TEST_TYPES.size(); i++) {
+      CType currentValueArrayType = ARRAY_TEST_TYPES.get(i);
+
+      int sizeOfCurrentTypeInBits = MACHINE_MODEL.getSizeof(currentValueArrayType).intValue() * 8;
+      // address to the heap where the array starts
+      Value addressValueArray = SymbolicValueFactory.getInstance().newIdentifier(null);
+      // Create the array on the heap; size is type size in bits * size of array
+      addHeapVariableToMemoryModel(
+          0, sizeOfCurrentTypeInBits * TEST_ARRAY_LENGTH, addressValueArray);
+
+      // Now write some distinct values into the array, for signed we want to test negatives!
+      for (int k = 0; k < TEST_ARRAY_LENGTH; k++) {
+        // Create a Value that we want to be mapped to a SMGValue to write into the array depending
+        // on the type
+        Value arrayValue = transformInputIntoValue(currentValueArrayType, k);
+
+        // Write to the heap array
+        writeToHeapObjectByAddress(
+            addressValueArray, sizeOfCurrentTypeInBits * k, sizeOfCurrentTypeInBits, arrayValue);
+      }
+      // Now that we have a filled value array, we create another array whos pointer is in a stack
+      // variable and that is filled with pointers. Each pointer simply corrosponds to the same
+      // position in the value array. so pointerArray[0] -> valueArray[0]
+      // Stack variable holding the address (the pointer)
+      Value addressPointerArray = SymbolicValueFactory.getInstance().newIdentifier(null);
+      addStackVariableToMemoryModel(pointerArrayName, POINTER_SIZE_IN_BITS);
+      writeToStackVariableInMemoryModel(
+          pointerArrayName, 0, POINTER_SIZE_IN_BITS, addressPointerArray);
+      // Create the array on the heap; size is pointer size
+      addHeapVariableToMemoryModel(
+          0, POINTER_SIZE_IN_BITS * TEST_ARRAY_LENGTH, addressPointerArray);
+      List<Value> pointerValues = new ArrayList<>();
+      // now fill the array with pointers
+      // Note: we should reuse the pointer for index 0 from above, but i am lazy and it does not
+      // matter in a test
+      SMGObject objectForAddressValue =
+          currentState
+              .getMemoryModel()
+              .dereferencePointer(addressValueArray)
+              .orElseThrow()
+              .getSMGObject();
+      for (int j = 0; j < TEST_ARRAY_LENGTH; j++) {
+        // We need a mapping from each value representing a address to a SMGValue that is mapped to
+        // a SMGPointsToEdge (modeling the pointer). We simply use numeric values for this. We
+        // remember the pointer values such that the index is the same as the location of the
+        // pointer in the array.
+        Value address = SymbolicValueFactory.getInstance().newIdentifier(null);
+        pointerValues.add(address);
+
+        addPointerToMemory(address, objectForAddressValue, j * sizeOfCurrentTypeInBits);
+        // Write the pointer to the heap array
+        writeToHeapObjectByAddress(
+            addressPointerArray, POINTER_SIZE_IN_BITS * j, POINTER_SIZE_IN_BITS, address);
+      }
+
+      // Now we read the entire pointer array twice and dereference the pointer (+- offset) within
+      // to check the value of the value array. (twice because values may change when reading in
+      // SMGs, and we don't want that)
+      for (int read = 0; read < 2; read++) {
+        for (int pointerArrayOffset = 0;
+            pointerArrayOffset < TEST_ARRAY_LENGTH;
+            pointerArrayOffset++) {
+          // the real index will always be pointerArrayOffset + valueArrayOffset and that should
+          // start with -1 and end with TEST_ARRAY_LENGTH to test out of bounds
+          for (int valueArrayOffset = -pointerArrayOffset - 1;
+              valueArrayOffset < TEST_ARRAY_LENGTH;
+              valueArrayOffset++) {
+            int realIndex = valueArrayOffset + pointerArrayOffset;
+            CPointerExpression arrayPointerExpr =
+                pointerWithBinaryAccessFromExpression(
+                    pointerArrayName, currentValueArrayType, pointerArrayOffset, valueArrayOffset);
+            if (realIndex < 0 || realIndex >= TEST_ARRAY_LENGTH) {
+              // Out of bounds
+              CPATransferException e =
+                  assertThrows(CPATransferException.class, () -> arrayPointerExpr.accept(visitor));
+
+              BigInteger expectedObjectSize =
+                  BigInteger.valueOf(sizeOfCurrentTypeInBits)
+                      .multiply(BigInteger.valueOf(TEST_ARRAY_LENGTH));
+
+              // TODO: rework once i make a more useful error msg
+              assertThat(e).hasMessageThat().contains("invalid read");
+              assertThat(e)
+                  .hasMessageThat()
+                  .contains(
+                      "with size "
+                          + expectedObjectSize
+                          + " bits at offset "
+                          + (realIndex * sizeOfCurrentTypeInBits)
+                          + " bit with read type size "
+                          + sizeOfCurrentTypeInBits
+                          + " bit");
+            } else {
+              List<ValueAndSMGState> resultList = arrayPointerExpr.accept(visitor);
+
+              // Assert the correct return values depending on type
+              assertThat(resultList).hasSize(1);
+              Value resultValue = resultList.get(0).getValue();
+              checkValue(currentValueArrayType, realIndex, resultValue);
+            }
+          }
+        }
+      }
+      // Reset memory model
+      resetSMGStateAndVisitor();
+    }
+  }
+
+  /**
+   * Read an array on the heap with a constant expression as offset. The read value is a pointer
+   * again to an array that is read as well. Example: int * array = malloc(); fill; **array or
+   * **(array + 1) or *(*(array + 1) + 1)
+   *
+   * @throws CPATransferException should never be thrown!
+   * @throws InvalidConfigurationException should never be thrown!
+   */
+  @Test
   public void readHeapArrayConstMultipleTypesRepeated()
       throws CPATransferException, InvalidConfigurationException {
     String arrayVariableName = "arrayVariable";
@@ -838,8 +962,8 @@ public class SMGCPAValueVisitorTest {
       // Create the array on the heap; size is type size in bits * size of array
       addHeapVariableToMemoryModel(0, sizeOfCurrentTypeInBits * TEST_ARRAY_LENGTH, addressValue);
       // Stack variable holding the address (the pointer)
-      addStackVariableToMemoryModel(arrayVariableName, POINTER_SIZE);
-      writeToStackVariableInMemoryModel(arrayVariableName, 0, POINTER_SIZE, addressValue);
+      addStackVariableToMemoryModel(arrayVariableName, POINTER_SIZE_IN_BITS);
+      writeToStackVariableInMemoryModel(arrayVariableName, 0, POINTER_SIZE_IN_BITS, addressValue);
 
       // Now write some distinct values into the array, for signed we want to test negatives!
       for (int k = 0; k < TEST_ARRAY_LENGTH; k++) {
@@ -895,18 +1019,18 @@ public class SMGCPAValueVisitorTest {
       // Create the array on the heap; size is type size in bits * size of array
       addHeapVariableToMemoryModel(0, sizeOfCurrentTypeInBits * TEST_ARRAY_LENGTH, addressValue);
       // Stack variable holding the address (the pointer) to the array
-      addStackVariableToMemoryModel(arrayVariableName, POINTER_SIZE);
-      writeToStackVariableInMemoryModel(arrayVariableName, 0, POINTER_SIZE, addressValue);
+      addStackVariableToMemoryModel(arrayVariableName, POINTER_SIZE_IN_BITS);
+      writeToStackVariableInMemoryModel(arrayVariableName, 0, POINTER_SIZE_IN_BITS, addressValue);
       // Stack variable holding the address (the pointer) to the address of the array
-      addStackVariableToMemoryModel(addressToAddressVariableName, POINTER_SIZE);
+      addStackVariableToMemoryModel(addressToAddressVariableName, POINTER_SIZE_IN_BITS);
       writeToStackVariableInMemoryModel(
-          addressToAddressVariableName, 0, POINTER_SIZE, addressForAddressValue);
+          addressToAddressVariableName, 0, POINTER_SIZE_IN_BITS, addressForAddressValue);
       // We need a mapping from addressForAddressValue to a SMGValue that is mapped to a
       // SMGPointsToEdge (modeling the pointer)
       SMGObject objectForAddressValue =
           currentState.getMemoryModel().getStackFrames().peek().getVariable(arrayVariableName);
 
-      addPointerTo(addressForAddressValue, objectForAddressValue, 0);
+      addPointerToMemory(addressForAddressValue, objectForAddressValue, 0);
 
       // Now write some distinct values into the array, for signed we want to test negatives!
       for (int k = 0; k < TEST_ARRAY_LENGTH; k++) {
@@ -963,8 +1087,8 @@ public class SMGCPAValueVisitorTest {
       // Create the array on the heap; size is type size in bits * size of array
       addHeapVariableToMemoryModel(0, sizeOfCurrentTypeInBits * TEST_ARRAY_LENGTH, addressValue);
       // Stack variable holding the address (the pointer)
-      addStackVariableToMemoryModel(arrayVariableName, POINTER_SIZE);
-      writeToStackVariableInMemoryModel(arrayVariableName, 0, POINTER_SIZE, addressValue);
+      addStackVariableToMemoryModel(arrayVariableName, POINTER_SIZE_IN_BITS);
+      writeToStackVariableInMemoryModel(arrayVariableName, 0, POINTER_SIZE_IN_BITS, addressValue);
 
       // Now write some distinct values into the array, for signed we want to test negatives!
       for (int k = 0; k < TEST_ARRAY_LENGTH; k++) {
@@ -1032,8 +1156,8 @@ public class SMGCPAValueVisitorTest {
       // Create the array on the heap; size is type size in bits * size of array
       addHeapVariableToMemoryModel(0, sizeOfCurrentTypeInBits * TEST_ARRAY_LENGTH, addressValue);
       // Stack variable holding the address (the pointer)
-      addStackVariableToMemoryModel(arrayVariableName, POINTER_SIZE);
-      writeToStackVariableInMemoryModel(arrayVariableName, 0, POINTER_SIZE, addressValue);
+      addStackVariableToMemoryModel(arrayVariableName, POINTER_SIZE_IN_BITS);
+      writeToStackVariableInMemoryModel(arrayVariableName, 0, POINTER_SIZE_IN_BITS, addressValue);
 
       // Now write some distinct values into the array, for signed we want to test negatives!
       for (int k = 0; k < TEST_ARRAY_LENGTH; k++) {
@@ -1109,8 +1233,8 @@ public class SMGCPAValueVisitorTest {
       // Create the array on the heap; size is type size in bits * size of array
       addHeapVariableToMemoryModel(0, sizeOfCurrentTypeInBits * TEST_ARRAY_LENGTH, addressValue);
       // Stack variable holding the address (the pointer)
-      addStackVariableToMemoryModel(arrayVariableName, POINTER_SIZE);
-      writeToStackVariableInMemoryModel(arrayVariableName, 0, POINTER_SIZE, addressValue);
+      addStackVariableToMemoryModel(arrayVariableName, POINTER_SIZE_IN_BITS);
+      writeToStackVariableInMemoryModel(arrayVariableName, 0, POINTER_SIZE_IN_BITS, addressValue);
 
       // Now write some distinct values into the array, for signed we want to test negatives!
       // Also create pointers
@@ -1138,8 +1262,9 @@ public class SMGCPAValueVisitorTest {
       // Pointers
       for (int j = 0; j < TEST_ARRAY_LENGTH; j++) {
         Value newPointer = new ConstantSymbolicExpression(new UnknownValue(), null);
-        addStackVariableToMemoryModel(arrayVariableName + j, POINTER_SIZE);
-        writeToStackVariableInMemoryModel(arrayVariableName + j, 0, POINTER_SIZE, newPointer);
+        addStackVariableToMemoryModel(arrayVariableName + j, POINTER_SIZE_IN_BITS);
+        writeToStackVariableInMemoryModel(
+            arrayVariableName + j, 0, POINTER_SIZE_IN_BITS, newPointer);
         addPointerToExistingHeapObject(j * sizeOfCurrentTypeInBits, addressValue, newPointer);
       }
 
@@ -1216,8 +1341,8 @@ public class SMGCPAValueVisitorTest {
       // Create the array on the heap; size is type size in bits * size of array
       addHeapVariableToMemoryModel(0, sizeOfCurrentTypeInBits * TEST_ARRAY_LENGTH, addressValue);
       // Stack variable holding the address (the pointer)
-      addStackVariableToMemoryModel(arrayVariableName, POINTER_SIZE);
-      writeToStackVariableInMemoryModel(arrayVariableName, 0, POINTER_SIZE, addressValue);
+      addStackVariableToMemoryModel(arrayVariableName, POINTER_SIZE_IN_BITS);
+      writeToStackVariableInMemoryModel(arrayVariableName, 0, POINTER_SIZE_IN_BITS, addressValue);
 
       // We don't need to fill the array for obvious reasons
       // Now create length stack variables holding the indices to access the array
@@ -1234,8 +1359,9 @@ public class SMGCPAValueVisitorTest {
       // Pointers to all valid positions but also invalid in -1 and length
       for (int j = -1; j <= TEST_ARRAY_LENGTH; j++) {
         Value newPointer = new ConstantSymbolicExpression(new UnknownValue(), null);
-        addStackVariableToMemoryModel(arrayVariableName + j, POINTER_SIZE);
-        writeToStackVariableInMemoryModel(arrayVariableName + j, 0, POINTER_SIZE, newPointer);
+        addStackVariableToMemoryModel(arrayVariableName + j, POINTER_SIZE_IN_BITS);
+        writeToStackVariableInMemoryModel(
+            arrayVariableName + j, 0, POINTER_SIZE_IN_BITS, newPointer);
         addPointerToExistingHeapObject(j * sizeOfCurrentTypeInBits, addressValue, newPointer);
       }
 
@@ -1334,8 +1460,8 @@ public class SMGCPAValueVisitorTest {
       // Create the array on the heap; size is type size in bits * size of array
       addHeapVariableToMemoryModel(0, sizeOfCurrentTypeInBits * TEST_ARRAY_LENGTH, addressValue);
       // Stack variable holding the address (the pointer)
-      addStackVariableToMemoryModel(arrayVariableName, POINTER_SIZE);
-      writeToStackVariableInMemoryModel(arrayVariableName, 0, POINTER_SIZE, addressValue);
+      addStackVariableToMemoryModel(arrayVariableName, POINTER_SIZE_IN_BITS);
+      writeToStackVariableInMemoryModel(arrayVariableName, 0, POINTER_SIZE_IN_BITS, addressValue);
 
       // Now write some distinct values into the array, for signed we want to test negatives!
       // Also create pointers
@@ -1364,8 +1490,9 @@ public class SMGCPAValueVisitorTest {
       // Pointers
       for (int j = 0; j < TEST_ARRAY_LENGTH; j++) {
         Value newPointer = new ConstantSymbolicExpression(new UnknownValue(), null);
-        addStackVariableToMemoryModel(arrayVariableName + j, POINTER_SIZE);
-        writeToStackVariableInMemoryModel(arrayVariableName + j, 0, POINTER_SIZE, newPointer);
+        addStackVariableToMemoryModel(arrayVariableName + j, POINTER_SIZE_IN_BITS);
+        writeToStackVariableInMemoryModel(
+            arrayVariableName + j, 0, POINTER_SIZE_IN_BITS, newPointer);
         addPointerToExistingHeapObject(j * sizeOfCurrentTypeInBits, addressValue, newPointer);
       }
 
@@ -1435,8 +1562,8 @@ public class SMGCPAValueVisitorTest {
       // Create the array on the heap; size is type size in bits * size of array
       addHeapVariableToMemoryModel(0, sizeOfCurrentTypeInBits * TEST_ARRAY_LENGTH, addressValue);
       // Stack variable holding the address (the pointer)
-      addStackVariableToMemoryModel(arrayVariableName, POINTER_SIZE);
-      writeToStackVariableInMemoryModel(arrayVariableName, 0, POINTER_SIZE, addressValue);
+      addStackVariableToMemoryModel(arrayVariableName, POINTER_SIZE_IN_BITS);
+      writeToStackVariableInMemoryModel(arrayVariableName, 0, POINTER_SIZE_IN_BITS, addressValue);
 
       // Now write some distinct values into the array, for signed we want to test negatives!
       for (int k = 0; k < TEST_ARRAY_LENGTH; k++) {
@@ -1501,14 +1628,15 @@ public class SMGCPAValueVisitorTest {
       // Create the array on the heap; size is type size in bits * size of array
       addHeapVariableToMemoryModel(0, sizeOfCurrentTypeInBits * TEST_ARRAY_LENGTH, addressValue);
       // Stack variable holding the address (the pointer)
-      addStackVariableToMemoryModel(arrayVariableName, POINTER_SIZE);
-      writeToStackVariableInMemoryModel(arrayVariableName, 0, POINTER_SIZE, addressValue);
+      addStackVariableToMemoryModel(arrayVariableName, POINTER_SIZE_IN_BITS);
+      writeToStackVariableInMemoryModel(arrayVariableName, 0, POINTER_SIZE_IN_BITS, addressValue);
 
       // Now create a lot of pointers pointing to the same structure but different offsets
       for (int k = 0; k < TEST_ARRAY_LENGTH; k++) {
         Value newPointer = new ConstantSymbolicExpression(new UnknownValue(), null);
-        addStackVariableToMemoryModel(arrayVariableName + k, POINTER_SIZE);
-        writeToStackVariableInMemoryModel(arrayVariableName + k, 0, POINTER_SIZE, newPointer);
+        addStackVariableToMemoryModel(arrayVariableName + k, POINTER_SIZE_IN_BITS);
+        writeToStackVariableInMemoryModel(
+            arrayVariableName + k, 0, POINTER_SIZE_IN_BITS, newPointer);
         addPointerToExistingHeapObject(k * sizeOfCurrentTypeInBits, addressValue, newPointer);
       }
 
@@ -2128,7 +2256,13 @@ public class SMGCPAValueVisitorTest {
     visitor = new SMGCPAValueVisitor(evaluator, currentState, new DummyCFAEdge(null, null), logger);
   }
 
-  private void addPointerTo(Value pAddress, SMGObject pTarget, int offset)
+  /**
+   * @param pAddress the {@link Value} that doubles as address for the created pointer.
+   * @param pTarget pointer target {@link SMGObject}
+   * @param offset offset in bits of the pointer.
+   * @throws InvalidConfigurationException should never be thrown
+   */
+  private void addPointerToMemory(Value pAddress, SMGObject pTarget, int offset)
       throws InvalidConfigurationException {
     SymbolicProgramConfiguration spc = currentState.getMemoryModel();
 
@@ -2438,6 +2572,59 @@ public class SMGCPAValueVisitorTest {
 
     // *(array +- something)
     return new CPointerExpression(FileLocation.DUMMY, elementType, arrayExpr);
+  }
+
+  /**
+   * Access a pointer with binary expression that has a nested pointer with binary expression in it.
+   * Example: *(*(pointer + 1) + 1). The inner pointer deref needs to return another pointer! (or
+   * not if you want to test that)
+   *
+   * @param variableName Name of the innermost pointer stack variable.
+   * @param elementType final return {@link CType}.
+   * @param innerIndiceInt index for the inner pointer deref. If negative, if will be transformed
+   *     into pointer - abs(input).
+   * @param outerindiceInt index for outer pointer deref. If negative, if will be transformed into
+   *     pointer - abs(input).
+   * @return {@link CPointerExpression} with the described properties.
+   */
+  public CPointerExpression pointerWithBinaryAccessFromExpression(
+      String variableName, CType elementType, int innerIndiceInt, int outerindiceInt) {
+    // The type for the returned value after the pointer
+    CPointerType cPointerReturnType = new CPointerType(false, false, elementType);
+    // The inner return type needs to be a nested ** type, since it adds 1 pointer itself we need 1
+    // extra
+    CPointerExpression inner = arrayPointerAccess(variableName, cPointerReturnType, innerIndiceInt);
+    CIntegerLiteralExpression outerIndice =
+        new CIntegerLiteralExpression(
+            FileLocation.DUMMY, INT_TYPE, BigInteger.valueOf(Math.abs(outerindiceInt)));
+
+
+    // The type for the returned value after the binary expr
+    CPointerType cPointerBinaryOperType = new CPointerType(false, false, elementType);
+
+    if (outerindiceInt == 0) {
+      // *inner
+      return new CPointerExpression(FileLocation.DUMMY, elementType, inner);
+    }
+
+    CBinaryExpression.BinaryOperator cBinOperator;
+    if (outerindiceInt >= 0) {
+      cBinOperator = CBinaryExpression.BinaryOperator.PLUS;
+    } else {
+      cBinOperator = CBinaryExpression.BinaryOperator.MINUS;
+    }
+
+    CBinaryExpression outerBinaryExpr =
+        new CBinaryExpression(
+            FileLocation.DUMMY,
+            cPointerReturnType,
+            cPointerBinaryOperType,
+            inner,
+            outerIndice,
+            cBinOperator);
+
+    // *(inner +- something)
+    return new CPointerExpression(FileLocation.DUMMY, elementType, outerBinaryExpr);
   }
 
   /**
