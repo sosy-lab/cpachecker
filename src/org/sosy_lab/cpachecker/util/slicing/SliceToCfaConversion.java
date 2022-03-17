@@ -253,8 +253,10 @@ final class SliceToCfaConversion {
 
     CfaTransformer cfaTransformer =
         CCfaTransformer.builder()
-            .add(createAstNodeSubstitutionForCfaEdges(pSlice, functionToEntryNodeMap::get)::apply)
-            .add(createAstNodeSubstitutionForCfaNodes(pSlice, functionToEntryNodeMap::get)::apply)
+            .addNodeAstSubstitution(
+                createAstNodeSubstitutionForCfaNodes(pSlice, functionToEntryNodeMap::get)::apply)
+            .addEdgeAstSubstitution(
+                createAstNodeSubstitutionForCfaEdges(pSlice, functionToEntryNodeMap::get)::apply)
             .build();
     CfaMetadata cfaMetadata =
         new CfaMetadata(

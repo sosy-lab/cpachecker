@@ -831,7 +831,7 @@ public class ArrayAbstraction {
                 new SubstitutingCAstNodeVisitor(node -> substitution.getSubstitute(edge, node)));
 
     CfaTransformer cfaTransformer =
-        CCfaTransformer.builder().add(edgeAstSubstitution::apply).build();
+        CCfaTransformer.builder().addEdgeAstSubstitution(edgeAstSubstitution::apply).build();
     CfaMetadata cfaMetadata =
         new CfaMetadata(
             pCfa.getMachineModel(),

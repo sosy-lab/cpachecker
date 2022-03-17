@@ -213,7 +213,7 @@ final class CfaSimplifications {
         };
 
     CfaTransformer cfaTransformer =
-        CCfaTransformer.builder().add(substitutionFunction::apply).build();
+        CCfaTransformer.builder().addEdgeAstSubstitution(substitutionFunction::apply).build();
     CfaMetadata cfaMetadata =
         new CfaMetadata(
             pCfa.getMachineModel(),
@@ -466,7 +466,7 @@ final class CfaSimplifications {
             IdExpressionSubstitutingCAstNodeVisitor.substitute(substitution, edge, originalAstNode);
 
     CfaTransformer cfaTransformer =
-        CCfaTransformer.builder().add(edgeAstSubstitution::apply).build();
+        CCfaTransformer.builder().addEdgeAstSubstitution(edgeAstSubstitution::apply).build();
     CfaMetadata cfaMetadata =
         new CfaMetadata(
             pCfa.getMachineModel(),

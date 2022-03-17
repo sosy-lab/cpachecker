@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa;
 
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.graph.EndpointPair;
 import java.util.Optional;
@@ -141,21 +140,21 @@ public final class CCfaTransformer extends CfaTransformer {
       edgeAstSubstitutions = ImmutableList.builder();
     }
 
-    public Builder add(CfaProcessor pCfaProcessor) {
+    public Builder addCfaProcessor(CfaProcessor pCfaProcessor) {
 
       cfaProcessors.add(pCfaProcessor);
 
       return this;
     }
 
-    public Builder add(NodeAstSubstitution pNodeAstSubstitution) {
+    public Builder addNodeAstSubstitution(NodeAstSubstitution pNodeAstSubstitution) {
 
       nodeAstSubstitutions.add(pNodeAstSubstitution);
 
       return this;
     }
 
-    public Builder add(EdgeAstSubstitution pEdgeAstSubstitution) {
+    public Builder addEdgeAstSubstitution(EdgeAstSubstitution pEdgeAstSubstitution) {
 
       edgeAstSubstitutions.add(pEdgeAstSubstitution);
 

@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa;
 
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.TreeMultimap;
 import com.google.common.graph.EndpointPair;
