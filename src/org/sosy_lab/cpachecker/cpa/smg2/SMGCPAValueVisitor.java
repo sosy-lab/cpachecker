@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAValueExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
@@ -508,13 +509,13 @@ public class SMGCPAValueVisitor
     }
 
     if (SMGCPAValueExpressionEvaluator.isStructOrUnionType(type) || type instanceof CArrayType) {
-      // Struct/Unions/arrays on the stack/global; return the identifier in a symbolic value
-      // TODO: what i ideally want is the same Value for the same Object, so i would need to save
-      // them somehow....
+      // Struct/Unions/arrays on the stack/global; return the memory location in a symbolic value
       return ImmutableList.of(
           ValueAndSMGState.of(
-              SymbolicValueFactory.getInstance()
-                  .newIdentifier(MemoryLocation.forIdentifier(varDecl.getQualifiedName())),
+              new ConstantSymbolicExpression(
+                  UnknownValue.getInstance(),
+                  type,
+                  MemoryLocation.forIdentifier(varDecl.getQualifiedName())),
               state));
 
     } else if (SMGCPAValueExpressionEvaluator.isAddressType(type)) {
