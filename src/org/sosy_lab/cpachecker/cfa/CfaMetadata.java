@@ -11,7 +11,11 @@ package org.sosy_lab.cpachecker.cfa;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import java.io.IOException;
+import java.io.Serializable;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -20,11 +24,14 @@ import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
-public final class CfaMetadata {
+public final class CfaMetadata implements Serializable {
+
+  private static final long serialVersionUID = -4976424764995656485L;
 
   private final MachineModel machineModel;
   private final Language language;
-  private final ImmutableList<Path> fileNames;
+  // `fileNames` isn't `final` due to serialization, but shouldn't be reassigned anywhere else
+  private transient ImmutableList<Path> fileNames;
   private final FunctionEntryNode mainFunctionEntry;
   private final CfaConnectedness connectedness;
 
@@ -127,6 +134,25 @@ public final class CfaMetadata {
 
   public CfaMetadata withLiveVariables(@Nullable LiveVariables pLiveVariables) {
     return new Builder(this).setLiveVariables(pLiveVariables).build();
+  }
+
+  private void writeObject(java.io.ObjectOutputStream pObjectOutputStream) throws IOException {
+
+    pObjectOutputStream.defaultWriteObject();
+
+    // some `Path` implementations are not serializable, so we serialize paths as list of strings
+    List<String> stringFileNames = ImmutableList.copyOf(Lists.transform(fileNames, Path::toString));
+    pObjectOutputStream.writeObject(stringFileNames);
+  }
+
+  private void readObject(java.io.ObjectInputStream pObjectInputStream)
+      throws IOException, ClassNotFoundException {
+
+    pObjectInputStream.defaultReadObject();
+
+    @SuppressWarnings("unchecked") // paths are always serialized as a list of strings
+    List<String> stringFileNames = (List<String>) pObjectInputStream.readObject();
+    fileNames = ImmutableList.copyOf(Lists.transform(stringFileNames, Path::of));
   }
 
   private static final class Builder {
