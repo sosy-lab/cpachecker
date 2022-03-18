@@ -64,14 +64,26 @@ public final class CCfaTransformer extends CfaTransformer {
     return new Builder();
   }
 
-  private CAstNode applyNodeAstSubstitutions(CFANode pNode, CAstNode pAstNode) {
+  private CFunctionDeclaration applyNodeAstSubstitutions(
+      CFANode pNode, CFunctionDeclaration pFunction) {
 
-    CAstNode astNode = pAstNode;
+    CFunctionDeclaration function = pFunction;
     for (NodeAstSubstitution nodeAstSubstitution : nodeAstSubstitutions) {
-      astNode = nodeAstSubstitution.apply(pNode, astNode);
+      function = nodeAstSubstitution.apply(pNode, function);
     }
 
-    return astNode;
+    return function;
+  }
+
+  private Optional<CVariableDeclaration> applyNodeAstSubstitutions(
+      CFunctionEntryNode pFunctionEntryNode, Optional<CVariableDeclaration> pReturnVariable) {
+
+    Optional<CVariableDeclaration> returnVariable = pReturnVariable;
+    for (NodeAstSubstitution nodeAstSubstitution : nodeAstSubstitutions) {
+      returnVariable = nodeAstSubstitution.apply(pFunctionEntryNode, returnVariable);
+    }
+
+    return returnVariable;
   }
 
   private CAstNode applyEdgeAstSubstitutions(CFAEdge pEdge, CAstNode pAstNode) {
@@ -113,10 +125,12 @@ public final class CCfaTransformer extends CfaTransformer {
         pCfaNetwork, pCfaMetadata, pLogger, cfaProcessors, this::convertNode, this::convertEdge);
   }
 
-  @FunctionalInterface
   public interface NodeAstSubstitution {
 
-    @Nullable CAstNode apply(CFANode pEdge, CAstNode pAstNode);
+    CFunctionDeclaration apply(CFANode pNode, CFunctionDeclaration pFunction);
+
+    Optional<CVariableDeclaration> apply(
+        CFunctionEntryNode pFunctionEntryNode, Optional<CVariableDeclaration> pReturnVariable);
   }
 
   @FunctionalInterface
@@ -178,8 +192,7 @@ public final class CCfaTransformer extends CfaTransformer {
     }
 
     private CFunctionDeclaration newFunctionDeclaration(CFANode pOldNode) {
-      return (CFunctionDeclaration)
-          applyNodeAstSubstitutions(pOldNode, (CFunctionDeclaration) pOldNode.getFunction());
+      return applyNodeAstSubstitutions(pOldNode, (CFunctionDeclaration) pOldNode.getFunction());
     }
 
     private CFALabelNode newCfaLabelNode(CFALabelNode pOldNode) {
@@ -192,18 +205,8 @@ public final class CCfaTransformer extends CfaTransformer {
           CfaNetworkUtils.getFunctionExitNode(cfaNetwork, pOldNode).orElse(pOldNode.getExitNode());
       FunctionExitNode newExitNode = (FunctionExitNode) substitution.toSubstitute(oldExitNode);
 
-      // FIXME: support all possible substitutions (no return value -> return value is not
-      // supported)
-      Optional<CVariableDeclaration> oldReturnVariable = pOldNode.getReturnVariable();
-      Optional<CVariableDeclaration> newReturnVariable;
-      if (oldReturnVariable.isPresent()) {
-        newReturnVariable =
-            Optional.ofNullable(
-                (CVariableDeclaration)
-                    applyNodeAstSubstitutions(pOldNode, oldReturnVariable.orElseThrow()));
-      } else {
-        newReturnVariable = Optional.empty();
-      }
+      Optional<CVariableDeclaration> newReturnVariable =
+          applyNodeAstSubstitutions(pOldNode, pOldNode.getReturnVariable());
 
       CFunctionEntryNode newEntryNode =
           new CFunctionEntryNode(

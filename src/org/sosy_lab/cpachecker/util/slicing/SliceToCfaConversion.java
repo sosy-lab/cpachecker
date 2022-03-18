@@ -15,6 +15,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.TreeMultimap;
 import java.util.List;
 import java.util.NavigableMap;
+import java.util.Optional;
 import java.util.TreeMap;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -124,41 +125,6 @@ final class SliceToCfaConversion {
   }
 
   /**
-   * Returns a substitution that maps CFA nodes and their contained AST nodes to AST nodes that only
-   * contain parts relevant to the specified slice.
-   */
-  private static BiFunction<CFANode, CAstNode, @Nullable CAstNode>
-      createAstNodeSubstitutionForCfaNodes(
-          Slice pSlice,
-          Function<AFunctionDeclaration, @Nullable FunctionEntryNode> pFunctionToEntryNode) {
-
-    var transformingVisitor =
-        new RelevantFunctionDeclarationTransformingVisitor(pSlice, pFunctionToEntryNode);
-
-    return (cfaNode, astNode) -> {
-      CFunctionDeclaration functionDeclaration = (CFunctionDeclaration) cfaNode.getFunction();
-      CFunctionDeclaration relevantFunctionDeclaration =
-          (CFunctionDeclaration) functionDeclaration.accept(transformingVisitor);
-
-      if (astNode instanceof AFunctionDeclaration) {
-        return relevantFunctionDeclaration;
-      }
-
-      if (cfaNode instanceof CFunctionEntryNode && astNode instanceof CVariableDeclaration) {
-
-        if (relevantFunctionDeclaration.getType().getReturnType() != CVoidType.VOID) {
-          return ((CFunctionEntryNode) cfaNode).getReturnVariable().orElseThrow();
-        }
-
-        // return type of function is void, so no return variable exists
-        return null;
-      }
-
-      return astNode;
-    };
-  }
-
-  /**
    * Returns a substitution that maps CFA edges and their contained AST nodes to AST nodes that only
    * contain parts relevant to the specified slice.
    */
@@ -254,7 +220,7 @@ final class SliceToCfaConversion {
     CfaTransformer cfaTransformer =
         CCfaTransformer.builder()
             .addNodeAstSubstitution(
-                createAstNodeSubstitutionForCfaNodes(pSlice, functionToEntryNodeMap::get)::apply)
+                new RelevantNodeAstSubstitution(pSlice, functionToEntryNodeMap::get))
             .addEdgeAstSubstitution(
                 createAstNodeSubstitutionForCfaEdges(pSlice, functionToEntryNodeMap::get)::apply)
             .build();
@@ -269,6 +235,46 @@ final class SliceToCfaConversion {
     CFA sliceCfa = cfaTransformer.transform(graph.getCfaNetwork(), cfaMetadata, pLogger);
 
     return createSimplifiedCfa(sliceCfa);
+  }
+
+  /**
+   * A substitution that maps CFA nodes and their contained AST nodes to AST nodes that only contain
+   * parts relevant to the specified program slice.
+   */
+  private static final class RelevantNodeAstSubstitution
+      implements CCfaTransformer.NodeAstSubstitution {
+
+    private final RelevantFunctionDeclarationTransformingVisitor functionTransformingVisitor;
+
+    private RelevantNodeAstSubstitution(
+        Slice pSlice,
+        Function<AFunctionDeclaration, @Nullable FunctionEntryNode> pFunctionToEntryNode) {
+
+      functionTransformingVisitor =
+          new RelevantFunctionDeclarationTransformingVisitor(pSlice, pFunctionToEntryNode);
+    }
+
+    @Override
+    public CFunctionDeclaration apply(CFANode pNode, CFunctionDeclaration pFunction) {
+      return (CFunctionDeclaration) pFunction.accept(functionTransformingVisitor);
+    }
+
+    @Override
+    public Optional<CVariableDeclaration> apply(
+        CFunctionEntryNode pFunctionEntryNode, Optional<CVariableDeclaration> pReturnVariable) {
+
+      CFunctionDeclaration functionDeclaration =
+          (CFunctionDeclaration) pFunctionEntryNode.getFunction();
+      CFunctionDeclaration relevantFunctionDeclaration =
+          (CFunctionDeclaration) functionDeclaration.accept(functionTransformingVisitor);
+
+      if (relevantFunctionDeclaration.getType().getReturnType() != CVoidType.VOID) {
+        return pFunctionEntryNode.getReturnVariable();
+      }
+
+      // return type of function is `void`, so no return variable exists
+      return Optional.empty();
+    }
   }
 
   /**
