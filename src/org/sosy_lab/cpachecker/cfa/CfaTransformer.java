@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.TreeMultimap;
-import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -24,7 +23,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 
 public abstract class CfaTransformer {
 
@@ -117,50 +115,6 @@ public abstract class CfaTransformer {
         CfaNetwork pCfaNetwork,
         Substitution pSubstitution,
         CfaConnectedness pConnectedness);
-  }
-
-  // TODO: move out of CfaTransformer
-  public static final class CfaMetadata {
-
-    private final MachineModel machineModel;
-    private final Language language;
-    private final ImmutableList<Path> fileNames;
-    private final FunctionEntryNode mainFunctionEntry;
-    private final CfaConnectedness connectedness;
-
-    public CfaMetadata(
-        MachineModel pMachineModel,
-        Language pLanguage,
-        ImmutableList<Path> pFileNames,
-        FunctionEntryNode pMainFunctionEntry,
-        CfaConnectedness pConnectedness) {
-
-      machineModel = checkNotNull(pMachineModel);
-      language = checkNotNull(pLanguage);
-      fileNames = checkNotNull(pFileNames);
-      mainFunctionEntry = checkNotNull(pMainFunctionEntry);
-      connectedness = checkNotNull(pConnectedness);
-    }
-
-    public MachineModel getMachineModel() {
-      return machineModel;
-    }
-
-    public Language getLanguage() {
-      return language;
-    }
-
-    public ImmutableList<Path> getFileNames() {
-      return fileNames;
-    }
-
-    public FunctionEntryNode getMainFunctionEntry() {
-      return mainFunctionEntry;
-    }
-
-    public CfaConnectedness getConnectedness() {
-      return connectedness;
-    }
   }
 
   private static final class CfaCreator implements Substitution {
