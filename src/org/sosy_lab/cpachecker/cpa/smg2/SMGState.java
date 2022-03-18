@@ -684,4 +684,21 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
     // TODO: decide if we need more checks here
     return copyAndReplaceMemoryModel(memoryModel.writeValue(object, offset, sizeInBits, value));
   }
+
+  /**
+   * Creates a pointer (points-to-edge) from the value to the target at the specified offset. The
+   * Value is mapped to a SMGValue if no mapping exists, else the existing will be used. This does
+   * not check whether or not a pointer already exists but will override the target if the value
+   * already has a mapping!
+   *
+   * @param addressValue {@link Value} used as address pointing to the target at the offset.
+   * @param target {@link SMGObject} where the pointer points to.
+   * @param offsetInBits offset in the object.
+   * @return the new {@link SMGState} with the pointer and mapping added.
+   */
+  public SMGState createAndAddPointer(
+      Value addressValue, SMGObject target, BigInteger offsetInBits) {
+    return copyAndReplaceMemoryModel(
+        memoryModel.copyAndAddPointerFromAddressToRegion(addressValue, target, offsetInBits));
+  }
 }
