@@ -8,8 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.TreeMultimap;
 import java.nio.file.Path;
@@ -28,32 +28,24 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
 
 public class MutableCFA implements CFA {
 
-  private final MachineModel machineModel;
   private final NavigableMap<String, FunctionEntryNode> functions;
   private final TreeMultimap<String, CFANode> allNodes;
-  private final FunctionEntryNode mainFunction;
-  private final List<Path> fileNames;
-  private final Language language;
-  private Optional<LoopStructure> loopStructure = Optional.empty();
-  private Optional<LiveVariables> liveVariables = Optional.empty();
+
+  private CfaMetadata metadata;
 
   public MutableCFA(
-      MachineModel pMachineModel,
       NavigableMap<String, FunctionEntryNode> pFunctions,
       TreeMultimap<String, CFANode> pAllNodes,
-      FunctionEntryNode pMainFunction,
-      List<Path> pFileNames,
-      Language pLanguage) {
+      CfaMetadata pCfaMetadata) {
 
-    machineModel = pMachineModel;
     functions = pFunctions;
     allNodes = pAllNodes;
-    mainFunction = Preconditions.checkNotNull(pMainFunction);
-    fileNames = ImmutableList.copyOf(pFileNames);
-    language = pLanguage;
+
+    metadata = pCfaMetadata;
 
     assert functions.keySet().equals(allNodes.keySet());
-    assert mainFunction.equals(functions.get(mainFunction.getFunctionName()));
+    FunctionEntryNode mainFunctionEntry = pCfaMetadata.getMainFunctionEntry();
+    assert mainFunctionEntry.equals(functions.get(mainFunctionEntry.getFunctionName()));
   }
 
   public void addNode(CFANode pNode) {
@@ -78,7 +70,7 @@ public class MutableCFA implements CFA {
 
   @Override
   public MachineModel getMachineModel() {
-    return machineModel;
+    return metadata.getMachineModel();
   }
 
   @Override
@@ -122,37 +114,26 @@ public class MutableCFA implements CFA {
 
   @Override
   public FunctionEntryNode getMainFunction() {
-    return mainFunction;
+    return metadata.getMainFunctionEntry();
   }
 
   @Override
   public Optional<LoopStructure> getLoopStructure() {
-    return loopStructure;
+    return metadata.getLoopStructure();
   }
 
   public void setLoopStructure(LoopStructure pLoopStructure) {
-    loopStructure = Optional.of(pLoopStructure);
+    metadata = metadata.withLoopStructure(pLoopStructure);
   }
 
   @Override
   public Optional<ImmutableSet<CFANode>> getAllLoopHeads() {
-    if (loopStructure.isPresent()) {
-      return Optional.of(loopStructure.orElseThrow().getAllLoopHeads());
-    }
-    return Optional.empty();
+    return getLoopStructure().map(loopStructure -> loopStructure.getAllLoopHeads());
   }
 
   public ImmutableCFA makeImmutableCFA(Optional<VariableClassification> pVarClassification) {
     return new ImmutableCFA(
-        machineModel,
-        functions,
-        allNodes,
-        mainFunction,
-        loopStructure,
-        pVarClassification,
-        liveVariables,
-        fileNames,
-        language);
+        functions, allNodes, metadata.withVariableClassification(pVarClassification.orElse(null)));
   }
 
   @Override
@@ -162,20 +143,29 @@ public class MutableCFA implements CFA {
 
   @Override
   public Optional<LiveVariables> getLiveVariables() {
-    return liveVariables;
+    return metadata.getLiveVariables();
   }
 
   public void setLiveVariables(LiveVariables pLiveVariables) {
-    liveVariables = Optional.of(pLiveVariables);
+    metadata = metadata.withLiveVariables(pLiveVariables);
   }
 
   @Override
   public Language getLanguage() {
-    return language;
+    return metadata.getLanguage();
   }
 
   @Override
   public List<Path> getFileNames() {
-    return fileNames;
+    return metadata.getFileNames();
+  }
+
+  @Override
+  public CfaMetadata getMetadata() {
+    return metadata;
+  }
+
+  void setMetadata(CfaMetadata pCfaMetadata) {
+    metadata = checkNotNull(pCfaMetadata);
   }
 }

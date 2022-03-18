@@ -48,14 +48,7 @@ public class CfaMutableNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge
       }
     }
 
-    MutableCFA mutableCfa =
-        new MutableCFA(
-            pCfa.getMachineModel(),
-            functionEntryNodes,
-            allNodes,
-            pCfa.getMainFunction(),
-            pCfa.getFileNames(),
-            pCfa.getLanguage());
+    MutableCFA mutableCfa = new MutableCFA(functionEntryNodes, allNodes, pCfa.getMetadata());
 
     return new CfaMutableNetwork(MutableCfaNetwork.of(mutableCfa));
   }

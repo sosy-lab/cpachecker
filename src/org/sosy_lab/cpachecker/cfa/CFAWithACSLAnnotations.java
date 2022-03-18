@@ -114,4 +114,9 @@ public class CFAWithACSLAnnotations implements CFA {
   public List<Path> getFileNames() {
     return delegate.getFileNames();
   }
+
+  @Override
+  public CfaMetadata getMetadata() {
+    return delegate.getMetadata();
+  }
 }

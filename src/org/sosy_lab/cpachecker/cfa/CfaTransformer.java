@@ -203,13 +203,12 @@ public abstract class CfaTransformer {
       connectedness = CfaConnectedness.INDEPENDENT_FUNCTIONS;
       cfaNetwork.edges().forEach(this::toSubstitute);
 
-      return new MutableCFA(
-          pCfaMetadata.getMachineModel(),
-          newFunctions,
-          newNodes,
-          (FunctionEntryNode) oldNodeToNewNode.get(oldMainEntryNode),
-          pCfaMetadata.getFileNames(),
-          pCfaMetadata.getLanguage());
+      CfaMetadata cfaMetadata =
+          pCfaMetadata
+              .withMainFunctionEntry((FunctionEntryNode) oldNodeToNewNode.get(oldMainEntryNode))
+              .withConnectedness(CfaConnectedness.INDEPENDENT_FUNCTIONS);
+
+      return new MutableCFA(newFunctions, newNodes, cfaMetadata);
     }
 
     /** Removes all placeholder edges that were inserted instead of function calls. */
@@ -284,7 +283,12 @@ public abstract class CfaTransformer {
 
     private CFA createCfa(CfaMetadata pCfaMetadata, LogManager pLogger) {
 
-      MutableCFA newMutableCfa = createIndependentFunctionCfa(pCfaMetadata);
+      MutableCFA newMutableCfa =
+          createIndependentFunctionCfa(
+              pCfaMetadata
+                  .withLoopStructure(null)
+                  .withVariableClassification(null)
+                  .withLiveVariables(null));
 
       newMutableCfa = runModifyingIndependentFunctionPostProcessors(newMutableCfa, pLogger);
       runReadOnlyIndependentFunctionPostProcessors(newMutableCfa, pLogger);
@@ -307,6 +311,9 @@ public abstract class CfaTransformer {
           connectedness = CfaConnectedness.SUPERGRAPH;
           cfaNetwork.edges().forEach(this::toSubstitute);
         }
+
+        newMutableCfa.setMetadata(
+            newMutableCfa.getMetadata().withConnectedness(CfaConnectedness.SUPERGRAPH));
       }
 
       newMutableCfa = runModifyingSupergraphPostProcessors(newMutableCfa, pLogger);

@@ -27,6 +27,8 @@ import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CfaConnectedness;
+import org.sosy_lab.cpachecker.cfa.CfaMetadata;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -199,9 +201,15 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
 
     functions.put("main", entryNode);
 
-    MutableCFA cfa =
-        new MutableCFA(
-            MachineModel.LINUX32, functions, nodes, entryNode, ImmutableList.of(), Language.C);
+    CfaMetadata cfaMetadata =
+        CfaMetadata.of(
+            MachineModel.LINUX32,
+            Language.C,
+            ImmutableList.of(),
+            entryNode,
+            CfaConnectedness.SUPERGRAPH);
+    MutableCFA cfa = new MutableCFA(functions, nodes, cfaMetadata);
+
     return Triple.of(a_to_b, b_to_a, cfa);
   }
 

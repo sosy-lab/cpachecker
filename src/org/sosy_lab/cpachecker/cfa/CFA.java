@@ -53,4 +53,6 @@ public interface CFA {
   Language getLanguage();
 
   List<Path> getFileNames();
+
+  CfaMetadata getMetadata();
 }

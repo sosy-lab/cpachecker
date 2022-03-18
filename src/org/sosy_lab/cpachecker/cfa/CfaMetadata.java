@@ -64,14 +64,14 @@ public final class CfaMetadata implements Serializable {
   public static CfaMetadata of(
       MachineModel pMachineModel,
       Language pLanguage,
-      ImmutableList<Path> pFileNames,
+      List<Path> pFileNames,
       FunctionEntryNode pMainFunctionEntry,
       CfaConnectedness pConnectedness) {
 
     return new CfaMetadata(
         checkNotNull(pMachineModel),
         checkNotNull(pLanguage),
-        checkNotNull(pFileNames),
+        ImmutableList.copyOf(pFileNames),
         checkNotNull(pMainFunctionEntry),
         checkNotNull(pConnectedness),
         null,
