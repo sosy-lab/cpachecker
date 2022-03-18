@@ -10,7 +10,9 @@ package org.sosy_lab.cpachecker.util.smg;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
+import com.google.common.collect.BiMap;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableSortedMap;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
@@ -50,7 +52,7 @@ public class SMG {
   private final PersistentMap<SMGObject, Boolean> smgObjects;
   private final PersistentSet<SMGValue> smgValues;
   private final PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> hasValueEdges;
-  private final PersistentMap<SMGValue, SMGPointsToEdge> pointsToEdges;
+  private final BiMap<SMGValue, SMGPointsToEdge> pointsToEdges;
   private final BigInteger sizeOfPointer;
 
   /** Creates a new, empty SMG */
@@ -61,9 +63,9 @@ public class SMG {
     smgObjects = smgObjectsTmp.putAndCopy(SMGObject.nullInstance(), false);
     SMGPointsToEdge nullPointer =
         new SMGPointsToEdge(getNullObject(), BigInteger.ZERO, SMGTargetSpecifier.IS_REGION);
-    PersistentMap<SMGValue, SMGPointsToEdge> pointsToEdgesTmpMap =
-        PathCopyingPersistentTreeMap.of();
-    pointsToEdges = pointsToEdgesTmpMap.putAndCopy(SMGValue.zeroValue(), nullPointer);
+    BiMap<SMGValue, SMGPointsToEdge> pointsToEdgesTmpMap = HashBiMap.create();
+    pointsToEdgesTmpMap.put(SMGValue.zeroValue(), nullPointer);
+    pointsToEdges = pointsToEdgesTmpMap;
     sizeOfPointer = pSizeOfPointer;
   }
 
@@ -71,7 +73,7 @@ public class SMG {
       PersistentMap<SMGObject, Boolean> pSmgObjects,
       PersistentSet<SMGValue> pSmgValues,
       PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> pHasValueEdges,
-      PersistentMap<SMGValue, SMGPointsToEdge> pPointsToEdges,
+      BiMap<SMGValue, SMGPointsToEdge> pPointsToEdges,
       BigInteger pSizeOfPointer) {
     smgObjects = pSmgObjects;
     smgValues = pSmgValues;
@@ -161,12 +163,9 @@ public class SMG {
       return this;
     }
 
-    return new SMG(
-        smgObjects,
-        smgValues,
-        hasValueEdges,
-        pointsToEdges.putAndCopy(source, edge),
-        sizeOfPointer);
+    BiMap<SMGValue, SMGPointsToEdge> newBiMap = HashBiMap.create(pointsToEdges);
+    newBiMap.put(source, edge);
+    return new SMG(smgObjects, smgValues, hasValueEdges, newBiMap, sizeOfPointer);
   }
 
   /**
@@ -230,12 +229,9 @@ public class SMG {
    * @return A modified copy of the SMG.
    */
   public SMG copyAndSetPTEdges(SMGPointsToEdge edge, SMGValue source) {
-    return new SMG(
-        smgObjects,
-        smgValues,
-        hasValueEdges,
-        pointsToEdges.putAndCopy(source, edge),
-        sizeOfPointer);
+    BiMap<SMGValue, SMGPointsToEdge> newBiMap = HashBiMap.create(pointsToEdges);
+    newBiMap.put(source, edge);
+    return new SMG(smgObjects, smgValues, hasValueEdges, newBiMap, sizeOfPointer);
   }
 
   /**
@@ -266,14 +262,14 @@ public class SMG {
     PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> newHVEdges =
         hasValueEdges.removeAndCopy(pOldObject).putAndCopy(pNewObject, edges);
     // replace points to edges
-    PersistentMap<SMGValue, SMGPointsToEdge> newPointsToEdges = pointsToEdges;
+    BiMap<SMGValue, SMGPointsToEdge> newPointsToEdges = HashBiMap.create(pointsToEdges);
 
     for (Map.Entry<SMGValue, SMGPointsToEdge> oldEntry : pointsToEdges.entrySet()) {
       if (pOldObject.equals(oldEntry.getValue().pointsTo())) {
         SMGPointsToEdge newEdge =
             new SMGPointsToEdge(
                 pNewObject, oldEntry.getValue().getOffset(), oldEntry.getValue().targetSpecifier());
-        newPointsToEdges = pointsToEdges.putAndCopy(oldEntry.getKey(), newEdge);
+        newPointsToEdges.put(oldEntry.getKey(), newEdge);
       }
     }
 
@@ -688,7 +684,7 @@ public class SMG {
     return getPTEdges().filter(ptEdge -> ptEdge.pointsTo().equals(pointingTo));
   }
 
-  public PersistentMap<SMGValue, SMGPointsToEdge> getPTEdgeMapping() {
+  public BiMap<SMGValue, SMGPointsToEdge> getPTEdgeMapping() {
     return pointsToEdges;
   }
 
