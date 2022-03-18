@@ -1017,7 +1017,7 @@ public class SMGCPAValueVisitorTest {
    * @throws InvalidConfigurationException should never be thrown!
    */
   @Test
-  public void readNestedPointerHeapArrayLeadingToConstMultipleTypesRepeated()
+  public void readNestedPointerHeapArrayLeadingToConstArrayMultipleTypesRepeated()
       throws CPATransferException, InvalidConfigurationException {
     String pointerArrayName = "pointerArrayVariable";
 
@@ -1053,7 +1053,6 @@ public class SMGCPAValueVisitorTest {
       // Create the array on the heap; size is pointer size
       addHeapVariableToMemoryModel(
           0, POINTER_SIZE_IN_BITS * TEST_ARRAY_LENGTH, addressPointerArray);
-      List<Value> pointerValues = new ArrayList<>();
       // now fill the array with pointers
       // Note: we should reuse the pointer for index 0 from above, but i am lazy and it does not
       // matter in a test
@@ -1069,7 +1068,6 @@ public class SMGCPAValueVisitorTest {
         // remember the pointer values such that the index is the same as the location of the
         // pointer in the array.
         Value address = SymbolicValueFactory.getInstance().newIdentifier(null);
-        pointerValues.add(address);
 
         addPointerToMemory(address, objectForAddressValue, j * sizeOfCurrentTypeInBits);
         // Write the pointer to the heap array
