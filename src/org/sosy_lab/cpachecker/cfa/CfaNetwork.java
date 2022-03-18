@@ -186,7 +186,7 @@ public abstract class CfaNetwork implements Network<CFANode, CFAEdge> {
 
           @Override
           public int size() {
-            return Iterables.size(this);
+            return Iterators.size(iterator());
           }
         };
       }
@@ -202,7 +202,7 @@ public abstract class CfaNetwork implements Network<CFANode, CFAEdge> {
 
           @Override
           public int size() {
-            return Iterables.size(this);
+            return Iterators.size(iterator());
           }
         };
       }
@@ -242,7 +242,7 @@ public abstract class CfaNetwork implements Network<CFANode, CFAEdge> {
 
           @Override
           public int size() {
-            return Iterables.size(this);
+            return Iterators.size(iterator());
           }
         };
       }
@@ -258,7 +258,7 @@ public abstract class CfaNetwork implements Network<CFANode, CFAEdge> {
 
           @Override
           public int size() {
-            return Iterables.size(this);
+            return Iterators.size(iterator());
           }
         };
       }
@@ -295,7 +295,7 @@ public abstract class CfaNetwork implements Network<CFANode, CFAEdge> {
 
           @Override
           public int size() {
-            return Iterables.size(this);
+            return Iterators.size(iterator());
           }
         };
       }
@@ -313,7 +313,7 @@ public abstract class CfaNetwork implements Network<CFANode, CFAEdge> {
 
           @Override
           public int size() {
-            return Iterables.size(this);
+            return Iterators.size(iterator());
           }
         };
       }
@@ -362,7 +362,7 @@ public abstract class CfaNetwork implements Network<CFANode, CFAEdge> {
 
           @Override
           public int size() {
-            return Iterables.size(this);
+            return Iterators.size(iterator());
           }
         };
       }
@@ -477,7 +477,7 @@ public abstract class CfaNetwork implements Network<CFANode, CFAEdge> {
 
       @Override
       public int size() {
-        return Iterables.size(this);
+        return Iterators.size(iterator());
       }
     };
   }
@@ -523,7 +523,7 @@ public abstract class CfaNetwork implements Network<CFANode, CFAEdge> {
 
       @Override
       public int size() {
-        return Iterables.size(this);
+        return Iterators.size(iterator());
       }
     };
   }
@@ -697,7 +697,7 @@ public abstract class CfaNetwork implements Network<CFANode, CFAEdge> {
 
       @Override
       public int size() {
-        return Iterables.size(this);
+        return Iterators.size(iterator());
       }
     };
   }
