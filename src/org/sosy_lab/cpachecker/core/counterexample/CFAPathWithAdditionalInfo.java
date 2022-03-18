@@ -139,6 +139,6 @@ public class CFAPathWithAdditionalInfo extends ForwardingList<CFAEdgeWithAdditio
     }
     // last state is ignored
 
-    return result.build();
+    return result.buildOrThrow();
   }
 }

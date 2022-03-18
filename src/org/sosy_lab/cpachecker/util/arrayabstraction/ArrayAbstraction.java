@@ -259,7 +259,7 @@ public class ArrayAbstraction {
       pGraph.addEdge(pLoopBodyEntryNode, new CFATerminationNode(function), falseEdge);
     }
 
-    return arrayPreciseSubscriptExpressionBuilder.build();
+    return arrayPreciseSubscriptExpressionBuilder.buildOrThrow();
   }
 
   // Is this loop even transformable? Yes -> Status.PRECISE, No -> Status.UNCHANGED
@@ -489,7 +489,7 @@ public class ArrayAbstraction {
       builder.put(transformableArray.getArrayDeclaration(), transformableArray);
     }
 
-    return builder.build();
+    return builder.buildOrThrow();
   }
 
   private static ImmutableSet<CFAEdge> createInnerLoopEdgeSet(

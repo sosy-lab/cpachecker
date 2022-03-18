@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -124,6 +125,28 @@ public class ExpressionSimplificationVisitor
 
     final CExpression op2 = recursive(expr.getOperand2());
     final NumericValue value2 = getValue(op2);
+
+    if (op1.equals(op2)
+        // Naively, it would seem that the above condition suffices, but it does not:
+        // - Floats have NaN != NaN behavior.
+        // - Pointer accesses might be unsafe and memory-safety analyses would like to check that.
+        // But int variables should be safe. No need to check for type of op2 due to equals() and
+        // literals will be handled by having their values determined.
+        && op1 instanceof CIdExpression
+        && CTypes.isIntegerType(op1.getExpressionType())) {
+      switch (binaryOperator) {
+        case EQUALS:
+        case GREATER_EQUAL:
+        case LESS_EQUAL:
+          return CIntegerLiteralExpression.ONE;
+        case NOT_EQUALS:
+        case GREATER_THAN:
+        case LESS_THAN:
+          return CIntegerLiteralExpression.ZERO;
+        default:
+          break;
+      }
+    }
 
     // if one side can not be evaluated, build new expression
     if (value1 == null || value2 == null) {

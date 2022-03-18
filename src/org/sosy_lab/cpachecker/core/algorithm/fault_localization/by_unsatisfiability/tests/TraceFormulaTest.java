@@ -210,7 +210,7 @@ public class TraceFormulaTest {
         ImmutableMap.<LogKeys, Object>builder()
             .put(LogKeys.TFPRECONDITION, preconditionValues)
             .put(LogKeys.TFPOSTCONDITION, postConditionLocation)
-            .build());
+            .buildOrThrow());
   }
 
   @Test
@@ -221,7 +221,7 @@ public class TraceFormulaTest {
         "unit_test_traces.c",
         FLAlgorithm.ERRINV,
         ImmutableMap.of(),
-        ImmutableMap.<LogKeys, Object>builder().put(LogKeys.TFRESULT, faultyLines).build());
+        ImmutableMap.of(LogKeys.TFRESULT, faultyLines));
   }
 
   @Test
@@ -232,7 +232,7 @@ public class TraceFormulaTest {
         "unit_test_traces.c",
         FLAlgorithm.ERRINV,
         ImmutableMap.of("faultLocalization.by_traceformula.errorInvariants.disableFSTF", "true"),
-        ImmutableMap.<LogKeys, Object>builder().put(LogKeys.TFRESULT, faultyLines).build());
+        ImmutableMap.of(LogKeys.TFRESULT, faultyLines));
   }
 
   @Test
@@ -243,6 +243,6 @@ public class TraceFormulaTest {
         "unit_test_traces.c",
         FLAlgorithm.MAXSAT,
         ImmutableMap.of(),
-        ImmutableMap.<LogKeys, Object>builder().put(LogKeys.TFRESULT, faultyLines).build());
+        ImmutableMap.of(LogKeys.TFRESULT, faultyLines));
   }
 }

@@ -224,7 +224,7 @@ class TraceAbstractionPrecisionAdjustment implements PrecisionAdjustment {
         locInstance);
 
     ImmutableMap<InterpolationSequence, IndexedAbstractionPredicate> newPreds =
-        itpSequenceMapping.build();
+        itpSequenceMapping.buildOrThrow();
     logger.logf(Level.FINER, "Active predicates in the next state: %s\n", newPreds);
     return new TraceAbstractionState(pPredSuccessor, newPreds);
   }
