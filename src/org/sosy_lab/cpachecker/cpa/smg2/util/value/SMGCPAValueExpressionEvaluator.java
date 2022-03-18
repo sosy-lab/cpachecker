@@ -28,11 +28,13 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAAddressVisitor;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGSizeOfVisitor;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.SymbolicProgramConfiguration;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
@@ -40,6 +42,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 
 @SuppressWarnings("unused")
 public class SMGCPAValueExpressionEvaluator {
@@ -174,10 +177,47 @@ public class SMGCPAValueExpressionEvaluator {
     return null;
   }
 
-  /** Creates the SMGValue/Object for an address not yet encountered. */
-  public Collection<ValueAndSMGState> createAddress(SMGState pState, Value pValue) {
-    // TODO Auto-generated method stub
-    return null;
+  /**
+   * Used with the & operator this creates or finds and returns the address Value for the underyling
+   * operand. This also creates the pointers in the SMG if not yet created. Throws the exception
+   * only if nonsensical addresses are requested; i.e. &3;
+   *
+   * @param operand the {@link CExpression} that is the operand of the & expression.
+   * @param pState current {@link SMGState}
+   * @param cfaEdge debug/logging edge.
+   * @return either unknown or a {@link Value} representing the address.
+   * @throws CPATransferException if the & operator is used on a invalid expression.
+   */
+  public ValueAndSMGState createAddress(CExpression operand, SMGState pState, CFAEdge cfaEdge)
+      throws CPATransferException {
+    // SMGCPAAddressVisitor may have side effects! But they should not effect anything as they are
+    // only interesing in a failure case in which the analysis stops!
+    SMGCPAAddressVisitor addressVisitor = new SMGCPAAddressVisitor(this, pState, cfaEdge, logger);
+    Optional<SMGObjectAndOffset> maybeObjectAndOffset = operand.accept(addressVisitor);
+    if (maybeObjectAndOffset.isEmpty()) {
+      // TODO: improve error handling and add more specific exceptions to the visitor!
+      // No address could be found
+      throw new SMG2Exception("No address could be created for the expression: " + operand);
+    }
+    SMGObjectAndOffset targetAndOffset = maybeObjectAndOffset.orElseThrow();
+    SMGObject target = targetAndOffset.getSMGObject();
+    BigInteger offset = targetAndOffset.getOffsetForObject();
+    // search for existing pointer first and return if found
+    Optional<SMGValue> maybeAddressValue =
+        pState.getMemoryModel().getAddressValueForPointsToTarget(target, offset);
+
+    if (maybeAddressValue.isPresent()) {
+      Optional<Value> valueForSMGValue =
+          pState.getMemoryModel().getValueFromSMGValue(maybeAddressValue.orElseThrow());
+      // Reuse pointer; there should never be a SMGValue without counterpart!
+      // TODO: this might actually be expensive, check once this runs!
+      return ValueAndSMGState.of(valueForSMGValue.orElseThrow(), pState);
+    }
+    // If none is found, we need a new Value -> SMGValue mapping for the address + a new
+    // PointsToEdge with the correct offset
+    Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
+    SMGState newState = pState.createAndAddPointer(addressValue, target, offset);
+    return ValueAndSMGState.of(addressValue, newState);
   }
 
   public SMGState addValueToState(SMGState pState, Value value) {
@@ -250,6 +290,69 @@ public class SMGCPAValueExpressionEvaluator {
     BigInteger offset = baseOffset.add(pOffset);
 
     return readValue(pState, object, offset, pSizeInBits);
+  }
+
+  /**
+   * Returns the {@link SMGObjectAndOffset} pair for the entered address {@link Value} and
+   * additional offset on the entered state. This does not really dereference the address {@link
+   * Value}, think of it like &*pointer.
+   *
+   * @param pState current {@link SMGState}.
+   * @param value {@link Value} pointer to be dereferenced leading to the {@link SMGObject} desired.
+   * @param pOffsetInBits used offset when dereferencing.
+   * @return the desired {@link SMGObject} and its offset or an empty optional.
+   * @throws SMG2Exception thrown if the dereference encounters a problem.
+   */
+  public Optional<SMGObjectAndOffset> getTargetObjectAndOffset(
+      SMGState pState, Value value, BigInteger pOffsetInBits) throws SMG2Exception {
+    // TODO: maybe use this in readValueWithPointerDereference?
+    Optional<SMGObjectAndOffset> maybeTargetAndOffset =
+        pState.getMemoryModel().dereferencePointer(value);
+    if (maybeTargetAndOffset.isEmpty()) {
+      // The value is unknown and therefore does not point to a valid memory location
+      SMGState errorState = pState.withUnknownPointerDereferenceWhenReading(value);
+      throw new SMG2Exception(errorState);
+    }
+    SMGObjectAndOffset targetAndOffset = maybeTargetAndOffset.orElseThrow();
+    BigInteger baseOffset = targetAndOffset.getOffsetForObject();
+    BigInteger finalOffset = baseOffset.add(pOffsetInBits);
+
+    return Optional.of(SMGObjectAndOffset.of(targetAndOffset.getSMGObject(), finalOffset));
+  }
+
+  /**
+   * Returns the target Object of the entered stack/global variable. This assumes the offset to be
+   * 0. Mainly used for &variable.
+   *
+   * @param state current {@link SMGState}.
+   * @param variableName the name of the stack/global variable.
+   * @return Either an empty {@link Optional} if no object was found, or a filled one with the
+   *     {@link SMGObject} and its offset.
+   */
+  public Optional<SMGObjectAndOffset> getTargetObjectAndOffset(
+      SMGState state, String variableName) {
+    return getTargetObjectAndOffset(state, variableName, BigInteger.ZERO);
+  }
+
+  /**
+   * Returns the target Object and offset of the entered stack/global variable. Mainly used for
+   * &variable.
+   *
+   * @param state current {@link SMGState}.
+   * @param variableName the name of the stack/global variable.
+   * @param offsetInBits the offset of in the {@link SMGObject}.
+   * @return Either an empty {@link Optional} if no object was found, or a filled one with the
+   *     {@link SMGObject} and its offset.
+   */
+  public Optional<SMGObjectAndOffset> getTargetObjectAndOffset(
+      SMGState state, String variableName, BigInteger offsetInBits) {
+    // TODO: maybe use this in getStackOrGlobalVar?
+    Optional<SMGObject> maybeObject =
+        state.getMemoryModel().getObjectForVisibleVariable(variableName);
+    if (maybeObject.isEmpty()) {
+      return Optional.empty();
+    }
+    return Optional.of(SMGObjectAndOffset.of(maybeObject.orElseThrow(), offsetInBits));
   }
 
   /**
