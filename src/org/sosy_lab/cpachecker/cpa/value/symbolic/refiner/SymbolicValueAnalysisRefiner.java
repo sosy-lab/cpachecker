@@ -154,11 +154,12 @@ public class SymbolicValueAnalysisRefiner
 
     final Configuration config = valueAnalysisCpa.getConfiguration();
 
-    valueAnalysisCpa.injectRefinablePrecision();
-    constraintsCpa.injectRefinablePrecision(new RefinableConstraintsPrecision(config));
-
     final LogManager logger = valueAnalysisCpa.getLogger();
     final CFA cfa = valueAnalysisCpa.getCFA();
+
+    valueAnalysisCpa.injectRefinablePrecision();
+    constraintsCpa.injectRefinablePrecision(new RefinableConstraintsPrecision(config, cfa));
+
     final ShutdownNotifier shutdownNotifier = valueAnalysisCpa.getShutdownNotifier();
 
     final ConstraintsSolver solver = constraintsCpa.getSolver();

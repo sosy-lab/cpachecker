@@ -12,6 +12,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 
@@ -29,20 +30,10 @@ public class RefinableConstraintsPrecision implements ConstraintsPrecision {
 
   private final ConstraintsPrecision delegate;
 
-  public RefinableConstraintsPrecision(final Configuration pConfig)
+  public RefinableConstraintsPrecision(final Configuration pConfig, CFA cfa)
       throws InvalidConfigurationException {
     pConfig.inject(this);
-
-    switch (precisionType) {
-      case CONSTRAINTS:
-        delegate = ConstraintBasedConstraintsPrecision.getEmptyPrecision();
-        break;
-      case LOCATION:
-        delegate = LocationBasedConstraintsPrecision.getEmptyPrecision();
-        break;
-      default:
-        throw new AssertionError("Unhandled precision type " + precisionType);
-    }
+    delegate = new InitialConstraintsPrecisionCreator(pConfig, cfa).create();
   }
 
   private RefinableConstraintsPrecision(final ConstraintsPrecision pDelegate) {

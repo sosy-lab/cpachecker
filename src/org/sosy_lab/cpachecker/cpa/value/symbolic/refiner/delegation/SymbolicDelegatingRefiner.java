@@ -82,7 +82,7 @@ public class SymbolicDelegatingRefiner implements ARGBasedRefiner, StatisticsPro
     final Configuration config = valueAnalysisCpa.getConfiguration();
 
     valueAnalysisCpa.injectRefinablePrecision();
-    constraintsCpa.injectRefinablePrecision(new RefinableConstraintsPrecision(config));
+    constraintsCpa.injectRefinablePrecision(new RefinableConstraintsPrecision(config, null));
 
     final LogManager logger = valueAnalysisCpa.getLogger();
     final CFA cfa = valueAnalysisCpa.getCFA();
