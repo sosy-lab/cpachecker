@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -55,7 +56,6 @@ public class InitialConstraintsPrecisionCreator {
   private Path initialPrecisionFile = null;
 
   private final CFA cfa;
-  private Configuration config;
   private LogManager logger;
 
   //for ConstraintBasedConstraintsPrecision
@@ -70,13 +70,12 @@ public class InitialConstraintsPrecisionCreator {
       Configuration pConfig, CFA pcfa)
       throws InvalidConfigurationException {
     pConfig.inject(this);
-    config = pConfig;
     cfa = pcfa;
     logger = LogManager.createTestLogManager();
   }
 
 
-  public ConstraintsPrecision create() throws InvalidConfigurationException {
+  public ConstraintsPrecision create() throws AssertionError {
     // if fromValuePrecision flags are set, create an initial constraints precision based on the
     // given value precision
     if (initialValueConstraintsPrecision && cfa != null && initialPrecisionFile != null) {
@@ -125,7 +124,7 @@ public class InitialConstraintsPrecisionCreator {
   }
 
   private void restoreMappingFromFile(CFA pCfa) {
-    List<String> contents = null;
+    List<String> contents = new ArrayList<>();
     try {
       contents = Files.readAllLines(initialPrecisionFile, Charset.defaultCharset());
     } catch (IOException e) {

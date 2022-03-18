@@ -34,6 +34,7 @@ public class VariableTrackingConstraintsPrecision implements ConstraintsPrecisio
     constraintsPrecision = pConstraintsPrecision;
   }
 
+  @Override
   public boolean isTracked(Constraint pConstraint, CFANode pLocation) {
     //verify if pConstraint is Unary or BinaryConstraint
     if (pConstraint instanceof UnaryConstraint) {
@@ -80,6 +81,7 @@ public class VariableTrackingConstraintsPrecision implements ConstraintsPrecisio
     return constraintsPrecision.isTracked(pConstraint, pLocation);
   }
 
+  @Override
   public ConstraintsPrecision join(ConstraintsPrecision pOther) {
     VariableTrackingConstraintsPrecision other = (VariableTrackingConstraintsPrecision) pOther;
     return constraintsPrecision.join(other.getConstraintsPrecision());
@@ -89,10 +91,12 @@ public class VariableTrackingConstraintsPrecision implements ConstraintsPrecisio
     return constraintsPrecision;
   }
 
+  @Override
   public ConstraintsPrecision withIncrement(Increment pIncrement) {
     return constraintsPrecision.withIncrement(pIncrement);
   }
 
+  @Override
   public String toString() {
     StringBuilder sb = new StringBuilder("VariableTrackingConstraintsPrecision [ \n");
     sb.append(constraintsPrecision.toString());
