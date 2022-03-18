@@ -29,6 +29,11 @@ public class SMGObjectAndOffset {
     return new SMGObjectAndOffset(pObject, pOffset);
   }
 
+  public static SMGObjectAndOffset withZeroOffset(SMGObject pObject) {
+    Preconditions.checkNotNull(pObject);
+    return new SMGObjectAndOffset(pObject, BigInteger.ZERO);
+  }
+
   public SMGObject getSMGObject() {
     return object;
   }
