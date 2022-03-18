@@ -148,7 +148,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * @return {@code AlgorithmStatus.UNSOUND_AND_PRECISE} if an error location is reached, i.e.,
    *     unsafe; {@code AlgorithmStatus.SOUND_AND_PRECISE} if a fixed point is derived, i.e., safe.
    */
-  private <T> AlgorithmStatus interpolationModelChecking(final ReachedSet pReachedSet)
+  private AlgorithmStatus interpolationModelChecking(final ReachedSet pReachedSet)
       throws CPAException, SolverException, InterruptedException {
     if (getTargetLocations().isEmpty()) {
       pReachedSet.clearWaitlist();
@@ -260,7 +260,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    *     the current over-approximation is unsafe.
    * @throws InterruptedException On shutdown request.
    */
-  private <T> boolean reachFixedPointByInterpolation(final PartitionedFormulas formulas)
+  private boolean reachFixedPointByInterpolation(final PartitionedFormulas formulas)
       throws InterruptedException, CPAException, SolverException {
     logger.log(Level.ALL, "The SSA map is", formulas.getPrefixSsaMap());
     BooleanFormula currentImage = formulas.getPrefixFormula();

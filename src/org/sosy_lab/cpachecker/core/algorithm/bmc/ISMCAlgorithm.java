@@ -152,7 +152,7 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * @return {@code AlgorithmStatus.UNSOUND_AND_PRECISE} if an error location is reached, i.e.,
    *     unsafe; {@code AlgorithmStatus.SOUND_AND_PRECISE} if a fixed point is derived, i.e., safe.
    */
-  private <T> AlgorithmStatus runISMC(final ReachedSet pReachedSet)
+  private AlgorithmStatus runISMC(final ReachedSet pReachedSet)
       throws CPAException, SolverException, InterruptedException {
     if (getTargetLocations().isEmpty()) {
       pReachedSet.clearWaitlist();
@@ -252,7 +252,7 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    *
    * @throws InterruptedException On shutdown request.
    */
-  private <T> ImmutableList<BooleanFormula> getInterpolationSequence(PartitionedFormulas pFormulas)
+  private ImmutableList<BooleanFormula> getInterpolationSequence(PartitionedFormulas pFormulas)
       throws InterruptedException, CPAException {
     logger.log(Level.FINE, "Extracting interpolation-sequence");
     ImmutableList<BooleanFormula> formulasToPush =
