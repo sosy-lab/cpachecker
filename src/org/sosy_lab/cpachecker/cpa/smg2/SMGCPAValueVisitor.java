@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -91,14 +92,11 @@ public class SMGCPAValueVisitor
   private static final int SIZE_OF_JAVA_LONG = 64;
 
   // The evaluator translates C expressions into the SMG counterparts and vice versa.
-  @SuppressWarnings("unused")
   private final SMGCPAValueExpressionEvaluator evaluator;
 
-  @SuppressWarnings("unused")
   private final SMGState state;
 
   /** This edge is only to be used for debugging/logging! */
-  @SuppressWarnings("unused")
   private final CFAEdge cfaEdge;
 
   private final LogManagerWithoutDuplicates logger;
@@ -593,8 +591,8 @@ public class SMGCPAValueVisitor
   public List<ValueAndSMGState> visit(CTypeIdExpression e) throws CPATransferException {
     // Operators:
     // sizeOf, typeOf and
-    // _Alignof or alignof = the number of bytes between successive addresses, essentially a fancy
-    // name for size
+    // _Alignof or alignof = the number of bytes between successive addresses, careful because of
+    // padding!
 
     // SMGs have type reinterpretation! Get the type of the SMG and translate it back to the C type.
     return visitDefault(e);
@@ -602,13 +600,96 @@ public class SMGCPAValueVisitor
 
   @Override
   public List<ValueAndSMGState> visit(CUnaryExpression e) throws CPATransferException {
-    // Unary expression types like & (address of operator), sizeOf(), ++, - (unary minus), --, !
-    // (not)
-    // Split up into their operators, handle each. Most are not that difficult.
-    // & needs the address of an object, so we need to get the mapping or create one to an SMG
-    // object
+    // Unary expression types like & (address of operator), sizeOf(), - (unary minus), TILDE
+    // (bitwise not) and alignof
 
-    return visitDefault(e);
+    UnaryOperator unaryOperator = e.getOperator();
+    CExpression unaryOperand = e.getOperand();
+    CType expressionType = e.getExpressionType();
+    CType operandType = unaryOperand.getExpressionType();
+
+    switch (unaryOperator) {
+      case SIZEOF:
+        BigInteger sizeInBits = evaluator.getBitSizeof(state, operandType);
+        return ImmutableList.of(
+            ValueAndSMGState.of(new NumericValue(sizeInBits.divide(BigInteger.valueOf(8))), state));
+
+      case ALIGNOF:
+        return ImmutableList.of(
+            ValueAndSMGState.of(
+                new NumericValue(
+                    evaluator.getMachineModel().getAlignof(unaryOperand.getExpressionType())),
+                state));
+
+      default:
+        break;
+    }
+
+    final List<ValueAndSMGState> valuesAndStates = unaryOperand.accept(this);
+
+    // Take the last state as current as this is the most up to date state
+    SMGState currentState = valuesAndStates.get(valuesAndStates.size() - 1).getState();
+    ImmutableList.Builder<ValueAndSMGState> builder = new ImmutableList.Builder<>();
+    loop:
+    for (ValueAndSMGState valueAndState : valuesAndStates) {
+      Value value = valueAndState.getValue();
+
+      if (value.isUnknown()) {
+        builder.add(ValueAndSMGState.ofUnknownValue(currentState));
+        continue;
+      }
+
+      // & is seperate as the value returned leads to the underlying memory location
+      if (unaryOperator == UnaryOperator.AMPER) {
+        // Check if a pointer already exits, if not create a pointer (points-to-edge), map it to a
+        // unique value and return it.
+        return ImmutableList.of(evaluator.createAddress(unaryOperand, currentState, cfaEdge));
+      }
+
+      if (value instanceof SymbolicValue) {
+        builder.add(
+            ValueAndSMGState.of(
+                createSymbolicExpression(value, operandType, unaryOperator, expressionType),
+                currentState));
+        continue;
+      } else if (!value.isNumericValue()) {
+        logger.logf(Level.FINE, "Invalid argument %s for unary operator %s.", value, unaryOperator);
+        builder.add(ValueAndSMGState.ofUnknownValue(currentState));
+        continue;
+      }
+
+      final NumericValue numericValue = (NumericValue) value;
+      switch (unaryOperator) {
+        case MINUS:
+          builder.add(ValueAndSMGState.of(numericValue.negate(), currentState));
+          continue loop;
+
+        case TILDE:
+          builder.add(
+              ValueAndSMGState.of(new NumericValue(~numericValue.longValue()), currentState));
+          continue loop;
+
+        default:
+          throw new AssertionError("unknown unary operator: " + unaryOperator);
+      }
+    }
+    return builder.build();
+  }
+
+  // Copied from value CPA
+  private Value createSymbolicExpression(
+      Value pValue, CType pOperandType, UnaryOperator pUnaryOperator, CType pExpressionType) {
+    final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
+    SymbolicExpression operand = factory.asConstant(pValue, pOperandType);
+
+    switch (pUnaryOperator) {
+      case MINUS:
+        return factory.negate(operand, pExpressionType);
+      case TILDE:
+        return factory.binaryNot(operand, pExpressionType);
+      default:
+        throw new AssertionError("Unhandled unary operator " + pUnaryOperator);
+    }
   }
 
   @Override
