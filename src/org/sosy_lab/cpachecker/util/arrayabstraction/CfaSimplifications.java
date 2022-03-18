@@ -26,10 +26,10 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CCfaTransformer;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CfaConnectedness;
+import org.sosy_lab.cpachecker.cfa.CfaMetadata;
 import org.sosy_lab.cpachecker.cfa.CfaMutableNetwork;
 import org.sosy_lab.cpachecker.cfa.CfaTransformer;
-import org.sosy_lab.cpachecker.cfa.CfaTransformer.CfaConnectedness;
-import org.sosy_lab.cpachecker.cfa.CfaTransformer.CfaMetadata;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.AbstractTransformingCAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
@@ -215,7 +215,7 @@ final class CfaSimplifications {
     CfaTransformer cfaTransformer =
         CCfaTransformer.builder().addEdgeAstSubstitution(substitutionFunction::apply).build();
     CfaMetadata cfaMetadata =
-        new CfaMetadata(
+        CfaMetadata.of(
             pCfa.getMachineModel(),
             pCfa.getLanguage(),
             ImmutableList.copyOf(pCfa.getFileNames()),
@@ -468,7 +468,7 @@ final class CfaSimplifications {
     CfaTransformer cfaTransformer =
         CCfaTransformer.builder().addEdgeAstSubstitution(edgeAstSubstitution::apply).build();
     CfaMetadata cfaMetadata =
-        new CfaMetadata(
+        CfaMetadata.of(
             pCfa.getMachineModel(),
             pCfa.getLanguage(),
             ImmutableList.copyOf(pCfa.getFileNames()),
