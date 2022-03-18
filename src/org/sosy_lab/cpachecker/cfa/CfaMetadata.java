@@ -12,8 +12,13 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
+import java.util.Optional;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.util.LiveVariables;
+import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 public final class CfaMetadata {
 
@@ -23,18 +28,30 @@ public final class CfaMetadata {
   private final FunctionEntryNode mainFunctionEntry;
   private final CfaConnectedness connectedness;
 
+  // TODO: make it easier to add additional metadata attributes
+  private final @Nullable LoopStructure loopStructure;
+  private final @Nullable VariableClassification variableClassification;
+  private final @Nullable LiveVariables liveVariables;
+
   private CfaMetadata(
       MachineModel pMachineModel,
       Language pLanguage,
       ImmutableList<Path> pFileNames,
       FunctionEntryNode pMainFunctionEntry,
-      CfaConnectedness pConnectedness) {
+      CfaConnectedness pConnectedness,
+      @Nullable LoopStructure pLoopStructure,
+      @Nullable VariableClassification pVariableClassification,
+      @Nullable LiveVariables pLiveVariables) {
 
     machineModel = pMachineModel;
     language = pLanguage;
     fileNames = pFileNames;
     mainFunctionEntry = pMainFunctionEntry;
     connectedness = pConnectedness;
+
+    loopStructure = pLoopStructure;
+    variableClassification = pVariableClassification;
+    liveVariables = pLiveVariables;
   }
 
   public static CfaMetadata of(
@@ -49,7 +66,10 @@ public final class CfaMetadata {
         checkNotNull(pLanguage),
         checkNotNull(pFileNames),
         checkNotNull(pMainFunctionEntry),
-        checkNotNull(pConnectedness));
+        checkNotNull(pConnectedness),
+        null,
+        null,
+        null);
   }
 
   public MachineModel getMachineModel() {
@@ -84,6 +104,31 @@ public final class CfaMetadata {
     return new Builder(this).setConnectedness(pConnectedness).build();
   }
 
+  public Optional<LoopStructure> getLoopStructure() {
+    return Optional.ofNullable(loopStructure);
+  }
+
+  public CfaMetadata withLoopStructure(@Nullable LoopStructure pLoopStructure) {
+    return new Builder(this).setLoopStructure(pLoopStructure).build();
+  }
+
+  public Optional<VariableClassification> getVariableClassification() {
+    return Optional.ofNullable(variableClassification);
+  }
+
+  public CfaMetadata withVariableClassification(
+      @Nullable VariableClassification pVariableClassification) {
+    return new Builder(this).setVariableClassification(pVariableClassification).build();
+  }
+
+  public Optional<LiveVariables> getLiveVariables() {
+    return Optional.ofNullable(liveVariables);
+  }
+
+  public CfaMetadata withLiveVariables(@Nullable LiveVariables pLiveVariables) {
+    return new Builder(this).setLiveVariables(pLiveVariables).build();
+  }
+
   private static final class Builder {
 
     private MachineModel machineModel;
@@ -92,13 +137,21 @@ public final class CfaMetadata {
     private FunctionEntryNode mainFunctionEntry;
     private CfaConnectedness connectedness;
 
+    private @Nullable LoopStructure loopStructure;
+    private @Nullable VariableClassification variableClassification;
+    private @Nullable LiveVariables liveVariables;
+
     private Builder(CfaMetadata pCfaMetadata) {
 
-      machineModel = pCfaMetadata.getMachineModel();
-      language = pCfaMetadata.getLanguage();
-      fileNames = pCfaMetadata.getFileNames();
-      mainFunctionEntry = pCfaMetadata.getMainFunctionEntry();
-      connectedness = pCfaMetadata.getConnectedness();
+      machineModel = pCfaMetadata.machineModel;
+      language = pCfaMetadata.language;
+      fileNames = pCfaMetadata.fileNames;
+      mainFunctionEntry = pCfaMetadata.mainFunctionEntry;
+      connectedness = pCfaMetadata.connectedness;
+
+      loopStructure = pCfaMetadata.loopStructure;
+      variableClassification = pCfaMetadata.variableClassification;
+      liveVariables = pCfaMetadata.liveVariables;
     }
 
     private Builder setMachineModel(MachineModel pMachineModel) {
@@ -122,8 +175,38 @@ public final class CfaMetadata {
       return this;
     }
 
+    private Builder setLoopStructure(@Nullable LoopStructure pLoopStructure) {
+
+      loopStructure = pLoopStructure;
+
+      return this;
+    }
+
+    private Builder setVariableClassification(
+        @Nullable VariableClassification pVariableClassification) {
+
+      variableClassification = pVariableClassification;
+
+      return this;
+    }
+
+    private Builder setLiveVariables(@Nullable LiveVariables pLiveVariables) {
+
+      liveVariables = pLiveVariables;
+
+      return this;
+    }
+
     private CfaMetadata build() {
-      return new CfaMetadata(machineModel, language, fileNames, mainFunctionEntry, connectedness);
+      return new CfaMetadata(
+          machineModel,
+          language,
+          fileNames,
+          mainFunctionEntry,
+          connectedness,
+          loopStructure,
+          variableClassification,
+          liveVariables);
     }
   }
 }
