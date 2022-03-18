@@ -3595,10 +3595,6 @@ imc.fallBack = true
 # toggle using interpolation to verify programs with loops
 imc.interpolation = true
 
-# toggle which direction to derive interpolants
-imc.itpDeriveDirection = BACKWARD
-  enum:     [FORWARD, BACKWARD, BIDIRECTION_CONJUNCT, BIDIRECTION_DISJUNCT]
-
 # toggle removing unreachable stop states in ARG
 imc.removeUnreachableStopStates = false
 
@@ -3649,10 +3645,6 @@ ismc.impactLikeCovering = false
 
 # toggle using interpolation to verify programs with loops
 ismc.interpolation = true
-
-# toggle which direction to derive interpolants
-ismc.itpDeriveDirection = BACKWARD
-  enum:     [FORWARD, BACKWARD, BIDIRECTION_CONJUNCT, BIDIRECTION_DISJUNCT]
 
 # toggle removing unreachable stop states in ARG
 ismc.removeUnreachableStopStates = false

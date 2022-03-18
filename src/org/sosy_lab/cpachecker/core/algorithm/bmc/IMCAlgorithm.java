@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
+import com.google.common.collect.ImmutableList;
+import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -17,24 +19,25 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.bmc.InterpolationManager.ItpDeriveDirection;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundCPA;
+import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -63,9 +66,6 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       description = "toggle falling back if interpolation or forward-condition is disabled")
   private boolean fallBack = true;
 
-  @Option(secure = true, description = "toggle which direction to derive interpolants")
-  private ItpDeriveDirection itpDeriveDirection = ItpDeriveDirection.BACKWARD;
-
   @Option(secure = true, description = "toggle removing unreachable stop states in ARG")
   private boolean removeUnreachableStopStates = false;
 
@@ -81,7 +81,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private final BooleanFormulaManagerView bfmgr;
   private final Solver solver;
   private final PredicateAbstractionManager predAbsMgr;
-
+  private final InterpolationManager itpMgr;
   private final CFA cfa;
 
   private BooleanFormula finalFixedPoint;
@@ -122,6 +122,9 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     predAbsMgr = predCpa.getPredicateManager();
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
+    itpMgr =
+        new InterpolationManager(
+            pfmgr, solver, Optional.empty(), Optional.empty(), pConfig, shutdownNotifier, logger);
 
     finalFixedPoint = bfmgr.makeFalse();
   }
@@ -129,9 +132,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   @Override
   public AlgorithmStatus run(final ReachedSet pReachedSet)
       throws CPAException, InterruptedException {
-    try (InterpolatingProverEnvironment<?> itpProver =
-        solver.newProverEnvironmentWithInterpolation()) {
-      return interpolationModelChecking(pReachedSet, itpProver);
+    try {
+      return interpolationModelChecking(pReachedSet);
     } catch (SolverException e) {
       throw new CPAException("Solver Failure " + e.getMessage(), e);
     } finally {
@@ -143,12 +145,10 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * The main method for interpolation-based model checking.
    *
    * @param pReachedSet Abstract Reachability Graph (ARG)
-   * @param itpProver the prover with interpolation enabled
    * @return {@code AlgorithmStatus.UNSOUND_AND_PRECISE} if an error location is reached, i.e.,
    *     unsafe; {@code AlgorithmStatus.SOUND_AND_PRECISE} if a fixed point is derived, i.e., safe.
    */
-  private <T> AlgorithmStatus interpolationModelChecking(
-      final ReachedSet pReachedSet, InterpolatingProverEnvironment<T> itpProver)
+  private <T> AlgorithmStatus interpolationModelChecking(final ReachedSet pReachedSet)
       throws CPAException, SolverException, InterruptedException {
     if (getTargetLocations().isEmpty()) {
       pReachedSet.clearWaitlist();
@@ -170,8 +170,6 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     logger.log(Level.FINE, "Performing interpolation-based model checking");
     PartitionedFormulas partitionedFormulas =
         new PartitionedFormulas(bfmgr, logger, assertTargetsAtEveryIteration);
-    InterpolationManager<T> itpMgr =
-        new InterpolationManager<>(bfmgr, itpProver, itpDeriveDirection);
     do {
       // Unroll
       shutdownNotifier.shutdownIfNecessary();
@@ -229,7 +227,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         partitionedFormulas.collectFormulasFromARG(pReachedSet);
 
         logger.log(Level.FINE, "Computing fixed points by interpolation");
-        if (reachFixedPointByInterpolation(itpMgr, partitionedFormulas)) {
+        if (reachFixedPointByInterpolation(partitionedFormulas)) {
           InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
           InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
               pReachedSet, finalFixedPoint, predAbsMgr, pfmgr);
@@ -262,26 +260,25 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    *     the current over-approximation is unsafe.
    * @throws InterruptedException On shutdown request.
    */
-  private <T> boolean reachFixedPointByInterpolation(
-      InterpolationManager<T> itpMgr, final PartitionedFormulas formulas)
-      throws InterruptedException, SolverException {
+  private <T> boolean reachFixedPointByInterpolation(final PartitionedFormulas formulas)
+      throws InterruptedException, CPAException, SolverException {
     logger.log(Level.ALL, "The SSA map is", formulas.getPrefixSsaMap());
     BooleanFormula currentImage = formulas.getPrefixFormula();
 
-    // push formulas
+    // prefix formula: I(S0) && T(S0, S1)
+    BooleanFormula prefixFormula = bfmgr.and(currentImage, formulas.getLoopFormulas().get(0));
     // suffix formula: T(S1, S2) && T(S1, S2) && ... && T(Sn-1, Sn) && ~P(Sn)
-    itpMgr.push(
+    BooleanFormula suffixFormula =
         bfmgr.and(
             bfmgr.and(formulas.getLoopFormulas().subList(1, formulas.getNumLoops())),
-            formulas.getAssertionFormula()));
-    // 1st loop formula: T(S0, S1)
-    itpMgr.push(formulas.getLoopFormulas().get(0));
-    // initial image: I(S0)
-    itpMgr.push(currentImage);
+            formulas.getAssertionFormula());
 
-    while (itpMgr.isUnsat()) {
+    BlockFormulas blkFormula = new BlockFormulas(ImmutableList.of(prefixFormula, suffixFormula));
+    CounterexampleTraceInfo cex = itpMgr.buildCounterexampleTrace(blkFormula);
+    while (cex.isSpurious()) {
       logger.log(Level.ALL, "The current image is", currentImage);
-      BooleanFormula interpolant = itpMgr.getInterpolantAt(0, true);
+      assert cex.getInterpolants().size() == 1;
+      BooleanFormula interpolant = cex.getInterpolants().get(0);
       logger.log(Level.ALL, "The interpolant is", interpolant);
       interpolant = fmgr.instantiate(fmgr.uninstantiate(interpolant), formulas.getPrefixSsaMap());
       logger.log(Level.ALL, "After changing SSA", interpolant);
@@ -291,10 +288,10 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         return true;
       }
       currentImage = bfmgr.or(currentImage, interpolant);
-      itpMgr.pop();
-      itpMgr.push(interpolant);
+      prefixFormula = bfmgr.and(interpolant, formulas.getLoopFormulas().get(0));
+      blkFormula = new BlockFormulas(ImmutableList.of(prefixFormula, suffixFormula));
+      cex = itpMgr.buildCounterexampleTrace(blkFormula);
     }
-    itpMgr.popAll();
     logger.log(Level.FINE, "The overapproximation is unsafe, going back to BMC phase");
     return false;
   }
