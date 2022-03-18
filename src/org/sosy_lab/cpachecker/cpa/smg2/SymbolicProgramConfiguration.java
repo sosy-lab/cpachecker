@@ -686,6 +686,26 @@ public class SymbolicProgramConfiguration {
   }
 
   /**
+   * Checks if a {@link SMGPointsToEdge} exists for the entered target object and offset and returns
+   * a {@link Optional} that is filled with the SMGValue leading to the points-to-edge, empty if
+   * there is none. (This always assumes SMGTargetSpecifier.IS_REGION)
+   *
+   * @param target {@link SMGObject} that is the target of the points-to-edge.
+   * @param offset {@link BigInteger} offset in bits in the target.
+   * @return either an empty {@link Optional} if there is no such edge, but the {@link SMGValue}
+   *     within if there is such a points-to-edge.
+   */
+  public Optional<SMGValue> getAddressValueForPointsToTarget(SMGObject target, BigInteger offset) {
+    BiMap<SMGValue, SMGPointsToEdge> pteMapping = getSmg().getPTEdgeMapping();
+    SMGPointsToEdge searchedForEdge =
+        new SMGPointsToEdge(target, offset, SMGTargetSpecifier.IS_REGION);
+    if (pteMapping.containsValue(searchedForEdge)) {
+      return Optional.of(pteMapping.inverse().get(searchedForEdge));
+    }
+    return Optional.empty();
+  }
+
+  /**
    * Tries to dereference the pointer given by the argument {@link Value}. Returns a empty Optional
    * if the dereference fails because the entered {@link Value} is not known as a pointer. This does
    * not check validity of the Value!
