@@ -67,19 +67,6 @@ public abstract class CfaTransformer {
     return transform(CfaNetwork.of(pCfa), pCfaMetadata, pLogger);
   }
 
-  /**
-   * Indicates whether functions are connected by super-edges (i.e., function call and return
-   * edges).
-   */
-  public enum CfaConnectedness {
-
-    /** Functions are independent and not connected by super-edges. */
-    INDEPENDENT_FUNCTIONS,
-
-    /** Functions are connected by super-edges. */
-    SUPERGRAPH
-  }
-
   // TODO: move CFA processor interfaces out of CfaTransformer
   /** Marker interface for CFA post processors. */
   public interface CfaProcessor {}
