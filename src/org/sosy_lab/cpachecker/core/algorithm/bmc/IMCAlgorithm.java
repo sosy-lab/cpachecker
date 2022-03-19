@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import com.google.common.collect.ImmutableList;
+import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
@@ -265,20 +266,19 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     logger.log(Level.ALL, "The SSA map is", formulas.getPrefixSsaMap());
     BooleanFormula currentImage = formulas.getPrefixFormula();
 
-    // prefix formula: I(S0) && T(S0, S1)
-    BooleanFormula prefixFormula = bfmgr.and(currentImage, formulas.getLoopFormulas().get(0));
+    List<BooleanFormula> loops = formulas.getLoopFormulas();
     // suffix formula: T(S1, S2) && T(S1, S2) && ... && T(Sn-1, Sn) && ~P(Sn)
     BooleanFormula suffixFormula =
         bfmgr.and(
-            bfmgr.and(formulas.getLoopFormulas().subList(1, formulas.getNumLoops())),
-            formulas.getAssertionFormula());
+            bfmgr.and(loops.subList(1, formulas.getNumLoops())), formulas.getAssertionFormula());
 
-    BlockFormulas blkFormula = new BlockFormulas(ImmutableList.of(prefixFormula, suffixFormula));
+    BlockFormulas blkFormula =
+        new BlockFormulas(ImmutableList.of(currentImage, loops.get(0), suffixFormula));
     CounterexampleTraceInfo cex = itpMgr.buildCounterexampleTrace(blkFormula);
     while (cex.isSpurious()) {
       logger.log(Level.ALL, "The current image is", currentImage);
-      assert cex.getInterpolants().size() == 1;
-      BooleanFormula interpolant = cex.getInterpolants().get(0);
+      assert cex.getInterpolants().size() == 2;
+      BooleanFormula interpolant = cex.getInterpolants().get(1);
       logger.log(Level.ALL, "The interpolant is", interpolant);
       interpolant = fmgr.instantiate(fmgr.uninstantiate(interpolant), formulas.getPrefixSsaMap());
       logger.log(Level.ALL, "After changing SSA", interpolant);
@@ -288,8 +288,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         return true;
       }
       currentImage = bfmgr.or(currentImage, interpolant);
-      prefixFormula = bfmgr.and(interpolant, formulas.getLoopFormulas().get(0));
-      blkFormula = new BlockFormulas(ImmutableList.of(prefixFormula, suffixFormula));
+      blkFormula = new BlockFormulas(ImmutableList.of(interpolant, loops.get(0), suffixFormula));
       cex = itpMgr.buildCounterexampleTrace(blkFormula);
     }
     logger.log(Level.FINE, "The overapproximation is unsafe, going back to BMC phase");
