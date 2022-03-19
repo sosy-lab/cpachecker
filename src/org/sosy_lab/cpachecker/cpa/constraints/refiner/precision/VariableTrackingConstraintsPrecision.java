@@ -84,7 +84,8 @@ public class VariableTrackingConstraintsPrecision implements ConstraintsPrecisio
   @Override
   public ConstraintsPrecision join(ConstraintsPrecision pOther) {
     VariableTrackingConstraintsPrecision other = (VariableTrackingConstraintsPrecision) pOther;
-    return constraintsPrecision.join(other.getConstraintsPrecision());
+    return new VariableTrackingConstraintsPrecision(trackedFunctions, trackedLocations,
+        trackedGlobal, constraintsPrecision.join(other.getConstraintsPrecision()));
   }
 
   public ConstraintsPrecision getConstraintsPrecision() {
@@ -93,7 +94,8 @@ public class VariableTrackingConstraintsPrecision implements ConstraintsPrecisio
 
   @Override
   public ConstraintsPrecision withIncrement(Increment pIncrement) {
-    return constraintsPrecision.withIncrement(pIncrement);
+    return new VariableTrackingConstraintsPrecision(trackedFunctions, trackedLocations,
+        trackedGlobal, constraintsPrecision.withIncrement(pIncrement));
   }
 
   @Override
@@ -111,7 +113,7 @@ public class VariableTrackingConstraintsPrecision implements ConstraintsPrecisio
     }
     if (!trackedGlobal.isEmpty()) {
       sb.append("\n\tGlobal: ");
-      sb.append(trackedGlobal.toString());
+      sb.append(trackedGlobal);
     }
     return sb.append("]").toString();
   }
