@@ -8,6 +8,7 @@
 
 /**
  * Coverage CPA computes code coverage either from the CFA edges that were touched by the transfer
- * relation, or from the final set reached.
+ * relation, or from the final set reached. In addition it tracks the time when the edges where
+ * added to the coverage calculation.
  */
 package org.sosy_lab.cpachecker.cpa.coverage;

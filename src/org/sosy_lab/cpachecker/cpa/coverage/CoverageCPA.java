@@ -8,16 +8,12 @@
 
 package org.sosy_lab.cpachecker.cpa.coverage;
 
-import java.util.Collection;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
-import org.sosy_lab.cpachecker.core.defaults.SingletonAbstractState;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -25,13 +21,11 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.util.coverage.CoverageData;
 
-public class CoverageCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
+public class CoverageCPA implements ConfigurableProgramAnalysis {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(CoverageCPA.class);
@@ -40,18 +34,18 @@ public class CoverageCPA implements ConfigurableProgramAnalysis, StatisticsProvi
   private final TransferRelation transfer;
   private final AbstractDomain domain;
   private final StopOperator stop;
-  private final Statistics stats;
 
-  // STATIC!! only one instance for CPAchecker
-  private static final CoverageData cov = new CoverageData();
+  private final CoverageData cov = new CoverageData();
 
-  public CoverageCPA(Configuration pConfig, LogManager pLogger, CFA pCFA)
-      throws InvalidConfigurationException {
+  public CoverageCPA(CFA pCFA) throws InvalidConfigurationException {
     cov.putCFA(pCFA);
-    domain = new FlatLatticeDomain(SingletonAbstractState.INSTANCE);
+    domain = new FlatLatticeDomain(CoverageAbstractState.INSTANCE);
     stop = new StopSepOperator(domain);
     transfer = new CoverageTransferRelation(cov);
-    stats = new CoverageStatistics(pConfig, pLogger, cov);
+  }
+
+  public CoverageData getCoverageData() {
+    return cov;
   }
 
   @Override
@@ -76,11 +70,6 @@ public class CoverageCPA implements ConfigurableProgramAnalysis, StatisticsProvi
 
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition) {
-    return SingletonAbstractState.INSTANCE;
-  }
-
-  @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(stats);
+    return CoverageAbstractState.INSTANCE;
   }
 }

@@ -36,6 +36,7 @@ public class CoverageTransferRelation extends SingleEdgeTransferRelation {
 
   private void handleEdge(CFAEdge pEdge) {
     cov.addVisitedEdge(pEdge);
+    cov.addTimeStamp(pEdge);
     if (pEdge.getPredecessor() instanceof FunctionEntryNode) {
       cov.addVisitedFunction((FunctionEntryNode) pEdge.getPredecessor());
     }

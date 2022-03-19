@@ -16,6 +16,7 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
@@ -29,6 +30,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -61,7 +63,10 @@ import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.bam.AbstractBAMCPA;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
+import org.sosy_lab.cpachecker.cpa.coverage.CoverageCPA;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.coverage.CoverageCollector;
 import org.sosy_lab.cpachecker.util.coverage.CoverageData;
@@ -326,7 +331,25 @@ class MainCPAStatistics implements Statistics {
         reachedStates = reachedStates.append(FluentIterable.concat(otherReachedSets));
       }
 
-      CoverageData infosPerFile = CoverageCollector.fromReachedSet(reachedStates, cfa);
+      // extract further coverage data captured during the analysis if CoverageCPA is present
+      Optional<CoverageData> coverageData = Optional.empty();
+      if (cpa instanceof ARGCPA) {
+        ImmutableList<ConfigurableProgramAnalysis> cpas = ((ARGCPA) cpa).getWrappedCPAs();
+        for (var compositeCPA : cpas) {
+          if (compositeCPA instanceof CompositeCPA) {
+            ImmutableList<ConfigurableProgramAnalysis> wrappedCPAs =
+                ((CompositeCPA) compositeCPA).getWrappedCPAs();
+            for (var wrappedCPA : wrappedCPAs) {
+              if (wrappedCPA instanceof CoverageCPA) {
+                coverageData = Optional.of(((CoverageCPA) wrappedCPA).getCoverageData());
+              }
+            }
+          }
+        }
+      }
+
+      CoverageData infosPerFile =
+          CoverageCollector.fromReachedSet(reachedStates, cfa, coverageData);
 
       out.println();
       out.println("Code Coverage");
