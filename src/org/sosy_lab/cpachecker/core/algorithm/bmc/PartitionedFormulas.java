@@ -53,7 +53,6 @@ class PartitionedFormulas {
     this.logger = logger;
     this.assertAllTargets = assertAllTargets;
 
-    // TODO: check if initializing boolean formulas to true/false is safe
     prefixFormula = bfmgr.makeFalse();
     prefixSsaMap = SSAMap.emptySSAMap();
     loopFormulas = new ArrayList<>();
@@ -96,7 +95,11 @@ class PartitionedFormulas {
     FluentIterable<AbstractState> targetStatesAfterLoop =
         InterpolationHelper.getTargetStatesAfterLoop(reachedSet);
     if (targetStatesAfterLoop.isEmpty()) {
-      // TODO: check if returning is safe, or an error/exception should be thrown
+      // no target is reachable, which means the program is safe
+      prefixFormula = bfmgr.makeFalse();
+      prefixSsaMap = SSAMap.emptySSAMap();
+      loopFormulas = new ArrayList<>();
+      targetAssertion = bfmgr.makeFalse();
       return;
     }
 
