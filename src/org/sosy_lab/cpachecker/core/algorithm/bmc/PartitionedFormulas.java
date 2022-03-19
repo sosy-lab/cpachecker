@@ -88,6 +88,10 @@ class PartitionedFormulas {
    * A helper method to collect and store formulas from the abstract reachability graph. It assumes
    * every target state after the loop has the same abstraction-state path to root.
    *
+   * <p>If {@link #assertAllTargets} is set to true, it also assumes that after each unrolling, the
+   * assertions at the previous loops stay valid, that is, the prefix and previous loop formulas
+   * also remain the same.
+   *
    * @param reachedSet Abstract Reachability Graph
    */
   void collectFormulasFromARG(final ReachedSet reachedSet) {
@@ -128,9 +132,7 @@ class PartitionedFormulas {
     BooleanFormula currentAssertion =
         InterpolationHelper.createDisjunctionFromStates(bfmgr, targetStatesAfterLoop);
     if (assertAllTargets) {
-      // assume prefix and previous loop formulas remain the same after each unrolling
-      // TODO: check if the assumption is correct
-      // TODO: check if removing unreachable target states has any impact on this
+      // disjunction with assertions at previous loops
       targetAssertion = bfmgr.or(targetAssertion, currentAssertion);
     } else {
       targetAssertion = currentAssertion;
