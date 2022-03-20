@@ -63,7 +63,8 @@ public class CounterexampleTraceInfo {
   }
 
   public static CounterexampleTraceInfo feasibleNoModel() {
-    return CounterexampleTraceInfo.feasible(ImmutableList.of(), ImmutableList.of(), ImmutableMap.of());
+    return CounterexampleTraceInfo.feasible(
+        ImmutableList.of(), ImmutableList.of(), ImmutableMap.of());
   }
 
   /**
