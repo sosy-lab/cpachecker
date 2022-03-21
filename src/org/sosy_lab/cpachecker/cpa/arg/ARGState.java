@@ -253,6 +253,7 @@ public class ARGState extends AbstractSerializableSingleWrapperState
     }
   }
 
+  /** Set this state as uncovered and clean up the corresponding coverage relations */
   public void uncover() {
     assert isCovered();
     for (ARGState covering : mCoveredBy) {
@@ -262,6 +263,7 @@ public class ARGState extends AbstractSerializableSingleWrapperState
     mCoveredBy = null;
   }
 
+  /** Return whether this state is covered by other states or not */
   public boolean isCovered() {
     assert !destroyed : "Don't use destroyed ARGState " + this;
     return mCoveredBy != null;
