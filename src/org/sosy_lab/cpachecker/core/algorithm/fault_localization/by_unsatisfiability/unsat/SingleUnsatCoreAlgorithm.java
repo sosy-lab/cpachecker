@@ -49,9 +49,9 @@ public class SingleUnsatCoreAlgorithm
     stats.totalTime.start();
     // if precondition is not needed to guarantee unsatisfiability, do not add it and obtain better
     // results (i.e. find locations independently from the inputs first).
-    BooleanFormula toVerify = bmgr.and(tf.getTrace(), tf.getPostcondition());
+    BooleanFormula toVerify = bmgr.and(tf.getTrace(), tf.getPostcondition().condition());
     if (!solver.isUnsat(toVerify)) {
-      toVerify = bmgr.and(tf.getPrecondition(), toVerify);
+      toVerify = bmgr.and(tf.getPrecondition().condition(), toVerify);
     }
 
     // calculate an arbitrary UNSAT-core and filter the ones with selectors

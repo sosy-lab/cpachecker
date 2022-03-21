@@ -330,6 +330,7 @@ public class FaultLocalizationWithTraceFormula
               errorIndicators,
               scoring,
               tf.getPrecondition(),
+              tf.getPostcondition(),
               context.getSolver().getFormulaManager(),
               pInfo);
 

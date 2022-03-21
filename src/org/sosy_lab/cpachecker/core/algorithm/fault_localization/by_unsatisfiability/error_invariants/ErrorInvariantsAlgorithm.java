@@ -113,9 +113,9 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
             logger);
 
     List<BooleanFormula> allFormulas = new ArrayList<>();
-    allFormulas.add(errorTrace.getPrecondition());
+    allFormulas.add(errorTrace.getPrecondition().condition());
     allFormulas.addAll(errorTrace.getEntries().toAtomList());
-    allFormulas.add(errorTrace.getPostcondition());
+    allFormulas.add(errorTrace.getPostcondition().condition());
     CounterexampleTraceInfo counterexampleTraceInfo =
         interpolationManager.buildCounterexampleTrace(new BlockFormulas(allFormulas));
     return counterexampleTraceInfo.getInterpolants();
@@ -259,7 +259,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
         curr.replaceErrorSet(contributions);
         curr.setIntendedIndex(i);
         // precondition has an own entry in FLInfo -> exclude it from here
-        if (i != 0 || !curr.invariant.equals(errorTrace.getPrecondition())) {
+        if (i != 0 || !curr.invariant.equals(errorTrace.getPrecondition().condition())) {
           faults.add(curr);
         }
       }
@@ -344,11 +344,11 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
 
     BooleanFormula firstFormula =
         bmgr.implication(
-            bmgr.and(errorTrace.getPrecondition(), errorTrace.slice(slicePosition)),
+            bmgr.and(errorTrace.getPrecondition().condition(), errorTrace.slice(slicePosition)),
             shiftedInterpolant);
     BooleanFormula secondFormula =
         bmgr.and(
-            shiftedInterpolant, errorTrace.slice(slicePosition, n), errorTrace.getPostcondition());
+            shiftedInterpolant, errorTrace.slice(slicePosition, n), errorTrace.getPostcondition().condition());
 
     // isUnsat
     solverCalls.inc();
