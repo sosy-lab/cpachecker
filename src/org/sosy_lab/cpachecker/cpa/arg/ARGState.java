@@ -258,7 +258,7 @@ public class ARGState extends AbstractSerializableSingleWrapperState
     checkState(
         mCoveredBy.size() == 1,
         "This method should be called only if abstract states are always covered by at most one"
-            + " abstract states.");
+            + " abstract state.");
     return mCoveredBy.iterator().next();
   }
 
