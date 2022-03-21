@@ -51,7 +51,7 @@ public class ARGState extends AbstractSerializableSingleWrapperState
   private final Collection<ARGState> children = new ArrayList<>(1);
   private final Collection<ARGState> parents = new ArrayList<>(1);
 
-  private Set<ARGState> mCoveredBy = null;
+  private ImmutableSet<ARGState> mCoveredBy = null;
   private Set<ARGState> mCoveredByThis = null; // lazy initialization because rarely needed
 
   // boolean which keeps track of which elements have already had their successors computed
@@ -229,7 +229,7 @@ public class ARGState extends AbstractSerializableSingleWrapperState
     for (ARGState covering : pCoveredBy) {
       checkArgument(covering.mayCover, "Trying to cover with non-covering element %s", covering);
     }
-    mCoveredBy = pCoveredBy;
+    mCoveredBy = ImmutableSet.copyOf(pCoveredBy);
     for (ARGState covering : pCoveredBy) {
       if (covering.mCoveredByThis == null) {
         // lazy initialization because rarely needed
@@ -277,7 +277,7 @@ public class ARGState extends AbstractSerializableSingleWrapperState
    */
   public Set<ARGState> getCoveringStates() {
     checkState(isCovered());
-    return Collections.unmodifiableSet(mCoveredBy);
+    return mCoveredBy;
   }
 
   public Set<ARGState> getCoveredByThis() {
