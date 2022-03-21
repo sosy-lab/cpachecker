@@ -285,7 +285,8 @@ public abstract class TraceFormula {
         ignoredEdgesAfterPostCond.add(curr);
       }
     }
-    return new PostCondition(containedInPostCondition, ignoredEdgesAfterPostCond, bmgr.not(postCond));
+    return new PostCondition(
+        containedInPostCondition, ignoredEdgesAfterPostCond, bmgr.not(postCond));
   }
 
   /** Calculate the boolean formulas for every edge including the SSA-maps and the selectors. */
@@ -467,6 +468,7 @@ public abstract class TraceFormula {
 
   public interface TraceFormulaConstraint {
     BooleanFormula condition();
+
     ImmutableSet<CFAEdge> responsibleEdges();
   }
 
@@ -497,7 +499,8 @@ public abstract class TraceFormula {
     private final ImmutableSet<CFAEdge> responsibleEdges;
     private final ImmutableSet<CFAEdge> ignoredEdges;
 
-    public PostCondition(Set<CFAEdge> pEdgesInPrecondition, Set<CFAEdge> pIgnoredEdges, BooleanFormula pFormula) {
+    public PostCondition(
+        Set<CFAEdge> pEdgesInPrecondition, Set<CFAEdge> pIgnoredEdges, BooleanFormula pFormula) {
       responsibleEdges = ImmutableSet.copyOf(pEdgesInPrecondition);
       ignoredEdges = ImmutableSet.copyOf(pIgnoredEdges);
       condition = pFormula;

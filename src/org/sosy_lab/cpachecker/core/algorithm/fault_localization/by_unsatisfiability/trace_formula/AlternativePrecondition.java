@@ -55,7 +55,8 @@ public class AlternativePrecondition {
     pEntries.addEntry(0, new FormulaEntryList.PreconditionEntry(altpre.preConditionMap));
     BooleanFormulaManager bmgr =
         pFormulaContext.getSolver().getFormulaManager().getBooleanFormulaManager();
-    return new PreCondition(altpre.preConditionEdges, bmgr.and(altpre.toFormula(), pDefaultPrecondition));
+    return new PreCondition(
+        altpre.preConditionEdges, bmgr.and(altpre.toFormula(), pDefaultPrecondition));
   }
 
   static class AlternativePreconditionHelper {

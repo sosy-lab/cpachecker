@@ -348,7 +348,9 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
             shiftedInterpolant);
     BooleanFormula secondFormula =
         bmgr.and(
-            shiftedInterpolant, errorTrace.slice(slicePosition, n), errorTrace.getPostcondition().condition());
+            shiftedInterpolant,
+            errorTrace.slice(slicePosition, n),
+            errorTrace.getPostcondition().condition());
 
     // isUnsat
     solverCalls.inc();
