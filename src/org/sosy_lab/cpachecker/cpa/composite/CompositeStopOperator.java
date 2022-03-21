@@ -26,9 +26,9 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  */
 abstract class CompositeStopOperator
     implements ForcedCoveringStopOperator, CoveringStateSetProvider {
-  protected final ImmutableList<StopOperator> stopOperators;
+  final ImmutableList<StopOperator> stopOperators;
 
-  protected CompositeStopOperator(ImmutableList<StopOperator> stopOperators) {
+  CompositeStopOperator(ImmutableList<StopOperator> stopOperators) {
     this.stopOperators = stopOperators;
   }
 
