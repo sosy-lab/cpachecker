@@ -69,6 +69,7 @@ import org.sosy_lab.cpachecker.util.predicates.weakening.WeakeningOptions;
 import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
 import org.sosy_lab.java_smt.api.BasicProverEnvironment.AllSatCallback;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -96,7 +97,8 @@ public class PredicateAbstractionManager {
     CARTESIAN_BY_WEAKENING,
     BOOLEAN,
     COMBINED,
-    ELIMINATION;
+    ELIMINATION,
+    SUBSTITUTION;
   }
 
   private boolean warnedOfCartesianAbstraction = false;
@@ -399,7 +401,21 @@ public class PredicateAbstractionManager {
       }
     } else if (options.getAbstractionType() == AbstractionType.CARTESIAN_BY_WEAKENING) {
       abs = rmgr.makeAnd(abs, buildCartesianAbstractionUsingWeakening(f, ssa, remainingPredicates));
-
+    } else if (options.getAbstractionType() == AbstractionType.SUBSTITUTION) {
+      // TODO Martin Implement substitution here
+      // combine abstractionformula -> instantiatedFormula and pathFormula => f,
+      // do substitutuion step using transformRecursivly,
+      // return as new abstraction formula
+      logger.log(Level.FINEST, "Abstraction", currentAbstractionId, "using SUBSTITUTION");
+      stats.numSymbolicAbstractions.incrementAndGet();
+      AbstractionFormula abstracted = asAbstraction(fmgr.uninstantiate(
+          syntacticSubstitution(f, ssa)), abstractionFormula.getBlockFormula());
+      if (unsat(abstracted, pathFormula)) {
+        abs = amgr.makeFalsePredicate().getAbstractVariable();
+      } else {
+        abs = abstracted.asRegion();
+      }
+//      abs = amgr.convertFormulaToRegion(fmgr.uninstantiate(syntactic_substitution(f, ssa)));
     } else {
       abs = rmgr.makeAnd(abs, computeAbstraction(f, remainingPredicates, instantiator));
     }
@@ -428,6 +444,17 @@ public class PredicateAbstractionManager {
     }
 
     return result;
+  }
+
+  /**
+   * Syntactic Substitution
+   * TODO Martin Possibly move to JavaSMT when finished
+   * @param bf Input BooleanFormula
+   * @param pSSAMap Corresponding SSAMap
+   * @return Another BooleanFormula, where syntactic substition has taken place
+   */
+  private BooleanFormula syntacticSubstitution(BooleanFormula bf, SSAMap pSSAMap){
+    return bf;
   }
 
   /**
