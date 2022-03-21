@@ -253,6 +253,14 @@ public class ARGState extends AbstractSerializableSingleWrapperState
     return mCoveredBy != null;
   }
 
+  /**
+   * Return the state that singly covers this state.
+   *
+   * <p>Note that the current state has to be already covered and that this method should be called
+   * only if abstract states are always covered by at most one abstract state.
+   *
+   * @see #getCoveringStates
+   */
   public ARGState getCoveringState() {
     checkState(isCovered());
     checkState(
@@ -262,6 +270,11 @@ public class ARGState extends AbstractSerializableSingleWrapperState
     return mCoveredBy.iterator().next();
   }
 
+  /**
+   * Return the set of states that jointly cover this state.
+   *
+   * <p>Note that the current state has to be already covered.
+   */
   public Set<ARGState> getCoveringStates() {
     checkState(isCovered());
     return Collections.unmodifiableSet(mCoveredBy);
