@@ -218,11 +218,24 @@ public class ARGState extends AbstractSerializableSingleWrapperState
 
   // coverage
 
+  /**
+   * Set this state to be singly covered by the given state.
+   *
+   * <p>Note that the current state must not be covered already.
+   *
+   * @see #setCovered(Set) setCovered
+   */
   public void setCovered(@NonNull ARGState pCoveredBy) {
     checkNotNull(pCoveredBy);
     setCovered(ImmutableSet.of(pCoveredBy));
   }
 
+  /**
+   * Set this state to be jointly covered by the given state set.
+   *
+   * <p>Note that the current state must not be covered already and that the given state set cannot
+   * be empty.
+   */
   public void setCovered(@NonNull Set<ARGState> pCoveredBy) {
     checkState(!isCovered(), "Cannot cover already covered element %s", this);
     checkNotNull(pCoveredBy);
