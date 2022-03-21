@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
-import java.util.Collections;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -44,8 +43,8 @@ class PredicateStopSepOperator extends StopSepOperator
       AbstractState pElement, Collection<AbstractState> pReachedSet, Precision pPrecision)
       throws CPAException, InterruptedException {
     for (AbstractState reachedState : pReachedSet) {
-      if (stop(pElement, Collections.singleton(reachedState), pPrecision)) {
-        return Collections.singleton(reachedState);
+      if (stop(pElement, ImmutableSet.of(reachedState), pPrecision)) {
+        return ImmutableSet.of(reachedState);
       }
     }
     return ImmutableSet.of();
