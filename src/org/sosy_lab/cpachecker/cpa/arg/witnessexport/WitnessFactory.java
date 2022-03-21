@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 import static com.google.common.base.Strings.nullToEmpty;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import static org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.SINK_NODE_ID;
 
@@ -1381,11 +1382,8 @@ class WitnessFactory implements EdgeAppender {
     // has to be calculated newly everytime because of adaptions to edgeToCFAEdges
     // finds all outgoing edges to sinks for relevant nodes
     Set<String> importantNodes =
-        FluentIterable.from(
-                Multimaps.filterValues(edgeToCFAEdges, cfaEdge -> edgesInFault.contains(cfaEdge))
-                    .keySet())
-            .transform(e -> e.getSource())
-            .toSet();
+        transformedImmutableSetCopy(Multimaps.filterValues(edgeToCFAEdges, cfaEdge -> edgesInFault.contains(cfaEdge))
+                    .keySet(), e -> e.getSource());
 
     // not irrelevant if it is an edge to a sink node and the source node is part of the fault
     if (pEdge.getTarget().equals(SINK_NODE_ID) && importantNodes.contains(pEdge.getSource())) {
