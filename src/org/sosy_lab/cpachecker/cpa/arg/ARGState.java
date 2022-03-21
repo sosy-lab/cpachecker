@@ -226,6 +226,7 @@ public class ARGState extends AbstractSerializableSingleWrapperState
   public void setCovered(@NonNull Set<ARGState> pCoveredBy) {
     checkState(!isCovered(), "Cannot cover already covered element %s", this);
     checkNotNull(pCoveredBy);
+    checkState(!pCoveredBy.isEmpty(), "Cannot cover the state with an empty state set");
     for (ARGState covering : pCoveredBy) {
       checkArgument(covering.mayCover, "Trying to cover with non-covering element %s", covering);
     }
