@@ -82,7 +82,7 @@ import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 
-public final class ValueAnalysisState
+public class ValueAnalysisState
     implements AbstractQueryableState,
         FormulaReportingState,
         ExpressionTreeReportingState,
@@ -133,7 +133,7 @@ public final class ValueAnalysisState
     hashCode = constantsMap.hashCode();
   }
 
-  private ValueAnalysisState(ValueAnalysisState state) {
+  protected ValueAnalysisState(ValueAnalysisState state) {
     machineModel = state.machineModel;
     constantsMap = checkNotNull(state.constantsMap);
     hashCode = state.hashCode;
@@ -429,6 +429,7 @@ public final class ValueAnalysisState
   }
 
   @Override
+  @SuppressWarnings("EqualsGetClass")
   public boolean equals(Object other) {
     if (this == other) {
       return true;
@@ -437,7 +438,6 @@ public final class ValueAnalysisState
     if (other == null) {
       return false;
     }
-
     if (!getClass().equals(other.getClass())) {
       return false;
     }

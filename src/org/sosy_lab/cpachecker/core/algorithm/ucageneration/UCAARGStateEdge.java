@@ -14,6 +14,7 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
@@ -38,8 +39,7 @@ public class UCAARGStateEdge {
     this.assumption = Optional.empty();
   }
 
-
-  public UCAARGStateEdge(ARGState pSource,ARGState pTarget,  CFAEdge pEdge) {
+  public UCAARGStateEdge(ARGState pSource, ARGState pTarget, CFAEdge pEdge) {
     this.source = pSource;
     this.target = Optional.ofNullable(pTarget);
     this.edge = pEdge;
@@ -64,13 +64,15 @@ public class UCAARGStateEdge {
     return target;
   }
 
-  public String getStringOfAssumption(FormulaManagerView pFMgr) throws IOException {
+  public String getStringOfAssumption(FormulaManagerView pFMgr)
+      throws IOException, InterruptedException {
     if (this.assumption.isPresent()) {
       StringBuilder sb = new StringBuilder();
       sb.append("ASSUME {");
       AssumptionCollectorAlgorithm.escape(
-          AssumptionCollectorAlgorithm.parseAssumptionToString(
-              this.assumption.orElseThrow().asFormula(), pFMgr, this.edge.getSuccessor()),
+          ExpressionTrees.fromFormula(
+                  this.assumption.orElseThrow().asFormula(), pFMgr, this.edge.getSuccessor())
+              .toString(),
           sb);
       sb.append("} ");
       return sb.toString();
@@ -111,6 +113,4 @@ public class UCAARGStateEdge {
   public CFAEdge getEdge() {
     return edge;
   }
-
-
 }

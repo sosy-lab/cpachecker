@@ -42,24 +42,21 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
-public class UCAInterpolantGenerator  {
+public class UCAInterpolantGenerator {
   private final ConfigurableProgramAnalysis cpa;
 
   private FormulaManagerView formulaManager;
 
-  public UCAInterpolantGenerator(
-      ConfigurableProgramAnalysis pCpa,
-      FormulaManagerView pFormlaManger)
+  public UCAInterpolantGenerator(ConfigurableProgramAnalysis pCpa, FormulaManagerView pFormlaManger)
       throws InvalidConfigurationException {
     this.cpa = pCpa;
-    this.formulaManager =pFormlaManger; 
-    
+    this.formulaManager = pFormlaManger;
   }
 
   int produceUCA4Interpolant(Appendable output, UnmodifiableReachedSet reached)
       throws IOException, CPAException {
     final AbstractState firstState = reached.getFirstState();
-    if (!(firstState instanceof ARGState) ) {
+    if (!(firstState instanceof ARGState)) {
       throw new CPAException("Cannot dump interpolant as automaton if ARGCPA is not used.");
     }
     @Nullable PredicateCPA predicateCPA = CPAs.retrieveCPA(this.cpa, PredicateCPA.class);
@@ -167,10 +164,12 @@ public class UCAInterpolantGenerator  {
             .forEach(e -> relevantEdges.add(new UCAARGStateEdge(state, e)));
       }
     }
-return
-
-        writeUCAForInterpolant(
-            output, argRoot, relevantEdges, predicateCPA.getSolver().getFormulaManager());
+    try {
+      return writeUCAForInterpolant(
+          output, argRoot, relevantEdges, predicateCPA.getSolver().getFormulaManager());
+    } catch (InterruptedException pE) {
+      throw new CPAException("Failed to write UCA to file due to :", pE);
+    }
   }
 
   /**
@@ -185,7 +184,7 @@ return
    */
   private int writeUCAForInterpolant(
       Appendable sb, ARGState rootState, Set<UCAARGStateEdge> edgesToAdd, FormulaManagerView pFmgr)
-      throws IOException {
+      throws IOException, InterruptedException {
     int numProducedStates = 0;
     sb.append(UCAGenerator.AUTOMATON_HEADER);
 

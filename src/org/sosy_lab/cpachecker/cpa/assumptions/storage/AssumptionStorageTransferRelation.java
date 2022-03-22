@@ -52,23 +52,22 @@ import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
 import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor.ToFormulaException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
-import org.sosy_lab.java_smt.api.SolverContext;
 
 /** Transfer relation and strengthening for the DumpInvariant CPA */
+@Options(prefix = "cpa.assumptionStorage")
 public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelation {
-
 
   @Option(
       secure = true,
@@ -80,7 +79,8 @@ public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelatio
   @Option(
       secure = true,
       description =
-          "If it is enabled, assumptions are extracted from the correctness-witness state invariants")
+          "If it is enabled, assumptions are extracted from the correctness-witness state"
+              + " invariants")
   private boolean extractAssumptionsFromAutomatonState = false;
 
   private final CtoFormulaConverter converter;
@@ -91,10 +91,19 @@ public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelatio
   private final PathFormulaManager pathFormulaManager;
 
   public AssumptionStorageTransferRelation(
-      CtoFormulaConverter pConverter, FormulaManagerView pFormulaManager, AbstractState pTopState) {
+      CtoFormulaConverter pConverter,
+      FormulaManagerView pFormulaManager,
+      AssumptionStorageState pTopState,
+      Configuration pConfig,
+      PathFormulaManagerImpl pPathFormulaManager,
+      LogManager pLogger)
+      throws InvalidConfigurationException {
     converter = pConverter;
     formulaManager = pFormulaManager;
     topStateSet = Collections.singleton(pTopState);
+    logger = pLogger;
+    pathFormulaManager = pPathFormulaManager;
+    pConfig.inject(AssumptionStorageTransferRelation.class);
   }
 
   @Override
@@ -187,18 +196,23 @@ public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelatio
         ExpressionTree<AExpression> stateInv = automatonState.getCandidateInvariants();
         if (!ExpressionTrees.isConstant(stateInv)) {
           ToFormulaVisitor visitor = new ToFormulaVisitor(formulaManager, pathFormulaManager, null);
-          try{       if (ExpressionTrees.isAnd(stateInv)) {
-            BooleanFormula invFormula = visitor.visit((And<AExpression>) stateInv);
-            assumption = bfmgr.and(assumption, formulaManager.uninstantiate(invFormula));
-          } else if (ExpressionTrees.isOr(stateInv)) {
-            BooleanFormula invFormula = visitor.visit((Or<AExpression>) stateInv);
-            assumption = bfmgr.and(assumption, formulaManager.uninstantiate(invFormula));
-          } else if (ExpressionTrees.isLeaf(stateInv)) {
-            BooleanFormula invFormula = visitor.visit((LeafExpression<AExpression>) stateInv);
-            assumption = bfmgr.and(assumption, formulaManager.uninstantiate(invFormula));
-          }}catch( ToFormulaException pE){
-          logger.logf(Level.WARNING,"Cannot parse the expression tree %s due to %s", stateInv,
-              Throwables.getStackTraceAsString(pE));
+          try {
+            if (ExpressionTrees.isAnd(stateInv)) {
+              BooleanFormula invFormula = visitor.visit((And<AExpression>) stateInv);
+              assumption = bfmgr.and(assumption, formulaManager.uninstantiate(invFormula));
+            } else if (ExpressionTrees.isOr(stateInv)) {
+              BooleanFormula invFormula = visitor.visit((Or<AExpression>) stateInv);
+              assumption = bfmgr.and(assumption, formulaManager.uninstantiate(invFormula));
+            } else if (ExpressionTrees.isLeaf(stateInv)) {
+              BooleanFormula invFormula = visitor.visit((LeafExpression<AExpression>) stateInv);
+              assumption = bfmgr.and(assumption, formulaManager.uninstantiate(invFormula));
+            }
+          } catch (ToFormulaException pE) {
+            logger.logf(
+                Level.WARNING,
+                "Cannot parse the expression tree %s due to %s",
+                stateInv,
+                Throwables.getStackTraceAsString(pE));
           }
         }
       }

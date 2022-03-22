@@ -80,7 +80,6 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 @Options(prefix = "assumptions")
 public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvider {
 
-
   @Option(secure = true, name = "export", description = "write collected assumptions to file")
   private boolean exportAssumptions = true;
 
@@ -196,8 +195,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     cpa = pCpa;
     this.cfa = cfa;
     this.config = config;
-    ucaCollector =
-        new UCAGenerator(algo, pCpa, config, logger, cfa, pShutdownNotifier);
+    ucaCollector = new UCAGenerator(algo, pCpa, config, logger, cfa, pShutdownNotifier);
   }
 
   @Override
@@ -317,7 +315,9 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       output.append("Cannot dump assumption as automaton if ARGCPA is not used.");
     }
 
-    Set<AbstractState> falseAssumptionStates = getFalseAssumptionStates(reached);
+    Set<AbstractState> falseAssumptionStates =
+        AssumptionCollectorAlgorithm.getFalseAssumptionStates(
+            reached, removeNonExploredWithoutSuccessors, cpa);
 
     // scan reached set for all relevant states with an assumption
     // Invariant: relevantStates does not contain any covered state.
@@ -401,13 +401,16 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     }
   }
 
-  private Set<AbstractState> getFalseAssumptionStates(UnmodifiableReachedSet pReached) {
+  public static Set<AbstractState> getFalseAssumptionStates(
+      UnmodifiableReachedSet pReached,
+      boolean pRemoveNonExploredWithoutSuccessors,
+      ConfigurableProgramAnalysis pCpa) {
     Set<AbstractState> falseAssumptionStates;
-    if (removeNonExploredWithoutSuccessors) {
+    if (pRemoveNonExploredWithoutSuccessors) {
       falseAssumptionStates = Sets.newHashSetWithExpectedSize(pReached.getWaitlist().size());
       for (AbstractState state : pReached.getWaitlist()) {
         try {
-          if (!cpa.getTransferRelation()
+          if (!pCpa.getTransferRelation()
               .getAbstractSuccessors(state, pReached.getPrecision(state))
               .isEmpty()) {
             falseAssumptionStates.add(state);
@@ -580,7 +583,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     return numProducedStates;
   }
 
-  private static void addAssumption(
+  public static void addAssumption(
       final Appendable writer,
       final AssumptionStorageState assumptionState,
       boolean ignoreAssumptions,
@@ -608,7 +611,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     }
   }
 
-  private static void finishTransition(
+  public static void finishTransition(
       final Appendable writer,
       final ARGState child,
       final Set<ARGState> relevantStates,
@@ -637,7 +640,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
    * @param s the ARGSTate whose parents should be found
    * @param parentSet the set of ARGStates the parents should be added to
    */
-  private static void findAllParents(ARGState s, Set<ARGState> parentSet) {
+  public static void findAllParents(ARGState s, Set<ARGState> parentSet) {
     Deque<ARGState> toAdd = new ArrayDeque<>();
     toAdd.add(s);
     while (!toAdd.isEmpty()) {
@@ -657,7 +660,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     }
   }
 
-  private static void escape(String s, Appendable appendTo) throws IOException {
+  public static void escape(String s, Appendable appendTo) throws IOException {
     for (int i = 0; i < s.length(); i++) {
       char c = s.charAt(i);
       switch (c) {
@@ -783,10 +786,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
               logger.logUserException(Level.WARNING, e, "Could not write uca to file");
             }
           }
-          put(
-              out,
-              "Number of states in UniversalConditionAutomaton",
-              universalConditionAutomaton);
+          put(out, "Number of states in UniversalConditionAutomaton", universalConditionAutomaton);
         }
       }
     }

@@ -32,9 +32,11 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -51,7 +53,7 @@ public class UCACorWitGenerator {
   }
 
   int produceUCA4CorrectnessWitness(Appendable output, UnmodifiableReachedSet reached)
-      throws IOException {
+      throws IOException, CPAException {
     final AbstractState firstState = reached.getFirstState();
     if (!(firstState instanceof ARGState)
         || UCAGenerator.getWitnessAutomatonState(firstState).isEmpty()) {
@@ -68,7 +70,7 @@ public class UCACorWitGenerator {
     // and the root node
 
     final ARGState argRoot = (ARGState) reached.getFirstState();
-//    AutomatonState rootState = UCAGenerator.getWitnessAutomatonState(argRoot).orElseThrow();
+    //    AutomatonState rootState = UCAGenerator.getWitnessAutomatonState(argRoot).orElseThrow();
 
     Set<UCAAutomatonStateEdge> edgesInAutomatonStates = new HashSet<>();
     Set<UCAARGStateEdgeWithAssumptionNaming> edgesToAdd = new HashSet<>();
@@ -109,9 +111,11 @@ public class UCACorWitGenerator {
                 .map(pair -> pair.getSecond())
                 .noneMatch(state -> parentAutomatonState.orElseThrow().equals(state))) {
           parentsWithOtherAutomatonState.add(Pair.of(parent, parentAutomatonState.orElseThrow()));
-        }
-        else{
-          logger.logf(Level.INFO, "Ignoring state %s, as already present ", parentAutomatonState.orElseThrow() );
+        } else {
+          logger.logf(
+              Level.INFO,
+              "Ignoring state %s, as already present ",
+              parentAutomatonState.orElseThrow());
         }
       }
       if (!parentsWithOtherAutomatonState.isEmpty()) {
@@ -142,8 +146,12 @@ public class UCACorWitGenerator {
         Level.FINE,
         edgesInAutomatonStates.stream().map(e -> e.toString()).collect(Collectors.joining("\n")));
 
-    return writeUCAForCorrectnessWitness(
-        output, argRoot, edgesToAdd, optinons.isAutomatonIgnoreAssumptions());
+    try {
+      return writeUCAForCorrectnessWitness(
+          output, argRoot, edgesToAdd, optinons.isAutomatonIgnoreAssumptions());
+    } catch (InterruptedException pE) {
+      throw new CPAException("Parsing faled due to", pE);
+    }
   }
 
   /**
@@ -160,7 +168,7 @@ public class UCACorWitGenerator {
       ARGState rootState,
       Set<UCAARGStateEdgeWithAssumptionNaming> edgesToAdd,
       boolean ignoreAssumptions)
-      throws IOException {
+      throws IOException, InterruptedException {
     int numProducedStates = 0;
     sb.append(UCAGenerator.AUTOMATON_HEADER);
 
@@ -175,7 +183,6 @@ public class UCACorWitGenerator {
     }
     sb.append(String.format("STATE %s :\n", UCAGenerator.NAME_OF_FINAL_STATE));
     sb.append(String.format("    TRUE -> GOTO %s;\n\n", UCAGenerator.NAME_OF_FINAL_STATE));
-
 
     // Fill the map to be able to iterate over the nodes
     Map<ARGState, Set<UCAARGStateEdge>> nodesToEdges = new HashMap<>();
@@ -233,10 +240,11 @@ public class UCACorWitGenerator {
           AbstractStates.extractStateByType(currentState, AssumptionStorageState.class);
       if (Objects.nonNull(assumptionState) && !assumptionState.isAssumptionTrue()) {
         // Add indent to be able to use util mehtods
-        //TODO: Find out, why Modulo operations are exported that strange: (Happens already during add in AssunptionTransferRelation
-        //Example: ( ( ( ( ( y % 2 ) < 2 ) && ( ! ( y < ( y % 2 ) ) ) ) && ( ( y % 2 ) == ( ( y % 2 ) % 2 ) ) ) && ( ( y % 2 ) == 1 ) ) for ( ( y % 2 ) == 1 )
-        @Nullable CFANode cfaNode =
-            AbstractStates.extractLocation(currentState);
+        // TODO: Find out, why Modulo operations are exported that strange: (Happens already during
+        // add in AssunptionTransferRelation
+        // Example: ( ( ( ( ( y % 2 ) < 2 ) && ( ! ( y < ( y % 2 ) ) ) ) && ( ( y % 2 ) == ( ( y % 2
+        // ) % 2 ) ) ) && ( ( y % 2 ) == 1 ) ) for ( ( y % 2 ) == 1 )
+        @Nullable CFANode cfaNode = AbstractStates.extractLocation(currentState);
         if (!ignoreAssumptions && Objects.nonNull(assumptionState) && Objects.nonNull(cfaNode)) {
           FormulaManagerView fmgr = assumptionState.getFormulaManager();
           final BooleanFormulaManagerView bmgr =
@@ -245,7 +253,8 @@ public class UCACorWitGenerator {
               bmgr.and(assumptionState.getAssumption(), assumptionState.getStopFormula());
           if (!bmgr.isTrue(assumption)) {
             sb.append("    INVARIANT {");
-            AssumptionCollectorAlgorithm.escape(AssumptionCollectorAlgorithm.parseAssumptionToString(assumption, fmgr, cfaNode), sb);
+            AssumptionCollectorAlgorithm.escape(
+                ExpressionTrees.fromFormula(assumption, fmgr, cfaNode).toString(), sb);
             sb.append("};\n");
           }
         }
