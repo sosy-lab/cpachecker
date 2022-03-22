@@ -40,7 +40,7 @@ public abstract class Constraint {
    * @return the String identifying the subset of this constraint.
    */
   public String getSubVar() {
-    return this.subVar;
+    return subVar;
   }
 
   /**
@@ -49,7 +49,7 @@ public abstract class Constraint {
    * @return the String identifying the superset of this constraint.
    */
   public String getSuperVar() {
-    return this.superVar;
+    return superVar;
   }
 
   @Override
@@ -61,7 +61,7 @@ public abstract class Constraint {
       return false;
     }
     Constraint o = (Constraint) other;
-    return this.subVar.equals(o.subVar) && this.superVar.equals(o.superVar);
+    return subVar.equals(o.subVar) && superVar.equals(o.superVar);
   }
 
   @Override

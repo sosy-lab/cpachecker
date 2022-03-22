@@ -220,5 +220,4 @@ public class AlgorithmContext {
   public TimeSpan getTotalTimeSpent() {
     return timer.getSumTime();
   }
-
 }

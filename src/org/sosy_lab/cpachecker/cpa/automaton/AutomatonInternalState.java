@@ -21,8 +21,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpressio
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
-/** Represents a State in the automaton.
- */
+/** Represents a State in the automaton. */
 public class AutomatonInternalState {
   // the StateId is used to identify States in GraphViz
   private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
@@ -73,9 +72,7 @@ public class AutomatonInternalState {
 
   private final boolean mIsTarget;
 
-  /**
-   * determines if all transitions of the state are considered or only the first that matches
-   */
+  /** determines if all transitions of the state are considered or only the first that matches */
   private final boolean mAllTransitions;
 
   private final boolean isCycleStart;
@@ -127,10 +124,13 @@ public class AutomatonInternalState {
     return isCycleStart;
   }
 
-  /** Lets all outgoing transitions of this state resolve their "sink" states.
+  /**
+   * Lets all outgoing transitions of this state resolve their "sink" states.
+   *
    * @param pAllStates map of all states of this automaton.
    */
-  void setFollowStates(Map<String, AutomatonInternalState> pAllStates) throws InvalidAutomatonException {
+  void setFollowStates(Map<String, AutomatonInternalState> pAllStates)
+      throws InvalidAutomatonException {
     for (AutomatonTransition t : transitions) {
       t.setFollowState(pAllStates);
     }
@@ -174,11 +174,11 @@ public class AutomatonInternalState {
 
   @Override
   public String toString() {
-    return this.name;
+    return name;
   }
 
   public boolean nontriviallyMatches(final CFAEdge pEdge, final LogManager pLogger) {
-    for(AutomatonTransition trans : transitions) {
+    for (AutomatonTransition trans : transitions) {
       if (trans.nontriviallyMatches(pEdge, pLogger)) {
         return true;
       }

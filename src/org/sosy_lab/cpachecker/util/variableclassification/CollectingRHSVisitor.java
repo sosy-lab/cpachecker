@@ -42,7 +42,7 @@ final class CollectingRHSVisitor
   private final boolean addressed;
 
   private CollectingRHSVisitor(final CFA pCfa, final VariableOrField lhs, final boolean addressed) {
-    this.cfa = checkNotNull(pCfa);
+    cfa = checkNotNull(pCfa);
     this.lhs = checkNotNull(lhs);
     this.addressed = addressed;
   }

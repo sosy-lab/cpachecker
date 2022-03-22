@@ -11,18 +11,15 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-
 public class CFieldDesignator extends CDesignator {
 
   private static final long serialVersionUID = -1418942274162299596L;
-  private final String         name;
+  private final String name;
 
-  public CFieldDesignator(final FileLocation pFileLocation,
-                            final String pName) {
+  public CFieldDesignator(final FileLocation pFileLocation, final String pName) {
     super(pFileLocation);
     name = pName;
   }
-
 
   public String getFieldName() {
     return name;
@@ -35,7 +32,7 @@ public class CFieldDesignator extends CDesignator {
 
   @Override
   public String toASTString() {
-    return "."  + name;
+    return "." + name;
   }
 
   @Override
@@ -62,15 +59,13 @@ public class CFieldDesignator extends CDesignator {
     return result;
   }
 
-
   @Override
   public boolean equals(Object obj) {
     if (this == obj) {
       return true;
     }
 
-    if (!(obj instanceof CFieldDesignator)
-        || !super.equals(obj)) {
+    if (!(obj instanceof CFieldDesignator) || !super.equals(obj)) {
       return false;
     }
 
@@ -78,6 +73,4 @@ public class CFieldDesignator extends CDesignator {
 
     return Objects.equals(other.name, name);
   }
-
-
 }

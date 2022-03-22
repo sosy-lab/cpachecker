@@ -23,7 +23,6 @@ interface ParameterizedNumeralFormulaVisitor<ConstantType, ParameterType, Return
    *
    * @param pAdd the addition invariants formula to visit.
    * @param pParameter the additional parameter to take into consideration.
-   *
    * @return the result of the visit.
    */
   ReturnType visit(Add<ConstantType> pAdd, ParameterType pParameter);
@@ -33,7 +32,6 @@ interface ParameterizedNumeralFormulaVisitor<ConstantType, ParameterType, Return
    *
    * @param pAnd the binary and invariants formula to visit.
    * @param pParameter the additional parameter to take into consideration.
-   *
    * @return the result of the visit.
    */
   ReturnType visit(BinaryAnd<ConstantType> pAnd, ParameterType pParameter);
@@ -43,7 +41,6 @@ interface ParameterizedNumeralFormulaVisitor<ConstantType, ParameterType, Return
    *
    * @param pNot the binary negation invariants formula to visit.
    * @param pParameter the additional parameter to take into consideration.
-   *
    * @return the result of the visit.
    */
   ReturnType visit(BinaryNot<ConstantType> pNot, ParameterType pParameter);
@@ -53,7 +50,6 @@ interface ParameterizedNumeralFormulaVisitor<ConstantType, ParameterType, Return
    *
    * @param pOr the binary or invariants formula to visit.
    * @param pParameter the additional parameter to take into consideration.
-   *
    * @return the result of the visit.
    */
   ReturnType visit(BinaryOr<ConstantType> pOr, ParameterType pParameter);
@@ -63,7 +59,6 @@ interface ParameterizedNumeralFormulaVisitor<ConstantType, ParameterType, Return
    *
    * @param pXor the binary exclusive or invariants formula to visit.
    * @param pParameter the additional parameter to take into consideration.
-   *
    * @return the result of the visit.
    */
   ReturnType visit(BinaryXor<ConstantType> pXor, ParameterType pParameter);
@@ -73,7 +68,6 @@ interface ParameterizedNumeralFormulaVisitor<ConstantType, ParameterType, Return
    *
    * @param pConstant the constant invariants formula to visit.
    * @param pParameter the additional parameter to take into consideration.
-   *
    * @return the result of the visit.
    */
   ReturnType visit(Constant<ConstantType> pConstant, ParameterType pParameter);
@@ -83,7 +77,6 @@ interface ParameterizedNumeralFormulaVisitor<ConstantType, ParameterType, Return
    *
    * @param pDivide the fraction invariants formula to visit.
    * @param pParameter the additional parameter to take into consideration.
-   *
    * @return the result of the visit.
    */
   ReturnType visit(Divide<ConstantType> pDivide, ParameterType pParameter);
@@ -93,7 +86,6 @@ interface ParameterizedNumeralFormulaVisitor<ConstantType, ParameterType, Return
    *
    * @param pExclusion the exclusion formula to visit.
    * @param pParameter the additional parameter to take into consideration.
-   *
    * @return the result of the visit.
    */
   ReturnType visit(Exclusion<ConstantType> pExclusion, ParameterType pParameter);
@@ -103,7 +95,6 @@ interface ParameterizedNumeralFormulaVisitor<ConstantType, ParameterType, Return
    *
    * @param pModulo the modulo invariants formula to visit.
    * @param pParameter the additional parameter to take into consideration.
-   *
    * @return the result of the visit.
    */
   ReturnType visit(Modulo<ConstantType> pModulo, ParameterType pParameter);
@@ -113,7 +104,6 @@ interface ParameterizedNumeralFormulaVisitor<ConstantType, ParameterType, Return
    *
    * @param pMultiply the multiplication invariants formula to visit.
    * @param pParameter the additional parameter to take into consideration.
-   *
    * @return the result of the visit.
    */
   ReturnType visit(Multiply<ConstantType> pMultiply, ParameterType pParameter);
@@ -123,7 +113,6 @@ interface ParameterizedNumeralFormulaVisitor<ConstantType, ParameterType, Return
    *
    * @param pShiftLeft the left shift invariants formula to visit.
    * @param pParameter the additional parameter to take into consideration.
-   *
    * @return the result of the visit.
    */
   ReturnType visit(ShiftLeft<ConstantType> pShiftLeft, ParameterType pParameter);
@@ -133,7 +122,6 @@ interface ParameterizedNumeralFormulaVisitor<ConstantType, ParameterType, Return
    *
    * @param pShiftRight the right shift invariants formula to visit.
    * @param pParameter the additional parameter to take into consideration.
-   *
    * @return the result of the visit.
    */
   ReturnType visit(ShiftRight<ConstantType> pShiftRight, ParameterType pParameter);
@@ -143,7 +131,6 @@ interface ParameterizedNumeralFormulaVisitor<ConstantType, ParameterType, Return
    *
    * @param pUnion the union invariants formula to visit.
    * @param pParameter the additional parameter to take into consideration.
-   *
    * @return the result of the visit.
    */
   ReturnType visit(Union<ConstantType> pUnion, ParameterType pParameter);
@@ -153,7 +140,6 @@ interface ParameterizedNumeralFormulaVisitor<ConstantType, ParameterType, Return
    *
    * @param pVariable the variable invariants formula to visit.
    * @param pParameter the additional parameter to take into consideration.
-   *
    * @return the result of the visit.
    */
   ReturnType visit(Variable<ConstantType> pVariable, ParameterType pParameter);
@@ -163,7 +149,6 @@ interface ParameterizedNumeralFormulaVisitor<ConstantType, ParameterType, Return
    *
    * @param pIfThenElse the if-then-else invariants formula to visit.
    * @param pParameter the additional parameter to take into consideration.
-   *
    * @return the result of the visit.
    */
   ReturnType visit(IfThenElse<ConstantType> pIfThenElse, ParameterType pParameter);
@@ -173,9 +158,7 @@ interface ParameterizedNumeralFormulaVisitor<ConstantType, ParameterType, Return
    *
    * @param pCast the cast invariants formula to visit.
    * @param pParameter the additional parameter to take into consideration.
-   *
    * @return the result of the visit.
    */
   ReturnType visit(Cast<ConstantType> pCast, ParameterType pParameter);
-
 }

@@ -45,27 +45,26 @@ public class IntervalAnalysisCPA extends AbstractCPA
     return AutomaticCPAFactory.forType(IntervalAnalysisCPA.class);
   }
 
-  @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN"},
-          description="which type of merge operator to use for IntervalAnalysisCPA")
-  /**
-   * the merge type of the interval analysis
-   */
+  @Option(
+      secure = true,
+      name = "merge",
+      toUppercase = true,
+      values = {"SEP", "JOIN"},
+      description = "which type of merge operator to use for IntervalAnalysisCPA")
+  /** the merge type of the interval analysis */
   private String mergeType = "SEP";
 
-
   @Option(
-    secure = true,
-    description =
-        "decides whether one (false) or two (true) successors should be created "
-            + "when an inequality-check is encountered"
-  )
+      secure = true,
+      description =
+          "decides whether one (false) or two (true) successors should be created "
+              + "when an inequality-check is encountered")
   private boolean splitIntervals = false;
 
   @Option(
-    secure = true,
-    description =
-        "at most that many intervals will be tracked per variable, -1 if number not restricted"
-  )
+      secure = true,
+      description =
+          "at most that many intervals will be tracked per variable, -1 if number not restricted")
   private int threshold = -1;
 
   private final StateToFormulaWriter writer;

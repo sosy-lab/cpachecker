@@ -14,9 +14,7 @@ import java.io.Serializable;
 import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-/**
- * This represents a type which was created by using typedef.
- */
+/** This represents a type which was created by using typedef. */
 public final class CTypedefType implements CType, Serializable {
 
   private static final long serialVersionUID = -3461236537115147688L;
@@ -26,8 +24,8 @@ public final class CTypedefType implements CType, Serializable {
   private final boolean isVolatile;
   private int hashCache = 0;
 
-  public CTypedefType(final boolean pConst, final boolean pVolatile,
-      final String pName, CType pRealType) {
+  public CTypedefType(
+      final boolean pConst, final boolean pVolatile, final String pName, CType pRealType) {
 
     isConst = pConst;
     isVolatile = pVolatile;
@@ -54,7 +52,8 @@ public final class CTypedefType implements CType, Serializable {
     return (isConst() ? "const " : "")
         + (isVolatile() ? "volatile " : "")
         + name
-        + " " + pDeclarator;
+        + " "
+        + pDeclarator;
   }
 
   @Override
@@ -86,9 +85,9 @@ public final class CTypedefType implements CType, Serializable {
   }
 
   /**
-   * Be careful, this method compares the CType as it is to the given object,
-   * typedefs won't be resolved. If you want to compare the type without having
-   * typedefs in it use #getCanonicalType().equals()
+   * Be careful, this method compares the CType as it is to the given object, typedefs won't be
+   * resolved. If you want to compare the type without having typedefs in it use
+   * #getCanonicalType().equals()
    */
   @Override
   public boolean equals(@Nullable Object obj) {
@@ -102,9 +101,10 @@ public final class CTypedefType implements CType, Serializable {
 
     CTypedefType other = (CTypedefType) obj;
 
-    return Objects.equals(name, other.name) && isConst == other.isConst
-           && isVolatile == other.isVolatile
-           && Objects.equals(realType, other.realType);
+    return Objects.equals(name, other.name)
+        && isConst == other.isConst
+        && isVolatile == other.isVolatile
+        && Objects.equals(realType, other.realType);
   }
 
   @Override

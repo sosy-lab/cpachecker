@@ -36,7 +36,7 @@ public class AbstractDistanceMetric implements DistanceMetric {
   private final DistanceCalculationHelper distanceHelper;
 
   public AbstractDistanceMetric(DistanceCalculationHelper pDistanceCalculationHelper) {
-    this.distanceHelper = pDistanceCalculationHelper;
+    distanceHelper = pDistanceCalculationHelper;
   }
 
   /** Start the metric */

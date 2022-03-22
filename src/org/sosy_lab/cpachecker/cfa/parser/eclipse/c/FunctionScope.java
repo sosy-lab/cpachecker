@@ -43,9 +43,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
 
 /**
- * Implementation of {@link Scope} for the local scope inside functions.
- * Only variables can be declared.
- * Provides the mechanism to have nested scopes (i.e., inside {} blocks).
+ * Implementation of {@link Scope} for the local scope inside functions. Only variables can be
+ * declared. Provides the mechanism to have nested scopes (i.e., inside {} blocks).
  */
 class FunctionScope extends AbstractScope {
 
@@ -60,7 +59,6 @@ class FunctionScope extends AbstractScope {
   private final Deque<Map<String, CSimpleDeclaration>> varsStackWitNewNames = new ArrayDeque<>();
   private final Deque<Map<String, CSimpleDeclaration>> varsList = new ArrayDeque<>();
   private final Deque<Map<String, CSimpleDeclaration>> varsListWithNewNames = new ArrayDeque<>();
-
 
   private CFunctionDeclaration currentFunction = null;
   private Optional<CVariableDeclaration> returnVariable = null;
@@ -83,7 +81,7 @@ class FunctionScope extends AbstractScope {
     varsList.push(pGlobalVars);
     varsListWithNewNames.push(pGlobalVars);
 
-    this.artificialScope = pArtificialScope;
+    artificialScope = pArtificialScope;
 
     enterBlock();
   }
@@ -117,12 +115,20 @@ class FunctionScope extends AbstractScope {
     if (currentFunction.getType().getReturnType().getCanonicalType() instanceof CVoidType) {
       returnVariable = Optional.empty();
     } else {
-      @SuppressWarnings("deprecation") // As soon as this is the only usage of the deprecated constant, it should be inlined here
+      @SuppressWarnings("deprecation")
+      // As soon as this is the only usage of the deprecated constant, it should be inlined here
       String name = VariableClassificationBuilder.FUNCTION_RETURN_VARIABLE;
-      returnVariable = Optional.of(
-          new CVariableDeclaration(currentFunction.getFileLocation(), false,
-            CStorageClass.AUTO, currentFunction.getType().getReturnType(),
-            name, name, createScopedNameOf(name), null));
+      returnVariable =
+          Optional.of(
+              new CVariableDeclaration(
+                  currentFunction.getFileLocation(),
+                  false,
+                  CStorageClass.AUTO,
+                  currentFunction.getType().getReturnType(),
+                  name,
+                  name,
+                  createScopedNameOf(name),
+                  null));
     }
   }
 
@@ -251,10 +257,7 @@ class FunctionScope extends AbstractScope {
     return createQualifiedName(getCurrentFunctionName(), pName);
   }
 
-  /**
-   * Take a name and return a name that is unconditionally qualified
-   * with the given function.
-   */
+  /** Take a name and return a name that is unconditionally qualified with the given function. */
   public static String createQualifiedName(String pFunction, String pName) {
     return (pFunction + "::" + pName).intern();
   }
@@ -262,10 +265,11 @@ class FunctionScope extends AbstractScope {
   @Override
   public void registerDeclaration(CSimpleDeclaration declaration) {
     assert declaration instanceof CVariableDeclaration
-        || declaration instanceof CEnumerator
-        || declaration instanceof CParameterDeclaration
-        : "Tried to register a declaration which does not define a name in the standard namespace: " + declaration;
-    assert  !(declaration.getType() instanceof CFunctionTypeWithNames);
+            || declaration instanceof CEnumerator
+            || declaration instanceof CParameterDeclaration
+        : "Tried to register a declaration which does not define a name in the standard namespace: "
+            + declaration;
+    assert !(declaration.getType() instanceof CFunctionTypeWithNames);
 
     String name = declaration.getOrigName();
     assert name != null;
@@ -275,7 +279,8 @@ class FunctionScope extends AbstractScope {
 
     // multiple declarations of the same variable are disallowed
     if (vars.containsKey(name)) {
-      throw new CFAGenerationRuntimeException("Variable " + name + " already declared", declaration);
+      throw new CFAGenerationRuntimeException(
+          "Variable " + name + " already declared", declaration);
     }
 
     vars.put(name, declaration);
@@ -289,7 +294,8 @@ class FunctionScope extends AbstractScope {
     String typeName = declaration.getType().getQualifiedName();
 
     if (lookupType(typeName) != null) {
-      throw new CFAGenerationRuntimeException("Shadowing types are currently not supported", declaration);
+      throw new CFAGenerationRuntimeException(
+          "Shadowing types are currently not supported", declaration);
     }
 
     typesStack.peekLast().put(typeName, declaration);
@@ -364,6 +370,8 @@ class FunctionScope extends AbstractScope {
 
   @Override
   public String toString() {
-    return "Functions: " + Joiner.on(' ').join(globalFunctions.keySet()) + Joiner.on(' ').join(localFunctions.keySet());
+    return "Functions: "
+        + Joiner.on(' ').join(globalFunctions.keySet())
+        + Joiner.on(' ').join(localFunctions.keySet());
   }
 }

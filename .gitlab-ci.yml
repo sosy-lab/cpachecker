@@ -12,7 +12,7 @@ variables:
   PROJECT_PATH: "sosy-lab/software/cpachecker"
   GH_REF: "github.com/sosy-lab/cpachecker"
   # Version of https://gitlab.com/sosy-lab/software/refaster/ to use
-  REFASTER_REPO_REVISION: 8b7f38e2afedf64b3cfa9592bbb8790b88f58352
+  REFASTER_REPO_REVISION: e842c376f095c5307f72391f1286bd438f455b97
   # Needs to be synchronized with Error Prone version in lib/ivy.xml
   REFASTER_VERSION: 2.11.0
   PIP_CACHE_DIR: "${CI_PROJECT_DIR}/.cache/pip"
@@ -55,15 +55,15 @@ configuration-checks:jdk-11:
     - build:jdk-11
   image: ${CI_REGISTRY_IMAGE}/test:jdk-11
 
-configuration-checks:jdk-16:
+configuration-checks:jdk-17:
   <<: *configuration-checks
   dependencies:
     - build-dependencies
-    - build:jdk-16
+    - build:jdk-17
   needs:
     - build-dependencies
-    - build:jdk-16
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-16
+    - build:jdk-17
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-17
 
 
 configuration-documentation:
@@ -119,15 +119,15 @@ python-unit-tests:jdk-11:
     - build:jdk-11
   image: ${CI_REGISTRY_IMAGE}/test:jdk-11
 
-python-unit-tests:jdk-16:
+python-unit-tests:jdk-17:
   <<: *python-unit-tests
   dependencies:
     - build-dependencies
-    - build:jdk-16
+    - build:jdk-17
   needs:
     - build-dependencies
-    - build:jdk-16
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-16
+    - build:jdk-17
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-17
 
 
 javascript-build:
@@ -244,7 +244,7 @@ flake8:
   needs: []
   image: python:3.8
   before_script:
-    - "pip install 'flake8<4' flake8-awesome"
+    - "pip install 'flake8<4' 'bandit==1.7.2' flake8-awesome"
   script:
     - flake8
   <<: *pip-cache
@@ -289,7 +289,7 @@ unit-tests:jdk-11:
     reports:
       junit: "output/junit/TESTS-TestSuites.xml"
 
-unit-tests:jdk-16:
+unit-tests:jdk-17:
   script: "ant $ANT_PROPS_CHECKS unit-tests"
   artifacts:
     reports:
@@ -297,8 +297,5 @@ unit-tests:jdk-16:
 
 
 # Disable some checks because they are not used for CPAchecker
-check-format:
-  only: []
-
 javadoc:
   only: []

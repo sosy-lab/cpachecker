@@ -22,10 +22,8 @@ import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
 import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 import org.sosy_lab.java_smt.api.UFManager;
 
-
-public class FloatingPointFormulaManagerView
-        extends BaseManagerView
-        implements FloatingPointFormulaManager {
+public class FloatingPointFormulaManagerView extends BaseManagerView
+    implements FloatingPointFormulaManager {
 
   private final FloatingPointFormulaManager manager;
   private final UFManager functionManager;
@@ -35,8 +33,8 @@ public class FloatingPointFormulaManagerView
       FloatingPointFormulaManager pManager,
       UFManager pFunctionManager) {
     super(pWrappingHandler);
-    this.manager = Preconditions.checkNotNull(pManager);
-    this.functionManager = Preconditions.checkNotNull(pFunctionManager);
+    manager = Preconditions.checkNotNull(pManager);
+    functionManager = Preconditions.checkNotNull(pFunctionManager);
   }
 
   @Override
@@ -51,11 +49,13 @@ public class FloatingPointFormulaManagerView
       FloatingPointFormula number,
       FormulaType<T> targetType,
       FloatingPointRoundingMode pFloatingPointRoundingMode) {
-    return wrap(targetType, manager.castTo(number, unwrapType(targetType), pFloatingPointRoundingMode));
+    return wrap(
+        targetType, manager.castTo(number, unwrapType(targetType), pFloatingPointRoundingMode));
   }
 
   @Override
-  public FloatingPointFormula castFrom(Formula pNumber, boolean pSigned, FloatingPointType pTargetType) {
+  public FloatingPointFormula castFrom(
+      Formula pNumber, boolean pSigned, FloatingPointType pTargetType) {
     // This method needs to unwrap pNumber,
     // in case it is replaced with another formula type.
     return manager.castFrom(unwrap(pNumber), pSigned, pTargetType);
@@ -112,7 +112,8 @@ public class FloatingPointFormulaManagerView
   }
 
   @Override
-  public FloatingPointFormula subtract(FloatingPointFormula pNumber1, FloatingPointFormula pNumbe2) {
+  public FloatingPointFormula subtract(
+      FloatingPointFormula pNumber1, FloatingPointFormula pNumbe2) {
     return manager.subtract(pNumber1, pNumbe2);
   }
 
@@ -138,7 +139,8 @@ public class FloatingPointFormulaManagerView
   }
 
   @Override
-  public FloatingPointFormula multiply(FloatingPointFormula pNumber1, FloatingPointFormula pNumbe2) {
+  public FloatingPointFormula multiply(
+      FloatingPointFormula pNumber1, FloatingPointFormula pNumbe2) {
     return manager.multiply(pNumber1, pNumbe2);
   }
 
@@ -154,22 +156,29 @@ public class FloatingPointFormulaManagerView
   public BooleanFormula assignment(FloatingPointFormula pNumber1, FloatingPointFormula pNumber2) {
     return manager.assignment(pNumber1, pNumber2);
   }
+
   @Override
-  public BooleanFormula equalWithFPSemantics(FloatingPointFormula pNumber1, FloatingPointFormula pNumbe2) {
+  public BooleanFormula equalWithFPSemantics(
+      FloatingPointFormula pNumber1, FloatingPointFormula pNumbe2) {
     return manager.equalWithFPSemantics(pNumber1, pNumbe2);
   }
+
   @Override
   public BooleanFormula greaterThan(FloatingPointFormula pNumber1, FloatingPointFormula pNumbe2) {
     return manager.greaterThan(pNumber1, pNumbe2);
   }
+
   @Override
-  public BooleanFormula greaterOrEquals(FloatingPointFormula pNumber1, FloatingPointFormula pNumbe2) {
+  public BooleanFormula greaterOrEquals(
+      FloatingPointFormula pNumber1, FloatingPointFormula pNumbe2) {
     return manager.greaterOrEquals(pNumber1, pNumbe2);
   }
+
   @Override
   public BooleanFormula lessThan(FloatingPointFormula pNumber1, FloatingPointFormula pNumbe2) {
     return manager.lessThan(pNumber1, pNumbe2);
   }
+
   @Override
   public BooleanFormula lessOrEquals(FloatingPointFormula pNumber1, FloatingPointFormula pNumbe2) {
     return manager.lessOrEquals(pNumber1, pNumbe2);
@@ -254,7 +263,8 @@ public class FloatingPointFormulaManagerView
     return manager.makeVariable(pVar, pType);
   }
 
-  public FloatingPointFormula makeVariable(String pVar, int idx, FormulaType.FloatingPointType pType) {
+  public FloatingPointFormula makeVariable(
+      String pVar, int idx, FormulaType.FloatingPointType pType) {
     return manager.makeVariable(FormulaManagerView.makeName(pVar, idx), pType);
   }
 

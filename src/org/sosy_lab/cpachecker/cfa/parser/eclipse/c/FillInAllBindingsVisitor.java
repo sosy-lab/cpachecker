@@ -24,8 +24,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
 /**
- * Visitor that fills in missing bindings of CElaboratedTypes with matching
- * types from the scope (if name and kind match, of course).
+ * Visitor that fills in missing bindings of CElaboratedTypes with matching types from the scope (if
+ * name and kind match, of course).
  */
 class FillInAllBindingsVisitor extends DefaultCTypeVisitor<@Nullable Void, NoException> {
 
@@ -35,7 +35,6 @@ class FillInAllBindingsVisitor extends DefaultCTypeVisitor<@Nullable Void, NoExc
   FillInAllBindingsVisitor(Scope pScope, ProgramDeclarations pProgramDeclarations) {
     scope = pScope;
     programDeclarations = pProgramDeclarations;
-
   }
 
   @Override
@@ -63,10 +62,12 @@ class FillInAllBindingsVisitor extends DefaultCTypeVisitor<@Nullable Void, NoExc
 
       @Nullable CComplexType realType = scope.lookupType(pElaboratedType.getQualifiedName());
       while (realType instanceof CElaboratedType) {
-        realType = ((CElaboratedType)realType).getRealType();
+        realType = ((CElaboratedType) realType).getRealType();
       }
       if (realType == null) {
-        realType = programDeclarations.lookupType(pElaboratedType.getQualifiedName(), pElaboratedType.getOrigName());
+        realType =
+            programDeclarations.lookupType(
+                pElaboratedType.getQualifiedName(), pElaboratedType.getOrigName());
       }
       if (realType != null) {
         pElaboratedType.setRealType(realType);

@@ -10,18 +10,16 @@ package org.sosy_lab.cpachecker.util.globalinfo;
 
 import java.util.HashMap;
 import java.util.Map;
-
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonInternalState;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
-
 
 public class AutomatonInfo {
   private final Map<Integer, AutomatonInternalState> idToState;
   private final Map<String, ControlAutomatonCPA> nameToCPA;
 
   AutomatonInfo() {
-    idToState= new HashMap<>();
+    idToState = new HashMap<>();
     nameToCPA = new HashMap<>();
   }
 

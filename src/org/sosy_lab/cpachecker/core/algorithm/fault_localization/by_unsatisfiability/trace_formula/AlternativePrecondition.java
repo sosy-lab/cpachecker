@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiab
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -18,6 +19,7 @@ import org.sosy_lab.common.collect.MapsDifference;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaEntryList.FormulaEntry;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula.PreCondition;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -41,7 +43,7 @@ public class AlternativePrecondition {
    * @param pEntries all available entries based on the counterexample
    * @return conjunct of the alternative precondition with the default precondition
    */
-  public static BooleanFormula of(
+  public static PreCondition of(
       List<String> pFilter,
       List<String> pIgnore,
       BooleanFormula pDefaultPrecondition,
@@ -53,22 +55,26 @@ public class AlternativePrecondition {
     pEntries.addEntry(0, new FormulaEntryList.PreconditionEntry(altpre.preConditionMap));
     BooleanFormulaManager bmgr =
         pFormulaContext.getSolver().getFormulaManager().getBooleanFormulaManager();
-    return bmgr.and(altpre.toFormula(), pDefaultPrecondition);
+    return new PreCondition(
+        altpre.preConditionEdges, bmgr.and(altpre.toFormula(), pDefaultPrecondition));
   }
 
   static class AlternativePreconditionHelper {
 
     private final Map<Formula, Integer> variableToIndexMap;
     private final List<BooleanFormula> preCondition;
+    private final Set<CFAEdge> preConditionEdges;
     private final List<String> ignore;
     private final List<String> filter;
     private SSAMap preConditionMap;
     private final FormulaContext context;
 
-    private AlternativePreconditionHelper(FormulaContext pContext, List<String> pIgnore, List<String> pFilter) {
+    private AlternativePreconditionHelper(
+        FormulaContext pContext, List<String> pIgnore, List<String> pFilter) {
       context = pContext;
       variableToIndexMap = new HashMap<>();
       preCondition = new ArrayList<>();
+      preConditionEdges = new HashSet<>();
       preConditionMap = SSAMap.emptySSAMap();
       ignore = pIgnore;
       filter = pFilter;
@@ -103,6 +109,7 @@ public class AlternativePrecondition {
                 toMerge,
                 MapsDifference.collectMapsDifferenceTo(new ArrayList<>()));
         preCondition.add(formula);
+        preConditionEdges.add(edge);
         return true;
       }
       return false;

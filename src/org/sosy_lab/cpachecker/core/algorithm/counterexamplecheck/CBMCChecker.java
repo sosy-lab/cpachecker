@@ -56,23 +56,31 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
 
   private final Timer cbmcTime = new Timer();
 
-  @Option(secure=true, name = "cbmc.dumpCBMCfile",
-      description = "File name where to put the path program that is generated "
-      + "as input for CBMC. A temporary file is used if this is unspecified. "
-      + "If specified, the file name should end with '.i' because otherwise CBMC runs the pre-processor on the file.")
+  @Option(
+      secure = true,
+      name = "cbmc.dumpCBMCfile",
+      description =
+          "File name where to put the path program that is generated as input for CBMC. A temporary"
+              + " file is used if this is unspecified. If specified, the file name should end with"
+              + " '.i' because otherwise CBMC runs the pre-processor on the file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private @Nullable Path cbmcFile;
 
-  @Option(secure=true, name="cbmc.timelimit",
-      description="maximum time limit for CBMC (use milliseconds or specify a unit; 0 for infinite)")
-  @TimeSpanOption(codeUnit=TimeUnit.MILLISECONDS,
-        defaultUserUnit=TimeUnit.MILLISECONDS,
-        min=0)
+  @Option(
+      secure = true,
+      name = "cbmc.timelimit",
+      description =
+          "maximum time limit for CBMC (use milliseconds or specify a unit; 0 for infinite)")
+  @TimeSpanOption(
+      codeUnit = TimeUnit.MILLISECONDS,
+      defaultUserUnit = TimeUnit.MILLISECONDS,
+      min = 0)
   private TimeSpan timelimit = TimeSpan.ofMillis(0);
 
   private final MachineModel machineModel;
 
-  public CBMCChecker(Configuration config, LogManager logger, CFA cfa) throws InvalidConfigurationException {
+  public CBMCChecker(Configuration config, LogManager logger, CFA cfa)
+      throws InvalidConfigurationException {
     this.logger = logger;
 
     if (cfa.getLanguage() == Language.JAVA) {
@@ -80,12 +88,13 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
     }
 
     config.inject(this);
-    this.machineModel = cfa.getMachineModel();
+    machineModel = cfa.getMachineModel();
   }
 
   @Override
-  public boolean checkCounterexample(ARGState pRootState, ARGState pErrorState,
-      Set<ARGState> pErrorPathStates) throws CPAException, InterruptedException {
+  public boolean checkCounterexample(
+      ARGState pRootState, ARGState pErrorState, Set<ARGState> pErrorPathStates)
+      throws CPAException, InterruptedException {
 
     if (cbmcFile != null) {
       return checkCounterexample(pRootState, pErrorPathStates, cbmcFile);
@@ -99,13 +108,15 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
         return checkCounterexample(pRootState, pErrorPathStates, tempFile.toPath());
 
       } catch (IOException e) {
-        throw new CounterexampleAnalysisFailed("Could not create temporary file " + e.getMessage(), e);
+        throw new CounterexampleAnalysisFailed(
+            "Could not create temporary file " + e.getMessage(), e);
       }
     }
   }
 
-  private boolean checkCounterexample(ARGState pRootState,
-      Set<ARGState> pErrorPathStates, Path cFile) throws CPAException, InterruptedException {
+  private boolean checkCounterexample(
+      ARGState pRootState, Set<ARGState> pErrorPathStates, Path cFile)
+      throws CPAException, InterruptedException {
     assert cFile != null;
 
     Appender pathProgram = PathToCTranslator.translatePaths(pRootState, pErrorPathStates);
@@ -114,7 +125,8 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
     try (Writer w = IO.openOutputFile(cFile, Charset.defaultCharset())) {
       pathProgram.appendTo(w);
     } catch (IOException e) {
-      throw new CounterexampleAnalysisFailed("Could not write path program to file " + e.getMessage(), e);
+      throw new CounterexampleAnalysisFailed(
+          "Could not write path program to file " + e.getMessage(), e);
     }
 
     String mainFunctionName = extractLocation(pRootState).getFunctionName();
@@ -158,21 +170,25 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
 
     if (!cbmc.producedErrorOutput()) {
       switch (exitCode) {
-      case 0: // Verification successful (Path is infeasible)
-        return false;
+        case 0: // Verification successful (Path is infeasible)
+          return false;
 
-      case 10: // Verification failed (Path is feasible)
-        return true;
+        case 10: // Verification failed (Path is feasible)
+          return true;
 
-      default:
+        default:
       }
 
     } else {
-      logger.log(Level.WARNING, "CBMC returned successfully, but printed warnings, ignoring the result. Please check the log above!");
+      logger.log(
+          Level.WARNING,
+          "CBMC returned successfully, but printed warnings, ignoring the result. Please check the"
+              + " log above!");
     }
 
     // exit code and stderr are already logged with level WARNING
-    throw new CounterexampleAnalysisFailed("CBMC could not verify the program (CBMC exit code was " + exitCode + ")!");
+    throw new CounterexampleAnalysisFailed(
+        "CBMC could not verify the program (CBMC exit code was " + exitCode + ")!");
   }
 
   private List<String> getParamForMachineModel() {
@@ -189,8 +205,8 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
       case ARM:
         // Same as for LINUX64
         return ImmutableList.of("--i386-linux", "--arch", "arm");
-    default:
-      throw new AssertionError("Unknown machine model value " + machineModel);
+      default:
+        throw new AssertionError("Unknown machine model value " + machineModel);
     }
   }
 

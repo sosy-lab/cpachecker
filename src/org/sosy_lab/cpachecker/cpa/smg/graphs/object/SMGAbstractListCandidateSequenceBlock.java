@@ -77,8 +77,7 @@ public abstract class SMGAbstractListCandidateSequenceBlock<S> implements SMGAbs
     if (!(obj instanceof SMGAbstractListCandidateSequenceBlock<?>)) {
       return false;
     }
-    SMGAbstractListCandidateSequenceBlock<?> other =
-        (SMGAbstractListCandidateSequenceBlock<?>) obj;
+    SMGAbstractListCandidateSequenceBlock<?> other = (SMGAbstractListCandidateSequenceBlock<?>) obj;
     return length == other.length
         && Objects.equals(pointerToStartObject, other.pointerToStartObject)
         && Objects.equals(shape, other.shape);

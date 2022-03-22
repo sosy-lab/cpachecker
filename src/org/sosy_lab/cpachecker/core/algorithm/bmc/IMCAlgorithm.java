@@ -179,7 +179,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       // BMC
       try (ProverEnvironment bmcProver =
           solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-        BooleanFormula targetFormula = InterpolationHelper.buildReachTargetStateFormula(bfmgr, pReachedSet);
+        BooleanFormula targetFormula =
+            InterpolationHelper.buildReachTargetStateFormula(bfmgr, pReachedSet);
         bmcProver.push(targetFormula);
         boolean isTargetStateReachable = !bmcProver.isUnsat();
         if (isTargetStateReachable) {

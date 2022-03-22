@@ -17,9 +17,9 @@ import javax.management.RuntimeErrorException;
 
 public final class ProcessCpuTime {
 
-  private ProcessCpuTime() { }
+  private ProcessCpuTime() {}
 
-  //necessary stuff to query the OperatingSystemMBean for the process cpu time
+  // necessary stuff to query the OperatingSystemMBean for the process cpu time
   private static final MBeanServer mbeanServer = ManagementFactory.getPlatformMBeanServer();
   private static final ObjectName osMbean;
   private static final String PROCESS_CPU_TIME = "ProcessCpuTime";
@@ -34,9 +34,8 @@ public final class ProcessCpuTime {
   }
 
   /**
-   * Read the cpu time this process has consumed so far.
-   * This relies on a feature of the JVM and the OS
-   * that might be not available in all circumstances.
+   * Read the cpu time this process has consumed so far. This relies on a feature of the JVM and the
+   * OS that might be not available in all circumstances.
    *
    * @return A time measured in nanoseconds (positive value).
    * @throws JMException If the operation is unsupported.
@@ -53,7 +52,7 @@ public final class ProcessCpuTime {
       throw new JMException("Invalid value received for cpu time: " + cputime);
     }
 
-    long time = (Long)cputime;
+    long time = (Long) cputime;
     if (time < 0) {
       // value might be -1 if unsupported
       throw new JMException("Current platform does not support reading the process cpu time");

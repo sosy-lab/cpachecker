@@ -12,14 +12,11 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
- * Interface to implement in order for an abstract state
- * to be able to be over-approximated by a formula representing
- * the abstract state.
+ * Interface to implement in order for an abstract state to be able to be over-approximated by a
+ * formula representing the abstract state.
  */
 public interface FormulaReportingState extends AbstractState {
 
-  /**
-   * Returns a non-instantiated formula over-approximating the state.
-   */
+  /** Returns a non-instantiated formula over-approximating the state. */
   BooleanFormula getFormulaApproximation(FormulaManagerView manager);
 }

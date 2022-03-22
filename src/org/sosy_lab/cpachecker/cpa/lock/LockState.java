@@ -45,9 +45,9 @@ public final class LockState extends AbstractLockState {
     }
 
     @Override
-    public int compareTo(CompatibleState pArg0) {
-      Preconditions.checkArgument(pArg0 instanceof LockTreeNode);
-      LockTreeNode o = (LockTreeNode) pArg0;
+    public int compareTo(CompatibleState pOther) {
+      Preconditions.checkArgument(pOther instanceof LockTreeNode);
+      LockTreeNode o = (LockTreeNode) pOther;
       int result = size() - o.size();
       if (result != 0) {
         return result;
@@ -69,7 +69,7 @@ public final class LockState extends AbstractLockState {
       LockTreeNode o = (LockTreeNode) pNode;
 
       // empty locks do not cover all others (special case
-      if (this.isEmpty()) {
+      if (isEmpty()) {
         return o.isEmpty();
       } else {
         return o.containsAll(this);
@@ -239,7 +239,6 @@ public final class LockState extends AbstractLockState {
           mutableLocks.put(lockId, rootLocks.get(lockId));
         }
       }
-
     }
 
     @Override
@@ -262,7 +261,7 @@ public final class LockState extends AbstractLockState {
 
   LockState(Map<LockIdentifier, Integer> gLocks, LockState state) {
     super(state);
-    this.locks = ImmutableMap.copyOf(gLocks);
+    locks = ImmutableMap.copyOf(gLocks);
   }
 
   @Override
@@ -314,7 +313,7 @@ public final class LockState extends AbstractLockState {
   public int compareTo(CompatibleState pOther) {
     LockState other = (LockState) pOther;
 
-    int result = other.getSize() - this.getSize(); // decreasing queue
+    int result = other.getSize() - getSize(); // decreasing queue
 
     if (result != 0) {
       return result;
@@ -409,7 +408,7 @@ public final class LockState extends AbstractLockState {
     Map<LockIdentifier, Integer> overlappedMap = new TreeMap<>();
     Map<LockIdentifier, Integer> otherMap = ((LockState) pOther).locks;
 
-    for (Entry<LockIdentifier, Integer> entry : this.locks.entrySet()) {
+    for (Entry<LockIdentifier, Integer> entry : locks.entrySet()) {
       LockIdentifier id = entry.getKey();
       Integer value = entry.getValue();
       if (otherMap.containsKey(id)) {
@@ -417,6 +416,6 @@ public final class LockState extends AbstractLockState {
         overlappedMap.put(id, Integer.min(value, otherVal));
       }
     }
-    return new LockState(overlappedMap, (LockState) this.toRestore);
+    return new LockState(overlappedMap, (LockState) toRestore);
   }
 }

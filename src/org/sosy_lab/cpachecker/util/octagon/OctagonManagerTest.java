@@ -39,5 +39,4 @@ public class OctagonManagerTest {
     assertThat(manager.num_get_int(num, 0)).isEqualTo(3);
     assertThat(manager.num_get_float(num, 0)).isWithin(0).of(3.3);
   }
-
 }

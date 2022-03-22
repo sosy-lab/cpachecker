@@ -57,7 +57,7 @@ final class SMGJoinValues {
   private boolean recoverable;
 
   private boolean joinValuesIdentical(SMGValue pV1, SMGValue pV2) {
-    if (pV1.equals(pV2) ) {
+    if (pV1.equals(pV2)) {
       value = pV1;
       defined = true;
       return true;
@@ -87,7 +87,7 @@ final class SMGJoinValues {
 
       SMGValue newValue;
 
-      if(pV1.equals(pV2)) {
+      if (pV1.equals(pV2)) {
         newValue = pV1;
       } else {
         newValue = SMGKnownSymValue.of();
@@ -110,7 +110,6 @@ final class SMGJoinValues {
             status = status.updateWith(v2isLessOrEqualV1);
           }
         }
-
       }
 
       if (pLevelV1 - pLevelV2 < lDiff) {
@@ -298,19 +297,19 @@ final class SMGJoinValues {
     if (joinValuesPointers(
         pValue1, pValue2, levelV1, levelV2, pLDiff, identicalInputSmg, pLevelMap)) {
 
-      if(defined) {
+      if (defined) {
         abstractionCandidates = ImmutableList.of();
         recoverable = false;
         return;
       }
 
-      if(recoverable) {
+      if (recoverable) {
 
         // Algorithm 5 from FIT-TR-2012-04, line 6
         SMGObject target1 = inputSMG1.getObjectPointedBy(pValue1);
         SMGObject target2 = inputSMG2.getObjectPointedBy(pValue2);
 
-        if(target1.isAbstract() || target2.isAbstract()) {
+        if (target1.isAbstract() || target2.isAbstract()) {
 
           // Algorithm 5 from FIT-TR-2012-04, line 7
           if (target1.getKind() == SMGObjectKind.DLL || target1.getKind() == SMGObjectKind.SLL) {
@@ -331,8 +330,8 @@ final class SMGJoinValues {
                     identicalInputSmg,
                     pPrevDestLevel);
 
-            if(result.getSecond()) {
-              if(result.getFirst()) {
+            if (result.getSecond()) {
+              if (result.getFirst()) {
                 return;
               }
             } else {
@@ -360,8 +359,8 @@ final class SMGJoinValues {
                     identicalInputSmg,
                     pPrevDestLevel);
 
-            if(result.getSecond()) {
-              if(result.getFirst()) {
+            if (result.getSecond()) {
+              if (result.getFirst()) {
                 return;
               }
             } else {
@@ -388,8 +387,8 @@ final class SMGJoinValues {
                 identicalInputSmg,
                 pPrevDestLevel);
 
-        if(result.getSecond()) {
-          if(result.getFirst()) {
+        if (result.getSecond()) {
+          if (result.getFirst()) {
             return;
           }
         } else {
@@ -413,8 +412,8 @@ final class SMGJoinValues {
                 identicalInputSmg,
                 pPrevDestLevel);
 
-        if(result.getSecond()) {
-          if(result.getFirst()) {
+        if (result.getSecond()) {
+          if (result.getFirst()) {
             return;
           }
         } else {
@@ -465,7 +464,7 @@ final class SMGJoinValues {
     /*Optional objects may be pointed to by one offset.*/
     Set<SMGEdgePointsTo> pointedToTarget = SMGUtils.getPointerToThisObject(pTarget, pInputSMG2);
 
-    if(pointedToTarget.size() != 1) {
+    if (pointedToTarget.size() != 1) {
       return Pair.of(false, true);
     }
 
@@ -501,26 +500,27 @@ final class SMGJoinValues {
       }
     }
 
-    if(nextPointer == null) {
+    if (nextPointer == null) {
       return Pair.of(false, true);
     }
 
     /*Check if pointer was already joint*/
     if (mapping2.containsKey(pTarget)) {
       if (mapping2.containsKey(pValue2)) {
-        this.value = mapping2.get(pValue2);
-        this.defined = true;
-        this.inputSMG1 = pInputSMG1;
-        this.inputSMG2 = pInputSMG2;
-        this.destSMG = pDestSMG;
-        this.status = pStatus;
+        value = mapping2.get(pValue2);
+        defined = true;
+        inputSMG1 = pInputSMG1;
+        inputSMG2 = pInputSMG2;
+        destSMG = pDestSMG;
+        status = pStatus;
         return Pair.of(true, true);
       } else {
         return Pair.of(false, true);
       }
     }
 
-    int level = getLevelOfOptionalObject(pValue2, pLevelMap, inputSMG2, mapping2, pLevelV1, pLevelV2);
+    int level =
+        getLevelOfOptionalObject(pValue2, pLevelMap, inputSMG2, mapping2, pLevelV1, pLevelV2);
 
     SMGLevelMapping newLevelMap = new SMGLevelMapping();
     newLevelMap.putAll(pLevelMap);
@@ -533,14 +533,18 @@ final class SMGJoinValues {
 
     /*Create pointer to optional object.*/
     SMGValue resultPointer = SMGKnownSymValue.of();
-    SMGEdgePointsTo newJointPtEdge = new SMGEdgePointsTo(resultPointer, optionalObject, pointedToTargetEdge.getOffset(), SMGTargetSpecifier.OPT);
+    SMGEdgePointsTo newJointPtEdge =
+        new SMGEdgePointsTo(
+            resultPointer, optionalObject, pointedToTargetEdge.getOffset(), SMGTargetSpecifier.OPT);
     pDestSMG.addValue(resultPointer);
     pDestSMG.addPointsToEdge(newJointPtEdge);
     mapping2.map(pValue2, resultPointer);
     pDestSMG.setValidity(optionalObject, pInputSMG2.isObjectValid(pTarget));
 
-    SMGJoinStatus newJoinStatus = pTarget.getKind() == SMGObjectKind.OPTIONAL
-        ? SMGJoinStatus.RIGHT_ENTAIL : SMGJoinStatus.INCOMPARABLE;
+    SMGJoinStatus newJoinStatus =
+        pTarget.getKind() == SMGObjectKind.OPTIONAL
+            ? SMGJoinStatus.RIGHT_ENTAIL
+            : SMGJoinStatus.INCOMPARABLE;
 
     SMGJoinStatus updatedStatus = pStatus.updateWith(newJoinStatus);
 
@@ -571,17 +575,17 @@ final class SMGJoinValues {
       newAddressFromOptionalObject = jv.getValue();
 
       /*No double optional objects for the same address.*/
-      if (pDestSMG.getPointer(newAddressFromOptionalObject)
-          .getTargetSpecifier() == SMGTargetSpecifier.OPT) {
+      if (pDestSMG.getPointer(newAddressFromOptionalObject).getTargetSpecifier()
+          == SMGTargetSpecifier.OPT) {
         return Pair.of(false, false);
       }
 
-      this.status = jv.getStatus();
-      this.inputSMG1 = jv.getInputSMG1();
-      this.inputSMG2 = jv.getInputSMG2();
-      this.destSMG = jv.getDestinationSMG();
-      this.value = resultPointer;
-      this.defined = jv.defined;
+      status = jv.getStatus();
+      inputSMG1 = jv.getInputSMG1();
+      inputSMG2 = jv.getInputSMG2();
+      destSMG = jv.getDestinationSMG();
+      value = resultPointer;
+      defined = jv.defined;
 
     } else {
       return Pair.of(false, true);
@@ -647,15 +651,15 @@ final class SMGJoinValues {
           pInputSMG1.getHVEdges(SMGEdgeHasValueFilter.valueFilter(pDisplacedValue));
 
       SMGObject sourceObject = edges.iterator().next().getObject();
-      for(SMGEdgeHasValue edge : edges) {
-        if(edge.getObject() != sourceObject) {
+      for (SMGEdgeHasValue edge : edges) {
+        if (edge.getObject() != sourceObject) {
           return -1;
         }
       }
 
       SMGObject destSmgSourceObject = pDisplacedValueNodeMapping.get(sourceObject);
 
-      if(destSmgSourceObject.isAbstract()) {
+      if (destSmgSourceObject.isAbstract()) {
 
         /*Pick arbitrary offset of edges to see if you should increase the level.*/
         long arbitraryOffset = edges.iterator().next().getOffset();
@@ -713,7 +717,7 @@ final class SMGJoinValues {
 
     if (mapping1.containsKey(pTarget)) {
       SMGObject jointObject = mapping1.get(pTarget);
-      if(mapping2.containsValue(jointObject)) {
+      if (mapping2.containsValue(jointObject)) {
         return Pair.of(false, true);
       }
     }
@@ -721,7 +725,7 @@ final class SMGJoinValues {
     /*Optional objects may be pointed to by one offset.*/
     Set<SMGEdgePointsTo> pointedToTarget = SMGUtils.getPointerToThisObject(pTarget, pInputSMG1);
 
-    if(pointedToTarget.size() != 1) {
+    if (pointedToTarget.size() != 1) {
       return Pair.of(false, true);
     }
 
@@ -757,27 +761,27 @@ final class SMGJoinValues {
       }
     }
 
-    if(nextPointer == null) {
+    if (nextPointer == null) {
       return Pair.of(false, true);
     }
 
     /*Check if pointer was already joint*/
     if (mapping1.containsKey(pTarget)) {
       if (mapping1.containsKey(pValue1)) {
-        this.value = mapping1.get(pValue1);
-        this.defined = true;
-        this.inputSMG1 = pInputSMG1;
-        this.inputSMG2 = pInputSMG2;
-        this.destSMG = pDestSMG;
-        this.status = pStatus;
+        value = mapping1.get(pValue1);
+        defined = true;
+        inputSMG1 = pInputSMG1;
+        inputSMG2 = pInputSMG2;
+        destSMG = pDestSMG;
+        status = pStatus;
         return Pair.of(true, true);
       } else {
         return Pair.of(false, true);
       }
     }
 
-    int level = getLevelOfOptionalObject(pValue1, pLevelMapping, inputSMG1, mapping1, pLevelV1, pLevelV2);
-
+    int level =
+        getLevelOfOptionalObject(pValue1, pLevelMapping, inputSMG1, mapping1, pLevelV1, pLevelV2);
 
     SMGLevelMapping newLevelMap = new SMGLevelMapping();
     newLevelMap.putAll(pLevelMapping);
@@ -791,13 +795,17 @@ final class SMGJoinValues {
 
     /*Create pointer to optional object.*/
     SMGValue resultPointer = SMGKnownSymValue.of();
-    SMGEdgePointsTo newJointPtEdge = new SMGEdgePointsTo(resultPointer, optionalObject, pointedToTargetEdge.getOffset(), SMGTargetSpecifier.OPT);
+    SMGEdgePointsTo newJointPtEdge =
+        new SMGEdgePointsTo(
+            resultPointer, optionalObject, pointedToTargetEdge.getOffset(), SMGTargetSpecifier.OPT);
     pDestSMG.addValue(resultPointer);
     pDestSMG.addPointsToEdge(newJointPtEdge);
     mapping1.map(pValue1, resultPointer);
 
-    SMGJoinStatus newJoinStatus = pTarget.getKind() == SMGObjectKind.OPTIONAL
-        ? SMGJoinStatus.LEFT_ENTAIL : SMGJoinStatus.INCOMPARABLE;
+    SMGJoinStatus newJoinStatus =
+        pTarget.getKind() == SMGObjectKind.OPTIONAL
+            ? SMGJoinStatus.LEFT_ENTAIL
+            : SMGJoinStatus.INCOMPARABLE;
 
     SMGJoinStatus updatedStatus = pStatus.updateWith(newJoinStatus);
 
@@ -828,17 +836,17 @@ final class SMGJoinValues {
       newAddressFromOptionalObject = jv.getValue();
 
       /*No double optional objects for the same address.*/
-      if (pDestSMG.getPointer(newAddressFromOptionalObject)
-          .getTargetSpecifier() == SMGTargetSpecifier.OPT) {
+      if (pDestSMG.getPointer(newAddressFromOptionalObject).getTargetSpecifier()
+          == SMGTargetSpecifier.OPT) {
         return Pair.of(false, false);
       }
 
-      this.status = jv.getStatus();
-      this.inputSMG1 = jv.getInputSMG1();
-      this.inputSMG2 = jv.getInputSMG2();
-      this.destSMG = jv.getDestinationSMG();
-      this.value = resultPointer;
-      this.defined = jv.defined;
+      status = jv.getStatus();
+      inputSMG1 = jv.getInputSMG1();
+      inputSMG2 = jv.getInputSMG2();
+      destSMG = jv.getDestinationSMG();
+      value = resultPointer;
+      defined = jv.defined;
 
     } else {
       return Pair.of(false, true);
@@ -969,18 +977,20 @@ final class SMGJoinValues {
       if (!mapping1.containsKey(pointer1)) {
 
         SMGValue resultPointer = SMGKnownSymValue.of();
-        SMGEdgePointsTo newJointPtEdge = new SMGEdgePointsTo(resultPointer, jointList, ptEdge.getOffset(), ptEdge.getTargetSpecifier());
+        SMGEdgePointsTo newJointPtEdge =
+            new SMGEdgePointsTo(
+                resultPointer, jointList, ptEdge.getOffset(), ptEdge.getTargetSpecifier());
         newDestSMG.addValue(resultPointer);
         newDestSMG.addPointsToEdge(newJointPtEdge);
 
         mapping1.map(pointer1, resultPointer);
       } else {
-        this.value = mapping1.get(pointer1);
-        this.defined = true;
-        this.inputSMG1 = newInputSMG1;
-        this.inputSMG2 = newInputSMG2;
-        this.destSMG = newDestSMG;
-        this.status = newStatus;
+        value = mapping1.get(pointer1);
+        defined = true;
+        inputSMG1 = newInputSMG1;
+        inputSMG2 = newInputSMG2;
+        destSMG = newDestSMG;
+        status = newStatus;
         return Pair.of(true, true);
       }
 
@@ -1003,7 +1013,7 @@ final class SMGJoinValues {
               smgState1,
               smgState2);
 
-      if(jv.isDefined()) {
+      if (jv.isDefined()) {
 
         newStatus = jv.getStatus();
         newInputSMG1 = jv.getInputSMG1();
@@ -1042,9 +1052,11 @@ final class SMGJoinValues {
 
     SMGValue resultPointer = null;
 
-    Set<SMGEdgePointsTo> edges = pDestSMG.getPtEdges(
-        SMGEdgePointsToFilter.targetObjectFilter(list).filterAtTargetOffset(ptEdge.getOffset())
-            .filterByTargetSpecifier(ptEdge.getTargetSpecifier()));
+    Set<SMGEdgePointsTo> edges =
+        pDestSMG.getPtEdges(
+            SMGEdgePointsToFilter.targetObjectFilter(list)
+                .filterAtTargetOffset(ptEdge.getOffset())
+                .filterByTargetSpecifier(ptEdge.getTargetSpecifier()));
 
     if (!edges.isEmpty()) {
       resultPointer = Iterables.getOnlyElement(edges).getValue();
@@ -1053,7 +1065,8 @@ final class SMGJoinValues {
     // Algorithm 9 from FIT-TR-2012-04, line 9
     if (resultPointer == null) {
       resultPointer = SMGKnownSymValue.of();
-      SMGEdgePointsTo newJointPtEdge = new SMGEdgePointsTo(resultPointer, list, ptEdge.getOffset(), ptEdge.getTargetSpecifier());
+      SMGEdgePointsTo newJointPtEdge =
+          new SMGEdgePointsTo(resultPointer, list, ptEdge.getOffset(), ptEdge.getTargetSpecifier());
       newDestSMG.addValue(resultPointer);
       newDestSMG.addPointsToEdge(newJointPtEdge);
       mapping1.map(pointer1, resultPointer);
@@ -1083,13 +1096,13 @@ final class SMGJoinValues {
 
     if (jv.isDefined()) {
 
-      this.status = jv.getStatus();
-      this.inputSMG1 = jv.getInputSMG1();
-      this.inputSMG2 = jv.getInputSMG2();
-      this.destSMG = jv.getDestinationSMG();
+      status = jv.getStatus();
+      inputSMG1 = jv.getInputSMG1();
+      inputSMG2 = jv.getInputSMG2();
+      destSMG = jv.getDestinationSMG();
       newAdressFromDLS = jv.getValue();
-      this.value = resultPointer;
-      this.defined = jv.defined;
+      value = resultPointer;
+      defined = jv.defined;
 
     } else {
       return Pair.of(false, false);
@@ -1236,18 +1249,20 @@ final class SMGJoinValues {
       if (!mapping2.containsKey(pointer2)) {
 
         SMGValue resultPointer = SMGKnownSymValue.of();
-        SMGEdgePointsTo newJointPtEdge = new SMGEdgePointsTo(resultPointer, jointList, ptEdge.getOffset(), ptEdge.getTargetSpecifier());
+        SMGEdgePointsTo newJointPtEdge =
+            new SMGEdgePointsTo(
+                resultPointer, jointList, ptEdge.getOffset(), ptEdge.getTargetSpecifier());
         newDestSMG.addValue(resultPointer);
         newDestSMG.addPointsToEdge(newJointPtEdge);
 
         mapping2.map(pointer2, resultPointer);
       } else {
-        this.value = mapping2.get(pointer2);
-        this.defined = true;
-        this.inputSMG1 = newInputSMG1;
-        this.inputSMG2 = newInputSMG2;
-        this.destSMG = newDestSMG;
-        this.status = newStatus;
+        value = mapping2.get(pointer2);
+        defined = true;
+        inputSMG1 = newInputSMG1;
+        inputSMG2 = newInputSMG2;
+        destSMG = newDestSMG;
+        status = newStatus;
         return Pair.of(true, true);
       }
 
@@ -1270,7 +1285,7 @@ final class SMGJoinValues {
               smgState1,
               smgState2);
 
-      if(jv.isDefined()) {
+      if (jv.isDefined()) {
 
         newStatus = jv.getStatus();
         newInputSMG1 = jv.getInputSMG1();
@@ -1305,17 +1320,20 @@ final class SMGJoinValues {
 
     SMGValue resultPointer = null;
 
-    Set<SMGEdgePointsTo> edges = pDestSMG.getPtEdges(
-        SMGEdgePointsToFilter.targetObjectFilter(list).filterAtTargetOffset(ptEdge.getOffset())
-            .filterByTargetSpecifier(ptEdge.getTargetSpecifier()));
+    Set<SMGEdgePointsTo> edges =
+        pDestSMG.getPtEdges(
+            SMGEdgePointsToFilter.targetObjectFilter(list)
+                .filterAtTargetOffset(ptEdge.getOffset())
+                .filterByTargetSpecifier(ptEdge.getTargetSpecifier()));
 
     if (!edges.isEmpty()) {
       resultPointer = Iterables.getOnlyElement(edges).getValue();
     }
 
-    if(resultPointer == null) {
+    if (resultPointer == null) {
       resultPointer = SMGKnownSymValue.of();
-      SMGEdgePointsTo newJointPtEdge = new SMGEdgePointsTo(resultPointer, list, ptEdge.getOffset(), ptEdge.getTargetSpecifier());
+      SMGEdgePointsTo newJointPtEdge =
+          new SMGEdgePointsTo(resultPointer, list, ptEdge.getOffset(), ptEdge.getTargetSpecifier());
       newDestSMG.addValue(resultPointer);
       newDestSMG.addPointsToEdge(newJointPtEdge);
       mapping2.map(pointer2, resultPointer);
@@ -1344,13 +1362,13 @@ final class SMGJoinValues {
 
     if (jv.isDefined()) {
 
-      this.status = jv.getStatus();
-      this.inputSMG1 = jv.getInputSMG1();
-      this.inputSMG2 = jv.getInputSMG2();
-      this.destSMG = jv.getDestinationSMG();
+      status = jv.getStatus();
+      inputSMG1 = jv.getInputSMG1();
+      inputSMG2 = jv.getInputSMG2();
+      destSMG = jv.getDestinationSMG();
       newAdressFromDLS = jv.getValue();
-      this.value = resultPointer;
-      this.defined = jv.defined;
+      value = resultPointer;
+      defined = jv.defined;
 
     } else {
       return Pair.of(false, false);
@@ -1442,7 +1460,7 @@ final class SMGJoinValues {
 
     for (SMGEdgeHasValue hve : pInputSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pList))) {
 
-      if(hve.getOffset() != pfo && hve.getOffset() != nfo) {
+      if (hve.getOffset() != pfo && hve.getOffset() != nfo) {
 
         SMGValue subDlsValue = hve.getValue();
         SMGValue newVal = subDlsValue;
@@ -1463,13 +1481,14 @@ final class SMGJoinValues {
               copyOfReachedObject = reachedObjectSubSmg.copy(newLevel);
               pMapping.map(reachedObjectSubSmg, copyOfReachedObject);
               ((CLangSMG) pDestSMG).addHeapObject(copyOfReachedObject);
-              pDestSMG.setValidity(copyOfReachedObject, pInputSMG1.isObjectValid(reachedObjectSubSmg));
+              pDestSMG.setValidity(
+                  copyOfReachedObject, pInputSMG1.isObjectValid(reachedObjectSubSmg));
               toBeChecked.add(reachedObjectSubSmg);
             } else {
               copyOfReachedObject = pMapping.get(reachedObjectSubSmg);
             }
 
-            if(pMapping.containsKey(subDlsValue)) {
+            if (pMapping.containsKey(subDlsValue)) {
               newVal = pMapping.get(subDlsValue);
             } else {
               newVal = SMGKnownSymValue.of();
@@ -1483,7 +1502,9 @@ final class SMGJoinValues {
                 newTg = reachedObjectSubSmgPTEdge.getTargetSpecifier();
               }
 
-              SMGEdgePointsTo newPtEdge = new SMGEdgePointsTo(newVal, copyOfReachedObject, reachedObjectSubSmgPTEdge.getOffset(), newTg);
+              SMGEdgePointsTo newPtEdge =
+                  new SMGEdgePointsTo(
+                      newVal, copyOfReachedObject, reachedObjectSubSmgPTEdge.getOffset(), newTg);
               pDestSMG.addPointsToEdge(newPtEdge);
             }
           }
@@ -1508,13 +1529,14 @@ final class SMGJoinValues {
 
     Set<SMGObject> toCheck = new HashSet<>();
 
-    while(!toBeChecked.isEmpty()) {
+    while (!toBeChecked.isEmpty()) {
       toCheck.clear();
       toCheck.addAll(toBeChecked);
       toBeChecked.clear();
 
-      for(SMGObject objToCheck : toCheck) {
-        copyObjectAndNodesIntoDestSMG(objToCheck, toBeChecked, pMapping, pInputSMG1, pDestSMG, pLevelDiff);
+      for (SMGObject objToCheck : toCheck) {
+        copyObjectAndNodesIntoDestSMG(
+            objToCheck, toBeChecked, pMapping, pInputSMG1, pDestSMG, pLevelDiff);
       }
     }
   }
@@ -1553,8 +1575,8 @@ final class SMGJoinValues {
             if (!copyOfReachedObject.equals(SMGNullObject.INSTANCE)) {
               pMapping.map(reachedObjectSubSmg, copyOfReachedObject);
               ((CLangSMG) pDestSMG).addHeapObject(copyOfReachedObject);
-              pDestSMG.setValidity(copyOfReachedObject,
-                  pInputSMG1.isObjectValid(reachedObjectSubSmg));
+              pDestSMG.setValidity(
+                  copyOfReachedObject, pInputSMG1.isObjectValid(reachedObjectSubSmg));
             }
             pToBeChecked.add(reachedObjectSubSmg);
           } else {
@@ -1576,9 +1598,9 @@ final class SMGJoinValues {
               newTg = reachedObjectSubSmgPTEdge.getTargetSpecifier();
             }
 
-            SMGEdgePointsTo newPtEdge = new SMGEdgePointsTo(newVal, copyOfReachedObject,
-                reachedObjectSubSmgPTEdge.getOffset(),
-                newTg);
+            SMGEdgePointsTo newPtEdge =
+                new SMGEdgePointsTo(
+                    newVal, copyOfReachedObject, reachedObjectSubSmgPTEdge.getOffset(), newTg);
             pDestSMG.addPointsToEdge(newPtEdge);
           }
         }
@@ -1628,11 +1650,11 @@ final class SMGJoinValues {
   }
 
   /**
-   * Signifies, if the part of the sub-smg rooted at the
-   * given value can possibly be joined through abstraction.
+   * Signifies, if the part of the sub-smg rooted at the given value can possibly be joined through
+   * abstraction.
    *
-   * @return true, if join is defined, or join through abstraction may be a possibility,
-   * false otherwise.
+   * @return true, if join is defined, or join through abstraction may be a possibility, false
+   *     otherwise.
    */
   public boolean isRecoverable() {
     return recoverable;

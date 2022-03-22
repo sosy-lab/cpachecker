@@ -28,7 +28,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 class DnfTransformation extends BooleanFormulaTransformationVisitor {
 
-  private final static int MAX_CLAUSES = 1_000_000;
+  private static final int MAX_CLAUSES = 1_000_000;
 
   private final ShutdownNotifier shutdownNotifier;
 
@@ -69,8 +69,7 @@ class DnfTransformation extends BooleanFormulaTransformationVisitor {
     ImmutableList<BooleanFormula> clauses = ImmutableList.of(fmgr.makeTrue());
 
     ImmutableList<Set<BooleanFormula>> operands =
-        pProcessedOperands
-            .stream()
+        pProcessedOperands.stream()
             .map(f -> fmgr.toDisjunctionArgs(f, false))
             .sorted(Comparator.comparingInt(Set::size))
             .collect(ImmutableList.toImmutableList());
@@ -83,8 +82,7 @@ class DnfTransformation extends BooleanFormulaTransformationVisitor {
         List<BooleanFormula> tempList = new ArrayList<>();
         for (BooleanFormula clause : clauses) {
           List<BooleanFormula> list =
-              childOperands
-                  .stream()
+              childOperands.stream()
                   .map(co -> fmgr.and(clause, co))
                   .collect(Collectors.toCollection(ArrayList::new));
           for (BooleanFormula bf : list) {

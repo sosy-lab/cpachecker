@@ -19,15 +19,14 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.Pair;
 
 /**
- * Class representing the result of parsing a C file before function calls
- * are bound to their targets.
+ * Class representing the result of parsing a C file before function calls are bound to their
+ * targets.
  *
- * It consists of a map that stores the CFAs for each function and a list of
- * declarations of global variables.
+ * <p>It consists of a map that stores the CFAs for each function and a list of declarations of
+ * global variables.
  *
- * This class is immutable, but it does not ensure that it's content also is.
- * It is recommended to use it only as a "transport" data class, not for
- * permanent storage.
+ * <p>This class is immutable, but it does not ensure that it's content also is. It is recommended
+ * to use it only as a "transport" data class, not for permanent storage.
  */
 public class ParseResult {
 

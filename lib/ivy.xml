@@ -45,12 +45,12 @@ SPDX-License-Identifier: Apache-2.0
         <!-- When adding/changing/removing a runtime dependency, make sure to also update java-runtime-licenses.txt! -->
 
         <!-- SoSy-Lab Common Library -->
-        <dependency org="org.sosy_lab" name="common" rev="0.3000-502-gb581f5d"
+        <dependency org="org.sosy_lab" name="common" rev="0.3000-529-g6152d88"
                     conf="runtime->runtime; contrib->sources"/>
 
         <!-- Google Core Libraries for Java
              Contains a lot of helpful data structures. -->
-        <dependency org="com.google.guava" name="guava" rev="31.0.1-jre"
+        <dependency org="com.google.guava" name="guava" rev="31.1-jre"
                     conf="runtime->default; contrib->sources"/>
 
         <dependency org="org.sosy_lab" name="llvm-j" rev="0.10"
@@ -102,9 +102,9 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Mockito
              Mocking framework for tests. -->
-        <dependency org="org.mockito" name="mockito-core" rev="4.3.1" conf="test->default"/>
+        <dependency org="org.mockito" name="mockito-core" rev="4.4.0" conf="test->default"/>
         <!-- Conflicts with Error Prone 2.11.0, re-enable after new version is available
-        <dependency org="org.mockito" name="mockito-errorprone" rev="4.3.1" conf="build->default"/>
+        <dependency org="org.mockito" name="mockito-errorprone" rev="4.4.0" conf="build->default"/>
         -->
 
         <!-- Antlr
@@ -125,7 +125,7 @@ SPDX-License-Identifier: Apache-2.0
                     conf="test->default; contrib->sources"/>
 
         <!--  Guava-testlib contains many useful testing utilities -->
-        <dependency org="com.google.guava" name="guava-testlib" rev="31.0.1-jre"
+        <dependency org="com.google.guava" name="guava-testlib" rev="31.1-jre"
                     conf="test->default; contrib->sources"/>
 
         <!-- Eclipse CDT and JDT
@@ -147,11 +147,11 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Eclipse JDT Compiler
              For additional compiler warnings. -->
-        <dependency org="org.eclipse.jdt.core.compiler" name="ecj" rev="4.16" conf="build->default"/>
+        <dependency org="org.eclipse.jdt.core.compiler" name="ecj" rev="4.22" conf="build->default"/>
 
         <!-- google-java-format
              A source-code formatter for Java -->
-        <dependency org="com.google.googlejavaformat" name="google-java-format" rev="1.14.0" conf="format-source->default"/>
+        <dependency org="com.google.googlejavaformat" name="google-java-format" rev="1.15.0" conf="format-source->default"/>
 
         <!-- SpotBugs -->
         <dependency org="com.github.spotbugs" name="spotbugs-ant" rev="4.5.3" conf="spotbugs->default"/>
@@ -161,7 +161,7 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Checkstyle -->
         <dependency org="com.github.sevntu-checkstyle" name="sevntu-checks" rev="1.41.0" conf="checkstyle->default"/>
-        <dependency org="com.puppycrawl.tools" name="checkstyle" rev="9.3" conf="checkstyle->default"/>
+        <dependency org="com.puppycrawl.tools" name="checkstyle" rev="10.0" conf="checkstyle->default"/>
 
         <!-- VerifierCloud -->
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>

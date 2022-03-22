@@ -70,9 +70,7 @@ public class PJBDDRegionManager implements RegionManager {
 
   @Override
   public Region fromFormula(
-      BooleanFormula pF,
-      FormulaManagerView fmgr,
-      Function<BooleanFormula, Region> atomToRegion) {
+      BooleanFormula pF, FormulaManagerView fmgr, Function<BooleanFormula, Region> atomToRegion) {
     BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
     if (bfmgr.isFalse(pF)) {
       return makeFalse();
@@ -90,9 +88,7 @@ public class PJBDDRegionManager implements RegionManager {
   public Triple<Region, Region, Region> getIfThenElse(Region f) {
     DD bdd = unwrap(f);
     return Triple.of(
-        wrap(bddCreator.makeIthVar(bdd.getVariable())),
-        wrap(bdd.getHigh()),
-        wrap(bdd.getLow()));
+        wrap(bddCreator.makeIthVar(bdd.getVariable())), wrap(bdd.getHigh()), wrap(bdd.getLow()));
   }
 
   @Override
@@ -199,27 +195,30 @@ public class PJBDDRegionManager implements RegionManager {
     private int cacheSize = 0;
 
     @Option(
-      secure = true,
-      description = "Number of worker threads, Runtime.getRuntime().availableProcessors() default")
+        secure = true,
+        description =
+            "Number of worker threads, Runtime.getRuntime().availableProcessors() default")
     @IntegerOption(min = 1)
     private int threads = Runtime.getRuntime().availableProcessors();
 
     @Option(
-      secure = true,
-      description = "Initial size of the BDD node table in percentage of available Java heap memory (only"
-          + " used if initTableSize is 0).")
+        secure = true,
+        description =
+            "Initial size of the BDD node table in percentage of available Java heap memory (only"
+                + " used if initTableSize is 0).")
     private double initTableRatio = 0.001;
 
     @Option(
-      secure = true,
-      description = "Initial size of the BDD node table, use 0 for size based on initTableRatio.")
+        secure = true,
+        description = "Initial size of the BDD node table, use 0 for size based on initTableRatio.")
     @IntegerOption(min = 0)
     private int initTableSize = 0;
 
     @Option(
-      secure = true,
-      description = "Size of the BDD cache in relation to the node table size (set to 0 to use fixed BDD"
-          + " cache size).")
+        secure = true,
+        description =
+            "Size of the BDD cache in relation to the node table size (set to 0 to use fixed BDD"
+                + " cache size).")
     private double cacheRatio = 0.1;
 
     @Option(secure = true, description = "Use internal a int based bdd representation.")
@@ -267,11 +266,12 @@ public class PJBDDRegionManager implements RegionManager {
         cacheSize = Math.max(cacheSize, 100000);
       }
 
-      if(disableThreadSafety){
+      if (disableThreadSafety) {
         pBuilder.disableThreadSafety();
       }
 
-      pBuilder.setParallelism(tableParallelism)
+      pBuilder
+          .setParallelism(tableParallelism)
           .setVarCount(varCount)
           .setCacheSize(cacheSize)
           .setThreads(threads)
@@ -287,8 +287,7 @@ public class PJBDDRegionManager implements RegionManager {
    * Class for creating BDDs out of a formula. This class directly uses the BDD objects and their
    * manual reference counting, because for large formulas, the
    *
-   * <p>
-   * All visit* methods from this class return methods that have not been ref'ed.
+   * <p>All visit* methods from this class return methods that have not been ref'ed.
    */
   private class FormulaToRegionConverter implements BooleanFormulaVisitor<DD>, AutoCloseable {
 
@@ -298,8 +297,7 @@ public class PJBDDRegionManager implements RegionManager {
     private final Map<BooleanFormula, DD> cache = new HashMap<>();
 
     FormulaToRegionConverter(
-        FormulaManagerView pFmgr,
-        Function<BooleanFormula, Region> pAtomToRegion) {
+        FormulaManagerView pFmgr, Function<BooleanFormula, Region> pAtomToRegion) {
       atomToRegion = pAtomToRegion;
       bfmgr = pFmgr.getBooleanFormulaManager();
     }
@@ -307,7 +305,7 @@ public class PJBDDRegionManager implements RegionManager {
     @Override
     public void close() {
       cache.clear();
-      PJBDDRegionManager.this.bddCreator.shutDown();
+      bddCreator.shutDown();
     }
 
     @Override
@@ -371,8 +369,8 @@ public class PJBDDRegionManager implements RegionManager {
         BooleanFormula pBooleanFormula1,
         BooleanFormula pBooleanFormula2,
         BooleanFormula pBooleanFormula3) {
-      return bddCreator
-          .makeIte(convert(pBooleanFormula1), convert(pBooleanFormula2), convert(pBooleanFormula3));
+      return bddCreator.makeIte(
+          convert(pBooleanFormula1), convert(pBooleanFormula2), convert(pBooleanFormula3));
     }
 
     @Override
@@ -386,8 +384,7 @@ public class PJBDDRegionManager implements RegionManager {
 
     @Override
     public DD visitAtom(
-        BooleanFormula pBooleanFormula,
-        FunctionDeclaration<BooleanFormula> pFunctionDeclaration) {
+        BooleanFormula pBooleanFormula, FunctionDeclaration<BooleanFormula> pFunctionDeclaration) {
       return unwrap(atomToRegion.apply(pBooleanFormula));
     }
 

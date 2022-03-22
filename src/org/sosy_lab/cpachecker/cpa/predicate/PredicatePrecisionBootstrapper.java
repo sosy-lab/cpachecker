@@ -71,7 +71,8 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
       secure = true,
       name = "abstraction.initialPredicates",
       description =
-          "get an initial map of predicates from a list of files (see source doc/examples/predmap.txt for an example)")
+          "get an initial map of predicates from a list of files (see source"
+              + " doc/examples/predmap.txt for an example)")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<Path> predicatesFiles = ImmutableList.of();
 
@@ -91,13 +92,15 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     @Option(
         secure = true,
         description =
-            "Apply location- and function-specific predicates globally (to all locations in the program)")
+            "Apply location- and function-specific predicates globally (to all locations in the"
+                + " program)")
     private boolean applyGlobally = false;
 
     @Option(
         secure = true,
         description =
-            "when reading predicates from file, convert them from Integer- to BV-theory or reverse.")
+            "when reading predicates from file, convert them from Integer- to BV-theory or"
+                + " reverse.")
     private PrecisionConverter encodePredicates = PrecisionConverter.DISABLE;
 
     @Option(secure = true, description = "initial predicates are added as atomic predicates")
@@ -154,8 +157,8 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
 
     config.inject(this);
 
-    this.options = new InitialPredicatesOptions();
-    config.inject(this.options);
+    options = new InitialPredicatesOptions();
+    config.inject(options);
   }
 
   private PredicatePrecision internalPrepareInitialPredicates()
@@ -164,8 +167,9 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     PredicatePrecision result = PredicatePrecision.empty();
 
     if (checkBlockFeasibility) {
-      result = result
-          .addGlobalPredicates(Collections.singleton(abstractionManager.makeFalsePredicate()));
+      result =
+          result.addGlobalPredicates(
+              Collections.singleton(abstractionManager.makeFalsePredicate()));
     }
 
     if (!predicatesFiles.isEmpty()) {
@@ -413,4 +417,5 @@ logger.log(Level.WARNING, Throwables.getStackTraceAsString(pE));
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(statistics);
   }
+
 }

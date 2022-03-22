@@ -6,9 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * The implementation of basic SMG graph data structure.
- */
+/** The implementation of basic SMG graph data structure. */
 @javax.annotation.ParametersAreNonnullByDefault
 @org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
 @org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault

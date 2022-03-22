@@ -35,9 +35,7 @@ public class TestResults {
       throw new AssertionError(
           String.format(
               "Not true that verification result is %s, it is %s. Log output was:%n---%n%s%n---",
-              expected,
-              checkerResult.getResult(),
-              log.trim()));
+              expected, checkerResult.getResult(), log.trim()));
     }
   }
 

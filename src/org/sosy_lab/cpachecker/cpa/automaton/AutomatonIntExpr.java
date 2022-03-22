@@ -33,7 +33,7 @@ interface AutomatonIntExpr extends AutomatonExpression<Integer> {
     private final ResultValue<Integer> constantResult;
 
     public Constant(int pI) {
-      this.constantResult = new ResultValue<>(pI);
+      constantResult = new ResultValue<>(pI);
     }
 
     public Constant(String pI) {
@@ -78,7 +78,7 @@ interface AutomatonIntExpr extends AutomatonExpression<Integer> {
         // throws a NumberFormatException and this is good!
         Integer.parseInt(pId.substring(2));
       }
-      this.varId = pId;
+      varId = pId;
     }
 
     @Override

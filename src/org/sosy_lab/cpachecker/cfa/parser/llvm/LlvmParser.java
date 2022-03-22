@@ -59,7 +59,7 @@ public class LlvmParser implements Parser {
   protected ParseResult parseFile(final Path pFilename) throws LLVMParserException {
     addLlvmLookupDirs();
     try (Context llvmContext = Context.create();
-        Module llvmModule = Module.parseIR(pFilename.toString(), llvmContext)) {
+         Module llvmModule = Module.parseIR(pFilename.toString(), llvmContext)) {
       parseTimer.start();
       return buildCfa(llvmModule, pFilename);
 
@@ -103,7 +103,8 @@ public class LlvmParser implements Parser {
   }
 
   @Override
-  public ParseResult parseString(final Path pFilename, final String pCode) {
+  public ParseResult parseString(final Path pFilename, final String pCode)
+      throws ParserException, InterruptedException {
     // TODO
     throw new UnsupportedOperationException();
   }

@@ -79,7 +79,10 @@ public class FaultLocalizationWithTraceFormula
     implements Algorithm, StatisticsProvider, Statistics {
 
   public enum AlgorithmTypes {
-    UNSAT, MAXSAT, MAXORG, ERRINV
+    UNSAT,
+    MAXSAT,
+    MAXORG,
+    ERRINV
   }
 
   private final Algorithm algorithm;
@@ -92,8 +95,7 @@ public class FaultLocalizationWithTraceFormula
   private final FaultLocalizerWithTraceFormula faultAlgorithm;
   private final StatTimer totalTime = new StatTimer("Total time for fault localization");
 
-  @Option(secure=true, name="type",
-      description="which algorithm to use")
+  @Option(secure = true, name = "type", description = "which algorithm to use")
   private AlgorithmTypes algorithmType = AlgorithmTypes.UNSAT;
 
   @Option(
@@ -103,11 +105,14 @@ public class FaultLocalizationWithTraceFormula
           "disable flow-sensitive trace formula (may increase runtime)") // can decrease runtime
   private boolean disableFSTF = false;
 
-  @Option(secure=true, name="maxsat.ban",
-      description="Do not show faults that contain a certain variable. Use, e.g., 'main::x' to ban "
-          + "variable 'x' in the main function. Use, e.g., '::x' to ban all variables named 'x'. "
-          + "This is especially useful to filter specific faults if the first run results "
-          + "in many candidates. To add variables")
+  @Option(
+      secure = true,
+      name = "maxsat.ban",
+      description =
+          "Do not show faults that contain a certain variable. Use, e.g., 'main::x' to ban variable"
+              + " 'x' in the main function. Use, e.g., '::x' to ban all variables named 'x'. This"
+              + " is especially useful to filter specific faults if the first run results in many"
+              + " candidates. To add variables")
   private List<String> ban = ImmutableList.of();
 
   public FaultLocalizationWithTraceFormula(
@@ -118,13 +123,13 @@ public class FaultLocalizationWithTraceFormula
       final ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
 
-    if (!(pStoreAlgorithm instanceof CounterexampleStoreAlgorithm)){
+    if (!(pStoreAlgorithm instanceof CounterexampleStoreAlgorithm)) {
       throw new InvalidConfigurationException("option CounterexampleStoreAlgorithm required");
     }
 
     logger = pLogger;
 
-    //Options
+    // Options
     pConfig.inject(this);
     options = new TraceFormulaOptions(pConfig);
     checkOptions();
@@ -145,7 +150,7 @@ public class FaultLocalizationWithTraceFormula
     bmgr = solver.getFormulaManager().getBooleanFormulaManager();
     context = new FormulaContext(solver, manager, pCfa, logger, pConfig, pShutdownNotifier);
 
-    switch (algorithmType){
+    switch (algorithmType) {
       case MAXORG:
         faultAlgorithm = new OriginalMaxSatAlgorithm();
         break;
@@ -158,11 +163,12 @@ public class FaultLocalizationWithTraceFormula
       case UNSAT:
         faultAlgorithm = new SingleUnsatCoreAlgorithm();
         break;
-      default: throw new AssertionError("The specified algorithm type does not exist");
+      default:
+        throw new AssertionError("The specified algorithm type does not exist");
     }
   }
 
-  public void checkOptions () throws InvalidConfigurationException {
+  public void checkOptions() throws InvalidConfigurationException {
     if (!algorithmType.equals(AlgorithmTypes.ERRINV) && disableFSTF) {
       throw new InvalidConfigurationException(
           "The option 'disableFSTF' (flow-sensitive trace formula) requires the error invariants"
@@ -170,7 +176,8 @@ public class FaultLocalizationWithTraceFormula
     }
     if (algorithmType.equals(AlgorithmTypes.ERRINV) && !ban.isEmpty()) {
       throw new InvalidConfigurationException(
-          "The option 'ban' cannot be used together with the error invariants algorithm. Use MAX-SAT instead.");
+          "The option 'ban' cannot be used together with the error invariants algorithm. Use"
+              + " MAX-SAT instead.");
     }
     if (!algorithmType.equals(AlgorithmTypes.MAXSAT) && options.isReduceSelectors()) {
       throw new InvalidConfigurationException(
@@ -178,25 +185,29 @@ public class FaultLocalizationWithTraceFormula
     }
     if (!options.getDisable().isEmpty() && algorithmType.equals(AlgorithmTypes.ERRINV)) {
       throw new InvalidConfigurationException(
-          "The option 'ban' is not applicable for the error invariants"
-              + " algorithm");
+          "The option 'ban' is not applicable for the error invariants" + " algorithm");
     }
     if (!options.getDisable().isEmpty()) {
-      if (options.getDisable().stream().anyMatch(variable -> !Pattern.matches(".+::.+", variable))) {
-        throw new InvalidConfigurationException("The option 'traceformula.disable' needs scoped variables."
-            + " Make sure to input the variables with their scope as prefix, e.g. main::x i.e., function::variable.");
+      if (options.getDisable().stream()
+          .anyMatch(variable -> !Pattern.matches(".+::.+", variable))) {
+        throw new InvalidConfigurationException(
+            "The option 'traceformula.disable' needs scoped variables. Make sure to input the"
+                + " variables with their scope as prefix, e.g. main::x i.e., function::variable.");
       }
     }
     if (!options.getIgnore().isEmpty()) {
       if (options.getIgnore().stream().anyMatch(variable -> !Pattern.matches(".+::.+", variable))) {
-        throw new InvalidConfigurationException("The option 'traceformula.ignore' needs scoped variables."
-            + " Make sure to input the variables with their scope as prefix, e.g. main::x, i.e., function::variable.");
+        throw new InvalidConfigurationException(
+            "The option 'traceformula.ignore' needs scoped variables. Make sure to input the"
+                + " variables with their scope as prefix, e.g. main::x, i.e., function::variable.");
       }
     }
     if (!ban.isEmpty()) {
       if (ban.stream().anyMatch(variable -> !Pattern.matches(".+::.+", variable))) {
-        throw new InvalidConfigurationException("The option 'faultlocalization.by_traceformula.ban' needs scoped variables."
-            + " Make sure to input the variables with their scope as prefix, e.g. main::x, i.e., function::variable.");
+        throw new InvalidConfigurationException(
+            "The option 'faultlocalization.by_traceformula.ban' needs scoped variables. Make sure"
+                + " to input the variables with their scope as prefix, e.g. main::x, i.e.,"
+                + " function::variable.");
       }
     }
   }
@@ -221,14 +232,13 @@ public class FaultLocalizationWithTraceFormula
         runAlgorithm(info, faultAlgorithm);
       }
       logger.log(Level.INFO, "Stopping fault localization...");
-    } finally{
+    } finally {
       totalTime.stop();
     }
     return status;
   }
 
-  private void runAlgorithm(
-      CounterexampleInfo pInfo, FaultLocalizerWithTraceFormula pAlgorithm)
+  private void runAlgorithm(CounterexampleInfo pInfo, FaultLocalizerWithTraceFormula pAlgorithm)
       throws CPAException, InterruptedException {
 
     // Run the algorithm and create a CFAPathWithAssumptions to the last reached state.
@@ -251,41 +261,51 @@ public class FaultLocalizationWithTraceFormula
         }
       }
 
-      if(edgeList.isEmpty()){
+      if (edgeList.isEmpty()) {
         logger.log(Level.INFO, "Can't find relevant edges in the error trace.");
         return;
       }
 
-      //Find correct scoring and correct trace formula for the specified algorithm
+      // Find correct scoring and correct trace formula for the specified algorithm
       TraceFormula tf;
       FaultScoring scoring;
-      switch(algorithmType){
+      switch (algorithmType) {
         case MAXORG:
-        case MAXSAT: {
-          tf = new TraceFormula.SelectorTrace(context, options, edgeList);
-          scoring =  FaultRankingUtils.concatHeuristics(
-              new EdgeTypeScoring(),
-              new SetSizeScoring(),
-              new OverallOccurrenceScoring(),
-              new MinimalLineDistanceScoring(edgeList.get(edgeList.size()-1)),
-              new CallHierarchyScoring(edgeList, tf.getPostConditionOffset()));
-          break;
-        }
-        case ERRINV: {
-          tf = disableFSTF ? new TraceFormula.DefaultTrace(context, options, edgeList) : new TraceFormula.FlowSensitiveTrace(context, options, edgeList);
-          scoring = FaultRankingUtils.concatHeuristics(
-              new EdgeTypeScoring(),
-              new CallHierarchyScoring(edgeList, tf.getPostConditionOffset()));
-          break;
-        }
-        case UNSAT: {
-          tf = new TraceFormula.DefaultTrace(context, options, edgeList);
-          scoring = FaultRankingUtils.concatHeuristics(
-              new EdgeTypeScoring(),
-              new CallHierarchyScoring(edgeList, tf.getPostConditionOffset()));
-          break;
-        }
-        default: throw new AssertionError("The specified algorithm type does not exist");
+        case MAXSAT:
+          {
+            tf = new TraceFormula.SelectorTrace(context, options, edgeList);
+            scoring =
+                FaultRankingUtils.concatHeuristics(
+                    new EdgeTypeScoring(),
+                    new SetSizeScoring(),
+                    new OverallOccurrenceScoring(),
+                    new MinimalLineDistanceScoring(edgeList.get(edgeList.size() - 1)),
+                    new CallHierarchyScoring(edgeList, tf.getPostConditionOffset()));
+            break;
+          }
+        case ERRINV:
+          {
+            tf =
+                disableFSTF
+                    ? new TraceFormula.DefaultTrace(context, options, edgeList)
+                    : new TraceFormula.FlowSensitiveTrace(context, options, edgeList);
+            scoring =
+                FaultRankingUtils.concatHeuristics(
+                    new EdgeTypeScoring(),
+                    new CallHierarchyScoring(edgeList, tf.getPostConditionOffset()));
+            break;
+          }
+        case UNSAT:
+          {
+            tf = new TraceFormula.DefaultTrace(context, options, edgeList);
+            scoring =
+                FaultRankingUtils.concatHeuristics(
+                    new EdgeTypeScoring(),
+                    new CallHierarchyScoring(edgeList, tf.getPostConditionOffset()));
+            break;
+          }
+        default:
+          throw new AssertionError("The specified algorithm type does not exist");
       }
 
       if (!tf.isCalculationPossible()) {
@@ -298,7 +318,7 @@ public class FaultLocalizationWithTraceFormula
 
       Set<Fault> errorIndicators = pAlgorithm.run(context, tf);
 
-      if(!algorithmType.equals(AlgorithmTypes.ERRINV)) {
+      if (!algorithmType.equals(AlgorithmTypes.ERRINV)) {
         ban(errorIndicators);
       }
 
@@ -310,6 +330,7 @@ public class FaultLocalizationWithTraceFormula
               errorIndicators,
               scoring,
               tf.getPrecondition(),
+              tf.getPostcondition(),
               context.getSolver().getFormulaManager(),
               pInfo);
 
@@ -320,9 +341,7 @@ public class FaultLocalizationWithTraceFormula
 
       info.getHtmlWriter().hideTypes(InfoType.RANK_INFO);
       info.apply();
-      logger.log(
-          Level.INFO,
-          "Running " + pAlgorithm.getClass().getSimpleName() + ":\n" + info);
+      logger.log(Level.INFO, "Running " + pAlgorithm.getClass().getSimpleName() + ":\n" + info);
 
     } catch (SolverException sE) {
       throw new CPAException(
@@ -333,7 +352,7 @@ public class FaultLocalizationWithTraceFormula
               + " spurious.",
           vE);
     } catch (InvalidConfigurationException iE) {
-      throw new CPAException( "Incomplete analysis because of invalid configuration.", iE);
+      throw new CPAException("Incomplete analysis because of invalid configuration.", iE);
     } catch (IllegalStateException iE) {
       throw new CPAException(
           "The counterexample is spurious. Calculating interpolants is not possible.", iE);
@@ -342,14 +361,15 @@ public class FaultLocalizationWithTraceFormula
 
   /**
    * Ban all faults containing certain variables defined in the option ban.
+   *
    * @param pErrorIndicators result set
    */
   private void ban(Set<Fault> pErrorIndicators) {
     Set<Fault> copy = new HashSet<>(pErrorIndicators);
     for (Fault errorIndicator : copy) {
       for (FaultContribution faultContribution : errorIndicator) {
-        BooleanFormula curr = ((Selector)faultContribution).getEdgeFormula();
-        for (String banned: ban) {
+        BooleanFormula curr = ((Selector) faultContribution).getEdgeFormula();
+        for (String banned : ban) {
           assert banned.contains("::");
           if (curr.toString().contains(banned + "@")) {
             pErrorIndicators.remove(errorIndicator);
@@ -378,8 +398,7 @@ public class FaultLocalizationWithTraceFormula
   }
 
   @Override
-  public void printStatistics(
-      PrintStream out, Result result, UnmodifiableReachedSet reached) {
+  public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
     StatisticsWriter.writingStatisticsTo(out).put(totalTime);
   }
 
@@ -387,5 +406,4 @@ public class FaultLocalizationWithTraceFormula
   public @Nullable String getName() {
     return getClass().getSimpleName();
   }
-
 }

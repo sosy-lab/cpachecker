@@ -18,15 +18,13 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 /**
- * Class implements so called B&B memory model.
- * B&B stands for Rod Burstall and Richard Bornat.
+ * Class implements so called B&B memory model. B&B stands for Rod Burstall and Richard Bornat.
  *
- * In B&B model fields of struct-types can exist in separate memory space from the other fields and
- * pointers of the same type if there is no address-taking of the field in program. Otherwise the
- * field would exist in the memory space with entities mentioned above. That allows to eliminate
- * false positives that are caused by the assumptions made by the analysis due to unknown body
- * of the memory-returning functions.
- *
+ * <p>In B&B model fields of struct-types can exist in separate memory space from the other fields
+ * and pointers of the same type if there is no address-taking of the field in program. Otherwise
+ * the field would exist in the memory space with entities mentioned above. That allows to eliminate
+ * false positives that are caused by the assumptions made by the analysis due to unknown body of
+ * the memory-returning functions.
  */
 class BnBRegionManager extends AbstractMemoryRegionManager implements MemoryRegionManager {
   private static final String GLOBAL = "global";
@@ -41,7 +39,7 @@ class BnBRegionManager extends AbstractMemoryRegionManager implements MemoryRegi
     private final CType type;
 
     GlobalBnBRegion(CType pType) {
-      this.type = pType;
+      type = pType;
     }
 
     @Override
@@ -76,7 +74,6 @@ class BnBRegionManager extends AbstractMemoryRegionManager implements MemoryRegi
       GlobalBnBRegion other = (GlobalBnBRegion) obj;
       return type.equals(other.type);
     }
-
   }
 
   private static final class FieldBnBRegion implements MemoryRegion {
@@ -103,9 +100,13 @@ class BnBRegionManager extends AbstractMemoryRegionManager implements MemoryRegi
 
     @Override
     public String toString() {
-      return "FieldBnBRegion [fieldOwnerType=" + fieldOwnerType
-          + ", fieldType=" + fieldType
-          + ", fieldName=" + fieldName + "]";
+      return "FieldBnBRegion [fieldOwnerType="
+          + fieldOwnerType
+          + ", fieldType="
+          + fieldType
+          + ", fieldName="
+          + fieldName
+          + "]";
     }
 
     @Override
@@ -145,7 +146,7 @@ class BnBRegionManager extends AbstractMemoryRegionManager implements MemoryRegi
       TypeHandlerWithPointerAliasing pTypeHandler) {
     super(pTypeHandler);
     this.fieldRegions = fieldRegions;
-    this.varClassification = var;
+    varClassification = var;
   }
 
   @Override
@@ -156,18 +157,17 @@ class BnBRegionManager extends AbstractMemoryRegionManager implements MemoryRegi
   }
 
   @Override
-  public MemoryRegion makeMemoryRegion(CType pFieldOwnerType, CType pFieldType,
-      String pFieldName) {
+  public MemoryRegion makeMemoryRegion(CType pFieldOwnerType, CType pFieldType, String pFieldName) {
     checkNotNull(pFieldOwnerType);
     checkNotNull(pFieldType);
     checkNotNull(pFieldName);
     CTypeUtils.checkIsSimplified(pFieldOwnerType);
     CTypeUtils.checkIsSimplified(pFieldType);
-    if(fieldRegions.containsEntry(pFieldOwnerType, pFieldName)) {
-      //common case - likely
+    if (fieldRegions.containsEntry(pFieldOwnerType, pFieldName)) {
+      // common case - likely
       return new FieldBnBRegion(pFieldOwnerType, pFieldType, pFieldName);
     } else {
-      //field inside global region - unlikely
+      // field inside global region - unlikely
       return new GlobalBnBRegion(pFieldType);
     }
   }
@@ -177,7 +177,7 @@ class BnBRegionManager extends AbstractMemoryRegionManager implements MemoryRegi
     super.printStatistics(out);
 
     String bnbSize;
-    if(varClassification.isPresent()) {
+    if (varClassification.isPresent()) {
       VariableClassification var = varClassification.orElseThrow();
       int relevantSize = var.getRelevantFields().size();
       int addressedSize = var.getAddressedFields().size();

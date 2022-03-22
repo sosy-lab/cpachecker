@@ -28,7 +28,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -67,11 +66,10 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
-import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaToCVisitor;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
@@ -81,7 +79,7 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
  */
 @Options(prefix = "assumptions")
 public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvider {
-  private static final String FUNCTION_DELIMITER = "::";
+
 
   @Option(secure = true, name = "export", description = "write collected assumptions to file")
   private boolean exportAssumptions = true;
@@ -124,20 +122,23 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   @Option(
       secure = true,
       description =
-          "Add a threshold to the automaton, after so many branches on a path the automaton will be ignored (0 to disable)")
+          "Add a threshold to the automaton, after so many branches on a path the automaton will be"
+              + " ignored (0 to disable)")
   @IntegerOption(min = 0)
   private int automatonBranchingThreshold = 0;
 
   @Option(
       secure = true,
       description =
-          "If it is enabled, automaton does not add assumption which is considered to continue path with corresponding this edge.")
+          "If it is enabled, automaton does not add assumption which is considered to continue path"
+              + " with corresponding this edge.")
   private boolean automatonIgnoreAssumptions = false;
 
   @Option(
       secure = true,
       description =
-          "If it is enabled, check if a state that should lead to false state indeed has successors.")
+          "If it is enabled, check if a state that should lead to false state indeed has"
+              + " successors.")
   private boolean removeNonExploredWithoutSuccessors = false;
 
   @Option(
@@ -157,16 +158,17 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   private final BooleanFormulaManager bfmgr;
   private final CFA cfa;
   private final Configuration config;
+  private final UCAGenerator ucaCollector;
 
   // store only the ids, not the states in order to prevent memory leaks
   private final Set<Integer> exceptionStates = new HashSet<>();
 
   // statistics
   private int automatonStates = 0;
-  private int universalConditionAutomaton = 0;
+  private int universalConditionAutomaton;
 
   private final ConfigurableProgramAnalysis cpa;
-  private final UCAGenerator ucaCollector;
+
   private final ShutdownNotifier shutdownNotifier;
 
   public AssumptionCollectorAlgorithm(
@@ -180,7 +182,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     config.inject(this);
 
     this.logger = logger;
-    this.innerAlgorithm = algo;
+    innerAlgorithm = algo;
     shutdownNotifier = pShutdownNotifier;
     AssumptionStorageCPA asCpa =
         CPAs.retrieveCPAOrFail(pCpa, AssumptionStorageCPA.class, AssumptionStorageCPA.class);
@@ -188,13 +190,14 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       throw new InvalidConfigurationException(
           "ARGCPA needed for for export of assumption automaton in AssumptionCollectionAlgorithm");
     }
-    this.formulaManager = asCpa.getFormulaManager();
-    this.bfmgr = formulaManager.getBooleanFormulaManager();
-    this.exceptionAssumptions = new AssumptionWithLocation(formulaManager);
-    this.cpa = pCpa;
+    formulaManager = asCpa.getFormulaManager();
+    bfmgr = formulaManager.getBooleanFormulaManager();
+    exceptionAssumptions = new AssumptionWithLocation(formulaManager);
+    cpa = pCpa;
     this.cfa = cfa;
     this.config = config;
-    ucaCollector = new UCAGenerator(algo, pCpa, config, logger, cfa, pShutdownNotifier);
+    ucaCollector =
+        new UCAGenerator(algo, pCpa, config, logger, cfa, pShutdownNotifier);
   }
 
   @Override
@@ -398,22 +401,13 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     }
   }
 
-  public Set<AbstractState> getFalseAssumptionStates(UnmodifiableReachedSet pReached) {
-    return AssumptionCollectorAlgorithm.getFalseAssumptionStates(
-        pReached, removeNonExploredWithoutSuccessors, cpa);
-  }
-
-  public static Set<AbstractState> getFalseAssumptionStates(
-      UnmodifiableReachedSet pReached,
-      boolean pRemoveNonExploredWithoutSuccessors,
-      ConfigurableProgramAnalysis pCpa) {
-
+  private Set<AbstractState> getFalseAssumptionStates(UnmodifiableReachedSet pReached) {
     Set<AbstractState> falseAssumptionStates;
-    if (pRemoveNonExploredWithoutSuccessors) {
+    if (removeNonExploredWithoutSuccessors) {
       falseAssumptionStates = Sets.newHashSetWithExpectedSize(pReached.getWaitlist().size());
       for (AbstractState state : pReached.getWaitlist()) {
         try {
-          if (!pCpa.getTransferRelation()
+          if (!cpa.getTransferRelation()
               .getAbstractSuccessors(state, pReached.getPrecision(state))
               .isEmpty()) {
             falseAssumptionStates.add(state);
@@ -586,57 +580,35 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     return numProducedStates;
   }
 
-  public static void addAssumption(
+  private static void addAssumption(
       final Appendable writer,
-      @Nullable final AssumptionStorageState assumptionState,
+      final AssumptionStorageState assumptionState,
       boolean ignoreAssumptions,
-      @Nullable CFANode pCFANode)
+      CFANode pCFANode)
       throws IOException {
-    if (!ignoreAssumptions && Objects.nonNull(assumptionState) && Objects.nonNull(pCFANode)) {
+    if (!ignoreAssumptions) {
       FormulaManagerView fmgr = assumptionState.getFormulaManager();
       final BooleanFormulaManagerView bmgr =
           assumptionState.getFormulaManager().getBooleanFormulaManager();
       BooleanFormula assumption =
           bmgr.and(assumptionState.getAssumption(), assumptionState.getStopFormula());
       if (!bmgr.isTrue(assumption)) {
-        writer.append("ASSUME {");
-        escape(parseAssumptionToString(assumption, fmgr, pCFANode), writer);
-        writer.append("} ");
+        try {
+          ExpressionTree<Object> assumptionTree =
+              ExpressionTrees.fromFormula(assumption, fmgr, pCFANode);
+          // At this point, we know that the InterruptedException is not thrown,
+          // hence, we can continue
+          writer.append("ASSUME {");
+          escape(assumptionTree.toString(), writer);
+          writer.append("} ");
+        } catch (InterruptedException e) {
+          // Nothing to do here, as we simply ignore this assumption if it is not parsable
+        }
       }
     }
   }
 
-  public static String parseAssumptionToString(
-      BooleanFormula pAssumption, FormulaManagerView fMgr, CFANode pLocation) {
-    try {
-      BooleanFormula inv = pAssumption;
-      String prefix = pLocation.getFunctionName() + FUNCTION_DELIMITER;
-
-      inv =
-          fMgr.filterLiterals(
-              inv,
-              e -> {
-                for (String name : fMgr.extractVariableNames(e)) {
-                  if (name.contains(FUNCTION_DELIMITER) && !name.startsWith(prefix)) {
-                    return false;
-                  }
-                }
-                return true;
-              });
-
-      FormulaToCVisitor v = new FormulaToCVisitor(fMgr);
-      boolean isValid = fMgr.visit(inv, v);
-      if (isValid) {
-        return LeafExpression.of(v.getString()).toString();
-      }
-      return ExpressionTrees.getTrue().toString(); // no new invariant
-    } catch (InterruptedException pE) {
-      // TODO: Add logging ?
-      return ExpressionTrees.getTrue().toString(); // no new invariant
-    }
-  }
-
-  public static void finishTransition(
+  private static void finishTransition(
       final Appendable writer,
       final ARGState child,
       final Set<ARGState> relevantStates,
@@ -665,7 +637,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
    * @param s the ARGSTate whose parents should be found
    * @param parentSet the set of ARGStates the parents should be added to
    */
-  public static void findAllParents(ARGState s, Set<ARGState> parentSet) {
+  private static void findAllParents(ARGState s, Set<ARGState> parentSet) {
     Deque<ARGState> toAdd = new ArrayDeque<>();
     toAdd.add(s);
     while (!toAdd.isEmpty()) {
@@ -685,29 +657,27 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     }
   }
 
-  public static void escape(@Nullable String s, Appendable appendTo) throws IOException {
-    if (Objects.nonNull(s)) {
-      for (int i = 0; i < s.length(); i++) {
-        char c = s.charAt(i);
-        switch (c) {
-          case '\r':
-            appendTo.append("\\r");
-            break;
-          case '\n':
-            appendTo.append("\\n");
-            break;
-          case '\"':
-            appendTo.append("\\\"");
-            break;
-          case '\\':
-            appendTo.append("\\\\");
-            break;
-          case '`':
-            break;
-          default:
-            appendTo.append(c);
-            break;
-        }
+  private static void escape(String s, Appendable appendTo) throws IOException {
+    for (int i = 0; i < s.length(); i++) {
+      char c = s.charAt(i);
+      switch (c) {
+        case '\r':
+          appendTo.append("\\r");
+          break;
+        case '\n':
+          appendTo.append("\\n");
+          break;
+        case '\"':
+          appendTo.append("\\\"");
+          break;
+        case '\\':
+          appendTo.append("\\\\");
+          break;
+        case '`':
+          break;
+        default:
+          appendTo.append(c);
+          break;
       }
     }
   }
@@ -777,46 +747,46 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
               logger.logfUserException(Level.WARNING, e, "Could not write to DOT File");
             }
           }
-          if (transformUCA && Objects.nonNull(ucaFile)) {
-            // Generate a universal condition automaton for the output
-            if (!compressAutomaton) {
-              try (Writer w = IO.openOutputFile(ucaFile, Charset.defaultCharset())) {
-                ucaCollector.produceUniversalConditionAutomaton(w, pReached, exceptionStates);
-              } catch (IOException e) {
-                logger.logUserException(Level.WARNING, e, "Could not write uca to file");
-              } catch (CPAException e) {
-                logger.logUserException(
-                    Level.WARNING,
-                    e,
-                    "Could not write uca to file, as no error location is discovered");
-              }
-            } else {
-              ucaFile = ucaFile.resolveSibling(ucaFile.getFileName() + ".gz");
-              try {
-                IO.writeGZIPFile(
-                    ucaFile,
-                    Charset.defaultCharset(),
-                    (Appender)
-                        appendable -> {
-                          try {
-                            ucaCollector.produceUniversalConditionAutomaton(
-                                appendable, pReached, exceptionStates);
-                          } catch (CPAException e) {
-                            logger.logUserException(
-                                Level.WARNING,
-                                e,
-                                "Could not write uca to file, as no error location is discovered");
-                          }
-                        });
-              } catch (IOException e) {
-                logger.logUserException(Level.WARNING, e, "Could not write uca to file");
-              }
+        }
+        if (transformUCA && Objects.nonNull(ucaFile)) {
+          // Generate a universal condition automaton for the output
+          if (!compressAutomaton) {
+            try (Writer w = IO.openOutputFile(ucaFile, Charset.defaultCharset())) {
+              ucaCollector.produceUniversalConditionAutomaton(w, pReached, exceptionStates);
+            } catch (IOException e) {
+              logger.logUserException(Level.WARNING, e, "Could not write uca to file");
+            } catch (CPAException e) {
+              logger.logUserException(
+                  Level.WARNING,
+                  e,
+                  "Could not write uca to file, as no error location is discovered");
             }
-            put(
-                out,
-                "Number of states in UniversalConditionAutomaton",
-                universalConditionAutomaton);
+          } else {
+            ucaFile = ucaFile.resolveSibling(ucaFile.getFileName() + ".gz");
+            try {
+              IO.writeGZIPFile(
+                  ucaFile,
+                  Charset.defaultCharset(),
+                  (Appender)
+                      appendable -> {
+                        try {
+                          ucaCollector.produceUniversalConditionAutomaton(
+                              appendable, pReached, exceptionStates);
+                        } catch (CPAException e) {
+                          logger.logUserException(
+                              Level.WARNING,
+                              e,
+                              "Could not write uca to file, as no error location is discovered");
+                        }
+                      });
+            } catch (IOException e) {
+              logger.logUserException(Level.WARNING, e, "Could not write uca to file");
+            }
           }
+          put(
+              out,
+              "Number of states in UniversalConditionAutomaton",
+              universalConditionAutomaton);
         }
       }
     }

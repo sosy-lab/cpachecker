@@ -20,14 +20,14 @@ import org.sosy_lab.java_smt.api.NumeralFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.java_smt.api.NumeralFormulaManager;
 
-public class NumeralFormulaManagerView
-        <ParamFormulaType extends NumeralFormula, ResultFormulaType extends NumeralFormula>
-        extends BaseManagerView
-        implements NumeralFormulaManager<ParamFormulaType, ResultFormulaType> {
+public class NumeralFormulaManagerView<
+        ParamFormulaType extends NumeralFormula, ResultFormulaType extends NumeralFormula>
+    extends BaseManagerView implements NumeralFormulaManager<ParamFormulaType, ResultFormulaType> {
 
   protected final NumeralFormulaManager<ParamFormulaType, ResultFormulaType> manager;
 
-  NumeralFormulaManagerView(FormulaWrappingHandler pWrappingHandler,
+  NumeralFormulaManagerView(
+      FormulaWrappingHandler pWrappingHandler,
       NumeralFormulaManager<ParamFormulaType, ResultFormulaType> pManager) {
     super(pWrappingHandler);
     this.manager = checkNotNull(pManager);
@@ -52,30 +52,37 @@ public class NumeralFormulaManagerView
   public ResultFormulaType subtract(ParamFormulaType pNumber1, ParamFormulaType pNumber2) {
     return manager.subtract(pNumber1, pNumber2);
   }
+
   @Override
   public ResultFormulaType divide(ParamFormulaType pNumber1, ParamFormulaType pNumber2) {
     return manager.divide(pNumber1, pNumber2);
   }
+
   @Override
   public ResultFormulaType multiply(ParamFormulaType pNumber1, ParamFormulaType pNumber2) {
     return manager.multiply(pNumber1, pNumber2);
   }
+
   @Override
   public BooleanFormula equal(ParamFormulaType pNumber1, ParamFormulaType pNumber2) {
     return manager.equal(pNumber1, pNumber2);
   }
+
   @Override
   public BooleanFormula greaterThan(ParamFormulaType pNumber1, ParamFormulaType pNumber2) {
     return manager.greaterThan(pNumber1, pNumber2);
   }
+
   @Override
   public BooleanFormula greaterOrEquals(ParamFormulaType pNumber1, ParamFormulaType pNumber2) {
     return manager.greaterOrEquals(pNumber1, pNumber2);
   }
+
   @Override
   public BooleanFormula lessThan(ParamFormulaType pNumber1, ParamFormulaType pNumber2) {
     return manager.lessThan(pNumber1, pNumber2);
   }
+
   @Override
   public BooleanFormula lessOrEquals(ParamFormulaType pNumber1, ParamFormulaType pNumber2) {
     return manager.lessOrEquals(pNumber1, pNumber2);
@@ -113,7 +120,7 @@ public class NumeralFormulaManagerView
 
   @Override
   public ResultFormulaType makeNumber(Rational pRational) {
-      return manager.makeNumber(pRational);
+    return manager.makeNumber(pRational);
   }
 
   @Override

@@ -64,18 +64,15 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 /**
  * {@link TerminationLoopInformation} is used by the {@link TerminationAlgorithm} to store
- * information about the termination analysis of a {@link Loop}.
- * {@link TerminationTransferRelation} and {@link TerminationARGPath} use this information
- * to instrument the analyzed program.
+ * information about the termination analysis of a {@link Loop}. {@link TerminationTransferRelation}
+ * and {@link TerminationARGPath} use this information to instrument the analyzed program.
  */
 @NotThreadSafe
 public class TerminationLoopInformation {
 
-  private final static String NON_TERMINATION_LABEL = "__CPACHECKER_NON_TERMINATION";
+  private static final String NON_TERMINATION_LABEL = "__CPACHECKER_NON_TERMINATION";
 
-  /**
-   * The loop that is currently analyzed by the {@link TerminationAlgorithm}
-   */
+  /** The loop that is currently analyzed by the {@link TerminationAlgorithm} */
   private Optional<Loop> loop = Optional.empty();
 
   /**
@@ -94,9 +91,7 @@ public class TerminationLoopInformation {
    */
   private Set<CFAEdge> loopLeavingEdges = ImmutableSet.of();
 
-  /**
-   * The current ranking relation.
-   */
+  /** The current ranking relation. */
   private Optional<RankingRelation> rankingRelation = Optional.empty();
 
   /** Mapping of relevant variables to the corresponding primed variable. */
@@ -154,8 +149,7 @@ public class TerminationLoopInformation {
   /**
    * Adds a new ranking relation that is valid for the loop currently processed.
    *
-   * @param pRankingRelation
-   *            the new {@link RankingRelation}
+   * @param pRankingRelation the new {@link RankingRelation}
    */
   void addRankingRelation(RankingRelation pRankingRelation) {
     rankingRelation =
@@ -165,10 +159,9 @@ public class TerminationLoopInformation {
   /**
    * Sets the loop to check for non-termination. Resets all other stored data.
    *
-   * @param pLoop
-   *        the loop to process
-   * @param pRelevantVariables
-   *        all variables that might be relevant to prove (non-)termination of the given loop.
+   * @param pLoop the loop to process
+   * @param pRelevantVariables all variables that might be relevant to prove (non-)termination of
+   *     the given loop.
    */
   void setProcessedLoop(Loop pLoop, Set<CVariableDeclaration> pRelevantVariables) {
     loop = Optional.of(pLoop);
@@ -207,7 +200,7 @@ public class TerminationLoopInformation {
     targetNode = Optional.of(new CFALabelNode(functionName, NON_TERMINATION_LABEL));
 
     relevantVariablesInitializationIntermediateLocations = intermediateStates.build();
-    relevantVariables = builder.build();
+    relevantVariables = builder.buildOrThrow();
   }
 
   /** Reset the {@link TerminationLoopInformation}. No loop will be checked for non-termination. */
@@ -269,9 +262,7 @@ public class TerminationLoopInformation {
         "Adding declarations of primed variables %s after %s in function %s.",
         MoreStrings.lazyString(
             () ->
-                relevantVariables
-                    .values()
-                    .stream()
+                relevantVariables.values().stream()
                     .map(AbstractSimpleDeclaration::getName)
                     .collect(Collectors.joining(" ,"))),
         startLocation,
@@ -355,9 +346,7 @@ public class TerminationLoopInformation {
     createdCfaEdges.add(edge);
   }
 
-  /**
-   * Removes all temporarily added {@link CFAEdge}s from the CFA.
-   */
+  /** Removes all temporarily added {@link CFAEdge}s from the CFA. */
   public void resetCfa() {
     createdCfaEdges.forEach(CFACreationUtils::removeEdgeFromNodes);
     createdCfaEdges.clear();

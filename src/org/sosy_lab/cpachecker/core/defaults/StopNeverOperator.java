@@ -9,20 +9,17 @@
 package org.sosy_lab.cpachecker.core.defaults;
 
 import java.util.Collection;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-/**
- * Standard stop operator, which always return false
- */
+/** Standard stop operator, which always return false */
 public class StopNeverOperator implements StopOperator {
 
   @Override
   public boolean stop(AbstractState el, Collection<AbstractState> reached, Precision precision)
-    throws CPAException {
+      throws CPAException {
     return false;
   }
 
@@ -31,5 +28,4 @@ public class StopNeverOperator implements StopOperator {
   public static StopOperator getInstance() {
     return instance;
   }
-
 }

@@ -76,7 +76,7 @@ public abstract class SplitInfoState implements AbstractQueryableState {
           splitPart >= 0 && splitPart < numSplitParts,
           "The split part must be in [0,numSplitParts).");
 
-      if(inSplit.length < numSplitParts) {
+      if (inSplit.length < numSplitParts) {
         return this;
       }
 
@@ -168,7 +168,7 @@ public abstract class SplitInfoState implements AbstractQueryableState {
           pSplitPart >= 0 && pSplitPart < pNumSplitParts,
           "The split part must be in [0,numSplitParts).");
 
-      if(inSplit.size() < pNumSplitParts) {
+      if (inSplit.size() < pNumSplitParts) {
         return this;
       }
 

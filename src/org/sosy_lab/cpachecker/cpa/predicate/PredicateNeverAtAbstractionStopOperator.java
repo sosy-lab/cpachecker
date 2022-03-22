@@ -24,7 +24,8 @@ class PredicateNeverAtAbstractionStopOperator implements StopOperator {
   }
 
   @Override
-  public boolean stop(AbstractState pState, Collection<AbstractState> pReached, Precision pPrecision)
+  public boolean stop(
+      AbstractState pState, Collection<AbstractState> pReached, Precision pPrecision)
       throws CPAException, InterruptedException {
     PredicateAbstractState e1 = (PredicateAbstractState) pState;
     for (AbstractState reachedState : pReached) {

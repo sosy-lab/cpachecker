@@ -36,8 +36,8 @@ public final class EqualsExpression extends BinarySymbolicExpression implements 
 
   @Override
   public EqualsExpression copyForLocation(final MemoryLocation pRepresentedLocation) {
-    return new EqualsExpression(getOperand1(), getOperand2(), getType(), getCalculationType(),
-        pRepresentedLocation);
+    return new EqualsExpression(
+        getOperand1(), getOperand2(), getType(), getCalculationType(), pRepresentedLocation);
   }
 
   @Override

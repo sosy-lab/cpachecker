@@ -26,7 +26,9 @@ public class Automata {
         new AutomatonTransition.Builder(AutomatonBoolExpr.MatchLoopStart.INSTANCE, targetState)
             .build();
 
-    AutomatonInternalState initState = new AutomatonInternalState(initStateName, Lists.newArrayList(toInit, toTarget), false, true);
+    AutomatonInternalState initState =
+        new AutomatonInternalState(
+            initStateName, Lists.newArrayList(toInit, toTarget), false, true);
 
     List<AutomatonInternalState> states = Lists.newArrayList(initState, targetState);
 
@@ -42,8 +44,5 @@ public class Automata {
     return LOOP_HEAD_TARGET_AUTOMATON;
   }
 
-  private Automata() {
-
-  }
-
+  private Automata() {}
 }

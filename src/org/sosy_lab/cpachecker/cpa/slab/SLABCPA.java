@@ -42,7 +42,7 @@ public class SLABCPA extends AbstractSingleWrapperCPA {
   private Specification specification;
 
   public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(SLABCPA.class);//.withOptions(BlockOperator.class);
+    return AutomaticCPAFactory.forType(SLABCPA.class); // .withOptions(BlockOperator.class);
   }
 
   private SLABCPA(
@@ -84,7 +84,7 @@ public class SLABCPA extends AbstractSingleWrapperCPA {
 
   @Override
   public StopOperator getStopOperator() {
-    return new SLABStopOperator(this.getAbstractDomain());
+    return new SLABStopOperator(getAbstractDomain());
   }
 
   public PredicateCPA getPredicateCpa() {

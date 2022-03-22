@@ -7,7 +7,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * Formula Slicing: finding inductive sections of the formula under the slice.
- */
+/** Formula Slicing: finding inductive sections of the formula under the slice. */
 package org.sosy_lab.cpachecker.cpa.formulaslicing;

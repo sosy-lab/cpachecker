@@ -67,7 +67,6 @@ import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.java_smt.api.SolverContext;
 
 /** Transfer relation and strengthening for the DumpInvariant CPA */
-@Options(prefix = "cpa.assumptionStorage")
 public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelation {
 
 
@@ -92,18 +91,10 @@ public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelatio
   private final PathFormulaManager pathFormulaManager;
 
   public AssumptionStorageTransferRelation(
-      CtoFormulaConverter pConverter,
-      FormulaManagerView pFormulaManager,
-      AbstractState pTopState,
-      Configuration pConfig,
-      PathFormulaManager pPathFormulaManager, LogManager pLogger)
-      throws InvalidConfigurationException {
-    pConfig.inject(this);
+      CtoFormulaConverter pConverter, FormulaManagerView pFormulaManager, AbstractState pTopState) {
     converter = pConverter;
     formulaManager = pFormulaManager;
     topStateSet = Collections.singleton(pTopState);
-    pathFormulaManager = pPathFormulaManager;
-logger = pLogger;
   }
 
   @Override

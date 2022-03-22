@@ -74,6 +74,7 @@ public class WitnessExporter {
       return factory.or(stateInvariants);
     }
   }
+
   protected final WitnessOptions options;
 
   protected final CFA cfa;
@@ -84,7 +85,6 @@ public class WitnessExporter {
 
   protected final VerificationTaskMetaData verificationTaskMetaData;
 
-
   public WitnessExporter(
       final Configuration pConfig,
       final LogManager pLogger,
@@ -94,9 +94,9 @@ public class WitnessExporter {
     Preconditions.checkNotNull(pConfig);
     options = new WitnessOptions();
     pConfig.inject(options);
-    this.cfa = pCFA;
-    this.logger = pLogger;
-    this.verificationTaskMetaData = new VerificationTaskMetaData(pConfig, pSpecification);
+    cfa = pCFA;
+    logger = pLogger;
+    verificationTaskMetaData = new VerificationTaskMetaData(pConfig, pSpecification);
   }
 
   public ProofInvariantProvider getProofInvariantProvider() {

@@ -36,8 +36,8 @@ public final class LessThanExpression extends BinarySymbolicExpression implement
 
   @Override
   public LessThanExpression copyForLocation(final MemoryLocation pRepresentedLocation) {
-    return new LessThanExpression(getOperand1(), getOperand2(), getType(), getCalculationType(),
-        pRepresentedLocation);
+    return new LessThanExpression(
+        getOperand1(), getOperand2(), getType(), getCalculationType(), pRepresentedLocation);
   }
 
   @Override

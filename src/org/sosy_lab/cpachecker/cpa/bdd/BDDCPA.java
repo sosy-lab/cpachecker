@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.util.predicates.bdd.BDDManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 
-@Options(prefix="cpa.bdd")
+@Options(prefix = "cpa.bdd")
 public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider {
 
   public static CPAFactory factory() {
@@ -58,42 +58,43 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
   private final BitvectorComputer bvComputer;
 
   @Option(
-    secure = true,
-    description = "mergeType",
-    values = {"sep", "join"}
-  )
+      secure = true,
+      description = "mergeType",
+      values = {"sep", "join"})
   private String merge = "join";
 
   @Option(secure = true, description = "max bitsize for values and vars, initial value")
   private int bitsize = 64;
 
   @Option(
-    secure = true,
-    description = "use a smaller bitsize for all vars, that have only intEqual values"
-  )
+      secure = true,
+      description = "use a smaller bitsize for all vars, that have only intEqual values")
   private boolean compressIntEqual = true;
 
   @Option(
-    secure = true,
-    description = "reduce and expand BDD states for BAM, otherwise use plain identity")
+      secure = true,
+      description = "reduce and expand BDD states for BAM, otherwise use plain identity")
   private boolean useBlockAbstraction = false;
 
-  private BDDCPA(CFA pCfa, Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
+  private BDDCPA(
+      CFA pCfa, Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     pConfig.inject(this);
 
-    config            = pConfig;
-    logger            = pLogger;
-    cfa               = pCfa;
-    shutdownNotifier  = pShutdownNotifier;
+    config = pConfig;
+    logger = pLogger;
+    cfa = pCfa;
+    shutdownNotifier = pShutdownNotifier;
 
     RegionManager rmgr = new BDDManagerFactory(config, logger).createRegionManager();
 
-    precision         = VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification(), getClass());
+    precision =
+        VariableTrackingPrecision.createStaticPrecision(
+            config, cfa.getVarClassification(), getClass());
 
-    manager           = new NamedRegionManager(rmgr);
-    bvmgr             = new BitvectorManager(rmgr);
-    predmgr           = new PredicateManager(config, manager, cfa);
+    manager = new NamedRegionManager(rmgr);
+    bvmgr = new BitvectorManager(rmgr);
+    predmgr = new PredicateManager(config, manager, cfa);
     bvComputer =
         new BitvectorComputer(
             compressIntEqual,
@@ -106,7 +107,7 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
   }
 
   public void injectRefinablePrecision() throws InvalidConfigurationException {
-      precision = VariableTrackingPrecision.createRefineablePrecision(config, precision);
+    precision = VariableTrackingPrecision.createRefineablePrecision(config, precision);
   }
 
   public NamedRegionManager getManager() {
@@ -184,6 +185,4 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
   public ShutdownNotifier getShutdownNotifier() {
     return shutdownNotifier;
   }
-
-
 }

@@ -32,11 +32,11 @@ public class ARGMergeJoin implements MergeOperator {
   }
 
   @Override
-  public AbstractState merge(AbstractState pElement1,
-      AbstractState pElement2, Precision pPrecision) throws CPAException, InterruptedException {
+  public AbstractState merge(AbstractState pElement1, AbstractState pElement2, Precision pPrecision)
+      throws CPAException, InterruptedException {
 
-    ARGState argElement1 = (ARGState)pElement1;
-    ARGState argElement2 = (ARGState)pElement2;
+    ARGState argElement1 = (ARGState) pElement1;
+    ARGState argElement2 = (ARGState) pElement2;
 
     assert !argElement1.isCovered() : "Trying to merge covered element " + argElement1;
 
@@ -47,8 +47,10 @@ public class ARGMergeJoin implements MergeOperator {
 
     if (argElement1.getMergedWith() != null) {
       // element was already merged into another element, don't try to widen argElement2
-      // TODO In the optimal case (if all merge & stop operators as well as the reached set partitioning fit well together)
-      // this case shouldn't happen, but it does sometimes (at least with ExplicitCPA+FeatureVarsCPA).
+      // TODO In the optimal case (if all merge & stop operators as well as the reached set
+      // partitioning fit well together)
+      // this case shouldn't happen, but it does sometimes (at least with
+      // ExplicitCPA+FeatureVarsCPA).
       return pElement2;
     }
 

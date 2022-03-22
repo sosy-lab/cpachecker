@@ -6,9 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * Algorithms for bounded model checking and k-induction.
- */
+/** Algorithms for bounded model checking and k-induction. */
 @javax.annotation.ParametersAreNonnullByDefault
 @org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
 @org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault

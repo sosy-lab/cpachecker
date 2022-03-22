@@ -29,10 +29,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-
-
 public class TestTargetProvider implements Statistics {
-
 
   private static TestTargetProvider instance = null;
 
@@ -77,14 +74,11 @@ public class TestTargetProvider implements Statistics {
   }
 
   private Set<CFAEdge> extractEdgesByCriterion(
-      final Predicate<CFAEdge> criterion,
-      final TestTargetAdaption pAdaption,
-      final CFA pCfa) {
+      final Predicate<CFAEdge> criterion, final TestTargetAdaption pAdaption, final CFA pCfa) {
     Set<CFAEdge> edges = new HashSet<>();
     for (CFANode node : cfa.getAllNodes()) {
       edges.addAll(CFAUtils.allLeavingEdges(node).filter(criterion).toSet());
     }
-
 
     numNonOptimizedTargets = edges.size();
 
@@ -178,15 +172,15 @@ public class TestTargetProvider implements Statistics {
     pOut.println("Total time for test goal reduction:     " + optimizationTimer);
 
     if (printTargets) {
-    pOut.println("Initial test targets: ");
-    for (CFAEdge edge : initialTestTargets) {
-      pOut.println(edge.toString());
-    }
+      pOut.println("Initial test targets: ");
+      for (CFAEdge edge : initialTestTargets) {
+        pOut.println(edge.toString());
+      }
 
-    pOut.println("Test targets that have not been covered: ");
-    for (CFAEdge edge : uncoveredTargets) {
-      pOut.println(edge.toString());
-    }
+      pOut.println("Test targets that have not been covered: ");
+      for (CFAEdge edge : uncoveredTargets) {
+        pOut.println(edge.toString());
+      }
     }
   }
 }

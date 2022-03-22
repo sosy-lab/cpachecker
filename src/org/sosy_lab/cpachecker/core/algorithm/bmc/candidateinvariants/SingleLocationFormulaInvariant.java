@@ -39,7 +39,7 @@ public abstract class SingleLocationFormulaInvariant implements CandidateInvaria
 
   protected SingleLocationFormulaInvariant(CFANode pLocation) {
     Preconditions.checkNotNull(pLocation);
-    this.location = pLocation;
+    location = pLocation;
   }
 
   public final CFANode getLocation() {
@@ -176,8 +176,7 @@ public abstract class SingleLocationFormulaInvariant implements CandidateInvaria
     return new SMTLibLocationFormulaInvariant(pLocation, pInvariant);
   }
 
-  private static final class SMTLibLocationFormulaInvariant
-      extends SingleLocationFormulaInvariant {
+  private static final class SMTLibLocationFormulaInvariant extends SingleLocationFormulaInvariant {
 
     /** Is the invariant known to be the boolean constant 'false' */
     private boolean isDefinitelyBooleanFalse = false;

@@ -16,9 +16,7 @@ import java.util.Collection;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
-/**
- * Manages a given partition of a program's CFA into a set of blocks.
- */
+/** Manages a given partition of a program's CFA into a set of blocks. */
 public class BlockPartitioning {
   private final Block mainBlock;
   private final ImmutableMap<CFANode, Block> callNodeToBlock;
@@ -40,10 +38,10 @@ public class BlockPartitioning {
       }
     }
 
-    this.callNodeToBlock = callNodeToSubtree.build();
-    this.returnNodeToBlock = returnNodeToSubtree.build();
-    this.blocks = ImmutableSet.copyOf(subtrees);
-    this.mainBlock = callNodeToBlock.get(mainFunction);
+    callNodeToBlock = callNodeToSubtree.buildOrThrow();
+    returnNodeToBlock = returnNodeToSubtree.build();
+    blocks = ImmutableSet.copyOf(subtrees);
+    mainBlock = callNodeToBlock.get(mainFunction);
   }
 
   /**
@@ -58,6 +56,7 @@ public class BlockPartitioning {
 
   /**
    * Requires <code>isCallNode(node)</code> to be <code>true</code>.
+   *
    * @param node call node of some cached subtree
    * @return Block for given call node
    */

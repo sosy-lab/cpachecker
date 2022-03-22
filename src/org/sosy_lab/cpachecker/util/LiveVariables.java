@@ -82,62 +82,68 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
 public class LiveVariables {
 
   public enum EvaluationStrategy {
-    FUNCTION_WISE, GLOBAL
+    FUNCTION_WISE,
+    GLOBAL
   }
 
   /**
-   * Equivalence implementation especially for the use with live variables. We
-   * have to use this wrapper, because of the storageType in CVariableDeclarations
-   * which does not always have to be the same for exactly the same variable
-   * (e.g. one declaration is extern, and afterwards the real declaration is following which
-   * then has storageType auto: for live variables we need to consider them
-   * as one).
+   * Equivalence implementation especially for the use with live variables. We have to use this
+   * wrapper, because of the storageType in CVariableDeclarations which does not always have to be
+   * the same for exactly the same variable (e.g. one declaration is extern, and afterwards the real
+   * declaration is following which then has storageType auto: for live variables we need to
+   * consider them as one).
    */
-  public static final Equivalence<ASimpleDeclaration> LIVE_DECL_EQUIVALENCE = new Equivalence<>() {
+  public static final Equivalence<ASimpleDeclaration> LIVE_DECL_EQUIVALENCE =
+      new Equivalence<>() {
 
-    @Override
-    protected boolean doEquivalent(ASimpleDeclaration pA, ASimpleDeclaration pB) {
-      if (pA instanceof CVariableDeclaration && pB instanceof CVariableDeclaration) {
-        return ((CVariableDeclaration)pA).equalsWithoutStorageClass(pB);
-      } else {
-        return pA.equals(pB);
-      }
-    }
+        @Override
+        protected boolean doEquivalent(ASimpleDeclaration pA, ASimpleDeclaration pB) {
+          if (pA instanceof CVariableDeclaration && pB instanceof CVariableDeclaration) {
+            return ((CVariableDeclaration) pA).equalsWithoutStorageClass(pB);
+          } else {
+            return pA.equals(pB);
+          }
+        }
 
-    @Override
-    protected int doHash(ASimpleDeclaration pT) {
-      if (pT instanceof CVariableDeclaration) {
-        return ((CVariableDeclaration)pT).hashCodeWithOutStorageClass();
-      } else {
-        return pT.hashCode();
-      }
-    }
-  };
+        @Override
+        protected int doHash(ASimpleDeclaration pT) {
+          if (pT instanceof CVariableDeclaration) {
+            return ((CVariableDeclaration) pT).hashCodeWithOutStorageClass();
+          } else {
+            return pT.hashCode();
+          }
+        }
+      };
 
-  @Options(prefix="liveVar")
+  @Options(prefix = "liveVar")
   private static class LiveVariablesConfiguration {
 
-    @Option(toUppercase=true,
-        description="By changing this option one can adjust the way how"
-            + " live variables are created. Function-wise means that each"
-            + " function is handled separately, global means that the whole"
-            + " cfa is used for the computation.", secure=true)
+    @Option(
+        toUppercase = true,
+        description =
+            "By changing this option one can adjust the way how"
+                + " live variables are created. Function-wise means that each"
+                + " function is handled separately, global means that the whole"
+                + " cfa is used for the computation.",
+        secure = true)
     private EvaluationStrategy evaluationStrategy = EvaluationStrategy.FUNCTION_WISE;
 
-    @Option(secure=true, description="Overall timelimit for collecting the liveness information."
-        + "(use seconds or specify a unit; 0 for infinite)")
-    @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
-                    defaultUserUnit=TimeUnit.SECONDS,
-                    min=0)
+    @Option(
+        secure = true,
+        description =
+            "Overall timelimit for collecting the liveness information."
+                + "(use seconds or specify a unit; 0 for infinite)")
+    @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = 0)
     private TimeSpan overallLivenessCheckTime = TimeSpan.ofNanos(0);
 
-    @Option(secure=true, description="Timelimit for collecting the liveness information with one approach,"
-        + " (p.e. if global analysis is selected and fails in the specified timelimit the function wise approach"
-        + " will have the same time-limit afterwards to compute the live variables)."
-        + "(use seconds or specify a unit; 0 for infinite)")
-    @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
-                    defaultUserUnit=TimeUnit.SECONDS,
-                    min=0)
+    @Option(
+        secure = true,
+        description =
+            "Timelimit for collecting the liveness information with one approach, (p.e. if global"
+                + " analysis is selected and fails in the specified timelimit the function wise"
+                + " approach will have the same time-limit afterwards to compute the live"
+                + " variables).(use seconds or specify a unit; 0 for infinite)")
+    @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = 0)
     private TimeSpan partwiseLivenessCheckTime = TimeSpan.ofSeconds(20);
 
     public LiveVariablesConfiguration(Configuration config) throws InvalidConfigurationException {
@@ -145,9 +151,7 @@ public class LiveVariables {
     }
   }
 
-  /**
-   * This class regards every variable as live on every position in the program.
-   */
+  /** This class regards every variable as live on every position in the program. */
   private static class AllVariablesAsLiveVariables extends LiveVariables {
 
     private final ImmutableSet<ASimpleDeclaration> allVariables;
@@ -167,9 +171,11 @@ public class LiveVariables {
                           instanceOf(CFunctionDeclaration.class))))
               .toSet();
 
-      final CFATraversal.EdgeCollectingCFAVisitor edgeCollectingVisitor = new CFATraversal.EdgeCollectingCFAVisitor();
+      final CFATraversal.EdgeCollectingCFAVisitor edgeCollectingVisitor =
+          new CFATraversal.EdgeCollectingCFAVisitor();
       CFATraversal.dfs().traverseOnce(cfa.getMainFunction(), edgeCollectingVisitor);
-      FluentIterable<ADeclarationEdge> edges = from(edgeCollectingVisitor.getVisitedEdges()).filter(ADeclarationEdge.class);
+      FluentIterable<ADeclarationEdge> edges =
+          from(edgeCollectingVisitor.getVisitedEdges()).filter(ADeclarationEdge.class);
 
       // we have no information which variable is live at a certain node, so
       // when asked about the variables for a certain node, we return the whole
@@ -203,8 +209,7 @@ public class LiveVariables {
   }
 
   /**
-   * constructor for creating the AllVariablesAsLiveVariables Object, should
-   *not be used elsewhere
+   * constructor for creating the AllVariablesAsLiveVariables Object, should not be used elsewhere
    */
   private LiveVariables() {
     variableClassification = null;
@@ -217,45 +222,57 @@ public class LiveVariables {
   }
 
   // For ensuring deterministic behavior, all collections should be sorted!
-  private final ImmutableSetMultimap<CFANode, Equivalence.Wrapper<ASimpleDeclaration>> liveVariables; // sorted by construction
+  private final ImmutableSetMultimap<CFANode, Equivalence.Wrapper<ASimpleDeclaration>>
+      liveVariables; // sorted by construction
   private final ImmutableSortedSet<Equivalence.Wrapper<ASimpleDeclaration>> globalVariables;
   private final VariableClassification variableClassification;
   private final EvaluationStrategy evaluationStrategy;
   private final Language language;
 
-  /** For efficient access to the string representation of the declarations
-   * we use these maps additionally.
+  /**
+   * For efficient access to the string representation of the declarations we use these maps
+   * additionally.
    */
-  private final ImmutableSetMultimap<CFANode, String> liveVariablesStrings; // sorted by construction
+  private final ImmutableSetMultimap<CFANode, String>
+      liveVariablesStrings; // sorted by construction
+
   private final ImmutableSortedSet<String> globalVariablesStrings;
 
-  private LiveVariables(Multimap<CFANode, Equivalence.Wrapper<ASimpleDeclaration>> pLiveVariables,
-                        VariableClassification pVariableClassification,
-                        Set<Equivalence.Wrapper<ASimpleDeclaration>> pGlobalVariables,
-                        EvaluationStrategy pEvaluationStrategy,
-                        Language pLanguage) {
+  private LiveVariables(
+      Multimap<CFANode, Equivalence.Wrapper<ASimpleDeclaration>> pLiveVariables,
+      VariableClassification pVariableClassification,
+      Set<Equivalence.Wrapper<ASimpleDeclaration>> pGlobalVariables,
+      EvaluationStrategy pEvaluationStrategy,
+      Language pLanguage) {
 
     Comparator<Equivalence.Wrapper<ASimpleDeclaration>> declarationOrdering =
         Comparator.comparing(FROM_EQUIV_WRAPPER_TO_STRING);
 
     // ImmutableSortedSetMultimap does not exist, in order to create a sorted immutable Multimap
-    // we sort it and create an immutable copy (Guava's Immutable* classes guarantee to keep the order).
+    // we sort it and create an immutable copy (Guava's Immutable* classes guarantee to keep the
+    // order).
     SortedSetMultimap<CFANode, Equivalence.Wrapper<ASimpleDeclaration>> sortedLiveVariables =
         TreeMultimap.create(Comparator.naturalOrder(), declarationOrdering);
     sortedLiveVariables.putAll(pLiveVariables);
     liveVariables = ImmutableSetMultimap.copyOf(sortedLiveVariables);
-    assert pLiveVariables.size() == liveVariables.size() : "ASimpleDeclarations with identical qualified names";
+    assert pLiveVariables.size() == liveVariables.size()
+        : "ASimpleDeclarations with identical qualified names";
 
     globalVariables = ImmutableSortedSet.copyOf(declarationOrdering, pGlobalVariables);
-    assert pGlobalVariables.size() == globalVariables.size() : "Global ASimpleDeclarations with identical qualified names";
+    assert pGlobalVariables.size() == globalVariables.size()
+        : "Global ASimpleDeclarations with identical qualified names";
 
     variableClassification = pVariableClassification;
     evaluationStrategy = pEvaluationStrategy;
     language = pLanguage;
 
-    globalVariablesStrings = ImmutableSortedSet.copyOf(Collections2.transform(globalVariables, FROM_EQUIV_WRAPPER_TO_STRING));
+    globalVariablesStrings =
+        ImmutableSortedSet.copyOf(
+            Collections2.transform(globalVariables, FROM_EQUIV_WRAPPER_TO_STRING));
 
-    liveVariablesStrings = ImmutableSetMultimap.copyOf(Multimaps.transformValues(liveVariables, FROM_EQUIV_WRAPPER_TO_STRING));
+    liveVariablesStrings =
+        ImmutableSetMultimap.copyOf(
+            Multimaps.transformValues(liveVariables, FROM_EQUIV_WRAPPER_TO_STRING));
   }
 
   public boolean isVariableLive(ASimpleDeclaration variable, CFANode location) {
@@ -264,7 +281,7 @@ public class LiveVariables {
 
     if (globalVariables.contains(wrappedDecl)
         || (language == Language.C
-             && variableClassification.getAddressedVariables().contains(varName))
+            && variableClassification.getAddressedVariables().contains(varName))
         || (evaluationStrategy == EvaluationStrategy.FUNCTION_WISE
             && !varName.startsWith(location.getFunctionName()))) {
       return true;
@@ -277,7 +294,7 @@ public class LiveVariables {
   public boolean isVariableLive(final String varName, CFANode location) {
     if (globalVariablesStrings.contains(varName)
         || (language == Language.C
-             && variableClassification.getAddressedVariables().contains(varName))
+            && variableClassification.getAddressedVariables().contains(varName))
         || (evaluationStrategy == EvaluationStrategy.FUNCTION_WISE
             && !varName.startsWith(location.getFunctionName()))) {
       return true;
@@ -307,8 +324,7 @@ public class LiveVariables {
   }
 
   public static Optional<LiveVariables> createWithAllVariablesAsLive(
-      final List<Pair<ADeclaration, String>> globalsList,
-      final MutableCFA pCFA) {
+      final List<Pair<ADeclaration, String>> globalsList, final MutableCFA pCFA) {
     return Optional.of(new AllVariablesAsLiveVariables(pCFA, globalsList));
   }
 
@@ -319,10 +335,8 @@ public class LiveVariables {
       final LogManager logger,
       final ShutdownNotifier pShutdownNotifier,
       final Configuration config)
-      throws InvalidConfigurationException,
-             IllegalArgumentException,
-             AssertionError,
-             InterruptedException {
+      throws InvalidConfigurationException, IllegalArgumentException, AssertionError,
+          InterruptedException {
     checkNotNull(variableClassification);
     checkNotNull(globalsList);
     checkNotNull(pCFA);
@@ -355,14 +369,14 @@ public class LiveVariables {
       limitChecker = null;
     }
 
-    LiveVariables liveVarObject = create0(
-        variableClassification.orElse(null),
-        globalsList,
-        logger,
-        shutdownNotifier,
-        cfa,
-        liveVarConfig
-    );
+    LiveVariables liveVarObject =
+        create0(
+            variableClassification.orElse(null),
+            globalsList,
+            logger,
+            shutdownNotifier,
+            cfa,
+            liveVarConfig);
 
     if (limitChecker != null) {
       limitChecker.cancel();
@@ -399,8 +413,8 @@ public class LiveVariables {
       case GLOBAL:
         globalVariables = ImmutableSet.of();
         break;
-    default:
-      throw new AssertionError("Unhandled case statement: " + config.evaluationStrategy);
+      default:
+        throw new AssertionError("Unhandled case statement: " + config.evaluationStrategy);
     }
 
     final @Nullable ResourceLimitChecker limitChecker;
@@ -434,15 +448,11 @@ public class LiveVariables {
     // an absent optional, but before we try the function-wise analysis if we
     // did not yet use it
     if (liveVariables == null && config.evaluationStrategy != EvaluationStrategy.FUNCTION_WISE) {
-      logger.log(Level.INFO, "Global live variables collection failed, fallback to function-wise analysis.");
+      logger.log(
+          Level.INFO,
+          "Global live variables collection failed, fallback to function-wise analysis.");
       config.evaluationStrategy = EvaluationStrategy.FUNCTION_WISE;
-      return create0(
-          variableClassification,
-          globalsList,
-          logger,
-          pShutdownNotifier,
-          cfa,
-          config);
+      return create0(variableClassification, globalsList, logger, pShutdownNotifier, cfa, config);
     } else if (liveVariables == null) {
       return new AllVariablesAsLiveVariables(cfa, globalsList);
     }
@@ -455,13 +465,13 @@ public class LiveVariables {
         cfa.getLanguage());
   }
 
-  public final static Function<ASimpleDeclaration, Equivalence.Wrapper<ASimpleDeclaration>>
+  public static final Function<ASimpleDeclaration, Equivalence.Wrapper<ASimpleDeclaration>>
       TO_EQUIV_WRAPPER = LIVE_DECL_EQUIVALENCE::wrap;
 
-  private final static Function<Equivalence.Wrapper<ASimpleDeclaration>, ASimpleDeclaration>
+  private static final Function<Equivalence.Wrapper<ASimpleDeclaration>, ASimpleDeclaration>
       FROM_EQUIV_WRAPPER = Equivalence.Wrapper::get;
 
-  public final static Function<Equivalence.Wrapper<ASimpleDeclaration>, String>
+  public static final Function<Equivalence.Wrapper<ASimpleDeclaration>, String>
       FROM_EQUIV_WRAPPER_TO_STRING =
           Functions.compose(ASimpleDeclaration::getQualifiedName, FROM_EQUIV_WRAPPER);
 
@@ -484,24 +494,20 @@ public class LiveVariables {
         functionHeads = Collections.singleton(pCfa.getMainFunction());
         break;
       default:
-        throw new AssertionError("Unhandled case statement: " +
-            evaluationStrategy);
+        throw new AssertionError("Unhandled case statement: " + evaluationStrategy);
     }
 
     for (FunctionEntryNode node : functionHeads) {
       FunctionExitNode exitNode = node.getExitNode();
       if (pCfa.getAllNodes().contains(exitNode)) {
         analysisParts.reachedSet.add(
-            analysisParts.cpa.getInitialState(
-                exitNode,
-                StateSpacePartition.getDefaultPartition()),
+            analysisParts.cpa.getInitialState(exitNode, StateSpacePartition.getDefaultPartition()),
             analysisParts.cpa.getInitialPrecision(
-                exitNode,
-                StateSpacePartition.getDefaultPartition()));
+                exitNode, StateSpacePartition.getDefaultPartition()));
       }
     }
 
-    if(loopStructure.isPresent()){
+    if (loopStructure.isPresent()) {
       LoopStructure structure = loopStructure.orElseThrow();
       ImmutableCollection<Loop> loops = structure.getAllLoops();
 
@@ -537,12 +543,14 @@ public class LiveVariables {
 
     logger.log(Level.INFO, "Stopping live variables collection ...");
 
-    LiveVariablesCPA liveVarCPA = ((WrapperCPA) analysisParts.cpa).retrieveWrappedCpa(LiveVariablesCPA.class);
+    LiveVariablesCPA liveVarCPA =
+        ((WrapperCPA) analysisParts.cpa).retrieveWrappedCpa(LiveVariablesCPA.class);
 
     return liveVarCPA.getLiveVariables();
   }
 
-  private static Optional<AnalysisParts> getNecessaryAnalysisComponents(final CFA cfa,
+  private static Optional<AnalysisParts> getNecessaryAnalysisComponents(
+      final CFA cfa,
       final LogManager logger,
       final ShutdownNotifier shutdownNotifier,
       final EvaluationStrategy evaluationStrategy) {
@@ -556,7 +564,8 @@ public class LiveVariables {
         case GLOBAL:
           configFile = "liveVariables-interprocedural.properties";
           break;
-        default: throw new AssertionError("Unhandled case statement: " + evaluationStrategy);
+        default:
+          throw new AssertionError("Unhandled case statement: " + evaluationStrategy);
       }
 
       Configuration config =
@@ -565,23 +574,22 @@ public class LiveVariables {
       ConfigurableProgramAnalysis cpa =
           new CPABuilder(config, logger, shutdownNotifier, reachedFactory)
               .buildCPAs(cfa, Specification.alwaysSatisfied(), AggregatedReachedSets.empty());
-      Algorithm algorithm = CPAAlgorithm.create(cpa,
-                                                logger,
-                                                config,
-                                                shutdownNotifier);
+      Algorithm algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
       ReachedSet reached = reachedFactory.create(cpa);
       return Optional.of(new AnalysisParts(cpa, algorithm, reached));
 
     } catch (InvalidConfigurationException | CPAException e) {
       // this should never happen, but if it does we continue the
       // analysis without having the live variable analysis
-      logger.logUserException(Level.WARNING, e, "An error occurred during the"
-          + " creation"
-          + " of the necessary CPA parts for the live variables analysis.");
+      logger.logUserException(
+          Level.WARNING,
+          e,
+          "An error occurred during the"
+              + " creation"
+              + " of the necessary CPA parts for the live variables analysis.");
       return Optional.empty();
     }
   }
-
 
   private static class AnalysisParts {
 
@@ -589,7 +597,8 @@ public class LiveVariables {
     private final Algorithm algorithm;
     private final ReachedSet reachedSet;
 
-    private AnalysisParts(ConfigurableProgramAnalysis pCPA, Algorithm pAlgorithm, ReachedSet pReachedSet) {
+    private AnalysisParts(
+        ConfigurableProgramAnalysis pCPA, Algorithm pAlgorithm, ReachedSet pReachedSet) {
       cpa = pCPA;
       algorithm = pAlgorithm;
       reachedSet = pReachedSet;

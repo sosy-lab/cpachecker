@@ -29,8 +29,8 @@ import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-public class ReachingDefState implements AbstractState, Serializable,
-    LatticeAbstractState<ReachingDefState>, Graphable {
+public class ReachingDefState
+    implements AbstractState, Serializable, LatticeAbstractState<ReachingDefState>, Graphable {
 
   private static final long serialVersionUID = -7715698130795640052L;
 
@@ -224,7 +224,7 @@ public class ReachingDefState implements AbstractState, Serializable,
       Map<MemoryLocation, Set<DefinitionPoint>> map1,
       Map<MemoryLocation, Set<DefinitionPoint>> map2) {
     Map<MemoryLocation, Set<DefinitionPoint>> newMap = new HashMap<>();
-    if (map1==map2) {
+    if (map1 == map2) {
       return map1;
     }
     Set<DefinitionPoint> unionResult;
@@ -246,14 +246,15 @@ public class ReachingDefState implements AbstractState, Serializable,
       }
       unionResult = unionSets(defPoints1, defPoints2);
       if (unionResult.size() != defPoints1.size() || unionResult.size() != defPoints2.size()) {
-        assert unionResult.size() >= defPoints1.size()
-            && unionResult.size() >= defPoints2
-                .size() : "Union of map1 and map2 shouldn't be able to shrink!";
+        assert unionResult.size() >= defPoints1.size() && unionResult.size() >= defPoints2.size()
+            : "Union of map1 and map2 shouldn't be able to shrink!";
         changed = true;
       }
       newMap.put(var, unionResult);
     }
-    if (changed) { return newMap; }
+    if (changed) {
+      return newMap;
+    }
     return map1;
   }
 
@@ -265,11 +266,10 @@ public class ReachingDefState implements AbstractState, Serializable,
   }
 
   private Object writeReplace() {
-    if (this==topElement) {
+    if (this == topElement) {
       return proxy;
     } else {
       return this;
-
     }
   }
 
@@ -289,7 +289,7 @@ public class ReachingDefState implements AbstractState, Serializable,
     }
   }
 
-  @SuppressWarnings({"unchecked", "UnusedVariable"}) // parameter is required by API
+  @SuppressWarnings("unchecked")
   private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
 
@@ -297,18 +297,17 @@ public class ReachingDefState implements AbstractState, Serializable,
     size = in.readInt();
     localReachDefs = Maps.newHashMapWithExpectedSize(size);
 
-    for(int i=0;i<size;i++){
+    for (int i = 0; i < size; i++) {
       localReachDefs.put((MemoryLocation) in.readObject(), (Set<DefinitionPoint>) in.readObject());
     }
 
     size = in.readInt();
     globalReachDefs = Maps.newHashMapWithExpectedSize(size);
 
-    for(int i=0;i<size;i++){
+    for (int i = 0; i < size; i++) {
       globalReachDefs.put((MemoryLocation) in.readObject(), (Set<DefinitionPoint>) in.readObject());
     }
   }
-
 
   private static class SerialProxyReach implements Serializable {
 
@@ -321,9 +320,7 @@ public class ReachingDefState implements AbstractState, Serializable,
     }
   }
 
-  public interface DefinitionPoint {
-
-  }
+  public interface DefinitionPoint {}
 
   public static class UninitializedDefinitionPoint implements DefinitionPoint, Serializable {
 
@@ -414,7 +411,6 @@ public class ReachingDefState implements AbstractState, Serializable,
       out.writeInt(exit.getNodeNumber());
     }
 
-    @SuppressWarnings("UnusedVariable") // parameter is required by API
     private void readObject(java.io.ObjectInputStream in) throws IOException {
       int nodeNumber = in.readInt();
       CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo().orElseThrow();
@@ -422,7 +418,6 @@ public class ReachingDefState implements AbstractState, Serializable,
       nodeNumber = in.readInt();
       exit = cfaInfo.getNodeByNodeNumber(nodeNumber);
     }
-
   }
 
   @Override
@@ -455,7 +450,7 @@ public class ReachingDefState implements AbstractState, Serializable,
     StringBuilder sb = new StringBuilder();
     sb.append(" [");
 
-    boolean first=true;
+    boolean first = true;
 
     for (Entry<MemoryLocation, Set<DefinitionPoint>> entry : map.entrySet()) {
       if (first) {
@@ -478,5 +473,4 @@ public class ReachingDefState implements AbstractState, Serializable,
   public boolean shouldBeHighlighted() {
     return false;
   }
-
 }

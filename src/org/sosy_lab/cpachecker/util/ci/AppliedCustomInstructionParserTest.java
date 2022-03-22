@@ -89,9 +89,7 @@ public class AppliedCustomInstructionParserTest {
             "}");
     aciParser =
         new AppliedCustomInstructionParser(
-            ShutdownNotifier.createDummy(),
-            LogManager.createTestLogManager(),
-            cfa);
+            ShutdownNotifier.createDummy(), LogManager.createTestLogManager(), cfa);
     GlobalInfo.getInstance().storeCFA(cfa);
     labelNodes = getLabelNodes(cfa);
   }
@@ -112,7 +110,7 @@ public class AppliedCustomInstructionParserTest {
   }
 
   @Test
-  public void testReadCustomInstruction() throws AppliedCustomInstructionParsingFailedException, InterruptedException, SecurityException {
+  public void testReadCustomInstruction() throws Exception {
     try {
       aciParser.readCustomInstruction("test4");
       assert_().fail();
@@ -141,10 +139,10 @@ public class AppliedCustomInstructionParserTest {
     CFANode expectedStart = null;
     Collection<CFANode> expectedEnds = new ArrayList<>(2);
     for (CFALabelNode n : labelNodes) {
-      if(n.getLabel().startsWith("start_ci") && n.getFunctionName().equals("ci")) {
+      if (n.getLabel().startsWith("start_ci") && n.getFunctionName().equals("ci")) {
         expectedStart = n;
       }
-      if(n.getLabel().startsWith("end_ci") && n.getFunctionName().equals("ci")) {
+      if (n.getLabel().startsWith("end_ci") && n.getFunctionName().equals("ci")) {
         CFAUtils.predecessorsOf(n).copyInto(expectedEnds);
       }
     }
@@ -167,10 +165,10 @@ public class AppliedCustomInstructionParserTest {
     expectedStart = null;
     expectedEnds = new ArrayList<>(1);
     for (CFALabelNode n : labelNodes) {
-      if(n.getLabel().startsWith("start_ci") && n.getFunctionName().equals("main")) {
+      if (n.getLabel().startsWith("start_ci") && n.getFunctionName().equals("main")) {
         expectedStart = n;
       }
-      if(n.getLabel().startsWith("end_ci") && n.getFunctionName().equals("main")) {
+      if (n.getLabel().startsWith("end_ci") && n.getFunctionName().equals("main")) {
         CFAUtils.predecessorsOf(n).copyInto(expectedEnds);
       }
     }
@@ -180,7 +178,7 @@ public class AppliedCustomInstructionParserTest {
     list.add("main::m");
     list.add("main::n");
     list.add("main::o");
-     Truth.assertThat(ci.getInputVariables()).containsExactlyElementsIn(list).inOrder();
+    Truth.assertThat(ci.getInputVariables()).containsExactlyElementsIn(list).inOrder();
     list = new ArrayList<>();
     list.add("main::n");
     Truth.assertThat(ci.getOutputVariables()).containsExactlyElementsIn(list).inOrder();
@@ -213,9 +211,7 @@ public class AppliedCustomInstructionParserTest {
     GlobalInfo.getInstance().storeCFA(cfa);
     aciParser =
         new AppliedCustomInstructionParser(
-            ShutdownNotifier.createDummy(),
-            LogManager.createTestLogManager(),
-            cfa);
+            ShutdownNotifier.createDummy(), LogManager.createTestLogManager(), cfa);
 
     Path p = TempFile.builder().prefix("test_acis").create();
     try (Writer file = IO.openOutputFile(p, StandardCharsets.US_ASCII)) {
@@ -250,8 +246,7 @@ public class AppliedCustomInstructionParserTest {
 
   private void testParse(Path p, Path signatureFile) throws Exception {
     CFANode expectedStart =
-        getLabelNodes(cfa)
-            .stream()
+        getLabelNodes(cfa).stream()
             .filter(n -> n.getLabel().startsWith("start_ci") && n.getFunctionName().equals("main"))
             .findAny()
             .orElseThrow();
@@ -278,28 +273,34 @@ public class AppliedCustomInstructionParserTest {
         inputVars.add("main::y");
         Truth.assertThat(entry.getValue().getInputVariables()).containsExactlyElementsIn(inputVars);
         outputVars.add("main::x");
-        Truth.assertThat(entry.getValue().getOutputVariables()).containsExactlyElementsIn(outputVars);
+        Truth.assertThat(entry.getValue().getOutputVariables())
+            .containsExactlyElementsIn(outputVars);
 
         fakeSMTDescription = entry.getValue().getFakeSMTDescription();
         list.add("(declare-fun |main::x| () Int)");
         list.add("(declare-fun |main::y| () Int)");
         list.add("(declare-fun |main::x@1| () Int)");
         Truth.assertThat(fakeSMTDescription.getFirst()).containsExactlyElementsIn(list);
-        Truth.assertThat(fakeSMTDescription.getSecond()).isEqualTo("(define-fun ci() Bool(and (= |main::x| 0)(and (= |main::y| 0) (= |main::x@1| 0))))");
+        Truth.assertThat(fakeSMTDescription.getSecond())
+            .isEqualTo(
+                "(define-fun ci() Bool(and (= |main::x| 0)(and (= |main::y| 0) (= |main::x@1|"
+                    + " 0))))");
 
         ssaMap = entry.getValue().getIndicesForReturnVars();
         variables.add("main::x");
         Truth.assertThat(ssaMap.allVariables()).containsExactlyElementsIn(variables);
         Truth.assertThat(ssaMap.getIndex(variables.get(0))).isEqualTo(1);
 
-        Truth.assertThat(entry.getValue().getStartAndEndNodes()).containsExactlyElementsIn(aciNodes);
+        Truth.assertThat(entry.getValue().getStartAndEndNodes())
+            .containsExactlyElementsIn(aciNodes);
 
       } else if (entry.getKey().getNodeNumber() == startNodeNr + 2) {
         inputVars.add("main::x");
         inputVars.add("main::x");
         Truth.assertThat(entry.getValue().getInputVariables()).containsExactlyElementsIn(inputVars);
         outputVars.add("main::x");
-        Truth.assertThat(entry.getValue().getOutputVariables()).containsExactlyElementsIn(outputVars);
+        Truth.assertThat(entry.getValue().getOutputVariables())
+            .containsExactlyElementsIn(outputVars);
 
         fakeSMTDescription = entry.getValue().getFakeSMTDescription();
         list.clear();
@@ -307,21 +308,26 @@ public class AppliedCustomInstructionParserTest {
         list.add("(declare-fun |main::x| () Int)");
         list.add("(declare-fun |main::x@1| () Int)");
         Truth.assertThat(fakeSMTDescription.getFirst()).containsExactlyElementsIn(list);
-        Truth.assertThat(fakeSMTDescription.getSecond()).isEqualTo("(define-fun ci() Bool(and (= |main::x| 0)(and (= |main::x| 0) (= |main::x@1| 0))))");
+        Truth.assertThat(fakeSMTDescription.getSecond())
+            .isEqualTo(
+                "(define-fun ci() Bool(and (= |main::x| 0)(and (= |main::x| 0) (= |main::x@1|"
+                    + " 0))))");
 
         ssaMap = entry.getValue().getIndicesForReturnVars();
         variables.add("main::x");
         Truth.assertThat(ssaMap.allVariables()).containsExactlyElementsIn(variables);
         Truth.assertThat(ssaMap.getIndex(variables.get(0))).isEqualTo(1);
 
-        Truth.assertThat(entry.getValue().getStartAndEndNodes()).containsExactlyElementsIn(aciNodes);
+        Truth.assertThat(entry.getValue().getStartAndEndNodes())
+            .containsExactlyElementsIn(aciNodes);
 
       } else if (entry.getKey().getNodeNumber() == startNodeNr + 3) {
         inputVars.add("main::y");
         inputVars.add("main::y");
         Truth.assertThat(entry.getValue().getInputVariables()).containsExactlyElementsIn(inputVars);
         outputVars.add("main::y");
-        Truth.assertThat(entry.getValue().getOutputVariables()).containsExactlyElementsIn(outputVars);
+        Truth.assertThat(entry.getValue().getOutputVariables())
+            .containsExactlyElementsIn(outputVars);
 
         fakeSMTDescription = entry.getValue().getFakeSMTDescription();
         list.clear();
@@ -329,21 +335,26 @@ public class AppliedCustomInstructionParserTest {
         list.add("(declare-fun |main::y| () Int)");
         list.add("(declare-fun |main::y@1| () Int)");
         Truth.assertThat(fakeSMTDescription.getFirst()).containsExactlyElementsIn(list);
-        Truth.assertThat(fakeSMTDescription.getSecond()).isEqualTo("(define-fun ci() Bool(and (= |main::y| 0)(and (= |main::y| 0) (= |main::y@1| 0))))");
+        Truth.assertThat(fakeSMTDescription.getSecond())
+            .isEqualTo(
+                "(define-fun ci() Bool(and (= |main::y| 0)(and (= |main::y| 0) (= |main::y@1|"
+                    + " 0))))");
 
         ssaMap = entry.getValue().getIndicesForReturnVars();
         variables.add("main::y");
         Truth.assertThat(ssaMap.allVariables()).containsExactlyElementsIn(variables);
         Truth.assertThat(ssaMap.getIndex(variables.get(0))).isEqualTo(1);
 
-        Truth.assertThat(entry.getValue().getStartAndEndNodes()).containsExactlyElementsIn(aciNodes);
+        Truth.assertThat(entry.getValue().getStartAndEndNodes())
+            .containsExactlyElementsIn(aciNodes);
 
       } else if (entry.getKey().getNodeNumber() == startNodeNr + 4) {
         inputVars.add("main::y");
         inputVars.add("main::x");
         Truth.assertThat(entry.getValue().getInputVariables()).containsExactlyElementsIn(inputVars);
         outputVars.add("main::y");
-        Truth.assertThat(entry.getValue().getOutputVariables()).containsExactlyElementsIn(outputVars);
+        Truth.assertThat(entry.getValue().getOutputVariables())
+            .containsExactlyElementsIn(outputVars);
 
         fakeSMTDescription = entry.getValue().getFakeSMTDescription();
         list.clear();
@@ -351,19 +362,22 @@ public class AppliedCustomInstructionParserTest {
         list.add("(declare-fun |main::x| () Int)");
         list.add("(declare-fun |main::y@1| () Int)");
         Truth.assertThat(fakeSMTDescription.getFirst()).containsExactlyElementsIn(list);
-        Truth.assertThat(fakeSMTDescription.getSecond()).isEqualTo("(define-fun ci() Bool(and (= |main::y| 0)(and (= |main::x| 0) (= |main::y@1| 0))))");
+        Truth.assertThat(fakeSMTDescription.getSecond())
+            .isEqualTo(
+                "(define-fun ci() Bool(and (= |main::y| 0)(and (= |main::x| 0) (= |main::y@1|"
+                    + " 0))))");
 
         ssaMap = entry.getValue().getIndicesForReturnVars();
         variables.add("main::y");
         Truth.assertThat(ssaMap.allVariables()).containsExactlyElementsIn(variables);
         Truth.assertThat(ssaMap.getIndex(variables.get(0))).isEqualTo(1);
 
-        Truth.assertThat(entry.getValue().getStartAndEndNodes()).containsExactlyElementsIn(aciNodes);
+        Truth.assertThat(entry.getValue().getStartAndEndNodes())
+            .containsExactlyElementsIn(aciNodes);
 
-        } else {
+      } else {
         assert_().fail();
       }
     }
   }
-
 }

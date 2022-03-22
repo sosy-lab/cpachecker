@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object;
 
-
-
 public interface SMGAbstractObject {
 
   boolean isAbstract();

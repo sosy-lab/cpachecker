@@ -392,7 +392,8 @@ public interface TransformingCAstNodeVisitor<X extends Exception>
           pCFunctionDeclaration.getType(),
           pCFunctionDeclaration.getName(),
           pCFunctionDeclaration.getOrigName(),
-          parametersBuilder.build());
+          parametersBuilder.build(),
+          pCFunctionDeclaration.getAttributes());
     } else {
       return pCFunctionDeclaration;
     }

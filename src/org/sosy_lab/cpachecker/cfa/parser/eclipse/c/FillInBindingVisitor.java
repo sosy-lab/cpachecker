@@ -24,8 +24,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
 /**
- * Visitor that fills in missing bindings of CElaboratedTypes with a given
- * target type (if name and kind match, of course).
+ * Visitor that fills in missing bindings of CElaboratedTypes with a given target type (if name and
+ * kind match, of course).
  */
 class FillInBindingVisitor extends DefaultCTypeVisitor<Void, NoException> {
 

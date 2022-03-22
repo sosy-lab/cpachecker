@@ -16,13 +16,18 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
-/** Combine several heuristics. The order of heuristics determines the matching.
- * Thus it is a good idea to apply heuristics with a bigger block-size first. */
+/**
+ * Combine several heuristics. The order of heuristics determines the matching. Thus it is a good
+ * idea to apply heuristics with a bigger block-size first.
+ */
 public class CompositePartitioning extends PartitioningHeuristic {
 
   private final ImmutableList<PartitioningHeuristic> partitionings;
 
-  public CompositePartitioning(LogManager pLogger, CFA pCfa, Configuration pConfig,
+  public CompositePartitioning(
+      LogManager pLogger,
+      CFA pCfa,
+      Configuration pConfig,
       PartitioningHeuristic... pPartitionings) {
     super(pLogger, pCfa, pConfig);
     partitionings = ImmutableList.copyOf(pPartitionings);
@@ -39,5 +44,4 @@ public class CompositePartitioning extends PartitioningHeuristic {
     }
     return null;
   }
-
 }

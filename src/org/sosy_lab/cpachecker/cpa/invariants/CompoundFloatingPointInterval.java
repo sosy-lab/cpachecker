@@ -12,13 +12,12 @@ import java.math.BigInteger;
 import java.util.Collections;
 import java.util.List;
 
-
 public class CompoundFloatingPointInterval implements CompoundInterval, FloatingPointType {
 
   private final FloatingPointTypeInfo typeInfo;
 
   public CompoundFloatingPointInterval(FloatingPointTypeInfo pTypeInfo) {
-    this.typeInfo = pTypeInfo;
+    typeInfo = pTypeInfo;
   }
 
   @Override
@@ -142,5 +141,4 @@ public class CompoundFloatingPointInterval implements CompoundInterval, Floating
   public FloatingPointTypeInfo getTypeInfo() {
     return typeInfo;
   }
-
 }

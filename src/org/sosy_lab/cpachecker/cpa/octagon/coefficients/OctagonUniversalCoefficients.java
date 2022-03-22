@@ -30,7 +30,8 @@ public final class OctagonUniversalCoefficients extends AOctagonCoefficients {
 
   @Override
   public int getVariableIndex() {
-    throw new UnsupportedOperationException("Do only call this method on coefficients with exactly one value");
+    throw new UnsupportedOperationException(
+        "Do only call this method on coefficients with exactly one value");
   }
 
   @Override
@@ -98,5 +99,4 @@ public final class OctagonUniversalCoefficients extends AOctagonCoefficients {
   public boolean equals(Object other) {
     return other instanceof OctagonUniversalCoefficients;
   }
-
 }

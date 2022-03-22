@@ -20,17 +20,16 @@ public class AutomatonTopMergeOperator implements MergeOperator {
   private final AbstractState topState;
 
   public AutomatonTopMergeOperator(AbstractDomain pDomain, AbstractState pTopState) {
-    this.domain = pDomain;
-    this.topState = pTopState;
+    domain = pDomain;
+    topState = pTopState;
   }
 
   @Override
   public AbstractState merge(AbstractState el1, AbstractState el2, Precision p)
-    throws CPAException, InterruptedException {
+      throws CPAException, InterruptedException {
 
     boolean anyAutomatonTop =
-        domain.isLessOrEqual(topState, el1)
-        || domain.isLessOrEqual(topState, el2);
+        domain.isLessOrEqual(topState, el1) || domain.isLessOrEqual(topState, el2);
 
     if (anyAutomatonTop) {
       return topState;
@@ -38,5 +37,4 @@ public class AutomatonTopMergeOperator implements MergeOperator {
       return el2;
     }
   }
-
 }

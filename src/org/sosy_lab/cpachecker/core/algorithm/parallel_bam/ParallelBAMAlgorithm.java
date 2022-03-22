@@ -69,15 +69,14 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsSeries.StatisticsSeries
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer;
 
-@Options(prefix="algorithm.parallelBam")
+@Options(prefix = "algorithm.parallelBam")
 public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
 
   @Option(
-    description =
-        "number of threads, positive values match exactly, "
-            + "with -1 we use the number of available cores or the machine automatically.",
-    secure = true
-  )
+      description =
+          "number of threads, positive values match exactly, "
+              + "with -1 we use the number of available cores or the machine automatically.",
+      secure = true)
   private int numberOfThreads = -1;
 
   @Option(description = "export number of running RSE instances as CSV", secure = true)
@@ -237,9 +236,7 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
     final AtomicBoolean mainRScontainsTarget = new AtomicBoolean(false);
     final AtomicBoolean otherRScontainsTarget = new AtomicBoolean(false);
 
-    pReachedSetMapping
-        .entrySet()
-        .parallelStream()
+    pReachedSetMapping.entrySet().parallelStream()
         .forEach(
             entry -> {
               ReachedSetExecutor rse = entry.getValue();
@@ -370,6 +367,5 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
     public @Nullable String getName() {
       return "BAM-parallel";
     }
-
   }
 }

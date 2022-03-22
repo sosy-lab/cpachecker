@@ -72,7 +72,8 @@ public class WitnessToACSLAlgorithm implements Algorithm {
   @Option(
       secure = true,
       description =
-          "Instead of comments, output the assertions into the original program as violations to unreach_call.prp")
+          "Instead of comments, output the assertions into the original program as violations to"
+              + " unreach_call.prp")
   private boolean makeDirectAssertions = false;
 
   @Option(

@@ -43,9 +43,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
 /**
- * Helper class that collects all functions referenced by some CFAEdges,
- * not counting those that are called directly.
- * (Only functions that have their address taken (implicitly) are returned.)
+ * Helper class that collects all functions referenced by some CFAEdges, not counting those that are
+ * called directly. (Only functions that have their address taken (implicitly) are returned.)
  */
 class CReferencedFunctionsCollector {
 
@@ -62,32 +61,32 @@ class CReferencedFunctionsCollector {
 
   public void visitEdge(CFAEdge edge) {
     switch (edge.getEdgeType()) {
-    case AssumeEdge:
-      CAssumeEdge assumeEdge = (CAssumeEdge)edge;
-      assumeEdge.getExpression().accept(collector);
-      break;
-    case BlankEdge:
-      //nothing to do
-      break;
-    case DeclarationEdge:
-      CDeclaration declaration = ((CDeclarationEdge)edge).getDeclaration();
-      if (declaration instanceof CVariableDeclaration) {
-        visitDeclaration((CVariableDeclaration) declaration);
-      }
-      break;
-    case ReturnStatementEdge:
-      CReturnStatementEdge returnEdge = (CReturnStatementEdge)edge;
-      if (returnEdge.getExpression().isPresent()) {
+      case AssumeEdge:
+        CAssumeEdge assumeEdge = (CAssumeEdge) edge;
+        assumeEdge.getExpression().accept(collector);
+        break;
+      case BlankEdge:
+        // nothing to do
+        break;
+      case DeclarationEdge:
+        CDeclaration declaration = ((CDeclarationEdge) edge).getDeclaration();
+        if (declaration instanceof CVariableDeclaration) {
+          visitDeclaration((CVariableDeclaration) declaration);
+        }
+        break;
+      case ReturnStatementEdge:
+        CReturnStatementEdge returnEdge = (CReturnStatementEdge) edge;
+        if (returnEdge.getExpression().isPresent()) {
           returnEdge.getExpression().orElseThrow().accept(collector);
-      }
-      break;
-    case StatementEdge:
-      CStatementEdge statementEdge = (CStatementEdge)edge;
-      statementEdge.getStatement().accept(collector);
-      break;
+        }
+        break;
+      case StatementEdge:
+        CStatementEdge statementEdge = (CStatementEdge) edge;
+        statementEdge.getStatement().accept(collector);
+        break;
 
-    default:
-      throw new AssertionError();
+      default:
+        throw new AssertionError();
     }
   }
 
@@ -99,7 +98,8 @@ class CReferencedFunctionsCollector {
 
   static class CollectFunctionsVisitor extends DefaultCExpressionVisitor<Void, NoException>
       implements CRightHandSideVisitor<Void, NoException>,
-          CStatementVisitor<Void, NoException>, CInitializerVisitor<Void, RuntimeException> {
+          CStatementVisitor<Void, NoException>,
+          CInitializerVisitor<Void, RuntimeException> {
 
     final Set<String> collectedFunctions;
 

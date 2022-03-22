@@ -110,9 +110,7 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-/**
- * Algorithm that uses a safety-analysis to prove (non-)termination.
- */
+/** Algorithm that uses a safety-analysis to prove (non-)termination. */
 @Options(prefix = "termination")
 public class TerminationAlgorithm implements Algorithm, AutoCloseable, StatisticsProvider {
 
@@ -126,17 +124,16 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   }
 
   @Option(
-    secure = true,
-    description =
-        "Strategy used to prepare reched set and ARG for next iteration "
-            + "after successful refinement of the termination argument."
-  )
+      secure = true,
+      description =
+          "Strategy used to prepare reched set and ARG for next iteration "
+              + "after successful refinement of the termination argument.")
   private ResetReachedSetStrategy resetReachedSetStrategy = ResetReachedSetStrategy.REMOVE_LOOP;
 
   @Option(
-    secure = true,
-    description = "maximal number of repeated ranking functions per loop before stopping analysis"
-  )
+      secure = true,
+      description =
+          "maximal number of repeated ranking functions per loop before stopping analysis")
   @IntegerOption(min = 1)
   private int maxRepeatedRankingFunctionsPerLoop = 10;
 
@@ -204,11 +201,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
                         "Loop structure is not present, but required for termination analysis."));
 
     statistics =
-        new TerminationStatistics(
-            pConfig,
-            logger,
-            loopStructure.getAllLoops().size(),
-            pCfa);
+        new TerminationStatistics(pConfig, logger, loopStructure.getAllLoops().size(), pCfa);
     lassoAnalysis = LassoAnalysis.create(pLogger, pConfig, pShutdownNotifier, pCfa, statistics);
   }
 
@@ -639,6 +632,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
   /**
    * Removes all intermediate states from the counterexample.
+   *
    * @param counterexample the {@link CounterexampleInfo} to remove the states from
    * @param newTargetState the new target state which is the last state of the counterexample
    * @return the created {@link CounterexampleInfo}
@@ -725,9 +719,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     }
   }
 
-  /**
-   * Removes <code>pTargetState</code> from reached set and ARG.
-   */
+  /** Removes <code>pTargetState</code> from reached set and ARG. */
   private void removeTargetState(ReachedSet pReachedSet, ARGState pTargetState) {
     assert pTargetState.isTarget();
     pReachedSet.remove(pTargetState);
@@ -805,8 +797,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
         String functionName = pNode.getFunctionName();
         List<CParameterDeclaration> parameters =
             ((CFunctionEntryNode) pNode).getFunctionParameters();
-        parameters
-            .stream()
+        parameters.stream()
             .map(CParameterDeclaration::asVariableDeclaration)
             .forEach(localDeclarations.get(functionName)::add);
       }

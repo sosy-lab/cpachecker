@@ -7,7 +7,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * The ARGReplayCPA traverses an old ARG-ReachedSet.
- * The info from the old states is available for strengthening.
+ * The ARGReplayCPA traverses an old ARG-ReachedSet. The info from the old states is available for
+ * strengthening.
  */
 package org.sosy_lab.cpachecker.cpa.argReplay;

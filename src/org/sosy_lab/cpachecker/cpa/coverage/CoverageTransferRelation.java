@@ -29,8 +29,7 @@ public class CoverageTransferRelation extends SingleEdgeTransferRelation {
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
-      AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
-      throws CPATransferException {
+      AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge) throws CPATransferException {
 
     handleEdge(pCfaEdge);
     return Collections.singleton(pElement);

@@ -23,7 +23,6 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CParser.FileContentToParse;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -76,8 +75,7 @@ public class CParserLocationTest {
   }
 
   @Test
-  public void singleFileTest_lineDirectiveIgnored()
-      throws CParserException, InvalidConfigurationException, InterruptedException {
+  public void singleFileTest_lineDirectiveIgnored() throws Exception {
     parser =
         new CParserWithLocationMapper(
             Configuration.defaultConfiguration(), LogManager.createTestLogManager(), parser, false);
@@ -94,8 +92,7 @@ public class CParserLocationTest {
   }
 
   @Test
-  public void singleFileTest_lineDirective()
-      throws CParserException, InvalidConfigurationException, InterruptedException {
+  public void singleFileTest_lineDirective() throws Exception {
     parser =
         new CParserWithLocationMapper(
             Configuration.defaultConfiguration(), LogManager.createTestLogManager(), parser, true);
@@ -112,8 +109,7 @@ public class CParserLocationTest {
   }
 
   @Test
-  public void singleFileTest_lineDirectiveWithFilename()
-      throws CParserException, InvalidConfigurationException, InterruptedException {
+  public void singleFileTest_lineDirectiveWithFilename() throws Exception {
     parser =
         new CParserWithLocationMapper(
             Configuration.defaultConfiguration(), LogManager.createTestLogManager(), parser, true);

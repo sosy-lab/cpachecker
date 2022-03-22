@@ -82,39 +82,36 @@ public class NewtonRefinementManager implements StatisticsProvider {
   private final NewtonStatistics stats = new NewtonStatistics();
 
   @Option(
-    secure = true,
-    description =
-        "use unsatisfiable Core in order to abstract the predicates produced while NewtonRefinement"
-  )
+      secure = true,
+      description =
+          "use unsatisfiable Core in order to abstract the predicates produced while"
+              + " NewtonRefinement")
   private boolean infeasibleCore = true;
 
   @Option(
-    secure = true,
-    description =
-        "use live variables in order to abstract the predicates produced while NewtonRefinement"
-  )
+      secure = true,
+      description =
+          "use live variables in order to abstract the predicates produced while NewtonRefinement")
   private boolean liveVariables = true;
 
   @Option(
-    secure = true,
-    description =
-        "sets the level of the pathformulas to use for abstraction. \n"
-            + "  EDGE : Based on Pathformulas of every edge in ARGPath\n"
-            + "  BLOCK: Based on Pathformulas at Abstractionstates"
-  )
+      secure = true,
+      description =
+          "sets the level of the pathformulas to use for abstraction. \n"
+              + "  EDGE : Based on Pathformulas of every edge in ARGPath\n"
+              + "  BLOCK: Based on Pathformulas at Abstractionstates")
   private PathFormulaAbstractionLevel abstractionLevel = PathFormulaAbstractionLevel.EDGE;
 
   public enum PathFormulaAbstractionLevel {
-    BLOCK, //Abstracts the whole Block(between abstraction states) at once
-    EDGE //Abstracts every edge of the ARGPath
+    BLOCK, // Abstracts the whole Block(between abstraction states) at once
+    EDGE // Abstracts every edge of the ARGPath
   }
 
-  //TODO: Default true once it is tested
+  // TODO: Default true once it is tested
   @Option(
-    secure = true,
-    description =
-        "Activate fallback to interpolation. Typically in case of a repeated counterexample."
-  )
+      secure = true,
+      description =
+          "Activate fallback to interpolation. Typically in case of a repeated counterexample.")
   private boolean fallback = false;
 
   public NewtonRefinementManager(
@@ -147,7 +144,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
     stats.noOfRefinements++;
     stats.totalTimer.start();
     try {
-      List<PathLocation> pathLocations = this.buildPathLocationList(pAllStatesTrace);
+      List<PathLocation> pathLocations = buildPathLocationList(pAllStatesTrace);
       if (isFeasible(pFormulas.getFormulas(), pAllStatesTrace)) {
         // Create feasible CounterexampleTrace
         return CounterexampleTraceInfo.feasible(
@@ -349,7 +346,8 @@ public class NewtonRefinementManager implements StatisticsProvider {
               break;
             }
 
-            // Throw an exception if the type of the Edge is none of the above but it holds a PathFormula
+            // Throw an exception if the type of the Edge is none of the above but it holds a
+            // PathFormula
             throw new UnsupportedOperationException(
                 "Found unsupported EdgeType in Newton Refinement: "
                     + edge.getDescription()
@@ -387,7 +385,8 @@ public class NewtonRefinementManager implements StatisticsProvider {
 
     BooleanFormula toExist;
 
-    // If this formula should be abstracted(no requiredPart), this statement havocs the leftHand variable
+    // If this formula should be abstracted(no requiredPart), this statement havocs the leftHand
+    // variable
     // Therefore its previous values can be existentially quantified in the preCondition
     if (!requiredPart.isEmpty()) {
       toExist = bfmgr.and(preCondition, bfmgr.and(requiredPart));
@@ -483,7 +482,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
       try {
         unsatCore = solver.unsatCore(ImmutableSet.copyOf(pFormulas));
       } catch (SolverException e) {
-        //Solver failed while computing unsat core
+        // Solver failed while computing unsat core
         throw new RefinementFailedException(Reason.NewtonRefinementFailed, pPath, e);
       }
       logger.log(Level.FINEST, "Unsatisfiable Core is: ", unsatCore);
@@ -601,7 +600,8 @@ public class NewtonRefinementManager implements StatisticsProvider {
               : Optional.empty();
       // Build PathFormula
       try {
-        pathFormula = pfmgr.makeAnd(pfmgr.makeEmptyPathFormulaWithContextFrom(pathFormula), lastEdge);
+        pathFormula =
+            pfmgr.makeAnd(pfmgr.makeEmptyPathFormulaWithContextFrom(pathFormula), lastEdge);
       } catch (CPATransferException e) {
         // Failed to compute the Pathformula
         throw new RefinementFailedException(Reason.NewtonRefinementFailed, pPath, e);
@@ -690,7 +690,9 @@ public class NewtonRefinementManager implements StatisticsProvider {
     public String toString() {
       return (lastEdge != null
               ? lastEdge.toString()
-              : ("First State: " + state.orElseThrow().toDOTLabel())) + ", PathFormula: " + pathFormula;
+              : ("First State: " + state.orElseThrow().toDOTLabel()))
+          + ", PathFormula: "
+          + pathFormula;
     }
   }
 

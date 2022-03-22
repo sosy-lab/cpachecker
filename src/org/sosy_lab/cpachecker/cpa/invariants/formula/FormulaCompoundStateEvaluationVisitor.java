@@ -19,31 +19,36 @@ import org.sosy_lab.cpachecker.cpa.invariants.Typed;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
- * Instances of this class are visitors for compound state invariants formulae
- * which are used to evaluate the visited formulae to compound states. This
- * visitor uses a stronger evaluation strategy than a
- * {@link FormulaAbstractionVisitor} in order to enable the CPA strategy to
- * obtain very exact values for the expressions in the analyzed code.
+ * Instances of this class are visitors for compound state invariants formulae which are used to
+ * evaluate the visited formulae to compound states. This visitor uses a stronger evaluation
+ * strategy than a {@link FormulaAbstractionVisitor} in order to enable the CPA strategy to obtain
+ * very exact values for the expressions in the analyzed code.
  */
-public class FormulaCompoundStateEvaluationVisitor implements FormulaEvaluationVisitor<CompoundInterval> {
+public class FormulaCompoundStateEvaluationVisitor
+    implements FormulaEvaluationVisitor<CompoundInterval> {
 
   private final CompoundIntervalManagerFactory compoundIntervalManagerFactory;
 
   private final boolean withOverflowEventHandlers;
 
-  public FormulaCompoundStateEvaluationVisitor(CompoundIntervalManagerFactory pCompoundIntervalManagerFactory) {
+  public FormulaCompoundStateEvaluationVisitor(
+      CompoundIntervalManagerFactory pCompoundIntervalManagerFactory) {
     this(pCompoundIntervalManagerFactory, true);
   }
 
-  public FormulaCompoundStateEvaluationVisitor(CompoundIntervalManagerFactory pCompoundIntervalManagerFactory, boolean pWithOverflowEventHandlers) {
-    this.compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
-    this.withOverflowEventHandlers = pWithOverflowEventHandlers;
+  public FormulaCompoundStateEvaluationVisitor(
+      CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
+      boolean pWithOverflowEventHandlers) {
+    compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
+    withOverflowEventHandlers = pWithOverflowEventHandlers;
   }
 
   private CompoundIntervalManager getCompoundIntervalManager(TypeInfo pTypeInfo) {
     if (compoundIntervalManagerFactory instanceof CompoundBitVectorIntervalManagerFactory) {
-      CompoundBitVectorIntervalManagerFactory compoundBitVectorIntervalManagerFactory = (CompoundBitVectorIntervalManagerFactory) compoundIntervalManagerFactory;
-      return compoundBitVectorIntervalManagerFactory.createCompoundIntervalManager(pTypeInfo, withOverflowEventHandlers);
+      CompoundBitVectorIntervalManagerFactory compoundBitVectorIntervalManagerFactory =
+          (CompoundBitVectorIntervalManagerFactory) compoundIntervalManagerFactory;
+      return compoundBitVectorIntervalManagerFactory.createCompoundIntervalManager(
+          pTypeInfo, withOverflowEventHandlers);
     }
     return compoundIntervalManagerFactory.createCompoundIntervalManager(pTypeInfo);
   }
@@ -53,46 +58,78 @@ public class FormulaCompoundStateEvaluationVisitor implements FormulaEvaluationV
   }
 
   @Override
-  public CompoundInterval visit(Add<CompoundInterval> pAdd, Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
-    return getCompoundIntervalManager(pAdd).add(pAdd.getSummand1().accept(this, pEnvironment), pAdd.getSummand2().accept(this, pEnvironment));
+  public CompoundInterval visit(
+      Add<CompoundInterval> pAdd,
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+    return getCompoundIntervalManager(pAdd)
+        .add(
+            pAdd.getSummand1().accept(this, pEnvironment),
+            pAdd.getSummand2().accept(this, pEnvironment));
   }
 
   @Override
-  public CompoundInterval visit(BinaryAnd<CompoundInterval> pAnd, Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
-    return getCompoundIntervalManager(pAnd).binaryAnd(pAnd.getOperand1().accept(this, pEnvironment), pAnd.getOperand2().accept(this, pEnvironment));
+  public CompoundInterval visit(
+      BinaryAnd<CompoundInterval> pAnd,
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+    return getCompoundIntervalManager(pAnd)
+        .binaryAnd(
+            pAnd.getOperand1().accept(this, pEnvironment),
+            pAnd.getOperand2().accept(this, pEnvironment));
   }
 
   @Override
-  public CompoundInterval visit(BinaryNot<CompoundInterval> pNot, Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+  public CompoundInterval visit(
+      BinaryNot<CompoundInterval> pNot,
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     return getCompoundIntervalManager(pNot).binaryNot(pNot.getFlipped().accept(this, pEnvironment));
   }
 
   @Override
-  public CompoundInterval visit(BinaryOr<CompoundInterval> pOr, Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
-    return getCompoundIntervalManager(pOr).binaryOr(pOr.getOperand1().accept(this, pEnvironment), pOr.getOperand2().accept(this, pEnvironment));
+  public CompoundInterval visit(
+      BinaryOr<CompoundInterval> pOr,
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+    return getCompoundIntervalManager(pOr)
+        .binaryOr(
+            pOr.getOperand1().accept(this, pEnvironment),
+            pOr.getOperand2().accept(this, pEnvironment));
   }
 
   @Override
-  public CompoundInterval visit(BinaryXor<CompoundInterval> pXor, Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
-    return getCompoundIntervalManager(pXor).binaryXor(pXor.getOperand1().accept(this, pEnvironment), pXor.getOperand2().accept(this, pEnvironment));
+  public CompoundInterval visit(
+      BinaryXor<CompoundInterval> pXor,
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+    return getCompoundIntervalManager(pXor)
+        .binaryXor(
+            pXor.getOperand1().accept(this, pEnvironment),
+            pXor.getOperand2().accept(this, pEnvironment));
   }
 
   @Override
-  public CompoundInterval visit(Constant<CompoundInterval> pConstant, Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+  public CompoundInterval visit(
+      Constant<CompoundInterval> pConstant,
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     return pConstant.getValue();
   }
 
   @Override
-  public CompoundInterval visit(Divide<CompoundInterval> pDivide, Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
-    return getCompoundIntervalManager(pDivide).divide(pDivide.getNumerator().accept(this, pEnvironment), pDivide.getDenominator().accept(this, pEnvironment));
+  public CompoundInterval visit(
+      Divide<CompoundInterval> pDivide,
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+    return getCompoundIntervalManager(pDivide)
+        .divide(
+            pDivide.getNumerator().accept(this, pEnvironment),
+            pDivide.getDenominator().accept(this, pEnvironment));
   }
 
   @Override
-  public BooleanConstant<CompoundInterval> visit(Equal<CompoundInterval> pEqual, Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+  public BooleanConstant<CompoundInterval> visit(
+      Equal<CompoundInterval> pEqual,
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     CompoundInterval operand1 = pEqual.getOperand1().accept(this, pEnvironment);
     CompoundInterval operand2 = pEqual.getOperand2().accept(this, pEnvironment);
 
-    CompoundInterval result = getCompoundIntervalManager(pEqual.getOperand1()).logicalEquals(operand1, operand2);
+    CompoundInterval result =
+        getCompoundIntervalManager(pEqual.getOperand1()).logicalEquals(operand1, operand2);
     if (result.isDefinitelyTrue()) {
       return BooleanConstant.getTrue();
     }
@@ -145,7 +182,8 @@ public class FormulaCompoundStateEvaluationVisitor implements FormulaEvaluationV
   }
 
   @Override
-  public CompoundInterval visit(Exclusion<CompoundInterval> pExclusion,
+  public CompoundInterval visit(
+      Exclusion<CompoundInterval> pExclusion,
       Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     CompoundInterval excluded = pExclusion.getExcluded().accept(this, pEnvironment);
     if (excluded.isSingleton()) {
@@ -155,10 +193,14 @@ public class FormulaCompoundStateEvaluationVisitor implements FormulaEvaluationV
   }
 
   @Override
-  public BooleanConstant<CompoundInterval> visit(LessThan<CompoundInterval> pLessThan, Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
-    CompoundInterval value = getCompoundIntervalManager(pLessThan.getOperand1()).lessThan(
-        pLessThan.getOperand1().accept(this, pEnvironment),
-        pLessThan.getOperand2().accept(this, pEnvironment));
+  public BooleanConstant<CompoundInterval> visit(
+      LessThan<CompoundInterval> pLessThan,
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+    CompoundInterval value =
+        getCompoundIntervalManager(pLessThan.getOperand1())
+            .lessThan(
+                pLessThan.getOperand1().accept(this, pEnvironment),
+                pLessThan.getOperand2().accept(this, pEnvironment));
     if (value.isDefinitelyTrue()) {
       return BooleanConstant.getTrue();
     }
@@ -169,7 +211,9 @@ public class FormulaCompoundStateEvaluationVisitor implements FormulaEvaluationV
   }
 
   @Override
-  public BooleanConstant<CompoundInterval> visit(LogicalAnd<CompoundInterval> pAnd, Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+  public BooleanConstant<CompoundInterval> visit(
+      LogicalAnd<CompoundInterval> pAnd,
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     BooleanConstant<CompoundInterval> leftEval = pAnd.getOperand1().accept(this, pEnvironment);
     BooleanConstant<CompoundInterval> rightEval = pAnd.getOperand2().accept(this, pEnvironment);
     // If one operand is false, return it
@@ -188,7 +232,9 @@ public class FormulaCompoundStateEvaluationVisitor implements FormulaEvaluationV
   }
 
   @Override
-  public BooleanConstant<CompoundInterval> visit(LogicalNot<CompoundInterval> pNot, Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+  public BooleanConstant<CompoundInterval> visit(
+      LogicalNot<CompoundInterval> pNot,
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     BooleanConstant<CompoundInterval> operandEval = pNot.getNegated().accept(this, pEnvironment);
     if (operandEval == null) {
       return operandEval;
@@ -197,32 +243,59 @@ public class FormulaCompoundStateEvaluationVisitor implements FormulaEvaluationV
   }
 
   @Override
-  public CompoundInterval visit(Modulo<CompoundInterval> pModulo, Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
-    return getCompoundIntervalManager(pModulo).modulo(pModulo.getNumerator().accept(this, pEnvironment), pModulo.getDenominator().accept(this, pEnvironment));
+  public CompoundInterval visit(
+      Modulo<CompoundInterval> pModulo,
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+    return getCompoundIntervalManager(pModulo)
+        .modulo(
+            pModulo.getNumerator().accept(this, pEnvironment),
+            pModulo.getDenominator().accept(this, pEnvironment));
   }
 
   @Override
-  public CompoundInterval visit(Multiply<CompoundInterval> pMultiply, Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
-    return getCompoundIntervalManager(pMultiply).multiply(pMultiply.getFactor1().accept(this, pEnvironment), pMultiply.getFactor2().accept(this, pEnvironment));
+  public CompoundInterval visit(
+      Multiply<CompoundInterval> pMultiply,
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+    return getCompoundIntervalManager(pMultiply)
+        .multiply(
+            pMultiply.getFactor1().accept(this, pEnvironment),
+            pMultiply.getFactor2().accept(this, pEnvironment));
   }
 
   @Override
-  public CompoundInterval visit(ShiftLeft<CompoundInterval> pShiftLeft, Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
-    return getCompoundIntervalManager(pShiftLeft).shiftLeft(pShiftLeft.getShifted().accept(this, pEnvironment), pShiftLeft.getShiftDistance().accept(this, pEnvironment));
+  public CompoundInterval visit(
+      ShiftLeft<CompoundInterval> pShiftLeft,
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+    return getCompoundIntervalManager(pShiftLeft)
+        .shiftLeft(
+            pShiftLeft.getShifted().accept(this, pEnvironment),
+            pShiftLeft.getShiftDistance().accept(this, pEnvironment));
   }
 
   @Override
-  public CompoundInterval visit(ShiftRight<CompoundInterval> pShiftRight, Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
-    return getCompoundIntervalManager(pShiftRight).shiftRight(pShiftRight.getShifted().accept(this, pEnvironment), pShiftRight.getShiftDistance().accept(this, pEnvironment));
+  public CompoundInterval visit(
+      ShiftRight<CompoundInterval> pShiftRight,
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+    return getCompoundIntervalManager(pShiftRight)
+        .shiftRight(
+            pShiftRight.getShifted().accept(this, pEnvironment),
+            pShiftRight.getShiftDistance().accept(this, pEnvironment));
   }
 
   @Override
-  public CompoundInterval visit(Union<CompoundInterval> pUnion, Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
-    return getCompoundIntervalManager(pUnion).union(pUnion.getOperand1().accept(this, pEnvironment), pUnion.getOperand2().accept(this, pEnvironment));
+  public CompoundInterval visit(
+      Union<CompoundInterval> pUnion,
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+    return getCompoundIntervalManager(pUnion)
+        .union(
+            pUnion.getOperand1().accept(this, pEnvironment),
+            pUnion.getOperand2().accept(this, pEnvironment));
   }
 
   @Override
-  public CompoundInterval visit(Variable<CompoundInterval> pVariable, Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+  public CompoundInterval visit(
+      Variable<CompoundInterval> pVariable,
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     NumeralFormula<CompoundInterval> varState = pEnvironment.get(pVariable.getMemoryLocation());
     if (varState == null) {
       return getCompoundIntervalManager(pVariable).allPossibleValues();
@@ -231,32 +304,38 @@ public class FormulaCompoundStateEvaluationVisitor implements FormulaEvaluationV
   }
 
   @Override
-  public BooleanConstant<CompoundInterval> visitFalse(Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+  public BooleanConstant<CompoundInterval> visitFalse(
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     return BooleanConstant.getFalse();
   }
 
   @Override
-  public BooleanConstant<CompoundInterval> visitTrue(Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+  public BooleanConstant<CompoundInterval> visitTrue(
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     return BooleanConstant.getTrue();
   }
 
   @Override
-  public CompoundInterval visit(IfThenElse<CompoundInterval> pIfThenElse,
+  public CompoundInterval visit(
+      IfThenElse<CompoundInterval> pIfThenElse,
       Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
-    BooleanConstant<CompoundInterval> condition = pIfThenElse.getCondition().accept(this, pEnvironment);
+    BooleanConstant<CompoundInterval> condition =
+        pIfThenElse.getCondition().accept(this, pEnvironment);
     if (BooleanConstant.isTrue(condition)) {
       return pIfThenElse.getPositiveCase().accept(this, pEnvironment);
     }
     if (BooleanConstant.isFalse(condition)) {
       return pIfThenElse.getNegativeCase().accept(this, pEnvironment);
     }
-    return getCompoundIntervalManager(pIfThenElse).union(
-        pIfThenElse.getPositiveCase().accept(this, pEnvironment),
-        pIfThenElse.getNegativeCase().accept(this, pEnvironment));
+    return getCompoundIntervalManager(pIfThenElse)
+        .union(
+            pIfThenElse.getPositiveCase().accept(this, pEnvironment),
+            pIfThenElse.getNegativeCase().accept(this, pEnvironment));
   }
 
   @Override
-  public CompoundInterval visit(Cast<CompoundInterval> pCast,
+  public CompoundInterval visit(
+      Cast<CompoundInterval> pCast,
       Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     CompoundInterval casted = pCast.getCasted().accept(this, pEnvironment);
     return getCompoundIntervalManager(pCast).cast(pCast.getTypeInfo(), casted);
@@ -279,5 +358,4 @@ public class FormulaCompoundStateEvaluationVisitor implements FormulaEvaluationV
     }
     return false;
   }
-
 }
