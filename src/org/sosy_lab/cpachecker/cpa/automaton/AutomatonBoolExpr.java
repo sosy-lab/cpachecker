@@ -148,6 +148,20 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
+  enum MatchOtherwise implements AutomatonBoolExpr {
+    INSTANCE;
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+        return CONST_TRUE;
+    }
+    @Override
+    public String toString() {
+      return "OTHERWISE";
+    }
+  }
+
+
   enum MatchLoopStart implements AutomatonBoolExpr {
     INSTANCE;
 

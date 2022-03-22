@@ -214,6 +214,14 @@ public class AutomatonTransferRelation implements TransferRelation {
               // cannot yet execute, goto UnknownState
               return ImmutableSet.of(new AutomatonUnknownState(state));
             }
+            if (t.getTrigger() instanceof  AutomatonBoolExpr.MatchOtherwise){
+              if (!transitionsToBeTaken.isEmpty()){
+                //The otherwise edge is by default true.
+                // If there is another transition that was taken in advance,
+                // it is ignored at this point
+                continue;
+              }
+            }
 
             // delay execution as described above
             Map<Integer, AAstNode> transitionVariables =

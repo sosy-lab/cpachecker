@@ -159,6 +159,7 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
 <YYINITIAL> "ASSUME"            { return symbol("ASSUME", AutomatonSym.ASSUME); }
 <YYINITIAL> "ASSERT"            { return symbol("ASSERT", AutomatonSym.ASSERT); }
 <YYINITIAL> "MATCH"             { return symbol("MATCH", AutomatonSym.MATCH); }
+<YYINITIAL> "OTHERWISE"         { return symbol("OTHERWISE", AutomatonSym.OTHERWISE); }
 <YYINITIAL> "LABEL"             { return symbol("LABEL", AutomatonSym.LABEL); }
 <YYINITIAL> "EVAL"              { return symbol("EVAL", AutomatonSym.EVAL); }
 <YYINITIAL> "CHECK"             { return symbol("EVAL", AutomatonSym.CHECK); }
