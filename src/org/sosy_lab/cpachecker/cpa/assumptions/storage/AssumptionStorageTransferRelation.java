@@ -195,12 +195,9 @@ logger = pLogger;
 
         ExpressionTree<AExpression> stateInv = automatonState.getCandidateInvariants();
         if (!ExpressionTrees.isConstant(stateInv)) {
-
           ToFormulaVisitor visitor = new ToFormulaVisitor(formulaManager, pathFormulaManager, null);
           try{       if (ExpressionTrees.isAnd(stateInv)) {
-
             BooleanFormula invFormula = visitor.visit((And<AExpression>) stateInv);
-
             assumption = bfmgr.and(assumption, formulaManager.uninstantiate(invFormula));
           } else if (ExpressionTrees.isOr(stateInv)) {
             BooleanFormula invFormula = visitor.visit((Or<AExpression>) stateInv);
