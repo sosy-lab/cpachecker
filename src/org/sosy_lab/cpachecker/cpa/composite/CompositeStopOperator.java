@@ -17,9 +17,7 @@ import com.google.common.collect.Multimap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
 import org.sosy_lab.cpachecker.core.defaults.StopJoinOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -49,8 +47,7 @@ class CompositeStopOperator implements ForcedCoveringStopOperator, CoveringState
   @Override
   public boolean stop(AbstractState element, Collection<AbstractState> reached, Precision precision)
       throws CPAException, InterruptedException {
-    Collection<AbstractState> reachedSubSet = getStopSepCoveringStates(element, reached, precision);
-    return !getStopJoinCoveringStates(element, reachedSubSet, precision).isEmpty();
+    return !getCoveringStates(element, reached, precision).isEmpty();
   }
 
   @Override
@@ -59,13 +56,13 @@ class CompositeStopOperator implements ForcedCoveringStopOperator, CoveringState
       throws CPAException, InterruptedException {
     Collection<AbstractState> reachedSubSet =
         getStopSepCoveringStates(pElement, pReachedSet, pPrecision);
-    return ImmutableSet.copyOf(getStopJoinCoveringStates(pElement, reachedSubSet, pPrecision));
+    return getStopJoinCoveringStates(pElement, reachedSubSet, pPrecision);
   }
 
   private Collection<AbstractState> getStopSepCoveringStates(
       AbstractState element, Collection<AbstractState> reached, Precision precision)
       throws CPAException, InterruptedException {
-    Collection<AbstractState> reachedSubSet = new LinkedHashSet<>();
+    ImmutableSet.Builder<AbstractState> reachedSubSet = ImmutableSet.builder();
     CompositeState compositeState = (CompositeState) element;
     CompositePrecision compositePrecision = (CompositePrecision) precision;
 
@@ -78,11 +75,11 @@ class CompositeStopOperator implements ForcedCoveringStopOperator, CoveringState
       if (stopSep(compositeState, (CompositeState) e, compositePrecision)) {
         reachedSubSet.add(e);
         if (noStopJoin) {
-          return reachedSubSet;
+          return reachedSubSet.build();
         }
       }
     }
-    return reachedSubSet;
+    return reachedSubSet.build();
   }
 
   private boolean stopSep(
@@ -106,8 +103,7 @@ class CompositeStopOperator implements ForcedCoveringStopOperator, CoveringState
       AbstractState absElem1 = compositeElements.get(idx);
       AbstractState absElem2 = compositeReachedStates.get(idx);
       Precision prec = compositePrecisions.get(idx);
-
-      if (!stopOp.stop(absElem1, Collections.singleton(absElem2), prec)) {
+      if (!stopOp.stop(absElem1, ImmutableSet.of(absElem2), prec)) {
         return false;
       }
     }
@@ -142,12 +138,17 @@ class CompositeStopOperator implements ForcedCoveringStopOperator, CoveringState
       return ImmutableSet.of();
     }
     if (!containStopJoinOperator()) {
-      return reached;
+      return ImmutableSet.copyOf(reached);
     }
 
     boolean retrievalPossible = retrieveCoveringStatesPossible();
-    Set<AbstractState> reachedSubSet =
-        retrievalPossible ? new LinkedHashSet<>(reached.size()) : new LinkedHashSet<>(reached);
+    ImmutableSet.Builder<AbstractState> reachedSubSet =
+        ImmutableSet.builderWithExpectedSize(reached.size());
+    // we will basically return the whole reached set, if we cannot retrieve covering subset,
+    // and if every the stop-join check goes through
+    if (!retrievalPossible) {
+      reachedSubSet.addAll(reached);
+    }
     List<AbstractState> compositeElements = ((CompositeState) element).getWrappedStates();
     List<Precision> compositePrecisions = ((CompositePrecision) precision).getWrappedPrecisions();
 
@@ -169,7 +170,7 @@ class CompositeStopOperator implements ForcedCoveringStopOperator, CoveringState
       AbstractState absElem = compositeElements.get(idx);
       Precision prec = compositePrecisions.get(idx);
 
-      // if retrieval of covering set if possible, we can potentially collect a minimal covering set
+      // if retrieval of covering set is possible, we can potentially collect a minimal covering set
       // (depends on whether the component CPA implements some minimization heuristics); otherwise,
       // we simply do a normal stop-join check
       if (retrievalPossible) {
@@ -187,7 +188,7 @@ class CompositeStopOperator implements ForcedCoveringStopOperator, CoveringState
         return ImmutableSet.of();
       }
     }
-    return reachedSubSet;
+    return reachedSubSet.build();
   }
 
   boolean isCoveredBy(
