@@ -27,7 +27,8 @@ Each automaton state contains the following information:
 * state name;
 * whether it is a target (error) state or not (_StateTypeDef_);
 * whether it is a nondeterministic state or not (_StateNonDetDef_);
-* automaton transitions (_Transitions_).
+* automaton transitions (_Transitions_);
+* state invariants (_StateInvariants_).
 
 Each automaton transition is determined by:
 * trigger (_Trigger_), which is a boolean expression;
@@ -35,6 +36,9 @@ Each automaton transition is determined by:
 * list of actions (_Actions_), which are executed, if assertions are held;
 * assumption (_Assume_), which is a C-expression, that is passed to the other CPAs for evaluation after actions execution;
 * identifier of the state, in which automaton will transfer, if assumption is evaluated as true (_Goto_).
+
+The invariants (_StateInvariants_) are handled analogously to _Assume_'s which is also a C-expression.
+**NOTE**: Currently, the grammer uses the keyword `ASSUME`, but this will be fixed in later itarions
 
 The semantics of the operations are presented in the next section.
 
@@ -61,11 +65,13 @@ _LocalDef_ ::=<br>
 
 _StateDefs_ ::= _StateDef_ _StateDefs_ |
 
-_StateDef_ ::= _StateTypeDef_ **STATE** _StateNonDetDef_ IDENTIFIER **:** _Transitions_
+_StateDef_ ::= _StateTypeDef_ **STATE** _StateNonDetDef_ IDENTIFIER **:** _Transitions_ _StateInvariants_
 
 _StateTypeDef_ ::= **TARGET** |
 
 _StateNonDetDef_ ::= **USEFIRST** | **USEALL** |
+
+_StateInvariants_ ::= **INVARIANT**  CURLYEXPR |
 
 _Transitions_ ::= _Transition_ _Transitions_ |
 
@@ -335,6 +341,14 @@ Then assumption:
  * `((int)$2) > $$var_1` is evaluated to `(int)arg_2 > 0` - transition will be taken with additional predicate `(int)arg_2 > 0`;
  * `$1; ((int)$2) == 0; $$var_2[$2]` is evaluated to `arg_1 != 0 && (int)arg_2 == 0 && 1` - transition will be taken with additional predicate `arg_1 != 0 && (int)arg_2`;
  * `!$1; $$var_2[$1]` is evaluated to `arg_1 == 0 && 0` &mdash; transition will be rejected unconditionally.
+
+#### State Invariants
+To be able to also represent correctness witnesses as Specification Automaton, or more general,
+to be able to attach an arbitrary state invariant to a state, state invariants can be used.
+They are optional.
+A state invariant need to always hold at the state, i.e. whenever the state is reached
+via a transition (mostly CFA-Eege) until an outgoing transition is taken.  
+State invariants rely on the same mechanism as [assumptions](#-Transition-assumptions).
 
 ## Examples of specification automata
 

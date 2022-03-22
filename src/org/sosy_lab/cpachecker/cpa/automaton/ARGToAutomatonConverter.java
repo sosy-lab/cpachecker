@@ -250,7 +250,7 @@ public class ARGToAutomatonConverter {
 
         boolean hasSeveralChildren = transitions.size() > 1;
         states.add(
-            new AutomatonInternalState(id(s), transitions, false, hasSeveralChildren, false));
+            new AutomatonInternalState(id(s), transitions, false, hasSeveralChildren, false, new ArrayList<>()));
       }
     }
 
@@ -884,7 +884,7 @@ public class ARGToAutomatonConverter {
                 elem.getCallNode().getLeavingSummaryEdge().getSuccessor().getNodeNumber(),
                 id(callee)));
       }
-      states.add(new AutomatonInternalState(id(elem), transitions, false, useAll, false));
+      states.add(new AutomatonInternalState(id(elem), transitions, false, useAll, false, new ArrayList<>()));
     }
 
     finishAssumptionHandling(states, callstackToLeaves, stacksWithAssumptions);

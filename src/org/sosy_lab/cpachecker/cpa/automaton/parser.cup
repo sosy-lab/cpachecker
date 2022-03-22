@@ -186,7 +186,7 @@ parser code {:
 
 terminal EXCLAMATION, AND, OR, ARROW, SEMICOLON, COMMA, COLON, OPEN_BRACKETS,
     CLOSE_BRACKETS, AUTOMATON,OBSERVER, CONTROL, END, LOCAL, INITIAL, STATE,
-    ERROR, STOP, EXIT, ENTRY, FUNCTIONCALL, BREAK, ASSERT, ASSUME, MATCH, LABEL, CHECK, EVAL,
+    ERROR, STOP, EXIT, ENTRY, FUNCTIONCALL, BREAK, ASSERT, ASSUME, INVARIANT, MATCH, LABEL, CHECK, EVAL,
     MODIFY, DO, PRINT, PRINTONCE, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS,
     MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR, USEALL, USEFIRST,
     TARGET, IS_TARGET_STATE, COVERS_LINES, OPEN_ANGLE_BRACKETS, CLOSE_ANGLE_BRACKETS ;
@@ -201,6 +201,7 @@ non terminal List<AutomatonTransition> Transitions ;
 non terminal List<AutomatonBoolExpr> Assertions ;
 non terminal List<AExpression> Assume ;
 non terminal List<AutomatonAction> Actions ;
+non terminal List<AExpression> StateInvariant ;
 non terminal Set<Integer> Integers ;
 
 non terminal AutomatonVariable LocalDef ;
@@ -269,8 +270,8 @@ StateDefs ::= StateDef:s StateDefs:lst  {: lst.add(0, s); RESULT = lst; :}
             | /* empty */ {: RESULT = new LinkedList<AutomatonInternalState>(); :}
               ;
 
-StateDef  ::= StateTypeDef:type STATE StateNonDetDef:nd IDENTIFIER:id COLON  Transitions:ts
-              {: RESULT = new AutomatonInternalState(id.toString(), ts, type, nd); :}
+StateDef  ::= StateTypeDef:type STATE StateNonDetDef:nd IDENTIFIER:id COLON  Transitions:ts StateInvariant:si
+              {: RESULT = new AutomatonInternalState(id.toString(), ts, type, nd, si); :}
             ;
             
 StateTypeDef ::= TARGET {: RESULT = true; :}
@@ -281,6 +282,7 @@ StateNonDetDef ::= USEFIRST {: RESULT = false; :}
                | USEALL {: RESULT = true; :}
                | /* empty */ {: RESULT = true; :}
                ;
+
 
 Transitions   ::= Transition:t Transitions:lst {: lst.add(0, t); RESULT = lst; :}
             | /* empty */ {: RESULT = new LinkedList<AutomatonTransition>(); :}
@@ -326,6 +328,10 @@ Assertions ::= Assertion:a Assertions:lst {: lst.add(0,a); RESULT = lst; :}
 Assertion  ::= ASSERT  Bool:b   {: RESULT = b; :};
 
 Assume    ::= ASSUME CURLYEXPR:a {: RESULT = CParserUtils.convertStatementsToAssumptions(CParserUtils.parseListOfStatements(a.toString(), cparser, scope), machineModel, logger); :}
+             | /* empty */ {: RESULT = new ArrayList<AExpression>(); :};
+
+/** TODO: Fix this to use INVARIANT as keyword */
+StateInvariant    ::= ASSUME CURLYEXPR:a {: RESULT = CParserUtils.convertStatementsToAssumptions(CParserUtils.parseListOfStatements(a.toString(), cparser, scope), machineModel, logger); :}
              | /* empty */ {: RESULT = new ArrayList<AExpression>(); :};
 
 Actions   ::= Action:a Actions:lst {: lst.add(0,a); RESULT = lst; :} // insert at the beginning of the list to preserve the order.

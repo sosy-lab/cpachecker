@@ -9,11 +9,13 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
 
@@ -43,7 +45,7 @@ public class AutomatonInternalState {
                   .build()),
           true,
           false,
-          false) {
+          false, new ArrayList<>()) {
         @Override
         public String toString() {
           return "ERROR";
@@ -58,7 +60,8 @@ public class AutomatonInternalState {
               new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, BOTTOM).build()),
           false,
           false,
-          false);
+          false,
+          new ArrayList<>());
 
   /** Name of this State.  */
   private final String name;
@@ -75,17 +78,22 @@ public class AutomatonInternalState {
 
   private final boolean isCycleStart;
 
+  /**    The list of state invariants for the node    */
+  private final ImmutableList<AExpression> stateInvariants;
+
   public AutomatonInternalState(
       String pName,
       List<AutomatonTransition> pTransitions,
       boolean pIsTarget,
       boolean pAllTransitions,
-      boolean pIsCycleStart) {
+      boolean pIsCycleStart,
+      List<AExpression> pStateInvariants) {
     this.name = pName;
     this.transitions = ImmutableList.copyOf(pTransitions);
     this.mIsTarget = pIsTarget;
     this.mAllTransitions = pAllTransitions;
     this.isCycleStart = pIsCycleStart;
+    this.stateInvariants = ImmutableList.copyOf(pStateInvariants);
   }
 
   public AutomatonInternalState(
@@ -93,11 +101,19 @@ public class AutomatonInternalState {
       List<AutomatonTransition> pTransitions,
       boolean pIsTarget,
       boolean pAllTransitions) {
-    this(pName, pTransitions, pIsTarget, pAllTransitions, false);
+    this(pName, pTransitions, pIsTarget, pAllTransitions, false,new ArrayList<AExpression>());
+  }
+
+  public AutomatonInternalState(
+      String pName,
+      List<AutomatonTransition> pTransitions,
+      boolean pIsTarget,
+      boolean pAllTransitions,    List<AExpression> pStateInvariants) {
+    this(pName, pTransitions, pIsTarget, pAllTransitions, false,pStateInvariants);
   }
 
   public AutomatonInternalState(String pName, List<AutomatonTransition> pTransitions) {
-    this(pName, pTransitions, false, false, false);
+    this(pName, pTransitions, false, false, false, new ArrayList<AExpression>());
   }
 
   public boolean isNonDetState() {
@@ -127,6 +143,10 @@ public class AutomatonInternalState {
 
   public boolean isTarget() {
     return mIsTarget;
+  }
+
+  public ImmutableList<AExpression> getStateInvariants() {
+    return stateInvariants;
   }
 
   /** Returns is it a state in that we will remain the rest of the time?. */

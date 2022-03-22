@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -146,7 +147,7 @@ public enum InvariantsSpecificationAutomatonBuilder {
         }
         AutomatonInternalState initState =
             new AutomatonInternalState(
-                initialStateName, initTransitions.build(), false, true, false);
+                initialStateName, initTransitions.build(), false, true, false, new ArrayList<>());
         states.add(initState);
         Map<String, AutomatonVariable> vars = ImmutableMap.of();
         return new Automaton(automatonName, vars, states.build(), initialStateName);
@@ -241,7 +242,12 @@ public enum InvariantsSpecificationAutomatonBuilder {
             }
             AutomatonInternalState state =
                 new AutomatonInternalState(
-                    createStateName(node), transitions.build(), false, true, false);
+                    createStateName(node),
+                    transitions.build(),
+                    false,
+                    true,
+                    false,
+                    new ArrayList<>());
             states.add(state);
           }
         }
