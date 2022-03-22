@@ -237,11 +237,14 @@ logger.log(Level.WARNING, Throwables.getStackTraceAsString(pE));
     Scope scope =
         cfa.getLanguage() == Language.C ? new CProgramScope(cfa, logger) : DummyScope.getInstance();
     try {
+      // we do not want to log, as we first try to load the UCA:
+      LogManager nullLogger = LogManager.createNullLogManager();
+
       List<Automaton> lst =
           AutomatonParser.parseAutomatonFile(
               pPredicatesFile,
               config,
-              logger,
+              nullLogger,
               cfa.getMachineModel(),
               scope,
               cfa.getLanguage(),
@@ -249,7 +252,7 @@ logger.log(Level.WARNING, Throwables.getStackTraceAsString(pE));
       if (lst.isEmpty()) {
         logger.log(
             Level.WARNING,
-            "Could not find automata in the file " + pPredicatesFile.toAbsolutePath());
+            "Could not find or load automata in the file " + pPredicatesFile.toAbsolutePath());
         return Optional.empty();
       } else if (lst.size() > 1) {
         logger.log(
