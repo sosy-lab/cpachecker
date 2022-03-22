@@ -175,7 +175,6 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     this.matches = successfulMatches;
     this.failedMatches = failedMatches;
     this.assumptions = pAssumptions;
-    //TODO: Find a nicer implementation for this!
     if (!ExpressionTrees.isConstant(internalState.getStateInvariants())){
       candidateInvariants =internalState.getStateInvariants();
     }else{
