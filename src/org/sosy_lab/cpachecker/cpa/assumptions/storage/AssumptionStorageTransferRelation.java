@@ -21,6 +21,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.rationals.Rational;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -30,6 +31,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AssumptionReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisStateWithSavedValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
@@ -61,6 +63,12 @@ public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelatio
           "If it is enabled, assumptions are extracted from the value analysis states,"
               + "if the ValueAnalyssi loads TESTCOMP-testcases.")
   private boolean extractAssumptionsFromValueAnalysisState = false;
+
+  @Option(
+      secure = true,
+      description =
+          "If it is enabled, assumptions are extracted from the correctness-witness state invariants")
+  private boolean extractAssumptionsFromAutomatonState = false;
 
   private final CtoFormulaConverter converter;
   private final FormulaManagerView formulaManager;
@@ -162,6 +170,17 @@ public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelatio
             assumption = bfmgr.and(addAssumption, assumption);
           }
         }
+      } else if (extractAssumptionsFromAutomatonState &&
+      element instanceof AutomatonState){
+
+        AutomatonState automatonState = (AutomatonState) element;
+
+          for (AExpression stateInv : automatonState.getStateInvariants()){
+            if (stateInv instanceof  CExpression){
+          BooleanFormula invFormula =
+              converter.makePredicate((CExpression) stateInv, pEdge, function, SSAMap.emptySSAMap().builder());
+          assumption = bfmgr.and(assumption, formulaManager.uninstantiate(invFormula));
+        }}
       }
     }
     Preconditions.checkState(!bfmgr.isTrue(stopFormula));

@@ -18,6 +18,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 
 /** Represents a State in the automaton.
  */
@@ -101,7 +102,7 @@ public class AutomatonInternalState {
       List<AutomatonTransition> pTransitions,
       boolean pIsTarget,
       boolean pAllTransitions) {
-    this(pName, pTransitions, pIsTarget, pAllTransitions, false,new ArrayList<AExpression>());
+    this(pName, pTransitions, pIsTarget, pAllTransitions, false,new ArrayList<>());
   }
 
   public AutomatonInternalState(
@@ -113,7 +114,7 @@ public class AutomatonInternalState {
   }
 
   public AutomatonInternalState(String pName, List<AutomatonTransition> pTransitions) {
-    this(pName, pTransitions, false, false, false, new ArrayList<AExpression>());
+    this(pName, pTransitions, false, false, false, new ArrayList<>());
   }
 
   public boolean isNonDetState() {
@@ -145,7 +146,7 @@ public class AutomatonInternalState {
     return mIsTarget;
   }
 
-  public ImmutableList<AExpression> getStateInvariants() {
+  public List<AExpression> getStateInvariants() {
     return stateInvariants;
   }
 

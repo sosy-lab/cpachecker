@@ -8,12 +8,14 @@
 
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.Configuration;
@@ -25,14 +27,18 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
+import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
+import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 
 /** Builder to create an invariant specification automaton (ISA) to validate invariants */
@@ -100,7 +106,11 @@ public enum InvariantsSpecificationAutomatonBuilder {
 
     @Override
     public Automaton build(
-        Automaton pAutomaton, Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa)
+        Automaton pAutomaton,
+        Configuration pConfig,
+        LogManager pLogger,
+        ShutdownNotifier pShutdownNotifier,
+        CFA pCfa)
         throws InterruptedException {
       try {
         WitnessInvariantsExtractor extractor =
@@ -117,7 +127,6 @@ public enum InvariantsSpecificationAutomatonBuilder {
     private Automaton buildInvariantsAutomaton(
         CFA pCfa, LogManager pLogger, Set<ExpressionTreeLocationInvariant> pInvariants) {
       try {
-        String automatonName = WITNESS_AUTOMATON_NAME;
         String initialStateName = INITIAL_STATE_NAME;
         ImmutableList.Builder<AutomatonInternalState> states = ImmutableList.builder();
         ImmutableList.Builder<AutomatonTransition> initTransitions = ImmutableList.builder();
@@ -125,8 +134,7 @@ public enum InvariantsSpecificationAutomatonBuilder {
           @SuppressWarnings("unchecked")
           ExpressionTree<AExpression> inv =
               (ExpressionTree<AExpression>) (ExpressionTree<?>) invariant.asExpressionTree();
-          CExpression cExpr =
-              inv.accept(new ToCExpressionVisitor(pCfa.getMachineModel(), pLogger));
+          CExpression cExpr = inv.accept(new ToCExpressionVisitor(pCfa.getMachineModel(), pLogger));
           if (inv instanceof LeafExpression<?>) {
             // we must swap the c expression when assume truth is false
             if (!((LeafExpression<?>) inv).assumeTruth()) {
@@ -150,7 +158,7 @@ public enum InvariantsSpecificationAutomatonBuilder {
                 initialStateName, initTransitions.build(), false, true, false, new ArrayList<>());
         states.add(initState);
         Map<String, AutomatonVariable> vars = ImmutableMap.of();
-        return new Automaton(automatonName, vars, states.build(), initialStateName);
+        return new Automaton(WITNESS_AUTOMATON_NAME, vars, states.build(), initialStateName);
       } catch (InvalidAutomatonException | UnrecognizedCodeException e) {
         throw new RuntimeException("The passed invariants produce an inconsistent automaton", e);
       }
@@ -329,6 +337,127 @@ public enum InvariantsSpecificationAutomatonBuilder {
           .filter(inv -> inv.getLocation().equals(pLocation))
           .findFirst()
           .orElseThrow();
+    }
+  },
+
+  /**
+   * This class can be used to transform a given correctness witness into a UCA.
+   * It is similarly defined to the {@link InvariantsSpecificationAutomatonBuilder#WITNESSBASED_ISA},
+   * but stores the invariant candidates at the nodes and not at the edges!
+   */
+  WITNESSBASED_UCA {
+    public static final String PREDEFINED_STATE_ERROR = "_predefinedState_ERROR";
+    private static final String WITNESS_AUTOMATON_NAME = "WitnessAutomaton";
+
+    @Override
+    public Automaton build(
+        Automaton pAutomaton,
+        Configuration pConfig,
+        LogManager pLogger,
+        ShutdownNotifier pShutdownNotifier,
+        CFA pCfa) {
+
+      return buildUCAForWitnessAutomaton(WITNESS_AUTOMATON_NAME, pAutomaton, pLogger, pCfa);
+    }
+
+    private Automaton buildUCAForWitnessAutomaton(
+        String pWitnessAutomatonName,
+        Automaton pAutomaton,
+        LogManager pLogger,
+        CFA pCfa) {
+
+      List<AutomatonInternalState> states = new ArrayList<>();
+      String initialStateName = pAutomaton.getInitialState().getName(); // Fallback
+      List<AutomatonTransition> temp = new ArrayList<>();
+
+      pAutomaton.getStates().forEach(s -> temp.addAll(s.getTransitions()));
+      ImmutableList<AutomatonTransition> allTransitionsWithCandidateInv =
+          temp.stream()
+              .filter(trans -> !ExpressionTrees.getTrue().equals(trans.getCandidateInvariants()))
+              .collect(ImmutableList.toImmutableList());
+
+      // Now, two things happen: (1) replace the relative source code description (line number,
+      // offset), with actual source code statements  (updating the trigger) and (2) store the
+      // invariants as state invariants to
+      // the states!
+      for (AutomatonInternalState currentState : pAutomaton.getStates()) {
+        boolean willBeInitial = currentState.equals(pAutomaton.getInitialState());
+
+        List<AutomatonTransition> newTransitions = new ArrayList<>();
+        for (AutomatonTransition transition : currentState.getTransitions()) {
+          if (transition.getFollowStateName().equals(PREDEFINED_STATE_ERROR)) {
+            // we can ignore these edges, as they are not foreseen in the UCA
+            continue;
+          }
+
+          newTransitions.add(
+              new AutomatonTransition.Builder(
+                      transition.getTrigger(), transition.getFollowStateName())
+                  .build());
+        }
+
+        List<ExpressionTree<AExpression>> invCandidates = new ArrayList<>();
+
+        for (AutomatonTransition transition : allTransitionsWithCandidateInv) {
+          if (transition.getFollowStateName().equals(currentState.getName())) {
+            if (invCandidates.size() > 0
+                && !invCandidates.contains(transition.getCandidateInvariants())) {
+              pLogger.logf(
+                  Level.WARNING,
+                  "Cannot store the invariant for %s, as there are more than one candidate: %s and %s",
+                  currentState.getName(),
+                  transition.getCandidateInvariants(),
+                  invCandidates);
+            } else if (!invCandidates.contains(transition.getCandidateInvariants())) {
+              invCandidates.add(transition.getCandidateInvariants());
+
+              pLogger.logf(
+                  Level.INFO,
+                  "Having inv-candidates %s for state %s",
+                  invCandidates,
+                  currentState.getName());
+            }
+          }
+        }
+        ToCExpressionVisitor visitor = new ToCExpressionVisitor(pCfa.getMachineModel(), pLogger);
+        List<AExpression> invCnds = new ArrayList<>();
+        for (ExpressionTree<AExpression> c : invCandidates) {
+          try {
+            if (c instanceof And) {
+              invCnds.add(visitor.visit((And<AExpression>) c));
+            } else if (c instanceof Or) {
+              invCnds.add(visitor.visit((Or<AExpression>) c));
+            } else if (c instanceof LeafExpression) {
+              invCnds.add(visitor.visit((LeafExpression<AExpression>) c));
+            }
+          } catch (UnrecognizedCodeException pE) {
+            pLogger.logf(
+                Level.WARNING,
+                "Cannot parse the expression %s due to %s",
+                c,
+                Throwables.getStackTraceAsString(pE));
+          }
+        }
+        AutomatonInternalState newState =
+            new AutomatonInternalState(
+                currentState.getName(),
+                newTransitions,
+                currentState.isTarget(),
+                currentState.isNonDetState(),
+                invCnds);
+
+        states.add(newState);
+        if (willBeInitial) {
+          initialStateName = newState.getName();
+        }
+      }
+      try {
+        return new Automaton(
+            pWitnessAutomatonName, pAutomaton.getInitialVariables(), states, initialStateName);
+      } catch (InvalidAutomatonException e) {
+        throw new RuntimeException(
+            "Changing the name of the automaton produces an incosistent automaton", e);
+      }
     }
   };
 

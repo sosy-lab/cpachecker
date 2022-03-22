@@ -426,6 +426,11 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     return candidateInvariants;
   }
 
+  public List<AExpression> getStateInvariants(){
+    return this.internalState.getStateInvariants();
+  }
+
+
   AutomatonInternalState getInternalState() {
     return internalState;
   }

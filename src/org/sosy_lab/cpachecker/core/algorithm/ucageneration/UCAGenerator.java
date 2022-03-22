@@ -63,6 +63,11 @@ public class UCAGenerator {
         name = "assumptions.genUCA4Refinement",
         description = "Generate uca for refinement (usable in C-CEGAR for craig interpolation)")
     private boolean genUCA4Refinement = false;
+    @Option(
+        secure = true,
+        name = "assumptions.genUCA4CorrectnesWitness",
+        description = "Generate uca for correctness witness")
+    private boolean genUCA4CorrectnesWitness = false;
 
     public UCAGeneratorOptions(Configuration pConfig) throws InvalidConfigurationException {
       pConfig.inject(this);
@@ -83,6 +88,14 @@ public class UCAGenerator {
     public boolean isGenUCA4Refinement() {
       return genUCA4Refinement;
     }
+
+    public boolean isGenUCA4CorrectnesWitness() {
+      return genUCA4CorrectnesWitness;
+    }
+
+    public void setGenUCA4CorrectnesWitness(boolean pGenUCA4CorrectnesWitness) {
+      genUCA4CorrectnesWitness = pGenUCA4CorrectnesWitness;
+    }
   }
 
   public static final String NAME_OF_WITNESS_AUTOMATON = "WitnessAutomaton";
@@ -102,6 +115,7 @@ public class UCAGenerator {
   private final UCAVioWitGenerator vioWitGenerator;
   private final UCATestcaseGenerator testcaseGenerator;
   private final UCAInterpolantGenerator interpolantGenerator;
+  private final  UCACorWitGenerator corWitGenerator;
 
   final LogManager logger;
 
@@ -144,6 +158,7 @@ public class UCAGenerator {
     this.vioWitGenerator = new UCAVioWitGenerator(logger, optinons);
     this.testcaseGenerator = new UCATestcaseGenerator(cpa);
     this.interpolantGenerator = new UCAInterpolantGenerator(cpa, formulaManager);
+    this.corWitGenerator = new UCACorWitGenerator(logger, optinons);
   }
 
   public int produceUniversalConditionAutomaton(
@@ -157,6 +172,8 @@ public class UCAGenerator {
           testcaseGenerator.produceUCA4Testcase(output, reached, pExceptionStates);
     } else if (optinons.isGenUCA4Refinement()) {
       universalConditionAutomaton += interpolantGenerator.produceUCA4Interpolant(output, reached);
+    } else if (optinons.isGenUCA4CorrectnesWitness()){
+      universalConditionAutomaton += corWitGenerator.produceUCA4CorrectnessWitness(output, reached);
     }
     return this.universalConditionAutomaton;
   }

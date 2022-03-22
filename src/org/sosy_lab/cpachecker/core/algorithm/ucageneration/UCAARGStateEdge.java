@@ -38,6 +38,14 @@ public class UCAARGStateEdge {
     this.assumption = Optional.empty();
   }
 
+
+  public UCAARGStateEdge(ARGState pSource,ARGState pTarget,  CFAEdge pEdge) {
+    this.source = pSource;
+    this.target = Optional.ofNullable(pTarget);
+    this.edge = pEdge;
+    this.assumption = Optional.empty();
+  }
+
   public String getSourceName() {
     return UCAGenerator.getName(source);
   }

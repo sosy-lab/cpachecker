@@ -573,6 +573,9 @@ assumptions.export.location = true
 # write collected assumptions to file
 assumptions.file = "assumptions.txt"
 
+# Generate uca for correctness witness
+assumptions.genUCA4CorrectnesWitness = false
+
 # Generate uca for refinement (usable in C-CEGAR for craig interpolation)
 assumptions.genUCA4Refinement = false
 
@@ -1366,6 +1369,10 @@ cpa.arg.witness.removeInsufficientEdges = true
 
 # Verification witness: Revert escaping/renaming of functions for threads?
 cpa.arg.witness.revertThreadFunctionRenaming = false
+
+# If it is enabled, assumptions are extracted from the correctness-witness
+# state invariants
+cpa.assumptionStorage.extractAssumptionsFromAutomatonState = false
 
 # If it is enabled, assumptions are extracted from the value analysis
 # states,if the ValueAnalyssi loads TESTCOMP-testcases.
@@ -4613,7 +4620,7 @@ witness.debug.checkForMissedInvariants = false
 # Validate correctness witness by specifying an invariants specification
 # automaton
 witness.invariantsSpecificationAutomaton = NO_ISA
-  enum:     [NO_ISA, WITNESSBASED_ISA, TWOSTATES_ISA, CFABASED_ISA]
+  enum:     [NO_ISA, WITNESSBASED_ISA, TWOSTATES_ISA, CFABASED_ISA, WITNESSBASED_UCA]
 
 # Match the branching information at a branching location.
 witness.matchAssumeCase = true
