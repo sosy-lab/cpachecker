@@ -18,8 +18,8 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
 public class UCAARGStateEdge {
-  private final ARGState source;
-  private final Optional<ARGState> target;
+  protected final ARGState source;
+  protected final Optional<ARGState> target;
   private final CFAEdge edge;
   private final Optional<AbstractionFormula> assumption;
 
@@ -58,6 +58,10 @@ public class UCAARGStateEdge {
 
   public ARGState getSource() {
     return source;
+  }
+
+  public Optional<ARGState> getTarget() {
+    return target;
   }
 
   public String getStringOfAssumption(FormulaManagerView pFMgr) throws IOException {

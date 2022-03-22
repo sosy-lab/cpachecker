@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -65,10 +64,10 @@ public class UCACorWitGenerator {
     // and the root node
 
     final ARGState argRoot = (ARGState) reached.getFirstState();
-    AutomatonState rootState = UCAGenerator.getWitnessAutomatonState(argRoot).orElseThrow();
+//    AutomatonState rootState = UCAGenerator.getWitnessAutomatonState(argRoot).orElseThrow();
 
     Set<UCAAutomatonStateEdge> edgesInAutomatonStates = new HashSet<>();
-    Set<UCAARGStateEdge> edgesToAdd = new HashSet<>();
+    Set<UCAARGStateEdgeWithAssumptionNaming> edgesToAdd = new HashSet<>();
 
     // Next, filter the reached set fo all states, that have a different automaton
     // state compared to their predecessors, as these are the states that need to be stored in
@@ -83,6 +82,7 @@ public class UCACorWitGenerator {
         continue;
       }
       AutomatonState currentAutomatonState = automatonStateOpt.orElseThrow();
+      logger.log(Level.INFO, currentAutomatonState);
       @Nullable ARGState argState = AbstractStates.extractStateByType(s, ARGState.class);
       if (Objects.isNull(argState)) {
         logger.log(
@@ -106,6 +106,9 @@ public class UCACorWitGenerator {
                 .noneMatch(state -> parentAutomatonState.orElseThrow().equals(state))) {
           parentsWithOtherAutomatonState.add(Pair.of(parent, parentAutomatonState.orElseThrow()));
         }
+        else{
+          logger.logf(Level.INFO, "Ignoring state %s, as already present ", parentAutomatonState.orElseThrow() );
+        }
       }
       if (!parentsWithOtherAutomatonState.isEmpty()) {
         for (Pair<ARGState, AutomatonState> parentPair : parentsWithOtherAutomatonState) {
@@ -113,13 +116,18 @@ public class UCACorWitGenerator {
           CFAEdge edge = UCAGenerator.getEdge(parentPair, argState);
           edgesInAutomatonStates.add(
               new UCAAutomatonStateEdge(parentPair.getSecond(), currentAutomatonState, edge));
-          edgesToAdd.add(new UCAARGStateEdge(parentPair.getFirst(), AbstractStates.extractStateByType(s, ARGState.class),edge ));
+          edgesToAdd.add(
+              new UCAARGStateEdgeWithAssumptionNaming(
+                  parentPair.getFirst(),
+                  AbstractStates.extractStateByType(s, ARGState.class),
+                  edge));
 
           // Check, if the parent node has any other outgoing edges, they have to be added aswell
           for (CFAEdge otherEdge :
               CFAUtils.leavingEdges(AbstractStates.extractLocation(parentPair.getFirst()))) {
             if (!otherEdge.equals(edge)) {
-              edgesInAutomatonStates.add(new UCAAutomatonStateEdge(parentPair.getSecond(), otherEdge));
+              edgesInAutomatonStates.add(
+                  new UCAAutomatonStateEdge(parentPair.getSecond(), otherEdge));
             }
           }
         }
@@ -127,9 +135,10 @@ public class UCACorWitGenerator {
     }
 
     logger.log(
-        Level.FINE, edgesInAutomatonStates.stream().map(e -> e.toString()).collect(Collectors.joining("\n")));
+        Level.FINE,
+        edgesInAutomatonStates.stream().map(e -> e.toString()).collect(Collectors.joining("\n")));
 
-    return writeUCAForViolationWitness(
+    return writeUCAForCorrectnessWitness(
         output, argRoot, edgesToAdd, optinons.isAutomatonIgnoreAssumptions());
   }
 
@@ -142,15 +151,24 @@ public class UCACorWitGenerator {
    * @param edgesToAdd the edges between states to add
    * @throws IOException if the file cannot be accessed or does not exist
    */
-  private int writeUCAForViolationWitness(
-      Appendable sb, ARGState rootState, Set<UCAARGStateEdge> edgesToAdd, boolean ignoreAssumptions)
+  private int writeUCAForCorrectnessWitness(
+      Appendable sb,
+      ARGState rootState,
+      Set<UCAARGStateEdgeWithAssumptionNaming> edgesToAdd,
+      boolean ignoreAssumptions)
       throws IOException {
     int numProducedStates = 0;
     sb.append("OBSERVER AUTOMATON AssumptionAutomaton\n\n");
 
     String actionOnFinalEdges = "";
 
-    UCAGenerator.storeInitialNode(sb, edgesToAdd.isEmpty(), UCAGenerator.getName(rootState));
+    Optional<AutomatonState> autoRootState = UCAGenerator.getWitnessAutomatonState(rootState);
+    if (autoRootState.isPresent()) {
+      UCAGenerator.storeInitialNode(
+          sb, edgesToAdd.isEmpty(), UCAGenerator.getName(autoRootState.get()));
+    } else {
+      UCAGenerator.storeInitialNode(sb, edgesToAdd.isEmpty(), UCAGenerator.getName(rootState));
+    }
     if (ignoreAssumptions) {
       sb.append(String.format("    TRUE -> GOTO %s;\n\n", UCAGenerator.NAME_OF_TEMP_STATE));
     } else {
@@ -175,7 +193,15 @@ public class UCACorWitGenerator {
             .sorted(Comparator.comparing(UCAGenerator::getName))
             .collect(ImmutableList.toImmutableList())) {
 
-      sb.append(String.format("STATE USEALL %s :\n", UCAGenerator.getName(currentState)));
+      Optional<AutomatonState> curAssumptionState =
+          UCAGenerator.getWitnessAutomatonState(currentState);
+      if (curAssumptionState.isPresent()) {
+        sb.append(
+            String.format(
+                "STATE USEALL %s :\n", UCAGenerator.getName(curAssumptionState.orElseThrow())));
+      } else {
+        sb.append(String.format("STATE USEALL %s :\n", UCAGenerator.getName(currentState)));
+      }
       numProducedStates++;
 
       for (UCAARGStateEdge edge : nodesToEdges.get(currentState)) {
@@ -186,24 +212,36 @@ public class UCACorWitGenerator {
         sb.append(String.format("GOTO %s", edge.getTargetName()));
         sb.append(";\n");
       }
+
+      if (!currentState.isTarget()) {
+        if (curAssumptionState.isPresent()) {
+          sb.append(
+              String.format(
+                  "    MATCH OTHERWISE -> " + actionOnFinalEdges + "GOTO %s;\n",
+                  UCAGenerator.getName(curAssumptionState.orElseThrow())));
+        } else {
+          sb.append(
+              String.format(
+                  "    MATCH OTHERWISE -> " + actionOnFinalEdges + "GOTO %s;\n",
+                  UCAGenerator.getName(currentState)));
+        }
+      }
       // Add a edge to __TRUE, as all states are accepting
       sb.append("    TRUE -> " + "GOTO __TRUE;\n");
-      if (!currentState.isTarget()) {
-        sb.append(
-            String.format(
-                "    TRUE -> " + actionOnFinalEdges + "GOTO %s;\n",
-                UCAGenerator.getName(currentState)));
-      }
+
       @Nullable AssumptionStorageState assumptionState =
           AbstractStates.extractStateByType(currentState, AssumptionStorageState.class);
       if (Objects.nonNull(assumptionState) && !assumptionState.isAssumptionTrue()) {
         // Add indent to be able to use util mehtods
         // TODO: Refactor if CUP-grammer is refactored
+        //TODO: Find out, why Modulo operations are exported that strange:
+        //Example: ( ( ( ( ( y % 2 ) < 2 ) && ( ! ( y < ( y % 2 ) ) ) ) && ( ( y % 2 ) == ( ( y % 2 ) % 2 ) ) ) && ( ( y % 2 ) == 1 ) ) for ( ( y % 2 ) == 1 )
         sb.append("    ");
         AssumptionCollectorAlgorithm.addAssumption(
             sb, assumptionState, false, AbstractStates.extractLocation(currentState));
         sb.append("\n");
-      } sb.append("\n");
+      }
+      sb.append("\n");
     }
 
     sb.append("END AUTOMATON\n");
