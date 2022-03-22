@@ -12,7 +12,7 @@ STATE USEALL N24 :
     MATCH "__VERIFIER_assert (y!=0U);" -> GOTO N5;
     MATCH OTHERWISE -> GOTO N24;
     TRUE -> GOTO __TRUE;
-    ASSUME {( ( y % 2 ) == 1 )}
+    INVARIANT {( y % 2 ) == 1 };
 
 STATE USEALL N5 :
     MATCH "[!(!(cond))]" -> GOTO N10;

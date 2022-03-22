@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -45,6 +46,10 @@ import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonIntVariable;
 import org.sosy_lab.cpachecker.util.CParserUtils;
+import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+import org.sosy_lab.cpachecker.util.expressions.CachingExpressionTreeFactory;
 
 parser code {:
   private LogManager logger;
@@ -201,7 +206,7 @@ non terminal List<AutomatonTransition> Transitions ;
 non terminal List<AutomatonBoolExpr> Assertions ;
 non terminal List<AExpression> Assume ;
 non terminal List<AutomatonAction> Actions ;
-non terminal List<AExpression> StateInvariant ;
+non terminal ExpressionTree<AExpression> StateInvariant ;
 non terminal Set<Integer> Integers ;
 
 non terminal AutomatonVariable LocalDef ;
@@ -330,8 +335,10 @@ Assertion  ::= ASSERT  Bool:b   {: RESULT = b; :};
 Assume    ::= ASSUME CURLYEXPR:a {: RESULT = CParserUtils.convertStatementsToAssumptions(CParserUtils.parseListOfStatements(a.toString(), cparser, scope), machineModel, logger); :}
              | /* empty */ {: RESULT = new ArrayList<AExpression>(); :};
 
-StateInvariant    ::= INVARIANT CURLYEXPR:a  SEMICOLON {: RESULT = CParserUtils.convertStatementsToAssumptions(CParserUtils.parseListOfStatements(a.toString(), cparser, scope), machineModel, logger); :}
-             | /* empty */ {: RESULT = new ArrayList<AExpression>(); :};
+StateInvariant    ::= INVARIANT CURLYEXPR:a  SEMICOLON
+             {:  ParserTools parserTools = ParserTools.create(new CachingExpressionTreeFactory<AExpression>(), machineModel, logger);
+                              RESULT = CParserUtils.parseStatementsAsExpressionTree(ImmutableSet.of(a.toString()), Optional.empty(), cparser, scope, parserTools);:}
+             | /* empty */ {: RESULT =    ExpressionTrees.getTrue(); :};
 
 Actions   ::= Action:a Actions:lst {: lst.add(0,a); RESULT = lst; :} // insert at the beginning of the list to preserve the order.
             | /* empty */ {: RESULT = new LinkedList<AutomatonAction>(); :}

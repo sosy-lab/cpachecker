@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CPAQuery;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.MatchCFAEdgeRegEx;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CParserUtils;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.ltl.LtlParseException;
 
 public class BuechiConverterUtils {
@@ -217,7 +218,7 @@ public class BuechiConverterUtils {
 
           stateListBuilder.add(
               new AutomatonInternalState(
-                  getStateName(storedState), transitionList, isTargetState, true, false, new ArrayList<>()));
+                  getStateName(storedState), transitionList, isTargetState, true, false,    ExpressionTrees.getTrue()));
         }
 
         return new Automaton(

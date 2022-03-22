@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
@@ -65,7 +66,11 @@ public class AssumptionStorageCPA
     CtoFormulaConverter converter = new CtoFormulaConverter(options, formulaManager, cfa.getMachineModel(), cfa.getVarClassification(), logger, pShutdownNotifier, typeHandler, AnalysisDirection.FORWARD);
     BooleanFormulaManagerView bfmgr = formulaManager.getBooleanFormulaManager();
     topState = new AssumptionStorageState(formulaManager, bfmgr.makeTrue(), bfmgr.makeTrue());
-    transferRelation = new AssumptionStorageTransferRelation(converter, formulaManager, topState, config);
+    PathFormulaManagerImpl pathFormulaManager =
+        new PathFormulaManagerImpl(formulaManager, config, logger, pShutdownNotifier, cfa,
+            AnalysisDirection.FORWARD);
+    transferRelation = new AssumptionStorageTransferRelation(converter, formulaManager, topState, config,
+        pathFormulaManager, logger);
   }
 
   public FormulaManagerView getFormulaManager() {

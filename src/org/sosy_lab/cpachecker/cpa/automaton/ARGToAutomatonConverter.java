@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
 /**
  * This class converts an ARG into an automaton (or several automata), that can be used as
@@ -250,7 +251,7 @@ public class ARGToAutomatonConverter {
 
         boolean hasSeveralChildren = transitions.size() > 1;
         states.add(
-            new AutomatonInternalState(id(s), transitions, false, hasSeveralChildren, false, new ArrayList<>()));
+            new AutomatonInternalState(id(s), transitions, false, hasSeveralChildren, false, ExpressionTrees.getTrue()));
       }
     }
 
@@ -884,7 +885,7 @@ public class ARGToAutomatonConverter {
                 elem.getCallNode().getLeavingSummaryEdge().getSuccessor().getNodeNumber(),
                 id(callee)));
       }
-      states.add(new AutomatonInternalState(id(elem), transitions, false, useAll, false, new ArrayList<>()));
+      states.add(new AutomatonInternalState(id(elem), transitions, false, useAll, false,ExpressionTrees.getTrue()));
     }
 
     finishAssumptionHandling(states, callstackToLeaves, stacksWithAssumptions);

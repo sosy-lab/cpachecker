@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
 /** Represents a State in the automaton.
  */
@@ -46,7 +47,7 @@ public class AutomatonInternalState {
                   .build()),
           true,
           false,
-          false, new ArrayList<>()) {
+          false, ExpressionTrees.getTrue()) {
         @Override
         public String toString() {
           return "ERROR";
@@ -62,7 +63,7 @@ public class AutomatonInternalState {
           false,
           false,
           false,
-          new ArrayList<>());
+          ExpressionTrees.getTrue());
 
   /** Name of this State.  */
   private final String name;
@@ -80,7 +81,7 @@ public class AutomatonInternalState {
   private final boolean isCycleStart;
 
   /**    The list of state invariants for the node    */
-  private final ImmutableList<AExpression> stateInvariants;
+  private final ExpressionTree<AExpression> stateInvariants;
 
   public AutomatonInternalState(
       String pName,
@@ -88,13 +89,13 @@ public class AutomatonInternalState {
       boolean pIsTarget,
       boolean pAllTransitions,
       boolean pIsCycleStart,
-      List<AExpression> pStateInvariants) {
+      ExpressionTree<AExpression> pStateInvariants) {
     this.name = pName;
     this.transitions = ImmutableList.copyOf(pTransitions);
     this.mIsTarget = pIsTarget;
     this.mAllTransitions = pAllTransitions;
     this.isCycleStart = pIsCycleStart;
-    this.stateInvariants = ImmutableList.copyOf(pStateInvariants);
+    this.stateInvariants = pStateInvariants;
   }
 
   public AutomatonInternalState(
@@ -102,19 +103,20 @@ public class AutomatonInternalState {
       List<AutomatonTransition> pTransitions,
       boolean pIsTarget,
       boolean pAllTransitions) {
-    this(pName, pTransitions, pIsTarget, pAllTransitions, false,new ArrayList<>());
+    this(pName, pTransitions, pIsTarget, pAllTransitions, false, ExpressionTrees.getTrue());
   }
 
   public AutomatonInternalState(
       String pName,
       List<AutomatonTransition> pTransitions,
       boolean pIsTarget,
-      boolean pAllTransitions,    List<AExpression> pStateInvariants) {
+      boolean pAllTransitions,
+      ExpressionTree<AExpression> pStateInvariants) {
     this(pName, pTransitions, pIsTarget, pAllTransitions, false,pStateInvariants);
   }
 
   public AutomatonInternalState(String pName, List<AutomatonTransition> pTransitions) {
-    this(pName, pTransitions, false, false, false, new ArrayList<>());
+    this(pName, pTransitions, false, false, false, ExpressionTrees.getTrue());
   }
 
   public boolean isNonDetState() {
@@ -146,7 +148,7 @@ public class AutomatonInternalState {
     return mIsTarget;
   }
 
-  public List<AExpression> getStateInvariants() {
+  public  ExpressionTree<AExpression> getStateInvariants() {
     return stateInvariants;
   }
 

@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
@@ -27,18 +26,16 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
-import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTreeFactory;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
-import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 
 /** Builder to create an invariant specification automaton (ISA) to validate invariants */
@@ -155,7 +152,7 @@ public enum InvariantsSpecificationAutomatonBuilder {
         }
         AutomatonInternalState initState =
             new AutomatonInternalState(
-                initialStateName, initTransitions.build(), false, true, false, new ArrayList<>());
+                initialStateName, initTransitions.build(), false, true, false, ExpressionTrees.getTrue());
         states.add(initState);
         Map<String, AutomatonVariable> vars = ImmutableMap.of();
         return new Automaton(WITNESS_AUTOMATON_NAME, vars, states.build(), initialStateName);
@@ -255,7 +252,7 @@ public enum InvariantsSpecificationAutomatonBuilder {
                     false,
                     true,
                     false,
-                    new ArrayList<>());
+                    ExpressionTrees.getTrue());
             states.add(state);
           }
         }
@@ -357,14 +354,13 @@ public enum InvariantsSpecificationAutomatonBuilder {
         ShutdownNotifier pShutdownNotifier,
         CFA pCfa) {
 
-      return buildUCAForWitnessAutomaton(WITNESS_AUTOMATON_NAME, pAutomaton, pLogger, pCfa);
+      return buildUCAForWitnessAutomaton(WITNESS_AUTOMATON_NAME, pAutomaton, pLogger);
     }
 
     private Automaton buildUCAForWitnessAutomaton(
         String pWitnessAutomatonName,
         Automaton pAutomaton,
-        LogManager pLogger,
-        CFA pCfa) {
+        LogManager pLogger) {
 
       List<AutomatonInternalState> states = new ArrayList<>();
       String initialStateName = pAutomaton.getInitialState().getName(); // Fallback
@@ -410,7 +406,6 @@ public enum InvariantsSpecificationAutomatonBuilder {
                   invCandidates);
             } else if (!invCandidates.contains(transition.getCandidateInvariants())) {
               invCandidates.add(transition.getCandidateInvariants());
-
               pLogger.logf(
                   Level.INFO,
                   "Having inv-candidates %s for state %s",
@@ -419,24 +414,11 @@ public enum InvariantsSpecificationAutomatonBuilder {
             }
           }
         }
-        ToCExpressionVisitor visitor = new ToCExpressionVisitor(pCfa.getMachineModel(), pLogger);
-        List<AExpression> invCnds = new ArrayList<>();
+             ExpressionTree<AExpression> invCnds = ExpressionTrees.getTrue();
+        ExpressionTreeFactory<AExpression> fac =
+            ExpressionTrees.newFactory();
         for (ExpressionTree<AExpression> c : invCandidates) {
-          try {
-            if (c instanceof And) {
-              invCnds.add(visitor.visit((And<AExpression>) c));
-            } else if (c instanceof Or) {
-              invCnds.add(visitor.visit((Or<AExpression>) c));
-            } else if (c instanceof LeafExpression) {
-              invCnds.add(visitor.visit((LeafExpression<AExpression>) c));
-            }
-          } catch (UnrecognizedCodeException pE) {
-            pLogger.logf(
-                Level.WARNING,
-                "Cannot parse the expression %s due to %s",
-                c,
-                Throwables.getStackTraceAsString(pE));
-          }
+          invCnds = fac.and(invCnds, c);
         }
         AutomatonInternalState newState =
             new AutomatonInternalState(

@@ -11,15 +11,18 @@ package org.sosy_lab.cpachecker.cpa.assumptions.storage;
 import static org.sosy_lab.java_smt.api.FormulaType.getSinglePrecisionFloatingPointType;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
@@ -41,21 +44,32 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.expressions.And;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
+import org.sosy_lab.cpachecker.util.expressions.Or;
+import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
+import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor.ToFormulaException;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
+import org.sosy_lab.java_smt.api.SolverContext;
 
 /** Transfer relation and strengthening for the DumpInvariant CPA */
 @Options(prefix = "cpa.assumptionStorage")
 public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelation {
+
 
   @Option(
       secure = true,
@@ -73,18 +87,23 @@ public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelatio
   private final CtoFormulaConverter converter;
   private final FormulaManagerView formulaManager;
 
+  private final LogManager logger;
   private final Collection<AbstractState> topStateSet;
+  private final PathFormulaManager pathFormulaManager;
 
   public AssumptionStorageTransferRelation(
       CtoFormulaConverter pConverter,
       FormulaManagerView pFormulaManager,
       AbstractState pTopState,
-      Configuration pConfig)
+      Configuration pConfig,
+      PathFormulaManager pPathFormulaManager, LogManager pLogger)
       throws InvalidConfigurationException {
     pConfig.inject(this);
     converter = pConverter;
     formulaManager = pFormulaManager;
     topStateSet = Collections.singleton(pTopState);
+    pathFormulaManager = pPathFormulaManager;
+logger = pLogger;
   }
 
   @Override
@@ -170,17 +189,30 @@ public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelatio
             assumption = bfmgr.and(addAssumption, assumption);
           }
         }
-      } else if (extractAssumptionsFromAutomatonState &&
-      element instanceof AutomatonState){
+      } else if (extractAssumptionsFromAutomatonState && element instanceof AutomatonState) {
 
         AutomatonState automatonState = (AutomatonState) element;
 
-          for (AExpression stateInv : automatonState.getStateInvariants()){
-            if (stateInv instanceof  CExpression){
-          BooleanFormula invFormula =
-              converter.makePredicate((CExpression) stateInv, pEdge, function, SSAMap.emptySSAMap().builder());
-          assumption = bfmgr.and(assumption, formulaManager.uninstantiate(invFormula));
-        }}
+        ExpressionTree<AExpression> stateInv = automatonState.getCandidateInvariants();
+        if (!ExpressionTrees.isConstant(stateInv)) {
+
+          ToFormulaVisitor visitor = new ToFormulaVisitor(formulaManager, pathFormulaManager, null);
+          try{       if (ExpressionTrees.isAnd(stateInv)) {
+
+            BooleanFormula invFormula = visitor.visit((And<AExpression>) stateInv);
+
+            assumption = bfmgr.and(assumption, formulaManager.uninstantiate(invFormula));
+          } else if (ExpressionTrees.isOr(stateInv)) {
+            BooleanFormula invFormula = visitor.visit((Or<AExpression>) stateInv);
+            assumption = bfmgr.and(assumption, formulaManager.uninstantiate(invFormula));
+          } else if (ExpressionTrees.isLeaf(stateInv)) {
+            BooleanFormula invFormula = visitor.visit((LeafExpression<AExpression>) stateInv);
+            assumption = bfmgr.and(assumption, formulaManager.uninstantiate(invFormula));
+          }}catch( ToFormulaException pE){
+          logger.logf(Level.WARNING,"Cannot parse the expression tree %s due to %s", stateInv,
+              Throwables.getStackTraceAsString(pE));
+          }
+        }
       }
     }
     Preconditions.checkState(!bfmgr.isTrue(stopFormula));

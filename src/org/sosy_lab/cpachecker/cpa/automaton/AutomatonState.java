@@ -176,10 +176,8 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     this.failedMatches = failedMatches;
     this.assumptions = pAssumptions;
     //TODO: Find a nicer implementation for this!
-    if (internalState.getStateInvariants().size() == 1){
-      CExpressionToExpressionTreeVisitor visitor = new CExpressionToExpressionTreeVisitor();
-
-      candidateInvariants = ExpressionTrees.cast( visitor.visitDefault( internalState.getStateInvariants().get(0)));
+    if (!ExpressionTrees.isConstant(internalState.getStateInvariants())){
+      candidateInvariants =internalState.getStateInvariants();
     }else{
     this.candidateInvariants = pCandidateInvariants;}
     this.treatErrorAsTarget = pTreatErrorAsTarget;
@@ -433,12 +431,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     return candidateInvariants;
   }
 
-  public List<AExpression> getStateInvariants(){
-    return this.internalState.getStateInvariants();
-  }
-
-
-  AutomatonInternalState getInternalState() {
+    AutomatonInternalState getInternalState() {
     return internalState;
   }
 

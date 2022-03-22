@@ -418,7 +418,7 @@ public class AutomatonGraphmlParser {
 
     AutomatonInternalState automatonState =
         new AutomatonInternalState(
-            pState.getId(), transitions, false, true, pState.isCycleHead(), new ArrayList<>());
+            pState.getId(), transitions, false, true, pState.isCycleHead(),ExpressionTrees.getTrue());
     return automatonState;
   }
 

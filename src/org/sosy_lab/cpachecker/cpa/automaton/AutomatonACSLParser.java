@@ -86,8 +86,8 @@ public class AutomatonACSLParser {
         }
       }
       AutomatonInternalState state =
-          new AutomatonInternalState(initialStateName, transitions.build(), false, true, false, new
-              ArrayList<>());
+          new AutomatonInternalState(initialStateName, transitions.build(), false, true, false,
+              ExpressionTrees.getTrue());
       return new Automaton(
           automatonName, ImmutableMap.of(), ImmutableList.of(state), initialStateName);
     } catch (InvalidAutomatonException | UnrecognizedCodeException e) {
