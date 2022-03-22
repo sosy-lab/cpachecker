@@ -289,7 +289,7 @@ public class PredicateAbstractionManager {
     }
 
     // Shortcut if the precision is empty
-    if (pPredicates.isEmpty() && (options.getAbstractionType() != AbstractionType.ELIMINATION)) {
+    if (pPredicates.isEmpty() && (options.getAbstractionType() != AbstractionType.ELIMINATION) && (options.getAbstractionType() != AbstractionType.SUBSTITUTION)) {
       logger.log(Level.FINEST, "Abstraction", currentAbstractionId, "with empty precision is true");
       stats.numSymbolicAbstractions.incrementAndGet();
       return makeTrueAbstractionFormula(pathFormula);
@@ -457,7 +457,7 @@ public class PredicateAbstractionManager {
     SubstituteVisitor stvisitor = new SubstituteVisitor(fmgr.manager);
     bfmgr.visitRecursively(bf, stvisitor);
     HashMap<Formula, Formula> transform_map = stvisitor.fmap;
-    if (!(transform_map.isEmpty())) {
+    if (!transform_map.isEmpty()) {
       SubstituteAssumptionTransformationVisitor
           sttrf = new SubstituteAssumptionTransformationVisitor(fmgr.manager, transform_map);
       bf = bfmgr.transformRecursively(bf, sttrf);

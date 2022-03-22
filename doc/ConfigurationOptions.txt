@@ -1985,7 +1985,8 @@ cpa.predicate.abstraction.cartesian = false
 
 # whether to use Boolean or Cartesian abstraction or both
 cpa.predicate.abstraction.computation = BOOLEAN
-  enum:     [CARTESIAN, CARTESIAN_BY_WEAKENING, BOOLEAN, COMBINED, ELIMINATION]
+  enum:     [CARTESIAN, CARTESIAN_BY_WEAKENING, BOOLEAN, COMBINED, ELIMINATION,
+             SUBSTITUTION]
 
 # dump the abstraction formulas if they took to long
 cpa.predicate.abstraction.dumpHardQueries = false
