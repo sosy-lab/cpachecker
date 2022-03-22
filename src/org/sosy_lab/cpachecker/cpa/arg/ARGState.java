@@ -22,8 +22,10 @@ import com.google.common.graph.Traverser;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -169,9 +171,52 @@ public class ARGState extends AbstractSerializableSingleWrapperState
   }
 
   /**
-   * Returns the edges from the current state to the child state, or an empty list
-   * if there is no path between both states.
+   * Returns the first path edges from the current state to the child state, or an empty list if
+   * there is no path between both states.
    */
+  public List<CFAEdge> getFirstPathToChild(ARGState pChild) {
+    List<CFAEdge> singleEdge = getEdgesToChild(pChild);
+
+    // no direct connection
+    if (singleEdge.isEmpty()) {
+      Map<ARGState, List<CFAEdge>> currentPathLeadingToKeyNode = new HashMap<>();
+      List<ARGState> toProcess = new ArrayList<>();
+      //Initialize toProcess and currentePathLeadintToKeyNode
+      for(ARGState child : this.getChildren()){
+        List<CFAEdge> edgesToChild = this.getEdgesToChild(child);
+        if (child.equals(pChild)){
+          return edgesToChild;
+        }
+        if (!edgesToChild.isEmpty()){
+          currentPathLeadingToKeyNode.put(child, edgesToChild);
+          toProcess.add(child);
+        }
+      }
+
+      while(!toProcess.isEmpty()){
+        ARGState currentState = toProcess.remove(0);
+        for(ARGState child : currentState.getChildren()){
+          List<CFAEdge> edgesToChild = currentState.getEdgesToChild(child);
+          if (child.equals(pChild)){
+            return edgesToChild;
+          }
+          if (!edgesToChild.isEmpty()){
+            currentPathLeadingToKeyNode.put(child, edgesToChild);
+            toProcess.add(child);
+          }
+        }
+      }
+      return Collections.emptyList();
+
+    }else {
+      return singleEdge;
+    }
+}
+
+    /**
+     * Returns the edges from the current state to the child state, or an empty list
+     * if there is no direct path between both states.
+     */
   public List<CFAEdge> getEdgesToChild(ARGState pChild) {
     CFAEdge singleEdge = getEdgeToChild(pChild);
 

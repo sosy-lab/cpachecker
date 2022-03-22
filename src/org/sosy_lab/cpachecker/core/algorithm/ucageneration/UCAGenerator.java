@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -48,9 +49,9 @@ public class UCAGenerator {
 
     @Option(
         secure = true,
-        name = "assumptions.genUCA4ViolationWitness",
-        description = "Generate uca for violation witness")
-    private boolean genUCA4ViolationWitness = false;
+        name = "assumptions.genUCA4Witness",
+        description = "Generate uca for violation or correctness witness")
+    private boolean genUCA4Witness = false;
 
     @Option(
         secure = true,
@@ -63,11 +64,6 @@ public class UCAGenerator {
         name = "assumptions.genUCA4Refinement",
         description = "Generate uca for refinement (usable in C-CEGAR for craig interpolation)")
     private boolean genUCA4Refinement = false;
-    @Option(
-        secure = true,
-        name = "assumptions.genUCA4CorrectnesWitness",
-        description = "Generate uca for correctness witness")
-    private boolean genUCA4CorrectnesWitness = false;
 
     public UCAGeneratorOptions(Configuration pConfig) throws InvalidConfigurationException {
       pConfig.inject(this);
@@ -77,8 +73,8 @@ public class UCAGenerator {
       return automatonIgnoreAssumptions;
     }
 
-    public boolean isGenUCA4ViolationWitness() {
-      return genUCA4ViolationWitness;
+    public boolean isGenUCA4Witness() {
+      return genUCA4Witness;
     }
 
     public boolean isGenUCA4Testcase() {
@@ -87,14 +83,6 @@ public class UCAGenerator {
 
     public boolean isGenUCA4Refinement() {
       return genUCA4Refinement;
-    }
-
-    public boolean isGenUCA4CorrectnesWitness() {
-      return genUCA4CorrectnesWitness;
-    }
-
-    public void setGenUCA4CorrectnesWitness(boolean pGenUCA4CorrectnesWitness) {
-      genUCA4CorrectnesWitness = pGenUCA4CorrectnesWitness;
     }
   }
 
@@ -112,10 +100,9 @@ public class UCAGenerator {
   @SuppressWarnings("unused")
   private final ShutdownNotifier shutdownNotifier;
 
-  private final UCAVioWitGenerator vioWitGenerator;
   private final UCATestcaseGenerator testcaseGenerator;
   private final UCAInterpolantGenerator interpolantGenerator;
-  private final  UCACorWitGenerator corWitGenerator;
+  private final UCAWitnessGenerator witnessGenerator;
 
   final LogManager logger;
 
@@ -155,25 +142,29 @@ public class UCAGenerator {
     this.cpa = pCpa;
     this.cfa = pCfa;
     this.config = pConfig;
-    this.vioWitGenerator = new UCAVioWitGenerator(logger, optinons);
+
     this.testcaseGenerator = new UCATestcaseGenerator(cpa);
     this.interpolantGenerator = new UCAInterpolantGenerator(cpa, formulaManager);
-    this.corWitGenerator = new UCACorWitGenerator(logger, optinons);
+
+    this.witnessGenerator =
+        new UCAWitnessGenerator(
+            new UCACorWitGenerator(logger, optinons),
+            new UCAVioWitGenerator(logger, optinons, cpa));
   }
 
   public int produceUniversalConditionAutomaton(
       Appendable output, UnmodifiableReachedSet reached, Set<Integer> pExceptionStates)
       throws CPAException, IOException {
 
-    if (optinons.isGenUCA4ViolationWitness()) {
-      universalConditionAutomaton += vioWitGenerator.produceUCA4ViolationWitness(output, reached);
+    if (optinons.isGenUCA4Witness()) {
+      universalConditionAutomaton += witnessGenerator.produceUCA4Witness(output, reached);
     } else if (optinons.isGenUCA4Testcase()) {
       universalConditionAutomaton +=
           testcaseGenerator.produceUCA4Testcase(output, reached, pExceptionStates);
     } else if (optinons.isGenUCA4Refinement()) {
       universalConditionAutomaton += interpolantGenerator.produceUCA4Interpolant(output, reached);
-    } else if (optinons.isGenUCA4CorrectnesWitness()){
-      universalConditionAutomaton += corWitGenerator.produceUCA4CorrectnessWitness(output, reached);
+    } else {
+      logger.log(Level.INFO, "Do not generate any UCA!");
     }
     return this.universalConditionAutomaton;
   }
@@ -240,16 +231,8 @@ public class UCAGenerator {
     return s.isTarget() ? NAME_OF_ERROR_STATE : s.getInternalStateName();
   }
 
-  static String getNameDynamically(AutomatonState s) {
-    return UCAGenerator.getName(s);
-  }
-
   static String getName(ARGState pSource) {
-    return String.format("ARG%d", +pSource.getStateId());
-  }
-
-  String getNameDynamically(ARGState pSource) {
-    return UCAGenerator.getName(pSource);
+    return pSource.isTarget() ? NAME_OF_ERROR_STATE :  String.format("ARG%d", +pSource.getStateId());
   }
 
   static String getEdgeString(CFAEdge pEdge) {
