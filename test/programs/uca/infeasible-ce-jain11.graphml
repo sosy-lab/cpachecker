@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+ <key attr.name="isViolationNode" attr.type="boolean" for="node" id="violation">
+  <default>false</default>
+ </key>
+ <key attr.name="isEntryNode" attr.type="boolean" for="node" id="entry">
+  <default>false</default>
+ </key>
+ <key attr.name="isSinkNode" attr.type="boolean" for="node" id="sink">
+  <default>false</default>
+ </key>
+ <key attr.name="enterLoopHead" attr.type="boolean" for="edge" id="enterLoopHead">
+  <default>false</default>
+ </key>
+ <key attr.name="violatedProperty" attr.type="string" for="node" id="violatedProperty"/>
+ <key attr.name="sourcecodeLanguage" attr.type="string" for="graph" id="sourcecodelang"/>
+ <key attr.name="programFile" attr.type="string" for="graph" id="programfile"/>
+ <key attr.name="programHash" attr.type="string" for="graph" id="programhash"/>
+ <key attr.name="specification" attr.type="string" for="graph" id="specification"/>
+ <key attr.name="architecture" attr.type="string" for="graph" id="architecture"/>
+ <key attr.name="producer" attr.type="string" for="graph" id="producer"/>
+ <key attr.name="creationTime" attr.type="string" for="graph" id="creationtime"/>
+ <key attr.name="startline" attr.type="int" for="edge" id="startline"/>
+ <key attr.name="endline" attr.type="int" for="edge" id="endline"/>
+ <key attr.name="startoffset" attr.type="int" for="edge" id="startoffset"/>
+ <key attr.name="endoffset" attr.type="int" for="edge" id="endoffset"/>
+ <key attr.name="originFileName" attr.type="string" for="edge" id="originfile">
+  <default>../../../../sv-benchmarks/c/bitvector/jain_1-1.c</default>
+ </key>
+ <key attr.name="control" attr.type="string" for="edge" id="control"/>
+ <key attr.name="enterFunction" attr.type="string" for="edge" id="enterFunction"/>
+ <key attr.name="witness-type" attr.type="string" for="graph" id="witness-type"/>
+ <key attr.name="inputWitnessHash" attr.type="string" for="graph" id="inputwitnesshash"/>
+ <graph edgedefault="directed">
+  <data key="witness-type">violation_witness</data>
+  <data key="sourcecodelang">C</data>
+  <data key="producer">CPAchecker 2.1.1 / predicateAnalysis-NoCEGAR</data>
+  <data key="specification">CHECK( init(main()), LTL(G ! call(reach_error())) )</data>
+  <data key="programfile">../../../../sv-benchmarks/c/bitvector/jain_1-1.c</data>
+  <data key="programhash">c32f942c6eb2912830a40efe9162c395bf3634ab4557e4b71a48bed97282f20f</data>
+  <data key="architecture">32bit</data>
+  <data key="creationtime">2022-02-15T22:33:38+08:00</data>
+  <node id="A0">
+   <data key="entry">true</data>
+  </node>
+  <node id="A2_6_1"/>
+  <edge source="A0" target="A2_6_1">
+   <data key="startline">20</data>
+   <data key="endline">20</data>
+   <data key="startoffset">715</data>
+   <data key="endoffset">725</data>
+   <data key="enterFunction">main</data>
+  </edge>
+  <node id="A2"/>
+  <edge source="A2_6_1" target="A2">
+   <data key="enterLoopHead">true</data>
+   <data key="startline">24</data>
+   <data key="endline">24</data>
+   <data key="startoffset">749</data>
+   <data key="endoffset">754</data>
+  </edge>
+  <node id="A6"/>
+  <edge source="A2" target="A6">
+   <data key="startline">31</data>
+   <data key="endline">31</data>
+   <data key="startoffset">825</data>
+   <data key="endoffset">848</data>
+   <data key="enterFunction">__VERIFIER_assert</data>
+  </edge>
+  <node id="A8"/>
+  <edge source="A6" target="A8">
+   <data key="startline">15</data>
+   <data key="endline">15</data>
+   <data key="startoffset">654</data>
+   <data key="endoffset">657</data>
+   <data key="control">condition-true</data>
+  </edge>
+  <node id="sink">
+   <data key="sink">true</data>
+  </node>
+  <edge source="A6" target="sink">
+   <data key="startline">15</data>
+   <data key="endline">15</data>
+   <data key="startoffset">654</data>
+   <data key="endoffset">657</data>
+   <data key="control">condition-false</data>
+  </edge>
+  <node id="A12">
+   <data key="violation">true</data>
+   <data key="violatedProperty">unreach-call: reach_error(); called in line 16</data>
+  </node>
+  <edge source="A8" target="A12">
+   <data key="startline">16</data>
+   <data key="endline">16</data>
+   <data key="startoffset">675</data>
+   <data key="endoffset">687</data>
+   <data key="enterFunction">reach_error</data>
+  </edge>
+ </graph>
+</graphml>
