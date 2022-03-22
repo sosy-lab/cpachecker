@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.arg;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
@@ -95,9 +97,7 @@ class ARGStop implements ForcedCoveringStopOperator {
 
     // map the covering wrapped states back to the corresponding ARG states and collect them
     ImmutableSet<ARGState> coveringARGStates =
-        coveringWrappedStates.stream()
-            .map(absState -> stateMap.get(absState))
-            .collect(ImmutableSet.toImmutableSet());
+        transformedImmutableSetCopy(coveringWrappedStates, absState -> stateMap.get(absState));
 
     // store the coverage relation
     argElement.setCovered(ImmutableSet.copyOf(coveringARGStates));
