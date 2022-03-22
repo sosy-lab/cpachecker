@@ -12,17 +12,23 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.stream.Collectors.joining;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.io.MoreFiles;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.Classes;
@@ -38,12 +44,18 @@ import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.CPABuilder;
+import org.sosy_lab.cpachecker.core.algorithm.ucageneration.UCAGenerator;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
 import org.sosy_lab.cpachecker.core.specification.PropertyFileParser.InvalidPropertyFileException;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonACSLParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonInternalState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonIntVariable;
+import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
+import org.sosy_lab.cpachecker.cpa.automaton.UCAAutomatonParser;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.ltl.Ltl2BuechiConverter;
 import org.sosy_lab.cpachecker.util.ltl.LtlParseException;
@@ -254,6 +266,9 @@ public final class Specification {
       if (automata.isEmpty()) {
         throw new InvalidConfigurationException(
             "Specification file contains no automata: " + specFile);
+      } else if (isUCA(automata)) {
+        UCAAutomatonParser ucaParsre = new UCAAutomatonParser(logger);
+        automata = ucaParsre.postProcessUCA(automata);
       }
     }
 
@@ -266,6 +281,17 @@ public final class Specification {
           specFile);
     }
     return automata;
+  }
+
+  /**
+   * Checks if one automaton present and if the automaton is a UCA
+   *
+   * @param pAutomata the list of automaton to check
+   * @return true if the above conditions are matched, false otherwise
+   */
+  private static boolean isUCA(List<Automaton> pAutomata) {
+    return pAutomata.size() == 1
+        && pAutomata.get(0).getName().equals(UCAGenerator.ASSUMPTION_AUTOMATON_NAME);
   }
 
   private static Automaton parseLtlFormula(

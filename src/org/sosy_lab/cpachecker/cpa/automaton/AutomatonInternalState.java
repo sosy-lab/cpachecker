@@ -168,6 +168,10 @@ public class AutomatonInternalState {
     return transitions;
   }
 
+  ImmutableList<AutomatonInternalState> getSuccessorStates() {
+    return transitions.stream().map(t -> t.getFollowState()).collect(ImmutableList.toImmutableList());
+  }
+
   @Override
   public String toString() {
     return this.name;

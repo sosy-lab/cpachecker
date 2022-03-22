@@ -135,7 +135,7 @@ public class AutomatonGraphmlParser {
       "Expression <%s> contains unknown variables: %s";
 
   /** The name of the variable that stores the distance of each automaton state to the nearest violation state. */
-  private static final String DISTANCE_TO_VIOLATION = "__DISTANCE_TO_VIOLATION";
+  public static final String DISTANCE_TO_VIOLATION = "__DISTANCE_TO_VIOLATION";
 
   public static final String WITNESS_AUTOMATON_NAME = "WitnessAutomaton";
 
