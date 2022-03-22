@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.exceptions.NoException;
  * Visitor that fills in missing bindings of CElaboratedTypes with matching
  * types from the scope (if name and kind match, of course).
  */
-class FillInAllBindingsVisitor extends DefaultCTypeVisitor<Void, NoException> {
+class FillInAllBindingsVisitor extends DefaultCTypeVisitor<@Nullable Void, NoException> {
 
   private final Scope scope;
   private final ProgramDeclarations programDeclarations;
@@ -61,7 +61,7 @@ class FillInAllBindingsVisitor extends DefaultCTypeVisitor<Void, NoException> {
   public @Nullable Void visit(CElaboratedType pElaboratedType) {
     if (pElaboratedType.getRealType() == null) {
 
-      CComplexType realType = scope.lookupType(pElaboratedType.getQualifiedName());
+      @Nullable CComplexType realType = scope.lookupType(pElaboratedType.getQualifiedName());
       while (realType instanceof CElaboratedType) {
         realType = ((CElaboratedType)realType).getRealType();
       }

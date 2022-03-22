@@ -215,9 +215,9 @@ final class TransformableLoop {
 
     return builder.build();
   }
-  
+
   private static int countInnerLoopDefs(LoopStructure.Loop pLoop, CSimpleDeclaration pDeclaration) {
-    
+
     MemoryLocation memoryLocation = MemoryLocation.forDeclaration(pDeclaration);
     EdgeDefUseData.Extractor extractor = EdgeDefUseData.createExtractor(false);
 

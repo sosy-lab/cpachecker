@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /**
  * This class moves the declarations inside of each function to the beginning of
@@ -69,9 +70,7 @@ public class CFADeclarationMover {
     }
 
     CFANode actNode = firstRealFunctionEdge.getSuccessor();
-    for (int i = 0; i < actNode.getNumLeavingEdges(); i++) {
-      secondRealFunctionEdge.add(actNode.getLeavingEdge(i));
-    }
+    CFAUtils.leavingEdges(actNode).copyInto(secondRealFunctionEdge);
     List<CFAEdge> declarations = collectDeclarations(actNode);
 
 

@@ -18,6 +18,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.eclipse.cdt.core.dom.ast.DOMException;
 import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTElaboratedTypeSpecifier;
@@ -144,7 +145,7 @@ class ASTTypeConverter {
       String name = ct.getName();
       String qualifiedName = kind.toASTString() + " " + name;
 
-      CComplexType oldType = scope.lookupType(qualifiedName);
+      @Nullable CComplexType oldType = scope.lookupType(qualifiedName);
 
       // We have seen this type already.
       // Replace it with a CElaboratedType.
@@ -350,7 +351,7 @@ class ASTTypeConverter {
 
   private CType conv(final IEnumeration e) {
     // TODO we ignore the enumerators here
-    CComplexType realType = scope.lookupType("enum " + e.getName());
+    @Nullable CComplexType realType = scope.lookupType("enum " + e.getName());
     String name = e.getName();
     String origName = name;
     if (realType != null) {
@@ -499,7 +500,7 @@ class ASTTypeConverter {
 
     String name = ASTConverter.convert(d.getName());
     String origName = name;
-    CComplexType realType = scope.lookupType(type.toASTString() + " " + name);
+    @Nullable CComplexType realType = scope.lookupType(type.toASTString() + " " + name);
     if (realType != null) {
       name = realType.getName();
       origName = realType.getOrigName();

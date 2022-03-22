@@ -877,6 +877,8 @@ public class AutomatonGraphmlParser {
         .toSet();
   }
 
+  @SuppressWarnings("AlreadyChecked")
+  // https://gitlab.com/sosy-lab/software/cpachecker/-/commit/e64d586f55d3019a368ccfa227651b90cae363bf#note_821937465
   private Optional<String> getFunction(
       @SuppressWarnings("unused") AutomatonGraphmlParserState pGraphmlParserState,
       GraphMLThread pThread,
@@ -1868,8 +1870,7 @@ public class AutomatonGraphmlParser {
       List<CFAEdge> stateChangingEdges = new ArrayList<>();
       List<CFAEdge> nonStateChangingEdges = new ArrayList<>();
       for (CFANode node : cfa.getAllNodes()) {
-        for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-          CFAEdge edge = node.getLeavingEdge(i);
+        for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
           if (EnumSet.of(CFAEdgeType.BlankEdge, CFAEdgeType.AssumeEdge)
               .contains(edge.getEdgeType())) {
             nonStateChangingEdges.add(edge);

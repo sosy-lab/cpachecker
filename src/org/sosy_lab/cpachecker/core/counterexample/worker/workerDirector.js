@@ -7,8 +7,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { argWorkerData, cfaWorkerData } from "workerData";
+import { Buffer } from "buffer";
 
-const zlib = require("zlib");
+const pako = require("pako");
 
 // Remove worker-instance specific callback functions
 const deleteCallbacks = (worker) => {
@@ -28,10 +29,14 @@ const base64Header = "data:text/plain;base64,";
 
 const argWorkerDataDecompressed =
   base64Header +
-  zlib.inflateSync(Buffer.from(argWorkerData, "base64")).toString("base64");
+  Buffer.from(pako.inflate(Buffer.from(argWorkerData, "base64"))).toString(
+    "base64"
+  );
 const cfaWorkerDataDecompressed =
   base64Header +
-  zlib.inflateSync(Buffer.from(cfaWorkerData, "base64")).toString("base64");
+  Buffer.from(pako.inflate(Buffer.from(cfaWorkerData, "base64"))).toString(
+    "base64"
+  );
 
 const argWorker = new Worker(argWorkerDataDecompressed);
 argWorker.workerName = "argWorker";

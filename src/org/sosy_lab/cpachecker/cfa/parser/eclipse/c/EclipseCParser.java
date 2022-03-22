@@ -191,11 +191,11 @@ class EclipseCParser implements CParser {
   /** This method parses a single string, where no prefix for static variables is needed. */
   @Override
   public ParseResult parseString(
-      String pFileName, String pCode, CSourceOriginMapping sourceOriginMapping, Scope pScope)
+      Path pFileName, String pCode, CSourceOriginMapping sourceOriginMapping, Scope pScope)
       throws CParserException, InterruptedException {
 
     return parseSomething(
-        ImmutableList.of(new FileContentToParse(Path.of(pFileName), pCode)),
+        ImmutableList.of(new FileContentToParse(pFileName, pCode)),
         sourceOriginMapping,
         pScope instanceof CProgramScope ? ((CProgramScope) pScope) : CProgramScope.empty(),
         (fileName, content) -> {

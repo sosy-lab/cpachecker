@@ -18,6 +18,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
+import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -424,12 +425,14 @@ public class CParserUtils {
 
     ParseResult parseResult;
     try {
-      parseResult = pCParser.parseString("<expr>", testCode, new CSourceOriginMapping(), pScope);
+      parseResult =
+          pCParser.parseString(Path.of("#expr#"), testCode, new CSourceOriginMapping(), pScope);
     } catch (CParserException e) {
       assumeCode = tryFixACSL(assumeCode, pResultFunction, pScope);
       testCode = String.format(formatString, assumeCode);
       try {
-        parseResult = pCParser.parseString("<expr>", testCode, new CSourceOriginMapping(), pScope);
+        parseResult =
+            pCParser.parseString(Path.of("#expr#"), testCode, new CSourceOriginMapping(), pScope);
       } catch (CParserException e2) {
         throw new InvalidAutomatonException(
             "Cannot interpret code as C expression: <" + pAssumeCode + ">", e);
