@@ -141,7 +141,9 @@ public class AbstractionFormula implements Serializable {
     } else if (isFalse()) {
       abs = ": false";
     }
-    return "ABS" + id + abs;
+    // TODO Martin Either add a configuration option or revert this entirely
+    return "ABS " + formula + " sep " + instantiatedFormula + abs;
+//    return "ABS" + id + abs;
   }
 
   private Object writeReplace() {
