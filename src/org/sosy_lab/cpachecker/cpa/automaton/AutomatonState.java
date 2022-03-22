@@ -25,6 +25,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionToExpressionTreeVisitor;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
@@ -174,7 +175,13 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     this.matches = successfulMatches;
     this.failedMatches = failedMatches;
     this.assumptions = pAssumptions;
-    this.candidateInvariants = pCandidateInvariants;
+    //TODO: Find a nicer implementation for this!
+    if (internalState.getStateInvariants().size() == 1){
+      CExpressionToExpressionTreeVisitor visitor = new CExpressionToExpressionTreeVisitor();
+
+      candidateInvariants = ExpressionTrees.cast( visitor.visitDefault( internalState.getStateInvariants().get(0)));
+    }else{
+    this.candidateInvariants = pCandidateInvariants;}
     this.treatErrorAsTarget = pTreatErrorAsTarget;
 
     if (internalState.isTarget()) {

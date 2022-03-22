@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
@@ -32,12 +33,18 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.DummyScope;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapParser;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -57,15 +64,20 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.statistics.KeyValueStatistics;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-@Options(prefix="cpa.predicate")
+@Options(prefix = "cpa.predicate")
 public class PredicatePrecisionBootstrapper implements StatisticsProvider {
 
-  @Option(secure=true, name="abstraction.initialPredicates",
-      description="get an initial map of predicates from a list of files (see source doc/examples/predmap.txt for an example)")
+  @Option(
+      secure = true,
+      name = "abstraction.initialPredicates",
+      description =
+          "get an initial map of predicates from a list of files (see source doc/examples/predmap.txt for an example)")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<Path> predicatesFiles = ImmutableList.of();
 
-  @Option(secure=true, description="always check satisfiability at end of block, even if precision is empty")
+  @Option(
+      secure = true,
+      description = "always check satisfiability at end of block, even if precision is empty")
   private boolean checkBlockFeasibility = false;
 
   @Options(prefix = "cpa.predicate.abstraction.initialPredicates")
@@ -102,7 +114,6 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     public PrecisionConverter getPrecisionConverter() {
       return encodePredicates;
     }
-
   }
 
   private final FormulaManagerView formulaManagerView;
@@ -175,6 +186,10 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
                 logger.log(Level.WARNING, "Invariants do not exist in a violaton witness");
                 break;
             }
+          } else if (isUCA(predicatesFile)) {
+            result =
+                result.mergeWith(
+                    parseInvariantsFromUCAAsPredicates(predicatesFile));
           } else {
             result = result.mergeWith(parser.parsePredicates(predicatesFile));
           }
@@ -189,6 +204,67 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     }
 
     return result;
+  }
+
+  private PredicatePrecision parseInvariantsFromUCAAsPredicates(Path pPredicatesFile) {
+    Optional<Automaton> optAutomaton = loadUCA(pPredicatesFile);
+    if (optAutomaton.isEmpty()){
+      logger
+          .logf(Level.WARNING, "Could not load an automaton from file %s",pPredicatesFile);
+      return PredicatePrecision.empty();
+    }
+    Automaton automaton = optAutomaton.orElseThrow();
+    try {
+      WitnessInvariantsExtractor extractor =
+       new WitnessInvariantsExtractor(config, automaton, logger, cfa, shutdownNotifier);
+
+
+
+    final Set<ExpressionTreeLocationInvariant> invariants =
+        extractor.extractInvariantsFromReachedSet();
+  logger.log(Level.INFO, invariants);
+    } catch (CPAException | InterruptedException | InvalidConfigurationException pE) {
+logger.log(Level.WARNING, Throwables.getStackTraceAsString(pE));
+    }
+    return PredicatePrecision.empty();
+  }
+
+  private boolean isUCA(Path pPredicatesFile) {
+   return loadUCA(pPredicatesFile).isPresent();
+  }
+
+  private Optional<Automaton> loadUCA(Path pPredicatesFile) {
+    Scope scope =
+        cfa.getLanguage() == Language.C ? new CProgramScope(cfa, logger) : DummyScope.getInstance();
+    try {
+      List<Automaton> lst =
+          AutomatonParser.parseAutomatonFile(
+              pPredicatesFile,
+              config,
+              logger,
+              cfa.getMachineModel(),
+              scope,
+              cfa.getLanguage(),
+              shutdownNotifier);
+      if (lst.isEmpty()) {
+        logger.log(
+            Level.WARNING,
+            "Could not find automata in the file " + pPredicatesFile.toAbsolutePath());
+        return Optional.empty();
+      } else if (lst.size() > 1) {
+        logger.log(
+            Level.WARNING,
+            "Found "
+                + lst.size()
+                + " automata in the File "
+                + pPredicatesFile.toAbsolutePath()
+                + " The CPA can only handle ONE Automaton!");
+        return Optional.empty();
+      }
+      return Optional.of(lst.get(0));
+    } catch (InvalidConfigurationException pE) {
+      return Optional.empty();
+    }
   }
 
   private PredicatePrecision parseInvariantsFromCorrectnessWitnessAsPredicates(Path pWitnessFile)
@@ -322,8 +398,10 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     PredicatePrecision result = internalPrepareInitialPredicates();
 
     statistics.addKeyValueStatistic("Init. global predicates", result.getGlobalPredicates().size());
-    statistics.addKeyValueStatistic("Init. location predicates", result.getLocalPredicates().size());
-    statistics.addKeyValueStatistic("Init. function predicates", result.getFunctionPredicates().size());
+    statistics.addKeyValueStatistic(
+        "Init. location predicates", result.getLocalPredicates().size());
+    statistics.addKeyValueStatistic(
+        "Init. function predicates", result.getFunctionPredicates().size());
 
     return result;
   }
@@ -332,5 +410,4 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(statistics);
   }
-
 }
