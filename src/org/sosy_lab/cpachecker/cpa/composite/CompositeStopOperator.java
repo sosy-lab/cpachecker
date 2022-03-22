@@ -32,8 +32,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  * This class implements the stop operator for {@link CompositeCPA}.
  *
  * <p>When checking whether to stop, i.e. whether the given state is covered by the reached set, the
- * {@link CompositeStopJoinOperator} first uses the component CPAs with <i>stop-sep</i> operators as
- * a filter to get a subset of the reached set, in which any state can cover the given state
+ * {@link CompositeStopOperator} first uses the component CPAs with <i>stop-sep</i> operators as a
+ * filter to get a subset of the reached set, in which any state can cover the given state
  * individually; then the component CPAs with <i>stop-join</i> operators determine if the states in
  * this subset of the reached set jointly cover the given state.
  */
