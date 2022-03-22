@@ -1048,7 +1048,9 @@ class WitnessFactory implements EdgeAppender {
           List<Fault> faults = fInfo.getRankedList();
           if (!faults.isEmpty()) {
             Fault bestFault = faults.get(0);
-            FluentIterable.from(bestFault).transform(fc -> fc.correspondingEdge()).copyInto(edgesInFault);
+            FluentIterable.from(bestFault)
+                .transform(fc -> fc.correspondingEdge())
+                .copyInto(edgesInFault);
             if (fInfo.getPostcondition().isPresent()) {
               PostCondition postCondition = fInfo.getPostcondition().orElseThrow();
               edgesInFault.addAll(postCondition.getIgnoredEdges());
@@ -1382,8 +1384,10 @@ class WitnessFactory implements EdgeAppender {
     // has to be calculated newly everytime because of adaptions to edgeToCFAEdges
     // finds all outgoing edges to sinks for relevant nodes
     Set<String> importantNodes =
-        transformedImmutableSetCopy(Multimaps.filterValues(edgeToCFAEdges, cfaEdge -> edgesInFault.contains(cfaEdge))
-                    .keySet(), e -> e.getSource());
+        transformedImmutableSetCopy(
+            Multimaps.filterValues(edgeToCFAEdges, cfaEdge -> edgesInFault.contains(cfaEdge))
+                .keySet(),
+            e -> e.getSource());
 
     // not irrelevant if it is an edge to a sink node and the source node is part of the fault
     if (pEdge.getTarget().equals(SINK_NODE_ID) && importantNodes.contains(pEdge.getSource())) {
