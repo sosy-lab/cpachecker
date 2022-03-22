@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.core.algorithm.ucageneration.UCACollector;
+import org.sosy_lab.cpachecker.core.algorithm.ucageneration.UCAGenerator;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -78,7 +78,7 @@ public class TestCaseGenTransferRelation extends SingleEdgeTransferRelation {
             "Stopping exploration at Edge %s, as %s is a %s-state",
             cfaEdge,
             tcState.toString(),
-            UCACollector.NAME_OF_NEWTESTINPUT_STATE);
+            UCAGenerator.NAME_OF_NEWTESTINPUT_STATE);
 
         try {
           tcState.dumpToTestcase(this.exportPath.getPath(this.numberOfTestcases));

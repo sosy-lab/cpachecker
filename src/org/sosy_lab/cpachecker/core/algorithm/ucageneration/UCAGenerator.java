@@ -62,7 +62,7 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
 @Options(prefix = "assumptions")
-public class UCACollector {
+public class UCAGenerator {
 
   public static final String NAME_OF_WITNESS_AUTOMATON = "WitnessAutomaton";
   public static final String NAME_OF_TEMP_STATE = "__qTEMP";
@@ -111,7 +111,7 @@ public class UCACollector {
 
   private int universalConditionAutomaton = 0;
 
-  public UCACollector(
+  public UCAGenerator(
       Algorithm algo,
       ConfigurableProgramAnalysis pCpa,
       Configuration pConfig,

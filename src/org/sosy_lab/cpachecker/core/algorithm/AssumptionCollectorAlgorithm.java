@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.algorithm.ucageneration.UCACollector;
+import org.sosy_lab.cpachecker.core.algorithm.ucageneration.UCAGenerator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -166,7 +166,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   private int universalConditionAutomaton = 0;
 
   private final ConfigurableProgramAnalysis cpa;
-  private final UCACollector ucaCollector;
+  private final UCAGenerator ucaCollector;
   private final ShutdownNotifier shutdownNotifier;
 
   public AssumptionCollectorAlgorithm(
@@ -194,7 +194,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     this.cpa = pCpa;
     this.cfa = cfa;
     this.config = config;
-    ucaCollector = new UCACollector(algo, pCpa, config, logger, cfa, pShutdownNotifier);
+    ucaCollector = new UCAGenerator(algo, pCpa, config, logger, cfa, pShutdownNotifier);
   }
 
   @Override

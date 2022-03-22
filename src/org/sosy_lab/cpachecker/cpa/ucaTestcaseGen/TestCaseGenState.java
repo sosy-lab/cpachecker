@@ -19,7 +19,7 @@ import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.algorithm.ucageneration.UCACollector;
+import org.sosy_lab.cpachecker.core.algorithm.ucageneration.UCAGenerator;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
@@ -96,7 +96,7 @@ public class TestCaseGenState
       return this.automatonState
           .get()
           .getInternalStateName()
-          .equals(UCACollector.NAME_OF_NEWTESTINPUT_STATE);
+          .equals(UCAGenerator.NAME_OF_NEWTESTINPUT_STATE);
     }
     return false;
   }
@@ -106,7 +106,7 @@ public class TestCaseGenState
       return this.automatonState
           .get()
           .getInternalStateName()
-          .equals(UCACollector.NAME_OF_NEWTESTINPUT_STATE);
+          .equals(UCAGenerator.NAME_OF_NEWTESTINPUT_STATE);
     }
     return false;
   }
