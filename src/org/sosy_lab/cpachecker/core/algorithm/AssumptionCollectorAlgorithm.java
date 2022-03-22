@@ -605,7 +605,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     }
   }
 
-  private static String parseAssumptionToString(
+  public static String parseAssumptionToString(
       BooleanFormula pAssumption, FormulaManagerView fMgr, CFANode pLocation) {
     try {
       BooleanFormula inv = pAssumption;
