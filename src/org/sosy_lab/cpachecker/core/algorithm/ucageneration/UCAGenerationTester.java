@@ -40,8 +40,8 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.io.TempFile;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.cpachecker.util.test.TestResults;
@@ -87,7 +87,7 @@ public class UCAGenerationTester {
   }
 
   private static final String specificationFile = "config/specification/default.spc";
-  private static final String specificationFileForWitnesses =
+  private static final String specificationFileForViolationWitnesses =
       "config/specification/sv-comp-reachability.spc";
   private static final String SPECIFICATION_OPTION = "specification";
   private static final String TEST_DIR_PATH = "test/programs/uca/";
@@ -252,11 +252,11 @@ public class UCAGenerationTester {
     pOverrideOptions.put(pOptionForOutput, outputFile.toString());
     logger.logf(
         Level.INFO, "Storing putput file with option %s at %s", pOptionForOutput, outputFile);
-
+    Result result =
     startTransformation(
         pGenerationConfig, fullPath, pUcaInput, pTestcase, pWitness, pOverrideOptions);
 
-    validateTransformation(pGenerationConfig, pFilename, outputFile);
+    validateTransformation(pGenerationConfig, pFilename, outputFile, result);
   }
 
   private static void performTest(
@@ -272,12 +272,11 @@ public class UCAGenerationTester {
     String fullPath = Path.of(TEST_DIR_PATH, pFilename.name).toString();
 
     pOverrideOptions.put(pOptionForOutput, pTemplateForOutputValue);
-
-    startTransformation(
+    Result result = startTransformation(
         pGenerationConfig, fullPath, pUcaInput, pTestcase, pWitness, pOverrideOptions);
 
     validateTransformationForFiles(
-        pGenerationConfig, pFilename, PathTemplate.ofFormatString(pTemplateForOutputValue));
+        pGenerationConfig, pFilename, PathTemplate.ofFormatString(pTemplateForOutputValue), result);
   }
 
   /**
@@ -290,8 +289,9 @@ public class UCAGenerationTester {
    * @param witness an optional witness, should be in test/programs/uca
    * @param pOverrideOptions options to override, especially the targets for the genreated files
    * @throws Exception happening during execution
+   * @return the result of the analysis
    */
-  private static void startTransformation(
+  private static Result startTransformation(
       UCAGenerationConfig pGenerationConfig,
       String pFilePath,
       Optional<String> ucaInput,
@@ -304,8 +304,10 @@ public class UCAGenerationTester {
         pS -> overrideOptions.put("AssumptionAutomaton.cpa.automaton.inputFile", pS));
     testcase.ifPresent(pS -> overrideOptions.put("cpa.value.functionValuesForRandom", pS));
     String spec = specificationFile;
-    if (pGenerationConfig == UCAGenerationConfig.VIOWIT2UCA ||pGenerationConfig == UCAGenerationConfig.CORWIT2UCA ) {
-      spec = specificationFileForWitnesses;
+    if (pGenerationConfig == UCAGenerationConfig.VIOWIT2UCA  ) {
+      spec = specificationFileForViolationWitnesses;
+    } else if (pGenerationConfig == UCAGenerationConfig.CORWIT2UCA){
+      spec = "";
     }
     if (witness.isPresent()) {
       spec = String.format("%s,%s", spec, witness.orElseThrow());
@@ -322,20 +324,24 @@ public class UCAGenerationTester {
     logger.log(Level.INFO, res.getLog());
     logger.log(Level.INFO, res.getCheckerResult().getResult());
     // TODO: Add validation of result
+    return res.getCheckerResult().getResult();
   }
 
   private static void validateTransformation(
-      UCAGenerationConfig pGenerationConfig, Testcases pFilename, Path pOutputFile)
+      UCAGenerationConfig pGenerationConfig,
+      Testcases pFilename,
+      Path pOutputFile,
+      Result pResult)
       throws IOException, CPAException {
     switch (pGenerationConfig) {
       case TEST2UCA:
         validateTest2UCA(pFilename, pOutputFile);
         break;
       case VIOWIT2UCA:
-        validateViowit2UCA(pFilename, pOutputFile);
+        validateViowit2UCA(pFilename, pOutputFile, pResult);
         break;
       case CORWIT2UCA:
-        validateCorWit2UCA(pFilename, pOutputFile);
+        validateCorWit2UCA(pFilename, pOutputFile,pResult);
         break;
       default:
         throw new CPAException("Cannot validate the choosen Config!");
@@ -343,31 +349,37 @@ public class UCAGenerationTester {
   }
 
   private static void validateTransformationForFiles(
-      UCAGenerationConfig pGenerationConfig, Testcases pFilename, PathTemplate pOfFormatString)
+      UCAGenerationConfig pGenerationConfig,
+      Testcases pFilename,
+      PathTemplate pOfFormatString,
+      Result pResult)
       throws CPAException, IOException {
     switch (pGenerationConfig) {
       case UCA2TEST:
         validateUca2Test(pFilename, pOfFormatString);
         break;
       case UCA2VIOWIT:
-        validateUca2VioWit(pFilename, pOfFormatString);
+        validateUca2VioWit(pFilename, pOfFormatString, pResult);
         break;
       case UCA2CORWIT:
-        validateUca2CorWit(pFilename, pOfFormatString);
+        validateUca2CorWit(pFilename, pOfFormatString,pResult);
         break;
       default:
         throw new CPAException("Cannot validate the choosen Config!");
     }
   }
 
-  private static void validateViowit2UCA(Testcases pFilename, Path pOutputFile) throws IOException {
+  private static void validateViowit2UCA(
+      Testcases pFilename,
+      Path pOutputFile,
+      Result pResult) throws IOException {
     List<String> expectedEdgesToQTemp = new ArrayList<>();
     if (pFilename == Testcases.SUM_T2) {
       expectedEdgesToQTemp = Lists.newArrayList("[!(!(cond))]", "[!(n <= SIZE)]", "[l < n]");
     } else {
       assertWithMessage("No tests known for  %s ", pFilename.name).fail();
     }
-
+    assertThat(pResult).isEqualTo(Result.FALSE);
     assertThat(Files.exists(pOutputFile)).isTrue();
     List<String> content;
     try (Stream<String> stream = Files.lines(pOutputFile)) {
@@ -378,7 +390,10 @@ public class UCAGenerationTester {
     assertThat(getAllEdgesToQTEMP(content)).containsExactlyElementsIn(expectedEdgesToQTemp);
   }
 
-  private static void validateCorWit2UCA(Testcases pFilename, Path pOutputFile) throws IOException {
+  private static void validateCorWit2UCA(
+      Testcases pFilename,
+      Path pOutputFile,
+      Result pResult) throws IOException {
     Map<String,String> expectedNodesWithInvariant= new HashMap<>();
     
     if (pFilename == Testcases.JAIN1_1) {
@@ -387,7 +402,7 @@ public class UCAGenerationTester {
     } else {
       assertWithMessage("No tests known for  %s ", pFilename.name).fail();
     }
-
+    assertThat(pResult).isEqualTo(Result.TRUE);
     assertThat(Files.exists(pOutputFile)).isTrue();
     List<String> content;
     try (Stream<String> stream = Files.lines(pOutputFile)) {
@@ -419,11 +434,16 @@ public class UCAGenerationTester {
         .collect(ImmutableList.toImmutableList());
   }
 
-  private static void validateUca2VioWit(Testcases pFilename, PathTemplate pOutputFile) {
+  private static void validateUca2VioWit(
+      Testcases pFilename,
+      PathTemplate pOutputFile,
+      Result pResult) {
 
     Map<Integer, List<String>> lines2Sinks = new HashMap<>();
     if (pFilename == Testcases.SUM_T2) {
       lines2Sinks.put(1, Lists.newArrayList("17", "31", "27"));
+
+      assertThat(pResult).isEqualTo(Result.FALSE);
 
       Map<Integer, Integer> edges = new HashMap<>();
       edges.put(1, 10);
@@ -435,10 +455,16 @@ public class UCAGenerationTester {
     }
   }
 
-  private static void validateUca2CorWit(Testcases pFilename, PathTemplate pOutputFile) {
+  private static void validateUca2CorWit(
+      Testcases pFilename,
+      PathTemplate pOutputFile,
+      Result pResult) {
 
     Map<Integer, List<String>> lines2Sinks = new HashMap<>();
     if (pFilename == Testcases.JAIN1_1) {
+
+      assertThat(pResult).isEqualTo(Result.TRUE);
+
       lines2Sinks.put(1, new ArrayList<>());
       Map<Integer, Integer> edges = new HashMap<>();
       edges.put(1, 9);
