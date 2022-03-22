@@ -31,6 +31,7 @@ import java.util.stream.Stream;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -135,7 +136,7 @@ public class UCAGenerationTester {
     tester.performTest();
   }
 
-//  @Test(timeout = TIMEOUT)
+  @Test(timeout = TIMEOUT) @Ignore
   public void test2UcaForCountFloat() throws Exception {
     UCATester tester =
         new UCATester(Testcases.COUNT_FLOAT, UCAGenerationConfig.TEST2UCA, "assumptions.ucaFile");
@@ -188,7 +189,7 @@ public class UCAGenerationTester {
     tester.performTest();
   }
 
-  //@Test(timeout = TIMEOUT)
+  @Test(timeout = TIMEOUT) @Ignore
   public void uca2TestForCountFloat() throws Exception {
     UCATester tester =
         new UCATester(
