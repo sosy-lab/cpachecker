@@ -1575,10 +1575,6 @@ cpa.composite.inCPAEnabledAnalysis = false
 cpa.composite.merge = "AGREE"
   allowed values: [PLAIN, AGREE]
 
-# Which stop operator to use
-cpa.composite.stop = "SEP"
-  allowed values: [SEP, JOIN]
-
 # Limit for Java heap memory used by CPAchecker (in MB, not MiB!; -1 for
 # infinite)
 cpa.conditions.global.memory.heap = -1
