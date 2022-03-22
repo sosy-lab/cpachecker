@@ -107,6 +107,26 @@ public class UCAGenerationTester {
   }
 
   @Test(timeout = TIMEOUT)
+  public void uca2VioWitForTestForsumt2() throws Exception {
+    UCATester tester =
+        new UCATester(
+            Testcases.SUM_T2, UCAGenerationConfig.UCA2VIOWIT, "counterexample.export.graphml");
+    tester.addOverrideOption(
+        "AssumptionAutomaton.cpa.automaton.inputFile", TEST_DIR_PATH + "uca-sumt2.txt");
+    tester.setPathTemplate(
+        Optional.of(
+            TempFile.builder()
+                .prefix("Counterexample")
+                .suffix(".graphml")
+                .create()
+                .toAbsolutePath()
+                .toString()));
+    tester.performTest();
+  }
+
+
+
+  @Test(timeout = TIMEOUT)
   public void test2UcaForCount() throws Exception {
     UCATester tester =
         new UCATester(Testcases.COUNT, UCAGenerationConfig.TEST2UCA, "assumptions.ucaFile");
@@ -115,7 +135,7 @@ public class UCAGenerationTester {
     tester.performTest();
   }
 
-  @Test(timeout = TIMEOUT)
+//  @Test(timeout = TIMEOUT)
   public void test2UcaForCountFloat() throws Exception {
     UCATester tester =
         new UCATester(Testcases.COUNT_FLOAT, UCAGenerationConfig.TEST2UCA, "assumptions.ucaFile");
@@ -168,7 +188,7 @@ public class UCAGenerationTester {
     tester.performTest();
   }
 
-  @Test(timeout = TIMEOUT)
+  //@Test(timeout = TIMEOUT)
   public void uca2TestForCountFloat() throws Exception {
     UCATester tester =
         new UCATester(
@@ -186,23 +206,6 @@ public class UCAGenerationTester {
     tester.performTest();
   }
 
-  @Test(timeout = TIMEOUT)
-  public void uca2VioWitForTestForsumt2() throws Exception {
-    UCATester tester =
-        new UCATester(
-            Testcases.SUM_T2, UCAGenerationConfig.UCA2VIOWIT, "counterexample.export.graphml");
-    tester.addOverrideOption(
-        "AssumptionAutomaton.cpa.automaton.inputFile", TEST_DIR_PATH + "uca-sumt2.txt");
-    tester.setPathTemplate(
-        Optional.of(
-            TempFile.builder()
-                .prefix("Counterexample")
-                .suffix(".graphml")
-                .create()
-                .toAbsolutePath()
-                .toString()));
-    tester.performTest();
-  }
 
   private static void performTest(
       Testcases pFilename,
