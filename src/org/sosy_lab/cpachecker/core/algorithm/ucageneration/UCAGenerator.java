@@ -153,7 +153,7 @@ public class UCAGenerator {
     this.witnessGenerator =
         new UCAWitnessGenerator(
             new UCACorWitGenerator(logger, optinons),
-            new UCAVioWitGenerator(logger, optinons, cpa));
+            new UCAVioWitGenerator(logger, optinons));
   }
 
   public int produceUniversalConditionAutomaton(

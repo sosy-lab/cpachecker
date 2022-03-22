@@ -48,16 +48,14 @@ public class UCAVioWitGenerator {
 
   public static final String DESC_OF_DUMMY_FUNC_START_EDGE = "Function start dummy edge";
   private final LogManager logger;
-  private final ConfigurableProgramAnalysis cpa;
-  private UCAGeneratorOptions optinons;
+  private final UCAGeneratorOptions optinons;
 
   public UCAVioWitGenerator(
-      LogManager pLogger, UCAGeneratorOptions pOptions, ConfigurableProgramAnalysis pCpa)
+      LogManager pLogger, UCAGeneratorOptions pOptions)
       throws InvalidConfigurationException {
 
     this.logger = pLogger;
     this.optinons = pOptions;
-    this.cpa = pCpa;
   }
 
   int produceUCA4ViolationWitness(Appendable output, UnmodifiableReachedSet reached)
@@ -105,13 +103,14 @@ public class UCAVioWitGenerator {
 
     Set<ARGState> targetStates = getAllTargetStates(pReached);
 
-    logger.logf(
+    logger.log(
         Level.INFO,
         String.format(
-            "Target states found are %s",
+            "Target states found are "+
+            String.join(",",
             targetStates.stream()
-                .map(a -> a.getStateId())
-                .collect(ImmutableList.toImmutableList())));
+                .map(a -> Integer.toString(a.getStateId()))
+                .collect(ImmutableList.toImmutableList()))));
 
     while (!toProcess.isEmpty()) {
       ARGState state = toProcess.remove(0);
@@ -256,7 +255,6 @@ public class UCAVioWitGenerator {
   private Optional<Pair<CFAEdge, Optional<ARGState>>> gedEdgeIfIsRelevant(
       ARGState pChild, ARGState pParent, Set<ARGState> pTargetStates) {
     List<CFAEdge> pathToChild = pParent.getFirstPathToChild(pChild);
-    @Nullable CFANode child = AbstractStates.extractLocation(pChild);
 
     // CAse 1 is irrelevant
     // Case 1:
@@ -276,13 +274,13 @@ public class UCAVioWitGenerator {
     // Case 2:
     boolean case2 = lastEdge instanceof AssumeEdge;
     // Case 3:
-    boolean case3 = (pTargetStates.contains(pChild));
+    boolean case3 = pTargetStates.contains(pChild);
     // Case 4:
     boolean case4 =
-        ((lastEdge instanceof BlankEdge
-            && lastEdge.getDescription().contains(DESC_OF_DUMMY_FUNC_START_EDGE)));
+        (lastEdge instanceof BlankEdge
+            && lastEdge.getDescription().contains(DESC_OF_DUMMY_FUNC_START_EDGE));
     // Case 5:
-    boolean case5 = (pChild.getChildren().stream().anyMatch(gc -> pTargetStates.contains(gc)));
+    boolean case5 = pChild.getChildren().stream().anyMatch(gc -> pTargetStates.contains(gc));
 
     // If the pChild cannot reach the error state, do not add it to the toProcessed
     // and let the edge goto the qTemp State (as not relevant for the path)

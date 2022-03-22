@@ -206,7 +206,7 @@ public class ARGState extends AbstractSerializableSingleWrapperState
           }
         }
       }
-      return Collections.emptyList();
+      return currentPathLeadingToKeyNode.getOrDefault(pChild, new ArrayList<>());
 
     }else {
       return singleEdge;
