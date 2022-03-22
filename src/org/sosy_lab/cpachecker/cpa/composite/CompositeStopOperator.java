@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
- * This class implements the <i>stop-join</i> operator for {@link CompositeCPA}.
+ * This class implements the stop operator for {@link CompositeCPA}.
  *
  * <p>When checking whether to stop, i.e. whether the given state is covered by the reached set, the
  * {@link CompositeStopJoinOperator} first uses the component CPAs with <i>stop-sep</i> operators as
@@ -73,9 +73,13 @@ class CompositeStopOperator implements ForcedCoveringStopOperator, CoveringState
         compositeState.getWrappedStates().size() == stopOperators.size(),
         "State with wrong number of component states given");
 
+    boolean noStopJoin = !containStopJoinOperator();
     for (AbstractState e : reached) {
       if (stopSep(compositeState, (CompositeState) e, compositePrecision)) {
         reachedSubSet.add(e);
+        if (noStopJoin) {
+          return reachedSubSet;
+        }
       }
     }
     return reachedSubSet;
@@ -110,8 +114,19 @@ class CompositeStopOperator implements ForcedCoveringStopOperator, CoveringState
     return true;
   }
 
+  /** Check if at least one of the component CPA uses the stop-join operator */
+  private boolean containStopJoinOperator() {
+    for (StopOperator op : stopOperators) {
+      if (op instanceof StopJoinOperator) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /** Checks whether all the stop-join operators implement {@link CoveringStateSetProvider} */
   private boolean retrieveCoveringStatesPossible() {
+    assert containStopJoinOperator();
     for (StopOperator op : stopOperators) {
       if ((op instanceof StopJoinOperator) && !(op instanceof CoveringStateSetProvider)) {
         return false;
@@ -125,6 +140,9 @@ class CompositeStopOperator implements ForcedCoveringStopOperator, CoveringState
       throws CPAException, InterruptedException {
     if (reached.isEmpty()) {
       return ImmutableSet.of();
+    }
+    if (!containStopJoinOperator()) {
+      return reached;
     }
 
     boolean retrievalPossible = retrieveCoveringStatesPossible();
