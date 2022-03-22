@@ -6,7 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * This package contains all code needed to generate UCAs
- */
+/** This package contains all code needed to generate UCAs */
 package org.sosy_lab.cpachecker.core.algorithm.ucageneration;

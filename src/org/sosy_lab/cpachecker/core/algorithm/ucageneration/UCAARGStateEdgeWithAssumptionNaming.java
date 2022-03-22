@@ -8,13 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.ucageneration;
 
-import java.util.Objects;
 import java.util.Optional;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 
 public class UCAARGStateEdgeWithAssumptionNaming extends UCAARGStateEdge {

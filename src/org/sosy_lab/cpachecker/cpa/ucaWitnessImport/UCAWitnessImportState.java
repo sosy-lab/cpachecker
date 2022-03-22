@@ -9,15 +9,8 @@
 package org.sosy_lab.cpachecker.cpa.ucaWitnessImport;
 
 import com.google.common.base.Optional;
-import java.io.IOException;
 import java.io.Serializable;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
-import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -27,13 +20,15 @@ import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
-import org.sosy_lab.cpachecker.cpa.ucaTestcaseGen.TestcaseEntry;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
 public class UCAWitnessImportState
-    implements LatticeAbstractState<UCAWitnessImportState>, Serializable, Graphable, ExpressionTreeReportingState {
+    implements LatticeAbstractState<UCAWitnessImportState>,
+        Serializable,
+        Graphable,
+        ExpressionTreeReportingState {
 
   private static final long serialVersionUID = -7715698130885641252L;
   private final LogManager logger;
@@ -48,7 +43,9 @@ public class UCAWitnessImportState
   }
 
   public UCAWitnessImportState(
-      ExpressionTree<AExpression> pTree, Optional<AutomatonState> pAutomatonState, LogManager pLogger) {
+      ExpressionTree<AExpression> pTree,
+      Optional<AutomatonState> pAutomatonState,
+      LogManager pLogger) {
     this.automatonState = pAutomatonState;
     this.tree = pTree;
     this.logger = pLogger;
@@ -70,8 +67,9 @@ public class UCAWitnessImportState
   }
 
   @Override
-  public boolean isLessOrEqual(UCAWitnessImportState other) throws CPAException, InterruptedException {
-        // We don't need to compare the automatonState, as they are not relevant for less or equal
+  public boolean isLessOrEqual(UCAWitnessImportState other)
+      throws CPAException, InterruptedException {
+    // We don't need to compare the automatonState, as they are not relevant for less or equal
     return this.tree.equals(other.tree);
   }
 
@@ -100,6 +98,7 @@ public class UCAWitnessImportState
     return ExpressionTrees.cast(tree);
   }
 
-  public UCAWitnessImportState cleanAndCopy() {  return new UCAWitnessImportState(logger);
+  public UCAWitnessImportState cleanAndCopy() {
+    return new UCAWitnessImportState(logger);
   }
 }

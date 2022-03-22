@@ -126,8 +126,6 @@ public class AutomatonGraphmlParser {
   private static final String TOO_MANY_GRAPHS_ERROR_MESSAGE =
       "The witness file must describe exactly one witness automaton.";
 
-
-
   private static final String INVALID_AUTOMATON_ERROR_MESSAGE =
       "The witness automaton provided is invalid!";
 
@@ -367,9 +365,8 @@ public class AutomatonGraphmlParser {
     }
 
     // Wait in the source state until the witness checker catches up with the witness
-    if ((invariantsSpecAutomaton
-            == InvariantsSpecificationAutomatonBuilder.WITNESSBASED_ISA
-        || invariantsSpecAutomaton == InvariantsSpecificationAutomatonBuilder.WITNESSBASED_UCA)
+    if ((invariantsSpecAutomaton == InvariantsSpecificationAutomatonBuilder.WITNESSBASED_ISA
+            || invariantsSpecAutomaton == InvariantsSpecificationAutomatonBuilder.WITNESSBASED_UCA)
         && pGraphMLParserState.getWitnessType() == WitnessType.CORRECTNESS_WITNESS
         && stateInvariantsMap.containsKey(pState)) {
       // Create two stutter transitions for states with an invariant as precondition
@@ -420,7 +417,12 @@ public class AutomatonGraphmlParser {
 
     AutomatonInternalState automatonState =
         new AutomatonInternalState(
-            pState.getId(), transitions, false, true, pState.isCycleHead(),ExpressionTrees.getTrue());
+            pState.getId(),
+            transitions,
+            false,
+            true,
+            pState.isCycleHead(),
+            ExpressionTrees.getTrue());
     return automatonState;
   }
 
@@ -642,9 +644,8 @@ public class AutomatonGraphmlParser {
     }
     pGraphMLParserState.getStutterConditions().put(pTransition.getSource(), stutterCondition);
 
-    if ((invariantsSpecAutomaton
-            == InvariantsSpecificationAutomatonBuilder.WITNESSBASED_ISA || invariantsSpecAutomaton
-        == InvariantsSpecificationAutomatonBuilder.WITNESSBASED_UCA)
+    if ((invariantsSpecAutomaton == InvariantsSpecificationAutomatonBuilder.WITNESSBASED_ISA
+            || invariantsSpecAutomaton == InvariantsSpecificationAutomatonBuilder.WITNESSBASED_UCA)
         && pGraphMLParserState.getWitnessType() == WitnessType.CORRECTNESS_WITNESS) {
       if (!candidateInvariants.equals(ExpressionTrees.getTrue())) {
         // we create two automata transitions from this witness transition:

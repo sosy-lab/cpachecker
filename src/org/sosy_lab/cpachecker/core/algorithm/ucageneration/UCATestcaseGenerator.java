@@ -30,12 +30,11 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-public class UCATestcaseGenerator  {
+public class UCATestcaseGenerator {
 
   private final ConfigurableProgramAnalysis cpa;
 
-  public UCATestcaseGenerator(
-      ConfigurableProgramAnalysis pCpa)
+  public UCATestcaseGenerator(ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
     this.cpa = pCpa;
   }
@@ -109,9 +108,8 @@ public class UCATestcaseGenerator  {
 
     falseAssumptionStates.addAll(lastStates);
     assert firstState instanceof ARGState;
-    return
-        writeUCAForTestcase(
-            output, (ARGState) firstState, lastStates, relevantStates, falseAssumptionStates);
+    return writeUCAForTestcase(
+        output, (ARGState) firstState, lastStates, relevantStates, falseAssumptionStates);
   }
 
   /**

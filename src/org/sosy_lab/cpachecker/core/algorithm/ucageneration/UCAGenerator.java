@@ -48,7 +48,8 @@ public class UCAGenerator {
         secure = true,
         name = "assumptions.automatonIgnoreAssumptions",
         description =
-            "If it is enabled, automaton does not add assumption which is considered to continue path with corresponding this edge.")
+            "If it is enabled, automaton does not add assumption which is considered to continue"
+                + " path with corresponding this edge.")
     boolean automatonIgnoreAssumptions = false;
 
     @Option(
@@ -152,8 +153,7 @@ public class UCAGenerator {
 
     this.witnessGenerator =
         new UCAWitnessGenerator(
-            new UCACorWitGenerator(logger, optinons),
-            new UCAVioWitGenerator(logger, optinons));
+            new UCACorWitGenerator(logger, optinons), new UCAVioWitGenerator(logger, optinons));
   }
 
   public int produceUniversalConditionAutomaton(

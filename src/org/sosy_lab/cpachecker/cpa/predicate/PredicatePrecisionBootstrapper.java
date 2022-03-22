@@ -191,9 +191,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
                 break;
             }
           } else if (isUCA(predicatesFile)) {
-            result =
-                result.mergeWith(
-                    parseInvariantsFromUCAAsPredicates(predicatesFile));
+            result = result.mergeWith(parseInvariantsFromUCAAsPredicates(predicatesFile));
           } else {
             result = result.mergeWith(parser.parsePredicates(predicatesFile));
           }
@@ -212,29 +210,26 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
 
   private PredicatePrecision parseInvariantsFromUCAAsPredicates(Path pPredicatesFile) {
     Optional<Automaton> optAutomaton = loadUCA(pPredicatesFile);
-    if (optAutomaton.isEmpty()){
-      logger
-          .logf(Level.WARNING, "Could not load an automaton from file %s",pPredicatesFile);
+    if (optAutomaton.isEmpty()) {
+      logger.logf(Level.WARNING, "Could not load an automaton from file %s", pPredicatesFile);
       return PredicatePrecision.empty();
     }
     Automaton automaton = optAutomaton.orElseThrow();
     try {
       WitnessInvariantsExtractor extractor =
-       new WitnessInvariantsExtractor(config, automaton, logger, cfa, shutdownNotifier);
+          new WitnessInvariantsExtractor(config, automaton, logger, cfa, shutdownNotifier);
 
-
-
-    final Set<ExpressionTreeLocationInvariant> invariants =
-        extractor.extractInvariantsFromReachedSet();
-  logger.log(Level.INFO, invariants);
+      final Set<ExpressionTreeLocationInvariant> invariants =
+          extractor.extractInvariantsFromReachedSet();
+      logger.log(Level.INFO, invariants);
     } catch (CPAException | InterruptedException | InvalidConfigurationException pE) {
-logger.log(Level.WARNING, Throwables.getStackTraceAsString(pE));
+      logger.log(Level.WARNING, Throwables.getStackTraceAsString(pE));
     }
     return PredicatePrecision.empty();
   }
 
   private boolean isUCA(Path pPredicatesFile) {
-   return loadUCA(pPredicatesFile).isPresent();
+    return loadUCA(pPredicatesFile).isPresent();
   }
 
   private Optional<Automaton> loadUCA(Path pPredicatesFile) {
@@ -417,5 +412,4 @@ logger.log(Level.WARNING, Throwables.getStackTraceAsString(pE));
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(statistics);
   }
-
 }

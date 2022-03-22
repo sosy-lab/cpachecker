@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.ucaWitnessImport;
 
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
@@ -34,7 +32,7 @@ public class UCAWitnessImportCPA extends AbstractCPA implements ProofCheckerCPA 
 
   private UCAWitnessImportCPA(LogManager pLogger) {
     super(DelegateAbstractDomain.getInstance(), new UCAWitnessImportTransferRelation(pLogger));
-        this.logger = pLogger;
+    this.logger = pLogger;
   }
 
   @Override

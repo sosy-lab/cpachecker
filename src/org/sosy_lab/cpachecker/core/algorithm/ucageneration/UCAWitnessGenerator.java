@@ -29,10 +29,9 @@ public class UCAWitnessGenerator {
   public int produceUCA4Witness(Appendable pOutput, UnmodifiableReachedSet pReached)
       throws CPAException, IOException {
     boolean error = false;
-    for (AbstractState state :pReached.asCollection()){
-      if ( AbstractStates.extractStateByType(state, ARGState.class).isTarget()){
-        error=true;
-
+    for (AbstractState state : pReached.asCollection()) {
+      if (AbstractStates.extractStateByType(state, ARGState.class).isTarget()) {
+        error = true;
       }
     }
     if (error || pReached.wasTargetReached()) {

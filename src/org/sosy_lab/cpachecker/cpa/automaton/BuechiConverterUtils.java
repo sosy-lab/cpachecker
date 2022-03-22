@@ -216,7 +216,12 @@ public class BuechiConverterUtils {
 
           stateListBuilder.add(
               new AutomatonInternalState(
-                  getStateName(storedState), transitionList, isTargetState, true, false,    ExpressionTrees.getTrue()));
+                  getStateName(storedState),
+                  transitionList,
+                  isTargetState,
+                  true,
+                  false,
+                  ExpressionTrees.getTrue()));
         }
 
         return new Automaton(

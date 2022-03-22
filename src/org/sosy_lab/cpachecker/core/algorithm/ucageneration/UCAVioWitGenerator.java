@@ -29,12 +29,10 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ucageneration.UCAGenerator.UCAGeneratorOptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
@@ -50,8 +48,7 @@ public class UCAVioWitGenerator {
   private final LogManager logger;
   private final UCAGeneratorOptions optinons;
 
-  public UCAVioWitGenerator(
-      LogManager pLogger, UCAGeneratorOptions pOptions)
+  public UCAVioWitGenerator(LogManager pLogger, UCAGeneratorOptions pOptions)
       throws InvalidConfigurationException {
 
     this.logger = pLogger;
@@ -106,11 +103,12 @@ public class UCAVioWitGenerator {
     logger.log(
         Level.INFO,
         String.format(
-            "Target states found are "+
-            String.join(",",
-            targetStates.stream()
-                .map(a -> Integer.toString(a.getStateId()))
-                .collect(ImmutableList.toImmutableList()))));
+            "Target states found are "
+                + String.join(
+                    ",",
+                    targetStates.stream()
+                        .map(a -> Integer.toString(a.getStateId()))
+                        .collect(ImmutableList.toImmutableList()))));
 
     while (!toProcess.isEmpty()) {
       ARGState state = toProcess.remove(0);
@@ -583,12 +581,13 @@ public class UCAVioWitGenerator {
       assert !errorState.isCovered();
       targetStates.add(errorState);
     }
-    targetStates.addAll(pReached.asCollection().stream()
-        .filter(
-            state ->
-                AbstractStates.extractStateByType(state, AssumptionStorageState.class).isStop())
-        .map(s -> AbstractStates.extractStateByType(s, ARGState.class))
-        .collect(ImmutableList.toImmutableList()));
+    targetStates.addAll(
+        pReached.asCollection().stream()
+            .filter(
+                state ->
+                    AbstractStates.extractStateByType(state, AssumptionStorageState.class).isStop())
+            .map(s -> AbstractStates.extractStateByType(s, ARGState.class))
+            .collect(ImmutableList.toImmutableList()));
 
     return targetStates;
   }

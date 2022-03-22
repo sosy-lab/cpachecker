@@ -152,7 +152,12 @@ public enum InvariantsSpecificationAutomatonBuilder {
         }
         AutomatonInternalState initState =
             new AutomatonInternalState(
-                initialStateName, initTransitions.build(), false, true, false, ExpressionTrees.getTrue());
+                initialStateName,
+                initTransitions.build(),
+                false,
+                true,
+                false,
+                ExpressionTrees.getTrue());
         states.add(initState);
         Map<String, AutomatonVariable> vars = ImmutableMap.of();
         return new Automaton(WITNESS_AUTOMATON_NAME, vars, states.build(), initialStateName);
@@ -338,9 +343,9 @@ public enum InvariantsSpecificationAutomatonBuilder {
   },
 
   /**
-   * This class can be used to transform a given correctness witness into a UCA.
-   * It is similarly defined to the {@link InvariantsSpecificationAutomatonBuilder#WITNESSBASED_ISA},
-   * but stores the invariant candidates at the nodes and not at the edges!
+   * This class can be used to transform a given correctness witness into a UCA. It is similarly
+   * defined to the {@link InvariantsSpecificationAutomatonBuilder#WITNESSBASED_ISA}, but stores the
+   * invariant candidates at the nodes and not at the edges!
    */
   WITNESSBASED_UCA {
     public static final String PREDEFINED_STATE_ERROR = "_predefinedState_ERROR";
@@ -358,9 +363,7 @@ public enum InvariantsSpecificationAutomatonBuilder {
     }
 
     private Automaton buildUCAForWitnessAutomaton(
-        String pWitnessAutomatonName,
-        Automaton pAutomaton,
-        LogManager pLogger) {
+        String pWitnessAutomatonName, Automaton pAutomaton, LogManager pLogger) {
 
       List<AutomatonInternalState> states = new ArrayList<>();
       String initialStateName = pAutomaton.getInitialState().getName(); // Fallback
@@ -400,7 +403,8 @@ public enum InvariantsSpecificationAutomatonBuilder {
                 && !invCandidates.contains(transition.getCandidateInvariants())) {
               pLogger.logf(
                   Level.WARNING,
-                  "Cannot store the invariant for %s, as there are more than one candidate: %s and %s",
+                  "Cannot store the invariant for %s, as there are more than one candidate: %s and"
+                      + " %s",
                   currentState.getName(),
                   transition.getCandidateInvariants(),
                   invCandidates);
@@ -414,9 +418,8 @@ public enum InvariantsSpecificationAutomatonBuilder {
             }
           }
         }
-             ExpressionTree<AExpression> invCnds = ExpressionTrees.getTrue();
-        ExpressionTreeFactory<AExpression> fac =
-            ExpressionTrees.newFactory();
+        ExpressionTree<AExpression> invCnds = ExpressionTrees.getTrue();
+        ExpressionTreeFactory<AExpression> fac = ExpressionTrees.newFactory();
         for (ExpressionTree<AExpression> c : invCandidates) {
           invCnds = fac.and(invCnds, c);
         }

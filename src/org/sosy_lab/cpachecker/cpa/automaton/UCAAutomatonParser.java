@@ -74,7 +74,8 @@ public class UCAAutomatonParser {
         }
       }
 
-    logger.logf(Level.INFO, "Distances to Violation for UCA are %s", distanceToViolation.toString());
+      logger.logf(
+          Level.INFO, "Distances to Violation for UCA are %s", distanceToViolation.toString());
 
       List<AutomatonInternalState> updatedStates = new ArrayList<>();
       Map<String, AutomatonVariable> variables = new HashMap<>();
@@ -124,7 +125,8 @@ public class UCAAutomatonParser {
       } catch (InvalidAutomatonException pE) {
         logger.logf(
             Level.WARNING,
-            "Failed to add the variable %s to the automaton due to %s.\n Returning the original automaton",
+            "Failed to add the variable %s to the automaton due to %s.\n"
+                + " Returning the original automaton",
             AutomatonGraphmlParser.DISTANCE_TO_VIOLATION,
             Throwables.getStackTraceAsString(pE));
         return pAutomata;

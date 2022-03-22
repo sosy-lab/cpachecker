@@ -11,37 +11,23 @@ package org.sosy_lab.cpachecker.cpa.ucaWitnessImport;
 import com.google.common.base.Optional;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.ucageneration.UCAGenerator;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
-import org.sosy_lab.cpachecker.cpa.ucaTestcaseGen.TestcaseEntry;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
 public class UCAWitnessImportTransferRelation extends SingleEdgeTransferRelation {
 
-
   private final LogManager logger;
 
   public UCAWitnessImportTransferRelation(LogManager pLogger) {
     this.logger = pLogger;
-
   }
 
   @Override
@@ -49,7 +35,7 @@ public class UCAWitnessImportTransferRelation extends SingleEdgeTransferRelation
       AbstractState state, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
     assert state instanceof UCAWitnessImportState;
-    return Collections.singleton(((UCAWitnessImportState)state).cleanAndCopy());
+    return Collections.singleton(((UCAWitnessImportState) state).cleanAndCopy());
   }
 
   @Override
@@ -64,18 +50,19 @@ public class UCAWitnessImportTransferRelation extends SingleEdgeTransferRelation
 
     for (AbstractState other : otherStates) {
       if (other instanceof AutomatonState
-          && ((AutomatonState) other).getOwningAutomatonName().equals(UCAGenerator.ASSUMPTION_AUTOMATON_NAME)) {
+          && ((AutomatonState) other)
+              .getOwningAutomatonName()
+              .equals(UCAGenerator.ASSUMPTION_AUTOMATON_NAME)) {
         AutomatonState autoState = (AutomatonState) other;
 
         if (!ExpressionTrees.isConstant(autoState.getCandidateInvariants())) {
-        witnessState = new UCAWitnessImportState(autoState.getCandidateInvariants(), Optional.of(autoState),logger);
+          witnessState =
+              new UCAWitnessImportState(
+                  autoState.getCandidateInvariants(), Optional.of(autoState), logger);
           return Collections.singleton(witnessState);
-
+        }
       }
     }
-
-  }
     return Collections.singleton(witnessState);
   }
-
 }

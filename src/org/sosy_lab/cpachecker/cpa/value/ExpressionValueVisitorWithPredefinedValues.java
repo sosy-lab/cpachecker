@@ -37,7 +37,7 @@ public class ExpressionValueVisitorWithPredefinedValues extends ExpressionValueV
   private Map<Integer, String> valuesFromFile = new HashMap<>();
   private boolean lastRequestSuccessful = true;
 
-  private boolean  lastRequestedValue = false;
+  private boolean lastRequestedValue = false;
 
   public ExpressionValueVisitorWithPredefinedValues(
       ValueAnalysisState pState,
@@ -72,7 +72,9 @@ public class ExpressionValueVisitorWithPredefinedValues extends ExpressionValueV
     super(pState, pFunctionName, pMachineModel, pLogger);
     this.logger = pLogger;
     this.numReturnedValues = pAtomicInteger;
-    if (Objects.nonNull(pValuesFromFile)) {valuesFromFile = pValuesFromFile;}
+    if (Objects.nonNull(pValuesFromFile)) {
+      valuesFromFile = pValuesFromFile;
+    }
   }
 
   @Override
@@ -94,7 +96,7 @@ public class ExpressionValueVisitorWithPredefinedValues extends ExpressionValueV
               Level.FINER,
               "Returning value at position %d, for statement " + pExp.toASTString() + " that is: ",
               value);
-          lastRequestedValue =true;
+          lastRequestedValue = true;
 
           return value;
         } else {
@@ -106,19 +108,16 @@ public class ExpressionValueVisitorWithPredefinedValues extends ExpressionValueV
   }
 
   /**
-   *
-   * @return true, if the value used in the last request was  loaded from the testcomp-testcase
+   * @return true, if the value used in the last request was loaded from the testcomp-testcase
    */
   public boolean isLastRequestedValuePresent() {
     return lastRequestedValue;
   }
 
-
-
   @Override
   public void reset() {
     super.reset();
-    this.lastRequestedValue =false;
+    this.lastRequestedValue = false;
   }
 
   private Value computeNumericalValue(CFunctionCallExpression call, String pStringValueForNumber) {
@@ -136,7 +135,7 @@ public class ExpressionValueVisitorWithPredefinedValues extends ExpressionValueV
             && pStringValueForNumber.length() == 3
             && pStringValueForNumber.substring(2).equals("'")) {
           // String has the form 'c'
-          final int unicodeNumericValue =pStringValueForNumber.charAt(1);
+          final int unicodeNumericValue = pStringValueForNumber.charAt(1);
           return new NumericValue(unicodeNumericValue);
         } else if (pStringValueForNumber.length() == 1 && isInt(pStringValueForNumber)) {
           // String is a number, hence parse as integer
@@ -194,10 +193,10 @@ public class ExpressionValueVisitorWithPredefinedValues extends ExpressionValueV
   }
 
   private boolean isInt(String pStringValueForNumber) {
-    try{
+    try {
       Integer.parseInt(pStringValueForNumber);
-      return  true;
-    }catch (Throwable e){
+      return true;
+    } catch (Throwable e) {
       return false;
     }
   }

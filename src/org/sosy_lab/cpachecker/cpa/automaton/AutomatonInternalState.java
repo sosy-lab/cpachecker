@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.common.collect.ImmutableList;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -46,7 +45,8 @@ public class AutomatonInternalState {
                   .build()),
           true,
           false,
-          false, ExpressionTrees.getTrue()) {
+          false,
+          ExpressionTrees.getTrue()) {
         @Override
         public String toString() {
           return "ERROR";
@@ -64,7 +64,7 @@ public class AutomatonInternalState {
           false,
           ExpressionTrees.getTrue());
 
-  /** Name of this State.  */
+  /** Name of this State. */
   private final String name;
 
   /** Outgoing transitions of this state. */
@@ -77,7 +77,7 @@ public class AutomatonInternalState {
 
   private final boolean isCycleStart;
 
-  /**    The list of state invariants for the node    */
+  /** The list of state invariants for the node */
   private final ExpressionTree<AExpression> stateInvariants;
 
   public AutomatonInternalState(
@@ -109,7 +109,7 @@ public class AutomatonInternalState {
       boolean pIsTarget,
       boolean pAllTransitions,
       ExpressionTree<AExpression> pStateInvariants) {
-    this(pName, pTransitions, pIsTarget, pAllTransitions, false,pStateInvariants);
+    this(pName, pTransitions, pIsTarget, pAllTransitions, false, pStateInvariants);
   }
 
   public AutomatonInternalState(String pName, List<AutomatonTransition> pTransitions) {
@@ -148,7 +148,7 @@ public class AutomatonInternalState {
     return mIsTarget;
   }
 
-  public  ExpressionTree<AExpression> getStateInvariants() {
+  public ExpressionTree<AExpression> getStateInvariants() {
     return stateInvariants;
   }
 
@@ -169,7 +169,9 @@ public class AutomatonInternalState {
   }
 
   ImmutableList<AutomatonInternalState> getSuccessorStates() {
-    return transitions.stream().map(t -> t.getFollowState()).collect(ImmutableList.toImmutableList());
+    return transitions.stream()
+        .map(t -> t.getFollowState())
+        .collect(ImmutableList.toImmutableList());
   }
 
   @Override

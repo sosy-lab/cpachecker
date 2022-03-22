@@ -25,7 +25,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionToExpressionTreeVisitor;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
@@ -180,10 +179,11 @@ public class AutomatonState
     matches = successfulMatches;
     this.failedMatches = failedMatches;
     this.assumptions = pAssumptions;
-    if (!ExpressionTrees.isConstant(internalState.getStateInvariants())){
-      candidateInvariants =internalState.getStateInvariants();
-    }else{
-    this.candidateInvariants = pCandidateInvariants;}
+    if (!ExpressionTrees.isConstant(internalState.getStateInvariants())) {
+      candidateInvariants = internalState.getStateInvariants();
+    } else {
+      this.candidateInvariants = pCandidateInvariants;
+    }
     this.treatErrorAsTarget = pTreatErrorAsTarget;
 
     if (internalState.isTarget()) {
@@ -235,7 +235,6 @@ public class AutomatonState
     // depends on the hash code of its values, and those may change.
     return Objects.hash(assumptions, internalState);
   }
-
 
   @Override
   public ImmutableList<AExpression> getAssumptions() {

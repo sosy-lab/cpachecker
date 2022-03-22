@@ -63,7 +63,6 @@ public class UCAGenerationTester {
     SUM_T2("sumt2.c"),
     JAIN1_1("jain_1-1.c");
 
-
     private final String name;
 
     Testcases(String pName) {
@@ -128,7 +127,6 @@ public class UCAGenerationTester {
     tester.performTest();
   }
 
-
   @Test(timeout = TIMEOUT)
   public void corWitt2UcaForJain11() throws Exception {
     UCATester tester =
@@ -140,8 +138,7 @@ public class UCAGenerationTester {
   @Test(timeout = TIMEOUT)
   public void uca2CorWitForJain11() throws Exception {
     UCATester tester =
-        new UCATester(
-            Testcases.JAIN1_1, UCAGenerationConfig.UCA2CORWIT, "cpa.arg.proofWitness");
+        new UCATester(Testcases.JAIN1_1, UCAGenerationConfig.UCA2CORWIT, "cpa.arg.proofWitness");
     tester.addOverrideOption(
         "AssumptionAutomaton.cpa.automaton.inputFile", TEST_DIR_PATH + "uca-corwit-jain11.txt");
     tester.setPathTemplate(
@@ -164,7 +161,8 @@ public class UCAGenerationTester {
     tester.performTest();
   }
 
-  @Test(timeout = TIMEOUT) @Ignore
+  @Test(timeout = TIMEOUT)
+  @Ignore
   public void test2UcaForCountFloat() throws Exception {
     UCATester tester =
         new UCATester(Testcases.COUNT_FLOAT, UCAGenerationConfig.TEST2UCA, "assumptions.ucaFile");
@@ -217,7 +215,8 @@ public class UCAGenerationTester {
     tester.performTest();
   }
 
-  @Test(timeout = TIMEOUT) @Ignore
+  @Test(timeout = TIMEOUT)
+  @Ignore
   public void uca2TestForCountFloat() throws Exception {
     UCATester tester =
         new UCATester(
@@ -234,7 +233,6 @@ public class UCAGenerationTester {
                 .toString()));
     tester.performTest();
   }
-
 
   private static void performTest(
       Testcases pFilename,
@@ -253,8 +251,8 @@ public class UCAGenerationTester {
     logger.logf(
         Level.INFO, "Storing putput file with option %s at %s", pOptionForOutput, outputFile);
     Result result =
-    startTransformation(
-        pGenerationConfig, fullPath, pUcaInput, pTestcase, pWitness, pOverrideOptions);
+        startTransformation(
+            pGenerationConfig, fullPath, pUcaInput, pTestcase, pWitness, pOverrideOptions);
 
     validateTransformation(pGenerationConfig, pFilename, outputFile, result);
   }
@@ -272,8 +270,9 @@ public class UCAGenerationTester {
     String fullPath = Path.of(TEST_DIR_PATH, pFilename.name).toString();
 
     pOverrideOptions.put(pOptionForOutput, pTemplateForOutputValue);
-    Result result = startTransformation(
-        pGenerationConfig, fullPath, pUcaInput, pTestcase, pWitness, pOverrideOptions);
+    Result result =
+        startTransformation(
+            pGenerationConfig, fullPath, pUcaInput, pTestcase, pWitness, pOverrideOptions);
 
     validateTransformationForFiles(
         pGenerationConfig, pFilename, PathTemplate.ofFormatString(pTemplateForOutputValue), result);
@@ -304,14 +303,15 @@ public class UCAGenerationTester {
         pS -> overrideOptions.put("AssumptionAutomaton.cpa.automaton.inputFile", pS));
     testcase.ifPresent(pS -> overrideOptions.put("cpa.value.functionValuesForRandom", pS));
     String spec = specificationFile;
-    if (pGenerationConfig == UCAGenerationConfig.VIOWIT2UCA  ) {
+    if (pGenerationConfig == UCAGenerationConfig.VIOWIT2UCA) {
       spec = specificationFileForViolationWitnesses;
-    } else if (pGenerationConfig == UCAGenerationConfig.CORWIT2UCA){
+    } else if (pGenerationConfig == UCAGenerationConfig.CORWIT2UCA) {
       spec = "";
     }
     if (witness.isPresent()) {
       spec = String.format("%s,%s", spec, witness.orElseThrow());
-    } else if (pGenerationConfig == UCAGenerationConfig.UCA2VIOWIT || pGenerationConfig == UCAGenerationConfig.UCA2CORWIT) {
+    } else if (pGenerationConfig == UCAGenerationConfig.UCA2VIOWIT
+        || pGenerationConfig == UCAGenerationConfig.UCA2CORWIT) {
       spec = "";
     }
 
@@ -328,10 +328,7 @@ public class UCAGenerationTester {
   }
 
   private static void validateTransformation(
-      UCAGenerationConfig pGenerationConfig,
-      Testcases pFilename,
-      Path pOutputFile,
-      Result pResult)
+      UCAGenerationConfig pGenerationConfig, Testcases pFilename, Path pOutputFile, Result pResult)
       throws IOException, CPAException {
     switch (pGenerationConfig) {
       case TEST2UCA:
@@ -341,7 +338,7 @@ public class UCAGenerationTester {
         validateViowit2UCA(pFilename, pOutputFile, pResult);
         break;
       case CORWIT2UCA:
-        validateCorWit2UCA(pFilename, pOutputFile,pResult);
+        validateCorWit2UCA(pFilename, pOutputFile, pResult);
         break;
       default:
         throw new CPAException("Cannot validate the choosen Config!");
@@ -362,17 +359,15 @@ public class UCAGenerationTester {
         validateUca2VioWit(pFilename, pOfFormatString, pResult);
         break;
       case UCA2CORWIT:
-        validateUca2CorWit(pFilename, pOfFormatString,pResult);
+        validateUca2CorWit(pFilename, pOfFormatString, pResult);
         break;
       default:
         throw new CPAException("Cannot validate the choosen Config!");
     }
   }
 
-  private static void validateViowit2UCA(
-      Testcases pFilename,
-      Path pOutputFile,
-      Result pResult) throws IOException {
+  private static void validateViowit2UCA(Testcases pFilename, Path pOutputFile, Result pResult)
+      throws IOException {
     List<String> expectedEdgesToQTemp = new ArrayList<>();
     if (pFilename == Testcases.SUM_T2) {
       expectedEdgesToQTemp = Lists.newArrayList("[!(!(cond))]", "[!(n <= SIZE)]", "[l < n]");
@@ -390,15 +385,16 @@ public class UCAGenerationTester {
     assertThat(getAllEdgesToQTEMP(content)).containsExactlyElementsIn(expectedEdgesToQTemp);
   }
 
-  private static void validateCorWit2UCA(
-      Testcases pFilename,
-      Path pOutputFile,
-      Result pResult) throws IOException {
-    Map<String,String> expectedNodesWithInvariant= new HashMap<>();
-    
+  private static void validateCorWit2UCA(Testcases pFilename, Path pOutputFile, Result pResult)
+      throws IOException {
+    Map<String, String> expectedNodesWithInvariant = new HashMap<>();
+
     if (pFilename == Testcases.JAIN1_1) {
-      expectedNodesWithInvariant.put("N24", "( ( ( ( ( y % 2 ) < 2 ) && ( ! ( y < ( y % 2 ) ) ) ) && ( ( y % 2 ) == ( ( y % 2 ) % 2 ) ) ) && ( ( y % 2 ) == 1 ) )");
-      
+      expectedNodesWithInvariant.put(
+          "N24",
+          "( ( ( ( ( y % 2 ) < 2 ) && ( ! ( y < ( y % 2 ) ) ) ) && ( ( y % 2 ) == ( ( y % 2 ) % 2 )"
+              + " ) ) && ( ( y % 2 ) == 1 ) )");
+
     } else {
       assertWithMessage("No tests known for  %s ", pFilename.name).fail();
     }
@@ -410,17 +406,18 @@ public class UCAGenerationTester {
     }
     assertThat(content).isNotEmpty();
     assertThat(getAllEdgesToQTEMP(content)).isEmpty();
-    assertThat(getAllNodesWithInvAndInv(content)).containsExactlyEntriesIn(expectedNodesWithInvariant);
+    assertThat(getAllNodesWithInvAndInv(content))
+        .containsExactlyEntriesIn(expectedNodesWithInvariant);
   }
 
-  private static Map<String,String> getAllNodesWithInvAndInv(List<String> pContent) {
-    Map<String,String> nodesWithInvariant= new HashMap<>();
-    String currentNode ="";
-    for (String line : pContent){
-      if (line.startsWith("STATE USEALL ")){
-        currentNode = line.substring("STATE USEALL ".length(), line.lastIndexOf(":")-1);
-      }else if(line.startsWith("    INVARIANT ")){
-        String inv = line.substring(line.lastIndexOf("{")+1,line.lastIndexOf("}"));
+  private static Map<String, String> getAllNodesWithInvAndInv(List<String> pContent) {
+    Map<String, String> nodesWithInvariant = new HashMap<>();
+    String currentNode = "";
+    for (String line : pContent) {
+      if (line.startsWith("STATE USEALL ")) {
+        currentNode = line.substring("STATE USEALL ".length(), line.lastIndexOf(":") - 1);
+      } else if (line.startsWith("    INVARIANT ")) {
+        String inv = line.substring(line.lastIndexOf("{") + 1, line.lastIndexOf("}"));
         nodesWithInvariant.put(currentNode, inv);
       }
     }
@@ -435,9 +432,7 @@ public class UCAGenerationTester {
   }
 
   private static void validateUca2VioWit(
-      Testcases pFilename,
-      PathTemplate pOutputFile,
-      Result pResult) {
+      Testcases pFilename, PathTemplate pOutputFile, Result pResult) {
 
     Map<Integer, List<String>> lines2Sinks = new HashMap<>();
     if (pFilename == Testcases.SUM_T2) {
@@ -456,9 +451,7 @@ public class UCAGenerationTester {
   }
 
   private static void validateUca2CorWit(
-      Testcases pFilename,
-      PathTemplate pOutputFile,
-      Result pResult) {
+      Testcases pFilename, PathTemplate pOutputFile, Result pResult) {
 
     Map<Integer, List<String>> lines2Sinks = new HashMap<>();
     if (pFilename == Testcases.JAIN1_1) {
@@ -470,8 +463,8 @@ public class UCAGenerationTester {
       edges.put(1, 9);
       Map<Integer, Integer> nodes = new HashMap<>();
       nodes.put(1, 8);
-      Map<Integer, Map<String,String>> nodesWithInv = new HashMap<>();
-      Map<String,String>   invMap = new HashMap<>();
+      Map<Integer, Map<String, String>> nodesWithInv = new HashMap<>();
+      Map<String, String> invMap = new HashMap<>();
       invMap.put("N24", "(y % (2)) == (1)");
       nodesWithInv.put(1, invMap);
       validateWitness(pFilename, pOutputFile, 1, lines2Sinks, edges, nodes, nodesWithInv);
@@ -515,7 +508,7 @@ public class UCAGenerationTester {
                   if ("startline".equals(key)) {
 
                     edgesToSink.add(n.getTextContent());
-                   break;
+                    break;
                   }
                 }
               }
@@ -524,36 +517,34 @@ public class UCAGenerationTester {
         }
         assertThat(edgesToSink).containsExactlyElementsIn(lines2Sinks.get(i));
 
-
-        Map<String,String> nodesToInvariant = new HashMap<>();
+        Map<String, String> nodesToInvariant = new HashMap<>();
         for (int j = 0; j < nodes.getLength(); j++) {
           Node node = nodes.item(j);
           if (node.getNodeType() == Node.ELEMENT_NODE) {
 
             Element element = (Element) node;
             String nodeName = element.getAttribute("id");
-              NodeList tl = element.getChildNodes();
-              for (int k = 0; k < tl.getLength(); k++) {
-                Node n = tl.item(k);
-                if (n.getNodeType() == Node.ELEMENT_NODE) {
-                  final String key = ((Element) n).getAttribute("key");
-                  if ("invariant".equals(key)) {
-                    nodesToInvariant.put(nodeName, n.getTextContent());
-                    break;
-                  }
-
+            NodeList tl = element.getChildNodes();
+            for (int k = 0; k < tl.getLength(); k++) {
+              Node n = tl.item(k);
+              if (n.getNodeType() == Node.ELEMENT_NODE) {
+                final String key = ((Element) n).getAttribute("key");
+                if ("invariant".equals(key)) {
+                  nodesToInvariant.put(nodeName, n.getTextContent());
+                  break;
+                }
               }
             }
           }
         }
-        assertThat(nodesToInvariant).containsExactlyEntriesIn(pNodesWithInv.getOrDefault(i, new HashMap<>()));
+        assertThat(nodesToInvariant)
+            .containsExactlyEntriesIn(pNodesWithInv.getOrDefault(i, new HashMap<>()));
 
       } catch (ParserConfigurationException | SAXException | IOException e) {
         assertWithMessage(
-            "Skipping the validation for %s in iteration %s, due to %s",
-            pFilename.name,
-            Integer.toString(i),
-            Throwables.getStackTraceAsString(e)).fail();
+                "Skipping the validation for %s in iteration %s, due to %s",
+                pFilename.name, Integer.toString(i), Throwables.getStackTraceAsString(e))
+            .fail();
       }
     }
   }
@@ -648,8 +639,8 @@ public class UCAGenerationTester {
         assertThat(currentIndex).isEqualTo(expectedValuesInTestcase.size());
 
       } else {
-        assertWithMessage(
-            "Skipping the validation for %d in iteration %n", pFilename.name, i).fail();
+        assertWithMessage("Skipping the validation for %d in iteration %n", pFilename.name, i)
+            .fail();
       }
     }
   }

@@ -19,35 +19,31 @@ import org.sosy_lab.cpachecker.util.expressions.Or;
 public class CExpressionToExpressionTreeVisitor
     implements CExpressionVisitor<ExpressionTree<CExpression>, NoException> {
 
-
-
-
   @Override
   public ExpressionTree<CExpression> visit(CBinaryExpression pIastBinaryExpression)
       throws NoException {
-  if (pIastBinaryExpression.getOperator() == BinaryOperator.BINARY_AND){
-    ExpressionTree<CExpression> left = visitDefault(pIastBinaryExpression.getOperand1());
-    ExpressionTree<CExpression> right = visitDefault(pIastBinaryExpression.getOperand2());
-    return And.of(left, right);
-  }else if (pIastBinaryExpression.getOperator() == BinaryOperator.BINARY_OR){
-    ExpressionTree<CExpression> left = visitDefault(pIastBinaryExpression.getOperand1());
-    ExpressionTree<CExpression> right = visitDefault(pIastBinaryExpression.getOperand2());
-    return Or.of(left, right);
-  }
-  else return LeafExpression.of(pIastBinaryExpression);
+    if (pIastBinaryExpression.getOperator() == BinaryOperator.BINARY_AND) {
+      ExpressionTree<CExpression> left = visitDefault(pIastBinaryExpression.getOperand1());
+      ExpressionTree<CExpression> right = visitDefault(pIastBinaryExpression.getOperand2());
+      return And.of(left, right);
+    } else if (pIastBinaryExpression.getOperator() == BinaryOperator.BINARY_OR) {
+      ExpressionTree<CExpression> left = visitDefault(pIastBinaryExpression.getOperand1());
+      ExpressionTree<CExpression> right = visitDefault(pIastBinaryExpression.getOperand2());
+      return Or.of(left, right);
+    } else return LeafExpression.of(pIastBinaryExpression);
   }
 
   public ExpressionTree<CExpression> visitDefault(AExpression pIastExpression) {
-    if (pIastExpression instanceof  CExpression){
-    if (pIastExpression instanceof  CBinaryExpression){
-      return this.visit((CBinaryExpression) pIastExpression);
-    }  else return LeafExpression.of((CExpression)pIastExpression);
-  }
-    else{
-      //TODO Find nicer way
+    if (pIastExpression instanceof CExpression) {
+      if (pIastExpression instanceof CBinaryExpression) {
+        return this.visit((CBinaryExpression) pIastExpression);
+      } else return LeafExpression.of((CExpression) pIastExpression);
+    } else {
+      // TODO Find nicer way
       throw new IllegalArgumentException("Only applicable for CExpressions");
     }
-}
+  }
+
   @Override
   public ExpressionTree<CExpression> visit(CCastExpression pIastCastExpression) throws NoException {
     return LeafExpression.of(pIastCastExpression);

@@ -57,21 +57,15 @@ public class CPATestRunner {
   }
 
   public static TestResults runAndPrintStatisticsAndOutput(
-      Configuration config,
-      String pSourceCodeFilePath,
-      Level logLevel
-   ) throws Exception {
+      Configuration config, String pSourceCodeFilePath, Level logLevel) throws Exception {
     StringBuildingLogHandler stringLogHandler = new StringBuildingLogHandler();
     stringLogHandler.setLevel(logLevel);
     stringLogHandler.setFormatter(ConsoleLogFormatter.withoutColors());
     LogManager logger = BasicLogManager.createWithHandler(stringLogHandler);
 
-
-
     ShutdownManager shutdownManager = ShutdownManager.create();
     CPAchecker cpaChecker = new CPAchecker(config, logger, shutdownManager);
     CPAcheckerResult results = cpaChecker.run(ImmutableList.of(pSourceCodeFilePath));
-
 
     PrintStream stream = new NullPrintStream();
     results.printStatistics(stream);
@@ -79,5 +73,4 @@ public class CPATestRunner {
     logger.flush();
     return new TestResults(stringLogHandler.getLog(), results);
   }
-
 }

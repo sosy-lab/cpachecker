@@ -59,7 +59,7 @@ public class LlvmParser implements Parser {
   protected ParseResult parseFile(final Path pFilename) throws LLVMParserException {
     addLlvmLookupDirs();
     try (Context llvmContext = Context.create();
-         Module llvmModule = Module.parseIR(pFilename.toString(), llvmContext)) {
+        Module llvmModule = Module.parseIR(pFilename.toString(), llvmContext)) {
       parseTimer.start();
       return buildCfa(llvmModule, pFilename);
 

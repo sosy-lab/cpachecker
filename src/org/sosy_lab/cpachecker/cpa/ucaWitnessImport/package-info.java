@@ -6,7 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- *  Load the invariants from an UCA to store them inside a correctness witness
- */
+/** Load the invariants from an UCA to store them inside a correctness witness */
 package org.sosy_lab.cpachecker.cpa.ucaWitnessImport;

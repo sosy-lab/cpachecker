@@ -40,16 +40,15 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+
 @Options(prefix = "cpa.testcasegen")
 public class TestCaseGenTransferRelation extends SingleEdgeTransferRelation {
 
-  @Option(
-      secure = true,
-      description = "Filename format for Testcase TEST-COMP output dumps")
+  @Option(secure = true, description = "Filename format for Testcase TEST-COMP output dumps")
   @FileOption(Type.OUTPUT_FILE)
   private PathTemplate exportPath = PathTemplate.ofFormatString("output/testcase-%d.xml");
 
-  int numberOfTestcases =0;
+  int numberOfTestcases = 0;
 
   private static final String ASSUMPTION_AUTOMATON_NAME = "AssumptionAutomaton";
   private final LogManager logger;
@@ -83,10 +82,13 @@ public class TestCaseGenTransferRelation extends SingleEdgeTransferRelation {
         try {
           tcState.dumpToTestcase(this.exportPath.getPath(this.numberOfTestcases));
         } catch (IOException pE) {
-          logger.logf(Level.WARNING, "Unable to generate a testcase for %s due to %s", tcState.toString(),
+          logger.logf(
+              Level.WARNING,
+              "Unable to generate a testcase for %s due to %s",
+              tcState.toString(),
               Throwables.getStackTraceAsString(pE));
         }
-        numberOfTestcases = numberOfTestcases +1;
+        numberOfTestcases = numberOfTestcases + 1;
         return ImmutableList.of();
       }
       return Collections.singleton(tcState.copy());
@@ -146,10 +148,9 @@ public class TestCaseGenTransferRelation extends SingleEdgeTransferRelation {
       value = ((CIntegerLiteralExpression) pLiteral).getValue().toString();
     } else if (pLiteral instanceof CFloatLiteralExpression) {
       value = ((CFloatLiteralExpression) pLiteral).getValue().toString();
-    }else if (pLiteral instanceof CCharLiteralExpression) {
+    } else if (pLiteral instanceof CCharLiteralExpression) {
       value = String.valueOf(((CCharLiteralExpression) pLiteral).getCharacter());
-    }
-    else {
+    } else {
       // TODO: Add parsing for floats, imaginary numbers and strings
       logger.logf(
           Level.WARNING, "Dont know how to parse %s of type %s", pLiteral, pLiteral.getClass());

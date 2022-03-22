@@ -125,7 +125,8 @@ public class TestCaseGenState
     sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>");
     sb.append(System.lineSeparator());
     sb.append(
-        "<!DOCTYPE testcase PUBLIC \"+//IDN sosy-lab.org//DTD test-format testcase 1.1//EN\" \"https://sosy-lab.org/test-format/testcase-1.1.dtd\">");
+        "<!DOCTYPE testcase PUBLIC \"+//IDN sosy-lab.org//DTD test-format testcase 1.1//EN\""
+            + " \"https://sosy-lab.org/test-format/testcase-1.1.dtd\">");
     sb.append(System.lineSeparator());
     sb.append("<testcase>");
     sb.append(System.lineSeparator());

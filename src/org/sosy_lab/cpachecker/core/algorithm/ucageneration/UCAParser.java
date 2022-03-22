@@ -53,10 +53,9 @@ public class UCAParser {
     //
     //      }
 
-
     boolean qErrorStatePresent;
-    try (Stream<String> stream  = Files.lines(pWitness) ) {
-     qErrorStatePresent= stream.anyMatch(l -> l.contains("STATE") && l.contains("__qERROR :"));
+    try (Stream<String> stream = Files.lines(pWitness)) {
+      qErrorStatePresent = stream.anyMatch(l -> l.contains("STATE") && l.contains("__qERROR :"));
       return qErrorStatePresent ? WitnessType.VIOLATION_WITNESS : WitnessType.CORRECTNESS_WITNESS;
     }
   }

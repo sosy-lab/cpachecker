@@ -9,14 +9,12 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Strings.commonPrefix;
 import static com.google.common.base.Strings.isNullOrEmpty;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
-import com.google.common.collect.Lists;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -42,7 +40,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.ExpressionSubstitution;
 import org.sosy_lab.cpachecker.util.ExpressionSubstitution.Substitution;
 import org.sosy_lab.cpachecker.util.ExpressionSubstitution.SubstitutionException;
-import org.sosy_lab.cpachecker.util.cwriter.PathTranslator;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
@@ -118,9 +115,10 @@ class AutomatonTransition {
       followState = pFollowState;
     }
 
-    public Builder(AutomatonTransition pTransition, ImmutableList.Builder<AutomatonAction> pActionBuilder) {
+    public Builder(
+        AutomatonTransition pTransition, ImmutableList.Builder<AutomatonAction> pActionBuilder) {
       this.trigger = pTransition.trigger;
-      assertions =  ImmutableList.of(pTransition.assertion);
+      assertions = ImmutableList.of(pTransition.assertion);
       assumptions = pTransition.assumptions;
       pTransition.actions.forEach(a -> pActionBuilder.add(a));
       actions = pActionBuilder.build();
@@ -128,7 +126,6 @@ class AutomatonTransition {
       candidateInvariants = pTransition.candidateInvariants;
       targetInformation = pTransition.targetInformation;
     }
-
 
     Builder withAssertion(AutomatonBoolExpr pAssertion) {
       assertions = ImmutableList.of(pAssertion);

@@ -78,10 +78,11 @@ public class AssumptionStorageCPA
     BooleanFormulaManagerView bfmgr = formulaManager.getBooleanFormulaManager();
     topState = new AssumptionStorageState(formulaManager, bfmgr.makeTrue(), bfmgr.makeTrue());
     PathFormulaManagerImpl pathFormulaManager =
-        new PathFormulaManagerImpl(formulaManager, config, logger, pShutdownNotifier, cfa,
-            AnalysisDirection.FORWARD);
-    transferRelation = new AssumptionStorageTransferRelation(converter, formulaManager, topState, config,
-        pathFormulaManager, logger);
+        new PathFormulaManagerImpl(
+            formulaManager, config, logger, pShutdownNotifier, cfa, AnalysisDirection.FORWARD);
+    transferRelation =
+        new AssumptionStorageTransferRelation(
+            converter, formulaManager, topState, config, pathFormulaManager, logger);
   }
 
   public FormulaManagerView getFormulaManager() {

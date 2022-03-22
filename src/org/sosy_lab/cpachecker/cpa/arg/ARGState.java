@@ -83,6 +83,7 @@ public class ARGState extends AbstractSerializableSingleWrapperState
 
   /**
    * Get the parent elements of this state.
+   *
    * @return A unmodifiable collection of ARGStates without duplicates.
    */
   public Collection<ARGState> getParents() {
@@ -105,6 +106,7 @@ public class ARGState extends AbstractSerializableSingleWrapperState
 
   /**
    * Get the child elements of this state.
+   *
    * @return An unmodifiable collection of ARGStates without duplicates.
    */
   public Collection<ARGState> getChildren() {
@@ -113,11 +115,11 @@ public class ARGState extends AbstractSerializableSingleWrapperState
   }
 
   /**
-   * Returns the edge from current state to child or Null, if there is no edge.
-   * Both forward and backward analysis must be considered!
+   * Returns the edge from current state to child or Null, if there is no edge. Both forward and
+   * backward analysis must be considered!
    *
-   * If there are several edges between the states,
-   * only one of them will be returned, non-deterministically.
+   * <p>If there are several edges between the states, only one of them will be returned,
+   * non-deterministically.
    */
   @Nullable
   public CFAEdge getEdgeToChild(ARGState pChild) {
@@ -137,7 +139,9 @@ public class ARGState extends AbstractSerializableSingleWrapperState
       // consider only the actual analysis direction
       Collection<CFAEdge> ingoingEdgesOfChild = Sets.newHashSet(childLocs.getIngoingEdges());
       for (CFAEdge edge : currentLocs.getOutgoingEdges()) {
-        if (ingoingEdgesOfChild.contains(edge)) { return edge; }
+        if (ingoingEdgesOfChild.contains(edge)) {
+          return edge;
+        }
       }
 
       // then try to get a special edge, just to have some edge.
@@ -181,26 +185,26 @@ public class ARGState extends AbstractSerializableSingleWrapperState
     if (singleEdge.isEmpty()) {
       Map<ARGState, List<CFAEdge>> currentPathLeadingToKeyNode = new HashMap<>();
       List<ARGState> toProcess = new ArrayList<>();
-      //Initialize toProcess and currentePathLeadintToKeyNode
-      for(ARGState child : this.getChildren()){
+      // Initialize toProcess and currentePathLeadintToKeyNode
+      for (ARGState child : this.getChildren()) {
         List<CFAEdge> edgesToChild = this.getEdgesToChild(child);
-        if (child.equals(pChild)){
+        if (child.equals(pChild)) {
           return edgesToChild;
         }
-        if (!edgesToChild.isEmpty()){
+        if (!edgesToChild.isEmpty()) {
           currentPathLeadingToKeyNode.put(child, edgesToChild);
           toProcess.add(child);
         }
       }
 
-      while(!toProcess.isEmpty()){
+      while (!toProcess.isEmpty()) {
         ARGState currentState = toProcess.remove(0);
-        for(ARGState child : currentState.getChildren()){
+        for (ARGState child : currentState.getChildren()) {
           List<CFAEdge> edgesToChild = currentState.getEdgesToChild(child);
-          if (child.equals(pChild)){
+          if (child.equals(pChild)) {
             return edgesToChild;
           }
-          if (!edgesToChild.isEmpty()){
+          if (!edgesToChild.isEmpty()) {
             currentPathLeadingToKeyNode.put(child, edgesToChild);
             toProcess.add(child);
           }
@@ -208,15 +212,15 @@ public class ARGState extends AbstractSerializableSingleWrapperState
       }
       return currentPathLeadingToKeyNode.getOrDefault(pChild, new ArrayList<>());
 
-    }else {
+    } else {
       return singleEdge;
     }
-}
+  }
 
-    /**
-     * Returns the edges from the current state to the child state, or an empty list
-     * if there is no direct path between both states.
-     */
+  /**
+   * Returns the edges from the current state to the child state, or an empty list if there is no
+   * direct path between both states.
+   */
   public List<CFAEdge> getEdgesToChild(ARGState pChild) {
     CFAEdge singleEdge = getEdgeToChild(pChild);
 
@@ -345,9 +349,7 @@ public class ARGState extends AbstractSerializableSingleWrapperState
 
   // counterexample
 
-  /**
-   * Store additional information about the counterexample that leads to this target state.
-   */
+  /** Store additional information about the counterexample that leads to this target state. */
   public void addCounterexampleInformation(CounterexampleInfo pCounterexample) {
     checkState(counterexample == null);
     checkArgument(isTarget());
@@ -384,9 +386,7 @@ public class ARGState extends AbstractSerializableSingleWrapperState
     return destroyed;
   }
 
-  /**
-   * The ordering of this class is the chronological creation order.
-   */
+  /** The ordering of this class is the chronological creation order. */
   @Override
   public final int compareTo(ARGState pO) {
     return Integer.compare(this.stateId, pO.stateId);
@@ -448,7 +448,7 @@ public class ARGState extends AbstractSerializableSingleWrapperState
   @Override
   public String toDOTLabel() {
     if (getWrappedState() instanceof Graphable) {
-      return ((Graphable)getWrappedState()).toDOTLabel();
+      return ((Graphable) getWrappedState()).toDOTLabel();
     }
     return "";
   }
@@ -456,7 +456,7 @@ public class ARGState extends AbstractSerializableSingleWrapperState
   @Override
   public boolean shouldBeHighlighted() {
     if (getWrappedState() instanceof Graphable) {
-      return ((Graphable)getWrappedState()).shouldBeHighlighted();
+      return ((Graphable) getWrappedState()).shouldBeHighlighted();
     }
     return false;
   }
@@ -468,13 +468,12 @@ public class ARGState extends AbstractSerializableSingleWrapperState
   // removal from ARG
 
   /**
-   * This method removes this element from the ARG and  also removes the element
-   * from the covered set of the other element covering this element, if it is
-   * covered.
+   * This method removes this element from the ARG and also removes the element from the covered set
+   * of the other element covering this element, if it is covered.
    *
-   * This means, if its children do not have any other parents, they will be not
-   * reachable any more, i.e. they do not belong to the ARG any more. But those
-   * elements will not be removed from the covered set.
+   * <p>This means, if its children do not have any other parents, they will be not reachable any
+   * more, i.e. they do not belong to the ARG any more. But those elements will not be removed from
+   * the covered set.
    */
   public void removeFromARG() {
     assert !destroyed : "Don't use destroyed ARGState " + this;
@@ -487,8 +486,8 @@ public class ARGState extends AbstractSerializableSingleWrapperState
   }
 
   /**
-   * This method removes the element from the covered set of the other
-   * element covering this element, if it is covered.
+   * This method removes the element from the covered set of the other element covering this
+   * element, if it is covered.
    */
   private void clearCoverageRelation() {
     if (isCovered()) {
@@ -508,8 +507,8 @@ public class ARGState extends AbstractSerializableSingleWrapperState
   }
 
   /**
-   * This method removes this element from the ARG by removing it from its
-   * parents' children list and from its children's parents list.
+   * This method removes this element from the ARG by removing it from its parents' children list
+   * and from its children's parents list.
    */
   void detachFromARG() {
     assert !destroyed : "Don't use destroyed ARGState " + this;
@@ -530,11 +529,10 @@ public class ARGState extends AbstractSerializableSingleWrapperState
   }
 
   /**
-   * This method does basically the same as removeFromARG for this element, but
-   * before destroying it, it will copy all relationships to other elements to
-   * a new state. I.e., the replacement element will receive all parents and
-   * children of this element, and it will also cover all elements which are
-   * currently covered by this element.
+   * This method does basically the same as removeFromARG for this element, but before destroying
+   * it, it will copy all relationships to other elements to a new state. I.e., the replacement
+   * element will receive all parents and children of this element, and it will also cover all
+   * elements which are currently covered by this element.
    *
    * @param replacement the replacement for this state
    */
@@ -580,16 +578,16 @@ public class ARGState extends AbstractSerializableSingleWrapperState
   }
 
   @Override
-  public ARGState forkWithReplacements(Collection<AbstractState> pReplacementStates){
+  public ARGState forkWithReplacements(Collection<AbstractState> pReplacementStates) {
     AbstractState wrappedState = this.getWrappedState();
     AbstractState newWrappedState = null;
     if (wrappedState instanceof Splitable) {
-        newWrappedState = ((Splitable)wrappedState).forkWithReplacements(pReplacementStates);
+      newWrappedState = ((Splitable) wrappedState).forkWithReplacements(pReplacementStates);
     } else {
-        newWrappedState = wrappedState;
+      newWrappedState = wrappedState;
     }
 
-    ARGState newState = new ARGState(newWrappedState,null);
+    ARGState newState = new ARGState(newWrappedState, null);
     newState.makeTwinOf(this);
 
     return newState;
@@ -604,7 +602,6 @@ public class ARGState extends AbstractSerializableSingleWrapperState
     this.wasExpanded = pTemplateState.wasExpanded;
     this.mayCover = pTemplateState.mayCover;
     this.hasCoveredParent = pTemplateState.hasCoveredParent;
-
   }
 
   public void removeParent(ARGState pOtherParent) {
