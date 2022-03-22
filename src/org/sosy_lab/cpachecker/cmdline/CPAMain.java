@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofGenerator;
+import org.sosy_lab.cpachecker.core.algorithm.ucageneration.UCAParser;
 import org.sosy_lab.cpachecker.core.counterexample.ReportGenerator;
 import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonCoverageProperty;
@@ -618,6 +619,12 @@ public class CPAMain {
 
     @Option(
         secure = true,
+        name = "witness.validation.violation.uca",
+        description = "Accept Universal condition automaton as violation witnesses.")
+    private boolean acceptUniversalConditionAutomaton = false;
+
+    @Option(
+        secure = true,
         name = "witness.validation.correctness.acsl",
         description = "Validate program using invariants from ACSL annotations.")
     private boolean useACSLAnnotatedProgram = false;
@@ -637,7 +644,12 @@ public class CPAMain {
       validationConfigFile = options.correctnessWitnessValidationConfig;
       appendWitnessToSpecificationOption(options, overrideOptions);
     } else {
-      WitnessType witnessType = AutomatonGraphmlParser.getWitnessType(options.witness);
+      WitnessType witnessType;
+      if (options.acceptUniversalConditionAutomaton) {
+        witnessType = UCAParser.getWitnessType(options.witness);
+      } else {
+        witnessType = AutomatonGraphmlParser.getWitnessType(options.witness);
+      }
       switch (witnessType) {
         case VIOLATION_WITNESS:
           validationConfigFile = options.violationWitnessValidationConfig;
