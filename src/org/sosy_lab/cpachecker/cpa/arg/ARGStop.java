@@ -8,16 +8,10 @@
 
 package org.sosy_lab.cpachecker.cpa.arg;
 
-import de.uni_freiburg.informatik.ultimate.util.datastructures.ImmutableSet;
-import java.util.ArrayList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -67,55 +61,53 @@ class ARGStop implements ForcedCoveringStopOperator {
     // Now do the usual coverage checks
 
     // get the list of may-cover ARG states
-    Collection<ARGState> mayCoverCandidates = getMayCoverCandidates(argElement, pReached);
-    if (mayCoverCandidates.isEmpty()) {
+    ImmutableSet<ARGState> mayCoverARGStates = getMayCoverCandidates(argElement, pReached);
+    if (mayCoverARGStates.isEmpty()) {
       return false;
     }
 
-    // get the list of may-cover wrapped states
-    List<AbstractState> mayCoverWrappedStates = new ArrayList<>(mayCoverCandidates.size());
-    for (ARGState candidate : mayCoverCandidates) {
-      mayCoverWrappedStates.add(candidate.getWrappedState());
-    }
+    // get the collection of may-cover wrapped states
+    ImmutableSet<AbstractState> mayCoverWrappedStates =
+        mayCoverARGStates.stream()
+            .map(ARGState::getWrappedState)
+            .collect(ImmutableSet.toImmutableSet());
 
     // if retrieval of covering state set is not possible --> do the normal stop check
     if (!(wrappedStop instanceof CoveringStateSetProvider)) {
       if (wrappedStop.stop(argElement.getWrappedState(), mayCoverWrappedStates, pPrecision)) {
-        argElement.setCovered(ImmutableSet.copyOf(mayCoverCandidates));
+        argElement.setCovered(mayCoverARGStates);
         return !keepCoveredStatesInReached;
       }
       return false;
     }
 
     CoveringStateSetProvider stopOp = (CoveringStateSetProvider) wrappedStop;
-    Collection<AbstractState> coveringAbsStates =
+    Collection<AbstractState> coveringWrappedStates =
         stopOp.getCoveringStates(argElement.getWrappedState(), mayCoverWrappedStates, pPrecision);
-    if (coveringAbsStates.isEmpty()) {
+    if (coveringWrappedStates.isEmpty()) {
       return false;
     }
 
     // mapping of wrapped state -> ARG state
-    Map<AbstractState, ARGState> stateMap = new LinkedHashMap<>(mayCoverWrappedStates.size());
-    for (ARGState argState : mayCoverCandidates) {
-      AbstractState absState = argState.getWrappedState();
-      stateMap.put(absState, argState);
-    }
+    ImmutableMap<AbstractState, ARGState> stateMap =
+        mayCoverARGStates.stream()
+            .collect(ImmutableMap.toImmutableMap(ARGState::getWrappedState, argState -> argState));
 
     // map the covering wrapped states back to the corresponding ARG states and collect them
-    Set<ARGState> coveringARGStates = new LinkedHashSet<>(coveringAbsStates.size());
-    for (AbstractState absState : coveringAbsStates) {
-      coveringARGStates.add(stateMap.get(absState));
-    }
+    ImmutableSet<ARGState> coveringARGStates =
+        coveringWrappedStates.stream()
+            .map(absState -> stateMap.get(absState))
+            .collect(ImmutableSet.toImmutableSet());
 
     // store the coverage relation
     argElement.setCovered(ImmutableSet.copyOf(coveringARGStates));
     return !keepCoveredStatesInReached;
   }
 
-  /** Retrieve the set of may-cover candidate states. */
-  private Collection<ARGState> getMayCoverCandidates(
+  /** Retrieve the set of may-cover candidate ARG states. */
+  private ImmutableSet<ARGState> getMayCoverCandidates(
       ARGState pElement, Collection<AbstractState> pReached) {
-    List<ARGState> candidates = new ArrayList<>();
+    ImmutableSet.Builder<ARGState> candidates = ImmutableSet.builder();
     for (AbstractState reachedState : pReached) {
       ARGState argState = (ARGState) reachedState;
       if (!argState.mayCover()) {
@@ -137,10 +129,10 @@ class ARGStop implements ForcedCoveringStopOperator {
       }
       candidates.add(argState);
     }
-    return candidates;
+    return candidates.build();
   }
 
-  protected boolean checkCoveredByMergedWith(
+  private boolean checkCoveredByMergedWith(
       AbstractState pElement, Collection<AbstractState> pReached, Precision pPrecision)
       throws CPAException, InterruptedException {
     // First check if we can take a shortcut:
@@ -158,7 +150,7 @@ class ARGStop implements ForcedCoveringStopOperator {
 
         if (wrappedStop.stop(
             argElement.getWrappedState(),
-            Collections.singleton(mergedWith.getWrappedState()),
+            ImmutableSet.of(mergedWith.getWrappedState()),
             pPrecision)) {
           // merged and covered
           if (inCPAEnabledAnalysis) {
