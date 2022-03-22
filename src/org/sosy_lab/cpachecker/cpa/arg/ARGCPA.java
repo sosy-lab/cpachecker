@@ -100,14 +100,6 @@ public class ARGCPA extends AbstractSingleWrapperCPA
               + " sub-analysis for blocks.")
   private boolean enableStateReduction = true;
 
-  @Option(
-      secure = true,
-      name = "stop",
-      values = {"SEP", "JOIN"},
-      toUppercase = true,
-      description = "Which stop operator to use")
-  private String stopType = "SEP";
-
   private final LogManager logger;
 
   private final ARGStatistics stats;
@@ -150,24 +142,12 @@ public class ARGCPA extends AbstractSingleWrapperCPA
 
   @Override
   public ForcedCoveringStopOperator getStopOperator() {
-    switch (stopType) {
-      case "SEP":
-        return new ARGStopSep(
-            getWrappedCpa().getStopOperator(),
-            logger,
-            inCPAEnabledAnalysis,
-            keepCoveredStatesInReached,
-            coverTargetStates);
-      case "JOIN":
-        return new ARGStopJoin(
-            getWrappedCpa().getStopOperator(),
-            logger,
-            inCPAEnabledAnalysis,
-            keepCoveredStatesInReached,
-            coverTargetStates);
-      default:
-        throw new AssertionError("Update list of allowed stop operators");
-    }
+    return new ARGStop(
+        getWrappedCpa().getStopOperator(),
+        logger,
+        inCPAEnabledAnalysis,
+        keepCoveredStatesInReached,
+        coverTargetStates);
   }
 
   @Override
