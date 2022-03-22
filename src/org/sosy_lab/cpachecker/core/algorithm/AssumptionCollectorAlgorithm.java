@@ -28,6 +28,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -587,11 +588,11 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
   public static void addAssumption(
       final Appendable writer,
-      final AssumptionStorageState assumptionState,
+      @Nullable final AssumptionStorageState assumptionState,
       boolean ignoreAssumptions,
-      CFANode pCFANode)
+      @Nullable CFANode pCFANode)
       throws IOException {
-    if (!ignoreAssumptions) {
+    if (!ignoreAssumptions && Objects.nonNull(assumptionState) && Objects.nonNull(pCFANode)) {
       FormulaManagerView fmgr = assumptionState.getFormulaManager();
       final BooleanFormulaManagerView bmgr =
           assumptionState.getFormulaManager().getBooleanFormulaManager();
@@ -684,27 +685,29 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     }
   }
 
-  public static void escape(String s, Appendable appendTo) throws IOException {
-    for (int i = 0; i < s.length(); i++) {
-      char c = s.charAt(i);
-      switch (c) {
-        case '\r':
-          appendTo.append("\\r");
-          break;
-        case '\n':
-          appendTo.append("\\n");
-          break;
-        case '\"':
-          appendTo.append("\\\"");
-          break;
-        case '\\':
-          appendTo.append("\\\\");
-          break;
-        case '`':
-          break;
-        default:
-          appendTo.append(c);
-          break;
+  public static void escape(@Nullable String s, Appendable appendTo) throws IOException {
+    if (Objects.nonNull(s)) {
+      for (int i = 0; i < s.length(); i++) {
+        char c = s.charAt(i);
+        switch (c) {
+          case '\r':
+            appendTo.append("\\r");
+            break;
+          case '\n':
+            appendTo.append("\\n");
+            break;
+          case '\"':
+            appendTo.append("\\\"");
+            break;
+          case '\\':
+            appendTo.append("\\\\");
+            break;
+          case '`':
+            break;
+          default:
+            appendTo.append(c);
+            break;
+        }
       }
     }
   }

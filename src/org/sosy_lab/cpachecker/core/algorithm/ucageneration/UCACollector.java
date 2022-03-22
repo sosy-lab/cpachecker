@@ -296,9 +296,9 @@ public class UCACollector {
           AbstractStates.extractStateByType(e, AssumptionStorageState.class);
 
       boolean hasFalseAssumption =
-          e.isTarget() || asmptState.isStop() || pExceptionStates.contains(e.getStateId());
+          e.isTarget() ||  Objects.nonNull(asmptState) && asmptState.isStop() || pExceptionStates.contains(e.getStateId());
 
-      boolean isRelevant = !asmptState.isAssumptionTrue();
+      boolean isRelevant =  Objects.nonNull(asmptState) && !asmptState.isAssumptionTrue();
 
       if (e.isCovered()) {
         e = e.getCoveringState(); // replace with covering state
@@ -331,7 +331,8 @@ public class UCACollector {
     }
 
     falseAssumptionStates.addAll(lastStates);
-
+    assert firstState instanceof ARGState;
+    universalConditionAutomaton +=
     writeUCAForTestcase(
         output, (ARGState) firstState, lastStates, relevantStates, falseAssumptionStates);
   }
@@ -406,7 +407,7 @@ public class UCACollector {
             && // automaton state is not already present in  parentsWithOtherAutomatonState
             parentsWithOtherAutomatonState.stream()
                 .map(pair -> pair.getSecond())
-                .noneMatch(state -> state.equals(parentAutomatonState.orElseThrow()))) {
+                .noneMatch(state -> parentAutomatonState.orElseThrow().equals(state))) {
           parentsWithOtherAutomatonState.add(Pair.of(parent, parentAutomatonState.orElseThrow()));
         }
       }
@@ -515,7 +516,7 @@ public class UCACollector {
       if (pLastStates.contains(s)) {
         sb.append(String.format("STATE USEALL %s :\n", NAME_OF_NEWTESTINPUT_STATE));
       } else {
-        sb.append("STATE USEALL ARG" + s.getStateId() + " :\n");
+        sb.append("STATE USEALL ARG").append(String.valueOf(s.getStateId())).append(" :\n");
       }
       numProducedStates++;
 
@@ -533,23 +534,22 @@ public class UCACollector {
           sb.append("    MATCH \"");
           AssumptionCollectorAlgorithm.escape(edges.get(0).getRawStatement(), sb);
           sb.append("\" -> ");
-          sb.append("GOTO ARG" + s.getStateId() + "M" + multiEdgeID);
+          sb.append("GOTO ARG").append(String.valueOf(s.getStateId())).append("M")
+              .append(String.valueOf(multiEdgeID));
 
           boolean first = true;
           for (CFAEdge innerEdge : from(edges).skip(1)) {
 
             if (!first) {
               multiEdgeID++;
-              descriptionForInnerMultiEdges.append(
-                  "GOTO ARG" + s.getStateId() + "M" + multiEdgeID + ";\n\n");
-              //              descriptionForInnerMultiEdges.append(
-              //                  "    TRUE -> " + actionOnFinalEdges + "GOTO __TRUE;\n\n");
+              descriptionForInnerMultiEdges.append("GOTO ARG").append(s.getStateId()).append("M")
+                  .append(multiEdgeID).append(";\n\n");
             } else {
               first = false;
             }
 
-            descriptionForInnerMultiEdges.append(
-                "STATE USEALL ARG" + s.getStateId() + "M" + multiEdgeID + " :\n");
+            descriptionForInnerMultiEdges.append("STATE USEALL ARG").append(s.getStateId())
+                .append("M").append(multiEdgeID).append(" :\n");
             numProducedStates++;
             descriptionForInnerMultiEdges.append("    MATCH \"");
             AssumptionCollectorAlgorithm.escape(
@@ -572,9 +572,6 @@ public class UCACollector {
               actionOnFinalEdges,
               branching);
           descriptionForInnerMultiEdges.append(";\n");
-
-          //          descriptionForInnerMultiEdges.append(
-          //              "    TRUE -> " + actionOnFinalEdges + "GOTO __TRUE;\n\n");
 
         } else {
 
@@ -627,18 +624,7 @@ public class UCACollector {
 
     String actionOnFinalEdges = "";
 
-    String initialStateName;
-    if (edgesToAdd.isEmpty()) {
-      initialStateName = "__TRUE";
-    } else {
-      initialStateName = getName(rootState);
-    }
-
-    sb.append("INITIAL STATE ").append(initialStateName).append(";\n\n");
-    sb.append("STATE __TRUE :\n");
-    sb.append("    TRUE -> GOTO __TRUE;\n\n");
-
-    sb.append(String.format("STATE %s :\n", NAME_OF_TEMP_STATE));
+    storeInitialNode(sb, edgesToAdd.isEmpty(), getName(rootState));
     if (ignoreAssumptions) {
       sb.append(String.format("    TRUE -> GOTO %s;\n\n", NAME_OF_TEMP_STATE));
     } else {
@@ -707,18 +693,7 @@ public class UCACollector {
     int numProducedStates = 0;
     sb.append("OBSERVER AUTOMATON AssumptionAutomaton\n\n");
 
-    String initialStateName;
-    if (edgesToAdd.isEmpty()) {
-      initialStateName = "__TRUE";
-    } else {
-      initialStateName = getName(rootState);
-    }
-
-    sb.append("INITIAL STATE ").append(initialStateName).append(";\n\n");
-    sb.append("STATE __TRUE :\n");
-    sb.append("    TRUE -> GOTO __TRUE;\n\n");
-
-    sb.append(String.format("STATE %s :\n", NAME_OF_TEMP_STATE));
+    storeInitialNode(sb, edgesToAdd.isEmpty(), getName(rootState));
     sb.append(String.format("    TRUE -> GOTO %s;\n\n", NAME_OF_TEMP_STATE));
 
     // Fill the map to be able to iterate over the nodes
@@ -756,6 +731,24 @@ public class UCACollector {
     sb.append("END AUTOMATON\n");
 
     return numProducedStates;
+  }
+
+  private void storeInitialNode(
+      Appendable sb,
+      boolean pEmpty,
+      String pName) throws IOException {
+    String initialStateName;
+    if (pEmpty) {
+      initialStateName = "__TRUE";
+    } else {
+      initialStateName = pName;
+    }
+
+    sb.append("INITIAL STATE ").append(initialStateName).append(";\n\n");
+    sb.append("STATE __TRUE :\n");
+    sb.append("    TRUE -> GOTO __TRUE;\n\n");
+
+    sb.append(String.format("STATE %s :\n", NAME_OF_TEMP_STATE));
   }
 
   private String getName(AutomatonState s) {
