@@ -454,6 +454,9 @@ public class PredicateAbstractionManager {
    * @return Another BooleanFormula, where syntactic substition has taken place
    */
   private BooleanFormula syntacticSubstitution(BooleanFormula bf, SSAMap pSSAMap){
+    SubstituteVisitor stvisitor = new SubstituteVisitor(fmgr.manager);
+    bfmgr.visitRecursively(bf, stvisitor);
+    HashMap<Formula, Formula> transform_map = stvisitor.fmap;
     return bf;
   }
 

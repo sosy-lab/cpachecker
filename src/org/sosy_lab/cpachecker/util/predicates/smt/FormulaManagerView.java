@@ -120,7 +120,7 @@ public class FormulaManagerView {
   }
 
   private final LogManager logger;
-  private final FormulaManager manager;
+  public final FormulaManager manager; // TODO Martin change this back to private: Usages PredicateAbstractionManager
   private final FormulaWrappingHandler wrappingHandler;
   private final BooleanFormulaManagerView booleanFormulaManager;
   private final FunctionFormulaManagerView functionFormulaManager;
