@@ -354,7 +354,7 @@ public class UCAGenerationTester {
 
     Map<Integer, List<String>> testcaseID2Assertions = new HashMap<>();
     if (pFilename == Testcases.SUM_T2) {
-      testcaseID2Assertions.put(1, Lists.newArrayList("19", "23", "9"));
+      testcaseID2Assertions.put(1, Lists.newArrayList("17", "31", "27"));
 
       Map<Integer, Integer> edges = new HashMap<>();
       edges.put(1, 10);
@@ -385,7 +385,7 @@ public class UCAGenerationTester {
         NodeList nodes = doc.getElementsByTagName("node");
         assertThat(edges.getLength()).isEqualTo(numberEdges.get(i));
         assertThat(nodes.getLength()).isEqualTo(numberNodes.get(i));
-        List<Element> edgesToSInk = new ArrayList<>();
+        List<String> edgesToSink = new ArrayList<>();
         for (int j = 0; j < edges.getLength(); j++) {
           Node edge = edges.item(j);
           if (edge.getNodeType() == Node.ELEMENT_NODE) {
@@ -398,17 +398,16 @@ public class UCAGenerationTester {
                 if (n.getNodeType() == Node.ELEMENT_NODE) {
                   final String key = ((Element) n).getAttribute("key");
                   if ("startline".equals(key)) {
-                    if (lines2Sinks.get(i).contains(n.getTextContent())) {
-                      edgesToSInk.add(element);
-                      break;
-                    }
+
+                    edgesToSink.add(n.getTextContent());
+                   break;
                   }
                 }
               }
             }
           }
         }
-        assertThat(edgesToSInk).hasSize(lines2Sinks.get(i).size());
+        assertThat(edgesToSink).containsExactlyElementsIn(lines2Sinks.get(i));
       } catch (ParserConfigurationException | SAXException | IOException e) {
         logger.logf(
             Level.WARNING,
