@@ -457,6 +457,13 @@ public class PredicateAbstractionManager {
     SubstituteVisitor stvisitor = new SubstituteVisitor(fmgr.manager);
     bfmgr.visitRecursively(bf, stvisitor);
     HashMap<Formula, Formula> transform_map = stvisitor.fmap;
+    if (!(transform_map.isEmpty())) {
+      SubstituteAssumptionTransformationVisitor
+          sttrf = new SubstituteAssumptionTransformationVisitor(fmgr.manager, transform_map);
+      bf = bfmgr.transformRecursively(bf, sttrf);
+      SubstituteAssignmentTransformationVisitor st_assign = new SubstituteAssignmentTransformationVisitor(fmgr.manager, fmgr, transform_map, pSSAMap);
+      bf = bfmgr.transformRecursively(bf, st_assign);
+    }
     return bf;
   }
 
