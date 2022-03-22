@@ -59,12 +59,12 @@ public class UCAInterpolantGenerator  {
   int produceUCA4Interpolant(Appendable output, UnmodifiableReachedSet reached)
       throws IOException, CPAException {
     final AbstractState firstState = reached.getFirstState();
-    if (!(firstState instanceof ARGState) || UCAGenerator.getWitnessAutomatonState(firstState).isEmpty()) {
+    if (!(firstState instanceof ARGState) ) {
       throw new CPAException("Cannot dump interpolant as automaton if ARGCPA is not used.");
     }
     @Nullable PredicateCPA predicateCPA = CPAs.retrieveCPA(this.cpa, PredicateCPA.class);
     if (Objects.isNull(predicateCPA)) {
-      throw new CPAException("Cannot dump interpolant as automaton if no PredicateCPA is presetn.");
+      throw new CPAException("Cannot dump interpolant as automaton if no PredicateCPA is preset.");
     }
 
     // check, if the uca that should be generated (e.g. for a violation witness)
@@ -187,7 +187,7 @@ return
       Appendable sb, ARGState rootState, Set<UCAARGStateEdge> edgesToAdd, FormulaManagerView pFmgr)
       throws IOException {
     int numProducedStates = 0;
-    sb.append("OBSERVER AUTOMATON AssumptionAutomaton\n\n");
+    sb.append(UCAGenerator.AUTOMATON_HEADER);
 
     UCAGenerator.storeInitialNode(sb, edgesToAdd.isEmpty(), UCAGenerator.getName(rootState));
     sb.append(String.format("    TRUE -> GOTO %s;\n\n", UCAGenerator.NAME_OF_TEMP_STATE));

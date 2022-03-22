@@ -573,17 +573,14 @@ assumptions.export.location = true
 # write collected assumptions to file
 assumptions.file = "assumptions.txt"
 
-# Generate uca for correctness witness
-assumptions.genUCA4CorrectnesWitness = false
-
 # Generate uca for refinement (usable in C-CEGAR for craig interpolation)
 assumptions.genUCA4Refinement = false
 
 # Generate uca for testcomp testcase
 assumptions.genUCA4Testcase = false
 
-# Generate uca for violation witness
-assumptions.genUCA4ViolationWitness = false
+# Generate uca for violation or correctness witness
+assumptions.genUCA4Witness = false
 
 # If it is enabled, check if a state that should lead to false state indeed
 # has successors.
@@ -4689,3 +4686,6 @@ witness.validation.termination.terminatingStatements = "config/specification/Ter
 # When validating a violation witness, use this configuration file instead of
 # the current one.
 witness.validation.violation.config = no default value
+
+# Accept Universal condition automaton as violation witnesses.
+witness.validation.violation.uca = false

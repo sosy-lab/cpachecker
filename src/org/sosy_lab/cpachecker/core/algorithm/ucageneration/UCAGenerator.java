@@ -38,6 +38,10 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
 public class UCAGenerator {
 
+  public static final String ASSUMPTION_AUTOMATON_NAME = "AssumptionAutomaton";
+  public static final String AUTOMATON_HEADER =
+      "OBSERVER AUTOMATON " + ASSUMPTION_AUTOMATON_NAME + "\n\n";
+
   @Options
   public static class UCAGeneratorOptions {
     @Option(
@@ -232,7 +236,7 @@ public class UCAGenerator {
   }
 
   static String getName(ARGState pSource) {
-    return pSource.isTarget() ? NAME_OF_ERROR_STATE :  String.format("ARG%d", +pSource.getStateId());
+    return pSource.isTarget() ? NAME_OF_ERROR_STATE : String.format("ARG%d", +pSource.getStateId());
   }
 
   static String getEdgeString(CFAEdge pEdge) {

@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.algorithm.ucageneration.UCAGenerator;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -35,7 +36,7 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
 public class UCAWitnessImportTransferRelation extends SingleEdgeTransferRelation {
 
-  private static final String ASSUMPTION_AUTOMATON_NAME = "AssumptionAutomaton";
+
   private final LogManager logger;
 
   public UCAWitnessImportTransferRelation(LogManager pLogger) {
@@ -63,7 +64,7 @@ public class UCAWitnessImportTransferRelation extends SingleEdgeTransferRelation
 
     for (AbstractState other : otherStates) {
       if (other instanceof AutomatonState
-          && ((AutomatonState) other).getOwningAutomatonName().equals(ASSUMPTION_AUTOMATON_NAME)) {
+          && ((AutomatonState) other).getOwningAutomatonName().equals(UCAGenerator.ASSUMPTION_AUTOMATON_NAME)) {
         AutomatonState autoState = (AutomatonState) other;
 
         if (!ExpressionTrees.isConstant(autoState.getCandidateInvariants())) {

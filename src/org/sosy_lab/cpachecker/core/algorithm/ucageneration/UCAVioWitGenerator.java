@@ -437,7 +437,7 @@ public class UCAVioWitGenerator {
       boolean ignoreAssumptions)
       throws IOException {
     int numProducedStates = 0;
-    sb.append("OBSERVER AUTOMATON AssumptionAutomaton\n\n");
+    sb.append(UCAGenerator.AUTOMATON_HEADER);
 
     String actionOnFinalEdges = "";
 
@@ -513,7 +513,7 @@ public class UCAVioWitGenerator {
       throws IOException {
     // TODO Refactor this method and the copied to one
     int numProducedStates = 0;
-    sb.append("OBSERVER AUTOMATON AssumptionAutomaton\n\n");
+    sb.append(UCAGenerator.AUTOMATON_HEADER);
 
     String actionOnFinalEdges = "";
 
