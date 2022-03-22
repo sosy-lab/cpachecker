@@ -489,7 +489,7 @@ public class UCAVioWitGenerator {
       if (!currentState.isTarget()) {
         sb.append(
             String.format(
-                "    TRUE -> " + actionOnFinalEdges + "GOTO %s;\n\n",
+                "    MATCH OTHERWISE -> " + actionOnFinalEdges + "GOTO %s;\n\n",
                 UCAGenerator.getName(currentState)));
         //        sb.append("    TRUE -> " + actionOnFinalEdges + "GOTO __TRUE;\n\n");
       }
@@ -565,7 +565,7 @@ public class UCAVioWitGenerator {
       if (!currentState.isTarget()) {
         sb.append(
             String.format(
-                "    TRUE -> " + actionOnFinalEdges + "GOTO %s;\n\n",
+                "    MATCH OTHERWISE -> " + actionOnFinalEdges + "GOTO %s;\n\n",
                 UCAGenerator.getName(currentState)));
         //        sb.append("    TRUE -> " + actionOnFinalEdges + "GOTO __TRUE;\n\n");
       }
