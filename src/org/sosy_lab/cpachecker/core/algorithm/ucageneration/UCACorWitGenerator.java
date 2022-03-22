@@ -173,13 +173,9 @@ public class UCACorWitGenerator {
     } else {
       UCAGenerator.storeInitialNode(sb, edgesToAdd.isEmpty(), UCAGenerator.getName(rootState));
     }
-    if (ignoreAssumptions) {
-      sb.append(String.format("    TRUE -> GOTO %s;\n\n", UCAGenerator.NAME_OF_TEMP_STATE));
-    } else {
-      sb.append(
-          String.format(
-              "    TRUE -> ASSUME {false} GOTO %s;\n\n", UCAGenerator.NAME_OF_TEMP_STATE));
-    }
+    sb.append(String.format("STATE %s :\n", UCAGenerator.NAME_OF_FINAL_STATE));
+    sb.append(String.format("    TRUE -> GOTO %s;\n\n", UCAGenerator.NAME_OF_FINAL_STATE));
+
 
     // Fill the map to be able to iterate over the nodes
     Map<ARGState, Set<UCAARGStateEdge>> nodesToEdges = new HashMap<>();
@@ -231,7 +227,7 @@ public class UCACorWitGenerator {
         }
       }
       // Add a edge to __TRUE, as all states are accepting
-      sb.append("    TRUE -> " + "GOTO __TRUE;\n");
+      sb.append(String.format("    TRUE -> " + "GOTO %s;\n", UCAGenerator.NAME_OF_FINAL_STATE));
 
       @Nullable AssumptionStorageState assumptionState =
           AbstractStates.extractStateByType(currentState, AssumptionStorageState.class);
@@ -253,8 +249,6 @@ public class UCACorWitGenerator {
             sb.append("};\n");
           }
         }
-
-
       }
       sb.append("\n");
     }

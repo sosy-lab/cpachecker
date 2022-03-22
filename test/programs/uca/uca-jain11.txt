@@ -1,0 +1,47 @@
+OBSERVER AUTOMATON AssumptionAutomaton
+
+INITIAL STATE ARG0;
+
+STATE __TRUE :
+    TRUE -> GOTO __TRUE;
+
+STATE __qTEMP :
+    TRUE -> GOTO __qTEMP;
+
+STATE USEALL ARG0 :
+    MATCH "" -> GOTO ARG1;
+
+STATE USEALL ARG1 :
+    MATCH "extern void abort(void);" -> GOTO ARG2;
+
+STATE USEALL ARG10 :
+    MATCH "" -> ASSUME {( y == 1 )} GOTO ARG24;
+
+STATE USEALL ARG2 :
+    MATCH "extern void __assert_fail(const char *, const char *, unsigned int, const char *) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__noreturn__));" -> GOTO ARG3;
+
+STATE USEALL ARG24 :
+    MATCH "1" -> GOTO __qTEMP;
+
+STATE USEALL ARG3 :
+    MATCH "void reach_error()" -> GOTO ARG4;
+
+STATE USEALL ARG4 :
+    MATCH "extern unsigned int __VERIFIER_nondet_uint(void);" -> GOTO ARG5;
+
+STATE USEALL ARG5 :
+    MATCH "void __VERIFIER_assert(int cond)" -> GOTO ARG6;
+
+STATE USEALL ARG6 :
+    MATCH "int main()" -> GOTO ARG7;
+
+STATE USEALL ARG7 :
+    MATCH "" -> GOTO ARG8;
+
+STATE USEALL ARG8 :
+    MATCH "unsigned int y;" -> GOTO ARG9;
+
+STATE USEALL ARG9 :
+    MATCH "y = 1U;" -> GOTO ARG10;
+
+END AUTOMATON

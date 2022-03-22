@@ -8,46 +8,49 @@ STATE __TRUE :
 STATE __qTEMP :
     TRUE -> ASSUME {false} GOTO __qTEMP;
 
+STATE __qFINAL :
+    TRUE -> GOTO __qFINAL;
+
 STATE USEALL N24 :
     MATCH "__VERIFIER_assert (y!=0U);" -> GOTO N5;
     MATCH OTHERWISE -> GOTO N24;
-    TRUE -> GOTO __TRUE;
-    INVARIANT {( y % 2 ) == 1 };
+    TRUE -> GOTO __qFINAL;
+    INVARIANT {(( y % 2 ) == 1 )};
 
 STATE USEALL N5 :
     MATCH "[!(!(cond))]" -> GOTO N10;
     MATCH "[!(cond)]" -> GOTO N8;
     MATCH OTHERWISE -> GOTO N5;
-    TRUE -> GOTO __TRUE;
+    TRUE -> GOTO __qFINAL;
 
 STATE USEALL N10 :
     MATCH "return;" -> GOTO N4;
     MATCH OTHERWISE -> GOTO N10;
-    TRUE -> GOTO __TRUE;
+    TRUE -> GOTO __qFINAL;
 
 STATE USEALL N4 :
     MATCH "" -> GOTO N24;
     MATCH OTHERWISE -> GOTO N4;
-    TRUE -> GOTO __TRUE;
+    TRUE -> GOTO __qFINAL;
 
 STATE USEALL N8 :
     MATCH "reach_error();" -> GOTO N1;
     MATCH OTHERWISE -> GOTO N8;
-    TRUE -> GOTO __TRUE;
+    TRUE -> GOTO __qFINAL;
 
 STATE USEALL N1 :
     MATCH "" -> GOTO N10;
     MATCH OTHERWISE -> GOTO N1;
-    TRUE -> GOTO __TRUE;
+    TRUE -> GOTO __qFINAL;
 
 STATE USEALL N14 :
     MATCH "int main()" -> GOTO N15;
     MATCH OTHERWISE -> GOTO N14;
-    TRUE -> GOTO __TRUE;
+    TRUE -> GOTO __qFINAL;
 
 STATE USEALL N15 :
     MATCH "y = 1U;" -> GOTO N24;
     MATCH OTHERWISE -> GOTO N15;
-    TRUE -> GOTO __TRUE;
+    TRUE -> GOTO __qFINAL;
 
 END AUTOMATON
