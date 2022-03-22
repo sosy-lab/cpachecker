@@ -20,13 +20,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
-import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -36,18 +31,12 @@ import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class UCATestcaseGenerator  {
-  private final LogManager logger;
+
   private final ConfigurableProgramAnalysis cpa;
 
   public UCATestcaseGenerator(
-      Algorithm algo,
-      ConfigurableProgramAnalysis pCpa,
-      Configuration pConfig,
-      LogManager pLogger,
-      CFA pCfa,
-      ShutdownNotifier pShutdownNotifier)
+      ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
-    this.logger = pLogger;
     this.cpa = pCpa;
   }
 

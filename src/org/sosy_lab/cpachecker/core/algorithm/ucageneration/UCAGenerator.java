@@ -141,13 +141,9 @@ public class UCAGenerator {
     this.cpa = pCpa;
     this.cfa = pCfa;
     this.config = pConfig;
-    this.vioWitGenerator =
-        new UCAVioWitGenerator(
-            innerAlgorithm, cpa, config, logger, cfa, shutdownNotifier, optinons);
-    this.testcaseGenerator =
-        new UCATestcaseGenerator(innerAlgorithm, cpa, config, logger, cfa, shutdownNotifier);
-    this.interpolantGenerator =
-        new UCAInterpolantGenerator(innerAlgorithm, cpa, config, logger, cfa, shutdownNotifier,formulaManager);
+    this.vioWitGenerator = new UCAVioWitGenerator(logger, optinons);
+    this.testcaseGenerator = new UCATestcaseGenerator(cpa);
+    this.interpolantGenerator = new UCAInterpolantGenerator(cpa, formulaManager);
   }
 
   public int produceUniversalConditionAutomaton(

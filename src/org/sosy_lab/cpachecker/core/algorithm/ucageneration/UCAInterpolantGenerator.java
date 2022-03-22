@@ -23,14 +23,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -49,19 +44,13 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
 public class UCAInterpolantGenerator  {
   private final ConfigurableProgramAnalysis cpa;
-  private final LogManager logger;
+
   private FormulaManagerView formulaManager;
 
   public UCAInterpolantGenerator(
-      Algorithm algo,
       ConfigurableProgramAnalysis pCpa,
-      Configuration pConfig,
-      LogManager pLogger,
-      CFA pCfa,
-      ShutdownNotifier pShutdownNotifier,
       FormulaManagerView pFormlaManger)
       throws InvalidConfigurationException {
-    this.logger = pLogger;
     this.cpa = pCpa;
     this.formulaManager =pFormlaManger; 
     
