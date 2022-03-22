@@ -330,8 +330,7 @@ Assertion  ::= ASSERT  Bool:b   {: RESULT = b; :};
 Assume    ::= ASSUME CURLYEXPR:a {: RESULT = CParserUtils.convertStatementsToAssumptions(CParserUtils.parseListOfStatements(a.toString(), cparser, scope), machineModel, logger); :}
              | /* empty */ {: RESULT = new ArrayList<AExpression>(); :};
 
-/** TODO: Fix this to use INVARIANT as keyword */
-StateInvariant    ::= ASSUME CURLYEXPR:a {: RESULT = CParserUtils.convertStatementsToAssumptions(CParserUtils.parseListOfStatements(a.toString(), cparser, scope), machineModel, logger); :}
+StateInvariant    ::= INVARIANT CURLYEXPR:a  SEMICOLON {: RESULT = CParserUtils.convertStatementsToAssumptions(CParserUtils.parseListOfStatements(a.toString(), cparser, scope), machineModel, logger); :}
              | /* empty */ {: RESULT = new ArrayList<AExpression>(); :};
 
 Actions   ::= Action:a Actions:lst {: lst.add(0,a); RESULT = lst; :} // insert at the beginning of the list to preserve the order.

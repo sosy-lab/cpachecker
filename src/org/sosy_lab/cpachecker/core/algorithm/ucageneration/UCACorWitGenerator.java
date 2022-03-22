@@ -24,6 +24,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ucageneration.UCAGenerator.UCAGeneratorOptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -34,6 +35,9 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class UCACorWitGenerator {
 
@@ -233,13 +237,24 @@ public class UCACorWitGenerator {
           AbstractStates.extractStateByType(currentState, AssumptionStorageState.class);
       if (Objects.nonNull(assumptionState) && !assumptionState.isAssumptionTrue()) {
         // Add indent to be able to use util mehtods
-        // TODO: Refactor if CUP-grammer is refactored
-        //TODO: Find out, why Modulo operations are exported that strange:
+        //TODO: Find out, why Modulo operations are exported that strange: (Happens already during add in AssunptionTransferRelation
         //Example: ( ( ( ( ( y % 2 ) < 2 ) && ( ! ( y < ( y % 2 ) ) ) ) && ( ( y % 2 ) == ( ( y % 2 ) % 2 ) ) ) && ( ( y % 2 ) == 1 ) ) for ( ( y % 2 ) == 1 )
-        sb.append("    ");
-        AssumptionCollectorAlgorithm.addAssumption(
-            sb, assumptionState, false, AbstractStates.extractLocation(currentState));
-        sb.append("\n");
+        @Nullable CFANode cfaNode =
+            AbstractStates.extractLocation(currentState);
+        if (!ignoreAssumptions && Objects.nonNull(assumptionState) && Objects.nonNull(cfaNode)) {
+          FormulaManagerView fmgr = assumptionState.getFormulaManager();
+          final BooleanFormulaManagerView bmgr =
+              assumptionState.getFormulaManager().getBooleanFormulaManager();
+          BooleanFormula assumption =
+              bmgr.and(assumptionState.getAssumption(), assumptionState.getStopFormula());
+          if (!bmgr.isTrue(assumption)) {
+            sb.append("    INVARIANT {");
+            AssumptionCollectorAlgorithm.escape(AssumptionCollectorAlgorithm.parseAssumptionToString(assumption, fmgr, cfaNode), sb);
+            sb.append("};\n");
+          }
+        }
+
+
       }
       sb.append("\n");
     }
