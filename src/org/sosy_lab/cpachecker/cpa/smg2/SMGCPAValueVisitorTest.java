@@ -3037,8 +3037,7 @@ public class SMGCPAValueVisitorTest {
     CPointerExpression structPointerExpr = createPointerRefForStructPointerNoDeref(structName, variableName, fieldTypes);
 
     // The type structure comes from createPointerRefForStructPointerNoDeref()
-    CElaboratedType elaboratedType =
-        (CElaboratedType) ((CPointerType) structPointerExpr.getExpressionType()).getType();
+    CElaboratedType elaboratedType = (CElaboratedType) structPointerExpr.getExpressionType();
 
     CCompositeType structType = (CCompositeType) elaboratedType.getRealType();
 
