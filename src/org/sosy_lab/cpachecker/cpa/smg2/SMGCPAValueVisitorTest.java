@@ -1900,6 +1900,319 @@ public class SMGCPAValueVisitorTest {
     }
   }
 
+  /*
+   * Test sizeof on different simple types. (Note: sizeof returns the amount of bytes!)
+   */
+  @Test
+  public void testSizeofSimpleTypes() throws CPATransferException, InvalidConfigurationException {
+    String variableName = "varName";
+    for (CType typeToTest : STRUCT_UNION_TEST_TYPES) {
+      addStackVariableToMemoryModel(
+          variableName, MACHINE_MODEL.getSizeof(typeToTest).intValue() * 8);
+
+      // Create some Value that does not equal any type size. This should NEVER be read!
+      Value intValue = new NumericValue(99);
+
+      // Write to the stack var; Note: this is always offset 0!
+      writeToStackVariableInMemoryModel(
+          variableName, 0, MACHINE_MODEL.getSizeof(typeToTest).intValue() * 8, intValue);
+
+      CVariableDeclaration decl =
+          new CVariableDeclaration(
+              FileLocation.DUMMY,
+              false,
+              CStorageClass.AUTO,
+              typeToTest,
+              variableName + "NotQual",
+              variableName + "NotQual",
+              variableName,
+              CDefaults.forType(typeToTest, FileLocation.DUMMY));
+
+      CUnaryExpression sizeOfVar = wrapInSizeof(new CIdExpression(FileLocation.DUMMY, decl));
+
+      List<ValueAndSMGState> resultList = sizeOfVar.accept(visitor);
+
+      // Assert the correct returns
+      assertThat(resultList).hasSize(1);
+      Value resultValue = resultList.get(0).getValue();
+      // The returned Value should == size if the current type by index (in bytes)
+      assertThat(resultValue).isInstanceOf(NumericValue.class);
+      // Both as bytes
+      assertThat(resultValue.asNumericValue().bigInteger())
+          .isEqualTo(MACHINE_MODEL.getSizeof(typeToTest));
+      resetSMGStateAndVisitor();
+    }
+  }
+
+  /*
+   * Test sizeof on stack structs with padding and on struct fields. Struct on the stack.
+   * (Note: sizeof returns the amount of bytes!)
+   */
+  @Test
+  public void testSizeofStructs() throws CPATransferException, InvalidConfigurationException {
+    for (int j = 0; j < STRUCT_UNION_TEST_TYPES.size() - 1; j++) {
+      List<CType> listOfTypes = STRUCT_UNION_TEST_TYPES.subList(0, j + 1);
+      // Now create the SMGState, SPC and SMG with the struct already present and values written
+      createStackVarOnStackAndFill(COMPOSITE_VARIABLE_NAME, listOfTypes);
+
+      // Test sizeof all fields individially
+      for (int i = 0; i < listOfTypes.size(); i++) {
+        CUnaryExpression sizeOfFieldRef =
+            wrapInSizeof(
+                createFieldRefForStackVar(
+                    COMPOSITE_DECLARATION_NAME,
+                    COMPOSITE_VARIABLE_NAME,
+                    i,
+                    listOfTypes,
+                    false,
+                    ComplexTypeKind.STRUCT));
+
+        List<ValueAndSMGState> resultList = sizeOfFieldRef.accept(visitor);
+
+        // Assert the correct returns
+        assertThat(resultList).hasSize(1);
+        Value resultValue = resultList.get(0).getValue();
+        // The returned Value should == size if the current type by index (in bytes)
+        assertThat(resultValue).isInstanceOf(NumericValue.class);
+        // Both as bytes
+        assertThat(resultValue.asNumericValue().bigInteger())
+            .isEqualTo(MACHINE_MODEL.getSizeof(listOfTypes.get(j)));
+      }
+      // Test sizeof the entire struct
+      CUnaryExpression sizeOfVariableRef =
+          wrapInSizeof(
+              exprForStructOrUnionOnStackVar(
+                  COMPOSITE_DECLARATION_NAME,
+                  COMPOSITE_VARIABLE_NAME,
+                  listOfTypes,
+                  false,
+                  ComplexTypeKind.STRUCT));
+
+      List<ValueAndSMGState> resultList = sizeOfVariableRef.accept(visitor);
+
+      // Assert the correct returns
+      assertThat(resultList).hasSize(1);
+      Value resultValue = resultList.get(0).getValue();
+      // The returned Value should == size of the entire struct but with padding
+      assertThat(resultValue).isInstanceOf(NumericValue.class);
+      // Transform the result in bits
+      assertThat(resultValue.asNumericValue().bigInteger().multiply(BigInteger.valueOf(8)))
+          .isEqualTo(BigInteger.valueOf(getSizeInBitsForListOfCTypeWithPadding(listOfTypes)));
+      resetSMGStateAndVisitor();
+    }
+  }
+
+  /*
+   * Test the size of stack unions. They are always the max size of the datatypes inside.
+   */
+  @Test
+  public void testSizeofUnions() throws CPATransferException, InvalidConfigurationException {
+    for (int j = 0; j < STRUCT_UNION_TEST_TYPES.size() - 1; j++) {
+      List<CType> listOfTypes = STRUCT_UNION_TEST_TYPES.subList(0, j + 1);
+      // Create the union once
+      addStackVariableToMemoryModel(
+          COMPOSITE_VARIABLE_NAME, getLargestSizeInBitsForListOfCType(listOfTypes));
+
+      // Write every possible values once
+      for (int i = 0; i < j; i++) {
+        // Create a Value that we want to be mapped to a SMGValue to write into the union
+        Value intValue = new NumericValue(j);
+
+        // Write to the stack union; Note: this is always offset 0!
+        writeToStackVariableInMemoryModel(
+            COMPOSITE_VARIABLE_NAME,
+            0,
+            MACHINE_MODEL.getSizeof(listOfTypes.get(j)).intValue() * 8,
+            intValue);
+
+        // We write 1 type i, read all sizes by k and check that the size is the same as for the
+        // type! Repeat for all other types in the union currently.
+        for (int k = 0; k < listOfTypes.size(); k++) {
+          CUnaryExpression sizeofUnionFieldRef =
+              wrapInSizeof(
+                  createFieldRefForStackVar(
+                      COMPOSITE_DECLARATION_NAME,
+                      COMPOSITE_VARIABLE_NAME,
+                      k,
+                      listOfTypes,
+                      false,
+                      ComplexTypeKind.UNION));
+
+          List<ValueAndSMGState> resultList = sizeofUnionFieldRef.accept(visitor);
+
+          // Assert the correct returns
+          assertThat(resultList).hasSize(1);
+          Value resultValue = resultList.get(0).getValue();
+          // The returned Value should == size of the current type (at index i)
+          assertThat(resultValue).isInstanceOf(NumericValue.class);
+          // Transform the result in bits
+          assertThat(resultValue.asNumericValue().bigInteger())
+              .isEqualTo(MACHINE_MODEL.getSizeof(listOfTypes.get(k)));
+        }
+
+        // Test sizeof the entire union
+        CUnaryExpression sizeofUnionRef =
+            wrapInSizeof(
+                exprForStructOrUnionOnStackVar(
+                    COMPOSITE_DECLARATION_NAME,
+                    COMPOSITE_VARIABLE_NAME,
+                    listOfTypes,
+                    false,
+                    ComplexTypeKind.UNION));
+
+        List<ValueAndSMGState> resultList = sizeofUnionRef.accept(visitor);
+
+        // Assert the correct returns
+        assertThat(resultList).hasSize(1);
+        Value resultValue = resultList.get(0).getValue();
+        // The returned Value should == size of the entire struct but with padding
+        assertThat(resultValue).isInstanceOf(NumericValue.class);
+        // Transform the result in bits
+        assertThat(resultValue.asNumericValue().bigInteger().multiply(BigInteger.valueOf(8)))
+            .isEqualTo(BigInteger.valueOf(getLargestSizeInBitsForListOfCType(listOfTypes)));
+      }
+      resetSMGStateAndVisitor();
+    }
+  }
+
+  /*
+   * Test sizeof on a heap array accessed via pointers. (Note: sizeof returns the amount of bytes!)
+   */
+  @Test
+  public void testSizeofHeapArraysWithPointer()
+      throws InvalidConfigurationException, CPATransferException {
+    for (CType currentTestType : ARRAY_TEST_TYPES) {
+      String arrayVariableName = "arrayName";
+      String indiceVarName = "indice";
+      setupHeapArray(arrayVariableName, currentTestType);
+      setupIndexVariables(indiceVarName);
+
+      // Test size of every array entry
+      for (int currentIndice = 0; currentIndice < TEST_ARRAY_LENGTH; currentIndice++) {
+        CUnaryExpression arrayPointerExpr =
+            wrapInSizeof(arrayPointerAccess(arrayVariableName, currentTestType, currentIndice));
+
+        List<ValueAndSMGState> resultList = arrayPointerExpr.accept(visitor);
+
+        // Assert the correct returns
+        assertThat(resultList).hasSize(1);
+        Value resultValue = resultList.get(0).getValue();
+        // The returned Value should == size of the current type (at index i)
+        assertThat(resultValue).isInstanceOf(NumericValue.class);
+        // Transform the result in bits
+        assertThat(resultValue.asNumericValue().bigInteger())
+            .isEqualTo(MACHINE_MODEL.getSizeof(currentTestType));
+      }
+
+      // Test size of the pointer (get the pointer access and strip the pointer part)
+      CUnaryExpression arrayPointerExpr =
+          wrapInSizeof(arrayPointerAccess(arrayVariableName, currentTestType, 0).getOperand());
+
+      List<ValueAndSMGState> resultList = arrayPointerExpr.accept(visitor);
+
+      // Assert the correct returns
+      assertThat(resultList).hasSize(1);
+      Value resultValue = resultList.get(0).getValue();
+      // The returned Value should == size of the current type (at index i)
+      assertThat(resultValue).isInstanceOf(NumericValue.class);
+      // Transform the result in bits
+      assertThat(resultValue.asNumericValue().bigInteger().intValue())
+          .isEqualTo(POINTER_SIZE_IN_BITS / 8);
+
+      resetSMGStateAndVisitor();
+    }
+  }
+
+  /*
+   * Test sizeof on a heap array accessed via subscript. (Note: sizeof returns the amount of bytes!)
+   */
+  @Test
+  public void testSizeofHeapArraysWithSubscript()
+      throws InvalidConfigurationException, CPATransferException {
+    for (CType currentTestType : ARRAY_TEST_TYPES) {
+      String arrayVariableName = "arrayName";
+      String indiceVarName = "indice";
+      setupHeapArray(arrayVariableName, currentTestType);
+      setupIndexVariables(indiceVarName);
+
+      // Test size of every array entry
+      for (int currentIndice = 0; currentIndice < TEST_ARRAY_LENGTH; currentIndice++) {
+        CUnaryExpression arraySubscriptExpr =
+            wrapInSizeof(
+                arraySubscriptHeapAccessWithVariable(
+                    arrayVariableName, indiceVarName + currentIndice, INT_TYPE, currentTestType));
+
+        List<ValueAndSMGState> resultList = arraySubscriptExpr.accept(visitor);
+
+        // Assert the correct returns
+        assertThat(resultList).hasSize(1);
+        Value resultValue = resultList.get(0).getValue();
+        // The returned Value should == size of the current type (at index i)
+        assertThat(resultValue).isInstanceOf(NumericValue.class);
+        // Transform the result in bits
+        assertThat(resultValue.asNumericValue().bigInteger())
+            .isEqualTo(MACHINE_MODEL.getSizeof(currentTestType));
+      }
+
+      // Test size of the pointer
+      CUnaryExpression arraySizeofExpr =
+          wrapInSizeof(
+              arraySubscriptHeapAccessWithVariable(
+                      arrayVariableName, indiceVarName + 0, INT_TYPE, currentTestType)
+                  .getArrayExpression());
+
+      List<ValueAndSMGState> resultList = arraySizeofExpr.accept(visitor);
+
+      // Assert the correct returns
+      assertThat(resultList).hasSize(1);
+      Value resultValue = resultList.get(0).getValue();
+      // The returned Value should == size of the current type (at index i)
+      assertThat(resultValue).isInstanceOf(NumericValue.class);
+      // Transform the result in bits
+      assertThat(resultValue.asNumericValue().bigInteger().intValue())
+          .isEqualTo(POINTER_SIZE_IN_BITS / 8);
+
+      resetSMGStateAndVisitor();
+    }
+  }
+
+  /*
+   * Test sizeof on a stack array accessed via (const indice) subscript.
+   * (Note: sizeof returns the amount of bytes!)
+   */
+  @Test
+  public void testSizeofStackArraysWithSubscript()
+      throws InvalidConfigurationException, CPATransferException {
+    for (CType currentTestType : ARRAY_TEST_TYPES) {
+      String arrayVariableName = "arrayName";
+
+      // Create a stack array and fill it
+      setupStackArray(arrayVariableName, currentTestType);
+
+      // Test size of every array entry
+      for (int currentIndice = 0; currentIndice < TEST_ARRAY_LENGTH; currentIndice++) {
+        CUnaryExpression arraySubscriptExpr =
+            wrapInSizeof(
+                arraySubscriptStackAccess(
+                    arrayVariableName, currentTestType, currentIndice, TEST_ARRAY_LENGTH));
+
+        List<ValueAndSMGState> resultList = arraySubscriptExpr.accept(visitor);
+
+        // Assert the correct returns
+        assertThat(resultList).hasSize(1);
+        Value resultValue = resultList.get(0).getValue();
+        // The returned Value should == size of the current type (at index i)
+        assertThat(resultValue).isInstanceOf(NumericValue.class);
+        // Transform the result in bits
+        assertThat(resultValue.asNumericValue().bigInteger())
+            .isEqualTo(MACHINE_MODEL.getSizeof(currentTestType));
+      }
+
+      // Test size of the array
+
+      resetSMGStateAndVisitor();
+    }
+  }
 
   /*
    * +++++++++++++++++++++++++++++ Helper methods below this point +++++++++++++++++++++++++++++
