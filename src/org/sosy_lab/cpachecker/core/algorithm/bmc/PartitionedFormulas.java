@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import static com.google.common.base.Preconditions.checkState;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -134,11 +135,10 @@ class PartitionedFormulas {
 
     // collect loop formulas: TR(V_k, V_k+1)
     loopFormulas =
-        abstractionStates.subList(2, abstractionStates.size() - 1).stream()
-            .map(
-                absState ->
-                    InterpolationHelper.getPredicateAbstractionBlockFormula(absState).getFormula())
-            .collect(ImmutableList.toImmutableList());
+        transformedImmutableListCopy(
+            abstractionStates.subList(2, abstractionStates.size() - 1),
+            absState ->
+                InterpolationHelper.getPredicateAbstractionBlockFormula(absState).getFormula());
 
     // collect target assertion formula
     BooleanFormula currentAssertion =
