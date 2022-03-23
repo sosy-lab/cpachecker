@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
@@ -38,10 +40,15 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
  * </ul>
  */
 class PartitionedFormulas {
+  private static final String UNINITIALIZED_MSG =
+      "The partitioned formulas have not been initialized yet, #collectFormulasFromARG must be"
+          + " called beforehand.";
+
   private final BooleanFormulaManagerView bfmgr;
   private final LogManager logger;
   private final boolean assertAllTargets;
 
+  private boolean isInitialized;
   private BooleanFormula prefixFormula;
   private SSAMap prefixSsaMap;
   private List<BooleanFormula> loopFormulas;
@@ -53,6 +60,7 @@ class PartitionedFormulas {
     this.logger = logger;
     this.assertAllTargets = assertAllTargets;
 
+    isInitialized = false;
     prefixFormula = bfmgr.makeFalse();
     prefixSsaMap = SSAMap.emptySSAMap();
     loopFormulas = new ArrayList<>();
@@ -61,26 +69,31 @@ class PartitionedFormulas {
 
   /** Return the number of stored loop formulas. */
   int getNumLoops() {
+    checkState(isInitialized, UNINITIALIZED_MSG);
     return loopFormulas.size();
   }
 
   /** Return the SSA map of the prefix path formula. */
   SSAMap getPrefixSsaMap() {
+    checkState(isInitialized, UNINITIALIZED_MSG);
     return prefixSsaMap;
   }
 
   /** Return the prefix formula (I) that describes the initial state set. */
   BooleanFormula getPrefixFormula() {
+    checkState(isInitialized, UNINITIALIZED_MSG);
     return prefixFormula;
   }
 
   /** Return the collected loop formulas (T1, T2, ..., Tn). */
   List<BooleanFormula> getLoopFormulas() {
+    checkState(isInitialized, UNINITIALIZED_MSG);
     return ImmutableList.copyOf(loopFormulas);
   }
 
   /** Return the target assertion formula (&not;P). */
   BooleanFormula getAssertionFormula() {
+    checkState(isInitialized, UNINITIALIZED_MSG);
     return targetAssertion;
   }
 
@@ -96,6 +109,7 @@ class PartitionedFormulas {
    */
   void collectFormulasFromARG(final ReachedSet reachedSet) {
     logger.log(Level.FINE, "Collecting BMC-partitioning formulas");
+    isInitialized = true;
     FluentIterable<AbstractState> targetStatesAfterLoop =
         InterpolationHelper.getTargetStatesAfterLoop(reachedSet);
     if (targetStatesAfterLoop.isEmpty()) {
