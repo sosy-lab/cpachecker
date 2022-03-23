@@ -2596,7 +2596,7 @@ public class SMGCPAValueVisitorTest {
         assertThat(resultValue).isInstanceOf(NumericValue.class);
         // Both as bytes
         assertThat(resultValue.asNumericValue().bigInteger())
-            .isEqualTo(MACHINE_MODEL.getSizeof(listOfTypes.get(j)));
+            .isEqualTo(MACHINE_MODEL.getSizeof(listOfTypes.get(i)));
       }
       // Test sizeof the entire struct
       CUnaryExpression sizeOfVariableRef =
@@ -2897,18 +2897,19 @@ public class SMGCPAValueVisitorTest {
   }
 
   private int getSizeInBitsForListOfCTypeWithPadding(List<CType> listOfTypes) {
-    int size = 0;
-    for (int j = 0; j < listOfTypes.size(); j++) {
-      size += MACHINE_MODEL.getSizeof(listOfTypes.get(j)).intValue() * 8;
-      // Take padding into account
-      if (j + 1 < listOfTypes.size()) {
-        int mod = size % (MACHINE_MODEL.getSizeof(listOfTypes.get(j + 1)).intValue() * 8);
-        if (mod != 0) {
-          size += mod;
-        }
-      }
+    // Just use the machine model to get the padded size correctly
+    ImmutableList.Builder<CCompositeTypeMemberDeclaration> builder = new ImmutableList.Builder<>();
+    for (int i = 0; i < listOfTypes.size(); i++) {
+      builder.add(new CCompositeTypeMemberDeclaration(listOfTypes.get(i), "field" + i));
     }
-    return size;
+    List<CCompositeTypeMemberDeclaration> members = builder.build();
+
+    CCompositeType structType =
+        new CCompositeType(false, false, ComplexTypeKind.STRUCT, members, "someName", "someName");
+    CElaboratedType elaboratedType =
+        new CElaboratedType(
+            false, false, ComplexTypeKind.STRUCT, "someName", "someName", structType);
+    return MACHINE_MODEL.getSizeofInBits(elaboratedType).intValue();
   }
 
   @SuppressWarnings("unused")
