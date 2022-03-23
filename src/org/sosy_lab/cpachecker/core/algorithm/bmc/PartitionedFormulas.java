@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
@@ -51,7 +50,7 @@ class PartitionedFormulas {
   private boolean isInitialized;
   private BooleanFormula prefixFormula;
   private SSAMap prefixSsaMap;
-  private List<BooleanFormula> loopFormulas;
+  private ImmutableList<BooleanFormula> loopFormulas;
   private BooleanFormula targetAssertion;
 
   PartitionedFormulas(
@@ -63,7 +62,7 @@ class PartitionedFormulas {
     isInitialized = false;
     prefixFormula = bfmgr.makeFalse();
     prefixSsaMap = SSAMap.emptySSAMap();
-    loopFormulas = new ArrayList<>();
+    loopFormulas = ImmutableList.of();
     targetAssertion = bfmgr.makeFalse();
   }
 
@@ -88,7 +87,7 @@ class PartitionedFormulas {
   /** Return the collected loop formulas (T1, T2, ..., Tn). */
   List<BooleanFormula> getLoopFormulas() {
     checkState(isInitialized, UNINITIALIZED_MSG);
-    return ImmutableList.copyOf(loopFormulas);
+    return loopFormulas;
   }
 
   /** Return the target assertion formula (&not;P). */
@@ -116,7 +115,7 @@ class PartitionedFormulas {
       // no target is reachable, which means the program is safe
       prefixFormula = bfmgr.makeFalse();
       prefixSsaMap = SSAMap.emptySSAMap();
-      loopFormulas = new ArrayList<>();
+      loopFormulas = ImmutableList.of();
       targetAssertion = bfmgr.makeFalse();
       return;
     }
@@ -133,14 +132,13 @@ class PartitionedFormulas {
     prefixFormula = prefixPathFormula.getFormula();
     prefixSsaMap = prefixPathFormula.getSsa();
 
-    // collect loop formulas
-    loopFormulas.clear();
-    for (int i = 2; i < abstractionStates.size() - 1; ++i) {
-      // TR(V_k, V_k+1)
-      loopFormulas.add(
-          InterpolationHelper.getPredicateAbstractionBlockFormula(abstractionStates.get(i))
-              .getFormula());
-    }
+    // collect loop formulas: TR(V_k, V_k+1)
+    loopFormulas =
+        abstractionStates.subList(2, abstractionStates.size() - 1).stream()
+            .map(
+                absState ->
+                    InterpolationHelper.getPredicateAbstractionBlockFormula(absState).getFormula())
+            .collect(ImmutableList.toImmutableList());
 
     // collect target assertion formula
     BooleanFormula currentAssertion =
