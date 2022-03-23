@@ -17,6 +17,7 @@ import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
@@ -1896,6 +1897,625 @@ public class SMGCPAValueVisitorTest {
         // Check the returned value. It should be == for all except char
         assertThat(value.asNumericValue().bigInteger())
             .isEqualTo(convertToType(testValue, typeToTest));
+      }
+    }
+  }
+
+  /*
+   * Test getting the address of a stack variable with a simple type.
+   * int bla = 3;
+   * int * blaP = &bla;
+   */
+  @Test
+  public void testAddressOperatorOnSimpleStackVariable() throws CPATransferException {
+    String variableName = "varName";
+    // Just use the simple types from the struct/union tests
+    for (CType typeToTest : STRUCT_UNION_TEST_TYPES) {
+      // Name the variable uniquely such that all variables can exist concurrently
+      addStackVariableToMemoryModel(
+          variableName + typeToTest, MACHINE_MODEL.getSizeof(typeToTest).intValue() * 8);
+
+      // Create some Value that does not equal any type size.
+      Value intValue = new NumericValue(99);
+
+      // Write to the stack var; Note: this is always offset 0!
+      writeToStackVariableInMemoryModel(
+          variableName + typeToTest,
+          0,
+          MACHINE_MODEL.getSizeof(typeToTest).intValue() * 8,
+          intValue);
+
+      CVariableDeclaration decl =
+          new CVariableDeclaration(
+              FileLocation.DUMMY,
+              false,
+              CStorageClass.AUTO,
+              typeToTest,
+              variableName + "NotQual",
+              variableName + "NotQual",
+              variableName + typeToTest,
+              CDefaults.forType(typeToTest, FileLocation.DUMMY));
+
+      CUnaryExpression amperVar = wrapInAmper(new CIdExpression(FileLocation.DUMMY, decl));
+
+      List<ValueAndSMGState> resultList = amperVar.accept(visitor);
+
+      // Assert the correct returns
+      assertThat(resultList).hasSize(1);
+      Value resultValue = resultList.get(0).getValue();
+
+      SMGObject expectedTarget =
+          currentState
+              .getMemoryModel()
+              .getObjectForVisibleVariable(variableName + typeToTest)
+              .orElseThrow();
+      BigInteger expectedOffset = BigInteger.ZERO;
+      // The returned Value is an address, theoretically addresses may be any Value type
+      assertThat(resultValue).isInstanceOf(Value.class);
+      // First check general existance of a points to edge, then its target and offset
+      assertThat(currentState.getMemoryModel().dereferencePointer(resultValue).isPresent())
+          .isTrue();
+      assertThat(currentState.getMemoryModel().dereferencePointer(resultValue).isPresent())
+          .isTrue();
+      assertThat(
+              currentState
+                  .getMemoryModel()
+                  .dereferencePointer(resultValue)
+                  .orElseThrow()
+                  .getSMGObject())
+          .isEqualTo(expectedTarget);
+      assertThat(
+              currentState
+                  .getMemoryModel()
+                  .dereferencePointer(resultValue)
+                  .orElseThrow()
+                  .getOffsetForObject())
+          .isEqualTo(expectedOffset);
+      // Check that the other methods return the correct points-to-edge leading to the correct
+      // memory location and never to the 0 object
+      assertThat(currentState.getPointsToTarget(resultValue))
+          .isNotEqualTo(SMGObject.nullInstance());
+      assertThat(currentState.getPointsToTarget(resultValue)).isEqualTo(expectedTarget);
+
+      // The reverse applies as well
+      assertThat(
+              currentState
+                  .getMemoryModel()
+                  .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
+                  .isPresent())
+          .isTrue();
+      assertThat(
+              currentState
+                  .getMemoryModel()
+                  .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
+                  .orElseThrow())
+          .isEqualTo(resultValue);
+    }
+  }
+
+  /*
+   * Test variable == *&variable for heap variables. In this case an array.
+   * Example: int * arrayP = malloc();
+   * int ** pointerToArrayP = &arrayP;
+   * *pointerToArrayP == arrayP;
+   */
+  @Test
+  public void testAddressOperatorOnPointerToHeapArray()
+      throws CPATransferException, InvalidConfigurationException {
+    for (CType currentTestType : ARRAY_TEST_TYPES) {
+      String arrayVariableName = "arrayName" + currentTestType;
+      setupHeapArray(arrayVariableName, currentTestType);
+
+      // &array, but array itself is a pointer, we get the type:  type **
+      CUnaryExpression amperOfArrayPointerExpr =
+          wrapInAmper(arrayPointerAccess(arrayVariableName, currentTestType, 0).getOperand());
+
+      List<ValueAndSMGState> resultList = amperOfArrayPointerExpr.accept(visitor);
+
+      // Assert the correct returns
+      assertThat(resultList).hasSize(1);
+      Value resultValue = resultList.get(0).getValue();
+
+      SMGObject expectedTarget =
+          currentState
+              .getMemoryModel()
+              .getObjectForVisibleVariable(arrayVariableName)
+              .orElseThrow();
+      BigInteger expectedOffset = BigInteger.ZERO;
+      // The returned Value is an address, theoretically addresses may be any Value type
+      assertThat(resultValue).isInstanceOf(Value.class);
+      // First check general existance of a points to edge, then its target and offset
+      assertThat(currentState.getMemoryModel().dereferencePointer(resultValue).isPresent())
+          .isTrue();
+      assertThat(
+              currentState
+                  .getMemoryModel()
+                  .dereferencePointer(resultValue)
+                  .orElseThrow()
+                  .getSMGObject())
+          .isEqualTo(expectedTarget);
+      assertThat(
+              currentState
+                  .getMemoryModel()
+                  .dereferencePointer(resultValue)
+                  .orElseThrow()
+                  .getOffsetForObject())
+          .isEqualTo(expectedOffset);
+      // Check that the other methods return the correct points-to-edge leading to the correct
+      // memory location and never to the 0 object
+      assertThat(currentState.getPointsToTarget(resultValue))
+          .isNotEqualTo(SMGObject.nullInstance());
+      assertThat(currentState.getPointsToTarget(resultValue)).isEqualTo(expectedTarget);
+
+      // The reverse applies as well
+      assertThat(
+              currentState
+                  .getMemoryModel()
+                  .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
+                  .isPresent())
+          .isTrue();
+      assertThat(
+              currentState
+                  .getMemoryModel()
+                  .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
+                  .orElseThrow())
+          .isEqualTo(resultValue);
+    }
+  }
+
+  /*
+   * Test *variable == &*variable on the heap. In this case an array.
+   * Example: int * arrayP = malloc();
+   * int * ArrayPCopy = &*arrayP;
+   * *pointerToArrayP == *arrayP;
+   * and
+   * int * ArrayPCopy = &*(arrayP + 1);
+   * *pointerToArrayP == *(arrayP + 1);
+   */
+  @Test
+  public void testAddressOperatorOnHeapArray()
+      throws CPATransferException, InvalidConfigurationException {
+    for (CType currentTestType : ARRAY_TEST_TYPES) {
+      BigInteger sizeOfCurrentTypeInBits =
+          MACHINE_MODEL.getSizeof(currentTestType).multiply(BigInteger.valueOf(8));
+      String arrayVariableName = "arrayName" + currentTestType;
+      String indiceVarName = "indice";
+      Value heapAddress = setupHeapArray(arrayVariableName, currentTestType);
+      setupIndexVariables(indiceVarName);
+
+      // Test & on every array entry (create every possible valid pointer to it)
+      for (int currentIndice = 0; currentIndice < TEST_ARRAY_LENGTH; currentIndice++) {
+        // &*(array + currentIndice)
+        CUnaryExpression arrayAmperOfPointerExpr =
+            wrapInAmper(arrayPointerAccess(arrayVariableName, currentTestType, currentIndice));
+
+        List<ValueAndSMGState> resultList = arrayAmperOfPointerExpr.accept(visitor);
+
+        // Assert the correct returns
+        assertThat(resultList).hasSize(1);
+        Value resultValue = resultList.get(0).getValue();
+
+        SMGObject expectedTarget =
+            currentState
+                .getMemoryModel()
+                .dereferencePointer(heapAddress)
+                .orElseThrow()
+                .getSMGObject();
+        BigInteger expectedOffset =
+            BigInteger.valueOf(currentIndice).multiply(sizeOfCurrentTypeInBits);
+        // The returned Value is an address, theoretically addresses may be any Value type
+        assertThat(resultValue).isInstanceOf(Value.class);
+        // First check general existance of a points to edge, then its target and offset
+        assertThat(currentState.getMemoryModel().dereferencePointer(resultValue).isPresent())
+            .isTrue();
+        assertThat(
+                currentState
+                    .getMemoryModel()
+                    .dereferencePointer(resultValue)
+                    .orElseThrow()
+                    .getSMGObject())
+            .isEqualTo(expectedTarget);
+        assertThat(
+                currentState
+                    .getMemoryModel()
+                    .dereferencePointer(resultValue)
+                    .orElseThrow()
+                    .getOffsetForObject())
+            .isEqualTo(expectedOffset);
+        // Check that the other methods return the correct points-to-edge leading to the correct
+        // memory location and never to the 0 object
+        assertThat(currentState.getPointsToTarget(resultValue))
+            .isNotEqualTo(SMGObject.nullInstance());
+        assertThat(currentState.getPointsToTarget(resultValue)).isEqualTo(expectedTarget);
+
+        // The reverse applies as well
+        assertThat(
+                currentState
+                    .getMemoryModel()
+                    .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
+                    .isPresent())
+            .isTrue();
+        assertThat(
+                currentState
+                    .getMemoryModel()
+                    .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
+                    .orElseThrow())
+            .isEqualTo(resultValue);
+      }
+    }
+  }
+
+  /*
+   * Test array[x] == *&array[x] for stack variables.
+   * Example: int array[x];
+   * ...
+   * int * pointerToArray = &array[y];
+   * *pointerToArray == array[y];
+   */
+  @Test
+  public void testAddressOperatorOnPointerToStackArray()
+      throws CPATransferException, InvalidConfigurationException {
+    for (CType currentTestType : ARRAY_TEST_TYPES) {
+      BigInteger sizeOfCurrentTypeInBits =
+          MACHINE_MODEL.getSizeof(currentTestType).multiply(BigInteger.valueOf(8));
+      String arrayVariableName = "arrayName" + currentTestType;
+      Value heapAddress = setupHeapArray(arrayVariableName, currentTestType);
+
+      // Test & on every array entry (create every possible valid pointer to it)
+      for (int currentIndice = 0; currentIndice < TEST_ARRAY_LENGTH; currentIndice++) {
+        // &*array[currentIndice]
+        CUnaryExpression arrayAmperOfPointerExpr =
+            wrapInAmper(
+                arraySubscriptHeapAccess(arrayVariableName, currentTestType, currentIndice));
+
+        List<ValueAndSMGState> resultList = arrayAmperOfPointerExpr.accept(visitor);
+
+        // Assert the correct returns
+        assertThat(resultList).hasSize(1);
+        Value resultValue = resultList.get(0).getValue();
+
+        SMGObject expectedTarget =
+            currentState
+                .getMemoryModel()
+                .dereferencePointer(heapAddress)
+                .orElseThrow()
+                .getSMGObject();
+        BigInteger expectedOffset =
+            BigInteger.valueOf(currentIndice).multiply(sizeOfCurrentTypeInBits);
+        // The returned Value is an address, theoretically addresses may be any Value type
+        assertThat(resultValue).isInstanceOf(Value.class);
+        // First check general existance of a points to edge, then its target and offset
+        assertThat(currentState.getMemoryModel().dereferencePointer(resultValue).isPresent())
+            .isTrue();
+        assertThat(
+                currentState
+                    .getMemoryModel()
+                    .dereferencePointer(resultValue)
+                    .orElseThrow()
+                    .getSMGObject())
+            .isEqualTo(expectedTarget);
+        assertThat(
+                currentState
+                    .getMemoryModel()
+                    .dereferencePointer(resultValue)
+                    .orElseThrow()
+                    .getOffsetForObject())
+            .isEqualTo(expectedOffset);
+        // Check that the other methods return the correct points-to-edge leading to the correct
+        // memory location and never to the 0 object
+        assertThat(currentState.getPointsToTarget(resultValue))
+            .isNotEqualTo(SMGObject.nullInstance());
+        assertThat(currentState.getPointsToTarget(resultValue)).isEqualTo(expectedTarget);
+
+        // The reverse applies as well
+        assertThat(
+                currentState
+                    .getMemoryModel()
+                    .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
+                    .isPresent())
+            .isTrue();
+        assertThat(
+                currentState
+                    .getMemoryModel()
+                    .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
+                    .orElseThrow())
+            .isEqualTo(resultValue);
+      }
+    }
+  }
+
+  /*
+   * Test amper (address) operator in structs on the stack.
+   * *&(struct) == struct with the struct on the stack
+   */
+  @Test
+  public void testAddressOperatorOnStackStruct() throws CPATransferException {
+    for (int j = 0; j < STRUCT_UNION_TEST_TYPES.size() - 1; j++) {
+      List<CType> listOfTypes = STRUCT_UNION_TEST_TYPES.subList(0, j + 1);
+      // Now create the SMGState, SPC and SMG with the struct already present and values written
+      // Name the struct and var uniquely such that we have all possible vars on the stack at the
+      // same time
+      createStackVarOnStackAndFill(COMPOSITE_VARIABLE_NAME + j, listOfTypes);
+
+      CUnaryExpression amperFieldRef =
+          wrapInAmper(
+              exprForStructOrUnionOnStackVar(
+                  COMPOSITE_DECLARATION_NAME + j,
+                  COMPOSITE_VARIABLE_NAME + j,
+                  listOfTypes,
+                  false,
+                  ComplexTypeKind.STRUCT));
+
+      List<ValueAndSMGState> resultList = amperFieldRef.accept(visitor);
+
+      // Assert the correct returns
+      assertThat(resultList).hasSize(1);
+      Value resultValue = resultList.get(0).getValue();
+
+      SMGObject expectedTarget =
+          currentState
+              .getMemoryModel()
+              .getObjectForVisibleVariable(COMPOSITE_VARIABLE_NAME + j)
+              .orElseThrow();
+      BigInteger expectedOffset = BigInteger.ZERO;
+      // The returned Value is an address, theoretically addresses may be any Value type
+      assertThat(resultValue).isInstanceOf(Value.class);
+      // First check general existance of a points to edge, then its target and offset
+      assertThat(currentState.getMemoryModel().dereferencePointer(resultValue).isPresent())
+          .isTrue();
+      assertThat(
+              currentState
+                  .getMemoryModel()
+                  .dereferencePointer(resultValue)
+                  .orElseThrow()
+                  .getSMGObject())
+          .isEqualTo(expectedTarget);
+      assertThat(
+              currentState
+                  .getMemoryModel()
+                  .dereferencePointer(resultValue)
+                  .orElseThrow()
+                  .getOffsetForObject())
+          .isEqualTo(expectedOffset);
+      // Check that the other methods return the correct points-to-edge leading to the correct
+      // memory location and never to the 0 object
+      assertThat(currentState.getPointsToTarget(resultValue))
+          .isNotEqualTo(SMGObject.nullInstance());
+      assertThat(currentState.getPointsToTarget(resultValue)).isEqualTo(expectedTarget);
+
+      // The reverse applies as well
+      assertThat(
+              currentState
+                  .getMemoryModel()
+                  .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
+                  .isPresent())
+          .isTrue();
+      assertThat(
+              currentState
+                  .getMemoryModel()
+                  .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
+                  .orElseThrow())
+          .isEqualTo(resultValue);
+    }
+  }
+
+  /*
+   * Test amper (address) operator in structs on the heap.
+   * *&(struct) == struct with the struct on the stack but as struct is type * the result of & will be **.
+   */
+  @Test
+  public void testAddressOperatorOnHeapStruct() throws Exception {
+    for (int j = 0; j < STRUCT_UNION_TEST_TYPES.size() - 1; j++) {
+      List<CType> listOfTypes = STRUCT_UNION_TEST_TYPES.subList(0, j + 1);
+      // Now create the SMGState, SPC and SMG with the struct already present and values written
+      // Name the struct and var uniquely such that we have all possible vars on the stack at the
+      // same time
+      Value addressForHeap = setupHeapStructAndFill(COMPOSITE_VARIABLE_NAME + j, listOfTypes);
+
+      CUnaryExpression amperStructRef =
+          wrapInAmper(
+              createPointerRefForStructPointerNoDeref(
+                      COMPOSITE_DECLARATION_NAME + j, COMPOSITE_VARIABLE_NAME + j, listOfTypes)
+                  .getOperand());
+
+      List<ValueAndSMGState> resultList = amperStructRef.accept(visitor);
+
+      // Assert the correct returns
+      assertThat(resultList).hasSize(1);
+      Value resultValue = resultList.get(0).getValue();
+
+      SMGObject expectedTarget =
+          currentState
+              .getMemoryModel()
+              .dereferencePointer(addressForHeap)
+              .orElseThrow()
+              .getSMGObject();
+      BigInteger expectedOffset = BigInteger.ZERO;
+      // The returned Value is an address, theoretically addresses may be any Value type
+      assertThat(resultValue).isInstanceOf(Value.class);
+      // First check general existance of a points to edge, then its target and offset
+      Optional<SMGObjectAndOffset> resultMaybeTarget =
+          currentState.getMemoryModel().dereferencePointer(resultValue);
+      assertThat(resultMaybeTarget.isPresent()).isTrue();
+      assertThat(resultMaybeTarget.orElseThrow().getSMGObject()).isEqualTo(expectedTarget);
+      assertThat(resultMaybeTarget.orElseThrow().getOffsetForObject()).isEqualTo(expectedOffset);
+      // Check that the other methods return the correct points-to-edge leading to the correct
+      // memory location and never to the 0 object
+      assertThat(currentState.getPointsToTarget(resultValue))
+          .isNotEqualTo(SMGObject.nullInstance());
+      assertThat(currentState.getPointsToTarget(resultValue)).isEqualTo(expectedTarget);
+
+      // The reverse applies as well
+      assertThat(
+              currentState
+                  .getMemoryModel()
+                  .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
+                  .isPresent())
+          .isTrue();
+      assertThat(
+              currentState
+                  .getMemoryModel()
+                  .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
+                  .orElseThrow())
+          .isEqualTo(resultValue);
+    }
+  }
+
+  /*
+   * Test *&((*struct).field) == (*struct).field with the struct on the heap
+   */
+  @Test
+  public void testAddressOperatorOnStructMembersOnHeap()
+      throws InvalidConfigurationException, CPATransferException {
+    for (int j = 0; j < STRUCT_UNION_TEST_TYPES.size() - 1; j++) {
+      List<CType> listOfTypes = STRUCT_UNION_TEST_TYPES.subList(0, j + 1);
+      // Now create the SMGState, SPC and SMG with the struct already present and values written
+      // Name the struct and var uniquely such that we have all possible vars on the stack at the
+      // same time
+      Value addressForHeap = setupHeapStructAndFill(COMPOSITE_VARIABLE_NAME + j, listOfTypes);
+
+      for (int indice = 0; indice < listOfTypes.size(); indice++) {
+        // We deref here so its struct->field
+        CUnaryExpression amperFieldRef =
+            wrapInAmper(
+                createFieldRefForStackVar(
+                    COMPOSITE_DECLARATION_NAME + j,
+                    COMPOSITE_VARIABLE_NAME + j,
+                    indice,
+                    listOfTypes,
+                    true,
+                    ComplexTypeKind.STRUCT));
+
+        List<ValueAndSMGState> resultList = amperFieldRef.accept(visitor);
+
+        // Assert the correct returns
+        assertThat(resultList).hasSize(1);
+        Value resultValue = resultList.get(0).getValue();
+
+        SMGObject expectedTarget =
+            currentState
+                .getMemoryModel()
+                .dereferencePointer(addressForHeap)
+                .orElseThrow()
+                .getSMGObject();
+        BigInteger expectedOffset =
+            BigInteger.valueOf(getOffsetInBitsWithPadding(listOfTypes, indice));
+        // The returned Value is an address, theoretically addresses may be any Value type
+        assertThat(resultValue).isInstanceOf(Value.class);
+        // First check general existance of a points to edge, then its target and offset
+        assertThat(currentState.getMemoryModel().dereferencePointer(resultValue).isPresent())
+            .isTrue();
+        assertThat(
+                currentState
+                    .getMemoryModel()
+                    .dereferencePointer(resultValue)
+                    .orElseThrow()
+                    .getSMGObject())
+            .isEqualTo(expectedTarget);
+        assertThat(
+                currentState
+                    .getMemoryModel()
+                    .dereferencePointer(resultValue)
+                    .orElseThrow()
+                    .getOffsetForObject())
+            .isEqualTo(expectedOffset);
+        // Check that the other methods return the correct points-to-edge leading to the correct
+        // memory location and never to the 0 object
+        assertThat(currentState.getPointsToTarget(resultValue))
+            .isNotEqualTo(SMGObject.nullInstance());
+        assertThat(currentState.getPointsToTarget(resultValue)).isEqualTo(expectedTarget);
+
+        // The reverse applies as well
+        assertThat(
+                currentState
+                    .getMemoryModel()
+                    .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
+                    .isPresent())
+            .isTrue();
+        assertThat(
+                currentState
+                    .getMemoryModel()
+                    .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
+                    .orElseThrow())
+            .isEqualTo(resultValue);
+      }
+    }
+  }
+
+  /*
+   * Test *&(struct.field) == struct.field with the struct on the stack
+   */
+  @Test
+  public void testAddressOperatorOnStructMembersOnStack() throws CPATransferException {
+    for (int j = 0; j < STRUCT_UNION_TEST_TYPES.size() - 1; j++) {
+      List<CType> listOfTypes = STRUCT_UNION_TEST_TYPES.subList(0, j + 1);
+      // Now create the SMGState, SPC and SMG with the struct already present and values written
+      // Name the struct and var uniquely such that we have all possible vars on the stack at the
+      // same time
+      createStackVarOnStackAndFill(COMPOSITE_VARIABLE_NAME + j, listOfTypes);
+
+      for (int indice = 0; indice < listOfTypes.size(); indice++) {
+        CUnaryExpression amperFieldRef =
+            wrapInAmper(
+                createFieldRefForStackVar(
+                    COMPOSITE_DECLARATION_NAME + j,
+                    COMPOSITE_VARIABLE_NAME + j,
+                    indice,
+                    listOfTypes,
+                    false,
+                    ComplexTypeKind.STRUCT));
+
+        List<ValueAndSMGState> resultList = amperFieldRef.accept(visitor);
+
+        // Assert the correct returns
+        assertThat(resultList).hasSize(1);
+        Value resultValue = resultList.get(0).getValue();
+
+        SMGObject expectedTarget =
+            currentState
+                .getMemoryModel()
+                .getObjectForVisibleVariable(COMPOSITE_VARIABLE_NAME + j)
+                .orElseThrow();
+        BigInteger expectedOffset =
+            BigInteger.valueOf(getOffsetInBitsWithPadding(listOfTypes, indice));
+        // The returned Value is an address, theoretically addresses may be any Value type
+        assertThat(resultValue).isInstanceOf(Value.class);
+        // First check general existance of a points to edge, then its target and offset
+        assertThat(currentState.getMemoryModel().dereferencePointer(resultValue).isPresent())
+            .isTrue();
+        assertThat(
+                currentState
+                    .getMemoryModel()
+                    .dereferencePointer(resultValue)
+                    .orElseThrow()
+                    .getSMGObject())
+            .isEqualTo(expectedTarget);
+        assertThat(
+                currentState
+                    .getMemoryModel()
+                    .dereferencePointer(resultValue)
+                    .orElseThrow()
+                    .getOffsetForObject())
+            .isEqualTo(expectedOffset);
+        // Check that the other methods return the correct points-to-edge leading to the correct
+        // memory location and never to the 0 object
+        assertThat(currentState.getPointsToTarget(resultValue))
+            .isNotEqualTo(SMGObject.nullInstance());
+        assertThat(currentState.getPointsToTarget(resultValue)).isEqualTo(expectedTarget);
+
+        // The reverse applies as well
+        assertThat(
+                currentState
+                    .getMemoryModel()
+                    .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
+                    .isPresent())
+            .isTrue();
+        assertThat(
+                currentState
+                    .getMemoryModel()
+                    .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
+                    .orElseThrow())
+            .isEqualTo(resultValue);
       }
     }
   }
