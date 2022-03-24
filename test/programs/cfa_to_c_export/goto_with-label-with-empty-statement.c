@@ -11,11 +11,11 @@ int main() {
   goto LABEL1;
   int b = 2;
 
-LABEL1:;
-  int c = 3;
-  goto LABEL2;
-
 LABEL2:
   int d = 4;
   return d;
+
+LABEL1:;
+  int c = 3;
+  goto LABEL2;
 }
