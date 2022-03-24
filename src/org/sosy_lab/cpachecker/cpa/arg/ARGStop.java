@@ -72,9 +72,7 @@ class ARGStop implements ForcedCoveringStopOperator {
 
     // get the collection of may-cover wrapped states
     ImmutableSet<AbstractState> mayCoverWrappedStates =
-        mayCoverARGStates.stream()
-            .map(ARGState::getWrappedState)
-            .collect(ImmutableSet.toImmutableSet());
+        transformedImmutableSetCopy(mayCoverARGStates, ARGState::getWrappedState);
 
     // if retrieval of covering state set is not possible --> do the normal stop check
     if (!(wrappedStop instanceof CoveringStateSetProvider)) {
