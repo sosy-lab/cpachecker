@@ -69,15 +69,22 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessToOutputFormatsUtils;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
+import org.sosy_lab.cpachecker.cpa.coverage.CoverageCPA;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.BiPredicates;
+import org.sosy_lab.cpachecker.util.coverage.CoverageData;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
 
 @Options
@@ -174,6 +181,16 @@ public class ReportGenerator {
       return;
     }
 
+    // extract further coverage data captured during the analysis if CoverageCPA is present
+    Map<Long, Double> timeStampsPerCoverage = new HashMap<>();
+    if (pReached instanceof ReachedSet) {
+      ConfigurableProgramAnalysis cpa = ((PartitionedReachedSet) pReached).getCPA();
+      Optional<CoverageData> coverageData = extractTimeDependentCoverageData(cpa);
+      if (coverageData.isPresent()) {
+        timeStampsPerCoverage = coverageData.get().getTimeStampsPerCoverageMap();
+      }
+    }
+
     ImmutableSet<Path> allInputFiles = getAllInputFiles(pCfa);
 
     extractWitness(pResult, pCfa, pReached);
@@ -192,7 +209,8 @@ public class ReportGenerator {
     PrintStream console = System.out;
     if (counterExamples.isEmpty()) {
       if (reportFile != null) {
-        fillOutTemplate(null, reportFile, pCfa, allInputFiles, dotBuilder, pStatistics);
+        fillOutTemplate(
+            null, reportFile, pCfa, allInputFiles, dotBuilder, pStatistics, timeStampsPerCoverage);
         console.println("Graphical representation included in the file \"" + reportFile + "\".");
       }
 
@@ -204,7 +222,8 @@ public class ReportGenerator {
             pCfa,
             allInputFiles,
             dotBuilder,
-            pStatistics);
+            pStatistics,
+            timeStampsPerCoverage);
       }
 
       StringBuilder counterExFiles = new StringBuilder();
@@ -220,6 +239,25 @@ public class ReportGenerator {
       counterExFiles.append("\".");
       console.println(counterExFiles);
     }
+  }
+
+  private Optional<CoverageData> extractTimeDependentCoverageData(ConfigurableProgramAnalysis cpa) {
+    Optional<CoverageData> coverageData = Optional.empty();
+    if (cpa instanceof ARGCPA) {
+      ImmutableList<ConfigurableProgramAnalysis> cpas = ((ARGCPA) cpa).getWrappedCPAs();
+      for (var compositeCPA : cpas) {
+        if (compositeCPA instanceof CompositeCPA) {
+          ImmutableList<ConfigurableProgramAnalysis> wrappedCPAs =
+              ((CompositeCPA) compositeCPA).getWrappedCPAs();
+          for (var wrappedCPA : wrappedCPAs) {
+            if (wrappedCPA instanceof CoverageCPA) {
+              coverageData = Optional.of(((CoverageCPA) wrappedCPA).getCoverageData());
+            }
+          }
+        }
+      }
+    }
+    return coverageData;
   }
 
   private void extractWitness(Result pResult, CFA pCfa, UnmodifiableReachedSet pReached) {
@@ -255,7 +293,8 @@ public class ReportGenerator {
       CFA cfa,
       Set<Path> allInputFiles,
       DOTBuilder2 dotBuilder,
-      String statistics) {
+      String statistics,
+      Map<Long, Double> timeStampsPerCoverage) {
 
     try (BufferedReader reader =
             Resources.asCharSource(
@@ -270,7 +309,7 @@ public class ReportGenerator {
         } else if (line.contains("REPORT_CSS")) {
           insertCss(writer);
         } else if (line.contains("REPORT_JS")) {
-          insertJs(writer, cfa, allInputFiles, dotBuilder, counterExample);
+          insertJs(writer, cfa, allInputFiles, dotBuilder, counterExample, timeStampsPerCoverage);
         } else if (line.contains("STATISTICS")) {
           insertStatistics(writer, statistics);
         } else if (line.contains("SOURCE_CONTENT")) {
@@ -311,15 +350,24 @@ public class ReportGenerator {
       CFA cfa,
       Set<Path> allInputFiles,
       DOTBuilder2 dotBuilder,
-      @Nullable CounterexampleInfo counterExample)
+      @Nullable CounterexampleInfo counterExample,
+      Map<Long, Double> timeStampsPerCoverage)
       throws IOException {
     insertCfaJson(writer, cfa, dotBuilder, counterExample);
     insertArgJson(writer);
+    insertTimeStampsPerCoverageJson(writer, timeStampsPerCoverage);
     insertSourceFileNames(writer, allInputFiles);
 
     insertJsFile(writer, WORKER_DATA_TEMPLATE);
     insertJsFile(writer, VENDOR_JS_TEMPLATE);
     insertJsFile(writer, JS_TEMPLATE);
+  }
+
+  private void insertTimeStampsPerCoverageJson(
+      Writer writer, Map<Long, Double> timeStampsPerCoverage) throws IOException {
+    writer.write("var timeStampsPerCoverageJson = ");
+    JSON.writeJSONString(timeStampsPerCoverage, writer);
+    writer.write("\nwindow.timeStampsPerCoverageJson = timeStampsPerCoverageJson;\n");
   }
 
   private void insertCfaJson(

@@ -27,8 +27,15 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 public final class CoverageData {
 
   private final Map<String, FileCoverageInformation> infosPerFile = new LinkedHashMap<>();
-  private final Map<Long, Double> timeStampsPerCoverage = new LinkedHashMap<>();
-  private Instant startTime = Instant.now();
+  private final Map<Long, Double> timeStampsPerCoverage;
+
+  public CoverageData() {
+    this.timeStampsPerCoverage = new LinkedHashMap<>();
+  }
+
+  public CoverageData(Map<Long, Double> pTimeStampsPerCoverage) {
+    this.timeStampsPerCoverage = pTimeStampsPerCoverage;
+  }
 
   public static boolean coversLine(CFAEdge pEdge) {
     FileLocation loc = pEdge.getFileLocation();
@@ -112,7 +119,7 @@ public final class CoverageData {
     }
   }
 
-  public void addTimeStamp(final CFAEdge pEdge) {
+  public void addTimeStamp(final CFAEdge pEdge, Instant startTime) {
     if (!coversLine(pEdge)) {
       return;
     }
@@ -125,7 +132,6 @@ public final class CoverageData {
       visitedLinesCoverage = numVisitedLines / (double) numTotalLines;
     }
     if (timeStampsPerCoverage.isEmpty()) {
-      startTime = Instant.now();
       timeStampsPerCoverage.put(0L, visitedLinesCoverage);
     } else {
       long durationInNanos = Duration.between(startTime, Instant.now()).toNanos();
@@ -134,7 +140,7 @@ public final class CoverageData {
     }
   }
 
-  public Map<Long, Double> timeStampsPerCoverage() {
+  public Map<Long, Double> getTimeStampsPerCoverageMap() {
     return timeStampsPerCoverage;
   }
 

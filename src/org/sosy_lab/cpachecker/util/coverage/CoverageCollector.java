@@ -14,7 +14,6 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.Iterables;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -32,10 +31,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 /** Class responsible for extracting coverage information. */
 public abstract class CoverageCollector {
 
-  public static CoverageData fromReachedSet(
-      Iterable<AbstractState> pReached, CFA cfa, Optional<CoverageData> coverageData) {
-    coverageData.ifPresent(
-        pCoverageData -> TimeDependentCoverageExporter.exportToGraph(pCoverageData));
+  public static CoverageData fromReachedSet(Iterable<AbstractState> pReached, CFA cfa) {
     return new ReachedSetCoverageCollector().collectFromReachedSet(pReached, cfa);
   }
 

@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.coverage;
 
 import com.google.common.base.Preconditions;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -22,9 +23,11 @@ import org.sosy_lab.cpachecker.util.coverage.CoverageData;
 public class CoverageTransferRelation extends SingleEdgeTransferRelation {
 
   private final CoverageData cov;
+  private final Instant startTime;
 
   public CoverageTransferRelation(CoverageData pCov) {
     cov = Preconditions.checkNotNull(pCov);
+    startTime = Instant.now();
   }
 
   @Override
@@ -36,7 +39,7 @@ public class CoverageTransferRelation extends SingleEdgeTransferRelation {
 
   private void handleEdge(CFAEdge pEdge) {
     cov.addVisitedEdge(pEdge);
-    cov.addTimeStamp(pEdge);
+    cov.addTimeStamp(pEdge, startTime);
     if (pEdge.getPredecessor() instanceof FunctionEntryNode) {
       cov.addVisitedFunction((FunctionEntryNode) pEdge.getPredecessor());
     }
