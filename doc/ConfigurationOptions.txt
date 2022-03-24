@@ -2375,6 +2375,9 @@ cpa.predicate.refinement.cexTraceCheckDirection = ZIGZAG
   enum:     [FORWARDS, BACKWARDS, ZIGZAG, LOOP_FREE_FIRST, RANDOM, LOWEST_AVG_SCORE,
              HIGHEST_AVG_SCORE, LOOP_FREE_FIRST_BACKWARDS]
 
+# discard the information of the error path when a counterexample is found
+cpa.predicate.refinement.discardErrorPath = false
+
 # Actually compute an abstraction, otherwise just convert the interpolants to
 # BDDs as they are.
 cpa.predicate.refinement.doAbstractionComputation = false
@@ -2471,7 +2474,8 @@ cpa.predicate.refinement.reuseInterpolationEnvironment = false
 # fallback to the other if one does not succeed, or even combine the
 # interpolants.
 cpa.predicate.refinement.sequentialStrategy = FWD
-  enum:     [FWD, FWD_FALLBACK, BWD, BWD_FALLBACK, CONJUNCTION, WEIGHTED, RANDOM]
+  enum:     [FWD, FWD_FALLBACK, BWD, BWD_FALLBACK, CONJUNCTION, DISJUNCTION, WEIGHTED,
+             RANDOM]
 
 # During refinement, add all new predicates to the precisions of all abstract
 # states in the reached set.
@@ -3583,6 +3587,9 @@ heuristicSelection.recursionConfig = no default value
 # Configuration for programs with a single loop.
 heuristicSelection.singleLoopConfig = no default value
 
+# toggle asserting targets at every iteration
+imc.assertTargetsAtEveryIteration = false
+
 # toggle checking forward conditions
 imc.checkForwardConditions = true
 
@@ -3591,10 +3598,6 @@ imc.fallBack = true
 
 # toggle using interpolation to verify programs with loops
 imc.interpolation = true
-
-# toggle which direction to derive interpolants
-imc.itpDeriveDirection = BACKWARD
-  enum:     [FORWARD, BACKWARD, BIDIRECTION_CONJUNCT, BIDIRECTION_DISJUNCT]
 
 # toggle removing unreachable stop states in ARG
 imc.removeUnreachableStopStates = false
@@ -3646,10 +3649,6 @@ ismc.impactLikeCovering = false
 
 # toggle using interpolation to verify programs with loops
 ismc.interpolation = true
-
-# toggle which direction to derive interpolants
-ismc.itpDeriveDirection = BACKWARD
-  enum:     [FORWARD, BACKWARD, BIDIRECTION_CONJUNCT, BIDIRECTION_DISJUNCT]
 
 # toggle removing unreachable stop states in ARG
 ismc.removeUnreachableStopStates = false
