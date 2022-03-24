@@ -175,7 +175,7 @@ let argTabDisabled = false;
         // Add X axis
         const x = d3
           .scaleLinear()
-          .domain([0, maxTime]) // This is the min and the max of the data: 0 to 100 if percentages
+          .domain([0, maxTime * 1.2]) // This is the min and the max of the data: 0 to 100 if percentages
           .range([0, width]);
         svg
           .append("g")
@@ -248,7 +248,7 @@ let argTabDisabled = false;
           .attr("y", -60)
           .attr("rx", 4)
           .attr("ry", 4)
-          .attr("opacity", 0.5)
+          .attr("opacity", 0.75)
           .lower();
 
         focus
