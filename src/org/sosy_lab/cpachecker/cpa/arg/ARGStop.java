@@ -144,8 +144,7 @@ class ARGStop implements ForcedCoveringStopOperator {
    *
    * @return true if removal is successful; false otherwise.
    */
-  private boolean tryRemoveCoveredStateFromARG(ARGState argElement)
-      throws CPAException, InterruptedException {
+  private boolean tryRemoveCoveredStateFromARG(ARGState argElement) {
     checkState(argElement.isCovered());
 
     // check if the argElement has only one parent
