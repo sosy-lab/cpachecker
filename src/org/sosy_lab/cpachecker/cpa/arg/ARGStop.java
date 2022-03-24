@@ -156,17 +156,14 @@ class ARGStop implements ForcedCoveringStopOperator {
     }
     ARGState parent = Iterables.get(argElement.getParents(), 0);
 
-    // check if the covering set contains only one state
-    if (argElement.getCoveringStates().size() != 1) {
-      return false;
-    }
-    ARGState argReachedState = Iterables.get(argElement.getCoveringStates(), 0);
-
-    // if the covering state has the same parent as the covered state
+    // TODO: check if the idea here is sound
+    // if the covered state has the same parent as all the covering states
     // and if the covered state has no other parents,
     // it should always be safe to remove the covered state
-    if (!argReachedState.getParents().contains(parent)) {
-      return false;
+    for (ARGState argReachedState : argElement.getCoveringStates()) {
+      if (!argReachedState.getParents().contains(parent)) {
+        return false;
+      }
     }
     argElement.removeFromARG();
     return true;
