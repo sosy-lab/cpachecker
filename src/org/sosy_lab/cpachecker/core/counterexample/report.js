@@ -125,7 +125,7 @@ let argTabDisabled = false;
 
     // Initialize Time Dependent Coverage Chart
     $(document).ready(() => {
-      if (Object.keys(timeStampsPerCoverageJson).length !== 0) {
+      if (timeStampsPerCoverageJson) {
         const windowWidth =
           (window.innerWidth ||
             document.documentElement.clientWidth ||
