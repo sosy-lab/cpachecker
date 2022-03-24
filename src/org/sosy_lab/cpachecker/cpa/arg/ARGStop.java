@@ -100,7 +100,14 @@ class ARGStop implements ForcedCoveringStopOperator {
         transformedImmutableSetCopy(coveringWrappedStates, absState -> stateMap.get(absState));
 
     // store the coverage relation
-    argElement.setCovered(ImmutableSet.copyOf(coveringARGStates));
+    argElement.setCovered(coveringARGStates);
+    logger.log(
+        Level.FINEST,
+        "ARGState",
+        argElement.getStateId(),
+        "is covered by",
+        coveringARGStates.size(),
+        "states.");
     return !keepCoveredStatesInReached;
   }
 
