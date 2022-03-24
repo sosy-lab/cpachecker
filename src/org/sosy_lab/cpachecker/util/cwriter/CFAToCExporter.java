@@ -67,39 +67,33 @@ public class CFAToCExporter {
     return programBuilder.toString();
   }
 
-  private String exportFunction(final FunctionEntryNode functionEntryNode) {
+  private String exportFunction(final FunctionEntryNode pFunctionEntryNode) {
     final StringBuilder functionBuilder = new StringBuilder();
     functionBuilder.append(
-        functionEntryNode
+        pFunctionEntryNode
             .getFunctionDefinition()
             .toASTString(NAMES_QUALIFIED)
             .replace(";", " {\n"));
 
     final SetMultimap<FileLocation, CFAEdge> locationToEdgesMappingWithinFunction =
-        collectCfaEdgesByFileLocation(functionEntryNode);
+        collectCfaEdgesByFileLocation(pFunctionEntryNode);
+    final Map<FileLocation, String> locationToCCodeMappingWithinFunction =
+        processCfaEdgesByFileLocation(locationToEdgesMappingWithinFunction);
 
-    for (final FileLocation loc : locationToEdgesMappingWithinFunction.keySet()) {
-      if (loc.isRealLocation()) {
-        final Set<CFAEdge> edgesWithSameLocation = locationToEdgesMappingWithinFunction.get(loc);
-        final String rawStatement =
-            Iterables.getOnlyElement(
-                edgesWithSameLocation.stream()
-                    .map(CFAEdge::getRawStatement)
-                    .collect(ImmutableSet.toImmutableSet()));
-        functionBuilder.append(rawStatement).append("\n");
-      }
+    for (final FileLocation loc : locationToCCodeMappingWithinFunction.keySet()) {
+      functionBuilder.append(locationToCCodeMappingWithinFunction.get(loc)).append("\n");
     }
     functionBuilder.append("}\n");
     return functionBuilder.toString();
   }
 
   private SetMultimap<FileLocation, CFAEdge> collectCfaEdgesByFileLocation(
-      final FunctionEntryNode functionEntryNode) {
+      final FunctionEntryNode pFunctionEntryNode) {
     final SetMultimap<FileLocation, CFAEdge> locationToEdgesMappingWithinFunction =
         MultimapBuilder.treeKeys().hashSetValues().build();
 
     final Queue<CFANode> waitList = new ArrayDeque<>();
-    waitList.offer(functionEntryNode);
+    waitList.offer(pFunctionEntryNode);
 
     while (!waitList.isEmpty()) {
       final CFANode currentNode = waitList.poll();
@@ -116,6 +110,24 @@ public class CFAToCExporter {
       }
     }
     return locationToEdgesMappingWithinFunction;
+  }
+
+  private Map<FileLocation, String> processCfaEdgesByFileLocation(
+      final SetMultimap<FileLocation, CFAEdge> pLocationToEdgesMapping) {
+    final Map<FileLocation, String> locationToCCodeMapping = new TreeMap<>();
+
+    for (final FileLocation loc : pLocationToEdgesMapping.keySet()) {
+      if (loc.isRealLocation()) {
+        final Set<CFAEdge> edgesWithSameLocation = pLocationToEdgesMapping.get(loc);
+        final String rawStatement =
+            Iterables.getOnlyElement(
+                edgesWithSameLocation.stream()
+                    .map(CFAEdge::getRawStatement)
+                    .collect(ImmutableSet.toImmutableSet()));
+        locationToCCodeMapping.put(loc, rawStatement);
+      }
+    }
+    return locationToCCodeMapping;
   }
 
   private String exportGlobalDeclarations() {
