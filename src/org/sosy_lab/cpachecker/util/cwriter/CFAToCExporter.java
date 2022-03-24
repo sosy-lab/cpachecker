@@ -7,14 +7,35 @@
 // SPDX-License-Identifier: Apache-2.0
 
 package org.sosy_lab.cpachecker.util.cwriter;
+
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.MoreCollectors;
+import com.google.common.collect.MultimapBuilder;
+import com.google.common.collect.SetMultimap;
+import java.util.ArrayDeque;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
+import java.util.TreeMap;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class CFAToCExporter {
 
+  // Use original, unqualified names for variables
   private static final boolean NAMES_QUALIFIED = false;
+
+  private SetMultimap<FileLocation, CFAEdge> locationToEdgesMappingForGlobalDeclarations;
+  private Map<FileLocation, String> locationToFunctionStringMapping;
 
   /**
    * Exports the given {@link CFA} to a C program.
@@ -23,24 +44,97 @@ public class CFAToCExporter {
    * @return C representation of the given CFA
    * @throws InvalidConfigurationException if the given CFA is not the CFA of a C program
    */
-  public String exportCfa(CFA pCfa) throws InvalidConfigurationException {
+  public String exportCfa(final CFA pCfa) throws InvalidConfigurationException {
     if (pCfa.getLanguage() != Language.C) {
       throw new InvalidConfigurationException(
           "CFA can only be exported to C for C input programs, at the moment");
     }
 
-    StringBuilder buffer = new StringBuilder();
+    locationToEdgesMappingForGlobalDeclarations =
+        MultimapBuilder.treeKeys().hashSetValues().build();
+    locationToFunctionStringMapping = new TreeMap<>();
 
-    for (FunctionEntryNode functionEntryNode : pCfa.getAllFunctionHeads()) {
-      buffer.append(
-          functionEntryNode
-              .getFunctionDefinition()
-              .toASTString(NAMES_QUALIFIED)
-              .replace(";", " {\n"));
-      // TODO
-      buffer.append("}\n");
+    for (final FunctionEntryNode functionEntryNode : pCfa.getAllFunctionHeads()) {
+      locationToFunctionStringMapping.put(
+          functionEntryNode.getFileLocation(), exportFunction(functionEntryNode));
     }
 
-    return buffer.toString();
+    final StringBuilder programBuilder = new StringBuilder();
+    programBuilder.append(exportGlobalDeclarations());
+    for (final String functionString : locationToFunctionStringMapping.values()) {
+      programBuilder.append(functionString);
+    }
+    return programBuilder.toString();
+  }
+
+  private String exportFunction(final FunctionEntryNode functionEntryNode) {
+    final StringBuilder functionBuilder = new StringBuilder();
+    functionBuilder.append(
+        functionEntryNode
+            .getFunctionDefinition()
+            .toASTString(NAMES_QUALIFIED)
+            .replace(";", " {\n"));
+
+    final SetMultimap<FileLocation, CFAEdge> locationToEdgesMappingWithinFunction =
+        collectCfaEdgesByFileLocation(functionEntryNode);
+
+    for (final FileLocation loc : locationToEdgesMappingWithinFunction.keySet()) {
+      if (loc.isRealLocation()) {
+        final Set<CFAEdge> edgesWithSameLocation = locationToEdgesMappingWithinFunction.get(loc);
+        final String rawStatement =
+            Iterables.getOnlyElement(
+                edgesWithSameLocation.stream()
+                    .map(CFAEdge::getRawStatement)
+                    .collect(ImmutableSet.toImmutableSet()));
+        functionBuilder.append(rawStatement).append("\n");
+      }
+    }
+    functionBuilder.append("}\n");
+    return functionBuilder.toString();
+  }
+
+  private SetMultimap<FileLocation, CFAEdge> collectCfaEdgesByFileLocation(
+      final FunctionEntryNode functionEntryNode) {
+    final SetMultimap<FileLocation, CFAEdge> locationToEdgesMappingWithinFunction =
+        MultimapBuilder.treeKeys().hashSetValues().build();
+
+    final Queue<CFANode> waitList = new ArrayDeque<>();
+    waitList.offer(functionEntryNode);
+
+    while (!waitList.isEmpty()) {
+      final CFANode currentNode = waitList.poll();
+
+      for (final CFAEdge cfaEdge : CFAUtils.leavingEdges(currentNode)) {
+
+        if (cfaEdge.getEdgeType() == CFAEdgeType.DeclarationEdge
+            && ((CDeclarationEdge) cfaEdge).getDeclaration().isGlobal()) {
+          locationToEdgesMappingForGlobalDeclarations.put(cfaEdge.getFileLocation(), cfaEdge);
+        } else {
+          locationToEdgesMappingWithinFunction.put(cfaEdge.getFileLocation(), cfaEdge);
+        }
+        waitList.offer(cfaEdge.getSuccessor());
+      }
+    }
+    return locationToEdgesMappingWithinFunction;
+  }
+
+  private String exportGlobalDeclarations() {
+    final StringBuilder globalDeclarationsBuilder = new StringBuilder();
+
+    for (final FileLocation loc : locationToEdgesMappingForGlobalDeclarations.keySet()) {
+      // only export original declarations
+      if (!locationToFunctionStringMapping.containsKey(loc)) {
+        assert loc.isRealLocation();
+        final Set<CFAEdge> edgesWithSameLocation =
+            locationToEdgesMappingForGlobalDeclarations.get(loc);
+        // assert, that there is exactly one edge with this location
+        final String rawStatement =
+            edgesWithSameLocation.stream()
+                .map(CFAEdge::getRawStatement)
+                .collect(MoreCollectors.onlyElement());
+        globalDeclarationsBuilder.append(rawStatement).append("\n");
+      }
+    }
+    return globalDeclarationsBuilder.toString();
   }
 }
