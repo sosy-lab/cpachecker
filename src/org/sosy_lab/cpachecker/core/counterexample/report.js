@@ -127,16 +127,16 @@ let argTabDisabled = false;
     $(document).ready(() => {
       if (Object.keys(timeStampsPerCoverageJson).length !== 0) {
         const windowWidth =
-          window.innerWidth ||
-          document.documentElement.clientWidth ||
-          document.body.clientWidth;
+          (window.innerWidth ||
+            document.documentElement.clientWidth ||
+            document.body.clientWidth) * 0.7;
 
         const windowHeight =
-          window.innerHeight ||
-          document.documentElement.clientHeight ||
-          document.body.clientHeight;
+          (window.innerHeight ||
+            document.documentElement.clientHeight ||
+            document.body.clientHeight) * 0.7;
         // set the dimensions and margins of the graph
-        const margin = { top: 20, right: 20, bottom: 40, left: 60 };
+        const margin = { top: 20, right: 20, bottom: 60, left: 60 };
         const width = windowWidth - margin.left - margin.right;
         const height = windowHeight - margin.top - margin.bottom;
         let data = [];
@@ -230,6 +230,64 @@ let argTabDisabled = false;
           .attr("cx", (d) => x(d.x))
           .attr("cy", (d) => y(d.y))
           .attr("r", 3);
+
+        const focus = svg
+          .append("g")
+          .attr("class", "focus")
+          .style("display", "none");
+
+        focus.append("circle").attr("r", 5);
+
+        focus
+          .append("rect")
+          .attr("class", "tooltip")
+          .attr("width", 100)
+          .attr("height", 50)
+          .attr("x", 10)
+          .attr("y", -22)
+          .attr("rx", 4)
+          .attr("ry", 4);
+
+        focus
+          .append("text")
+          .attr("class", "tooltip-date")
+          .attr("x", 18)
+          .attr("y", -2);
+
+        focus.append("text").attr("x", 18).attr("y", 18).text("Likes:");
+
+        focus
+          .append("text")
+          .attr("class", "tooltip-likes")
+          .attr("x", 60)
+          .attr("y", 18);
+
+        svg
+          .append("rect")
+          .attr("class", "overlay")
+          .attr("width", width)
+          .attr("height", height)
+          .on("mouseover", () => {
+            focus.style("display", null);
+          })
+          .on("mouseout", () => {
+            focus.style("display", "none");
+          })
+          .on("mousemove", () => {
+            const bisectDate = d3.bisector((d) => d.x).left;
+            const x0 = x.invert(d3.event.pageX);
+            const i = bisectDate(data, x0, 1);
+            const d0 = data[i - 1];
+            const d1 = data[i];
+            const d = x0 - d0.x > d1.x - x0 ? d1 : d0;
+            focus.attr("transform", `translate(${x(d.x)},${y(d.y)})`);
+            focus
+              .select(".tooltip-date")
+              .text(`Time: ${Math.round(d.x * 100) / 100}${timeDimension}`);
+            focus
+              .select(".tooltip-likes")
+              .text(`Coverage: ${Math.round(d.y * 100) / 100}%`);
+          });
       }
     });
 

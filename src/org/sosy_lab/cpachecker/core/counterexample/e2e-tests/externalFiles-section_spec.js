@@ -126,17 +126,6 @@ describe("External files section in Report.js", () => {
 
   it("Log tab click test", () => {
     const container = element(
-      by.xpath('//*[@id="externalFiles_section"]/div[6]')
-    );
-    browser.wait(EC.presenceOf(element(by.id("set-tab-2"))));
-    element(by.xpath('//*[@id="externalFiles_section"]/ul/li[6]/a')).click();
-    browser.wait(EC.presenceOf(container));
-    expect(container.isDisplayed()).toBeTruthy();
-  });
-  browser.driver.sleep(100);
-
-  it("Statistics tab click test", () => {
-    const container = element(
       by.xpath('//*[@id="externalFiles_section"]/div[7]')
     );
     browser.wait(EC.presenceOf(element(by.id("set-tab-2"))));
@@ -146,12 +135,23 @@ describe("External files section in Report.js", () => {
   });
   browser.driver.sleep(100);
 
-  it("Configuration tab click test", () => {
+  it("Statistics tab click test", () => {
     const container = element(
       by.xpath('//*[@id="externalFiles_section"]/div[8]')
     );
     browser.wait(EC.presenceOf(element(by.id("set-tab-2"))));
     element(by.xpath('//*[@id="externalFiles_section"]/ul/li[8]/a')).click();
+    browser.wait(EC.presenceOf(container));
+    expect(container.isDisplayed()).toBeTruthy();
+  });
+  browser.driver.sleep(100);
+
+  it("Configuration tab click test", () => {
+    const container = element(
+      by.xpath('//*[@id="externalFiles_section"]/div[9]')
+    );
+    browser.wait(EC.presenceOf(element(by.id("set-tab-2"))));
+    element(by.xpath('//*[@id="externalFiles_section"]/ul/li[9]/a')).click();
     browser.wait(EC.presenceOf(container));
     expect(container.isDisplayed()).toBeTruthy();
   });

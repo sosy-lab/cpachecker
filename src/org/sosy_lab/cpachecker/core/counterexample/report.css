@@ -888,3 +888,25 @@ text {
 #dependency-details .license-text {
   padding-top: 1rem;
 }
+
+.overlay {
+  fill: none;
+  pointer-events: all;
+}
+
+.focus circle {
+  fill: steelblue;
+}
+
+.focus text {
+  font-size: 14px;
+}
+
+.tooltip {
+  fill: white;
+  stroke: #000;
+}
+
+.tooltip-date, .tooltip-likes {
+  font-weight: bold;
+}

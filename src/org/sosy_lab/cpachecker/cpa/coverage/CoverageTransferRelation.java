@@ -32,14 +32,14 @@ public class CoverageTransferRelation extends SingleEdgeTransferRelation {
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge) throws CPATransferException {
+    if (startTime.equals(Instant.MIN)) {
+      startTime = Instant.now();
+    }
     handleEdge(pCfaEdge);
     return Collections.singleton(pElement);
   }
 
   private void handleEdge(CFAEdge pEdge) {
-    if (startTime.equals(Instant.MIN)) {
-      startTime = Instant.now();
-    }
     cov.addVisitedEdge(pEdge);
     cov.addTimeStamp(pEdge, startTime);
     if (pEdge.getPredecessor() instanceof FunctionEntryNode) {
