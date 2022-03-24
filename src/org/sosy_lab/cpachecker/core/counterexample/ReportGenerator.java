@@ -187,7 +187,7 @@ public class ReportGenerator {
       ConfigurableProgramAnalysis cpa = ((PartitionedReachedSet) pReached).getCPA();
       Optional<CoverageData> coverageData = extractTimeDependentCoverageData(cpa);
       if (coverageData.isPresent()) {
-        timeStampsPerCoverage = coverageData.get().getTimeStampsPerCoverageMap();
+        timeStampsPerCoverage = coverageData.orElseThrow().getTimeStampsPerCoverageMap();
       }
     }
 

@@ -31,6 +31,7 @@ public final class CoverageData {
 
   public CoverageData() {
     this.timeStampsPerCoverage = new LinkedHashMap<>();
+    this.timeStampsPerCoverage.put(0L, 0.0);
   }
 
   public CoverageData(Map<Long, Double> pTimeStampsPerCoverage) {
@@ -131,13 +132,9 @@ public final class CoverageData {
     if (numTotalLines > 0) {
       visitedLinesCoverage = numVisitedLines / (double) numTotalLines;
     }
-    if (timeStampsPerCoverage.isEmpty()) {
-      timeStampsPerCoverage.put(0L, visitedLinesCoverage);
-    } else {
-      long durationInNanos = Duration.between(startTime, Instant.now()).toNanos();
-      long durationInMicros = TimeUnit.NANOSECONDS.toMicros(durationInNanos);
-      timeStampsPerCoverage.put(durationInMicros, visitedLinesCoverage);
-    }
+    long durationInNanos = Duration.between(startTime, Instant.now()).toNanos();
+    long durationInMicros = TimeUnit.NANOSECONDS.toMicros(durationInNanos);
+    timeStampsPerCoverage.put(durationInMicros, visitedLinesCoverage);
   }
 
   public Map<Long, Double> getTimeStampsPerCoverageMap() {
