@@ -23,11 +23,10 @@ import org.sosy_lab.cpachecker.util.coverage.CoverageData;
 public class CoverageTransferRelation extends SingleEdgeTransferRelation {
 
   private final CoverageData cov;
-  private final Instant startTime;
+  private Instant startTime = Instant.MIN;
 
   public CoverageTransferRelation(CoverageData pCov) {
     cov = Preconditions.checkNotNull(pCov);
-    startTime = Instant.now();
   }
 
   @Override
@@ -38,6 +37,9 @@ public class CoverageTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private void handleEdge(CFAEdge pEdge) {
+    if (startTime.equals(Instant.MIN)) {
+      startTime = Instant.now();
+    }
     cov.addVisitedEdge(pEdge);
     cov.addTimeStamp(pEdge, startTime);
     if (pEdge.getPredecessor() instanceof FunctionEntryNode) {
