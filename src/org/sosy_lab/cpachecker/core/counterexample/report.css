@@ -895,18 +895,14 @@ text {
 }
 
 .focus circle {
-  fill: steelblue;
+  fill: #10b705;
 }
 
 .focus text {
   font-size: 14px;
 }
 
-.tooltip {
-  fill: white;
-  stroke: #000;
-}
-
-.tooltip-date, .tooltip-likes {
+.tooltip-x,
+.tooltip-y {
   font-weight: bold;
 }

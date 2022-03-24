@@ -129,7 +129,7 @@ describe("External files section in Report.js", () => {
       by.xpath('//*[@id="externalFiles_section"]/div[7]')
     );
     browser.wait(EC.presenceOf(element(by.id("set-tab-2"))));
-    element(by.xpath('//*[@id="externalFiles_section"]/ul/li[7]/a')).click();
+    element(by.xpath('//*[@id="externalFiles_section"]/ul/li[6]/a')).click();
     browser.wait(EC.presenceOf(container));
     expect(container.isDisplayed()).toBeTruthy();
   });
@@ -140,7 +140,7 @@ describe("External files section in Report.js", () => {
       by.xpath('//*[@id="externalFiles_section"]/div[8]')
     );
     browser.wait(EC.presenceOf(element(by.id("set-tab-2"))));
-    element(by.xpath('//*[@id="externalFiles_section"]/ul/li[8]/a')).click();
+    element(by.xpath('//*[@id="externalFiles_section"]/ul/li[7]/a')).click();
     browser.wait(EC.presenceOf(container));
     expect(container.isDisplayed()).toBeTruthy();
   });
@@ -151,7 +151,7 @@ describe("External files section in Report.js", () => {
       by.xpath('//*[@id="externalFiles_section"]/div[9]')
     );
     browser.wait(EC.presenceOf(element(by.id("set-tab-2"))));
-    element(by.xpath('//*[@id="externalFiles_section"]/ul/li[9]/a')).click();
+    element(by.xpath('//*[@id="externalFiles_section"]/ul/li[8]/a')).click();
     browser.wait(EC.presenceOf(container));
     expect(container.isDisplayed()).toBeTruthy();
   });

@@ -240,27 +240,28 @@ let argTabDisabled = false;
 
         focus
           .append("rect")
-          .attr("class", "tooltip")
-          .attr("width", 100)
+          .attr("width", 130)
           .attr("height", 50)
-          .attr("x", 10)
-          .attr("y", -22)
+          .attr("fill", "#b4b4b4")
+          .attr("stroke", "#000000")
+          .attr("x", -5)
+          .attr("y", -60)
           .attr("rx", 4)
-          .attr("ry", 4);
+          .attr("ry", 4)
+          .attr("opacity", 0.5)
+          .lower();
 
         focus
           .append("text")
-          .attr("class", "tooltip-date")
-          .attr("x", 18)
-          .attr("y", -2);
-
-        focus.append("text").attr("x", 18).attr("y", 18).text("Likes:");
+          .attr("class", "tooltip-x")
+          .attr("x", 0)
+          .attr("y", -40);
 
         focus
           .append("text")
-          .attr("class", "tooltip-likes")
-          .attr("x", 60)
-          .attr("y", 18);
+          .attr("class", "tooltip-y")
+          .attr("x", 0)
+          .attr("y", -20);
 
         svg
           .append("rect")
@@ -275,17 +276,17 @@ let argTabDisabled = false;
           })
           .on("mousemove", () => {
             const bisectDate = d3.bisector((d) => d.x).left;
-            const x0 = x.invert(d3.event.pageX);
+            const x0 = x.invert(d3.event.pageX - margin.left);
             const i = bisectDate(data, x0, 1);
             const d0 = data[i - 1];
             const d1 = data[i];
             const d = x0 - d0.x > d1.x - x0 ? d1 : d0;
             focus.attr("transform", `translate(${x(d.x)},${y(d.y)})`);
             focus
-              .select(".tooltip-date")
+              .select(".tooltip-x")
               .text(`Time: ${Math.round(d.x * 100) / 100}${timeDimension}`);
             focus
-              .select(".tooltip-likes")
+              .select(".tooltip-y")
               .text(`Coverage: ${Math.round(d.y * 100) / 100}%`);
           });
       }
