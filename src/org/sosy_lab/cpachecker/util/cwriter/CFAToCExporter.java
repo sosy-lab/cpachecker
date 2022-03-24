@@ -80,8 +80,9 @@ public class CFAToCExporter {
     final Map<FileLocation, String> locationToCCodeMappingWithinFunction =
         processCfaEdgesByFileLocation(locationToEdgesMappingWithinFunction);
 
-    for (final FileLocation loc : locationToCCodeMappingWithinFunction.keySet()) {
-      functionBuilder.append(locationToCCodeMappingWithinFunction.get(loc)).append("\n");
+    for (final Map.Entry<FileLocation, String> locWithCCode :
+        locationToCCodeMappingWithinFunction.entrySet()) {
+      functionBuilder.append(locWithCCode.getValue()).append("\n");
     }
     functionBuilder.append("}\n");
     return functionBuilder.toString();
