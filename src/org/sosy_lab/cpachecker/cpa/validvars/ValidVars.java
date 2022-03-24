@@ -89,7 +89,7 @@ public class ValidVars implements Serializable {
     }
 
     if (changed) {
-      return new ValidVars(newGlobals, builderMap.build(), numFunctionCalled);
+      return new ValidVars(newGlobals, builderMap.buildOrThrow(), numFunctionCalled);
     }
 
     return pOther;
@@ -149,7 +149,7 @@ public class ValidVars implements Serializable {
       }
       builder.addAll(newLocalVarsNames);
       builderMap.put(funName, builder.build());
-      return builderMap.build();
+      return builderMap.buildOrThrow();
     }
     return localValidVars;
   }
@@ -177,7 +177,8 @@ public class ValidVars implements Serializable {
           builderMap.put(functionName, entry.getValue());
         }
       }
-      return new ValidVars(globalValidVars, builderMap.build(), decreaseNumForFunction(funName));
+      return new ValidVars(
+          globalValidVars, builderMap.buildOrThrow(), decreaseNumForFunction(funName));
     }
     return this;
   }
@@ -194,7 +195,7 @@ public class ValidVars implements Serializable {
         }
       }
     }
-    return builder.build();
+    return builder.buildOrThrow();
   }
 
   private Map<String, Byte> increaseNumForFunction(String pFunctionName) {
@@ -210,7 +211,7 @@ public class ValidVars implements Serializable {
     if (!numFunctionCalled.containsKey(pFunctionName)) {
       builder.put(pFunctionName, (byte) 1);
     }
-    return builder.build();
+    return builder.buildOrThrow();
   }
 
   @Override

@@ -127,7 +127,7 @@ public class ConfigurationParser {
             fName, new AnnotationInfo(freeLocks, restoreLocks, resetLocks, captureLocks));
       }
     }
-    return annotatedfunctions.build();
+    return annotatedfunctions.buildOrThrow();
   }
 
   @SuppressWarnings("deprecation")

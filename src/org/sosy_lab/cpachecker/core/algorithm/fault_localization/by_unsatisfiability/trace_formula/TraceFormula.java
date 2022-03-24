@@ -10,10 +10,13 @@ package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiab
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayDeque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 import org.sosy_lab.common.configuration.Configuration;
@@ -41,8 +44,8 @@ public abstract class TraceFormula {
   protected final Selector.Factory selectorFactory;
 
   protected BooleanFormulaManager bmgr;
-  protected BooleanFormula postcondition;
-  protected BooleanFormula precondition;
+  protected PostCondition postcondition;
+  protected PreCondition precondition;
   protected BooleanFormula trace;
 
   protected int postConditionOffset;
@@ -153,14 +156,14 @@ public abstract class TraceFormula {
   }
 
   public boolean isCalculationPossible() throws SolverException, InterruptedException {
-    return !context.getSolver().isUnsat(bmgr.and(postcondition, precondition));
+    return !context.getSolver().isUnsat(bmgr.and(postcondition.condition, precondition.condition));
   }
 
-  public BooleanFormula getPostcondition() {
+  public PostCondition getPostcondition() {
     return postcondition;
   }
 
-  public BooleanFormula getPrecondition() {
+  public PreCondition getPrecondition() {
     return precondition;
   }
 
@@ -169,7 +172,7 @@ public abstract class TraceFormula {
   }
 
   public BooleanFormula getTraceFormula() {
-    return bmgr.and(precondition, trace, postcondition);
+    return bmgr.and(precondition.condition, trace, postcondition.condition);
   }
 
   public FormulaEntryList getEntries() {
@@ -184,7 +187,7 @@ public abstract class TraceFormula {
     return traceSize() - postConditionOffset;
   }
 
-  private BooleanFormula calculatePrecondition() throws SolverException, InterruptedException {
+  private PreCondition calculatePrecondition() throws SolverException, InterruptedException {
     BooleanFormula precond = bmgr.makeTrue();
     try (ProverEnvironment prover = context.getProver()) {
       prover.push(bmgr.and(entries.toAtomList()));
@@ -203,7 +206,8 @@ public abstract class TraceFormula {
     } else {
       entries.addEntry(0, new FormulaEntryList.PreconditionEntry(SSAMap.emptySSAMap()));
     }
-    return precond;
+    // cannot find edges for model
+    return new PreCondition(ImmutableSet.of(), precond);
   }
 
   public Selector.Factory getSelectorFactory() {
@@ -222,8 +226,10 @@ public abstract class TraceFormula {
    *
    * @return post-condition
    */
-  private BooleanFormula calculatePostCondition() {
+  private PostCondition calculatePostCondition() {
     BooleanFormula postCond = bmgr.makeTrue();
+    Set<CFAEdge> containedInPostCondition = new HashSet<>();
+    Set<CFAEdge> ignoredEdgesAfterPostCond = new HashSet<>();
     int lastAssume = -1;
     for (int i = edges.size() - 1; i >= 0; i--) {
       CFAEdge curr = edges.get(i);
@@ -242,6 +248,7 @@ public abstract class TraceFormula {
               .log(
                   Level.FINEST,
                   "tfpostcondition=" + curr.getFileLocation().getStartingLineInOrigin());
+          containedInPostCondition.add(curr);
           postConditionOffset = i;
         } else {
           // as soon as curr is on another line or the edge type changes, break. Otherwise add to
@@ -266,6 +273,7 @@ public abstract class TraceFormula {
                     Level.FINEST,
                     "tfpostcondition=line " + curr.getFileLocation().getStartingLineInOrigin());
             postCond = bmgr.and(postCond, formula);
+            containedInPostCondition.add(curr);
             postConditionOffset = i;
           }
         }
@@ -274,9 +282,11 @@ public abstract class TraceFormula {
         if (lastAssume != -1) {
           break;
         }
+        ignoredEdgesAfterPostCond.add(curr);
       }
     }
-    return bmgr.not(postCond);
+    return new PostCondition(
+        containedInPostCondition, ignoredEdgesAfterPostCond, bmgr.not(postCond));
   }
 
   /** Calculate the boolean formulas for every edge including the SSA-maps and the selectors. */
@@ -453,6 +463,61 @@ public abstract class TraceFormula {
           edge.getEntry().setAtom(implication);
         }
       }
+    }
+  }
+
+  public interface TraceFormulaConstraint {
+    BooleanFormula condition();
+
+    ImmutableSet<CFAEdge> responsibleEdges();
+  }
+
+  public static class PreCondition implements TraceFormulaConstraint {
+
+    private final BooleanFormula condition;
+    private final ImmutableSet<CFAEdge> responsibleEdges;
+
+    public PreCondition(Set<CFAEdge> pEdgesInPrecondition, BooleanFormula pFormula) {
+      responsibleEdges = ImmutableSet.copyOf(pEdgesInPrecondition);
+      condition = pFormula;
+    }
+
+    @Override
+    public BooleanFormula condition() {
+      return condition;
+    }
+
+    @Override
+    public ImmutableSet<CFAEdge> responsibleEdges() {
+      return responsibleEdges;
+    }
+  }
+
+  public static class PostCondition implements TraceFormulaConstraint {
+
+    private final BooleanFormula condition;
+    private final ImmutableSet<CFAEdge> responsibleEdges;
+    private final ImmutableSet<CFAEdge> ignoredEdges;
+
+    public PostCondition(
+        Set<CFAEdge> pEdgesInPrecondition, Set<CFAEdge> pIgnoredEdges, BooleanFormula pFormula) {
+      responsibleEdges = ImmutableSet.copyOf(pEdgesInPrecondition);
+      ignoredEdges = ImmutableSet.copyOf(pIgnoredEdges);
+      condition = pFormula;
+    }
+
+    @Override
+    public BooleanFormula condition() {
+      return condition;
+    }
+
+    @Override
+    public ImmutableSet<CFAEdge> responsibleEdges() {
+      return responsibleEdges;
+    }
+
+    public ImmutableSet<CFAEdge> getIgnoredEdges() {
+      return ignoredEdges;
     }
   }
 }

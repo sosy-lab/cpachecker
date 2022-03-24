@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 import static com.google.common.base.Strings.nullToEmpty;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import static org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.SINK_NODE_ID;
 
@@ -85,6 +86,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula.PostCondition;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula.PreCondition;
 import org.sosy_lab.cpachecker.core.counterexample.CExpressionToOrinalCodeVisitor;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
@@ -116,6 +119,8 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.expressions.Simplifier;
+import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
+import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
 
 class WitnessFactory implements EdgeAppender {
 
@@ -185,6 +190,10 @@ class WitnessFactory implements EdgeAppender {
   private boolean isFunctionScope = false;
   private final Multimap<String, ASimpleDeclaration> seenDeclarations = HashMultimap.create();
   protected Set<AdditionalInfoConverter> additionalInfoConverters = ImmutableSet.of();
+
+  // used for witness reduction with fault localization
+  // ignored if empty
+  private final Set<CFAEdge> edgesInFault = new HashSet<>();
 
   WitnessFactory(
       WitnessOptions pOptions,
@@ -1020,6 +1029,7 @@ class WitnessFactory implements EdgeAppender {
     invariantExportStates.clear();
     stateToARGStates.clear();
     edgeToCFAEdges.clear();
+    edgesInFault.clear();
 
     BiPredicate<ARGState, ARGState> isRelevantEdge = pIsRelevantEdge;
     Multimap<ARGState, CFAEdgeWithAssumptions> valueMap = ImmutableListMultimap.of();
@@ -1027,11 +1037,32 @@ class WitnessFactory implements EdgeAppender {
     additionalInfoConverters = getAdditionalInfoConverters(pCounterExample);
 
     if (pCounterExample.isPresent()) {
-      if (pCounterExample.orElseThrow().isPreciseCounterExample()) {
+      CounterexampleInfo cex = pCounterExample.orElseThrow();
+      if (cex.isPreciseCounterExample()) {
         valueMap =
             Multimaps.transformValues(
                 pCounterExample.orElseThrow().getExactVariableValues(),
                 WitnessAssumptionFilter::filterRelevantAssumptions);
+        if (cex instanceof FaultLocalizationInfo) {
+          FaultLocalizationInfo fInfo = (FaultLocalizationInfo) cex;
+          List<Fault> faults = fInfo.getRankedList();
+          if (!faults.isEmpty()) {
+            Fault bestFault = faults.get(0);
+            FluentIterable.from(bestFault)
+                .transform(fc -> fc.correspondingEdge())
+                .copyInto(edgesInFault);
+            if (fInfo.getPostcondition().isPresent()) {
+              PostCondition postCondition = fInfo.getPostcondition().orElseThrow();
+              edgesInFault.addAll(postCondition.getIgnoredEdges());
+              edgesInFault.addAll(postCondition.responsibleEdges());
+            }
+            if (fInfo.getPrecondition().isPresent()) {
+              PreCondition preCondition = fInfo.getPrecondition().orElseThrow();
+              edgesInFault.addAll(preCondition.responsibleEdges());
+            }
+            valueMap = Multimaps.filterValues(valueMap, v -> edgesInFault.contains(v.getCFAEdge()));
+          }
+        }
       } else {
         isRelevantEdge = BiPredicates.bothSatisfy(pIsRelevantState);
       }
@@ -1346,6 +1377,33 @@ class WitnessFactory implements EdgeAppender {
     return true;
   }
 
+  private boolean isEdgeIrrelevantByFaultLocalization(Edge pEdge) {
+    if (edgesInFault.isEmpty()) {
+      return false;
+    }
+    // has to be calculated newly everytime because of adaptions to edgeToCFAEdges
+    // finds all outgoing edges to sinks for relevant nodes
+    Set<String> importantNodes =
+        transformedImmutableSetCopy(
+            Multimaps.filterValues(edgeToCFAEdges, cfaEdge -> edgesInFault.contains(cfaEdge))
+                .keySet(),
+            e -> e.getSource());
+
+    // not irrelevant if it is an edge to a sink node and the source node is part of the fault
+    if (pEdge.getTarget().equals(SINK_NODE_ID) && importantNodes.contains(pEdge.getSource())) {
+      return false;
+    }
+
+    // not irrelevant if pEdge maps to an edge containing an edge in fault
+    for (CFAEdge cfaEdge : edgeToCFAEdges.get(pEdge)) {
+      if (edgesInFault.contains(cfaEdge)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
   /**
    * this predicate marks intermediate edges that do not contain relevant information and can
    * therefore be shortcut.
@@ -1355,7 +1413,7 @@ class WitnessFactory implements EdgeAppender {
     final String target = pEdge.getTarget();
     final TransitionCondition label = pEdge.getLabel();
 
-    if (isIrrelevantNode(target)) {
+    if (isIrrelevantNode(target) || isEdgeIrrelevantByFaultLocalization(pEdge)) {
       return true;
     }
 
