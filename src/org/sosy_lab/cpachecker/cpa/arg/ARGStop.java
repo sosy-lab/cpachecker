@@ -8,10 +8,12 @@
 
 package org.sosy_lab.cpachecker.cpa.arg;
 
+import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.logging.Level;
@@ -78,7 +80,7 @@ class ARGStop implements ForcedCoveringStopOperator {
     if (!(wrappedStop instanceof CoveringStateSetProvider)) {
       if (wrappedStop.stop(argElement.getWrappedState(), mayCoverWrappedStates, pPrecision)) {
         argElement.setCovered(mayCoverARGStates);
-        return !keepCoveredStatesInReached;
+        return tryRemoveCoveredStateFromARG(argElement) ? true : !keepCoveredStatesInReached;
       }
       return false;
     }
@@ -108,7 +110,7 @@ class ARGStop implements ForcedCoveringStopOperator {
         "is covered by",
         coveringARGStates.size(),
         "states.");
-    return !keepCoveredStatesInReached;
+    return tryRemoveCoveredStateFromARG(argElement) ? true : !keepCoveredStatesInReached;
   }
 
   /** Retrieve the set of may-cover candidate ARG states. */
@@ -137,6 +139,37 @@ class ARGStop implements ForcedCoveringStopOperator {
       candidates.add(argState);
     }
     return candidates.build();
+  }
+
+  /**
+   * Try to remove the covered state from the ARG.
+   *
+   * @return true if removal is successful; false otherwise.
+   */
+  private boolean tryRemoveCoveredStateFromARG(ARGState argElement)
+      throws CPAException, InterruptedException {
+    checkState(argElement.isCovered());
+
+    // check if the argElement has only one parent
+    if (argElement.getParents().size() != 1) {
+      return false;
+    }
+    ARGState parent = Iterables.get(argElement.getParents(), 0);
+
+    // check if the covering set contains only one state
+    if (argElement.getCoveringStates().size() != 1) {
+      return false;
+    }
+    ARGState argReachedState = Iterables.get(argElement.getCoveringStates(), 0);
+
+    // if the covering state has the same parent as the covered state
+    // and if the covered state has no other parents,
+    // it should always be safe to remove the covered state
+    if (!argReachedState.getParents().contains(parent)) {
+      return false;
+    }
+    argElement.removeFromARG();
+    return true;
   }
 
   private boolean checkCoveredByMergedWith(
