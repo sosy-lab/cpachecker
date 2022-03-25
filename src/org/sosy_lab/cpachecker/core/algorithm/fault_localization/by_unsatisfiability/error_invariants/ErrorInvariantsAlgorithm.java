@@ -128,7 +128,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
         interpolationManager.buildCounterexampleTrace(new BlockFormulas(allFormulas));
     return transformedImmutableListCopy(
         counterexampleTraceInfo.getInterpolants(),
-        formulaContext.getSolver().getFormulaManager()::uninstantiate);
+        element -> formulaContext.getSolver().getFormulaManager().uninstantiate(element));
   }
 
   @Override

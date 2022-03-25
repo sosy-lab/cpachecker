@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.faultlocalization;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.io.Writer;
@@ -219,5 +220,9 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
     super.getTargetPath().getLastState().replaceCounterexampleInformation(this);
   }
 
-  public void addSpecificInformationToHTMLReport(Writer pWriter) throws IOException {}
+  public void writePrecondition(Writer writer) throws IOException {
+    // no precondition by default (only set by ErrorInvariants, SingleUnsatCore, and MaxSat)
+    writer.write(",\n\"precondition\":");
+    JSON.writeJSONString(ImmutableMap.of("fl-precondition", ""), writer);
+  }
 }

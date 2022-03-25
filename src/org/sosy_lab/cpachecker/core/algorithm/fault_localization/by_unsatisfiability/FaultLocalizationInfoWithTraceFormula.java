@@ -61,7 +61,7 @@ public class FaultLocalizationInfoWithTraceFormula extends FaultLocalizationInfo
   }
 
   @Override
-  public void addSpecificInformationToHTMLReport(Writer writer) throws IOException {
+  public void writePrecondition(Writer writer) throws IOException {
     writer.write(",\n\"precondition\":");
     List<String> preconditionParts = new ArrayList<>();
     for (CFAEdge cfaEdge : traceFormula.getPrecondition().getEdgesForPrecondition()) {

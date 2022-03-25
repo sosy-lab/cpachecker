@@ -21,27 +21,29 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 public enum PostConditionTypes {
   /**
-   * <p>Finds the last assume edge in the counterexample and uses it as post-condition.</p>
-   * <br>
+   * Finds the last assume edge in the counterexample and uses it as post-condition. <br>
+   *
    * <p>Example 1:
-   * <pre>
+   *
+   * <pre>{@code
    * if (x == 0 && y == 10) {
    *   //...
    * }
-   * </pre>
-   * Results in the post-condition: y == 10.
-   * </p>
-   * <br>
+   * }</pre>
+   *
+   * Results in the post-condition: y == 10. <br>
+   *
    * <p>Example 2:
-   * <pre>
+   *
+   * <pre>{@code
    * if (x == 0) {
    *   if (y == 10) {
    *     //...
    *   }
    * }
-   * </pre>
+   * }</pre>
+   *
    * Results in the post-condition: y == 10.
-   * </p>
    */
   ONLY_LAST_ASSUME_EDGE {
     @Override
@@ -75,28 +77,30 @@ public enum PostConditionTypes {
     }
   },
   /**
-   * <p>Finds the last assume edge in the counterexample and uses it as post-condition and additionally
-   * conjuncts all directly succeeding assume-edges that are on the same line.</p>
-   * <br>
+   * Finds the last assume edge in the counterexample and uses it as post-condition and additionally
+   * conjuncts all directly succeeding assume-edges that are on the same line. <br>
+   *
    * <p>Example 1:
-   * <pre>
+   *
+   * <pre>{@code
    * if (x == 0 && y == 10) {
    *   //...
    * }
-   * </pre>
-   * Results in the post-condition: x == 10 && y == 10.
-   * </p>
-   * <br>
+   * }</pre>
+   *
+   * Results in the post-condition: x == 10 && y == 10. <br>
+   *
    * <p>Example 2:
-   * <pre>
+   *
+   * <pre>{@code
    * if (x == 0) {
    *   if (y == 10) {
    *     //...
    *   }
    * }
-   * </pre>
+   * }</pre>
+   *
    * Results in the post-condition: y == 10.
-   * </p>
    */
   LAST_ASSUME_EDGES_ON_SAME_LINE {
     @Override
@@ -150,28 +154,30 @@ public enum PostConditionTypes {
     }
   },
   /**
-   * <p>Finds the last assume edge in the counterexample and uses it as post-condition and additionally
-   * conjuncts all directly succeeding assume-edges.</p>
-   * <br>
+   * Finds the last assume edge in the counterexample and uses it as post-condition and additionally
+   * conjuncts all directly succeeding assume-edges. <br>
+   *
    * <p>Example 1:
-   * <pre>
+   *
+   * <pre>{@code
    * if (x == 0 && y == 10) {
    *   //...
    * }
-   * </pre>
-   * Results in the post-condition: x == 10 && y == 10.
-   * </p>
-   * <br>
+   * }</pre>
+   *
+   * Results in the post-condition: x == 10 && y == 10. <br>
+   *
    * <p>Example 2:
-   * <pre>
+   *
+   * <pre>{@code
    * if (x == 0) {
    *   if (y == 10) {
    *     //...
    *   }
    * }
-   * </pre>
+   * }</pre>
+   *
    * Results in the post-condition: x == 10 && y == 10.
-   * </p>
    */
   LAST_ASSUME_EDGE_CLUSTER {
     @Override
