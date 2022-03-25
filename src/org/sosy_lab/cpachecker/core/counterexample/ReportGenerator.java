@@ -356,8 +356,7 @@ public class ReportGenerator {
         counterExample.toJSON(writer);
         writer.write(",\n\"faults\":");
         flInfo.faultsToJSON(writer);
-        writer.write(",\n\"precondition\":");
-        flInfo.writePrecondition(writer);
+        flInfo.addSpecificInformationToHTMLReport(writer);
       } else {
         writer.write(",\n\"errorPath\":");
         counterExample.toJSON(writer);

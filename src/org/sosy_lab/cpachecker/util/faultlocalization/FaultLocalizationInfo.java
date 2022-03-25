@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.util.faultlocalization;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.io.Writer;
@@ -20,18 +19,13 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula.PostCondition;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula.PreCondition;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaToCVisitor;
 
 public class FaultLocalizationInfo extends CounterexampleInfo {
 
@@ -45,11 +39,6 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
   private Multimap<CFAEdge, Integer> mapEdgeToRankedFaultIndex;
 
   private Map<CFAEdge, FaultContribution> mapEdgeToFaultContribution;
-
-  private final Optional<PreCondition> precondition;
-  private final Optional<PostCondition> postcondition;
-  private final Optional<FormulaManagerView> formulaManager;
-
   /**
    * Fault localization algorithms will result in a set of sets of CFAEdges that are most likely to
    * fix a bug. Transforming it into a Set of Faults enables the possibility to attach reasons of
@@ -77,9 +66,6 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
         pParent.isPreciseCounterExample(),
         CFAPathWithAdditionalInfo.empty());
     rankedList = ImmutableList.copyOf(pFaults);
-    precondition = Optional.empty();
-    postcondition = Optional.empty();
-    formulaManager = Optional.empty();
     htmlWriter = new FaultReportWriter();
   }
 
@@ -111,50 +97,6 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
         pParent.isPreciseCounterExample(),
         CFAPathWithAdditionalInfo.empty());
     rankedList = FaultRankingUtils.rank(pRanking, pFaults);
-    precondition = Optional.empty();
-    postcondition = Optional.empty();
-    formulaManager = Optional.empty();
-    htmlWriter = new FaultReportWriter();
-  }
-
-  /**
-   * Fault localization algorithms will result in a set of sets of CFAEdges that are most likely to
-   * fix a bug. Transforming it into a Set of Faults enables the possibility to attach reasons of
-   * why this edge is in this set. After ranking the set of faults an instance of this class can be
-   * created.
-   *
-   * <p>The class should be used to display information to the user.
-   *
-   * <p>Note that there is no need to create multiple instances of this object if more than one
-   * ranking should be applied. FaultRankingUtils provides a method that concatenates multiple
-   * rankings.
-   *
-   * <p>To see the result of FaultLocalizationInfo replace the CounterexampleInfo of the target
-   * state by this or simply call {@link #apply()} on an instance of this class.
-   *
-   * @param pFaults set of faults obtained by a fault localization algorithm
-   * @param pScoring how to calculate the scores of each fault
-   * @param pPrecondition the precondition of a trace formula
-   * @param pFormulaManager formula manager used to handle BooleanFormulas in pFaults
-   * @param pParent the counterexample info of the target state
-   */
-  public FaultLocalizationInfo(
-      Set<Fault> pFaults,
-      FaultScoring pScoring,
-      PreCondition pPrecondition,
-      PostCondition pPostCondition,
-      FormulaManagerView pFormulaManager,
-      CounterexampleInfo pParent) {
-    super(
-        pParent.isSpurious(),
-        pParent.getTargetPath(),
-        pParent.getCFAPathWithAssignments(),
-        pParent.isPreciseCounterExample(),
-        CFAPathWithAdditionalInfo.empty());
-    rankedList = FaultRankingUtils.rank(pScoring, pFaults);
-    precondition = Optional.of(pPrecondition);
-    postcondition = Optional.of(pPostCondition);
-    formulaManager = Optional.of(pFormulaManager);
     htmlWriter = new FaultReportWriter();
   }
 
@@ -277,26 +219,5 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
     super.getTargetPath().getLastState().replaceCounterexampleInformation(this);
   }
 
-  public void writePrecondition(Writer writer) throws IOException {
-    String preconditionString = "";
-    if (precondition.isPresent()) {
-      if (formulaManager.isPresent()) {
-        FormulaManagerView manager = formulaManager.orElseThrow();
-        FormulaToCVisitor visitor = new FormulaToCVisitor(manager);
-        manager.visit(precondition.orElseThrow().condition(), visitor);
-        preconditionString = visitor.getString();
-      } else {
-        preconditionString = precondition.orElseThrow().toString();
-      }
-    }
-    JSON.writeJSONString(ImmutableMap.of("fl-precondition", preconditionString), writer);
-  }
-
-  public Optional<PostCondition> getPostcondition() {
-    return postcondition;
-  }
-
-  public Optional<PreCondition> getPrecondition() {
-    return precondition;
-  }
+  public void addSpecificInformationToHTMLReport(Writer pWriter) throws IOException {}
 }

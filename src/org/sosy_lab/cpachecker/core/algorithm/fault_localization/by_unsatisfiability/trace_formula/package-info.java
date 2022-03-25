@@ -6,4 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+/**
+ * Models trace formulas with precondition, trace, and post-condition
+ */
 package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula;

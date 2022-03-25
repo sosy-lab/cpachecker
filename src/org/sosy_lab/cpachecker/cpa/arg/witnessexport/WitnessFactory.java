@@ -86,8 +86,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula.PostCondition;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula.PreCondition;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.FaultLocalizationInfoWithTraceFormula;
 import org.sosy_lab.cpachecker.core.counterexample.CExpressionToOrinalCodeVisitor;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
@@ -120,7 +119,6 @@ import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.expressions.Simplifier;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
-import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
 
 class WitnessFactory implements EdgeAppender {
 
@@ -1043,23 +1041,17 @@ class WitnessFactory implements EdgeAppender {
             Multimaps.transformValues(
                 pCounterExample.orElseThrow().getExactVariableValues(),
                 WitnessAssumptionFilter::filterRelevantAssumptions);
-        if (cex instanceof FaultLocalizationInfo) {
-          FaultLocalizationInfo fInfo = (FaultLocalizationInfo) cex;
+        if (cex instanceof FaultLocalizationInfoWithTraceFormula) {
+          FaultLocalizationInfoWithTraceFormula fInfo = (FaultLocalizationInfoWithTraceFormula) cex;
           List<Fault> faults = fInfo.getRankedList();
           if (!faults.isEmpty()) {
             Fault bestFault = faults.get(0);
             FluentIterable.from(bestFault)
                 .transform(fc -> fc.correspondingEdge())
                 .copyInto(edgesInFault);
-            if (fInfo.getPostcondition().isPresent()) {
-              PostCondition postCondition = fInfo.getPostcondition().orElseThrow();
-              edgesInFault.addAll(postCondition.getIgnoredEdges());
-              edgesInFault.addAll(postCondition.responsibleEdges());
-            }
-            if (fInfo.getPrecondition().isPresent()) {
-              PreCondition preCondition = fInfo.getPrecondition().orElseThrow();
-              edgesInFault.addAll(preCondition.responsibleEdges());
-            }
+            edgesInFault.addAll(fInfo.getTraceFormula().getPrecondition().getEdgesForPrecondition());
+            edgesInFault.addAll(fInfo.getTraceFormula().getPostCondition().getEdgesForPostCondition());
+            edgesInFault.addAll(fInfo.getTraceFormula().getPostCondition().getIrrelevantEdges());
             valueMap = Multimaps.filterValues(valueMap, v -> edgesInFault.contains(v.getCFAEdge()));
           }
         }
@@ -1378,6 +1370,10 @@ class WitnessFactory implements EdgeAppender {
   }
 
   private boolean isEdgeIrrelevantByFaultLocalization(Edge pEdge) {
+    if (pEdge.getSource().equals("A0")) {
+      return false;
+    }
+
     if (edgesInFault.isEmpty()) {
       return false;
     }
