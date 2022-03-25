@@ -337,7 +337,7 @@ public class Trace extends ForwardingList<TraceAtom> {
         return false;
       }
       TraceAtom traceAtom = (TraceAtom) pO;
-      return index == traceAtom.index;
+      return index == traceAtom.index && super.equals(pO);
     }
 
     @Override
