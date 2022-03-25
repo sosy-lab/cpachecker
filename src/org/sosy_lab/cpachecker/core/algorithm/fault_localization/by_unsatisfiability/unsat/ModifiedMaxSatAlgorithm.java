@@ -92,7 +92,10 @@ public class ModifiedMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
    * @throws InterruptedException thrown if interrupted
    */
   private Fault getMinUnsatCore(
-      Set<FaultContribution> pSoftSet, Set<Fault> pHardSet, BooleanFormula pTraceFormula, FormulaContext pContext)
+      Set<FaultContribution> pSoftSet,
+      Set<Fault> pHardSet,
+      BooleanFormula pTraceFormula,
+      FormulaContext pContext)
       throws SolverException, InterruptedException {
     Solver solver = pContext.getSolver();
     BooleanFormulaManager bmgr = solver.getFormulaManager().getBooleanFormulaManager();

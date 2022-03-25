@@ -76,14 +76,16 @@ public class OriginalMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
    * @throws InterruptedException thrown if interrupted
    */
   private Fault coMSS(
-      Set<FaultContribution> pSoftSet, Set<Fault> pHardSet, BooleanFormula pTraceFormula, FormulaContext pContext)
+      Set<FaultContribution> pSoftSet,
+      Set<Fault> pHardSet,
+      BooleanFormula pTraceFormula,
+      FormulaContext pContext)
       throws SolverException, InterruptedException {
     Solver solver = pContext.getSolver();
     BooleanFormulaManager bmgr = solver.getFormulaManager().getBooleanFormulaManager();
     Set<FaultContribution> selectors = new HashSet<>(pSoftSet);
     Fault result = new Fault();
-    BooleanFormula composedFormula =
-        bmgr.and(pTraceFormula, hardSetFormula(pHardSet, bmgr));
+    BooleanFormula composedFormula = bmgr.and(pTraceFormula, hardSetFormula(pHardSet, bmgr));
     boolean changed;
     do {
       changed = false;

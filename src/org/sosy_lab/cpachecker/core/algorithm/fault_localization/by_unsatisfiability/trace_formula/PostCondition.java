@@ -19,7 +19,8 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
  * PostConditions contain the violated assertion. The trace and the precondition have to satisfy the
- * post-condition, i.e., the post-condition is the condition that is but should not be violated by the program.
+ * post-condition, i.e., the post-condition is the condition that is but should not be violated by
+ * the program.
  */
 public class PostCondition {
 
@@ -29,9 +30,11 @@ public class PostCondition {
   private final BooleanFormula postCondition;
 
   /**
-   * PostCondition wraps a {@link BooleanFormula}.
-   * Additionally, it stores on which edges it is based on.
-   * @param pEdges the complete list of edges of the counterexample (see {@link CounterexampleInfo#getCFAPathWithAssignments()})
+   * PostCondition wraps a {@link BooleanFormula}. Additionally, it stores on which edges it is
+   * based on.
+   *
+   * @param pEdges the complete list of edges of the counterexample (see {@link
+   *     CounterexampleInfo#getCFAPathWithAssignments()})
    * @param pIrrelevantEdges all edges after the last assume edge in the counterexample
    * @param pRemainingCounterexample all edges before the first relevant assume edge
    * @param pPostCondition the actual post-condition

@@ -38,9 +38,9 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 public enum PreconditionTypes {
   /**
-   * Do not use any edge of the counterexample for creating the pre-condition.
-   * Instead, find values that satisfy the counterexample for all nondeterministic variables.
-   * In case no nondeterministic variables exist, return true.
+   * Do not use any edge of the counterexample for creating the pre-condition. Instead, find values
+   * that satisfy the counterexample for all nondeterministic variables. In case no nondeterministic
+   * variables exist, return true.
    */
   NONDETERMINISTIC_VARIABLES_ONLY {
     @Override
@@ -60,14 +60,17 @@ public enum PreconditionTypes {
             precond = bmgr.and(precond, formula);
           }
         }
-        return new Precondition(ImmutableList.of(), pCounterexample, pContext.getSolver().getFormulaManager().uninstantiate(precond));
+        return new Precondition(
+            ImmutableList.of(),
+            pCounterexample,
+            pContext.getSolver().getFormulaManager().uninstantiate(precond));
       }
     }
   },
   /**
    * Combine {@link PreconditionTypes#NONDETERMINISTIC_VARIABLES_ONLY} with initial assignments.
-   * Initial assignments are statement or declaration edges that assign a value to a variable
-   * for the first time.
+   * Initial assignments are statement or declaration edges that assign a value to a variable for
+   * the first time.
    */
   INITIAL_ASSIGNMENT {
     @Override
@@ -99,7 +102,8 @@ public enum PreconditionTypes {
         if (cfaEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
           CDeclarationEdge declarationEdge = (CDeclarationEdge) cfaEdge;
           String qualifiedName = declarationEdge.getDeclaration().getQualifiedName();
-          if (coveredVariables.contains(qualifiedName) || !handleDeclarationEdge(declarationEdge, pOptions)) {
+          if (coveredVariables.contains(qualifiedName)
+              || !handleDeclarationEdge(declarationEdge, pOptions)) {
             remainingCounterexample.add(cfaEdge);
           } else {
             preconditionEdges.add(cfaEdge);
@@ -112,7 +116,8 @@ public enum PreconditionTypes {
         if (cfaEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
           CStatementEdge statementEdge = (CStatementEdge) cfaEdge;
           if (statementEdge.getStatement() instanceof CFunctionCallAssignmentStatement) {
-            CFunctionCallAssignmentStatement statement = (CFunctionCallAssignmentStatement) statementEdge.getStatement();
+            CFunctionCallAssignmentStatement statement =
+                (CFunctionCallAssignmentStatement) statementEdge.getStatement();
             coveredVariables.add(statement.getLeftHandSide().toQualifiedASTString());
             remainingCounterexample.add(cfaEdge);
             continue;
@@ -144,9 +149,7 @@ public enum PreconditionTypes {
                       pContext.getManager().makeFormulaForPath(preconditionEdges).getFormula())));
     }
   },
-  /**
-   * Precondition that represent {@code true}.
-   */
+  /** Precondition that represent {@code true}. */
   ALWAYS_TRUE {
     @Override
     public Precondition createPreconditionFromCounterexample(

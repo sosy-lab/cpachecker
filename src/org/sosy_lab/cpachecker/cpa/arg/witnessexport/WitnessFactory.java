@@ -1049,8 +1049,10 @@ class WitnessFactory implements EdgeAppender {
             FluentIterable.from(bestFault)
                 .transform(fc -> fc.correspondingEdge())
                 .copyInto(edgesInFault);
-            edgesInFault.addAll(fInfo.getTraceFormula().getPrecondition().getEdgesForPrecondition());
-            edgesInFault.addAll(fInfo.getTraceFormula().getPostCondition().getEdgesForPostCondition());
+            edgesInFault.addAll(
+                fInfo.getTraceFormula().getPrecondition().getEdgesForPrecondition());
+            edgesInFault.addAll(
+                fInfo.getTraceFormula().getPostCondition().getEdgesForPostCondition());
             edgesInFault.addAll(fInfo.getTraceFormula().getPostCondition().getIrrelevantEdges());
             valueMap = Multimaps.filterValues(valueMap, v -> edgesInFault.contains(v.getCFAEdge()));
           }

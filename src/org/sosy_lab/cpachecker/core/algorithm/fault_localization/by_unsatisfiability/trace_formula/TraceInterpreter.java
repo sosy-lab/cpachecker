@@ -10,12 +10,9 @@ package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiab
 
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-/**
- * Transform object of {@link Trace} to a {@link BooleanFormula} in a given way.
- */
+/** Transform object of {@link Trace} to a {@link BooleanFormula} in a given way. */
 @FunctionalInterface
 public interface TraceInterpreter {
 
   BooleanFormula interpret(Trace pTrace);
-
 }

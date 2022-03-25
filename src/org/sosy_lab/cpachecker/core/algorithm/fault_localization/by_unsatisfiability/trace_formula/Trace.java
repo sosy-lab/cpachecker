@@ -80,14 +80,18 @@ public class Trace extends ForwardingList<TraceAtom> {
     Map<String, Integer> minIndexMap = new HashMap<>();
     Map<String, CType> typeMap = new HashMap<>();
     for (TraceAtom traceAtom : this) {
-      context.getSolver().getFormulaManager()
+      context
+          .getSolver()
+          .getFormulaManager()
           .extractVariables(traceAtom.formula)
           .forEach(
               (name, variable) -> {
                 Pair<String, OptionalInt> pair = FormulaManagerView.parseName(name);
                 if (Objects.requireNonNull(pair.getSecond()).isPresent()) {
                   minIndexMap.merge(pair.getFirst(), pair.getSecond().orElseThrow(), Integer::min);
-                  typeMap.put(pair.getFirst(), traceAtom.ssaMap.getType(Objects.requireNonNull(pair.getFirst())));
+                  typeMap.put(
+                      pair.getFirst(),
+                      traceAtom.ssaMap.getType(Objects.requireNonNull(pair.getFirst())));
                 }
               });
     }
@@ -103,11 +107,9 @@ public class Trace extends ForwardingList<TraceAtom> {
   }
 
   /**
-   * Transform the current trace to a flow-sensitive trace.
-   * The original trace will not be modified.
-   * Flow-sensitive traces do not contain assume edges.
-   * Instead, assume edges imply successive edges as long as the edges are only reachable through
-   * the assume edge.
+   * Transform the current trace to a flow-sensitive trace. The original trace will not be modified.
+   * Flow-sensitive traces do not contain assume edges. Instead, assume edges imply successive edges
+   * as long as the edges are only reachable through the assume edge.
    *
    * @return flow-sensitive trace
    */
@@ -167,8 +169,7 @@ public class Trace extends ForwardingList<TraceAtom> {
               new TraceAtom(
                   index,
                   currentTraceAtom.selector,
-                  bmgr.implication(
-                      bmgr.and(conditions), currentTraceAtom.formula),
+                  bmgr.implication(bmgr.and(conditions), currentTraceAtom.formula),
                   currentTraceAtom.ssaMap,
                   currentTraceAtom.correspondingEdge()));
         }
@@ -180,14 +181,18 @@ public class Trace extends ForwardingList<TraceAtom> {
 
   /**
    * Create a {@link Trace} from a counterexample represented as list (path) of {@link CFAEdge}s
+   *
    * @param pCounterexample path to an error location
    * @param pContext context of formula containing managers and solver to create formulas
    * @param pOptions user-specified options for the trace formula
    * @return a list of {@link TraceAtom}s representing a trace based on a given counterexample
-   * @throws CPATransferException thrown if {@link PathFormulaManagerImpl#makeAnd(PathFormula, CFAEdge) fails.}
-   * @throws InterruptedException thrown if {@link PathFormulaManagerImpl#makeAnd(PathFormula, CFAEdge) fails.}
+   * @throws CPATransferException thrown if {@link PathFormulaManagerImpl#makeAnd(PathFormula,
+   *     CFAEdge) fails.}
+   * @throws InterruptedException thrown if {@link PathFormulaManagerImpl#makeAnd(PathFormula,
+   *     CFAEdge) fails.}
    */
-  public static Trace fromCounterexample(List<CFAEdge> pCounterexample, FormulaContext pContext, TraceFormulaOptions pOptions)
+  public static Trace fromCounterexample(
+      List<CFAEdge> pCounterexample, FormulaContext pContext, TraceFormulaOptions pOptions)
       throws CPATransferException, InterruptedException {
     List<TraceAtom> atoms = new ArrayList<>(pCounterexample.size());
     FormulaManagerView fmgr = pContext.getSolver().getFormulaManager();
@@ -227,11 +232,7 @@ public class Trace extends ForwardingList<TraceAtom> {
         BooleanFormula currentBooleanFormula = Iterables.getOnlyElement(parts);
         atoms.add(
             new TraceAtom(
-                index,
-                selector,
-                currentBooleanFormula,
-                currentPathFormula.getSsa(),
-                cfaEdge));
+                index, selector, currentBooleanFormula, currentPathFormula.getSsa(), cfaEdge));
         previousPathFormula = currentPathFormula;
       }
       index++;
@@ -293,9 +294,7 @@ public class Trace extends ForwardingList<TraceAtom> {
     return entries;
   }
 
-  /**
-   * TraceAtoms are the entries of the Trace.
-   */
+  /** TraceAtoms are the entries of the Trace. */
   public static class TraceAtom extends FaultContribution implements AbstractTraceElement {
 
     private final BooleanFormula selector;

@@ -28,7 +28,7 @@ public class SelectorTraceInterpreter implements TraceInterpreter {
             .toList());
   }
 
-/*  public BooleanFormula interpret(TraceFormula pTraceFormula) {
+  /*  public BooleanFormula interpret(TraceFormula pTraceFormula) {
     BooleanFormula preconditionFormula = pTraceFormula.getPrecondition().getPrecondition();
     BooleanFormula traceFormula = interpret(pTraceFormula.getTrace());
     BooleanFormula postConditionFormula = pTraceFormula.getPostCondition().getPostCondition();

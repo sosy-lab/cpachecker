@@ -18,7 +18,8 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
- * PreConditions contain (a subset of) the initial variable assignment responsible for satisfying the post-condition.
+ * PreConditions contain (a subset of) the initial variable assignment responsible for satisfying
+ * the post-condition.
  */
 public class Precondition {
 
@@ -27,10 +28,12 @@ public class Precondition {
   private final BooleanFormula precondition;
 
   /**
-   * The Precondition wraps a {@code BooleanFormula}.
-   * Additionally, it stores on which edges it is based on.
+   * The Precondition wraps a {@code BooleanFormula}. Additionally, it stores on which edges it is
+   * based on.
+   *
    * @param pEdges declaration and statement edges responsible for the initial variable assignment
-   * @param pRemainingCounterexample all edges of a complete counterexample that are not part of the precondition (see {@link CounterexampleInfo#getCFAPathWithAssignments()})
+   * @param pRemainingCounterexample all edges of a complete counterexample that are not part of the
+   *     precondition (see {@link CounterexampleInfo#getCFAPathWithAssignments()})
    * @param pPrecondition the actual precondition as {@link BooleanFormula}
    */
   Precondition(
@@ -42,6 +45,7 @@ public class Precondition {
 
   /**
    * Precondition solely based on a condition.
+   *
    * @param pPrecondition BooleanFormula of a pre-condition.
    * @return an object of {@link Precondition} wrapping the provided {@link BooleanFormula}
    */

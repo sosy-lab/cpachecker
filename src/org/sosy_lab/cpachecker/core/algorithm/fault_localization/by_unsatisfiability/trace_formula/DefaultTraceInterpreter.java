@@ -23,5 +23,4 @@ public class DefaultTraceInterpreter implements TraceInterpreter {
   public BooleanFormula interpret(Trace pTrace) {
     return bmgr.and(pTrace.toFormulaList());
   }
-
 }

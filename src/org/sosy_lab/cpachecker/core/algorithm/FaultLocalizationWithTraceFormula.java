@@ -100,12 +100,15 @@ public class FaultLocalizationWithTraceFormula
           "Do not show faults that contain a certain variable. Use, e.g., 'main::x' to ban variable"
               + " 'x' in the main function. Use, e.g., '::x' to ban all variables named 'x'. This"
               + " is especially useful to filter specific faults if the first run results in many"
-              + " candidates. Provide a comma separated string to add variables, e.g., main::x,doStuff::y,::z")
+              + " candidates. Provide a comma separated string to add variables, e.g.,"
+              + " main::x,doStuff::y,::z")
   private List<String> ban = ImmutableList.of();
 
   @Option(
       description =
-          "By default, the precondition only contains the failing variable assignment of all nondet variables. Choose INITIAL_ASSIGNMENT to assignments like '<datatype> <variable-name> = <value>' to the precondition.")
+          "By default, the precondition only contains the failing variable assignment of all nondet"
+              + " variables. Choose INITIAL_ASSIGNMENT to assignments like '<datatype>"
+              + " <variable-name> = <value>' to the precondition.")
   private PreconditionTypes preconditionType = PreconditionTypes.NONDETERMINISTIC_VARIABLES_ONLY;
 
   @Option(description = "which post-condition type to use")
@@ -166,8 +169,8 @@ public class FaultLocalizationWithTraceFormula
   public void checkOptions() throws InvalidConfigurationException {
     if (!algorithmType.equals(AlgorithmTypes.ERRINV) && options.makeFlowSensitive()) {
       throw new InvalidConfigurationException(
-          "The option 'makeFlowSensitive' (flow-sensitive trace formula) requires the error invariants"
-              + " algorithm");
+          "The option 'makeFlowSensitive' (flow-sensitive trace formula) requires the error"
+              + " invariants algorithm");
     }
     if (algorithmType.equals(AlgorithmTypes.ERRINV) && !ban.isEmpty()) {
       throw new InvalidConfigurationException(

@@ -77,7 +77,7 @@ public class FaultLocalizationInfoWithTraceFormula extends FaultLocalizationInfo
     if (preconditionParts.isEmpty()) {
       preconditionParts.add("true");
     }
-    JSON.writeJSONString(ImmutableMap.of("fl-precondition", Joiner.on(" && ").join(preconditionParts)), writer);
+    JSON.writeJSONString(
+        ImmutableMap.of("fl-precondition", Joiner.on(" && ").join(preconditionParts)), writer);
   }
-
 }

@@ -70,7 +70,10 @@ public class TraceFormula {
                 + " option  also decreases the quality of results.")
     private boolean reduceSelectors = false;
 
-    @Option(secure = true, description = "Make trace formula flow-sensitive, i.e., assume edges imply the following edges.")
+    @Option(
+        secure = true,
+        description =
+            "Make trace formula flow-sensitive, i.e., assume edges imply the following edges.")
     private boolean makeFlowSensitive = false;
 
     public TraceFormulaOptions(Configuration pConfiguration) throws InvalidConfigurationException {
@@ -103,7 +106,11 @@ public class TraceFormula {
   private final Trace trace;
   private final PostCondition postCondition;
 
-  private TraceFormula(FormulaContext pContext, Precondition pPrecondition, Trace pTrace, PostCondition pPostCondition) {
+  private TraceFormula(
+      FormulaContext pContext,
+      Precondition pPrecondition,
+      Trace pTrace,
+      PostCondition pPostCondition) {
     precondition = pPrecondition;
     trace = pTrace;
     postCondition = pPostCondition;
