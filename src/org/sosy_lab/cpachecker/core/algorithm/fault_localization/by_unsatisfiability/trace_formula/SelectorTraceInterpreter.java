@@ -8,7 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula;
 
-import com.google.common.collect.FluentIterable;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
@@ -23,9 +24,8 @@ public class SelectorTraceInterpreter implements TraceInterpreter {
   @Override
   public BooleanFormula interpret(Trace pTrace) {
     return bmgr.and(
-        FluentIterable.from(pTrace)
-            .transform(entry -> bmgr.implication(entry.getSelector(), entry.getFormula()))
-            .toList());
+        transformedImmutableListCopy(
+            pTrace, entry -> bmgr.implication(entry.getSelector(), entry.getFormula())));
   }
 
   /*  public BooleanFormula interpret(TraceFormula pTraceFormula) {

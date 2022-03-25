@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.error_invariants;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.base.Joiner;
 import com.google.common.base.VerifyException;
 import com.google.common.collect.ArrayListMultimap;
@@ -124,9 +126,9 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
             .not(errorTrace.getPostCondition().getPostCondition()));
     CounterexampleTraceInfo counterexampleTraceInfo =
         interpolationManager.buildCounterexampleTrace(new BlockFormulas(allFormulas));
-    return FluentIterable.from(counterexampleTraceInfo.getInterpolants())
-        .transform(formulaContext.getSolver().getFormulaManager()::uninstantiate)
-        .toList();
+    return transformedImmutableListCopy(
+        counterexampleTraceInfo.getInterpolants(),
+        formulaContext.getSolver().getFormulaManager()::uninstantiate);
   }
 
   @Override

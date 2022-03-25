@@ -25,17 +25,15 @@ public enum PostConditionTypes {
    * <br>
    * <p>Example 1:
    * <pre>
-   * {@code
    * if (x == 0 && y == 10) {
    *   //...
-   * }}
+   * }
    * </pre>
    * Results in the post-condition: y == 10.
    * </p>
    * <br>
    * <p>Example 2:
    * <pre>
-   * {@code
    * if (x == 0) {
    *   if (y == 10) {
    *     //...
@@ -82,17 +80,15 @@ public enum PostConditionTypes {
    * <br>
    * <p>Example 1:
    * <pre>
-   * {@code
    * if (x == 0 && y == 10) {
    *   //...
-   * }}
+   * }
    * </pre>
    * Results in the post-condition: x == 10 && y == 10.
    * </p>
    * <br>
    * <p>Example 2:
    * <pre>
-   * {@code
    * if (x == 0) {
    *   if (y == 10) {
    *     //...
@@ -159,17 +155,15 @@ public enum PostConditionTypes {
    * <br>
    * <p>Example 1:
    * <pre>
-   * {@code
    * if (x == 0 && y == 10) {
    *   //...
-   * }}
+   * }
    * </pre>
    * Results in the post-condition: x == 10 && y == 10.
    * </p>
    * <br>
    * <p>Example 2:
    * <pre>
-   * {@code
    * if (x == 0) {
    *   if (y == 10) {
    *     //...

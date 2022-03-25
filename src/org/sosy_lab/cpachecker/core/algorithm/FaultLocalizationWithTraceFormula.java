@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.base.VerifyException;
 import com.google.common.collect.FluentIterable;
@@ -273,9 +274,7 @@ public class FaultLocalizationWithTraceFormula
     try {
       // Collect all edges that do not evaluate to true
       final List<CFAEdge> edgeList =
-          FluentIterable.from(assumptions)
-              .transform(assumption -> assumption.getCFAEdge())
-              .toList();
+          transformedImmutableListCopy(assumptions, assumption -> assumption.getCFAEdge());
 
       if (edgeList.isEmpty()) {
         logger.log(Level.INFO, "Can't find relevant edges in the error trace.");
