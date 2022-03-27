@@ -1943,6 +1943,8 @@ public class SMGCPAValueVisitorTest {
       // Assert the correct returns
       assertThat(resultList).hasSize(1);
       Value resultValue = resultList.get(0).getValue();
+      // & actually changes the state!
+      currentState = resultList.get(0).getState();
 
       SMGObject expectedTarget =
           currentState
@@ -1984,12 +1986,15 @@ public class SMGCPAValueVisitorTest {
                   .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
                   .isPresent())
           .isTrue();
-      assertThat(
-              currentState
-                  .getMemoryModel()
-                  .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
-                  .orElseThrow())
-          .isEqualTo(resultValue);
+
+      SMGValue smgValueForPointer =
+          currentState
+              .getMemoryModel()
+              .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
+              .orElseThrow();
+      Value valueForSMGValue =
+          currentState.getMemoryModel().getValueFromSMGValue(smgValueForPointer).orElseThrow();
+      assertThat(valueForSMGValue).isEqualTo(resultValue);
     }
   }
 
@@ -2015,6 +2020,8 @@ public class SMGCPAValueVisitorTest {
       // Assert the correct returns
       assertThat(resultList).hasSize(1);
       Value resultValue = resultList.get(0).getValue();
+      // & actually changes the state!
+      currentState = resultList.get(0).getState();
 
       SMGObject expectedTarget =
           currentState
@@ -2054,12 +2061,15 @@ public class SMGCPAValueVisitorTest {
                   .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
                   .isPresent())
           .isTrue();
-      assertThat(
-              currentState
-                  .getMemoryModel()
-                  .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
-                  .orElseThrow())
-          .isEqualTo(resultValue);
+
+      SMGValue smgValueForPointer =
+          currentState
+              .getMemoryModel()
+              .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
+              .orElseThrow();
+      Value valueForSMGValue =
+          currentState.getMemoryModel().getValueFromSMGValue(smgValueForPointer).orElseThrow();
+      assertThat(valueForSMGValue).isEqualTo(resultValue);
     }
   }
 
@@ -2094,6 +2104,8 @@ public class SMGCPAValueVisitorTest {
         // Assert the correct returns
         assertThat(resultList).hasSize(1);
         Value resultValue = resultList.get(0).getValue();
+        // & actually changes the state!
+        currentState = resultList.get(0).getState();
 
         SMGObject expectedTarget =
             currentState
@@ -2135,12 +2147,15 @@ public class SMGCPAValueVisitorTest {
                     .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
                     .isPresent())
             .isTrue();
-        assertThat(
-                currentState
-                    .getMemoryModel()
-                    .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
-                    .orElseThrow())
-            .isEqualTo(resultValue);
+
+        SMGValue smgValueForPointer =
+            currentState
+                .getMemoryModel()
+                .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
+                .orElseThrow();
+        Value valueForSMGValue =
+            currentState.getMemoryModel().getValueFromSMGValue(smgValueForPointer).orElseThrow();
+        assertThat(valueForSMGValue).isEqualTo(resultValue);
       }
     }
   }
@@ -2173,6 +2188,8 @@ public class SMGCPAValueVisitorTest {
         // Assert the correct returns
         assertThat(resultList).hasSize(1);
         Value resultValue = resultList.get(0).getValue();
+        // & actually changes the state!
+        currentState = resultList.get(0).getState();
 
         SMGObject expectedTarget =
             currentState
@@ -2214,12 +2231,15 @@ public class SMGCPAValueVisitorTest {
                     .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
                     .isPresent())
             .isTrue();
-        assertThat(
-                currentState
-                    .getMemoryModel()
-                    .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
-                    .orElseThrow())
-            .isEqualTo(resultValue);
+
+        SMGValue smgValueForPointer =
+            currentState
+                .getMemoryModel()
+                .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
+                .orElseThrow();
+        Value valueForSMGValue =
+            currentState.getMemoryModel().getValueFromSMGValue(smgValueForPointer).orElseThrow();
+        assertThat(valueForSMGValue).isEqualTo(resultValue);
       }
     }
   }
@@ -2251,6 +2271,8 @@ public class SMGCPAValueVisitorTest {
       // Assert the correct returns
       assertThat(resultList).hasSize(1);
       Value resultValue = resultList.get(0).getValue();
+      // & actually changes the state!
+      currentState = resultList.get(0).getState();
 
       SMGObject expectedTarget =
           currentState
@@ -2290,12 +2312,15 @@ public class SMGCPAValueVisitorTest {
                   .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
                   .isPresent())
           .isTrue();
-      assertThat(
-              currentState
-                  .getMemoryModel()
-                  .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
-                  .orElseThrow())
-          .isEqualTo(resultValue);
+
+      SMGValue smgValueForPointer =
+          currentState
+              .getMemoryModel()
+              .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
+              .orElseThrow();
+      Value valueForSMGValue =
+          currentState.getMemoryModel().getValueFromSMGValue(smgValueForPointer).orElseThrow();
+      assertThat(valueForSMGValue).isEqualTo(resultValue);
     }
   }
 
@@ -2323,6 +2348,8 @@ public class SMGCPAValueVisitorTest {
       // Assert the correct returns
       assertThat(resultList).hasSize(1);
       Value resultValue = resultList.get(0).getValue();
+      // & actually changes the state!
+      currentState = resultList.get(0).getState();
 
       SMGObject expectedTarget =
           currentState
@@ -2391,6 +2418,8 @@ public class SMGCPAValueVisitorTest {
         // Assert the correct returns
         assertThat(resultList).hasSize(1);
         Value resultValue = resultList.get(0).getValue();
+        // & actually changes the state!
+        currentState = resultList.get(0).getState();
 
         SMGObject expectedTarget =
             currentState
@@ -2432,12 +2461,15 @@ public class SMGCPAValueVisitorTest {
                     .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
                     .isPresent())
             .isTrue();
-        assertThat(
-                currentState
-                    .getMemoryModel()
-                    .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
-                    .orElseThrow())
-            .isEqualTo(resultValue);
+
+        SMGValue smgValueForPointer =
+            currentState
+                .getMemoryModel()
+                .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
+                .orElseThrow();
+        Value valueForSMGValue =
+            currentState.getMemoryModel().getValueFromSMGValue(smgValueForPointer).orElseThrow();
+        assertThat(valueForSMGValue).isEqualTo(resultValue);
       }
     }
   }
@@ -2470,6 +2502,8 @@ public class SMGCPAValueVisitorTest {
         // Assert the correct returns
         assertThat(resultList).hasSize(1);
         Value resultValue = resultList.get(0).getValue();
+        // & actually changes the state!
+        currentState = resultList.get(0).getState();
 
         SMGObject expectedTarget =
             currentState
@@ -2510,12 +2544,15 @@ public class SMGCPAValueVisitorTest {
                     .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
                     .isPresent())
             .isTrue();
-        assertThat(
-                currentState
-                    .getMemoryModel()
-                    .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
-                    .orElseThrow())
-            .isEqualTo(resultValue);
+
+        SMGValue smgValueForPointer =
+            currentState
+                .getMemoryModel()
+                .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
+                .orElseThrow();
+        Value valueForSMGValue =
+            currentState.getMemoryModel().getValueFromSMGValue(smgValueForPointer).orElseThrow();
+        assertThat(valueForSMGValue).isEqualTo(resultValue);
       }
     }
   }
