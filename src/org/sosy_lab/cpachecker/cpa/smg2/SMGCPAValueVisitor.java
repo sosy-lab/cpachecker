@@ -123,7 +123,7 @@ public class SMGCPAValueVisitor
         pExp,
         SMGValue.zeroValue(),
         cfaEdge.getRawStatement());
-    return ImmutableList.of(ValueAndSMGState.of(new NumericValue(0), state));
+    return ImmutableList.of(ValueAndSMGState.of(UnknownValue.getInstance(), state));
   }
 
   @Override
