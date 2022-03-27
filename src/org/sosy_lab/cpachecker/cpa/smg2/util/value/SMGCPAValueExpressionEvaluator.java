@@ -213,6 +213,7 @@ public class SMGCPAValueExpressionEvaluator {
       // TODO: this might actually be expensive, check once this runs!
       return ValueAndSMGState.of(valueForSMGValue.orElseThrow(), pState);
     }
+
     // If none is found, we need a new Value -> SMGValue mapping for the address + a new
     // PointsToEdge with the correct offset
     Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
@@ -534,6 +535,10 @@ public class SMGCPAValueExpressionEvaluator {
     // Because in abstracted SMGs we might need the current SMG to get the correct type info.
     // TODO: rework because of that.
     return machineModel.getSizeofInBits(pType);
+  }
+  
+  public BigInteger getAlignOf(SMGState pInitialSmgState, CType pType) {
+    return BigInteger.valueOf(machineModel.getAlignof(pType));
   }
 
   // TODO: revisit this and decide if we want to split structs and unions because of the data
