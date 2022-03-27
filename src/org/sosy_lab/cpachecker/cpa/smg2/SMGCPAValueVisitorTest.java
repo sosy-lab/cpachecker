@@ -2085,13 +2085,15 @@ public class SMGCPAValueVisitorTest {
   @Test
   public void testAddressOperatorOnHeapArray()
       throws CPATransferException, InvalidConfigurationException {
+
+    String indiceVarName = "indice";
+    setupIndexVariables(indiceVarName);
     for (CType currentTestType : ARRAY_TEST_TYPES) {
       BigInteger sizeOfCurrentTypeInBits =
           MACHINE_MODEL.getSizeof(currentTestType).multiply(BigInteger.valueOf(8));
       String arrayVariableName = "arrayName" + currentTestType;
-      String indiceVarName = "indice";
       Value heapAddress = setupHeapArray(arrayVariableName, currentTestType);
-      setupIndexVariables(indiceVarName);
+
 
       // Test & on every array entry (create every possible valid pointer to it)
       for (int currentIndice = 0; currentIndice < TEST_ARRAY_LENGTH; currentIndice++) {
@@ -2335,7 +2337,7 @@ public class SMGCPAValueVisitorTest {
       // Now create the SMGState, SPC and SMG with the struct already present and values written
       // Name the struct and var uniquely such that we have all possible vars on the stack at the
       // same time
-      Value addressForHeap = setupHeapStructAndFill(COMPOSITE_VARIABLE_NAME + j, listOfTypes);
+      setupHeapStructAndFill(COMPOSITE_VARIABLE_NAME + j, listOfTypes);
 
       CUnaryExpression amperStructRef =
           wrapInAmper(
@@ -2351,12 +2353,12 @@ public class SMGCPAValueVisitorTest {
       // & actually changes the state!
       currentState = resultList.get(0).getState();
 
+      // We want the address of the address to the struct!
       SMGObject expectedTarget =
           currentState
               .getMemoryModel()
-              .dereferencePointer(addressForHeap)
-              .orElseThrow()
-              .getSMGObject();
+              .getObjectForVisibleVariable(COMPOSITE_VARIABLE_NAME + j)
+              .orElseThrow();
       BigInteger expectedOffset = BigInteger.ZERO;
       // The returned Value is an address, theoretically addresses may be any Value type
       assertThat(resultValue).isInstanceOf(Value.class);
@@ -2379,12 +2381,15 @@ public class SMGCPAValueVisitorTest {
                   .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
                   .isPresent())
           .isTrue();
-      assertThat(
-              currentState
-                  .getMemoryModel()
-                  .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
-                  .orElseThrow())
-          .isEqualTo(resultValue);
+
+      SMGValue smgValueForPointer =
+          currentState
+              .getMemoryModel()
+              .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
+              .orElseThrow();
+      Value valueForSMGValue =
+          currentState.getMemoryModel().getValueFromSMGValue(smgValueForPointer).orElseThrow();
+      assertThat(valueForSMGValue).isEqualTo(resultValue);
     }
   }
 
