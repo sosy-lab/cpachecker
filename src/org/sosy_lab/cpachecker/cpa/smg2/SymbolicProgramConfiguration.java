@@ -16,6 +16,7 @@ import com.google.common.collect.Streams;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -699,8 +700,11 @@ public class SymbolicProgramConfiguration {
     BiMap<SMGValue, SMGPointsToEdge> pteMapping = getSmg().getPTEdgeMapping();
     SMGPointsToEdge searchedForEdge =
         new SMGPointsToEdge(target, offset, SMGTargetSpecifier.IS_REGION);
-    if (pteMapping.containsValue(searchedForEdge)) {
-      return Optional.of(pteMapping.inverse().get(searchedForEdge));
+
+    for (Entry<SMGValue, SMGPointsToEdge> entry : pteMapping.entrySet()) {
+      if (entry.getValue().compareTo(searchedForEdge) == 0) {
+        return Optional.of(entry.getKey());
+      }
     }
     return Optional.empty();
   }
