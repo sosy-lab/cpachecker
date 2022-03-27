@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
@@ -594,8 +595,23 @@ public class SMGCPAValueVisitor
     // _Alignof or alignof = the number of bytes between successive addresses, careful because of
     // padding!
 
-    // SMGs have type reinterpretation! Get the type of the SMG and translate it back to the C type.
-    return visitDefault(e);
+    final TypeIdOperator idOperator = e.getOperator();
+    final CType innerType = e.getType();
+
+    switch (idOperator) {
+      case SIZEOF:
+        BigInteger size = evaluator.getBitSizeof(state, innerType);
+        return ImmutableList.of(ValueAndSMGState.of(new NumericValue(size), state));
+
+      case ALIGNOF:
+        BigInteger align = evaluator.getAlignOf(state, innerType);
+        return ImmutableList.of(ValueAndSMGState.of(new NumericValue(align), state));
+
+      case TYPEOF: // This can't really be solved here as we can only return Values
+
+      default:
+        return ImmutableList.of(ValueAndSMGState.of(UnknownValue.getInstance(), state));
+    }
   }
 
   @Override
