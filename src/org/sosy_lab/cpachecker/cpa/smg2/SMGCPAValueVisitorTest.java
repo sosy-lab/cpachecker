@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.smg2;
 
 import static com.google.common.truth.Truth.assertThat;
-import static java.util.stream.Collectors.toList;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.base.Preconditions;
@@ -241,7 +240,7 @@ public class SMGCPAValueVisitorTest {
                 STRUCT_UNION_TEST_TYPES
                     .stream()
                     .map(n -> new CPointerType(false, false, n))
-                    .collect(toList()));
+                    .collect(ImmutableList.toImmutableList()));
 
         List<ValueAndSMGState> resultList = fieldRef.accept(visitor);
 
@@ -301,7 +300,7 @@ public class SMGCPAValueVisitorTest {
                 STRUCT_UNION_TEST_TYPES
                     .stream()
                     .map(n -> new CPointerType(false, false, n))
-                    .collect(toList()),
+                    .collect(ImmutableList.toImmutableList()),
                 true,
                 ComplexTypeKind.STRUCT);
 
@@ -357,7 +356,7 @@ public class SMGCPAValueVisitorTest {
                 STRUCT_UNION_TEST_TYPES
                     .stream()
                     .map(n -> new CPointerType(false, false, n))
-                    .collect(toList()),
+                    .collect(ImmutableList.toImmutableList()),
                 false,
                 ComplexTypeKind.STRUCT);
 
