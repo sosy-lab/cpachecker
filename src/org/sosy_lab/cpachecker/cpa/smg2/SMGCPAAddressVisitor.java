@@ -183,60 +183,63 @@ public class SMGCPAAddressVisitor
     CExpression ownerExpression = explicitReference.getFieldOwner();
     // For (*pointer).field case or struct.field case the visitor returns the Value for the
     // correct SMGObject (if it exists)
-    List<ValueAndSMGState> structValuesAndStates = ownerExpression.accept(new SMGCPAValueVisitor(evaluator, state, cfaEdge, logger));
+    List<ValueAndSMGState> structValuesAndStates =
+        ownerExpression.accept(new SMGCPAValueVisitor(evaluator, state, cfaEdge, logger));
 
     // The most up to date state is always the last one
     SMGState currentState = structValuesAndStates.get(structValuesAndStates.size() - 1).getState();
 
-    // If the field we want to read is a String we get multiple returned values, but we take only the first as this is the start of the memory we want!
+    // If the field we want to read is a String we get multiple returned values, but we take only
+    // the first as this is the start of the memory we want!
 
-      // This value is either a AddressValue for pointers i.e. (*struct).field or a general
-      // SymbolicValue
-      Value structValue = structValuesAndStates.get(0).getValue();
+    // This value is either a AddressValue for pointers i.e. (*struct).field or a general
+    // SymbolicValue
+    Value structValue = structValuesAndStates.get(0).getValue();
 
-      // Now get the offset of the current field
-      BigInteger fieldOffset =
-          evaluator.getFieldOffsetInBits(
-              SMGCPAValueExpressionEvaluator.getCanonicalType(ownerExpression),
-              explicitReference.getFieldName());
+    // Now get the offset of the current field
+    BigInteger fieldOffset =
+        evaluator.getFieldOffsetInBits(
+            SMGCPAValueExpressionEvaluator.getCanonicalType(ownerExpression),
+            explicitReference.getFieldName());
 
-      // This is either a stack/global variable of the form struct.field or a pointer of the form
-      // (*structP).field. The later needs a pointer deref
-      if (ownerExpression instanceof CPointerExpression) {
-        // In the pointer case, the Value needs to be a AddressExpression
-        Preconditions.checkArgument(structValue instanceof AddressExpression);
-        AddressExpression addressAndOffsetValue = (AddressExpression) structValue;
-        // This AddressExpr theoretically can have a offset
-        Value structPointerOffsetExpr = addressAndOffsetValue.getOffset();
-        if (!structPointerOffsetExpr.isNumericValue()) {
-          // The offset is some non numeric Value and therefore not useable!
+    // This is either a stack/global variable of the form struct.field or a pointer of the form
+    // (*structP).field. The later needs a pointer deref
+    if (ownerExpression instanceof CPointerExpression) {
+      // In the pointer case, the Value needs to be a AddressExpression
+      Preconditions.checkArgument(structValue instanceof AddressExpression);
+      AddressExpression addressAndOffsetValue = (AddressExpression) structValue;
+      // This AddressExpr theoretically can have a offset
+      Value structPointerOffsetExpr = addressAndOffsetValue.getOffset();
+      if (!structPointerOffsetExpr.isNumericValue()) {
+        // The offset is some non numeric Value and therefore not useable!
 
-        }
-        BigInteger finalFieldOffset =
-            structPointerOffsetExpr.asNumericValue().bigInteger().add(fieldOffset);
-
-        return evaluator.getTargetObjectAndOffset(currentState, addressAndOffsetValue.getMemoryAddress(), finalFieldOffset);
-
-
-      } else if (ownerExpression instanceof CBinaryExpression
-          || ownerExpression instanceof CIdExpression) {
-        // In the non pointer case the Value is some SymbolicValue with the correct variable
-        // identifier String inside its MemoryLocation
-        Preconditions.checkArgument(structValue instanceof SymbolicValue);
-        MemoryLocation maybeVariableIdent =
-            ((SymbolicValue) structValue).getRepresentedLocation().orElseThrow();
-
-        BigInteger finalFieldOffset = fieldOffset;
-        if (maybeVariableIdent.isReference()) {
-          finalFieldOffset = fieldOffset.add(BigInteger.valueOf(maybeVariableIdent.getOffset()));
-        }
-
-        return evaluator.getTargetObjectAndOffset(currentState, maybeVariableIdent.getIdentifier(), finalFieldOffset);
-
-      } else {
-        // TODO: improve error and check if its even needed
-        throw new SMG2Exception("Unknown field type in field expression.");
       }
+      BigInteger finalFieldOffset =
+          structPointerOffsetExpr.asNumericValue().bigInteger().add(fieldOffset);
+
+      return evaluator.getTargetObjectAndOffset(
+          currentState, addressAndOffsetValue.getMemoryAddress(), finalFieldOffset);
+
+    } else if (ownerExpression instanceof CBinaryExpression
+        || ownerExpression instanceof CIdExpression) {
+      // In the non pointer case the Value is some SymbolicValue with the correct variable
+      // identifier String inside its MemoryLocation
+      Preconditions.checkArgument(structValue instanceof SymbolicValue);
+      MemoryLocation maybeVariableIdent =
+          ((SymbolicValue) structValue).getRepresentedLocation().orElseThrow();
+
+      BigInteger finalFieldOffset = fieldOffset;
+      if (maybeVariableIdent.isReference()) {
+        finalFieldOffset = fieldOffset.add(BigInteger.valueOf(maybeVariableIdent.getOffset()));
+      }
+
+      return evaluator.getTargetObjectAndOffset(
+          currentState, maybeVariableIdent.getIdentifier(), finalFieldOffset);
+
+    } else {
+      // TODO: improve error and check if its even needed
+      throw new SMG2Exception("Unknown field type in field expression.");
+    }
   }
 
   @Override

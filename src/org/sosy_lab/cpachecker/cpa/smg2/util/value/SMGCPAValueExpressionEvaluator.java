@@ -536,7 +536,7 @@ public class SMGCPAValueExpressionEvaluator {
     // TODO: rework because of that.
     return machineModel.getSizeofInBits(pType);
   }
-  
+
   public BigInteger getAlignOf(SMGState pInitialSmgState, CType pType) {
     return BigInteger.valueOf(machineModel.getAlignof(pType));
   }

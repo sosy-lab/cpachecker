@@ -179,7 +179,8 @@ public class SMGCPAValueVisitorTest {
       addHeapVariableToMemoryModel(
           0, getSizeInBitsForListOfCTypeWithPadding(STRUCT_UNION_TEST_TYPES), addressValue);
       addStackVariableToMemoryModel(COMPOSITE_VARIABLE_NAME, POINTER_SIZE_IN_BITS);
-      writeToStackVariableInMemoryModel(COMPOSITE_VARIABLE_NAME, 0, POINTER_SIZE_IN_BITS, addressValue);
+      writeToStackVariableInMemoryModel(
+          COMPOSITE_VARIABLE_NAME, 0, POINTER_SIZE_IN_BITS, addressValue);
 
       writeToHeapObjectByAddress(
           addressValue,
@@ -237,8 +238,7 @@ public class SMGCPAValueVisitorTest {
                 COMPOSITE_DECLARATION_NAME,
                 COMPOSITE_VARIABLE_NAME,
                 i,
-                STRUCT_UNION_TEST_TYPES
-                    .stream()
+                STRUCT_UNION_TEST_TYPES.stream()
                     .map(n -> new CPointerType(false, false, n))
                     .collect(ImmutableList.toImmutableList()));
 
@@ -297,8 +297,7 @@ public class SMGCPAValueVisitorTest {
                 COMPOSITE_DECLARATION_NAME,
                 COMPOSITE_VARIABLE_NAME,
                 i,
-                STRUCT_UNION_TEST_TYPES
-                    .stream()
+                STRUCT_UNION_TEST_TYPES.stream()
                     .map(n -> new CPointerType(false, false, n))
                     .collect(ImmutableList.toImmutableList()),
                 true,
@@ -353,8 +352,7 @@ public class SMGCPAValueVisitorTest {
                 COMPOSITE_DECLARATION_NAME,
                 COMPOSITE_VARIABLE_NAME,
                 i,
-                STRUCT_UNION_TEST_TYPES
-                    .stream()
+                STRUCT_UNION_TEST_TYPES.stream()
                     .map(n -> new CPointerType(false, false, n))
                     .collect(ImmutableList.toImmutableList()),
                 false,
@@ -426,7 +424,8 @@ public class SMGCPAValueVisitorTest {
       addHeapVariableToMemoryModel(
           0, getSizeInBitsForListOfCTypeWithPadding(STRUCT_UNION_TEST_TYPES), addressValue);
       addStackVariableToMemoryModel(COMPOSITE_VARIABLE_NAME, POINTER_SIZE_IN_BITS);
-      writeToStackVariableInMemoryModel(COMPOSITE_VARIABLE_NAME, 0, POINTER_SIZE_IN_BITS, addressValue);
+      writeToStackVariableInMemoryModel(
+          COMPOSITE_VARIABLE_NAME, 0, POINTER_SIZE_IN_BITS, addressValue);
 
       writeToHeapObjectByAddress(
           addressValue,
@@ -464,7 +463,8 @@ public class SMGCPAValueVisitorTest {
     addHeapVariableToMemoryModel(
         0, getSizeInBitsForListOfCTypeWithPadding(STRUCT_UNION_TEST_TYPES), addressValue);
     addStackVariableToMemoryModel(COMPOSITE_VARIABLE_NAME, POINTER_SIZE_IN_BITS);
-    writeToStackVariableInMemoryModel(COMPOSITE_VARIABLE_NAME, 0, POINTER_SIZE_IN_BITS, addressValue);
+    writeToStackVariableInMemoryModel(
+        COMPOSITE_VARIABLE_NAME, 0, POINTER_SIZE_IN_BITS, addressValue);
 
     for (int i = 0; i < STRUCT_UNION_TEST_TYPES.size(); i++) {
       // Create a Value that we want to be mapped to a SMGValue to write into the struct
@@ -2093,7 +2093,6 @@ public class SMGCPAValueVisitorTest {
       String arrayVariableName = "arrayName" + currentTestType;
       Value heapAddress = setupHeapArray(arrayVariableName, currentTestType);
 
-
       // Test & on every array entry (create every possible valid pointer to it)
       for (int currentIndice = 0; currentIndice < TEST_ARRAY_LENGTH; currentIndice++) {
         // &*(array + currentIndice)
@@ -2887,8 +2886,9 @@ public class SMGCPAValueVisitorTest {
    */
   private CUnaryExpression wrapInAmper(CExpression exprToWrap) {
     CType typeOfExpr = exprToWrap.getExpressionType();
-    CType newType = new CPointerType(false,  false, typeOfExpr);
-    return new CUnaryExpression(FileLocation.DUMMY, newType, exprToWrap, CUnaryExpression.UnaryOperator.AMPER);
+    CType newType = new CPointerType(false, false, typeOfExpr);
+    return new CUnaryExpression(
+        FileLocation.DUMMY, newType, exprToWrap, CUnaryExpression.UnaryOperator.AMPER);
   }
 
   /**
@@ -2898,7 +2898,8 @@ public class SMGCPAValueVisitorTest {
    * @return {@link CUnaryExpression} wrapping the entered expr into a sizeof.
    */
   private CUnaryExpression wrapInSizeof(CExpression exprToWrap) {
-    return new CUnaryExpression(FileLocation.DUMMY, INT_TYPE, exprToWrap, CUnaryExpression.UnaryOperator.SIZEOF);
+    return new CUnaryExpression(
+        FileLocation.DUMMY, INT_TYPE, exprToWrap, CUnaryExpression.UnaryOperator.SIZEOF);
   }
 
   /*
@@ -2974,7 +2975,8 @@ public class SMGCPAValueVisitorTest {
   }
 
   /**
-   * Returns the offset for the index given with the list of types given. This respects padding and assumes that the struct with the types has those in the exact order as it is given in the list.
+   * Returns the offset for the index given with the list of types given. This respects padding and
+   * assumes that the struct with the types has those in the exact order as it is given in the list.
    *
    * @param listOfTypes the list of types in the struct.
    * @param offsetBeginning where you want the offset.
@@ -3076,7 +3078,8 @@ public class SMGCPAValueVisitorTest {
   public CFieldReference createStructFieldRefWithPointerNoDeref(
       String structName, String variableName, int fieldNumberToRead, List<CType> fieldTypes) {
 
-    CPointerExpression structPointerExpr = createPointerRefForStructPointerNoDeref(structName, variableName, fieldTypes);
+    CPointerExpression structPointerExpr =
+        createPointerRefForStructPointerNoDeref(structName, variableName, fieldTypes);
 
     // The type structure comes from createPointerRefForStructPointerNoDeref()
     CElaboratedType elaboratedType = (CElaboratedType) structPointerExpr.getExpressionType();
@@ -3164,13 +3167,15 @@ public class SMGCPAValueVisitorTest {
       boolean deref,
       ComplexTypeKind structOrUnion) {
 
-    CExpression structVarExpr = exprForStructOrUnionOnStackVar(structName, variableName, fieldTypes, deref, structOrUnion);
+    CExpression structVarExpr =
+        exprForStructOrUnionOnStackVar(structName, variableName, fieldTypes, deref, structOrUnion);
     CType structExprType = structVarExpr.getExpressionType();
     // If you want to know more about the type nesting look into exprForStructOrUnionOnStackVar()
     if (structExprType instanceof CPointerType) {
       structExprType = ((CPointerType) structExprType).getType();
     }
-    CCompositeType structRetType = (CCompositeType) ((CElaboratedType) structExprType).getRealType();
+    CCompositeType structRetType =
+        (CCompositeType) ((CElaboratedType) structExprType).getRealType();
     // w/o pointer dereference struct.field
     // This is the reference given to the visitor
     return new CFieldReference(
@@ -3200,19 +3205,21 @@ public class SMGCPAValueVisitorTest {
       // Write to the stack array
       writeToStackVariableInMemoryModel(
           arrayVariableName, sizeOfCurrentTypeInBits * k, sizeOfCurrentTypeInBits, arrayValue);
-
     }
   }
 
   /**
-   * Creates a stack variable named stackVariableName that points to a heap section with a struct with the types from listOfTypes. The struct will be filled with values with transformInputIntoValue(currentType, index). Only check return values with checkValue()!
+   * Creates a stack variable named stackVariableName that points to a heap section with a struct
+   * with the types from listOfTypes. The struct will be filled with values with
+   * transformInputIntoValue(currentType, index). Only check return values with checkValue()!
    *
    * @param stackVariableName name of the stack variable.
    * @param listOfTypes the list of types in the struct in the order they should be in the struct.
    * @return the Value that is the address of the memory on the heap! NOT the stack!
    * @throws InvalidConfigurationException should never be thrown.
    */
-  private Value setupHeapStructAndFill(String stackVariableName, List<CType> listOfTypes) throws InvalidConfigurationException {
+  private Value setupHeapStructAndFill(String stackVariableName, List<CType> listOfTypes)
+      throws InvalidConfigurationException {
     // Address of the struct on the heap
     Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
 
@@ -3245,7 +3252,8 @@ public class SMGCPAValueVisitorTest {
    *
    * returns the addressValue to the heap location. (NOT THE STACK!) If you want the stack use currentState.getMemoryModel().getObjectForVisibleVariable(stackVariableName)
    */
-  private Value setupHeapArray(String arrayVariableName, CType currentArrayType) throws InvalidConfigurationException {
+  private Value setupHeapArray(String arrayVariableName, CType currentArrayType)
+      throws InvalidConfigurationException {
     int sizeOfCurrentTypeInBits = MACHINE_MODEL.getSizeof(currentArrayType).intValue() * 8;
     // address to the heap where the array starts
     Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
@@ -3696,7 +3704,6 @@ public class SMGCPAValueVisitorTest {
     CIntegerLiteralExpression outerIndice =
         new CIntegerLiteralExpression(
             FileLocation.DUMMY, INT_TYPE, BigInteger.valueOf(Math.abs(outerindiceInt)));
-
 
     // The type for the returned value after the binary expr
     CPointerType cPointerBinaryOperType = new CPointerType(false, false, elementType);
