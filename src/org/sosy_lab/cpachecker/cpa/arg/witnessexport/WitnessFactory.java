@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 import static com.google.common.base.Strings.nullToEmpty;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import static org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.SINK_NODE_ID;
 
@@ -1372,24 +1371,16 @@ class WitnessFactory implements EdgeAppender {
   }
 
   private boolean isEdgeIrrelevantByFaultLocalization(Edge pEdge) {
-    if (pEdge.getLabel().getMapping().containsKey(KeyDef.FUNCTIONENTRY)
-        || pEdge.getLabel().getMapping().containsKey(KeyDef.FUNCTIONEXIT)) {
-      return false;
-    }
-
+    // always relevant if FL is deactivated
     if (edgesInFault.isEmpty()) {
       return false;
     }
-    // has to be calculated newly everytime because of adaptions to edgeToCFAEdges
-    // finds all outgoing edges to sinks for relevant nodes
-    Set<String> importantNodes =
-        transformedImmutableSetCopy(
-            Multimaps.filterValues(edgeToCFAEdges, cfaEdge -> edgesInFault.contains(cfaEdge))
-                .keySet(),
-            e -> e.getSource());
 
-    // not irrelevant if it is an edge to a sink node and the source node is part of the fault
-    if (pEdge.getTarget().equals(SINK_NODE_ID) && importantNodes.contains(pEdge.getSource())) {
+    // function entries and exits as well as every transition to sink nodes must be included
+    if (pEdge.getLabel().getMapping().containsKey(KeyDef.FUNCTIONENTRY)
+        || pEdge.getLabel().getMapping().containsKey(KeyDef.FUNCTIONEXIT)
+        || pEdge.getLabel().getMapping().containsKey(KeyDef.ISVIOLATIONNODE)
+        || pEdge.getTarget().equals(SINK_NODE_ID)) {
       return false;
     }
 
