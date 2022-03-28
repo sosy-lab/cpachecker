@@ -15,7 +15,6 @@ import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -28,10 +27,23 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 
+/**
+ * Fault localization algorithms will result in a set of sets of CFAEdges that are most likely to
+ * fix a bug. Transforming it into a Set of Faults enables the possibility to attach reasons of why
+ * this edge is in this set. After ranking the set of faults an instance of this class can be
+ * created.
+ *
+ * <p>The class should be used to display information to the user.
+ *
+ * <p>Note that there is no need to create multiple instances of this object if more than one
+ * ranking should be applied. FaultRankingUtils provides a method that concatenates multiple
+ * rankings.
+ *
+ * <p>To see the result of FaultLocalizationInfo replace the CounterexampleInfo of the target state
+ * by this or simply call {@link #apply()} on an instance of this class.
+ */
 public class FaultLocalizationInfo extends CounterexampleInfo {
 
-  /* Please always prefer getRankedList() over rankedList to access the list because of important side effects */
-  private boolean sortIntended;
   private final ImmutableList<Fault> rankedList;
 
   private FaultReportWriter htmlWriter;
@@ -40,20 +52,9 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
   private Multimap<CFAEdge, Integer> mapEdgeToRankedFaultIndex;
 
   private Map<CFAEdge, FaultContribution> mapEdgeToFaultContribution;
+
   /**
-   * Fault localization algorithms will result in a set of sets of CFAEdges that are most likely to
-   * fix a bug. Transforming it into a Set of Faults enables the possibility to attach reasons of
-   * why this edge is in this set. After ranking the set of faults an instance of this class can be
-   * created.
-   *
-   * <p>The class should be used to display information to the user.
-   *
-   * <p>Note that there is no need to create multiple instances of this object if more than one
-   * ranking should be applied. FaultRankingUtils provides a method that concatenates multiple
-   * rankings.
-   *
-   * <p>To see the result of FaultLocalizationInfo replace the CounterexampleInfo of the target
-   * state by this or simply call {@link #apply()} on an instance of this class.
+   * Track information on why the given program violates the specification.
    *
    * @param pFaults Ranked list of faults obtained by a fault localization algorithm. The list will
    *     be stored immutable internally.
@@ -117,10 +118,6 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
         mapEdgeToFaultContribution.put(faultContribution.correspondingEdge(), faultContribution);
       }
     }
-  }
-
-  public void setSortIntended(boolean pIntended) {
-    sortIntended = pIntended;
   }
 
   @Override
@@ -191,17 +188,12 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
   }
 
   /**
-   * Return the ranked list of faults. If sort intended label is set, return a sorted copy sorted by
-   * {@link Fault#getIntendedIndex()}. The index has to be set manually in advance.
+   * Return the ranked list of faults.
    *
    * @return an immutable list of faults sorted by intended index or score
    */
   public ImmutableList<Fault> getRankedList() {
-    if (sortIntended) {
-      return ImmutableList.sortedCopyOf(
-          Comparator.comparingInt(Fault::getIntendedIndex), rankedList);
-    }
-    return ImmutableList.copyOf(rankedList);
+    return rankedList;
   }
 
   public FaultReportWriter getHtmlWriter() {

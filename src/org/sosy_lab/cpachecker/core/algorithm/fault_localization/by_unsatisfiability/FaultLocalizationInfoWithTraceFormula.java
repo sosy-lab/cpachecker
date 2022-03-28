@@ -10,10 +10,12 @@ package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiab
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import org.sosy_lab.common.JSON;
@@ -22,6 +24,7 @@ import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiabi
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
+import org.sosy_lab.cpachecker.util.faultlocalization.FaultRankingUtils;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultScoring;
 
 public class FaultLocalizationInfoWithTraceFormula extends FaultLocalizationInfo {
@@ -29,31 +32,26 @@ public class FaultLocalizationInfoWithTraceFormula extends FaultLocalizationInfo
   private final TraceFormula traceFormula;
 
   /**
-   * Fault localization algorithms will result in a set of sets of CFAEdges that are most likely to
-   * fix a bug. Transforming it into a Set of Faults enables the possibility to attach reasons of
-   * why this edge is in this set. After ranking the set of faults an instance of this class can be
-   * created.
-   *
-   * <p>The class should be used to display information to the user.
-   *
-   * <p>Note that there is no need to create multiple instances of this object if more than one
-   * ranking should be applied. FaultRankingUtils provides a method that concatenates multiple
-   * rankings.
-   *
-   * <p>To see the result of FaultLocalizationInfo replace the CounterexampleInfo of the target
-   * state by this or simply call {@link #apply()} on an instance of this class.
-   *
    * @param pFaults set of faults obtained by a fault localization algorithm
    * @param pScoring how to calculate the scores of each fault
+   * @param pTraceFormula calculated trace formula for the counterexample {@code pParent}
    * @param pParent the counterexample info of the target state
    */
   public FaultLocalizationInfoWithTraceFormula(
       Set<Fault> pFaults,
       FaultScoring pScoring,
       TraceFormula pTraceFormula,
-      CounterexampleInfo pParent) {
-    super(pFaults, pScoring, pParent);
+      CounterexampleInfo pParent,
+      boolean pSortIntended) {
+    super(correctlySortFaults(pFaults, pScoring, pSortIntended), pParent);
     traceFormula = pTraceFormula;
+  }
+
+  private static List<Fault> correctlySortFaults(Set<Fault> pFaults, FaultScoring pScoring, boolean pSortIntended) {
+    if (pSortIntended) {
+      return ImmutableList.sortedCopyOf(Comparator.comparingInt(Fault::getIntendedIndex), pFaults);
+    }
+    return FaultRankingUtils.rank(pScoring, pFaults);
   }
 
   public TraceFormula getTraceFormula() {

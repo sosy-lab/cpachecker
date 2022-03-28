@@ -315,11 +315,10 @@ public class FaultLocalizationWithTraceFormula
       InformationProvider.addDefaultPotentialFixesToFaults(faults, 3);
 
       FaultLocalizationInfo info =
-          new FaultLocalizationInfoWithTraceFormula(faults, getScoring(tf), tf, pInfo);
+          new FaultLocalizationInfoWithTraceFormula(faults, getScoring(tf), tf, pInfo, algorithmType == AlgorithmTypes.ERRINV);
 
-      if (algorithmType.equals(AlgorithmTypes.ERRINV)) {
+      if (algorithmType == AlgorithmTypes.ERRINV) {
         info.replaceHtmlWriter(new IntervalReportWriter(context.getSolver().getFormulaManager()));
-        info.setSortIntended(true);
       }
 
       info.getHtmlWriter().hideTypes(InfoType.RANK_INFO);

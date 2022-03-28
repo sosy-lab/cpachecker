@@ -12,9 +12,10 @@ import com.google.common.base.VerifyException;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.logging.Level;
+import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.FaultLocalizerWithTraceFormula;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.SelectorTraceInterpreter;
@@ -43,12 +44,12 @@ public class ModifiedMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
     BooleanFormulaManager bmgr = solver.getFormulaManager().getBooleanFormulaManager();
     BooleanFormula booleanTraceFormula = tf.toFormula(new SelectorTraceInterpreter(bmgr), true);
 
-    Set<Fault> hard = new HashSet<>();
+    Set<Set<TraceAtom>> hard = new LinkedHashSet<>();
 
-    Set<FaultContribution> soft = new HashSet<>(tf.getTrace());
+    Set<TraceAtom> soft = new LinkedHashSet<>(tf.getTrace());
     int initSize = soft.size();
 
-    Fault minUnsatCore = new Fault();
+    Set<TraceAtom> minUnsatCore = new LinkedHashSet<>();
 
     stats.totalTime.start();
     // loop as long as new unsat cores are found.
@@ -76,7 +77,9 @@ public class ModifiedMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
                     .transform(
                         fc -> fc.correspondingEdge().getFileLocation().getStartingLineInOrigin())
                     .toSortedList(Integer::compareTo));
-    return hard;
+    return Collections3.transformedImmutableSetCopy(hard, h -> FluentIterable.from(h)
+        .transform(atom -> (FaultContribution) atom)
+        .copyInto(new Fault()));
   }
 
   /**
@@ -91,27 +94,26 @@ public class ModifiedMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
    * @throws SolverException thrown if tf is satisfiable
    * @throws InterruptedException thrown if interrupted
    */
-  private Fault getMinUnsatCore(
-      Set<FaultContribution> pSoftSet,
-      Set<Fault> pHardSet,
+  private Set<TraceAtom> getMinUnsatCore(
+      Set<TraceAtom> pSoftSet,
+      Set<Set<TraceAtom>> pHardSet,
       BooleanFormula pTraceFormula,
       FormulaContext pContext)
       throws SolverException, InterruptedException {
     Solver solver = pContext.getSolver();
     BooleanFormulaManager bmgr = solver.getFormulaManager().getBooleanFormulaManager();
-    Fault result = new Fault(new HashSet<>(pSoftSet));
+    Set<TraceAtom> result = new LinkedHashSet<>(pSoftSet);
     boolean changed;
     do {
       changed = false;
-      for (FaultContribution fc : result) {
-        TraceAtom s = (TraceAtom) fc;
-        Fault copy = new Fault(new HashSet<>(result));
-        copy.remove(s);
+      for (TraceAtom atom : result) {
+        Set<TraceAtom> copy = new LinkedHashSet<>(result);
+        copy.remove(atom);
         if (!isSubsetOrSupersetOf(copy, pHardSet)) {
           stats.unsatCalls.inc();
           if (solver.isUnsat(bmgr.and(pTraceFormula, softSetFormula(copy, bmgr)))) {
             changed = true;
-            result.remove(s);
+            result.remove(atom);
             break;
           }
         } else {
@@ -122,10 +124,10 @@ public class ModifiedMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
     return result;
   }
 
-  private boolean isSubsetOrSupersetOf(Fault pSet, Set<Fault> pHardSet) {
+  private boolean isSubsetOrSupersetOf(Set<TraceAtom> pSet, Set<Set<TraceAtom>> pHardSet) {
     stats.timeForSubSupCheck.start();
     try {
-      for (Set<FaultContribution> hardSet : pHardSet) {
+      for (Set<TraceAtom> hardSet : pHardSet) {
         if (hardSet.containsAll(pSet) || pSet.containsAll(hardSet)) {
           return true;
         }
@@ -142,8 +144,8 @@ public class ModifiedMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
    * @param softSet left selectors
    * @return boolean formula as conjunct of all selector formulas
    */
-  private BooleanFormula softSetFormula(Fault softSet, BooleanFormulaManager bmgr) {
-    return softSet.stream().map(f -> ((TraceAtom) f).getFormula()).collect(bmgr.toConjunction());
+  private BooleanFormula softSetFormula(Set<TraceAtom> softSet, BooleanFormulaManager bmgr) {
+    return softSet.stream().map(f -> f.getFormula()).collect(bmgr.toConjunction());
   }
 
   @Override
