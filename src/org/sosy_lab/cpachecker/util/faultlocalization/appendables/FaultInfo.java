@@ -48,7 +48,8 @@ public abstract class FaultInfo implements Comparable<FaultInfo> {
    */
   public static FaultInfo possibleFixFor(FaultContribution pFaultContribution) {
     return new PotentialFix(
-        InfoType.FIX, new NoContextExplanation().explanationFor(new Fault(pFaultContribution)));
+        InfoType.FIX,
+        NoContextExplanation.getInstance().explanationFor(new Fault(pFaultContribution)));
   }
 
   public static PotentialFix fix(String pDescription) {
