@@ -1372,7 +1372,8 @@ class WitnessFactory implements EdgeAppender {
   }
 
   private boolean isEdgeIrrelevantByFaultLocalization(Edge pEdge) {
-    if (pEdge.getSource().equals("A0")) {
+    if (pEdge.getLabel().getMapping().containsKey(KeyDef.FUNCTIONENTRY)
+        || pEdge.getLabel().getMapping().containsKey(KeyDef.FUNCTIONEXIT)) {
       return false;
     }
 
