@@ -22,7 +22,7 @@ public abstract class FaultInfo implements Comparable<FaultInfo> {
     /** Provides a possible fix */
     FIX(1),
     /** Information provided by the rankings */
-    RANK_INFO(3);
+    RANK_INFO(2);
 
     private final int reportRank;
 
