@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
- * PostConditions contain the violated assertion. The trace and the precondition have to satisfy the
+ * PostConditions contain the violated assertion. The precondition and the trace have to satisfy the
  * post-condition, i.e., the post-condition is the condition that is but should not be violated by
  * the program.
  */
@@ -35,11 +35,12 @@ public class PostCondition {
    *
    * @param pEdges the complete list of edges of the counterexample (see {@link
    *     CounterexampleInfo#getCFAPathWithAssignments()})
-   * @param pIrrelevantEdges all edges after the last assume edge in the counterexample
-   * @param pRemainingCounterexample all edges before the first relevant assume edge
+   * @param pIrrelevantEdges all edges after the edges that define the post-condition
+   * @param pRemainingCounterexample all edges before the first edge that is part of this
+   *     post-condition
    * @param pPostCondition the actual post-condition
    */
-  PostCondition(
+  private PostCondition(
       List<CFAEdge> pEdges,
       List<CFAEdge> pIrrelevantEdges,
       List<CFAEdge> pRemainingCounterexample,
@@ -63,7 +64,7 @@ public class PostCondition {
         edgesForPostCondition,
         irrelevantEdges,
         remainingCounterexample,
-        pFmgr.instantiate(postCondition, pSSAMap));
+        pFmgr.instantiate(pFmgr.uninstantiate(postCondition), pSSAMap));
   }
 
   public BooleanFormula getPostCondition() {
@@ -89,8 +90,15 @@ public class PostCondition {
    * @return a new post-condition wrapping {@code pPostCondition}
    */
   public static PostCondition of(BooleanFormula pPostCondition) {
-    return new PostCondition(
-        ImmutableList.of(), ImmutableList.of(), ImmutableList.of(), pPostCondition);
+    return of(ImmutableList.of(), ImmutableList.of(), ImmutableList.of(), pPostCondition);
+  }
+
+  public static PostCondition of(
+      List<CFAEdge> pEdges,
+      List<CFAEdge> pIrrelevantEdges,
+      List<CFAEdge> pRemainingCounterexample,
+      BooleanFormula pPostCondition) {
+    return new PostCondition(pEdges, pIrrelevantEdges, pRemainingCounterexample, pPostCondition);
   }
 
   @Override

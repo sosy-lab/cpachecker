@@ -64,19 +64,19 @@ public class Trace extends ForwardingList<TraceAtom> {
       initialSSAMap = SSAMap.emptySSAMap();
     } else {
       latestSSAMap = entries.get(entries.size() - 1).ssaMap;
-      initialSSAMap = calculateInitialSSAMap();
+      initialSSAMap = calculateInitialSsaMap();
     }
   }
 
-  public SSAMap getLatestSSAMap() {
+  public SSAMap getLatestSsaMap() {
     return latestSSAMap;
   }
 
-  public SSAMap getInitialSSAMap() {
+  public SSAMap getInitialSsaMap() {
     return initialSSAMap;
   }
 
-  private SSAMap calculateInitialSSAMap() {
+  private SSAMap calculateInitialSsaMap() {
     Map<String, Integer> minIndexMap = new HashMap<>();
     Map<String, CType> typeMap = new HashMap<>();
     for (TraceAtom traceAtom : this) {
@@ -107,9 +107,9 @@ public class Trace extends ForwardingList<TraceAtom> {
   }
 
   /**
-   * Transform the current trace to a flow-sensitive trace. The original trace will not be modified.
-   * Flow-sensitive traces do not contain assume edges. Instead, assume edges imply successive edges
-   * as long as the edges are only reachable through the assume edge.
+   * Transforms the current trace to a flow-sensitive trace. The original trace will not be
+   * modified. Flow-sensitive traces do not contain assume edges. Instead, assume edges imply
+   * successive edges as long as the edges are only reachable through the assume edge.
    *
    * @return flow-sensitive trace
    */
@@ -145,17 +145,17 @@ public class Trace extends ForwardingList<TraceAtom> {
     int index = 0;
     for (int i = 0; i < labels.size(); i++) {
       List<FormulaLabel> currentLabels = labels.get(i);
+      TraceAtom currentTraceAtom = entries.get(i);
       boolean isIf = false;
       for (FormulaLabel currentLabel : currentLabels) {
         if (currentLabel == FormulaLabel.ENDIF) {
           conditions.pop();
         } else if (currentLabel == FormulaLabel.IF) {
-          conditions.push(entries.get(i).formula);
+          conditions.push(currentTraceAtom.formula);
           isIf = true;
         }
       }
       if (!isIf) {
-        TraceAtom currentTraceAtom = entries.get(i);
         if (conditions.isEmpty()) {
           flowSensitiveList.add(
               new TraceAtom(
@@ -180,7 +180,7 @@ public class Trace extends ForwardingList<TraceAtom> {
   }
 
   /**
-   * Create a {@link Trace} from a counterexample represented as list (path) of {@link CFAEdge}s
+   * Creates a {@link Trace} from a counterexample represented as list (path) of {@link CFAEdge}s
    *
    * @param pCounterexample path to an error location
    * @param pContext context of formula containing managers and solver to create formulas

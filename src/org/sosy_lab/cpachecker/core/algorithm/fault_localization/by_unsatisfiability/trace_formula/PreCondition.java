@@ -18,10 +18,11 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
- * PreConditions contain (a subset of) the initial variable assignment responsible for satisfying
- * the post-condition.
+ * PreConditions contain the initial variable assignment responsible for satisfying the
+ * post-condition. Preconditions can consist of only a subset of the actual variable assignment. For
+ * programs without nondeterministic variables `true` is also a valid precondition.
  */
-public class Precondition {
+public class PreCondition {
 
   private final ImmutableList<CFAEdge> edgesForPrecondition;
   private final ImmutableList<CFAEdge> remainingCounterexample;
@@ -36,7 +37,7 @@ public class Precondition {
    *     precondition (see {@link CounterexampleInfo#getCFAPathWithAssignments()})
    * @param pPrecondition the actual precondition as {@link BooleanFormula}
    */
-  Precondition(
+  private PreCondition(
       List<CFAEdge> pEdges, List<CFAEdge> pRemainingCounterexample, BooleanFormula pPrecondition) {
     edgesForPrecondition = ImmutableList.copyOf(pEdges);
     remainingCounterexample = ImmutableList.copyOf(pRemainingCounterexample);
@@ -47,10 +48,17 @@ public class Precondition {
    * Precondition solely based on a condition.
    *
    * @param pPrecondition BooleanFormula of a pre-condition.
-   * @return an object of {@link Precondition} wrapping the provided {@link BooleanFormula}
+   * @return an object of {@link PreCondition} wrapping the provided {@link BooleanFormula}
    */
-  public static Precondition of(BooleanFormula pPrecondition) {
-    return new Precondition(ImmutableList.of(), ImmutableList.of(), pPrecondition);
+  public static PreCondition of(BooleanFormula pPrecondition) {
+    return of(ImmutableList.of(), ImmutableList.of(), pPrecondition);
+  }
+
+  public static PreCondition of(
+      List<CFAEdge> pEdgesForPrecondition,
+      List<CFAEdge> pRemainingCounterexample,
+      BooleanFormula pPrecondition) {
+    return new PreCondition(pEdgesForPrecondition, pRemainingCounterexample, pPrecondition);
   }
 
   public ImmutableList<CFAEdge> getRemainingCounterexample() {
@@ -65,9 +73,11 @@ public class Precondition {
     return edgesForPrecondition;
   }
 
-  public Precondition instantiate(FormulaManagerView pFmgr, SSAMap pSSAMap) {
-    return new Precondition(
-        edgesForPrecondition, remainingCounterexample, pFmgr.instantiate(precondition, pSSAMap));
+  public PreCondition instantiate(FormulaManagerView pFmgr, SSAMap pSSAMap) {
+    return new PreCondition(
+        edgesForPrecondition,
+        remainingCounterexample,
+        pFmgr.instantiate(pFmgr.uninstantiate(precondition), pSSAMap));
   }
 
   @Override

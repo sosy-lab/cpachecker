@@ -47,7 +47,8 @@ public class FaultLocalizationInfoWithTraceFormula extends FaultLocalizationInfo
     traceFormula = pTraceFormula;
   }
 
-  private static List<Fault> correctlySortFaults(Set<Fault> pFaults, FaultScoring pScoring, boolean pSortIntended) {
+  private static List<Fault> correctlySortFaults(
+      Set<Fault> pFaults, FaultScoring pScoring, boolean pSortIntended) {
     if (pSortIntended) {
       return ImmutableList.sortedCopyOf(Comparator.comparingInt(Fault::getIntendedIndex), pFaults);
     }

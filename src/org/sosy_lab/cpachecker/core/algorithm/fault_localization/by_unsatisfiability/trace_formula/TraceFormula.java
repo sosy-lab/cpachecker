@@ -16,6 +16,9 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.interpreter.TraceInterpreter;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.postcondition_composer.PostConditionComposer;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.precondition_composer.PreConditionComposer;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -73,7 +76,9 @@ public class TraceFormula {
     @Option(
         secure = true,
         description =
-            "Make trace formula flow-sensitive, i.e., assume edges imply the following edges.")
+            "Make trace formula flow-sensitive, i.e., assume edges imply the edges that are only"
+                + " reachable through the assume edge. Flow-sensitive traces remove assume edges"
+                + " from the trace. Hence, no assume edge will be part of a fault.")
     private boolean makeFlowSensitive = false;
 
     public TraceFormulaOptions(Configuration pConfiguration) throws InvalidConfigurationException {
@@ -102,16 +107,16 @@ public class TraceFormula {
   }
 
   private final FormulaContext context;
-  private final Precondition precondition;
+  private final PreCondition precondition;
   private final Trace trace;
   private final PostCondition postCondition;
 
   private TraceFormula(
       FormulaContext pContext,
-      Precondition pPrecondition,
+      PreCondition pPreCondition,
       Trace pTrace,
       PostCondition pPostCondition) {
-    precondition = pPrecondition;
+    precondition = pPreCondition;
     trace = pTrace;
     postCondition = pPostCondition;
     context = pContext;
@@ -129,16 +134,17 @@ public class TraceFormula {
   }
 
   /**
-   * Check if precondition already contradicts post condition.
+   * Check whether the instantiated precondition contradicts the instantiated post-condition. In
+   * case it does, no further analysis is required since the program does not change the variables
+   * in the precondition. Hence, no error-prone statements will be found as they do not cause the
+   * contradiction.
    *
-   * @param pContext collection of managers for boolean formulas
    * @return whether fault localization can succeed
    * @throws SolverException if solver encounters a problem
    * @throws InterruptedException if program is interrupted unexpectedly
    */
-  public boolean isCalculationPossible(FormulaContext pContext)
-      throws SolverException, InterruptedException {
-    Solver solver = pContext.getSolver();
+  public boolean isCalculationPossible() throws SolverException, InterruptedException {
+    Solver solver = context.getSolver();
     BooleanFormulaManager bmgr = solver.getFormulaManager().getBooleanFormulaManager();
     return !solver.isUnsat(
         bmgr.and(precondition.getPrecondition(), bmgr.not(postCondition.getPostCondition())));
@@ -148,7 +154,7 @@ public class TraceFormula {
     return postCondition;
   }
 
-  public Precondition getPrecondition() {
+  public PreCondition getPrecondition() {
     return precondition;
   }
 
@@ -163,31 +169,28 @@ public class TraceFormula {
 
   public static TraceFormula instantiate(
       FormulaContext pContext,
-      Precondition pPrecondition,
+      PreCondition pPrecondition,
       Trace pTrace,
       PostCondition pPostCondition) {
     FormulaManagerView fmgr = pContext.getSolver().getFormulaManager();
     return new TraceFormula(
         pContext,
-        pPrecondition.instantiate(fmgr, pTrace.getInitialSSAMap()),
+        pPrecondition.instantiate(fmgr, pTrace.getInitialSsaMap()),
         pTrace,
-        pPostCondition.instantiate(fmgr, pTrace.getLatestSSAMap()));
+        pPostCondition.instantiate(fmgr, pTrace.getLatestSsaMap()));
   }
 
   public static TraceFormula fromCounterexample(
-      PreconditionTypes pPreconditionType,
-      PostConditionTypes pPostConditionType,
+      PreConditionComposer pPreConditionType,
+      PostConditionComposer pPostConditionType,
       List<CFAEdge> pCounterexample,
       FormulaContext pContext,
       TraceFormulaOptions pOptions)
       throws CPATransferException, SolverException, InterruptedException {
     List<CFAEdge> remainingCounterexample = pCounterexample;
-    Precondition precondition =
-        pPreconditionType.createPreconditionFromCounterexample(
-            remainingCounterexample, pContext, pOptions);
+    PreCondition precondition = pPreConditionType.extractPreCondition(remainingCounterexample);
     remainingCounterexample = precondition.getRemainingCounterexample();
-    PostCondition postCondition =
-        pPostConditionType.createPostConditionFromCounterexample(remainingCounterexample, pContext);
+    PostCondition postCondition = pPostConditionType.extractPostCondition(remainingCounterexample);
     remainingCounterexample = postCondition.getRemainingCounterexample();
     Trace trace = Trace.fromCounterexample(remainingCounterexample, pContext, pOptions);
     return instantiate(pContext, precondition, trace, postCondition);

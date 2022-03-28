@@ -18,9 +18,9 @@ import java.util.logging.Level;
 import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.FaultLocalizerWithTraceFormula;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaContext;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.SelectorTraceInterpreter;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.Trace.TraceAtom;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.interpreter.SelectorTraceInterpreter;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -77,9 +77,12 @@ public class ModifiedMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
                     .transform(
                         fc -> fc.correspondingEdge().getFileLocation().getStartingLineInOrigin())
                     .toSortedList(Integer::compareTo));
-    return Collections3.transformedImmutableSetCopy(hard, h -> FluentIterable.from(h)
-        .transform(atom -> (FaultContribution) atom)
-        .copyInto(new Fault()));
+    return Collections3.transformedImmutableSetCopy(
+        hard,
+        h ->
+            FluentIterable.from(h)
+                .transform(atom -> (FaultContribution) atom)
+                .copyInto(new Fault()));
   }
 
   /**

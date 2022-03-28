@@ -40,11 +40,16 @@ import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiabi
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.CallHierarchyScoring;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.EdgeTypeScoring;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaContext;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.PostConditionTypes;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.PreconditionTypes;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.Trace.TraceAtom;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula.TraceFormulaOptions;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.postcondition_composer.FinalAssumeClusterPostConditionComposer;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.postcondition_composer.FinalAssumeEdgePostConditionComposer;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.postcondition_composer.FinalAssumeEdgesOnSameLinePostConditionComposer;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.postcondition_composer.PostConditionComposer;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.precondition_composer.PreConditionComposer;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.precondition_composer.TruePreConditionComposer;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.precondition_composer.VariableAssignmentPreConditionComposer;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.unsat.ModifiedMaxSatAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.unsat.OriginalMaxSatAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.unsat.SingleUnsatCoreAlgorithm;
@@ -76,11 +81,34 @@ import org.sosy_lab.java_smt.api.SolverException;
 public class FaultLocalizationWithTraceFormula
     implements Algorithm, StatisticsProvider, Statistics {
 
-  public enum AlgorithmTypes {
+  public enum AlgorithmType {
     UNSAT,
     MAXSAT,
     MAXORG,
     ERRINV
+  }
+
+  enum PostConditionType {
+    LAST_ASSUME_EDGE,
+    LAST_ASSUME_EDGES_ON_SAME_LINE,
+    LAST_ASSUME_EDGE_CLUSTER
+  }
+
+  enum PreConditionType {
+    /**
+     * Do not use any edge of the counterexample for creating the pre-condition. Instead, find
+     * values that satisfy the counterexample for all nondeterministic variables. In case no
+     * nondeterministic variables exist, return true.
+     */
+    NONDETERMINISTIC_VARIABLES_ONLY,
+    /**
+     * Combine {@link PreConditionType#NONDETERMINISTIC_VARIABLES_ONLY} with initial assignments.
+     * Initial assignments are statement or declaration edges that assign a value to a variable for
+     * the first time.
+     */
+    INITIAL_ASSIGNMENT,
+    /** Precondition that represent {@code true}. */
+    ALWAYS_TRUE
   }
 
   private final Algorithm algorithm;
@@ -92,7 +120,7 @@ public class FaultLocalizationWithTraceFormula
   private final StatTimer totalTime = new StatTimer("Total time for fault localization");
 
   @Option(secure = true, name = "type", description = "which algorithm to use")
-  private AlgorithmTypes algorithmType = AlgorithmTypes.UNSAT;
+  private AlgorithmType algorithmType = AlgorithmType.UNSAT;
 
   @Option(
       secure = true,
@@ -110,10 +138,10 @@ public class FaultLocalizationWithTraceFormula
           "By default, the precondition only contains the failing variable assignment of all nondet"
               + " variables. Choose INITIAL_ASSIGNMENT to assignments like '<datatype>"
               + " <variable-name> = <value>' to the precondition.")
-  private PreconditionTypes preconditionType = PreconditionTypes.NONDETERMINISTIC_VARIABLES_ONLY;
+  private PreConditionType preconditionType = PreConditionType.NONDETERMINISTIC_VARIABLES_ONLY;
 
   @Option(description = "which post-condition type to use")
-  private PostConditionTypes postConditionType = PostConditionTypes.LAST_ASSUME_EDGES_ON_SAME_LINE;
+  private PostConditionType postConditionType = PostConditionType.LAST_ASSUME_EDGES_ON_SAME_LINE;
 
   public FaultLocalizationWithTraceFormula(
       final Algorithm pStoreAlgorithm,
@@ -168,21 +196,21 @@ public class FaultLocalizationWithTraceFormula
   }
 
   public void checkOptions() throws InvalidConfigurationException {
-    if (!algorithmType.equals(AlgorithmTypes.ERRINV) && options.makeFlowSensitive()) {
+    if (!algorithmType.equals(AlgorithmType.ERRINV) && options.makeFlowSensitive()) {
       throw new InvalidConfigurationException(
           "The option 'makeFlowSensitive' (flow-sensitive trace formula) requires the error"
               + " invariants algorithm");
     }
-    if (algorithmType.equals(AlgorithmTypes.ERRINV) && !ban.isEmpty()) {
+    if (algorithmType.equals(AlgorithmType.ERRINV) && !ban.isEmpty()) {
       throw new InvalidConfigurationException(
           "The option 'ban' cannot be used together with the error invariants algorithm. Use"
               + " MAX-SAT instead.");
     }
-    if (!algorithmType.equals(AlgorithmTypes.MAXSAT) && options.isReduceSelectors()) {
+    if (!algorithmType.equals(AlgorithmType.MAXSAT) && options.isReduceSelectors()) {
       throw new InvalidConfigurationException(
           "The option 'reduceselectors' requires the MAX-SAT algorithm");
     }
-    if (!options.getDisable().isEmpty() && algorithmType.equals(AlgorithmTypes.ERRINV)) {
+    if (!options.getDisable().isEmpty() && algorithmType.equals(AlgorithmType.ERRINV)) {
       throw new InvalidConfigurationException(
           "The option 'ban' is not applicable for the error invariants" + " algorithm");
     }
@@ -284,9 +312,9 @@ public class FaultLocalizationWithTraceFormula
       // Find correct scoring and correct trace formula for the specified algorithm
       final TraceFormula tf =
           TraceFormula.fromCounterexample(
-              preconditionType, postConditionType, edgeList, context, options);
+              getPreConditionExtractor(), getPostConditionExtractor(), edgeList, context, options);
 
-      if (!tf.isCalculationPossible(context)) {
+      if (!tf.isCalculationPossible()) {
         logger.log(
             Level.INFO,
             "Pre- and post-condition are unsatisfiable. No further analysis required. Most likely"
@@ -298,7 +326,7 @@ public class FaultLocalizationWithTraceFormula
 
       // ban specified variables from result set
       ImmutableSet.Builder<Fault> remainingFaults = ImmutableSet.builder();
-      if (!algorithmType.equals(AlgorithmTypes.ERRINV)) {
+      if (!algorithmType.equals(AlgorithmType.ERRINV)) {
         for (Fault fault : faults) {
           if (fault.stream()
               .noneMatch(
@@ -315,9 +343,10 @@ public class FaultLocalizationWithTraceFormula
       InformationProvider.addDefaultPotentialFixesToFaults(faults, 3);
 
       FaultLocalizationInfo info =
-          new FaultLocalizationInfoWithTraceFormula(faults, getScoring(tf), tf, pInfo, algorithmType == AlgorithmTypes.ERRINV);
+          new FaultLocalizationInfoWithTraceFormula(
+              faults, getScoring(tf), tf, pInfo, algorithmType == AlgorithmType.ERRINV);
 
-      if (algorithmType == AlgorithmTypes.ERRINV) {
+      if (algorithmType == AlgorithmType.ERRINV) {
         info.replaceHtmlWriter(new IntervalReportWriter(context.getSolver().getFormulaManager()));
       }
 
@@ -338,6 +367,32 @@ public class FaultLocalizationWithTraceFormula
     } catch (IllegalStateException iE) {
       throw new CPAException(
           "The counterexample is spurious. Calculating interpolants is not possible.", iE);
+    }
+  }
+
+  private PostConditionComposer getPostConditionExtractor() {
+    switch (postConditionType) {
+      case LAST_ASSUME_EDGE:
+        return new FinalAssumeEdgePostConditionComposer(context);
+      case LAST_ASSUME_EDGES_ON_SAME_LINE:
+        return new FinalAssumeEdgesOnSameLinePostConditionComposer(context);
+      case LAST_ASSUME_EDGE_CLUSTER:
+        return new FinalAssumeClusterPostConditionComposer(context);
+      default:
+        throw new AssertionError("Unknown post-condition type");
+    }
+  }
+
+  private PreConditionComposer getPreConditionExtractor() {
+    switch (preconditionType) {
+      case NONDETERMINISTIC_VARIABLES_ONLY:
+        return new VariableAssignmentPreConditionComposer(context, options, false);
+      case INITIAL_ASSIGNMENT:
+        return new VariableAssignmentPreConditionComposer(context, options, true);
+      case ALWAYS_TRUE:
+        return new TruePreConditionComposer(context);
+      default:
+        throw new AssertionError("Unknown precondition type: " + preconditionType);
     }
   }
 

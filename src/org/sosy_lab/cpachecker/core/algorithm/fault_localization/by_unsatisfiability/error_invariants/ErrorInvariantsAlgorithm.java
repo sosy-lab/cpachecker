@@ -34,11 +34,11 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.FaultLocalizerWithTraceFormula;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.DefaultTraceInterpreter;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.Trace.TraceAtom;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceInterpreter;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.interpreter.ConjunctionTraceInterpreter;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.interpreter.TraceInterpreter;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
@@ -138,7 +138,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
     errorTrace = tf;
     maps =
         ImmutableList.<SSAMap>builder()
-            .add(tf.getTrace().getInitialSSAMap())
+            .add(tf.getTrace().getInitialSsaMap())
             .addAll(tf.getTrace().toSSAMapList())
             .build();
     totalTime.start();
@@ -376,7 +376,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
     BooleanFormula shiftedInterpolant = fmgr.instantiate(plainInterpolant, shift);
 
     TraceInterpreter interpreter =
-        new DefaultTraceInterpreter(solver.getFormulaManager().getBooleanFormulaManager());
+        new ConjunctionTraceInterpreter(solver.getFormulaManager().getBooleanFormulaManager());
 
     BooleanFormula firstFormula =
         bmgr.implication(

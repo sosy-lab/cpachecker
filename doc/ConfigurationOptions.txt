@@ -3549,7 +3549,7 @@ faultLocalization.by_traceformula.maxsat.ban = []
 
 # which post-condition type to use
 faultLocalization.by_traceformula.postConditionType = LAST_ASSUME_EDGES_ON_SAME_LINE
-  enum:     [ONLY_LAST_ASSUME_EDGE, LAST_ASSUME_EDGES_ON_SAME_LINE,
+  enum:     [LAST_ASSUME_EDGE, LAST_ASSUME_EDGES_ON_SAME_LINE,
              LAST_ASSUME_EDGE_CLUSTER]
 
 # By default, the precondition only contains the failing variable assignment
@@ -4529,8 +4529,9 @@ traceformula.filter = ["main"]
 # variable is used as prefix, separated by two ':'
 traceformula.ignore = []
 
-# Make trace formula flow-sensitive, i.e., assume edges imply the following
-# edges.
+# Make trace formula flow-sensitive, i.e., assume edges imply the edges that
+# are only reachable through the assume edge. Flow-sensitive traces remove
+# assume edges from the trace. Hence, no assume edge will be part of a fault.
 traceformula.makeFlowSensitive = false
 
 # By default, every executed statement gets its own selector. If a loop is

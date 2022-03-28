@@ -19,10 +19,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.FaultLocalizerWithTraceFormula;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.DefaultTraceInterpreter;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.Trace.TraceAtom;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.interpreter.ConjunctionTraceInterpreter;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -51,7 +51,7 @@ public class SingleUnsatCoreAlgorithm
     Solver solver = context.getSolver();
     BooleanFormulaManager bmgr = solver.getFormulaManager().getBooleanFormulaManager();
     stats.totalTime.start();
-    BooleanFormula booleanTraceFormula = tf.toFormula(new DefaultTraceInterpreter(bmgr), true);
+    BooleanFormula booleanTraceFormula = tf.toFormula(new ConjunctionTraceInterpreter(bmgr), true);
 
     Map<BooleanFormula, TraceAtom> formulaToAtom =
         HashBiMap.create(
