@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.postcondition_composer;
+package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.postcondition;
 
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
@@ -15,7 +15,6 @@ import java.util.logging.Level;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaContext;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.PostCondition;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -101,7 +100,7 @@ public class FinalAssumeEdgesOnSameLinePostConditionComposer implements PostCond
                 .log(
                     Level.FINEST,
                     "tfpostcondition=" + edge.getFileLocation().getStartingLineInOrigin()));
-    return PostCondition.of(
+    return new PostCondition(
         postConditionEdges,
         Lists.reverse(irrelevant),
         pCounterexample.subList(0, i + 1),

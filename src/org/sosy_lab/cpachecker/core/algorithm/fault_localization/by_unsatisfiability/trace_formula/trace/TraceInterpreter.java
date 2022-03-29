@@ -6,9 +6,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.interpreter;
+package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.trace;
 
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.Trace;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /** Transform object of {@link Trace} to a {@link BooleanFormula} in a given way. */

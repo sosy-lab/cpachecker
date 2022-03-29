@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula;
+package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.precondition;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
@@ -37,7 +37,7 @@ public class PreCondition {
    *     precondition (see {@link CounterexampleInfo#getCFAPathWithAssignments()})
    * @param pPrecondition the actual precondition as {@link BooleanFormula}
    */
-  private PreCondition(
+  PreCondition(
       List<CFAEdge> pEdges, List<CFAEdge> pRemainingCounterexample, BooleanFormula pPrecondition) {
     edgesForPrecondition = ImmutableList.copyOf(pEdges);
     remainingCounterexample = ImmutableList.copyOf(pRemainingCounterexample);
@@ -51,14 +51,7 @@ public class PreCondition {
    * @return an object of {@link PreCondition} wrapping the provided {@link BooleanFormula}
    */
   public static PreCondition of(BooleanFormula pPrecondition) {
-    return of(ImmutableList.of(), ImmutableList.of(), pPrecondition);
-  }
-
-  public static PreCondition of(
-      List<CFAEdge> pEdgesForPrecondition,
-      List<CFAEdge> pRemainingCounterexample,
-      BooleanFormula pPrecondition) {
-    return new PreCondition(pEdgesForPrecondition, pRemainingCounterexample, pPrecondition);
+    return new PreCondition(ImmutableList.of(), ImmutableList.of(), pPrecondition);
   }
 
   public ImmutableList<CFAEdge> getRemainingCounterexample() {

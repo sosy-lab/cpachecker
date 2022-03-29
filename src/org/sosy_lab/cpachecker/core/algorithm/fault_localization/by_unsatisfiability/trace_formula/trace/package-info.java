@@ -8,7 +8,7 @@
 
 /**
  * Provides implementations for trace interpreter. Trace interpreter use a {@link
- * org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.Trace}
+ * org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.trace.Trace}
  * and convert it to a boolean formula.
  */
-package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.interpreter;
+package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.trace;

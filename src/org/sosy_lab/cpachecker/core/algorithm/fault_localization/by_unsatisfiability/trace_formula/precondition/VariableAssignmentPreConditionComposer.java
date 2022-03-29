@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.precondition_composer;
+package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.precondition;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaContext;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.PreCondition;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula.TraceFormulaOptions;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -115,7 +114,7 @@ public class VariableAssignmentPreConditionComposer implements PreConditionCompo
       remainingCounterexample.add(cfaEdge);
     }
     FormulaManagerView fmgr = context.getSolver().getFormulaManager();
-    return PreCondition.of(
+    return new PreCondition(
         preconditionEdges,
         remainingCounterexample,
         fmgr.uninstantiate(
@@ -125,7 +124,7 @@ public class VariableAssignmentPreConditionComposer implements PreConditionCompo
                     context.getManager().makeFormulaForPath(preconditionEdges).getFormula())));
   }
 
-  public PreCondition createNondetPrecondition(List<CFAEdge> pCounterexample)
+  private PreCondition createNondetPrecondition(List<CFAEdge> pCounterexample)
       throws SolverException, InterruptedException, CPATransferException {
     BooleanFormulaManager bmgr = context.getSolver().getFormulaManager().getBooleanFormulaManager();
     BooleanFormula precond = bmgr.makeTrue();
@@ -139,7 +138,7 @@ public class VariableAssignmentPreConditionComposer implements PreConditionCompo
           precond = bmgr.and(precond, formula);
         }
       }
-      return PreCondition.of(
+      return new PreCondition(
           ImmutableList.of(),
           pCounterexample,
           context.getSolver().getFormulaManager().uninstantiate(precond));

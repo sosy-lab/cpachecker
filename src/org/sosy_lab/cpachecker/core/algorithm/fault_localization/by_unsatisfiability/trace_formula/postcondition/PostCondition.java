@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula;
+package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.postcondition;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
@@ -40,7 +40,7 @@ public class PostCondition {
    *     post-condition
    * @param pPostCondition the actual post-condition
    */
-  private PostCondition(
+  PostCondition(
       List<CFAEdge> pEdges,
       List<CFAEdge> pIrrelevantEdges,
       List<CFAEdge> pRemainingCounterexample,
@@ -90,15 +90,8 @@ public class PostCondition {
    * @return a new post-condition wrapping {@code pPostCondition}
    */
   public static PostCondition of(BooleanFormula pPostCondition) {
-    return of(ImmutableList.of(), ImmutableList.of(), ImmutableList.of(), pPostCondition);
-  }
-
-  public static PostCondition of(
-      List<CFAEdge> pEdges,
-      List<CFAEdge> pIrrelevantEdges,
-      List<CFAEdge> pRemainingCounterexample,
-      BooleanFormula pPostCondition) {
-    return new PostCondition(pEdges, pIrrelevantEdges, pRemainingCounterexample, pPostCondition);
+    return new PostCondition(
+        ImmutableList.of(), ImmutableList.of(), ImmutableList.of(), pPostCondition);
   }
 
   @Override

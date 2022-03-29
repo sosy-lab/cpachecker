@@ -6,13 +6,12 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.precondition_composer;
+package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.precondition;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaContext;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.PreCondition;
 
 public class TruePreConditionComposer implements PreConditionComposer {
 
@@ -24,7 +23,7 @@ public class TruePreConditionComposer implements PreConditionComposer {
 
   @Override
   public PreCondition extractPreCondition(List<CFAEdge> pCounterexample) {
-    return PreCondition.of(
+    return new PreCondition(
         ImmutableList.of(),
         pCounterexample,
         context.getSolver().getFormulaManager().getBooleanFormulaManager().makeTrue());
