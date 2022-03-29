@@ -456,13 +456,15 @@ public class PredicateAbstractionManager {
   private BooleanFormula syntacticSubstitution(BooleanFormula bf, SSAMap pSSAMap){
     SubstituteVisitor stvisitor = new SubstituteVisitor(fmgr.manager);
     bfmgr.visitRecursively(bf, stvisitor);
-    HashMap<Formula, Formula> transform_map = stvisitor.fmap;
-    if (!transform_map.isEmpty()) {
+    HashMap<Formula, Formula> substituteMap = stvisitor.fmap;
+    if (!substituteMap.isEmpty()) {
       SubstituteAssumptionTransformationVisitor
-          sttrf = new SubstituteAssumptionTransformationVisitor(fmgr.manager, transform_map);
-      bf = bfmgr.transformRecursively(bf, sttrf);
-      SubstituteAssignmentTransformationVisitor st_assign = new SubstituteAssignmentTransformationVisitor(fmgr.manager, fmgr, transform_map, pSSAMap);
-      bf = bfmgr.transformRecursively(bf, st_assign);
+          stAssume = new SubstituteAssumptionTransformationVisitor(fmgr.manager, substituteMap);
+      bf = bfmgr.transformRecursively(bf, stAssume);
+      SubstituteAssignmentTransformationVisitor stAssign;
+      stAssign =
+          new SubstituteAssignmentTransformationVisitor(fmgr.manager, substituteMap, pSSAMap);
+      bf = bfmgr.transformRecursively(bf, stAssign);
     }
     return bf;
   }

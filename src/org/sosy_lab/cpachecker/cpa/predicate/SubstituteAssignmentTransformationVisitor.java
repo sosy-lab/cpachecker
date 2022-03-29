@@ -15,7 +15,6 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaManager;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
@@ -23,17 +22,21 @@ import org.sosy_lab.java_smt.api.FunctionDeclarationKind;
 
 public class SubstituteAssignmentTransformationVisitor extends org.sosy_lab.java_smt.api.visitors.BooleanFormulaTransformationVisitor {
 
-  private final BooleanFormulaManager bfmgr;
-  private final FormulaManagerView fmgrView;
   private final FormulaManager fmgr;
   private final HashMap<Formula,Formula> fmap;
   private final SSAMap ssaMap;
 
-  public SubstituteAssignmentTransformationVisitor(FormulaManager pFmgr, FormulaManagerView pFmgrView, HashMap<Formula,Formula> pFmap, SSAMap pSSAMap) {
+  /**
+   * Transform a formula using a map of substitutions constructed by SubstituteVisitor
+   *
+   * We replace only those variable occurences that do not have the highest SSA index for their variable
+   * @param pFmgr {@link FormulaManager}
+   * @param pFmap map of substitutions as constructed by {@link SubstituteVisitor}
+   * @param pSSAMap {@link SSAMap} containing the most recent SSA Indices for all variables
+   */
+  public SubstituteAssignmentTransformationVisitor(FormulaManager pFmgr, HashMap<Formula,Formula> pFmap, SSAMap pSSAMap) {
     super(pFmgr);
     fmgr = pFmgr;
-    fmgrView = pFmgrView;
-    bfmgr = pFmgr.getBooleanFormulaManager();
     fmap = pFmap;
     ssaMap = pSSAMap;
   }
@@ -45,7 +48,7 @@ public class SubstituteAssignmentTransformationVisitor extends org.sosy_lab.java
       HashMap<Formula,Formula> tosubstiture = new HashMap<>();
       // modify fmap
       for (Formula key : fmap.keySet()) {
-        if (!formulaInSSAMAP(key, ssaMap)) {
+        if (!formulaInSSAMAP(key)) {
           tosubstiture.put(key, fmap.get(key));
         }
       }
@@ -54,13 +57,26 @@ public class SubstituteAssignmentTransformationVisitor extends org.sosy_lab.java
     return atom;
   }
 
-  private boolean formulaInSSAMAP(Formula f, SSAMap pSSAMap){
+  /**
+   * Checks if a variable along with it's index is in the SSAMap
+   * @param f Formula consisting of only one variable in the form `name@index`
+   * @return the result of this check
+   */
+  private boolean formulaInSSAMAP(Formula f){
     Map<String, Formula> vars = fmgr.extractVariables(f);
+    if (vars.size()!=1) {
+      // TODO Martin reenable error
+      return true;
+//      throw new IllegalArgumentException("Error checking if variable index in SSAMAP: " + f.toString() +
+//          "\nNot exactly one variable in f");
+    }
     Pair<String, OptionalInt> stringOptionalIntPair = FormulaManagerView.parseName(vars.keySet().iterator().next());
-    // error
-    if (stringOptionalIntPair.getFirst().isEmpty() || !stringOptionalIntPair.getSecond().isPresent())
-      throw new IllegalArgumentException(
-          "Error checking if variable index in SSAMAP: " + f.toString());
+    if (stringOptionalIntPair.getFirst().isEmpty() || !stringOptionalIntPair.getSecond().isPresent()) {
+      // TODO Martin Does javasmt have a unified logging system?
+      // TODO Martin  reenable error
+      return true;
+//      throw new IllegalArgumentException("Error checking if variable index in SSAMAP: " + f.toString());
+    }
 //    String[] parts = f.toString().split("@");
     return ssaMap.containsVariable(stringOptionalIntPair.getFirst()) && (ssaMap.getIndex(stringOptionalIntPair.getFirst()) == stringOptionalIntPair.getSecond().getAsInt());
   }
