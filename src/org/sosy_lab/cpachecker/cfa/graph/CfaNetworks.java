@@ -22,9 +22,9 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 
-public final class CfaNetworkUtils {
+public final class CfaNetworks {
 
-  private CfaNetworkUtils() {}
+  private CfaNetworks() {}
 
   public static Optional<FunctionExitNode> getFunctionExitNode(
       CfaNetwork pCfaNetwork, FunctionEntryNode pFunctionEntryNode) {
