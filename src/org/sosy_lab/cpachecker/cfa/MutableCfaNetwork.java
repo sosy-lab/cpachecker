@@ -61,10 +61,7 @@ public final class MutableCfaNetwork extends CfaNetwork
 
     checkNotNull(pNode);
 
-    mutableCfa.addNode(pNode);
-
-    // FIXME: only return true if the network was modified as a result of this call
-    return true;
+    return mutableCfa.addNode(pNode);
   }
 
   @Override
@@ -72,10 +69,7 @@ public final class MutableCfaNetwork extends CfaNetwork
 
     checkNotNull(pNode);
 
-    mutableCfa.removeNode(pNode);
-
-    // FIXME: only return true if the network was modified as a result of this call
-    return true;
+    return mutableCfa.removeNode(pNode);
   }
 
   @Override

@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.TreeMultimap;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
@@ -48,9 +49,13 @@ public class MutableCFA implements CFA {
     assert mainFunctionEntry.equals(functions.get(mainFunctionEntry.getFunctionName()));
   }
 
-  public void addNode(CFANode pNode) {
+  @CanIgnoreReturnValue
+  public boolean addNode(CFANode pNode) {
+
     assert functions.containsKey(pNode.getFunctionName());
-    allNodes.put(pNode.getFunctionName(), pNode);
+    boolean nodeAdded = allNodes.put(pNode.getFunctionName(), pNode);
+
+    return nodeAdded;
   }
 
   public void clear() {
@@ -58,14 +63,18 @@ public class MutableCFA implements CFA {
     allNodes.clear();
   }
 
-  public void removeNode(CFANode pNode) {
+  @CanIgnoreReturnValue
+  public boolean removeNode(CFANode pNode) {
     NavigableSet<CFANode> functionNodes = allNodes.get(pNode.getFunctionName());
     assert functionNodes.contains(pNode);
-    functionNodes.remove(pNode);
+    boolean nodeRemoved = functionNodes.remove(pNode);
+    assert nodeRemoved;
 
     if (functionNodes.isEmpty()) {
       functions.remove(pNode.getFunctionName());
     }
+
+    return nodeRemoved;
   }
 
   @Override
