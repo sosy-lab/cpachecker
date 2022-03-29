@@ -95,12 +95,12 @@ public final class MutableCfaNetwork extends CfaNetwork
     if (pEdge instanceof FunctionSummaryEdge) {
 
       checkArgument(
-          pPredecessor.getLeavingSummaryEdge() != null,
+          pPredecessor.getLeavingSummaryEdge() == null,
           "leaving summary edge already exists: %s, cannot add: %s",
           pPredecessor.getLeavingSummaryEdge(),
           pEdge);
       checkArgument(
-          pSuccessor.getEnteringSummaryEdge() != null,
+          pSuccessor.getEnteringSummaryEdge() == null,
           "entering summary edge already exists: %s, cannot add: %s",
           pSuccessor.getEnteringSummaryEdge(),
           pEdge);
@@ -112,7 +112,7 @@ public final class MutableCfaNetwork extends CfaNetwork
 
       for (CFAEdge predecessorOutEdge : CFAUtils.leavingEdges(pPredecessor)) {
         checkArgument(
-            predecessorOutEdge.getSuccessor().equals(pSuccessor),
+            !predecessorOutEdge.getSuccessor().equals(pSuccessor),
             "parallel edges are not allowed: %s is parallel to %s",
             predecessorOutEdge,
             pEdge);
