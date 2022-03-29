@@ -35,20 +35,30 @@ import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /**
  * Represents a {@link CFA} as a {@link Network}.
  *
- * <p>All methods that have nodes and edges as parameters don't check whether they actually belong
- * to the CFA represented by this network. These methods work just fine with nodes and edges that
- * don't belong to the CFA, but using them that way is highly discouraged, as this would look like a
- * bug.
+ * <p>All connections between CFA nodes and/or edges are defined by a {@code CfaNetwork} and may
+ * differ from the connections represented by {@link CFAEdge#getSuccessor()}, {@link
+ * CFAUtils#allEnteringEdges(CFANode)}, {@link FunctionCallEdge#getSummaryEdge()}, {@link
+ * FunctionEntryNode#getExitNode()}, etc. It's important to use methods provided by a {@code
+ * CfaNetwork} if more than a single CFA node and/or edge is involved. For example, one should use
+ * {@link #outEdges(CFANode)} instead of {@link CFAUtils#allLeavingEdges(CFANode)}. {@link
+ * CfaNetworkUtils} provides additional methods for more CFA specific connections (e.g., {@link
+ * CfaNetworkUtils#getFunctionExitNode(CfaNetwork, FunctionEntryNode)}).
+ *
+ * <p>For performance reasons, not all {@code CfaNetwork} implementations check whether CFA nodes
+ * and edges given as method arguments actually belong to the CFA represented by a {@code
+ * CfaNetwork}.
  *
  * <p>All returned sets are unmodifiable views, so attempts to modify such a set will throw an
- * exception, but modifications to the underlying CFA will be reflected in the returned sets. Don't
- * try to modify the underlying CFA while iterating though such a view as correctness of the
- * iteration cannot be guaranteed anymore.
+ * exception, but modifications to the CFA represented by a {@code CfaNetwork} will be reflected in
+ * the set. Don't try to modify the CFA represented by a {@code CfaNetwork} while iterating though
+ * such a view as correctness of the iteration cannot be guaranteed anymore.
  */
 public abstract class CfaNetwork implements Network<CFANode, CFAEdge> {
 
