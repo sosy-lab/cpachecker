@@ -133,6 +133,23 @@ public final class MutableCfaNetwork extends CfaNetwork
     return addEdge(pEndpoints.source(), pEndpoints.target(), pEdge);
   }
 
+  /**
+   * Adds the specified CFA edge between its predecessor ({@link CFAEdge#getPredecessor()}) and
+   * successor ({@link CFAEdge#getSuccessor()}) to this network.
+   *
+   * <p>Calling this method has the same effect as calling {@code addEdge(edge.getPredecessor(),
+   * edge.getSuccessor(), edge)}.
+   *
+   * @param pEdge the edge to add to this network
+   * @return {@code true} if the network was modified as a result of this call
+   * @throws IllegalArgumentException if introducing the edge would lead to parallel edges
+   * @throws IllegalArgumentException if introducing the edge would lead to more than one summary
+   *     edge leaving or entering a node
+   */
+  public boolean addEdge(CFAEdge pEdge) {
+    return addEdge(pEdge.getPredecessor(), pEdge.getSuccessor(), pEdge);
+  }
+
   @Override
   public boolean removeEdge(CFAEdge pEdge) {
 
