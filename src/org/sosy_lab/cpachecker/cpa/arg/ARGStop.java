@@ -29,6 +29,7 @@ class ARGStop implements ForcedCoveringStopOperator {
   private final boolean keepCoveredStatesInReached;
   private final boolean inCPAEnabledAnalysis;
   private final boolean coverTargetStates;
+  private final boolean tryRemoveCoveredStatesFromARG;
   private final StopOperator wrappedStop;
   private final LogManager logger;
 
@@ -37,12 +38,14 @@ class ARGStop implements ForcedCoveringStopOperator {
       LogManager pLogger,
       boolean pInCPAEnabledAnalysis,
       boolean pKeepCoveredStatesInReached,
-      boolean pCoverTargetStates) {
+      boolean pCoverTargetStates,
+      boolean pTryRemoveCoveredStatesFromARG) {
     wrappedStop = pWrappedStop;
     logger = pLogger;
     keepCoveredStatesInReached = pKeepCoveredStatesInReached;
     inCPAEnabledAnalysis = pInCPAEnabledAnalysis;
     coverTargetStates = pCoverTargetStates;
+    tryRemoveCoveredStatesFromARG = pTryRemoveCoveredStatesFromARG;
   }
 
   @Override
@@ -78,7 +81,7 @@ class ARGStop implements ForcedCoveringStopOperator {
     if (!(wrappedStop instanceof CoveringStateSetProvider)) {
       if (wrappedStop.stop(argElement.getWrappedState(), mayCoverWrappedStates, pPrecision)) {
         argElement.setCovered(mayCoverARGStates);
-        return tryRemoveCoveredStateFromARG(argElement) ? true : !keepCoveredStatesInReached;
+        return tryToRemoveCoveredStateFromARG(argElement) ? true : !keepCoveredStatesInReached;
       }
       return false;
     }
@@ -108,7 +111,7 @@ class ARGStop implements ForcedCoveringStopOperator {
         "is covered by",
         coveringARGStates.size(),
         "states.");
-    return tryRemoveCoveredStateFromARG(argElement) ? true : !keepCoveredStatesInReached;
+    return tryToRemoveCoveredStateFromARG(argElement) ? true : !keepCoveredStatesInReached;
   }
 
   /** Retrieve the set of may-cover candidate ARG states. */
@@ -144,8 +147,13 @@ class ARGStop implements ForcedCoveringStopOperator {
    *
    * @return true if removal is successful; false otherwise.
    */
-  private boolean tryRemoveCoveredStateFromARG(ARGState argElement) {
+  private boolean tryToRemoveCoveredStateFromARG(ARGState argElement) {
     checkState(argElement.isCovered());
+
+    // check if the configuration enables this procedure
+    if (!tryRemoveCoveredStatesFromARG) {
+      return false;
+    }
 
     // check if the argElement has only one parent
     if (argElement.getParents().size() != 1) {

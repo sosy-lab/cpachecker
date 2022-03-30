@@ -1308,6 +1308,9 @@ cpa.arg.simplifiedARG.file = "ARGSimplified.dot"
 # translate final ARG into C program
 cpa.arg.translateToC = false
 
+# whether to try to remove covered states from ARG in a sound way.
+cpa.arg.tryRemoveCoveredStatesFromARG = false
+
 # Verification witness: Include the considered case of an assume?
 cpa.arg.witness.exportAssumeCaseInfo = true
 

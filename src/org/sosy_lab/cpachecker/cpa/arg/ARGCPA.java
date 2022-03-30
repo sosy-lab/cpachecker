@@ -100,6 +100,11 @@ public class ARGCPA extends AbstractSingleWrapperCPA
               + " sub-analysis for blocks.")
   private boolean enableStateReduction = true;
 
+  @Option(
+      secure = true,
+      description = "whether to try to remove covered states from ARG in a sound way.")
+  private boolean tryRemoveCoveredStatesFromARG = false;
+
   private final LogManager logger;
 
   private final ARGStatistics stats;
@@ -147,7 +152,8 @@ public class ARGCPA extends AbstractSingleWrapperCPA
         logger,
         inCPAEnabledAnalysis,
         keepCoveredStatesInReached,
-        coverTargetStates);
+        coverTargetStates,
+        tryRemoveCoveredStatesFromARG);
   }
 
   @Override
