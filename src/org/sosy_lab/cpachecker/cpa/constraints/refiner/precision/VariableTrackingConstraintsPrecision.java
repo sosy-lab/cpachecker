@@ -14,7 +14,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.BinaryConstraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.UnaryConstraint;
-import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.ConstraintsPrecision.Increment.Builder;
 
 public class VariableTrackingConstraintsPrecision implements ConstraintsPrecision {
   Multimap<String, String> trackedFunctions;
@@ -41,8 +40,6 @@ public class VariableTrackingConstraintsPrecision implements ConstraintsPrecisio
     if (constraintsPrecision.isTracked(pConstraint, pLocation)) {
       return true;
     }
-    //builder for increment
-    Builder builder = Increment.builder();
     //verify if pConstraint is Unary or BinaryConstraint
     if (pConstraint instanceof UnaryConstraint) {
       //check if operand in pConstraint matches tracked variable
@@ -50,24 +47,26 @@ public class VariableTrackingConstraintsPrecision implements ConstraintsPrecisio
       for (String var : trackedFunctions.get(pLocation.getFunctionName())) {
         if (operand.contains(var)) {
           //add constraint to constraintsPrecision
-          builder.functionWiseTracked(pLocation.getFunctionName(), pConstraint);
-          constraintsPrecision.withIncrement(builder.build());
+          Increment inc =
+              Increment.builder().functionWiseTracked(pLocation.getFunctionName(), pConstraint)
+                  .build();
+          constraintsPrecision.withIncrement(inc);
           return true;
         }
       }
       for (String var : trackedLocations.get(pLocation)) {
         if (operand.equals(var)) {
           //add constraint to constraintsPrecision
-          builder.locallyTracked(pLocation, pConstraint);
-          constraintsPrecision.withIncrement(builder.build());
+          Increment inc = Increment.builder().locallyTracked(pLocation, pConstraint).build();
+          constraintsPrecision.withIncrement(inc);
           return true;
         }
       }
       for (String var : trackedGlobal) {
         if (operand.equals(var)) {
           //add constraint to constraintsPrecision
-          builder.globallyTracked(pConstraint);
-          constraintsPrecision.withIncrement(builder.build());
+          Increment inc = Increment.builder().globallyTracked(pConstraint).build();
+          constraintsPrecision.withIncrement(inc);
           return true;
         }
       }
@@ -79,24 +78,26 @@ public class VariableTrackingConstraintsPrecision implements ConstraintsPrecisio
       for (String var : trackedFunctions.get(pLocation.getFunctionName())) {
         if (operandOne.equals(var) || operandTwo.equals(var)) {
           //add constraint to constraintsPrecision
-          builder.functionWiseTracked(pLocation.getFunctionName(), pConstraint);
-          constraintsPrecision.withIncrement(builder.build());
+          Increment inc =
+              Increment.builder().functionWiseTracked(pLocation.getFunctionName(), pConstraint)
+                  .build();
+          constraintsPrecision.withIncrement(inc);
           return true;
         }
       }
       for (String var : trackedLocations.get(pLocation)) {
         if (operandOne.equals(var) || operandTwo.equals(var)) {
           //add constraint to constraintsPrecision
-          builder.locallyTracked(pLocation, pConstraint);
-          constraintsPrecision.withIncrement(builder.build());
+          Increment inc = Increment.builder().locallyTracked(pLocation, pConstraint).build();
+          constraintsPrecision.withIncrement(inc);
           return true;
         }
       }
       for (String var : trackedGlobal) {
         if (operandOne.equals(var) || operandTwo.equals(var)) {
           //add constraint to constraintsPrecision
-          builder.globallyTracked(pConstraint);
-          constraintsPrecision.withIncrement(builder.build());
+          Increment inc = Increment.builder().globallyTracked(pConstraint).build();
+          constraintsPrecision.withIncrement(inc);
           return true;
         }
       }
