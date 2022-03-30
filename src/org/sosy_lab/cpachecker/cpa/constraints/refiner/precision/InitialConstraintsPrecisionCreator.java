@@ -64,7 +64,7 @@ public class InitialConstraintsPrecisionCreator {
   private Multimap<CFANode, String> trackedLocationVariables = HashMultimap.create();
 
   //for LocationBasedConstraintPrecision
-  private Multimap<CFANode, MemoryLocation> locationMap = HashMultimap.create();
+  private Set<CFANode> locationMap = new HashSet<>();
 
   public InitialConstraintsPrecisionCreator(
       Configuration pConfig, CFA pcfa)
@@ -113,7 +113,7 @@ public class InitialConstraintsPrecisionCreator {
       case LOCATION:
         // create LocationBasedConstraintsPrecision with important locations of value precision
         Multimap<CFANode, Constraint> cfaMultiMap = HashMultimap.create();
-        for (CFANode n : locationMap.keySet()) {
+        for (CFANode n : locationMap) {
           cfaMultiMap.put(n, null);
         }
         Increment locInc = Increment.builder().locallyTracked(cfaMultiMap).build();
@@ -160,7 +160,7 @@ public class InitialConstraintsPrecisionCreator {
           getFunctionFromLocationValuePrecision(location, memoryLocation);
         }
 
-        locationMap.put(location, memoryLocation);
+        locationMap.add(location);
       }
     }
   }
@@ -178,16 +178,16 @@ public class InitialConstraintsPrecisionCreator {
   }
 
   /**
-   * In case of LOCATION value precision, the scope selector will always be a location, also if the
-   * memoryLocation points on a function. Therefor it is checked if the memory location is on the
-   * function stack.
+   * In case the value precsion is of type LocalizedRefinablePrecision, the scope selector will
+   * always be a location, also if the memoryLocation points on a function. Therefor it is checked
+   * if the memory location is on the function stack.
    */
   private void getFunctionFromLocationValuePrecision(CFANode n, MemoryLocation m) {
     if (m.isOnFunctionStack()) {
       trackedFunctionsVariables.put(m.getFunctionName(),
           m.getFunctionName() + "::" + m.getIdentifier());
-    } else {  //TODO add case global
-      trackedLocationVariables.put(n, m.getIdentifier());
+    } else {  //TODO add case local
+      trackedGlobalVariables.add(m.getIdentifier());
     }
   }
 }

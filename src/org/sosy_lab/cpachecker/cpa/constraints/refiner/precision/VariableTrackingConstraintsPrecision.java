@@ -14,6 +14,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.BinaryConstraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.UnaryConstraint;
+import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.ConstraintsPrecision.Increment.Builder;
 
 public class VariableTrackingConstraintsPrecision implements ConstraintsPrecision {
   Multimap<String, String> trackedFunctions;
@@ -36,22 +37,37 @@ public class VariableTrackingConstraintsPrecision implements ConstraintsPrecisio
 
   @Override
   public boolean isTracked(Constraint pConstraint, CFANode pLocation) {
+    //check if constraint is already tracked in constraintsPrecision
+    if (constraintsPrecision.isTracked(pConstraint, pLocation)) {
+      return true;
+    }
+    //builder for increment
+    Builder builder = Increment.builder();
     //verify if pConstraint is Unary or BinaryConstraint
     if (pConstraint instanceof UnaryConstraint) {
       //check if operand in pConstraint matches tracked variable
       String operand = ((UnaryConstraint) pConstraint).getOperand().getRepresentation();
       for (String var : trackedFunctions.get(pLocation.getFunctionName())) {
         if (operand.contains(var)) {
+          //add constraint to constraintsPrecision
+          builder.functionWiseTracked(pLocation.getFunctionName(), pConstraint);
+          constraintsPrecision.withIncrement(builder.build());
           return true;
         }
       }
       for (String var : trackedLocations.get(pLocation)) {
         if (operand.equals(var)) {
+          //add constraint to constraintsPrecision
+          builder.locallyTracked(pLocation, pConstraint);
+          constraintsPrecision.withIncrement(builder.build());
           return true;
         }
       }
       for (String var : trackedGlobal) {
         if (operand.equals(var)) {
+          //add constraint to constraintsPrecision
+          builder.globallyTracked(pConstraint);
+          constraintsPrecision.withIncrement(builder.build());
           return true;
         }
       }
@@ -62,23 +78,32 @@ public class VariableTrackingConstraintsPrecision implements ConstraintsPrecisio
       String operandTwo = ((BinaryConstraint) pConstraint).getOperand2().getRepresentation();
       for (String var : trackedFunctions.get(pLocation.getFunctionName())) {
         if (operandOne.equals(var) || operandTwo.equals(var)) {
+          //add constraint to constraintsPrecision
+          builder.functionWiseTracked(pLocation.getFunctionName(), pConstraint);
+          constraintsPrecision.withIncrement(builder.build());
           return true;
         }
       }
       for (String var : trackedLocations.get(pLocation)) {
         if (operandOne.equals(var) || operandTwo.equals(var)) {
+          //add constraint to constraintsPrecision
+          builder.locallyTracked(pLocation, pConstraint);
+          constraintsPrecision.withIncrement(builder.build());
           return true;
         }
       }
       for (String var : trackedGlobal) {
         if (operandOne.equals(var) || operandTwo.equals(var)) {
+          //add constraint to constraintsPrecision
+          builder.globallyTracked(pConstraint);
+          constraintsPrecision.withIncrement(builder.build());
           return true;
         }
       }
     }
-    // if operand(s) of pConstraints finds no match in tracked variables, check if pConstraints
-    // matches a Constraint of ConstraintPrecision
-    return constraintsPrecision.isTracked(pConstraint, pLocation);
+    // The constraint is not tracked by constraintsPrecision and the operands don't match with the
+    // tracked variables
+    return false;
   }
 
   @Override
