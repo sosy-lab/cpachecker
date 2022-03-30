@@ -157,7 +157,7 @@ public class InitialConstraintsPrecisionCreator {
           trackedFunctionsVariables.put(scopeSelectors, scopeSelectors + "::" + trackedVariable);
           // if not global or function variable
         } else {
-          getFunctionFromLocationValuePrecision(location, memoryLocation);
+          getFunctionFromLocationValuePrecision(memoryLocation);
         }
 
         locationMap.add(location);
@@ -182,7 +182,7 @@ public class InitialConstraintsPrecisionCreator {
    * always be a location, also if the memoryLocation points on a function. Therefor it is checked
    * if the memory location is on the function stack.
    */
-  private void getFunctionFromLocationValuePrecision(CFANode n, MemoryLocation m) {
+  private void getFunctionFromLocationValuePrecision(MemoryLocation m) {
     if (m.isOnFunctionStack()) {
       trackedFunctionsVariables.put(m.getFunctionName(),
           m.getFunctionName() + "::" + m.getIdentifier());
