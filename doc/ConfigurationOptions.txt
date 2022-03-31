@@ -3647,6 +3647,9 @@ ismc.fallBack = true
 # toggle Impact-like covering for the fixed-point check
 ismc.impactLikeCovering = false
 
+# toggle external invariant generation
+ismc.invariantGenerationRunning = false
+
 # toggle removing unreachable stop states in ARG
 ismc.removeUnreachableStopStates = false
 
