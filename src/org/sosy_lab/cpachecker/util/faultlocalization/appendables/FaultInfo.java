@@ -22,7 +22,7 @@ public abstract class FaultInfo implements Comparable<FaultInfo> {
     /** Provides a possible fix */
     FIX(1),
     /** Information provided by the rankings */
-    RANK_INFO(3);
+    RANK_INFO(2);
 
     private final int reportRank;
 
@@ -48,19 +48,19 @@ public abstract class FaultInfo implements Comparable<FaultInfo> {
    */
   public static FaultInfo possibleFixFor(FaultContribution pFaultContribution) {
     return new PotentialFix(
-        InfoType.FIX, new NoContextExplanation().explanationFor(new Fault(pFaultContribution)));
+        NoContextExplanation.getInstance().explanationFor(new Fault(pFaultContribution)));
   }
 
   public static PotentialFix fix(String pDescription) {
-    return new PotentialFix(InfoType.FIX, pDescription);
+    return new PotentialFix(pDescription);
   }
 
   public static RankInfo rankInfo(String pDescription, double pLikelihood) {
-    return new RankInfo(InfoType.RANK_INFO, pDescription, pLikelihood);
+    return new RankInfo(pDescription, pLikelihood);
   }
 
   public static FaultReason justify(String pDescription) {
-    return new FaultReason(InfoType.REASON, pDescription);
+    return new FaultReason(pDescription);
   }
 
   public double getScore() {
