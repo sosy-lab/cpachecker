@@ -2037,6 +2037,9 @@ cpa.predicate.abstraction.initialPredicates.encodePredicates = DISABLE
 # initial predicates are added as atomic predicates
 cpa.predicate.abstraction.initialPredicates.splitIntoAtoms = false
 
+# add also assumptions from the uca as invariant candidates
+cpa.predicate.abstraction.initialPredicates.useAssumptionsFromUCAAsInvariants = false
+
 # An initial set of comptued abstractions that might be reusable
 cpa.predicate.abstraction.reuseAbstractionsFrom = no default value
 

@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTreeFactory;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
@@ -322,5 +323,97 @@ public class WitnessInvariantsExtractor {
                 toCodeVisitorCache));
       }
     }
+  }
+
+  public Set<ExpressionTreeLocationInvariant> extractAdditionalInvariantsFromAssumptions(Set<ExpressionTreeLocationInvariant> pInvariants)
+      throws InterruptedException {
+    Set<ExpressionTreeLocationInvariant> expressionTreeLocationInvariants = new HashSet<>();
+    Map<String, ExpressionTree<AExpression>> expressionTrees = new HashMap<>();
+    Set<CFANode> visited = new HashSet<>();
+    Multimap<CFANode, ExpressionTreeLocationInvariant> potentialAdditionalCandidates =
+        HashMultimap.create();
+    Multimap<String, CFANode> pCandidateGroupLocations = HashMultimap.create();
+    ConcurrentMap<ManagerKey, ToFormulaVisitor> toCodeVisitorCache = new ConcurrentHashMap<>();
+    for (AbstractState abstractState : reachedSet) {
+
+      shutdownNotifier.shutdownIfNecessary();
+      Iterable<CFANode> locations = AbstractStates.extractLocations(abstractState);
+      Iterables.addAll(visited, locations);
+      for (AutomatonState automatonState :
+          AbstractStates.asIterable(abstractState).filter(AutomatonState.class)) {
+
+        ImmutableList<AExpression> assumptions = automatonState.getAssumptions();
+        ExpressionTree<AExpression> candidate = createTreeForAssumptions(assumptions);
+
+        String groupId = automatonState.getInternalStateName();
+        pCandidateGroupLocations.putAll(groupId, locations);
+        if (!candidate.equals(ExpressionTrees.getTrue())) {
+          ExpressionTree<AExpression> previous = expressionTrees.get(groupId);
+          if (previous == null) {
+            previous = ExpressionTrees.getTrue();
+          }
+          expressionTrees.put(groupId, And.of(previous, candidate));
+          for (CFANode location : locations) {
+            potentialAdditionalCandidates.removeAll(location);
+            ExpressionTreeLocationInvariant candidateInvariant =
+                new ExpressionTreeLocationInvariant(
+                    groupId, location, candidate, toCodeVisitorCache);
+            expressionTreeLocationInvariants.add(candidateInvariant);
+            // Check if there are any leaving return edges:
+            // The predecessors are also potential matches for the invariant
+            for (FunctionReturnEdge returnEdge :
+                CFAUtils.leavingEdges(location).filter(FunctionReturnEdge.class)) {
+              CFANode successor = returnEdge.getSuccessor();
+              if (!pCandidateGroupLocations.containsEntry(groupId, successor)
+                  && !visited.contains(successor)) {
+                potentialAdditionalCandidates.put(
+                    successor,
+                    new ExpressionTreeLocationInvariant(
+                        groupId, successor, candidate, toCodeVisitorCache));
+              }
+            }
+          }
+        }
+      }
+    }
+    for (Map.Entry<CFANode, Collection<ExpressionTreeLocationInvariant>> potentialCandidates :
+        potentialAdditionalCandidates.asMap().entrySet()) {
+      if (!visited.contains(potentialCandidates.getKey())) {
+        for (ExpressionTreeLocationInvariant candidateInvariant : potentialCandidates.getValue()) {
+          pCandidateGroupLocations.put(
+              candidateInvariant.getGroupId(), potentialCandidates.getKey());
+          expressionTreeLocationInvariants.add(candidateInvariant);
+        }
+      }
+    }
+
+    for (ExpressionTreeLocationInvariant expressionTreeLocationInvariant :
+        expressionTreeLocationInvariants) {
+      for (CFANode location :
+          pCandidateGroupLocations.get(expressionTreeLocationInvariant.getGroupId())) {
+        pInvariants.add(
+            new ExpressionTreeLocationInvariant(
+                expressionTreeLocationInvariant.getGroupId(),
+                location,
+                expressionTrees.get(expressionTreeLocationInvariant.getGroupId()),
+                toCodeVisitorCache));
+      }
+    }
+
+    return pInvariants;
+  }
+
+  private ExpressionTree<AExpression> createTreeForAssumptions(ImmutableList<AExpression> pAssumptions) {
+    ExpressionTree<AExpression> res = ExpressionTrees.getTrue();
+    ExpressionTreeFactory<AExpression> factory =
+        ExpressionTrees.newFactory();
+    HashSet<ExpressionTree<AExpression>> assumptions = new HashSet<>();
+    for (AExpression assumption : pAssumptions){
+      assumptions.add( factory.leaf(assumption));
+    }
+    if (assumptions.isEmpty())
+       return res;
+    else
+      return factory.and(assumptions);
   }
 }

@@ -106,6 +106,11 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     @Option(secure = true, description = "initial predicates are added as atomic predicates")
     private boolean splitIntoAtoms = false;
 
+    @Option(
+        secure = true,
+        description = "add also assumptions from the uca as invariant candidates")
+    private boolean useAssumptionsFromUCAAsInvariants = false;
+
     public boolean applyFunctionWide() {
       return applyFunctionWide;
     }
@@ -219,9 +224,12 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
       WitnessInvariantsExtractor extractor =
           new WitnessInvariantsExtractor(config, automaton, logger, cfa, shutdownNotifier);
 
-      final Set<ExpressionTreeLocationInvariant> invariants =
-          extractor.extractInvariantsFromReachedSet();
+      Set<ExpressionTreeLocationInvariant> invariants = extractor.extractInvariantsFromReachedSet();
+      if (options.useAssumptionsFromUCAAsInvariants && options.applyGlobally) {
+        invariants = extractor.extractAdditionalInvariantsFromAssumptions(invariants);
+      }
       logger.log(Level.INFO, invariants);
+      return addInvariantsToResult(PredicatePrecision.empty(), invariants);
     } catch (CPAException | InterruptedException | InvalidConfigurationException pE) {
       logger.log(Level.WARNING, Throwables.getStackTraceAsString(pE));
     }
@@ -277,60 +285,72 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
           new WitnessInvariantsExtractor(config, logger, cfa, shutdownNotifier, pWitnessFile);
       final Set<ExpressionTreeLocationInvariant> invariants =
           extractor.extractInvariantsFromReachedSet();
-
-      boolean wereAnyPredicatesLoaded = false;
-
-      for (ExpressionTreeLocationInvariant invariant : invariants) {
-
-        ListMultimap<CFANode, AbstractionPredicate> localPredicates =
-            MultimapBuilder.treeKeys().arrayListValues().build();
-        Set<AbstractionPredicate> globalPredicates = new HashSet<>();
-        ListMultimap<String, AbstractionPredicate> functionPredicates =
-            MultimapBuilder.treeKeys().arrayListValues().build();
-
-        List<AbstractionPredicate> predicates = new ArrayList<>();
-        // get atom predicates from invariant
-        if (options.splitIntoAtoms) {
-          predicates.addAll(splitToPredicates(invariant));
-        }
-        // get predicate from invariant
-        else {
-          predicates.add(
-              abstractionManager.makePredicate(
-                  invariant.getFormula(formulaManagerView, pathFormulaManager, null)));
-        }
-        for (AbstractionPredicate predicate : predicates) {
-          localPredicates.put(invariant.getLocation(), predicate);
-          globalPredicates.add(predicate);
-          functionPredicates.put(invariant.getLocation().getFunctionName(), predicate);
-        }
-
-        wereAnyPredicatesLoaded |= !predicates.isEmpty();
-
-        // add predicates according to the scope
-        // location scope is chosen if neither function or global scope is specified or both are
-        // specified which would be a conflict here
-        boolean applyLocally = options.applyFunctionWide == options.applyGlobally;
-        if (applyLocally) {
-          result = result.addLocalPredicates(localPredicates.entries());
-        } else if (options.applyFunctionWide) {
-          result = result.addFunctionPredicates(functionPredicates.entries());
-        } else if (options.applyGlobally) {
-          result = result.addGlobalPredicates(globalPredicates);
-        }
-      }
-      if (!invariants.isEmpty() && !wereAnyPredicatesLoaded) {
-        logger.log(
-            Level.WARNING,
-            "Predicate from correctness witness invariants could not be computed."
-                + "They are present, but are not correctly loaded");
-      }
-
+      result = addInvariantsToResult(result, invariants);
     } catch (CPAException | InvalidConfigurationException e) {
       logger.logUserException(
           Level.WARNING, e, "Predicate from correctness witness invariants could not be computed");
     }
     return result;
+  }
+
+  /**
+   * Store the predicates from the invariants to the result according to the config
+   *
+   * @param pResult the result to store the invariants to
+   * @param pInvariants the invariants to use
+   * @return the result given as input, where the invariants are stored in
+   */
+  private PredicatePrecision addInvariantsToResult(
+      PredicatePrecision pResult, Set<ExpressionTreeLocationInvariant> pInvariants)
+      throws CPATransferException, InterruptedException {
+    boolean wereAnyPredicatesLoaded = false;
+    for (ExpressionTreeLocationInvariant invariant : pInvariants) {
+
+      ListMultimap<CFANode, AbstractionPredicate> localPredicates =
+          MultimapBuilder.treeKeys().arrayListValues().build();
+      Set<AbstractionPredicate> globalPredicates = new HashSet<>();
+      ListMultimap<String, AbstractionPredicate> functionPredicates =
+          MultimapBuilder.treeKeys().arrayListValues().build();
+
+      List<AbstractionPredicate> predicates = new ArrayList<>();
+      // get atom predicates from invariant
+      if (options.splitIntoAtoms) {
+        predicates.addAll(splitToPredicates(invariant));
+      }
+      // get predicate from invariant
+      else {
+        predicates.add(
+            abstractionManager.makePredicate(
+                invariant.getFormula(formulaManagerView, pathFormulaManager, null)));
+      }
+      for (AbstractionPredicate predicate : predicates) {
+        localPredicates.put(invariant.getLocation(), predicate);
+        globalPredicates.add(predicate);
+        functionPredicates.put(invariant.getLocation().getFunctionName(), predicate);
+      }
+
+      wereAnyPredicatesLoaded |= !predicates.isEmpty();
+
+      // add predicates according to the scope
+      // location scope is chosen if neither function or global scope is specified or both are
+      // specified which would be a conflict here
+      boolean applyLocally = options.applyFunctionWide == options.applyGlobally;
+      if (applyLocally) {
+        pResult = pResult.addLocalPredicates(localPredicates.entries());
+      } else if (options.applyFunctionWide) {
+        pResult = pResult.addFunctionPredicates(functionPredicates.entries());
+      } else if (options.applyGlobally) {
+        pResult = pResult.addGlobalPredicates(globalPredicates);
+      }
+    }
+    if (!pInvariants.isEmpty() && !wereAnyPredicatesLoaded) {
+      logger.log(
+          Level.WARNING,
+          "Predicate from correctness witness invariants could not be computed."
+              + "They are present, but are not correctly loaded");
+    }
+
+    return pResult;
   }
 
   private ImmutableSet<AbstractionPredicate> splitToPredicates(
