@@ -195,7 +195,7 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     logger.log(Level.FINE, "Performing interpolation-sequence based model checking");
     // initialize the reachability vector
     List<BooleanFormula> reachVector = new ArrayList<>();
-    PartitionedFormulas partitionedFormulas = new PartitionedFormulas(bfmgr, logger, false);
+    PartitionedFormulas partitionedFormulas = new PartitionedFormulas(pfmgr, bfmgr, logger, false);
     do {
       /* note: an exact copy from IMCAlgorithm -- START */
       if (invariantGenerator.isProgramSafe()) {
@@ -280,10 +280,11 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private ImmutableList<BooleanFormula> getInterpolationSequence(PartitionedFormulas pFormulas)
       throws InterruptedException, CPAException {
     logger.log(Level.FINE, "Extracting interpolation-sequence");
+    ImmutableList<BooleanFormula> loops = pFormulas.getLoopFormulas();
     ImmutableList<BooleanFormula> formulasToPush =
         new ImmutableList.Builder<BooleanFormula>()
-            .add(bfmgr.and(pFormulas.getPrefixFormula(), pFormulas.getLoopFormulas().get(0)))
-            .addAll(pFormulas.getLoopFormulas().subList(1, pFormulas.getNumLoops()))
+            .add(bfmgr.and(pFormulas.getPrefixFormula(), loops.get(0)))
+            .addAll(loops.subList(1, pFormulas.getNumLoops()))
             .add(pFormulas.getAssertionFormula())
             .build();
     BlockFormulas blkFormula = new BlockFormulas(formulasToPush);

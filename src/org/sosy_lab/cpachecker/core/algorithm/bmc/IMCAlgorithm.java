@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import com.google.common.collect.ImmutableList;
-import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
@@ -167,7 +166,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
     logger.log(Level.FINE, "Performing interpolation-based model checking");
     PartitionedFormulas partitionedFormulas =
-        new PartitionedFormulas(bfmgr, logger, assertTargetsAtEveryIteration);
+        new PartitionedFormulas(pfmgr, bfmgr, logger, assertTargetsAtEveryIteration);
     do {
       // Unroll
       shutdownNotifier.shutdownIfNecessary();
@@ -263,7 +262,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     logger.log(Level.ALL, "The SSA map is", formulas.getPrefixSsaMap());
     BooleanFormula currentImage = formulas.getPrefixFormula();
 
-    List<BooleanFormula> loops = formulas.getLoopFormulas();
+    ImmutableList<BooleanFormula> loops = formulas.getLoopFormulas();
     // suffix formula: T(S1, S2) && T(S1, S2) && ... && T(Sn-1, Sn) && ~P(Sn)
     BooleanFormula suffixFormula =
         bfmgr.and(
