@@ -50,8 +50,11 @@ const { argJson, sourceFiles, cfaJson, timeStampsPerCoverageJson } = window;
 // CFA graph variable declarations
 const functions = cfaJson.functionNames;
 let errorPath;
+let errorPathFlag = false;
+
 if (Object.prototype.hasOwnProperty.call(cfaJson, "errorPath")) {
   errorPath = cfaJson.errorPath;
+  errorPathFlag = true;
 }
 let relevantEdges;
 if (Object.prototype.hasOwnProperty.call(argJson, "relevantedges")) {
@@ -161,8 +164,6 @@ let argTabDisabled = false;
           });
         }
 
-        console.log(data);
-
         // create svg element, respecting margins
         const svg = d3
           .select("#time_dependent_coverage_graph")
@@ -231,6 +232,7 @@ let argTabDisabled = false;
           .attr("cy", (d) => y(d.y))
           .attr("r", 3);
 
+        // Add tooltip
         const focus = svg
           .append("g")
           .attr("class", "focus")
@@ -245,7 +247,7 @@ let argTabDisabled = false;
           .attr("fill", "#b4b4b4")
           .attr("stroke", "#000000")
           .attr("x", -5)
-          .attr("y", -60)
+          .attr("y", 10)
           .attr("rx", 4)
           .attr("ry", 4)
           .attr("opacity", 0.75)
@@ -255,13 +257,13 @@ let argTabDisabled = false;
           .append("text")
           .attr("class", "tooltip-x")
           .attr("x", 0)
-          .attr("y", -40);
+          .attr("y", 30);
 
         focus
           .append("text")
           .attr("class", "tooltip-y")
           .attr("x", 0)
-          .attr("y", -20);
+          .attr("y", 50);
 
         svg
           .append("rect")
@@ -276,7 +278,19 @@ let argTabDisabled = false;
           })
           .on("mousemove", () => {
             const bisectDate = d3.bisector((d) => d.x).left;
-            const x0 = x.invert(d3.event.pageX - margin.left);
+            let errorPathSideBarWidth = 0;
+            if (errorPathFlag) {
+              errorPathSideBarWidth = d3
+                .select("#errorpath_section")
+                .node()
+                .getBoundingClientRect().width;
+            }
+            const x0 = x.invert(
+              d3.event.pageX -
+                margin.left -
+                margin.right / 2 -
+                errorPathSideBarWidth
+            );
             const i = bisectDate(data, x0, 1);
             const d0 = data[i - 1];
             const d1 = data[i];
@@ -432,11 +446,13 @@ let argTabDisabled = false;
         $("#toggle_error_path").on("change", () => {
           console.log(event);
           if ($(event.target).is(":checked")) {
+            errorPathFlag = true;
             d3.select("#errorpath_section").style("display", "inline");
             d3.select("#errorpath_section").style("width", "25%");
             d3.select("#externalFiles_section").style("width", "75%");
             d3.select("#cfa-toolbar").style("width", "auto");
           } else {
+            errorPathFlag = false;
             d3.select("#errorpath_section").style("display", "none");
             d3.select("#externalFiles_section").style("width", "100%");
             d3.select("#cfa-toolbar").style("width", "95%");
@@ -1197,7 +1213,9 @@ let argTabDisabled = false;
               .slice(-1)[0];
             node.attr(
               "style",
-              `fill: ${hexGradient}; stroke: #999; comment: ${hexGradient};`
+              `fill: ${hexGradient}; stroke: ${
+                (hexGradient & 0xfefefe) >> 1
+              }; comment: ${hexGradient};`
             );
           });
           d3.selectAll(".cfa-node-considered").each(function cfaNode() {
