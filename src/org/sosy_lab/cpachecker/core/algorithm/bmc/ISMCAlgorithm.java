@@ -260,7 +260,7 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         List<BooleanFormula> itpSequence = getInterpolationSequence(partitionedFormulas);
         updateReachabilityVector(reachVector, itpSequence);
 
-        if (reachFixedPoint(reachVector, pReachedSet)) {
+        if (reachFixedPoint(reachVector, pReachedSet, partitionedFormulas)) {
           InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
           InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
               pReachedSet, finalFixedPoint, predAbsMgr, pfmgr);
@@ -323,7 +323,8 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    *     the current over-approximation is unsafe.
    * @throws InterruptedException On shutdown request.
    */
-  private boolean reachFixedPoint(List<BooleanFormula> reachVector, ReachedSet reachedSet)
+  private boolean reachFixedPoint(
+      List<BooleanFormula> reachVector, ReachedSet reachedSet, PartitionedFormulas formulas)
       throws InterruptedException, SolverException, CPAException {
     logger.log(Level.FINE, "Checking fixed point");
     FluentIterable<AbstractState> loopHeadStates =
@@ -344,10 +345,23 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       BooleanFormula currentImage = reachVector.get(0);
       for (int i = 1; i < reachVector.size(); ++i) {
         BooleanFormula imageAtI = reachVector.get(i);
-        if (solver.implies(bfmgr.and(imageAtI, loopInv), currentImage)) {
+        if (solver.implies(imageAtI, currentImage)) {
           logger.log(Level.INFO, "Fixed point reached");
-          finalFixedPoint = bfmgr.and(imageAtI, currentImage);
+          finalFixedPoint = currentImage;
           return true;
+        }
+        if (solver.implies(bfmgr.and(imageAtI, loopInv), currentImage)) {
+          logger.log(Level.FINE, "Checking relative inductiveness");
+          BooleanFormula currentImageTransition =
+              bfmgr.and(
+                  fmgr.instantiate(bfmgr.and(loopInv, currentImage), formulas.getPrefixSsaMap()),
+                  formulas.getLoopFormulas().get(0));
+          BooleanFormula nextImage = fmgr.instantiate(currentImage, formulas.getSsaMapOfLoop(0));
+          if (solver.implies(currentImageTransition, nextImage)) {
+            logger.log(Level.INFO, "Fixed point reached with external invariants");
+            finalFixedPoint = bfmgr.and(currentImage, loopInv);
+            return true;
+          }
         }
         currentImage = bfmgr.or(currentImage, imageAtI);
       }

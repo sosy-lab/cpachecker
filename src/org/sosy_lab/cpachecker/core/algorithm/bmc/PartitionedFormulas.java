@@ -89,6 +89,12 @@ class PartitionedFormulas {
     return prefixFormula.getFormula();
   }
 
+  /** Return the SSA map of the specified loop. */
+  SSAMap getSsaMapOfLoop(int loopIdx) {
+    checkState(isInitialized, UNINITIALIZED_MSG);
+    return loopFormulas.get(loopIdx).getSsa();
+  }
+
   /** Return the collected loop formulas (T1, T2, ..., Tn). */
   ImmutableList<BooleanFormula> getLoopFormulas() {
     checkState(isInitialized, UNINITIALIZED_MSG);
