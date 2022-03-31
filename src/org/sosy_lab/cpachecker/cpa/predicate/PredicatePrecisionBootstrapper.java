@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
@@ -407,7 +408,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
       ((And<AExpression>) pExpr).forEach(conj -> split0(conj, pSetBuilder));
     } else if (pExpr instanceof Or) {
       ((Or<AExpression>) pExpr).forEach(conj -> split0(conj, pSetBuilder));
-    } else if (pExpr instanceof LeafExpression) {
+    } else if (pExpr instanceof LeafExpression || ExpressionTrees.isConstant(pExpr)) {
       pSetBuilder.add(pExpr);
     } else {
       throw new AssertionError("Unhandled expression type: " + pExpr.getClass());
