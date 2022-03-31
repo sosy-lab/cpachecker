@@ -205,7 +205,7 @@ abstract class AbstractBMCAlgorithm
   private final @Nullable Algorithm stepCaseAlgorithm;
 
   protected final InvariantGenerator invariantGenerator;
-  private final InvariantGeneratorHeadStart invariantGeneratorHeadStart;
+  protected final InvariantGeneratorHeadStart invariantGeneratorHeadStart;
 
   private final FormulaManagerView fmgr;
   private final PathFormulaManager pmgr;
@@ -1443,7 +1443,7 @@ abstract class AbstractBMCAlgorithm
     }
   }
 
-  private interface InvariantGeneratorHeadStart {
+  interface InvariantGeneratorHeadStart {
 
     void waitForInvariantGenerator() throws InterruptedException;
   }

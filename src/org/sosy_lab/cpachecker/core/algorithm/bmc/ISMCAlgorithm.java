@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
+
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,6 +23,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -85,8 +88,8 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private final BooleanFormulaManagerView bfmgr;
   private final Solver solver;
   private final PredicateAbstractionManager predAbsMgr;
-  private final CFA cfa;
   private final InterpolationManager itpMgr;
+  private final CFA cfa;
 
   private BooleanFormula finalFixedPoint;
 
@@ -136,7 +139,9 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   @Override
   public AlgorithmStatus run(final ReachedSet pReachedSet)
       throws CPAException, InterruptedException {
+    invariantGenerator.start(extractLocation(pReachedSet.getFirstState()));
     try {
+      invariantGeneratorHeadStart.waitForInvariantGenerator();
       return runISMC(pReachedSet);
     } catch (SolverException e) {
       throw new CPAException("Solver Failure " + e.getMessage(), e);
@@ -158,6 +163,10 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       pReachedSet.clearWaitlist();
       return AlgorithmStatus.SOUND_AND_PRECISE;
     }
+    if (invariantGenerator.isProgramSafe()) {
+      TargetLocationCandidateInvariant.INSTANCE.assumeTruth(pReachedSet);
+      return AlgorithmStatus.SOUND_AND_PRECISE;
+    }
 
     if (interpolation && !cfa.getAllLoopHeads().isPresent()) {
       logger.log(Level.WARNING, "Disable interpolation as loop structure could not be determined");
@@ -177,6 +186,10 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     PartitionedFormulas partitionedFormulas = new PartitionedFormulas(bfmgr, logger, false);
     do {
       /* note: an exact copy from IMCAlgorithm -- START */
+      if (invariantGenerator.isProgramSafe()) {
+        TargetLocationCandidateInvariant.INSTANCE.assumeTruth(pReachedSet);
+        return AlgorithmStatus.SOUND_AND_PRECISE;
+      }
       // Unroll
       shutdownNotifier.shutdownIfNecessary();
       stats.bmcPreparation.start();
