@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 public class UCAVioWitGenerator {
 
-  public static final String DESC_OF_DUMMY_FUNC_START_EDGE = "Function start dummy edge";
+
   private final LogManager logger;
   private final UCAGeneratorOptions optinons;
 
@@ -58,8 +58,7 @@ public class UCAVioWitGenerator {
   int produceUCA4ViolationWitness(Appendable output, UnmodifiableReachedSet reached)
       throws IOException, CPAException {
     final AbstractState firstState = reached.getFirstState();
-    if (!(firstState instanceof ARGState)
-        || UCAGenerator.getWitnessAutomatonState(firstState).isEmpty()) {
+    if (!(firstState instanceof ARGState)    ) {
       output.append("Cannot dump assumption as automaton if ARGCPA is not used.");
     }
 
@@ -101,7 +100,7 @@ public class UCAVioWitGenerator {
     Set<ARGState> targetStates = getAllTargetStates(pReached);
 
     logger.log(
-        Level.INFO,
+        Level.FINE,
         String.format(
             "Target states found are "
                 + String.join(
@@ -113,7 +112,7 @@ public class UCAVioWitGenerator {
     while (!toProcess.isEmpty()) {
       ARGState state = toProcess.remove(0);
       logger.logf(
-          Level.INFO,
+          Level.FINE,
           "Taking %s from the list, processed %s, toProcess %s",
           state.getStateId(),
           processed.stream().map(a -> a.getStateId()).collect(ImmutableList.toImmutableList()),
@@ -164,7 +163,7 @@ public class UCAVioWitGenerator {
         pRelevantEdges.add(
             new UCAARGStateEdge(pParent, pair.getSecond().orElseThrow(), pair.getFirst()));
         if (!pProcessed.contains(pChild) && !pTargetStates.contains(pair.getSecond().get())) {
-          logger.logf(Level.INFO, "Adding %s", pChild.getStateId());
+          logger.logf(Level.FINE, "Adding %s", pChild.getStateId());
           pToProcess.add(pChild);
         }
       }
@@ -177,7 +176,7 @@ public class UCAVioWitGenerator {
       // Check if there are any edges on the path that are relevant and if so, create for
       // each relevant edge an edge
       if (pahtToChild.size() > 1) {
-        logger.logf(Level.INFO, "Processing a Multi-node");
+        logger.logf(Level.FINE, "Processing a Multi-node");
         while (!pahtToChild.isEmpty()) {
           CFAEdge currentEdge = pahtToChild.get(pahtToChild.size() - 1);
           pahtToChild.remove(currentEdge);
@@ -203,7 +202,7 @@ public class UCAVioWitGenerator {
         if (!edgesToAdd.isEmpty()) {
           pRelevantEdges.addAll(edgesToAdd);
           if (!pProcessed.contains(pChild)) {
-            logger.logf(Level.INFO, "Adding %s", pChild.getStateId());
+            logger.logf(Level.FINE, "Adding %s", pChild.getStateId());
             pToProcess.add(pChild);
           }
           edgesAdded = true;
@@ -213,7 +212,7 @@ public class UCAVioWitGenerator {
     if (!edgesAdded) {
       for (ARGState grandChild : pChild.getChildren()) {
         logger.logf(
-            Level.INFO,
+            Level.FINE,
             "No match found for parent %s and child %s, coninue with grandchild %s",
             pParent.getStateId(),
             pChild.getStateId(),
@@ -276,7 +275,7 @@ public class UCAVioWitGenerator {
     // Case 4:
     boolean case4 =
         (lastEdge instanceof BlankEdge
-            && lastEdge.getDescription().contains(DESC_OF_DUMMY_FUNC_START_EDGE));
+            && lastEdge.getDescription().contains(UCAGenerator.DESC_OF_DUMMY_FUNC_START_EDGE));
     // Case 5:
     boolean case5 = pChild.getChildren().stream().anyMatch(gc -> pTargetStates.contains(gc));
 
@@ -323,7 +322,7 @@ public class UCAVioWitGenerator {
   private boolean isRelevantEdge(CFAEdge pCFAEdge) {
     return pCFAEdge instanceof FunctionCallEdge
         || (pCFAEdge instanceof BlankEdge
-            && pCFAEdge.getDescription().contains(DESC_OF_DUMMY_FUNC_START_EDGE));
+            && pCFAEdge.getDescription().contains(UCAGenerator.DESC_OF_DUMMY_FUNC_START_EDGE));
   }
 
   /**
