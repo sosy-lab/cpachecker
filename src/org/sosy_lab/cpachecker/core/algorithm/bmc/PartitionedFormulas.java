@@ -30,10 +30,10 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
  * ISMCAlgorithm}. It stores the following formulas.
  *
  * <ul>
- *   <li>{@link PartitionedFormulas#prefixFormula} (*I): the block formula from root to the first
- *       loop head along with its SSA indices {@link PartitionedFormulas#prefixSsaMap}.
+ *   <li>{@link PartitionedFormulas#prefixFormula} (I): the block formula from root to the first
+ *       loop head.
  *   <li>{@link PartitionedFormulas#loopFormulas} (T1, T2, ..., Tn): the block formulas between each
- *       pair of loop heads.
+ *       consecutive pair of loop heads.
  *   <li>{@link PartitionedFormulas#targetAssertion} (&not;P): the block formula from the last to
  *       head to the target state. If {@link PartitionedFormulas#assertAllTargets} is set to true,
  *       the assertion formulas at every loop iterations are recorded and their disjunction is used;
