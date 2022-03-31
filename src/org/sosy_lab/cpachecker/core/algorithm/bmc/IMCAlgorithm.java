@@ -59,9 +59,6 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   @Option(secure = true, description = "toggle checking forward conditions")
   private boolean checkForwardConditions = true;
 
-  @Option(secure = true, description = "toggle using interpolation to verify programs with loops")
-  private boolean interpolation = true;
-
   @Option(
       secure = true,
       description = "toggle falling back if interpolation or forward-condition is disabled")

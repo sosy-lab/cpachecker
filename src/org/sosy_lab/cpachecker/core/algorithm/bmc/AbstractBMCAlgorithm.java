@@ -162,6 +162,9 @@ abstract class AbstractBMCAlgorithm
   @Option(secure = true, description = "try using induction to verify programs with loops")
   private boolean induction = false;
 
+  @Option(secure = true, description = "toggle using interpolation to verify programs with loops")
+  protected boolean interpolation = false;
+
   @Option(secure = true, description = "Strategy for generating auxiliary invariants")
   private InvariantGeneratorFactory invariantGenerationStrategy =
       InvariantGeneratorFactory.REACHED_SET;

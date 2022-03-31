@@ -699,6 +699,9 @@ bmc.checkTargetStates = true
 # try using induction to verify programs with loops
 bmc.induction = false
 
+# toggle using interpolation to verify programs with loops
+bmc.interpolation = false
+
 # Strategy for generating auxiliary invariants
 bmc.invariantGenerationStrategy = REACHED_SET
   enum:     [INDUCTION, REACHED_SET, DO_NOTHING, INVARIANT_STORE]
@@ -3596,9 +3599,6 @@ imc.checkForwardConditions = true
 # toggle falling back if interpolation or forward-condition is disabled
 imc.fallBack = true
 
-# toggle using interpolation to verify programs with loops
-imc.interpolation = true
-
 # toggle removing unreachable stop states in ARG
 imc.removeUnreachableStopStates = false
 
@@ -3646,9 +3646,6 @@ ismc.fallBack = true
 
 # toggle Impact-like covering for the fixed-point check
 ismc.impactLikeCovering = false
-
-# toggle using interpolation to verify programs with loops
-ismc.interpolation = true
 
 # toggle removing unreachable stop states in ARG
 ismc.removeUnreachableStopStates = false
