@@ -75,7 +75,7 @@ public class UCAAutomatonParser {
       }
 
       logger.logf(
-          Level.INFO, "Distances to Violation for UCA are %s", distanceToViolation.toString());
+          Level.FINE, "Distances to Violation for UCA are %s", distanceToViolation.toString());
 
       List<AutomatonInternalState> updatedStates = new ArrayList<>();
       Map<String, AutomatonVariable> variables = new HashMap<>();

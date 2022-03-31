@@ -242,14 +242,14 @@ public class UCAGenerator {
   }
 
   static String getEdgeString(CFAEdge pEdge) {
-//    if (pEdge instanceof BlankEdge && pEdge.getDescription().equals(DESC_OF_DUMMY_FUNC_START_EDGE) ) {
-//      final String funcName = pEdge.getSuccessor().getFunction().toString();
-//      int indexSemicolon = funcName.indexOf(";");
-//      if (indexSemicolon > 0) {
-//        return funcName.substring(0, indexSemicolon);
-//      }
-//      return funcName;
-//    }
+    if (pEdge instanceof BlankEdge && pEdge.getDescription().equals(DESC_OF_DUMMY_FUNC_START_EDGE)  ) {
+      final String funcName = pEdge.getSuccessor().getFunction().toString();
+      int indexSemicolon = funcName.indexOf(";");
+      if (indexSemicolon > 0) {
+        return funcName.substring(0, indexSemicolon);
+      }
+      return funcName;
+    }
     return pEdge.getRawStatement();
   }
 }

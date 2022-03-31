@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ucageneration.UCAGenerator.UCAGeneratorOptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -100,19 +101,18 @@ public class UCAVioWitGenerator {
     Set<ARGState> targetStates = getAllTargetStates(pReached);
 
     logger.log(
-        Level.FINE,
-        String.format(
-            "Target states found are "
-                + String.join(
-                    ",",
-                    targetStates.stream()
-                        .map(a -> Integer.toString(a.getStateId()))
-                        .collect(ImmutableList.toImmutableList()))));
+        Level.INFO,
+        "Target states found are "
+            + String.join(
+            ",",
+            targetStates.stream()
+                .map(a -> Integer.toString(a.getStateId()))
+                .collect(ImmutableList.toImmutableList())));
 
     while (!toProcess.isEmpty()) {
       ARGState state = toProcess.remove(0);
       logger.logf(
-          Level.FINE,
+          Level.INFO,
           "Taking %s from the list, processed %s, toProcess %s",
           state.getStateId(),
           processed.stream().map(a -> a.getStateId()).collect(ImmutableList.toImmutableList()),
@@ -128,6 +128,28 @@ public class UCAVioWitGenerator {
         Level.WARNING,
         relevantEdges.stream().map(e -> e.toString()).collect(ImmutableList.toImmutableList()));
 
+    // Now, a short cleaning is applied:
+    // All states leading to the error state are replaced by the error state directly
+    Map<ARGState, Optional<ARGState>> statesToReplaceToReplacement = new HashMap<>();
+    Set<UCAARGStateEdge> toRemove = new HashSet<>();
+    relevantEdges.stream()
+        .filter(e -> e.getTarget().isPresent() && targetStates.contains(e.getTarget().orElseThrow()))
+        .forEach(
+            e -> {
+              statesToReplaceToReplacement.put(e.getSource(), e.getTarget());
+              toRemove.add(e);
+            });
+    HashSet<UCAARGStateEdge> toAdd = new HashSet<>();
+    for(UCAARGStateEdge edge : relevantEdges){
+      if (edge.getTarget().isPresent() && statesToReplaceToReplacement.containsKey(edge.getTarget().orElseThrow())){
+        toRemove.add(edge);
+        Optional<ARGState> replacement = statesToReplaceToReplacement.get(edge.getTarget().orElseThrow());
+        if (replacement.isPresent())
+        toAdd.add(new UCAARGStateEdge(edge.source,replacement.orElseThrow(), edge.getEdge()));
+      }
+    }
+    relevantEdges.removeAll(toRemove);
+    relevantEdges.addAll(toAdd);
     return writeUCAForViolationWitness(pOutput, pArgRoot, relevantEdges, false);
   }
 
@@ -163,7 +185,7 @@ public class UCAVioWitGenerator {
         pRelevantEdges.add(
             new UCAARGStateEdge(pParent, pair.getSecond().orElseThrow(), pair.getFirst()));
         if (!pProcessed.contains(pChild) && !pTargetStates.contains(pair.getSecond().get())) {
-          logger.logf(Level.FINE, "Adding %s", pChild.getStateId());
+          logger.logf(Level.INFO, "Adding %s", pChild.getStateId());
           pToProcess.add(pChild);
         }
       }
@@ -176,7 +198,7 @@ public class UCAVioWitGenerator {
       // Check if there are any edges on the path that are relevant and if so, create for
       // each relevant edge an edge
       if (pahtToChild.size() > 1) {
-        logger.logf(Level.FINE, "Processing a Multi-node");
+        logger.logf(Level.INFO, "Processing a Multi-node");
         while (!pahtToChild.isEmpty()) {
           CFAEdge currentEdge = pahtToChild.get(pahtToChild.size() - 1);
           pahtToChild.remove(currentEdge);
@@ -202,7 +224,7 @@ public class UCAVioWitGenerator {
         if (!edgesToAdd.isEmpty()) {
           pRelevantEdges.addAll(edgesToAdd);
           if (!pProcessed.contains(pChild)) {
-            logger.logf(Level.FINE, "Adding %s", pChild.getStateId());
+            logger.logf(Level.INFO, "Adding %s", pChild.getStateId());
             pToProcess.add(pChild);
           }
           edgesAdded = true;
@@ -212,7 +234,7 @@ public class UCAVioWitGenerator {
     if (!edgesAdded) {
       for (ARGState grandChild : pChild.getChildren()) {
         logger.logf(
-            Level.FINE,
+            Level.INFO,
             "No match found for parent %s and child %s, coninue with grandchild %s",
             pParent.getStateId(),
             pChild.getStateId(),
@@ -240,7 +262,7 @@ public class UCAVioWitGenerator {
    * 2. The child is the direct successor of the parent and the edge is an assumeEdge or function
    * call edge <br>
    * 3. The child is a target state <br>
-   * 4. The last edge on the path from parent to child is a dummy function call edge <br>
+   * 4 Alternative: THe child is a {@link FunctionEntryNode}<br>
    * 5. The child node has a grandchild node that is a target state <br>
    *
    * @param pChild the child
@@ -273,9 +295,10 @@ public class UCAVioWitGenerator {
     // Case 3:
     boolean case3 = pTargetStates.contains(pChild);
     // Case 4:
-    boolean case4 =
-        (lastEdge instanceof BlankEdge
-            && lastEdge.getDescription().contains(UCAGenerator.DESC_OF_DUMMY_FUNC_START_EDGE));
+    boolean case4 = AbstractStates.extractLocation(pChild) instanceof FunctionEntryNode;
+    //This is an old option!
+//        lastEdge instanceof BlankEdge
+//            && lastEdge.getDescription().contains(UCAGenerator.DESC_OF_DUMMY_FUNC_START_EDGE));
     // Case 5:
     boolean case5 = pChild.getChildren().stream().anyMatch(gc -> pTargetStates.contains(gc));
 
@@ -410,7 +433,7 @@ public class UCAVioWitGenerator {
     }
 
     logger.log(
-        Level.FINE, edgesToAdd.stream().map(e -> e.toString()).collect(Collectors.joining("\n")));
+        Level.INFO, edgesToAdd.stream().map(e -> e.toString()).collect(Collectors.joining("\n")));
 
     return writeUCAForViolationWitness(
         output, rootState, edgesToAdd, optinons.isAutomatonIgnoreAssumptions());
