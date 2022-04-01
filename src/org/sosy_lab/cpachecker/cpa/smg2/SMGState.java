@@ -774,4 +774,18 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
     return copyAndReplaceMemoryModel(
         memoryModel.copyAndAddPointerFromAddressToRegion(addressValue, target, offsetInBits));
   }
+
+  /**
+   * Sets the entered variable to extern. The variable has to exist in the current memory model or
+   * an exception is thrown. This keeps the former association of the variable intact! So if its
+   * declared global before, it is still after this method.
+   *
+   * @param variableName name of the variable.
+   * @return new {@link SMGState} with the variable set to external.
+   */
+  public SMGState setExternallyAllocatedFlag(String variableName) {
+    return copyAndReplaceMemoryModel(
+        memoryModel.copyAndAddExternalObject(
+            getMemoryModel().getObjectForVisibleVariable(variableName).orElseThrow()));
+  }
 }
