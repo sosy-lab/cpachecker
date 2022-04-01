@@ -101,6 +101,12 @@ class PartitionedFormulas {
     return transformedImmutableListCopy(loopFormulas, PathFormula::getFormula);
   }
 
+  /** Return the collected loop formulas (T1, T2, ..., Tn). */
+  BooleanFormula getLoopFormula(int loopIndex) {
+    checkState(isInitialized, UNINITIALIZED_MSG);
+    return loopFormulas.get(loopIndex).getFormula();
+  }
+
   /** Return the target assertion formula (&not;P). */
   BooleanFormula getAssertionFormula() {
     checkState(isInitialized, UNINITIALIZED_MSG);

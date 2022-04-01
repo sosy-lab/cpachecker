@@ -345,21 +345,36 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       BooleanFormula currentImage = reachVector.get(0);
       for (int i = 1; i < reachVector.size(); ++i) {
         BooleanFormula imageAtI = reachVector.get(i);
+        // Step 1: regular ISMC check
         if (solver.implies(imageAtI, currentImage)) {
           logger.log(Level.INFO, "Fixed point reached");
           finalFixedPoint = currentImage;
           return true;
         }
+        // Step 2: ISMC check strengthened by external invariant
         if (solver.implies(bfmgr.and(imageAtI, loopInv), currentImage)) {
-          logger.log(Level.FINE, "Checking relative inductiveness");
+          // Step 3: check if external invariant is inductive
+          logger.log(Level.FINE, "Checking inductiveness of invariant ");
+          BooleanFormula invariantTransition =
+              bfmgr.and(
+                  fmgr.instantiate(loopInv, formulas.getPrefixSsaMap()),
+                  formulas.getLoopFormula(0));
+          BooleanFormula nextInvariant = fmgr.instantiate(loopInv, formulas.getSsaMapOfLoop(0));
+          if (solver.implies(invariantTransition, nextInvariant)) {
+            logger.log(Level.INFO, "Fixed point reached with external invariants");
+            finalFixedPoint = currentImage;
+            return true;
+          }
+          // Step 4: check if image is relatively inductive to the external invariant
+          logger.log(Level.FINE, "Checking relative inductiveness of image");
           BooleanFormula currentImageTransition =
               bfmgr.and(
                   fmgr.instantiate(bfmgr.and(loopInv, currentImage), formulas.getPrefixSsaMap()),
-                  formulas.getLoopFormulas().get(0));
+                  formulas.getLoopFormula(0));
           BooleanFormula nextImage = fmgr.instantiate(currentImage, formulas.getSsaMapOfLoop(0));
           if (solver.implies(currentImageTransition, nextImage)) {
             logger.log(Level.INFO, "Fixed point reached with external invariants");
-            finalFixedPoint = bfmgr.and(currentImage, loopInv);
+            finalFixedPoint = currentImage;
             return true;
           }
         }
