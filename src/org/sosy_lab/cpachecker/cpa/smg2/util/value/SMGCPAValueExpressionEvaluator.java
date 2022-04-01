@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 
 @SuppressWarnings("unused")
 public class SMGCPAValueExpressionEvaluator {
-  // TODO: why does this implement a interface that just defines the methods in this very class?
 
   private final LogManagerWithoutDuplicates logger;
   private final MachineModel machineModel;
