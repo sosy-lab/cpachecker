@@ -414,8 +414,12 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private BooleanFormula getLoopHeadInvariants(Iterable<AbstractState> pLoopHeadStates)
       throws CPATransferException, InterruptedException {
     Iterable<AbstractState> loopHeadStates = filterInductiveAssertionIteration(pLoopHeadStates);
-    return fmgr.uninstantiate(
-        assertAt(loopHeadStates, getCurrentLoopHeadInvariants(loopHeadStates), fmgr, true));
+    BooleanFormula loopInv =
+        fmgr.uninstantiate(
+            assertAt(loopHeadStates, getCurrentLoopHeadInvariants(loopHeadStates), fmgr, true));
+    // if invariant generation is not running, the returned invariant should always be true
+    assert invariantGenerationRunning || bfmgr.isTrue(loopInv);
+    return loopInv;
   }
 
   // note: an exact copy from KInductionProver
