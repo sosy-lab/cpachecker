@@ -352,7 +352,8 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           return true;
         }
         // Step 2: ISMC check strengthened by external invariant
-        if (solver.implies(bfmgr.and(imageAtI, loopInv), currentImage)) {
+        if (invariantGenerationRunning
+            && solver.implies(bfmgr.and(imageAtI, loopInv), currentImage)) {
           // Step 3: check if external invariant is inductive
           logger.log(Level.FINE, "Checking inductiveness of invariant ");
           BooleanFormula invariantTransition =
