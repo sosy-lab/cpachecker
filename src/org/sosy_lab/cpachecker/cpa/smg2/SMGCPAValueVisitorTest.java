@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAValueExpressionEvaluator;
@@ -3011,8 +3012,10 @@ public class SMGCPAValueVisitorTest {
    *
    * @param variableName name of the struct variable on the stack.
    * @param testTypesList list of types in the struct in the order of the list.
+   * @throws SMG2Exception should never be thrown.
    */
-  private void createStackVarOnStackAndFill(String variableName, List<CType> testTypesList) {
+  private void createStackVarOnStackAndFill(String variableName, List<CType> testTypesList)
+      throws SMG2Exception {
     addStackVariableToMemoryModel(
         variableName, getSizeInBitsForListOfCTypeWithPadding(testTypesList));
 
@@ -3191,7 +3194,8 @@ public class SMGCPAValueVisitorTest {
    * This is then filled with values using transformInputIntoValue() and the indice
    * of the element. Check results using checkValue()!
    */
-  private void setupStackArray(String arrayVariableName, CType arrayElementType) {
+  private void setupStackArray(String arrayVariableName, CType arrayElementType)
+      throws SMG2Exception {
     int sizeOfCurrentTypeInBits = MACHINE_MODEL.getSizeof(arrayElementType).intValue() * 8;
     // Create the array on the stack; size is type size in bits * size of array
     addStackVariableToMemoryModel(arrayVariableName, sizeOfCurrentTypeInBits * TEST_ARRAY_LENGTH);
@@ -3217,9 +3221,10 @@ public class SMGCPAValueVisitorTest {
    * @param listOfTypes the list of types in the struct in the order they should be in the struct.
    * @return the Value that is the address of the memory on the heap! NOT the stack!
    * @throws InvalidConfigurationException should never be thrown.
+   * @throws SMG2Exception should never be thrown.
    */
   private Value setupHeapStructAndFill(String stackVariableName, List<CType> listOfTypes)
-      throws InvalidConfigurationException {
+      throws InvalidConfigurationException, SMG2Exception {
     // Address of the struct on the heap
     Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
 
@@ -3253,7 +3258,7 @@ public class SMGCPAValueVisitorTest {
    * returns the addressValue to the heap location. (NOT THE STACK!) If you want the stack use currentState.getMemoryModel().getObjectForVisibleVariable(stackVariableName)
    */
   private Value setupHeapArray(String arrayVariableName, CType currentArrayType)
-      throws InvalidConfigurationException {
+      throws InvalidConfigurationException, SMG2Exception {
     int sizeOfCurrentTypeInBits = MACHINE_MODEL.getSizeof(currentArrayType).intValue() * 8;
     // address to the heap where the array starts
     Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
@@ -3280,7 +3285,7 @@ public class SMGCPAValueVisitorTest {
    * Create TEST_ARRAY_LENGTH.size() index variables
    * accessed via indexVariableName + indexNumber with INT_TYPE as index type.
    */
-  private void setupIndexVariables(String indexVariableName) {
+  private void setupIndexVariables(String indexVariableName) throws SMG2Exception {
     for (int k = 0; k < TEST_ARRAY_LENGTH; k++) {
       // create length stack variables holding the indices to access i.e. a array
       addStackVariableToMemoryModel(
@@ -3297,7 +3302,8 @@ public class SMGCPAValueVisitorTest {
    * Add a stack variable with the entered size to the current memory model present in the state
    * and update the state and visitor. Adds a StackFrame if there is none.
    */
-  private void addStackVariableToMemoryModel(String variableName, int sizeInBits) {
+  private void addStackVariableToMemoryModel(String variableName, int sizeInBits)
+      throws SMG2Exception {
     if (currentState.getMemoryModel().getStackFrames().size() < 1) {
       // If there is no current stack we add it
       currentState = currentState.copyAndAddStackFrame(CFunctionDeclaration.DUMMY);
