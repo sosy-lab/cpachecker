@@ -697,10 +697,47 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
             newState.getMemoryModel().copyAndPutValue(unknownValue, readSMGValue)));
   }
 
-  public SMGState writeValue(
+  /**
+   * Not to be used in general outside of this method! Only tests! Writes into the given {@link
+   * SMGObject} at the specified offset in bits with the size in bits given the value given. Make
+   * sure to add the Value to the SMGs values before adding it here!
+   *
+   * @param object the memory {@link SMGObject} to write to.
+   * @param offset offset in bits to be written
+   * @param sizeInBits size in bits to be written
+   * @param value the value to write
+   * @return a new SMGState with the value written.
+   */
+  protected SMGState writeValue(
       SMGObject object, BigInteger offset, BigInteger sizeInBits, SMGValue value) {
     // TODO: decide if we need more checks here
     return copyAndReplaceMemoryModel(memoryModel.writeValue(object, offset, sizeInBits, value));
+  }
+
+  /**
+   * Write to a stack (or global) variable with the name given. This method assumes that the
+   * variable exists!!!! The offset and size are in bits. The {@link Value} will be added as a
+   * {@link SMGValue} mapping if not known.
+   *
+   * @param variableName name of the variable that should be known already.
+   * @param writeOffsetInBits in bits.
+   * @param writeSizeInBits in bits.
+   * @param valueToWrite {@link Value} to write. If its not yet known as a {@link SMGValue} then the
+   *     mapping will be added.
+   * @return a {@link SMGState} with the {@link Value} wirrten at the given position in the variable
+   *     given.
+   */
+  public SMGState writeToStackOrGlobalVariable(
+      String variableName,
+      BigInteger writeOffsetInBits,
+      BigInteger writeSizeInBits,
+      Value valueToWrite) {
+    SMGValueAndSMGState valueAndState = copyAndAddValue(valueToWrite);
+    SMGValue smgValue = valueAndState.getSMGValue();
+    SMGState currentState = valueAndState.getSMGState();
+    SMGObject variableMemory =
+        currentState.getMemoryModel().getObjectForVisibleVariable(variableName).orElseThrow();
+    return currentState.writeValue(variableMemory, writeOffsetInBits, writeSizeInBits, smgValue);
   }
 
   /**
