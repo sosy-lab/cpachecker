@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.smg2;
 
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -239,9 +240,8 @@ public class SMGCPAValueVisitorTest {
                 COMPOSITE_DECLARATION_NAME,
                 COMPOSITE_VARIABLE_NAME,
                 i,
-                STRUCT_UNION_TEST_TYPES.stream()
-                    .map(n -> new CPointerType(false, false, n))
-                    .collect(ImmutableList.toImmutableList()));
+                transformedImmutableListCopy(
+                    STRUCT_UNION_TEST_TYPES, n -> new CPointerType(false, false, n)));
 
         List<ValueAndSMGState> resultList = fieldRef.accept(visitor);
 
@@ -298,9 +298,8 @@ public class SMGCPAValueVisitorTest {
                 COMPOSITE_DECLARATION_NAME,
                 COMPOSITE_VARIABLE_NAME,
                 i,
-                STRUCT_UNION_TEST_TYPES.stream()
-                    .map(n -> new CPointerType(false, false, n))
-                    .collect(ImmutableList.toImmutableList()),
+                transformedImmutableListCopy(
+                    STRUCT_UNION_TEST_TYPES, n -> new CPointerType(false, false, n)),
                 true,
                 ComplexTypeKind.STRUCT);
 
@@ -353,9 +352,8 @@ public class SMGCPAValueVisitorTest {
                 COMPOSITE_DECLARATION_NAME,
                 COMPOSITE_VARIABLE_NAME,
                 i,
-                STRUCT_UNION_TEST_TYPES.stream()
-                    .map(n -> new CPointerType(false, false, n))
-                    .collect(ImmutableList.toImmutableList()),
+                transformedImmutableListCopy(
+                    STRUCT_UNION_TEST_TYPES, n -> new CPointerType(false, false, n)),
                 false,
                 ComplexTypeKind.STRUCT);
 
