@@ -221,6 +221,17 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   }
 
   /**
+   * Returns true if there exists a variable on the stack with the name entered.
+   *
+   * @param pState state to check the memory model for.
+   * @param variableName name of the variable.
+   * @return true if the variable exists, false otherwise.
+   */
+  public boolean checkVariableExists(SMGState pState, String variableName) {
+    return pState.getMemoryModel().getObjectForVisibleVariable(variableName).isPresent();
+  }
+
+  /**
    * Copy SMGState and adds a new frame for the function.
    *
    * <p>Keeps consistency: yes
