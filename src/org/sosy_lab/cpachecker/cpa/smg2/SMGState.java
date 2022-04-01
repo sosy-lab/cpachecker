@@ -481,6 +481,27 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   }
 
   /**
+   * Error for trying to write to a local/global variable that is not declared.
+   *
+   * @param variableName the variable name of the variable that was tried to write to.
+   * @return A new {@link SMGState} with the error info.
+   */
+  public SMGState withWriteToUnknownVariable(String variableName) {
+    String errorMSG =
+        "Failed write to variable "
+            + variableName
+            + ".";
+    SMGErrorInfo newErrorInfo =
+        errorInfo
+            .withProperty(Property.INVALID_WRITE)
+            .withErrorMessage(errorMSG)
+            .withInvalidObjects(Collections.singleton(variableName));
+    // Log the error in the logger
+    logMemoryError(errorMSG, true);
+    return copyWithErrorInfo(memoryModel, newErrorInfo);
+  }
+
+  /**
    * The error sais invalid read as the point that fails is the read of the {@link SMGObject} before
    * writing! I.e. *pointer = ...; With pointer failing to dereference because its pointing to 0.
    *
@@ -727,17 +748,33 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
    *     mapping will be added.
    * @return a {@link SMGState} with the {@link Value} wirrten at the given position in the variable
    *     given.
+   * @throws SMG2Exception if the write is out of range or invalid due to the variable being
+   *     unknown.
    */
   public SMGState writeToStackOrGlobalVariable(
       String variableName,
       BigInteger writeOffsetInBits,
       BigInteger writeSizeInBits,
-      Value valueToWrite) {
+      Value valueToWrite)
+      throws SMG2Exception {
     SMGValueAndSMGState valueAndState = copyAndAddValue(valueToWrite);
     SMGValue smgValue = valueAndState.getSMGValue();
     SMGState currentState = valueAndState.getSMGState();
-    SMGObject variableMemory =
-        currentState.getMemoryModel().getObjectForVisibleVariable(variableName).orElseThrow();
+    Optional<SMGObject> maybeVariableMemory =
+        currentState.getMemoryModel().getObjectForVisibleVariable(variableName);
+
+    if (maybeVariableMemory.isEmpty()) {
+      // Write to unknown variable
+      throw new SMG2Exception(currentState.withWriteToUnknownVariable(variableName));
+    }
+    SMGObject variableMemory = maybeVariableMemory.orElseThrow();
+    if (variableMemory.getOffset().compareTo(writeOffsetInBits) > 0
+        && variableMemory.getSize().compareTo(writeSizeInBits) < 0) {
+      // Out of range write
+      throw new SMG2Exception(
+          currentState.withOutOfRangeWrite(
+              variableMemory, writeOffsetInBits, writeSizeInBits, smgValue));
+    }
     return currentState.writeValue(variableMemory, writeOffsetInBits, writeSizeInBits, smgValue);
   }
 
