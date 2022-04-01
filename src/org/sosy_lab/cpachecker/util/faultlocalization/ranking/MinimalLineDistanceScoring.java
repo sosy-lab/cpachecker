@@ -16,7 +16,7 @@ import org.sosy_lab.cpachecker.util.faultlocalization.appendables.RankInfo;
 
 public class MinimalLineDistanceScoring implements FaultScoring {
 
-  private int errorLocation;
+  private final int errorLocation;
 
   /**
    * Sorts the result set by absolute distance to the error location based on the linenumber

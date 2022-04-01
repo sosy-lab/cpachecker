@@ -531,7 +531,7 @@ class EclipseCParser implements CParser {
       macrosBuilder.put("_Float64", "double");
       macrosBuilder.put("_Float64x", "long double");
 
-      MACROS = macrosBuilder.build();
+      MACROS = macrosBuilder.buildOrThrow();
     }
 
     protected static final IScannerInfo instance = new StubScannerInfo();

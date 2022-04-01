@@ -84,8 +84,8 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
       outgoingEdges.forEach(e -> exitEdges.put(e, l));
       l.getLoopHeads().forEach(h -> heads.put(h, l));
     }
-    loopEntryEdges = entryEdges.build();
-    loopExitEdges = exitEdges.build();
+    loopEntryEdges = entryEdges.buildOrThrow();
+    loopExitEdges = exitEdges.buildOrThrow();
     loopHeads = heads.build();
   }
 
