@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.smg2;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.nio.file.Path;
@@ -27,14 +28,19 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -46,6 +52,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -230,8 +238,269 @@ public class SMGTransferRelation
   @Override
   protected List<SMGState> handleDeclarationEdge(CDeclarationEdge edge, CDeclaration cDecl)
       throws CPATransferException {
-    return null;
+    if (cDecl instanceof CFunctionDeclaration) {
+      // TODO:
+    } else if (cDecl instanceof CComplexTypeDeclaration) {
+      // TODO:
+    } else if (cDecl instanceof CTypeDefDeclaration) {
+      // TODO:
+    } else if (cDecl instanceof CVariableDeclaration) {
+      return handleVariableDeclaration(state, (CVariableDeclaration) cDecl, edge);
+    }
+    // Fallthrough
+    // TODO: log that declaration failed
+    return ImmutableList.of(state);
   }
+
+  /**
+   * Creates (or re-uses) a variable for the name given. The variable is either on the stack, global
+   * or externally allocated.
+   *
+   * @param pState
+   * @param pVarDecl
+   * @param pEdge
+   * @return
+   * @throws CPATransferException
+   */
+  private List<SMGState> handleVariableDeclaration(
+      SMGState pState, CVariableDeclaration pVarDecl, CDeclarationEdge pEdge)
+      throws CPATransferException {
+    // SMGCPAValueExpressionEvaluator evaluator = new SMGCPAValueExpressionEvaluator(machineModel,
+    // logger);
+    String varName = pVarDecl.getName();
+    CType cType = SMGCPAValueExpressionEvaluator.getCanonicalType(pVarDecl);
+    boolean isExtern = pVarDecl.getCStorageClass().equals(CStorageClass.EXTERN);
+
+    if (cType.isIncomplete() && cType instanceof CElaboratedType) {
+      // for incomplete types, we do not add variables.
+      // we are not allowed to read or write them, dereferencing is possible.
+      // example: "struct X; extern struct X var; void main() { }"
+      // TODO currently we assume that only CElaboratedTypes are unimportant when incomplete.
+      return ImmutableList.of(pState);
+    }
+
+    /*
+     *  If the variable exists it does so because of loops etc.
+     *  Invalid declarations should be already caught by the parser.
+     */
+    SMGState newState = pState;
+    if (!pState.checkVariableExists(pState, varName)
+        && (!isExtern || options.getAllocateExternalVariables())) {
+      SMGCPAValueExpressionEvaluator evaluator =
+          new SMGCPAValueExpressionEvaluator(machineModel, logger);
+      int typeSize = evaluator.getBitSizeof(pState, cType).intValueExact();
+
+      // Handle incomplete type of extern variables as externally allocated
+      if (options.isHandleIncompleteExternalVariableAsExternalAllocation()
+          && cType.isIncomplete()
+          && isExtern) {
+        typeSize = options.getExternalAllocationSize();
+      }
+      if (pVarDecl.isGlobal()) {
+        newState = pState.copyAndAddGlobalVariable(typeSize, varName);
+      } else {
+        newState = pState.copyAndAddLocalVariable(typeSize, varName);
+      }
+    }
+
+    return handleInitializerForDeclaration(newState, varName, pVarDecl, cType, pEdge);
+  }
+
+  /**
+   * This method expects that there is a variable (global or otherwise) existing under the name
+   * entered with the corect size allocated. This also expects that the type is correct.
+   *
+   * @param pState current {@link SMGState}.
+   * @param pVarName name of the variable to be initialized. This var should be present on the
+   *     memory model with the correct size.
+   * @param pVarDecl {@link CVariableDeclaration} for the variable.
+   * @param cType {@link CType} of the variable.
+   * @param pEdge {@link CDeclarationEdge} for the declaration.
+   * @return a list of states with the variable initialized.
+   * @throws CPATransferException if something goes wrong
+   */
+  private List<SMGState> handleInitializerForDeclaration(
+      SMGState pState,
+      String pVarName,
+      CVariableDeclaration pVarDecl,
+      CType cType,
+      CDeclarationEdge pEdge)
+      throws CPATransferException {
+    CInitializer newInitializer = pVarDecl.getInitializer();
+    SMGState currentState = pState;
+
+    if (pVarDecl.isGlobal()) {
+      // Global vars are always initialized to 0
+      // Don't nullify extern variables
+      if (pVarDecl.getCStorageClass().equals(CStorageClass.EXTERN)) {
+        if (options.isHandleIncompleteExternalVariableAsExternalAllocation()) {
+          currentState = currentState.setExternallyAllocatedFlag(pVarName);
+        }
+      } else {
+        // Global variables without initializer are nullified in C
+        currentState = currentState.writeToStackOrGlobalVariableToZero(pVarName);
+      }
+    }
+
+    if (newInitializer != null) {
+      // return handleInitializer(currentState, pVarDecl, pEdge, pVarName, BigInteger.ZERO, cType,
+      // newInitializer);
+    }
+
+    return ImmutableList.of(currentState);
+  }
+  /*
+  private List<SMGState> handleInitializer(
+      SMGState pNewState,
+      CVariableDeclaration pVarDecl,
+      CFAEdge pEdge,
+      String variableName,
+      BigInteger pOffset,
+      CType pLValueType,
+      CInitializer pInitializer)
+      throws CPATransferException {
+
+    if (pInitializer instanceof CInitializerExpression) {
+      CExpression expression = ((CInitializerExpression) pInitializer).getExpression();
+      // string literal handling
+      if (expression instanceof CStringLiteralExpression) {
+        return handleStringInitializer(
+            pNewState,
+            pVarDecl,
+            pEdge,
+            variableName,
+            pOffset,
+            pLValueType,
+            pInitializer.getFileLocation(),
+            (CStringLiteralExpression) expression);
+      } else if (expression instanceof CCastExpression) {
+        // handle casting on initialization like 'char *str = (char *)"string";'
+        return handleCastInitializer(
+            pNewState,
+            pVarDecl,
+            pEdge,
+            variableName,
+            pOffset,
+            pLValueType,
+            pInitializer.getFileLocation(),
+            (CCastExpression) expression);
+      } else {
+        return writeCExpressionToLocalOrGlobalVariable(pNewState, pEdge, variableName, pOffset, pLValueType, expression);
+      }
+    } else if (pInitializer instanceof CInitializerList) {
+      CInitializerList pNewInitializer = ((CInitializerList) pInitializer);
+      CType realCType = pLValueType.getCanonicalType();
+
+      if (realCType instanceof CArrayType) {
+        CArrayType arrayType = (CArrayType) realCType;
+        return handleInitializerList(
+            pNewState, pVarDecl, pEdge, variableName, pOffset, arrayType, pNewInitializer);
+
+      } else if (realCType instanceof CCompositeType) {
+        CCompositeType structType = (CCompositeType) realCType;
+        return handleInitializerList(
+            pNewState, pVarDecl, pEdge, variableName, pOffset, structType, pNewInitializer);
+      }
+
+      // Type cannot be resolved
+      logger.log(
+          Level.INFO,
+          () ->
+              String.format(
+                  "Type %s cannot be resolved sufficiently to handle initializer %s",
+                  realCType.toASTString(""), pNewInitializer));
+      return ImmutableList.of(pNewState);
+
+    } else if (pInitializer instanceof CDesignatedInitializer) {
+      throw new AssertionError(
+          "Error in handling initializer, designated Initializer "
+              + pInitializer.toASTString()
+              + " should not appear at this point.");
+
+    } else {
+      throw new UnrecognizedCodeException("Did not recognize Initializer", pInitializer);
+    }
+  }
+
+  private List<SMGState> handleCastInitializer(
+      SMGState pNewState,
+      CVariableDeclaration pVarDecl,
+      CFAEdge pEdge,
+      String variableName,
+      BigInteger pOffset,
+      CType pLValueType,
+      FileLocation pFileLocation,
+      CCastExpression pExpression)
+      throws CPATransferException {
+    CExpression expression = pExpression.getOperand();
+    if (expression instanceof CStringLiteralExpression) {
+      return handleStringInitializer(
+          pNewState,
+          pVarDecl,
+          pEdge,
+          variableName,
+          pOffset,
+          pLValueType,
+          pFileLocation,
+          (CStringLiteralExpression) expression);
+    } else if (expression instanceof CCastExpression) {
+      return handleCastInitializer(
+          pNewState,
+          pVarDecl,
+          pEdge,
+          variableName,
+          pOffset,
+          pLValueType,
+          pFileLocation,
+          (CCastExpression) expression);
+    } else {
+      return writeCExpressionToLocalOrGlobalVariable(pNewState, pEdge, variableName, pOffset, pLValueType, expression);
+    }
+  }
+
+  private List<SMGState> handleInitializerList(
+      SMGState pState,
+      CVariableDeclaration pVarDecl,
+      CFAEdge pEdge,
+      String variableName,
+      BigInteger pOffset,
+      CCompositeType pLValueType,
+      CInitializerList pNewInitializer)
+      throws CPATransferException {
+
+    int listCounter = 0;
+
+    List<CCompositeType.CCompositeTypeMemberDeclaration> memberTypes = pLValueType.getMembers();
+    // Member -> offset map
+    Map<CCompositeType.CCompositeTypeMemberDeclaration, BigInteger> offsetAndPosition = machineModel.getAllFieldOffsetsInBits(pLValueType);
+
+    ImmutableList.Builder<SMGState> finalStates = ImmutableList.builder();
+    SMGState currentState = pState;
+    for (CInitializer initializer : pNewInitializer.getInitializers()) {
+    // Just to be sure, should never trigger
+      Preconditions.checkArgument(listCounter < memberTypes.size());
+
+      if (initializer instanceof CDesignatedInitializer) {
+        long offset = offsetAndPosition.get(memberTypes.get(listCounter));
+        initializer = ((CDesignatedInitializer) initializer).getRightHandSide();
+      }
+
+      CType memberType = memberTypes.get(listCounter).getType();
+
+      long offset = getOffsetWithPadding(offsetAndState.getSecond(), memberType);
+
+      List<SMGState> newStates =
+          handleInitializer(
+              newState, pVarDecl, pEdge, pNewObject, offset, memberType, initializer);
+
+      currentState = newStates.get(newStates.size());
+      finalStates.addAll(newStates);
+      listCounter++;
+    }
+
+    return finalStates.build();
+  }
+  */
 
   @Override
   public Collection<? extends AbstractState> strengthen(
