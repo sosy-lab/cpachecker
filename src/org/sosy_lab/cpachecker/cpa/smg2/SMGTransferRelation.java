@@ -256,11 +256,11 @@ public class SMGTransferRelation
    * Creates (or re-uses) a variable for the name given. The variable is either on the stack, global
    * or externally allocated.
    *
-   * @param pState
-   * @param pVarDecl
-   * @param pEdge
-   * @return
-   * @throws CPATransferException
+   * @param pState current {@link SMGState}
+   * @param pVarDecl declaration of the variable declared.
+   * @param pEdge current CFAEdge
+   * @return a new state with the variable declared and initialized.
+   * @throws CPATransferException TODO
    */
   private List<SMGState> handleVariableDeclaration(
       SMGState pState, CVariableDeclaration pVarDecl, CDeclarationEdge pEdge)
@@ -319,6 +319,7 @@ public class SMGTransferRelation
    * @return a list of states with the variable initialized.
    * @throws CPATransferException if something goes wrong
    */
+  @SuppressWarnings("unused")
   private List<SMGState> handleInitializerForDeclaration(
       SMGState pState,
       String pVarName,
@@ -349,6 +350,7 @@ public class SMGTransferRelation
 
     return ImmutableList.of(currentState);
   }
+
   /*
   private List<SMGState> handleInitializer(
       SMGState pNewState,
@@ -502,6 +504,14 @@ public class SMGTransferRelation
   }
   */
 
+  /**
+   * (non-Javadoc)
+   *
+   * @see
+   *     org.sosy_lab.cpachecker.core.interfaces.TransferRelation#strengthen(org.sosy_lab.cpachecker.core.interfaces.AbstractState,
+   *     java.lang.Iterable, org.sosy_lab.cpachecker.cfa.model.CFAEdge,
+   *     org.sosy_lab.cpachecker.core.interfaces.Precision)
+   */
   @Override
   public Collection<? extends AbstractState> strengthen(
       AbstractState element,
