@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGErrorInfo.Property;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSPC;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
@@ -183,17 +184,22 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   }
 
   /**
-   * Copy SMGState with a newly created object and put it into the current stack frame.
+   * Copy SMGState with a newly created object with the size given and put it into the current stack
+   * frame. If there is no stack frame this throws an exception!
    *
    * <p>Keeps consistency: yes
    *
-   * @param pTypeSize Size of the type the new local variable
+   * @param pTypeSize Size of the type the new local variable in bits.
    * @param pVarName Name of the local variable
-   * @return Newly created object
+   * @return {@link SMGState} with the new variables searchable by the name given.
+   * @throws SMG2Exception thrown if the stack frame is empty.
    */
-  public SMGState copyAndAddLocalVariable(int pTypeSize, String pVarName) {
+  public SMGState copyAndAddLocalVariable(int pTypeSize, String pVarName) throws SMG2Exception {
     if (memoryModel.getStackFrames().isEmpty()) {
-      return this;
+      throw new SMG2Exception(
+          "Can't add a variable named "
+              + pVarName
+              + " to the memory model because there is no stack frame.");
     }
     SMGObject newObject = SMGObject.of(0, BigInteger.valueOf(pTypeSize), BigInteger.ZERO);
     return of(
@@ -208,8 +214,9 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
    *
    * @param pTypeSize Size of the type the new local variable
    * @return Newly created object
+   * @throws SMG2Exception thrown if there is no stack frame to add the var to.
    */
-  public SMGState copyAndAddAnonymousVariable(int pTypeSize) {
+  public SMGState copyAndAddAnonymousVariable(int pTypeSize) throws SMG2Exception {
     return copyAndAddLocalVariable(pTypeSize, makeAnonymousVariableName());
   }
 
