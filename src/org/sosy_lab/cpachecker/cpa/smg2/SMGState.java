@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSPC;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -738,6 +739,23 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
     SMGObject variableMemory =
         currentState.getMemoryModel().getObjectForVisibleVariable(variableName).orElseThrow();
     return currentState.writeValue(variableMemory, writeOffsetInBits, writeSizeInBits, smgValue);
+  }
+
+  /**
+   * Writes the entire variable given to 0. Same as writeToStackOrGlobalVariable().
+   *
+   * @param variableName name of the variable that should be known already.
+   * @return a {@link SMGState} with the {@link Value} wirrten at the given position in the variable
+   *     given.
+   */
+  public SMGState writeToStackOrGlobalVariableToZero(String variableName) {
+    SMGValueAndSMGState valueAndState = copyAndAddValue(new NumericValue(0));
+    SMGValue smgValue = valueAndState.getSMGValue();
+    SMGState currentState = valueAndState.getSMGState();
+    SMGObject variableMemory =
+        currentState.getMemoryModel().getObjectForVisibleVariable(variableName).orElseThrow();
+    return currentState.writeValue(
+        variableMemory, BigInteger.ZERO, variableMemory.getSize(), smgValue);
   }
 
   /**
