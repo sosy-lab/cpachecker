@@ -66,7 +66,7 @@ public final class DominanceUtils {
   public static Dominance.DomTree<CFANode> createFunctionPostDomTree(FunctionEntryNode pEntryNode) {
 
     return Dominance.createDomTree(
-        pEntryNode,
+        pEntryNode.getExitNode(),
         node -> createPredecessorIterable(node, ImmutableSet.of()),
         node -> createSuccessorIterable(node, ImmutableSet.of()));
   }
