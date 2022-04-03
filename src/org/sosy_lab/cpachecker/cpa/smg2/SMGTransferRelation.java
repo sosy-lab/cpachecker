@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.smg2;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
@@ -17,6 +18,7 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -28,17 +30,24 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -52,13 +61,18 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAValueExpressionEvaluator;
+import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
@@ -69,7 +83,6 @@ public class SMGTransferRelation
 
   private final SMGOptions options;
 
-  @SuppressWarnings("unused")
   private final MachineModel machineModel;
 
   @SuppressWarnings("unused")
@@ -308,7 +321,8 @@ public class SMGTransferRelation
 
   /**
    * This method expects that there is a variable (global or otherwise) existing under the name
-   * entered with the corect size allocated. This also expects that the type is correct.
+   * entered with the corect size allocated. This also expects that the type is correct. This method
+   * will write globals to 0 and handle futher initialization of variables if necessary.
    *
    * @param pState current {@link SMGState}.
    * @param pVarName name of the variable to be initialized. This var should be present on the
@@ -319,7 +333,6 @@ public class SMGTransferRelation
    * @return a list of states with the variable initialized.
    * @throws CPATransferException if something goes wrong
    */
-  @SuppressWarnings("unused")
   private List<SMGState> handleInitializerForDeclaration(
       SMGState pState,
       String pVarName,
@@ -338,20 +351,22 @@ public class SMGTransferRelation
           currentState = currentState.setExternallyAllocatedFlag(pVarName);
         }
       } else {
-        // Global variables without initializer are nullified in C
+        // Global variables (but not extern) without initializer are nullified in C
         currentState = currentState.writeToStackOrGlobalVariableToZero(pVarName);
       }
     }
 
     if (newInitializer != null) {
-      // return handleInitializer(currentState, pVarDecl, pEdge, pVarName, BigInteger.ZERO, cType,
-      // newInitializer);
+      return handleInitializer(
+          currentState, pVarDecl, pEdge, pVarName, BigInteger.ZERO, cType, newInitializer);
     }
 
     return ImmutableList.of(currentState);
   }
 
   /*
+   * Handles initializing of just declared variables. I.e. int bla = 5; This expects global vars to be already written to 0.
+   */
   private List<SMGState> handleInitializer(
       SMGState pNewState,
       CVariableDeclaration pVarDecl,
@@ -424,6 +439,9 @@ public class SMGTransferRelation
     }
   }
 
+  /*
+   * Handles castings when initializing variables. I.e. = (char) 55;
+   */
   private List<SMGState> handleCastInitializer(
       SMGState pNewState,
       CVariableDeclaration pVarDecl,
@@ -460,6 +478,9 @@ public class SMGTransferRelation
     }
   }
 
+  /*
+   * Handles and inits, to the variable given, the given CInitializerList initializers. In this case composite types like structs and unions.
+   */
   private List<SMGState> handleInitializerList(
       SMGState pState,
       CVariableDeclaration pVarDecl,
@@ -478,22 +499,21 @@ public class SMGTransferRelation
 
     ImmutableList.Builder<SMGState> finalStates = ImmutableList.builder();
     SMGState currentState = pState;
-    for (CInitializer initializer : pNewInitializer.getInitializers()) {
     // Just to be sure, should never trigger
-      Preconditions.checkArgument(listCounter < memberTypes.size());
-
+    Preconditions.checkArgument(pNewInitializer.getInitializers().size() == memberTypes.size());
+    for (CInitializer initializer : pNewInitializer.getInitializers()) {
+      // TODO: this has to be checked with a test!!!!
       if (initializer instanceof CDesignatedInitializer) {
-        long offset = offsetAndPosition.get(memberTypes.get(listCounter));
         initializer = ((CDesignatedInitializer) initializer).getRightHandSide();
       }
 
       CType memberType = memberTypes.get(listCounter).getType();
-
-      long offset = getOffsetWithPadding(offsetAndState.getSecond(), memberType);
+      // The offset is the base offset given + the current offset
+      BigInteger offset = pOffset.add(offsetAndPosition.get(memberTypes.get(listCounter)));
 
       List<SMGState> newStates =
           handleInitializer(
-              newState, pVarDecl, pEdge, pNewObject, offset, memberType, initializer);
+              currentState, pVarDecl, pEdge, variableName, offset, memberType, initializer);
 
       currentState = newStates.get(newStates.size());
       finalStates.addAll(newStates);
@@ -502,7 +522,142 @@ public class SMGTransferRelation
 
     return finalStates.build();
   }
-  */
+
+  /*
+   * Handles and inits, to the variable given, the given CInitializerList initializers. In this case arrays.
+   */
+  private List<SMGState> handleInitializerList(
+      SMGState pState,
+      CVariableDeclaration pVarDecl,
+      CFAEdge pEdge,
+      String variableName,
+      BigInteger pOffset,
+      CArrayType pLValueType,
+      CInitializerList pNewInitializer)
+      throws CPATransferException {
+
+    SMGCPAValueExpressionEvaluator evaluator =
+        new SMGCPAValueExpressionEvaluator(machineModel, logger);
+    CType memberType = SMGCPAValueExpressionEvaluator.getCanonicalType(pLValueType.getType());
+    BigInteger memberTypeSize = evaluator.getBitSizeof(pState, memberType);
+
+    ImmutableList.Builder<SMGState> finalStates = ImmutableList.builder();
+    SMGState currentState = pState;
+
+    Preconditions.checkArgument(pNewInitializer.getInitializers() == pLValueType.getLength());
+    for (CInitializer initializer : pNewInitializer.getInitializers()) {
+      // TODO: this has to be checked with a test!!!!
+      if (initializer instanceof CDesignatedInitializer) {
+        initializer = ((CDesignatedInitializer) initializer).getRightHandSide();
+      }
+
+      // The offset is the base offset given + the current offset
+      BigInteger offset = pOffset.add(memberTypeSize);
+
+      List<SMGState> newStates =
+          handleInitializer(
+              currentState, pVarDecl, pEdge, variableName, offset, memberType, initializer);
+
+      currentState = newStates.get(newStates.size());
+      finalStates.addAll(newStates);
+    }
+
+    return finalStates.build();
+  }
+
+  /*
+   * Handle string literal expression initializer:
+   * if a string initializer is used with a pointer:
+   * - create a new memory for string expression (temporary array)
+   * - call #handleInitializer for new region and string expression
+   * - create pointer for new region and initialize pointer with it
+   * else
+   *  - create char array from string and call list init for given memory
+   */
+  private List<SMGState> handleStringInitializer(
+      SMGState pState,
+      CVariableDeclaration pVarDecl,
+      CFAEdge pEdge,
+      String variableName,
+      BigInteger pOffset,
+      CType pCurrentExpressionType,
+      FileLocation pFileLocation,
+      CStringLiteralExpression pExpression)
+      throws CPATransferException {
+
+    // If this is a pointer (i.e. char * name = "iAmAString";) we actually have not yet initialized
+    // the memory for the String, just the pointer. So we need to create new memory for the String,
+    // write the String into it, make a pointer to the beginning and save that in the char *.
+    if (pCurrentExpressionType instanceof CPointerType) {
+      SMGCPAValueExpressionEvaluator evaluator =
+          new SMGCPAValueExpressionEvaluator(machineModel, logger);
+      // create a new memory region for the string (right hand side)
+      CType stringArrayType = pExpression.transformTypeToArrayType();
+      String stringVarName = "_" + pExpression.getContentString() + "_STRING_LITERAL";
+      // If the var exists we change the name and create a new one
+      // (Don't reuse an old variable! They might be different than the new one!)
+      int num = 0;
+      while (pState.isGlobalVariablePresent(stringVarName + num)) {
+        num++;
+      }
+      stringVarName += num;
+
+      BigInteger sizeOfString = evaluator.getBitSizeof(pState, stringArrayType);
+      SMGState currentState = pState.copyAndAddGlobalVariable(sizeOfString, stringVarName);
+      List<SMGState> initedStates =
+          transformStringToArrayAndInitialize(
+              currentState,
+              pVarDecl,
+              pEdge,
+              stringVarName,
+              BigInteger.ZERO,
+              pFileLocation,
+              pExpression);
+
+      ImmutableList.Builder<SMGState> stateBuilder = ImmutableList.builder();
+      for (SMGState initedState : initedStates) {
+        // Now create a pointer to the String memory and save that in the original variable
+        ValueAndSMGState addressAndState =
+            evaluator.createAddressForLocalOrGlobalVariable(stringVarName, initedState, pEdge);
+        SMGState addressState = addressAndState.getState();
+        stateBuilder.add(
+            addressState.writeToStackOrGlobalVariable(
+                variableName,
+                pOffset,
+                evaluator.getBitSizeof(addressState, pCurrentExpressionType),
+                addressAndState.getValue()));
+      }
+      return stateBuilder.build();
+    }
+
+    return transformStringToArrayAndInitialize(
+        pState, pVarDecl, pEdge, variableName, pOffset, pFileLocation, pExpression);
+  }
+
+  private List<SMGState> transformStringToArrayAndInitialize(
+      SMGState pState,
+      CVariableDeclaration pVarDecl,
+      CFAEdge pEdge,
+      String variableName,
+      BigInteger pOffset,
+      FileLocation pFileLocation,
+      CStringLiteralExpression pExpression)
+      throws CPATransferException {
+    // Create a char array from string and call list init
+    ImmutableList.Builder<CInitializer> charArrayInitialziersBuilder = ImmutableList.builder();
+    CArrayType arrayType = pExpression.transformTypeToArrayType();
+    for (CCharLiteralExpression charLiteralExp : pExpression.expandStringLiteral(arrayType)) {
+      charArrayInitialziersBuilder.add(new CInitializerExpression(pFileLocation, charLiteralExp));
+    }
+    return handleInitializerList(
+        pState,
+        pVarDecl,
+        pEdge,
+        variableName,
+        pOffset,
+        arrayType,
+        new CInitializerList(pFileLocation, charArrayInitialziersBuilder.build()));
+  }
 
   /**
    * (non-Javadoc)
@@ -521,6 +676,37 @@ public class SMGTransferRelation
       throws CPATransferException, InterruptedException {
 
     return null;
+  }
+
+  /*
+   * Writes valueToWrite (Some CExpression that does not lead to multiple values) into the
+   * variable with the name given at the offset given. The type given is used for the size.
+   */
+  private List<SMGState> writeCExpressionToLocalOrGlobalVariable(
+      SMGState pState,
+      CFAEdge cfaEdge,
+      String variableName,
+      BigInteger pOffsetInBits,
+      CType pLFieldType,
+      CRightHandSide exprToWrite)
+      throws CPATransferException {
+    // This can't handle types leading to multiple values!
+    Preconditions.checkArgument(!(exprToWrite instanceof CStringLiteralExpression));
+
+    SMGCPAValueExpressionEvaluator evaluator =
+        new SMGCPAValueExpressionEvaluator(machineModel, logger);
+    BigInteger sizeOfType = evaluator.getBitSizeof(pState, pLFieldType);
+    SMGCPAValueVisitor valueVisitor = new SMGCPAValueVisitor(evaluator, pState, cfaEdge, logger);
+    ImmutableList.Builder<SMGState> resultStatesBuilder = ImmutableList.builder();
+    for (ValueAndSMGState valueAndState : exprToWrite.accept(valueVisitor)) {
+      Value valueToAssign = valueAndState.getValue();
+      SMGState currentState = valueAndState.getState();
+
+      resultStatesBuilder.add(
+          currentState.writeToStackOrGlobalVariable(
+              variableName, pOffsetInBits, sizeOfType, valueToAssign));
+    }
+    return resultStatesBuilder.build();
   }
 
   /*
