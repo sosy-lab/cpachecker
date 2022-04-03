@@ -402,7 +402,8 @@ public class SMGTransferRelation
             pInitializer.getFileLocation(),
             (CCastExpression) expression);
       } else {
-        return writeCExpressionToLocalOrGlobalVariable(pNewState, pEdge, variableName, pOffset, pLValueType, expression);
+        return writeCExpressionToLocalOrGlobalVariable(
+            pNewState, pEdge, variableName, pOffset, pLValueType, expression);
       }
     } else if (pInitializer instanceof CInitializerList) {
       CInitializerList pNewInitializer = ((CInitializerList) pInitializer);
@@ -474,7 +475,8 @@ public class SMGTransferRelation
           pFileLocation,
           (CCastExpression) expression);
     } else {
-      return writeCExpressionToLocalOrGlobalVariable(pNewState, pEdge, variableName, pOffset, pLValueType, expression);
+      return writeCExpressionToLocalOrGlobalVariable(
+          pNewState, pEdge, variableName, pOffset, pLValueType, expression);
     }
   }
 
@@ -495,7 +497,8 @@ public class SMGTransferRelation
 
     List<CCompositeType.CCompositeTypeMemberDeclaration> memberTypes = pLValueType.getMembers();
     // Member -> offset map
-    Map<CCompositeType.CCompositeTypeMemberDeclaration, BigInteger> offsetAndPosition = machineModel.getAllFieldOffsetsInBits(pLValueType);
+    Map<CCompositeType.CCompositeTypeMemberDeclaration, BigInteger> offsetAndPosition =
+        machineModel.getAllFieldOffsetsInBits(pLValueType);
 
     ImmutableList.Builder<SMGState> finalStates = ImmutableList.builder();
     SMGState currentState = pState;
@@ -544,7 +547,8 @@ public class SMGTransferRelation
     ImmutableList.Builder<SMGState> finalStates = ImmutableList.builder();
     SMGState currentState = pState;
 
-    Preconditions.checkArgument(pNewInitializer.getInitializers() == pLValueType.getLength());
+    Preconditions.checkArgument(
+        pNewInitializer.getInitializers().size() == pLValueType.getLength());
     for (CInitializer initializer : pNewInitializer.getInitializers()) {
       // TODO: this has to be checked with a test!!!!
       if (initializer instanceof CDesignatedInitializer) {

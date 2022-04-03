@@ -509,10 +509,7 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
    * @return A new {@link SMGState} with the error info.
    */
   public SMGState withWriteToUnknownVariable(String variableName) {
-    String errorMSG =
-        "Failed write to variable "
-            + variableName
-            + ".";
+    String errorMSG = "Failed write to variable " + variableName + ".";
     SMGErrorInfo newErrorInfo =
         errorInfo
             .withProperty(Property.INVALID_WRITE)
