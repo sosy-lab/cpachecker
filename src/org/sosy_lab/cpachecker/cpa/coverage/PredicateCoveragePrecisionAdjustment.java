@@ -15,15 +15,14 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class PredicateCoveragePrecisionAdjustment implements PrecisionAdjustment {
 
-  private final PredicateCPA predicateCpa;
+  private final PrecisionAdjustment precisionAdjustment;
 
-  public PredicateCoveragePrecisionAdjustment(PredicateCPA pPredicateCPA) {
-    predicateCpa = pPredicateCPA;
+  public PredicateCoveragePrecisionAdjustment(PrecisionAdjustment pPrecisionAdjustment) {
+    precisionAdjustment = pPrecisionAdjustment;
   }
 
   @Override
@@ -34,8 +33,6 @@ public class PredicateCoveragePrecisionAdjustment implements PrecisionAdjustment
       Function<AbstractState, AbstractState> stateProjection,
       AbstractState fullState)
       throws CPAException, InterruptedException {
-    return predicateCpa
-        .getPrecisionAdjustment()
-        .prec(state, precision, states, stateProjection, fullState);
+    return precisionAdjustment.prec(state, precision, states, stateProjection, fullState);
   }
 }

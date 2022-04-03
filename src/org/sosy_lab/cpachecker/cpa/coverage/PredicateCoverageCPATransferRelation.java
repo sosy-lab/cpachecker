@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.coverage;
 
-
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableCollection;
 import java.time.Duration;

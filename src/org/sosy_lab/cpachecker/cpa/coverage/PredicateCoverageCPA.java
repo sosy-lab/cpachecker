@@ -23,7 +23,6 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
@@ -50,12 +49,6 @@ public class PredicateCoverageCPA extends AbstractSingleWrapperCPA {
       CFA pCFA)
       throws InvalidConfigurationException, UnrecognizedCodeException, InterruptedException {
     super(pCpa);
-    if (!(pCpa instanceof PredicateCPA)) {
-      throw new InvalidConfigurationException(
-          "PredicateCoverageCPA is a wrapper CPA that requires the contained CPA to be an "
-              + "instance of PredicateCPA, but configured was a "
-              + pCpa.getClass().getSimpleName());
-    }
 
     timeStampsPerCoverage = new HashMap<>();
     Solver solver = Solver.create(config, pLogger, pShutdownNotifier);
@@ -88,7 +81,6 @@ public class PredicateCoverageCPA extends AbstractSingleWrapperCPA {
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    PredicateCPA predicateCpa = (PredicateCPA) getWrappedCpa();
-    return new PredicateCoveragePrecisionAdjustment(predicateCpa);
+    return new PredicateCoveragePrecisionAdjustment(getWrappedCpa().getPrecisionAdjustment());
   }
 }
