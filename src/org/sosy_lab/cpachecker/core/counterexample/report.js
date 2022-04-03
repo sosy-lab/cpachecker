@@ -1265,7 +1265,7 @@ let argTabDisabled = false;
             node.attr(
               "style",
               `fill: ${hexGradient}; stroke: ${
-                (hexGradient & 0xfefefe) >> 1 //eslint-disable-line no-bitwise
+                (hexGradient & 0xfefefe) >> 1 // eslint-disable-line no-bitwise
               }; comment: ${hexGradient};`
             );
           });
