@@ -170,18 +170,40 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   }
 
   /**
-   * Copy SMGState with a newly created object and put it into the global namespace
+   * Copy SMGState with a newly created object and put it into the global namespace. This replaces
+   * an existing old global variable!
    *
-   * <p>Keeps consistency: yes
-   *
-   * @param pTypeSize Size of the type of the new global variable
-   * @param pVarName Name of the global variable
-   * @return Newly created object
+   * @param pTypeSize Size of the type of the new global variable.
+   * @param pVarName Name of the global variable.
+   * @return Newly created object.
    */
   public SMGState copyAndAddGlobalVariable(int pTypeSize, String pVarName) {
-    SMGObject newObject = SMGObject.of(0, BigInteger.valueOf(pTypeSize), BigInteger.ZERO);
+    // TODO: do we really need this for ints?
+    return copyAndAddGlobalVariable(BigInteger.valueOf(pTypeSize), pVarName);
+  }
+
+  /**
+   * Copy SMGState with a newly created object and put it into the global namespace. This replaces
+   * an existing old global variable!
+   *
+   * @param pTypeSize Size of the type of the new global variable.
+   * @param pVarName Name of the global variable.
+   * @return Newly created object.
+   */
+  public SMGState copyAndAddGlobalVariable(BigInteger pTypeSize, String pVarName) {
+    SMGObject newObject = SMGObject.of(0, pTypeSize, BigInteger.ZERO);
     return of(
         machineModel, memoryModel.copyAndAddGlobalObject(newObject, pVarName), logger, options);
+  }
+
+  /**
+   * Checks if a global variable exists for the name given.
+   *
+   * @param pVarName Name of the global variable.
+   * @return true if the var exists, false else.
+   */
+  public boolean isGlobalVariablePresent(String pVarName) {
+    return memoryModel.getGlobalVariableToSmgObjectMap().containsKey(pVarName);
   }
 
   /**
