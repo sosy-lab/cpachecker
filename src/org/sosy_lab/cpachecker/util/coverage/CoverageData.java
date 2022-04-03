@@ -41,7 +41,13 @@ public final class CoverageData {
   public CoverageData(
       Map<Long, Double> pTimeStampsPerCoverage, Map<Long, Double> pTimeStampsPerPredicateCoverage) {
     timeStampsPerCoverage = pTimeStampsPerCoverage;
+    if (timeStampsPerCoverage.isEmpty()) {
+      timeStampsPerCoverage.put(0L, 0.0);
+    }
     timeStampsPerPredicateCoverage = pTimeStampsPerPredicateCoverage;
+    if (timeStampsPerPredicateCoverage.isEmpty()) {
+      timeStampsPerCoverage.put(0L, 0.0);
+    }
   }
 
   public static boolean coversLine(CFAEdge pEdge) {
@@ -152,6 +158,9 @@ public final class CoverageData {
   }
 
   public double getPredicateCoverage() {
+    if (timeStampsPerPredicateCoverage.values().isEmpty()) {
+      return 0.0;
+    }
     return Collections.max(timeStampsPerPredicateCoverage.values());
   }
 
