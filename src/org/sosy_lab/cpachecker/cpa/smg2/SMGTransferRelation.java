@@ -547,8 +547,6 @@ public class SMGTransferRelation
     ImmutableList.Builder<SMGState> finalStates = ImmutableList.builder();
     SMGState currentState = pState;
 
-    Preconditions.checkArgument(
-        pNewInitializer.getInitializers().size() == pLValueType.getLength());
     for (CInitializer initializer : pNewInitializer.getInitializers()) {
       // TODO: this has to be checked with a test!!!!
       if (initializer instanceof CDesignatedInitializer) {
