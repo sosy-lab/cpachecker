@@ -8,8 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.coverage;
 
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
+import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableCollection;
 import java.time.Duration;
 import java.time.Instant;
@@ -109,7 +109,7 @@ public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperT
   private void addPredicatesToSet(
       Set<BooleanFormula> allPredicates, ImmutableCollection<AbstractionPredicate> predicates) {
     allPredicates.addAll(
-        transformedImmutableListCopy(
+        Collections2.transform(
             predicates, pAbstractionPredicate -> pAbstractionPredicate.getSymbolicAtom()));
   }
 
