@@ -130,7 +130,7 @@ public class CoverageUtility {
 
   public static CoverageData getCoverageDataFromReachedSet(UnmodifiableReachedSet pReached) {
     CoverageData coverageData = new CoverageData();
-    if (pReached instanceof ReachedSet) {
+    if (pReached instanceof PartitionedReachedSet) {
       ConfigurableProgramAnalysis cpa = ((PartitionedReachedSet) pReached).getCPA();
       coverageData = CoverageUtility.extractTimeDependentCoverageData(cpa);
     }

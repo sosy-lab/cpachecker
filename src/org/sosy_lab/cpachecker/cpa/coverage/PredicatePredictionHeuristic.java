@@ -36,6 +36,8 @@ public class PredicatePredictionHeuristic {
             converter.makePredicate(
                 assumeExpression, cfaEdge, function, SSAMap.emptySSAMap().builder());
         allPredicates.add(predicate);
+        // TODO: Enhance heuristic by adding further potential predicate candidates
+        //  and rule predicates out which are already contained in a negated form
       }
     }
     return allPredicates;

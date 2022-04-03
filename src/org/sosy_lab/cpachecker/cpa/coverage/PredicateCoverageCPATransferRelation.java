@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.coverage;
 
 import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableList;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
@@ -78,12 +79,14 @@ public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperT
     if (!(precision instanceof PredicatePrecision) || predictedPredicates.isEmpty()) {
       return 0.0;
     }
-    Set<BooleanFormula> allPredicates = new HashSet<>();
+    Set<BooleanFormula> programPredicates = new HashSet<>();
     PredicatePrecision predicatePrecision = (PredicatePrecision) precision;
-    addPredicatesToSet(allPredicates, predicatePrecision.getFunctionPredicates().values());
-    addPredicatesToSet(allPredicates, predicatePrecision.getLocalPredicates().values());
-    addPredicatesToSet(allPredicates, predicatePrecision.getGlobalPredicates());
+    addPredicatesToSet(programPredicates, predicatePrecision.getFunctionPredicates().values());
+    addPredicatesToSet(programPredicates, predicatePrecision.getLocalPredicates().values());
+    addPredicatesToSet(programPredicates, predicatePrecision.getGlobalPredicates());
 
+    // TODO: replace second argument in intersectPredicateSets with programPredicates
+    //  (currently there is a bug when you do so)
     Set<BooleanFormula> predicateIntersection =
         intersectPredicateSets(predictedPredicates, predictedPredicates);
 
@@ -108,7 +111,7 @@ public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperT
     allPredicates.addAll(
         predicates.stream()
             .map(pAbstractionPredicate -> pAbstractionPredicate.getSymbolicAtom())
-            .collect(Collectors.toSet()));
+            .collect(ImmutableList.toImmutableList()));
   }
 
   @Override
