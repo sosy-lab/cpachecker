@@ -220,6 +220,49 @@ public class SMGCPAValueExpressionEvaluator {
     return ValueAndSMGState.of(addressValue, newState);
   }
 
+  /**
+   * This creates or finds and returns the address Value for the given local or global variable.
+   * This also creates the pointers in the SMG if not yet created. This is mainly used for the &
+   * operator.
+   *
+   * @param variableName the variable name. The variable should exists, else an exception is thrown.
+   * @param pState current {@link SMGState}
+   * @param cfaEdge debug/logging edge.
+   * @return either unknown or a {@link Value} representing the address.
+   * @throws CPATransferException if the & operator is used on a invalid expression.
+   */
+  public ValueAndSMGState createAddressForLocalOrGlobalVariable(
+      String variableName, SMGState pState, CFAEdge cfaEdge) throws CPATransferException {
+    // Get the variable SMGObject
+    Optional<SMGObjectAndOffset> maybeObjectAndOffset =
+        getTargetObjectAndOffset(pState, variableName, BigInteger.ZERO);
+    if (maybeObjectAndOffset.isEmpty()) {
+      // TODO: improve error handling and add more specific exceptions to the visitor!
+      // No address could be found
+      throw new SMG2Exception("No address could be created for the variable: " + variableName);
+    }
+    SMGObjectAndOffset targetAndOffset = maybeObjectAndOffset.orElseThrow();
+    SMGObject target = targetAndOffset.getSMGObject();
+    BigInteger offset = targetAndOffset.getOffsetForObject();
+    // search for existing pointer first and return if found
+    Optional<SMGValue> maybeAddressValue =
+        pState.getMemoryModel().getAddressValueForPointsToTarget(target, offset);
+
+    if (maybeAddressValue.isPresent()) {
+      Optional<Value> valueForSMGValue =
+          pState.getMemoryModel().getValueFromSMGValue(maybeAddressValue.orElseThrow());
+      // Reuse pointer; there should never be a SMGValue without counterpart!
+      // TODO: this might actually be expensive, check once this runs!
+      return ValueAndSMGState.of(valueForSMGValue.orElseThrow(), pState);
+    }
+
+    // If none is found, we need a new Value -> SMGValue mapping for the address + a new
+    // PointsToEdge with the correct offset
+    Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
+    SMGState newState = pState.createAndAddPointer(addressValue, target, offset);
+    return ValueAndSMGState.of(addressValue, newState);
+  }
+
   public SMGState addValueToState(SMGState pState, Value value) {
     return pState.copyAndAddValue(value).getSMGState();
   }
