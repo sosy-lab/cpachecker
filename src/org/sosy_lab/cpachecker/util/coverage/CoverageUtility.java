@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.coverage;
 
+import com.google.common.collect.ImmutableList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -17,7 +18,15 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
+import org.sosy_lab.cpachecker.cpa.coverage.CoverageCPA;
+import org.sosy_lab.cpachecker.cpa.coverage.PredicateCoverageCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
@@ -92,5 +101,39 @@ public class CoverageUtility {
       }
       nodes.addAll(newConsideredNodes);
     } while (hasChanged);
+  }
+
+  public static CoverageData extractTimeDependentCoverageData(ConfigurableProgramAnalysis cpa) {
+    Map<Long, Double> timeStampsPerCoverage = new HashMap<>();
+    Map<Long, Double> timeStampsPerPredicateCoverage = new HashMap<>();
+
+    if (cpa instanceof ARGCPA) {
+      ImmutableList<ConfigurableProgramAnalysis> cpas = ((ARGCPA) cpa).getWrappedCPAs();
+      for (var compositeCPA : cpas) {
+        if (compositeCPA instanceof CompositeCPA) {
+          ImmutableList<ConfigurableProgramAnalysis> wrappedCPAs =
+              ((CompositeCPA) compositeCPA).getWrappedCPAs();
+          for (var wrappedCPA : wrappedCPAs) {
+            if (wrappedCPA instanceof CoverageCPA) {
+              timeStampsPerCoverage = ((CoverageCPA) wrappedCPA).getTimeStampsPerCoverageMap();
+            }
+            if (wrappedCPA instanceof PredicateCoverageCPA) {
+              timeStampsPerPredicateCoverage =
+                  ((PredicateCoverageCPA) wrappedCPA).getTimeStampsPerPredicateCoverage();
+            }
+          }
+        }
+      }
+    }
+    return new CoverageData(timeStampsPerCoverage, timeStampsPerPredicateCoverage);
+  }
+
+  public static CoverageData getCoverageDataFromReachedSet(UnmodifiableReachedSet pReached) {
+    CoverageData coverageData = new CoverageData();
+    if (pReached instanceof ReachedSet) {
+      ConfigurableProgramAnalysis cpa = ((PartitionedReachedSet) pReached).getCPA();
+      coverageData = CoverageUtility.extractTimeDependentCoverageData(cpa);
+    }
+    return coverageData;
   }
 }

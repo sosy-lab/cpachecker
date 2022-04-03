@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.coverage;
 
+import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -43,8 +44,8 @@ public class CoverageCPA implements ConfigurableProgramAnalysis {
     transfer = new CoverageTransferRelation(cov);
   }
 
-  public CoverageData getCoverageData() {
-    return cov;
+  public Map<Long, Double> getTimeStampsPerCoverageMap() {
+    return cov.getTimeStampsPerCoverageMap();
   }
 
   @Override

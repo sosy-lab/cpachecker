@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.coverage;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -28,14 +29,19 @@ public final class CoverageData {
 
   private final Map<String, FileCoverageInformation> infosPerFile = new LinkedHashMap<>();
   private final Map<Long, Double> timeStampsPerCoverage;
+  private final Map<Long, Double> timeStampsPerPredicateCoverage;
 
   public CoverageData() {
-    this.timeStampsPerCoverage = new LinkedHashMap<>();
-    this.timeStampsPerCoverage.put(0L, 0.0);
+    timeStampsPerCoverage = new LinkedHashMap<>();
+    timeStampsPerPredicateCoverage = new LinkedHashMap<>();
+    timeStampsPerCoverage.put(0L, 0.0);
+    timeStampsPerPredicateCoverage.put(0L, 0.0);
   }
 
-  public CoverageData(Map<Long, Double> pTimeStampsPerCoverage) {
-    this.timeStampsPerCoverage = pTimeStampsPerCoverage;
+  public CoverageData(
+      Map<Long, Double> pTimeStampsPerCoverage, Map<Long, Double> pTimeStampsPerPredicateCoverage) {
+    timeStampsPerCoverage = pTimeStampsPerCoverage;
+    timeStampsPerPredicateCoverage = pTimeStampsPerPredicateCoverage;
   }
 
   public static boolean coversLine(CFAEdge pEdge) {
@@ -139,6 +145,14 @@ public final class CoverageData {
 
   public Map<Long, Double> getTimeStampsPerCoverageMap() {
     return timeStampsPerCoverage;
+  }
+
+  public Map<Long, Double> getTimeStampsPerPredicateCoverage() {
+    return timeStampsPerPredicateCoverage;
+  }
+
+  public double getPredicateCoverage() {
+    return Collections.max(timeStampsPerPredicateCoverage.values());
   }
 
   public void addVisitedEdge(final CFAEdge pEdge) {

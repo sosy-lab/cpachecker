@@ -12,7 +12,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -21,18 +23,23 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
+import org.sosy_lab.cpachecker.cpa.bam.AbstractBAMCPA;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /** Class responsible for extracting coverage information. */
 public abstract class CoverageCollector {
 
-  public static CoverageData fromReachedSet(Iterable<AbstractState> pReached, CFA cfa) {
-    return new ReachedSetCoverageCollector().collectFromReachedSet(pReached, cfa);
+  public static CoverageData fromReachedSet(
+      UnmodifiableReachedSet pReached, CFA cfa, ConfigurableProgramAnalysis cpa) {
+    return new ReachedSetCoverageCollector().collectFromReachedSet(pReached, cfa, cpa);
   }
 
   public static CoverageData fromCounterexample(ARGPath pPath) {
@@ -87,8 +94,17 @@ class CounterexampleCoverageCollector {
 
 class ReachedSetCoverageCollector {
 
-  CoverageData collectFromReachedSet(Iterable<AbstractState> reached, CFA cfa) {
-    CoverageData cov = new CoverageData();
+  CoverageData collectFromReachedSet(
+      UnmodifiableReachedSet reachedSet, CFA cfa, ConfigurableProgramAnalysis cpa) {
+    FluentIterable<AbstractState> reached = FluentIterable.from(reachedSet);
+    // hack to get all reached states for BAM
+    if (cpa instanceof AbstractBAMCPA) {
+      Collection<ReachedSet> otherReachedSets =
+          ((AbstractBAMCPA) cpa).getData().getCache().getAllCachedReachedStates();
+      reached = reached.append(FluentIterable.concat(otherReachedSets));
+    }
+
+    CoverageData cov = CoverageUtility.getCoverageDataFromReachedSet(reachedSet);
     cov.putCFA(cfa);
 
     // Add information about visited functions

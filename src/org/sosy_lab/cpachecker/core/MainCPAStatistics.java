@@ -15,7 +15,6 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
@@ -59,9 +58,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.bam.AbstractBAMCPA;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.coverage.CoverageCollector;
 import org.sosy_lab.cpachecker.util.coverage.CoverageData;
@@ -317,16 +314,7 @@ class MainCPAStatistics implements Statistics {
 
   private void exportCoverage(PrintStream out, UnmodifiableReachedSet reached) {
     if (exportCoverage && cfa != null && reached.size() > 1) {
-      FluentIterable<AbstractState> reachedStates = FluentIterable.from(reached);
-
-      // hack to get all reached states for BAM
-      if (cpa instanceof AbstractBAMCPA) {
-        Collection<ReachedSet> otherReachedSets =
-            ((AbstractBAMCPA) cpa).getData().getCache().getAllCachedReachedStates();
-        reachedStates = reachedStates.append(FluentIterable.concat(otherReachedSets));
-      }
-
-      CoverageData infosPerFile = CoverageCollector.fromReachedSet(reachedStates, cfa);
+      CoverageData infosPerFile = CoverageCollector.fromReachedSet(reached, cfa, cpa);
 
       out.println();
       out.println("Code Coverage");
