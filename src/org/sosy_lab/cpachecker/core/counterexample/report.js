@@ -45,7 +45,13 @@ if (isDevEnv) {
   window.cfaJson = data.cfaJson;
 }
 
-const { argJson, sourceFiles, cfaJson, timeStampsPerCoverageJson } = window;
+const {
+  argJson,
+  sourceFiles,
+  cfaJson,
+  timeStampsPerCoverageJson,
+  timeStampsPerPredicateCoverageJson,
+} = window;
 
 // CFA graph variable declarations
 const functions = cfaJson.functionNames;
@@ -143,6 +149,7 @@ let argTabDisabled = false;
         const width = windowWidth - margin.left - margin.right;
         const height = windowHeight - margin.top - margin.bottom;
         let data = [];
+        let data2 = [];
         let maxTime = 0;
         let timeDimension = "ms";
 
@@ -154,14 +161,32 @@ let argTabDisabled = false;
           }
         });
 
+        if (timeStampsPerPredicateCoverageJson) {
+          Object.entries(timeStampsPerPredicateCoverageJson).forEach(
+            (value) => {
+              const timeStamp = value[0] / 1000.0;
+              data2.push({ x: timeStamp, y: value[1] * 100 });
+            }
+          );
+        }
+
         if (maxTime > 2000) {
           timeDimension = "s";
           data = [];
+          data2 = [];
           maxTime /= 1000.0;
           Object.entries(timeStampsPerCoverageJson).forEach((value) => {
             const timeStamp = value[0] / 1000000.0;
             data.push({ x: timeStamp, y: value[1] * 100 });
           });
+          if (timeStampsPerPredicateCoverageJson) {
+            Object.entries(timeStampsPerPredicateCoverageJson).forEach(
+              (value) => {
+                const timeStamp = value[0] / 1000000.0;
+                data2.push({ x: timeStamp, y: value[1] * 100 });
+              }
+            );
+          }
         }
 
         // create svg element, respecting margins
@@ -221,6 +246,32 @@ let argTabDisabled = false;
               .x((d) => x(d.x))
               .y((d) => y(d.y))
           );
+
+        if (timeStampsPerPredicateCoverageJson) {
+          // Add the line for second coverage
+          svg
+            .append("path")
+            .datum(data2)
+            .attr("fill", "none")
+            .attr("stroke", "#0547c5")
+            .attr("stroke-width", 1.5)
+            .attr(
+              "d",
+              d3
+                .line()
+                .x((d) => x(d.x))
+                .y((d) => y(d.y))
+            );
+
+          svg
+            .selectAll("whatever")
+            .data(data2)
+            .enter()
+            .append("circle")
+            .attr("cx", (d) => x(d.x))
+            .attr("cy", (d) => y(d.y))
+            .attr("r", 3);
+        }
 
         // Add data points:
         svg

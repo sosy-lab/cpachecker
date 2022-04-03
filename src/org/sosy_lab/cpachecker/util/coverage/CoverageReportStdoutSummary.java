@@ -25,6 +25,8 @@ public class CoverageReportStdoutSummary {
     long numTotalNodes = 0;
     long numConsideredNodes = 0;
 
+    double predicateCoverage = pCoverage.getPredicateCoverage();
+
     for (FileCoverageInformation info : pCoverage.getInfosPerFile().values()) {
       numTotalFunctions += info.allFunctions.size();
       numVisitedFunctions += info.visitedFunctions.entrySet().size();
@@ -66,6 +68,11 @@ public class CoverageReportStdoutSummary {
       StatisticsUtils.write(pStdOut, 1, 25, "Total nodes", numTotalNodes);
       StatisticsUtils.write(
           pStdOut, 1, 25, "Considered coverage", String.format("%.3f", consideredCoverage));
+    }
+
+    if (predicateCoverage > 0.0) {
+      StatisticsUtils.write(
+          pStdOut, 1, 25, "Predicate coverage", String.format("%.3f", predicateCoverage));
     }
   }
 }
