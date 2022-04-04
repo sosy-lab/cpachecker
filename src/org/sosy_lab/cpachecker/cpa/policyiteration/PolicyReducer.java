@@ -223,7 +223,7 @@ class PolicyReducer implements Reducer {
       }
     }
 
-    return newAbstraction.build();
+    return newAbstraction.buildOrThrow();
   }
 
   @Override

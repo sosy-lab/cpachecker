@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.util.faultlocalization.appendables.RankInfo;
 
 public class OverallOccurrenceScoring implements FaultScoring {
 
-  private Map<Fault, Double> faultValue = new HashMap<>();
+  private final Map<Fault, Double> faultValue = new HashMap<>();
 
   @Override
   public RankInfo scoreFault(Fault fault) {

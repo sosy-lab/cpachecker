@@ -462,7 +462,6 @@ public class AutomatonState
     out.writeObject(automaton.getName());
   }
 
-  @SuppressWarnings("UnusedVariable") // parameter is required by API
   private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
     int stateId = in.readInt();

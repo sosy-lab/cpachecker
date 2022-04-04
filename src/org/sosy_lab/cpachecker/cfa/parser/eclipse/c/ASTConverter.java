@@ -225,7 +225,7 @@ class ASTConverter {
             .put("visibility", Optional.empty())
             .put("warning", Optional.empty())
             .put("weak", Optional.empty())
-            .build();
+            .buildOrThrow();
   }
 
   // Calls to this functions are handled by this class and replaced with regular C code.

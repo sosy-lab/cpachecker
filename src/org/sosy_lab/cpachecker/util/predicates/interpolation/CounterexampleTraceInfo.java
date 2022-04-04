@@ -62,6 +62,11 @@ public class CounterexampleTraceInfo {
         ImmutableMap.copyOf(preds));
   }
 
+  public static CounterexampleTraceInfo feasibleNoModel() {
+    return CounterexampleTraceInfo.feasible(
+        ImmutableList.of(), ImmutableList.of(), ImmutableMap.of());
+  }
+
   /**
    * checks whether this trace is a real bug or a spurious counterexample
    *

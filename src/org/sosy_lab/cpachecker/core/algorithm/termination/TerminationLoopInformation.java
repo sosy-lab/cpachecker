@@ -200,7 +200,7 @@ public class TerminationLoopInformation {
     targetNode = Optional.of(new CFALabelNode(functionName, NON_TERMINATION_LABEL));
 
     relevantVariablesInitializationIntermediateLocations = intermediateStates.build();
-    relevantVariables = builder.build();
+    relevantVariables = builder.buildOrThrow();
   }
 
   /** Reset the {@link TerminationLoopInformation}. No loop will be checked for non-termination. */

@@ -239,7 +239,7 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
           ImmutableMap.builderWithExpectedSize(calculatedOffsets.size());
       calculatedOffsets.forEach(
           (key, value) -> memberOffsets.put(key.getName(), value.longValueExact()));
-      multiset = memberOffsets.build();
+      multiset = memberOffsets.buildOrThrow();
       offsets.put(compositeType, multiset);
     }
     return multiset.get(memberName);

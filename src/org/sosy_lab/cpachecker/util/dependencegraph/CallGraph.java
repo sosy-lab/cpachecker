@@ -138,7 +138,7 @@ final class CallGraph<P> {
       immutableNode.successors = immutableSuccessors.get(index).build();
     }
 
-    return new CallGraph<>(immutableNodes, immutableNodeMapBuilder.build());
+    return new CallGraph<>(immutableNodes, immutableNodeMapBuilder.buildOrThrow());
   }
 
   Optional<Node<P>> getNode(P pProcedure) {
