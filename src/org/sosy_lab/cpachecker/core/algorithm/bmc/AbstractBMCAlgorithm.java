@@ -167,7 +167,7 @@ abstract class AbstractBMCAlgorithm
 
   @Option(secure = true, description = "Strategy for generating auxiliary invariants")
   private InvariantGeneratorFactory invariantGenerationStrategy =
-      InvariantGeneratorFactory.REACHED_SET;
+      InvariantGeneratorFactory.DO_NOTHING;
 
   @Option(
       secure = true,
