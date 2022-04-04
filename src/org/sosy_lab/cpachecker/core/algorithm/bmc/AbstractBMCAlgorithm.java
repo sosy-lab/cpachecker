@@ -291,11 +291,6 @@ abstract class AbstractBMCAlgorithm
     } else {
       stepCaseCPA = null;
       stepCaseAlgorithm = null;
-      // do not overwrite the settings of invariant generator if interpolation is enabled
-      if (!interpolation) {
-        invariantGenerationStrategy = InvariantGeneratorFactory.DO_NOTHING;
-        invariantGeneratorHeadStartStrategy = InvariantGeneratorHeadStartFactories.NONE;
-      }
     }
 
     ShutdownManager invariantGeneratorShutdownManager = pShutdownManager;
