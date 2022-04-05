@@ -327,9 +327,7 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       List<BooleanFormula> reachVector, ReachedSet reachedSet, PartitionedFormulas formulas)
       throws InterruptedException, SolverException, CPAException {
     logger.log(Level.FINE, "Checking fixed point");
-    FluentIterable<AbstractState> loopHeadStates =
-        AbstractStates.filterLocations(reachedSet, getLoopHeads());
-    BooleanFormula loopInv = getLoopHeadInvariants(loopHeadStates);
+    BooleanFormula loopInv = getCurrentLoopHeadInvariants(reachedSet);
 
     if (impactLikeCovering) {
       BooleanFormula lastImage = reachVector.get(reachVector.size() - 1);
@@ -412,9 +410,9 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             + " does not support this function. It should not be called.");
   }
 
-  private BooleanFormula getLoopHeadInvariants(Iterable<AbstractState> pLoopHeadStates)
+  private BooleanFormula getCurrentLoopHeadInvariants(ReachedSet reachedSet)
       throws CPATransferException, InterruptedException {
-    Iterable<AbstractState> loopHeadStates = filterInductiveAssertionIteration(pLoopHeadStates);
+    Iterable<AbstractState> loopHeadStates = getLoopHeadStatesAtFirstIteration(reachedSet);
     BooleanFormula loopInv =
         fmgr.uninstantiate(
             assertAt(loopHeadStates, getCurrentLoopHeadInvariants(loopHeadStates), fmgr, true));
@@ -423,10 +421,10 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return loopInv;
   }
 
-  // note: an exact copy from KInductionProver
-  private FluentIterable<AbstractState> filterInductiveAssertionIteration(
-      Iterable<AbstractState> pStates) {
-    return filterIteration(pStates, 1, getLoopHeads());
+  private FluentIterable<AbstractState> getLoopHeadStatesAtFirstIteration(ReachedSet reachedSet) {
+    FluentIterable<AbstractState> loopHeadStates =
+        AbstractStates.filterLocations(reachedSet, getLoopHeads());
+    return filterIteration(loopHeadStates, 1, getLoopHeads());
   }
 
   // note: an exact copy from KInductionProver
