@@ -413,12 +413,8 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private BooleanFormula getCurrentLoopHeadInvariants(ReachedSet reachedSet)
       throws CPATransferException, InterruptedException {
     Iterable<AbstractState> loopHeadStates = getLoopHeadStatesAtFirstIteration(reachedSet);
-    BooleanFormula loopInv =
-        fmgr.uninstantiate(
-            assertAt(loopHeadStates, getCurrentLoopHeadInvariants(loopHeadStates), fmgr, true));
-    // if invariant generation is not running, the returned invariant should always be true
-    assert invariantGenerationRunning || bfmgr.isTrue(loopInv);
-    return loopInv;
+    return fmgr.uninstantiate(
+        assertAt(loopHeadStates, getCurrentLoopHeadInvariants(loopHeadStates), fmgr, true));
   }
 
   private FluentIterable<AbstractState> getLoopHeadStatesAtFirstIteration(ReachedSet reachedSet) {
