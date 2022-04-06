@@ -134,227 +134,7 @@ let argTabDisabled = false;
 
     // Initialize Time Dependent Coverage Chart
     $(document).ready(() => {
-      if (timeStampsPerCoverageJson) {
-        const windowWidth =
-          (window.innerWidth ||
-            document.documentElement.clientWidth ||
-            document.body.clientWidth) * 0.7;
-
-        const windowHeight =
-          (window.innerHeight ||
-            document.documentElement.clientHeight ||
-            document.body.clientHeight) * 0.7;
-        // set the dimensions and margins of the graph
-        const margin = { top: 20, right: 20, bottom: 60, left: 60 };
-        const width = windowWidth - margin.left - margin.right;
-        const height = windowHeight - margin.top - margin.bottom;
-        let data = [];
-        let data2 = [];
-        let maxTime = 0;
-        let timeDimension = "ms";
-
-        Object.entries(timeStampsPerCoverageJson).forEach((value) => {
-          const timeStamp = value[0] / 1000.0;
-          data.push({ x: timeStamp, y: value[1] * 100 });
-          if (timeStamp > maxTime) {
-            maxTime = timeStamp;
-          }
-        });
-
-        if (timeStampsPerPredicateCoverageJson) {
-          Object.entries(timeStampsPerPredicateCoverageJson).forEach(
-            (value) => {
-              const timeStamp = value[0] / 1000.0;
-              data2.push({ x: timeStamp, y: value[1] * 100 });
-            }
-          );
-        }
-
-        if (maxTime > 2000) {
-          timeDimension = "s";
-          data = [];
-          data2 = [];
-          maxTime /= 1000.0;
-          Object.entries(timeStampsPerCoverageJson).forEach((value) => {
-            const timeStamp = value[0] / 1000000.0;
-            data.push({ x: timeStamp, y: value[1] * 100 });
-          });
-          if (timeStampsPerPredicateCoverageJson) {
-            Object.entries(timeStampsPerPredicateCoverageJson).forEach(
-              (value) => {
-                const timeStamp = value[0] / 1000000.0;
-                data2.push({ x: timeStamp, y: value[1] * 100 });
-              }
-            );
-          }
-        }
-
-        // create svg element, respecting margins
-        const svg = d3
-          .select("#time_dependent_coverage_graph")
-          .append("svg")
-          .attr("width", width + margin.left + margin.right)
-          .attr("height", height + margin.top + margin.bottom)
-          .append("g")
-          .attr("transform", `translate(${margin.left},${margin.top})`);
-
-        // Add X axis
-        const x = d3
-          .scaleLinear()
-          .domain([0, maxTime * 1.2]) // This is the min and the max of the data: 0 to 100 if percentages
-          .range([0, width]);
-        svg
-          .append("g")
-          .attr("transform", `translate(0,${height})`)
-          .call(d3.axisBottom(x));
-
-        // Add Y axis
-        const y = d3
-          .scaleLinear()
-          .domain([0, 100]) // This is the min and the max of the data: 0 to 100 if percentages
-          .range([height, 0]);
-        svg.append("g").call(d3.axisLeft(y));
-
-        // Add X axis label:
-        svg
-          .append("text")
-          .attr("text-anchor", "end")
-          .attr("x", width)
-          .attr("y", height + margin.top + 20)
-          .text(`Time in ${timeDimension}`);
-
-        // Y axis label:
-        svg
-          .append("text")
-          .attr("text-anchor", "end")
-          .attr("transform", "rotate(-90)")
-          .attr("y", -margin.left + 20)
-          .attr("x", -margin.top)
-          .text("Coverage in %");
-
-        // Add the line
-        svg
-          .append("path")
-          .datum(data)
-          .attr("fill", "none")
-          .attr("stroke", "#3aec49")
-          .attr("stroke-width", 1.5)
-          .attr(
-            "d",
-            d3
-              .line()
-              .x((d) => x(d.x))
-              .y((d) => y(d.y))
-          );
-
-        if (timeStampsPerPredicateCoverageJson) {
-          // Add the line for second coverage
-          svg
-            .append("path")
-            .datum(data2)
-            .attr("fill", "none")
-            .attr("stroke", "#0547c5")
-            .attr("stroke-width", 1.5)
-            .attr(
-              "d",
-              d3
-                .line()
-                .x((d) => x(d.x))
-                .y((d) => y(d.y))
-            );
-
-          svg
-            .selectAll("whatever")
-            .data(data2)
-            .enter()
-            .append("circle")
-            .attr("cx", (d) => x(d.x))
-            .attr("cy", (d) => y(d.y))
-            .attr("r", 3);
-        }
-
-        // Add data points:
-        svg
-          .selectAll("whatever")
-          .data(data)
-          .enter()
-          .append("circle")
-          .attr("cx", (d) => x(d.x))
-          .attr("cy", (d) => y(d.y))
-          .attr("r", 3);
-
-        // Add tooltip
-        const focus = svg
-          .append("g")
-          .attr("class", "focus")
-          .style("display", "none");
-
-        focus.append("circle").attr("r", 5);
-
-        focus
-          .append("rect")
-          .attr("width", 130)
-          .attr("height", 50)
-          .attr("fill", "#b4b4b4")
-          .attr("stroke", "#000000")
-          .attr("x", -5)
-          .attr("y", 10)
-          .attr("rx", 4)
-          .attr("ry", 4)
-          .attr("opacity", 0.75)
-          .lower();
-
-        focus
-          .append("text")
-          .attr("class", "tooltip-x")
-          .attr("x", 0)
-          .attr("y", 30);
-
-        focus
-          .append("text")
-          .attr("class", "tooltip-y")
-          .attr("x", 0)
-          .attr("y", 50);
-
-        svg
-          .append("rect")
-          .attr("class", "overlay")
-          .attr("width", width)
-          .attr("height", height)
-          .on("mouseover", () => {
-            focus.style("display", null);
-          })
-          .on("mouseout", () => {
-            focus.style("display", "none");
-          })
-          .on("mousemove", () => {
-            const bisectDate = d3.bisector((d) => d.x).left;
-            let errorPathSideBarWidth = 0;
-            if (errorPathFlag) {
-              errorPathSideBarWidth = d3
-                .select("#errorpath_section")
-                .node()
-                .getBoundingClientRect().width;
-            }
-            const x0 = x.invert(
-              d3.event.pageX -
-                margin.left -
-                margin.right / 2 -
-                errorPathSideBarWidth
-            );
-            const i = bisectDate(data, x0, 1);
-            const d0 = data[i - 1];
-            const d1 = data[i];
-            const d = x0 - d0.x > d1.x - x0 ? d1 : d0;
-            focus.attr("transform", `translate(${x(d.x)},${y(d.y)})`);
-            focus
-              .select(".tooltip-x")
-              .text(`Time: ${Math.round(d.x * 100) / 100}${timeDimension}`);
-            focus
-              .select(".tooltip-y")
-              .text(`Coverage: ${Math.round(d.y * 100) / 100}%`);
-          });
-      }
+      renderTDCG(timeStampsPerCoverageJson, "#3cc220");
     });
 
     // Configuration table initialization
@@ -551,6 +331,7 @@ let argTabDisabled = false;
               d3.select("#arg-container").classed("arg-content", false);
             }
           }
+          d3.select("#tdcg-toolbar").style("visibility", "hidden");
           d3.select("#cfa-toolbar").style("visibility", "visible");
           if (!d3.select("#cfa-container").classed("cfa-content")) {
             d3.select("#cfa-container").classed("cfa-content", true);
@@ -565,6 +346,7 @@ let argTabDisabled = false;
               d3.select("#cfa-container").classed("cfa-content", false);
             }
           }
+          d3.select("#tdcg-toolbar").style("visibility", "hidden");
           d3.select("#arg-toolbar").style("visibility", "visible");
           if (!d3.select("#arg-container").classed("arg-content")) {
             d3.select("#arg-container").classed("arg-content", true);
@@ -600,6 +382,7 @@ let argTabDisabled = false;
               d3.select("#cfa-container").classed("cfa-content", false);
             }
           }
+          d3.select("#tdcg-toolbar").style("visibility", "hidden");
           if (d3.select("#arg-toolbar").style("visibility") !== "hidden") {
             d3.select("#arg-toolbar").style("visibility", "hidden");
             d3.selectAll(".arg-graph").style("visibility", "hidden");
@@ -610,6 +393,9 @@ let argTabDisabled = false;
               d3.select("#arg-container").classed("arg-content", false);
             }
           }
+        }
+        if (tabIndex === 8) {
+          d3.select("#tdcg-toolbar").style("visibility", "visible");
         }
         $scope.tab = tabIndex;
       };
@@ -1357,6 +1143,243 @@ let argTabDisabled = false;
       };
     },
   ]);
+
+  app.controller("TDCGToolbarController", [
+    "$rootScope",
+    "$scope",
+    function tdcgToolbarController($rootScope, $scope) {
+      $scope.tdcgSelections = [];
+      if (isNotAlmostEmpty(timeStampsPerCoverageJson)) {
+        $scope.tdcgSelections.push("Visited Coverage over Time");
+      }
+      if (isNotAlmostEmpty(timeStampsPerPredicateCoverageJson)) {
+        $scope.tdcgSelections.push("Predicates over Time");
+      }
+      if (isEmpty($scope.tdcgSelections)) {
+        $scope.tdcgSelections.push("No data available");
+      }
+      $rootScope.displayedTDCG = $scope.tdcgSelections[0];
+
+      $scope.displayTDCG = () => {
+        if (
+          $rootScope.displayedTDCG.indexOf("Visited Coverage over Time") !== -1
+        ) {
+          $scope.renderTDCGForVisitedCoverage();
+        } else if (
+          $rootScope.displayedTDCG.indexOf("Predicates over Time") !== -1
+        ) {
+          $scope.renderTDCGForPredicates();
+        }
+      };
+
+      $scope.renderTDCGForVisitedCoverage =
+        function renderTDCGForVisitedCoverage() {
+          $scope.removeTDCG();
+          $scope.renderTDCG(timeStampsPerCoverageJson, "#3aec49");
+        };
+
+      $scope.renderTDCGForPredicates = function renderTDCGForPredicates() {
+        $scope.removeTDCG();
+        $scope.renderTDCG(timeStampsPerPredicateCoverageJson, "#1a81d5");
+      };
+
+      $scope.removeTDCG = function removeTDCG() {
+        d3.select("#time_dependent_coverage_graph").selectAll("*").remove();
+      };
+
+      $scope.renderTDCG = renderTDCG;
+    },
+  ]);
+
+  function isEmpty(obj) {
+    if (obj) {
+      return Object.keys(obj).length === 0;
+    }
+    return true;
+  }
+
+  function isNotAlmostEmpty(obj) {
+    return !isAlmostEmpty(obj);
+  }
+
+  function isAlmostEmpty(obj) {
+    if (obj) {
+      return Object.keys(obj).length < 2;
+    }
+    return true;
+  }
+
+  function renderTDCG(dataJSON, color) {
+    if (isAlmostEmpty(dataJSON)) {
+      return;
+    }
+    const windowWidth =
+      (window.innerWidth ||
+        document.documentElement.clientWidth ||
+        document.body.clientWidth) * 0.7;
+
+    const windowHeight =
+      (window.innerHeight ||
+        document.documentElement.clientHeight ||
+        document.body.clientHeight) * 0.7;
+    // set the dimensions and margins of the graph
+    const margin = { top: 20, right: 20, bottom: 60, left: 60 };
+    const width = windowWidth - margin.left - margin.right;
+    const height = windowHeight - margin.top - margin.bottom;
+    let data = [];
+    let maxTime = 0;
+    let timeDimension = "ms";
+
+    Object.entries(dataJSON).forEach((value) => {
+      const timeStamp = value[0] / 1000.0;
+      data.push({ x: timeStamp, y: value[1] * 100 });
+      if (timeStamp > maxTime) {
+        maxTime = timeStamp;
+      }
+    });
+
+    if (maxTime > 2000) {
+      timeDimension = "s";
+      data = [];
+      maxTime /= 1000.0;
+      Object.entries(dataJSON).forEach((value) => {
+        const timeStamp = value[0] / 1000000.0;
+        data.push({ x: timeStamp, y: value[1] * 100 });
+      });
+    }
+
+    // create svg element, respecting margins
+    const svg = d3
+      .select("#time_dependent_coverage_graph")
+      .append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+      .append("g")
+      .attr("transform", `translate(${margin.left},${margin.top})`);
+
+    // Add X axis
+    const x = d3
+      .scaleLinear()
+      .domain([0, maxTime * 1.2]) // This is the min and the max of the data: 0 to 100 if percentages
+      .range([0, width]);
+    svg
+      .append("g")
+      .attr("transform", `translate(0,${height})`)
+      .call(d3.axisBottom(x));
+
+    // Add Y axis
+    const y = d3
+      .scaleLinear()
+      .domain([0, 100]) // This is the min and the max of the data: 0 to 100 if percentages
+      .range([height, 0]);
+    svg.append("g").call(d3.axisLeft(y));
+
+    // Add X axis label:
+    svg
+      .append("text")
+      .attr("text-anchor", "end")
+      .attr("x", width)
+      .attr("y", height + margin.top + 20)
+      .text(`Time in ${timeDimension}`);
+
+    // Y axis label:
+    svg
+      .append("text")
+      .attr("text-anchor", "end")
+      .attr("transform", "rotate(-90)")
+      .attr("y", -margin.left + 20)
+      .attr("x", -margin.top)
+      .text("Coverage in %");
+
+    // Add the line
+    svg
+      .append("path")
+      .datum(data)
+      .attr("fill", "none")
+      .attr("stroke", color)
+      .attr("stroke-width", 1.5)
+      .attr(
+        "d",
+        d3
+          .line()
+          .x((d) => x(d.x))
+          .y((d) => y(d.y))
+      );
+
+    // Add data points:
+    svg
+      .selectAll("whatever")
+      .data(data)
+      .enter()
+      .append("circle")
+      .attr("cx", (d) => x(d.x))
+      .attr("cy", (d) => y(d.y))
+      .attr("r", 3);
+
+    // Add tooltip
+    const focus = svg
+      .append("g")
+      .attr("class", "focus")
+      .style("display", "none");
+
+    focus.append("circle").attr("r", 5);
+
+    focus
+      .append("rect")
+      .attr("width", 130)
+      .attr("height", 50)
+      .attr("fill", "#b4b4b4")
+      .attr("stroke", "#000000")
+      .attr("x", -5)
+      .attr("y", 10)
+      .attr("rx", 4)
+      .attr("ry", 4)
+      .attr("opacity", 0.75)
+      .lower();
+
+    focus.append("text").attr("class", "tooltip-x").attr("x", 0).attr("y", 30);
+
+    focus.append("text").attr("class", "tooltip-y").attr("x", 0).attr("y", 50);
+
+    svg
+      .append("rect")
+      .attr("class", "overlay")
+      .attr("width", width)
+      .attr("height", height)
+      .on("mouseover", () => {
+        focus.style("display", null);
+      })
+      .on("mouseout", () => {
+        focus.style("display", "none");
+      })
+      .on("mousemove", () => {
+        const bisectDate = d3.bisector((d) => d.x).left;
+        let errorPathSideBarWidth = 0;
+        if (errorPathFlag) {
+          errorPathSideBarWidth = d3
+            .select("#errorpath_section")
+            .node()
+            .getBoundingClientRect().width;
+        }
+        const x0 = x.invert(
+          d3.event.pageX -
+            margin.left -
+            margin.right / 2 -
+            errorPathSideBarWidth
+        );
+        const i = bisectDate(data, x0, 1);
+        const d0 = data[i - 1];
+        const d1 = data[i];
+        const d = x0 - d0.x > d1.x - x0 ? d1 : d0;
+        focus.attr("transform", `translate(${x(d.x)},${y(d.y)})`);
+        focus
+          .select(".tooltip-x")
+          .text(`Time: ${Math.round(d.x * 100) / 100}${timeDimension}`);
+        focus
+          .select(".tooltip-y")
+          .text(`Coverage: ${Math.round(d.y * 100) / 100}%`);
+      });
+  }
 
   app.controller("ARGToolbarController", [
     "$rootScope",
