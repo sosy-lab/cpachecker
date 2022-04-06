@@ -338,6 +338,12 @@ function renderTDCG(dataJSON, color, inPercentage) {
     // Initialize Time Dependent Coverage Chart
     $(document).ready(() => {
       renderTDCG(timeStampsPerCoverageJson, "#3cc220", true);
+      if (
+        isAlmostEmpty(timeStampsPerCoverageJson) &&
+        isAlmostEmpty(timeStampsPerPredicateCoverageJson)
+      ) {
+        document.getElementById("tdcg-toolbar-button").style.display = "none";
+      }
     });
 
     // Configuration table initialization
