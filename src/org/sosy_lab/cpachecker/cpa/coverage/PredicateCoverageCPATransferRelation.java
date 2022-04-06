@@ -26,27 +26,18 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperTransferRelation {
 
   private final TransferRelation predicateTransferRelation;
-  private final Set<BooleanFormula> predictedPredicates;
-  private final BooleanFormulaManagerView bfmgr;
   private Instant startTime = Instant.MIN;
   private final Map<Long, Double> timeStampsPerCoverage;
 
   PredicateCoverageCPATransferRelation(
-      TransferRelation pDelegateTransferRelation,
-      Set<BooleanFormula> pPredictedPredicates,
-      FormulaManagerView fmgr,
-      Map<Long, Double> pTimeStampsPerCoverage) {
+      TransferRelation pDelegateTransferRelation, Map<Long, Double> pTimeStampsPerCoverage) {
     super(pDelegateTransferRelation);
     predicateTransferRelation = pDelegateTransferRelation;
-    predictedPredicates = pPredictedPredicates;
-    bfmgr = fmgr.getBooleanFormulaManager();
     timeStampsPerCoverage = pTimeStampsPerCoverage;
   }
 
@@ -75,7 +66,7 @@ public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperT
   }
 
   private double calculatePredicateCoverage(Precision precision) {
-    if (!(precision instanceof PredicatePrecision) || predictedPredicates.isEmpty()) {
+    if (!(precision instanceof PredicatePrecision)) {
       return 0.0;
     }
     Set<BooleanFormula> programPredicates = new HashSet<>();
@@ -84,25 +75,7 @@ public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperT
     addPredicatesToSet(programPredicates, predicatePrecision.getLocalPredicates().values());
     addPredicatesToSet(programPredicates, predicatePrecision.getGlobalPredicates());
 
-    // TODO: replace second argument in intersectPredicateSets with programPredicates
-    //  (currently there is a bug when you do so)
-    Set<BooleanFormula> predicateIntersection =
-        intersectPredicateSets(predictedPredicates, predictedPredicates);
-
-    return (double) predicateIntersection.size() / predictedPredicates.size();
-  }
-
-  private Set<BooleanFormula> intersectPredicateSets(
-      Set<BooleanFormula> predicateSet1, Set<BooleanFormula> predicateSet2) {
-    Set<BooleanFormula> predicateIntersection = new HashSet<>();
-    for (BooleanFormula predicate1 : predicateSet1) {
-      for (BooleanFormula predicate2 : predicateSet2) {
-        if (bfmgr.isTrue(bfmgr.equivalence(predicate1, predicate2))) {
-          predicateIntersection.add(predicate1);
-        }
-      }
-    }
-    return predicateIntersection;
+    return programPredicates.size();
   }
 
   private void addPredicatesToSet(

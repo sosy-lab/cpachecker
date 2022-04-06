@@ -94,7 +94,7 @@ function isNotAlmostEmpty(obj) {
   return !isAlmostEmpty(obj);
 }
 
-function renderTDCG(dataJSON, color) {
+function renderTDCG(dataJSON, color, inPercentage) {
   if (isAlmostEmpty(dataJSON)) {
     return;
   }
@@ -113,15 +113,26 @@ function renderTDCG(dataJSON, color) {
   const height = windowHeight - margin.top - margin.bottom;
   let data = [];
   let maxTime = 0;
+  let maxY = 0;
   let timeDimension = "ms";
 
   Object.entries(dataJSON).forEach((value) => {
     const timeStamp = value[0] / 1000.0;
-    data.push({ x: timeStamp, y: value[1] * 100 });
+    let yValue = value[1];
+    if (inPercentage) {
+      yValue *= 100;
+    } else if (yValue > maxY) {
+      maxY = yValue;
+    }
     if (timeStamp > maxTime) {
       maxTime = timeStamp;
     }
+    data.push({ x: timeStamp, y: yValue });
   });
+
+  if (inPercentage) {
+    maxY = 100;
+  }
 
   if (maxTime > 2000) {
     timeDimension = "s";
@@ -129,7 +140,11 @@ function renderTDCG(dataJSON, color) {
     maxTime /= 1000.0;
     Object.entries(dataJSON).forEach((value) => {
       const timeStamp = value[0] / 1000000.0;
-      data.push({ x: timeStamp, y: value[1] * 100 });
+      let yValue = value[1];
+      if (inPercentage) {
+        yValue *= 100;
+      }
+      data.push({ x: timeStamp, y: yValue });
     });
   }
 
@@ -153,10 +168,7 @@ function renderTDCG(dataJSON, color) {
     .call(d3.axisBottom(x));
 
   // Add Y axis
-  const y = d3
-    .scaleLinear()
-    .domain([0, 100]) // This is the min and the max of the data: 0 to 100 if percentages
-    .range([height, 0]);
+  const y = d3.scaleLinear().domain([0, maxY]).range([height, 0]);
   svg.append("g").call(d3.axisLeft(y));
 
   // Add X axis label:
@@ -168,13 +180,17 @@ function renderTDCG(dataJSON, color) {
     .text(`Time in ${timeDimension}`);
 
   // Y axis label:
+  let yLabel = "Amount of chosen value";
+  if (inPercentage) {
+    yLabel = "Coverage in %";
+  }
   svg
     .append("text")
     .attr("text-anchor", "end")
     .attr("transform", "rotate(-90)")
     .attr("y", -margin.left + 20)
     .attr("x", -margin.top)
-    .text("Coverage in %");
+    .text(yLabel);
 
   // Add the line
   svg
@@ -254,9 +270,11 @@ function renderTDCG(dataJSON, color) {
       focus
         .select(".tooltip-x")
         .text(`Time: ${Math.round(d.x * 100) / 100}${timeDimension}`);
-      focus
-        .select(".tooltip-y")
-        .text(`Coverage: ${Math.round(d.y * 100) / 100}%`);
+      let yFocusLabel = `Amount: #${d.y}`;
+      if (inPercentage) {
+        yFocusLabel = `Coverage: ${Math.round(d.y * 100) / 100}%`;
+      }
+      focus.select(".tooltip-y").text(yFocusLabel);
     });
 }
 
@@ -319,7 +337,7 @@ function renderTDCG(dataJSON, color) {
 
     // Initialize Time Dependent Coverage Chart
     $(document).ready(() => {
-      renderTDCG(timeStampsPerCoverageJson, "#3cc220");
+      renderTDCG(timeStampsPerCoverageJson, "#3cc220", true);
     });
 
     // Configuration table initialization
@@ -1360,12 +1378,12 @@ function renderTDCG(dataJSON, color) {
       $scope.renderTDCGForVisitedCoverage =
         function renderTDCGForVisitedCoverage() {
           $scope.removeTDCG();
-          $scope.renderTDCG(timeStampsPerCoverageJson, "#3aec49");
+          $scope.renderTDCG(timeStampsPerCoverageJson, "#3cc220", true);
         };
 
       $scope.renderTDCGForPredicates = function renderTDCGForPredicates() {
         $scope.removeTDCG();
-        $scope.renderTDCG(timeStampsPerPredicateCoverageJson, "#1a81d5");
+        $scope.renderTDCG(timeStampsPerPredicateCoverageJson, "#1a81d5", false);
       };
 
       $scope.removeTDCG = function removeTDCG() {
