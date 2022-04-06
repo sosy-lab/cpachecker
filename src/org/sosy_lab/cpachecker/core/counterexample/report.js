@@ -342,7 +342,7 @@ function renderTDCG(dataJSON, color, inPercentage) {
         isAlmostEmpty(timeStampsPerCoverageJson) &&
         isAlmostEmpty(timeStampsPerPredicateCoverageJson)
       ) {
-        document.getElementById("tdcg-toolbar-button").style.display = "none";
+        d3.select("#tdcg-toolbar-button").style("display", "none");
       }
     });
 

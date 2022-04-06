@@ -59,6 +59,9 @@ describe("ReportController", () => {
           "<p>- use the Displayed ARG select box to select between the complete ARG and ARG containing only the error path (only in case an error was found) </p>" +
           "<p>- use the Mouse Wheel Zoom checkbox to alter between scroll and zoom behaviour on mouse wheel</p>" +
           "<p>- use Split Threshold and 'Refresh button' to redraw the graph (values between 500 and 900)</p>" +
+          "<p><b>TDCG</b> (Time Dependent Coverage Graph) depicts different coverage measures depending on time on a 2D graph</p>" +
+          "<p>- use the Displayed TDCG select box to select between different coverage measures (which ones are available depends on the used CPA configuration)</p>" +
+          "<p>- hover over data points within the graph to get a more detailed view</p>" +
           "<p><b>In case of split graph (applies to both CFA and ARG)</b><br> -- doubleclick on labelless node to jump to target node<br> -- doubleclick on 'split edge' to jump to initial edge </p></div>"
       );
     });
