@@ -400,7 +400,6 @@ public class ReportGenerator {
         counterExample.toJSON(writer);
         writer.write(",\n\"faults\":");
         flInfo.faultsToJSON(writer);
-        writer.write(",\n\"precondition\":");
         flInfo.writePrecondition(writer);
       } else {
         writer.write(",\n\"errorPath\":");

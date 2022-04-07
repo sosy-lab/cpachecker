@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 import static com.google.common.base.Strings.nullToEmpty;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import static org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.SINK_NODE_ID;
 
@@ -86,8 +85,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula.PostCondition;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula.PreCondition;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.FaultLocalizationInfoWithTraceFormula;
 import org.sosy_lab.cpachecker.core.counterexample.CExpressionToOrinalCodeVisitor;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
@@ -120,7 +118,6 @@ import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.expressions.Simplifier;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
-import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
 
 class WitnessFactory implements EdgeAppender {
 
@@ -1043,23 +1040,19 @@ class WitnessFactory implements EdgeAppender {
             Multimaps.transformValues(
                 pCounterExample.orElseThrow().getExactVariableValues(),
                 WitnessAssumptionFilter::filterRelevantAssumptions);
-        if (cex instanceof FaultLocalizationInfo) {
-          FaultLocalizationInfo fInfo = (FaultLocalizationInfo) cex;
+        if (cex instanceof FaultLocalizationInfoWithTraceFormula) {
+          FaultLocalizationInfoWithTraceFormula fInfo = (FaultLocalizationInfoWithTraceFormula) cex;
           List<Fault> faults = fInfo.getRankedList();
           if (!faults.isEmpty()) {
             Fault bestFault = faults.get(0);
             FluentIterable.from(bestFault)
                 .transform(fc -> fc.correspondingEdge())
                 .copyInto(edgesInFault);
-            if (fInfo.getPostcondition().isPresent()) {
-              PostCondition postCondition = fInfo.getPostcondition().orElseThrow();
-              edgesInFault.addAll(postCondition.getIgnoredEdges());
-              edgesInFault.addAll(postCondition.responsibleEdges());
-            }
-            if (fInfo.getPrecondition().isPresent()) {
-              PreCondition preCondition = fInfo.getPrecondition().orElseThrow();
-              edgesInFault.addAll(preCondition.responsibleEdges());
-            }
+            edgesInFault.addAll(
+                fInfo.getTraceFormula().getPrecondition().getEdgesForPrecondition());
+            edgesInFault.addAll(
+                fInfo.getTraceFormula().getPostCondition().getEdgesForPostCondition());
+            edgesInFault.addAll(fInfo.getTraceFormula().getPostCondition().getIrrelevantEdges());
             valueMap = Multimaps.filterValues(valueMap, v -> edgesInFault.contains(v.getCFAEdge()));
           }
         }
@@ -1378,19 +1371,16 @@ class WitnessFactory implements EdgeAppender {
   }
 
   private boolean isEdgeIrrelevantByFaultLocalization(Edge pEdge) {
+    // always relevant if FL is deactivated
     if (edgesInFault.isEmpty()) {
       return false;
     }
-    // has to be calculated newly everytime because of adaptions to edgeToCFAEdges
-    // finds all outgoing edges to sinks for relevant nodes
-    Set<String> importantNodes =
-        transformedImmutableSetCopy(
-            Multimaps.filterValues(edgeToCFAEdges, cfaEdge -> edgesInFault.contains(cfaEdge))
-                .keySet(),
-            e -> e.getSource());
 
-    // not irrelevant if it is an edge to a sink node and the source node is part of the fault
-    if (pEdge.getTarget().equals(SINK_NODE_ID) && importantNodes.contains(pEdge.getSource())) {
+    // function entries and exits as well as every transition to sink nodes must be included
+    if (pEdge.getLabel().getMapping().containsKey(KeyDef.FUNCTIONENTRY)
+        || pEdge.getLabel().getMapping().containsKey(KeyDef.FUNCTIONEXIT)
+        || pEdge.getLabel().getMapping().containsKey(KeyDef.ISVIOLATIONNODE)
+        || pEdge.getTarget().equals(SINK_NODE_ID)) {
       return false;
     }
 
