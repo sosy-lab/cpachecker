@@ -42,6 +42,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.collect.MapsDifference;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.common.collect.PersistentSortedMaps;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
@@ -1256,7 +1259,13 @@ public class PredicateAbstractionManager {
     // TODO: how to merge 2 PointerTargetSet?
     PathFormula joinedPathFormula =
         pfmgr.makeEmptyPathFormulaWithContext(joinedSSA, PointerTargetSet.emptyPointerTargetSet());
-    return PredicateAbstractState.mkAbstractionState(joinedPathFormula, joinedFormula, null);
+    PersistentMap<CFANode, Integer> joinedLocations =
+        PersistentSortedMaps.merge(
+            PathCopyingPersistentTreeMap.copyOf(state1.getAbstractionLocationsOnPath()),
+            PathCopyingPersistentTreeMap.copyOf(state2.getAbstractionLocationsOnPath()),
+            PersistentSortedMaps.getMaximumMergeConflictHandler());
+    return PredicateAbstractState.mkAbstractionState(
+        joinedPathFormula, joinedFormula, joinedLocations);
   }
 
   // Creating AbstractionPredicates
