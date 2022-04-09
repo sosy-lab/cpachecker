@@ -16,7 +16,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import org.sosy_lab.cpachecker.core.defaults.StopJoinOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -246,7 +245,7 @@ class CompositeStopOperator implements ForcedCoveringStopOperator, CoveringState
                 .isForcedCoveringPossible(wrappedState, wrappedReachedState, prec);
 
       } else {
-        possible = stopOp.stop(wrappedState, Collections.singleton(wrappedReachedState), prec);
+        possible = stopOp.stop(wrappedState, ImmutableSet.of(wrappedReachedState), prec);
       }
 
       if (!possible) {
