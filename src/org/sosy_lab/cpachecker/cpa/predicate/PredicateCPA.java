@@ -110,8 +110,8 @@ public class PredicateCPA
           "which stop operator to use for predicate cpa (usually SEP should be used in analysis). "
               + "SEPNAA works the same as SEP, except that it Never stops At Abstraction states. "
               + "SEPNAA is used in bmc-IMC.properties for config bmc-incremental-ABEl to keep "
-              + "exploring covered states. JOINMC works like JOIN and tries to minimize the "
-              + "covering state set with some heuristics.")
+              + "exploring covered states. JOINMC works like JOIN but tries to Minimize the "
+              + "Covering state set with some heuristics.")
   private String stopType = "SEP";
 
   @Option(secure = true, description = "Direction of the analysis?")
