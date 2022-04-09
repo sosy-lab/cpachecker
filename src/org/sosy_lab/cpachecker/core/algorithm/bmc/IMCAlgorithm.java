@@ -27,7 +27,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.FormulaInContext;
-import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -189,7 +188,9 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         new PartitionedFormulas(pfmgr, bfmgr, logger, assertTargetsAtEveryIteration);
     do {
       if (invariantGenerator.isProgramSafe()) {
-        TargetLocationCandidateInvariant.INSTANCE.assumeTruth(pReachedSet);
+        InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
+        InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
+            pReachedSet, getCurrentLoopHeadInvariants(pReachedSet), predAbsMgr, pfmgr);
         return AlgorithmStatus.SOUND_AND_PRECISE;
       }
       // Unroll
@@ -250,6 +251,10 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         logger.log(Level.FINE, "Computing fixed points by interpolation");
         if (reachFixedPointByInterpolation(partitionedFormulas, pReachedSet)) {
           InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
+          // TODO: the stored formula in `finalFixedPoint` might not be a fixed point (i.e. not
+          // inductive), should rename `finalFixedPoint`, `reachFixedPointByInterpolation`,
+          // `storeFixedPointAsAbstractionAtLoopHeads`? Perhaps just reuse the field
+          // `loopHeadInvariants` such that we do not need a separate field?
           InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
               pReachedSet, finalFixedPoint, predAbsMgr, pfmgr);
           return AlgorithmStatus.SOUND_AND_PRECISE;
@@ -299,7 +304,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     CounterexampleTraceInfo cex = itpMgr.buildCounterexampleTrace(blkFormula);
     while (cex.isSpurious()) {
       if (invariantGenerator.isProgramSafe()) {
-        TargetLocationCandidateInvariant.INSTANCE.assumeTruth(reachedSet);
+        finalFixedPoint = getCurrentLoopHeadInvariants(reachedSet);
         return true;
       }
       logger.log(Level.ALL, "The current image is", currentImage);

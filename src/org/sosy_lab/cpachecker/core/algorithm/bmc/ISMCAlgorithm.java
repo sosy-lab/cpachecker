@@ -199,7 +199,7 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     do {
       /* note: an exact copy from IMCAlgorithm -- START */
       if (invariantGenerator.isProgramSafe()) {
-        TargetLocationCandidateInvariant.INSTANCE.assumeTruth(pReachedSet);
+        InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
         return AlgorithmStatus.SOUND_AND_PRECISE;
       }
       // Unroll
@@ -343,7 +343,7 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       BooleanFormula currentImage = reachVector.get(0);
       for (int i = 1; i < reachVector.size(); ++i) {
         if (invariantGenerator.isProgramSafe()) {
-          TargetLocationCandidateInvariant.INSTANCE.assumeTruth(reachedSet);
+          finalFixedPoint = getCurrentLoopHeadInvariants(reachedSet);
           return true;
         }
         BooleanFormula imageAtI = reachVector.get(i);
