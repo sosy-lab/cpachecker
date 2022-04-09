@@ -228,11 +228,6 @@ public final class InterpolationManager {
               + " options instead of giving up immediately.")
   private boolean tryAgainOnInterpolationError = true;
 
-  @Option(
-      secure = true,
-      description = "discard the information of the error path when a counterexample is found")
-  private boolean discardErrorPath = false;
-
   private final ITPStrategy itpStrategy;
 
   private final ExecutorService executor;
@@ -731,7 +726,7 @@ public final class InterpolationManager {
       BlockFormulas formulas, BasicProverEnvironment<?> pProver)
       throws SolverException, InterruptedException {
 
-    if (discardErrorPath) {
+    if (itpProverFactory.discardErrorPath()) {
       return CounterexampleTraceInfo.feasibleNoModel();
     }
 
@@ -800,6 +795,11 @@ public final class InterpolationManager {
         return (InterpolatingProverEnvironment<T>)
             solver.newProverEnvironmentWithInterpolation(ProverOptions.GENERATE_MODELS);
       }
+
+      @Override
+      boolean discardErrorPath() {
+        return false;
+      }
     },
     WITHOUT_MODELS {
       @Override
@@ -807,9 +807,16 @@ public final class InterpolationManager {
       <T> InterpolatingProverEnvironment<T> newEnvironment(Solver solver) {
         return (InterpolatingProverEnvironment<T>) solver.newProverEnvironmentWithInterpolation();
       }
+
+      @Override
+      boolean discardErrorPath() {
+        return true;
+      }
     };
 
     abstract <T> InterpolatingProverEnvironment<T> newEnvironment(Solver solver);
+
+    abstract boolean discardErrorPath();
   }
 
   /**
