@@ -311,7 +311,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         return true;
       }
       // Step 2: IMC check strengthened by external invariant
-      if (invariantGenerationRunning
+      if (!bfmgr.isTrue(loopInv)
           && solver.implies(
               bfmgr.and(interpolant, fmgr.instantiate(loopInv, formulas.getPrefixSsaMap())),
               currentImage)) {
