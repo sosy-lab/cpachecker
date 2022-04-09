@@ -410,6 +410,7 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             + " does not support this function. It should not be called.");
   }
 
+  // note: an exact copy from IMCAlgorithm
   private BooleanFormula getCurrentLoopHeadInvariants(ReachedSet reachedSet)
       throws CPATransferException, InterruptedException {
     Iterable<AbstractState> loopHeadStates = getLoopHeadStatesAtFirstIteration(reachedSet);
@@ -417,6 +418,7 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         assertAt(loopHeadStates, getCurrentLoopHeadInvariants(loopHeadStates), fmgr, true));
   }
 
+  // note: an exact copy from IMCAlgorithm
   private FluentIterable<AbstractState> getLoopHeadStatesAtFirstIteration(ReachedSet reachedSet) {
     FluentIterable<AbstractState> loopHeadStates =
         AbstractStates.filterLocations(reachedSet, getLoopHeads());
