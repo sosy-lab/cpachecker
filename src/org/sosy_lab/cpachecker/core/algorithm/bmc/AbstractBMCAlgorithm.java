@@ -166,7 +166,7 @@ abstract class AbstractBMCAlgorithm
   protected boolean interpolation = false;
 
   @Option(secure = true, description = "Strategy for generating auxiliary invariants")
-  private InvariantGeneratorFactory invariantGenerationStrategy =
+  protected InvariantGeneratorFactory invariantGenerationStrategy =
       InvariantGeneratorFactory.DO_NOTHING;
 
   @Option(

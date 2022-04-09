@@ -86,9 +86,6 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   @Option(secure = true, description = "toggle Impact-like covering for the fixed-point check")
   private boolean impactLikeCovering = false;
 
-  @Option(secure = true, description = "toggle external invariant generation")
-  private boolean invariantGenerationRunning = false;
-
   private final ConfigurableProgramAnalysis cpa;
 
   private final Algorithm algorithm;
@@ -103,6 +100,7 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   private BooleanFormula finalFixedPoint;
   private BooleanFormula loopHeadInvariants;
+  private boolean invariantGenerationRunning;
 
   public ISMCAlgorithm(
       Algorithm pAlgorithm,
@@ -146,6 +144,8 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
     finalFixedPoint = bfmgr.makeFalse();
     loopHeadInvariants = bfmgr.makeTrue();
+    invariantGenerationRunning =
+        invariantGenerationStrategy != InvariantGeneratorFactory.DO_NOTHING;
   }
 
   @Override
