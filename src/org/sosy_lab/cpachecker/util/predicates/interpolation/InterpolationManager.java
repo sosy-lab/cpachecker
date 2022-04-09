@@ -789,11 +789,11 @@ public final class InterpolationManager {
     WITH_MODELS {
       @Override
       @SuppressWarnings("unchecked")
-      <T> InterpolatingProverEnvironment<T> newEnvironment(Solver solver) {
+      <T> InterpolatingProverEnvironment<T> newEnvironment(Solver pSolver) {
         // This is safe because we don't actually care about the value of T,
         // only the InterpolatingProverEnvironment itself cares about it.
         return (InterpolatingProverEnvironment<T>)
-            solver.newProverEnvironmentWithInterpolation(ProverOptions.GENERATE_MODELS);
+            pSolver.newProverEnvironmentWithInterpolation(ProverOptions.GENERATE_MODELS);
       }
 
       @Override
@@ -804,8 +804,8 @@ public final class InterpolationManager {
     WITHOUT_MODELS {
       @Override
       @SuppressWarnings("unchecked")
-      <T> InterpolatingProverEnvironment<T> newEnvironment(Solver solver) {
-        return (InterpolatingProverEnvironment<T>) solver.newProverEnvironmentWithInterpolation();
+      <T> InterpolatingProverEnvironment<T> newEnvironment(Solver pSolver) {
+        return (InterpolatingProverEnvironment<T>) pSolver.newProverEnvironmentWithInterpolation();
       }
 
       @Override
@@ -814,7 +814,7 @@ public final class InterpolationManager {
       }
     };
 
-    abstract <T> InterpolatingProverEnvironment<T> newEnvironment(Solver solver);
+    abstract <T> InterpolatingProverEnvironment<T> newEnvironment(Solver pSolver);
 
     abstract boolean discardErrorPath();
   }
