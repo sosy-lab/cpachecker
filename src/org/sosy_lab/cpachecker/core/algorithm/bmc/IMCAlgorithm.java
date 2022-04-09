@@ -298,6 +298,10 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         new BlockFormulas(ImmutableList.of(currentImage, loops.get(0), suffixFormula));
     CounterexampleTraceInfo cex = itpMgr.buildCounterexampleTrace(blkFormula);
     while (cex.isSpurious()) {
+      if (invariantGenerator.isProgramSafe()) {
+        TargetLocationCandidateInvariant.INSTANCE.assumeTruth(reachedSet);
+        return true;
+      }
       logger.log(Level.ALL, "The current image is", currentImage);
       assert cex.getInterpolants().size() == 2;
       BooleanFormula interpolant = cex.getInterpolants().get(1);

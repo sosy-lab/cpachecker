@@ -342,6 +342,10 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     } else {
       BooleanFormula currentImage = reachVector.get(0);
       for (int i = 1; i < reachVector.size(); ++i) {
+        if (invariantGenerator.isProgramSafe()) {
+          TargetLocationCandidateInvariant.INSTANCE.assumeTruth(reachedSet);
+          return true;
+        }
         BooleanFormula imageAtI = reachVector.get(i);
         // Step 1: regular ISMC check
         if (solver.implies(imageAtI, currentImage)) {
