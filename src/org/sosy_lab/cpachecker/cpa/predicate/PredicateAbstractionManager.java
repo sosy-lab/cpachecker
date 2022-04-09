@@ -41,6 +41,7 @@ import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.Collections3;
+import org.sosy_lab.common.collect.MapsDifference;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
@@ -1247,7 +1248,15 @@ public class PredicateAbstractionManager {
       PredicateAbstractState state1, PredicateAbstractState state2) throws InterruptedException {
     AbstractionFormula joinedFormula =
         makeOr(state1.getAbstractionFormula(), state2.getAbstractionFormula());
-    return PredicateAbstractState.mkAbstractionState(null, joinedFormula, null);
+    SSAMap joinedSSA =
+        SSAMap.merge(
+            state1.getPathFormula().getSsa(),
+            state2.getPathFormula().getSsa(),
+            MapsDifference.collectMapsDifferenceTo(new ArrayList<>()));
+    // TODO: how to merge 2 PointerTargetSet?
+    PathFormula joinedPathFormula =
+        pfmgr.makeEmptyPathFormulaWithContext(joinedSSA, PointerTargetSet.emptyPointerTargetSet());
+    return PredicateAbstractState.mkAbstractionState(joinedPathFormula, joinedFormula, null);
   }
 
   // Creating AbstractionPredicates
