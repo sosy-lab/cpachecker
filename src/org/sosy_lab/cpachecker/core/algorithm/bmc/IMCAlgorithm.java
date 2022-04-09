@@ -168,6 +168,10 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       throws CPAException, SolverException, InterruptedException {
     if (getTargetLocations().isEmpty()) {
       pReachedSet.clearWaitlist();
+      logger.log(Level.INFO, "Empty target set (IMC_PROOF_0)");
+      return AlgorithmStatus.SOUND_AND_PRECISE;
+    }
+    if (isSafetyProvenByInvariantGenerator(pReachedSet)) {
       return AlgorithmStatus.SOUND_AND_PRECISE;
     }
 
@@ -187,10 +191,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     PartitionedFormulas partitionedFormulas =
         new PartitionedFormulas(pfmgr, bfmgr, logger, assertTargetsAtEveryIteration);
     do {
-      if (invariantGenerator.isProgramSafe()) {
-        InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
-        InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
-            pReachedSet, getCurrentLoopHeadInvariants(pReachedSet), predAbsMgr, pfmgr);
+      if (isSafetyProvenByInvariantGenerator(pReachedSet)) {
         return AlgorithmStatus.SOUND_AND_PRECISE;
       }
       // Unroll
@@ -235,7 +236,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         boolean isStopStateUnreachable =
             solver.isUnsat(InterpolationHelper.buildBoundingAssertionFormula(bfmgr, pReachedSet));
         if (isStopStateUnreachable) {
-          logger.log(Level.FINE, "The program cannot be further unrolled");
+          logger.log(Level.INFO, "The program cannot be further unrolled (IMC_PROOF_2)");
           InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
@@ -303,7 +304,9 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         new BlockFormulas(ImmutableList.of(currentImage, loops.get(0), suffixFormula));
     CounterexampleTraceInfo cex = itpMgr.buildCounterexampleTrace(blkFormula);
     while (cex.isSpurious()) {
-      if (invariantGenerator.isProgramSafe()) {
+      if (isSafetyProvenByInvariantGenerator(reachedSet)) {
+        // `#removeUnreachableTargetStates` and `#storeFixedPointAsAbstractionAtLoopHeads` will be
+        // called twice, but it shouldn't cause any problem (?)
         finalFixedPoint = getCurrentLoopHeadInvariants(reachedSet);
         return true;
       }
@@ -315,7 +318,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       logger.log(Level.ALL, "After changing SSA", interpolant);
       // Step 1: regular IMC check
       if (solver.implies(interpolant, currentImage)) {
-        logger.log(Level.INFO, "The current image reaches a fixed point");
+        logger.log(Level.INFO, "The current image reaches a fixed point (IMC_PROOF_3)");
         finalFixedPoint = fmgr.uninstantiate(currentImage);
         return true;
       }
@@ -331,7 +334,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
                 fmgr.instantiate(loopInv, formulas.getPrefixSsaMap()), formulas.getLoopFormula(0));
         BooleanFormula nextInvariant = fmgr.instantiate(loopInv, formulas.getSsaMapOfLoop(0));
         if (solver.implies(invariantTransition, nextInvariant)) {
-          logger.log(Level.INFO, "Fixed point reached with external invariants");
+          logger.log(
+              Level.INFO, "Fixed point reached with external inductive invariants (IMC_PROOF_4)");
           finalFixedPoint = fmgr.uninstantiate(currentImage);
           return true;
         }
@@ -344,7 +348,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
                 formulas.getLoopFormula(0));
         BooleanFormula nextImage = fmgr.instantiate(currentImage, formulas.getSsaMapOfLoop(0));
         if (solver.implies(currentImageTransition, nextImage)) {
-          logger.log(Level.INFO, "Fixed point reached with external invariants");
+          logger.log(Level.INFO, "Fixed point reached with external invariants (IMC_PROOF_5)");
           finalFixedPoint = currentImage;
           return true;
         }
@@ -363,6 +367,18 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         "Class "
             + getClass().getSimpleName()
             + " does not support this function. It should not be called.");
+  }
+
+  private boolean isSafetyProvenByInvariantGenerator(ReachedSet reachedSet)
+      throws CPATransferException, InterruptedException {
+    if (invariantGenerator.isProgramSafe()) {
+      InterpolationHelper.removeUnreachableTargetStates(reachedSet);
+      InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
+          reachedSet, getCurrentLoopHeadInvariants(reachedSet), predAbsMgr, pfmgr);
+      logger.log(Level.INFO, "Safety proven by invariant generator (IMC_PROOF_1)");
+      return true;
+    }
+    return false;
   }
 
   private BooleanFormula getCurrentLoopHeadInvariants(ReachedSet reachedSet)
