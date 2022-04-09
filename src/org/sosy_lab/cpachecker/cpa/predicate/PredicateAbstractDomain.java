@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -110,12 +109,7 @@ public class PredicateAbstractDomain implements AbstractDomain {
       throw new UnsupportedOperationException(
           "This operation is only supported when the 2 input states are both AbstractionStates.");
     }
-    AbstractionFormula joinedFormula =
-        mgr.makeOr(e1.getAbstractionFormula(), e2.getAbstractionFormula());
-    // TODO: check if passing null as argument is safe
-    AbstractState joinedState =
-        PredicateAbstractState.mkAbstractionState(null, joinedFormula, null);
-    return joinedState;
+    return mgr.joinAbstractionStates(e1, e2);
   }
 
   /** Determines whether the 2 abstract states have intersection */

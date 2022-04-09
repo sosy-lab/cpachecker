@@ -1243,6 +1243,13 @@ public class PredicateAbstractionManager {
         fmgr, abs, symbolicAbs, instantiatedSymbolicAbs, blockFormula, noAbstractionReuse);
   }
 
+  PredicateAbstractState joinAbstractionStates(
+      PredicateAbstractState state1, PredicateAbstractState state2) throws InterruptedException {
+    AbstractionFormula joinedFormula =
+        makeOr(state1.getAbstractionFormula(), state2.getAbstractionFormula());
+    return PredicateAbstractState.mkAbstractionState(null, joinedFormula, null);
+  }
+
   // Creating AbstractionPredicates
 
   /**
