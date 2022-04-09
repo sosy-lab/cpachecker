@@ -275,9 +275,9 @@ public abstract class PredicateAbstractState
 
   private PredicateAbstractState(
       PathFormula pf, AbstractionFormula a, PersistentMap<CFANode, Integer> pAbstractionLocations) {
-    pathFormula = pf;
-    abstractionFormula = a;
-    abstractionLocations = pAbstractionLocations;
+    pathFormula = checkNotNull(pf);
+    abstractionFormula = checkNotNull(a);
+    abstractionLocations = checkNotNull(pAbstractionLocations);
     previousAbstractionState = null;
   }
 
