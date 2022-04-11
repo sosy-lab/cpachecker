@@ -193,12 +193,7 @@ public final class CoverageData {
     }
     final FileLocation loc = pEdge.getFileLocation();
     final FileCoverageInformation collector = getFileInfoTarget(loc, infosPerFile);
-    final int startingLine = loc.getStartingLineInOrigin();
-    final int endingLine = loc.getEndingLineInOrigin();
-
-    for (int line = startingLine; line <= endingLine; line++) {
-      collector.addPredicateConsideredLine(line);
-    }
+    collector.addPredicateConsideredNode(pEdge.getPredecessor());
   }
 
   public void addConsideredNodes(

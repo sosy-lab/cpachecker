@@ -24,7 +24,7 @@ public class CoverageReportStdoutSummary {
 
     long numTotalNodes = 0;
     long numConsideredNodes = 0;
-    long numPredicateConsideredLines = 0;
+    long numPredicateConsideredNodes = 0;
 
     double predicateCoverage = pCoverage.getPredicateCoverage();
 
@@ -40,7 +40,7 @@ public class CoverageReportStdoutSummary {
 
       numTotalNodes += info.allNodes.size();
       numConsideredNodes += info.consideredNodes.size();
-      numPredicateConsideredLines += info.predicateConsideredLines.size();
+      numPredicateConsideredNodes += info.numPredicateConsideredNodes.size();
     }
 
     if (numTotalFunctions > 0) {
@@ -51,21 +51,10 @@ public class CoverageReportStdoutSummary {
 
     if (numTotalLines > 0) {
       final double lineCoverage = numVisitedLines / (double) numTotalLines;
-      final double predicateConsideredCoverage =
-          numPredicateConsideredLines / (double) numTotalLines;
 
       StatisticsUtils.write(pStdOut, 1, 25, "Visited lines", numVisitedLines);
-      StatisticsUtils.write(
-          pStdOut, 1, 25, "Predicate considered lines", numPredicateConsideredLines);
       StatisticsUtils.write(pStdOut, 1, 25, "Total lines", numTotalLines);
-
       StatisticsUtils.write(pStdOut, 1, 25, "Line coverage", String.format("%.3f", lineCoverage));
-      StatisticsUtils.write(
-          pStdOut,
-          1,
-          25,
-          "Predicate considered coverage",
-          String.format("%.3f", predicateConsideredCoverage));
     }
 
     if (numTotalConditions > 0) {
@@ -78,10 +67,21 @@ public class CoverageReportStdoutSummary {
 
     if (numTotalNodes > 0) {
       final double consideredCoverage = numConsideredNodes / (double) numTotalNodes;
+      final double predicateConsideredCoverage =
+          numPredicateConsideredNodes / (double) numTotalNodes;
       StatisticsUtils.write(pStdOut, 1, 25, "Considered nodes", numConsideredNodes);
+      StatisticsUtils.write(
+          pStdOut, 1, 25, "Predicate considered nodes", numPredicateConsideredNodes);
       StatisticsUtils.write(pStdOut, 1, 25, "Total nodes", numTotalNodes);
+
       StatisticsUtils.write(
           pStdOut, 1, 25, "Considered coverage", String.format("%.3f", consideredCoverage));
+      StatisticsUtils.write(
+          pStdOut,
+          1,
+          25,
+          "Predicate considered coverage",
+          String.format("%.3f", predicateConsideredCoverage));
     }
 
     if (predicateCoverage > 0.0) {

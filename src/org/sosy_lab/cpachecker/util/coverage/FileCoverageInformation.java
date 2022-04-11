@@ -15,6 +15,7 @@ import com.google.common.collect.Multiset;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public class FileCoverageInformation {
 
@@ -32,7 +33,7 @@ public class FileCoverageInformation {
 
   final Set<Integer> allNodes = new LinkedHashSet<>();
   final Set<Integer> consideredNodes = new LinkedHashSet<>();
-  final Set<Integer> predicateConsideredLines = new LinkedHashSet<>();
+  final Set<Integer> numPredicateConsideredNodes = new LinkedHashSet<>();
   final Multiset<Integer> visitedLines = LinkedHashMultiset.create();
   final Set<Integer> allLines = new LinkedHashSet<>();
   final Multiset<String> visitedFunctions = LinkedHashMultiset.create();
@@ -83,8 +84,7 @@ public class FileCoverageInformation {
     allLines.add(pLine);
   }
 
-  void addPredicateConsideredLine(int pLine) {
-    checkArgument(pLine > 0);
-    predicateConsideredLines.add(pLine);
+  void addPredicateConsideredNode(CFANode node) {
+    numPredicateConsideredNodes.add(node.getNodeNumber());
   }
 }
