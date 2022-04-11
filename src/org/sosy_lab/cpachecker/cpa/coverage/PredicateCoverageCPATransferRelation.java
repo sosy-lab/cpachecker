@@ -132,8 +132,8 @@ public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperT
   }
 
   private Set<AbstractionPredicate> getAllPredicates(PredicatePrecision precision) {
-    Set<AbstractionPredicate> allPredicates = new HashSet<>();
-    allPredicates.addAll(precision.getLocationInstancePredicates().values());
+    Set<AbstractionPredicate> allPredicates =
+        new HashSet<>(precision.getLocationInstancePredicates().values());
     allPredicates.addAll(precision.getLocalPredicates().values());
     allPredicates.addAll(precision.getFunctionPredicates().values());
     allPredicates.addAll(precision.getGlobalPredicates());
@@ -142,8 +142,8 @@ public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperT
 
   private Set<AbstractionPredicate> getAllPredicatesForNode(
       CFANode node, PredicatePrecision precision) {
-    Set<AbstractionPredicate> allPredicates = new HashSet<>();
-    allPredicates.addAll(precision.getLocalPredicates().get(node));
+    Set<AbstractionPredicate> allPredicates =
+        new HashSet<>(precision.getLocalPredicates().get(node));
     allPredicates.addAll(precision.getFunctionPredicates().values());
     allPredicates.addAll(precision.getGlobalPredicates());
     return allPredicates;
