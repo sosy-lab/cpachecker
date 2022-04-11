@@ -1370,7 +1370,7 @@ function renderTDCG(dataJSON, color, inPercentage) {
         $scope.tdcgSelections.push("Predicates over Time");
       }
       if (isNotAlmostEmpty(timeStampsPerPredicateConsideredCoverageJson)) {
-        $scope.tdcgSelections.push("Predicates-considered coverage over Time");
+        $scope.tdcgSelections.push("Predicates-considered Coverage over Time");
       }
       if (isEmpty($scope.tdcgSelections)) {
         $scope.tdcgSelections.push("No data available");
@@ -1388,7 +1388,7 @@ function renderTDCG(dataJSON, color, inPercentage) {
           $scope.renderTDCGForPredicates();
         } else if (
           $rootScope.displayedTDCG.indexOf(
-            "Predicates-considered coverage over Time"
+            "Predicates-considered Coverage over Time"
           ) !== -1
         ) {
           $scope.renderTDCGForPredicatesConsideredCoverage();
