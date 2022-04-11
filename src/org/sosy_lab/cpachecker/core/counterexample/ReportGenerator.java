@@ -599,6 +599,16 @@ public class ReportGenerator {
     Map<Integer, Integer> coverageLineMap = new HashMap<>();
     Map<Integer, String> coverageLineColorMap = new HashMap<>();
     int max = 0;
+    if (fileCoverage.getVisitedLines() == null) {
+      for (int lineNumber = 0; lineNumber < 10000; lineNumber++) {
+        if (lineNumber % 2 == 0) {
+          coverageLineColorMap.put(lineNumber, "#3de0e3");
+        } else {
+          coverageLineColorMap.put(lineNumber, "#3dace3");
+        }
+      }
+      return coverageLineColorMap;
+    }
     for (var line : fileCoverage.getVisitedLines()) {
       int countForLine = fileCoverage.getVisitedLines().count(line);
       coverageLineMap.put(line, countForLine);
