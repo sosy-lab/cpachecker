@@ -28,8 +28,8 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 public final class CoverageData {
 
   private final Map<String, FileCoverageInformation> infosPerFile = new LinkedHashMap<>();
-  private final Map<Long, Double> timeStampsPerCoverage;
-  private final Map<Long, Double> timeStampsPerPredicateCoverage;
+  private Map<Long, Double> timeStampsPerCoverage;
+  private Map<Long, Double> timeStampsPerPredicateCoverage;
 
   public CoverageData() {
     timeStampsPerCoverage = new LinkedHashMap<>();
@@ -38,15 +38,17 @@ public final class CoverageData {
     timeStampsPerPredicateCoverage.put(0L, 0.0);
   }
 
-  public CoverageData(
-      Map<Long, Double> pTimeStampsPerCoverage, Map<Long, Double> pTimeStampsPerPredicateCoverage) {
+  public void putTimeStampsPerCoverage(Map<Long, Double> pTimeStampsPerCoverage) {
     timeStampsPerCoverage = pTimeStampsPerCoverage;
     if (timeStampsPerCoverage.isEmpty()) {
       timeStampsPerCoverage.put(0L, 0.0);
     }
+  }
+
+  public void putTimeStampsPerPredicateCoverage(Map<Long, Double> pTimeStampsPerPredicateCoverage) {
     timeStampsPerPredicateCoverage = pTimeStampsPerPredicateCoverage;
     if (timeStampsPerPredicateCoverage.isEmpty()) {
-      timeStampsPerCoverage.put(0L, 0.0);
+      timeStampsPerPredicateCoverage.put(0L, 0.0);
     }
   }
 
@@ -182,6 +184,20 @@ public final class CoverageData {
 
     for (int line = startingLine; line <= endingLine; line++) {
       collector.addVisitedLine(line);
+    }
+  }
+
+  public void addPredicateConsideredNode(final CFAEdge pEdge) {
+    if (!coversLine(pEdge)) {
+      return;
+    }
+    final FileLocation loc = pEdge.getFileLocation();
+    final FileCoverageInformation collector = getFileInfoTarget(loc, infosPerFile);
+    final int startingLine = loc.getStartingLineInOrigin();
+    final int endingLine = loc.getEndingLineInOrigin();
+
+    for (int line = startingLine; line <= endingLine; line++) {
+      collector.addPredicateConsideredLine(line);
     }
   }
 

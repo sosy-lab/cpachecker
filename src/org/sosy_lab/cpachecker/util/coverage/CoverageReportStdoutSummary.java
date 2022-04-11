@@ -24,6 +24,7 @@ public class CoverageReportStdoutSummary {
 
     long numTotalNodes = 0;
     long numConsideredNodes = 0;
+    long numPredicateConsideredLines = 0;
 
     double predicateCoverage = pCoverage.getPredicateCoverage();
 
@@ -39,6 +40,7 @@ public class CoverageReportStdoutSummary {
 
       numTotalNodes += info.allNodes.size();
       numConsideredNodes += info.consideredNodes.size();
+      numPredicateConsideredLines += info.predicateConsideredLines.size();
     }
 
     if (numTotalFunctions > 0) {
@@ -49,9 +51,21 @@ public class CoverageReportStdoutSummary {
 
     if (numTotalLines > 0) {
       final double lineCoverage = numVisitedLines / (double) numTotalLines;
+      final double predicateConsideredCoverage =
+          numPredicateConsideredLines / (double) numTotalLines;
+
       StatisticsUtils.write(pStdOut, 1, 25, "Visited lines", numVisitedLines);
+      StatisticsUtils.write(
+          pStdOut, 1, 25, "Predicate considered lines", numPredicateConsideredLines);
       StatisticsUtils.write(pStdOut, 1, 25, "Total lines", numTotalLines);
+
       StatisticsUtils.write(pStdOut, 1, 25, "Line coverage", String.format("%.3f", lineCoverage));
+      StatisticsUtils.write(
+          pStdOut,
+          1,
+          25,
+          "Predicate considered coverage",
+          String.format("%.3f", predicateConsideredCoverage));
     }
 
     if (numTotalConditions > 0) {
@@ -72,7 +86,11 @@ public class CoverageReportStdoutSummary {
 
     if (predicateCoverage > 0.0) {
       StatisticsUtils.write(
-          pStdOut, 1, 25, "Predicate coverage", String.format("%.3f", predicateCoverage));
+          pStdOut,
+          1,
+          25,
+          "Total amount of used predicates",
+          String.format("%.0f", predicateCoverage));
     }
   }
 }

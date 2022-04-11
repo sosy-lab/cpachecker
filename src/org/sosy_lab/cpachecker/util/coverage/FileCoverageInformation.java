@@ -31,7 +31,8 @@ class FileCoverageInformation {
   }
 
   final Set<Integer> allNodes = new LinkedHashSet<>();
-  final Multiset<Integer> consideredNodes = LinkedHashMultiset.create();
+  final Set<Integer> consideredNodes = new LinkedHashSet<>();
+  final Set<Integer> predicateConsideredLines = new LinkedHashSet<>();
   final Multiset<Integer> visitedLines = LinkedHashMultiset.create();
   final Set<Integer> allLines = new LinkedHashSet<>();
   final Multiset<String> visitedFunctions = LinkedHashMultiset.create();
@@ -76,5 +77,10 @@ class FileCoverageInformation {
   void addExistingLine(int pLine) {
     checkArgument(pLine > 0);
     allLines.add(pLine);
+  }
+
+  void addPredicateConsideredLine(int pLine) {
+    checkArgument(pLine > 0);
+    predicateConsideredLines.add(pLine);
   }
 }
