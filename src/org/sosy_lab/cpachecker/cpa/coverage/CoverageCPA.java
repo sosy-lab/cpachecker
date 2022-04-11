@@ -45,7 +45,7 @@ public class CoverageCPA implements ConfigurableProgramAnalysis {
   }
 
   public Map<Long, Double> getTimeStampsPerCoverageMap() {
-    return cov.getTimeStampsPerCoverageMap();
+    return cov.getTimeStampsPerCoverage();
   }
 
   @Override

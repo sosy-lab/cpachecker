@@ -30,12 +30,15 @@ public final class CoverageData {
   private final Map<String, FileCoverageInformation> infosPerFile = new LinkedHashMap<>();
   private Map<Long, Double> timeStampsPerCoverage;
   private Map<Long, Double> timeStampsPerPredicateCoverage;
+  private Map<Long, Double> timeStampsPerPredicateConsideredCoverage;
 
   public CoverageData() {
     timeStampsPerCoverage = new LinkedHashMap<>();
     timeStampsPerPredicateCoverage = new LinkedHashMap<>();
+    timeStampsPerPredicateConsideredCoverage = new LinkedHashMap<>();
     timeStampsPerCoverage.put(0L, 0.0);
     timeStampsPerPredicateCoverage.put(0L, 0.0);
+    timeStampsPerPredicateConsideredCoverage.put(0L, 0.0);
   }
 
   public void putTimeStampsPerCoverage(Map<Long, Double> pTimeStampsPerCoverage) {
@@ -49,6 +52,14 @@ public final class CoverageData {
     timeStampsPerPredicateCoverage = pTimeStampsPerPredicateCoverage;
     if (timeStampsPerPredicateCoverage.isEmpty()) {
       timeStampsPerPredicateCoverage.put(0L, 0.0);
+    }
+  }
+
+  public void putTimeStampsPerPredicateConsideredCoverage(
+      Map<Long, Double> pTimeStampsPerPredicateConsideredCoverage) {
+    timeStampsPerPredicateConsideredCoverage = pTimeStampsPerPredicateConsideredCoverage;
+    if (timeStampsPerPredicateConsideredCoverage.isEmpty()) {
+      timeStampsPerPredicateConsideredCoverage.put(0L, 0.0);
     }
   }
 
@@ -151,12 +162,16 @@ public final class CoverageData {
     timeStampsPerCoverage.put(durationInMicros, visitedLinesCoverage);
   }
 
-  public Map<Long, Double> getTimeStampsPerCoverageMap() {
+  public Map<Long, Double> getTimeStampsPerCoverage() {
     return timeStampsPerCoverage;
   }
 
   public Map<Long, Double> getTimeStampsPerPredicateCoverage() {
     return timeStampsPerPredicateCoverage;
+  }
+
+  public Map<Long, Double> getTimeStampsPerPredicateConsideredCoverage() {
+    return timeStampsPerPredicateConsideredCoverage;
   }
 
   public double getPredicateCoverage() {
@@ -194,6 +209,15 @@ public final class CoverageData {
     final FileLocation loc = pEdge.getFileLocation();
     final FileCoverageInformation collector = getFileInfoTarget(loc, infosPerFile);
     collector.addPredicateConsideredNode(pEdge.getPredecessor());
+  }
+
+  public double getTempPredicateConsideredCoverage(CFA cfa) {
+    int numTotalNodes = cfa.getAllNodes().size();
+    int numPredicateConsideredNodes = 0;
+    for (FileCoverageInformation info : getInfosPerFile().values()) {
+      numPredicateConsideredNodes += info.numPredicateConsideredNodes.size();
+    }
+    return numPredicateConsideredNodes / (double) numTotalNodes;
   }
 
   public void addConsideredNodes(

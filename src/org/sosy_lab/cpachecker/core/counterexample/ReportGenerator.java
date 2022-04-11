@@ -180,9 +180,11 @@ public class ReportGenerator {
 
     // extract further coverage data captured during the analysis if CoverageCPA is present
     CoverageData coverageData = CoverageUtility.getCoverageDataFromReachedSet(pReached);
-    Map<Long, Double> timeStampsPerCoverage = coverageData.getTimeStampsPerCoverageMap();
+    Map<Long, Double> timeStampsPerCoverage = coverageData.getTimeStampsPerCoverage();
     Map<Long, Double> timeStampsPerPredicateCoverage =
         coverageData.getTimeStampsPerPredicateCoverage();
+    Map<Long, Double> timeStampsPerPredicateConsideredCoverage =
+        coverageData.getTimeStampsPerPredicateConsideredCoverage();
     Map<String, FileCoverageInformation> fileCoverageInformationMap =
         coverageData.getInfosPerFile();
 
@@ -213,6 +215,7 @@ public class ReportGenerator {
             pStatistics,
             timeStampsPerCoverage,
             timeStampsPerPredicateCoverage,
+            timeStampsPerPredicateConsideredCoverage,
             fileCoverageInformationMap);
         console.println("Graphical representation included in the file \"" + reportFile + "\".");
       }
@@ -228,6 +231,7 @@ public class ReportGenerator {
             pStatistics,
             timeStampsPerCoverage,
             timeStampsPerPredicateCoverage,
+            timeStampsPerPredicateConsideredCoverage,
             fileCoverageInformationMap);
       }
 
@@ -282,6 +286,7 @@ public class ReportGenerator {
       String statistics,
       Map<Long, Double> timeStampsPerCoverage,
       Map<Long, Double> timeStampsPerPredicateCoverage,
+      Map<Long, Double> timeStampsPerPredicateConsideredCoverage,
       Map<String, FileCoverageInformation> fileCoverageInformationMap) {
 
     try (BufferedReader reader =
@@ -304,7 +309,8 @@ public class ReportGenerator {
               dotBuilder,
               counterExample,
               timeStampsPerCoverage,
-              timeStampsPerPredicateCoverage);
+              timeStampsPerPredicateCoverage,
+              timeStampsPerPredicateConsideredCoverage);
         } else if (line.contains("STATISTICS")) {
           insertStatistics(writer, statistics);
         } else if (line.contains("SOURCE_CONTENT")) {
@@ -347,11 +353,16 @@ public class ReportGenerator {
       DOTBuilder2 dotBuilder,
       @Nullable CounterexampleInfo counterExample,
       Map<Long, Double> timeStampsPerCoverage,
-      Map<Long, Double> timeStampsPerPredicateCoverage)
+      Map<Long, Double> timeStampsPerPredicateCoverage,
+      Map<Long, Double> timeStampsPerPredicateConsideredCoverage)
       throws IOException {
     insertCfaJson(writer, cfa, dotBuilder, counterExample);
     insertArgJson(writer);
-    insertTimeStampsPerCoverageJson(writer, timeStampsPerCoverage, timeStampsPerPredicateCoverage);
+    insertTimeStampsPerCoverageJson(
+        writer,
+        timeStampsPerCoverage,
+        timeStampsPerPredicateCoverage,
+        timeStampsPerPredicateConsideredCoverage);
     insertSourceFileNames(writer, allInputFiles);
 
     insertJsFile(writer, WORKER_DATA_TEMPLATE);
@@ -362,7 +373,8 @@ public class ReportGenerator {
   private void insertTimeStampsPerCoverageJson(
       Writer writer,
       Map<Long, Double> timeStampsPerCoverage,
-      Map<Long, Double> timeStampsPerPredicateCoverage)
+      Map<Long, Double> timeStampsPerPredicateCoverage,
+      Map<Long, Double> timeStampsPerPredicateConsideredCoverage)
       throws IOException {
     writer.write("var timeStampsPerCoverageJson = ");
     JSON.writeJSONString(timeStampsPerCoverage, writer);
@@ -371,6 +383,12 @@ public class ReportGenerator {
     JSON.writeJSONString(timeStampsPerPredicateCoverage, writer);
     writer.write(
         "\nwindow.timeStampsPerPredicateCoverageJson = timeStampsPerPredicateCoverageJson;\n");
+    writer.write("var timeStampsPerPredicateConsideredCoverageJson = ");
+    JSON.writeJSONString(timeStampsPerPredicateConsideredCoverage, writer);
+    writer.write(
+        "\n"
+            + "window.timeStampsPerPredicateConsideredCoverageJson ="
+            + " timeStampsPerPredicateConsideredCoverageJson;\n");
   }
 
   private void insertCfaJson(
@@ -569,7 +587,7 @@ public class ReportGenerator {
                 + ")\">\n<table>\n");
         String line;
         while (null != (line = source.readLine())) {
-          String lineColor = coveragePerLine.getOrDefault(lineNumber, "#ff6e6e");
+          String lineColor = coveragePerLine.getOrDefault(lineNumber, "#fadce7");
           line =
               "<td><pre id=\"right-source-"
                   + lineNumber

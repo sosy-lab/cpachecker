@@ -51,6 +51,7 @@ const {
   cfaJson,
   timeStampsPerCoverageJson,
   timeStampsPerPredicateCoverageJson,
+  timeStampsPerPredicateConsideredCoverageJson,
 } = window;
 
 // CFA graph variable declarations
@@ -340,7 +341,8 @@ function renderTDCG(dataJSON, color, inPercentage) {
       renderTDCG(timeStampsPerCoverageJson, "#3cc220", true);
       if (
         isAlmostEmpty(timeStampsPerCoverageJson) &&
-        isAlmostEmpty(timeStampsPerPredicateCoverageJson)
+        isAlmostEmpty(timeStampsPerPredicateCoverageJson) &&
+        isAlmostEmpty(timeStampsPerPredicateConsideredCoverageJson)
       ) {
         d3.select("#tdcg-toolbar-button").style("display", "none");
       }
@@ -1367,6 +1369,9 @@ function renderTDCG(dataJSON, color, inPercentage) {
       if (isNotAlmostEmpty(timeStampsPerPredicateCoverageJson)) {
         $scope.tdcgSelections.push("Predicates over Time");
       }
+      if (isNotAlmostEmpty(timeStampsPerPredicateConsideredCoverageJson)) {
+        $scope.tdcgSelections.push("Predicates-considered coverage over Time");
+      }
       if (isEmpty($scope.tdcgSelections)) {
         $scope.tdcgSelections.push("No data available");
       }
@@ -1381,6 +1386,12 @@ function renderTDCG(dataJSON, color, inPercentage) {
           $rootScope.displayedTDCG.indexOf("Predicates over Time") !== -1
         ) {
           $scope.renderTDCGForPredicates();
+        } else if (
+          $rootScope.displayedTDCG.indexOf(
+            "Predicates-considered coverage over Time"
+          ) !== -1
+        ) {
+          $scope.renderTDCGForPredicatesConsideredCoverage();
         }
       };
 
@@ -1394,6 +1405,16 @@ function renderTDCG(dataJSON, color, inPercentage) {
         $scope.removeTDCG();
         $scope.renderTDCG(timeStampsPerPredicateCoverageJson, "#1a81d5", false);
       };
+
+      $scope.renderTDCGForPredicatesConsideredCoverage =
+        function renderTDCGForPredicatesConsideredCoverage() {
+          $scope.removeTDCG();
+          $scope.renderTDCG(
+            timeStampsPerPredicateConsideredCoverageJson,
+            "#e33636",
+            true
+          );
+        };
 
       $scope.removeTDCG = function removeTDCG() {
         d3.select("#time_dependent_coverage_graph").selectAll("*").remove();

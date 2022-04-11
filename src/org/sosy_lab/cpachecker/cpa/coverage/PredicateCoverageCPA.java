@@ -31,13 +31,17 @@ public class PredicateCoverageCPA extends AbstractSingleWrapperCPA {
 
   private final CoverageData cov = new CoverageData();
   private final Map<Long, Double> timeStampsPerCoverage = new HashMap<>();
+  private final Map<Long, Double> timeStampsPerPredicateConsideredCoverage = new HashMap<>();
   private final FormulaManagerView fmgr;
+  private final CFA cfa;
 
   private PredicateCoverageCPA(ConfigurableProgramAnalysis pCpa, CFA pCFA)
       throws InvalidConfigurationException {
     super(pCpa);
+    cfa = pCFA;
     cov.putCFA(pCFA);
     cov.putTimeStampsPerPredicateCoverage(timeStampsPerCoverage);
+    cov.putTimeStampsPerPredicateConsideredCoverage(timeStampsPerPredicateConsideredCoverage);
     fmgr = getFormulaManagerView();
   }
 
@@ -60,7 +64,12 @@ public class PredicateCoverageCPA extends AbstractSingleWrapperCPA {
   @Override
   public TransferRelation getTransferRelation() {
     return new PredicateCoverageCPATransferRelation(
-        getWrappedCpa().getTransferRelation(), fmgr, timeStampsPerCoverage, cov);
+        getWrappedCpa().getTransferRelation(),
+        fmgr,
+        cfa,
+        timeStampsPerCoverage,
+        timeStampsPerPredicateConsideredCoverage,
+        cov);
   }
 
   @Override

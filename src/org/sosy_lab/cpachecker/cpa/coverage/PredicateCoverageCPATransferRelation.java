@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -39,19 +40,25 @@ public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperT
   private final TransferRelation predicateTransferRelation;
   private Instant startTime = Instant.MIN;
   private final Map<Long, Double> timeStampsPerCoverage;
+  private final Map<Long, Double> timeStampsPerPredicateConsideredCoverage;
   private final FormulaManagerView fmgr;
   private final CoverageData cov;
+  private final CFA cfa;
 
   PredicateCoverageCPATransferRelation(
       TransferRelation pDelegateTransferRelation,
       FormulaManagerView pFmgr,
+      CFA pCfa,
       Map<Long, Double> pTimeStampsPerCoverage,
+      Map<Long, Double> pTimeStampsPerPredicateConsideredCoverage,
       CoverageData pCov) {
     super(pDelegateTransferRelation);
     predicateTransferRelation = pDelegateTransferRelation;
     timeStampsPerCoverage = pTimeStampsPerCoverage;
+    timeStampsPerPredicateConsideredCoverage = pTimeStampsPerPredicateConsideredCoverage;
     fmgr = Preconditions.checkNotNull(pFmgr);
     cov = Preconditions.checkNotNull(pCov);
+    cfa = Preconditions.checkNotNull(pCfa);
   }
 
   @Override
@@ -69,13 +76,16 @@ public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperT
     }
     if (precision instanceof PredicatePrecision) {
       PredicatePrecision predicatePrecision = (PredicatePrecision) precision;
-      addTimeStampsForePredicateCoverage(getAllPredicates(predicatePrecision).size());
-      addPredicateConsideredNode(cfaEdge, predicatePrecision);
+      addTimeStampsForPredicateCoverage(getAllPredicates(predicatePrecision).size());
+      if (shouldAddPredicateConsideredNode(cfaEdge, predicatePrecision)) {
+        cov.addPredicateConsideredNode(cfaEdge);
+        addTimeStampsForePredicateConsideredCoverage(cov.getTempPredicateConsideredCoverage(cfa));
+      }
     }
     return predicateTransferRelation.getAbstractSuccessorsForEdge(state, precision, cfaEdge);
   }
 
-  private void addPredicateConsideredNode(CFAEdge cfaEdge, PredicatePrecision precision) {
+  private boolean shouldAddPredicateConsideredNode(CFAEdge cfaEdge, PredicatePrecision precision) {
     Set<AbstractionPredicate> allPredicates =
         getAllPredicatesForNode(cfaEdge.getPredecessor(), precision);
     if (cfaEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
@@ -83,11 +93,12 @@ public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperT
       CExpression exp = a.getExpression();
       String assumeExpression = exp.toQualifiedASTString();
       if (coversPredicate(allPredicates, assumeExpression)) {
-        cov.addPredicateConsideredNode(cfaEdge);
+        return true;
       }
     } else {
-      cov.addPredicateConsideredNode(cfaEdge);
+      return true;
     }
+    return false;
   }
 
   private boolean coversPredicate(
@@ -125,10 +136,18 @@ public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperT
     return new HashSet<>(Arrays.asList(assumeParts));
   }
 
-  private void addTimeStampsForePredicateCoverage(double predicateCoverage) {
+  private void addTimeStampsForePredicateConsideredCoverage(double predicateConsideredCoverage) {
+    addTimeStampsForCoverage(predicateConsideredCoverage, timeStampsPerPredicateConsideredCoverage);
+  }
+
+  private void addTimeStampsForPredicateCoverage(double predicateCoverage) {
+    addTimeStampsForCoverage(predicateCoverage, timeStampsPerCoverage);
+  }
+
+  private void addTimeStampsForCoverage(double coverage, Map<Long, Double> map) {
     long durationInNanos = Duration.between(startTime, Instant.now()).toNanos();
     long durationInMicros = TimeUnit.NANOSECONDS.toMicros(durationInNanos);
-    timeStampsPerCoverage.put(durationInMicros, predicateCoverage);
+    map.put(durationInMicros, coverage);
   }
 
   private Set<AbstractionPredicate> getAllPredicates(PredicatePrecision precision) {
