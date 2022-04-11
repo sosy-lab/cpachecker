@@ -220,7 +220,7 @@ public final class CoverageData {
     infos.addVisitedFunction(pEntryNode.getFunctionName());
   }
 
-  Map<String, FileCoverageInformation> getInfosPerFile() {
+  public Map<String, FileCoverageInformation> getInfosPerFile() {
     return infosPerFile;
   }
 }

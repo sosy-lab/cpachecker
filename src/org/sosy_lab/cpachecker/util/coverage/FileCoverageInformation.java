@@ -16,7 +16,7 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 
-class FileCoverageInformation {
+public class FileCoverageInformation {
 
   static class FunctionInfo {
     final String name;
@@ -39,6 +39,10 @@ class FileCoverageInformation {
   final Set<FunctionInfo> allFunctions = new LinkedHashSet<>();
   final Set<AssumeEdge> allAssumes = new LinkedHashSet<>();
   final Set<AssumeEdge> visitedAssumes = new LinkedHashSet<>();
+
+  public Multiset<Integer> getVisitedLines() {
+    return visitedLines;
+  }
 
   void addVisitedAssume(AssumeEdge pEdge) {
     visitedAssumes.add(pEdge);

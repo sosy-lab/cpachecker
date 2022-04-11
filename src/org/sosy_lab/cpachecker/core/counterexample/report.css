@@ -564,14 +564,6 @@ table {
   border: none;
 }
 
-.sourceContent tr:nth-child(odd) td pre.prettyprint {
-  background-color: #c6dce7;
-}
-
-.sourceContent tr:nth-child(even) td pre.prettyprint {
-  background-color: #a8cfe2;
-}
-
 .edit-line {
   width: 100%;
   background-color: white;
