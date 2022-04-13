@@ -99,6 +99,10 @@ public class ReportGenerator {
   private static final String VENDOR_CSS_TEMPLATE = "build/vendors.css";
   private static final String VENDOR_JS_TEMPLATE = "build/vendors.js";
 
+  // this number determines how many data points within the TDCG are shown (more means less
+  // performance)
+  private static final int MAX_DATA_POINTS_TDCG = 10000;
+
   private final Configuration config;
   private final LogManager logger;
 
@@ -180,11 +184,12 @@ public class ReportGenerator {
 
     // extract further coverage data captured during the analysis if CoverageCPA is present
     CoverageData coverageData = CoverageUtility.getCoverageDataFromReachedSet(pReached);
-    Map<Long, Double> timeStampsPerCoverage = coverageData.getTimeStampsPerCoverage();
+    Map<Long, Double> timeStampsPerCoverage =
+        coverageData.getReducedTimeStampsPerCoverage(MAX_DATA_POINTS_TDCG);
     Map<Long, Double> timeStampsPerPredicateCoverage =
-        coverageData.getTimeStampsPerPredicateCoverage();
+        coverageData.getReducedTimeStampsPerPredicateCoverage(MAX_DATA_POINTS_TDCG);
     Map<Long, Double> timeStampsPerPredicateConsideredCoverage =
-        coverageData.getTimeStampsPerPredicateConsideredCoverage();
+        coverageData.getReducedTimeStampsPerPredicateConsideredCoverage(MAX_DATA_POINTS_TDCG);
     Map<String, FileCoverageInformation> fileCoverageInformationMap =
         coverageData.getInfosPerFile();
 

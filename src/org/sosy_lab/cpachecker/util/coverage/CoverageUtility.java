@@ -104,7 +104,7 @@ public class CoverageUtility {
 
   public static CoverageData extractTimeDependentCoverageData(ConfigurableProgramAnalysis cpa) {
     CoverageData coverageData = new CoverageData();
-    Map<Long, Double> timeStampsPerCoverage = new HashMap<>();
+    boolean usedPredicateCoverageCPA = false;
 
     if (cpa instanceof ARGCPA) {
       ImmutableList<ConfigurableProgramAnalysis> cpas = ((ARGCPA) cpa).getWrappedCPAs();
@@ -114,16 +114,24 @@ public class CoverageUtility {
               ((CompositeCPA) compositeCPA).getWrappedCPAs();
           for (var wrappedCPA : wrappedCPAs) {
             if (wrappedCPA instanceof PredicateCoverageCPA) {
+              usedPredicateCoverageCPA = true;
               coverageData = ((PredicateCoverageCPA) wrappedCPA).getCoverageData();
             }
+          }
+          for (var wrappedCPA : wrappedCPAs) {
             if (wrappedCPA instanceof CoverageCPA) {
-              timeStampsPerCoverage = ((CoverageCPA) wrappedCPA).getTimeStampsPerCoverageMap();
+              if (usedPredicateCoverageCPA) {
+                Map<Long, Double> timeStampsPerCoverage =
+                    ((CoverageCPA) wrappedCPA).getCoverageData().getTimeStampsPerCoverage();
+                coverageData.putTimeStampsPerCoverage(timeStampsPerCoverage);
+              } else {
+                coverageData = ((CoverageCPA) wrappedCPA).getCoverageData();
+              }
             }
           }
         }
       }
     }
-    coverageData.putTimeStampsPerCoverage(timeStampsPerCoverage);
     return coverageData;
   }
 

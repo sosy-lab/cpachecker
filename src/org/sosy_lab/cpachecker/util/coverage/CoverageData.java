@@ -12,9 +12,12 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -162,12 +165,44 @@ public final class CoverageData {
     timeStampsPerCoverage.put(durationInMicros, visitedLinesCoverage);
   }
 
+  private Map<Long, Double> thinOutMap(Map<Long, Double> map, int max) {
+    if (max < 0) {
+      max = 0;
+    }
+    int mapSize = map.size();
+    if (mapSize < max) {
+      return map;
+    }
+    Map<Long, Double> outputMap = new HashMap<>();
+    List<Long> list = map.keySet().stream().sorted().collect(Collectors.toList());
+    int ruleOutQuotient = (int) Math.ceil(mapSize / (double) max);
+    for (int i = 0; i < mapSize; i++) {
+      if (i % ruleOutQuotient == 0) {
+        long key = list.get(i);
+        outputMap.put(key, map.get(key));
+      }
+    }
+    return outputMap;
+  }
+
+  public Map<Long, Double> getReducedTimeStampsPerCoverage(int max) {
+    return thinOutMap(timeStampsPerCoverage, max);
+  }
+
   public Map<Long, Double> getTimeStampsPerCoverage() {
     return timeStampsPerCoverage;
   }
 
+  public Map<Long, Double> getReducedTimeStampsPerPredicateCoverage(int max) {
+    return thinOutMap(timeStampsPerPredicateCoverage, max);
+  }
+
   public Map<Long, Double> getTimeStampsPerPredicateCoverage() {
     return timeStampsPerPredicateCoverage;
+  }
+
+  public Map<Long, Double> getReducedTimeStampsPerPredicateConsideredCoverage(int max) {
+    return thinOutMap(timeStampsPerPredicateConsideredCoverage, max);
   }
 
   public Map<Long, Double> getTimeStampsPerPredicateConsideredCoverage() {
