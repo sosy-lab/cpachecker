@@ -806,9 +806,7 @@ function renderTDCG(dataJSON, color, inPercentage) {
         if (errPathEntry.line === 0) {
           errPathEntry.line = 1;
         }
-        const selection = d3.select(
-          `#source-${errPathEntry.line} td pre.prettyprint`
-        );
+        const selection = d3.select(`#right-source-${errPathEntry.line}`);
         selection.classed("marked-source-line", true);
         $(".sourceContent").scrollTop(
           selection.node().getBoundingClientRect().top +
