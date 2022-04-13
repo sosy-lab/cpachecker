@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.coverage;
 
+import com.google.common.collect.ImmutableList;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
@@ -17,7 +18,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -174,7 +174,7 @@ public final class CoverageData {
       return map;
     }
     Map<Long, Double> outputMap = new HashMap<>();
-    List<Long> list = map.keySet().stream().sorted().collect(Collectors.toList());
+    List<Long> list = map.keySet().stream().sorted().collect(ImmutableList.toImmutableList());
     int ruleOutQuotient = (int) Math.ceil(mapSize / (double) max);
     for (int i = 0; i < mapSize; i++) {
       if (i % ruleOutQuotient == 0) {

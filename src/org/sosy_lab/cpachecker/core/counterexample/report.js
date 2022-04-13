@@ -546,6 +546,7 @@ function renderTDCG(dataJSON, color, inPercentage) {
             }
           }
           d3.select("#tdcg-toolbar").style("visibility", "hidden");
+          d3.select("#source-toolbar").style("visibility", "hidden");
           d3.select("#cfa-toolbar").style("visibility", "visible");
           if (!d3.select("#cfa-container").classed("cfa-content")) {
             d3.select("#cfa-container").classed("cfa-content", true);
@@ -561,6 +562,7 @@ function renderTDCG(dataJSON, color, inPercentage) {
             }
           }
           d3.select("#tdcg-toolbar").style("visibility", "hidden");
+          d3.select("#source-toolbar").style("visibility", "hidden");
           d3.select("#arg-toolbar").style("visibility", "visible");
           if (!d3.select("#arg-container").classed("arg-content")) {
             d3.select("#arg-container").classed("arg-content", true);
@@ -597,6 +599,7 @@ function renderTDCG(dataJSON, color, inPercentage) {
             }
           }
           d3.select("#tdcg-toolbar").style("visibility", "hidden");
+          d3.select("#source-toolbar").style("visibility", "hidden");
           if (d3.select("#arg-toolbar").style("visibility") !== "hidden") {
             d3.select("#arg-toolbar").style("visibility", "hidden");
             d3.selectAll(".arg-graph").style("visibility", "hidden");
@@ -610,6 +613,9 @@ function renderTDCG(dataJSON, color, inPercentage) {
         }
         if (tabIndex === 8) {
           d3.select("#tdcg-toolbar").style("visibility", "visible");
+        }
+        if (tabIndex === 3) {
+          d3.select("#source-toolbar").style("visibility", "visible");
         }
         $scope.tab = tabIndex;
       };
@@ -1352,6 +1358,29 @@ function renderTDCG(dataJSON, color, inPercentage) {
         if (input % 1 !== 0) return false;
         if (input < 500 || input > 900) return false;
         return true;
+      };
+    },
+  ]);
+
+  app.controller("SourceToolbarController", [
+    "$rootScope",
+    "$scope",
+    function sourceToolbarController($rootScope, $scope) {
+      $scope.sourceColoringEnabled = false;
+      $scope.sourceColoringControl = () => {
+        if ($scope.sourceColoringEnabled) {
+          $scope.sourceColoringEnabled = false;
+          d3.select("#source-color-button").html(
+            "<i class='far fa-square'></i>"
+          );
+          console.log("Should uncolor Source");
+        } else {
+          $scope.sourceColoringEnabled = true;
+          d3.select("#source-color-button").html(
+            "<i class='far fa-check-square'></i>"
+          );
+          console.log("Should color Source");
+        }
       };
     },
   ]);

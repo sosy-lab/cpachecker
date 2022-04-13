@@ -582,6 +582,28 @@ with considerably less effort -->
           </nav>
         </div>
 
+        <div id="source-toolbar" ng-controller="SourceToolbarController">
+          <nav class="navbar navbar-light bg-light">
+            <div class="nav-item">
+              <label>
+                <strong>Verification Coverage</strong>
+              </label>
+              <span class="button-checkbox">
+                <button
+                  class="btn btn-outline-secondary"
+                  id="source-color-button"
+                  type="button"
+                  data-color="primary"
+                  ng-click="sourceColoringControl()"
+                  title="Show coloring of visited lines"
+                >
+                  <i class="far fa-square"></i>
+                </button>
+              </span>
+            </div>
+          </nav>
+        </div>
+
         <div id="cfa-container" ng-class="{active: tabIsSet(1)}"></div>
 
         <div id="arg-container" ng-class="{active: tabIsSet(2)}"></div>
@@ -592,6 +614,7 @@ with considerably less effort -->
           ng-class="{active: tabIsSet(3)}"
           ng-controller="SourceController"
         >
+          <p></p>
           <div class="edit-line">
             <div class="dropdown" id="dropdownMenu2">
               <button
