@@ -16,6 +16,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * An iterator implementation that relies on the single method {@link
  * PrepareNextIterator#prepareNext()} which either returns the next element in the iteration or
  * {@code null} if there are no more elements left.
+ *
+ * <p>{@link PrepareNextIterator#remove()} is not supported and throws an {@link
+ * UnsupportedOperationException}.
  */
 public abstract class PrepareNextIterator<E> implements Iterator<E> {
 
@@ -53,5 +56,10 @@ public abstract class PrepareNextIterator<E> implements Iterator<E> {
     nextElement = null;
 
     return element;
+  }
+
+  @Override
+  public final void remove() {
+    throw new UnsupportedOperationException();
   }
 }
