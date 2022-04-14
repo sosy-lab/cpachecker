@@ -194,11 +194,6 @@ public abstract class CfaNetwork implements Network<CFANode, CFAEdge> {
           public Iterator<CFAEdge> iterator() {
             return Iterators.filter(pNetwork.inEdges(pNode).iterator(), pFilter::test);
           }
-
-          @Override
-          public int size() {
-            return Iterators.size(iterator());
-          }
         };
       }
 
@@ -209,11 +204,6 @@ public abstract class CfaNetwork implements Network<CFANode, CFAEdge> {
           @Override
           public Iterator<CFAEdge> iterator() {
             return Iterators.filter(pNetwork.outEdges(pNode).iterator(), pFilter::test);
-          }
-
-          @Override
-          public int size() {
-            return Iterators.size(iterator());
           }
         };
       }
@@ -250,11 +240,6 @@ public abstract class CfaNetwork implements Network<CFANode, CFAEdge> {
           public Iterator<CFAEdge> iterator() {
             return Iterators.transform(pNetwork.inEdges(pNode).iterator(), pTransformer::apply);
           }
-
-          @Override
-          public int size() {
-            return Iterators.size(iterator());
-          }
         };
       }
 
@@ -265,11 +250,6 @@ public abstract class CfaNetwork implements Network<CFANode, CFAEdge> {
           @Override
           public Iterator<CFAEdge> iterator() {
             return Iterators.transform(pNetwork.outEdges(pNode).iterator(), pTransformer::apply);
-          }
-
-          @Override
-          public int size() {
-            return Iterators.size(iterator());
           }
         };
       }
@@ -303,11 +283,6 @@ public abstract class CfaNetwork implements Network<CFANode, CFAEdge> {
                 .filter(node -> pFunctions.contains(node.getPredecessor().getFunctionName()))
                 .iterator();
           }
-
-          @Override
-          public int size() {
-            return Iterators.size(iterator());
-          }
         };
       }
 
@@ -320,11 +295,6 @@ public abstract class CfaNetwork implements Network<CFANode, CFAEdge> {
             return CFAUtils.allLeavingEdges(pNode)
                 .filter(node -> pFunctions.contains(node.getSuccessor().getFunctionName()))
                 .iterator();
-          }
-
-          @Override
-          public int size() {
-            return Iterators.size(iterator());
           }
         };
       }
@@ -369,11 +339,6 @@ public abstract class CfaNetwork implements Network<CFANode, CFAEdge> {
                 return null;
               }
             };
-          }
-
-          @Override
-          public int size() {
-            return Iterators.size(iterator());
           }
         };
       }
@@ -485,11 +450,6 @@ public abstract class CfaNetwork implements Network<CFANode, CFAEdge> {
           }
         };
       }
-
-      @Override
-      public int size() {
-        return Iterators.size(iterator());
-      }
     };
   }
 
@@ -530,11 +490,6 @@ public abstract class CfaNetwork implements Network<CFANode, CFAEdge> {
             return null;
           }
         };
-      }
-
-      @Override
-      public int size() {
-        return Iterators.size(iterator());
       }
     };
   }
@@ -704,11 +659,6 @@ public abstract class CfaNetwork implements Network<CFANode, CFAEdge> {
             return outEdges.next();
           }
         };
-      }
-
-      @Override
-      public int size() {
-        return Iterators.size(iterator());
       }
     };
   }
