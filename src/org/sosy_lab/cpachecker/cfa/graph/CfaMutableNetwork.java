@@ -8,12 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.graph;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.TreeMultimap;
-import com.google.common.graph.EndpointPair;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.NavigableMap;
 import java.util.TreeMap;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -22,6 +18,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.graph.ForwardingMutableNetwork;
+import org.sosy_lab.cpachecker.util.graph.Graphs;
 
 // TODO: merge CfaMutableNetwork and MutableCfaNetwork
 public class CfaMutableNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge> {
@@ -72,22 +69,7 @@ public class CfaMutableNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge
    * }</pre>
    */
   public void insertPredecessor(CFANode pNewPredecessor, CFANode pNode, CFAEdge pNewInEdge) {
-
-    List<CFAEdge> nodeInEdges = ImmutableList.copyOf(inEdges(pNode));
-    List<CFANode> nodeUs = new ArrayList<>(nodeInEdges.size());
-
-    for (CFAEdge nodeInEdge : nodeInEdges) {
-      nodeUs.add(incidentNodes(nodeInEdge).nodeU());
-      removeEdge(nodeInEdge);
-    }
-
-    addNode(pNewPredecessor);
-
-    for (int index = 0; index < nodeInEdges.size(); index++) {
-      addEdge(nodeUs.get(index), pNewPredecessor, nodeInEdges.get(index));
-    }
-
-    addEdge(pNewPredecessor, pNode, pNewInEdge);
+    Graphs.insertPredecessor(this, pNewPredecessor, pNode, pNewInEdge);
   }
 
   /**
@@ -103,22 +85,7 @@ public class CfaMutableNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge
    * }</pre>
    */
   public void insertSuccessor(CFANode pNode, CFANode pNewSuccessor, CFAEdge pNewOutEdge) {
-
-    List<CFAEdge> nodeOutEdges = ImmutableList.copyOf(outEdges(pNode));
-    List<CFANode> nodeVs = new ArrayList<>(nodeOutEdges.size());
-
-    for (CFAEdge nodeOutEdge : nodeOutEdges) {
-      nodeVs.add(incidentNodes(nodeOutEdge).nodeV());
-      removeEdge(nodeOutEdge);
-    }
-
-    addNode(pNewSuccessor);
-
-    for (int index = 0; index < nodeOutEdges.size(); index++) {
-      addEdge(pNewSuccessor, nodeVs.get(index), nodeOutEdges.get(index));
-    }
-
-    addEdge(pNode, pNewSuccessor, pNewOutEdge);
+    Graphs.insertSuccessor(this, pNode, pNewSuccessor, pNewOutEdge);
   }
 
   /**
@@ -134,22 +101,7 @@ public class CfaMutableNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge
    * }</pre>
    */
   public void replace(CFANode pNode, CFANode pNewNode) {
-
-    addNode(pNewNode);
-
-    for (CFAEdge inEdge : ImmutableList.copyOf(inEdges(pNode))) {
-      CFANode nodeU = incidentNodes(inEdge).nodeU();
-      removeEdge(inEdge);
-      addEdge(nodeU, pNewNode, inEdge);
-    }
-
-    for (CFAEdge outEdge : ImmutableList.copyOf(outEdges(pNode))) {
-      CFANode nodeV = incidentNodes(outEdge).nodeV();
-      removeEdge(outEdge);
-      addEdge(pNewNode, nodeV, outEdge);
-    }
-
-    removeNode(pNode);
+    Graphs.replaceNode(this, pNode, pNewNode);
   }
 
   /**
@@ -166,9 +118,6 @@ public class CfaMutableNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge
    */
   @SuppressFBWarnings("UC_USELESS_VOID_METHOD") // false positive by SpotBugs
   public void replace(CFAEdge pEdge, CFAEdge pNewEdge) {
-
-    EndpointPair<CFANode> endpoints = incidentNodes(pEdge);
-    removeEdge(pEdge);
-    addEdge(endpoints.nodeU(), endpoints.nodeV(), pNewEdge);
+    Graphs.replaceEdge(this, pEdge, pNewEdge);
   }
 }
