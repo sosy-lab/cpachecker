@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.graph;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.graph.EndpointPair;
 import com.google.common.graph.MutableNetwork;
@@ -30,22 +32,27 @@ public final class Graphs {
    * --- a ---> [pNewPredecessor] --- pNewInEdge ---> [pNode] --- b ---->
    *
    * }</pre>
+   *
+   * @throws NullPointerException if any parameter is {@code null}
+   * @throws IllegalArgumentException if the specified mutable network is undirected
    */
   public static <N, E> void insertPredecessor(
       MutableNetwork<N, E> pNetwork, N pNewPredecessor, N pNode, E pNewInEdge) {
 
+    checkArgument(pNetwork.isDirected());
+
     ImmutableList<E> nodeInEdges = ImmutableList.copyOf(pNetwork.inEdges(pNode));
-    List<N> nodeUs = new ArrayList<>(nodeInEdges.size());
+    List<N> nodePredecessors = new ArrayList<>(nodeInEdges.size());
 
     for (E nodeInEdge : nodeInEdges) {
-      nodeUs.add(pNetwork.incidentNodes(nodeInEdge).nodeU());
+      nodePredecessors.add(pNetwork.incidentNodes(nodeInEdge).source());
       pNetwork.removeEdge(nodeInEdge);
     }
 
     pNetwork.addNode(pNewPredecessor);
 
     for (int index = 0; index < nodeInEdges.size(); index++) {
-      pNetwork.addEdge(nodeUs.get(index), pNewPredecessor, nodeInEdges.get(index));
+      pNetwork.addEdge(nodePredecessors.get(index), pNewPredecessor, nodeInEdges.get(index));
     }
 
     pNetwork.addEdge(pNewPredecessor, pNode, pNewInEdge);
@@ -62,22 +69,27 @@ public final class Graphs {
    * --- a ---> [pNode] --- pNewOutEdge ---> [pNewSuccessor] --- b ---->
    *
    * }</pre>
+   *
+   * @throws NullPointerException if any parameter is {@code null}
+   * @throws IllegalArgumentException if the specified mutable network is undirected
    */
   public static <N, E> void insertSuccessor(
       MutableNetwork<N, E> pNetwork, N pNode, N pNewSuccessor, E pNewOutEdge) {
 
+    checkArgument(pNetwork.isDirected());
+
     ImmutableList<E> nodeOutEdges = ImmutableList.copyOf(pNetwork.outEdges(pNode));
-    List<N> nodeVs = new ArrayList<>(nodeOutEdges.size());
+    List<N> nodeSuccessors = new ArrayList<>(nodeOutEdges.size());
 
     for (E nodeOutEdge : nodeOutEdges) {
-      nodeVs.add(pNetwork.incidentNodes(nodeOutEdge).nodeV());
+      nodeSuccessors.add(pNetwork.incidentNodes(nodeOutEdge).target());
       pNetwork.removeEdge(nodeOutEdge);
     }
 
     pNetwork.addNode(pNewSuccessor);
 
     for (int index = 0; index < nodeOutEdges.size(); index++) {
-      pNetwork.addEdge(pNewSuccessor, nodeVs.get(index), nodeOutEdges.get(index));
+      pNetwork.addEdge(pNewSuccessor, nodeSuccessors.get(index), nodeOutEdges.get(index));
     }
 
     pNetwork.addEdge(pNode, pNewSuccessor, pNewOutEdge);
@@ -94,21 +106,26 @@ public final class Graphs {
    * --- a ---> [pNewNode] --- b ---->
    *
    * }</pre>
+   *
+   * @throws NullPointerException if any parameter is {@code null}
+   * @throws IllegalArgumentException if the specified mutable network is undirected
    */
   public static <N, E> void replaceNode(MutableNetwork<N, E> pNetwork, N pNode, N pNewNode) {
+
+    checkArgument(pNetwork.isDirected());
 
     pNetwork.addNode(pNewNode);
 
     for (E inEdge : ImmutableList.copyOf(pNetwork.inEdges(pNode))) {
-      N nodeU = pNetwork.incidentNodes(inEdge).nodeU();
+      N nodePredecessor = pNetwork.incidentNodes(inEdge).source();
       pNetwork.removeEdge(inEdge);
-      pNetwork.addEdge(nodeU, pNewNode, inEdge);
+      pNetwork.addEdge(nodePredecessor, pNewNode, inEdge);
     }
 
     for (E outEdge : ImmutableList.copyOf(pNetwork.outEdges(pNode))) {
-      N nodeV = pNetwork.incidentNodes(outEdge).nodeV();
+      N nodeSuccessor = pNetwork.incidentNodes(outEdge).target();
       pNetwork.removeEdge(outEdge);
-      pNetwork.addEdge(pNewNode, nodeV, outEdge);
+      pNetwork.addEdge(pNewNode, nodeSuccessor, outEdge);
     }
 
     pNetwork.removeNode(pNode);
@@ -125,11 +142,16 @@ public final class Graphs {
    * --- a ---> [X] --- pNewEdge ---> [Y] --- b ---->
    *
    * }</pre>
+   *
+   * @throws NullPointerException if any parameter is {@code null}
+   * @throws IllegalArgumentException if the specified mutable network is undirected
    */
   public static <N, E> void replaceEdge(MutableNetwork<N, E> pNetwork, E pEdge, E pNewEdge) {
 
+    checkArgument(pNetwork.isDirected());
+
     EndpointPair<N> endpoints = pNetwork.incidentNodes(pEdge);
     pNetwork.removeEdge(pEdge);
-    pNetwork.addEdge(endpoints.nodeU(), endpoints.nodeV(), pNewEdge);
+    pNetwork.addEdge(endpoints.source(), endpoints.target(), pNewEdge);
   }
 }
