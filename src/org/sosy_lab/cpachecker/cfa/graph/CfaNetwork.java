@@ -20,17 +20,14 @@ import com.google.common.graph.EndpointPair;
 import com.google.common.graph.Graph;
 import com.google.common.graph.Network;
 import java.util.ArrayDeque;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -81,145 +78,11 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
    * @throws NullPointerException if {@code pCfa == null}
    */
   public static CfaNetwork of(CFA pCfa) {
-
-    checkNotNull(pCfa);
-
-    return new CfaNetwork() {
-
-      @Override
-      public int inDegree(CFANode pNode) {
-
-        int inDegree = pNode.getNumEnteringEdges();
-
-        if (pNode.getEnteringSummaryEdge() != null) {
-          inDegree++;
-        }
-
-        return inDegree;
-      }
-
-      @Override
-      public Set<CFAEdge> inEdges(CFANode pNode) {
-
-        checkNotNull(pNode);
-
-        return new UnmodifiableSetView<>() {
-
-          @Override
-          public Iterator<CFAEdge> iterator() {
-            return CFAUtils.allEnteringEdges(pNode).iterator();
-          }
-
-          @Override
-          public int size() {
-            return inDegree(pNode);
-          }
-        };
-      }
-
-      @Override
-      public int outDegree(CFANode pNode) {
-
-        int outDegree = pNode.getNumLeavingEdges();
-
-        if (pNode.getLeavingSummaryEdge() != null) {
-          outDegree++;
-        }
-
-        return outDegree;
-      }
-
-      @Override
-      public Set<CFAEdge> outEdges(CFANode pNode) {
-
-        checkNotNull(pNode);
-
-        return new UnmodifiableSetView<>() {
-
-          @Override
-          public Iterator<CFAEdge> iterator() {
-            return CFAUtils.allLeavingEdges(pNode).iterator();
-          }
-
-          @Override
-          public int size() {
-            return outDegree(pNode);
-          }
-        };
-      }
-
-      @Override
-      public EndpointPair<CFANode> incidentNodes(CFAEdge pEdge) {
-        return EndpointPair.ordered(pEdge.getPredecessor(), pEdge.getSuccessor());
-      }
-
-      @Override
-      public Set<CFANode> nodes() {
-        return new UnmodifiableSetView<>() {
-
-          @Override
-          public Iterator<CFANode> iterator() {
-            return Iterators.unmodifiableIterator(pCfa.getAllNodes().iterator());
-          }
-
-          @Override
-          public int size() {
-            return pCfa.getAllNodes().size();
-          }
-
-          @Override
-          public boolean contains(Object pObject) {
-            return pCfa.getAllNodes().contains(pObject);
-          }
-
-          @Override
-          public boolean containsAll(Collection<?> pCollection) {
-            return pCfa.getAllNodes().containsAll(pCollection);
-          }
-        };
-      }
-    };
+    return new WrappingCfaNetwork(pCfa);
   }
 
   public static CfaNetwork filterEdges(CfaNetwork pNetwork, Predicate<CFAEdge> pFilter) {
-
-    checkNotNull(pNetwork);
-    checkNotNull(pFilter);
-
-    return new CfaNetwork() {
-
-      @Override
-      public Set<CFAEdge> inEdges(CFANode pNode) {
-        return new UnmodifiableSetView<>() {
-
-          @Override
-          public Iterator<CFAEdge> iterator() {
-            return Iterators.filter(pNetwork.inEdges(pNode).iterator(), pFilter::test);
-          }
-        };
-      }
-
-      @Override
-      public Set<CFAEdge> outEdges(CFANode pNode) {
-        return new UnmodifiableSetView<>() {
-
-          @Override
-          public Iterator<CFAEdge> iterator() {
-            return Iterators.filter(pNetwork.outEdges(pNode).iterator(), pFilter::test);
-          }
-        };
-      }
-
-      @Override
-      public EndpointPair<CFANode> incidentNodes(CFAEdge pEdge) {
-        return pNetwork.incidentNodes(pEdge);
-      }
-
-      @Override
-      public Set<CFANode> nodes() {
-        return pNetwork.nodes();
-      }
-    };
+    return new EdgeFilteringCfaNetwork(pNetwork, pFilter);
   }
 
   public static CfaNetwork of(CFA pCfa, Predicate<CFAEdge> pFilter) {
@@ -228,123 +91,11 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
 
   public static CfaNetwork transformEdges(
       CfaNetwork pNetwork, Function<CFAEdge, CFAEdge> pTransformer) {
-
-    checkNotNull(pNetwork);
-    checkNotNull(pTransformer);
-
-    return new CfaNetwork() {
-
-      @Override
-      public Set<CFAEdge> inEdges(CFANode pNode) {
-        return new UnmodifiableSetView<>() {
-
-          @Override
-          public Iterator<CFAEdge> iterator() {
-            return Iterators.transform(pNetwork.inEdges(pNode).iterator(), pTransformer::apply);
-          }
-        };
-      }
-
-      @Override
-      public Set<CFAEdge> outEdges(CFANode pNode) {
-        return new UnmodifiableSetView<>() {
-
-          @Override
-          public Iterator<CFAEdge> iterator() {
-            return Iterators.transform(pNetwork.outEdges(pNode).iterator(), pTransformer::apply);
-          }
-        };
-      }
-
-      @Override
-      public EndpointPair<CFANode> incidentNodes(CFAEdge pEdge) {
-        return pNetwork.incidentNodes(pEdge);
-      }
-
-      @Override
-      public Set<CFANode> nodes() {
-        return pNetwork.nodes();
-      }
-    };
+    return new EdgeTransformingCfaNetwork(pNetwork, pTransformer);
   }
 
   public static CfaNetwork of(CFA pCfa, Set<String> pFunctions) {
-
-    checkNotNull(pCfa);
-    checkNotNull(pFunctions);
-
-    return new CfaNetwork() {
-
-      @Override
-      public Set<CFAEdge> inEdges(CFANode pNode) {
-        return new UnmodifiableSetView<>() {
-
-          @Override
-          public Iterator<CFAEdge> iterator() {
-            return CFAUtils.allEnteringEdges(pNode)
-                .filter(node -> pFunctions.contains(node.getPredecessor().getFunctionName()))
-                .iterator();
-          }
-        };
-      }
-
-      @Override
-      public Set<CFAEdge> outEdges(CFANode pNode) {
-        return new UnmodifiableSetView<>() {
-
-          @Override
-          public Iterator<CFAEdge> iterator() {
-            return CFAUtils.allLeavingEdges(pNode)
-                .filter(node -> pFunctions.contains(node.getSuccessor().getFunctionName()))
-                .iterator();
-          }
-        };
-      }
-
-      @Override
-      public EndpointPair<CFANode> incidentNodes(CFAEdge pEdge) {
-        return EndpointPair.ordered(pEdge.getPredecessor(), pEdge.getSuccessor());
-      }
-
-      @Override
-      public Set<CFANode> nodes() {
-        return new UnmodifiableSetView<>() {
-
-          @Override
-          public Iterator<CFANode> iterator() {
-            return new PrepareNextIterator<>() {
-
-              private final Set<CFANode> waitlisted =
-                  pFunctions.stream()
-                      .map(function -> pCfa.getAllFunctions().get(function))
-                      .filter(Objects::nonNull)
-                      .collect(Collectors.toCollection(HashSet::new));
-              private final Deque<CFANode> waitlist = new ArrayDeque<>(waitlisted);
-
-              @Override
-              protected @Nullable CFANode prepareNext() {
-
-                while (!waitlist.isEmpty()) {
-
-                  CFANode node = waitlist.remove();
-
-                  for (CFANode successor : CFAUtils.allSuccessorsOf(node)) {
-                    if (pFunctions.contains(successor.getFunctionName())
-                        && waitlisted.add(successor)) {
-                      waitlist.add(successor);
-                    }
-                  }
-
-                  return node;
-                }
-
-                return null;
-              }
-            };
-          }
-        };
-      }
-    };
+    return new FunctionFilteringCfaNetwork(pCfa, pFunctions);
   }
 
   // in-edges / predecessors
