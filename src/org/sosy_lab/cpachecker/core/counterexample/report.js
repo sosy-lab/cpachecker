@@ -1384,7 +1384,7 @@ function renderTDCG(dataJSON, color, inPercentage) {
       };
       $scope.changeLineColor = () => {
         const linesCount = d3.select("#source-file").selectAll("tr").size();
-        for (let i = 1; i <= linesCount; i++) {
+        for (let i = 1; i <= linesCount; i = i + 1) {
           const color1 = d3
             .select(`#right-source-${i}`)
             .attr("style")
