@@ -24,7 +24,6 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -38,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.PrepareNextIterator;
 import org.sosy_lab.cpachecker.util.UnmodifiableSetView;
 
 /**
@@ -774,39 +774,5 @@ public abstract class CfaNetwork implements Network<CFANode, CFAEdge> {
         };
       }
     };
-  }
-
-  private abstract static class PrepareNextIterator<E> implements Iterator<E> {
-
-    private @Nullable E nextElement = null;
-
-    protected abstract @Nullable E prepareNext();
-
-    @Override
-    public final boolean hasNext() {
-
-      if (nextElement == null) {
-        nextElement = prepareNext();
-      }
-
-      return nextElement != null;
-    }
-
-    @Override
-    public final E next() {
-
-      if (nextElement == null) {
-        nextElement = prepareNext();
-      }
-
-      if (nextElement == null) {
-        throw new NoSuchElementException();
-      }
-
-      E element = nextElement;
-      nextElement = null;
-
-      return element;
-    }
   }
 }
