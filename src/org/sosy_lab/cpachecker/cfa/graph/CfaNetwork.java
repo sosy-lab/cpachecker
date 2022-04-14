@@ -18,7 +18,6 @@ import com.google.common.graph.ElementOrder;
 import com.google.common.graph.EndpointPair;
 import com.google.common.graph.Graph;
 import com.google.common.graph.Network;
-import java.util.AbstractCollection;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Collections;
@@ -39,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.UnmodifiableSetView;
 
 /**
  * Represents a {@link CFA} as a {@link Network}.
@@ -824,40 +824,6 @@ public abstract class CfaNetwork implements Network<CFANode, CFAEdge> {
         };
       }
     };
-  }
-
-  private abstract static class UnmodifiableSetView<E> extends AbstractCollection<E>
-      implements Set<E> {
-
-    @Override
-    public final boolean add(E pElement) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public final boolean remove(Object pObject) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public final boolean addAll(Collection<? extends E> pCollection) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public final boolean retainAll(Collection<?> pCollection) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public final boolean removeAll(Collection<?> pCollection) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public final void clear() {
-      throw new UnsupportedOperationException();
-    }
   }
 
   private abstract static class PrepareNextIterator<E> implements Iterator<E> {
