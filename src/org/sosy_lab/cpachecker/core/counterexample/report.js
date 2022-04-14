@@ -1373,13 +1373,33 @@ function renderTDCG(dataJSON, color, inPercentage) {
           d3.select("#source-color-button").html(
             "<i class='far fa-square'></i>"
           );
-          console.log("Should uncolor Source");
+          $scope.changeLineColor();
         } else {
           $scope.sourceColoringEnabled = true;
           d3.select("#source-color-button").html(
             "<i class='far fa-check-square'></i>"
           );
-          console.log("Should color Source");
+          $scope.changeLineColor();
+        }
+      };
+      $scope.changeLineColor = () => {
+        const linesCount = d3.select("#source-file").selectAll("tr").size();
+        for (let i = 1; i <= linesCount; i++) {
+          const color1 = d3
+            .select(`#right-source-${i}`)
+            .attr("style")
+            .split("background-color: ")
+            .slice(-1)[0]
+            .split(";")[0];
+          const color2 = d3
+            .select(`#right-source-${i}`)
+            .attr("style")
+            .split("comment: ")
+            .slice(-1)[0];
+          d3.select(`#right-source-${i}`).attr(
+            "style",
+            `background-color: ${color2}; comment: ${color1}`
+          );
         }
       };
     },

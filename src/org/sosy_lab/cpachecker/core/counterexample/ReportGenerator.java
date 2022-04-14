@@ -593,10 +593,13 @@ public class ReportGenerator {
         String line;
         while (null != (line = source.readLine())) {
           String lineColor = coveragePerLine.getOrDefault(lineNumber, "#fadce7");
+          String defaultLineColor = getDefaultLineColor(lineNumber);
           line =
               "<td><pre id=\"right-source-"
                   + lineNumber
                   + "\" style=\"background-color: "
+                  + defaultLineColor
+                  + "; comment: "
                   + lineColor
                   + "\">"
                   + htmlEscaper().escape(line)
@@ -618,17 +621,21 @@ public class ReportGenerator {
     }
   }
 
+  private String getDefaultLineColor(int lineNumber) {
+    if (lineNumber % 2 == 0) {
+      return "#b9e4fa";
+    } else {
+      return "#94dbff";
+    }
+  }
+
   private Map<Integer, String> calculateSourceLineColors(FileCoverageInformation fileCoverage) {
     Map<Integer, Integer> coverageLineMap = new HashMap<>();
     Map<Integer, String> coverageLineColorMap = new HashMap<>();
     int max = 0;
     if (fileCoverage == null) {
       for (int lineNumber = 0; lineNumber < 10000; lineNumber++) {
-        if (lineNumber % 2 == 0) {
-          coverageLineColorMap.put(lineNumber, "#b9e4fa");
-        } else {
-          coverageLineColorMap.put(lineNumber, "#94dbff");
-        }
+        coverageLineColorMap.put(lineNumber, getDefaultLineColor(lineNumber));
       }
       return coverageLineColorMap;
     }
