@@ -350,7 +350,14 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
     return Iterables.size(inEdges(pNode));
   }
 
-  private CFANode predecessor(CFAEdge pEdge) {
+  /**
+   * Returns the predecessor of the specified CFA edge.
+   *
+   * @param pEdge the CFA edge to get the predecessor for
+   * @return the predecessor of the specified CFA edge
+   * @throws NullPointerException if {@code pEdge == null}
+   */
+  default CFANode predecessor(CFAEdge pEdge) {
     return incidentNodes(pEdge).source();
   }
 
@@ -380,7 +387,14 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
     return Iterables.size(outEdges(pNode));
   }
 
-  private CFANode successor(CFAEdge pEdge) {
+  /**
+   * Returns the successor of the specified CFA edge.
+   *
+   * @param pEdge the CFA edge to get the successor for
+   * @return the successor of the specified CFA edge
+   * @throws NullPointerException if {@code pEdge == null}
+   */
+  default CFANode successor(CFAEdge pEdge) {
     return incidentNodes(pEdge).target();
   }
 
