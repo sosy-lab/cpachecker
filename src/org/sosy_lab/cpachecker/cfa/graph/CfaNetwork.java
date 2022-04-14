@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.graph;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
@@ -36,6 +37,9 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.PrepareNextIterator;
 import org.sosy_lab.cpachecker.util.UnmodifiableSetView;
@@ -786,5 +790,74 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
         };
       }
     };
+  }
+
+  // CFA specific
+
+  default Optional<FunctionExitNode> getFunctionExitNode(FunctionEntryNode pFunctionEntryNode) {
+
+    Set<CFANode> waitlisted = new HashSet<>(ImmutableList.of(pFunctionEntryNode));
+    Deque<CFANode> waitlist = new ArrayDeque<>(waitlisted);
+
+    while (!waitlist.isEmpty()) {
+
+      CFANode node = waitlist.remove();
+
+      if (node instanceof FunctionExitNode) {
+        return Optional.of((FunctionExitNode) node);
+      }
+
+      for (CFAEdge outEdge : outEdges(node)) {
+        if (!(outEdge instanceof FunctionCallEdge)) {
+          CFANode successor = incidentNodes(outEdge).target();
+          if (waitlisted.add(successor)) {
+            waitlist.add(successor);
+          }
+        }
+      }
+    }
+
+    return Optional.empty();
+  }
+
+  default Optional<FunctionSummaryEdge> getFunctionSummaryEdge(FunctionCallEdge pFunctionCallEdge) {
+
+    CFANode functionCallEdgePredecessor = incidentNodes(pFunctionCallEdge).source();
+
+    for (CFAEdge outEdge : outEdges(functionCallEdgePredecessor)) {
+      if (outEdge instanceof FunctionSummaryEdge) {
+        return Optional.of((FunctionSummaryEdge) outEdge);
+      }
+    }
+
+    return Optional.empty();
+  }
+
+  default Optional<FunctionSummaryEdge> getFunctionSummaryEdge(
+      FunctionReturnEdge pFunctionReturnEdge) {
+
+    CFANode functionReturnEdgeSuccessor = incidentNodes(pFunctionReturnEdge).target();
+
+    for (CFAEdge inEdge : inEdges(functionReturnEdgeSuccessor)) {
+      if (inEdge instanceof FunctionSummaryEdge) {
+        return Optional.of((FunctionSummaryEdge) inEdge);
+      }
+    }
+
+    return Optional.empty();
+  }
+
+  default Optional<FunctionEntryNode> getFunctionEntryNode(
+      FunctionSummaryEdge pFunctionSummaryEdge) {
+
+    CFANode functionSummaryEdgePredecessor = incidentNodes(pFunctionSummaryEdge).source();
+
+    for (CFANode successor : successors(functionSummaryEdgePredecessor)) {
+      if (successor instanceof FunctionEntryNode) {
+        return Optional.of((FunctionEntryNode) successor);
+      }
+    }
+
+    return Optional.empty();
   }
 }

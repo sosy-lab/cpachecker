@@ -22,7 +22,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
-import org.sosy_lab.cpachecker.cfa.graph.CfaNetworks;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
@@ -204,7 +203,7 @@ public final class CCfaTransformer extends CfaTransformer {
     private CFunctionEntryNode newCFunctionEntryNode(CFunctionEntryNode pOldNode) {
 
       FunctionExitNode oldExitNode =
-          CfaNetworks.getFunctionExitNode(cfaNetwork, pOldNode).orElse(pOldNode.getExitNode());
+          cfaNetwork.getFunctionExitNode(pOldNode).orElse(pOldNode.getExitNode());
       FunctionExitNode newExitNode = (FunctionExitNode) substitution.toSubstitute(oldExitNode);
 
       Optional<CVariableDeclaration> newReturnVariable =
@@ -335,7 +334,8 @@ public final class CCfaTransformer extends CfaTransformer {
       if (connectedness == CfaConnectedness.SUPERGRAPH) {
 
         FunctionSummaryEdge oldFunctionSummaryEdge =
-            CfaNetworks.getFunctionSummaryEdge(cfaNetwork, pCFunctionCallEdge)
+            cfaNetwork
+                .getFunctionSummaryEdge(pCFunctionCallEdge)
                 .orElseThrow(
                     () ->
                         new IllegalArgumentException(
@@ -365,7 +365,8 @@ public final class CCfaTransformer extends CfaTransformer {
       if (connectedness == CfaConnectedness.SUPERGRAPH) {
 
         FunctionSummaryEdge oldFunctionSummaryEdge =
-            CfaNetworks.getFunctionSummaryEdge(cfaNetwork, pCFunctionReturnEdge)
+            cfaNetwork
+                .getFunctionSummaryEdge(pCFunctionReturnEdge)
                 .orElseThrow(
                     () ->
                         new IllegalArgumentException(
@@ -395,7 +396,8 @@ public final class CCfaTransformer extends CfaTransformer {
       if (connectedness == CfaConnectedness.SUPERGRAPH) {
 
         FunctionEntryNode oldFunctionEntryNode =
-            CfaNetworks.getFunctionEntryNode(cfaNetwork, pCFunctionSummaryEdge)
+            cfaNetwork
+                .getFunctionEntryNode(pCFunctionSummaryEdge)
                 .orElseThrow(
                     () ->
                         new IllegalArgumentException(
