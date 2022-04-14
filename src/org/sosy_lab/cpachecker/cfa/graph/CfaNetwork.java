@@ -61,9 +61,7 @@ import org.sosy_lab.cpachecker.util.UnmodifiableSetView;
  * the set. Don't try to modify the CFA represented by a {@code CfaNetwork} while iterating though
  * such a view as correctness of the iteration cannot be guaranteed anymore.
  */
-public abstract class CfaNetwork implements Network<CFANode, CFAEdge> {
-
-  protected CfaNetwork() {}
+public interface CfaNetwork extends Network<CFANode, CFAEdge> {
 
   /**
    * Returns a {@link CfaNetwork} that represents the specified {@link CFA} as a {@link Network}.
@@ -348,7 +346,7 @@ public abstract class CfaNetwork implements Network<CFANode, CFAEdge> {
   // in-edges / predecessors
 
   @Override
-  public int inDegree(CFANode pNode) {
+  default int inDegree(CFANode pNode) {
     return Iterables.size(inEdges(pNode));
   }
 
@@ -357,7 +355,7 @@ public abstract class CfaNetwork implements Network<CFANode, CFAEdge> {
   }
 
   @Override
-  public Set<CFANode> predecessors(CFANode pNode) {
+  default Set<CFANode> predecessors(CFANode pNode) {
 
     checkNotNull(pNode);
 
@@ -378,7 +376,7 @@ public abstract class CfaNetwork implements Network<CFANode, CFAEdge> {
   // out-edges / successors
 
   @Override
-  public int outDegree(CFANode pNode) {
+  default int outDegree(CFANode pNode) {
     return Iterables.size(outEdges(pNode));
   }
 
@@ -387,7 +385,7 @@ public abstract class CfaNetwork implements Network<CFANode, CFAEdge> {
   }
 
   @Override
-  public Set<CFANode> successors(CFANode pNode) {
+  default Set<CFANode> successors(CFANode pNode) {
 
     checkNotNull(pNode);
 
@@ -408,7 +406,7 @@ public abstract class CfaNetwork implements Network<CFANode, CFAEdge> {
   // incident / adjacent
 
   @Override
-  public int degree(CFANode pNode) {
+  default int degree(CFANode pNode) {
 
     checkNotNull(pNode);
 
@@ -416,7 +414,7 @@ public abstract class CfaNetwork implements Network<CFANode, CFAEdge> {
   }
 
   @Override
-  public Set<CFAEdge> incidentEdges(CFANode pNode) {
+  default Set<CFAEdge> incidentEdges(CFANode pNode) {
 
     checkNotNull(pNode);
 
@@ -454,7 +452,7 @@ public abstract class CfaNetwork implements Network<CFANode, CFAEdge> {
   }
 
   @Override
-  public Set<CFANode> adjacentNodes(CFANode pNode) {
+  default Set<CFANode> adjacentNodes(CFANode pNode) {
 
     checkNotNull(pNode);
 
@@ -495,7 +493,7 @@ public abstract class CfaNetwork implements Network<CFANode, CFAEdge> {
   }
 
   @Override
-  public Set<CFAEdge> adjacentEdges(CFAEdge pEdge) {
+  default Set<CFAEdge> adjacentEdges(CFAEdge pEdge) {
 
     checkNotNull(pEdge);
 
@@ -523,7 +521,7 @@ public abstract class CfaNetwork implements Network<CFANode, CFAEdge> {
   // edge-connecting
 
   @Override
-  public @Nullable CFAEdge edgeConnectingOrNull(CFANode pPredecessor, CFANode pSuccessor) {
+  default @Nullable CFAEdge edgeConnectingOrNull(CFANode pPredecessor, CFANode pSuccessor) {
 
     checkNotNull(pPredecessor);
     checkNotNull(pSuccessor);
@@ -538,7 +536,7 @@ public abstract class CfaNetwork implements Network<CFANode, CFAEdge> {
   }
 
   @Override
-  public @Nullable CFAEdge edgeConnectingOrNull(EndpointPair<CFANode> pEndpoints) {
+  default @Nullable CFAEdge edgeConnectingOrNull(EndpointPair<CFANode> pEndpoints) {
 
     checkArgument(pEndpoints.isOrdered(), "endpoints must be ordered");
 
@@ -546,17 +544,17 @@ public abstract class CfaNetwork implements Network<CFANode, CFAEdge> {
   }
 
   @Override
-  public Optional<CFAEdge> edgeConnecting(CFANode pPredecessor, CFANode pSuccessor) {
+  default Optional<CFAEdge> edgeConnecting(CFANode pPredecessor, CFANode pSuccessor) {
     return Optional.ofNullable(edgeConnectingOrNull(pPredecessor, pSuccessor));
   }
 
   @Override
-  public Optional<CFAEdge> edgeConnecting(EndpointPair<CFANode> pEndpoints) {
+  default Optional<CFAEdge> edgeConnecting(EndpointPair<CFANode> pEndpoints) {
     return Optional.ofNullable(edgeConnectingOrNull(pEndpoints));
   }
 
   @Override
-  public Set<CFAEdge> edgesConnecting(CFANode pPredecessor, CFANode pSuccessor) {
+  default Set<CFAEdge> edgesConnecting(CFANode pPredecessor, CFANode pSuccessor) {
 
     checkNotNull(pPredecessor);
     checkNotNull(pSuccessor);
@@ -588,7 +586,7 @@ public abstract class CfaNetwork implements Network<CFANode, CFAEdge> {
   }
 
   @Override
-  public Set<CFAEdge> edgesConnecting(EndpointPair<CFANode> pEndpoints) {
+  default Set<CFAEdge> edgesConnecting(EndpointPair<CFANode> pEndpoints) {
 
     checkArgument(pEndpoints.isOrdered(), "endpoints must be ordered");
 
@@ -596,12 +594,12 @@ public abstract class CfaNetwork implements Network<CFANode, CFAEdge> {
   }
 
   @Override
-  public boolean hasEdgeConnecting(CFANode pPredecessor, CFANode pSuccessor) {
+  default boolean hasEdgeConnecting(CFANode pPredecessor, CFANode pSuccessor) {
     return edgeConnectingOrNull(pPredecessor, pSuccessor) != null;
   }
 
   @Override
-  public boolean hasEdgeConnecting(EndpointPair<CFANode> pEndpoints) {
+  default boolean hasEdgeConnecting(EndpointPair<CFANode> pEndpoints) {
 
     if (!pEndpoints.isOrdered()) {
       return false; // see documentation of Network#hasEdgeConnecting(EndpointPair)
@@ -613,27 +611,27 @@ public abstract class CfaNetwork implements Network<CFANode, CFAEdge> {
   // entire network
 
   @Override
-  public boolean isDirected() {
+  default boolean isDirected() {
     return true;
   }
 
   @Override
-  public boolean allowsSelfLoops() {
+  default boolean allowsSelfLoops() {
     return true;
   }
 
   @Override
-  public boolean allowsParallelEdges() {
+  default boolean allowsParallelEdges() {
     return false;
   }
 
   @Override
-  public ElementOrder<CFANode> nodeOrder() {
+  default ElementOrder<CFANode> nodeOrder() {
     return ElementOrder.unordered();
   }
 
   @Override
-  public Set<CFAEdge> edges() {
+  default Set<CFAEdge> edges() {
     return new UnmodifiableSetView<>() {
 
       @Override
@@ -664,12 +662,12 @@ public abstract class CfaNetwork implements Network<CFANode, CFAEdge> {
   }
 
   @Override
-  public ElementOrder<CFAEdge> edgeOrder() {
+  default ElementOrder<CFAEdge> edgeOrder() {
     return ElementOrder.unordered();
   }
 
   @Override
-  public Graph<CFANode> asGraph() {
+  default Graph<CFANode> asGraph() {
     return new Graph<>() {
 
       @Override
