@@ -20,19 +20,24 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.graph.ForwardingMutableNetwork;
 import org.sosy_lab.cpachecker.util.graph.Graphs;
 
-// TODO: merge CfaMutableNetwork and MutableCfaNetwork
-public class CfaMutableNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge> {
+/**
+ * An {@code OverlayCfaNetwork} is a {@link CfaNetwork} that is layered on top of another {@code
+ * CfaNetwork}. Connections between nodes and edges of an overlay can be independently modified
+ * without any changes to the underlying network. This is also why the CFA represented by an overlay
+ * and the CFA represented by actual CFA nodes and edges may differ.
+ */
+public class OverlayCfaNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge> {
 
   private final CfaNetwork delegate;
 
-  private CfaMutableNetwork(MutableCfaNetwork pDelegate) {
+  private OverlayCfaNetwork(MutableCfaNetwork pDelegate) {
     super(pDelegate);
 
     delegate = pDelegate;
   }
 
-  /** Returns a new {@code CfaMutableNetwork} instance representing the specified CFA. */
-  public static CfaMutableNetwork of(CFA pCfa) {
+  /** Returns a new {@code OverlayCfaNetwork} instance representing the specified CFA. */
+  public static OverlayCfaNetwork of(CFA pCfa) {
 
     NavigableMap<String, FunctionEntryNode> functionEntryNodes = new TreeMap<>();
     TreeMultimap<String, CFANode> allNodes = TreeMultimap.create();
@@ -49,7 +54,7 @@ public class CfaMutableNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge
 
     MutableCFA mutableCfa = new MutableCFA(functionEntryNodes, allNodes, pCfa.getMetadata());
 
-    return new CfaMutableNetwork(MutableCfaNetwork.of(mutableCfa));
+    return new OverlayCfaNetwork(MutableCfaNetwork.of(mutableCfa));
   }
 
   public CfaNetwork getCfaNetwork() {

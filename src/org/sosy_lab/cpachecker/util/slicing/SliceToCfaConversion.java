@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.TransformingCAstNodeVisitor;
-import org.sosy_lab.cpachecker.cfa.graph.CfaMutableNetwork;
+import org.sosy_lab.cpachecker.cfa.graph.OverlayCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -96,11 +96,11 @@ final class SliceToCfaConversion {
 
   /**
    * Returns whether the specified CFA node should be removed because it doesn't serve any
-   * meaningful purpose in the specified {@link CfaMutableNetwork}.
+   * meaningful purpose in the specified {@link OverlayCfaNetwork}.
    */
   private static boolean isIrrelevantNode(
       ImmutableSet<AFunctionDeclaration> pRelevantFunctions,
-      CfaMutableNetwork pGraph,
+      OverlayCfaNetwork pGraph,
       CFANode pNode) {
 
     if (pNode instanceof FunctionExitNode) {
@@ -183,7 +183,7 @@ final class SliceToCfaConversion {
         Collections3.transformedImmutableSetCopy(
             relevantEdges, edge -> edge.getSuccessor().getFunction());
 
-    CfaMutableNetwork graph = CfaMutableNetwork.of(pSlice.getOriginalCfa());
+    OverlayCfaNetwork graph = OverlayCfaNetwork.of(pSlice.getOriginalCfa());
 
     ImmutableList<CFAEdge> irrelevantFunctionEdges =
         graph.edges().stream()
