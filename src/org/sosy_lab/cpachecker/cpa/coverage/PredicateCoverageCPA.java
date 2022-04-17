@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.coverage;
 
-import java.util.HashMap;
-import java.util.Map;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
@@ -29,19 +27,15 @@ public class PredicateCoverageCPA extends AbstractSingleWrapperCPA {
     return AutomaticCPAFactory.forType(PredicateCoverageCPA.class);
   }
 
-  private final CoverageData cov = new CoverageData();
-  private final Map<Long, Double> timeStampsPerCoverage = new HashMap<>();
-  private final Map<Long, Double> timeStampsPerPredicateConsideredCoverage = new HashMap<>();
+  private final CoverageData coverageData = new CoverageData();
   private final FormulaManagerView fmgr;
   private final CFA cfa;
 
   private PredicateCoverageCPA(ConfigurableProgramAnalysis pCpa, CFA pCFA)
       throws InvalidConfigurationException {
     super(pCpa);
+    coverageData.putCFA(pCFA);
     cfa = pCFA;
-    cov.putCFA(pCFA);
-    cov.putTimeStampsPerPredicateCoverage(timeStampsPerCoverage);
-    cov.putTimeStampsPerPredicateConsideredCoverage(timeStampsPerPredicateConsideredCoverage);
     fmgr = getFormulaManagerView();
   }
 
@@ -58,18 +52,13 @@ public class PredicateCoverageCPA extends AbstractSingleWrapperCPA {
   }
 
   public CoverageData getCoverageData() {
-    return cov;
+    return coverageData;
   }
 
   @Override
   public TransferRelation getTransferRelation() {
     return new PredicateCoverageCPATransferRelation(
-        getWrappedCpa().getTransferRelation(),
-        fmgr,
-        cfa,
-        timeStampsPerCoverage,
-        timeStampsPerPredicateConsideredCoverage,
-        cov);
+        getWrappedCpa().getTransferRelation(), fmgr, cfa, coverageData);
   }
 
   @Override

@@ -82,6 +82,8 @@ import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.coverage.CoverageData;
 import org.sosy_lab.cpachecker.util.coverage.CoverageUtility;
 import org.sosy_lab.cpachecker.util.coverage.FileCoverageInformation;
+import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
+import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageType;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
 
 @Options
@@ -184,12 +186,19 @@ public class ReportGenerator {
 
     // extract further coverage data captured during the analysis if CoverageCPA is present
     CoverageData coverageData = CoverageUtility.getCoverageDataFromReachedSet(pReached);
+    TimeDependentCoverageHandler handler = coverageData.getTDCGHandler();
     Map<Long, Double> timeStampsPerCoverage =
-        coverageData.getReducedTimeStampsPerCoverage(MAX_DATA_POINTS_TDCG);
+        handler
+            .getData(TimeDependentCoverageType.Visited)
+            .getReducedTimeStampsPerCoverage(MAX_DATA_POINTS_TDCG);
     Map<Long, Double> timeStampsPerPredicateCoverage =
-        coverageData.getReducedTimeStampsPerPredicateCoverage(MAX_DATA_POINTS_TDCG);
+        handler
+            .getData(TimeDependentCoverageType.Predicate)
+            .getReducedTimeStampsPerCoverage(MAX_DATA_POINTS_TDCG);
     Map<Long, Double> timeStampsPerPredicateConsideredCoverage =
-        coverageData.getReducedTimeStampsPerPredicateConsideredCoverage(MAX_DATA_POINTS_TDCG);
+        handler
+            .getData(TimeDependentCoverageType.PredicateConsidered)
+            .getReducedTimeStampsPerCoverage(MAX_DATA_POINTS_TDCG);
     Map<String, FileCoverageInformation> fileCoverageInformationMap =
         coverageData.getInfosPerFile();
 

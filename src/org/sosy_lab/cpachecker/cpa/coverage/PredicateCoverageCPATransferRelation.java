@@ -9,14 +9,10 @@
 package org.sosy_lab.cpachecker.cpa.coverage;
 
 import com.google.common.base.Preconditions;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -31,6 +27,9 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.coverage.CoverageData;
+import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageData;
+import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
+import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageType;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -38,27 +37,26 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperTransferRelation {
 
   private final TransferRelation predicateTransferRelation;
-  private Instant startTime = Instant.MIN;
-  private final Map<Long, Double> timeStampsPerCoverage;
-  private final Map<Long, Double> timeStampsPerPredicateConsideredCoverage;
+  private final CoverageData coverageData;
+  private final TimeDependentCoverageData predicateTDCG;
+  private final TimeDependentCoverageData predicateConsideredTDCG;
   private final FormulaManagerView fmgr;
-  private final CoverageData cov;
   private final CFA cfa;
 
   PredicateCoverageCPATransferRelation(
       TransferRelation pDelegateTransferRelation,
       FormulaManagerView pFmgr,
       CFA pCfa,
-      Map<Long, Double> pTimeStampsPerCoverage,
-      Map<Long, Double> pTimeStampsPerPredicateConsideredCoverage,
-      CoverageData pCov) {
+      CoverageData pCoverageData) {
     super(pDelegateTransferRelation);
     predicateTransferRelation = pDelegateTransferRelation;
-    timeStampsPerCoverage = pTimeStampsPerCoverage;
-    timeStampsPerPredicateConsideredCoverage = pTimeStampsPerPredicateConsideredCoverage;
     fmgr = Preconditions.checkNotNull(pFmgr);
-    cov = Preconditions.checkNotNull(pCov);
     cfa = Preconditions.checkNotNull(pCfa);
+    coverageData = Preconditions.checkNotNull(pCoverageData);
+    TimeDependentCoverageHandler coverageHandler = coverageData.getTDCGHandler();
+    predicateTDCG = coverageHandler.getData(TimeDependentCoverageType.Predicate);
+    predicateConsideredTDCG =
+        coverageHandler.getData(TimeDependentCoverageType.PredicateConsidered);
   }
 
   @Override
@@ -71,15 +69,12 @@ public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperT
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState state, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
-    if (startTime.equals(Instant.MIN)) {
-      startTime = Instant.now();
-    }
     if (precision instanceof PredicatePrecision) {
       PredicatePrecision predicatePrecision = (PredicatePrecision) precision;
-      addTimeStampsForPredicateCoverage(getAllPredicates(predicatePrecision).size());
+      predicateTDCG.addTimeStamp(getAllPredicates(predicatePrecision).size());
       if (shouldAddPredicateConsideredNode(cfaEdge, predicatePrecision)) {
-        cov.addPredicateConsideredNode(cfaEdge);
-        addTimeStampsForePredicateConsideredCoverage(cov.getTempPredicateConsideredCoverage(cfa));
+        coverageData.addPredicateConsideredNode(cfaEdge);
+        predicateConsideredTDCG.addTimeStamp(coverageData.getTempPredicateConsideredCoverage(cfa));
       }
     }
     return predicateTransferRelation.getAbstractSuccessorsForEdge(state, precision, cfaEdge);
@@ -134,20 +129,6 @@ public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperT
     purifiedAssumeExpression = purifiedAssumeExpression.replaceAll("__", "::");
     String[] assumeParts = purifiedAssumeExpression.split("=|==");
     return new HashSet<>(Arrays.asList(assumeParts));
-  }
-
-  private void addTimeStampsForePredicateConsideredCoverage(double predicateConsideredCoverage) {
-    addTimeStampsForCoverage(predicateConsideredCoverage, timeStampsPerPredicateConsideredCoverage);
-  }
-
-  private void addTimeStampsForPredicateCoverage(double predicateCoverage) {
-    addTimeStampsForCoverage(predicateCoverage, timeStampsPerCoverage);
-  }
-
-  private void addTimeStampsForCoverage(double coverage, Map<Long, Double> map) {
-    long durationInNanos = Duration.between(startTime, Instant.now()).toNanos();
-    long durationInMicros = TimeUnit.NANOSECONDS.toMicros(durationInNanos);
-    map.put(durationInMicros, coverage);
   }
 
   private Set<AbstractionPredicate> getAllPredicates(PredicatePrecision precision) {

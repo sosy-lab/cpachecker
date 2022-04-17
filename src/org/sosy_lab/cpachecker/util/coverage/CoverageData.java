@@ -9,82 +9,46 @@
 package org.sosy_lab.cpachecker.util.coverage;
 
 import com.google.common.collect.ImmutableList;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageData;
+import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
+import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageType;
 
 public final class CoverageData {
-
   private final Map<String, FileCoverageInformation> infosPerFile = new LinkedHashMap<>();
-  private Map<Long, Double> timeStampsPerCoverage;
-  private Map<Long, Double> timeStampsPerPredicateCoverage;
-  private Map<Long, Double> timeStampsPerPredicateConsideredCoverage;
+  private final TimeDependentCoverageHandler timeDependentCoverageHandler;
 
   public CoverageData() {
-    timeStampsPerCoverage = new LinkedHashMap<>();
-    timeStampsPerPredicateCoverage = new LinkedHashMap<>();
-    timeStampsPerPredicateConsideredCoverage = new LinkedHashMap<>();
-    timeStampsPerCoverage.put(0L, 0.0);
-    timeStampsPerPredicateCoverage.put(0L, 0.0);
-    timeStampsPerPredicateConsideredCoverage.put(0L, 0.0);
+    timeDependentCoverageHandler = new TimeDependentCoverageHandler();
+    timeDependentCoverageHandler.initNewData(TimeDependentCoverageType.Visited);
+    timeDependentCoverageHandler.initNewData(TimeDependentCoverageType.Predicate);
+    timeDependentCoverageHandler.initNewData(TimeDependentCoverageType.PredicateConsidered);
   }
 
-  public void putTimeStampsPerCoverage(Map<Long, Double> pTimeStampsPerCoverage) {
-    timeStampsPerCoverage = pTimeStampsPerCoverage;
-    if (timeStampsPerCoverage.isEmpty()) {
-      timeStampsPerCoverage.put(0L, 0.0);
-    }
+  public TimeDependentCoverageHandler getTDCGHandler() {
+    return timeDependentCoverageHandler;
   }
 
-  public void putTimeStampsPerPredicateCoverage(Map<Long, Double> pTimeStampsPerPredicateCoverage) {
-    timeStampsPerPredicateCoverage = pTimeStampsPerPredicateCoverage;
-    if (timeStampsPerPredicateCoverage.isEmpty()) {
-      timeStampsPerPredicateCoverage.put(0L, 0.0);
-    }
-  }
-
-  public void putTimeStampsPerPredicateConsideredCoverage(
-      Map<Long, Double> pTimeStampsPerPredicateConsideredCoverage) {
-    timeStampsPerPredicateConsideredCoverage = pTimeStampsPerPredicateConsideredCoverage;
-    if (timeStampsPerPredicateConsideredCoverage.isEmpty()) {
-      timeStampsPerPredicateConsideredCoverage.put(0L, 0.0);
-    }
-  }
-
-  public static boolean coversLine(CFAEdge pEdge) {
-    FileLocation loc = pEdge.getFileLocation();
-    if (loc.getStartingLineNumber() == 0) {
-      // dummy location
-      return false;
-    }
-    if (pEdge instanceof ADeclarationEdge
-        && (((ADeclarationEdge) pEdge).getDeclaration() instanceof AFunctionDeclaration)) {
-      // Function declarations span the complete body, this is not desired.
-      return false;
-    }
-    return true;
+  public FileCoverageInformation getCollector(CFAEdge pEdge) {
+    final FileLocation loc = pEdge.getFileLocation();
+    return getFileInfoTarget(loc, infosPerFile);
   }
 
   private FileCoverageInformation getFileInfoTarget(
       final FileLocation pLoc, final Map<String, FileCoverageInformation> pTargets) {
 
-    assert pLoc.getStartingLineNumber()
-        != 0; // Cannot produce coverage info for dummy file location
+    // Cannot produce coverage info for dummy file location
+    assert pLoc.getStartingLineNumber() != 0;
 
     String file = pLoc.getFileName().toString();
     FileCoverageInformation fileInfos = pTargets.get(file);
@@ -130,7 +94,7 @@ public final class CoverageData {
   }
 
   private void putExistingEdge(final CFAEdge pEdge) {
-    if (!coversLine(pEdge)) {
+    if (!CoverageUtility.coversLine(pEdge)) {
       return;
     }
     final FileLocation loc = pEdge.getFileLocation();
@@ -148,76 +112,18 @@ public final class CoverageData {
     }
   }
 
-  public void addTimeStamp(final CFAEdge pEdge, Instant startTime) {
-    if (!coversLine(pEdge)) {
-      return;
-    }
-    final FileLocation loc = pEdge.getFileLocation();
-    final FileCoverageInformation collector = getFileInfoTarget(loc, infosPerFile);
-    int numTotalLines = collector.allLines.size();
-    int numVisitedLines = collector.visitedLines.entrySet().size();
-    double visitedLinesCoverage = 0.0;
-    if (numTotalLines > 0) {
-      visitedLinesCoverage = numVisitedLines / (double) numTotalLines;
-    }
-    long durationInNanos = Duration.between(startTime, Instant.now()).toNanos();
-    long durationInMicros = TimeUnit.NANOSECONDS.toMicros(durationInNanos);
-    timeStampsPerCoverage.put(durationInMicros, visitedLinesCoverage);
-  }
-
-  private Map<Long, Double> thinOutMap(Map<Long, Double> map, int max) {
-    if (max < 0) {
-      max = 0;
-    }
-    int mapSize = map.size();
-    if (mapSize < max) {
-      return map;
-    }
-    Map<Long, Double> outputMap = new HashMap<>();
-    List<Long> list = map.keySet().stream().sorted().collect(ImmutableList.toImmutableList());
-    int ruleOutQuotient = (int) Math.ceil(mapSize / (double) max);
-    for (int i = 0; i < mapSize; i++) {
-      if (i % ruleOutQuotient == 0) {
-        long key = list.get(i);
-        outputMap.put(key, map.get(key));
-      }
-    }
-    return outputMap;
-  }
-
-  public Map<Long, Double> getReducedTimeStampsPerCoverage(int max) {
-    return thinOutMap(timeStampsPerCoverage, max);
-  }
-
-  public Map<Long, Double> getTimeStampsPerCoverage() {
-    return timeStampsPerCoverage;
-  }
-
-  public Map<Long, Double> getReducedTimeStampsPerPredicateCoverage(int max) {
-    return thinOutMap(timeStampsPerPredicateCoverage, max);
-  }
-
-  public Map<Long, Double> getTimeStampsPerPredicateCoverage() {
-    return timeStampsPerPredicateCoverage;
-  }
-
-  public Map<Long, Double> getReducedTimeStampsPerPredicateConsideredCoverage(int max) {
-    return thinOutMap(timeStampsPerPredicateConsideredCoverage, max);
-  }
-
-  public Map<Long, Double> getTimeStampsPerPredicateConsideredCoverage() {
-    return timeStampsPerPredicateConsideredCoverage;
-  }
-
   public double getPredicateCoverage() {
-    if (timeStampsPerPredicateCoverage.values().isEmpty()) {
+    TimeDependentCoverageData timeStampsPerPredicateCoverage =
+        timeDependentCoverageHandler.getData(TimeDependentCoverageType.Predicate);
+    ImmutableList<Double> coverageList = timeStampsPerPredicateCoverage.getCoverageList();
+    if (coverageList.isEmpty()) {
       return 0.0;
     }
-    return Collections.max(timeStampsPerPredicateCoverage.values());
+    return Collections.max(coverageList);
   }
 
   public void addVisitedEdge(final CFAEdge pEdge) {
-    if (!coversLine(pEdge)) {
+    if (!CoverageUtility.coversLine(pEdge)) {
       return;
     }
     putExistingEdge(pEdge);
@@ -237,12 +143,25 @@ public final class CoverageData {
     }
   }
 
+  public double getTempVisitedCoverage() {
+    int numTotalLines = 0;
+    int numVisitedLines = 0;
+    for (FileCoverageInformation info : getInfosPerFile().values()) {
+      numTotalLines += info.allLines.size();
+      numVisitedLines += info.visitedLines.entrySet().size();
+    }
+    double visitedLinesCoverage = 0.0;
+    if (numTotalLines > 0) {
+      visitedLinesCoverage = numVisitedLines / (double) numTotalLines;
+    }
+    return visitedLinesCoverage;
+  }
+
   public void addPredicateConsideredNode(final CFAEdge pEdge) {
-    if (!coversLine(pEdge)) {
+    if (!CoverageUtility.coversLine(pEdge)) {
       return;
     }
-    final FileLocation loc = pEdge.getFileLocation();
-    final FileCoverageInformation collector = getFileInfoTarget(loc, infosPerFile);
+    FileCoverageInformation collector = getCollector(pEdge);
     collector.addPredicateConsideredNode(pEdge.getPredecessor());
   }
 

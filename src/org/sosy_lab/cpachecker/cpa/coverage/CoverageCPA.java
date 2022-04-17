@@ -33,17 +33,17 @@ public class CoverageCPA implements ConfigurableProgramAnalysis {
   private final TransferRelation transfer;
   private final AbstractDomain domain;
   private final StopOperator stop;
-  private final CoverageData cov = new CoverageData();
+  private final CoverageData coverageData = new CoverageData();
 
   public CoverageCPA(CFA pCFA) {
-    cov.putCFA(pCFA);
+    coverageData.putCFA(pCFA);
     domain = new FlatLatticeDomain(CoverageAbstractState.INSTANCE);
     stop = new StopSepOperator(domain);
-    transfer = new CoverageTransferRelation(cov);
+    transfer = new CoverageTransferRelation(coverageData);
   }
 
   public CoverageData getCoverageData() {
-    return cov;
+    return coverageData;
   }
 
   @Override

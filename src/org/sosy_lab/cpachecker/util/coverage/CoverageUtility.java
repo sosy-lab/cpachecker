@@ -16,6 +16,10 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -28,6 +32,8 @@ import org.sosy_lab.cpachecker.cpa.coverage.CoverageCPA;
 import org.sosy_lab.cpachecker.cpa.coverage.PredicateCoverageCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageData;
+import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageType;
 
 public class CoverageUtility {
 
@@ -121,9 +127,10 @@ public class CoverageUtility {
           for (var wrappedCPA : wrappedCPAs) {
             if (wrappedCPA instanceof CoverageCPA) {
               if (usedPredicateCoverageCPA) {
-                Map<Long, Double> timeStampsPerCoverage =
-                    ((CoverageCPA) wrappedCPA).getCoverageData().getTimeStampsPerCoverage();
-                coverageData.putTimeStampsPerCoverage(timeStampsPerCoverage);
+                TimeDependentCoverageType type = TimeDependentCoverageType.Visited;
+                TimeDependentCoverageData data =
+                    ((CoverageCPA) wrappedCPA).getCoverageData().getTDCGHandler().getData(type);
+                coverageData.getTDCGHandler().addData(type, data);
               } else {
                 coverageData = ((CoverageCPA) wrappedCPA).getCoverageData();
               }
@@ -142,5 +149,19 @@ public class CoverageUtility {
       coverageData = CoverageUtility.extractTimeDependentCoverageData(cpa);
     }
     return coverageData;
+  }
+
+  public static boolean coversLine(CFAEdge pEdge) {
+    FileLocation loc = pEdge.getFileLocation();
+    if (loc.getStartingLineNumber() == 0) {
+      // dummy location
+      return false;
+    }
+    if (pEdge instanceof ADeclarationEdge
+        && (((ADeclarationEdge) pEdge).getDeclaration() instanceof AFunctionDeclaration)) {
+      // Function declarations span the complete body, this is not desired.
+      return false;
+    }
+    return true;
   }
 }
