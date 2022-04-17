@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.TransformingCAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
 import org.sosy_lab.cpachecker.cfa.graph.OverlayCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -183,7 +184,7 @@ final class SliceToCfaConversion {
         Collections3.transformedImmutableSetCopy(
             relevantEdges, edge -> edge.getSuccessor().getFunction());
 
-    OverlayCfaNetwork graph = OverlayCfaNetwork.of(pSlice.getOriginalCfa());
+    OverlayCfaNetwork graph = OverlayCfaNetwork.of(CfaNetwork.of(pSlice.getOriginalCfa()));
 
     ImmutableList<CFAEdge> irrelevantFunctionEdges =
         graph.edges().stream()
@@ -224,7 +225,7 @@ final class SliceToCfaConversion {
             pSlice.getOriginalCfa().getMainFunction(),
             CfaConnectedness.SUPERGRAPH);
 
-    CFA sliceCfa = cfaTransformer.transform(graph.getCfaNetwork(), cfaMetadata, pLogger);
+    CFA sliceCfa = cfaTransformer.transform(graph, cfaMetadata, pLogger);
 
     return createSimplifiedCfa(sliceCfa);
   }

@@ -8,15 +8,11 @@
 
 package org.sosy_lab.cpachecker.cfa.graph;
 
-import com.google.common.collect.TreeMultimap;
+import com.google.common.graph.MutableNetwork;
+import com.google.common.graph.NetworkBuilder;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.NavigableMap;
-import java.util.TreeMap;
-import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.graph.ForwardingMutableNetwork;
 import org.sosy_lab.cpachecker.util.graph.Graphs;
 
@@ -26,39 +22,35 @@ import org.sosy_lab.cpachecker.util.graph.Graphs;
  * without any changes to the underlying network. This is also why the CFA represented by an overlay
  * and the CFA represented by actual CFA nodes and edges may differ.
  */
-public class OverlayCfaNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge> {
+public final class OverlayCfaNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge>
+    implements CfaNetwork {
 
-  private final CfaNetwork delegate;
-
-  private OverlayCfaNetwork(MutableCfaNetwork pDelegate) {
+  private OverlayCfaNetwork(MutableNetwork<CFANode, CFAEdge> pDelegate) {
     super(pDelegate);
-
-    delegate = pDelegate;
   }
 
-  /** Returns a new {@code OverlayCfaNetwork} instance representing the specified CFA. */
-  public static OverlayCfaNetwork of(CFA pCfa) {
+  /**
+   * Returns a new mutable {@code OverlayCfaNetwork} instance for the specified underlying {@link
+   * CfaNetwork}.
+   *
+   * @param pCfaNetwork the {@code CfaNetwork} to use as underlay (without modifications, the
+   *     overlay is equal to the underlay)
+   * @return a new mutable {@code OverlayCfaNetwork} instance for the specified underlying {@code
+   *     CfaNetwork}
+   */
+  public static OverlayCfaNetwork of(CfaNetwork pCfaNetwork) {
 
-    NavigableMap<String, FunctionEntryNode> functionEntryNodes = new TreeMap<>();
-    TreeMultimap<String, CFANode> allNodes = TreeMultimap.create();
+    MutableNetwork<CFANode, CFAEdge> mutableNetwork =
+        NetworkBuilder.directed().allowsSelfLoops(true).build();
 
-    for (CFANode node : pCfa.getAllNodes()) {
-
-      String functionName = node.getFunction().getQualifiedName();
-      allNodes.put(functionName, node);
-
-      if (node instanceof FunctionEntryNode) {
-        functionEntryNodes.put(functionName, (FunctionEntryNode) node);
-      }
+    pCfaNetwork.nodes().forEach(mutableNetwork::addNode);
+    for (CFAEdge cfaEdge : pCfaNetwork.edges()) {
+      CFANode predecessor = pCfaNetwork.predecessor(cfaEdge);
+      CFANode successor = pCfaNetwork.successor(cfaEdge);
+      mutableNetwork.addEdge(predecessor, successor, cfaEdge);
     }
 
-    MutableCFA mutableCfa = new MutableCFA(functionEntryNodes, allNodes, pCfa.getMetadata());
-
-    return new OverlayCfaNetwork(MutableCfaNetwork.of(mutableCfa));
-  }
-
-  public CfaNetwork getCfaNetwork() {
-    return delegate;
+    return new OverlayCfaNetwork(mutableNetwork);
   }
 
   /**

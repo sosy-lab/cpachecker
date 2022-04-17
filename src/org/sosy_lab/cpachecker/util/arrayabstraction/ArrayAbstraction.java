@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.SubstitutingCAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
 import org.sosy_lab.cpachecker.cfa.graph.OverlayCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -767,7 +768,7 @@ public class ArrayAbstraction {
       return ArrayAbstractionResult.createUnchanged(pCfa);
     }
 
-    OverlayCfaNetwork graph = OverlayCfaNetwork.of(simplifiedCfa);
+    OverlayCfaNetwork graph = OverlayCfaNetwork.of(CfaNetwork.of(simplifiedCfa));
 
     Status status = Status.PRECISE;
 
@@ -840,7 +841,7 @@ public class ArrayAbstraction {
             pCfa.getMainFunction(),
             CfaConnectedness.SUPERGRAPH);
 
-    CFA transformedCfa = cfaTransformer.transform(graph.getCfaNetwork(), cfaMetadata, pLogger);
+    CFA transformedCfa = cfaTransformer.transform(graph, cfaMetadata, pLogger);
 
     return new ArrayAbstractionResult(
         status, transformedCfa, transformableArrays, transformableLoops);

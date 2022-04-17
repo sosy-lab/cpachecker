@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.SubstitutingCAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
 import org.sosy_lab.cpachecker.cfa.graph.OverlayCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -78,7 +79,7 @@ final class CfaSimplifications {
       CFA pCfa,
       VariableGenerator pVariableGenerator) {
 
-    OverlayCfaNetwork graph = OverlayCfaNetwork.of(pCfa);
+    OverlayCfaNetwork graph = OverlayCfaNetwork.of(CfaNetwork.of(pCfa));
     Map<CFAEdge, Map<ArrayAccess, CAstNode>> substitution = new HashMap<>();
 
     // copy of edges to prevent concurrent modification of graph
@@ -222,7 +223,7 @@ final class CfaSimplifications {
             pCfa.getMainFunction(),
             CfaConnectedness.SUPERGRAPH);
 
-    return cfaTransformer.transform(graph.getCfaNetwork(), cfaMetadata, pLogger);
+    return cfaTransformer.transform(graph, cfaMetadata, pLogger);
   }
 
   /**
@@ -247,7 +248,7 @@ final class CfaSimplifications {
    */
   static CFA simplifyIncDecLoopEdges(Configuration pConfiguration, LogManager pLogger, CFA pCfa) {
 
-    OverlayCfaNetwork graph = OverlayCfaNetwork.of(pCfa);
+    OverlayCfaNetwork graph = OverlayCfaNetwork.of(CfaNetwork.of(pCfa));
     Map<CFAEdge, Map<CSimpleDeclaration, CExpression>> substitution = new HashMap<>();
 
     VariableClassification variableClassification = pCfa.getVarClassification().orElseThrow();
@@ -475,7 +476,7 @@ final class CfaSimplifications {
             pCfa.getMainFunction(),
             CfaConnectedness.SUPERGRAPH);
 
-    return cfaTransformer.transform(graph.getCfaNetwork(), cfaMetadata, pLogger);
+    return cfaTransformer.transform(graph, cfaMetadata, pLogger);
   }
 
   private static final class IdExpressionSubstitutingCAstNodeVisitor
