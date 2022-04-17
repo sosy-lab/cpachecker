@@ -7,7 +7,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Package for reporting what proportion of code was analyzed by the verifier depending on time.
- * So it is possible to build later a graph (Time-Dependent Coverage Graph, short: TDCG).
+ * Package for reporting what proportion of code was analyzed by the verifier depending on time. So
+ * it is possible to build later a graph (Time-Dependent Coverage Graph, short: TDCG).
  */
 package org.sosy_lab.cpachecker.util.coverage.tdcg;
