@@ -42,6 +42,7 @@ public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperT
   private final TimeDependentCoverageData predicateConsideredTDCG;
   private final FormulaManagerView fmgr;
   private final CFA cfa;
+  private int predicatesInUse = 0;
 
   PredicateCoverageCPATransferRelation(
       TransferRelation pDelegateTransferRelation,
@@ -67,18 +68,48 @@ public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperT
   }
 
   @Override
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState state,
+      Iterable<AbstractState> otherStates,
+      @Nullable CFAEdge cfaEdge,
+      Precision precision)
+      throws CPATransferException, InterruptedException {
+    return predicateTransferRelation.strengthen(state, otherStates, cfaEdge, precision);
+  }
+
+  @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState state, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
+    processAllCoverageMeasures(precision, cfaEdge);
+    return predicateTransferRelation.getAbstractSuccessorsForEdge(state, precision, cfaEdge);
+  }
+
+  private void processAllCoverageMeasures(Precision precision, CFAEdge cfaEdge) {
     if (precision instanceof PredicatePrecision) {
       PredicatePrecision predicatePrecision = (PredicatePrecision) precision;
-      predicateTDCG.addTimeStamp(getAllPredicates(predicatePrecision).size());
-      if (shouldAddPredicateConsideredNode(cfaEdge, predicatePrecision)) {
-        coverageData.addPredicateConsideredNode(cfaEdge);
-        predicateConsideredTDCG.addTimeStamp(coverageData.getTempPredicateConsideredCoverage(cfa));
-      }
+      processPredicates(predicatePrecision);
+      processPredicatesConsideredCoverage(predicatePrecision, cfaEdge);
+      //processNewCoverage(predicatePrecision, cfaEdge);
     }
-    return predicateTransferRelation.getAbstractSuccessorsForEdge(state, precision, cfaEdge);
+  }
+
+  private void processPredicates(PredicatePrecision precision) {
+    if (shouldAddPredicate(precision)) {
+      predicatesInUse = getAllPredicates(precision).size();
+      predicateTDCG.addTimeStamp(predicatesInUse);
+    }
+  }
+
+  private void processPredicatesConsideredCoverage(PredicatePrecision precision, CFAEdge cfaEdge) {
+    if (shouldAddPredicateConsideredNode(cfaEdge, precision)) {
+      coverageData.addPredicateConsideredNode(cfaEdge);
+      predicateConsideredTDCG.addTimeStamp(coverageData.getTempPredicateConsideredCoverage(cfa));
+    }
+  }
+
+  private boolean shouldAddPredicate(PredicatePrecision precision) {
+    return getAllPredicates(precision).size() != predicatesInUse;
   }
 
   private boolean shouldAddPredicateConsideredNode(CFAEdge cfaEdge, PredicatePrecision precision) {
@@ -148,15 +179,5 @@ public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperT
     allPredicates.addAll(precision.getFunctionPredicates().values());
     allPredicates.addAll(precision.getGlobalPredicates());
     return allPredicates;
-  }
-
-  @Override
-  public Collection<? extends AbstractState> strengthen(
-      AbstractState state,
-      Iterable<AbstractState> otherStates,
-      @Nullable CFAEdge cfaEdge,
-      Precision precision)
-      throws CPATransferException, InterruptedException {
-    return predicateTransferRelation.strengthen(state, otherStates, cfaEdge, precision);
   }
 }
