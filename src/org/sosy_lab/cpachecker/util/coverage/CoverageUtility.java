@@ -9,10 +9,12 @@
 package org.sosy_lab.cpachecker.util.coverage;
 
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -20,6 +22,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -38,16 +41,18 @@ import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageType;
 public class CoverageUtility {
 
   public static boolean isNodeConsidered(CFANode node, Iterable<AbstractState> reached) {
-    String cfaNodeId = node.toString();
     for (AbstractState state : reached) {
       ARGState argState = AbstractStates.extractStateByType(state, ARGState.class);
       if (argState != null) {
         LocationState locState =
             AbstractStates.extractStateByType(argState.getWrappedState(), LocationState.class);
         if (locState != null) {
-          String argConsideredNodeId = locState.getLocationNode().toString();
-          if (cfaNodeId.equals(argConsideredNodeId)) {
-            return true;
+          CFANode locationNode = locState.getLocationNode();
+          List<CFANode> locationComboNodes = extractBlockNodes(locationNode);
+          for (var comboNode : locationComboNodes) {
+            if (node.toString().equals(comboNode.toString())) {
+              return true;
+            }
           }
         }
       }
@@ -74,8 +79,11 @@ public class CoverageUtility {
             AbstractStates.extractStateByType(argState.getWrappedState(), LocationState.class);
         if (locState != null) {
           CFANode locationNode = locState.getLocationNode();
-          double visitedNumber = nodesVisitedMap.getOrDefault(locationNode, 0.0);
-          nodesVisitedMap.put(locationNode, visitedNumber + 1.0);
+          List<CFANode> locationComboNodes = extractBlockNodes(locationNode);
+          for (CFANode node : locationComboNodes) {
+            double visitedNumber = nodesVisitedMap.getOrDefault(node, 0.0);
+            nodesVisitedMap.put(node, visitedNumber + 1.0);
+          }
         }
       }
     }
@@ -83,6 +91,37 @@ public class CoverageUtility {
         nodesVisitedMap.values().stream().max(Comparator.naturalOrder()).orElse(0.0);
     nodesVisitedMap.replaceAll((k, v) -> v /= maxVisited);
     return nodesVisitedMap;
+  }
+
+  private static List<CFANode> extractBlockNodes(CFANode locationNode) {
+    List<CFAEdge> currentComboEdge = null;
+    List<CFANode> nodes = new ArrayList<>();
+    CFANode currentNode = locationNode;
+    nodes.add(locationNode);
+    do {
+      if (currentNode.isLoopStart()
+          || (currentNode.getNumEnteringEdges() != 1)
+          || (currentNode.getNumLeavingEdges() != 1)
+          || (currentComboEdge != null
+              && !currentNode.equals(
+                  currentComboEdge.get(currentComboEdge.size() - 1).getSuccessor()))
+          || (currentNode.getLeavingEdge(0).getEdgeType() == CFAEdgeType.CallToReturnEdge)
+          || (currentNode.getLeavingEdge(0).getEdgeType() == CFAEdgeType.AssumeEdge)) {
+        currentComboEdge = null;
+        if (nodes.size() > 1) {
+          nodes.remove(nodes.size() - 1);
+        }
+      } else {
+        CFAEdge leavingEdge = currentNode.getLeavingEdge(0);
+        if (currentComboEdge == null) {
+          currentComboEdge = new ArrayList<>();
+        }
+        currentComboEdge.add(leavingEdge);
+        currentNode = leavingEdge.getSuccessor();
+        nodes.add(currentNode);
+      }
+    } while (currentComboEdge != null);
+    return nodes;
   }
 
   public static void addIndirectlyCoveredNodes(Set<CFANode> nodes) {
