@@ -57,6 +57,7 @@ public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperT
     predicateTDCG = coverageHandler.getData(TimeDependentCoverageType.Predicate);
     predicateConsideredTDCG =
         coverageHandler.getData(TimeDependentCoverageType.PredicateConsidered);
+    coverageData.addInitialNodes(cfa, predicateConsideredTDCG);
   }
 
   @Override

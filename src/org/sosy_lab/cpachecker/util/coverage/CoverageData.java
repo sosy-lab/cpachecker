@@ -13,6 +13,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
@@ -42,6 +43,17 @@ public final class CoverageData {
   public FileCoverageInformation getCollector(CFAEdge pEdge) {
     final FileLocation loc = pEdge.getFileLocation();
     return getFileInfoTarget(loc, infosPerFile);
+  }
+
+  private Optional<FileCoverageInformation> getCollectorForInitNode(CFANode pNode) {
+    if (pNode.getNumLeavingEdges() > 0) {
+      CFANode realNode = pNode.getLeavingEdge(0).getSuccessor();
+      if (realNode.getNumLeavingEdges() > 0) {
+        FileLocation loc = realNode.getLeavingEdge(0).getFileLocation();
+        return Optional.of(getFileInfoTarget(loc, infosPerFile));
+      }
+    }
+    return Optional.empty();
   }
 
   private FileCoverageInformation getFileInfoTarget(
@@ -163,6 +175,25 @@ public final class CoverageData {
     }
     FileCoverageInformation collector = getCollector(pEdge);
     collector.addPredicateConsideredNode(pEdge.getPredecessor());
+    collector.addPredicateConsideredNode(pEdge.getSuccessor());
+  }
+
+  public void addInitialNodes(CFA cfa, TimeDependentCoverageData tdcgData) {
+    for (var node : cfa.getAllNodes()) {
+      if (node.getNodeNumber() == 1) {
+        CFANode candidateNode = node;
+        if (getCollectorForInitNode(candidateNode).isEmpty()) {
+          return;
+        }
+        FileCoverageInformation collector = getCollectorForInitNode(candidateNode).orElseThrow();
+        do {
+          collector.addPredicateConsideredNode(candidateNode);
+          tdcgData.addTimeStamp(getTempPredicateConsideredCoverage(cfa));
+          candidateNode = candidateNode.getLeavingEdge(0).getSuccessor();
+        } while (candidateNode.getNumLeavingEdges() == 1);
+        break;
+      }
+    }
   }
 
   public double getTempPredicateConsideredCoverage(CFA cfa) {

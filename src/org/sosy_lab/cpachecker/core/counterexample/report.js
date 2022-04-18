@@ -1411,13 +1411,15 @@ function renderTDCG(dataJSON, color, inPercentage) {
     function tdcgToolbarController($rootScope, $scope) {
       $scope.tdcgSelections = [];
       if (isNotAlmostEmpty(timeStampsPerCoverageJson)) {
-        $scope.tdcgSelections.push("Visited Coverage over Time");
+        $scope.tdcgSelections.push("Visited-lines Coverage over Time");
       }
       if (isNotAlmostEmpty(timeStampsPerPredicateCoverageJson)) {
         $scope.tdcgSelections.push("Predicates over Time");
       }
       if (isNotAlmostEmpty(timeStampsPerPredicateConsideredCoverageJson)) {
-        $scope.tdcgSelections.push("Predicates-considered Coverage over Time");
+        $scope.tdcgSelections.push(
+          "Predicate-considered-nodes Coverage over Time"
+        );
       }
       if (isEmpty($scope.tdcgSelections)) {
         $scope.tdcgSelections.push("No data available");
@@ -1426,7 +1428,9 @@ function renderTDCG(dataJSON, color, inPercentage) {
 
       $scope.displayTDCG = () => {
         if (
-          $rootScope.displayedTDCG.indexOf("Visited Coverage over Time") !== -1
+          $rootScope.displayedTDCG.indexOf(
+            "Visited-lines Coverage over Time"
+          ) !== -1
         ) {
           $scope.renderTDCGForVisitedCoverage();
         } else if (
@@ -1435,7 +1439,7 @@ function renderTDCG(dataJSON, color, inPercentage) {
           $scope.renderTDCGForPredicates();
         } else if (
           $rootScope.displayedTDCG.indexOf(
-            "Predicates-considered Coverage over Time"
+            "Predicate-considered-nodes Coverage over Time"
           ) !== -1
         ) {
           $scope.renderTDCGForPredicatesConsideredCoverage();
