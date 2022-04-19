@@ -40,8 +40,9 @@ public class TimeDependentCoverageData {
   public Map<Long, Double> getTimeStampsPerCoverage() {
     if (!previousTimeStampsPerCoverage.isEmpty()) {
       double maxPreviousCoverage =
-          previousTimeStampsPerCoverage.values().stream().reduce(Double::max).get();
-      double maxCoverage = timeStampsPerCoverage.values().stream().reduce(Double::max).get();
+          previousTimeStampsPerCoverage.values().stream().reduce(Double::max).orElseThrow();
+      double maxCoverage =
+          timeStampsPerCoverage.values().stream().reduce(Double::max).orElseThrow();
       if (maxPreviousCoverage > maxCoverage) {
         return previousTimeStampsPerCoverage;
       }

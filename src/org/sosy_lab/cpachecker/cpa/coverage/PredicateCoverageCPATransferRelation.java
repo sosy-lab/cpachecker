@@ -46,6 +46,8 @@ public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperT
   private final TimeDependentCoverageData predicateRelevantVariablesTDCG;
   private final FormulaManagerView fmgr;
   private final CFA cfa;
+
+  final double FREQUENCY_REMOVAL_QUOTIENT = 0.5;
   private int predicatesInUse = 0;
 
   PredicateCoverageCPATransferRelation(
@@ -123,7 +125,6 @@ public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperT
       Set<String> predicateVariableNames = fmgr.extractVariableNames(formula);
       relevantVariableNames.addAll(predicateVariableNames);
     }
-    final double FREQUENCY_REMOVAL_QUOTIENT = 0.5;
     return filterRelevantVariables(relevantVariableNames, FREQUENCY_REMOVAL_QUOTIENT);
   }
 
