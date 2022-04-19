@@ -186,19 +186,7 @@ public class ReportGenerator {
 
     // extract further coverage data captured during the analysis if CoverageCPA is present
     CoverageData coverageData = CoverageUtility.getCoverageDataFromReachedSet(pReached);
-    TimeDependentCoverageHandler handler = coverageData.getTDCGHandler();
-    Map<Long, Double> timeStampsPerCoverage =
-        handler
-            .getData(TimeDependentCoverageType.Visited)
-            .getReducedTimeStampsPerCoverage(MAX_DATA_POINTS_TDCG);
-    Map<Long, Double> timeStampsPerPredicateCoverage =
-        handler
-            .getData(TimeDependentCoverageType.Predicate)
-            .getReducedTimeStampsPerCoverage(MAX_DATA_POINTS_TDCG);
-    Map<Long, Double> timeStampsPerPredicateConsideredCoverage =
-        handler
-            .getData(TimeDependentCoverageType.PredicateConsidered)
-            .getReducedTimeStampsPerCoverage(MAX_DATA_POINTS_TDCG);
+    TimeDependentCoverageHandler tdcgHandler = coverageData.getTDCGHandler();
     Map<String, FileCoverageInformation> fileCoverageInformationMap =
         coverageData.getInfosPerFile();
 
@@ -227,9 +215,7 @@ public class ReportGenerator {
             allInputFiles,
             dotBuilder,
             pStatistics,
-            timeStampsPerCoverage,
-            timeStampsPerPredicateCoverage,
-            timeStampsPerPredicateConsideredCoverage,
+            tdcgHandler,
             fileCoverageInformationMap);
         console.println("Graphical representation included in the file \"" + reportFile + "\".");
       }
@@ -243,9 +229,7 @@ public class ReportGenerator {
             allInputFiles,
             dotBuilder,
             pStatistics,
-            timeStampsPerCoverage,
-            timeStampsPerPredicateCoverage,
-            timeStampsPerPredicateConsideredCoverage,
+            tdcgHandler,
             fileCoverageInformationMap);
       }
 
@@ -298,9 +282,7 @@ public class ReportGenerator {
       Set<Path> allInputFiles,
       DOTBuilder2 dotBuilder,
       String statistics,
-      Map<Long, Double> timeStampsPerCoverage,
-      Map<Long, Double> timeStampsPerPredicateCoverage,
-      Map<Long, Double> timeStampsPerPredicateConsideredCoverage,
+      TimeDependentCoverageHandler tdcgHandler,
       Map<String, FileCoverageInformation> fileCoverageInformationMap) {
 
     try (BufferedReader reader =
@@ -316,15 +298,7 @@ public class ReportGenerator {
         } else if (line.contains("REPORT_CSS")) {
           insertCss(writer);
         } else if (line.contains("REPORT_JS")) {
-          insertJs(
-              writer,
-              cfa,
-              allInputFiles,
-              dotBuilder,
-              counterExample,
-              timeStampsPerCoverage,
-              timeStampsPerPredicateCoverage,
-              timeStampsPerPredicateConsideredCoverage);
+          insertJs(writer, cfa, allInputFiles, dotBuilder, counterExample, tdcgHandler);
         } else if (line.contains("STATISTICS")) {
           insertStatistics(writer, statistics);
         } else if (line.contains("SOURCE_CONTENT")) {
@@ -366,17 +340,11 @@ public class ReportGenerator {
       Set<Path> allInputFiles,
       DOTBuilder2 dotBuilder,
       @Nullable CounterexampleInfo counterExample,
-      Map<Long, Double> timeStampsPerCoverage,
-      Map<Long, Double> timeStampsPerPredicateCoverage,
-      Map<Long, Double> timeStampsPerPredicateConsideredCoverage)
+      TimeDependentCoverageHandler tdcgHandler)
       throws IOException {
     insertCfaJson(writer, cfa, dotBuilder, counterExample);
     insertArgJson(writer);
-    insertTimeStampsPerCoverageJson(
-        writer,
-        timeStampsPerCoverage,
-        timeStampsPerPredicateCoverage,
-        timeStampsPerPredicateConsideredCoverage);
+    insertTimeStampsPerCoverageJson(writer, tdcgHandler);
     insertSourceFileNames(writer, allInputFiles);
 
     insertJsFile(writer, WORKER_DATA_TEMPLATE);
@@ -385,24 +353,46 @@ public class ReportGenerator {
   }
 
   private void insertTimeStampsPerCoverageJson(
-      Writer writer,
-      Map<Long, Double> timeStampsPerCoverage,
-      Map<Long, Double> timeStampsPerPredicateCoverage,
-      Map<Long, Double> timeStampsPerPredicateConsideredCoverage)
-      throws IOException {
+      Writer writer, TimeDependentCoverageHandler tdcgHandler) throws IOException {
+    Map<Long, Double> timeStampsPerCoverage =
+        tdcgHandler
+            .getData(TimeDependentCoverageType.Visited)
+            .getReducedTimeStampsPerCoverage(MAX_DATA_POINTS_TDCG);
+    Map<Long, Double> timeStampsPerPredicateCoverage =
+        tdcgHandler
+            .getData(TimeDependentCoverageType.Predicate)
+            .getReducedTimeStampsPerCoverage(MAX_DATA_POINTS_TDCG);
+    Map<Long, Double> timeStampsPerPredicateConsideredCoverage =
+        tdcgHandler
+            .getData(TimeDependentCoverageType.PredicateConsidered)
+            .getReducedTimeStampsPerCoverage(MAX_DATA_POINTS_TDCG);
+    Map<Long, Double> timeStampsPerPredicateRelevantVariablesCoverage =
+        tdcgHandler
+            .getData(TimeDependentCoverageType.PredicateRelevantVariables)
+            .getReducedTimeStampsPerCoverage(MAX_DATA_POINTS_TDCG);
+
     writer.write("var timeStampsPerCoverageJson = ");
     JSON.writeJSONString(timeStampsPerCoverage, writer);
     writer.write("\nwindow.timeStampsPerCoverageJson = timeStampsPerCoverageJson;\n");
+
     writer.write("var timeStampsPerPredicateCoverageJson = ");
     JSON.writeJSONString(timeStampsPerPredicateCoverage, writer);
     writer.write(
         "\nwindow.timeStampsPerPredicateCoverageJson = timeStampsPerPredicateCoverageJson;\n");
+
     writer.write("var timeStampsPerPredicateConsideredCoverageJson = ");
     JSON.writeJSONString(timeStampsPerPredicateConsideredCoverage, writer);
     writer.write(
         "\n"
             + "window.timeStampsPerPredicateConsideredCoverageJson ="
             + " timeStampsPerPredicateConsideredCoverageJson;\n");
+
+    writer.write("var timeStampsPerPredicateRelevantVariablesCoverageJson = ");
+    JSON.writeJSONString(timeStampsPerPredicateRelevantVariablesCoverage, writer);
+    writer.write(
+        "\n"
+            + "window.timeStampsPerPredicateRelevantVariablesCoverageJson ="
+            + " timeStampsPerPredicateRelevantVariablesCoverageJson;\n");
   }
 
   private void insertCfaJson(

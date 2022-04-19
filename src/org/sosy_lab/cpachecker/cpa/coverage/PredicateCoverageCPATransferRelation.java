@@ -9,6 +9,9 @@
 package org.sosy_lab.cpachecker.cpa.coverage;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.HashMultiset;
+import com.google.common.collect.Multiset;
+import com.google.common.collect.Multisets;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -40,6 +43,7 @@ public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperT
   private final CoverageData coverageData;
   private final TimeDependentCoverageData predicateTDCG;
   private final TimeDependentCoverageData predicateConsideredTDCG;
+  private final TimeDependentCoverageData predicateRelevantVariablesTDCG;
   private final FormulaManagerView fmgr;
   private final CFA cfa;
   private int predicatesInUse = 0;
@@ -58,7 +62,12 @@ public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperT
     predicateTDCG = coverageHandler.getData(TimeDependentCoverageType.Predicate);
     predicateConsideredTDCG =
         coverageHandler.getData(TimeDependentCoverageType.PredicateConsidered);
-    coverageData.addInitialNodes(cfa, predicateConsideredTDCG);
+    predicateRelevantVariablesTDCG =
+        coverageHandler.getData(TimeDependentCoverageType.PredicateRelevantVariables);
+    coverageData.addInitialNodes(
+        cfa, predicateConsideredTDCG, TimeDependentCoverageType.PredicateConsidered);
+    coverageData.addInitialNodes(
+        cfa, predicateRelevantVariablesTDCG, TimeDependentCoverageType.PredicateRelevantVariables);
   }
 
   @Override
@@ -90,14 +99,65 @@ public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperT
       PredicatePrecision predicatePrecision = (PredicatePrecision) precision;
       processPredicates(predicatePrecision);
       processPredicatesConsideredCoverage(predicatePrecision, cfaEdge);
-      //processNewCoverage(predicatePrecision, cfaEdge);
+      processPredicateRelevantVariablesCoverage(predicatePrecision, cfaEdge);
     }
+  }
+
+  private void processPredicateRelevantVariablesCoverage(
+      PredicatePrecision precision, CFAEdge cfaEdge) {
+    Set<String> predicateVariables = getRelevantVariables(cfaEdge, precision);
+    Set<String> assumeVariables = convertAssumeToVariables(cfaEdge);
+    if (shouldAddPredicateRelevantVariableNode(assumeVariables, predicateVariables)) {
+      coverageData.addPredicateRelevantVariablesNodes(cfaEdge);
+      predicateRelevantVariablesTDCG.addTimeStamp(
+          coverageData.getTempPredicateRelevantVariablesCoverage(cfa));
+    }
+  }
+
+  private Set<String> getRelevantVariables(CFAEdge cfaEdge, PredicatePrecision precision) {
+    Multiset<String> relevantVariableNames = HashMultiset.create();
+    Set<AbstractionPredicate> allPredicates =
+        getAllPredicatesForNode(cfaEdge.getPredecessor(), precision);
+    for (AbstractionPredicate predicate : allPredicates) {
+      BooleanFormula formula = predicate.getSymbolicAtom();
+      Set<String> predicateVariableNames = fmgr.extractVariableNames(formula);
+      relevantVariableNames.addAll(predicateVariableNames);
+    }
+    final double FREQUENCY_REMOVAL_QUOTIENT = 0.5;
+    return filterRelevantVariables(relevantVariableNames, FREQUENCY_REMOVAL_QUOTIENT);
+  }
+
+  private Set<String> filterRelevantVariables(Multiset<String> variables, double percentage) {
+    Set<String> nonRelevantVariables = new HashSet<>();
+    Set<String> allVariables = variables.elementSet();
+    int variableCount = allVariables.size();
+    for (var variable : Multisets.copyHighestCountFirst(variables).elementSet()) {
+      int nonRelevantVariableCount = nonRelevantVariables.size();
+      if (nonRelevantVariableCount / (double) variableCount > percentage) {
+        break;
+      }
+      nonRelevantVariables.add(variable);
+    }
+    allVariables.removeAll(nonRelevantVariables);
+    return allVariables;
+  }
+
+  private boolean shouldAddPredicateRelevantVariableNode(
+      Set<String> assumeVariables, Set<String> predicateVariables) {
+    return predicateVariables.containsAll(assumeVariables);
   }
 
   private void processPredicates(PredicatePrecision precision) {
     if (shouldAddPredicate(precision)) {
       predicatesInUse = getAllPredicates(precision).size();
       predicateTDCG.addTimeStamp(predicatesInUse);
+
+      predicateRelevantVariablesTDCG.resetTimeStamps();
+      coverageData.resetPredicateRelevantVariablesNodes();
+      coverageData.addInitialNodes(
+          cfa,
+          predicateRelevantVariablesTDCG,
+          TimeDependentCoverageType.PredicateRelevantVariables);
     }
   }
 
@@ -116,10 +176,7 @@ public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperT
     Set<AbstractionPredicate> allPredicates =
         getAllPredicatesForNode(cfaEdge.getPredecessor(), precision);
     if (cfaEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
-      CAssumeEdge a = (CAssumeEdge) cfaEdge;
-      CExpression exp = a.getExpression();
-      String assumeExpression = exp.toQualifiedASTString();
-      if (coversPredicate(allPredicates, assumeExpression)) {
+      if (coversPredicate(allPredicates, convertAssumeToVariables(cfaEdge))) {
         return true;
       }
     } else {
@@ -128,30 +185,46 @@ public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperT
     return false;
   }
 
+  private Set<String> convertAssumeToVariables(CFAEdge cfaEdge) {
+    if (cfaEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
+      CAssumeEdge a = (CAssumeEdge) cfaEdge;
+      CExpression exp = a.getExpression();
+      String assumeExpression = exp.toQualifiedASTString();
+      return extractVariableNames(assumeExpression);
+    }
+    return new HashSet<>();
+  }
+
   private boolean coversPredicate(
-      Set<AbstractionPredicate> allPredicates, String assumeExpression) {
+      Set<AbstractionPredicate> allPredicates, Set<String> assumeVariables) {
     for (AbstractionPredicate predicate : allPredicates) {
       BooleanFormula formula = predicate.getSymbolicAtom();
       Set<String> predicateVariableNames = fmgr.extractVariableNames(formula);
-      Set<String> assumeEdgeVariableNames = extractVariableNames(assumeExpression);
+      if (coversPredicateHelper(assumeVariables, predicateVariableNames)) {
+        return true;
+      }
+    }
+    return false;
+  }
 
-      boolean expressionConsidered = true;
-      for (String assumeEdgeVariableName : assumeEdgeVariableNames) {
-        boolean oneSideCovered = false;
-        for (String predicateVariableName : predicateVariableNames) {
-          if (assumeEdgeVariableName.equals(predicateVariableName)) {
-            oneSideCovered = true;
-            break;
-          }
-        }
-        if (!oneSideCovered) {
-          expressionConsidered = false;
+  private boolean coversPredicateHelper(
+      Set<String> assumeVariables, Set<String> predicateVariables) {
+    boolean expressionConsidered = true;
+    for (String assumeEdgeVariableName : assumeVariables) {
+      boolean oneSideCovered = false;
+      for (String predicateVariableName : predicateVariables) {
+        if (assumeEdgeVariableName.equals(predicateVariableName)) {
+          oneSideCovered = true;
           break;
         }
       }
-      if (expressionConsidered) {
-        return true;
+      if (!oneSideCovered) {
+        expressionConsidered = false;
+        break;
       }
+    }
+    if (expressionConsidered) {
+      return true;
     }
     return false;
   }

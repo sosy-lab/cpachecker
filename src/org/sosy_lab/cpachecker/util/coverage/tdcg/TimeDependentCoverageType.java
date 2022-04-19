@@ -12,4 +12,6 @@ public enum TimeDependentCoverageType {
   Visited,
   Predicate,
   PredicateConsidered,
+
+  PredicateRelevantVariables,
 }

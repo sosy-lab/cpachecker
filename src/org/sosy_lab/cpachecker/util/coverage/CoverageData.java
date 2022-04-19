@@ -34,6 +34,7 @@ public final class CoverageData {
     timeDependentCoverageHandler.initNewData(TimeDependentCoverageType.Visited);
     timeDependentCoverageHandler.initNewData(TimeDependentCoverageType.Predicate);
     timeDependentCoverageHandler.initNewData(TimeDependentCoverageType.PredicateConsidered);
+    timeDependentCoverageHandler.initNewData(TimeDependentCoverageType.PredicateRelevantVariables);
   }
 
   public TimeDependentCoverageHandler getTDCGHandler() {
@@ -174,11 +175,25 @@ public final class CoverageData {
       return;
     }
     FileCoverageInformation collector = getCollector(pEdge);
-    collector.addPredicateConsideredNode(pEdge.getPredecessor());
     collector.addPredicateConsideredNode(pEdge.getSuccessor());
   }
 
-  public void addInitialNodes(CFA cfa, TimeDependentCoverageData tdcgData) {
+  public void addPredicateRelevantVariablesNodes(final CFAEdge pEdge) {
+    if (!CoverageUtility.coversLine(pEdge)) {
+      return;
+    }
+    FileCoverageInformation collector = getCollector(pEdge);
+    collector.addPredicateRelevantVariablesNodes(pEdge.getSuccessor());
+  }
+
+  public void resetPredicateRelevantVariablesNodes() {
+    for (FileCoverageInformation info : getInfosPerFile().values()) {
+      info.resetPredicateRelevantVariablesNodes();
+    }
+  }
+
+  public void addInitialNodes(
+      CFA cfa, TimeDependentCoverageData tdcgData, TimeDependentCoverageType type) {
     for (var node : cfa.getAllNodes()) {
       if (node.getNodeNumber() == 1) {
         CFANode candidateNode = node;
@@ -187,8 +202,18 @@ public final class CoverageData {
         }
         FileCoverageInformation collector = getCollectorForInitNode(candidateNode).orElseThrow();
         do {
-          collector.addPredicateConsideredNode(candidateNode);
-          tdcgData.addTimeStamp(getTempPredicateConsideredCoverage(cfa));
+          switch (type) {
+            case PredicateConsidered:
+              collector.addPredicateConsideredNode(candidateNode);
+              tdcgData.addTimeStamp(getTempPredicateConsideredCoverage(cfa));
+              break;
+            case PredicateRelevantVariables:
+              collector.addPredicateRelevantVariablesNodes(candidateNode);
+              tdcgData.addTimeStamp(getTempPredicateRelevantVariablesCoverage(cfa));
+              break;
+            default:
+              break;
+          }
           candidateNode = candidateNode.getLeavingEdge(0).getSuccessor();
         } while (candidateNode.getNumLeavingEdges() == 1);
         break;
@@ -197,12 +222,29 @@ public final class CoverageData {
   }
 
   public double getTempPredicateConsideredCoverage(CFA cfa) {
+    return getTempCoverage(cfa, TimeDependentCoverageType.PredicateConsidered);
+  }
+
+  public double getTempPredicateRelevantVariablesCoverage(CFA cfa) {
+    return getTempCoverage(cfa, TimeDependentCoverageType.PredicateRelevantVariables);
+  }
+
+  private double getTempCoverage(CFA cfa, TimeDependentCoverageType type) {
     int numTotalNodes = cfa.getAllNodes().size();
-    int numPredicateConsideredNodes = 0;
+    int numRelevantNodes = 0;
     for (FileCoverageInformation info : getInfosPerFile().values()) {
-      numPredicateConsideredNodes += info.numPredicateConsideredNodes.size();
+      switch (type) {
+        case PredicateConsidered:
+          numRelevantNodes += info.numPredicateConsideredNodes.size();
+          break;
+        case PredicateRelevantVariables:
+          numRelevantNodes += info.numPredicateRelevantVariablesNodes.size();
+          break;
+        default:
+          break;
+      }
     }
-    return numPredicateConsideredNodes / (double) numTotalNodes;
+    return numRelevantNodes / (double) numTotalNodes;
   }
 
   public void addConsideredNodes(

@@ -25,6 +25,7 @@ public class CoverageReportStdoutSummary {
     long numTotalNodes = 0;
     long numConsideredNodes = 0;
     long numPredicateConsideredNodes = 0;
+    long numPredicateRelevantVariablesNodes = 0;
 
     double predicateCoverage = pCoverage.getPredicateCoverage();
 
@@ -41,6 +42,10 @@ public class CoverageReportStdoutSummary {
       numTotalNodes += info.allNodes.size();
       numConsideredNodes += info.consideredNodes.size();
       numPredicateConsideredNodes += info.numPredicateConsideredNodes.size();
+      numPredicateRelevantVariablesNodes +=
+          Math.max(
+              info.numPredicateRelevantVariablesNodes.size(),
+              info.previousPredicateRelevantVariablesNodesSize);
     }
 
     if (numTotalFunctions > 0) {
@@ -69,9 +74,13 @@ public class CoverageReportStdoutSummary {
       final double consideredCoverage = numConsideredNodes / (double) numTotalNodes;
       final double predicateConsideredCoverage =
           numPredicateConsideredNodes / (double) numTotalNodes;
+      final double predicateRelevantVariablesCoverage =
+          numPredicateRelevantVariablesNodes / (double) numTotalNodes;
       StatisticsUtils.write(pStdOut, 1, 25, "Considered nodes", numConsideredNodes);
       StatisticsUtils.write(
-          pStdOut, 1, 25, "Predicate considered nodes", numPredicateConsideredNodes);
+          pStdOut, 1, 25, "Predicate-considered nodes", numPredicateConsideredNodes);
+      StatisticsUtils.write(
+          pStdOut, 1, 25, "Predicate-relevant-variables nodes", numPredicateRelevantVariablesNodes);
       StatisticsUtils.write(pStdOut, 1, 25, "Total nodes", numTotalNodes);
 
       StatisticsUtils.write(
@@ -80,8 +89,14 @@ public class CoverageReportStdoutSummary {
           pStdOut,
           1,
           25,
-          "Predicate considered coverage",
+          "Predicate-considered coverage",
           String.format("%.3f", predicateConsideredCoverage));
+      StatisticsUtils.write(
+          pStdOut,
+          1,
+          25,
+          "Predicate-relevant-variables coverage",
+          String.format("%.3f", predicateRelevantVariablesCoverage));
     }
 
     if (predicateCoverage > 0.0) {
