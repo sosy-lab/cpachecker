@@ -49,8 +49,9 @@ import org.sosy_lab.cpachecker.util.UnmodifiableSetView;
  * CFAUtils#allEnteringEdges(CFANode)}, {@link FunctionCallEdge#getSummaryEdge()}, {@link
  * FunctionEntryNode#getExitNode()}, etc. It's important to use methods provided by a {@code
  * CfaNetwork} if more than a single CFA node and/or edge is involved. For example, one should use
- * {@link #outEdges(CFANode)} instead of {@link CFAUtils#allLeavingEdges(CFANode)} and {@link
- * #getFunctionSummaryEdge(FunctionCallEdge)} instead of {@link FunctionCallEdge#getSummaryEdge()}.
+ * {@link CfaNetwork#outEdges(CFANode)} instead of {@link CFAUtils#allLeavingEdges(CFANode)} and
+ * {@link #getFunctionSummaryEdge(FunctionCallEdge)} instead of {@link
+ * FunctionCallEdge#getSummaryEdge()}.
  *
  * <p>For performance reasons, not all {@code CfaNetwork} implementations check whether CFA nodes
  * and edges given as method arguments actually belong to the CFA represented by a {@code
