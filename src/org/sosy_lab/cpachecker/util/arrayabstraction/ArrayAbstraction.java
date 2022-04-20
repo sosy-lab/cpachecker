@@ -838,7 +838,7 @@ public class ArrayAbstraction {
     CfaTransformer cfaTransformer =
         CCfaTransformer.builder().addEdgeAstSubstitution(edgeAstSubstitution::apply).build();
 
-    CFA transformedCfa = cfaTransformer.transform(graph, pCfa.getMetadata(), pLogger);
+    CFA transformedCfa = cfaTransformer.transform(graph, simplifiedCfa.getMetadata(), pLogger);
 
     return new ArrayAbstractionResult(
         status, transformedCfa, transformableArrays, transformableLoops);
