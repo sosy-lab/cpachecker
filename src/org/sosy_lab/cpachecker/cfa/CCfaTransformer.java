@@ -334,13 +334,7 @@ public final class CCfaTransformer extends CfaTransformer {
       if (connectedness == CfaConnectedness.SUPERGRAPH) {
 
         FunctionSummaryEdge oldFunctionSummaryEdge =
-            cfaNetwork
-                .getFunctionSummaryEdge(pCFunctionCallEdge)
-                .orElseThrow(
-                    () ->
-                        new IllegalArgumentException(
-                            "Missing FunctionSummaryEdge for FunctionCallEdge: "
-                                + pCFunctionCallEdge));
+            cfaNetwork.getFunctionSummaryEdge(pCFunctionCallEdge);
         CFunctionSummaryEdge newFunctionSummaryEdge =
             (CFunctionSummaryEdge) substitution.toSubstitute(oldFunctionSummaryEdge);
 
@@ -365,13 +359,7 @@ public final class CCfaTransformer extends CfaTransformer {
       if (connectedness == CfaConnectedness.SUPERGRAPH) {
 
         FunctionSummaryEdge oldFunctionSummaryEdge =
-            cfaNetwork
-                .getFunctionSummaryEdge(pCFunctionReturnEdge)
-                .orElseThrow(
-                    () ->
-                        new IllegalArgumentException(
-                            "Missing FunctionSummaryEdge for FunctionReturnEdge: "
-                                + pCFunctionReturnEdge));
+            cfaNetwork.getFunctionSummaryEdge(pCFunctionReturnEdge);
         CFunctionSummaryEdge newFunctionSummaryEdge =
             (CFunctionSummaryEdge) substitution.toSubstitute(oldFunctionSummaryEdge);
 
@@ -396,13 +384,7 @@ public final class CCfaTransformer extends CfaTransformer {
       if (connectedness == CfaConnectedness.SUPERGRAPH) {
 
         FunctionEntryNode oldFunctionEntryNode =
-            cfaNetwork
-                .getFunctionEntryNode(pCFunctionSummaryEdge)
-                .orElseThrow(
-                    () ->
-                        new IllegalArgumentException(
-                            "Missing FunctionEntryNode for FunctionSummaryEdge: "
-                                + pCFunctionSummaryEdge));
+            cfaNetwork.getFunctionEntryNode(pCFunctionSummaryEdge);
         CFunctionEntryNode newFunctionEntryNode =
             (CFunctionEntryNode) substitution.toSubstitute(oldFunctionEntryNode);
 
