@@ -14,7 +14,7 @@ import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 @FunctionalInterface
-interface CfaEdgeConverter {
+public interface CfaEdgeConverter {
 
   Optional<CFAEdge> convertEdge(
       CFAEdge pCfaEdge,

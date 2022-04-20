@@ -12,7 +12,7 @@ import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 @FunctionalInterface
-interface CfaNodeConverter {
+public interface CfaNodeConverter {
 
   CFANode convertNode(CFANode pCfaNode, CfaNetwork pCfaNetwork, CfaNodeSubstitution pSubstitution);
 }

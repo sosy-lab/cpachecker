@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.transformer;
+package org.sosy_lab.cpachecker.cfa.transformer.c;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.graph.EndpointPair;
@@ -45,6 +45,10 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.transformer.CfaCreator;
+import org.sosy_lab.cpachecker.cfa.transformer.CfaEdgeSubstitution;
+import org.sosy_lab.cpachecker.cfa.transformer.CfaNodeSubstitution;
+import org.sosy_lab.cpachecker.cfa.transformer.CfaTransformer;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
 public final class CCfaTransformer implements CfaTransformer {
