@@ -16,19 +16,17 @@ import org.sosy_lab.cpachecker.util.faultlocalization.ranking.NoContextExplanati
 
 public abstract class FaultInfo implements Comparable<FaultInfo> {
 
+  /**
+   * Represents the type of FaultInfo. The HTML report sorts FaultInfos according to the definition
+   * in the enum InfoType.
+   */
   public enum InfoType {
     /** The reason why a fault localization algorithm created the fault */
-    REASON(0),
+    REASON,
     /** Provides a possible fix */
-    FIX(1),
+    FIX,
     /** Information provided by the rankings */
-    RANK_INFO(2);
-
-    private final int reportRank;
-
-    InfoType(int pReportRank) {
-      reportRank = pReportRank;
-    }
+    RANK_INFO
   }
 
   protected double score;
@@ -83,8 +81,8 @@ public abstract class FaultInfo implements Comparable<FaultInfo> {
    */
   @Override
   public int compareTo(FaultInfo info) {
-    return Comparator.<FaultInfo>comparingInt(i -> i.type.reportRank)
-        .thenComparingDouble(i -> i.score)
+    return Comparator.comparing(FaultInfo::getType)
+        .thenComparingDouble(FaultInfo::getScore)
         .compare(this, info);
   }
 

@@ -47,7 +47,7 @@ public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperT
   private final FormulaManagerView fmgr;
   private final CFA cfa;
 
-  final static double FREQUENCY_REMOVAL_QUOTIENT = 0.5;
+  static final double FREQUENCY_REMOVAL_QUOTIENT = 0.5;
   private int predicatesInUse = 0;
 
   PredicateCoverageCPATransferRelation(
