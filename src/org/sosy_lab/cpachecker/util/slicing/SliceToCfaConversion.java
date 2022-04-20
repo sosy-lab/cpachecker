@@ -12,11 +12,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.TreeMultimap;
 import java.util.List;
-import java.util.NavigableMap;
 import java.util.Optional;
-import java.util.TreeMap;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -26,7 +23,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CCfaTransformer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CfaTransformer;
-import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.AbstractTransformingCAstNodeVisitor;
@@ -140,31 +136,6 @@ final class SliceToCfaConversion {
   }
 
   /**
-   * Creates a simplified CFA for the specified CFA using {@link
-   * CFASimplifier#simplifyCFA(MutableCFA)}.
-   */
-  private static CFA createSimplifiedCfa(CFA pCfa) {
-
-    NavigableMap<String, FunctionEntryNode> functionEntryNodes = new TreeMap<>();
-    TreeMultimap<String, CFANode> allNodes = TreeMultimap.create();
-
-    for (CFANode node : pCfa.getAllNodes()) {
-
-      String functionName = node.getFunction().getQualifiedName();
-      allNodes.put(functionName, node);
-
-      if (node instanceof FunctionEntryNode) {
-        functionEntryNodes.put(functionName, (FunctionEntryNode) node);
-      }
-    }
-
-    MutableCFA mutableSliceCfa = new MutableCFA(functionEntryNodes, allNodes, pCfa.getMetadata());
-    CFASimplifier.simplifyCFA(mutableSliceCfa);
-
-    return mutableSliceCfa.makeImmutableCFA(mutableSliceCfa.getVarClassification());
-  }
-
-  /**
    * Creates a {@link CFA} that matches the specified {@link Slice} as closely as possible.
    *
    * @param pConfig the configuration to use
@@ -214,11 +185,12 @@ final class SliceToCfaConversion {
                 new RelevantNodeAstSubstitution(pSlice, functionToEntryNodeMap::get))
             .addEdgeAstSubstitution(
                 createAstNodeSubstitutionForCfaEdges(pSlice, functionToEntryNodeMap::get)::apply)
+            .addCfaProcessor(new CFASimplifier())
             .build();
 
     CFA sliceCfa = cfaTransformer.transform(graph, pSlice.getOriginalCfa().getMetadata(), pLogger);
 
-    return createSimplifiedCfa(sliceCfa);
+    return sliceCfa;
   }
 
   /**

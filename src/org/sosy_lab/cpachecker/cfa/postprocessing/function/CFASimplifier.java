@@ -19,7 +19,9 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
+import org.sosy_lab.cpachecker.cfa.CfaProcessor.ModifyingIndependentFunctionPostProcessor;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
@@ -29,7 +31,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-public class CFASimplifier {
+public class CFASimplifier implements ModifyingIndependentFunctionPostProcessor {
 
   /**
    * This method takes a cfa as input and simplifies it, in the way, that Assume Edges which are not
@@ -259,5 +261,13 @@ public class CFASimplifier {
 
       toRemove = nextNode;
     }
+  }
+
+  @Override
+  public MutableCFA process(MutableCFA pCfa, LogManager pLogger) {
+
+    simplifyCFA(pCfa);
+
+    return pCfa;
   }
 }
