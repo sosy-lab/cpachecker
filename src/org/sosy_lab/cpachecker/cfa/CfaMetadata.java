@@ -24,6 +24,13 @@ import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
+/**
+ * Class for storing additional data about a {@link CFA}, including its {@link Language} and main
+ * function entry node.
+ *
+ * <p>Instances of this class are immutable. Instead of using {@code setXYZ}, use {@code withXYZ} to
+ * create a new instance that has the specified value for {@code XYZ}.
+ */
 public final class CfaMetadata implements Serializable {
 
   private static final long serialVersionUID = -4976424764995656485L;
@@ -61,6 +68,19 @@ public final class CfaMetadata implements Serializable {
     liveVariables = pLiveVariables;
   }
 
+  /**
+   * Returns a new {@code CfaMetadata} instance for the specified parameters.
+   *
+   * @param pMachineModel the machine model to use (defines sizes for all basic types)
+   * @param pLanguage the language of the CFA (e.g., C, Java, etc.)
+   * @param pFileNames the source code files from which the CFA was created
+   * @param pMainFunctionEntry the entry point of the program represented by the CFA
+   * @param pConnectedness specifies whether functions are connected by super-edges (i.e., function
+   *     call and return edges)
+   * @return a new {@code CfaMetadata} instance for the specified parameters
+   * @throws NullPointerException if any parameter is {@code null} or if {@code pFileNames} contains
+   *     {@code null}
+   */
   public static CfaMetadata of(
       MachineModel pMachineModel,
       Language pLanguage,
