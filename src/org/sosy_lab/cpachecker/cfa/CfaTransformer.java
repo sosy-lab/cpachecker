@@ -19,6 +19,11 @@ import java.util.NavigableMap;
 import java.util.TreeMap;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CfaProcessor.ModifyingIndependentFunctionPostProcessor;
+import org.sosy_lab.cpachecker.cfa.CfaProcessor.ModifyingSupergraphPostProcessor;
+import org.sosy_lab.cpachecker.cfa.CfaProcessor.ReadOnlyIndependentFunctionPostProcessor;
+import org.sosy_lab.cpachecker.cfa.CfaProcessor.ReadOnlySupergraphPostProcessor;
+import org.sosy_lab.cpachecker.cfa.CfaProcessor.SupergraphCreator;
 import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -64,35 +69,6 @@ public abstract class CfaTransformer {
 
   public final CFA transform(CFA pCfa, CfaMetadata pCfaMetadata, LogManager pLogger) {
     return transform(CfaNetwork.of(pCfa), pCfaMetadata, pLogger);
-  }
-
-  // TODO: move CFA processor interfaces out of CfaTransformer
-  /** Marker interface for CFA post processors. */
-  public interface CfaProcessor {}
-
-  public interface ModifyingIndependentFunctionPostProcessor extends CfaProcessor {
-
-    MutableCFA process(MutableCFA pCfa, LogManager pLogger);
-  }
-
-  public interface ReadOnlyIndependentFunctionPostProcessor extends CfaProcessor {
-
-    void process(MutableCFA pCfa, LogManager pLogger);
-  }
-
-  public interface SupergraphCreator extends CfaProcessor {
-
-    MutableCFA process(MutableCFA pCfa, LogManager pLogger);
-  }
-
-  public interface ModifyingSupergraphPostProcessor extends CfaProcessor {
-
-    MutableCFA process(MutableCFA pCfa, LogManager pLogger);
-  }
-
-  public interface ReadOnlySupergraphPostProcessor extends CfaProcessor {
-
-    void process(MutableCFA pCfa, LogManager pLogger);
   }
 
   public interface Substitution {
