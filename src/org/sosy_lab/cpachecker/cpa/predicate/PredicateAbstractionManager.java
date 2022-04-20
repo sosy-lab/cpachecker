@@ -41,7 +41,6 @@ import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.Collections3;
-import org.sosy_lab.common.collect.MapsDifference;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.collect.PersistentSortedMaps;
@@ -1249,23 +1248,16 @@ public class PredicateAbstractionManager {
 
   PredicateAbstractState joinAbstractionStates(
       PredicateAbstractState state1, PredicateAbstractState state2) throws InterruptedException {
-    AbstractionFormula joinedFormula =
+    AbstractionFormula joinedAbsFormula =
         makeOr(state1.getAbstractionFormula(), state2.getAbstractionFormula());
-    SSAMap joinedSSA =
-        SSAMap.merge(
-            state1.getPathFormula().getSsa(),
-            state2.getPathFormula().getSsa(),
-            MapsDifference.collectMapsDifferenceTo(new ArrayList<>()));
-    // TODO: how to merge 2 PointerTargetSet?
-    PathFormula joinedPathFormula =
-        pfmgr.makeEmptyPathFormulaWithContext(joinedSSA, PointerTargetSet.emptyPointerTargetSet());
+    PathFormula joinedPathFormula = pfmgr.makeOr(state1.getPathFormula(), state2.getPathFormula());
     PersistentMap<CFANode, Integer> joinedLocations =
         PersistentSortedMaps.merge(
             PathCopyingPersistentTreeMap.copyOf(state1.getAbstractionLocationsOnPath()),
             PathCopyingPersistentTreeMap.copyOf(state2.getAbstractionLocationsOnPath()),
             PersistentSortedMaps.getMaximumMergeConflictHandler());
     return PredicateAbstractState.mkAbstractionState(
-        joinedPathFormula, joinedFormula, joinedLocations);
+        joinedPathFormula, joinedAbsFormula, joinedLocations);
   }
 
   // Creating AbstractionPredicates
