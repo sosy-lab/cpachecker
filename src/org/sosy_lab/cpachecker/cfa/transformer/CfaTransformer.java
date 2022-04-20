@@ -8,19 +8,16 @@
 
 package org.sosy_lab.cpachecker.cfa.transformer;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CfaMetadata;
 import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
 
-public abstract class CfaTransformer {
+@FunctionalInterface
+public interface CfaTransformer {
 
-  public CfaTransformer from(CfaTransformer pTransformer, CfaTransformer... pTransformers) {
-
-    checkNotNull(pTransformer);
+  public static CfaTransformer of(CfaTransformer pTransformer, CfaTransformer... pTransformers) {
 
     ImmutableList<CfaTransformer> transformers = ImmutableList.copyOf(pTransformers);
 
@@ -39,10 +36,9 @@ public abstract class CfaTransformer {
     };
   }
 
-  public abstract CFA transform(
-      CfaNetwork pCfaNetwork, CfaMetadata pCfaMetadata, LogManager pLogger);
+  CFA transform(CfaNetwork pCfaNetwork, CfaMetadata pCfaMetadata, LogManager pLogger);
 
-  public final CFA transform(CFA pCfa, CfaMetadata pCfaMetadata, LogManager pLogger) {
+  default CFA transform(CFA pCfa, CfaMetadata pCfaMetadata, LogManager pLogger) {
     return transform(CfaNetwork.of(pCfa), pCfaMetadata, pLogger);
   }
 }

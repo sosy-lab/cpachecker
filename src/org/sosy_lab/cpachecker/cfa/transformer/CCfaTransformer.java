@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
-public final class CCfaTransformer extends CfaTransformer {
+public final class CCfaTransformer implements CfaTransformer {
 
   private final ImmutableList<CfaProcessor> cfaProcessors;
 
