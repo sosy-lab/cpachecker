@@ -14,7 +14,6 @@ import com.google.common.collect.ImmutableList;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CfaMetadata;
-import org.sosy_lab.cpachecker.cfa.CfaProcessor;
 import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
 
 public abstract class CfaTransformer {
@@ -38,17 +37,6 @@ public abstract class CfaTransformer {
         return transformedCfa;
       }
     };
-  }
-
-  protected final CFA createCfa(
-      CfaNetwork pCfaNetwork,
-      CfaMetadata pCfaMetadata,
-      LogManager pLogger,
-      ImmutableList<CfaProcessor> pCfaProcessors,
-      CfaNodeConverter pNodeConverter,
-      CfaEdgeConverter pEdgeConverter) {
-    return new CfaCreator(pCfaProcessors, pCfaNetwork, pNodeConverter, pEdgeConverter)
-        .createCfa(pCfaMetadata, pLogger);
   }
 
   public abstract CFA transform(

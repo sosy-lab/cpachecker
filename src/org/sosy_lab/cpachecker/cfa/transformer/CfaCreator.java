@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.transformer;
 
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.TreeMultimap;
 import java.util.HashMap;
@@ -34,7 +33,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 
-final class CfaCreator {
+public final class CfaCreator {
 
   private final ImmutableList<CfaProcessor> cfaProcessors;
 
@@ -48,7 +47,7 @@ final class CfaCreator {
 
   private CfaConnectedness connectedness;
 
-  CfaCreator(
+  private CfaCreator(
       ImmutableList<CfaProcessor> pCfaProcessors,
       CfaNetwork pCfaNetwork,
       CfaNodeConverter pNodeConverter,
@@ -65,7 +64,18 @@ final class CfaCreator {
     oldEdgeToNewEdge = new HashMap<>();
   }
 
-  public CFANode toNew(CFANode pOldNode) {
+  public static CFA createCfa(
+      ImmutableList<CfaProcessor> pCfaProcessors,
+      CfaNetwork pCfaNetwork,
+      CfaNodeConverter pNodeConverter,
+      CfaEdgeConverter pEdgeConverter,
+      CfaMetadata pCfaMetadata,
+      LogManager pLogger) {
+    return new CfaCreator(pCfaProcessors, pCfaNetwork, pNodeConverter, pEdgeConverter)
+        .createCfa(pCfaMetadata, pLogger);
+  }
+
+  private CFANode toNew(CFANode pOldNode) {
 
     @Nullable CFANode newNode = oldNodeToNewNode.get(pOldNode);
     if (newNode != null) {
@@ -75,7 +85,7 @@ final class CfaCreator {
     return nodeConverter.convertNode(pOldNode, cfaNetwork, this::toNew);
   }
 
-  public CFAEdge toNew(CFAEdge pOldEdge) {
+  private CFAEdge toNew(CFAEdge pOldEdge) {
 
     @Nullable CFAEdge newEdge = oldEdgeToNewEdge.get(pOldEdge);
     if (newEdge != null) {
@@ -197,7 +207,7 @@ final class CfaCreator {
     }
   }
 
-  CFA createCfa(CfaMetadata pCfaMetadata, LogManager pLogger) {
+  private CFA createCfa(CfaMetadata pCfaMetadata, LogManager pLogger) {
 
     MutableCFA newMutableCfa =
         createIndependentFunctionCfa(

@@ -132,8 +132,8 @@ public final class CCfaTransformer extends CfaTransformer {
 
   @Override
   public CFA transform(CfaNetwork pCfaNetwork, CfaMetadata pCfaMetadata, LogManager pLogger) {
-    return createCfa(
-        pCfaNetwork, pCfaMetadata, pLogger, cfaProcessors, this::convertNode, this::convertEdge);
+    return CfaCreator.createCfa(
+        cfaProcessors, pCfaNetwork, this::convertNode, this::convertEdge, pCfaMetadata, pLogger);
   }
 
   public interface NodeAstSubstitution {
