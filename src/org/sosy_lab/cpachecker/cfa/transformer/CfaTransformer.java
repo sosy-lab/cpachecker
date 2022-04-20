@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa;
+package org.sosy_lab.cpachecker.cfa.transformer;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -19,11 +19,16 @@ import java.util.NavigableMap;
 import java.util.TreeMap;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CfaConnectedness;
+import org.sosy_lab.cpachecker.cfa.CfaMetadata;
+import org.sosy_lab.cpachecker.cfa.CfaProcessor;
 import org.sosy_lab.cpachecker.cfa.CfaProcessor.ModifyingIndependentFunctionPostProcessor;
 import org.sosy_lab.cpachecker.cfa.CfaProcessor.ModifyingSupergraphPostProcessor;
 import org.sosy_lab.cpachecker.cfa.CfaProcessor.ReadOnlyIndependentFunctionPostProcessor;
 import org.sosy_lab.cpachecker.cfa.CfaProcessor.ReadOnlySupergraphPostProcessor;
 import org.sosy_lab.cpachecker.cfa.CfaProcessor.SupergraphCreator;
+import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;

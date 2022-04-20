@@ -174,7 +174,7 @@ public class MutableCFA implements CFA {
     return metadata;
   }
 
-  void setMetadata(CfaMetadata pCfaMetadata) {
+  public void setMetadata(CfaMetadata pCfaMetadata) {
     metadata = checkNotNull(pCfaMetadata);
   }
 }
