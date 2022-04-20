@@ -102,7 +102,7 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Mockito
              Mocking framework for tests. -->
-        <dependency org="org.mockito" name="mockito-core" rev="4.4.0" conf="test->default"/>
+        <dependency org="org.mockito" name="mockito-core" rev="4.5.0" conf="test->default"/>
         <!-- Conflicts with Error Prone 2.11.0, re-enable after new version is available
         <dependency org="org.mockito" name="mockito-errorprone" rev="4.4.0" conf="build->default"/>
         -->
