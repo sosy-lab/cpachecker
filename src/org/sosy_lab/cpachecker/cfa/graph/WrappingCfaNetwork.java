@@ -14,10 +14,16 @@ import com.google.common.collect.Iterators;
 import com.google.common.graph.EndpointPair;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.UnmodifiableSetView;
 
@@ -130,5 +136,25 @@ final class WrappingCfaNetwork implements CfaNetwork {
         return cfa.getAllNodes().containsAll(pCollection);
       }
     };
+  }
+
+  @Override
+  public Optional<FunctionExitNode> getFunctionExitNode(FunctionEntryNode pFunctionEntryNode) {
+    return Optional.of(pFunctionEntryNode.getExitNode());
+  }
+
+  @Override
+  public FunctionSummaryEdge getFunctionSummaryEdge(FunctionCallEdge pFunctionCallEdge) {
+    return pFunctionCallEdge.getSummaryEdge();
+  }
+
+  @Override
+  public FunctionSummaryEdge getFunctionSummaryEdge(FunctionReturnEdge pFunctionReturnEdge) {
+    return pFunctionReturnEdge.getSummaryEdge();
+  }
+
+  @Override
+  public FunctionEntryNode getFunctionEntryNode(FunctionSummaryEdge pFunctionSummaryEdge) {
+    return pFunctionSummaryEdge.getFunctionEntry();
   }
 }
