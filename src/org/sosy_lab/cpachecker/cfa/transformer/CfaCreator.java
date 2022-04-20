@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.cfa.transformer;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.TreeMultimap;
 import java.util.HashMap;
@@ -71,8 +74,18 @@ public final class CfaCreator {
       CfaEdgeConverter pEdgeConverter,
       CfaMetadata pCfaMetadata,
       LogManager pLogger) {
-    return new CfaCreator(pCfaProcessors, pCfaNetwork, pNodeConverter, pEdgeConverter)
-        .createCfa(pCfaMetadata, pLogger);
+
+    checkArgument(
+        pCfaNetwork.nodes().contains(pCfaMetadata.getMainFunctionEntry()),
+        "cannot use specified main function entry node because it is not part of the CFA: "
+            + pCfaMetadata.getMainFunctionEntry());
+
+    return new CfaCreator(
+            checkNotNull(pCfaProcessors),
+            checkNotNull(pCfaNetwork),
+            checkNotNull(pNodeConverter),
+            checkNotNull(pEdgeConverter))
+        .createCfa(checkNotNull(pCfaMetadata), checkNotNull(pLogger));
   }
 
   private CFANode toNew(CFANode pOldNode) {
