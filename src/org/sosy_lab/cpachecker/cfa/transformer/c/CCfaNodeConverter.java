@@ -1,0 +1,120 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2022 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.cfa.transformer.c;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import com.google.common.collect.ImmutableList;
+import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
+import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.transformer.CfaNodeConverter;
+import org.sosy_lab.cpachecker.cfa.transformer.CfaNodeSubstitution;
+
+public final class CCfaNodeConverter implements CfaNodeConverter {
+
+  public static final CCfaNodeConverter IDENTITY = new CCfaNodeConverter(ImmutableList.of());
+
+  private final ImmutableList<CCfaNodeAstSubstitution> nodeAstSubstitutions;
+
+  private CCfaNodeConverter(ImmutableList<CCfaNodeAstSubstitution> pNodeAstSubstitutions) {
+    nodeAstSubstitutions = pNodeAstSubstitutions;
+  }
+
+  public static CCfaNodeConverter forSubstitutions(
+      ImmutableList<CCfaNodeAstSubstitution> pNodeAstSubstitutions) {
+    return new CCfaNodeConverter(checkNotNull(pNodeAstSubstitutions));
+  }
+
+  private CFunctionDeclaration applyNodeAstSubstitutions(
+      CFANode pNode, CFunctionDeclaration pFunction) {
+
+    CFunctionDeclaration function = pFunction;
+    for (CCfaNodeAstSubstitution nodeAstSubstitution : nodeAstSubstitutions) {
+      function = nodeAstSubstitution.apply(pNode, function);
+    }
+
+    return function;
+  }
+
+  private Optional<CVariableDeclaration> applyNodeAstSubstitutions(
+      CFunctionEntryNode pFunctionEntryNode, Optional<CVariableDeclaration> pReturnVariable) {
+
+    Optional<CVariableDeclaration> returnVariable = pReturnVariable;
+    for (CCfaNodeAstSubstitution nodeAstSubstitution : nodeAstSubstitutions) {
+      returnVariable = nodeAstSubstitution.apply(pFunctionEntryNode, returnVariable);
+    }
+
+    return returnVariable;
+  }
+
+  private CFunctionDeclaration newFunctionDeclaration(CFANode pOldNode) {
+    return applyNodeAstSubstitutions(pOldNode, (CFunctionDeclaration) pOldNode.getFunction());
+  }
+
+  private CFALabelNode newCfaLabelNode(CFALabelNode pOldNode) {
+    return new CFALabelNode(newFunctionDeclaration(pOldNode), pOldNode.getLabel());
+  }
+
+  private CFunctionEntryNode newCFunctionEntryNode(
+      CFunctionEntryNode pOldNode, CfaNetwork pCfaNetwork, CfaNodeSubstitution pNodeSubstitution) {
+
+    FunctionExitNode oldExitNode =
+        pCfaNetwork.getFunctionExitNode(pOldNode).orElse(pOldNode.getExitNode());
+    FunctionExitNode newExitNode = (FunctionExitNode) pNodeSubstitution.get(oldExitNode);
+
+    Optional<CVariableDeclaration> newReturnVariable =
+        applyNodeAstSubstitutions(pOldNode, pOldNode.getReturnVariable());
+
+    CFunctionEntryNode newEntryNode =
+        new CFunctionEntryNode(
+            pOldNode.getFileLocation(),
+            newFunctionDeclaration(pOldNode),
+            newExitNode,
+            newReturnVariable);
+    newExitNode.setEntryNode(newEntryNode);
+
+    return newEntryNode;
+  }
+
+  private FunctionExitNode newFunctionExitNode(FunctionExitNode pOldNode) {
+    return new FunctionExitNode(newFunctionDeclaration(pOldNode));
+  }
+
+  private CFATerminationNode newCfaTerminationNode(CFATerminationNode pOldNode) {
+    return new CFATerminationNode(newFunctionDeclaration(pOldNode));
+  }
+
+  private CFANode newCfaNode(CFANode pOldNode) {
+    return new CFANode(newFunctionDeclaration(pOldNode));
+  }
+
+  @Override
+  public CFANode convertNode(
+      CFANode pOldNode, CfaNetwork pCfaNetwork, CfaNodeSubstitution pNodeSubstitution) {
+
+    if (pOldNode instanceof CFALabelNode) {
+      return newCfaLabelNode((CFALabelNode) pOldNode);
+    } else if (pOldNode instanceof CFunctionEntryNode) {
+      return newCFunctionEntryNode((CFunctionEntryNode) pOldNode, pCfaNetwork, pNodeSubstitution);
+    } else if (pOldNode instanceof FunctionExitNode) {
+      return newFunctionExitNode((FunctionExitNode) pOldNode);
+    } else if (pOldNode instanceof CFATerminationNode) {
+      return newCfaTerminationNode((CFATerminationNode) pOldNode);
+    } else {
+      return newCfaNode(pOldNode);
+    }
+  }
+}

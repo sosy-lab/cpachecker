@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFASimplifier;
 import org.sosy_lab.cpachecker.cfa.transformer.CfaTransformer;
+import org.sosy_lab.cpachecker.cfa.transformer.c.CCfaNodeAstSubstitution;
 import org.sosy_lab.cpachecker.cfa.transformer.c.CCfaTransformer;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
@@ -196,8 +197,7 @@ final class SliceToCfaConversion {
    * A substitution that maps CFA nodes and their contained AST nodes to AST nodes that only contain
    * parts relevant to the specified program slice.
    */
-  private static final class RelevantNodeAstSubstitution
-      implements CCfaTransformer.NodeAstSubstitution {
+  private static final class RelevantNodeAstSubstitution implements CCfaNodeAstSubstitution {
 
     private final RelevantFunctionDeclarationTransformingVisitor functionTransformingVisitor;
 
