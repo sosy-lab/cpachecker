@@ -101,27 +101,33 @@ public final class CCfaTransformer extends CfaTransformer {
     return astNode;
   }
 
-  private @Nullable CFANode convertNode(
-      CFANode pNode, CfaNetwork pCfaNetwork, CfaTransformer.Substitution pSubstitution) {
-    return new NodeConverter(pCfaNetwork, pSubstitution).convert(pNode);
+  private CFANode convertNode(
+      CFANode pNode, CfaNetwork pCfaNetwork, CfaNodeSubstitution pNodeSubstitution) {
+    return new NodeConverter(pCfaNetwork, pNodeSubstitution).convert(pNode);
   }
 
-  private CFAEdge convertEdge(
+  private Optional<CFAEdge> convertEdge(
       CFAEdge pEdge,
       CfaNetwork pCfaNetwork,
-      CfaTransformer.Substitution pSubstitution,
+      CfaNodeSubstitution pNodeSubstitution,
+      CfaEdgeSubstitution pEdgeSubstitution,
       CfaConnectedness pConnectedness) {
 
     EndpointPair<CFANode> oldEndpoints = pCfaNetwork.incidentNodes(pEdge);
 
-    CFANode newPredecessor = pSubstitution.toSubstitute(oldEndpoints.source());
-    CFANode newSuccessor = pSubstitution.toSubstitute(oldEndpoints.target());
+    CFANode newPredecessor = pNodeSubstitution.get(oldEndpoints.source());
+    CFANode newSuccessor = pNodeSubstitution.get(oldEndpoints.target());
 
     var transformingEdgeVisitor =
         new TransformingCCfaEdgeVisitor(
-            pCfaNetwork, pSubstitution, pConnectedness, newPredecessor, newSuccessor);
+            pCfaNetwork,
+            pNodeSubstitution,
+            pEdgeSubstitution,
+            pConnectedness,
+            newPredecessor,
+            newSuccessor);
 
-    return ((CCfaEdge) pEdge).accept(transformingEdgeVisitor);
+    return Optional.ofNullable(((CCfaEdge) pEdge).accept(transformingEdgeVisitor));
   }
 
   @Override
@@ -189,11 +195,11 @@ public final class CCfaTransformer extends CfaTransformer {
   private final class NodeConverter {
 
     private final CfaNetwork cfaNetwork;
-    private final CfaTransformer.Substitution substitution;
+    private final CfaNodeSubstitution nodeSubstitution;
 
-    private NodeConverter(CfaNetwork pCfaNetwork, CfaTransformer.Substitution pSubstitution) {
+    private NodeConverter(CfaNetwork pCfaNetwork, CfaNodeSubstitution pNodeSubstitution) {
       cfaNetwork = pCfaNetwork;
-      substitution = pSubstitution;
+      nodeSubstitution = pNodeSubstitution;
     }
 
     private CFunctionDeclaration newFunctionDeclaration(CFANode pOldNode) {
@@ -208,7 +214,7 @@ public final class CCfaTransformer extends CfaTransformer {
 
       FunctionExitNode oldExitNode =
           cfaNetwork.getFunctionExitNode(pOldNode).orElse(pOldNode.getExitNode());
-      FunctionExitNode newExitNode = (FunctionExitNode) substitution.toSubstitute(oldExitNode);
+      FunctionExitNode newExitNode = (FunctionExitNode) nodeSubstitution.get(oldExitNode);
 
       Optional<CVariableDeclaration> newReturnVariable =
           applyNodeAstSubstitutions(pOldNode, pOldNode.getReturnVariable());
@@ -256,7 +262,8 @@ public final class CCfaTransformer extends CfaTransformer {
       implements CCfaEdgeVisitor<@Nullable CFAEdge, NoException> {
 
     private final CfaNetwork cfaNetwork;
-    private final CfaTransformer.Substitution substitution;
+    private final CfaNodeSubstitution nodeSubstitution;
+    private final CfaEdgeSubstitution edgeSubstitution;
     private final CfaConnectedness connectedness;
 
     private final CFANode newPredecessor;
@@ -264,13 +271,15 @@ public final class CCfaTransformer extends CfaTransformer {
 
     private TransformingCCfaEdgeVisitor(
         CfaNetwork pCfaNetwork,
-        CfaTransformer.Substitution pSubstitution,
+        CfaNodeSubstitution pNodeSubstitution,
+        CfaEdgeSubstitution pEdgeSubstitution,
         CfaConnectedness pConnectedness,
         CFANode pNewPredecessor,
         CFANode pNewSuccessor) {
 
       cfaNetwork = pCfaNetwork;
-      substitution = pSubstitution;
+      nodeSubstitution = pNodeSubstitution;
+      edgeSubstitution = pEdgeSubstitution;
       connectedness = pConnectedness;
 
       newPredecessor = pNewPredecessor;
@@ -340,7 +349,7 @@ public final class CCfaTransformer extends CfaTransformer {
         FunctionSummaryEdge oldFunctionSummaryEdge =
             cfaNetwork.getFunctionSummaryEdge(pCFunctionCallEdge);
         CFunctionSummaryEdge newFunctionSummaryEdge =
-            (CFunctionSummaryEdge) substitution.toSubstitute(oldFunctionSummaryEdge);
+            (CFunctionSummaryEdge) edgeSubstitution.get(oldFunctionSummaryEdge);
 
         CFunctionCall newFunctionCall =
             (CFunctionCall)
@@ -365,7 +374,7 @@ public final class CCfaTransformer extends CfaTransformer {
         FunctionSummaryEdge oldFunctionSummaryEdge =
             cfaNetwork.getFunctionSummaryEdge(pCFunctionReturnEdge);
         CFunctionSummaryEdge newFunctionSummaryEdge =
-            (CFunctionSummaryEdge) substitution.toSubstitute(oldFunctionSummaryEdge);
+            (CFunctionSummaryEdge) edgeSubstitution.get(oldFunctionSummaryEdge);
 
         return new CFunctionReturnEdge(
             pCFunctionReturnEdge.getFileLocation(),
@@ -390,7 +399,7 @@ public final class CCfaTransformer extends CfaTransformer {
         FunctionEntryNode oldFunctionEntryNode =
             cfaNetwork.getFunctionEntryNode(pCFunctionSummaryEdge);
         CFunctionEntryNode newFunctionEntryNode =
-            (CFunctionEntryNode) substitution.toSubstitute(oldFunctionEntryNode);
+            (CFunctionEntryNode) nodeSubstitution.get(oldFunctionEntryNode);
 
         return new CFunctionSummaryEdge(
             pCFunctionSummaryEdge.getRawStatement(),
