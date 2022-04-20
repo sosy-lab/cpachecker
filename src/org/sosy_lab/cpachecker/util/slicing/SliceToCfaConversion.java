@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.TransformingCAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
-import org.sosy_lab.cpachecker.cfa.graph.OverlayCfaNetwork;
+import org.sosy_lab.cpachecker.cfa.graph.MutableCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
+import org.sosy_lab.cpachecker.util.graph.Graphs;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /** Utility class for turning {@link Slice} instances into {@link CFA} instances. */
@@ -91,12 +92,10 @@ final class SliceToCfaConversion {
 
   /**
    * Returns whether the specified CFA node should be removed because it doesn't serve any
-   * meaningful purpose in the specified {@link OverlayCfaNetwork}.
+   * meaningful purpose in the specified {@link CfaNetwork}.
    */
   private static boolean isIrrelevantNode(
-      ImmutableSet<AFunctionDeclaration> pRelevantFunctions,
-      OverlayCfaNetwork pGraph,
-      CFANode pNode) {
+      ImmutableSet<AFunctionDeclaration> pRelevantFunctions, CfaNetwork pGraph, CFANode pNode) {
 
     if (pNode instanceof FunctionExitNode) {
       return !pRelevantFunctions.contains(pNode.getFunction());
@@ -153,7 +152,7 @@ final class SliceToCfaConversion {
         Collections3.transformedImmutableSetCopy(
             relevantEdges, edge -> edge.getSuccessor().getFunction());
 
-    OverlayCfaNetwork graph = OverlayCfaNetwork.of(CfaNetwork.of(pSlice.getOriginalCfa()));
+    MutableCfaNetwork graph = MutableCfaNetwork.createOverlay(pSlice.getOriginalCfa());
 
     ImmutableList<CFAEdge> irrelevantFunctionEdges =
         graph.edges().stream()
@@ -165,7 +164,7 @@ final class SliceToCfaConversion {
         graph.edges().stream()
             .filter(edge -> !relevantEdges.contains(edge) && isReplaceableEdge(edge))
             .collect(ImmutableList.toImmutableList());
-    irrelevantEdges.forEach(edge -> graph.replace(edge, createNoopBlankEdge(edge)));
+    irrelevantEdges.forEach(edge -> Graphs.replaceEdge(graph, edge, createNoopBlankEdge(edge)));
 
     ImmutableList<CFANode> irrelevantNodes =
         graph.nodes().stream()
