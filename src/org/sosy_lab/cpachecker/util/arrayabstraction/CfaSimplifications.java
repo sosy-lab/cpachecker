@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.arrayabstraction;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -26,8 +25,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CCfaTransformer;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CfaConnectedness;
-import org.sosy_lab.cpachecker.cfa.CfaMetadata;
 import org.sosy_lab.cpachecker.cfa.CfaTransformer;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.AbstractTransformingCAstNodeVisitor;
@@ -215,15 +212,8 @@ final class CfaSimplifications {
 
     CfaTransformer cfaTransformer =
         CCfaTransformer.builder().addEdgeAstSubstitution(substitutionFunction::apply).build();
-    CfaMetadata cfaMetadata =
-        CfaMetadata.of(
-            pCfa.getMachineModel(),
-            pCfa.getLanguage(),
-            ImmutableList.copyOf(pCfa.getFileNames()),
-            pCfa.getMainFunction(),
-            CfaConnectedness.SUPERGRAPH);
 
-    return cfaTransformer.transform(graph, cfaMetadata, pLogger);
+    return cfaTransformer.transform(graph, pCfa.getMetadata(), pLogger);
   }
 
   /**
@@ -468,15 +458,8 @@ final class CfaSimplifications {
 
     CfaTransformer cfaTransformer =
         CCfaTransformer.builder().addEdgeAstSubstitution(edgeAstSubstitution::apply).build();
-    CfaMetadata cfaMetadata =
-        CfaMetadata.of(
-            pCfa.getMachineModel(),
-            pCfa.getLanguage(),
-            ImmutableList.copyOf(pCfa.getFileNames()),
-            pCfa.getMainFunction(),
-            CfaConnectedness.SUPERGRAPH);
 
-    return cfaTransformer.transform(graph, cfaMetadata, pLogger);
+    return cfaTransformer.transform(graph, pCfa.getMetadata(), pLogger);
   }
 
   private static final class IdExpressionSubstitutingCAstNodeVisitor

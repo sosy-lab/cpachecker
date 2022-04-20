@@ -25,8 +25,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CCfaTransformer;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CfaConnectedness;
-import org.sosy_lab.cpachecker.cfa.CfaMetadata;
 import org.sosy_lab.cpachecker.cfa.CfaTransformer;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
@@ -217,15 +215,8 @@ final class SliceToCfaConversion {
             .addEdgeAstSubstitution(
                 createAstNodeSubstitutionForCfaEdges(pSlice, functionToEntryNodeMap::get)::apply)
             .build();
-    CfaMetadata cfaMetadata =
-        CfaMetadata.of(
-            pSlice.getOriginalCfa().getMachineModel(),
-            pSlice.getOriginalCfa().getLanguage(),
-            ImmutableList.copyOf(pSlice.getOriginalCfa().getFileNames()),
-            pSlice.getOriginalCfa().getMainFunction(),
-            CfaConnectedness.SUPERGRAPH);
 
-    CFA sliceCfa = cfaTransformer.transform(graph, cfaMetadata, pLogger);
+    CFA sliceCfa = cfaTransformer.transform(graph, pSlice.getOriginalCfa().getMetadata(), pLogger);
 
     return createSimplifiedCfa(sliceCfa);
   }
