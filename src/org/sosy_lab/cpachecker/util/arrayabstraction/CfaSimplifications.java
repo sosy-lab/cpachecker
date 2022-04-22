@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.postprocessing.global.VariableClassificationPostProcessor;
 import org.sosy_lab.cpachecker.cfa.transformer.CfaTransformer;
 import org.sosy_lab.cpachecker.cfa.transformer.c.CCfaTransformer;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -211,7 +212,10 @@ final class CfaSimplifications {
         };
 
     CfaTransformer cfaTransformer =
-        CCfaTransformer.builder().addEdgeAstSubstitution(substitutionFunction::apply).build();
+        CCfaTransformer.builder()
+            .addEdgeAstSubstitution(substitutionFunction::apply)
+            .addCfaProcessor(new VariableClassificationPostProcessor(pConfiguration))
+            .build();
 
     return cfaTransformer.transform(graph, pCfa.getMetadata(), pLogger);
   }
@@ -457,7 +461,10 @@ final class CfaSimplifications {
             IdExpressionSubstitutingCAstNodeVisitor.substitute(substitution, edge, originalAstNode);
 
     CfaTransformer cfaTransformer =
-        CCfaTransformer.builder().addEdgeAstSubstitution(edgeAstSubstitution::apply).build();
+        CCfaTransformer.builder()
+            .addEdgeAstSubstitution(edgeAstSubstitution::apply)
+            .addCfaProcessor(new VariableClassificationPostProcessor(pConfiguration))
+            .build();
 
     return cfaTransformer.transform(graph, pCfa.getMetadata(), pLogger);
   }

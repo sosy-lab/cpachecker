@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Optional;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -147,7 +148,11 @@ public class MutableCFA implements CFA {
 
   @Override
   public Optional<VariableClassification> getVarClassification() {
-    return Optional.empty();
+    return metadata.getVariableClassification();
+  }
+
+  public void setVariableClassification(@Nullable VariableClassification pVariableClassification) {
+    metadata = metadata.withVariableClassification(pVariableClassification);
   }
 
   @Override
