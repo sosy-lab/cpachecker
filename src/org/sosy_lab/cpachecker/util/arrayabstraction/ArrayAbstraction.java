@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.postprocessing.function.ReversePostorderPostProcessor;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.VariableClassificationPostProcessor;
 import org.sosy_lab.cpachecker.cfa.transformer.CfaTransformer;
 import org.sosy_lab.cpachecker.cfa.transformer.c.CCfaTransformer;
@@ -839,6 +840,7 @@ public class ArrayAbstraction {
     CfaTransformer cfaTransformer =
         CCfaTransformer.builder()
             .addEdgeAstSubstitution(edgeAstSubstitution::apply)
+            .addCfaProcessor(new ReversePostorderPostProcessor())
             .addCfaProcessor(new VariableClassificationPostProcessor(pConfiguration))
             .build();
 
