@@ -29,6 +29,21 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 public interface CfaNodeSubstitution {
 
   /**
+   * A {@code CfaNodeSubstitution} instance that throws an {@link UnsupportedOperationException}
+   * when {@link CfaNodeSubstitution#get(CFANode)} is called.
+   *
+   * <p>This can be used where a {@code CfaNodeSubstitution} is required, but it's guaranteed that
+   * {@link CfaNodeSubstitution#get(CFANode)} is not going to get called. This makes it explicit
+   * that a {@code CfaNodeSubstitution} instance is not necessary and never going to be used (e.g.,
+   * if during node transformation only nodes are transformed that don't require other transformed
+   * nodes for their construction).
+   */
+  public static final CfaNodeSubstitution UNSUPPORTED =
+      node -> {
+        throw new UnsupportedOperationException("node substitution is unsupported");
+      };
+
+  /**
    * Returns the substitute for the specified CFA node.
    *
    * <p>It's guaranteed that a {@code CfaNodeSubstitution} instance always returns the same
