@@ -33,7 +33,9 @@ import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 
 public final class CfaCreator {
@@ -146,7 +148,13 @@ public final class CfaCreator {
     }
 
     connectedness = CfaConnectedness.INDEPENDENT_FUNCTIONS;
-    cfaNetwork.edges().forEach(this::toNew);
+    for (CFAEdge oldEdge : cfaNetwork.edges()) {
+      // We create independent CFAs for each function, so we ignore call and return edges.
+      // Function summary edges are not ignored, because statement edges are created for them.
+      if (!(oldEdge instanceof FunctionCallEdge) && !(oldEdge instanceof FunctionReturnEdge)) {
+        toNew(oldEdge);
+      }
+    }
 
     CfaMetadata cfaMetadata =
         pCfaMetadata
