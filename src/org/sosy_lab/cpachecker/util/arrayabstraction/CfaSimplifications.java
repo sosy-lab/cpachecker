@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.postprocessing.function.LoopStructurePostProcessor;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.ReversePostorderPostProcessor;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.VariableClassificationPostProcessor;
 import org.sosy_lab.cpachecker.cfa.transformer.CfaTransformer;
@@ -216,6 +217,7 @@ final class CfaSimplifications {
         CCfaTransformer.builder()
             .addEdgeAstSubstitution(substitutionFunction::apply)
             .addCfaProcessor(new ReversePostorderPostProcessor())
+            .addCfaProcessor(new LoopStructurePostProcessor())
             .addCfaProcessor(new VariableClassificationPostProcessor(pConfiguration))
             .build();
 
@@ -466,6 +468,7 @@ final class CfaSimplifications {
         CCfaTransformer.builder()
             .addEdgeAstSubstitution(edgeAstSubstitution::apply)
             .addCfaProcessor(new ReversePostorderPostProcessor())
+            .addCfaProcessor(new LoopStructurePostProcessor())
             .addCfaProcessor(new VariableClassificationPostProcessor(pConfiguration))
             .build();
 
