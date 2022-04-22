@@ -20,22 +20,22 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.transformer.CfaNodeConverter;
 import org.sosy_lab.cpachecker.cfa.transformer.CfaNodeSubstitution;
+import org.sosy_lab.cpachecker.cfa.transformer.CfaNodeTransformer;
 
-public final class CCfaNodeConverter implements CfaNodeConverter {
+public final class CCfaNodeTransformer implements CfaNodeTransformer {
 
-  public static final CCfaNodeConverter IDENTITY = new CCfaNodeConverter(ImmutableList.of());
+  public static final CCfaNodeTransformer IDENTITY = new CCfaNodeTransformer(ImmutableList.of());
 
   private final ImmutableList<CCfaNodeAstSubstitution> nodeAstSubstitutions;
 
-  private CCfaNodeConverter(ImmutableList<CCfaNodeAstSubstitution> pNodeAstSubstitutions) {
+  private CCfaNodeTransformer(ImmutableList<CCfaNodeAstSubstitution> pNodeAstSubstitutions) {
     nodeAstSubstitutions = pNodeAstSubstitutions;
   }
 
-  public static CCfaNodeConverter forSubstitutions(
+  public static CCfaNodeTransformer forSubstitutions(
       ImmutableList<CCfaNodeAstSubstitution> pNodeAstSubstitutions) {
-    return new CCfaNodeConverter(checkNotNull(pNodeAstSubstitutions));
+    return new CCfaNodeTransformer(checkNotNull(pNodeAstSubstitutions));
   }
 
   private CFunctionDeclaration applyNodeAstSubstitutions(
@@ -102,7 +102,7 @@ public final class CCfaNodeConverter implements CfaNodeConverter {
   }
 
   @Override
-  public CFANode convertNode(
+  public CFANode transform(
       CFANode pOldNode, CfaNetwork pCfaNetwork, CfaNodeSubstitution pNodeSubstitution) {
 
     if (pOldNode instanceof CFALabelNode) {

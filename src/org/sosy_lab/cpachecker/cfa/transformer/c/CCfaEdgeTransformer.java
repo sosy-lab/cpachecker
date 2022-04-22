@@ -39,24 +39,24 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.transformer.CfaEdgeConverter;
 import org.sosy_lab.cpachecker.cfa.transformer.CfaEdgeSubstitution;
+import org.sosy_lab.cpachecker.cfa.transformer.CfaEdgeTransformer;
 import org.sosy_lab.cpachecker.cfa.transformer.CfaNodeSubstitution;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
-public final class CCfaEdgeConverter implements CfaEdgeConverter {
+public final class CCfaEdgeTransformer implements CfaEdgeTransformer {
 
-  public static final CCfaEdgeConverter IDENTITY = new CCfaEdgeConverter(ImmutableList.of());
+  public static final CCfaEdgeTransformer IDENTITY = new CCfaEdgeTransformer(ImmutableList.of());
 
   private final ImmutableList<CCfaEdgeAstSubstitution> edgeAstSubstitutions;
 
-  private CCfaEdgeConverter(ImmutableList<CCfaEdgeAstSubstitution> pEdgeAstSubstitutions) {
+  private CCfaEdgeTransformer(ImmutableList<CCfaEdgeAstSubstitution> pEdgeAstSubstitutions) {
     edgeAstSubstitutions = pEdgeAstSubstitutions;
   }
 
-  public static CCfaEdgeConverter forSubstitutions(
+  public static CCfaEdgeTransformer forSubstitutions(
       ImmutableList<CCfaEdgeAstSubstitution> pEdgeAstSubstitutions) {
-    return new CCfaEdgeConverter(checkNotNull(pEdgeAstSubstitutions));
+    return new CCfaEdgeTransformer(checkNotNull(pEdgeAstSubstitutions));
   }
 
   private CAstNode applyEdgeAstSubstitutions(CFAEdge pEdge, CAstNode pAstNode) {
@@ -70,7 +70,7 @@ public final class CCfaEdgeConverter implements CfaEdgeConverter {
   }
 
   @Override
-  public Optional<CFAEdge> convertEdge(
+  public Optional<CFAEdge> transform(
       CFAEdge pEdge,
       CfaNetwork pCfaNetwork,
       CfaNodeSubstitution pNodeSubstitution,

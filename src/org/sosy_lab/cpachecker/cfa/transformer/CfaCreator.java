@@ -42,8 +42,8 @@ public final class CfaCreator {
 
   private final CfaNetwork cfaNetwork;
 
-  private final CfaNodeConverter nodeConverter;
-  private final CfaEdgeConverter edgeConverter;
+  private final CfaNodeTransformer nodeTransformer;
+  private final CfaEdgeTransformer edgeTransformer;
 
   private final Map<CFANode, CFANode> oldNodeToNewNode;
   private final Map<CFAEdge, CFAEdge> oldEdgeToNewEdge;
@@ -53,15 +53,15 @@ public final class CfaCreator {
   private CfaCreator(
       ImmutableList<CfaProcessor> pCfaProcessors,
       CfaNetwork pCfaNetwork,
-      CfaNodeConverter pNodeConverter,
-      CfaEdgeConverter pEdgeConverter) {
+      CfaNodeTransformer pNodeTransformer,
+      CfaEdgeTransformer pEdgeTransformer) {
 
     cfaProcessors = pCfaProcessors;
 
     cfaNetwork = pCfaNetwork;
 
-    nodeConverter = pNodeConverter;
-    edgeConverter = pEdgeConverter;
+    nodeTransformer = pNodeTransformer;
+    edgeTransformer = pEdgeTransformer;
 
     oldNodeToNewNode = new HashMap<>();
     oldEdgeToNewEdge = new HashMap<>();
@@ -70,8 +70,8 @@ public final class CfaCreator {
   public static CFA createCfa(
       ImmutableList<CfaProcessor> pCfaProcessors,
       CfaNetwork pCfaNetwork,
-      CfaNodeConverter pNodeConverter,
-      CfaEdgeConverter pEdgeConverter,
+      CfaNodeTransformer pNodeTransformer,
+      CfaEdgeTransformer pEdgeTransformer,
       CfaMetadata pCfaMetadata,
       LogManager pLogger) {
 
@@ -83,8 +83,8 @@ public final class CfaCreator {
     return new CfaCreator(
             checkNotNull(pCfaProcessors),
             checkNotNull(pCfaNetwork),
-            checkNotNull(pNodeConverter),
-            checkNotNull(pEdgeConverter))
+            checkNotNull(pNodeTransformer),
+            checkNotNull(pEdgeTransformer))
         .createCfa(checkNotNull(pCfaMetadata), checkNotNull(pLogger));
   }
 
@@ -95,7 +95,7 @@ public final class CfaCreator {
       return newNode;
     }
 
-    return nodeConverter.convertNode(pOldNode, cfaNetwork, this::toNew);
+    return nodeTransformer.transform(pOldNode, cfaNetwork, this::toNew);
   }
 
   private CFAEdge toNew(CFAEdge pOldEdge) {
@@ -106,8 +106,8 @@ public final class CfaCreator {
     }
 
     newEdge =
-        edgeConverter
-            .convertEdge(pOldEdge, cfaNetwork, this::toNew, this::toNew, connectedness)
+        edgeTransformer
+            .transform(pOldEdge, cfaNetwork, this::toNew, this::toNew, connectedness)
             .orElse(null);
 
     if (newEdge instanceof FunctionSummaryEdge) {

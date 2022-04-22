@@ -15,16 +15,16 @@ import org.sosy_lab.cpachecker.cfa.CfaMetadata;
 import org.sosy_lab.cpachecker.cfa.CfaProcessor;
 import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
 import org.sosy_lab.cpachecker.cfa.transformer.CfaCreator;
-import org.sosy_lab.cpachecker.cfa.transformer.CfaEdgeConverter;
-import org.sosy_lab.cpachecker.cfa.transformer.CfaNodeConverter;
+import org.sosy_lab.cpachecker.cfa.transformer.CfaEdgeTransformer;
+import org.sosy_lab.cpachecker.cfa.transformer.CfaNodeTransformer;
 import org.sosy_lab.cpachecker.cfa.transformer.CfaTransformer;
 
 public final class CCfaTransformer implements CfaTransformer {
 
   private final ImmutableList<CfaProcessor> cfaProcessors;
 
-  private final CfaNodeConverter nodeConverter;
-  private final CfaEdgeConverter edgeConverter;
+  private final CfaNodeTransformer nodeTransformer;
+  private final CfaEdgeTransformer edgeTransformer;
 
   private CCfaTransformer(
       ImmutableList<CfaProcessor> pCfaProcessors,
@@ -33,8 +33,8 @@ public final class CCfaTransformer implements CfaTransformer {
 
     cfaProcessors = pCfaProcessors;
 
-    nodeConverter = CCfaNodeConverter.forSubstitutions(pNodeAstSubstitutions);
-    edgeConverter = CCfaEdgeConverter.forSubstitutions(pEdgeAstSubstitutions);
+    nodeTransformer = CCfaNodeTransformer.forSubstitutions(pNodeAstSubstitutions);
+    edgeTransformer = CCfaEdgeTransformer.forSubstitutions(pEdgeAstSubstitutions);
   }
 
   public static Builder builder() {
@@ -44,7 +44,7 @@ public final class CCfaTransformer implements CfaTransformer {
   @Override
   public CFA transform(CfaNetwork pCfaNetwork, CfaMetadata pCfaMetadata, LogManager pLogger) {
     return CfaCreator.createCfa(
-        cfaProcessors, pCfaNetwork, nodeConverter, edgeConverter, pCfaMetadata, pLogger);
+        cfaProcessors, pCfaNetwork, nodeTransformer, edgeTransformer, pCfaMetadata, pLogger);
   }
 
   public static final class Builder {
