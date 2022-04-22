@@ -29,6 +29,21 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 public interface CfaEdgeSubstitution {
 
   /**
+   * A {@code CfaEdgeSubstitution} instance that throws an {@link UnsupportedOperationException}
+   * when {@link CfaEdgeSubstitution#get(CFAEdge)} is called.
+   *
+   * <p>This can be used where a {@code CfaEdgeSubstitution} is required, but it's guaranteed that
+   * {@link CfaEdgeSubstitution#get(CFAEdge)} is not going to get called. This makes it explicit
+   * that a {@code CfaEdgeSubstitution} instance is not necessary and never going to be used (e.g.,
+   * if during edge transformation only edges are transformed that don't require other transformed
+   * edges for their construction).
+   */
+  public static final CfaEdgeSubstitution UNSUPPORTED =
+      edge -> {
+        throw new UnsupportedOperationException("edge substitution is unsupported");
+      };
+
+  /**
    * Returns the substitute for the specified CFA edge.
    *
    * <p>It's guaranteed that a {@code CfaEdgeSubstitution} instance always returns the same
