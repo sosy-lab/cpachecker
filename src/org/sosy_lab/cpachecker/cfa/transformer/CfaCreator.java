@@ -95,7 +95,10 @@ public final class CfaCreator {
       return newNode;
     }
 
-    return nodeTransformer.transform(pOldNode, cfaNetwork, this::toNew);
+    newNode = nodeTransformer.transform(pOldNode, cfaNetwork, this::toNew);
+    oldNodeToNewNode.put(pOldNode, newNode);
+
+    return newNode;
   }
 
   private CFAEdge toNew(CFAEdge pOldEdge) {
@@ -109,6 +112,7 @@ public final class CfaCreator {
         edgeTransformer
             .transform(pOldEdge, cfaNetwork, this::toNew, this::toNew, connectedness)
             .orElse(null);
+    oldEdgeToNewEdge.put(pOldEdge, newEdge);
 
     if (newEdge instanceof FunctionSummaryEdge) {
       FunctionSummaryEdge newSummaryEdge = (FunctionSummaryEdge) newEdge;
