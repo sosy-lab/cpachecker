@@ -77,8 +77,8 @@ public final class CfaCreator {
 
     checkArgument(
         pCfaNetwork.nodes().contains(pCfaMetadata.getMainFunctionEntry()),
-        "cannot use specified main function entry node because it is not part of the CFA: "
-            + pCfaMetadata.getMainFunctionEntry());
+        "cannot use specified main function entry node because it is not part of the CFA: %s",
+        pCfaMetadata.getMainFunctionEntry());
 
     return new CfaCreator(
             checkNotNull(pCfaProcessors),
