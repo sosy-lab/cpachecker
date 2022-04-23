@@ -16,19 +16,17 @@ import org.sosy_lab.cpachecker.util.faultlocalization.ranking.NoContextExplanati
 
 public abstract class FaultInfo implements Comparable<FaultInfo> {
 
+  /**
+   * Represents the type of FaultInfo. The HTML report sorts FaultInfos according to the definition
+   * in the enum InfoType.
+   */
   public enum InfoType {
     /** The reason why a fault localization algorithm created the fault */
-    REASON(0),
+    REASON,
     /** Provides a possible fix */
-    FIX(1),
+    FIX,
     /** Information provided by the rankings */
-    RANK_INFO(3);
-
-    private final int reportRank;
-
-    InfoType(int pReportRank) {
-      reportRank = pReportRank;
-    }
+    RANK_INFO
   }
 
   protected double score;
@@ -48,19 +46,19 @@ public abstract class FaultInfo implements Comparable<FaultInfo> {
    */
   public static FaultInfo possibleFixFor(FaultContribution pFaultContribution) {
     return new PotentialFix(
-        InfoType.FIX, new NoContextExplanation().explanationFor(new Fault(pFaultContribution)));
+        NoContextExplanation.getInstance().explanationFor(new Fault(pFaultContribution)));
   }
 
   public static PotentialFix fix(String pDescription) {
-    return new PotentialFix(InfoType.FIX, pDescription);
+    return new PotentialFix(pDescription);
   }
 
   public static RankInfo rankInfo(String pDescription, double pLikelihood) {
-    return new RankInfo(InfoType.RANK_INFO, pDescription, pLikelihood);
+    return new RankInfo(pDescription, pLikelihood);
   }
 
   public static FaultReason justify(String pDescription) {
-    return new FaultReason(InfoType.REASON, pDescription);
+    return new FaultReason(pDescription);
   }
 
   public double getScore() {
@@ -83,8 +81,8 @@ public abstract class FaultInfo implements Comparable<FaultInfo> {
    */
   @Override
   public int compareTo(FaultInfo info) {
-    return Comparator.<FaultInfo>comparingInt(i -> i.type.reportRank)
-        .thenComparingDouble(i -> i.score)
+    return Comparator.comparing(FaultInfo::getType)
+        .thenComparingDouble(FaultInfo::getScore)
         .compare(this, info);
   }
 
