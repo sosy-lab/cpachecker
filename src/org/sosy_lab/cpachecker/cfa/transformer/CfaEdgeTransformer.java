@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.transformer;
 
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CfaConnectedness;
 import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -16,7 +15,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 @FunctionalInterface
 public interface CfaEdgeTransformer {
 
-  Optional<CFAEdge> transform(
+  CFAEdge transform(
       CFAEdge pCfaEdge,
       CfaNetwork pCfaNetwork,
       CfaNodeSubstitution pNodeSubstitution,

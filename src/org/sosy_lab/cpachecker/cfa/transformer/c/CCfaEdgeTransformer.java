@@ -8,12 +8,12 @@
 
 package org.sosy_lab.cpachecker.cfa.transformer.c;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.graph.EndpointPair;
-import java.util.Optional;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CfaConnectedness;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -25,8 +25,10 @@ import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
@@ -69,13 +71,24 @@ public final class CCfaEdgeTransformer implements CfaEdgeTransformer {
     return astNode;
   }
 
+  private boolean isSuperEdge(CFAEdge pEdge) {
+    return pEdge instanceof FunctionCallEdge || pEdge instanceof FunctionReturnEdge;
+  }
+
   @Override
-  public Optional<CFAEdge> transform(
+  public CFAEdge transform(
       CFAEdge pEdge,
       CfaNetwork pCfaNetwork,
       CfaNodeSubstitution pNodeSubstitution,
       CfaEdgeSubstitution pEdgeSubstitution,
       CfaConnectedness pConnectedness) {
+
+    checkArgument(
+        pConnectedness == CfaConnectedness.SUPERGRAPH || !isSuperEdge(pEdge),
+        "cannot transform super-edge '%s' because connectedness is set to %s instead of %s",
+        pEdge,
+        pConnectedness,
+        CfaConnectedness.SUPERGRAPH);
 
     EndpointPair<CFANode> oldEndpoints = pCfaNetwork.incidentNodes(pEdge);
 
@@ -91,11 +104,10 @@ public final class CCfaEdgeTransformer implements CfaEdgeTransformer {
             newPredecessor,
             newSuccessor);
 
-    return Optional.ofNullable(((CCfaEdge) pEdge).accept(transformingEdgeVisitor));
+    return ((CCfaEdge) pEdge).accept(transformingEdgeVisitor);
   }
 
-  private final class TransformingCCfaEdgeVisitor
-      implements CCfaEdgeVisitor<@Nullable CFAEdge, NoException> {
+  private final class TransformingCCfaEdgeVisitor implements CCfaEdgeVisitor<CFAEdge, NoException> {
 
     private final CfaNetwork cfaNetwork;
     private final CfaNodeSubstitution nodeSubstitution;
@@ -179,47 +191,43 @@ public final class CCfaEdgeTransformer implements CfaEdgeTransformer {
     }
 
     @Override
-    public @Nullable CFAEdge visit(CFunctionCallEdge pCFunctionCallEdge) {
-      if (connectedness == CfaConnectedness.SUPERGRAPH) {
+    public CFAEdge visit(CFunctionCallEdge pCFunctionCallEdge) {
 
-        FunctionSummaryEdge oldFunctionSummaryEdge =
-            cfaNetwork.getFunctionSummaryEdge(pCFunctionCallEdge);
-        CFunctionSummaryEdge newFunctionSummaryEdge =
-            (CFunctionSummaryEdge) edgeSubstitution.get(oldFunctionSummaryEdge);
+      checkState(connectedness == CfaConnectedness.SUPERGRAPH);
 
-        CFunctionCall newFunctionCall =
-            (CFunctionCall)
-                applyEdgeAstSubstitutions(pCFunctionCallEdge, pCFunctionCallEdge.getFunctionCall());
+      FunctionSummaryEdge oldFunctionSummaryEdge =
+          cfaNetwork.getFunctionSummaryEdge(pCFunctionCallEdge);
+      CFunctionSummaryEdge newFunctionSummaryEdge =
+          (CFunctionSummaryEdge) edgeSubstitution.get(oldFunctionSummaryEdge);
 
-        return new CFunctionCallEdge(
-            pCFunctionCallEdge.getRawStatement(),
-            pCFunctionCallEdge.getFileLocation(),
-            newPredecessor,
-            (CFunctionEntryNode) newSuccessor,
-            newFunctionCall,
-            newFunctionSummaryEdge);
-      } else {
-        return null;
-      }
+      CFunctionCall newFunctionCall =
+          (CFunctionCall)
+              applyEdgeAstSubstitutions(pCFunctionCallEdge, pCFunctionCallEdge.getFunctionCall());
+
+      return new CFunctionCallEdge(
+          pCFunctionCallEdge.getRawStatement(),
+          pCFunctionCallEdge.getFileLocation(),
+          newPredecessor,
+          (CFunctionEntryNode) newSuccessor,
+          newFunctionCall,
+          newFunctionSummaryEdge);
     }
 
     @Override
-    public @Nullable CFAEdge visit(CFunctionReturnEdge pCFunctionReturnEdge) {
-      if (connectedness == CfaConnectedness.SUPERGRAPH) {
+    public CFAEdge visit(CFunctionReturnEdge pCFunctionReturnEdge) {
 
-        FunctionSummaryEdge oldFunctionSummaryEdge =
-            cfaNetwork.getFunctionSummaryEdge(pCFunctionReturnEdge);
-        CFunctionSummaryEdge newFunctionSummaryEdge =
-            (CFunctionSummaryEdge) edgeSubstitution.get(oldFunctionSummaryEdge);
+      checkState(connectedness == CfaConnectedness.SUPERGRAPH);
 
-        return new CFunctionReturnEdge(
-            pCFunctionReturnEdge.getFileLocation(),
-            (FunctionExitNode) newPredecessor,
-            newSuccessor,
-            newFunctionSummaryEdge);
-      } else {
-        return null;
-      }
+      FunctionSummaryEdge oldFunctionSummaryEdge =
+          cfaNetwork.getFunctionSummaryEdge(pCFunctionReturnEdge);
+      CFunctionSummaryEdge newFunctionSummaryEdge =
+          (CFunctionSummaryEdge) edgeSubstitution.get(oldFunctionSummaryEdge);
+
+      return new CFunctionReturnEdge(
+          pCFunctionReturnEdge.getFileLocation(),
+          (FunctionExitNode) newPredecessor,
+          newSuccessor,
+          newFunctionSummaryEdge);
     }
 
     @Override
@@ -272,29 +280,24 @@ public final class CCfaEdgeTransformer implements CfaEdgeTransformer {
 
     @Override
     public CFAEdge visit(CFunctionSummaryStatementEdge pCFunctionSummaryStatementEdge) {
-      if (connectedness == CfaConnectedness.SUPERGRAPH) {
 
-        CStatement newStatement =
-            (CStatement)
-                applyEdgeAstSubstitutions(
-                    pCFunctionSummaryStatementEdge, pCFunctionSummaryStatementEdge.getStatement());
-        CFunctionCall newFunctionCall =
-            (CFunctionCall)
-                applyEdgeAstSubstitutions(
-                    pCFunctionSummaryStatementEdge,
-                    pCFunctionSummaryStatementEdge.getFunctionCall());
+      CStatement newStatement =
+          (CStatement)
+              applyEdgeAstSubstitutions(
+                  pCFunctionSummaryStatementEdge, pCFunctionSummaryStatementEdge.getStatement());
+      CFunctionCall newFunctionCall =
+          (CFunctionCall)
+              applyEdgeAstSubstitutions(
+                  pCFunctionSummaryStatementEdge, pCFunctionSummaryStatementEdge.getFunctionCall());
 
-        return new CFunctionSummaryStatementEdge(
-            pCFunctionSummaryStatementEdge.getRawStatement(),
-            newStatement,
-            pCFunctionSummaryStatementEdge.getFileLocation(),
-            newPredecessor,
-            newSuccessor,
-            newFunctionCall,
-            pCFunctionSummaryStatementEdge.getFunctionName());
-      } else {
-        return null;
-      }
+      return new CFunctionSummaryStatementEdge(
+          pCFunctionSummaryStatementEdge.getRawStatement(),
+          newStatement,
+          pCFunctionSummaryStatementEdge.getFileLocation(),
+          newPredecessor,
+          newSuccessor,
+          newFunctionCall,
+          pCFunctionSummaryStatementEdge.getFunctionName());
     }
   }
 }

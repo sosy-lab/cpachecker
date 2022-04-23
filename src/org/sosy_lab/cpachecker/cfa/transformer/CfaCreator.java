@@ -111,9 +111,7 @@ public final class CfaCreator {
     }
 
     newEdge =
-        edgeTransformer
-            .transform(pOldEdge, cfaNetwork, this::toNew, this::toNew, connectedness)
-            .orElse(null);
+        edgeTransformer.transform(pOldEdge, cfaNetwork, this::toNew, this::toNew, connectedness);
     oldEdgeToNewEdge.put(pOldEdge, newEdge);
 
     if (newEdge instanceof FunctionSummaryEdge) {
