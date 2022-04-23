@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.TreeMultimap;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.TreeMap;
@@ -70,7 +71,7 @@ public final class CfaCreator {
   }
 
   public static CFA createCfa(
-      ImmutableList<CfaProcessor> pCfaProcessors,
+      List<CfaProcessor> pCfaProcessors,
       CfaNetwork pCfaNetwork,
       CfaNodeTransformer pNodeTransformer,
       CfaEdgeTransformer pEdgeTransformer,
@@ -83,7 +84,7 @@ public final class CfaCreator {
         pCfaMetadata.getMainFunctionEntry());
 
     return new CfaCreator(
-            checkNotNull(pCfaProcessors),
+            ImmutableList.copyOf(pCfaProcessors),
             checkNotNull(pCfaNetwork),
             checkNotNull(pNodeTransformer),
             checkNotNull(pEdgeTransformer))

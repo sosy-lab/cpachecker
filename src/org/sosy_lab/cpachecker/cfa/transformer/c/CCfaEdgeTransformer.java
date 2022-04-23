@@ -9,11 +9,11 @@
 package org.sosy_lab.cpachecker.cfa.transformer.c;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.graph.EndpointPair;
+import java.util.List;
 import org.sosy_lab.cpachecker.cfa.CfaConnectedness;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -57,8 +57,8 @@ public final class CCfaEdgeTransformer implements CfaEdgeTransformer {
   }
 
   public static CCfaEdgeTransformer forSubstitutions(
-      ImmutableList<CCfaEdgeAstSubstitution> pEdgeAstSubstitutions) {
-    return new CCfaEdgeTransformer(checkNotNull(pEdgeAstSubstitutions));
+      List<CCfaEdgeAstSubstitution> pEdgeAstSubstitutions) {
+    return new CCfaEdgeTransformer(ImmutableList.copyOf(pEdgeAstSubstitutions));
   }
 
   private CAstNode applyEdgeAstSubstitutions(CFAEdge pEdge, CAstNode pAstNode) {

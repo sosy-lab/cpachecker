@@ -8,9 +8,9 @@
 
 package org.sosy_lab.cpachecker.cfa.transformer.c;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
+import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -34,8 +34,8 @@ public final class CCfaNodeTransformer implements CfaNodeTransformer {
   }
 
   public static CCfaNodeTransformer forSubstitutions(
-      ImmutableList<CCfaNodeAstSubstitution> pNodeAstSubstitutions) {
-    return new CCfaNodeTransformer(checkNotNull(pNodeAstSubstitutions));
+      List<CCfaNodeAstSubstitution> pNodeAstSubstitutions) {
+    return new CCfaNodeTransformer(ImmutableList.copyOf(pNodeAstSubstitutions));
   }
 
   private CFunctionDeclaration applyNodeAstSubstitutions(
