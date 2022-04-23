@@ -48,7 +48,7 @@ public class SubstituteAssignmentTransformationVisitor extends org.sosy_lab.java
       HashMap<Formula,Formula> tosubstiture = new HashMap<>();
       // modify fmap
       for (Formula key : fmap.keySet()) {
-        if (!formulaInSSAMAP(key)) {
+        if (!formulaInSsaMap(key)) {
           tosubstiture.put(key, fmap.get(key));
         }
       }
@@ -62,7 +62,7 @@ public class SubstituteAssignmentTransformationVisitor extends org.sosy_lab.java
    * @param f Formula consisting of only one variable in the form `name@index`
    * @return the result of this check
    */
-  private boolean formulaInSSAMAP(Formula f){
+  private boolean formulaInSsaMap(Formula f){
     Map<String, Formula> vars = fmgr.extractVariables(f);
     if (vars.size()!=1) {
       // TODO Martin reenable error
@@ -73,7 +73,7 @@ public class SubstituteAssignmentTransformationVisitor extends org.sosy_lab.java
     Pair<String, OptionalInt> stringOptionalIntPair = FormulaManagerView.parseName(vars.keySet().iterator().next());
     if (stringOptionalIntPair.getFirst().isEmpty() || !stringOptionalIntPair.getSecond().isPresent()) {
       // TODO Martin Does javasmt have a unified logging system?
-      // TODO Martin  reenable error
+      // TODO Martin reenable error
       return true;
 //      throw new IllegalArgumentException("Error checking if variable index in SSAMAP: " + f.toString());
     }

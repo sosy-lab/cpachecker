@@ -73,6 +73,7 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.java_smt.utils.SolverUtils;
 
 public class PredicateAbstractionManager {
 
@@ -449,22 +450,28 @@ public class PredicateAbstractionManager {
   /**
    * Syntactic Substitution
    * TODO Martin Possibly move to JavaSMT when finished
+   * Todo Martin Logging levels
    * @param bf Input BooleanFormula
    * @param pSSAMap Corresponding SSAMap
    * @return Another BooleanFormula, where syntactic substition has taken place
    */
   private BooleanFormula syntacticSubstitution(BooleanFormula bf, SSAMap pSSAMap){
+    org.sosy_lab.java_smt.utils.PrettyPrinter pp = SolverUtils.prettyPrinter(fmgr.manager);
     SubstituteVisitor stvisitor = new SubstituteVisitor(fmgr.manager);
     bfmgr.visitRecursively(bf, stvisitor);
     HashMap<Formula, Formula> substituteMap = stvisitor.fmap;
+    logger.log(Level.INFO, "Substituion map", substituteMap);
+    logger.log(Level.INFO, "Before substituion", bf);
     if (!substituteMap.isEmpty()) {
-      SubstituteAssumptionTransformationVisitor
-          stAssume = new SubstituteAssumptionTransformationVisitor(fmgr.manager, substituteMap);
-      bf = bfmgr.transformRecursively(bf, stAssume);
+//      SubstituteAssumptionTransformationVisitor
+//          stAssume = new SubstituteAssumptionTransformationVisitor(fmgr.manager, substituteMap);
+//      bf = bfmgr.transformRecursively(bf, stAssume);
+//      logger.log(Level.INFO, "After Assumption substituion", bf);
       SubstituteAssignmentTransformationVisitor stAssign;
       stAssign =
           new SubstituteAssignmentTransformationVisitor(fmgr.manager, substituteMap, pSSAMap);
       bf = bfmgr.transformRecursively(bf, stAssign);
+      logger.log(Level.INFO, "After Assignment substituion", bf);
     }
     return bf;
   }

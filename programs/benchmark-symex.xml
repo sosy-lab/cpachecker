@@ -98,5 +98,5 @@
 
 
     <propertyfile>../../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
-    <option name="-predicateSymEx"/>
+    <option name="-symbolicExecution"/>
 </benchmark>

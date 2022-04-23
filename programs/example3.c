@@ -10,15 +10,13 @@ extern __nondet_int();
 int main() {
   int x = __nondet_int();
 //  int x = 5;
-  if (x > 0) {
+  if (x == 0) {
       x++;
-  } else {
-      x--;
   }
   if (x==0) {
-    goto ERROR;
+    return 0;
   }
-  return 0;
+//  return 0;
 
   ERROR:
   return (-1);

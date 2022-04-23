@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+
+<!-- This file is part of CPAchecker, -->
+<!-- a tool for configurable software verification: -->
+<!-- https://cpachecker.sosy-lab.org -->
+<!-- -->
+<!-- SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org> -->
+<!-- -->
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.18//EN" "https://www.sosy-lab.org/benchexec/benchmark-1.18.dtd">
+<!--
+  Example file that demonstrates the use of CPAchecker.
+  This file can and should be used as a base for building own benchmark definitions.
+-->
+<!--<benchmark tool="cpachecker" >-->
+    <benchmark tool="cpachecker" timelimit="600s" hardtimelimit="660s" memlimit="1000 MB" cpuCores="1">
+
+    <!-- Note that all paths to ../../test/programs need to be changed if you move this file. -->
+    <!--  <rundefinition name="with-output-files">-->
+    <!--    &lt;!&ndash; Variables can appear in option values, too. &ndash;&gt;-->
+    <!--    <option name="-setprop">output.path=test/results/name.${benchmark_date}.output/input/</option>-->
+    <!--  </rundefinition>-->
+
+    <rundefinition/>
+
+    <!-- Global sourcefiles are used in every run definition. -->
+      <tasks name="all">
+<!--        <include>../../sv-benchmarks/c/*</include>-->
+        <includesfile>../../sv-benchmarks/c/ReachSafety-Arrays.set</includesfile>
+        <includesfile>../../sv-benchmarks/c/ReachSafety-BitVectors.set</includesfile>
+        <includesfile>../../sv-benchmarks/c/ReachSafety-Combinations.set</includesfile>
+        <includesfile>../../sv-benchmarks/c/ReachSafety-ControlFlow.set</includesfile>
+        <includesfile>../../sv-benchmarks/c/ReachSafety-ECA.set</includesfile>
+        <includesfile>../../sv-benchmarks/c/ReachSafety-Floats.set</includesfile>
+        <includesfile>../../sv-benchmarks/c/ReachSafety-Heap.set</includesfile>
+<!--        <includesfile>../../sv-benchmarks/c/ReachSafety-Loops.set</includesfile>-->
+        <includesfile>../../sv-benchmarks/c/ReachSafety-ProductLines.set</includesfile>
+        <includesfile>../../sv-benchmarks/c/ReachSafety-Recursive.set</includesfile>
+        <includesfile>../../sv-benchmarks/c/ReachSafety-Sequentialized.set</includesfile>
+        <includesfile>../../sv-benchmarks/c/ReachSafety-XCSP.set</includesfile>
+      </tasks>
+
+
+    <propertyfile>../../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+    <option name="-predicateAnalysis"/>
+</benchmark>
