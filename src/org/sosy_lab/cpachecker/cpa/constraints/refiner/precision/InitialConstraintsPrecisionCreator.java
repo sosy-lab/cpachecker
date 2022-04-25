@@ -125,6 +125,8 @@ public class InitialConstraintsPrecisionCreator {
 
   private void restoreMappingFromFile(CFA pCfa) {
     List<String> contents = new ArrayList<>();
+    boolean scopeValuePrecision = false;
+    Multimap<CFANode, MemoryLocation> locationMemoryMap = HashMultimap.create();
     try {
       contents = Files.readAllLines(initialPrecisionFile, Charset.defaultCharset());
     } catch (IOException e) {
@@ -152,15 +154,29 @@ public class InitialConstraintsPrecisionCreator {
         // * represents global variable
         if (scopeSelectors.equals("*")) {
           trackedGlobalVariables.add(trackedVariable);
+          scopeValuePrecision = true;
         } else if (memoryLocation.isOnFunctionStack(scopeSelectors)) {
           // function name represents function variable
           trackedFunctionsVariables.put(scopeSelectors, scopeSelectors + "::" + trackedVariable);
           // if not global or function variable
         } else {
-          getFunctionFromLocationValuePrecision(memoryLocation);
+          locationMemoryMap.put(location, memoryLocation);
         }
 
         locationMap.add(location);
+      }
+    }
+    if (scopeValuePrecision) {
+      for (CFANode l : locationMemoryMap.keys()) {
+        for (MemoryLocation m : locationMemoryMap.get(l)) {
+          trackedLocationVariables.put(l, m.getIdentifier());
+        }
+      }
+    } else {
+      for (CFANode l : locationMemoryMap.keys()) {
+        for (MemoryLocation m : locationMemoryMap.get(l)) {
+          getFunctionFromLocationValuePrecision(m);
+        }
       }
     }
   }
@@ -186,7 +202,7 @@ public class InitialConstraintsPrecisionCreator {
     if (m.isOnFunctionStack()) {
       trackedFunctionsVariables.put(m.getFunctionName(),
           m.getFunctionName() + "::" + m.getIdentifier());
-    } else {  //TODO add case local
+    } else {
       trackedGlobalVariables.add(m.getIdentifier());
     }
   }
