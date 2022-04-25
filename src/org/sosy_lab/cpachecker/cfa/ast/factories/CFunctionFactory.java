@@ -102,12 +102,16 @@ public class CFunctionFactory {
     if (nonDetFunctionWithType == null) {
       // TODO: Improve recognition of assert functions. Which may be wrongly detected because of
       // shadowing
-      if (pFunctionCall.getDeclaration().getOrigName() == "assert"
-          && pFunctionCall.getDeclaration().getName() == "assert"
+      if (pFunctionCall.getDeclaration().getOrigName().equals("assert")
+          && pFunctionCall.getDeclaration().getName().equals("assert")
           && pFunctionCall.getDeclaration().isGlobal()
           && pFunctionCall.getDeclaration().getParameters().size() == 1
-          && pFunctionCall.getDeclaration().getParameters().get(0).getQualifiedName()
-              == "assert::arg") {
+          && pFunctionCall
+              .getDeclaration()
+              .getParameters()
+              .get(0)
+              .getQualifiedName()
+              .equals("assert::arg")) {
         return false;
       } else {
         return true;

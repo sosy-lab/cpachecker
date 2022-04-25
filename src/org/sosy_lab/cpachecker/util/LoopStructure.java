@@ -475,11 +475,11 @@ public final class LoopStructure implements Serializable {
           return Optional.empty();
         }
 
-        AExpression bound;
+        AExpression whileLoopBound;
         if (!(boundEdge instanceof AssumeEdge)) {
           return Optional.empty();
         } else {
-          bound = ((AssumeEdge) boundEdge).getExpression();
+          whileLoopBound = ((AssumeEdge) boundEdge).getExpression();
         }
 
         boolean continueBuildingBound = true;
@@ -499,10 +499,10 @@ public final class LoopStructure implements Serializable {
                 // TODO Generalize for Java Expressions
                 // TODO: Why is the binary AND, the bitwise binary AND, and not the true and?
 
-                bound =
+                whileLoopBound =
                     new AExpressionFactory()
                         .from(((AssumeEdge) boundEdge).getExpression())
-                        .binaryOperation(bound, CBinaryExpression.BinaryOperator.BINARY_AND)
+                        .binaryOperation(whileLoopBound, CBinaryExpression.BinaryOperator.BINARY_AND)
                         .build();
                 return Optional.empty();
               }
@@ -512,7 +512,7 @@ public final class LoopStructure implements Serializable {
           }
         }
 
-        return Optional.of(bound);
+        return Optional.of(whileLoopBound);
       }
 
       return Optional.empty();
