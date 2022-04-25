@@ -75,10 +75,4 @@ public class DummyCFAEdge implements CFAEdge {
   public DummyCFAEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
     return new DummyCFAEdge(pNewPredecessorNode, pNewSuccessorNode);
   }
-
-  @Override
-  public void connect() {
-    this.getPredecessor().addLeavingEdge(this);
-    this.getSuccessor().addEnteringEdge(this);
-  }
 }

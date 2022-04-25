@@ -17,6 +17,7 @@ import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -70,11 +71,11 @@ public class NaiveLoopAccelerationStrategy extends LoopStrategy {
             currentNode,
             (CExpression) pLoopBoundExpression,
             true);
-    loopBoundCFAEdge.connect();
+    CFACreationUtils.addEdgeUnconditionallyToCFA(loopBoundCFAEdge);
 
     CAssumeEdge negatedBoundCFAEdge =
         ((CAssumeEdge) loopBoundCFAEdge).negate().copyWith(startNodeGhostCFA, endNodeGhostCFA);
-    negatedBoundCFAEdge.connect();
+    CFACreationUtils.addEdgeUnconditionallyToCFA(negatedBoundCFAEdge);
 
     for (AVariableDeclaration pc : pModifiedVariables) {
       // TODO improve for Java
@@ -89,7 +90,7 @@ public class NaiveLoopAccelerationStrategy extends LoopStrategy {
       CFAEdge dummyEdge =
           new CStatementEdge(
               pc.getName() + " = NONDET", cStatementEdge, FileLocation.DUMMY, currentNode, newNode);
-      dummyEdge.connect();
+      CFACreationUtils.addEdgeUnconditionallyToCFA(dummyEdge);
       currentNode = newNode;
       newNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
     }
@@ -102,9 +103,9 @@ public class NaiveLoopAccelerationStrategy extends LoopStrategy {
     CFANode startUnrolledLoopNode = unrolledLoopNodesMaybe.orElseThrow().getFirst();
     CFANode endUnrolledLoopNode = unrolledLoopNodesMaybe.orElseThrow().getSecond();
 
-    currentNode.connectTo(startUnrolledLoopNode);
+    CFACreationUtils.connectNodes(currentNode, startUnrolledLoopNode);
     currentNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
-    endUnrolledLoopNode.connectTo(currentNode);
+    CFACreationUtils.connectNodes(endUnrolledLoopNode, currentNode);
 
     CFAEdge loopBoundCFAEdgeEnd =
         new CAssumeEdge(
@@ -114,11 +115,11 @@ public class NaiveLoopAccelerationStrategy extends LoopStrategy {
             CFANode.newDummyCFANode(pBeforeWhile.getFunctionName()),
             (CExpression) pLoopBoundExpression,
             true);
-    loopBoundCFAEdgeEnd.connect();
+    CFACreationUtils.addEdgeUnconditionallyToCFA(loopBoundCFAEdgeEnd);
 
     CAssumeEdge negatedBoundCFAEdgeEnd =
         ((CAssumeEdge) loopBoundCFAEdgeEnd).negate().copyWith(currentNode, endNodeGhostCFA);
-    negatedBoundCFAEdgeEnd.connect();
+    CFACreationUtils.addEdgeUnconditionallyToCFA(negatedBoundCFAEdgeEnd);
 
     CFANode leavingSuccessor;
     Iterator<CFAEdge> iter = pLoopStructure.getOutgoingEdges().iterator();
@@ -163,7 +164,7 @@ public class NaiveLoopAccelerationStrategy extends LoopStrategy {
     }
 
     Loop loopStructure = loopStructureMaybe.orElseThrow();
-    
+
  // Function calls may change global variables, or have assert statements, which cannot be
     // summarized correctly
     if (loopStructure.containsUserDefinedFunctionCalls()) {

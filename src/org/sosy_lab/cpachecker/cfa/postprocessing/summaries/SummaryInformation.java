@@ -60,7 +60,8 @@ public class SummaryInformation {
   public void addNodeForStrategy(StrategiesEnum strategy, CFANode node) {
     strategiesToNodes.put(strategy, node);
     nodesWithIncomingStrategies.put(node, strategy);
-    for (CFAEdge e : node.getEnteringEdges()) {
+    for (int i = 0; i < node.getNumEnteringEdges(); i++) {
+      CFAEdge e = node.getEnteringEdge(i);
       Set<StrategiesEnum> set = new HashSet<>();
       if (nodesWithOutgoingStrategies.containsKey(e.getPredecessor())) {
         set.addAll(nodesWithOutgoingStrategies.get(e.getPredecessor()));

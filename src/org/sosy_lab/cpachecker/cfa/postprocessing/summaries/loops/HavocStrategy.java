@@ -17,6 +17,7 @@ import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -70,11 +71,11 @@ public class HavocStrategy extends LoopStrategy {
             currentNode,
             (CExpression) pLoopBoundExpression,
             true);
-    loopBoundCFAEdge.connect();
+    CFACreationUtils.addEdgeUnconditionallyToCFA(loopBoundCFAEdge);
 
     CAssumeEdge negatedBoundCFAEdge =
         ((CAssumeEdge) loopBoundCFAEdge).negate().copyWith(startNodeGhostCFA, endNodeGhostCFA);
-    negatedBoundCFAEdge.connect();
+    CFACreationUtils.addEdgeUnconditionallyToCFA(negatedBoundCFAEdge);
 
     for (AVariableDeclaration pc : pModifiedVariables) {
       CIdExpression leftHandSide = new CIdExpression(FileLocation.DUMMY, (CSimpleDeclaration) pc);
@@ -88,7 +89,7 @@ public class HavocStrategy extends LoopStrategy {
       CFAEdge dummyEdge =
           new CStatementEdge(
               pc.getName() + " = NONDET", cStatementEdge, FileLocation.DUMMY, currentNode, newNode);
-      dummyEdge.connect();
+      CFACreationUtils.addEdgeUnconditionallyToCFA(dummyEdge);
       currentNode = newNode;
       newNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
     }
@@ -106,11 +107,11 @@ public class HavocStrategy extends LoopStrategy {
             CFANode.newDummyCFANode(pBeforeWhile.getFunctionName()),
             (CExpression) pLoopBoundExpression,
             true);
-    loopBoundCFAEdgeEnd.connect();
+    CFACreationUtils.addEdgeUnconditionallyToCFA(loopBoundCFAEdgeEnd);
 
     CAssumeEdge negatedBoundCFAEdgeEnd =
         ((CAssumeEdge) loopBoundCFAEdgeEnd).negate().copyWith(currentNode, endNodeGhostCFA);
-    negatedBoundCFAEdgeEnd.connect();
+    CFACreationUtils.addEdgeUnconditionallyToCFA(negatedBoundCFAEdgeEnd);
 
     CFANode leavingSuccessor;
     Iterator<CFAEdge> iter = pLoopStructure.getOutgoingEdges().iterator();

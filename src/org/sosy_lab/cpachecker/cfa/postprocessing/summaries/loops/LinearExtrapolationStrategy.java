@@ -16,6 +16,7 @@ import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
@@ -132,7 +133,7 @@ public class LinearExtrapolationStrategy extends LoopExtrapolationStrategy {
     CFANode startUnrolledLoopNode = unrolledLoopNodesMaybe.orElseThrow().getFirst();
     CFANode endUnrolledLoopNode = unrolledLoopNodesMaybe.orElseThrow().getSecond();
 
-    startNodeGhostCFA.connectTo(startUnrolledLoopNode);
+    CFACreationUtils.connectNodes(startNodeGhostCFA, startUnrolledLoopNode);
 
     CFANode currentSummaryNodeCFA = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
 
@@ -144,11 +145,11 @@ public class LinearExtrapolationStrategy extends LoopExtrapolationStrategy {
             currentSummaryNodeCFA,
             (CExpression) pLoopBoundExpression,
             true); // TODO: this may not be the correct way to do this; Review
-    loopBoundCFAEdge.connect();
+    CFACreationUtils.addEdgeUnconditionallyToCFA(loopBoundCFAEdge);
 
     CAssumeEdge negatedBoundCFAEdge =
         ((CAssumeEdge) loopBoundCFAEdge).negate().copyWith(endUnrolledLoopNode, endNodeGhostCFA);
-    negatedBoundCFAEdge.connect();
+    CFACreationUtils.addEdgeUnconditionallyToCFA(negatedBoundCFAEdge);
 
     // Create the Amount of iterations as a long long
     Optional<Pair<CFANode, AVariableDeclaration>> nextNodeAndIterationsVariable =
@@ -187,7 +188,7 @@ public class LinearExtrapolationStrategy extends LoopExtrapolationStrategy {
               FileLocation.DUMMY,
               currentSummaryNodeCFA,
               nextSummaryNode);
-      dummyEdge.connect();
+      CFACreationUtils.addEdgeUnconditionallyToCFA(dummyEdge);
 
       currentSummaryNodeCFA = nextSummaryNode;
       nextSummaryNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
@@ -202,7 +203,7 @@ public class LinearExtrapolationStrategy extends LoopExtrapolationStrategy {
 
     startUnrolledLoopNode = unrolledLoopNodesMaybe.orElseThrow().getFirst();
     endUnrolledLoopNode = unrolledLoopNodesMaybe.orElseThrow().getSecond();
-    currentSummaryNodeCFA.connectTo(startUnrolledLoopNode);
+    CFACreationUtils.connectNodes(currentSummaryNodeCFA, startUnrolledLoopNode);
 
     unrolledLoopNodesMaybe = pLoopStructure.unrollOutermostLoop();
     if (unrolledLoopNodesMaybe.isEmpty()) {
@@ -212,8 +213,8 @@ public class LinearExtrapolationStrategy extends LoopExtrapolationStrategy {
     CFANode secondStartUnrolledNode = unrolledLoopNodesMaybe.orElseThrow().getFirst();
     CFANode secondEndUnrolledNode = unrolledLoopNodesMaybe.orElseThrow().getSecond();
 
-    endUnrolledLoopNode.connectTo(secondStartUnrolledNode);
-    secondEndUnrolledNode.connectTo(endNodeGhostCFA);
+    CFACreationUtils.connectNodes(endUnrolledLoopNode, secondStartUnrolledNode);
+    CFACreationUtils.connectNodes(secondEndUnrolledNode, endNodeGhostCFA);
 
     CFAEdge leavingEdge;
     Iterator<CFAEdge> iter = pLoopStructure.getOutgoingEdges().iterator();

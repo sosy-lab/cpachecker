@@ -42,6 +42,7 @@ import java.util.TreeSet;
 import java.util.function.Function;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
@@ -397,18 +398,18 @@ public final class LoopStructure implements Serializable {
               newSuccessor = originalToNewNodes.get(successor);
             }
             CFAEdge pNewLeavingEdge = succ.copyWith(newNode, newSuccessor);
-            pNewLeavingEdge.connect();
+            CFACreationUtils.addEdgeUnconditionallyToCFA(pNewLeavingEdge);
           } else if (getInnerLoopEdges().contains(succ)) {
             newSuccessor = CFANode.newDummyCFANode(functionName);
             originalToNewNodes.put(successor, newSuccessor);
             CFAEdge pNewLeavingEdge = succ.copyWith(newNode, newSuccessor);
-            pNewLeavingEdge.connect();
+            CFACreationUtils.addEdgeUnconditionallyToCFA(pNewLeavingEdge);
             currentNodes.add(Pair.of(pNewLeavingEdge.getSuccessor(), successor));
           } else if (getOutgoingEdges().contains(succ)) {
             // Should only happen when the Edges leave the Loop
             newSuccessor = lastNode;
             CFAEdge pNewLeavingEdge = succ.copyWith(newNode, newSuccessor);
-            pNewLeavingEdge.connect();
+            CFACreationUtils.addEdgeUnconditionallyToCFA(pNewLeavingEdge);
           }
         }
       }

@@ -145,11 +145,5 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
     public DummyEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
       return new DummyEdge(this.getPredecessor().getFunctionName());
     }
-
-    @Override
-    public void connect() {
-      this.getPredecessor().addLeavingEdge(this);
-      this.getSuccessor().addEnteringEdge(this);
-    }
   }
 }

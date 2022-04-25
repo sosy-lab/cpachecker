@@ -16,6 +16,7 @@ import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.GhostCFA;
@@ -60,14 +61,14 @@ public class LoopUnrollingStrategy extends LoopStrategy {
       CFANode startUnrolledLoopNode = unrolledLoopNodesMaybe.orElseThrow().getFirst();
       CFANode endUnrolledLoopNode = unrolledLoopNodesMaybe.orElseThrow().getSecond();
 
-      currentSummaryNodeCFA.connectTo(startUnrolledLoopNode);
-      endUnrolledLoopNode.connectTo(nextCFANode);
+      CFACreationUtils.connectNodes(currentSummaryNodeCFA, startUnrolledLoopNode);
+      CFACreationUtils.connectNodes(endUnrolledLoopNode, nextCFANode);
 
       currentSummaryNodeCFA = nextCFANode;
       nextCFANode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
     }
 
-    currentSummaryNodeCFA.connectTo(endNodeGhostCFA);
+    CFACreationUtils.connectNodes(currentSummaryNodeCFA, endNodeGhostCFA);
 
     CFANode leavingSuccessor;
     Iterator<CFAEdge> iter = pLoopStructure.getOutgoingEdges().iterator();

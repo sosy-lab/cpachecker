@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.summaries;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -54,7 +55,7 @@ public class GhostCFA {
               getStartOriginalCfaNode(),
               getStartGhostCfaNode(),
               "Start Ghost Connection Strategy: " + this.getStrategy().name());
-      startNodesConnectionLocal.connect();
+      CFACreationUtils.addEdgeUnconditionallyToCFA(startNodesConnectionLocal);
       setStartNodesConnection(Optional.of(startNodesConnectionLocal));
     }
 
@@ -66,7 +67,7 @@ public class GhostCFA {
               getStopGhostCfaNode(),
               getStopOriginalCfaNode(),
               "End Ghost Connection Strategy: " + this.getStrategy().name());
-      endNodesConnectionLocal.connect();
+      CFACreationUtils.addEdgeUnconditionallyToCFA(endNodesConnectionLocal);
       setStartNodesConnection(Optional.of(endNodesConnectionLocal));
     }
   }

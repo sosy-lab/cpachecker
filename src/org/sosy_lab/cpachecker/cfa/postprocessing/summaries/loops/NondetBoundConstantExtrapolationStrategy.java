@@ -16,6 +16,7 @@ import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -88,7 +89,7 @@ public class NondetBoundConstantExtrapolationStrategy extends ConstantExtrapolat
             FileLocation.DUMMY,
             startNodeGhostCFA,
             currentNode);
-    dummyEdge.connect();
+    CFACreationUtils.addEdgeUnconditionallyToCFA(dummyEdge);
 
     Optional<GhostCFA> summarizedLoopMaybe =
         super.summarizeLoop(
@@ -98,11 +99,11 @@ public class NondetBoundConstantExtrapolationStrategy extends ConstantExtrapolat
       return Optional.empty();
     }
 
-    currentNode.connectTo(summarizedLoopMaybe.get().getStartGhostCfaNode());
+    CFACreationUtils.connectNodes(currentNode, summarizedLoopMaybe.get().getStartGhostCfaNode());
 
     currentNode = CFANode.newDummyCFANode(beforeWhile.getFunctionName());
 
-    summarizedLoopMaybe.get().getStopGhostCfaNode().connectTo(currentNode);
+    CFACreationUtils.connectNodes(summarizedLoopMaybe.get().getStopGhostCfaNode(), currentNode);
 
     CFAEdge loopBoundCFAEdgeEnd =
         new CAssumeEdge(
@@ -112,11 +113,11 @@ public class NondetBoundConstantExtrapolationStrategy extends ConstantExtrapolat
             CFANode.newDummyCFANode(beforeWhile.getFunctionName()),
             (CExpression) loopBoundExpression,
             true);
-    loopBoundCFAEdgeEnd.connect();
+    CFACreationUtils.addEdgeUnconditionallyToCFA(loopBoundCFAEdgeEnd);
 
     CAssumeEdge negatedBoundCFAEdgeEnd =
         ((CAssumeEdge) loopBoundCFAEdgeEnd).negate().copyWith(currentNode, endNodeGhostCFA);
-    negatedBoundCFAEdgeEnd.connect();
+    CFACreationUtils.addEdgeUnconditionallyToCFA(negatedBoundCFAEdgeEnd);
 
     CFAEdge leavingEdge;
     Iterator<CFAEdge> iter = pLoopStructure.getOutgoingEdges().iterator();

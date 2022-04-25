@@ -17,6 +17,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -91,7 +92,9 @@ public class SummaryStrategyRefiner implements Refiner {
       ARGState refinementState = optionalRefinementState.orElseThrow();
 
       if (optionalStrategy.orElseThrow() != StrategiesEnum.BASE) {
-        for (CFAEdge e : AbstractStates.extractLocation(refinementState).getEnteringEdges()) {
+        CFANode n = AbstractStates.extractLocation(refinementState);
+        for (int i = 0; i < n.getNumEnteringEdges(); i++) {
+          CFAEdge e = n.getEnteringEdge(i);
           this.summaryInformation.addUnallowedStrategiesForNode(
               e.getPredecessor(), optionalStrategy.orElseThrow());
         }

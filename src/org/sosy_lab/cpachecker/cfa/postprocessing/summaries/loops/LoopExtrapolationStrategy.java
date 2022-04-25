@@ -15,6 +15,7 @@ import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -293,7 +294,7 @@ public class LoopExtrapolationStrategy extends LoopStrategy {
               currentSummaryNode,
               nextSummaryNode,
               newVariable);
-      varInitEdge.connect();
+      CFACreationUtils.addEdgeUnconditionallyToCFA(varInitEdge);
 
       currentSummaryNode = nextSummaryNode;
       nextSummaryNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
@@ -314,7 +315,7 @@ public class LoopExtrapolationStrategy extends LoopStrategy {
               FileLocation.DUMMY,
               currentSummaryNode,
               nextSummaryNode);
-      dummyEdge.connect();
+      CFACreationUtils.addEdgeUnconditionallyToCFA(dummyEdge);
 
       currentSummaryNode = nextSummaryNode;
       nextSummaryNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
@@ -351,7 +352,7 @@ public class LoopExtrapolationStrategy extends LoopStrategy {
             currentSummaryNode,
             nextSummaryNode,
             iterationsVariable);
-    varInitEdge.connect();
+    CFACreationUtils.addEdgeUnconditionallyToCFA(varInitEdge);
 
     currentSummaryNode = nextSummaryNode;
     nextSummaryNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
@@ -369,7 +370,7 @@ public class LoopExtrapolationStrategy extends LoopStrategy {
             FileLocation.DUMMY,
             currentSummaryNode,
             nextSummaryNode);
-    assignmentIterationsVariableEdge.connect();
+    CFACreationUtils.addEdgeUnconditionallyToCFA(assignmentIterationsVariableEdge);
 
     currentSummaryNode = nextSummaryNode;
 

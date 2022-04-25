@@ -330,14 +330,4 @@ public class CFANode implements Comparable<CFANode>, Serializable {
     }
     return Collections.unmodifiableSet(outOfScopeVariables);
   }
-
-  public void connectTo(CFANode pNode) {
-    CFAEdge dummyOutgoingEdge =
-        new BlankEdge("Blank Edge", FileLocation.DUMMY, this, pNode, "Blank Edge");
-    dummyOutgoingEdge.connect();
-  }
-
-  public List<CFAEdge> getEnteringEdges() {
-    return this.enteringEdges;
-  }
 }
