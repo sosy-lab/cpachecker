@@ -39,6 +39,11 @@ public class SubstituteVisitor extends DefaultBooleanFormulaVisitor<TraversalPro
   }
 
   @Override
+  public TraversalProcess visitNot(BooleanFormula pOperand) {
+    return TraversalProcess.SKIP;
+  }
+
+  @Override
   public TraversalProcess visitAtom(BooleanFormula atom, FunctionDeclaration<BooleanFormula> decl) {
     if (decl.getKind() == FunctionDeclarationKind.EQ) {
       // filter assignments
