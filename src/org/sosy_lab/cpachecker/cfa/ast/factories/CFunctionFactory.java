@@ -116,7 +116,7 @@ public class CFunctionFactory {
       } else {
         return true;
       }
-    } else if (nonDetFunctionWithType == pFunctionCall.getDeclaration().getOrigName()) {
+    } else if (nonDetFunctionWithType.equals(pFunctionCall.getDeclaration().getOrigName())) {
       return false;
     } else {
       return false;

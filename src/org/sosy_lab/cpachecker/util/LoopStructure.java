@@ -497,14 +497,12 @@ public final class LoopStructure implements Serializable {
                 continueBuildingBound = false;
               } else {
                 // TODO Generalize for Java Expressions
-                // TODO: Why is the binary AND, the bitwise binary AND, and not the true and?
 
                 whileLoopBound =
                     new AExpressionFactory()
                         .from(((AssumeEdge) boundEdge).getExpression())
                         .binaryOperation(whileLoopBound, CBinaryExpression.BinaryOperator.BINARY_AND)
                         .build();
-                return Optional.empty();
               }
             }
           } else {
