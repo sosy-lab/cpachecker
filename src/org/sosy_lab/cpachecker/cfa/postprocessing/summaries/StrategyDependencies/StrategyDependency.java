@@ -10,9 +10,9 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencie
 
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyInterface;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.Strategy;
 
-public interface StrategyDependencyInterface {
+public interface StrategyDependency {
 
   /*
    * Returns true if the CFA postprocessing should stop or not
@@ -22,7 +22,7 @@ public interface StrategyDependencyInterface {
   /*
    * Returns true if the Strategy can be applied in this iteration, else false
    */
-  public boolean apply(StrategyInterface pStrategy, Integer iteration);
+  public boolean apply(Strategy pStrategy, Integer iteration);
 
   /*
    * Given a Set of Strategies which can be used to get the successor of the current strategy

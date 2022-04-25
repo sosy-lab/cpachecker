@@ -85,7 +85,7 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.SummaryInformation;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.SummaryPostProcessor;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyEnum;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyFactory;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyInterface;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependency;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
@@ -634,7 +634,7 @@ public class CFACreator {
     // Make summaries, needs Loop Structure
     if (useSummaries) {
 
-      StrategyDependencyInterface summaryCreationStrategy =
+      StrategyDependency summaryCreationStrategy =
           new StrategyDependencyFactory().createStrategy(this.cfaCreationStrategy);
 
       cfa.setSummaryInformations(

@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.summaries;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyInterface;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependency;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops.ConstantExtrapolationStrategy;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops.HavocStrategy;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops.LinearExtrapolationStrategy;
@@ -24,14 +24,14 @@ public class StrategyFactory {
   protected final LogManager logger;
   protected final ShutdownNotifier shutdownNotifier;
   protected final int maxUnrollingsStrategy;
-  private StrategyDependencyInterface strategyDependencies;
+  private StrategyDependency strategyDependencies;
   private CFA cfa;
 
   public StrategyFactory(
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       int pMaxUnrollingsStrategy,
-      StrategyDependencyInterface pStrategyDependencies,
+      StrategyDependency pStrategyDependencies,
       CFA pCFA) {
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
@@ -40,7 +40,7 @@ public class StrategyFactory {
     cfa = pCFA;
   }
 
-  public StrategyInterface buildStrategy(StrategiesEnum strategy) {
+  public Strategy buildStrategy(StrategiesEnum strategy) {
     switch (strategy) {
       case LOOPCONSTANTEXTRAPOLATION:
         return new ConstantExtrapolationStrategy(

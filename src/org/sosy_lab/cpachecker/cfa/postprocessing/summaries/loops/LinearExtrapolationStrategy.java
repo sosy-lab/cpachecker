@@ -29,13 +29,13 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.GhostCFA;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyInterface;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependency;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.utils.LinearVariableDependencyGraph;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.utils.LinearVariableDependencyMatrix;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 
-public class LinearExtrapolationStrategy extends AbstractLoopExtrapolationStrategy {
+public class LinearExtrapolationStrategy extends LoopExtrapolationStrategy {
 
   // See
   // https://math.stackexchange.com/questions/2079950/compute-the-n-th-power-of-triangular-3-times3-matrix
@@ -45,7 +45,7 @@ public class LinearExtrapolationStrategy extends AbstractLoopExtrapolationStrate
   public LinearExtrapolationStrategy(
       final LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
-      StrategyDependencyInterface pStrategyDependencies,
+      StrategyDependency pStrategyDependencies,
       CFA pCFA) {
     super(pLogger, pShutdownNotifier, pStrategyDependencies, pCFA);
 

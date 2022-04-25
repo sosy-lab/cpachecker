@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.summaries;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
-public class BaseStrategy implements StrategyInterface {
+public class BaseStrategy implements Strategy {
 
   @Override
   public Optional<GhostCFA> summarize(CFANode pLoopStartNode) {

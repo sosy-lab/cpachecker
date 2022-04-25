@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyInterface;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependency;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
@@ -42,16 +42,16 @@ public class SummaryInformation {
   private Map<CFANode, GhostCFA> startNodeOriginalCFAToGhostCFA = new HashMap<>();
   private Map<CFANode, Map<String, CExpression>> variableDeclarations = new HashMap<>();
   private Map<CFANode, Loop> nodeToLoopStructure = new HashMap<>();
-  private Set<StrategyInterface> strategies = new HashSet<>();
+  private Set<Strategy> strategies = new HashSet<>();
   private StrategyFactory factory;
-  private StrategyDependencyInterface summaryCreationStrategy;
-  private StrategyDependencyInterface summaryTransferStrategy;
+  private StrategyDependency summaryCreationStrategy;
+  private StrategyDependency summaryTransferStrategy;
   private Map<CFANode, Set<StrategiesEnum>> unallowedStrategiesForNode = new HashMap<>();
 
   public SummaryInformation(
       CFA pCfa,
-      StrategyDependencyInterface pCreationSummaryStrategy,
-      StrategyDependencyInterface pTransferSummaryStrategy) {
+      StrategyDependency pCreationSummaryStrategy,
+      StrategyDependency pTransferSummaryStrategy) {
     summaryCreationStrategy = pCreationSummaryStrategy;
     summaryTransferStrategy = pTransferSummaryStrategy;
     this.addCfaInformations(pCfa);
@@ -97,7 +97,7 @@ public class SummaryInformation {
     return variableDeclarations.get(node);
   }
 
-  public void addStrategy(StrategyInterface strategy) {
+  public void addStrategy(Strategy strategy) {
     strategies.add(strategy);
   }
 
@@ -117,7 +117,7 @@ public class SummaryInformation {
     }
   }
 
-  public Set<StrategyInterface> getStrategies() {
+  public Set<Strategy> getStrategies() {
     return strategies;
   }
 
@@ -137,11 +137,11 @@ public class SummaryInformation {
     return Optional.of(loop);
   }
 
-  public StrategyDependencyInterface getCreationSummaryStrategy() {
+  public StrategyDependency getCreationSummaryStrategy() {
     return this.summaryCreationStrategy;
   }
 
-  public StrategyDependencyInterface getTransferSummaryStrategy() {
+  public StrategyDependency getTransferSummaryStrategy() {
     return this.summaryTransferStrategy;
   }
 
@@ -161,7 +161,7 @@ public class SummaryInformation {
     }
   }
 
-  public void setTransferStrategy(StrategyDependencyInterface pSummaryTransferStrategy) {
+  public void setTransferStrategy(StrategyDependency pSummaryTransferStrategy) {
     this.summaryTransferStrategy = pSummaryTransferStrategy;
   }
 

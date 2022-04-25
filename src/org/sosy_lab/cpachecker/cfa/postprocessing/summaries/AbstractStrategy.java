@@ -13,20 +13,20 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyInterface;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependency;
 
-public abstract class AbstractStrategy implements StrategyInterface {
+public abstract class AbstractStrategy implements Strategy {
 
   protected final LogManager logger;
   protected final ShutdownNotifier shutdownNotifier;
   protected final SummaryInformation summaryInformation;
-  private StrategyDependencyInterface strategyDependencies;
+  private StrategyDependency strategyDependencies;
   protected SummaryFilter summaryFilter;
 
   protected AbstractStrategy(
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
-      StrategyDependencyInterface strategyDependencies,
+      StrategyDependency strategyDependencies,
       CFA pCfa) {
     this.shutdownNotifier = pShutdownNotifier;
     this.logger = pLogger;

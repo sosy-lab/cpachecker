@@ -20,11 +20,11 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.GhostCFA;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyInterface;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependency;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 
-public class LoopUnrollingStrategy extends AbstractLoopStrategy {
+public class LoopUnrollingStrategy extends LoopStrategy {
 
   private Integer maxUnrollingsStrategy = 0;
 
@@ -34,7 +34,7 @@ public class LoopUnrollingStrategy extends AbstractLoopStrategy {
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       int pMaxUnrollingsStrategy,
-      StrategyDependencyInterface pStrategyDependencies,
+      StrategyDependency pStrategyDependencies,
       CFA pCFA) {
     super(pLogger, pShutdownNotifier, pStrategyDependencies, pCFA);
     maxUnrollingsStrategy = pMaxUnrollingsStrategy;

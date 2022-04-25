@@ -13,16 +13,16 @@ import java.util.List;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyInterface;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependency;
 
 public class SummaryFilter {
 
 
   private SummaryInformation summaryInformation;
-  private StrategyDependencyInterface strategyDependencies;
+  private StrategyDependency strategyDependencies;
 
   public SummaryFilter(
-      SummaryInformation pSummaryInformation, StrategyDependencyInterface pStrategyDependencies) {
+      SummaryInformation pSummaryInformation, StrategyDependency pStrategyDependencies) {
     strategyDependencies = pStrategyDependencies;
     summaryInformation = pSummaryInformation;
 

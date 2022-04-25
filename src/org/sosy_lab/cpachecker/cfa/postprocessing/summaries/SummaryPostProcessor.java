@@ -19,7 +19,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyInterface;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependency;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 
@@ -28,12 +28,12 @@ public class SummaryPostProcessor implements StatisticsProvider {
   private static CFA originalCFA;
   private Set<StrategiesEnum> strategies;
   private int maxUnrollingsStrategy;
-  private Set<StrategyInterface> strategiesClasses = new HashSet<>();
+  private Set<Strategy> strategiesClasses = new HashSet<>();
   private StrategyFactory strategyFactory;
   protected final LogManager logger;
   protected final ShutdownNotifier shutdownNotifier;
   private int maxIterationsSummaries;
-  private StrategyDependencyInterface strategyDependencies;
+  private StrategyDependency strategyDependencies;
   private SummaryInformation summaryInformation;
   private SummaryCFAStatistics stats;
 
@@ -44,7 +44,7 @@ public class SummaryPostProcessor implements StatisticsProvider {
       Set<StrategiesEnum> pStrategies,
       int pMaxUnrollingsStrategy,
       int pMaxIterationsSummaries,
-      StrategyDependencyInterface pStrategyDependencies) {
+      StrategyDependency pStrategyDependencies) {
     shutdownNotifier = pShutdownNotifier;
     logger = pLogger;
     maxIterationsSummaries = pMaxIterationsSummaries;
@@ -65,7 +65,7 @@ public class SummaryPostProcessor implements StatisticsProvider {
 
     summaryInformation.setFactory(strategyFactory);
     for (StrategiesEnum s : strategies) {
-      StrategyInterface strategyClass = strategyFactory.buildStrategy(s);
+      Strategy strategyClass = strategyFactory.buildStrategy(s);
       strategiesClasses.add(strategyClass);
       summaryInformation.addStrategy(strategyClass);
     }
@@ -90,7 +90,7 @@ public class SummaryPostProcessor implements StatisticsProvider {
         nodesAdded = false;
         visitedNodes.addAll(currentNodes);
         for (CFANode node : currentNodes) {
-          for (StrategyInterface s : strategiesClasses) {
+          for (Strategy s : strategiesClasses) {
             if (strategyDependencies.apply(s, iterations)) {
               Optional<GhostCFA> maybeGhostCFA = s.summarize(node);
               if (maybeGhostCFA.isPresent()) {

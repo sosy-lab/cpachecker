@@ -11,12 +11,12 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencie
 import java.util.ArrayList;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyInterface;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.Strategy;
 
-public class NoStrategyDependency implements StrategyDependencyInterface {
+public class NoStrategyDependency implements StrategyDependency {
 
   @Override
-  public boolean apply(StrategyInterface pStrategy, Integer pIteration) {
+  public boolean apply(Strategy pStrategy, Integer pIteration) {
     return false;
   }
 

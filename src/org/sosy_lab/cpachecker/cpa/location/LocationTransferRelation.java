@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.SummaryInformation;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyEnum;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyFactory;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyInterface;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependency;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -53,7 +53,7 @@ public class LocationTransferRelation implements TransferRelation {
     this.pCFA = pCFA;
     if (this.pCFA.getSummaryInformation().isPresent()) {
       SummaryInformation summaryInformation = pCFA.getSummaryInformation().orElseThrow();
-      StrategyDependencyInterface summaryTransferStrategy =
+      StrategyDependency summaryTransferStrategy =
           new StrategyDependencyFactory().createStrategy(this.transferStrategy);
       summaryInformation.setTransferStrategy(summaryTransferStrategy);
     }

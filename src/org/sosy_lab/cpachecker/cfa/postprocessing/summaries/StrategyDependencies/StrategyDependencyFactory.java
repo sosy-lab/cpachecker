@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencie
 
 public class StrategyDependencyFactory {
 
-  public StrategyDependencyInterface createStrategy(StrategyDependencyEnum pStrategy) {
+  public StrategyDependency createStrategy(StrategyDependencyEnum pStrategy) {
 
     switch (pStrategy) {
       case BASESTRATEGYDEPENDENCY:
