@@ -27,7 +27,6 @@ public class SummaryPostProcessor implements StatisticsProvider {
 
   private static CFA originalCFA;
   private Set<StrategiesEnum> strategies;
-  private boolean useCompilerForSummary;
   private int maxUnrollingsStrategy;
   private Set<StrategyInterface> strategiesClasses = new HashSet<>();
   private StrategyFactory strategyFactory;
@@ -43,7 +42,6 @@ public class SummaryPostProcessor implements StatisticsProvider {
       ShutdownNotifier pShutdownNotifier,
       CFA pCfa,
       Set<StrategiesEnum> pStrategies,
-      boolean pUseCompilerForSummary,
       int pMaxUnrollingsStrategy,
       int pMaxIterationsSummaries,
       StrategyDependencyInterface pStrategyDependencies) {
@@ -52,7 +50,6 @@ public class SummaryPostProcessor implements StatisticsProvider {
     maxIterationsSummaries = pMaxIterationsSummaries;
     strategyDependencies = pStrategyDependencies;
     setStrategies(pStrategies);
-    useCompilerForSummary = pUseCompilerForSummary;
     maxUnrollingsStrategy = pMaxUnrollingsStrategy;
     setOriginalCFA(pCfa);
     summaryInformation = pCfa.getSummaryInformation().orElseThrow();
@@ -61,7 +58,6 @@ public class SummaryPostProcessor implements StatisticsProvider {
             pLogger,
             pShutdownNotifier,
             maxUnrollingsStrategy,
-            useCompilerForSummary,
             strategyDependencies,
             pCfa);
 

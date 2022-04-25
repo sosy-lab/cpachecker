@@ -227,13 +227,6 @@ public class CFACreator {
   private boolean useSummaries = false;
 
   @Option(
-      secure = false,
-      name = "cfa.summaries.useCompiler",
-      description =
-          "Use a Compilr for the execution of the C Code, if this option is set to false an Interpreter in java is used.")
-  private boolean useCompilerForSummary = false;
-
-  @Option(
       name = "cfa.summaries.strategies",
       secure = true,
       description =
@@ -241,12 +234,9 @@ public class CFACreator {
   private List<StrategiesEnum> strategies =
       Arrays.asList(
           StrategiesEnum.LOOPCONSTANTEXTRAPOLATION,
-          // StrategiesEnum.LoopLinearExtrapolation,
           StrategiesEnum.NONDETBOUNDCONSTANTEXTRAPOLATION,
-          // StrategiesEnum.LoopAcceleration, // TODO Not yet implemented
           StrategiesEnum.NAIVELOOPACCELERATION,
           StrategiesEnum.HAVOCSTRATEGY
-          // ,StrategiesEnum.LoopUnrolling
           );
 
   @Option(
@@ -655,7 +645,6 @@ public class CFACreator {
               shutdownNotifier,
               cfa,
               new HashSet<>(strategies),
-              useCompilerForSummary,
               maxUnrollingsStrategy,
               maxIterationsSummaries,
               summaryCreationStrategy);

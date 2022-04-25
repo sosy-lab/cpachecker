@@ -869,10 +869,10 @@ cfa.summaries.maxUnrollingsStrategy = 100
 # of it.
 cfa.summaries.strategies = Arrays.asList(
           StrategiesEnum.LOOPCONSTANTEXTRAPOLATION,
-
-# Use a Compilr for the execution of the C Code, if this option is set to
-# false an Interpreter in java is used.
-cfa.summaries.useCompiler = false
+          StrategiesEnum.NONDETBOUNDCONSTANTEXTRAPOLATION,
+          StrategiesEnum.NAIVELOOPACCELERATION,
+          StrategiesEnum.HAVOCSTRATEGY
+          )
 
 # A name of thread_create function
 cfa.threads.threadCreate = "pthread_create"

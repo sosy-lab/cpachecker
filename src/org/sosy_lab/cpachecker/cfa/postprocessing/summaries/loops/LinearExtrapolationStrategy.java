@@ -167,8 +167,8 @@ public class LinearExtrapolationStrategy extends AbstractLoopExtrapolationStrate
             new AExpressionFactory().from(iterationsVariable).build());
     List<AExpressionAssignmentStatement> extrapolationAssignments = powerOfMatrix.asAssignments();
 
-    // TODO: This is wrong, since the extrapolation with the matrix calculation is wrong. This would
-    // need to be fixed.
+    // TODO: This may be wrong, since the extrapolation with the matrix calculation may be wrong.
+    // This would need to be fixed.
 
     CFANode nextSummaryNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
 
