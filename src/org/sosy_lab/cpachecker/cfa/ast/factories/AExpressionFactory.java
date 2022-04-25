@@ -30,12 +30,12 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  * Creates new Expressions based on old ones to generate the Expressions containing the extrapolations for the Summaries
  */
 
-public class AExpressionFactory implements IExpressionFactory {
+public class AExpressionFactory implements ExpressionFactory {
 
   private CExpressionFactory cExpressionFactory = new CExpressionFactory();
   private JExpressionFactory jExpressionFactory = new JExpressionFactory();
 
-  public IExpressionFactory chosenFactory = null;
+  public ExpressionFactory chosenFactory = null;
 
   public AExpressionFactory() {}
 
@@ -54,7 +54,6 @@ public class AExpressionFactory implements IExpressionFactory {
     return this.chosenFactory.build();
   }
 
-  @Override
   public void reset() {
     this.cExpressionFactory.reset();
     this.jExpressionFactory.reset();
@@ -79,7 +78,6 @@ public class AExpressionFactory implements IExpressionFactory {
     return this;
   }
 
-  @Override
   public AExpressionFactory from(AExpression pAExpression) {
     return new AExpressionFactory(pAExpression);
   }
@@ -165,9 +163,12 @@ public class AExpressionFactory implements IExpressionFactory {
     return this;
   }
 
-  @Override
-  public IExpressionFactory negate() {
-    this.chosenFactory.negate();
+  public ExpressionFactory negate() {
+    if (this.chosenFactory instanceof CExpressionFactory) {
+      ((CExpressionFactory) this.chosenFactory).negate();
+    } else if (this.chosenFactory instanceof JExpressionFactory) {
+      ((JExpressionFactory) this.chosenFactory).negate();
+    }
     return this;
   }
 

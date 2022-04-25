@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
-public class JExpressionFactory implements IExpressionFactory {
+public class JExpressionFactory implements ExpressionFactory {
 
   private JExpression currentExpression = null;
 
@@ -42,7 +42,6 @@ public class JExpressionFactory implements IExpressionFactory {
     return this.currentExpression;
   }
 
-  @Override
   public JExpressionFactory from(AExpression pAExpression) {
     if (pAExpression instanceof JExpression) {
       this.currentExpression = (JExpression) pAExpression;
@@ -77,12 +76,10 @@ public class JExpressionFactory implements IExpressionFactory {
     return this;
   }
 
-  @Override
   public void reset() {
     this.currentExpression = null;
   }
 
-  @Override
   public JExpressionFactory negate() {
     this.currentExpression =
         new JUnaryExpression(

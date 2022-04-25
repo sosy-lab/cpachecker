@@ -24,7 +24,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public class CExpressionFactory implements IExpressionFactory {
+public class CExpressionFactory implements ExpressionFactory {
 
   private CExpression currentExpression = null;
 
@@ -40,7 +40,6 @@ public class CExpressionFactory implements IExpressionFactory {
     return this.currentExpression;
   }
 
-  @Override
   public CExpressionFactory from(AExpression pAExpression) {
     if (pAExpression instanceof CExpression) {
       this.currentExpression = (CExpression) pAExpression;
@@ -87,13 +86,11 @@ public class CExpressionFactory implements IExpressionFactory {
     return this;
   }
 
-  @Override
   public void reset() {
     this.currentExpression = null;
   }
 
-  @Override
-  public IExpressionFactory negate() {
+  public ExpressionFactory negate() {
     this.currentExpression =
         new CUnaryExpression(
             FileLocation.DUMMY,
