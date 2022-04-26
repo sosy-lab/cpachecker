@@ -316,7 +316,7 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
               "' in property distribution file. Correct format is '<property name>':<ratio>");
         }
       }
-      return propertyDistributionBuilder.build();
+      return propertyDistributionBuilder.buildOrThrow();
     } catch (IOException e) {
       logger.log(
           Level.WARNING,

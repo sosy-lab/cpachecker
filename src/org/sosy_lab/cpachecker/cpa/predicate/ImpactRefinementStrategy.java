@@ -14,7 +14,9 @@ import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPr
 
 import java.io.PrintStream;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.time.Timer;
@@ -132,7 +134,9 @@ class ImpactRefinementStrategy extends RefinementStrategy implements StatisticsP
     lastAbstraction = null;
 
     stats.argUpdate.start();
+    Set<ARGState> alsoAffectedStates = new LinkedHashSet<>();
     for (ARGState w : changedElements) {
+      alsoAffectedStates.addAll(w.getCoveredByThis());
       pReached.removeCoverageOf(w);
     }
 
@@ -143,6 +147,11 @@ class ImpactRefinementStrategy extends RefinementStrategy implements StatisticsP
     // close only those that were strengthened during refine
     stats.coverTime.start();
     try {
+      for (ARGState w : alsoAffectedStates) {
+        if (!w.isDestroyed()) {
+          pReached.tryToCover(w);
+        }
+      }
       for (ARGState w : changedElements) {
         if (pReached.tryToCover(w)) {
           break; // all further elements are covered anyway
