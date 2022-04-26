@@ -48,7 +48,7 @@ import org.sosy_lab.cpachecker.exceptions.NoException;
 
 public final class CCfaEdgeTransformer implements CfaEdgeTransformer {
 
-  public static final CCfaEdgeTransformer IDENTITY = new CCfaEdgeTransformer(ImmutableList.of());
+  public static final CCfaEdgeTransformer CLONER = new CCfaEdgeTransformer(ImmutableList.of());
 
   private final ImmutableList<CCfaEdgeAstSubstitution> edgeAstSubstitutions;
 
