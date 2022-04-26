@@ -49,9 +49,12 @@ public interface CfaEdgeTransformer {
    *     substitution). If the construction of a transformed edge does not require other edges, it's
    *     guaranteed that the specified edge substitution is not used, so a dummy substitution can be
    *     used.
-   * @param pConnectedness -
+   * @param pConnectedness the connectedness of the CFA the transformed edge is created for
    * @return a transformed CFA edge for the specified CFA edge
    * @throws NullPointerException if any parameter is {@code null}
+   * @throws IllegalArgumentException if a transformed edge with the specified connectedness cannot
+   *     be created (e.g., if the connectedness is {@link CfaConnectedness#INDEPENDENT_FUNCTIONS},
+   *     transformed super-edges cannot be created)
    */
   CFAEdge transform(
       CFAEdge pEdge,
