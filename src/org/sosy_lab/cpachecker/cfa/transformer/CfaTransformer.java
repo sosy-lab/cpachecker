@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.transformer;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -18,6 +20,8 @@ import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
 public interface CfaTransformer {
 
   public static CfaTransformer of(CfaTransformer pTransformer, CfaTransformer... pTransformers) {
+
+    checkNotNull(pTransformer);
 
     ImmutableList<CfaTransformer> transformers = ImmutableList.copyOf(pTransformers);
 
