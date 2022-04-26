@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.transformer.c;
 
-
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Optional;
