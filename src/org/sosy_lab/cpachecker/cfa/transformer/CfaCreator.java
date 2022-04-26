@@ -243,28 +243,25 @@ public final class CfaCreator {
     newMutableCfa = runModifyingIndependentFunctionPostProcessors(newMutableCfa, pLogger);
     runReadOnlyIndependentFunctionPostProcessors(newMutableCfa, pLogger);
 
-    if (pCfaMetadata.getConnectedness() == CfaConnectedness.SUPERGRAPH) {
+    boolean supergraphCreated = false;
 
-      boolean supergraphCreated = false;
-
-      for (CfaProcessor cfaProcessor : cfaProcessors) {
-        if (cfaProcessor instanceof SupergraphCreator) {
-          newMutableCfa = ((SupergraphCreator) cfaProcessor).process(newMutableCfa, pLogger);
-          supergraphCreated = true;
-        }
+    for (CfaProcessor cfaProcessor : cfaProcessors) {
+      if (cfaProcessor instanceof SupergraphCreator) {
+        newMutableCfa = ((SupergraphCreator) cfaProcessor).process(newMutableCfa, pLogger);
+        supergraphCreated = true;
       }
-
-      if (!supergraphCreated) {
-
-        removePlaceholderEdges();
-
-        connectedness = CfaConnectedness.SUPERGRAPH;
-        cfaNetwork.edges().forEach(this::toNew);
-      }
-
-      newMutableCfa.setMetadata(
-          newMutableCfa.getMetadata().withConnectedness(CfaConnectedness.SUPERGRAPH));
     }
+
+    if (!supergraphCreated) {
+
+      removePlaceholderEdges();
+
+      connectedness = CfaConnectedness.SUPERGRAPH;
+      cfaNetwork.edges().forEach(this::toNew);
+    }
+
+    newMutableCfa.setMetadata(
+        newMutableCfa.getMetadata().withConnectedness(CfaConnectedness.SUPERGRAPH));
 
     newMutableCfa = runModifyingSupergraphPostProcessors(newMutableCfa, pLogger);
     runReadOnlySupergraphPostProcessors(newMutableCfa, pLogger);
