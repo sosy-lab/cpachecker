@@ -32,7 +32,7 @@ public interface CfaTransformer {
 
         CFA transformedCfa = pTransformer.transform(pCfaNetwork, pCfaMetadata, pLogger);
         for (CfaTransformer transformer : transformers) {
-          transformedCfa = transformer.transform(transformedCfa, pCfaMetadata, pLogger);
+          transformedCfa = transformer.transform(transformedCfa, pLogger);
         }
 
         return transformedCfa;
@@ -42,7 +42,7 @@ public interface CfaTransformer {
 
   CFA transform(CfaNetwork pCfaNetwork, CfaMetadata pCfaMetadata, LogManager pLogger);
 
-  default CFA transform(CFA pCfa, CfaMetadata pCfaMetadata, LogManager pLogger) {
-    return transform(CfaNetwork.of(pCfa), pCfaMetadata, pLogger);
+  default CFA transform(CFA pCfa, LogManager pLogger) {
+    return transform(CfaNetwork.of(pCfa), pCfa.getMetadata(), pLogger);
   }
 }
