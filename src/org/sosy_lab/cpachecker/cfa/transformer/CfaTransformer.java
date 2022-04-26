@@ -16,6 +16,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CfaMetadata;
 import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
 
+/** A {@code CfaTransformer} creates transformed CFAs for specified CFAs. */
 @FunctionalInterface
 public interface CfaTransformer {
 
@@ -40,7 +41,15 @@ public interface CfaTransformer {
     };
   }
 
-  CFA transform(CfaNetwork pCfaNetwork, CfaMetadata pCfaMetadata, LogManager pLogger);
+  /**
+   * Returns a new transformed CFA for the specified CFA.
+   *
+   * @param pCfa the CFA (represented as a {@code CfaNetwork}) to create a transformed CFA for
+   * @param pCfaMetadata the metadata of the specified CFA
+   * @param pLogger the logger to use during CFA transformation
+   * @return a new transformed CFA for the specified CFA
+   */
+  CFA transform(CfaNetwork pCfa, CfaMetadata pCfaMetadata, LogManager pLogger);
 
   default CFA transform(CFA pCfa, LogManager pLogger) {
     return transform(CfaNetwork.of(pCfa), pCfa.getMetadata(), pLogger);
