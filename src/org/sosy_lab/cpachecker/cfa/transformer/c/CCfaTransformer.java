@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.cfa.transformer.CfaEdgeTransformer;
 import org.sosy_lab.cpachecker.cfa.transformer.CfaNodeTransformer;
 import org.sosy_lab.cpachecker.cfa.transformer.CfaTransformer;
 
+/** A {@link CfaTransformer} for transforming CFAs whose language is C. */
 public final class CCfaTransformer implements CfaTransformer {
 
   private final ImmutableList<CfaProcessor> cfaProcessors;
@@ -37,6 +38,11 @@ public final class CCfaTransformer implements CfaTransformer {
     edgeTransformer = CCfaEdgeTransformer.forSubstitutions(pEdgeAstSubstitutions);
   }
 
+  /**
+   * Returns a new {@link CCfaTransformer.Builder} instance.
+   *
+   * @return a new {@link CCfaTransformer.Builder} instance
+   */
   public static Builder builder() {
     return new Builder();
   }
@@ -62,6 +68,17 @@ public final class CCfaTransformer implements CfaTransformer {
       edgeAstSubstitutions = ImmutableList.builder();
     }
 
+    /**
+     * Adds a {@link CfaProcessor} that is executed during CFA creation of a {@link CfaTransformer}
+     * created by this builder.
+     *
+     * <p>Different kinds of CFA processors are executed in the order defined in {@link
+     * CfaProcessor}, even if CFA processors are added in a different order. CFA processors that are
+     * executed in the same step are executed in the order they are added to this builder.
+     *
+     * @param pCfaProcessor the CFA processor to add for CFA creation
+     * @return this builder instance
+     */
     public Builder addCfaProcessor(CfaProcessor pCfaProcessor) {
 
       cfaProcessors.add(pCfaProcessor);
@@ -69,6 +86,15 @@ public final class CCfaTransformer implements CfaTransformer {
       return this;
     }
 
+    /**
+     * Adds a {@link CCfaNodeAstSubstitution} that is executed during CFA creation of s {@link
+     * CfaTransformer} created by this builder.
+     *
+     * <p>AST substitutions are applied in the order they are added to this builder.
+     *
+     * @param pNodeAstSubstitution the AST substitution to add
+     * @return this builder instance
+     */
     public Builder addNodeAstSubstitution(CCfaNodeAstSubstitution pNodeAstSubstitution) {
 
       nodeAstSubstitutions.add(pNodeAstSubstitution);
@@ -76,6 +102,15 @@ public final class CCfaTransformer implements CfaTransformer {
       return this;
     }
 
+    /**
+     * Adds a {@link CCfaEdgeAstSubstitution} that is executed during CFA creation of a {@link
+     * CfaTransformer} created by this builder.
+     *
+     * <p>AST substitutions are applied in the order they are added to this builder.
+     *
+     * @param pEdgeAstSubstitution the AST substitution to add
+     * @return this builder instance
+     */
     public Builder addEdgeAstSubstitution(CCfaEdgeAstSubstitution pEdgeAstSubstitution) {
 
       edgeAstSubstitutions.add(pEdgeAstSubstitution);
@@ -83,6 +118,11 @@ public final class CCfaTransformer implements CfaTransformer {
       return this;
     }
 
+    /**
+     * Returns a new {@link CfaTransformer} instance created from the current state of this builder.
+     *
+     * @return a new {@link CfaTransformer} instance created from the current state of this builder
+     */
     public CfaTransformer build() {
       return new CCfaTransformer(
           cfaProcessors.build(), nodeAstSubstitutions.build(), edgeAstSubstitutions.build());
