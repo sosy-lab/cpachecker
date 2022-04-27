@@ -12,15 +12,13 @@ import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
 
 public class SingletonPrecision implements AdjustablePrecision {
 
-  private final static SingletonPrecision mInstance = new SingletonPrecision();
+  private static final SingletonPrecision mInstance = new SingletonPrecision();
 
   public static SingletonPrecision getInstance() {
     return mInstance;
   }
 
-  private SingletonPrecision() {
-
-  }
+  private SingletonPrecision() {}
 
   @Override
   public String toString() {

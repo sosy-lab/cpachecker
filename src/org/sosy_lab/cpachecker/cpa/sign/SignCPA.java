@@ -27,18 +27,24 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
 @Options(prefix = "cpa.sign")
 public class SignCPA extends AbstractCPA implements ProofCheckerCPA {
 
-  @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN"},
-      description="which merge operator to use for SignCPA")
+  @Option(
+      secure = true,
+      name = "merge",
+      toUppercase = true,
+      values = {"SEP", "JOIN"},
+      description = "which merge operator to use for SignCPA")
   private String mergeType = "JOIN";
 
-  @Option(secure=true, name="stop", toUppercase=true, values={"SEP", "JOIN"},
-      description="which stop operator to use for SignCPA")
+  @Option(
+      secure = true,
+      name = "stop",
+      toUppercase = true,
+      values = {"SEP", "JOIN"},
+      description = "which stop operator to use for SignCPA")
   private String stopType = "SEP";
 
   public SignCPA(LogManager pLogger, Configuration config) throws InvalidConfigurationException {
-    super(
-        DelegateAbstractDomain.<SignState>getInstance(),
-        new SignTransferRelation(pLogger));
+    super(DelegateAbstractDomain.<SignState>getInstance(), new SignTransferRelation(pLogger));
     config.inject(this);
   }
 

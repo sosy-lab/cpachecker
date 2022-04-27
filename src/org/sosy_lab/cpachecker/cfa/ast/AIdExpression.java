@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.ast;
 
-
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
@@ -29,8 +28,7 @@ public abstract class AIdExpression extends AbstractLeftHandSide {
   }
 
   protected AIdExpression(FileLocation pFileLocation, ASimpleDeclaration pDeclaration) {
-    this(pFileLocation, pDeclaration.getType(),
-        pDeclaration.getName(), pDeclaration);
+    this(pFileLocation, pDeclaration.getType(), pDeclaration.getName(), pDeclaration);
   }
 
   public abstract AIdExpression copyWithDeclaration(ASimpleDeclaration pDeclaration);
@@ -59,7 +57,7 @@ public abstract class AIdExpression extends AbstractLeftHandSide {
   }
 
   public ASimpleDeclaration getDeclaration() {
-    return   declaration;
+    return declaration;
   }
 
   @Override
@@ -78,15 +76,12 @@ public abstract class AIdExpression extends AbstractLeftHandSide {
       return true;
     }
 
-    if (!(obj instanceof AIdExpression)
-        || !super.equals(obj)) {
+    if (!(obj instanceof AIdExpression) || !super.equals(obj)) {
       return false;
     }
 
     AIdExpression other = (AIdExpression) obj;
 
-    return Objects.equals(other.declaration, declaration)
-            && Objects.equals(other.name, name);
+    return Objects.equals(other.declaration, declaration) && Objects.equals(other.name, name);
   }
-
 }

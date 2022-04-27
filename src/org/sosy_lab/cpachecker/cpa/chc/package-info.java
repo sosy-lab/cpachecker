@@ -7,5 +7,5 @@
 // SPDX-License-Identifier: Apache-2.0
 
 @org.sosy_lab.common.annotations.Unmaintained
-@edu.umd.cs.findbugs.annotations.SuppressFBWarnings(justification="unmaintained")
+@edu.umd.cs.findbugs.annotations.SuppressFBWarnings(justification = "unmaintained")
 package org.sosy_lab.cpachecker.cpa.chc;

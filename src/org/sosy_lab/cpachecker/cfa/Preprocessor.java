@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa;
 
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Splitter;
+import com.google.common.base.StandardSystemProperty;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -18,6 +19,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.MoreStrings;
 import org.sosy_lab.common.ProcessExecutor;
 import org.sosy_lab.common.configuration.Configuration;
@@ -28,7 +30,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.exceptions.CParserException;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 @Options(prefix = "parser")
 public abstract class Preprocessor {
@@ -39,7 +41,7 @@ public abstract class Preprocessor {
   @FileOption(Type.OUTPUT_DIRECTORY)
   private Path dumpDirectory = Path.of("preprocessed");
 
-  private final LogManager logger;
+  protected final LogManager logger;
 
   protected Preprocessor(Configuration config, LogManager pLogger)
       throws InvalidConfigurationException {
@@ -57,7 +59,7 @@ public abstract class Preprocessor {
    * @param file The file to preprocess.
    * @return The preprocessed file.
    */
-  public String preprocess(Path file) throws CParserException, InterruptedException {
+  public String preprocess(Path file) throws ParserException, InterruptedException {
     String result = preprocess0(file);
     getAndWriteDumpFile(result, file);
     return result;
@@ -68,7 +70,7 @@ public abstract class Preprocessor {
   }
 
   @SuppressWarnings("JdkObsolete") // buffer is accessed from several threads
-  protected String preprocess0(Path file) throws CParserException, InterruptedException {
+  protected String preprocess0(Path file) throws ParserException, InterruptedException {
     // create command line
     List<String> argList =
         Lists.newArrayList(
@@ -84,7 +86,8 @@ public abstract class Preprocessor {
       logger.log(Level.FINE, () -> getCapitalizedName() + " finished");
 
       if (exitCode != 0) {
-        throw new CParserException(getCapitalizedName() + " failed with exit code " + exitCode);
+        throw createCorrespondingParserException(
+            getCapitalizedName() + " failed with exit code " + exitCode);
       }
 
       if (executor.errorOutputCount > 0) {
@@ -93,8 +96,8 @@ public abstract class Preprocessor {
             MoreStrings.lazyString(
                 () ->
                     getCapitalizedName()
-                        + " returned successfully, but printed warnings. Please check the log"
-                        + " above!"));
+                        + " returned successfully, but printed warnings/errors. Please check the"
+                        + " log above!"));
       }
 
       if (executor.buffer == null) {
@@ -103,18 +106,19 @@ public abstract class Preprocessor {
       return executor.buffer.toString();
 
     } catch (IOException e) {
-      throw new CParserException(getCapitalizedName() + " failed", e);
+      throw createCorrespondingParserException(getCapitalizedName() + " failed", e);
     }
   }
 
-  protected Path getAndWriteDumpFile(String programCode, Path file) {
+  protected @Nullable Path getAndWriteDumpFile(String programCode, Path file) {
     return getAndWriteDumpFile(programCode, file, dumpDirectory);
   }
 
-  protected Path getAndWriteDumpFile(String programCode, Path file, Path pDumpDirectory) {
+  protected @Nullable Path getAndWriteDumpFile(String programCode, Path file, Path pDumpDirectory) {
     if (dumpResults() && pDumpDirectory != null) {
       final Path dumpFile = pDumpDirectory.resolve(getDumpFileOfFile(file.toString())).normalize();
-      if (dumpFile.startsWith(pDumpDirectory)) {
+      final Path tmpDir = Path.of(StandardSystemProperty.JAVA_IO_TMPDIR.value());
+      if (dumpFile.startsWith(pDumpDirectory) || dumpFile.startsWith(tmpDir)) {
         try {
           IO.writeFile(dumpFile, Charset.defaultCharset(), programCode);
         } catch (IOException e) {
@@ -124,7 +128,7 @@ public abstract class Preprocessor {
         logger.logf(
             Level.WARNING,
             "Cannot dump result of preprocessing file %s, because path is outside the current"
-                + " directory and the result would end up outside the output directory.",
+                + " directory and the result would end up outside the output/temporary directory.",
             file);
       }
       return dumpFile;
@@ -135,6 +139,11 @@ public abstract class Preprocessor {
   protected abstract String getName();
 
   protected abstract String getCommandLine();
+
+  protected abstract ParserException createCorrespondingParserException(String pMsg);
+
+  protected abstract ParserException createCorrespondingParserException(
+      String pMsg, Throwable pCause);
 
   protected abstract boolean dumpResults();
 

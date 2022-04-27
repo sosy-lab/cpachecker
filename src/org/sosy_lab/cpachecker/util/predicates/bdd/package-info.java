@@ -7,9 +7,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Interface to the BDD library JavaBDD,
- * implementing the {@link org.sosy_lab.cpachecker.util.predicates.regions.Region}
- * and {@link org.sosy_lab.cpachecker.util.predicates.regions.RegionManager}
- * interfaces.
+ * Interface to the BDD library JavaBDD, implementing the {@link
+ * org.sosy_lab.cpachecker.util.predicates.regions.Region} and {@link
+ * org.sosy_lab.cpachecker.util.predicates.regions.RegionManager} interfaces.
  */
 package org.sosy_lab.cpachecker.util.predicates.bdd;

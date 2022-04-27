@@ -145,8 +145,9 @@ public final class PointerTargetSet implements Serializable {
     return targets;
   }
 
-  /** Get the highest allocated addresses, i.e., which guarantee that a fresh address that is
-   * larger than all addresses returned here was previously not yet allocated.
+  /**
+   * Get the highest allocated addresses, i.e., which guarantee that a fresh address that is larger
+   * than all addresses returned here was previously not yet allocated.
    */
   PersistentList<Formula> getHighestAllocatedAddresses() {
     return highestAllocatedAddresses;
@@ -225,15 +226,14 @@ public final class PointerTargetSet implements Serializable {
     private SerializationProxy(PointerTargetSet pts) {
       bases = pts.bases;
       fields = pts.fields;
-      this.deferredAllocations = new ArrayList<>(pts.deferredAllocations);
-      this.targets = new HashMap<>(Maps.transformValues(pts.targets, ArrayList::new));
+      deferredAllocations = new ArrayList<>(pts.deferredAllocations);
+      targets = new HashMap<>(Maps.transformValues(pts.targets, ArrayList::new));
       FormulaManagerView mgr = GlobalInfo.getInstance().getPredicateFormulaManagerView();
       highestAllocatedAddresses =
           new ArrayList<>(
               Lists.transform(pts.highestAllocatedAddresses, mgr::dumpArbitraryFormula));
       allocationCount = pts.allocationCount;
     }
-
 
     private Object readResolve() {
       FormulaManagerView mgr = GlobalInfo.getInstance().getPredicateFormulaManagerView();
@@ -246,7 +246,7 @@ public final class PointerTargetSet implements Serializable {
           fields,
           PersistentLinkedList.copyOf(deferredAllocations),
           PathCopyingPersistentTreeMap.copyOf(
-              Maps.transformValues(this.targets, PersistentLinkedList::copyOf)),
+              Maps.transformValues(targets, PersistentLinkedList::copyOf)),
           highestAllocatedAddressesFormulas,
           allocationCount);
     }

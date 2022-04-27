@@ -32,11 +32,10 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
  * {@code 's1(a) > 5, s3(b) > 5'}</code>. After precision adjustment, the ConstraintsState only
  * consists of <code>{@code 's1(a) > 5'}</code>.
  */
-final class ConstraintBasedConstraintsPrecision
-    implements ConstraintsPrecision {
+final class ConstraintBasedConstraintsPrecision implements ConstraintsPrecision {
 
-  private final static ConstraintBasedConstraintsPrecision
-      EMPTY = new ConstraintBasedConstraintsPrecision();
+  private static final ConstraintBasedConstraintsPrecision EMPTY =
+      new ConstraintBasedConstraintsPrecision();
 
   private SetMultimap<CFANode, Constraint> trackedLocally;
   private Multimap<String, Constraint> trackedInFunction;
@@ -47,11 +46,11 @@ final class ConstraintBasedConstraintsPrecision
   }
 
   /**
-   * Creates a new <code>ConstraintBasedConstraintsPrecision</code> with the given constraints as precision.
+   * Creates a new <code>ConstraintBasedConstraintsPrecision</code> with the given constraints as
+   * precision.
    */
   private ConstraintBasedConstraintsPrecision(
-      final ConstraintBasedConstraintsPrecision pPrecision
-  ) {
+      final ConstraintBasedConstraintsPrecision pPrecision) {
     checkNotNull(pPrecision);
 
     trackedLocally = pPrecision.trackedLocally;
@@ -74,9 +73,7 @@ final class ConstraintBasedConstraintsPrecision
     trackedGlobally = new HashSet<>();
   }
 
-  /**
-   * Returns whether the given <code>Constraint</code> is tracked by this precision.
-   */
+  /** Returns whether the given <code>Constraint</code> is tracked by this precision. */
   @Override
   public boolean isTracked(final Constraint pConstraint, final CFANode pLocation) {
     for (Constraint c : trackedLocally.get(pLocation)) {
@@ -101,8 +98,7 @@ final class ConstraintBasedConstraintsPrecision
   }
 
   /**
-   * Joins this precision with the given one.
-   * The join of two precisions is their union.
+   * Joins this precision with the given one. The join of two precisions is their union.
    *
    * @param pOther the precision to join with this precision
    * @return the join of both precisions
@@ -124,9 +120,7 @@ final class ConstraintBasedConstraintsPrecision
   }
 
   private void addNewLocalConstraints(
-      Multimap<CFANode, Constraint> pMapToAddTo,
-      Multimap<CFANode, Constraint> pNewConstraints
-  ) {
+      Multimap<CFANode, Constraint> pMapToAddTo, Multimap<CFANode, Constraint> pNewConstraints) {
     for (Entry<CFANode, Constraint> entry : pNewConstraints.entries()) {
       CFANode loc = entry.getKey();
       Constraint constraint = entry.getValue();
@@ -138,9 +132,7 @@ final class ConstraintBasedConstraintsPrecision
   }
 
   private void addNewFunctionConstraints(
-      Multimap<String, Constraint> pMapToAddTo,
-      Multimap<String, Constraint> pNewConstraints
-  ) {
+      Multimap<String, Constraint> pMapToAddTo, Multimap<String, Constraint> pNewConstraints) {
     for (Entry<String, Constraint> entry : pNewConstraints.entries()) {
       String function = entry.getKey();
       Constraint constraint = entry.getValue();
@@ -152,9 +144,7 @@ final class ConstraintBasedConstraintsPrecision
   }
 
   private void addNewGlobalConstraints(
-      Set<Constraint> pSetToAddTo,
-      Set<Constraint> pNewConstraints
-  ) {
+      Set<Constraint> pSetToAddTo, Set<Constraint> pNewConstraints) {
     for (Constraint c : pNewConstraints) {
       if (!constraintWithSameMeaningExists(c, pNewConstraints)) {
         pSetToAddTo.add(c);
@@ -165,8 +155,7 @@ final class ConstraintBasedConstraintsPrecision
   private boolean constraintWithSameMeaningExists(
       final CFANode pLoc,
       final Constraint pConstraint,
-      final Multimap<CFANode, Constraint> pTrackedConstraints
-  ) {
+      final Multimap<CFANode, Constraint> pTrackedConstraints) {
 
     if (pTrackedConstraints.containsKey(pLoc)) {
       final Collection<Constraint> constraintsOnLocation = pTrackedConstraints.get(pLoc);
@@ -184,8 +173,7 @@ final class ConstraintBasedConstraintsPrecision
   private boolean constraintWithSameMeaningExists(
       final String pFunctionName,
       final Constraint pConstraint,
-      final Multimap<String, Constraint> pTrackedConstraints
-  ) {
+      final Multimap<String, Constraint> pTrackedConstraints) {
 
     if (pTrackedConstraints.containsKey(pFunctionName)) {
       final Collection<Constraint> constraintsOnLocation = pTrackedConstraints.get(pFunctionName);
@@ -201,9 +189,7 @@ final class ConstraintBasedConstraintsPrecision
   }
 
   private boolean constraintWithSameMeaningExists(
-      final Constraint pConstraint,
-      final Set<Constraint> pTrackedConstraints
-  ) {
+      final Constraint pConstraint, final Set<Constraint> pTrackedConstraints) {
 
     for (Constraint c : pTrackedConstraints) {
       if (SymbolicValues.representSameCCodeExpression(c, pConstraint)) {
@@ -216,7 +202,8 @@ final class ConstraintBasedConstraintsPrecision
 
   @Override
   public ConstraintBasedConstraintsPrecision withIncrement(final Increment pIncrement) {
-    ConstraintBasedConstraintsPrecision newPrecision = new ConstraintBasedConstraintsPrecision(this);
+    ConstraintBasedConstraintsPrecision newPrecision =
+        new ConstraintBasedConstraintsPrecision(this);
 
     newPrecision.trackedGlobally.addAll(pIncrement.getTrackedGlobally());
     newPrecision.trackedInFunction.putAll(pIncrement.getTrackedInFunction());
@@ -256,8 +243,7 @@ final class ConstraintBasedConstraintsPrecision
 
         // unfortunately, constraints aren't comparable, so we won't have a deterministic order.
         for (Constraint c : trackedLocally.get(n)) {
-          sb.append(c.getRepresentation())
-            .append(", ");
+          sb.append(c.getRepresentation()).append(", ");
         }
 
         sb.append("\n");
@@ -275,8 +261,7 @@ final class ConstraintBasedConstraintsPrecision
         sb.append("\t").append(f).append(" -> ");
 
         for (Constraint c : trackedInFunction.get(f)) {
-          sb.append(c.getRepresentation())
-            .append(", ");
+          sb.append(c.getRepresentation()).append(", ");
         }
 
         sb.append("\n");
@@ -292,5 +277,4 @@ final class ConstraintBasedConstraintsPrecision
 
     return sb.toString();
   }
-
 }

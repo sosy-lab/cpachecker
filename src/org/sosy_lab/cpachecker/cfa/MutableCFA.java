@@ -183,7 +183,7 @@ public class MutableCFA implements CFA {
 
   @Override
   public Language getLanguage() {
-      return language;
+    return language;
   }
 
   @Override

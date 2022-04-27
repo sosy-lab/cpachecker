@@ -50,8 +50,13 @@ public final class ShiftRightExpression extends BinarySymbolicExpression {
 
   @Override
   public ShiftRightExpression copyForLocation(final MemoryLocation pRepresentedLocation) {
-    return new ShiftRightExpression(shiftType, getOperand1(), getOperand2(), getType(),
-        getCalculationType(), pRepresentedLocation);
+    return new ShiftRightExpression(
+        shiftType,
+        getOperand1(),
+        getOperand2(),
+        getType(),
+        getCalculationType(),
+        pRepresentedLocation);
   }
 
   public boolean isSigned() {

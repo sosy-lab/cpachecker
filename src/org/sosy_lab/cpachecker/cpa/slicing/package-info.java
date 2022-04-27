@@ -6,8 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * This package contains the slicing CPA, which dynamically
- * performs program slicing.
- * */
+/** This package contains the slicing CPA, which dynamically performs program slicing. */
 package org.sosy_lab.cpachecker.cpa.slicing;

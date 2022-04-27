@@ -6,8 +6,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * Utilities for finding auxiliary invariants.
- */
+/** Utilities for finding auxiliary invariants. */
 @javax.annotation.ParametersAreNonnullByDefault
 package org.sosy_lab.cpachecker.core.algorithm.invariants;

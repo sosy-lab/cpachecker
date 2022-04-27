@@ -19,13 +19,9 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
-/**
- * Abstract state for tracking overflows.
- */
+/** Abstract state for tracking overflows. */
 public final class OverflowState
-    implements AbstractStateWithAssumptions,
-    Graphable,
-    AbstractQueryableState {
+    implements AbstractStateWithAssumptions, Graphable, AbstractQueryableState {
 
   private final ImmutableSet<? extends AExpression> assumptions;
   private final OverflowState parent;
@@ -74,8 +70,7 @@ public final class OverflowState
       return false;
     }
     OverflowState that = (OverflowState) pO;
-    return nextHasOverflow == that.nextHasOverflow
-        && assumptions.equals(that.assumptions);
+    return nextHasOverflow == that.nextHasOverflow && assumptions.equals(that.assumptions);
   }
 
   @Override

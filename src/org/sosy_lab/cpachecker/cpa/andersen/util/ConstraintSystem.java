@@ -31,14 +31,12 @@ public class ConstraintSystem {
 
   @LazyInit private ImmutableListMultimap<String, String> pointsToSets;
 
-  public ConstraintSystem() {
-
-  }
+  public ConstraintSystem() {}
 
   public ConstraintSystem(ConstraintSystem pToCopy) {
-    this.baseConstraints.addAll(pToCopy.baseConstraints);
-    this.simpleConstraints.addAll(pToCopy.simpleConstraints);
-    this.complexConstraints.addAll(pToCopy.complexConstraints);
+    baseConstraints.addAll(pToCopy.baseConstraints);
+    simpleConstraints.addAll(pToCopy.simpleConstraints);
+    complexConstraints.addAll(pToCopy.complexConstraints);
   }
 
   public Set<BaseConstraint> getBaseConstraints() {
@@ -64,7 +62,7 @@ public class ConstraintSystem {
           computeDynTransitiveClosure(baseConstraints, simpleConstraints, complexConstraints);
     }
 
-    return this.pointsToSets;
+    return pointsToSets;
   }
 
   @Override
@@ -84,9 +82,9 @@ public class ConstraintSystem {
     }
     if (pO instanceof ConstraintSystem) {
       ConstraintSystem other = (ConstraintSystem) pO;
-      return this.baseConstraints.equals(other.baseConstraints)
-          && this.complexConstraints.equals(other.complexConstraints)
-          && this.simpleConstraints.equals(other.simpleConstraints);
+      return baseConstraints.equals(other.baseConstraints)
+          && complexConstraints.equals(other.complexConstraints)
+          && simpleConstraints.equals(other.simpleConstraints);
     }
     return false;
   }
@@ -193,7 +191,6 @@ public class ConstraintSystem {
             workset.add(b);
           }
         }
-
       } // for (String vStr : n.pointsToSet)
 
       for (DirectedGraph.Node z : n.getSuccessors()) {
@@ -209,11 +206,10 @@ public class ConstraintSystem {
             break;
           }
 
-        } else /* END LCD code */if (n.propagatePointerTargetsTo(z)) {
+        } else /* END LCD code */ if (n.propagatePointerTargetsTo(z)) {
           workset.add(z);
         }
       }
-
     } // while (!workset.isEmpty())
 
     ImmutableListMultimap.Builder<String, String> ptSets = ImmutableListMultimap.builder();
@@ -230,21 +226,20 @@ public class ConstraintSystem {
    * Constructs the online graph for the analysis. Additionally an offline graph for HCD is
    * constructed to speed up the computation of the dynamic transitive closure with it.
    *
-   * @param bConstr
-   *        List of all {@link BaseConstraint}s that should be considered.<br>
-   *        A {@link BaseConstraint} leads to an entry in a nodes points-to set.
-   * @param sConstr
-   *        List of all {@link SimpleConstraint}s that should be considered.<br>
-   *        A {@link SimpleConstraint} represents an edge in the graph.
-   * @param cConstr
-   *        List of all {@link ComplexConstraint}s that should be considered.<br>
-   *        {@link ComplexConstraint}s are stored in nodes, so they can be accessed faster when
-   *        computing the dynamic transitive closure.
-   * @param g
-   *        The resulting graph. Should be empty.
+   * @param bConstr List of all {@link BaseConstraint}s that should be considered.<br>
+   *     A {@link BaseConstraint} leads to an entry in a nodes points-to set.
+   * @param sConstr List of all {@link SimpleConstraint}s that should be considered.<br>
+   *     A {@link SimpleConstraint} represents an edge in the graph.
+   * @param cConstr List of all {@link ComplexConstraint}s that should be considered.<br>
+   *     {@link ComplexConstraint}s are stored in nodes, so they can be accessed faster when
+   *     computing the dynamic transitive closure.
+   * @param g The resulting graph. Should be empty.
    */
-  private static void buildGraph(Set<BaseConstraint> bConstr, Set<SimpleConstraint> sConstr,
-      Set<ComplexConstraint> cConstr, DirectedGraph g) {
+  private static void buildGraph(
+      Set<BaseConstraint> bConstr,
+      Set<SimpleConstraint> sConstr,
+      Set<ComplexConstraint> cConstr,
+      DirectedGraph g) {
 
     // HCD offline - build offline graph
     List<List<String>> sccs = buildOfflineGraphAndFindSCCs(sConstr, cConstr);
@@ -276,7 +271,6 @@ public class ConstraintSystem {
 
         n = g.getNode(cc.getSuperVar());
         n.complexConstrMeSuper.add(cc.getSubVar());
-
       }
     }
 
@@ -288,10 +282,8 @@ public class ConstraintSystem {
    * Merges all non-ref nodes in an SCC. For every ref-node the last remaining non-ref Node is
    * stored.
    *
-   * @param g
-   *        The (online) points-to graph for the analysis.
-   * @param sccs
-   *        List of all found SCCs in the offline version of the graph.
+   * @param g The (online) points-to graph for the analysis.
+   * @param sccs List of all found SCCs in the offline version of the graph.
    */
   private static void mergeOrMarkSCCs(DirectedGraph g, List<List<String>> sccs) {
 
@@ -323,14 +315,12 @@ public class ConstraintSystem {
    * For the offline version {@link BaseConstraint}s are not relevant and {@link SimpleConstraint}s
    * and {@link ComplexConstraint}s represents an edge in graph.
    *
-   * @param sConstr
-   *        List of all {@link SimpleConstraint}s that should be considered.
-   * @param cConstr
-   *        List of all {@link ComplexConstraint}s that should be considered.
+   * @param sConstr List of all {@link SimpleConstraint}s that should be considered.
+   * @param cConstr List of all {@link ComplexConstraint}s that should be considered.
    * @return a list of all SCCs. One SCC is represented as a list of all variables it contains.
    */
-  private static List<List<String>> buildOfflineGraphAndFindSCCs(Collection<SimpleConstraint> sConstr,
-      Collection<ComplexConstraint> cConstr) {
+  private static List<List<String>> buildOfflineGraphAndFindSCCs(
+      Collection<SimpleConstraint> sConstr, Collection<ComplexConstraint> cConstr) {
 
     Set<DirectedGraph.Node> workset = new HashSet<>();
     DirectedGraph g = new DirectedGraph();
@@ -366,7 +356,6 @@ public class ConstraintSystem {
 
         srcStr = cc.getSubVar();
         destStr = '*' + cc.getSuperVar();
-
       }
 
       DirectedGraph.Node src = g.getNode(srcStr);
@@ -471,9 +460,10 @@ public class ConstraintSystem {
       sb.append(bc.getSuperVar()).append('\n');
     }
 
-    int size = getBaseConstraints().size()
-        + getSimpleConstraints().size()
-        + getComplexConstraints().size();
+    int size =
+        getBaseConstraints().size()
+            + getSimpleConstraints().size()
+            + getComplexConstraints().size();
 
     sb.append("] size->  ").append(size);
 
@@ -501,5 +491,4 @@ public class ConstraintSystem {
     result.complexConstraints.addAll(pLocalConstraintSystem.complexConstraints);
     return result;
   }
-
 }

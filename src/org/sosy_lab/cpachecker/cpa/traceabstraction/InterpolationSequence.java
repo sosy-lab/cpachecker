@@ -111,7 +111,7 @@ class InterpolationSequence {
   }
 
   boolean isStrictSubsetOf(InterpolationSequence pOtherSequence) {
-    if (this.equals(pOtherSequence)) {
+    if (equals(pOtherSequence)) {
       return false;
     }
 

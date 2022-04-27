@@ -25,7 +25,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 
-public class DeterministicVariablesState implements LatticeAbstractState<DeterministicVariablesState>, Graphable {
+public class DeterministicVariablesState
+    implements LatticeAbstractState<DeterministicVariablesState>, Graphable {
 
   private final Set<Wrapper<ASimpleDeclaration>> deterministicVariables;
 
@@ -42,7 +43,8 @@ public class DeterministicVariablesState implements LatticeAbstractState<Determi
     return deterministicVariables.contains(variableName);
   }
 
-  DeterministicVariablesState addDeterministicVariable(Wrapper<ASimpleDeclaration> pDeterministicVariable) {
+  DeterministicVariablesState addDeterministicVariable(
+      Wrapper<ASimpleDeclaration> pDeterministicVariable) {
     checkNotNull(pDeterministicVariable);
 
     if (deterministicVariables.contains(pDeterministicVariable)) {
@@ -55,7 +57,8 @@ public class DeterministicVariablesState implements LatticeAbstractState<Determi
     return new DeterministicVariablesState(newState);
   }
 
-  DeterministicVariablesState addDeterministicVariables(Collection<Wrapper<ASimpleDeclaration>> pDeterministicVariables) {
+  DeterministicVariablesState addDeterministicVariables(
+      Collection<Wrapper<ASimpleDeclaration>> pDeterministicVariables) {
     checkNotNull(pDeterministicVariables);
 
     if (pDeterministicVariables.isEmpty()
@@ -69,7 +72,8 @@ public class DeterministicVariablesState implements LatticeAbstractState<Determi
     return new DeterministicVariablesState(newState);
   }
 
-  DeterministicVariablesState removeDeterministicVariable(Wrapper<ASimpleDeclaration> pNonDeterministicVariable) {
+  DeterministicVariablesState removeDeterministicVariable(
+      Wrapper<ASimpleDeclaration> pNonDeterministicVariable) {
     checkNotNull(pNonDeterministicVariable);
 
     if (!deterministicVariables.contains(pNonDeterministicVariable)) {
@@ -82,7 +86,8 @@ public class DeterministicVariablesState implements LatticeAbstractState<Determi
     return new DeterministicVariablesState(newState);
   }
 
-  DeterministicVariablesState removeDeterministicVariables(Collection<Wrapper<ASimpleDeclaration>> pNonDeterministicVariables) {
+  DeterministicVariablesState removeDeterministicVariables(
+      Collection<Wrapper<ASimpleDeclaration>> pNonDeterministicVariables) {
     checkNotNull(pNonDeterministicVariables);
 
     Set<Wrapper<ASimpleDeclaration>> newState = new HashSet<>(deterministicVariables);
@@ -118,7 +123,8 @@ public class DeterministicVariablesState implements LatticeAbstractState<Determi
 
   @Override
   public DeterministicVariablesState join(DeterministicVariablesState pOther) {
-    ImmutableSet<Wrapper<ASimpleDeclaration>> deterministicVariablesInboth = Sets.intersection(deterministicVariables, pOther.deterministicVariables).immutableCopy();
+    ImmutableSet<Wrapper<ASimpleDeclaration>> deterministicVariablesInboth =
+        Sets.intersection(deterministicVariables, pOther.deterministicVariables).immutableCopy();
 
     if (deterministicVariablesInboth.equals(pOther.deterministicVariables)) {
       return pOther;
@@ -128,9 +134,10 @@ public class DeterministicVariablesState implements LatticeAbstractState<Determi
   }
 
   @Override
-  public boolean isLessOrEqual(DeterministicVariablesState pOther) throws CPAException, InterruptedException {
+  public boolean isLessOrEqual(DeterministicVariablesState pOther)
+      throws CPAException, InterruptedException {
 
-    if(deterministicVariables.size() < pOther.deterministicVariables.size()) {
+    if (deterministicVariables.size() < pOther.deterministicVariables.size()) {
       return false;
     }
 
@@ -142,7 +149,9 @@ public class DeterministicVariablesState implements LatticeAbstractState<Determi
     StringBuilder sb = new StringBuilder();
 
     sb.append("[");
-    Joiner.on(", ").appendTo(sb, from(deterministicVariables).transform(LiveVariables.FROM_EQUIV_WRAPPER_TO_STRING));
+    Joiner.on(", ")
+        .appendTo(
+            sb, from(deterministicVariables).transform(LiveVariables.FROM_EQUIV_WRAPPER_TO_STRING));
     sb.append("]");
 
     return sb.toString();

@@ -51,17 +51,17 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
 /**
- * An element of Abstract0 abstract domain. This element contains an {@link Abstract0} which
- * is the concrete representation of the Abstract0 and a map which
- * provides a mapping from variable names to variables.
- *
+ * An element of Abstract0 abstract domain. This element contains an {@link Abstract0} which is the
+ * concrete representation of the Abstract0 and a map which provides a mapping from variable names
+ * to variables.
  */
 public class ApronState implements AbstractState, Serializable, FormulaReportingState {
 
   private static final long serialVersionUID = -7953805400649927048L;
 
   enum Type {
-    INT, FLOAT
+    INT,
+    FLOAT
   }
 
   // the Apron state representation
@@ -89,7 +89,14 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
     isLoopHead = false;
   }
 
-  public ApronState(Abstract0 apronNativeState, ApronManager manager, List<MemoryLocation> intMap, List<MemoryLocation> realMap, Map<MemoryLocation, Type> typeMap, boolean pIsLoopHead, LogManager log) {
+  public ApronState(
+      Abstract0 apronNativeState,
+      ApronManager manager,
+      List<MemoryLocation> intMap,
+      List<MemoryLocation> realMap,
+      Map<MemoryLocation, Type> typeMap,
+      boolean pIsLoopHead,
+      LogManager log) {
     apronState = apronNativeState;
     apronManager = manager;
     integerToIndexMap = intMap;
@@ -104,7 +111,14 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
   }
 
   public ApronState asLoopHead() {
-    return new ApronState(apronState, apronManager, integerToIndexMap, realToIndexMap, variableToTypeMap, isLoopHead, logger);
+    return new ApronState(
+        apronState,
+        apronManager,
+        integerToIndexMap,
+        realToIndexMap,
+        variableToTypeMap,
+        isLoopHead,
+        logger);
   }
 
   @Override
@@ -114,11 +128,11 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
       return false;
     }
     ApronState otherApron = (ApronState) pObj;
-logger.log(Level.FINEST, "apron state: isEqual");
+    logger.log(Level.FINEST, "apron state: isEqual");
     return Objects.equals(integerToIndexMap, otherApron.integerToIndexMap)
-           && Objects.equals(realToIndexMap, otherApron.realToIndexMap)
-           && this.apronState.isEqual(apronManager.getManager(), otherApron.apronState)
-           && isLoopHead == otherApron.isLoopHead;
+        && Objects.equals(realToIndexMap, otherApron.realToIndexMap)
+        && apronState.isEqual(apronManager.getManager(), otherApron.apronState)
+        && isLoopHead == otherApron.isLoopHead;
   }
 
   @Override
@@ -142,8 +156,10 @@ logger.log(Level.FINEST, "apron state: isEqual");
       logger.log(Level.FINEST, "apron state: isIncluded");
       return apronState.isIncluded(apronManager.getManager(), state.apronState);
     } else {
-      logger.log(Level.FINEST, "Removing some temporary (in the transferrelation)"
-                 + " introduced variables from the Abstract0 to compute #isLessOrEquals()");
+      logger.log(
+          Level.FINEST,
+          "Removing some temporary (in the transferrelation)"
+              + " introduced variables from the Abstract0 to compute #isLessOrEquals()");
 
       if (integerToIndexMap.containsAll(state.integerToIndexMap)
           && realToIndexMap.containsAll(state.realToIndexMap)) {
@@ -155,15 +171,18 @@ logger.log(Level.FINEST, "apron state: isEqual");
     }
   }
 
-  private Abstract0 forgetVars(ApronState pConsiderSubsetOfVars){
-    int amountInts = integerToIndexMap.size()-pConsiderSubsetOfVars.integerToIndexMap.size();
-    int[] removeDim = new int[amountInts+realToIndexMap.size()-pConsiderSubsetOfVars.realToIndexMap.size()];
+  private Abstract0 forgetVars(ApronState pConsiderSubsetOfVars) {
+    int amountInts = integerToIndexMap.size() - pConsiderSubsetOfVars.integerToIndexMap.size();
+    int[] removeDim =
+        new int[amountInts + realToIndexMap.size() - pConsiderSubsetOfVars.realToIndexMap.size()];
 
     int arrayPos = 0;
 
-    for (int indexThis = 0, indexParam = 0; indexThis < integerToIndexMap.size();) {
+    for (int indexThis = 0, indexParam = 0; indexThis < integerToIndexMap.size(); ) {
       if (indexParam < pConsiderSubsetOfVars.integerToIndexMap.size()
-          && integerToIndexMap.get(indexThis).equals(pConsiderSubsetOfVars.integerToIndexMap.get(indexParam))) {
+          && integerToIndexMap
+              .get(indexThis)
+              .equals(pConsiderSubsetOfVars.integerToIndexMap.get(indexParam))) {
         indexParam++;
       } else {
         removeDim[arrayPos] = indexThis;
@@ -172,9 +191,11 @@ logger.log(Level.FINEST, "apron state: isEqual");
       indexThis++;
     }
 
-    for(int indexThis=0, indexParam=0; indexThis<realToIndexMap.size();){
-      if(indexParam < pConsiderSubsetOfVars.realToIndexMap.size()
-          && realToIndexMap.get(indexThis).equals(pConsiderSubsetOfVars.realToIndexMap.get(indexParam))){
+    for (int indexThis = 0, indexParam = 0; indexThis < realToIndexMap.size(); ) {
+      if (indexParam < pConsiderSubsetOfVars.realToIndexMap.size()
+          && realToIndexMap
+              .get(indexThis)
+              .equals(pConsiderSubsetOfVars.realToIndexMap.get(indexParam))) {
         indexParam++;
       } else {
         removeDim[arrayPos] = indexThis;
@@ -183,38 +204,41 @@ logger.log(Level.FINEST, "apron state: isEqual");
       indexThis++;
     }
 
-    return apronState.removeDimensionsCopy(apronManager.getManager(),
-        new Dimchange(amountInts, removeDim.length-amountInts, removeDim));
+    return apronState.removeDimensionsCopy(
+        apronManager.getManager(),
+        new Dimchange(amountInts, removeDim.length - amountInts, removeDim));
   }
 
   /**
-   * This method forgets some information about previously tracked variables, this
-   * is necessary for isLessOrEquals, or the union operator, be careful using it
-   * in other ways (Variables removed from the State cannot be referenced anymore
-   * by the Transferrelation)
-   * @param oldState the ApronState which has the preferred size, is the parameter,
-   *                 so we can check if the variables are matching if not an Exception is thrown
+   * This method forgets some information about previously tracked variables, this is necessary for
+   * isLessOrEquals, or the union operator, be careful using it in other ways (Variables removed
+   * from the State cannot be referenced anymore by the Transferrelation)
+   *
+   * @param oldState the ApronState which has the preferred size, is the parameter, so we can check
+   *     if the variables are matching if not an Exception is thrown
    * @return a pair of the shrinked caller and the shrinked stated
    */
   public Pair<ApronState, ApronState> shrinkToFittingSize(ApronState oldState) {
     int maxEqualIntIndex = 0;
     while (maxEqualIntIndex < integerToIndexMap.size()
-           && integerToIndexMap.get(maxEqualIntIndex).equals(integerToIndexMap.get(maxEqualIntIndex))) {
+        && integerToIndexMap
+            .get(maxEqualIntIndex)
+            .equals(integerToIndexMap.get(maxEqualIntIndex))) {
       maxEqualIntIndex++;
     }
 
     int maxEqualRealIndex = 0;
     while (maxEqualRealIndex < realToIndexMap.size()
-           && realToIndexMap.get(maxEqualRealIndex).equals(realToIndexMap.get(maxEqualRealIndex))) {
+        && realToIndexMap.get(maxEqualRealIndex).equals(realToIndexMap.get(maxEqualRealIndex))) {
       maxEqualRealIndex++;
     }
 
     ApronState newState1;
-    if (variableToTypeMap.size() != maxEqualIntIndex  + maxEqualRealIndex) {
+    if (variableToTypeMap.size() != maxEqualIntIndex + maxEqualRealIndex) {
       List<MemoryLocation> newIntMap1 = integerToIndexMap.subList(0, maxEqualIntIndex);
       List<MemoryLocation> newRealMap1 = realToIndexMap.subList(0, maxEqualRealIndex);
       Map<MemoryLocation, Type> newTypeMap1 = new HashMap<>(variableToTypeMap);
-      int amountRemoved = variableToTypeMap.size()-(maxEqualIntIndex + maxEqualRealIndex);
+      int amountRemoved = variableToTypeMap.size() - (maxEqualIntIndex + maxEqualRealIndex);
       int[] placesRemoved = new int[amountRemoved];
       int amountInts = integerToIndexMap.size() - maxEqualIntIndex;
       int amountReals = realToIndexMap.size() - maxEqualRealIndex;
@@ -229,10 +253,22 @@ logger.log(Level.FINEST, "apron state: isEqual");
         placesRemoved[i] = index;
         newTypeMap1.remove(realToIndexMap.get(index - amountInts));
       }
-      logger.log(Level.FINEST, "apron state: removeDimensionCopy: " + new Dimchange(amountInts, amountReals, placesRemoved));
-      Abstract0 newApronState1 = apronState.removeDimensionsCopy(apronManager.getManager(),
-                                                                 new Dimchange(amountInts, amountReals, placesRemoved));
-      newState1 =  new ApronState(newApronState1, apronManager, newIntMap1, newRealMap1, newTypeMap1, isLoopHead, logger);
+      logger.log(
+          Level.FINEST,
+          "apron state: removeDimensionCopy: "
+              + new Dimchange(amountInts, amountReals, placesRemoved));
+      Abstract0 newApronState1 =
+          apronState.removeDimensionsCopy(
+              apronManager.getManager(), new Dimchange(amountInts, amountReals, placesRemoved));
+      newState1 =
+          new ApronState(
+              newApronState1,
+              apronManager,
+              newIntMap1,
+              newRealMap1,
+              newTypeMap1,
+              isLoopHead,
+              logger);
     } else {
       newState1 = this;
     }
@@ -242,7 +278,8 @@ logger.log(Level.FINEST, "apron state: isEqual");
       List<MemoryLocation> newIntMap2 = integerToIndexMap.subList(0, maxEqualIntIndex);
       List<MemoryLocation> newRealMap2 = realToIndexMap.subList(0, maxEqualRealIndex);
       Map<MemoryLocation, Type> newTypeMap2 = new HashMap<>(variableToTypeMap);
-      int amountRemoved = oldState.variableToTypeMap.size()-(maxEqualIntIndex + maxEqualRealIndex);
+      int amountRemoved =
+          oldState.variableToTypeMap.size() - (maxEqualIntIndex + maxEqualRealIndex);
       int[] placesRemoved = new int[amountRemoved];
       int amountInts = oldState.integerToIndexMap.size() - maxEqualIntIndex;
       int amountReals = oldState.realToIndexMap.size() - maxEqualRealIndex;
@@ -257,10 +294,23 @@ logger.log(Level.FINEST, "apron state: isEqual");
         placesRemoved[i] = index;
         newTypeMap2.remove(oldState.realToIndexMap.get(index - amountInts));
       }
-      logger.log(Level.FINEST, "apron state: removeDimensionCopy: " + new Dimchange(amountInts, amountReals, placesRemoved));
-      Abstract0 newApronState2 =  oldState.apronState.removeDimensionsCopy(oldState.apronManager.getManager(),
-                                                                           new Dimchange(amountInts, amountReals, placesRemoved));
-      newState2 = new ApronState(newApronState2, oldState.apronManager, newIntMap2, newRealMap2, newTypeMap2, isLoopHead, logger);
+      logger.log(
+          Level.FINEST,
+          "apron state: removeDimensionCopy: "
+              + new Dimchange(amountInts, amountReals, placesRemoved));
+      Abstract0 newApronState2 =
+          oldState.apronState.removeDimensionsCopy(
+              oldState.apronManager.getManager(),
+              new Dimchange(amountInts, amountReals, placesRemoved));
+      newState2 =
+          new ApronState(
+              newApronState2,
+              oldState.apronManager,
+              newIntMap2,
+              newRealMap2,
+              newTypeMap2,
+              isLoopHead,
+              logger);
     } else {
       newState2 = oldState;
     }
@@ -308,9 +358,7 @@ logger.log(Level.FINEST, "apron state: isEqual");
     return apronState.isBottom(apronManager.getManager());
   }
 
-  /**
-   * This method sets the coefficients/ the value of a variable to undefined.
-   */
+  /** This method sets the coefficients/ the value of a variable to undefined. */
   public ApronState forget(MemoryLocation pVariableName) {
     int varIdx = getVariableIndexFor(pVariableName);
 
@@ -328,9 +376,7 @@ logger.log(Level.FINEST, "apron state: isEqual");
         logger);
   }
 
-  /**
-   * Returns the index of the variable, if the variable is not in the map -1 is returned.
-   */
+  /** Returns the index of the variable, if the variable is not in the map -1 is returned. */
   protected int getVariableIndexFor(MemoryLocation pVariableName) {
 
     if (integerToIndexMap.contains(pVariableName)) {
@@ -356,16 +402,13 @@ logger.log(Level.FINEST, "apron state: isEqual");
     return -1;
   }
 
-  /**
-   * True means int, false means real
-   */
+  /** True means int, false means real */
   protected boolean isInt(int index) {
     return index < integerToIndexMap.size();
   }
 
   protected boolean existsVariable(MemoryLocation variableName) {
-    return integerToIndexMap.contains(variableName)
-           || realToIndexMap.contains(variableName);
+    return integerToIndexMap.contains(variableName) || realToIndexMap.contains(variableName);
   }
 
   public ApronState declareVariable(MemoryLocation varName, Type type) {
@@ -407,13 +450,14 @@ logger.log(Level.FINEST, "apron state: isEqual");
     }
     if (assignment != null) {
       logger.log(Level.FINEST, "apron state: assignCopy: " + leftVarName + " = " + assignment);
-      return new ApronState(apronState.assignCopy(apronManager.getManager(), varIndex, assignment, null),
-                            apronManager,
-                            integerToIndexMap,
-                            realToIndexMap,
-                            variableToTypeMap,
-                            false,
-                            logger);
+      return new ApronState(
+          apronState.assignCopy(apronManager.getManager(), varIndex, assignment, null),
+          apronManager,
+          integerToIndexMap,
+          realToIndexMap,
+          variableToTypeMap,
+          false,
+          logger);
     } else {
       return forget(leftVarName);
     }
@@ -430,47 +474,52 @@ logger.log(Level.FINEST, "apron state: isEqual");
     }
     if (assignment != null) {
       logger.log(Level.FINEST, "apron state: assignCopy: " + leftVarName + " = " + assignment);
-      Abstract0 retState = apronState.assignCopy(apronManager.getManager(), varIndex, assignment, null);
+      Abstract0 retState =
+          apronState.assignCopy(apronManager.getManager(), varIndex, assignment, null);
 
       if (retState == null) {
-        logger.log(Level.WARNING, "Assignment of expression to variable yielded an empty state,"
-            + " forgetting the value of the variable as fallback.");
+        logger.log(
+            Level.WARNING,
+            "Assignment of expression to variable yielded an empty state,"
+                + " forgetting the value of the variable as fallback.");
         return forget(leftVarName);
       }
 
-      return new ApronState(retState,
-                            apronManager,
-                            integerToIndexMap,
-                            realToIndexMap,
-                            variableToTypeMap,
-                            false,
-                            logger);
+      return new ApronState(
+          retState,
+          apronManager,
+          integerToIndexMap,
+          realToIndexMap,
+          variableToTypeMap,
+          false,
+          logger);
     } else {
       return forget(leftVarName);
     }
   }
 
-
   public ApronState addConstraint(Lincons0 constraint) {
     logger.log(Level.FINEST, "apron state: meetCopy: " + constraint);
-    return new ApronState(apronState.meetCopy(apronManager.getManager(), constraint),
-                          apronManager,
-                          integerToIndexMap,
-                          realToIndexMap,
-                          variableToTypeMap,
-                          false,
-                          logger);
+    return new ApronState(
+        apronState.meetCopy(apronManager.getManager(), constraint),
+        apronManager,
+        integerToIndexMap,
+        realToIndexMap,
+        variableToTypeMap,
+        false,
+        logger);
   }
 
   public ApronState addConstraint(Tcons0 constraint) {
     logger.log(Level.FINEST, "apron state: meetCopy: " + constraint);
-    return new ApronState(apronState.meetCopy(apronManager.getManager(), constraint),
-                          apronManager,
-                          integerToIndexMap,
-                          realToIndexMap,
-                          variableToTypeMap,
-                          false,
-                          logger);
+    return new ApronState(
+        apronState.meetCopy(apronManager.getManager(), constraint),
+        apronManager,
+        integerToIndexMap,
+        realToIndexMap,
+        variableToTypeMap,
+        false,
+        logger);
   }
 
   public ApronState removeLocalVars(String functionName) {
@@ -481,10 +530,12 @@ logger.log(Level.FINEST, "apron state: isEqual");
     logger.log(Level.FINEST, "apron state: getBounds");
     Map<MemoryLocation, Interval> vars = new HashMap<>();
     for (MemoryLocation varName : integerToIndexMap) {
-      vars.put(varName, apronState.getBound(apronManager.getManager(), getVariableIndexFor(varName)));
+      vars.put(
+          varName, apronState.getBound(apronManager.getManager(), getVariableIndexFor(varName)));
     }
     for (MemoryLocation varName : realToIndexMap) {
-      vars.put(varName, apronState.getBound(apronManager.getManager(), getVariableIndexFor(varName)));
+      vars.put(
+          varName, apronState.getBound(apronManager.getManager(), getVariableIndexFor(varName)));
     }
     return vars;
   }
@@ -512,10 +563,13 @@ logger.log(Level.FINEST, "apron state: isEqual");
     }
 
     int[] placesToRemove = new int[keysToRemove.size()];
-    for (int i = 0;  i < placesToRemove.length; i++) {
+    for (int i = 0; i < placesToRemove.length; i++) {
       placesToRemove[i] = getVariableIndexFor(keysToRemove.get(i));
     }
-    logger.log(Level.FINEST, "apron state: removeDimensionCopy: " + new Dimchange(intsRemoved, realsRemoved, placesToRemove));
+    logger.log(
+        Level.FINEST,
+        "apron state: removeDimensionCopy: "
+            + new Dimchange(intsRemoved, realsRemoved, placesToRemove));
     ApronState newState =
         new ApronState(
             apronState.removeDimensionsCopy(
@@ -544,7 +598,6 @@ logger.log(Level.FINEST, "apron state: isEqual");
     out.write(serialized);
   }
 
-  @SuppressWarnings("UnusedVariable") // parameter is required by API
   private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
 
@@ -566,44 +619,50 @@ logger.log(Level.FINEST, "apron state: isEqual");
         Lists.transform(Arrays.asList(constraints), cons -> createFormula(bFmgr, bitFmgr, cons)));
   }
 
-  private BooleanFormula createFormula(BooleanFormulaManager bFmgr,
-                                       final BitvectorFormulaManager bitFmgr,
-                                       final Tcons0 constraint) {
+  private BooleanFormula createFormula(
+      BooleanFormulaManager bFmgr, final BitvectorFormulaManager bitFmgr, final Tcons0 constraint) {
     Texpr0Node tree = constraint.toTexpr0Node();
     BitvectorFormula formula = new Texpr0ToFormulaVisitor(bitFmgr).visit(tree);
 
-    //TODO fix size, machinemodel needed?
+    // TODO fix size, machinemodel needed?
     BitvectorFormula rightHandside = bitFmgr.makeBitvector(32, 0);
-    switch(constraint.kind) {
-    case Tcons0.DISEQ: return bFmgr.not(bitFmgr.equal(formula, rightHandside));
-    case Tcons0.EQ: return bitFmgr.equal(formula, rightHandside);
-    case Tcons0.SUP: return bitFmgr.greaterThan(formula, rightHandside, true);
-    case Tcons0.SUPEQ: return bitFmgr.greaterOrEquals(formula, rightHandside, true);
+    switch (constraint.kind) {
+      case Tcons0.DISEQ:
+        return bFmgr.not(bitFmgr.equal(formula, rightHandside));
+      case Tcons0.EQ:
+        return bitFmgr.equal(formula, rightHandside);
+      case Tcons0.SUP:
+        return bitFmgr.greaterThan(formula, rightHandside, true);
+      case Tcons0.SUPEQ:
+        return bitFmgr.greaterOrEquals(formula, rightHandside, true);
       default:
         throw new AssertionError("unhandled constraint kind");
     }
   }
 
-  static abstract class Texpr0NodeTraversal<T> {
+  abstract static class Texpr0NodeTraversal<T> {
 
-   T visit(Texpr0Node node) {
+    T visit(Texpr0Node node) {
       if (node instanceof Texpr0BinNode) {
-        return visit((Texpr0BinNode)node);
+        return visit((Texpr0BinNode) node);
       } else if (node instanceof Texpr0CstNode) {
-        return visit((Texpr0CstNode)node);
+        return visit((Texpr0CstNode) node);
       } else if (node instanceof Texpr0DimNode) {
-        return visit((Texpr0DimNode)node);
+        return visit((Texpr0DimNode) node);
       } else if (node instanceof Texpr0UnNode) {
-        return visit((Texpr0UnNode)node);
+        return visit((Texpr0UnNode) node);
       }
 
       throw new AssertionError("Unhandled Texpr0Node subclass.");
     }
 
-   abstract T visit(Texpr0BinNode node);
-   abstract T visit(Texpr0CstNode node);
-   abstract T visit(Texpr0DimNode node);
-   abstract T visit(Texpr0UnNode node);
+    abstract T visit(Texpr0BinNode node);
+
+    abstract T visit(Texpr0CstNode node);
+
+    abstract T visit(Texpr0DimNode node);
+
+    abstract T visit(Texpr0UnNode node);
   }
 
   class Texpr0ToFormulaVisitor extends Texpr0NodeTraversal<BitvectorFormula> {
@@ -618,17 +677,23 @@ logger.log(Level.FINEST, "apron state: isEqual");
     BitvectorFormula visit(Texpr0BinNode pNode) {
       BitvectorFormula left = visit(pNode.getLeftArgument());
       BitvectorFormula right = visit(pNode.getRightArgument());
-      switch(pNode.getOperation()) {
+      switch (pNode.getOperation()) {
 
-      // real operations
-      case Texpr0BinNode.OP_ADD: return bitFmgr.add(left, right);
-      case Texpr0BinNode.OP_DIV: return bitFmgr.divide(left, right, true);
-      case Texpr0BinNode.OP_MOD: return bitFmgr.modulo(left, right, true);
-      case Texpr0BinNode.OP_SUB: return bitFmgr.subtract(left, right);
-      case Texpr0BinNode.OP_MUL: return bitFmgr.multiply(left, right);
-      case Texpr0BinNode.OP_POW: throw new AssertionError("Pow not implemented in this visitor");
-      default:
-        throw new AssertionError("Unhandled operator for binary nodes.");
+          // real operations
+        case Texpr0BinNode.OP_ADD:
+          return bitFmgr.add(left, right);
+        case Texpr0BinNode.OP_DIV:
+          return bitFmgr.divide(left, right, true);
+        case Texpr0BinNode.OP_MOD:
+          return bitFmgr.modulo(left, right, true);
+        case Texpr0BinNode.OP_SUB:
+          return bitFmgr.subtract(left, right);
+        case Texpr0BinNode.OP_MUL:
+          return bitFmgr.multiply(left, right);
+        case Texpr0BinNode.OP_POW:
+          throw new AssertionError("Pow not implemented in this visitor");
+        default:
+          throw new AssertionError("Unhandled operator for binary nodes.");
       }
     }
 
@@ -638,11 +703,11 @@ logger.log(Level.FINEST, "apron state: isEqual");
         double value;
         Scalar scalar = pNode.getConstant().inf();
         if (scalar instanceof DoubleScalar) {
-         value = ((DoubleScalar)scalar).get();
+          value = ((DoubleScalar) scalar).get();
         } else if (scalar instanceof MpqScalar) {
-          value = ((MpqScalar)scalar).get().doubleValue();
+          value = ((MpqScalar) scalar).get().doubleValue();
         } else if (scalar instanceof MpfrScalar) {
-          value = ((MpfrScalar)scalar).get().doubleValue(Mpfr.RNDN);
+          value = ((MpfrScalar) scalar).get().doubleValue(Mpfr.RNDN);
         } else {
           throw new AssertionError("Unhandled Scalar subclass: " + scalar.getClass());
         }
@@ -665,20 +730,25 @@ logger.log(Level.FINEST, "apron state: isEqual");
 
       // TODO fix size, machinemodel needed?
       if (isInt(pNode.dim)) {
-        return bitFmgr.makeVariable(32, integerToIndexMap.get(pNode.dim).getExtendedQualifiedName());
+        return bitFmgr.makeVariable(
+            32, integerToIndexMap.get(pNode.dim).getExtendedQualifiedName());
       } else {
-        return bitFmgr.makeVariable(32, realToIndexMap.get(pNode.dim - integerToIndexMap.size()).getExtendedQualifiedName());
+        return bitFmgr.makeVariable(
+            32,
+            realToIndexMap.get(pNode.dim - integerToIndexMap.size()).getExtendedQualifiedName());
       }
     }
 
     @Override
     BitvectorFormula visit(Texpr0UnNode pNode) {
       BitvectorFormula operand = visit(pNode.getArgument());
-      switch(pNode.getOperation()) {
-      case Texpr0UnNode.OP_NEG: return bitFmgr.negate(operand);
-      case Texpr0UnNode.OP_SQRT: throw new AssertionError("sqrt not implemented in this visitor");
-      default:
-        // nothing to do here, we ignore casts
+      switch (pNode.getOperation()) {
+        case Texpr0UnNode.OP_NEG:
+          return bitFmgr.negate(operand);
+        case Texpr0UnNode.OP_SQRT:
+          throw new AssertionError("sqrt not implemented in this visitor");
+        default:
+          // nothing to do here, we ignore casts
       }
       return operand;
     }

@@ -7,8 +7,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * This CPA allows to analyze concurrent programs.
- * Each abstract state contains the location and callstack of a one thread.
- * Compatibility of states is checked with special algorithm of labels
+ * This CPA allows to analyze concurrent programs. Each abstract state contains the location and
+ * callstack of a one thread. Compatibility of states is checked with special algorithm of labels
  */
 package org.sosy_lab.cpachecker.cpa.thread;

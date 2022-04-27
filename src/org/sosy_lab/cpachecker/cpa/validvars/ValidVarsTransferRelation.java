@@ -27,42 +27,48 @@ public class ValidVarsTransferRelation extends SingleEdgeTransferRelation {
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
-          throws CPATransferException, InterruptedException {
+      throws CPATransferException, InterruptedException {
 
-    ValidVarsState state = (ValidVarsState)pState;
+    ValidVarsState state = (ValidVarsState) pState;
     ValidVars validVariables = state.getValidVariables();
 
     switch (pCfaEdge.getEdgeType()) {
-    case BlankEdge:
-      if (pCfaEdge.getDescription().equals("Function start dummy edge") && !(pCfaEdge.getPredecessor() instanceof FunctionEntryNode)) {
+      case BlankEdge:
+        if (pCfaEdge.getDescription().equals("Function start dummy edge")
+            && !(pCfaEdge.getPredecessor() instanceof FunctionEntryNode)) {
           validVariables =
               validVariables.extendLocalVarsFunctionCall(
                   pCfaEdge.getSuccessor().getFunctionName(), ImmutableSet.of());
-      }
-      if(pCfaEdge.getSuccessor() instanceof FunctionExitNode) {
-        validVariables = validVariables.removeVarsOfFunction(pCfaEdge.getPredecessor().getFunctionName());
-      }
-      break;
-    case FunctionCallEdge:
-      validVariables = validVariables.extendLocalVarsFunctionCall(pCfaEdge.getSuccessor().getFunctionName(),
-          ((FunctionEntryNode) pCfaEdge.getSuccessor()).getFunctionParameterNames());
-      break;
-    case DeclarationEdge:
-      CDeclaration declaration = ((CDeclarationEdge) pCfaEdge).getDeclaration();
-      if (declaration instanceof CVariableDeclaration) {
-        if (declaration.isGlobal()) {
-          validVariables = validVariables.extendGlobalVars(declaration.getName());
-        } else {
-          validVariables =
-              validVariables.extendLocalVars(pCfaEdge.getPredecessor().getFunctionName(), declaration.getName());
         }
-      }
-      break;
-    case ReturnStatementEdge:
-      validVariables = validVariables.removeVarsOfFunction(pCfaEdge.getPredecessor().getFunctionName());
-      break;
-    default:
-      break;
+        if (pCfaEdge.getSuccessor() instanceof FunctionExitNode) {
+          validVariables =
+              validVariables.removeVarsOfFunction(pCfaEdge.getPredecessor().getFunctionName());
+        }
+        break;
+      case FunctionCallEdge:
+        validVariables =
+            validVariables.extendLocalVarsFunctionCall(
+                pCfaEdge.getSuccessor().getFunctionName(),
+                ((FunctionEntryNode) pCfaEdge.getSuccessor()).getFunctionParameterNames());
+        break;
+      case DeclarationEdge:
+        CDeclaration declaration = ((CDeclarationEdge) pCfaEdge).getDeclaration();
+        if (declaration instanceof CVariableDeclaration) {
+          if (declaration.isGlobal()) {
+            validVariables = validVariables.extendGlobalVars(declaration.getName());
+          } else {
+            validVariables =
+                validVariables.extendLocalVars(
+                    pCfaEdge.getPredecessor().getFunctionName(), declaration.getName());
+          }
+        }
+        break;
+      case ReturnStatementEdge:
+        validVariables =
+            validVariables.removeVarsOfFunction(pCfaEdge.getPredecessor().getFunctionName());
+        break;
+      default:
+        break;
     }
 
     if (state.getValidVariables() == validVariables) {

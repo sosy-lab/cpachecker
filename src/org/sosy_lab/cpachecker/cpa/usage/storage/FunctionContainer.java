@@ -21,9 +21,8 @@ import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 @SuppressFBWarnings(
-  justification = "Serialization of container is useless and not supported",
-  value = "SE_BAD_FIELD"
-)
+    justification = "Serialization of container is useless and not supported",
+    value = "SE_BAD_FIELD")
 public class FunctionContainer extends AbstractUsageStorage {
 
   private static final long serialVersionUID = 1L;
@@ -48,7 +47,7 @@ public class FunctionContainer extends AbstractUsageStorage {
   }
 
   public FunctionContainer clone(Multiset<LockEffect> pEffects) {
-    return new FunctionContainer(this.stats, pEffects);
+    return new FunctionContainer(stats, pEffects);
   }
 
   @Override
@@ -67,7 +66,7 @@ public class FunctionContainer extends AbstractUsageStorage {
   public void join(FunctionContainer funcContainer) {
     stats.totalJoins.inc();
     if (joinedWith.contains(funcContainer)) {
-      //We may join two different exit states to the same parent container
+      // We may join two different exit states to the same parent container
       stats.hitTimes.inc();
       return;
     }
@@ -106,16 +105,13 @@ public class FunctionContainer extends AbstractUsageStorage {
   public static class StorageStatistics {
     private StatCounter hitTimes = new StatCounter("Number of hits into cache");
     private StatCounter totalJoins = new StatCounter("Total number of joins");
-    private StatCounter numberOfFunctionContainers = new StatCounter("Total number of function containers");
+    private StatCounter numberOfFunctionContainers =
+        new StatCounter("Total number of function containers");
 
     private StatTimer copyTimer = new StatTimer("Time for coping usages");
 
     public void printStatistics(StatisticsWriter out) {
-      out.spacer()
-         .put(copyTimer)
-         .put(totalJoins)
-         .put(hitTimes)
-         .put(numberOfFunctionContainers);
+      out.spacer().put(copyTimer).put(totalJoins).put(hitTimes).put(numberOfFunctionContainers);
     }
   }
 }

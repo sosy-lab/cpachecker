@@ -51,9 +51,8 @@ import org.sosy_lab.cpachecker.util.ltl.LtlParser;
 import org.sosy_lab.cpachecker.util.ltl.formulas.LabelledFormula;
 
 /**
- * Class that encapsulates the specification that should be used for an analysis.
- * Most code of CPAchecker should not need to access this file,
- * because a separate CPA handles the specification,
+ * Class that encapsulates the specification that should be used for an analysis. Most code of
+ * CPAchecker should not need to access this file, because a separate CPA handles the specification,
  * though it can be necessary to pass around Specification objects for sub-analyses.
  */
 public final class Specification {
@@ -75,7 +74,7 @@ public final class Specification {
           .put(CommonVerificationProperty.DEADLOCK, "deadlock")
           .put(CommonVerificationProperty.ASSERT, "JavaAssertion")
           // .put(CommonPropertyType.TERMINATION, "none needed")
-          .build();
+          .buildOrThrow();
 
   private static Path getAutomatonForProperty(Property property) {
     String name = AUTOMATA_FOR_PROPERTIES.get(property);
@@ -186,7 +185,6 @@ public final class Specification {
               specificationAutomata.putAll(specFile, automata);
             }
           }
-
         }
       } else {
         List<Automaton> automata =
@@ -279,18 +277,24 @@ public final class Specification {
     LabelledFormula formula;
     try {
       formula = LtlParser.parseProperty(ltl);
+      return Ltl2BuechiConverter.convertFormula(
+          formula.not(),
+          cfa.getMainFunction().getFunctionName(),
+          config,
+          logger,
+          cfa.getMachineModel(),
+          scope,
+          pShutdownNotifier);
     } catch (LtlParseException e) {
       throw new InvalidConfigurationException(
           String.format("Could not parse property '%s' (%s)", ltl, e.getMessage()), e);
+    } catch (IOException e) {
+      throw new InvalidConfigurationException(
+          String.format(
+              "An exception occured during the execution of the external ltl converter tool:%n%s",
+              e.getMessage()),
+          e);
     }
-    return Ltl2BuechiConverter.convertFormula(
-        formula.not(),
-        cfa.getMainFunction().getFunctionName(),
-        config,
-        logger,
-        cfa.getMachineModel(),
-        scope,
-        pShutdownNotifier);
   }
 
   /**
@@ -377,9 +381,7 @@ public final class Specification {
   @Override
   public String toString() {
     return "Specification"
-        + pathToSpecificationAutomata
-            .values()
-            .stream()
+        + pathToSpecificationAutomata.values().stream()
             .map(Automaton::getName)
             .collect(joining(", ", "[", "]"));
   }

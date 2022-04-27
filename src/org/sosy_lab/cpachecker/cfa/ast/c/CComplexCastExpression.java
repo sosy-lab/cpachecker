@@ -18,17 +18,16 @@ public final class CComplexCastExpression extends AbstractExpression implements 
 
   private static final long serialVersionUID = -3131719369492162894L;
   private final CExpression operand;
-  private final CType     type;
-  /**
-   * When isReal is false this is a cast to get the imaginary Part of the complex number
-   */
+  private final CType type;
+  /** When isReal is false this is a cast to get the imaginary Part of the complex number */
   private final boolean isReal;
 
-  public CComplexCastExpression(final FileLocation pFileLocation,
-                            final CType pExpressionType,
-                            final CExpression pOperand,
-                            final CType pType,
-                            final boolean pIsRealCast) {
+  public CComplexCastExpression(
+      final FileLocation pFileLocation,
+      final CType pExpressionType,
+      final CExpression pOperand,
+      final CType pType,
+      final boolean pIsRealCast) {
     super(pFileLocation, pExpressionType);
 
     isReal = pIsRealCast;
@@ -52,7 +51,7 @@ public final class CComplexCastExpression extends AbstractExpression implements 
 
   @Override
   public CType getExpressionType() {
-    return (CType)super.getExpressionType();
+    return (CType) super.getExpressionType();
   }
 
   public CExpression getOperand() {
@@ -111,8 +110,7 @@ public final class CComplexCastExpression extends AbstractExpression implements 
       return true;
     }
 
-    if (!(obj instanceof CComplexCastExpression)
-        || !super.equals(obj)) {
+    if (!(obj instanceof CComplexCastExpression) || !super.equals(obj)) {
       return false;
     }
 
@@ -122,5 +120,4 @@ public final class CComplexCastExpression extends AbstractExpression implements 
         && Objects.equals(other.type, type)
         && other.isReal == isReal;
   }
-
 }

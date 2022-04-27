@@ -89,4 +89,3 @@ public final class SMGAddress {
     return new SMGAddress(pObj, SMGKnownExpValue.valueOf(pOffset));
   }
 }
-

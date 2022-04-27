@@ -35,7 +35,8 @@ public class CLangSMGConsistencyVerifier {
    * @param pMessage Message to be logged
    * @return The result of the check, i.e. equivalent to pResult
    */
-  static private boolean verifyCLangSMGProperty(boolean pResult, LogManager pLogger, String pMessage) {
+  private static boolean verifyCLangSMGProperty(
+      boolean pResult, LogManager pLogger, String pMessage) {
     pLogger.log(Level.FINEST, pMessage, ":", pResult);
     return pResult;
   }
@@ -54,7 +55,7 @@ public class CLangSMGConsistencyVerifier {
 
     boolean toReturn = Collections.disjoint(globals.values(), heap);
 
-    if (! toReturn) {
+    if (!toReturn) {
       pLogger.log(Level.SEVERE, "CLangSMG inconsistent, heap and global objects are not disjoint");
     }
 
@@ -77,7 +78,7 @@ public class CLangSMGConsistencyVerifier {
 
     boolean toReturn = Collections.disjoint(stack, heap);
 
-    if (! toReturn) {
+    if (!toReturn) {
       pLogger.log(
           Level.SEVERE,
           "CLangSMG inconsistent, heap and stack objects are not disjoint: "
@@ -104,7 +105,7 @@ public class CLangSMGConsistencyVerifier {
 
     boolean toReturn = Collections.disjoint(stack, globals.values());
 
-    if (! toReturn) {
+    if (!toReturn) {
       pLogger.log(Level.SEVERE, "CLangSMG inconsistent, global and stack objects are not disjoint");
     }
 
@@ -162,7 +163,7 @@ public class CLangSMGConsistencyVerifier {
   private static boolean verifyNullObjectCLangProperties(
       LogManager pLogger, UnmodifiableCLangSMG pSmg) {
     // Verify that there is no NULL object in global scope
-    for (SMGObject obj: pSmg.getGlobalObjects().values()) {
+    for (SMGObject obj : pSmg.getGlobalObjects().values()) {
       if (obj == SMGNullObject.INSTANCE) {
         pLogger.log(
             Level.SEVERE, "CLangSMG inconsistent: null object in global object set [" + obj + "]");
@@ -172,7 +173,7 @@ public class CLangSMGConsistencyVerifier {
 
     // Verify there is no more than one NULL object in the heap object set
     SMGObject firstNull = null;
-    for (SMGObject obj: pSmg.getHeapObjects()) {
+    for (SMGObject obj : pSmg.getHeapObjects()) {
       if (obj == SMGNullObject.INSTANCE) {
         if (firstNull != null) {
           pLogger.log(
@@ -190,8 +191,8 @@ public class CLangSMGConsistencyVerifier {
     }
 
     // Verify there is no NULL object in the stack object set
-    for (CLangStackFrame frame: pSmg.getStackFrames()) {
-      for (SMGObject obj: frame.getAllObjects()) {
+    for (CLangStackFrame frame : pSmg.getStackFrames()) {
+      for (SMGObject obj : frame.getAllObjects()) {
         if (obj == SMGNullObject.INSTANCE) {
           pLogger.log(
               Level.SEVERE, "CLangSMG inconsistent: null object in stack object set [" + obj + "]");
@@ -219,7 +220,7 @@ public class CLangSMGConsistencyVerifier {
   private static boolean verifyGlobalNamespace(LogManager pLogger, UnmodifiableCLangSMG pSmg) {
     Map<String, SMGRegion> globals = pSmg.getGlobalObjects();
 
-    for (String label: pSmg.getGlobalObjects().keySet()) {
+    for (String label : pSmg.getGlobalObjects().keySet()) {
       String globalLabel = globals.get(label).getLabel();
       if (!globalLabel.equals(label)) {
         pLogger.logf(
@@ -300,18 +301,24 @@ public class CLangSMGConsistencyVerifier {
 
     pLogger.log(Level.FINEST, "Starting constistency check of a CLangSMG");
 
-    toReturn = toReturn && verifyCLangSMGProperty(
-        verifyDisjunctHeapAndGlobal(pLogger, pSmg),
-        pLogger,
-        "Checking CLangSMG consistency: heap and global object sets are disjunt");
-    toReturn = toReturn && verifyCLangSMGProperty(
-        verifyDisjunctHeapAndStack(pLogger, pSmg),
-        pLogger,
-        "Checking CLangSMG consistency: heap and stack objects are disjunct");
-    toReturn = toReturn && verifyCLangSMGProperty(
-        verifyDisjunctGlobalAndStack(pLogger, pSmg),
-        pLogger,
-        "Checking CLangSMG consistency: global and stack objects are disjunct");
+    toReturn =
+        toReturn
+            && verifyCLangSMGProperty(
+                verifyDisjunctHeapAndGlobal(pLogger, pSmg),
+                pLogger,
+                "Checking CLangSMG consistency: heap and global object sets are disjunt");
+    toReturn =
+        toReturn
+            && verifyCLangSMGProperty(
+                verifyDisjunctHeapAndStack(pLogger, pSmg),
+                pLogger,
+                "Checking CLangSMG consistency: heap and stack objects are disjunct");
+    toReturn =
+        toReturn
+            && verifyCLangSMGProperty(
+                verifyDisjunctGlobalAndStack(pLogger, pSmg),
+                pLogger,
+                "Checking CLangSMG consistency: global and stack objects are disjunct");
     toReturn =
         toReturn
             && verifyCLangSMGProperty(
@@ -319,18 +326,24 @@ public class CLangSMGConsistencyVerifier {
                 pLogger,
                 "Checking CLangSMG consistency: global, stack and heap object union contains all"
                     + " objects in SMG");
-    toReturn = toReturn && verifyCLangSMGProperty(
-        verifyNullObjectCLangProperties(pLogger, pSmg),
-        pLogger,
-        "Checking CLangSMG consistency: null object invariants hold");
-    toReturn = toReturn && verifyCLangSMGProperty(
-        verifyGlobalNamespace(pLogger, pSmg),
-        pLogger,
-        "Checking CLangSMG consistency: global namespace problem");
-    toReturn = toReturn && verifyCLangSMGProperty(
-        verifyStackNamespaces(pLogger, pSmg),
-        pLogger,
-        "Checking CLangSMG consistency: stack namespace");
+    toReturn =
+        toReturn
+            && verifyCLangSMGProperty(
+                verifyNullObjectCLangProperties(pLogger, pSmg),
+                pLogger,
+                "Checking CLangSMG consistency: null object invariants hold");
+    toReturn =
+        toReturn
+            && verifyCLangSMGProperty(
+                verifyGlobalNamespace(pLogger, pSmg),
+                pLogger,
+                "Checking CLangSMG consistency: global namespace problem");
+    toReturn =
+        toReturn
+            && verifyCLangSMGProperty(
+                verifyStackNamespaces(pLogger, pSmg),
+                pLogger,
+                "Checking CLangSMG consistency: stack namespace");
     toReturn =
         toReturn
             && verifyCLangSMGProperty(

@@ -18,37 +18,37 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 /**
- * A class that stores information about a counterexample trace.
- * For spurious counterexamples, this stores the interpolants.
+ * A class that stores information about a counterexample trace. For spurious counterexamples, this
+ * stores the interpolants.
  */
 public class CounterexampleTraceInfo {
-    private final boolean spurious;
-    private final ImmutableList<BooleanFormula> interpolants;
-    private final ImmutableList<ValueAssignment> mCounterexampleModel;
-    private final ImmutableList<BooleanFormula> mCounterexampleFormula;
-    private final ImmutableMap<Integer, Boolean> branchingPreds;
+  private final boolean spurious;
+  private final ImmutableList<BooleanFormula> interpolants;
+  private final ImmutableList<ValueAssignment> mCounterexampleModel;
+  private final ImmutableList<BooleanFormula> mCounterexampleFormula;
+  private final ImmutableMap<Integer, Boolean> branchingPreds;
 
-    private CounterexampleTraceInfo(
-        boolean pSpurious,
-        ImmutableList<BooleanFormula> pInterpolants,
-        ImmutableList<ValueAssignment> pCounterexampleModel,
-        ImmutableList<BooleanFormula> pCounterexampleFormula,
-        ImmutableMap<Integer, Boolean> pBranchingPreds) {
-      spurious = pSpurious;
-      interpolants = pInterpolants;
-      mCounterexampleModel = pCounterexampleModel;
-      mCounterexampleFormula = pCounterexampleFormula;
-      branchingPreds = pBranchingPreds;
-    }
+  private CounterexampleTraceInfo(
+      boolean pSpurious,
+      ImmutableList<BooleanFormula> pInterpolants,
+      ImmutableList<ValueAssignment> pCounterexampleModel,
+      ImmutableList<BooleanFormula> pCounterexampleFormula,
+      ImmutableMap<Integer, Boolean> pBranchingPreds) {
+    spurious = pSpurious;
+    interpolants = pInterpolants;
+    mCounterexampleModel = pCounterexampleModel;
+    mCounterexampleFormula = pCounterexampleFormula;
+    branchingPreds = pBranchingPreds;
+  }
 
-    public static CounterexampleTraceInfo infeasible(List<BooleanFormula> pInterpolants) {
+  public static CounterexampleTraceInfo infeasible(List<BooleanFormula> pInterpolants) {
     return new CounterexampleTraceInfo(
         true, ImmutableList.copyOf(pInterpolants), null, ImmutableList.of(), ImmutableMap.of());
-    }
+  }
 
-    public static CounterexampleTraceInfo infeasibleNoItp() {
+  public static CounterexampleTraceInfo infeasibleNoItp() {
     return new CounterexampleTraceInfo(true, null, null, ImmutableList.of(), ImmutableMap.of());
-    }
+  }
 
   public static CounterexampleTraceInfo feasible(
       List<BooleanFormula> pCounterexampleFormula,
@@ -60,43 +60,49 @@ public class CounterexampleTraceInfo {
         ImmutableList.copyOf(pModel),
         ImmutableList.copyOf(pCounterexampleFormula),
         ImmutableMap.copyOf(preds));
-    }
+  }
 
-    /**
-     * checks whether this trace is a real bug or a spurious counterexample
-     * @return true if this trace is spurious, false otherwise
-     */
-    public boolean isSpurious() { return spurious; }
+  public static CounterexampleTraceInfo feasibleNoModel() {
+    return CounterexampleTraceInfo.feasible(
+        ImmutableList.of(), ImmutableList.of(), ImmutableMap.of());
+  }
 
-    /**
-     * Returns the list of interpolants that were discovered during
-     * counterexample analysis.
-     *
-     * @return a list of interpolants
-     */
-    public List<BooleanFormula> getInterpolants() {
-      checkState(spurious);
-      return interpolants;
-    }
+  /**
+   * checks whether this trace is a real bug or a spurious counterexample
+   *
+   * @return true if this trace is spurious, false otherwise
+   */
+  public boolean isSpurious() {
+    return spurious;
+  }
 
-    @Override
-    public String toString() {
-      return "Spurious: " + isSpurious() +
-        (isSpurious() ? ", interpolants: " + interpolants : "");
-    }
+  /**
+   * Returns the list of interpolants that were discovered during counterexample analysis.
+   *
+   * @return a list of interpolants
+   */
+  public List<BooleanFormula> getInterpolants() {
+    checkState(spurious);
+    return interpolants;
+  }
 
-    public List<BooleanFormula> getCounterExampleFormulas() {
-      checkState(!spurious);
-      return mCounterexampleFormula;
-    }
+  @Override
+  public String toString() {
+    return "Spurious: " + isSpurious() + (isSpurious() ? ", interpolants: " + interpolants : "");
+  }
 
-    public ImmutableList<ValueAssignment> getModel() {
-      checkState(!spurious);
-      return mCounterexampleModel;
-    }
+  public List<BooleanFormula> getCounterExampleFormulas() {
+    checkState(!spurious);
+    return mCounterexampleFormula;
+  }
 
-    public Map<Integer, Boolean> getBranchingPredicates() {
-      checkState(!spurious);
-      return branchingPreds;
-    }
+  public ImmutableList<ValueAssignment> getModel() {
+    checkState(!spurious);
+    return mCounterexampleModel;
+  }
+
+  public Map<Integer, Boolean> getBranchingPredicates() {
+    checkState(!spurious);
+    return branchingPreds;
+  }
 }

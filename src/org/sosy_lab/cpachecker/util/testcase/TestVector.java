@@ -90,7 +90,6 @@ public class TestVector {
     return inputValues;
   }
 
-
   public TestVector addInputValue(AVariableDeclaration pVariable, AInitializer pValue) {
     return addInputValue(pVariable, InitializerTestValue.of(pValue));
   }
@@ -183,7 +182,7 @@ public class TestVector {
     private final AFunctionDeclaration declaration;
 
     public ComparableFunctionDeclaration(AFunctionDeclaration pDeclaration) {
-      this.declaration = Objects.requireNonNull(pDeclaration);
+      declaration = Objects.requireNonNull(pDeclaration);
     }
 
     @Override
@@ -233,7 +232,7 @@ public class TestVector {
     private final AVariableDeclaration declaration;
 
     public ComparableVariableDeclaration(AVariableDeclaration pDeclaration) {
-      this.declaration = Objects.requireNonNull(pDeclaration);
+      declaration = Objects.requireNonNull(pDeclaration);
     }
 
     @Override

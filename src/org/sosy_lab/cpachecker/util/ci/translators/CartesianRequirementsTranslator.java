@@ -19,7 +19,8 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.ci.CIUtils;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
-public abstract class CartesianRequirementsTranslator<T extends AbstractState> extends AbstractRequirementsTranslator<T> {
+public abstract class CartesianRequirementsTranslator<T extends AbstractState>
+    extends AbstractRequirementsTranslator<T> {
 
   protected final LogManager logger;
 
@@ -34,16 +35,17 @@ public abstract class CartesianRequirementsTranslator<T extends AbstractState> e
     List<String> list = new ArrayList<>();
     String def;
     for (String var : vars) {
-        def = "(declare-fun " + getVarWithIndex(var, ssaMap);
-        def += " () Int)";
-        list.add(def);
+      def = "(declare-fun " + getVarWithIndex(var, ssaMap);
+      def += " () Int)";
+      list.add(def);
     }
     return list;
   }
 
   protected abstract List<String> getVarsInRequirements(final T requirement);
 
-  protected List<String> getVarsInRequirements(final T requirement, final @Nullable Collection<String> pRequiredVars) {
+  protected List<String> getVarsInRequirements(
+      final T requirement, final @Nullable Collection<String> pRequiredVars) {
     List<String> list = new ArrayList<>();
     for (String var : getVarsInRequirements(requirement)) {
       if (pRequiredVars == null || pRequiredVars.contains(var)) {
@@ -53,14 +55,15 @@ public abstract class CartesianRequirementsTranslator<T extends AbstractState> e
     return list;
   }
 
-
   @Override
-  protected Pair<List<String>, String> convertToFormula(final T requirement, final SSAMap indices, final @Nullable Collection<String> pRequiredVars) {
+  protected Pair<List<String>, String> convertToFormula(
+      final T requirement, final SSAMap indices, final @Nullable Collection<String> pRequiredVars) {
     List<String> firstReturn =
         writeVarDefinition(getVarsInRequirements(requirement, pRequiredVars), indices);
 
     String secReturn;
-    List<String> listOfIndependentRequirements = getListOfIndependentRequirements(requirement, indices, pRequiredVars);
+    List<String> listOfIndependentRequirements =
+        getListOfIndependentRequirements(requirement, indices, pRequiredVars);
     if (listOfIndependentRequirements.isEmpty()) {
       secReturn = "true";
     } else if (listOfIndependentRequirements.size() == 1) {
@@ -81,7 +84,7 @@ public abstract class CartesianRequirementsTranslator<T extends AbstractState> e
       return "true";
     }
 
-    String last = list.get(list.size()-1);
+    String last = list.get(list.size() - 1);
     for (String var : list) {
       if (var.equals(last)) {
         sb.append(var);
@@ -92,13 +95,14 @@ public abstract class CartesianRequirementsTranslator<T extends AbstractState> e
       }
     }
 
-    for (int i=0; i<BracketCounter; i++) {
+    for (int i = 0; i < BracketCounter; i++) {
       sb.append(")");
     }
     return sb.toString();
   }
 
-  protected abstract List<String> getListOfIndependentRequirements(final T requirement, final SSAMap indices, final @Nullable Collection<String> pRequiredVars);
+  protected abstract List<String> getListOfIndependentRequirements(
+      final T requirement, final SSAMap indices, final @Nullable Collection<String> pRequiredVars);
 
   public static String getVarWithIndex(final String var, final SSAMap indices) {
     assert indices != null;
@@ -106,11 +110,10 @@ public abstract class CartesianRequirementsTranslator<T extends AbstractState> e
 
     int index = indices.getIndex(var);
 
-    if (index == -1){
+    if (index == -1) {
       return CIUtils.getSMTName(var);
     } else {
       return CIUtils.getSMTName(var + "@" + index);
     }
   }
-
 }

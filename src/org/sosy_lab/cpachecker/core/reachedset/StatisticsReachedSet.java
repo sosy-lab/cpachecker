@@ -137,7 +137,7 @@ class StatisticsReachedSet extends ForwardingReachedSet {
     put(builder, numReAdd);
     put(builder, numRemove);
     put(builder, numUpdatePrecision);
-    return builder.build();
+    return builder.buildOrThrow();
   }
 
   private static void put(

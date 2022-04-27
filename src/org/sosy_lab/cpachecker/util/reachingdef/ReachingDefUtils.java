@@ -59,7 +59,7 @@ public class ReachingDefUtils {
     List<MemoryLocation> globalVariables = new ArrayList<>();
     List<CFANode> nodes = new ArrayList<>();
 
-    assert(pMainNode instanceof FunctionEntryNode);
+    assert (pMainNode instanceof FunctionEntryNode);
     Map<FunctionEntryNode, Set<MemoryLocation>> result = new HashMap<>();
 
     Set<FunctionEntryNode> reachedFunctions = new HashSet<>();
@@ -104,7 +104,7 @@ public class ReachingDefUtils {
             out = currentElement.getLeavingSummaryEdge();
           }
 
-          if(out instanceof CDeclarationEdge) {
+          if (out instanceof CDeclarationEdge) {
             handleDeclaration((CDeclarationEdge) out, globalVariables, localVariables);
           }
 
@@ -263,5 +263,4 @@ public class ReachingDefUtils {
           pIastUnaryExpression);
     }
   }
-
 }

@@ -118,65 +118,59 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
 
   private enum InvariantGenerationStrategy {
     /**
-     * Applies inductive weakening on the pathformula (which is converted to a CNF like form)
-     * to filter out the invariant part.
+     * Applies inductive weakening on the pathformula (which is converted to a CNF like form) to
+     * filter out the invariant part.
      */
     PF_INDUCTIVE_WEAKENING,
 
     /**
-     * Converts the pathformula to a CNF like form and checks the conjuncts on
-     * invariants with k-Induction.
+     * Converts the pathformula to a CNF like form and checks the conjuncts on invariants with
+     * k-Induction.
      */
     PF_CNF_KIND,
 
     /**
-     * Creates interpolants for a given error path and checks them on invariance
-     * with k-Induction.
+     * Creates interpolants for a given error path and checks them on invariance with k-Induction.
      */
     RF_INTERPOLANT_KIND,
   }
 
   @Option(
-    secure = true,
-    description =
-        "Which strategy should be used for generating invariants, a comma separated"
-            + " list can be specified. Usually later specified strategies serve as"
-            + " fallback for earlier ones. (default is no invariant generation at all)"
-  )
+      secure = true,
+      description =
+          "Which strategy should be used for generating invariants, a comma separated"
+              + " list can be specified. Usually later specified strategies serve as"
+              + " fallback for earlier ones. (default is no invariant generation at all)")
   private List<InvariantGenerationStrategy> generationStrategy = new ArrayList<>();
 
   @Option(
-    secure = true,
-    description =
-        "Should the strategies be used all-together or only as fallback. If all together,"
-            + " the computation is done until the timeout is hit and the results up to this"
-            + " point are taken."
-  )
+      secure = true,
+      description =
+          "Should the strategies be used all-together or only as fallback. If all together,"
+              + " the computation is done until the timeout is hit and the results up to this"
+              + " point are taken.")
   private boolean useAllStrategies = false;
 
   @Option(
-    secure = true,
-    description =
-        "Timelimit for invariant generation which may be used during refinement.\n"
-            + "(Use seconds or specify a unit; 0 for infinite)"
-  )
+      secure = true,
+      description =
+          "Timelimit for invariant generation which may be used during refinement.\n"
+              + "(Use seconds or specify a unit; 0 for infinite)")
   @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = 0)
   private TimeSpan timeForInvariantGeneration = TimeSpan.ofSeconds(10);
 
   @Option(
-    secure = true,
-    description =
-        "Invariants that are not strong enough to refute the counterexample can be ignored"
-            + " with this option. (Weak invariants will lead to repeated counterexamples,"
-            + " thus taking time which could be used for the rest of the analysis, however,"
-            + " the found invariants may also be better for loops as interpolation.)"
-  )
+      secure = true,
+      description =
+          "Invariants that are not strong enough to refute the counterexample can be ignored"
+              + " with this option. (Weak invariants will lead to repeated counterexamples,"
+              + " thus taking time which could be used for the rest of the analysis, however,"
+              + " the found invariants may also be better for loops as interpolation.)")
   private boolean useStrongInvariantsOnly = true;
 
   @Option(
-    secure = true,
-    description = "Should the automata used for invariant generation be dumped to files?"
-  )
+      secure = true,
+      description = "Should the automata used for invariant generation be dumped to files?")
   private boolean dumpInvariantGenerationAutomata = false;
 
   @Option(
@@ -204,27 +198,24 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
   private boolean addToPrecision = false;
 
   @Option(
-    secure = true,
-    description =
-        "Provide invariants generated with other analyses via the PredicateCPAInvariantsManager."
-  )
+      secure = true,
+      description =
+          "Provide invariants generated with other analyses via the PredicateCPAInvariantsManager.")
   private boolean useGlobalInvariants = true;
 
   @Option(
-    secure = true,
-    description =
-        "Where to dump the automata that are used to narrow the analysis used for"
-            + " invariant generation."
-  )
+      secure = true,
+      description =
+          "Where to dump the automata that are used to narrow the analysis used for"
+              + " invariant generation.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathCounterTemplate dumpInvariantGenerationAutomataFile =
       PathCounterTemplate.ofFormatString("invgen.%d.spc");
 
   @Option(
-    secure = true,
-    description =
-        "How often should generating invariants from sliced prefixes with k-induction be tried?"
-  )
+      secure = true,
+      description =
+          "How often should generating invariants from sliced prefixes with k-induction be tried?")
   private int kInductionTries = 3;
 
   private Solver solver;
@@ -311,13 +302,12 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
   }
 
   /**
-   * Runs an additional analysis restricted to the given error path and takes
-   * the invariants generated by it. Note that these invariants can only be used
-   * for refinement, they are path specific and will most likely lead to invalid
-   * TRUE results when used during abstraction.
+   * Runs an additional analysis restricted to the given error path and takes the invariants
+   * generated by it. Note that these invariants can only be used for refinement, they are path
+   * specific and will most likely lead to invalid TRUE results when used during abstraction.
    *
-   * @return The list of invariants for the abstraction trace or an empty list
-   *  if all invariants are trivially true
+   * @return The list of invariants for the abstraction trace or an empty list if all invariants are
+   *     trivially true
    */
   public List<BooleanFormula> findPathInvariants(
       final ARGPath allStatesTrace,
@@ -342,9 +332,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
       final ResourceLimitChecker limits;
       if (!timeForInvariantGeneration.isEmpty()) {
         WalltimeLimit l = WalltimeLimit.fromNowOn(timeForInvariantGeneration);
-        limits =
-            new ResourceLimitChecker(
-                invariantShutdown, Collections.singletonList(l));
+        limits = new ResourceLimitChecker(invariantShutdown, Collections.singletonList(l));
         limits.start();
       } else {
         limits = null;
@@ -386,12 +374,11 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
   }
 
   /**
-   * This method finds invariants for usage during refinement or precision
-   * adjustment of the PredicateAnalysisCPA. The exact use case can be configured.
+   * This method finds invariants for usage during refinement or precision adjustment of the
+   * PredicateAnalysisCPA. The exact use case can be configured.
    *
-   * For better performance this method should only be called during refinement.
-   * The computed invariants (if there are some) are cached for later usage in
-   * precision adjustment.
+   * <p>For better performance this method should only be called during refinement. The computed
+   * invariants (if there are some) are cached for later usage in precision adjustment.
    */
   public void findInvariants(
       final ARGPath allStatesTrace,
@@ -440,9 +427,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
       final ResourceLimitChecker limits;
       if (!timeForInvariantGeneration.isEmpty()) {
         WalltimeLimit l = WalltimeLimit.fromNowOn(timeForInvariantGeneration);
-        limits =
-            new ResourceLimitChecker(
-                invariantShutdown, Collections.singletonList(l));
+        limits = new ResourceLimitChecker(invariantShutdown, Collections.singletonList(l));
         limits.start();
       } else {
         limits = null;
@@ -456,37 +441,35 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
 
         switch (generation) {
           case PF_CNF_KIND:
-              for (Pair<PathFormula, CFANode> pair : argForPathFormulaBasedGeneration) {
-                if (pair.getFirst() != null) {
+            for (Pair<PathFormula, CFANode> pair : argForPathFormulaBasedGeneration) {
+              if (pair.getFirst() != null) {
                 wasSuccessful =
                     findInvariantPartOfPathFormulaWithKInduction(
                             pair.getSecond(), pair.getFirst(), invariantShutdown.getNotifier())
                         || wasSuccessful;
-                } else {
-                  addResultToCache(bfmgr.makeTrue(), pair.getSecond());
-                }
+              } else {
+                addResultToCache(bfmgr.makeTrue(), pair.getSecond());
               }
+            }
             break;
 
           case PF_INDUCTIVE_WEAKENING:
-              for (Pair<PathFormula, CFANode> pair : argForPathFormulaBasedGeneration) {
-                if (pair.getFirst() != null) {
+            for (Pair<PathFormula, CFANode> pair : argForPathFormulaBasedGeneration) {
+              if (pair.getFirst() != null) {
                 wasSuccessful =
                     findInvariantPartOfPathFormulaWithWeakening(
                             pair.getSecond(), pair.getFirst(), invariantShutdown.getNotifier())
                         || wasSuccessful;
-                } else {
-                  addResultToCache(bfmgr.makeTrue(), pair.getSecond());
-                }
+              } else {
+                addResultToCache(bfmgr.makeTrue(), pair.getSecond());
               }
+            }
             break;
 
           case RF_INTERPOLANT_KIND:
             wasSuccessful =
                 findInvariantInterpolants(
-                    allStatesTrace,
-                    abstractionStatesTrace,
-                    invariantShutdown.getNotifier());
+                    allStatesTrace, abstractionStatesTrace, invariantShutdown.getNotifier());
             break;
 
           default:
@@ -564,12 +547,11 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
   }
 
   /**
-   * This method finds the invariant part of a pathformula and creates a region
-   * out of it.
+   * This method finds the invariant part of a pathformula and creates a region out of it.
    *
-   * @param pBlockFormula A path formula that determines which variables and predicates are relevant.
+   * @param pBlockFormula A path formula that determines which variables and predicates are
+   *     relevant.
    * @param pLocation the node of the current loop head
-   *
    * @throws CPATransferException may be thrown during loop transition creation
    */
   private boolean findInvariantPartOfPathFormulaWithWeakening(
@@ -585,11 +567,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
       SSAMap ssa = pBlockFormula.getSsa();
       PathFormula loopFormula =
           new LoopTransitionFinder(
-                  config,
-                  cfa.getLoopStructure().orElseThrow(),
-                  pfmgr,
-                  logger,
-                  pInvariantShutdown)
+                  config, cfa.getLoopStructure().orElseThrow(), pfmgr, logger, pInvariantShutdown)
               .generateLoopTransition(ssa, pts, pLocation);
 
       Set<BooleanFormula> lemmas =
@@ -666,10 +644,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
     }
   }
 
-  /**
-   * This method generates invariants by using another CPA and extracting invariants
-   * out of it.
-   */
+  /** This method generates invariants by using another CPA and extracting invariants out of it. */
   private boolean findInvariantsWithGenerator(
       final ARGPath allStatesTrace,
       final List<ARGState> abstractionStatesTrace,
@@ -745,12 +720,8 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
           CFANode location = extractLocation(s);
           Optional<CallstackStateEqualsWrapper> callstack = extractOptionalCallstackWraper(s);
           PredicateAbstractState pas = PredicateAbstractState.getPredicateState(s);
-          BooleanFormula invariant = invSup.getInvariantFor(
-              location,
-              callstack,
-              fmgr,
-              pfmgr,
-              pas.getPathFormula());
+          BooleanFormula invariant =
+              invSup.getInvariantFor(location, callstack, fmgr, pfmgr, pas.getPathFormula());
           invariants.add(Pair.of(invariant, location));
           logger.log(Level.FINEST, "Invariant for location", location, "is", invariant);
         }
@@ -980,12 +951,11 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
   }
 
   /**
-   * This class is used for removing all logging output besides warnings and higher
-   * from the standard output of the analysis. This is useful when running the
-   * Invariant Generation or the KInduction invariant checker. Their output is
-   * not really interesting for the User, but instead our LogMessages are and they
-   * could have easily been overlooked before (due to the potentially high amount
-   * of logging messages in analyses used there).
+   * This class is used for removing all logging output besides warnings and higher from the
+   * standard output of the analysis. This is useful when running the Invariant Generation or the
+   * KInduction invariant checker. Their output is not really interesting for the User, but instead
+   * our LogMessages are and they could have easily been overlooked before (due to the potentially
+   * high amount of logging messages in analyses used there).
    */
   private static class OnlyWarningsLogmanager extends ForwardingLogManager {
 
@@ -1104,5 +1074,4 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
       semiCNFConverter.collectStatistics(pStatsCollection);
     }
   }
-
 }

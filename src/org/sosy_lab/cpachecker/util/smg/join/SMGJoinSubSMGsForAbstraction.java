@@ -26,9 +26,7 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 
-/**
- * Class implementing join algorithm from FIT-TR-2013-4 (Appendix C.8)
- */
+/** Class implementing join algorithm from FIT-TR-2013-4 (Appendix C.8) */
 public class SMGJoinSubSMGsForAbstraction extends SMGAbstractJoin {
 
   private final PersistentSet<SMGObject> smgObjectsMappedinSMG1;
@@ -61,33 +59,27 @@ public class SMGJoinSubSMGsForAbstraction extends SMGAbstractJoin {
     // step 2
     Map<Pair<SMGObject, SMGHasValueEdge>, SMGHasValueEdge> tempEdgeMapping =
         replaceEdgesByZeroEdges(
-            pObj1,
-            pObj2,
-            prevEdgeObj1,
-            nextEdgeObj1,
-            nextEdgeObj2,
-            prevEdgeObj2);
+            pObj1, pObj2, prevEdgeObj1, nextEdgeObj1, nextEdgeObj2, prevEdgeObj2);
     // step 3
-    SMGObject newObject=extendDestWithFreshDls(
-        pObj1,
-        pObj2,
-        nextOffset,
-        prevOffset,
-        headOffset);
+    SMGObject newObject = extendDestWithFreshDls(pObj1, pObj2, nextOffset, prevOffset, headOffset);
     // step 4
     int lDiff = pObj1.getClass().equals(pObj2.getClass()) ? 0 : isDLLS(pObj1) ? 1 : -1;
 
     // step 5
     mapping1.addMapping(pObj1, newObject);
     mapping2.addMapping(pObj2, newObject);
-    SMGJoinSubSMGs smgJoinSubSMGs = new SMGJoinSubSMGs(SMGJoinStatus.EQUAL, inputSMG1, inputSMG2,
-        destSMG,
-        mapping1,
-        mapping2,
-        pObj1,
-        pObj2,
-        newObject,
-        lDiff);
+    SMGJoinSubSMGs smgJoinSubSMGs =
+        new SMGJoinSubSMGs(
+            SMGJoinStatus.EQUAL,
+            inputSMG1,
+            inputSMG2,
+            destSMG,
+            mapping1,
+            mapping2,
+            pObj1,
+            pObj2,
+            newObject,
+            lDiff);
     // step 5 join failed
     if (!smgJoinSubSMGs.isDefined) {
       setBottomState();
@@ -125,27 +117,18 @@ public class SMGJoinSubSMGsForAbstraction extends SMGAbstractJoin {
     Set<SMGValue> tmpSMGValuesMappedinSMG1 = new HashSet<>();
     Set<SMGValue> tmpSMGValuesMappedinSMG2 = new HashSet<>();
     fillWithIntersectingNodes(
-        tmpObjectsMappedinSMG1,
-        mapping1.getMappedObjects(),
-        destSMG.getObjects());
+        tmpObjectsMappedinSMG1, mapping1.getMappedObjects(), destSMG.getObjects());
     fillWithIntersectingNodes(
-        tmpObjectsMappedinSMG2,
-        mapping2.getMappedObjects(),
-        destSMG.getObjects());
+        tmpObjectsMappedinSMG2, mapping2.getMappedObjects(), destSMG.getObjects());
     fillWithIntersectingNodes(
-        tmpSMGValuesMappedinSMG1,
-        mapping1.getMappedValues(),
-        destSMG.getValues());
+        tmpSMGValuesMappedinSMG1, mapping1.getMappedValues(), destSMG.getValues());
     fillWithIntersectingNodes(
-        tmpSMGValuesMappedinSMG2,
-        mapping2.getMappedValues(),
-        destSMG.getValues());
+        tmpSMGValuesMappedinSMG2, mapping2.getMappedValues(), destSMG.getValues());
     smgObjectsMappedinSMG1 = PersistentSet.copyOf(tmpObjectsMappedinSMG1);
     smgObjectsMappedinSMG2 = PersistentSet.copyOf(tmpObjectsMappedinSMG2);
     smgValuesMappedinSMG1 = PersistentSet.copyOf(tmpSMGValuesMappedinSMG1);
     smgValuesMappedinSMG2 = PersistentSet.copyOf(tmpSMGValuesMappedinSMG2);
   }
-
 
   /**
    * Utility function for step 9. Fills a target collection with SMGNodes that are in both the
@@ -156,11 +139,8 @@ public class SMGJoinSubSMGsForAbstraction extends SMGAbstractJoin {
    * @param mapping collection containing created mappings
    * @param original collection containing created SMGNodes
    */
-  private <V extends SMGNode> void
-      fillWithIntersectingNodes(
-          Collection<V> target,
-          Collection<V> mapping,
-          Collection<V> original) {
+  private <V extends SMGNode> void fillWithIntersectingNodes(
+      Collection<V> target, Collection<V> mapping, Collection<V> original) {
     for (V node : mapping) {
       if (original.contains(node)) {
         target.add(node);
@@ -173,17 +153,19 @@ public class SMGJoinSubSMGsForAbstraction extends SMGAbstractJoin {
    *
    * @param pTempEdgeMapping the temporary created mapping
    */
-  private void
-      dropTempZeroEdges(Map<Pair<SMGObject, SMGHasValueEdge>, SMGHasValueEdge> pTempEdgeMapping) {
-    pTempEdgeMapping.entrySet().forEach(entry -> {
-      destSMG = destSMG.copyAndReplaceHVEdge(entry.getKey().getFirst(), entry.getValue(), entry.getKey().getSecond());
-    });
+  private void dropTempZeroEdges(
+      Map<Pair<SMGObject, SMGHasValueEdge>, SMGHasValueEdge> pTempEdgeMapping) {
+    pTempEdgeMapping
+        .entrySet()
+        .forEach(
+            entry -> {
+              destSMG =
+                  destSMG.copyAndReplaceHVEdge(
+                      entry.getKey().getFirst(), entry.getValue(), entry.getKey().getSecond());
+            });
   }
 
-  /**
-   * Utility function for step 7. Increase the level of all mapped nodes by 1.
-   *
-   */
+  /** Utility function for step 7. Increase the level of all mapped nodes by 1. */
   private void increaseLevelOfMapped() {
     Set<SMGNode> mappedNodes = new HashSet<>(mapping1.getMappedObjects());
     mappedNodes.addAll(mapping1.getMappedValues());
@@ -200,10 +182,14 @@ public class SMGJoinSubSMGsForAbstraction extends SMGAbstractJoin {
    * @param pNewObject the newly created object
    */
   private void relabelPTEdges(SMGObject pNewObject) {
-    destSMG.getPTEdgesByTarget(pNewObject).forEach(ptEdge -> {
-      // TODO this modifies nodes, maybe it would be better to replace existing with modified copy
-      ptEdge.setTargetSpecifier(SMGTargetSpecifier.IS_ALL_POINTER);
-        });
+    destSMG
+        .getPTEdgesByTarget(pNewObject)
+        .forEach(
+            ptEdge -> {
+              // TODO this modifies nodes, maybe it would be better to replace existing with
+              // modified copy
+              ptEdge.setTargetSpecifier(SMGTargetSpecifier.IS_ALL_POINTER);
+            });
   }
 
   /**
@@ -217,21 +203,19 @@ public class SMGJoinSubSMGsForAbstraction extends SMGAbstractJoin {
    * @param pPrevEdge2 optional of prev edge pointing from pObj2 if there is such
    * @return mapping of existing edges and zeroed temp edges.
    */
-  private Map<Pair<SMGObject, SMGHasValueEdge>, SMGHasValueEdge>
-      replaceEdgesByZeroEdges(
-          SMGObject pObj1,
-          SMGObject pObj2,
-          Optional<SMGHasValueEdge> pNextEdge1,
-          Optional<SMGHasValueEdge> pPrevEdge1,
-          Optional<SMGHasValueEdge> pNextEdge2,
-          Optional<SMGHasValueEdge> pPrevEdge2) {
+  private Map<Pair<SMGObject, SMGHasValueEdge>, SMGHasValueEdge> replaceEdgesByZeroEdges(
+      SMGObject pObj1,
+      SMGObject pObj2,
+      Optional<SMGHasValueEdge> pNextEdge1,
+      Optional<SMGHasValueEdge> pPrevEdge1,
+      Optional<SMGHasValueEdge> pNextEdge2,
+      Optional<SMGHasValueEdge> pPrevEdge2) {
     Map<Pair<SMGObject, SMGHasValueEdge>, SMGHasValueEdge> retMap = new HashMap<>();
     insertTempZeroEdgeMapping(retMap, pObj1, pNextEdge1);
     insertTempZeroEdgeMapping(retMap, pObj1, pPrevEdge1);
     insertTempZeroEdgeMapping(retMap, pObj2, pNextEdge2);
     insertTempZeroEdgeMapping(retMap, pObj2, pPrevEdge2);
     return retMap;
-
   }
 
   /**
@@ -286,15 +270,13 @@ public class SMGJoinSubSMGsForAbstraction extends SMGAbstractJoin {
             pObj1.getNestingLevel(),
             pObj1.getSize(),
             pObj1.getOffset(),
-        pPrevOffset,
-        pNextOffset,
-        minLength,
-        pHeadOffset);
+            pPrevOffset,
+            pNextOffset,
+            minLength,
+            pHeadOffset);
     destSMG = destSMG.copyAndAddObject(dls);
     return dls;
   }
-
-
 
   public PersistentSet<SMGObject> getSmgObjectsMappedinSMG1() {
     return smgObjectsMappedinSMG1;
@@ -311,7 +293,4 @@ public class SMGJoinSubSMGsForAbstraction extends SMGAbstractJoin {
   public PersistentSet<SMGValue> getSmgValuesMappedinSMG2() {
     return smgValuesMappedinSMG2;
   }
-
-
-
 }

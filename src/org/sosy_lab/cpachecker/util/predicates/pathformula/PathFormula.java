@@ -41,10 +41,10 @@ public final class PathFormula implements Serializable {
 
   // Do not make public, cf. createManually()
   PathFormula(BooleanFormula pf, SSAMap ssa, PointerTargetSet pts, int pLength) {
-    this.formula = checkNotNull(pf);
+    formula = checkNotNull(pf);
     this.ssa = checkNotNull(ssa);
     this.pts = checkNotNull(pts);
-    this.length = pLength;
+    length = pLength;
   }
 
   /**
@@ -119,12 +119,11 @@ public final class PathFormula implements Serializable {
       return false;
     }
 
-    PathFormula other = (PathFormula)obj;
+    PathFormula other = (PathFormula) obj;
     return (length == other.length)
         && formula.equals(other.formula)
         && ssa.equals(other.ssa)
-        && pts.equals(other.pts)
-        ;
+        && pts.equals(other.pts);
   }
 
   @Override

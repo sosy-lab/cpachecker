@@ -18,18 +18,20 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 
 /**
- * Instances of this class are configurable program analyses for analyzing a
- * program to gain information about pointer aliasing.
+ * Instances of this class are configurable program analyses for analyzing a program to gain
+ * information about pointer aliasing.
  */
 public class PointerCPA extends AbstractCPA {
 
-  @Options(prefix="cpa.pointer2")
+  @Options(prefix = "cpa.pointer2")
   public static class PointerOptions {
 
-    @Option(secure=true, values={"JOIN", "SEP"}, toUppercase=true,
-        description="which merge operator to use for PointerCPA")
+    @Option(
+        secure = true,
+        values = {"JOIN", "SEP"},
+        toUppercase = true,
+        description = "which merge operator to use for PointerCPA")
     private String merge = "JOIN";
-
   }
 
   /**
@@ -54,5 +56,4 @@ public class PointerCPA extends AbstractCPA {
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return PointerState.INITIAL_STATE;
   }
-
 }

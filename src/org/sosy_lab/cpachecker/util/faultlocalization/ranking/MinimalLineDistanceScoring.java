@@ -16,7 +16,7 @@ import org.sosy_lab.cpachecker.util.faultlocalization.appendables.RankInfo;
 
 public class MinimalLineDistanceScoring implements FaultScoring {
 
-  private int errorLocation;
+  private final int errorLocation;
 
   /**
    * Sorts the result set by absolute distance to the error location based on the linenumber
@@ -41,7 +41,7 @@ public class MinimalLineDistanceScoring implements FaultScoring {
 
     // zero lines from error means changing the post condition fixes the error
     // score => zero because post-condition is assumed to be placed correctly.
-    double likelihood = min == 0 ? 0.0 : 1d/min;
+    double likelihood = min == 0 ? 0.0 : 1d / min;
     return FaultInfo.rankInfo(
         "This line is " + min + " line(s) away from the error location", likelihood);
   }

@@ -25,31 +25,27 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.ArithmeticOverflowAssumptionBuilder;
 
-/**
- * Transfer relation for the generic assumption generator.
- */
+/** Transfer relation for the generic assumption generator. */
 public class GenericAssumptionsTransferRelation extends SingleEdgeTransferRelation {
 
   /**
-   * List of interfaces used to build the default
-   * assumptions made by the model checker for
-   * program operations.
+   * List of interfaces used to build the default assumptions made by the model checker for program
+   * operations.
    *
-   * Modify this to register new kind of assumptions.
+   * <p>Modify this to register new kind of assumptions.
    */
   private final List<GenericAssumptionBuilder> assumptionBuilders;
 
   public GenericAssumptionsTransferRelation(
       CFA pCFA, LogManager logger, Configuration pConfiguration)
       throws InvalidConfigurationException {
-    assumptionBuilders = ImmutableList.of(
-            new ArithmeticOverflowAssumptionBuilder(pCFA, logger, pConfiguration));
+    assumptionBuilders =
+        ImmutableList.of(new ArithmeticOverflowAssumptionBuilder(pCFA, logger, pConfiguration));
   }
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
-      AbstractState el, Precision p, CFAEdge edge)
-          throws CPATransferException {
+      AbstractState el, Precision p, CFAEdge edge) throws CPATransferException {
 
     List<CExpression> allAssumptions = new ArrayList<>();
     for (GenericAssumptionBuilder b : assumptionBuilders) {

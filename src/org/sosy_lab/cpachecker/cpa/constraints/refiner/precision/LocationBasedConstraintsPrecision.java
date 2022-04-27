@@ -28,9 +28,7 @@ final class LocationBasedConstraintsPrecision implements ConstraintsPrecision {
     trackedLocations = new HashSet<>();
   }
 
-  private LocationBasedConstraintsPrecision(
-      final LocationBasedConstraintsPrecision pOther
-  ) {
+  private LocationBasedConstraintsPrecision(final LocationBasedConstraintsPrecision pOther) {
     trackedLocations = pOther.trackedLocations;
   }
 
@@ -39,10 +37,7 @@ final class LocationBasedConstraintsPrecision implements ConstraintsPrecision {
   }
 
   @Override
-  public boolean isTracked(
-      final Constraint pConstraint,
-      final CFANode pLocation
-  ) {
+  public boolean isTracked(final Constraint pConstraint, final CFANode pLocation) {
     return trackedLocations.contains(pLocation);
   }
 
@@ -79,7 +74,7 @@ final class LocationBasedConstraintsPrecision implements ConstraintsPrecision {
       return false;
     }
 
-    LocationBasedConstraintsPrecision that = (LocationBasedConstraintsPrecision)o;
+    LocationBasedConstraintsPrecision that = (LocationBasedConstraintsPrecision) o;
 
     if (!trackedLocations.equals(that.trackedLocations)) {
       return false;

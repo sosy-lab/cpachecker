@@ -9,17 +9,15 @@
 package org.sosy_lab.cpachecker.cpa.invariants;
 
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.BooleanFormula;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-
 interface AbstractionState {
 
   /**
-   * Determine on which variables to use abstraction when merging two
-   * invariants states having this and the given abstraction state.
+   * Determine on which variables to use abstraction when merging two invariants states having this
+   * and the given abstraction state.
    *
    * @param pOther the other abstraction state.
    * @return the set of widening targets.

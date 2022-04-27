@@ -24,7 +24,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
  * {@link BlockFormulaStrategy} and {@link RefinementStrategy} so that it respects BAM.
  *
  * So the hierarchy is as follows:
- *
+ * <pre>{@code
  *        Refiner                  ARGBasedRefiner                     RefinementStrategy
  *           ^                           ^                                     ^
  *           |                           |                                     |
@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
  *           ^                           |                                     ^
  *           |                           |                                     |
  *     BAMBasedRefiner    --->    PredicateCPARefiner  --->   BAMPredicateAbstractionRefinementStrategy
- *
+ *}
  * Here ^ means inheritance and -> means reference.
  *
  * BAMPredicateRefiner is only used for encapsulating this and providing the static factory method.

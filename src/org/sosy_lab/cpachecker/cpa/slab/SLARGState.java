@@ -47,8 +47,8 @@ public class SLARGState extends ARGState
       boolean isError,
       AbstractState wrappedState) {
     super(wrappedState, null); // second parameter is null so that we can add the parent here *
-    this.parentsToEdgeSets = new HashMap<>();
-    this.childrenToEdgeSets = new HashMap<>();
+    parentsToEdgeSets = new HashMap<>();
+    childrenToEdgeSets = new HashMap<>();
     if (parent != null) { // *
       assert edgeFromParent != null;
       addParent(parent, edgeFromParent);
@@ -60,6 +60,7 @@ public class SLARGState extends ARGState
   /**
    * This copy constructor does not make a deep copy of the wrapped state! It will also have no
    * parents or children.
+   *
    * @param pState the state to be copied
    */
   public SLARGState(SLARGState pState) {
@@ -113,7 +114,7 @@ public class SLARGState extends ARGState
   @Override
   public List<CFAEdge> getEdgesToChild(ARGState argChild) {
     CFAEdge edge = getEdgeToChild(argChild);
-    if (edge!=null) {
+    if (edge != null) {
       return ImmutableList.of(edge);
     } else {
       return ImmutableList.of();
@@ -161,9 +162,9 @@ public class SLARGState extends ARGState
   public void addParent(SLARGState pParent, EdgeSet pEdgeSet) {
     super.addParent(pParent);
     assert pEdgeSet != null;
-    assert !this.parentsToEdgeSets.containsKey(pParent);
-    assert !this.parentsToEdgeSets.containsValue(pEdgeSet);
-    this.parentsToEdgeSets.put(pParent, pEdgeSet);
+    assert !parentsToEdgeSets.containsKey(pParent);
+    assert !parentsToEdgeSets.containsValue(pEdgeSet);
+    parentsToEdgeSets.put(pParent, pEdgeSet);
     pParent.childrenToEdgeSets.put(this, pEdgeSet);
   }
 
@@ -178,14 +179,14 @@ public class SLARGState extends ARGState
 
     super.removeParent(parent);
 
-    assert this.parentsToEdgeSets.containsKey(parent);
-    this.parentsToEdgeSets.remove(parent);
+    assert parentsToEdgeSets.containsKey(parent);
+    parentsToEdgeSets.remove(parent);
     parent.childrenToEdgeSets.remove(this);
   }
 
   @Override
   public void removeFromARG() {
-    assert !this.isDestroyed() : "Don't use destroyed ARGState " + this;
+    assert !isDestroyed() : "Don't use destroyed ARGState " + this;
     for (ARGState argParent : new ArrayList<>(getParents())) { // prevent concurrent modification
       if (!Objects.equals(argParent, this)) {
         SLARGState parent = (SLARGState) argParent;
@@ -203,7 +204,7 @@ public class SLARGState extends ARGState
 
   @Override
   public ARGState forkWithReplacements(Collection<AbstractState> pReplacementStates) {
-    AbstractState wrappedState = this.getWrappedState();
+    AbstractState wrappedState = getWrappedState();
     AbstractState newWrappedState = null;
     if (wrappedState instanceof Splitable) {
       newWrappedState = ((Splitable) wrappedState).forkWithReplacements(pReplacementStates);
@@ -211,7 +212,7 @@ public class SLARGState extends ARGState
       newWrappedState = wrappedState;
     }
 
-    ARGState newState = new SLARGState(null, null, this.isInit(), this.isTarget(), newWrappedState);
+    ARGState newState = new SLARGState(null, null, isInit(), isTarget(), newWrappedState);
     newState.makeTwinOf(this);
 
     return newState;
@@ -227,17 +228,17 @@ public class SLARGState extends ARGState
    */
   @Override
   public void replaceInARGWith(ARGState replacement) {
-    assert !this.isDestroyed() : "Don't use destroyed ARGState " + this;
+    assert !isDestroyed() : "Don't use destroyed ARGState " + this;
     assert !replacement.isDestroyed() : "Don't use destroyed ARGState " + replacement;
     assert !isCovered() : "Not implemented: Replacement of covered element " + this;
     assert !replacement.isCovered() : "Cannot replace with covered element " + replacement;
-    assert !this.equals(replacement) : "Don't replace ARGState " + this + " with itself";
+    assert !equals(replacement) : "Don't replace ARGState " + this + " with itself";
 
     // copy children
     for (ARGState child : new ArrayList<>(getChildren())) {
       assert child.getParents().contains(this) : "Inconsistent ARG at " + this;
       ((SLARGState) child)
-          .addParent((SLARGState) replacement, new EdgeSet(this.getEdgeSetToChild(child)));
+          .addParent((SLARGState) replacement, new EdgeSet(getEdgeSetToChild(child)));
       child.removeParent(this);
     }
 
@@ -246,7 +247,7 @@ public class SLARGState extends ARGState
       ((SLARGState) replacement)
           .addParent(
               (SLARGState) parent, new EdgeSet(((SLARGState) parent).getEdgeSetToChild(this)));
-      this.removeParent(parent);
+      removeParent(parent);
     }
 
     super.replaceInARGWith(replacement);

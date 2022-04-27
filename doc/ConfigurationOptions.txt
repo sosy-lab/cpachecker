@@ -160,6 +160,7 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -827,6 +828,9 @@ cfa.initializeAllVariables = false
 # for arrays and structs) in your analysis anyway. this option will otherwise
 # create c code which is not the same as the original one
 cfa.moveDeclarationsToFunctionStart = false
+
+# Which functions should be interpreted as never returning to their call site
+cfa.nonReturningFunctions = {"abort", "exit"}
 
 # Export CFA as pixel graphic to the given file name. The suffix is added
 # corresponding to the value of option pixelgraphic.export.formatIf set to
@@ -1559,7 +1563,11 @@ cpa.callstack.traverseBackwards = false
 
 # Blacklist of extern functions that will make the analysis abort if called
 cpa.callstack.unsupportedFunctions = {
-          "pthread_create", "pthread_key_create", "longjmp", "siglongjmp", "__builtin_va_arg",
+          "pthread_create",
+          "pthread_key_create",
+          "longjmp",
+          "siglongjmp",
+          "__builtin_va_arg",
           "atexit"}
 
 # firing relation to be used in the precision adjustment operator
@@ -2298,14 +2306,11 @@ cpa.predicate.maxPreciseStrFunctionSize = 100
 
 # Set of functions that non-deterministically provide new memory on the heap,
 # i.e. they can return either a valid pointer or zero.
-cpa.predicate.memoryAllocationFunctions = {
-      "malloc", "__kmalloc", "kmalloc", "alloca", "__builtin_alloca"
-      }
+cpa.predicate.memoryAllocationFunctions = {"malloc", "__kmalloc", "kmalloc", "alloca", "__builtin_alloca"}
 
 # Memory allocation functions of which all parameters but the first should be
 # ignored.
-cpa.predicate.memoryAllocationFunctionsWithSuperfluousParameters = {
-      "__kmalloc", "kmalloc", "kzalloc"}
+cpa.predicate.memoryAllocationFunctionsWithSuperfluousParameters = {"__kmalloc", "kmalloc", "kzalloc"}
 
 # Set of functions that non-deterministically provide new zeroed memory on
 # the heap, i.e. they can return either a valid pointer or zero.
@@ -2396,6 +2401,9 @@ cpa.predicate.refinement.atomicInterpolants = true
 cpa.predicate.refinement.cexTraceCheckDirection = ZIGZAG
   enum:     [FORWARDS, BACKWARDS, ZIGZAG, LOOP_FREE_FIRST, RANDOM, LOWEST_AVG_SCORE,
              HIGHEST_AVG_SCORE, LOOP_FREE_FIRST_BACKWARDS]
+
+# discard the information of the error path when a counterexample is found
+cpa.predicate.refinement.discardErrorPath = false
 
 # Actually compute an abstraction, otherwise just convert the interpolants to
 # BDDs as they are.
@@ -2493,7 +2501,8 @@ cpa.predicate.refinement.reuseInterpolationEnvironment = false
 # fallback to the other if one does not succeed, or even combine the
 # interpolants.
 cpa.predicate.refinement.sequentialStrategy = FWD
-  enum:     [FWD, FWD_FALLBACK, BWD, BWD_FALLBACK, CONJUNCTION, WEIGHTED, RANDOM]
+  enum:     [FWD, FWD_FALLBACK, BWD, BWD_FALLBACK, CONJUNCTION, DISJUNCTION, WEIGHTED,
+             RANDOM]
 
 # During refinement, add all new predicates to the precisions of all abstract
 # states in the reached set.
@@ -2881,9 +2890,9 @@ cpa.smg.refinement.interpolationTreeExportFile = "interpolationTree.%d-%d.dot"
 cpa.smg.runtimeCheck = NONE
   enum:     [FORCED, NONE, HALF, FULL]
 
-# Which unknown function are always considered as safe functions, i.e., free
-# of memory-related side-effects?
-cpa.smg.safeUnknownFunctions = {"abort"}
+# Patterns of unknown functions which are always considered as safe
+# functions, i.e., free of memory-related side-effects.
+cpa.smg.safeUnknownFunctionsPatterns = {"abort"}
 
 # which stop operator to use for the SMGCPA
 cpa.smg.stop = "SEP"
@@ -3557,14 +3566,23 @@ faultLocalization.by_distance.metric = ADM
 # available.
 faultLocalization.by_distance.stopAfter = 40
 
-# disable flow-sensitive trace formula (may increase runtime)
-faultLocalization.by_traceformula.errorInvariants.disableFSTF = false
-
 # Do not show faults that contain a certain variable. Use, e.g., 'main::x' to
 # ban variable 'x' in the main function. Use, e.g., '::x' to ban all
 # variables named 'x'. This is especially useful to filter specific faults if
-# the first run results in many candidates. To add variables
+# the first run results in many candidates. Provide a comma separated string
+# to add variables, e.g., main::x,doStuff::y,::z
 faultLocalization.by_traceformula.maxsat.ban = []
+
+# which post-condition type to use
+faultLocalization.by_traceformula.postConditionType = LAST_ASSUME_EDGES_ON_SAME_LINE
+  enum:     [LAST_ASSUME_EDGE, LAST_ASSUME_EDGES_ON_SAME_LINE,
+             LAST_ASSUME_EDGE_CLUSTER]
+
+# By default, the precondition only contains the failing variable assignment
+# of all nondet variables. Choose INITIAL_ASSIGNMENT to assignments like
+# '<datatype> <variable-name> = <value>' to the precondition.
+faultLocalization.by_traceformula.preconditionType = NONDETERMINISTIC_VARIABLES_ONLY
+  enum:     [NONDETERMINISTIC_VARIABLES_ONLY, INITIAL_ASSIGNMENT, ALWAYS_TRUE]
 
 # which algorithm to use
 faultLocalization.by_traceformula.type = UNSAT
@@ -3605,6 +3623,9 @@ heuristicSelection.recursionConfig = no default value
 # Configuration for programs with a single loop.
 heuristicSelection.singleLoopConfig = no default value
 
+# toggle asserting targets at every iteration
+imc.assertTargetsAtEveryIteration = false
+
 # toggle checking forward conditions
 imc.checkForwardConditions = true
 
@@ -3613,10 +3634,6 @@ imc.fallBack = true
 
 # toggle using interpolation to verify programs with loops
 imc.interpolation = true
-
-# toggle which direction to derive interpolants
-imc.itpDeriveDirection = BACKWARD
-  enum:     [FORWARD, BACKWARD, BIDIRECTION_CONJUNCT, BIDIRECTION_DISJUNCT]
 
 # toggle removing unreachable stop states in ARG
 imc.removeUnreachableStopStates = false
@@ -3668,10 +3685,6 @@ ismc.impactLikeCovering = false
 
 # toggle using interpolation to verify programs with loops
 ismc.interpolation = true
-
-# toggle which direction to derive interpolants
-ismc.itpDeriveDirection = BACKWARD
-  enum:     [FORWARD, BACKWARD, BIDIRECTION_CONJUNCT, BIDIRECTION_DISJUNCT]
 
 # toggle removing unreachable stop states in ARG
 ismc.removeUnreachableStopStates = false
@@ -4275,6 +4288,12 @@ slicing.exportToC.enable = false
 # File template for exported C program slices
 slicing.exportToC.file = "programSlice.%d.c"
 
+# Whether to export program slices as DOT files.
+slicing.exportToDot.enable = true
+
+# File template for exported program slice DOT files.
+slicing.exportToDot.file = "programSlice.%d.dot"
+
 # which type of extractor for slicing criteria to use
 slicing.extractor = ALL
   enum:     [ALL, REDUCER, SYNTAX]
@@ -4523,19 +4542,12 @@ testcase.xml = no default value
 # Zip file into which all test case files are bundled
 testcase.zip.file = no default value
 
-# By default, the precondition only contains the failing variable assignment
-# of all nondet variables. Enable this option if initial variable assignments
-# of the form '<datatype> <variable-name> = <value>' should also be added to
-# the precondition. See the description for the option traceformula.ignore
-# for further options.
-traceformula.altpre = false
-
 # Usually every statement that is not part of the precondition gets a
 # selector. If a certain variable is known to not cause the error, add it to
 # this option, e.g., main::x,doStuff::y
 traceformula.disable = []
 
-# The alternative precondition consists of all initial variable assignments 
+# The alternative precondition consists of all initial variable assignments
 # and a failing variable assignment for all nondet variables. By default only
 #  variables in the main function are part of the precondition. Overwrite the
 # default by adding functions to this option, e.g., "main,doStuff"
@@ -4548,12 +4560,17 @@ traceformula.filter = ["main"]
 # variable is used as prefix, separated by two ':'
 traceformula.ignore = []
 
+# Make trace formula flow-sensitive, i.e., assume edges imply the edges that
+# are only reachable through the assume edge. Flow-sensitive traces remove
+# assume edges from the trace. Hence, no assume edge will be part of a fault.
+traceformula.makeFlowSensitive = false
+
 # By default, every executed statement gets its own selector. If a loop is
 # part of the program to analyze, the number of selectors can increase which
 # also increases the run time of max-sat drastically. To use the same
 # selector for equal statements (on the same line), set this option to true.
 # Note that enabling this option  also decreases the quality of results.
-traceformula.uniqueselectors = false
+traceformula.reduceSelectors = false
 
 # Ignore functions that are defined by C11
 undefinedFunctionsCollector.allowC11Functions = true

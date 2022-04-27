@@ -9,12 +9,12 @@
 package org.sosy_lab.cpachecker.cfa.model;
 
 public enum CFAEdgeType {
-    BlankEdge,
-    AssumeEdge,
-    StatementEdge,
-    DeclarationEdge,
-    ReturnStatementEdge,
-    FunctionCallEdge,
-    FunctionReturnEdge,
-    CallToReturnEdge
+  BlankEdge,
+  AssumeEdge,
+  StatementEdge,
+  DeclarationEdge,
+  ReturnStatementEdge,
+  FunctionCallEdge,
+  FunctionReturnEdge,
+  CallToReturnEdge
 }

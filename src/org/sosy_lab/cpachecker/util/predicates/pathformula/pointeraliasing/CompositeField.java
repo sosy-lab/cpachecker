@@ -34,8 +34,7 @@ final class CompositeField implements Comparable<CompositeField>, Serializable {
   private final CCompositeTypeMemberDeclaration field;
 
   private CompositeField(
-      final CCompositeType pCompositeType,
-      final CCompositeTypeMemberDeclaration pField) {
+      final CCompositeType pCompositeType, final CCompositeTypeMemberDeclaration pField) {
     compositeType = pCompositeType;
     compositeTypeStr = CTypeUtils.typeToString(pCompositeType);
     field = pField;
@@ -81,8 +80,8 @@ final class CompositeField implements Comparable<CompositeField>, Serializable {
   @Override
   public int compareTo(final CompositeField other) {
     return ComparisonChain.start()
-        .compare(this.compositeTypeStr, other.compositeTypeStr)
-        .compare(this.getFieldName(), other.getFieldName())
+        .compare(compositeTypeStr, other.compositeTypeStr)
+        .compare(getFieldName(), other.getFieldName())
         .result();
   }
 

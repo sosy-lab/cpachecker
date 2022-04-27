@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.ast;
 
-
-
 public abstract class AbstractInitializer extends AbstractAstNode implements AInitializer {
 
   private static final long serialVersionUID = 8957078095931687599L;

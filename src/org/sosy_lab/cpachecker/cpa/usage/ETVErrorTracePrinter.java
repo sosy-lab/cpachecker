@@ -48,9 +48,8 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
   private Path outputStatFileName = Path.of("unsafe_rawdata");
 
   @Option(
-    description = "use single file for output or dump every error trace to its own file",
-    secure = true
-  )
+      description = "use single file for output or dump every error trace to its own file",
+      secure = true)
   private boolean singleFileOutput = false;
 
   private Writer globalWriter;

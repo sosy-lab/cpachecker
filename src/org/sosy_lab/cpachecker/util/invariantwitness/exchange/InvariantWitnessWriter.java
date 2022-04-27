@@ -76,7 +76,6 @@ public final class InvariantWitnessWriter {
       throws InvalidConfigurationException {
     pConfig.inject(this);
 
-
     logger = Objects.requireNonNull(pLogger);
     lineOffsetsByFile = ArrayListMultimap.create(pLineOffsetsByFile);
     mapper =
@@ -132,7 +131,7 @@ public final class InvariantWitnessWriter {
 
     return new InvariantStoreEntryTask(
         inputFiles.stream().map(Path::toString).collect(ImmutableList.toImmutableList()),
-        inputFileHashes.build(),
+        inputFileHashes.buildOrThrow(),
         specification,
         getArchitecture(pCFA.getMachineModel()),
         pCFA.getLanguage().toString());
@@ -210,4 +209,3 @@ public final class InvariantWitnessWriter {
     return entry;
   }
 }
-

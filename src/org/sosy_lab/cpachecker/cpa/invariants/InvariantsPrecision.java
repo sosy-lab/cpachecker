@@ -16,8 +16,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 class InvariantsPrecision implements Precision {
 
-  public static InvariantsPrecision getEmptyPrecision(
-      AbstractionStrategy pAbstractionStrategy) {
+  public static InvariantsPrecision getEmptyPrecision(AbstractionStrategy pAbstractionStrategy) {
     return new InvariantsPrecision(
         ImmutableSet.of(), ImmutableSet.of(), 0, pAbstractionStrategy, false) {
 
@@ -63,24 +62,26 @@ class InvariantsPrecision implements Precision {
       int pMaximumFormulaDepth,
       AbstractionStrategy pAbstractionStrategy,
       boolean pUseMod2Template) {
-    this.relevantEdges = pRelevantEdges;
-    this.interestingVariables = pInterestingVariables;
-    this.maximumFormulaDepth = pMaximumFormulaDepth;
-    this.abstractionStrategy = pAbstractionStrategy;
-    this.useMod2Template = pUseMod2Template;
+    relevantEdges = pRelevantEdges;
+    interestingVariables = pInterestingVariables;
+    maximumFormulaDepth = pMaximumFormulaDepth;
+    abstractionStrategy = pAbstractionStrategy;
+    useMod2Template = pUseMod2Template;
   }
 
   public boolean isRelevant(CFAEdge pEdge) {
-    return pEdge != null && (this.relevantEdges == null || this.relevantEdges.contains(pEdge));
+    return pEdge != null && (relevantEdges == null || relevantEdges.contains(pEdge));
   }
 
   public Set<MemoryLocation> getInterestingVariables() {
-    return this.interestingVariables;
+    return interestingVariables;
   }
 
   @Override
   public String toString() {
-    return String.format("Number of relevant edges: %d; Interesting variables: %s;", this.relevantEdges.size(), this.interestingVariables);
+    return String.format(
+        "Number of relevant edges: %d; Interesting variables: %s;",
+        relevantEdges.size(), interestingVariables);
   }
 
   @Override
@@ -99,15 +100,15 @@ class InvariantsPrecision implements Precision {
 
   @Override
   public int hashCode() {
-    return this.interestingVariables.hashCode();
+    return interestingVariables.hashCode();
   }
 
   public int getMaximumFormulaDepth() {
-    return this.maximumFormulaDepth;
+    return maximumFormulaDepth;
   }
 
   public AbstractionStrategy getAbstractionStrategy() {
-    return this.abstractionStrategy;
+    return abstractionStrategy;
   }
 
   public boolean shouldUseMod2Template() {

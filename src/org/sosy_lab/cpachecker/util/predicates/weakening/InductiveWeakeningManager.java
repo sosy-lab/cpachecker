@@ -40,31 +40,21 @@ import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.Tactic;
 
 /**
- * Finds inductive weakening of formulas (originally: formula slicing).
- * This class operates on formulas, and should be orthogonal to
- * CFA- and CPA-specific concepts.
+ * Finds inductive weakening of formulas (originally: formula slicing). This class operates on
+ * formulas, and should be orthogonal to CFA- and CPA-specific concepts.
  */
 public class InductiveWeakeningManager implements StatisticsProvider {
 
-
-  /**
-   * Possible weakening strategies.
-   */
+  /** Possible weakening strategies. */
   public enum WEAKENING_STRATEGY {
 
-    /**
-     * Remove all atoms containing the literals mentioned in the transition relation.
-     */
+    /** Remove all atoms containing the literals mentioned in the transition relation. */
     SYNTACTIC,
 
-    /**
-     * Abstract away all literals, try to un-abstract them one by one.
-     */
+    /** Abstract away all literals, try to un-abstract them one by one. */
     DESTRUCTIVE,
 
-    /**
-     * Select literals to abstract based on the counterexamples-to-induction.
-     */
+    /** Select literals to abstract based on the counterexamples-to-induction. */
     CEX
   }
 
@@ -74,6 +64,7 @@ public class InductiveWeakeningManager implements StatisticsProvider {
 
   @SuppressWarnings({"FieldCanBeLocal", "unused"})
   private final LogManager logger;
+
   private final InductiveWeakeningStatistics statistics;
   private final SyntacticWeakeningManager syntacticWeakeningManager;
   private final DestructiveWeakeningManager destructiveWeakeningManager;
@@ -102,69 +93,62 @@ public class InductiveWeakeningManager implements StatisticsProvider {
   }
 
   /**
-   * This method supports different states of <i>from</i> and <i>to</i> state
-   * lemmas. Only the lemmas associated with the <i>to</i> state can be dropped.
+   * This method supports different states of <i>from</i> and <i>to</i> state lemmas. Only the
+   * lemmas associated with the <i>to</i> state can be dropped.
    *
-   * @param fromStateLemmas Uninstantiated lemmas associated with the
-   *                        <i>from</i> state.
-   * @param transition Transition from <i>fromState</i> to <i>toState</i>.
-   *                   Has to start at {@code startingSSA}.
-   * @param toStateLemmas Uninstantiated lemmas associated with the
-   *                        <i>to</i> state.
-   *
-   * @return Subset of {@code toStateLemmas} to which everything in
-   * {@code fromStateLemmas} maps.
+   * @param fromStateLemmas Uninstantiated lemmas associated with the <i>from</i> state.
+   * @param transition Transition from <i>fromState</i> to <i>toState</i>. Has to start at {@code
+   *     startingSSA}.
+   * @param toStateLemmas Uninstantiated lemmas associated with the <i>to</i> state.
+   * @return Subset of {@code toStateLemmas} to which everything in {@code fromStateLemmas} maps.
    */
   public Set<BooleanFormula> findInductiveWeakeningForRCNF(
       SSAMap startingSSA,
       Set<BooleanFormula> fromStateLemmas,
       final PathFormula transition,
-      Set<BooleanFormula> toStateLemmas
-     )
+      Set<BooleanFormula> toStateLemmas)
       throws SolverException, InterruptedException {
 
     BooleanFormula fromStateLemmasInstantiated =
-        fromStateLemmas
-            .stream()
+        fromStateLemmas.stream()
             .map(f -> fmgr.instantiate(f, startingSSA))
             .collect(bfmgr.toConjunction());
 
     // Mapping from selectors to the items they annotate.
     final BiMap<BooleanFormula, BooleanFormula> selectionInfo = annotateConjunctions(toStateLemmas);
     BooleanFormula toStateLemmasAnnotated =
-        Collections3.zipMapEntries(selectionInfo, (selector, f) -> bfmgr.or(selector, fmgr.instantiate(f, transition.getSsa())))
+        Collections3.zipMapEntries(
+                selectionInfo,
+                (selector, f) -> bfmgr.or(selector, fmgr.instantiate(f, transition.getSsa())))
             .collect(bfmgr.toConjunction());
 
-    final Set<BooleanFormula> toAbstract = findSelectorsToAbstract(
-        selectionInfo,
-        fromStateLemmasInstantiated,
-        transition,
-        toStateLemmasAnnotated,
-        startingSSA,
-        fromStateLemmas);
+    final Set<BooleanFormula> toAbstract =
+        findSelectorsToAbstract(
+            selectionInfo,
+            fromStateLemmasInstantiated,
+            transition,
+            toStateLemmasAnnotated,
+            startingSSA,
+            fromStateLemmas);
 
     ImmutableSet<BooleanFormula> out =
         from(toStateLemmas)
             .filter(lemma -> !toAbstract.contains(selectionInfo.inverse().get(lemma)))
             .toSet();
-    assert checkAllMapsTo(fromStateLemmas, startingSSA, out, transition
-        .getSsa(), transition.getFormula());
+    assert checkAllMapsTo(
+        fromStateLemmas, startingSSA, out, transition.getSsa(), transition.getFormula());
     return out;
   }
 
   /**
-   * Find weakening of {@code lemmas} with respect to {@code transition}.
-   * This method assumes to- and from- lemmas are the same, and drops both at
-   * the same time.
+   * Find weakening of {@code lemmas} with respect to {@code transition}. This method assumes to-
+   * and from- lemmas are the same, and drops both at the same time.
    *
    * @param lemmas Set of uninstantiated lemmas.
    * @return inductive subset of {@code lemmas}
    */
   public Set<BooleanFormula> findInductiveWeakeningForRCNF(
-      final SSAMap startingSSA,
-      final PathFormula transition,
-      Set<BooleanFormula> lemmas
-  )
+      final SSAMap startingSSA, final PathFormula transition, Set<BooleanFormula> lemmas)
       throws SolverException, InterruptedException {
 
     // Mapping from selectors to the items they annotate.
@@ -182,52 +166,48 @@ public class InductiveWeakeningManager implements StatisticsProvider {
                 (selector, f) -> bfmgr.or(selector, fmgr.instantiate(f, transition.getSsa())))
             .collect(bfmgr.toConjunction());
 
-    final Set<BooleanFormula> toAbstract = findSelectorsToAbstract(
-        selectionInfo,
-        fromStateLemmasAnnotated,
-        transition,
-        toStateLemmasAnnotated,
-        startingSSA, lemmas);
+    final Set<BooleanFormula> toAbstract =
+        findSelectorsToAbstract(
+            selectionInfo,
+            fromStateLemmasAnnotated,
+            transition,
+            toStateLemmasAnnotated,
+            startingSSA,
+            lemmas);
 
     ImmutableSet<BooleanFormula> out =
         from(lemmas)
             .filter(lemma -> !toAbstract.contains(selectionInfo.inverse().get(lemma)))
             .toSet();
-    assert checkAllMapsTo(out, startingSSA, out, transition.getSsa(),
-        transition.getFormula());
+    assert checkAllMapsTo(out, startingSSA, out, transition.getSsa(), transition.getFormula());
 
     return out;
   }
 
-  /**
-   * Sanity checking on output, whether it is indeed inductive.
-   */
+  /** Sanity checking on output, whether it is indeed inductive. */
   private boolean checkAllMapsTo(
       Set<BooleanFormula> from,
       SSAMap startSSA,
       Set<BooleanFormula> to,
       SSAMap finishSSA,
-      BooleanFormula transition
-  ) throws SolverException, InterruptedException {
-    return solver.isUnsat(bfmgr.and(
+      BooleanFormula transition)
+      throws SolverException, InterruptedException {
+    return solver.isUnsat(
+        bfmgr.and(
             fmgr.instantiate(bfmgr.and(from), startSSA),
             transition,
-            fmgr.instantiate(bfmgr.not(bfmgr.and(to)), finishSSA)
-        ));
+            fmgr.instantiate(bfmgr.not(bfmgr.and(to)), finishSSA)));
   }
 
   /**
-   *
-   * @param selectionVarsInfo Mapping from the selectors to the (uninstantiated) formulas they annotate.
-   * @param fromState Instantiated formula representing the state before the
-   *                  transition.
+   * @param selectionVarsInfo Mapping from the selectors to the (uninstantiated) formulas they
+   *     annotate.
+   * @param fromState Instantiated formula representing the state before the transition.
    * @param transition Transition under which inductiveness should hold.
-   * @param toState Instantiated formula representing the state after the
-   *                transition.
+   * @param toState Instantiated formula representing the state after the transition.
    * @param fromSSA SSAMap associated with the {@code fromState}.
    * @param pFromStateLemmas Uninstantiated lemmas describing the from- state.
-   * @return Set of selectors which should be abstracted.
-   *         Subset of {@code selectionVarsInfo} keys.
+   * @return Set of selectors which should be abstracted. Subset of {@code selectionVarsInfo} keys.
    */
   private Set<BooleanFormula> findSelectorsToAbstract(
       Map<BooleanFormula, BooleanFormula> selectionVarsInfo,
@@ -235,7 +215,8 @@ public class InductiveWeakeningManager implements StatisticsProvider {
       PathFormula transition,
       BooleanFormula toState,
       SSAMap fromSSA,
-      Set<BooleanFormula> pFromStateLemmas) throws SolverException, InterruptedException {
+      Set<BooleanFormula> pFromStateLemmas)
+      throws SolverException, InterruptedException {
     switch (options.getWeakeningStrategy()) {
       case SYNTACTIC:
         return syntacticWeakeningManager.performWeakening(
@@ -243,19 +224,11 @@ public class InductiveWeakeningManager implements StatisticsProvider {
 
       case DESTRUCTIVE:
         return destructiveWeakeningManager.performWeakening(
-            selectionVarsInfo,
-            fromState,
-            transition,
-            toState,
-            fromSSA,
-            pFromStateLemmas);
+            selectionVarsInfo, fromState, transition, toState, fromSSA, pFromStateLemmas);
 
       case CEX:
         return cexWeakeningManager.performWeakening(
-            selectionVarsInfo.keySet(),
-            fromState,
-            transition,
-            toState);
+            selectionVarsInfo.keySet(), fromState, transition, toState);
       default:
         throw new UnsupportedOperationException("Unexpected enum value");
     }
@@ -285,38 +258,37 @@ public class InductiveWeakeningManager implements StatisticsProvider {
     BooleanFormula nnf = fmgr.applyTactic(input, Tactic.NNF);
 
     try {
-    return bfmgr.transformRecursively(
-        nnf,
-        new BooleanFormulaTransformationVisitor(fmgr) {
-          @Override
-          public BooleanFormula visitAnd(List<BooleanFormula> processedOperands) {
-            try {
-              return bfmgr.and(simplifyArgs(processedOperands));
-            } catch (InterruptedException e) {
-              throw new TemporaryException(e);
-            } catch (SolverException e) {
-              throw new TemporaryException(e);
+      return bfmgr.transformRecursively(
+          nnf,
+          new BooleanFormulaTransformationVisitor(fmgr) {
+            @Override
+            public BooleanFormula visitAnd(List<BooleanFormula> processedOperands) {
+              try {
+                return bfmgr.and(simplifyArgs(processedOperands));
+              } catch (InterruptedException e) {
+                throw new TemporaryException(e);
+              } catch (SolverException e) {
+                throw new TemporaryException(e);
+              }
             }
-          }
 
-          @Override
-          public BooleanFormula visitOr(List<BooleanFormula> processedOperands) {
-            try {
-              return bfmgr.or(simplifyArgs(processedOperands));
-            } catch (InterruptedException e) {
-              throw new TemporaryException(e);
-            } catch (SolverException e) {
-              throw new TemporaryException(e);
+            @Override
+            public BooleanFormula visitOr(List<BooleanFormula> processedOperands) {
+              try {
+                return bfmgr.or(simplifyArgs(processedOperands));
+              } catch (InterruptedException e) {
+                throw new TemporaryException(e);
+              } catch (SolverException e) {
+                throw new TemporaryException(e);
+              }
             }
-          }
-        });
+          });
     } catch (TemporaryException e) {
       throw e.unwrap();
     }
   }
 
-  private List<BooleanFormula> simplifyArgs(
-      List<BooleanFormula> args)
+  private List<BooleanFormula> simplifyArgs(List<BooleanFormula> args)
       throws SolverException, InterruptedException {
     boolean changed = true;
     while (changed) {
@@ -324,11 +296,7 @@ public class InductiveWeakeningManager implements StatisticsProvider {
       for (int i = 0; i < args.size(); i++) {
         BooleanFormula f = args.get(i);
         List<BooleanFormula> others = others(args, i);
-        if (solver.isUnsat(
-            bfmgr.not(
-                bfmgr.implication(bfmgr.and(others), f)
-            )
-        )) {
+        if (solver.isUnsat(bfmgr.not(bfmgr.implication(bfmgr.and(others), f)))) {
           args = others;
           changed = true;
         }
@@ -352,7 +320,7 @@ public class InductiveWeakeningManager implements StatisticsProvider {
       result.put(selector, f);
     }
 
-    return result.build();
+    return result.buildOrThrow();
   }
 
   @Override
@@ -362,15 +330,13 @@ public class InductiveWeakeningManager implements StatisticsProvider {
 
   public static class InductiveWeakeningStatistics implements Statistics {
 
-    /**
-     * Number of iterations required for convergence.
-     */
+    /** Number of iterations required for convergence. */
     final Multiset<Integer> iterationsNo = HashMultiset.create();
 
     @Override
     public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
-      out.printf("Histogram of number of iterations required for convergence: "
-          + "%s %n", iterationsNo);
+      out.printf(
+          "Histogram of number of iterations required for convergence: " + "%s %n", iterationsNo);
     }
 
     @Override

@@ -12,10 +12,9 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.SymbolicIn
 import org.sosy_lab.cpachecker.util.refinement.EdgeInterpolator;
 
 /**
- * Interface for {@link EdgeInterpolator} for
- * {@link org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA ValueAnalysisCPA} and
- * {@link org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA ConstraintsCPA}.
+ * Interface for {@link EdgeInterpolator} for {@link
+ * org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA ValueAnalysisCPA} and {@link
+ * org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA ConstraintsCPA}.
  */
 public interface SymbolicEdgeInterpolator
-    extends EdgeInterpolator<ForgettingCompositeState, SymbolicInterpolant> {
-}
+    extends EdgeInterpolator<ForgettingCompositeState, SymbolicInterpolant> {}

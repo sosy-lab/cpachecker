@@ -26,8 +26,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableAndFieldRelevancyComputer.VarFieldDependencies;
 
 final class CollectingLHSVisitor
-    extends DefaultCExpressionVisitor<
-        Pair<VariableOrField, VarFieldDependencies>, NoException> {
+    extends DefaultCExpressionVisitor<Pair<VariableOrField, VarFieldDependencies>, NoException> {
 
   private final CFA cfa;
 

@@ -7,9 +7,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Representation of concrete counterexamples,
- * produced by analyses after a target state has been found
- * and written to disk afterwards.
+ * Representation of concrete counterexamples, produced by analyses after a target state has been
+ * found and written to disk afterwards.
  */
 @javax.annotation.ParametersAreNonnullByDefault
 package org.sosy_lab.cpachecker.core.counterexample;

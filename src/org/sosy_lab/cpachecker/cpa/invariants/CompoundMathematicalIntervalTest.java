@@ -16,15 +16,19 @@ import org.junit.Test;
 
 public class CompoundMathematicalIntervalTest {
 
-  private final SimpleInterval oneToFiveInterval = SimpleInterval.of(BigInteger.ONE, BigInteger.valueOf(5));
+  private final SimpleInterval oneToFiveInterval =
+      SimpleInterval.of(BigInteger.ONE, BigInteger.valueOf(5));
 
-  private final SimpleInterval sixToTenInterval = SimpleInterval.of(BigInteger.valueOf(6), BigInteger.valueOf(10));
+  private final SimpleInterval sixToTenInterval =
+      SimpleInterval.of(BigInteger.valueOf(6), BigInteger.valueOf(10));
 
   private final SimpleInterval oneToTenInterval = SimpleInterval.of(BigInteger.ONE, BigInteger.TEN);
 
-  private final SimpleInterval negInfToZeroInterval = SimpleInterval.singleton(BigInteger.ZERO).extendToNegativeInfinity();
+  private final SimpleInterval negInfToZeroInterval =
+      SimpleInterval.singleton(BigInteger.ZERO).extendToNegativeInfinity();
 
-  private final SimpleInterval zeroToPosInfInterval = SimpleInterval.singleton(BigInteger.ZERO).extendToPositiveInfinity();
+  private final SimpleInterval zeroToPosInfInterval =
+      SimpleInterval.singleton(BigInteger.ZERO).extendToPositiveInfinity();
 
   @Test
   public void testIsTop() {
@@ -99,14 +103,20 @@ public class CompoundMathematicalIntervalTest {
     for (int i = -6; i <= 6; i += 2) {
       assertThat(steps.contains(i)).isTrue();
     }
-    CompoundMathematicalInterval stepsNegInf = steps.unionWith(CompoundMathematicalInterval.singleton(BigInteger.valueOf(-4)).extendToMinValue());
+    CompoundMathematicalInterval stepsNegInf =
+        steps.unionWith(
+            CompoundMathematicalInterval.singleton(BigInteger.valueOf(-4)).extendToMinValue());
     for (int i = -6; i <= 6; i += 2) {
       assertThat(stepsNegInf.contains(i)).isTrue();
     }
 
-    CompoundMathematicalInterval zeroOrTenToInf = CompoundMathematicalInterval.singleton(0).unionWith(CompoundMathematicalInterval.singleton(10).extendToMaxValue());
+    CompoundMathematicalInterval zeroOrTenToInf =
+        CompoundMathematicalInterval.singleton(0)
+            .unionWith(CompoundMathematicalInterval.singleton(10).extendToMaxValue());
     CompoundMathematicalInterval negOne = CompoundMathematicalInterval.singleton(-1);
-    CompoundMathematicalInterval negOneOrZeroOrTenToInf = CompoundMathematicalInterval.of(SimpleInterval.of(BigInteger.valueOf(-1), BigInteger.ZERO)).unionWith(CompoundMathematicalInterval.singleton(10).extendToMaxValue());
+    CompoundMathematicalInterval negOneOrZeroOrTenToInf =
+        CompoundMathematicalInterval.of(SimpleInterval.of(BigInteger.valueOf(-1), BigInteger.ZERO))
+            .unionWith(CompoundMathematicalInterval.singleton(10).extendToMaxValue());
     assertThat(zeroOrTenToInf.unionWith(negOne)).isEqualTo(negOneOrZeroOrTenToInf);
 
     assertThat(negOne.unionWith(CompoundMathematicalInterval.one()).unionWith(zero))
@@ -148,13 +158,16 @@ public class CompoundMathematicalIntervalTest {
         .isEqualTo(CompoundMathematicalInterval.bottom());
     assertThat(CompoundMathematicalInterval.bottom().invert())
         .isEqualTo(CompoundMathematicalInterval.top());
-    CompoundMathematicalInterval negInfToTen = CompoundMathematicalInterval.singleton(10).extendToMinValue();
-    CompoundMathematicalInterval elevenToInf = CompoundMathematicalInterval.singleton(11).extendToMaxValue();
+    CompoundMathematicalInterval negInfToTen =
+        CompoundMathematicalInterval.singleton(10).extendToMinValue();
+    CompoundMathematicalInterval elevenToInf =
+        CompoundMathematicalInterval.singleton(11).extendToMaxValue();
     assertThat(negInfToTen.invert()).isEqualTo(elevenToInf);
     assertThat(elevenToInf.invert()).isEqualTo(negInfToTen);
     assertThat(negInfToTen.invert().invert()).isEqualTo(negInfToTen);
     for (int i = -1; i < 2; ++i) {
-      CompoundMathematicalInterval invertedState = CompoundMathematicalInterval.singleton(i).invert();
+      CompoundMathematicalInterval invertedState =
+          CompoundMathematicalInterval.singleton(i).invert();
       assertThat(invertedState.contains(i)).isFalse();
       assertThat(invertedState.hasLowerBound()).isFalse();
       assertThat(invertedState.hasUpperBound()).isFalse();
@@ -195,10 +208,17 @@ public class CompoundMathematicalIntervalTest {
   public void testNegate() {
     assertThat(CompoundMathematicalInterval.one().negate())
         .isEqualTo(CompoundMathematicalInterval.singleton(-1));
-    CompoundMathematicalInterval twoToFour = CompoundMathematicalInterval.of(SimpleInterval.of(BigInteger.valueOf(2), BigInteger.valueOf(4)));
-    CompoundMathematicalInterval negTwoToNegOne = CompoundMathematicalInterval.of(SimpleInterval.of(BigInteger.valueOf(-2), BigInteger.valueOf(-1)));
-    CompoundMathematicalInterval negFourToNegTwo = CompoundMathematicalInterval.of(SimpleInterval.of(BigInteger.valueOf(-4), BigInteger.valueOf(-2)));
-    CompoundMathematicalInterval oneToTwo = CompoundMathematicalInterval.of(SimpleInterval.of(BigInteger.ONE, BigInteger.valueOf(2)));
+    CompoundMathematicalInterval twoToFour =
+        CompoundMathematicalInterval.of(
+            SimpleInterval.of(BigInteger.valueOf(2), BigInteger.valueOf(4)));
+    CompoundMathematicalInterval negTwoToNegOne =
+        CompoundMathematicalInterval.of(
+            SimpleInterval.of(BigInteger.valueOf(-2), BigInteger.valueOf(-1)));
+    CompoundMathematicalInterval negFourToNegTwo =
+        CompoundMathematicalInterval.of(
+            SimpleInterval.of(BigInteger.valueOf(-4), BigInteger.valueOf(-2)));
+    CompoundMathematicalInterval oneToTwo =
+        CompoundMathematicalInterval.of(SimpleInterval.of(BigInteger.ONE, BigInteger.valueOf(2)));
     assertThat(negTwoToNegOne.unionWith(twoToFour).negate())
         .isEqualTo(oneToTwo.unionWith(negFourToNegTwo));
   }
@@ -277,7 +297,8 @@ public class CompoundMathematicalIntervalTest {
 
   @Test
   public void testMultiply() {
-    CompoundMathematicalInterval topMultNeg2 = CompoundMathematicalInterval.top().multiply(BigInteger.valueOf(-2));
+    CompoundMathematicalInterval topMultNeg2 =
+        CompoundMathematicalInterval.top().multiply(BigInteger.valueOf(-2));
     List<SimpleInterval> intervals = topMultNeg2.getIntervals();
     int i = 0;
     BigInteger lastUpperBound = null;
@@ -303,7 +324,8 @@ public class CompoundMathematicalIntervalTest {
 
   @Test
   public void testBinaryXor() {
-    CompoundMathematicalInterval zeroToOne = CompoundMathematicalInterval.of(SimpleInterval.of(BigInteger.ZERO, BigInteger.ONE));
+    CompoundMathematicalInterval zeroToOne =
+        CompoundMathematicalInterval.of(SimpleInterval.of(BigInteger.ZERO, BigInteger.ONE));
     CompoundMathematicalInterval one = CompoundMathematicalInterval.one();
     assertThat(zeroToOne.binaryXor(one)).isEqualTo(zeroToOne);
     assertThat(one.binaryXor(zeroToOne)).isEqualTo(zeroToOne);
@@ -311,7 +333,8 @@ public class CompoundMathematicalIntervalTest {
 
   @Test
   public void testBinaryAnd() {
-    CompoundMathematicalInterval zeroToOne = CompoundMathematicalInterval.of(SimpleInterval.of(BigInteger.ZERO, BigInteger.ONE));
+    CompoundMathematicalInterval zeroToOne =
+        CompoundMathematicalInterval.of(SimpleInterval.of(BigInteger.ZERO, BigInteger.ONE));
     CompoundMathematicalInterval one = CompoundMathematicalInterval.one();
     assertThat(CompoundMathematicalInterval.top().binaryAnd(one)).isEqualTo(zeroToOne);
     assertThat(one.binaryAnd(CompoundMathematicalInterval.top())).isEqualTo(zeroToOne);
@@ -323,10 +346,17 @@ public class CompoundMathematicalIntervalTest {
     assertThat(CompoundMathematicalInterval.top().absolute().containsNegative()).isFalse();
     assertThat(CompoundMathematicalInterval.one().negate().absolute())
         .isEqualTo(CompoundMathematicalInterval.one());
-    CompoundMathematicalInterval twoToFour = CompoundMathematicalInterval.of(SimpleInterval.of(BigInteger.valueOf(2), BigInteger.valueOf(4)));
-    CompoundMathematicalInterval negTwoToNegOne = CompoundMathematicalInterval.of(SimpleInterval.of(BigInteger.valueOf(-2), BigInteger.valueOf(-1)));
-    CompoundMathematicalInterval negFourToNegTwo = CompoundMathematicalInterval.of(SimpleInterval.of(BigInteger.valueOf(-4), BigInteger.valueOf(-2)));
-    CompoundMathematicalInterval oneToTwo = CompoundMathematicalInterval.of(SimpleInterval.of(BigInteger.ONE, BigInteger.valueOf(2)));
+    CompoundMathematicalInterval twoToFour =
+        CompoundMathematicalInterval.of(
+            SimpleInterval.of(BigInteger.valueOf(2), BigInteger.valueOf(4)));
+    CompoundMathematicalInterval negTwoToNegOne =
+        CompoundMathematicalInterval.of(
+            SimpleInterval.of(BigInteger.valueOf(-2), BigInteger.valueOf(-1)));
+    CompoundMathematicalInterval negFourToNegTwo =
+        CompoundMathematicalInterval.of(
+            SimpleInterval.of(BigInteger.valueOf(-4), BigInteger.valueOf(-2)));
+    CompoundMathematicalInterval oneToTwo =
+        CompoundMathematicalInterval.of(SimpleInterval.of(BigInteger.ONE, BigInteger.valueOf(2)));
     assertThat(twoToFour.absolute().containsNegative()).isFalse();
     assertThat(negFourToNegTwo.absolute().containsNegative()).isFalse();
     assertThat(negFourToNegTwo.negate().absolute().containsNegative()).isFalse();
@@ -335,5 +365,4 @@ public class CompoundMathematicalIntervalTest {
     assertThat(negTwoToNegOne.unionWith(twoToFour).negate().absolute().containsNegative())
         .isFalse();
   }
-
 }

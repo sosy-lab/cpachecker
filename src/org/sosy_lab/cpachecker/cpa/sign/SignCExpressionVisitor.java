@@ -39,8 +39,8 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public class SignCExpressionVisitor
-  extends DefaultCExpressionVisitor<SIGN, UnrecognizedCodeException>
-  implements CRightHandSideVisitor<SIGN, UnrecognizedCodeException> {
+    extends DefaultCExpressionVisitor<SIGN, UnrecognizedCodeException>
+    implements CRightHandSideVisitor<SIGN, UnrecognizedCodeException> {
 
   private CFAEdge edgeOfExpr;
 
@@ -48,19 +48,23 @@ public class SignCExpressionVisitor
 
   private SignTransferRelation transferRel;
 
-  public SignCExpressionVisitor(CFAEdge pEdgeOfExpr, SignState pState, SignTransferRelation pTransferRel) {
+  public SignCExpressionVisitor(
+      CFAEdge pEdgeOfExpr, SignState pState, SignTransferRelation pTransferRel) {
     edgeOfExpr = pEdgeOfExpr;
     state = pState;
     transferRel = pTransferRel;
   }
 
   @Override
-  public SIGN visit(CFunctionCallExpression pIastFunctionCallExpression) throws UnrecognizedCodeException {
+  public SIGN visit(CFunctionCallExpression pIastFunctionCallExpression)
+      throws UnrecognizedCodeException {
     // TODO possibly treat typedef types differently
     // e.g. x = non_det() where non_det is extern, unknown function allways assume returns any value
     if (pIastFunctionCallExpression.getExpressionType() instanceof CSimpleType
         || pIastFunctionCallExpression.getExpressionType() instanceof CTypedefType
-        || pIastFunctionCallExpression.getExpressionType() instanceof CPointerType) { return SIGN.ALL; }
+        || pIastFunctionCallExpression.getExpressionType() instanceof CPointerType) {
+      return SIGN.ALL;
+    }
     throw new UnrecognizedCodeException("unsupported code found", edgeOfExpr);
   }
 
@@ -103,8 +107,11 @@ public class SignCExpressionVisitor
     Set<SIGN> leftAtomSigns = left.split();
     Set<SIGN> rightAtomSigns = right.split();
     SIGN result = SIGN.EMPTY;
-    for (List<SIGN> signCombi : Sets.cartesianProduct(ImmutableList.of(leftAtomSigns, rightAtomSigns))) {
-      result = result.combineWith(evaluateExpression(signCombi.get(0), pIastBinaryExpression, signCombi.get(1)));
+    for (List<SIGN> signCombi :
+        Sets.cartesianProduct(ImmutableList.of(leftAtomSigns, rightAtomSigns))) {
+      result =
+          result.combineWith(
+              evaluateExpression(signCombi.get(0), pIastBinaryExpression, signCombi.get(1)));
     }
     return result;
   }
@@ -113,39 +120,39 @@ public class SignCExpressionVisitor
       throws UnsupportedCodeException {
     SIGN result = SIGN.EMPTY;
     switch (pExp.getOperator()) {
-    case PLUS:
-      result = evaluatePlusOperator(pLeft, pExp.getOperand1(), pRight, pExp.getOperand2());
-      break;
-    case MINUS:
-      result = evaluateMinusOperator(pLeft, pRight, pExp.getOperand2());
-      break;
-    case MULTIPLY:
-      result = evaluateMulOperator(pLeft, pRight);
-      break;
-    case DIVIDE:
-      result = evaluateDivideOperator(pLeft, pRight);
-      break;
-    case MODULO:
-      result = evaluateModuloOperator(pLeft, pRight);
-      break;
-    case BINARY_AND:
-      result = evaluateAndOperator(pLeft, pRight);
-      break;
-    case LESS_EQUAL:
-      result = evaluateLessEqualOperator(pLeft, pRight);
-      break;
-    case GREATER_EQUAL:
-      result = evaluateLessEqualOperator(pRight, pLeft);
-      break;
-    case LESS_THAN:
-      result = evaluateLessOperator(pLeft, pRight);
-      break;
-    case GREATER_THAN:
-      result = evaluateLessOperator(pRight, pLeft);
-      break;
-    case EQUALS:
-      result = evaluateEqualOperator(pLeft, pRight);
-      break;
+      case PLUS:
+        result = evaluatePlusOperator(pLeft, pExp.getOperand1(), pRight, pExp.getOperand2());
+        break;
+      case MINUS:
+        result = evaluateMinusOperator(pLeft, pRight, pExp.getOperand2());
+        break;
+      case MULTIPLY:
+        result = evaluateMulOperator(pLeft, pRight);
+        break;
+      case DIVIDE:
+        result = evaluateDivideOperator(pLeft, pRight);
+        break;
+      case MODULO:
+        result = evaluateModuloOperator(pLeft, pRight);
+        break;
+      case BINARY_AND:
+        result = evaluateAndOperator(pLeft, pRight);
+        break;
+      case LESS_EQUAL:
+        result = evaluateLessEqualOperator(pLeft, pRight);
+        break;
+      case GREATER_EQUAL:
+        result = evaluateLessEqualOperator(pRight, pLeft);
+        break;
+      case LESS_THAN:
+        result = evaluateLessOperator(pLeft, pRight);
+        break;
+      case GREATER_THAN:
+        result = evaluateLessOperator(pRight, pLeft);
+        break;
+      case EQUALS:
+        result = evaluateEqualOperator(pLeft, pRight);
+        break;
       case NOT_EQUALS:
         result = evaluateUnequalOperator(pLeft, pRight);
         break;
@@ -162,9 +169,9 @@ public class SignCExpressionVisitor
     return result;
   }
 
-
   @Override
-  public SIGN visit(CFloatLiteralExpression pIastFloatLiteralExpression) throws UnrecognizedCodeException {
+  public SIGN visit(CFloatLiteralExpression pIastFloatLiteralExpression)
+      throws UnrecognizedCodeException {
     BigDecimal value = pIastFloatLiteralExpression.getValue();
     int cResult = value.compareTo(BigDecimal.ZERO);
     if (cResult == 1) {
@@ -176,7 +183,8 @@ public class SignCExpressionVisitor
   }
 
   @Override
-  public SIGN visit(CIntegerLiteralExpression pIastIntegerLiteralExpression) throws UnrecognizedCodeException {
+  public SIGN visit(CIntegerLiteralExpression pIastIntegerLiteralExpression)
+      throws UnrecognizedCodeException {
     BigInteger value = pIastIntegerLiteralExpression.getValue();
     int cResult = value.compareTo(BigInteger.ZERO);
     if (cResult == 1) {
@@ -200,14 +208,16 @@ public class SignCExpressionVisitor
   @Override
   public SIGN visit(CUnaryExpression pIastUnaryExpression) throws UnrecognizedCodeException {
     switch (pIastUnaryExpression.getOperator()) {
-    case MINUS:
-      SIGN result = SIGN.EMPTY;
-      SIGN operandSign = pIastUnaryExpression.getOperand().accept(this);
-      for (SIGN atomSign : operandSign.split()) {
-        result = result.combineWith(evaluateUnaryExpression(pIastUnaryExpression.getOperator(), atomSign));
-      }
-      return result;
-    default:
+      case MINUS:
+        SIGN result = SIGN.EMPTY;
+        SIGN operandSign = pIastUnaryExpression.getOperand().accept(this);
+        for (SIGN atomSign : operandSign.split()) {
+          result =
+              result.combineWith(
+                  evaluateUnaryExpression(pIastUnaryExpression.getOperator(), atomSign));
+        }
+        return result;
+      default:
         throw new UnsupportedCodeException("Not supported", edgeOfExpr, pIastUnaryExpression);
     }
   }
@@ -222,7 +232,8 @@ public class SignCExpressionVisitor
     return SIGN.PLUS;
   }
 
-  private SIGN evaluatePlusOperator(SIGN pLeft, CExpression pLeftExp, SIGN pRight, CExpression pRightExp) {
+  private SIGN evaluatePlusOperator(
+      SIGN pLeft, CExpression pLeftExp, SIGN pRight, CExpression pRightExp) {
     // Special case: - + 1 => -0, 1 + - => -0
     if ((pLeft == SIGN.MINUS
             && (pRightExp instanceof CIntegerLiteralExpression)
@@ -264,28 +275,32 @@ public class SignCExpressionVisitor
 
   private SIGN evaluateMinusOperator(SIGN pLeft, SIGN pRight, CExpression pRightExp) {
     // Special case: + - 1 => +0
-    if (pLeft == SIGN.PLUS && (pRightExp instanceof CIntegerLiteralExpression) && ((CIntegerLiteralExpression)pRightExp).getValue().equals(BigInteger.ONE)) {
+    if (pLeft == SIGN.PLUS
+        && (pRightExp instanceof CIntegerLiteralExpression)
+        && ((CIntegerLiteralExpression) pRightExp).getValue().equals(BigInteger.ONE)) {
       return SIGN.PLUS0;
     }
     // Special case: -0 - 1 => -
-    if (pLeft == SIGN.MINUS0 && (pRightExp instanceof CIntegerLiteralExpression) && ((CIntegerLiteralExpression)pRightExp).getValue().equals(BigInteger.ONE)) {
+    if (pLeft == SIGN.MINUS0
+        && (pRightExp instanceof CIntegerLiteralExpression)
+        && ((CIntegerLiteralExpression) pRightExp).getValue().equals(BigInteger.ONE)) {
       return SIGN.MINUS;
     }
     if (pRight == SIGN.ZERO) {
       return pLeft;
     }
-    if(pLeft == SIGN.ZERO) {
-      switch(pRight) {
-      case PLUS:
-        return SIGN.MINUS;
-      case MINUS:
-        return SIGN.PLUS;
-      case PLUS0:
-        return SIGN.MINUS0;
-      case MINUS0:
-        return SIGN.PLUS0;
-      default:
-        return pRight;
+    if (pLeft == SIGN.ZERO) {
+      switch (pRight) {
+        case PLUS:
+          return SIGN.MINUS;
+        case MINUS:
+          return SIGN.PLUS;
+        case PLUS0:
+          return SIGN.MINUS0;
+        case MINUS0:
+          return SIGN.PLUS0;
+        default:
+          return pRight;
       }
     }
     if (pLeft == SIGN.PLUS && pRight == SIGN.MINUS) {
@@ -337,7 +352,6 @@ public class SignCExpressionVisitor
     return SIGN.ALL;
   }
 
-
   // assumes that indicator bit for negative numbers is 1
   private SIGN evaluateAndOperator(SIGN left, SIGN right) {
     if (left == SIGN.ZERO || right == SIGN.ZERO) {
@@ -353,7 +367,9 @@ public class SignCExpressionVisitor
   }
 
   private SIGN evaluateLessOperator(SIGN pLeft, SIGN pRight) {
-    if (pLeft == SIGN.EMPTY || pRight == SIGN.EMPTY) { return SIGN.EMPTY; }
+    if (pLeft == SIGN.EMPTY || pRight == SIGN.EMPTY) {
+      return SIGN.EMPTY;
+    }
     switch (pLeft) {
       case PLUS:
         if (SIGN.MINUS0.covers(pRight)) {
@@ -369,20 +385,20 @@ public class SignCExpressionVisitor
         if (SIGN.MINUS0.covers(pRight)) {
           return SIGN.ZERO;
         }
-        if(pRight == SIGN.ZERO) {
+        if (pRight == SIGN.ZERO) {
           return SIGN.PLUSMINUS;
         }
         break;
       case PLUS0:
-        if(pRight == SIGN.MINUS) {
+        if (pRight == SIGN.MINUS) {
           return SIGN.ZERO;
         }
-        if(pRight == SIGN.ZERO) {
+        if (pRight == SIGN.ZERO) {
           return SIGN.PLUSMINUS;
         }
         break;
       case MINUS0:
-        if(pRight == SIGN.PLUS) {
+        if (pRight == SIGN.PLUS) {
           return SIGN.PLUSMINUS;
         }
         break;
@@ -393,7 +409,9 @@ public class SignCExpressionVisitor
   }
 
   private SIGN evaluateLessEqualOperator(SIGN pLeft, SIGN pRight) {
-    if (pLeft == SIGN.EMPTY || pRight == SIGN.EMPTY) { return SIGN.EMPTY; }
+    if (pLeft == SIGN.EMPTY || pRight == SIGN.EMPTY) {
+      return SIGN.EMPTY;
+    }
     switch (pLeft) {
       case PLUS:
         if (SIGN.MINUS0.covers(pRight)) {
@@ -409,17 +427,17 @@ public class SignCExpressionVisitor
         if (SIGN.PLUS0.covers(pRight)) {
           return SIGN.PLUSMINUS;
         }
-        if(pRight == SIGN.MINUS) {
+        if (pRight == SIGN.MINUS) {
           return SIGN.ZERO;
         }
         break;
       case PLUS0:
-        if(pRight == SIGN.MINUS) {
+        if (pRight == SIGN.MINUS) {
           return SIGN.ZERO;
         }
         break;
       case MINUS0:
-        if(pRight == SIGN.PLUS) {
+        if (pRight == SIGN.PLUS) {
           return SIGN.PLUSMINUS;
         }
         break;
@@ -430,10 +448,10 @@ public class SignCExpressionVisitor
   }
 
   private SIGN evaluateEqualOperator(SIGN pLeft, SIGN pRight) {
-    if(pLeft==SIGN.EMPTY || pRight == SIGN.EMPTY) {
+    if (pLeft == SIGN.EMPTY || pRight == SIGN.EMPTY) {
       return SIGN.EMPTY;
     }
-    if(pLeft==SIGN.ZERO && pRight == SIGN.ZERO) {
+    if (pLeft == SIGN.ZERO && pRight == SIGN.ZERO) {
       return SIGN.PLUSMINUS;
     }
     return SIGN.ALL;

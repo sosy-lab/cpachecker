@@ -36,7 +36,8 @@ public class ValidationConfigurationBuilder {
     veriConfig = pVerifConfig;
   }
 
-  public Configuration getValidationConfiguration() throws ValidationConfigurationConstructionFailed{
+  public Configuration getValidationConfiguration()
+      throws ValidationConfigurationConstructionFailed {
     ConfigurationBuilder configBuilder = Configuration.builder();
     configBuilder.copyFrom(veriConfig);
 
@@ -44,8 +45,9 @@ public class ValidationConfigurationBuilder {
         extractRelevantPropertyEntriesAndClearAnalysisOptions(configBuilder);
 
     if (relPropEntries.containsKey("analysis.restartAfterUnknown")
-        && relPropEntries.get("analysis.restartAfterUnknown")
-            .equals("true")) { throw new ValidationConfigurationConstructionFailed(); }
+        && relPropEntries.get("analysis.restartAfterUnknown").equals("true")) {
+      throw new ValidationConfigurationConstructionFailed();
+    }
 
     clearProofCreationOptions(configBuilder);
 
@@ -76,25 +78,26 @@ public class ValidationConfigurationBuilder {
 
         prop = line.substring(0, eqSignPos).trim();
 
-        if (prop.equals("specification") || prop.startsWith("analysis.")
-            || prop.startsWith("statistics.") || prop.startsWith("limits.")) {
+        if (prop.equals("specification")
+            || prop.startsWith("analysis.")
+            || prop.startsWith("statistics.")
+            || prop.startsWith("limits.")) {
           pConfigBuilder.clearOption(prop);
-          if(!prop.equals("analysis.restartAfterUnknown")) {
+          if (!prop.equals("analysis.restartAfterUnknown")) {
             continue;
           }
         }
 
-        if (prop.contains("cpa") || prop.equals("pcc.strategy")
+        if (prop.contains("cpa")
+            || prop.equals("pcc.strategy")
             || prop.equals("analysis.restartAfterUnknown")) {
           value = line.substring(eqSignPos + 1).trim();
           relevantPropertyEntries.put(prop, value);
         }
-
       }
     }
     return relevantPropertyEntries;
   }
-
 
   private void clearProofCreationOptions(final ConfigurationBuilder pConfigBuilder) {
     String[] options = {
@@ -125,13 +128,13 @@ public class ValidationConfigurationBuilder {
     }
   }
 
-  private void adaptCPAConfig(final ConfigurationBuilder pConfigBuilder,
-      final Map<String, String> pRelPropEntries) {
+  private void adaptCPAConfig(
+      final ConfigurationBuilder pConfigBuilder, final Map<String, String> pRelPropEntries) {
 
     String topCPA = pRelPropEntries.get("cpa");
     String strategy = pRelPropEntries.get("pcc.strategy");
 
-    if(strategy==null) {
+    if (strategy == null) {
       // no strategy explicitly configured, default strategy is used
       strategy = "arg.ARGProofCheckerStrategy";
       pConfigBuilder.setOption("pcc.strategy", "arg.ARGProofCheckerStrategy");
@@ -139,7 +142,7 @@ public class ValidationConfigurationBuilder {
 
     if (notIsARGStrategy(strategy)) {
       removeARGCPA(pConfigBuilder, pRelPropEntries);
-      if(topCPA.equals("cpa.arg.ARGCPA")) {
+      if (topCPA.equals("cpa.arg.ARGCPA")) {
         topCPA = pRelPropEntries.get("ARGCPA.cpa");
       }
     }
@@ -157,39 +160,41 @@ public class ValidationConfigurationBuilder {
     }
   }
 
-
   private boolean notIsARGStrategy(String pProofValStrategy) {
     return !pProofValStrategy.contains("ARG");
   }
 
-  private void removeARGCPA(final ConfigurationBuilder pConfigBuilder,
-      Map<String, String> pRelPropEntries) {
+  private void removeARGCPA(
+      final ConfigurationBuilder pConfigBuilder, Map<String, String> pRelPropEntries) {
     for (Entry<String, String> relProp : pRelPropEntries.entrySet()) {
       if (relProp.getValue().equals("cpa.arg.ARGCPA")) {
-        overwriteOrAddConfigOption(pConfigBuilder, relProp.getKey(),
-            pRelPropEntries.get("ARGCPA.cpa"));
+        overwriteOrAddConfigOption(
+            pConfigBuilder, relProp.getKey(), pRelPropEntries.get("ARGCPA.cpa"));
         pConfigBuilder.clearOption("ARGCPA.cpa");
         break;
       }
     }
   }
 
-  private boolean notIsARGCPAStrategyNorContainsPropertyChecker(String pProofValStrategy,
-      String pTopCPA) {
+  private boolean notIsARGCPAStrategyNorContainsPropertyChecker(
+      String pProofValStrategy, String pTopCPA) {
     return !(pProofValStrategy.contains("ARGProofCheckerStrategy")
         || pTopCPA.equals("cpa.PropertyChecker.PropertyCheckerCPA"));
   }
 
-  private void addPropertyChecker(final ConfigurationBuilder pConfigBuilder,
-      final String pTopCPAValue) {
+  private void addPropertyChecker(
+      final ConfigurationBuilder pConfigBuilder, final String pTopCPAValue) {
     overwriteOrAddConfigOption(pConfigBuilder, "cpa", "cpa.PropertyChecker.PropertyCheckerCPA");
     pConfigBuilder.setOption("PropertyCheckerCPA.cpa", pTopCPAValue);
-    overwriteOrAddConfigOption(pConfigBuilder, "cpa.propertychecker.className", "NoTargetStateChecker");
+    overwriteOrAddConfigOption(
+        pConfigBuilder, "cpa.propertychecker.className", "NoTargetStateChecker");
   }
 
   private boolean containsCPA(String cpaByName, Collection<String> pPropValueSubset) {
     for (String value : pPropValueSubset) {
-      if (value.contains(cpaByName)) { return true; }
+      if (value.contains(cpaByName)) {
+        return true;
+      }
     }
 
     return false;
@@ -205,9 +210,8 @@ public class ValidationConfigurationBuilder {
     overwriteOrAddConfigOption(pConfigBuilder, "satCheckAtAbstraction", "true");
   }
 
-
-  private static void overwriteOrAddConfigOption(final ConfigurationBuilder pConfigBuilder,
-      final String pOptionName, final String pValue) {
+  private static void overwriteOrAddConfigOption(
+      final ConfigurationBuilder pConfigBuilder, final String pOptionName, final String pValue) {
     pConfigBuilder.clearOption(pOptionName);
     pConfigBuilder.setOption(pOptionName, pValue);
   }
@@ -216,7 +220,7 @@ public class ValidationConfigurationBuilder {
       throws IOException, InvalidConfigurationException {
 
     try (InputStream fis = Files.newInputStream(proofFile);
-        ZipInputStream zis = new ZipInputStream(fis);) {
+        ZipInputStream zis = new ZipInputStream(fis); ) {
       ZipEntry entry;
       while ((entry = zis.getNextEntry()) != null) {
         if (entry.getName().equals(AbstractStrategy.CONFIG_ZIPENTRY_NAME)) {
@@ -224,7 +228,9 @@ public class ValidationConfigurationBuilder {
         }
       }
 
-      if (entry == null) { throw new IOException("Unable to find configuration entry in proof."); }
+      if (entry == null) {
+        throw new IOException("Unable to find configuration entry in proof.");
+      }
 
       Path valConfig = Files.createTempFile("pcc-check-config", "properties");
 
@@ -237,5 +243,4 @@ public class ValidationConfigurationBuilder {
       return Configuration.builder().loadFromFile(valConfig).build();
     }
   }
-
 }

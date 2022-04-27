@@ -18,9 +18,8 @@ class FullPathPosition extends PathPosition {
   }
 
   /**
-   * {@inheritDoc}
-   * The position is exact, that means if the position is in the middle of an
-   * ARG hole the iterator will start there.
+   * {@inheritDoc} The position is exact, that means if the position is in the middle of an ARG hole
+   * the iterator will start there.
    */
   @Override
   public PathIterator fullPathIterator() {
@@ -28,9 +27,8 @@ class FullPathPosition extends PathPosition {
   }
 
   /**
-   * {@inheritDoc}
-   * The position is exact, that means if the position is in the middle of an
-   * ARG hole the iterator will start there.
+   * {@inheritDoc} The position is exact, that means if the position is in the middle of an ARG hole
+   * the iterator will start there.
    */
   @Override
   public PathIterator reverseFullPathIterator() {
@@ -54,6 +52,6 @@ class FullPathPosition extends PathPosition {
     }
     FullPathPosition other = (FullPathPosition) pObj;
 
-    return super.equals(pObj) && other.offset == this.offset;
+    return super.equals(pObj) && other.offset == offset;
   }
 }

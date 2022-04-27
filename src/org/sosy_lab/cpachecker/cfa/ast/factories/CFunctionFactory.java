@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.factories;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -93,7 +94,8 @@ public class CFunctionFactory {
         FileLocation.DUMMY,
         new CFunctionTypeWithNames(pType, new ArrayList<CParameterDeclaration>(), false),
         nondetFunctionName,
-        new ArrayList<CParameterDeclaration>());
+        new ArrayList<CParameterDeclaration>(),
+        ImmutableSet.of());
   }
 
   public boolean isUserDefined(CFunctionCallExpression pFunctionCall) {

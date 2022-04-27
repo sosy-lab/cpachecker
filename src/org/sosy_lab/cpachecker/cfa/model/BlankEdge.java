@@ -18,8 +18,12 @@ public class BlankEdge extends AbstractCFAEdge implements CCfaEdge {
 
   private final String description;
 
-  public BlankEdge(String pRawStatement, FileLocation pFileLocation,  CFANode pPredecessor,
-      CFANode pSuccessor, String pDescription) {
+  public BlankEdge(
+      String pRawStatement,
+      FileLocation pFileLocation,
+      CFANode pPredecessor,
+      CFANode pSuccessor,
+      String pDescription) {
 
     super(pRawStatement, pFileLocation, pPredecessor, pSuccessor);
     description = pDescription;

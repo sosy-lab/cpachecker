@@ -40,21 +40,27 @@ public class LoopBoundState
   }
 
   private LoopBoundState(LoopStack pLoopStack, boolean pStopIt) {
-    this.loopStack = Objects.requireNonNull(pLoopStack);
-    Preconditions.checkArgument(!pLoopStack.isEmpty(), "Always initialize the stack with an UndeterminedLoopIterationState");
+    loopStack = Objects.requireNonNull(pLoopStack);
+    Preconditions.checkArgument(
+        !pLoopStack.isEmpty(),
+        "Always initialize the stack with an UndeterminedLoopIterationState");
     Preconditions.checkArgument(
         (pLoopStack.getSize() == 1 && !pLoopStack.peek().isEntryKnown())
-        || (pLoopStack.getSize() > 1 && pLoopStack.peek().isEntryKnown()),
-        "The deepest element in the stack must be an UndeterminedLoopIterationState, and all other elements must be determined.");
-    this.stopIt = pStopIt;
+            || (pLoopStack.getSize() > 1 && pLoopStack.peek().isEntryKnown()),
+        "The deepest element in the stack must be an UndeterminedLoopIterationState, and all other"
+            + " elements must be determined.");
+    stopIt = pStopIt;
   }
 
   public LoopBoundState exit(Loop pOldLoop) throws CPATransferException {
-    assert !loopStack.isEmpty() : "Exiting loop without entering the loop. Explicitly use an UndeterminedLoopIterationState if you cannot determine the loop entry.";
+    assert !loopStack.isEmpty()
+        : "Exiting loop without entering the loop. Explicitly use an UndeterminedLoopIterationState"
+            + " if you cannot determine the loop entry.";
     LoopIterationState loopIterationState = loopStack.peek();
     if (loopIterationState.isEntryKnown()) {
       if (!pOldLoop.equals(loopIterationState.getLoop())) {
-        throw new CPATransferException("Unexpected exit from loop " + pOldLoop + " when loop stack is " + this);
+        throw new CPATransferException(
+            "Unexpected exit from loop " + pOldLoop + " when loop stack is " + this);
       }
       return new LoopBoundState(loopStack.pop(), stopIt);
     }
@@ -62,22 +68,20 @@ public class LoopBoundState
   }
 
   public LoopBoundState enter(Loop pLoop) {
-    return new LoopBoundState(
-        loopStack.push(DeterminedLoopIterationState.newState(pLoop)),
-        stopIt);
+    return new LoopBoundState(loopStack.push(DeterminedLoopIterationState.newState(pLoop)), stopIt);
   }
 
   public LoopBoundState visitLoopHead(Loop pLoop) {
-    assert !loopStack.isEmpty() : "Visiting loop head without entering the loop. Explicitly use an UndeterminedLoopIterationState if you cannot determine the loop entry.";
+    assert !loopStack.isEmpty()
+        : "Visiting loop head without entering the loop. Explicitly use an"
+            + " UndeterminedLoopIterationState if you cannot determine the loop entry.";
     if (isLoopCounterAbstracted()) {
       return this;
     }
     LoopIterationState loopIterationState = loopStack.peek();
     LoopIterationState newLoopIterationState = loopIterationState.visitLoopHead(pLoop);
     if (newLoopIterationState != loopIterationState) {
-      return new LoopBoundState(
-          loopStack.pop().push(newLoopIterationState),
-          stopIt);
+      return new LoopBoundState(loopStack.pop().push(newLoopIterationState), stopIt);
     }
     return this;
   }
@@ -95,7 +99,7 @@ public class LoopBoundState
 
   @Override
   public Object getPartitionKey() {
-    return this.setStop(false);
+    return setStop(false);
   }
 
   @Override
@@ -123,7 +127,7 @@ public class LoopBoundState
     }
 
     LoopBoundState other = (LoopBoundState) obj;
-    return this.stopIt == other.stopIt && this.loopStack.equals(other.loopStack);
+    return stopIt == other.stopIt && loopStack.equals(other.loopStack);
   }
 
   @Override
@@ -139,7 +143,10 @@ public class LoopBoundState
     BooleanFormulaManager bfmgr = manager.getBooleanFormulaManager();
     BooleanFormula reasonFormula = bfmgr.makeTrue();
     if (stopIt) {
-      reasonFormula = bfmgr.and(reasonFormula, PreventingHeuristic.LOOPITERATIONS.getFormula(manager, getDeepestIteration()));
+      reasonFormula =
+          bfmgr.and(
+              reasonFormula,
+              PreventingHeuristic.LOOPITERATIONS.getFormula(manager, getDeepestIteration()));
     }
     return reasonFormula;
   }
@@ -188,7 +195,8 @@ public class LoopBoundState
       return this;
     }
     LoopIterationState currentLoopIterationState = loopStack.peek();
-    LoopIterationState newLoopIterationState = currentLoopIterationState.enforceAbstraction(pLoopIterationsBeforeAbstraction);
+    LoopIterationState newLoopIterationState =
+        currentLoopIterationState.enforceAbstraction(pLoopIterationsBeforeAbstraction);
     if (currentLoopIterationState == newLoopIterationState) {
       return this;
     }

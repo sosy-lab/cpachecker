@@ -32,8 +32,8 @@ public class TerminationState extends AbstractSingleWrapperState
     implements AbstractStateWithDummyLocation, FormulaReportingState, Graphable {
 
   /**
-   * The location where the loop of the lasso was entered
-   * or <code>null</code> iff this state is part of the stem
+   * The location where the loop of the lasso was entered or <code>null</code> iff this state is
+   * part of the stem
    */
   private final @Nullable CFANode hondaLocation;
 
@@ -70,11 +70,10 @@ public class TerminationState extends AbstractSingleWrapperState
   }
 
   /**
-   * Creates a new {@link TerminationState} that is part of the
-   * lasso's stem and has no dummy location.
+   * Creates a new {@link TerminationState} that is part of the lasso's stem and has no dummy
+   * location.
    *
-   * @param pWrappedState
-   *          the {@link AbstractState} to wrap
+   * @param pWrappedState the {@link AbstractState} to wrap
    * @return the created {@link TerminationState}
    */
   public static TerminationState createStemState(AbstractState pWrappedState) {
@@ -82,11 +81,10 @@ public class TerminationState extends AbstractSingleWrapperState
   }
 
   /**
-   * Creates a new {@link TerminationState} from this {@link TerminationState}
-   * but with the given <code>pWrappedState</code>.
+   * Creates a new {@link TerminationState} from this {@link TerminationState} but with the given
+   * <code>pWrappedState</code>.
    *
-   * @param pWrappedState
-   *            the {@link AbstractState} to wrap
+   * @param pWrappedState the {@link AbstractState} to wrap
    * @return the created {@link TerminationState}
    */
   public TerminationState withWrappedState(AbstractState pWrappedState) {
@@ -95,6 +93,7 @@ public class TerminationState extends AbstractSingleWrapperState
 
   /**
    * Creates a new {@link TerminationState} that is the first state of the lasso's loop.
+   *
    * @param pHondaLocation the first location of the loop
    * @return the created {@link TerminationState}
    */
@@ -104,10 +103,9 @@ public class TerminationState extends AbstractSingleWrapperState
   }
 
   /**
-   * Creates a new {@link TerminationState} with a dummy location and  the given entering edges.
+   * Creates a new {@link TerminationState} with a dummy location and the given entering edges.
    *
-   * @param pEnteringEdges
-   *         the edges entering the location represented by the created state
+   * @param pEnteringEdges the edges entering the location represented by the created state
    * @return the created {@link TerminationState}
    */
   public TerminationState withDummyLocation(Collection<CFAEdge> pEnteringEdges) {
@@ -130,8 +128,7 @@ public class TerminationState extends AbstractSingleWrapperState
   /**
    * Creates a new {@link TerminationState} with the given unsatisfied {@link RankingRelation}
    *
-   * @param pUnsatisfiedRankingRelation
-   *         the {@link RankingRelation} not satisfied at this state
+   * @param pUnsatisfiedRankingRelation the {@link RankingRelation} not satisfied at this state
    * @return the created {@link TerminationState}
    */
   public TerminationState withUnsatisfiedRankingRelation(

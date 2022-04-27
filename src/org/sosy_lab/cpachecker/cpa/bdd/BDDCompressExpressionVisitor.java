@@ -31,12 +31,10 @@ import org.sosy_lab.cpachecker.util.variableclassification.Partition;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
 
 /**
- * This Visitor implements evaluation of expressions,
- * that contain only checks for equality of numbers.
- * In this special case it is possible to store the information in less bits than 32.
+ * This Visitor implements evaluation of expressions, that contain only checks for equality of
+ * numbers. In this special case it is possible to store the information in less bits than 32.
  */
-public class BDDCompressExpressionVisitor
-        extends DefaultCExpressionVisitor<Region[], NoException> {
+public class BDDCompressExpressionVisitor extends DefaultCExpressionVisitor<Region[], NoException> {
 
   /** This map contains tuples (int, region[]) for each intEqual-partition. */
   private static final Map<Partition, ImmutableMap<BigInteger, Region[]>> INT_REGIONS_MAP =
@@ -49,20 +47,26 @@ public class BDDCompressExpressionVisitor
   protected final int size;
   protected final CFANode location;
 
-  /** This Visitor returns a representation for an expression.
+  /**
+   * This Visitor returns a representation for an expression.
+   *
    * @param size length of compressed bitvector
    * @param pPartition info about variables and numbers
    */
-  public BDDCompressExpressionVisitor(final PredicateManager pPredMgr, final VariableTrackingPrecision pPrecision,
-                                      final int size, final CFANode pLocation,
-                                      final BitvectorManager pBVmgr, final Partition pPartition) {
+  public BDDCompressExpressionVisitor(
+      final PredicateManager pPredMgr,
+      final VariableTrackingPrecision pPrecision,
+      final int size,
+      final CFANode pLocation,
+      final BitvectorManager pBVmgr,
+      final Partition pPartition) {
     Preconditions.checkNotNull(pPartition);
-    this.predMgr = pPredMgr;
-    this.precision = pPrecision;
-    this.bvmgr = pBVmgr;
+    predMgr = pPredMgr;
+    precision = pPrecision;
+    bvmgr = pBVmgr;
     this.size = size;
-    this.intToRegions = initMappingIntToRegions(pPartition);
-    this.location = pLocation;
+    intToRegions = initMappingIntToRegions(pPartition);
+    location = pLocation;
   }
 
   /**
@@ -81,12 +85,13 @@ public class BDDCompressExpressionVisitor
       currentMapping.put(BigInteger.ONE, bvmgr.makeNumber(BigInteger.valueOf(1), size));
 
       int i = 2;
-      for (BigInteger num : Sets.difference(
+      for (BigInteger num :
+          Sets.difference(
               partition.getValues(), Sets.newHashSet(BigInteger.ZERO, BigInteger.ONE))) {
         currentMapping.put(num, bvmgr.makeNumber(BigInteger.valueOf(i), size));
         i++;
       }
-      INT_REGIONS_MAP.put(partition, currentMapping.build());
+      INT_REGIONS_MAP.put(partition, currentMapping.buildOrThrow());
     }
     return INT_REGIONS_MAP.get(partition);
   }
@@ -126,8 +131,11 @@ public class BDDCompressExpressionVisitor
     return calculateBinaryOperation(lVal, rVal, bvmgr, pE);
   }
 
-  private static Region[] calculateBinaryOperation(Region[] lVal, Region[] rVal, final BitvectorManager bvmgr,
-                                                   final CBinaryExpression binaryExpr) {
+  private static Region[] calculateBinaryOperation(
+      Region[] lVal,
+      Region[] rVal,
+      final BitvectorManager bvmgr,
+      final CBinaryExpression binaryExpr) {
 
     assert lVal.length == rVal.length;
     final BinaryOperator binaryOperator = binaryExpr.getOperator();
@@ -161,14 +169,20 @@ public class BDDCompressExpressionVisitor
         return null;
       }
     }
-    return predMgr.createPredicate(idExp.getDeclaration().getQualifiedName(), idExp.getExpressionType(), location, size, precision);
+    return predMgr.createPredicate(
+        idExp.getDeclaration().getQualifiedName(),
+        idExp.getExpressionType(),
+        location,
+        size,
+        precision);
   }
 
   @Override
   public Region[] visit(final CCastExpression castExpression) {
     // We do not expect a changing value through a cast, because then this code would be unsound!
     // This assumption might be unrealistic, but it works in many cases.
-    // This code also matches the code in VariableClassification, line 1413, where casts are ignored for intEQ.
+    // This code also matches the code in VariableClassification, line 1413, where casts are ignored
+    // for intEQ.
     return castExpression.getOperand().accept(this);
   }
 }

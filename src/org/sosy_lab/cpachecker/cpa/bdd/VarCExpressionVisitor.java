@@ -28,7 +28,7 @@ class VarCExpressionVisitor extends DefaultCExpressionVisitor<Boolean, NoExcepti
   private String varName;
 
   VarCExpressionVisitor(String var) {
-    this.varName = var;
+    varName = var;
   }
 
   private Boolean handle(CExpression exp) {

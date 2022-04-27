@@ -25,8 +25,8 @@ public class Constraint {
   }
 
   public Constraint(Constraint cn) {
-    this.cns = new ArrayList<>(cn.getConstraint());
-    this.vars = new HashMap<>(cn.getVars());
+    cns = new ArrayList<>(cn.getConstraint());
+    vars = new HashMap<>(cn.getVars());
   }
 
   public Constraint(List<Term> cns, Map<String, Term> vars) {
@@ -55,11 +55,11 @@ public class Constraint {
   }
 
   public void addVar(String var, Term t) {
-    vars.put(var,t);
+    vars.put(var, t);
   }
 
   public void addVars(HashMap<String, Term> pVars) {
-    this.vars.putAll(pVars);
+    vars.putAll(pVars);
   }
 
   public void removeVar(String var) {
@@ -70,19 +70,18 @@ public class Constraint {
   public String toString() {
     if (cns == null) {
       return "false";
-    } else
-      if (cns.isEmpty()) {
-        return "true";
-      } else {
+    } else if (cns.isEmpty()) {
+      return "true";
+    } else {
       return cns + " (vars: " + vars + ")";
-      }
+    }
   }
 
   public List<Term> getConstraint() {
     return cns;
   }
 
-  public Map<String,Term> getVars() {
+  public Map<String, Term> getVars() {
     return vars;
   }
 
@@ -137,7 +136,7 @@ public class Constraint {
   private void createHashMap(List<Term> varTerms) {
     vars = new HashMap<>();
     for (Term v : varTerms) {
-      vars.put(ConstraintManager.var2CVar(v.name()),v);
+      vars.put(ConstraintManager.var2CVar(v.name()), v);
     }
   }
 }

@@ -14,9 +14,8 @@ import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
- * Less-or-equal operator for {@link ConstraintsCPA} that defines less-or-equal as
- * <code>c less or equal c' iff c' subset of c</code> with <code>c, c'</code> being
- * ConstraintsStates.
+ * Less-or-equal operator for {@link ConstraintsCPA} that defines less-or-equal as <code>
+ * c less or equal c' iff c' subset of c</code> with <code>c, c'</code> being ConstraintsStates.
  */
 public class SubsetLessOrEqualOperator implements AbstractDomain {
 
@@ -31,10 +30,7 @@ public class SubsetLessOrEqualOperator implements AbstractDomain {
   }
 
   @Override
-  public boolean isLessOrEqual(
-      final AbstractState pLesserState,
-      final AbstractState pBiggerState
-  ) {
+  public boolean isLessOrEqual(final AbstractState pLesserState, final AbstractState pBiggerState) {
     assert pLesserState instanceof ConstraintsState;
     assert pBiggerState instanceof ConstraintsState;
 

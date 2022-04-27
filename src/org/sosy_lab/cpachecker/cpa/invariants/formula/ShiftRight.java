@@ -21,11 +21,10 @@ final class ShiftRight<ConstantType> extends AbstractBinaryFormula<ConstantType>
    * Creates a new right shift formula over the given operands.
    *
    * @param pToShift the formula to be shifted by this operation.
-   * @param pShiftDistance the distance by which to shift the first operand to
-   * the right.
+   * @param pShiftDistance the distance by which to shift the first operand to the right.
    */
-  private ShiftRight(NumeralFormula<ConstantType> pToShift,
-      NumeralFormula<ConstantType> pShiftDistance) {
+  private ShiftRight(
+      NumeralFormula<ConstantType> pToShift, NumeralFormula<ConstantType> pShiftDistance) {
     super(">>", false, pToShift, pShiftDistance);
   }
 
@@ -54,22 +53,22 @@ final class ShiftRight<ConstantType> extends AbstractBinaryFormula<ConstantType>
 
   @Override
   public <ReturnType, ParamType> ReturnType accept(
-      ParameterizedNumeralFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
+      ParameterizedNumeralFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor,
+      ParamType pParameter) {
     return pVisitor.visit(this, pParameter);
   }
 
   /**
-   * Gets an invariants formula representing the right shift of the first given
-   * operand by the second given operand.
+   * Gets an invariants formula representing the right shift of the first given operand by the
+   * second given operand.
    *
    * @param pToShift the operand to be shifted.
    * @param pShiftDistance the shift distance.
-   *
-   * @return an invariants formula representing the right shift of the first
-   * given operand by the second given operand.
+   * @return an invariants formula representing the right shift of the first given operand by the
+   *     second given operand.
    */
-  static <ConstantType> ShiftRight<ConstantType> of(NumeralFormula<ConstantType> pToShift, NumeralFormula<ConstantType> pShiftDistance) {
+  static <ConstantType> ShiftRight<ConstantType> of(
+      NumeralFormula<ConstantType> pToShift, NumeralFormula<ConstantType> pShiftDistance) {
     return new ShiftRight<>(pToShift, pShiftDistance);
   }
-
 }

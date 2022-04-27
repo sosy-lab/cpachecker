@@ -63,5 +63,4 @@ public class ISIOperatorTest {
     assertThat(ISIOperator.SHIFT_RIGHT.apply(ten, BigInteger.ZERO)).isEqualTo(ten);
     assertThat(ISIOperator.SHIFT_RIGHT.apply(oneToTen, BigInteger.ONE)).isEqualTo(zeroToFive);
   }
-
 }

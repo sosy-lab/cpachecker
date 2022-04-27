@@ -54,8 +54,9 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
   @Option(
       secure = true,
       description =
-          "Only checks for targets after loops were unrolled exactly a number of times that is contained in this list."
-              + " The default is an empty list, which means targets are checked in every iteration")
+          "Only checks for targets after loops were unrolled exactly a number of times that is"
+              + " contained in this list. The default is an empty list, which means targets are"
+              + " checked in every iteration")
   private List<Integer> checkOnlyAtBounds = ImmutableList.of();
 
   LoopBoundTransferRelation(Configuration pConfig, CFA pCFA)
@@ -67,33 +68,30 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
     }
 
     ImmutableMap.Builder<CFAEdge, Loop> entryEdges = ImmutableMap.builder();
-    ImmutableMap.Builder<CFAEdge, Loop> exitEdges  = ImmutableMap.builder();
+    ImmutableMap.Builder<CFAEdge, Loop> exitEdges = ImmutableMap.builder();
     ImmutableListMultimap.Builder<CFANode, Loop> heads = ImmutableListMultimap.builder();
 
     for (Loop l : pCFA.getLoopStructure().orElseThrow().getAllLoops()) {
       // function edges do not count as incoming/outgoing edges
-      Stream<CFAEdge> incomingEdges = l.getIncomingEdges()
-          .stream()
-          .filter(e -> l.getLoopHeads().contains(e.getSuccessor()))
-          .filter(not(instanceOf(FunctionReturnEdge.class)));
-      Stream<CFAEdge> outgoingEdges = l.getOutgoingEdges()
-          .stream()
-          .filter(not(instanceOf(FunctionCallEdge.class)));
+      Stream<CFAEdge> incomingEdges =
+          l.getIncomingEdges().stream()
+              .filter(e -> l.getLoopHeads().contains(e.getSuccessor()))
+              .filter(not(instanceOf(FunctionReturnEdge.class)));
+      Stream<CFAEdge> outgoingEdges =
+          l.getOutgoingEdges().stream().filter(not(instanceOf(FunctionCallEdge.class)));
 
       incomingEdges.forEach(e -> entryEdges.put(e, l));
       outgoingEdges.forEach(e -> exitEdges.put(e, l));
       l.getLoopHeads().forEach(h -> heads.put(h, l));
     }
-    loopEntryEdges = entryEdges.build();
-    loopExitEdges = exitEdges.build();
+    loopEntryEdges = entryEdges.buildOrThrow();
+    loopExitEdges = exitEdges.buildOrThrow();
     loopHeads = heads.build();
   }
 
-
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
-      AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
-      throws CPATransferException {
+      AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge) throws CPATransferException {
 
     LoopBoundState state = (LoopBoundState) pState;
     LoopBoundPrecision precision = (LoopBoundPrecision) pPrecision;
