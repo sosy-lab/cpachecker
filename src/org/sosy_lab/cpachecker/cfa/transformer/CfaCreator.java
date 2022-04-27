@@ -29,7 +29,6 @@ import org.sosy_lab.cpachecker.cfa.CfaProcessor.ModifyingIndependentFunctionPost
 import org.sosy_lab.cpachecker.cfa.CfaProcessor.ModifyingSupergraphPostProcessor;
 import org.sosy_lab.cpachecker.cfa.CfaProcessor.ReadOnlyIndependentFunctionPostProcessor;
 import org.sosy_lab.cpachecker.cfa.CfaProcessor.ReadOnlySupergraphPostProcessor;
-import org.sosy_lab.cpachecker.cfa.CfaProcessor.SupergraphCreator;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -243,22 +242,9 @@ public final class CfaCreator {
     newMutableCfa = runModifyingIndependentFunctionPostProcessors(newMutableCfa, pLogger);
     runReadOnlyIndependentFunctionPostProcessors(newMutableCfa, pLogger);
 
-    boolean supergraphCreated = false;
-
-    for (CfaProcessor cfaProcessor : cfaProcessors) {
-      if (cfaProcessor instanceof SupergraphCreator) {
-        newMutableCfa = ((SupergraphCreator) cfaProcessor).process(newMutableCfa, pLogger);
-        supergraphCreated = true;
-      }
-    }
-
-    if (!supergraphCreated) {
-
-      removePlaceholderEdges();
-
-      connectedness = CfaConnectedness.SUPERGRAPH;
-      cfaNetwork.edges().forEach(this::toNew);
-    }
+    removePlaceholderEdges();
+    connectedness = CfaConnectedness.SUPERGRAPH;
+    cfaNetwork.edges().forEach(this::toNew);
 
     newMutableCfa.setMetadata(
         newMutableCfa.getMetadata().withConnectedness(CfaConnectedness.SUPERGRAPH));

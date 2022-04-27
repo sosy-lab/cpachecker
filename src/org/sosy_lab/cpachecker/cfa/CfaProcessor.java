@@ -22,7 +22,7 @@ import org.sosy_lab.common.log.LogManager;
  *       ({@link ModifyingIndependentFunctionPostProcessor}).
  *   <li>Do read-only post-processings on each single function CFA ({@link
  *       ReadOnlyIndependentFunctionPostProcessor}).
- *   <li>Insert call and return edges and build the supergraph ({@link SupergraphCreator}).
+ *   <li>Insert call and return edges and build the supergraph.
  *   <li>Do those post-processings that change the supergraph CFA by adding/removing nodes/edges
  *       ({@link ModifyingSupergraphPostProcessor}).
  *   <li>Collect information about the finished supergraph CFA without modifying the CFA ({@link
@@ -41,12 +41,6 @@ public interface CfaProcessor {
   public interface ReadOnlyIndependentFunctionPostProcessor extends CfaProcessor {
 
     void process(MutableCFA pCfa, LogManager pLogger);
-  }
-
-  @FunctionalInterface
-  public interface SupergraphCreator extends CfaProcessor {
-
-    MutableCFA process(MutableCFA pCfa, LogManager pLogger);
   }
 
   @FunctionalInterface
