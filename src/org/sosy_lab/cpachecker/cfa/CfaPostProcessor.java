@@ -31,26 +31,34 @@ import org.sosy_lab.common.log.LogManager;
  */
 public interface CfaPostProcessor {
 
+  /** Marker interface for CFA post-processors running on independent function CFAs. */
+  public interface IndependentFunctionPostProcessor extends CfaPostProcessor {}
+
+  /** Marker interface for CFA post-processors running on supergraph CFAs. */
+  public interface SupergraphPostProcessor extends CfaPostProcessor {}
+
   @FunctionalInterface
-  public interface ModifyingIndependentFunctionPostProcessor extends CfaPostProcessor {
+  public interface ModifyingIndependentFunctionPostProcessor
+      extends IndependentFunctionPostProcessor {
 
     MutableCFA process(MutableCFA pCfa, LogManager pLogger);
   }
 
   @FunctionalInterface
-  public interface ReadOnlyIndependentFunctionPostProcessor extends CfaPostProcessor {
+  public interface ReadOnlyIndependentFunctionPostProcessor
+      extends IndependentFunctionPostProcessor {
 
     void process(MutableCFA pCfa, LogManager pLogger);
   }
 
   @FunctionalInterface
-  public interface ModifyingSupergraphPostProcessor extends CfaPostProcessor {
+  public interface ModifyingSupergraphPostProcessor extends SupergraphPostProcessor {
 
     MutableCFA process(MutableCFA pCfa, LogManager pLogger);
   }
 
   @FunctionalInterface
-  public interface ReadOnlySupergraphPostProcessor extends CfaPostProcessor {
+  public interface ReadOnlySupergraphPostProcessor extends SupergraphPostProcessor {
 
     void process(MutableCFA pCfa, LogManager pLogger);
   }
