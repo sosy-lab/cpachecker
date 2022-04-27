@@ -477,11 +477,10 @@ public final class LoopStructure implements Serializable {
             if (iter.hasNext() && boundEdge instanceof AssumeEdge) {
               return Optional.empty();
             } else {
-              if (!(boundEdge instanceof AssumeEdge)) {
+              if (!(boundEdge instanceof AssumeEdge) || innerEdges.hasNext()) {
                 continueBuildingBound = false;
               } else {
                 // TODO Generalize for Java Expressions
-
                 whileLoopBound =
                     new AExpressionFactory()
                         .from(((AssumeEdge) boundEdge).getExpression())
