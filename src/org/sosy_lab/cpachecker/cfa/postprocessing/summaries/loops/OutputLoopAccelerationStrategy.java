@@ -91,8 +91,6 @@ public class OutputLoopAccelerationStrategy extends LoopStrategy {
     String counterVariableName =
         "ThisIsACounterSpecificOnlyForSummaryStrategiesDoNotUseInNormalCode";
 
-    Integer amountOfIterations = pModifiedVariables.size();
-
     // Init counter Variable
 
     CVariableDeclaration counterVariableDeclaration =

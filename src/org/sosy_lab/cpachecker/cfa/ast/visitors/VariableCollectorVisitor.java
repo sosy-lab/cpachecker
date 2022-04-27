@@ -144,7 +144,7 @@ public class VariableCollectorVisitor<X extends Exception>
 
   @Override
   public Set<AVariableDeclaration> visit(ACastExpression pExp) throws X {
-    return pExp.accept_(this);
+    return pExp.getOperand().accept_(this);
   }
 
   @Override

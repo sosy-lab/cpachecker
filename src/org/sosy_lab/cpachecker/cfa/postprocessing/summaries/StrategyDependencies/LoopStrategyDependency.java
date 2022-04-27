@@ -43,8 +43,7 @@ public class LoopStrategyDependency implements StrategyDependency {
   @Override
   public List<StrategiesEnum> filter(List<StrategiesEnum> pAvailableStrategies) {
     List<StrategiesEnum> preferredStrategies = new ArrayList<>();
-    strategyOrder
-        .stream()
+    strategyOrder.stream()
         .filter(pAvailableStrategies::contains)
         .findFirst()
         .ifPresent(preferredStrategies::add);
