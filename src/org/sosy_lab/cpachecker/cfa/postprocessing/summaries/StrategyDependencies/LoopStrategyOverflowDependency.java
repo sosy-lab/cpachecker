@@ -22,6 +22,8 @@ public class LoopStrategyOverflowDependency extends LoopStrategyDependency {
       preferredStrategies.add(StrategiesEnum.NONDETBOUNDCONSTANTEXTRAPOLATION);
     } else if (pAvailableStrategies.contains(StrategiesEnum.NAIVELOOPACCELERATION)) {
       preferredStrategies.add(StrategiesEnum.NAIVELOOPACCELERATION);
+    } else if (pAvailableStrategies.contains(StrategiesEnum.OUTPUTLOOPACCELERATION)) {
+      preferredStrategies.add(StrategiesEnum.OUTPUTLOOPACCELERATION);
     } else if (pAvailableStrategies.contains(StrategiesEnum.LOOPCONSTANTEXTRAPOLATION)) {
       preferredStrategies.add(StrategiesEnum.LOOPCONSTANTEXTRAPOLATION);
     } else if (pAvailableStrategies.contains(StrategiesEnum.LOOPLINEAREXTRAPOLATION)) {

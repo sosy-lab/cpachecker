@@ -22,6 +22,8 @@ public class LoopStrategyMostGeneralOrderingDependency extends LoopStrategyDepen
       preferredStrategies.add(StrategiesEnum.HAVOCSTRATEGY);
     } else if (pAvailableStrategies.contains(StrategiesEnum.NAIVELOOPACCELERATION)) {
       preferredStrategies.add(StrategiesEnum.NAIVELOOPACCELERATION);
+    } else if (pAvailableStrategies.contains(StrategiesEnum.OUTPUTLOOPACCELERATION)) {
+      preferredStrategies.add(StrategiesEnum.OUTPUTLOOPACCELERATION);
     } else if (pAvailableStrategies.contains(StrategiesEnum.NONDETBOUNDCONSTANTEXTRAPOLATION)) {
       preferredStrategies.add(StrategiesEnum.NONDETBOUNDCONSTANTEXTRAPOLATION);
     } else if (pAvailableStrategies.contains(StrategiesEnum.LOOPCONSTANTEXTRAPOLATION)) {

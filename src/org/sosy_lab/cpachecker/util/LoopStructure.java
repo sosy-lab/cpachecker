@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
@@ -131,6 +132,7 @@ public final class LoopStructure implements Serializable {
     private ImmutableSet<CFAEdge> outgoingEdges;
     private Map<String, Integer> loopIncDecVariables;
     private Set<AVariableDeclaration> modifiedVariables;
+    private Set<AVariableDeclaration> readVariables;
 
     private transient LinearVariableDependencyGraph linearVariableDependencies;
     private Boolean onlyConstantVariableModifications = null;
@@ -170,6 +172,7 @@ public final class LoopStructure implements Serializable {
 
       loopIncDecVariables = collectLoopIncDecVariables();
       modifiedVariables = collectModifiedVariables();
+      readVariables = collectReadVariables();
       linearVariableDependencies = calculateLinearVariableDependencies();
       innerAssumeEdges = getInnerAssumeEdges();
     }
@@ -213,6 +216,54 @@ public final class LoopStructure implements Serializable {
       }
 
       return modifiedVariablesLocal;
+    }
+
+    private Set<AVariableDeclaration> collectReadVariables() {
+      // TODO: For code reuse consider changing the Set<AVariableDeclaration> into LiveVariables
+      // class or something similar.
+      VariableCollectorVisitor<Exception> variableCollectorVisitor =
+          new VariableCollectorVisitor<>();
+      Set<AVariableDeclaration> readVariablesLocal = new HashSet<>();
+      for (CFAEdge e : this.getInnerLoopEdges()) {
+        if (e instanceof AStatementEdge) {
+          AStatement statement = ((AStatementEdge) e).getStatement();
+          if (statement instanceof AAssignment) {
+            try {
+              ARightHandSide rightHandSide = ((AAssignment) statement).getRightHandSide();
+              if (rightHandSide instanceof AExpression) {
+                readVariablesLocal.addAll(
+                    ((AExpression) rightHandSide).accept_(variableCollectorVisitor));
+              }
+            } catch (Exception e1) {
+              // TODO: Improve this, since if everything is coded correctly the error here should
+              // never happen
+              continue;
+            }
+          } else if (statement instanceof AExpressionStatement) {
+            try {
+              readVariablesLocal.addAll(
+                  ((AExpressionStatement) statement)
+                      .getExpression()
+                      .accept_(variableCollectorVisitor));
+            } catch (Exception e1) {
+              // TODO: Improve this, since if everything is coded correctly the error here should
+              // never happen
+              continue;
+            }
+          }
+        } else if (e instanceof AssumeEdge) {
+          AExpression statement = ((AssumeEdge) e).getExpression();
+          try {
+            readVariablesLocal.addAll(statement.accept_(variableCollectorVisitor));
+          } catch (Exception e1) {
+            // TODO: Improve this, since if everything is coded correctly the error here should
+            // never happen
+            continue;
+          }
+        }
+      }
+
+      return readVariablesLocal;
     }
 
     private void addNodes(Loop l) {
@@ -718,6 +769,11 @@ public final class LoopStructure implements Serializable {
         }
       }
       return false;
+    }
+
+    public Set<AVariableDeclaration> getReadVariables() {
+      this.computeSets();
+      return readVariables;
     }
   }
 

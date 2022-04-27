@@ -18,17 +18,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 
 public class LoopStrategy extends AbstractStrategy {
 
-  protected static final CSimpleType INTTYPE = new CSimpleType(
-  false,
-  false,
-  CBasicType.INT,
-  true,
-  false,
-  true,
-  false,
-  false,
-  false,
-  false);
+  protected static final CSimpleType INTTYPE =
+      new CSimpleType(false, false, CBasicType.INT, true, false, true, false, false, false, false);
 
   protected LoopStrategy(
       LogManager pLogger,

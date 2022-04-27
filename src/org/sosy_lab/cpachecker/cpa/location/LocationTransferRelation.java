@@ -107,13 +107,16 @@ public class LocationTransferRelation implements TransferRelation {
           CFAUtils.successorsOf(node)
               .transform(n -> summaryInformation.getStrategyForNode(n))
               .toList();
-      Set<StrategiesEnum> allowedStrategies =
-          new HashSet<>(
-              summaryInformation.getTransferSummaryStrategy().filter(availableStrategies));
+      Set<StrategiesEnum> allowedStrategies = new HashSet<>(availableStrategies);
       allowedStrategies.removeAll(summaryInformation.getUnallowedStrategiesForNode(node));
+      Set<StrategiesEnum> chosenStrategies =
+          new HashSet<>(
+              summaryInformation
+                  .getTransferSummaryStrategy()
+                  .filter(new ArrayList<>(allowedStrategies)));
 
       return CFAUtils.successorsOf(node)
-          .filter(n -> allowedStrategies.contains(summaryInformation.getStrategyForNode(n)))
+          .filter(n -> chosenStrategies.contains(summaryInformation.getStrategyForNode(n)))
           .transform(n -> factory.getState(n))
           .toList();
     }

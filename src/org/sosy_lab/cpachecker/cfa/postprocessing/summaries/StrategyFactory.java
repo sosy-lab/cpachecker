@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops.LinearExtrapol
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops.LoopUnrollingStrategy;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops.NaiveLoopAccelerationStrategy;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops.NondetBoundConstantExtrapolationStrategy;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops.OutputLoopAccelerationStrategy;
 
 public class StrategyFactory {
 
@@ -52,6 +53,9 @@ public class StrategyFactory {
             logger, shutdownNotifier, maxUnrollingsStrategy, strategyDependencies, cfa);
       case NAIVELOOPACCELERATION:
         return new NaiveLoopAccelerationStrategy(
+            logger, shutdownNotifier, strategyDependencies, cfa);
+      case OUTPUTLOOPACCELERATION:
+        return new OutputLoopAccelerationStrategy(
             logger, shutdownNotifier, strategyDependencies, cfa);
       case NONDETBOUNDCONSTANTEXTRAPOLATION:
         return new NondetBoundConstantExtrapolationStrategy(

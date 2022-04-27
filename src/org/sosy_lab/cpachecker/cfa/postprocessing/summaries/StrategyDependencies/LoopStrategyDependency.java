@@ -36,14 +36,16 @@ public class LoopStrategyDependency implements StrategyDependency {
       preferredStrategies.add(StrategiesEnum.LOOPCONSTANTEXTRAPOLATION);
     } else if (pAvailableStrategies.contains(StrategiesEnum.LOOPLINEAREXTRAPOLATION)) {
       preferredStrategies.add(StrategiesEnum.LOOPLINEAREXTRAPOLATION);
+    } else if (pAvailableStrategies.contains(StrategiesEnum.OUTPUTLOOPACCELERATION)) {
+      preferredStrategies.add(StrategiesEnum.OUTPUTLOOPACCELERATION);
     } else if (pAvailableStrategies.contains(StrategiesEnum.NAIVELOOPACCELERATION)) {
       preferredStrategies.add(StrategiesEnum.NAIVELOOPACCELERATION);
-    } else if (pAvailableStrategies.contains(StrategiesEnum.BASE)) {
-      preferredStrategies.add(StrategiesEnum.BASE);
-    } else if (pAvailableStrategies.contains(StrategiesEnum.HAVOCSTRATEGY)) {
-      preferredStrategies.add(StrategiesEnum.HAVOCSTRATEGY);
     } else if (pAvailableStrategies.contains(StrategiesEnum.NONDETBOUNDCONSTANTEXTRAPOLATION)) {
       preferredStrategies.add(StrategiesEnum.NONDETBOUNDCONSTANTEXTRAPOLATION);
+    } else if (pAvailableStrategies.contains(StrategiesEnum.HAVOCSTRATEGY)) {
+      preferredStrategies.add(StrategiesEnum.HAVOCSTRATEGY);
+    } else if (pAvailableStrategies.contains(StrategiesEnum.BASE)) {
+      preferredStrategies.add(StrategiesEnum.BASE);
     }
     return preferredStrategies;
   }

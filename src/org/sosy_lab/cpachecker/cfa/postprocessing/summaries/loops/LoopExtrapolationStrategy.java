@@ -99,9 +99,7 @@ public class LoopExtrapolationStrategy extends LoopStrategy {
               iterationsMaybe =
                   Optional.of(
                       new AExpressionFactory()
-                          .from(
-                              Integer.valueOf(1),
-                              LoopStrategy.INTTYPE)
+                          .from(Integer.valueOf(1), LoopStrategy.INTTYPE)
                           .build());
             }
             break;
@@ -186,9 +184,7 @@ public class LoopExtrapolationStrategy extends LoopStrategy {
               iterationsMaybe =
                   Optional.of(
                       new AExpressionFactory()
-                          .from(
-                              Integer.valueOf(1),
-                              LoopStrategy.INTTYPE)
+                          .from(Integer.valueOf(1), LoopStrategy.INTTYPE)
                           .build());
             }
             break;
