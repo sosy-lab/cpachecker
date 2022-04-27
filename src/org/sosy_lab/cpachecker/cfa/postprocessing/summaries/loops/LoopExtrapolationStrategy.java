@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 public class LoopExtrapolationStrategy extends LoopStrategy {
 
   protected Integer nameCounter = 0;
+  protected static final String LA_TMP_VAR_PREFIX = "TmpVariableReallyReallyTmp";
 
   protected LoopExtrapolationStrategy(
       LogManager pLogger,
@@ -100,17 +101,7 @@ public class LoopExtrapolationStrategy extends LoopStrategy {
                       new AExpressionFactory()
                           .from(
                               Integer.valueOf(1),
-                              new CSimpleType(
-                                  false,
-                                  false,
-                                  CBasicType.INT,
-                                  true,
-                                  false,
-                                  true,
-                                  false,
-                                  false,
-                                  false,
-                                  false))
+                              LoopStrategy.INTTYPE)
                           .build());
             }
             break;
@@ -124,17 +115,7 @@ public class LoopExtrapolationStrategy extends LoopStrategy {
                               Integer.valueOf(
                                   operand2variableDelta.orElseThrow()
                                       - operand1variableDelta.orElseThrow()),
-                              new CSimpleType(
-                                  false,
-                                  false,
-                                  CBasicType.INT,
-                                  true,
-                                  false,
-                                  true,
-                                  false,
-                                  false,
-                                  false,
-                                  false),
+                              LoopStrategy.INTTYPE,
                               CBinaryExpression.BinaryOperator.DIVIDE)
                           .build());
             }
@@ -149,31 +130,11 @@ public class LoopExtrapolationStrategy extends LoopStrategy {
                               Integer.valueOf(
                                   operand2variableDelta.orElseThrow()
                                       - operand1variableDelta.orElseThrow()),
-                              new CSimpleType(
-                                  false,
-                                  false,
-                                  CBasicType.INT,
-                                  true,
-                                  false,
-                                  true,
-                                  false,
-                                  false,
-                                  false,
-                                  false),
+                              LoopStrategy.INTTYPE,
                               CBinaryExpression.BinaryOperator.DIVIDE)
                           .binaryOperation(
                               Integer.valueOf(1),
-                              new CSimpleType(
-                                  false,
-                                  false,
-                                  CBasicType.INT,
-                                  true,
-                                  false,
-                                  true,
-                                  false,
-                                  false,
-                                  false,
-                                  false),
+                              LoopStrategy.INTTYPE,
                               CBinaryExpression.BinaryOperator.PLUS)
                           .build());
             }
@@ -188,31 +149,11 @@ public class LoopExtrapolationStrategy extends LoopStrategy {
                               Integer.valueOf(
                                   operand1variableDelta.orElseThrow()
                                       - operand2variableDelta.orElseThrow()),
-                              new CSimpleType(
-                                  false,
-                                  false,
-                                  CBasicType.INT,
-                                  true,
-                                  false,
-                                  true,
-                                  false,
-                                  false,
-                                  false,
-                                  false),
+                              LoopStrategy.INTTYPE,
                               CBinaryExpression.BinaryOperator.DIVIDE)
                           .binaryOperation(
                               Integer.valueOf(1),
-                              new CSimpleType(
-                                  false,
-                                  false,
-                                  CBasicType.INT,
-                                  true,
-                                  false,
-                                  true,
-                                  false,
-                                  false,
-                                  false,
-                                  false),
+                              LoopStrategy.INTTYPE,
                               CBinaryExpression.BinaryOperator.PLUS)
                           .build());
             }
@@ -227,17 +168,7 @@ public class LoopExtrapolationStrategy extends LoopStrategy {
                               Integer.valueOf(
                                   operand1variableDelta.orElseThrow()
                                       - operand2variableDelta.orElseThrow()),
-                              new CSimpleType(
-                                  false,
-                                  false,
-                                  CBasicType.INT,
-                                  true,
-                                  false,
-                                  true,
-                                  false,
-                                  false,
-                                  false,
-                                  false),
+                              LoopStrategy.INTTYPE,
                               CBinaryExpression.BinaryOperator.DIVIDE)
                           .build());
             }
@@ -257,17 +188,7 @@ public class LoopExtrapolationStrategy extends LoopStrategy {
                       new AExpressionFactory()
                           .from(
                               Integer.valueOf(1),
-                              new CSimpleType(
-                                  false,
-                                  false,
-                                  CBasicType.INT,
-                                  true,
-                                  false,
-                                  true,
-                                  false,
-                                  false,
-                                  false,
-                                  false))
+                              LoopStrategy.INTTYPE)
                           .build());
             }
             break;

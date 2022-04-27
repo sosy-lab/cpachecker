@@ -37,8 +37,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.GhostCFA;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependency;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
@@ -120,9 +118,9 @@ public class ConstantExtrapolationStrategy extends LoopExtrapolationStrategy {
               false,
               CStorageClass.AUTO,
               (CType) var.getType(),
-              var.getName() + "TmpVariableReallyReallyTmp" + nameCounter,
-              var.getOrigName() + "TmpVariableReallyReallyTmp" + nameCounter,
-              var.getQualifiedName() + "TmpVariableReallyReallyTmp" + nameCounter,
+              var.getName() + LoopExtrapolationStrategy.LA_TMP_VAR_PREFIX + nameCounter,
+              var.getOrigName() + LoopExtrapolationStrategy.LA_TMP_VAR_PREFIX + nameCounter,
+              var.getQualifiedName() + LoopExtrapolationStrategy.LA_TMP_VAR_PREFIX + nameCounter,
               null);
 
       CFAEdge newVarInitEdge =
@@ -162,33 +160,8 @@ public class ConstantExtrapolationStrategy extends LoopExtrapolationStrategy {
               new AExpressionFactory()
                   .from(iterationsVariable)
                   .binaryOperation(
-                      Integer.valueOf(1),
-                      new CSimpleType(
-                          false,
-                          false,
-                          CBasicType.INT,
-                          true,
-                          false,
-                          true,
-                          false,
-                          false,
-                          false,
-                          false),
-                      CBinaryExpression.BinaryOperator.MINUS)
-                  .binaryOperation(
-                      delta,
-                      new CSimpleType(
-                          false,
-                          false,
-                          CBasicType.INT,
-                          true,
-                          false,
-                          true,
-                          false,
-                          false,
-                          false,
-                          false),
-                      CBinaryExpression.BinaryOperator.MULTIPLY)
+                      Integer.valueOf(1), INTTYPE, CBinaryExpression.BinaryOperator.MINUS)
+                  .binaryOperation(delta, INTTYPE, CBinaryExpression.BinaryOperator.MULTIPLY)
                   .binaryOperation(
                       new CIdExpression(FileLocation.DUMMY, newVariableForOverflows),
                       CBinaryExpression.BinaryOperator.PLUS)
