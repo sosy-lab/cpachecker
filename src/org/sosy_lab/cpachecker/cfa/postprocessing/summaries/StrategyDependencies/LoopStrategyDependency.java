@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.Strategy;
@@ -16,6 +17,16 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops.ConstantExtrap
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops.LinearExtrapolationStrategy;
 
 public class LoopStrategyDependency implements StrategyDependency {
+
+  private final List<StrategiesEnum> strategyOrder =
+      Arrays.asList(
+          StrategiesEnum.LOOPCONSTANTEXTRAPOLATION,
+          StrategiesEnum.LOOPLINEAREXTRAPOLATION,
+          StrategiesEnum.OUTPUTLOOPACCELERATION,
+          StrategiesEnum.NAIVELOOPACCELERATION,
+          StrategiesEnum.NONDETBOUNDCONSTANTEXTRAPOLATION,
+          StrategiesEnum.HAVOCSTRATEGY,
+          StrategiesEnum.BASE);
 
   @Override
   public boolean apply(Strategy pStrategy, Integer pIteration) {
@@ -32,21 +43,11 @@ public class LoopStrategyDependency implements StrategyDependency {
   @Override
   public List<StrategiesEnum> filter(List<StrategiesEnum> pAvailableStrategies) {
     List<StrategiesEnum> preferredStrategies = new ArrayList<>();
-    if (pAvailableStrategies.contains(StrategiesEnum.LOOPCONSTANTEXTRAPOLATION)) {
-      preferredStrategies.add(StrategiesEnum.LOOPCONSTANTEXTRAPOLATION);
-    } else if (pAvailableStrategies.contains(StrategiesEnum.LOOPLINEAREXTRAPOLATION)) {
-      preferredStrategies.add(StrategiesEnum.LOOPLINEAREXTRAPOLATION);
-    } else if (pAvailableStrategies.contains(StrategiesEnum.OUTPUTLOOPACCELERATION)) {
-      preferredStrategies.add(StrategiesEnum.OUTPUTLOOPACCELERATION);
-    } else if (pAvailableStrategies.contains(StrategiesEnum.NAIVELOOPACCELERATION)) {
-      preferredStrategies.add(StrategiesEnum.NAIVELOOPACCELERATION);
-    } else if (pAvailableStrategies.contains(StrategiesEnum.NONDETBOUNDCONSTANTEXTRAPOLATION)) {
-      preferredStrategies.add(StrategiesEnum.NONDETBOUNDCONSTANTEXTRAPOLATION);
-    } else if (pAvailableStrategies.contains(StrategiesEnum.HAVOCSTRATEGY)) {
-      preferredStrategies.add(StrategiesEnum.HAVOCSTRATEGY);
-    } else if (pAvailableStrategies.contains(StrategiesEnum.BASE)) {
-      preferredStrategies.add(StrategiesEnum.BASE);
-    }
+    strategyOrder
+        .stream()
+        .filter(pAvailableStrategies::contains)
+        .findFirst()
+        .ifPresent(preferredStrategies::add);
     return preferredStrategies;
   }
 
