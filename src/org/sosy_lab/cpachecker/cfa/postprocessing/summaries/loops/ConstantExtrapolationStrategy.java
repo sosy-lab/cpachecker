@@ -101,7 +101,8 @@ public class ConstantExtrapolationStrategy extends LoopExtrapolationStrategy {
     }
 
     currentSummaryNodeCFA = nextNodeAndIterationsVariable.orElseThrow().getFirst();
-    AVariableDeclaration iterationsVariable = nextNodeAndIterationsVariable.orElseThrow().getSecond();
+    AVariableDeclaration iterationsVariable =
+        nextNodeAndIterationsVariable.orElseThrow().getSecond();
 
     CFANode nextSummaryNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
 
@@ -266,8 +267,7 @@ public class ConstantExtrapolationStrategy extends LoopExtrapolationStrategy {
     CFACreationUtils.connectNodes(secondEndUnrolledNode, endNodeGhostCFA);
 
     CFAEdge leavingEdge;
-    Iterator<CFAEdge> iter =
-        pLoopStructure.getOutgoingEdges().iterator();
+    Iterator<CFAEdge> iter = pLoopStructure.getOutgoingEdges().iterator();
     if (iter.hasNext()) {
       leavingEdge = iter.next();
       if (iter.hasNext()) {
@@ -290,7 +290,9 @@ public class ConstantExtrapolationStrategy extends LoopExtrapolationStrategy {
   public Optional<GhostCFA> summarize(final CFANode beforeWhile) {
 
     List<CFAEdge> filteredOutgoingEdges =
-        this.summaryFilter.getEdgesForStrategies(beforeWhile.getLeavingEdges(), new HashSet<>(Arrays.asList(StrategiesEnum.BASE, this.strategyEnum)));
+        this.summaryFilter.getEdgesForStrategies(
+            beforeWhile.getLeavingEdges(),
+            new HashSet<>(Arrays.asList(StrategiesEnum.BASE, this.strategyEnum)));
 
     if (filteredOutgoingEdges.size() != 1) {
       return Optional.empty();
@@ -337,6 +339,5 @@ public class ConstantExtrapolationStrategy extends LoopExtrapolationStrategy {
     this.nameCounter += 1;
 
     return summarizedLoopMaybe;
-
   }
 }

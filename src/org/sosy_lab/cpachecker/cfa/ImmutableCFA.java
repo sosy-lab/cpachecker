@@ -53,7 +53,6 @@ class ImmutableCFA implements CFA, Serializable {
   private final Optional<SummaryInformation> summaryInformation;
   private final Language language;
 
-
   /* fileNames are final, except for serialization. */
   private transient ImmutableList<Path> fileNames;
 
@@ -79,7 +78,6 @@ class ImmutableCFA implements CFA, Serializable {
     summaryInformation = pSummaryInformation;
     fileNames = ImmutableList.copyOf(pFileNames);
     language = pLanguage;
-
 
     checkArgument(mainFunction.equals(functions.get(mainFunction.getFunctionName())));
   }
@@ -150,7 +148,6 @@ class ImmutableCFA implements CFA, Serializable {
   public Optional<LoopStructure> getLoopStructure() {
     return Optional.ofNullable(loopStructure);
   }
-
 
   public Optional<SummaryInformation> geSummaryInformation() {
     return summaryInformation;

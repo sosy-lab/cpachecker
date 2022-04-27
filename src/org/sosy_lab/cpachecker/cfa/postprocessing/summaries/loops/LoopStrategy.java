@@ -23,5 +23,4 @@ public class LoopStrategy extends AbstractStrategy {
       CFA pCFA) {
     super(pLogger, pShutdownNotifier, pStrategyDependencies, pCFA);
   }
-
 }

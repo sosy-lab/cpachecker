@@ -55,11 +55,7 @@ public class SummaryPostProcessor implements StatisticsProvider {
     summaryInformation = pCfa.getSummaryInformation().orElseThrow();
     strategyFactory =
         new StrategyFactory(
-            pLogger,
-            pShutdownNotifier,
-            maxUnrollingsStrategy,
-            strategyDependencies,
-            pCfa);
+            pLogger, pShutdownNotifier, maxUnrollingsStrategy, strategyDependencies, pCfa);
 
     stats = new SummaryCFAStatistics(summaryInformation, strategies);
 

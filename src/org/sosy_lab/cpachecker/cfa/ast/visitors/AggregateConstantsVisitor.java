@@ -152,7 +152,7 @@ public class AggregateConstantsVisitor<X extends Exception>
   @Override
   public Optional<Integer> visit(ABinaryExpression pExp) throws X {
     if (pExp instanceof CBinaryExpression) {
-      Optional<Integer> operand1Maybe =  pExp.getOperand1().accept_(this);
+      Optional<Integer> operand1Maybe = pExp.getOperand1().accept_(this);
       if (((CBinaryExpression) pExp).getOperator() == BinaryOperator.DIVIDE) {
         Optional<Integer> operand2Maybe;
         if (this.linearTermsOnly) {
@@ -170,7 +170,7 @@ public class AggregateConstantsVisitor<X extends Exception>
         }
       }
 
-      Optional<Integer> operand2Maybe =  pExp.getOperand2().accept_(this);
+      Optional<Integer> operand2Maybe = pExp.getOperand2().accept_(this);
       if (operand1Maybe.isEmpty() || operand2Maybe.isEmpty()) {
         return Optional.empty();
       }
@@ -183,7 +183,8 @@ public class AggregateConstantsVisitor<X extends Exception>
           return Optional.of(operand1 - operand2);
         case MULTIPLY:
           if (this.linearTermsOnly) {
-            if (pExp.getOperand1() instanceof AIntegerLiteralExpression || pExp.getOperand2() instanceof AIntegerLiteralExpression) {
+            if (pExp.getOperand1() instanceof AIntegerLiteralExpression
+                || pExp.getOperand2() instanceof AIntegerLiteralExpression) {
               return Optional.of(operand1 * operand2);
             } else {
               return Optional.empty();

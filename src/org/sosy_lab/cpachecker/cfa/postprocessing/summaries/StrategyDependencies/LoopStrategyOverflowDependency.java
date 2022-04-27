@@ -32,5 +32,4 @@ public class LoopStrategyOverflowDependency extends LoopStrategyDependency {
 
     return preferredStrategies;
   }
-
 }

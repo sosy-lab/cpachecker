@@ -35,5 +35,4 @@ public abstract class SummaryPredicateRefiner implements Refiner {
         pCpa,
         predicateCPA.getConfiguration());
   }
-
 }

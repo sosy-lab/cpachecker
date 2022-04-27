@@ -82,10 +82,9 @@ public class CAssumeEdge extends AssumeEdge implements CCfaEdge {
   }
 
   /**
-   * TODO
-   * Warning: for instances with {@link #getTruthAssumption()} == false, the
-   * return value of this method does not represent exactly the return value
-   * of {@link #getRawStatement()} (it misses the outer negation of the expression).
+   * TODO Warning: for instances with {@link #getTruthAssumption()} == false, the return value of
+   * this method does not represent exactly the return value of {@link #getRawStatement()} (it
+   * misses the outer negation of the expression).
    */
   @Override
   public <R, X extends Exception> R accept(CCfaEdgeVisitor<R, X> pVisitor) throws X {

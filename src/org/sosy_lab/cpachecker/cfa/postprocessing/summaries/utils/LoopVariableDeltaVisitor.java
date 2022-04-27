@@ -169,7 +169,8 @@ public class LoopVariableDeltaVisitor<X extends Exception>
           Optional<Integer> operand2EvaluatedPlus = pExp.getOperand2().accept_(this);
           Optional<Integer> operand1EvaluatedPlus = pExp.getOperand1().accept_(this);
           if (operand2EvaluatedPlus.isPresent() && operand1EvaluatedPlus.isPresent()) {
-            return Optional.of(operand2EvaluatedPlus.orElseThrow() + operand1EvaluatedPlus.orElseThrow());
+            return Optional.of(
+                operand2EvaluatedPlus.orElseThrow() + operand1EvaluatedPlus.orElseThrow());
           } else {
             return Optional.empty();
           }
@@ -177,12 +178,12 @@ public class LoopVariableDeltaVisitor<X extends Exception>
           Optional<Integer> operand2EvaluatedMinus = pExp.getOperand2().accept_(this);
           Optional<Integer> operand1EvaluatedMinus = pExp.getOperand1().accept_(this);
           if (operand2EvaluatedMinus.isPresent() && operand1EvaluatedMinus.isPresent()) {
-            return Optional.of(operand1EvaluatedMinus.orElseThrow() - operand2EvaluatedMinus.orElseThrow());
+            return Optional.of(
+                operand1EvaluatedMinus.orElseThrow() - operand2EvaluatedMinus.orElseThrow());
           } else {
             return Optional.empty();
           }
         case MULTIPLY:
-
           Optional<Integer> operand1EvaluatedMultiply1 = pExp.getOperand1().accept_(this);
           Optional<Integer> operand2EvaluatedMultiply2 = pExp.getOperand2().accept_(this);
           if (this.linearTermsOnly) {
@@ -192,18 +193,21 @@ public class LoopVariableDeltaVisitor<X extends Exception>
                 pExp.getOperand2().accept_(this.noVariablesVisitor);
             if (operand2EvaluatedMultiply1.isPresent() && operand1EvaluatedMultiply1.isPresent()) {
               return Optional.of(
-                  operand2EvaluatedMultiply1.orElseThrow() * operand1EvaluatedMultiply1.orElseThrow());
+                  operand2EvaluatedMultiply1.orElseThrow()
+                      * operand1EvaluatedMultiply1.orElseThrow());
             } else if (operand2EvaluatedMultiply2.isPresent()
                 && operand1EvaluatedMultiply2.isPresent()) {
               return Optional.of(
-                  operand2EvaluatedMultiply2.orElseThrow() * operand1EvaluatedMultiply2.orElseThrow());
+                  operand2EvaluatedMultiply2.orElseThrow()
+                      * operand1EvaluatedMultiply2.orElseThrow());
             } else {
               return Optional.empty();
             }
           } else {
             if (operand2EvaluatedMultiply2.isPresent() && operand1EvaluatedMultiply1.isPresent()) {
               return Optional.of(
-                  operand2EvaluatedMultiply2.orElseThrow() * operand1EvaluatedMultiply1.orElseThrow());
+                  operand2EvaluatedMultiply2.orElseThrow()
+                      * operand1EvaluatedMultiply1.orElseThrow());
             } else {
               return Optional.empty();
             }

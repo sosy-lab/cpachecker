@@ -36,9 +36,8 @@ public interface CFAEdge extends Serializable {
   public CFAEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode);
 
   /**
-   * Returns the part of the original input file from which this edge was
-   * produced. This should usually be a single statement / declaration etc.
-   * (what normal programmers write on one line).
+   * Returns the part of the original input file from which this edge was produced. This should
+   * usually be a single statement / declaration etc. (what normal programmers write on one line).
    *
    * <p>The result does not reflect any post-processing and simplification which was done after
    * parsing and thus may show different C code than the result of {@link #getCode()}.

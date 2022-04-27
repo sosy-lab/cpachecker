@@ -33,9 +33,7 @@ public class JExpressionFactory implements ExpressionFactory {
     this.currentExpression = pAExpression;
   }
 
-  public JExpressionFactory() {
-
-  }
+  public JExpressionFactory() {}
 
   @Override
   public JExpression build() {
@@ -52,8 +50,11 @@ public class JExpressionFactory implements ExpressionFactory {
   }
 
   public JExpressionFactory from(Number pValue, JType pType) {
-    if (pType == JSimpleType.getInt() || pType == JSimpleType.getLong() || pType == JSimpleType.getShort()) {
-      this.currentExpression = new JIntegerLiteralExpression(FileLocation.DUMMY, new  BigInteger("" + pValue));
+    if (pType == JSimpleType.getInt()
+        || pType == JSimpleType.getLong()
+        || pType == JSimpleType.getShort()) {
+      this.currentExpression =
+          new JIntegerLiteralExpression(FileLocation.DUMMY, new BigInteger("" + pValue));
       return this;
     } else if (pType == JSimpleType.getDouble() || pType == JSimpleType.getFloat()) {
       this.currentExpression = JFloatLiteralExpression.createDummyLiteral((double) pValue);

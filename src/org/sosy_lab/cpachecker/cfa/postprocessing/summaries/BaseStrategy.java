@@ -22,5 +22,4 @@ public class BaseStrategy implements Strategy {
   public boolean isPrecise() {
     return true;
   }
-
 }

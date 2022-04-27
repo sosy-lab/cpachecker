@@ -81,11 +81,11 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.FunctionCallUnwinder;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.LabelAdder;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.SummaryInformation;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.SummaryPostProcessor;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependency;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyEnum;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyFactory;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependency;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.SummaryInformation;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.SummaryPostProcessor;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
@@ -242,8 +242,7 @@ public class CFACreator {
           StrategiesEnum.LOOPCONSTANTEXTRAPOLATION,
           StrategiesEnum.NONDETBOUNDCONSTANTEXTRAPOLATION,
           StrategiesEnum.NAIVELOOPACCELERATION,
-          StrategiesEnum.HAVOCSTRATEGY
-          );
+          StrategiesEnum.HAVOCSTRATEGY);
 
   @Option(
       secure = true,
@@ -268,7 +267,6 @@ public class CFACreator {
       secure = true,
       name = "cfa.serializeFile",
       description = "export CFA as .ser file (dump Java objects)")
-
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path serializeCfaFile = Path.of("cfa.ser.gz");
 
@@ -891,7 +889,7 @@ public class CFACreator {
       insertGlobalDeclarations(cfa, globalDeclarations);
     }
 
-      return cfa;
+    return cfa;
   }
 
   /** check, whether the program contains function calls to crate a new thread. */

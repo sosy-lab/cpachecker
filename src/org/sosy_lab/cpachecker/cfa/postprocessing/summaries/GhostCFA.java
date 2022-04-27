@@ -121,8 +121,8 @@ public class GhostCFA {
       for (CFAEdge e : currentEdges) {
         for (CFAEdge e2 : e.getSuccessor().getLeavingEdges()) {
           if (allEdges.add(e2)) {
-newEdges.add(e2);
-}
+            newEdges.add(e2);
+          }
         }
       }
       currentEdges = newEdges;
@@ -145,8 +145,8 @@ newEdges.add(e2);
         for (CFAEdge e : n.getLeavingEdges()) {
           CFANode n2 = e.getSuccessor();
           if (allNodes.add(n2)) {
-newNodes.add(n2);
-}
+            newNodes.add(n2);
+          }
         }
       }
       currentNodes = newNodes;

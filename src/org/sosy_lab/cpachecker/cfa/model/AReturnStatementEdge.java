@@ -64,6 +64,7 @@ public class AReturnStatementEdge extends AbstractCFAEdge {
     // the constructor enforces that the successor is always a FunctionExitNode
     return (FunctionExitNode) super.getSuccessor();
   }
+
   @Override
   public AReturnStatementEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
     if (pNewSuccessorNode instanceof FunctionExitNode) {

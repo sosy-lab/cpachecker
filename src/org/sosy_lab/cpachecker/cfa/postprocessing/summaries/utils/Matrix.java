@@ -72,7 +72,8 @@ public class Matrix<T> {
     for (int i = 0; i < amountRows; i++) {
       for (int j = 0; j < pMatrix.amountColumns; j++) {
         T cellResult =
-            this.multiplicationFunction.apply(this.matrix.get(i).get(0), pMatrix.matrix.get(0).get(j));
+            this.multiplicationFunction.apply(
+                this.matrix.get(i).get(0), pMatrix.matrix.get(0).get(j));
         for (int k = 1; k < this.amountColumns; k++) {
           cellResult =
               this.additionFunction.apply(

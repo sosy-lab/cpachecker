@@ -32,8 +32,7 @@ public class CExpressionFactory implements ExpressionFactory {
     this.currentExpression = pAExpression;
   }
 
-  public CExpressionFactory() {
-  }
+  public CExpressionFactory() {}
 
   @Override
   public CExpression build() {

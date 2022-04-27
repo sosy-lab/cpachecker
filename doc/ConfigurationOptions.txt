@@ -875,8 +875,7 @@ cfa.summaries.strategies = Arrays.asList(
           StrategiesEnum.LOOPCONSTANTEXTRAPOLATION,
           StrategiesEnum.NONDETBOUNDCONSTANTEXTRAPOLATION,
           StrategiesEnum.NAIVELOOPACCELERATION,
-          StrategiesEnum.HAVOCSTRATEGY
-          )
+          StrategiesEnum.HAVOCSTRATEGY)
 
 # A name of thread_create function
 cfa.threads.threadCreate = "pthread_create"

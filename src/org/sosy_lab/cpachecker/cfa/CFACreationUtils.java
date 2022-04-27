@@ -128,6 +128,7 @@ public class CFACreationUtils {
 
   /**
    * Connects two nodes with a dummy edge
+   *
    * @param pFromNode Start node for the edge
    * @param pToNode End node of the edge
    */

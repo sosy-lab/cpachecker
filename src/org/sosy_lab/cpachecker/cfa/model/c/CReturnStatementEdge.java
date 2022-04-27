@@ -50,6 +50,7 @@ public class CReturnStatementEdge extends AReturnStatementEdge implements CCfaEd
   public <R, X extends Exception> R accept(CCfaEdgeVisitor<R, X> pVisitor) throws X {
     return pVisitor.visit(this);
   }
+
   @Override
   public CReturnStatementEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
     if (pNewSuccessorNode instanceof FunctionExitNode) {

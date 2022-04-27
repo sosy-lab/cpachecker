@@ -71,5 +71,4 @@ public class FunctionReturnEdge extends AbstractCFAEdge {
       return null;
     }
   }
-
 }

@@ -17,7 +17,6 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies
 
 public class SummaryFilter {
 
-
   private SummaryInformation summaryInformation;
   private StrategyDependency strategyDependencies;
 
@@ -25,7 +24,6 @@ public class SummaryFilter {
       SummaryInformation pSummaryInformation, StrategyDependency pStrategyDependencies) {
     strategyDependencies = pStrategyDependencies;
     summaryInformation = pSummaryInformation;
-
   }
 
   public List<CFAEdge> getOutgoingEdges(CFANode node) {

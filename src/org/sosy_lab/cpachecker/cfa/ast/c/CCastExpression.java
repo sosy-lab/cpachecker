@@ -39,8 +39,7 @@ public final class CCastExpression extends ACastExpression implements CExpressio
     }
   }
 
-  /** returns the target-type of the cast-expression.
-   * The operand is casted to this type. */
+  /** returns the target-type of the cast-expression. The operand is casted to this type. */
   @Override
   public CType getExpressionType() {
     return (CType) super.getExpressionType();

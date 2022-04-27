@@ -31,5 +31,4 @@ public interface Strategy {
   default String getName() {
     return this.getClass().getSimpleName();
   }
-
 }

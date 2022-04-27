@@ -99,11 +99,13 @@ public class NondetBoundConstantExtrapolationStrategy extends ConstantExtrapolat
       return Optional.empty();
     }
 
-    CFACreationUtils.connectNodes(currentNode, summarizedLoopMaybe.orElseThrow().getStartGhostCfaNode());
+    CFACreationUtils.connectNodes(
+        currentNode, summarizedLoopMaybe.orElseThrow().getStartGhostCfaNode());
 
     currentNode = CFANode.newDummyCFANode(beforeWhile.getFunctionName());
 
-    CFACreationUtils.connectNodes(summarizedLoopMaybe.orElseThrow().getStopGhostCfaNode(), currentNode);
+    CFACreationUtils.connectNodes(
+        summarizedLoopMaybe.orElseThrow().getStopGhostCfaNode(), currentNode);
 
     CFAEdge loopBoundCFAEdgeEnd =
         new CAssumeEdge(

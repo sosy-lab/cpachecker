@@ -44,15 +44,13 @@ public class CFunctionReturnEdge extends FunctionReturnEdge implements CCfaEdge 
   @Override
   public CFunctionReturnEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
     if (pNewPredecessorNode instanceof FunctionExitNode) {
-    return new CFunctionReturnEdge(
-        getFileLocation(),
-        (FunctionExitNode) pNewPredecessorNode,
-        pNewSuccessorNode,
-        getSummaryEdge());
+      return new CFunctionReturnEdge(
+          getFileLocation(),
+          (FunctionExitNode) pNewPredecessorNode,
+          pNewSuccessorNode,
+          getSummaryEdge());
     } else {
       return null;
     }
   }
-
-
 }

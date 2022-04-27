@@ -174,9 +174,11 @@ public class AExpressionFactory implements ExpressionFactory {
 
   public AExpressionFactory unaryOperation(AUnaryOperator pOperator) {
     if (pOperator instanceof CUnaryExpression.UnaryOperator) {
-      ((CExpressionFactory) this.chosenFactory).unaryOperation((CUnaryExpression.UnaryOperator) pOperator);
+      ((CExpressionFactory) this.chosenFactory)
+          .unaryOperation((CUnaryExpression.UnaryOperator) pOperator);
     } else if (pOperator instanceof JUnaryExpression.UnaryOperator) {
-      ((JExpressionFactory) this.chosenFactory).unaryOperation((JUnaryExpression.UnaryOperator) pOperator);
+      ((JExpressionFactory) this.chosenFactory)
+          .unaryOperation((JUnaryExpression.UnaryOperator) pOperator);
     } else {
       return null;
     }

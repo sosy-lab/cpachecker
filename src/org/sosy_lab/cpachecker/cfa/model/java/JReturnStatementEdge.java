@@ -45,6 +45,7 @@ public class JReturnStatementEdge extends AReturnStatementEdge {
   public Optional<JAssignment> asAssignment() {
     return getReturnStatement().asAssignment();
   }
+
   @Override
   public JReturnStatementEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
     if (pNewSuccessorNode instanceof FunctionExitNode) {

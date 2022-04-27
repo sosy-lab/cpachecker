@@ -24,10 +24,10 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.SummaryInformation;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependency;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyEnum;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyFactory;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependency;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.SummaryInformation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -102,7 +102,7 @@ public class LocationTransferRelation implements TransferRelation {
     if (this.pCFA.getSummaryInformation().isEmpty()) {
       return CFAUtils.successorsOf(node).transform(n -> factory.getState(n)).toList();
     } else {
-      SummaryInformation summaryInformation =  pCFA.getSummaryInformation().orElseThrow();
+      SummaryInformation summaryInformation = pCFA.getSummaryInformation().orElseThrow();
       List<StrategiesEnum> availableStrategies =
           CFAUtils.successorsOf(node)
               .transform(n -> summaryInformation.getStrategyForNode(n))

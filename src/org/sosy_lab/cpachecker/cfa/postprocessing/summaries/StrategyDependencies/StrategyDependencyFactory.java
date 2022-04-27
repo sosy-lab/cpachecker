@@ -27,5 +27,4 @@ public class StrategyDependencyFactory {
         return null;
     }
   }
-
 }

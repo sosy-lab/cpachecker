@@ -47,6 +47,7 @@ public class ADeclarationEdge extends AbstractCFAEdge {
   public String getCode() {
     return declaration.toASTString();
   }
+
   @Override
   public ADeclarationEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
     return new ADeclarationEdge(

@@ -183,13 +183,37 @@ public class LoopExtrapolationStrategy extends LoopStrategy {
               iterationsMaybe =
                   Optional.of(
                       new AExpressionFactory(operand2)
+                          .binaryOperation(operand1, CBinaryExpression.BinaryOperator.MINUS)
                           .binaryOperation(
-                              operand1, CBinaryExpression.BinaryOperator.MINUS)
+                              Integer.valueOf(
+                                  operand1variableDelta.orElseThrow()
+                                      - operand2variableDelta.orElseThrow()),
+                              new CSimpleType(
+                                  false,
+                                  false,
+                                  CBasicType.INT,
+                                  true,
+                                  false,
+                                  true,
+                                  false,
+                                  false,
+                                  false,
+                                  false),
+                              CBinaryExpression.BinaryOperator.DIVIDE)
                           .binaryOperation(
-                              Integer.valueOf(operand1variableDelta.orElseThrow()
-                                  - operand2variableDelta.orElseThrow()), new CSimpleType(false, false, CBasicType.INT, true, false, true, false, false, false, false) , CBinaryExpression.BinaryOperator.DIVIDE)
-                          .binaryOperation(
-                              Integer.valueOf(1), new CSimpleType(false, false, CBasicType.INT, true, false, true, false, false, false, false) , CBinaryExpression.BinaryOperator.PLUS)
+                              Integer.valueOf(1),
+                              new CSimpleType(
+                                  false,
+                                  false,
+                                  CBasicType.INT,
+                                  true,
+                                  false,
+                                  true,
+                                  false,
+                                  false,
+                                  false,
+                                  false),
+                              CBinaryExpression.BinaryOperator.PLUS)
                           .build());
             }
             break;
@@ -198,11 +222,23 @@ public class LoopExtrapolationStrategy extends LoopStrategy {
               iterationsMaybe =
                   Optional.of(
                       new AExpressionFactory(operand2)
+                          .binaryOperation(operand1, CBinaryExpression.BinaryOperator.MINUS)
                           .binaryOperation(
-                              operand1, CBinaryExpression.BinaryOperator.MINUS)
-                          .binaryOperation(
-                              Integer.valueOf(operand1variableDelta.orElseThrow()
-                                  - operand2variableDelta.orElseThrow()), new CSimpleType(false, false, CBasicType.INT, true, false, true, false, false, false, false) , CBinaryExpression.BinaryOperator.DIVIDE)
+                              Integer.valueOf(
+                                  operand1variableDelta.orElseThrow()
+                                      - operand2variableDelta.orElseThrow()),
+                              new CSimpleType(
+                                  false,
+                                  false,
+                                  CBasicType.INT,
+                                  true,
+                                  false,
+                                  true,
+                                  false,
+                                  false,
+                                  false,
+                                  false),
+                              CBinaryExpression.BinaryOperator.DIVIDE)
                           .build());
             }
             break;
@@ -217,7 +253,22 @@ public class LoopExtrapolationStrategy extends LoopStrategy {
               // The loop is simply unrolled. Since because of overflows no extrapolation can be
               // made
               iterationsMaybe =
-                  Optional.of(new AExpressionFactory().from(Integer.valueOf(1), new CSimpleType(false, false, CBasicType.INT, true, false, true, false, false, false, false)).build());
+                  Optional.of(
+                      new AExpressionFactory()
+                          .from(
+                              Integer.valueOf(1),
+                              new CSimpleType(
+                                  false,
+                                  false,
+                                  CBasicType.INT,
+                                  true,
+                                  false,
+                                  true,
+                                  false,
+                                  false,
+                                  false,
+                                  false))
+                          .build());
             }
             break;
           default:

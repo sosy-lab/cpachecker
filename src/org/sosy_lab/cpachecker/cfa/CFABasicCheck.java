@@ -92,7 +92,9 @@ public class CFABasicCheck extends CFACheck {
     if (nodes != null) {
       verify(
           visitedNodes.equals(nodes),
-          "\nNodes in CFA but not reachable through traversal: %s\nNodes reached that are not in CFA: %s",
+          "\n"
+              + "Nodes in CFA but not reachable through traversal: %s\n"
+              + "Nodes reached that are not in CFA: %s",
           Iterables.transform(Sets.difference(nodes, visitedNodes), CFABasicCheck::debugFormat),
           Iterables.transform(Sets.difference(visitedNodes, nodes), CFABasicCheck::debugFormat));
     }

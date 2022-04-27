@@ -82,7 +82,8 @@ public class LinearVariableDependencyMatrix {
           // TODO: Generalize for Java Expressions
           new AExpressionFactory()
               .from(matrixRepresentation.get(indexOfVariable, pVariableOrdering.size()))
-              .binaryOperation(l.getVariableDependencies().getSecond(), CBinaryExpression.BinaryOperator.PLUS)
+              .binaryOperation(
+                  l.getVariableDependencies().getSecond(), CBinaryExpression.BinaryOperator.PLUS)
               .build());
     }
   }
@@ -253,24 +254,24 @@ public class LinearVariableDependencyMatrix {
     for (int i = 0; i < matrixSize; i++) {
       for (int j = 0; j < matrixSize; j++) {
         resultMatrix.put(
-              i,
-              j,
-              // TODO: Generalize for Java
-              new AExpressionFactory()
-                  .from(
-                      0,
-                      new CSimpleType(
-                          false,
-                          false,
-                          CBasicType.INT,
-                          false,
-                          false,
-                          false,
-                          false,
-                          false,
-                          false,
-                          true))
-                  .build());
+            i,
+            j,
+            // TODO: Generalize for Java
+            new AExpressionFactory()
+                .from(
+                    0,
+                    new CSimpleType(
+                        false,
+                        false,
+                        CBasicType.INT,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        true))
+                .build());
       }
     }
     // Init the pPower choose k value
@@ -328,8 +329,7 @@ public class LinearVariableDependencyMatrix {
             new AExpressionFactory()
                 .from(this.variableOrdering.get(j))
                 .binaryOperation(
-                    this.matrixRepresentation.get(i, j),
-                    CBinaryExpression.BinaryOperator.MULTIPLY)
+                    this.matrixRepresentation.get(i, j), CBinaryExpression.BinaryOperator.MULTIPLY)
                 .binaryOperation(leftHandSide, CBinaryExpression.BinaryOperator.PLUS)
                 .build();
       }

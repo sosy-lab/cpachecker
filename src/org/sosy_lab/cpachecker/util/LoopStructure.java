@@ -450,7 +450,6 @@ public final class LoopStructure implements Serializable {
 
       CFANode loopHead = this.getLoopHeads().asList().get(0);
 
-
       Set<CFAEdge> leavingEdgesLoopHead = new HashSet<>(loopHead.getLeavingEdges());
       Iterator<CFAEdge> iter =
           Sets.intersection(leavingEdgesLoopHead, this.getInnerLoopEdges()).iterator();
@@ -486,7 +485,8 @@ public final class LoopStructure implements Serializable {
                 whileLoopBound =
                     new AExpressionFactory()
                         .from(((AssumeEdge) boundEdge).getExpression())
-                        .binaryOperation(whileLoopBound, CBinaryExpression.BinaryOperator.BINARY_AND)
+                        .binaryOperation(
+                            whileLoopBound, CBinaryExpression.BinaryOperator.BINARY_AND)
                         .build();
               }
             }
@@ -560,11 +560,10 @@ public final class LoopStructure implements Serializable {
               } else {
                 return Optional.empty();
               }
-              Optional<LinearVariableDependency> dependencies =  Optional.empty();
+              Optional<LinearVariableDependency> dependencies = Optional.empty();
               if (rightHandSide instanceof AExpression) {
                 try {
-                  dependencies =
-                      ((AExpression) rightHandSide).accept_(visitor);
+                  dependencies = ((AExpression) rightHandSide).accept_(visitor);
                 } catch (Exception e1) {
                   return Optional.empty();
                 }
@@ -584,7 +583,6 @@ public final class LoopStructure implements Serializable {
           } else {
             return Optional.empty();
           }
-
         }
       }
       return Optional.empty();
@@ -701,7 +699,8 @@ public final class LoopStructure implements Serializable {
         if (e instanceof AStatementEdge) {
           if (((AStatementEdge) e).getStatement() instanceof AFunctionCallStatement) {
             AFunctionCallExpression functionCall =
-                ((AFunctionCallStatement) ((AStatementEdge) e).getStatement()).getFunctionCallExpression();
+                ((AFunctionCallStatement) ((AStatementEdge) e).getStatement())
+                    .getFunctionCallExpression();
             if (new AFunctionFactory().isUserDefined(functionCall)) {
               return true;
             }
@@ -717,7 +716,7 @@ public final class LoopStructure implements Serializable {
           if (((AStatementEdge) e).getStatement() instanceof AFunctionCallStatement) {
             return true;
           }
-          }
+        }
       }
       return false;
     }
@@ -802,7 +801,7 @@ public final class LoopStructure implements Serializable {
     for (Loop l : loops.values()) {
       // Get all variables that are incremented or decrement by Integer values
       Map<String, Integer> resultLocal = l.collectLoopIncDecVariables();
-      for (Entry<String, Integer> e: resultLocal.entrySet()) {
+      for (Entry<String, Integer> e : resultLocal.entrySet()) {
         if (result.containsKey(e.getKey())) {
           result.put(e.getKey(), result.get(e.getKey()) + e.getValue());
         } else {

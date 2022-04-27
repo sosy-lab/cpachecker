@@ -165,7 +165,7 @@ public class NaiveLoopAccelerationStrategy extends LoopStrategy {
 
     Loop loopStructure = loopStructureMaybe.orElseThrow();
 
- // Function calls may change global variables, or have assert statements, which cannot be
+    // Function calls may change global variables, or have assert statements, which cannot be
     // summarized correctly
     if (loopStructure.containsUserDefinedFunctionCalls()) {
       return Optional.empty();

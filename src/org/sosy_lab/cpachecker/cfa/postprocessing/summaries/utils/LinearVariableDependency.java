@@ -112,17 +112,17 @@ public class LinearVariableDependency {
         || operator == JBinaryExpression.BinaryOperator.MINUS) {
       if (this.numericalValue.getValue() instanceof BigInteger
           && pNumericalExpression.getValue() instanceof BigInteger) {
-      this.numericalValue =
-          (ALiteralExpression)
-              new AExpressionFactory()
-                  .from(
-                      ((BigInteger) this.numericalValue.getValue())
-                          .subtract(((BigInteger) pNumericalExpression.getValue())),
-                      TypeFactory.getMostGeneralType(
-                          this.numericalValue.getExpressionType(),
-                          pNumericalExpression.getExpressionType()))
-                  .build();
-      return true;
+        this.numericalValue =
+            (ALiteralExpression)
+                new AExpressionFactory()
+                    .from(
+                        ((BigInteger) this.numericalValue.getValue())
+                            .subtract(((BigInteger) pNumericalExpression.getValue())),
+                        TypeFactory.getMostGeneralType(
+                            this.numericalValue.getExpressionType(),
+                            pNumericalExpression.getExpressionType()))
+                    .build();
+        return true;
       } else {
         return false;
       }
@@ -184,7 +184,8 @@ public class LinearVariableDependency {
       return true;
     } else if (operator == CBinaryExpression.BinaryOperator.MULTIPLY
         || operator == JBinaryExpression.BinaryOperator.MULTIPLY) {
-      if (!this.dependencies.keySet().isEmpty() && !pLinearVariableDependency.dependencies.keySet().isEmpty()) {
+      if (!this.dependencies.keySet().isEmpty()
+          && !pLinearVariableDependency.dependencies.keySet().isEmpty()) {
         return false;
       } else {
         if (this.dependencies.keySet().isEmpty()) {
@@ -197,8 +198,7 @@ public class LinearVariableDependency {
           }
         } else if (pLinearVariableDependency.dependencies.keySet().isEmpty()) {
           for (AVariableDeclaration s : this.dependencies.keySet()) {
-            if (!this.modifyDependency(
-                s, pLinearVariableDependency.numericalValue, operator)) {
+            if (!this.modifyDependency(s, pLinearVariableDependency.numericalValue, operator)) {
               return false;
             }
           }
@@ -211,12 +211,12 @@ public class LinearVariableDependency {
       if (pLinearVariableDependency.dependencies.keySet().isEmpty()) {
         for (AVariableDeclaration s : this.dependencies.keySet()) {
           if (!this.modifyDependency(s, pLinearVariableDependency.numericalValue, operator)) {
-              return false;
-            }
+            return false;
           }
-        } else {
-          return false;
         }
+      } else {
+        return false;
+      }
       return false;
     } else {
       return false;
@@ -244,6 +244,4 @@ public class LinearVariableDependency {
       getVariableDependencies() {
     return Pair.of(this.dependencies, this.numericalValue);
   }
-
-
 }

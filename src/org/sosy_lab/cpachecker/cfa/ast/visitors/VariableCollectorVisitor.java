@@ -175,6 +175,6 @@ public class VariableCollectorVisitor<X extends Exception>
   @Override
   public Set<AVariableDeclaration> visit(JClassLiteralExpression pJClassLiteralExpression)
       throws X {
-      return new HashSet<>();
+    return new HashSet<>();
   }
 }

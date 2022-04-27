@@ -71,8 +71,10 @@ public class SummaryStrategyRefiner implements Refiner {
                     AbstractStates.extractLocation(currentElement)))
             .isPrecise()) {
           optionalRefinementState = Optional.of(currentElement);
-          optionalStrategy = Optional.of(summaryInformation.getStrategyForNode(
-              AbstractStates.extractLocation(currentElement)));
+          optionalStrategy =
+              Optional.of(
+                  summaryInformation.getStrategyForNode(
+                      AbstractStates.extractLocation(currentElement)));
           waitlist.clear();
           newWaitlist.clear();
           break;
@@ -98,7 +100,6 @@ public class SummaryStrategyRefiner implements Refiner {
           this.summaryInformation.addUnallowedStrategiesForNode(
               e.getPredecessor(), optionalStrategy.orElseThrow());
         }
-
       }
 
       reached.removeSubtree(refinementState);

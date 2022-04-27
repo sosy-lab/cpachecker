@@ -44,5 +44,4 @@ public abstract class AbstractStrategy implements Strategy {
   public boolean isPrecise() {
     return false;
   }
-
 }

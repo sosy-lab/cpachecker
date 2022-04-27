@@ -47,7 +47,6 @@ public class OnlyConstantVariableIncrementsVisitor<X extends Exception>
   Optional<Set<AVariableDeclaration>> knownVariables;
   AggregateConstantsVisitor<X> constantExpressionsVisitor;
 
-
   public OnlyConstantVariableIncrementsVisitor(
       Optional<Set<AVariableDeclaration>> pKnownVariables) {
     knownVariables = pKnownVariables;

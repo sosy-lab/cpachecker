@@ -79,7 +79,8 @@ public class LinearVariableDependencyGraph {
     Optional<LinearVariableDependency> existingLinearVariableDependency =
         findDependency(pLinearVariableDependency);
     if (existingLinearVariableDependency.isPresent()) {
-      return existingLinearVariableDependency.orElseThrow()
+      return existingLinearVariableDependency
+          .orElseThrow()
           .modifyDependency(pLinearVariableDependency, pOperator);
     } else {
       this.putDependency(pLinearVariableDependency);
@@ -104,5 +105,4 @@ public class LinearVariableDependencyGraph {
 
     return new LinearVariableDependencyMatrix(this, variableOrdering);
   }
-
 }

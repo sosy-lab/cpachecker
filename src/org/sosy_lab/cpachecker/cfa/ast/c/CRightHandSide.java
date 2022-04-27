@@ -18,5 +18,4 @@ public interface CRightHandSide extends CAstNode, ARightHandSide {
 
   @Override
   CType getExpressionType();
-
 }

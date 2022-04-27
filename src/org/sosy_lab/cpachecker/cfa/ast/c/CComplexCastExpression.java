@@ -46,7 +46,6 @@ public final class CComplexCastExpression extends AbstractExpression implements 
     } else {
       return null;
     }
-
   }
 
   @Override

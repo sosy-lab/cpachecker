@@ -178,7 +178,7 @@ public class ReplaceVariablesVisitor<X extends Exception>
         .unaryOperation(pExp.getOperator())
         .build();
   }
-  
+
   @Override
   public AExpression visit(JClassLiteralExpression pJClassLiteralExpression) throws X {
     return pJClassLiteralExpression;

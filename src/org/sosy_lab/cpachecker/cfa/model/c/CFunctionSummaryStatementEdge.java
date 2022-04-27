@@ -58,5 +58,4 @@ public class CFunctionSummaryStatementEdge extends CStatementEdge implements CCf
         getFunctionCall(),
         getFunctionName());
   }
-
 }
