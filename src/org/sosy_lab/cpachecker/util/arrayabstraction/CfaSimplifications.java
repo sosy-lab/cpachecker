@@ -216,9 +216,9 @@ final class CfaSimplifications {
     CfaTransformer cfaTransformer =
         CCfaTransformer.builder()
             .addEdgeAstSubstitution(substitutionFunction::apply)
-            .addCfaProcessor(new ReversePostorderPostProcessor())
-            .addCfaProcessor(new LoopStructurePostProcessor())
-            .addCfaProcessor(new VariableClassificationPostProcessor(pConfiguration))
+            .addCfaPostProcessor(new ReversePostorderPostProcessor())
+            .addCfaPostProcessor(new LoopStructurePostProcessor())
+            .addCfaPostProcessor(new VariableClassificationPostProcessor(pConfiguration))
             .build();
 
     return cfaTransformer.transform(graph, pCfa.getMetadata(), pLogger);
@@ -467,9 +467,9 @@ final class CfaSimplifications {
     CfaTransformer cfaTransformer =
         CCfaTransformer.builder()
             .addEdgeAstSubstitution(edgeAstSubstitution::apply)
-            .addCfaProcessor(new ReversePostorderPostProcessor())
-            .addCfaProcessor(new LoopStructurePostProcessor())
-            .addCfaProcessor(new VariableClassificationPostProcessor(pConfiguration))
+            .addCfaPostProcessor(new ReversePostorderPostProcessor())
+            .addCfaPostProcessor(new LoopStructurePostProcessor())
+            .addCfaPostProcessor(new VariableClassificationPostProcessor(pConfiguration))
             .build();
 
     return cfaTransformer.transform(graph, pCfa.getMetadata(), pLogger);

@@ -11,10 +11,10 @@ package org.sosy_lab.cpachecker.cfa;
 import org.sosy_lab.common.log.LogManager;
 
 /**
- * Marker interface for CFA processors.
+ * Marker interface for CFA post-processors.
  *
- * <p>CFA processors are executed in a specific order. During CFA creation, the following steps are
- * executed (in this order):
+ * <p>CFA post-processors are executed in a specific order. During CFA creation, the following steps
+ * are executed (in this order):
  *
  * <ol>
  *   <li>Parse file(s) and create a CFA for each function.
@@ -29,28 +29,28 @@ import org.sosy_lab.common.log.LogManager;
  *       ReadOnlySupergraphPostProcessor}).
  * </ol>
  */
-public interface CfaProcessor {
+public interface CfaPostProcessor {
 
   @FunctionalInterface
-  public interface ModifyingIndependentFunctionPostProcessor extends CfaProcessor {
+  public interface ModifyingIndependentFunctionPostProcessor extends CfaPostProcessor {
 
     MutableCFA process(MutableCFA pCfa, LogManager pLogger);
   }
 
   @FunctionalInterface
-  public interface ReadOnlyIndependentFunctionPostProcessor extends CfaProcessor {
+  public interface ReadOnlyIndependentFunctionPostProcessor extends CfaPostProcessor {
 
     void process(MutableCFA pCfa, LogManager pLogger);
   }
 
   @FunctionalInterface
-  public interface ModifyingSupergraphPostProcessor extends CfaProcessor {
+  public interface ModifyingSupergraphPostProcessor extends CfaPostProcessor {
 
     MutableCFA process(MutableCFA pCfa, LogManager pLogger);
   }
 
   @FunctionalInterface
-  public interface ReadOnlySupergraphPostProcessor extends CfaProcessor {
+  public interface ReadOnlySupergraphPostProcessor extends CfaPostProcessor {
 
     void process(MutableCFA pCfa, LogManager pLogger);
   }

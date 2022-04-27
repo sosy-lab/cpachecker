@@ -24,11 +24,11 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CfaConnectedness;
 import org.sosy_lab.cpachecker.cfa.CfaMetadata;
-import org.sosy_lab.cpachecker.cfa.CfaProcessor;
-import org.sosy_lab.cpachecker.cfa.CfaProcessor.ModifyingIndependentFunctionPostProcessor;
-import org.sosy_lab.cpachecker.cfa.CfaProcessor.ModifyingSupergraphPostProcessor;
-import org.sosy_lab.cpachecker.cfa.CfaProcessor.ReadOnlyIndependentFunctionPostProcessor;
-import org.sosy_lab.cpachecker.cfa.CfaProcessor.ReadOnlySupergraphPostProcessor;
+import org.sosy_lab.cpachecker.cfa.CfaPostProcessor;
+import org.sosy_lab.cpachecker.cfa.CfaPostProcessor.ModifyingIndependentFunctionPostProcessor;
+import org.sosy_lab.cpachecker.cfa.CfaPostProcessor.ModifyingSupergraphPostProcessor;
+import org.sosy_lab.cpachecker.cfa.CfaPostProcessor.ReadOnlyIndependentFunctionPostProcessor;
+import org.sosy_lab.cpachecker.cfa.CfaPostProcessor.ReadOnlySupergraphPostProcessor;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 
 public final class CfaCreator {
 
-  private final ImmutableList<CfaProcessor> cfaProcessors;
+  private final ImmutableList<CfaPostProcessor> cfaPostProcessors;
 
   private final CfaNetwork cfaNetwork;
 
@@ -53,12 +53,12 @@ public final class CfaCreator {
   private CfaConnectedness connectedness;
 
   private CfaCreator(
-      ImmutableList<CfaProcessor> pCfaProcessors,
+      ImmutableList<CfaPostProcessor> pCfaPostProcessors,
       CfaNetwork pCfaNetwork,
       CfaNodeTransformer pNodeTransformer,
       CfaEdgeTransformer pEdgeTransformer) {
 
-    cfaProcessors = pCfaProcessors;
+    cfaPostProcessors = pCfaPostProcessors;
 
     cfaNetwork = pCfaNetwork;
 
@@ -70,7 +70,7 @@ public final class CfaCreator {
   }
 
   public static CFA createCfa(
-      List<CfaProcessor> pCfaProcessors,
+      List<CfaPostProcessor> pCfaPostProcessors,
       CfaNetwork pCfaNetwork,
       CfaNodeTransformer pNodeTransformer,
       CfaEdgeTransformer pEdgeTransformer,
@@ -83,7 +83,7 @@ public final class CfaCreator {
         pCfaMetadata.getMainFunctionEntry());
 
     return new CfaCreator(
-            ImmutableList.copyOf(pCfaProcessors),
+            ImmutableList.copyOf(pCfaPostProcessors),
             checkNotNull(pCfaNetwork),
             checkNotNull(pNodeTransformer),
             checkNotNull(pEdgeTransformer))
@@ -187,10 +187,11 @@ public final class CfaCreator {
 
     MutableCFA mutableCfa = pMutableCfa;
 
-    for (CfaProcessor cfaProcessor : cfaProcessors) {
-      if (cfaProcessor instanceof ModifyingIndependentFunctionPostProcessor) {
+    for (CfaPostProcessor cfaPostProcessor : cfaPostProcessors) {
+      if (cfaPostProcessor instanceof ModifyingIndependentFunctionPostProcessor) {
         mutableCfa =
-            ((ModifyingIndependentFunctionPostProcessor) cfaProcessor).process(mutableCfa, pLogger);
+            ((ModifyingIndependentFunctionPostProcessor) cfaPostProcessor)
+                .process(mutableCfa, pLogger);
       }
     }
 
@@ -200,9 +201,9 @@ public final class CfaCreator {
   private void runReadOnlyIndependentFunctionPostProcessors(
       MutableCFA pMutableCfa, LogManager pLogger) {
 
-    for (CfaProcessor cfaProcessor : cfaProcessors) {
-      if (cfaProcessor instanceof ReadOnlyIndependentFunctionPostProcessor) {
-        ((ReadOnlyIndependentFunctionPostProcessor) cfaProcessor).process(pMutableCfa, pLogger);
+    for (CfaPostProcessor cfaPostProcessor : cfaPostProcessors) {
+      if (cfaPostProcessor instanceof ReadOnlyIndependentFunctionPostProcessor) {
+        ((ReadOnlyIndependentFunctionPostProcessor) cfaPostProcessor).process(pMutableCfa, pLogger);
       }
     }
   }
@@ -212,9 +213,10 @@ public final class CfaCreator {
 
     MutableCFA mutableCfa = pMutableCfa;
 
-    for (CfaProcessor cfaProcessor : cfaProcessors) {
-      if (cfaProcessor instanceof ModifyingSupergraphPostProcessor) {
-        mutableCfa = ((ModifyingSupergraphPostProcessor) cfaProcessor).process(mutableCfa, pLogger);
+    for (CfaPostProcessor cfaPostProcessor : cfaPostProcessors) {
+      if (cfaPostProcessor instanceof ModifyingSupergraphPostProcessor) {
+        mutableCfa =
+            ((ModifyingSupergraphPostProcessor) cfaPostProcessor).process(mutableCfa, pLogger);
       }
     }
 
@@ -223,9 +225,9 @@ public final class CfaCreator {
 
   private void runReadOnlySupergraphPostProcessors(MutableCFA pMutableCfa, LogManager pLogger) {
 
-    for (CfaProcessor cfaProcessor : cfaProcessors) {
-      if (cfaProcessor instanceof ReadOnlySupergraphPostProcessor) {
-        ((ReadOnlySupergraphPostProcessor) cfaProcessor).process(pMutableCfa, pLogger);
+    for (CfaPostProcessor cfaPostProcessor : cfaPostProcessors) {
+      if (cfaPostProcessor instanceof ReadOnlySupergraphPostProcessor) {
+        ((ReadOnlySupergraphPostProcessor) cfaPostProcessor).process(pMutableCfa, pLogger);
       }
     }
   }
