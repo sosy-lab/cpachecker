@@ -57,10 +57,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAValueExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
@@ -507,15 +507,18 @@ public class SMGCPAValueVisitor
       throw new SMG2Exception(errorState);
     }
 
+    String variableName = varDecl.getQualifiedName();
+
     if (SMGCPAValueExpressionEvaluator.isStructOrUnionType(type) || type instanceof CArrayType) {
       // Struct/Unions/arrays on the stack/global; return the memory location in a symbolic value
-      return ImmutableList.of(
-          ValueAndSMGState.of(
-              new ConstantSymbolicExpression(
-                  UnknownValue.getInstance(),
-                  type,
-                  MemoryLocation.forIdentifier(varDecl.getQualifiedName())),
-              state));
+      Optional<SMGObjectAndOffset> maybeTargetAndOffset =
+          evaluator.getTargetObjectAndOffset(state, variableName);
+      if (maybeTargetAndOffset.isEmpty()) {
+        // There is no memory for this variable! Invalid read.
+        throw new SMG2Exception(state.withInvalidStackVariableRead(variableName));
+      }
+
+      return ImmutableList.of(evaluator.createAddress(e, state, cfaEdge));
 
     } else if (SMGCPAValueExpressionEvaluator.isAddressType(type)) {
       // Pointer/Array/Function types should return a Value that internally can be translated into a
@@ -655,7 +658,7 @@ public class SMGCPAValueVisitor
         continue;
       }
 
-      // & is seperate as the value returned leads to the underlying memory location
+      // & operator is seperate as the value returned leads to the underlying memory location
       if (unaryOperator == UnaryOperator.AMPER) {
         // Check if a pointer already exits, if not create a pointer (points-to-edge), map it to a
         // unique value and return it.
