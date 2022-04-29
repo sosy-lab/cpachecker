@@ -217,7 +217,7 @@ public class SMGBuiltins {
             expressionEvaluator.writeValue(
                 currentState,
                 bufferMemory,
-                offset + (c * machineModel.getSizeofCharInBits()),
+                offset + ((long) c * machineModel.getSizeofCharInBits()),
                 CNumericTypes.SIGNED_CHAR,
                 ch,
                 cfaEdge);
