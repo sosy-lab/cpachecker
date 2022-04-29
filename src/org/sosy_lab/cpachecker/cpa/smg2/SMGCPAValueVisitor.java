@@ -659,7 +659,7 @@ public class SMGCPAValueVisitor
       if (unaryOperator == UnaryOperator.AMPER) {
         // Check if a pointer already exits, if not create a pointer (points-to-edge), map it to a
         // unique value and return it.
-        return ImmutableList.of(evaluator.createAddress(unaryOperand, currentState, cfaEdge));
+        return evaluator.createAddress(unaryOperand, currentState, cfaEdge);
       }
 
       if (value instanceof SymbolicValue) {
