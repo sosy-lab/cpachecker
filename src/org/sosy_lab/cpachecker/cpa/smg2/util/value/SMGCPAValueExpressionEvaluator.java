@@ -780,7 +780,7 @@ public class SMGCPAValueExpressionEvaluator {
     BigInteger finalSourceOffset =
         maybeSourceAndOffset.orElseThrow().getOffsetForObject().add(sourceOffset);
 
-    // The same for the source
+    // The same for the target
     Optional<SMGObjectAndOffset> maybeTargetAndOffset =
         pState.getMemoryModel().dereferencePointer(targetPointer);
     if (maybeTargetAndOffset.isEmpty()) {
@@ -847,6 +847,120 @@ public class SMGCPAValueExpressionEvaluator {
 
     return pState.copySMGObjectContentToSMGObject(
         sourceObject, finalSourceOffset, targetObject, finalTargetoffset, sizeToCopy);
+  }
+
+  /**
+   * Implementation of strcmp(). Compares the characters behind the 2 memory addresses and offsets
+   * until a \0 is found or the characters don't equal. If they equal in the entire memory until \0
+   * is found a 0 is returned. If not the difference of them numericly is returned.
+   *
+   * @param firstAddress {@link Value} leading to the first memory/String.
+   * @param pFirstOffsetInBits offset to beginn reading the first address in bits.
+   * @param secondAddress {@link Value} leading to the second memory/String.
+   * @param pSecondOffsetInBits offset to beginn reading the second address in bits.
+   * @param pState initial {@link SMGState}.
+   * @return {@link ValueAndSMGState} with a numeric value and the compare result if the values were
+   *     concrete or comparable + the non error state. The Value may also be symbolic. If an error
+   *     is encountered or the values were not comparable a unknown value is returned + a state that
+   *     may have a error state with the error specified if there was any.
+   * @throws SMG2Exception i want to remove this and use error states.
+   */
+  public ValueAndSMGState stringCompare(
+      Value firstAddress,
+      BigInteger pFirstOffsetInBits,
+      Value secondAddress,
+      BigInteger pSecondOffsetInBits,
+      SMGState pState)
+      throws SMG2Exception {
+    // Dereference the pointers and get the first/second memory and offset
+    // Start with first
+    Optional<SMGObjectAndOffset> maybefirstMemoryAndOffset =
+        pState.getMemoryModel().dereferencePointer(firstAddress);
+    if (maybefirstMemoryAndOffset.isEmpty()) {
+      // The value is unknown and therefore does not point to a valid memory location
+      return ValueAndSMGState.ofUnknownValue(
+          pState.withUnknownPointerDereferenceWhenReading(firstAddress));
+    }
+    SMGObject firstObject = maybefirstMemoryAndOffset.orElseThrow().getSMGObject();
+
+    // The object may be null if no such object exists, check and log if 0
+    if (firstObject.isZero()) {
+      return ValueAndSMGState.ofUnknownValue(
+          pState.withNullPointerDereferenceWhenReading(firstObject));
+    }
+
+    // The offset of the pointer used. (the pointer might point to a offset != 0, the other offset
+    // needs to the added to that!)
+    BigInteger firstOffsetInBits =
+        maybefirstMemoryAndOffset.orElseThrow().getOffsetForObject().add(pFirstOffsetInBits);
+
+    // The same for the second address
+    Optional<SMGObjectAndOffset> maybeSecondMemoryAndOffset =
+        pState.getMemoryModel().dereferencePointer(secondAddress);
+    if (maybeSecondMemoryAndOffset.isEmpty()) {
+      // The value is unknown and therefore does not point to a valid memory location
+      return ValueAndSMGState.ofUnknownValue(
+          pState.withUnknownPointerDereferenceWhenReading(secondAddress));
+    }
+    SMGObject secondObject = maybeSecondMemoryAndOffset.orElseThrow().getSMGObject();
+
+    // The object may be null if no such object exists, check and log if 0
+    if (secondObject.isZero()) {
+      return ValueAndSMGState.ofUnknownValue(
+          pState.withNullPointerDereferenceWhenWriting(secondObject));
+    }
+
+    // The offset of the pointer used. (the pointer might point to a offset != 0, the other offset
+    // needs to the added to that!)
+    BigInteger secondOffsetInBits =
+        maybeSecondMemoryAndOffset.orElseThrow().getOffsetForObject().add(pSecondOffsetInBits);
+
+    // Check that they are not ==, if they are the returned value is trivial 0
+    if (firstObject.equals(secondObject) && firstOffsetInBits.compareTo(secondOffsetInBits) == 0) {
+      return ValueAndSMGState.of(new NumericValue(0), pState);
+    }
+
+    BigInteger sizeOfCharInBits = BigInteger.valueOf(machineModel.getSizeofCharInBits());
+    // Now compare the Strings; stop at first \0
+    SMGState currentState = pState;
+    boolean foundNoStringTerminationChar = true;
+    while (foundNoStringTerminationChar) {
+      ValueAndSMGState valueAndState1 = readValue(currentState, firstObject, firstOffsetInBits, sizeOfCharInBits);
+      Value value1 = valueAndState1.getValue();
+      currentState = valueAndState1.getState();
+
+      if (value1.isUnknown()) {
+        return ValueAndSMGState.ofUnknownValue(currentState);
+      }
+
+      ValueAndSMGState valueAndState2 = readValue(currentState, secondObject, secondOffsetInBits, sizeOfCharInBits);
+      Value value2 = valueAndState2.getValue();
+      currentState = valueAndState2.getState();
+
+      if (value2.isUnknown()) {
+        return ValueAndSMGState.ofUnknownValue(currentState);
+      }
+
+      // Now compare the 2 values. Non-equality of non concrete values has to be checked by the SMG method because of abstraction.
+      if (value1.isNumericValue() && value2.isNumericValue()) {
+        // easy, just compare the numeric value and return if != 0
+        int compare = value1.asNumericValue().bigInteger().compareTo(value2.asNumericValue().bigInteger());
+        if (compare != 0) {
+          return ValueAndSMGState.of(new NumericValue(compare), pState);
+        }
+      } else {
+        // Symbolic handling as we know its not unknown and either not or only partially numeric
+        // TODO:
+      }
+      if ((value1.isNumericValue() && value1.asNumericValue().longValue() == 0) || (value2.isNumericValue() && value2.asNumericValue().longValue() == 0)) {
+        foundNoStringTerminationChar = false;
+      } else {
+        firstOffsetInBits = firstOffsetInBits.add(sizeOfCharInBits);
+        secondOffsetInBits = secondOffsetInBits.add(sizeOfCharInBits);
+      }
+    }
+    // Only if we can 100% say they are the same we return 0
+    return ValueAndSMGState.of(new NumericValue(0), pState);
   }
 
   public MachineModel getMachineModel() {
