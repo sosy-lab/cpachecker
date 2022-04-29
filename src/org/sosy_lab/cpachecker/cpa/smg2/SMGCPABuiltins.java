@@ -116,7 +116,7 @@ public class SMGCPABuiltins {
    * @param functionName name of the function to check.
    * @return true for the specified names, false else.
    */
-  private boolean isConfigurableAllocationFunction(String functionName) {
+  public boolean isConfigurableAllocationFunction(String functionName) {
     return options.getMemoryAllocationFunctions().contains(functionName)
         || options.getArrayAllocationFunctions().contains(functionName);
   }
@@ -127,7 +127,7 @@ public class SMGCPABuiltins {
    * @param functionName name of the function to check.
    * @return true for the specified names, false else.
    */
-  private boolean isDeallocationFunction(String functionName) {
+  public boolean isDeallocationFunction(String functionName) {
     return options.getDeallocationFunctions().contains(functionName);
   }
 
