@@ -258,10 +258,10 @@ public class SMGCPAValueExpressionEvaluator {
    * @param operand the {@link CExpression} that is the operand of the & expression.
    * @param pState current {@link SMGState}
    * @param cfaEdge debug/logging edge.
-   * @return either unknown or a {@link Value} representing the address.
+   * @return a list of either unknown or a {@link Value} representing the address.
    * @throws CPATransferException if the & operator is used on a invalid expression.
    */
-  public ValueAndSMGState createAddress(CExpression operand, SMGState pState, CFAEdge cfaEdge)
+  public List<ValueAndSMGState> createAddress(CExpression operand, SMGState pState, CFAEdge cfaEdge)
       throws CPATransferException {
     // SMGCPAAddressVisitor may have side effects! But they should not effect anything as they are
     // only interesing in a failure case in which the analysis stops!
