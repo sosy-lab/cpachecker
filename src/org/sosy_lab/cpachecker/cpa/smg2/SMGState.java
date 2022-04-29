@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSPC;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
@@ -473,7 +474,7 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
     String errorMSG =
         "Usage of uninitialized variable: "
             + uninitializedVariableName
-            + ". A unknown value was assumed, but behaviour is of this variable is generally"
+            + ". A unknown value was assumed, but behavior is of this variable is generally"
             + " undefined.";
     SMGErrorInfo newErrorInfo =
         errorInfo
@@ -588,7 +589,8 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   }
 
   /**
-   * Invalid write to a not initialized, unknown or non-existing memory region.
+   * Invalid write to a not initialized, unknown or non-existing or beyond the boundries of a memory
+   * region.
    *
    * @param invalidAddress the invalid address pointing to nothing.
    * @return A new SMGState with the error info.
@@ -600,9 +602,31 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
             + ".";
     SMGErrorInfo newErrorInfo =
         errorInfo
-            .withProperty(Property.INVALID_READ)
+            .withProperty(Property.INVALID_WRITE)
             .withErrorMessage(errorMSG)
             .withInvalidObjects(Collections.singleton(invalidAddress));
+    // Log the error in the logger
+    logMemoryError(errorMSG, true);
+    return copyWithErrorInfo(memoryModel, newErrorInfo);
+  }
+
+  /**
+   * Invalid write to a not initialized, unknown or non-existing or beyond the boundries of a memory
+   * region.
+   *
+   * @param invalidWriteRegion the invalid address pointing to nothing.
+   * @return A new SMGState with the error info.
+   */
+  public SMGState withInvalidWrite(SMGObject invalidWriteRegion) {
+    String errorMSG =
+        "Write to invalid, unknown or non-existing or beyond the boundries of a memory region: "
+            + invalidWriteRegion
+            + ".";
+    SMGErrorInfo newErrorInfo =
+        errorInfo
+            .withProperty(Property.INVALID_WRITE)
+            .withErrorMessage(errorMSG)
+            .withInvalidObjects(Collections.singleton(invalidWriteRegion));
     // Log the error in the logger
     logMemoryError(errorMSG, true);
     return copyWithErrorInfo(memoryModel, newErrorInfo);
@@ -618,7 +642,7 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   public SMGState withInvalidWrite(String errorMSG, Value invalidValue) {
     SMGErrorInfo newErrorInfo =
         errorInfo
-            .withProperty(Property.INVALID_READ)
+            .withProperty(Property.INVALID_WRITE)
             .withErrorMessage(errorMSG)
             .withInvalidObjects(Collections.singleton(invalidValue));
     // Log the error in the logger
@@ -662,6 +686,24 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
             .withProperty(Property.INVALID_READ)
             .withErrorMessage(errorMSG)
             .withInvalidObjects(Collections.singleton(readVariable));
+    // Log the error in the logger
+    logMemoryError(errorMSG, true);
+    return copyWithErrorInfo(memoryModel, newErrorInfo);
+  }
+
+  /**
+   * General read outside of memory boundries.
+   *
+   * @param readMemory the memory {@link SMGObject} that was tried to be read.
+   * @return A new SMGState with the error info.
+   */
+  public SMGState withInvalidRead(SMGObject readMemory) {
+    String errorMSG = "Invalid read of memory object: " + readMemory + ".";
+    SMGErrorInfo newErrorInfo =
+        errorInfo
+            .withProperty(Property.INVALID_READ)
+            .withErrorMessage(errorMSG)
+            .withInvalidObjects(Collections.singleton(readMemory));
     // Log the error in the logger
     logMemoryError(errorMSG, true);
     return copyWithErrorInfo(memoryModel, newErrorInfo);
@@ -713,6 +755,24 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
             .withProperty(Property.INVALID_READ)
             .withErrorMessage(errorMSG)
             .withInvalidObjects(Collections.singleton(objectRead));
+    // Log the error in the logger
+    logMemoryError(errorMSG, true);
+    return copyWithErrorInfo(memoryModel, newErrorInfo);
+  }
+
+  /**
+   * Log undefined behavior.
+   *
+   * @param errorMSG custom error msg.
+   * @param reason the reasons for the undefined behavior. I.e. invalid memcpy pointers.
+   * @return a new state with the error attached.
+   */
+  public SMGState withUndefinedbehavior(String errorMSG, Collection<Object> reason) {
+    SMGErrorInfo newErrorInfo =
+        errorInfo
+            .withProperty(Property.UNDEFINED_BEHAVIOR)
+            .withErrorMessage(errorMSG)
+            .withInvalidObjects(reason);
     // Log the error in the logger
     logMemoryError(errorMSG, true);
     return copyWithErrorInfo(memoryModel, newErrorInfo);
@@ -867,17 +927,32 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
    * without errors.
    *
    * @param addressToFree any {@link Value} thought to be a pointer to a memory region, but it may be
-   *     not.
+   *     not. It might be a {@link AddressExpression} as well.
    * @param pFunctionCall debug / logging info.
    * @param cfaEdge debug / logging info.
    * @return a new {@link SMGState} with the memory region behind the {@link Value} freed.
    */
   public SMGState free(Value addressToFree, CFunctionCallExpression pFunctionCall, CFAEdge cfaEdge) {
-    Optional<SMGObjectAndOffset> maybeRegion = memoryModel.dereferencePointer(addressToFree);
+    Value sanitizedAddressToFree = addressToFree;
+    BigInteger baseOffset = BigInteger.ZERO;
+    // if the entered value is a AddressExpression think of it as a internal wrapper of pointer +
+    // offset. We use the value as pointer and then add the offset to the found offset! If however
+    // the offset is non numeric we can't calculate if the free is valid or not.
+    if (addressToFree instanceof AddressExpression) {
+      // We just disassamble the AddressExpression and use it as if it were a normal pointer
+      AddressExpression addressExpr = (AddressExpression) addressToFree;
+      sanitizedAddressToFree = addressExpr.getMemoryAddress();
+
+      if (!addressExpr.getOffset().isNumericValue()) {
+        // TODO: return a freed and a unfreed state?
+        return this;
+      }
+      baseOffset = addressExpr.getOffset().asNumericValue().bigInteger();
+    }
 
     // Value == 0 can happen by user input and is valid!
-    if (addressToFree.isNumericValue()
-        && addressToFree.asNumericValue().bigInteger().compareTo(BigInteger.ZERO) == 0) {
+    if (sanitizedAddressToFree.isNumericValue()
+        && sanitizedAddressToFree.asNumericValue().bigInteger().compareTo(BigInteger.ZERO) == 0) {
       logger.log(
           Level.INFO,
           pFunctionCall.getFileLocation(),
@@ -888,6 +963,8 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
       return this;
     }
 
+    Optional<SMGObjectAndOffset> maybeRegion =
+        memoryModel.dereferencePointer(sanitizedAddressToFree);
     // If there is no region, the Optional is empty
     if (maybeRegion.isEmpty()) {
       logger.log(
@@ -905,7 +982,7 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
       return invalidFreeState;
     }
     SMGObject regionToFree = maybeRegion.orElseThrow().getSMGObject();
-    BigInteger offsetInBits = maybeRegion.orElseThrow().getOffsetForObject();
+    BigInteger offsetInBits = baseOffset.add(maybeRegion.orElseThrow().getOffsetForObject());
 
     // free(0) is a nop in C
     if (regionToFree.isZero()) {
@@ -1077,44 +1154,45 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
 
   /**
    * Copies the content (Values) of the source {@link SMGObject} starting from the sourceOffset into
-   * the target {@link SMGObject} starting from the target offset. This expects that both the source
-   * and target exist in the SPC. Throws an exception if the sizes don't match.
+   * the target {@link SMGObject} starting from the target offset. This copies until the size limit
+   * is reached. If a edge starts within the size, but ends outside, its not copied. This expects
+   * that both the source and target exist in the SPC and all checks are made before calling this. These checks should include range checks, overlapping memorys etc.
    *
    * @param sourceObject {@link SMGObject} from which is to be copied.
    * @param sourceStartOffset offset from which the copy is started.
    * @param targetObject target {@link SMGObject}
    * @param targetStartOffset target offset, this is the start of the writes in the target.
+   * @param copySizeInBits maximum copied bits. If a edge starts within the accepted range but ends
+   *     outside, its not copied.
    * @return {@link SMGState} with the content of the source copied into the target.
-   * @throws SMG2Exception if sizes don't match. I.e. if the source is larger than the target.
    */
   public SMGState copySMGObjectContentToSMGObject(
       SMGObject sourceObject,
       BigInteger sourceStartOffset,
       SMGObject targetObject,
-      BigInteger targetStartOffset)
-      throws SMG2Exception {
-    // Check that the target can hold the source!
-    if (sourceObject
-            .getSize()
-            .subtract(sourceStartOffset)
-            .compareTo(targetObject.getSize().subtract(targetStartOffset))
-        != 0) {
-      throw new SMG2Exception("");
-    }
+      BigInteger targetStartOffset,
+      BigInteger copySizeInBits) {
     SMGState currentState = this;
-    // Get all source edges
+    BigInteger maxReadOffsetPlusSize = sourceStartOffset.add(copySizeInBits);
+    // Removal of edges in the target is not necessary as the write deletes old overlapping edges
+    // Get all source edges and copy them
     Set<SMGHasValueEdge> sourceContents = memoryModel.getSmg().getEdges(sourceObject);
     for (SMGHasValueEdge edge : sourceContents) {
-      BigInteger offset = edge.getOffset();
-      // We only write edges that are >= the beginning offset of the source
-      if (sourceStartOffset.compareTo(offset) <= 0) {
-        BigInteger sizeInBits = edge.getSizeInBits();
+      BigInteger edgeOffsetInBits = edge.getOffset();
+      BigInteger edgeSizeInBits = edge.getSizeInBits();
+      // We only write edges that are >= the beginning offset of the source and edgeOffsetInBits +
+      // edgeSizeInBits < sourceStartOffset + copySizeInBits
+      if (sourceStartOffset.compareTo(edgeOffsetInBits) <= 0
+          && edgeOffsetInBits.add(edgeSizeInBits).compareTo(maxReadOffsetPlusSize) < 0) {
         // We need to take the targetOffset to source offset difference into account
-        BigInteger finalOffset = offset.subtract(sourceStartOffset).add(targetStartOffset);
+        BigInteger finalWriteOffsetInBits =
+            edgeOffsetInBits.subtract(sourceStartOffset).add(targetStartOffset);
         SMGValue value = edge.hasValue();
-        currentState = currentState.writeValue(targetObject, finalOffset, sizeInBits, value);
+        currentState =
+            currentState.writeValue(targetObject, finalWriteOffsetInBits, edgeSizeInBits, value);
       }
     }
+
     return currentState;
   }
 
