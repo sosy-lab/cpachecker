@@ -18,7 +18,9 @@ import java.util.Set;
 import java.util.regex.Pattern;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -209,7 +211,12 @@ public class SMGCPABuiltins {
         evaluateVBPlot(cFCExpression, pState);
         // $FALL-THROUGH$
       case "printf":
-        return ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
+        List<SMGState> checkedStates =
+            checkAllParametersForValidity(pState, pCfaEdge, cFCExpression);
+        return checkedStates
+            .stream()
+            .map(state -> ValueAndSMGState.ofUnknownValue(state))
+            .collect(ImmutableList.toImmutableList());
 
       case "realloc":
         return evaluateRealloc();
@@ -223,6 +230,36 @@ public class SMGCPABuiltins {
               "Unexpected function handled as a builtin: " + calledFunctionName);
         }
     }
+  }
+
+  /**
+   * Checks all function parameters for invalid pointer based inputs. To be used in methods that we
+   * only simulate shallowly i.e. print().
+   *
+   * @param pState current {@link SMGState}.
+   * @param pCfaEdge the edge from which this function call originates.
+   * @param cFCExpression the function call expression.
+   * @return a list of states which may include error states.
+   * @throws CPATransferException in case of errors the SMGCPA can not solve.
+   */
+  private List<SMGState> checkAllParametersForValidity(
+      SMGState pState, CFAEdge pCfaEdge, CFunctionCallExpression cFCExpression)
+      throws CPATransferException {
+    ImmutableList.Builder<SMGState> stateBuilder = ImmutableList.builder();
+    // check that we can safely read all args,
+    // to avoid invalid-derefs like   int * p; printf("%d", *p);
+    for (CExpression param : cFCExpression.getParameterExpressions()) {
+      if (param instanceof CPointerExpression) {
+        SMGCPAValueVisitor valueVisitor =
+            new SMGCPAValueVisitor(evaluator, pState, pCfaEdge, logger);
+        for (ValueAndSMGState valueAndState : param.accept(valueVisitor)) {
+          // We are only interested in the error info, hence why we don't change the inital state
+          // here
+          stateBuilder.add(valueAndState.getState());
+        }
+      }
+    }
+    return stateBuilder.build();
   }
 
   /**
@@ -254,7 +291,12 @@ public class SMGCPABuiltins {
         // fallthrough for safe functions
         // $FALL-THROUGH$
       case ASSUME_SAFE:
-        return ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
+        List<SMGState> checkedStates =
+            checkAllParametersForValidity(pState, pCfaEdge, cFCExpression);
+        return checkedStates
+            .stream()
+            .map(state -> ValueAndSMGState.ofUnknownValue(state))
+            .collect(ImmutableList.toImmutableList());
       case ASSUME_EXTERNAL_ALLOCATED:
         return evaluator.handleSafeExternFunction(cFCExpression, pState, pCfaEdge);
       default:
