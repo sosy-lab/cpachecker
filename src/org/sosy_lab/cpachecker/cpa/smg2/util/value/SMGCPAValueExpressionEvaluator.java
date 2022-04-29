@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.SymbolicProgramConfiguration;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndSMGState;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -258,7 +259,7 @@ public class SMGCPAValueExpressionEvaluator {
    * @param operand the {@link CExpression} that is the operand of the & expression.
    * @param pState current {@link SMGState}
    * @param cfaEdge debug/logging edge.
-   * @return a list of either unknown or a {@link Value} representing the address.
+   * @return a list of either unknown or a {@link Value} representing the address. This is not a {@link AddressExpression}!
    * @throws CPATransferException if the & operator is used on a invalid expression.
    */
   public List<ValueAndSMGState> createAddress(CExpression operand, SMGState pState, CFAEdge cfaEdge)
@@ -268,32 +269,32 @@ public class SMGCPAValueExpressionEvaluator {
     SMGCPAAddressVisitor addressVisitor = new SMGCPAAddressVisitor(this, pState, cfaEdge, logger);
     ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
     for (Optional<SMGObjectAndOffset> maybeObjectAndOffset : operand.accept(addressVisitor)) {
-    if (maybeObjectAndOffset.isEmpty()) {
-      // TODO: improve error handling and add more specific exceptions to the visitor!
-      // No address could be found
-      throw new SMG2Exception("No address could be created for the expression: " + operand);
-    }
-    SMGObjectAndOffset targetAndOffset = maybeObjectAndOffset.orElseThrow();
-    SMGObject target = targetAndOffset.getSMGObject();
-    BigInteger offset = targetAndOffset.getOffsetForObject();
-    // search for existing pointer first and return if found
-    Optional<SMGValue> maybeAddressValue =
-        pState.getMemoryModel().getAddressValueForPointsToTarget(target, offset);
+      if (maybeObjectAndOffset.isEmpty()) {
+        // TODO: improve error handling and add more specific exceptions to the visitor!
+        // No address could be found
+        throw new SMG2Exception("No address could be created for the expression: " + operand);
+      }
+      SMGObjectAndOffset targetAndOffset = maybeObjectAndOffset.orElseThrow();
+      SMGObject target = targetAndOffset.getSMGObject();
+      BigInteger offset = targetAndOffset.getOffsetForObject();
+      // search for existing pointer first and return if found
+      Optional<SMGValue> maybeAddressValue =
+          pState.getMemoryModel().getAddressValueForPointsToTarget(target, offset);
 
-    if (maybeAddressValue.isPresent()) {
-      Optional<Value> valueForSMGValue =
-          pState.getMemoryModel().getValueFromSMGValue(maybeAddressValue.orElseThrow());
-        // Reuse pointer; there should never be a SMGValue without counterpart!
-        // TODO: this might actually be expensive, check once this runs!
-        resultBuilder.add(ValueAndSMGState.of(valueForSMGValue.orElseThrow(), pState));
-        continue;
-    }
+      if (maybeAddressValue.isPresent()) {
+        Optional<Value> valueForSMGValue =
+            pState.getMemoryModel().getValueFromSMGValue(maybeAddressValue.orElseThrow());
+          // Reuse pointer; there should never be a SMGValue without counterpart!
+          // TODO: this might actually be expensive, check once this runs!
+          resultBuilder.add(ValueAndSMGState.of(valueForSMGValue.orElseThrow(), pState));
+          continue;
+      }
 
-    // If none is found, we need a new Value -> SMGValue mapping for the address + a new
-    // PointsToEdge with the correct offset
-    Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
-    SMGState newState = pState.createAndAddPointer(addressValue, target, offset);
-      resultBuilder.add(ValueAndSMGState.of(addressValue, newState));
+      // If none is found, we need a new Value -> SMGValue mapping for the address + a new
+      // PointsToEdge with the correct offset
+      Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
+      SMGState newState = pState.createAndAddPointer(addressValue, target, offset);
+        resultBuilder.add(ValueAndSMGState.of(addressValue, newState));
     }
     return resultBuilder.build();
   }
@@ -727,6 +728,125 @@ public class SMGCPAValueExpressionEvaluator {
       logger.logDebugException(e);
       throw new UnrecognizedCodeException("Could not resolve type.", edge);
     }
+  }
+
+  /**
+   * Copies all existing Values (Value Edges) from the memory behind source to the memory behind
+   * target up to the size specified in bits. If a Value starts before the sourcePointer offset, or
+   * ends after the size, the value is not copied. This method will check validity of pointers,
+   * writes, reads etc. itself. This includes that the 2 memory regions don't overlap and writes and
+   * reads are only on valid memory. If an error is found a unchanged errorstate is returned, else a
+   * state with the memory copied is returned. Mainly thought to be used by memcpy
+   *
+   * @param sourcePointer {@link Value} that is a pointer to some memory that is the source of the
+   *     copy.
+   * @param targetPointer {@link Value} that is a pointer to some memory that is the target of the
+   *     copy.
+   * @param sizeToCopy the size of the copy in bits.
+   * @param pState the {@link SMGState} to start with.
+   * @return either a {@link SMGState} with the contents copied or a error state.
+   */
+  public SMGState copyFromMemoryToMemory(
+      Value sourcePointer,
+      BigInteger sourceOffset,
+      Value targetPointer,
+      BigInteger targetOffset,
+      BigInteger sizeToCopy,
+      SMGState pState) {
+    if (sizeToCopy.compareTo(BigInteger.ZERO) == 0) {
+      return pState;
+    }
+    // TODO: this could end up weird if the types sizes don't match between source and target. If
+    // you read the target after the memcpy you don't necassarly get the correct values as read
+    // depends on offset + size. Is this something we just accept?
+
+    // Dereference the pointers and get the source/target memory and offset
+    // Start with source
+    Optional<SMGObjectAndOffset> maybeSourceAndOffset =
+        pState.getMemoryModel().dereferencePointer(sourcePointer);
+    if (maybeSourceAndOffset.isEmpty()) {
+      // The value is unknown and therefore does not point to a valid memory location
+      return pState.withUnknownPointerDereferenceWhenReading(sourcePointer);
+    }
+    SMGObject sourceObject = maybeSourceAndOffset.orElseThrow().getSMGObject();
+
+    // The object may be null if no such object exists, check and log if 0
+    if (sourceObject.isZero()) {
+      return pState.withNullPointerDereferenceWhenReading(sourceObject);
+    }
+
+    // The offset of the pointer used. (the pointer might point to a offset != 0, the other offset
+    // needs to the added to that!)
+    BigInteger finalSourceOffset =
+        maybeSourceAndOffset.orElseThrow().getOffsetForObject().add(sourceOffset);
+
+    // The same for the source
+    Optional<SMGObjectAndOffset> maybeTargetAndOffset =
+        pState.getMemoryModel().dereferencePointer(targetPointer);
+    if (maybeTargetAndOffset.isEmpty()) {
+      // The value is unknown and therefore does not point to a valid memory location
+      return pState.withUnknownPointerDereferenceWhenReading(targetPointer);
+    }
+    SMGObject targetObject = maybeTargetAndOffset.orElseThrow().getSMGObject();
+
+    // The object may be null if no such object exists, check and log if 0
+    if (targetObject.isZero()) {
+      return pState.withNullPointerDereferenceWhenWriting(targetObject);
+    }
+
+    // The offset of the pointer used. (the pointer might point to a offset != 0, the other offset
+    // needs to the added to that!)
+    BigInteger finalTargetoffset =
+        maybeTargetAndOffset.orElseThrow().getOffsetForObject().add(targetOffset);
+
+    // Check that the memory regions don't overlapp as this results in undefined behaviour
+    if (sourceObject.equals(targetObject)) {
+      int compareOffsets = finalTargetoffset.compareTo(finalSourceOffset);
+      if (compareOffsets == 0) {
+        // overlap
+        return pState.withUndefinedBehaviour(
+            "Undefined behaviour because of overlapping memory regions in a copy function. I.e. memcpy().",
+            ImmutableList.of(targetPointer, sourcePointer));
+      } else if (compareOffsets > 0) {
+        // finalTargetoffset > finalSourceOffset -> if the finalTargetoffset < finalSourceOffset +
+        // sizeToCopy we have an overlap
+        if (finalTargetoffset.compareTo(finalSourceOffset.add(sizeToCopy)) < 0) {
+          return pState.withUndefinedBehaviour(
+              "Undefined behaviour because of overlapping memory regions in a copy function. I.e. memcpy().",
+              ImmutableList.of(targetPointer, sourcePointer));
+        }
+      } else {
+        // finalTargetoffset < finalSourceOffset -> if the finalSourceOffset < finalTargetoffset +
+        // sizeToCopy we have an overlap
+        if (finalSourceOffset.compareTo(finalTargetoffset.add(sizeToCopy)) < 0) {
+          return pState.withUndefinedBehaviour(
+              "Undefined behaviour because of overlapping memory regions in a copy function. I.e. memcpy().",
+              ImmutableList.of(targetPointer, sourcePointer));
+        }
+      }
+    }
+
+    // Check that we don't read beyond the source size and don't write beyonde the target size and
+    // that we don't start before the object begins
+    if (sourceObject.getSize().subtract(finalSourceOffset).compareTo(sizeToCopy) < 0
+        || finalSourceOffset.compareTo(BigInteger.ZERO) < 0) {
+      // This would be an invalid read
+      SMGState currentState = pState.withInvalidRead(sourceObject);
+      if (targetObject.getSize().subtract(finalTargetoffset).compareTo(sizeToCopy) < 0
+          || finalTargetoffset.compareTo(BigInteger.ZERO) < 0) {
+        // That would be an invalid write
+        currentState = currentState.withInvalidWrite(sourceObject);
+      }
+      return currentState;
+    }
+    if (targetObject.getSize().subtract(finalTargetoffset).compareTo(sizeToCopy) < 0
+        || finalTargetoffset.compareTo(BigInteger.ZERO) < 0) {
+      // That would be an invalid write
+      return pState.withInvalidWrite(sourceObject);
+    }
+
+    return pState.copySMGObjectContentToSMGObject(
+        sourceObject, finalSourceOffset, targetObject, finalTargetoffset, sizeToCopy);
   }
 
   public MachineModel getMachineModel() {
