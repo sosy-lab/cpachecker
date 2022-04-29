@@ -765,7 +765,7 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
    * that sometimes you need to write a lot of values but only need 1 check for the size)
    *
    * @param object the memory {@link SMGObject} to write to.
-   * @param offset offset in bits to be written
+   * @param writeOffsetInBits offset in bits to be written
    * @param sizeInBits size in bits to be written
    * @param value the value to write
    * @return a new SMGState with the value written.
