@@ -302,7 +302,7 @@ public class SMGTransferRelation
         ImmutableList.Builder<SMGState> newStatesBuilder = ImmutableList.builder();
         String errorMSG =
             "Calling " + functionName + " and not using the return value results in a memory leak.";
-        logger.logf(Level.INFO, "Error in %s: " + errorMSG, pCfaEdge.getFileLocation());
+        logger.logf(Level.INFO, "Error in %s: %s", errorMSG, pCfaEdge.getFileLocation());
         List<ValueAndSMGState> uselessValuesAndnewStates =
             builtins.evaluateConfigurableAllocationFunction(cFCExpression, pState, pCfaEdge);
         for (ValueAndSMGState valueAndState : uselessValuesAndnewStates) {
