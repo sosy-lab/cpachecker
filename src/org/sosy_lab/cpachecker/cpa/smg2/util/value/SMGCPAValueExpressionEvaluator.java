@@ -277,26 +277,70 @@ public class SMGCPAValueExpressionEvaluator {
       SMGObjectAndOffset targetAndOffset = maybeObjectAndOffset.orElseThrow();
       SMGObject target = targetAndOffset.getSMGObject();
       BigInteger offset = targetAndOffset.getOffsetForObject();
-      // search for existing pointer first and return if found
-      Optional<SMGValue> maybeAddressValue =
-          pState.getMemoryModel().getAddressValueForPointsToTarget(target, offset);
-
-      if (maybeAddressValue.isPresent()) {
-        Optional<Value> valueForSMGValue =
-            pState.getMemoryModel().getValueFromSMGValue(maybeAddressValue.orElseThrow());
-          // Reuse pointer; there should never be a SMGValue without counterpart!
-          // TODO: this might actually be expensive, check once this runs!
-          resultBuilder.add(ValueAndSMGState.of(valueForSMGValue.orElseThrow(), pState));
-          continue;
-      }
-
-      // If none is found, we need a new Value -> SMGValue mapping for the address + a new
-      // PointsToEdge with the correct offset
-      Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
-      SMGState newState = pState.createAndAddPointer(addressValue, target, offset);
-        resultBuilder.add(ValueAndSMGState.of(addressValue, newState));
+      // search for existing pointer first and return if found; else make a new one
+      resultBuilder.add(searchOrCreatePointer(target, offset, pState));
     }
     return resultBuilder.build();
+  }
+
+  /**
+   * Creates a new pointer (address) pointing to the result of *(targetAddress + offset). First
+   * searches for an existing pointer and only creates one if none is found. May return a unknown
+   * value with a error state if something goes wrong. Note: the address may have already a offset,
+   * this is respected and the new offset is the address offset + the entered offset.
+   *
+   * @param targetAddress the targets address {@link Value} (Not AddressExpression!) that should be
+   *     a valid address leading to a point-to-edge.
+   * @param offsetInBits the offset that is added to the address in bits.
+   * @param pState current {@link SMGState}.
+   * @return either a unknown {@link Value} and a error state, or a valid new {@link Value}
+   *     representing a address to the target.
+   */
+  public ValueAndSMGState findOrcreateNewPointer(
+      Value targetAddress, BigInteger offsetInBits, SMGState pState) {
+    Preconditions.checkArgument(!(targetAddress instanceof AddressExpression));
+
+    Optional<SMGObjectAndOffset> maybeTargetAndOffset =
+        pState.getMemoryModel().dereferencePointer(targetAddress);
+    if (maybeTargetAndOffset.isEmpty()) {
+      // The value is unknown and therefore does not point to a valid memory location
+      SMGState errorState = pState.withUnknownPointerDereferenceWhenReading(targetAddress);
+      return ValueAndSMGState.ofUnknownValue(errorState);
+    }
+    SMGObject object = maybeTargetAndOffset.orElseThrow().getSMGObject();
+
+    // The object may be null if no such object exists, check and log if 0
+    if (object.isZero()) {
+      SMGState errorState = pState.withNullPointerDereferenceWhenReading(object);
+      return ValueAndSMGState.ofUnknownValue(errorState);
+    }
+
+    // The offset of the pointer used. (the pointer might point to a offset != 0, the other offset
+    // needs to the added to that!)
+    BigInteger baseOffset = maybeTargetAndOffset.orElseThrow().getOffsetForObject();
+    BigInteger finalOffsetInBits = baseOffset.add(offsetInBits);
+
+    // search for existing pointer first and return if found; else make a new one for the offset
+    return searchOrCreatePointer(object, finalOffsetInBits, pState);
+  }
+
+  private ValueAndSMGState searchOrCreatePointer(
+      SMGObject targetObject, BigInteger offsetInBits, SMGState pState) {
+    // search for existing pointer first and return if found
+    Optional<SMGValue> maybeAddressValue =
+        pState.getMemoryModel().getAddressValueForPointsToTarget(targetObject, offsetInBits);
+
+    if (maybeAddressValue.isPresent()) {
+      Optional<Value> valueForSMGValue =
+          pState.getMemoryModel().getValueFromSMGValue(maybeAddressValue.orElseThrow());
+      // Reuse pointer; there should never be a SMGValue without counterpart!
+      // TODO: this might actually be expensive, check once this runs!
+      return ValueAndSMGState.of(valueForSMGValue.orElseThrow(), pState);
+    }
+
+    Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
+    SMGState newState = pState.createAndAddPointer(addressValue, targetObject, offsetInBits);
+    return ValueAndSMGState.of(addressValue, newState);
   }
 
   /**
