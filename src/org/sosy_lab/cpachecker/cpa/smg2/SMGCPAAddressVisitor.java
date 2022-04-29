@@ -41,8 +41,8 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
- * This visitor is only meant to get the first memory (SMGObject) of the entered expression. This is
- * needed in the & operator.
+ * This visitor is only meant to get the memory (SMGObject) of the entered expression. This is
+ * needed in allocations i.e. a = b; and the & operator.
  */
 public class SMGCPAAddressVisitor
     extends DefaultCExpressionVisitor<Optional<SMGObjectAndOffset>, CPATransferException>
@@ -71,7 +71,13 @@ public class SMGCPAAddressVisitor
   @Override
   public Optional<SMGObjectAndOffset> visit(CFunctionCallExpression pIastFunctionCallExpression)
       throws CPATransferException {
-    // TODO Auto-generated method stub
+    // Evaluate the expression to a Value; this should return a Symbolic Value with the address of
+    // the target and a offset if it really has a address. If this fails this returns a different
+    // Value class.
+    List<ValueAndSMGState> evaluatedExpr =
+        pIastFunctionCallExpression.accept(
+            new SMGCPAValueVisitor(evaluator, state, cfaEdge, logger));
+    // TODO handle possible returns
     return null;
   }
 
