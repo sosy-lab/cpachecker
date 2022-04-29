@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
@@ -589,13 +590,13 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
    * the range of the {@link SMGObject}. Returns an updated state with the error in it.
    *
    * @param objectWrittenTo the {@link SMGObject} that should have been written to.
-   * @param writeOffset The offset in bits where you want to write the {@link SMGValue} to.
-   * @param writeSize the size of the {@link SMGValue} in bits.
-   * @param pValue the {@link SMGValue} you wanted to write.
+   * @param writeOffset The offset in bits where you want to write the {@link Value} to.
+   * @param writeSize the size of the {@link Value} in bits.
+   * @param pValue the {@link Value} you wanted to write.
    * @return A new SMGState with the error info.
    */
   public SMGState withOutOfRangeWrite(
-      SMGObject objectWrittenTo, BigInteger writeOffset, BigInteger writeSize, SMGValue pValue) {
+      SMGObject objectWrittenTo, BigInteger writeOffset, BigInteger writeSize, Value pValue) {
     String errorMSG =
         String.format(
             "Try writing value %s with size %d at offset %d bit to object sized %d bit.",
@@ -768,9 +769,85 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
    * @return a new SMGState with the value written.
    */
   protected SMGState writeValue(
-      SMGObject object, BigInteger offset, BigInteger sizeInBits, SMGValue value) {
+      SMGObject object, BigInteger writeOffsetInBits, BigInteger sizeInBits, SMGValue value) {
     // TODO: decide if we need more checks here
-    return copyAndReplaceMemoryModel(memoryModel.writeValue(object, offset, sizeInBits, value));
+    return copyAndReplaceMemoryModel(
+        memoryModel.writeValue(object, writeOffsetInBits, sizeInBits, value));
+  }
+
+  /**
+   * Writes the entered {@link Value} to the {@link SMGObject} at the specified offset with the
+   * specified size both in bits. This assumes that the {@link SMGObject} exist in the SPC. The
+   * Value will either add or find its {@link SMGValue} counterpart automatically.
+   *
+   * @param object the {@link SMGObject} to write to.
+   * @param writeOffsetInBits the offset in bits for the write of the value.
+   * @param sizeInBits size of the written value in bits.
+   * @param valueToWrite {@link Value} that gets written into the SPC. Will be mapped to a {@link
+   *     SMGValue} automatically.
+   * @return new {@link SMGState} with the value written to the object.
+   * @throws SMG2Exception if something goes wrong. I.e. the sizes of the write don't match with the
+   *     size of the object.
+   */
+  public SMGState writeToHeap(
+      SMGObject object, BigInteger writeOffsetInBits, BigInteger sizeInBits, Value valueToWrite)
+      throws SMG2Exception {
+    SMGValueAndSMGState valueAndState = copyAndAddValue(valueToWrite);
+    SMGValue smgValue = valueAndState.getSMGValue();
+    SMGState currentState = valueAndState.getSMGState();
+
+    // Check that the target can hold the value
+    if (object.getOffset().compareTo(writeOffsetInBits) > 0
+        || object.getSize().compareTo(sizeInBits) < 0) {
+      // Out of range write
+      throw new SMG2Exception(
+          currentState.withOutOfRangeWrite(object, writeOffsetInBits, sizeInBits, valueToWrite));
+    }
+
+    return currentState.writeValue(object, writeOffsetInBits, sizeInBits, smgValue);
+  }
+
+  /**
+   * Copies the content (Values) of the source {@link SMGObject} starting from the sourceOffset into
+   * the target {@link SMGObject} starting from the target offset. This expects that both the source
+   * and target exist in the SPC. Throws an exception if the sizes don't match.
+   *
+   * @param sourceObject {@link SMGObject} from which is to be copied.
+   * @param sourceStartOffset offset from which the copy is started.
+   * @param targetObject target {@link SMGObject}
+   * @param targetStartOffset target offset, this is the start of the writes in the target.
+   * @return {@link SMGState} with the content of the source copied into the target.
+   * @throws SMG2Exception if sizes don't match. I.e. if the source is larger than the target.
+   */
+  public SMGState copySMGObjectContentToSMGObject(
+      SMGObject sourceObject,
+      BigInteger sourceStartOffset,
+      SMGObject targetObject,
+      BigInteger targetStartOffset)
+      throws SMG2Exception {
+    // Check that the target can hold the source!
+    if (sourceObject
+            .getSize()
+            .subtract(sourceStartOffset)
+            .compareTo(targetObject.getSize().subtract(targetStartOffset))
+        != 0) {
+      throw new SMG2Exception("");
+    }
+    SMGState currentState = this;
+    // Get all source edges
+    Set<SMGHasValueEdge> sourceContents = memoryModel.getSmg().getEdges(sourceObject);
+    for (SMGHasValueEdge edge : sourceContents) {
+      BigInteger offset = edge.getOffset();
+      // We only write edges that are >= the beginning offset of the source
+      if (sourceStartOffset.compareTo(offset) <= 0) {
+        BigInteger sizeInBits = edge.getSizeInBits();
+        // We need to take the targetOffset to source offset difference into account
+        BigInteger finalOffset = offset.subtract(sourceStartOffset).add(targetStartOffset);
+        SMGValue value = edge.hasValue();
+        currentState = currentState.writeValue(targetObject, finalOffset, sizeInBits, value);
+      }
+    }
+    return currentState;
   }
 
   /**
@@ -810,7 +887,7 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
       // Out of range write
       throw new SMG2Exception(
           currentState.withOutOfRangeWrite(
-              variableMemory, writeOffsetInBits, writeSizeInBits, smgValue));
+              variableMemory, writeOffsetInBits, writeSizeInBits, valueToWrite));
     }
     return currentState.writeValue(variableMemory, writeOffsetInBits, writeSizeInBits, smgValue);
   }
