@@ -758,28 +758,48 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   }
 
   /**
-   * Not to be used in general outside of this method! Only tests! Writes into the given {@link
-   * SMGObject} at the specified offset in bits with the size in bits given the value given. Make
-   * sure to add the Value to the SMGs values before using this method! Also make sure that all
-   * checks are made before using this! I.e. size checks. (The reason why they are not made here is
-   * that sometimes you need to write a lot of values but only need 1 check for the size)
+   * Don't use this method outside of this class or tests! Writes into the given {@link SMGObject}
+   * at the specified offset in bits with the size in bits the value given. This method adds the
+   * Value <-> SMGValue mapping if none is known, else it uses a existing mapping. Make sure that
+   * all checks are made before using this! I.e. size checks. (The reason why they are not made here
+   * is that sometimes you need to write a lot of values but only need 1 check for the size)
    *
    * @param object the memory {@link SMGObject} to write to.
    * @param writeOffsetInBits offset in bits to be written
    * @param sizeInBits size in bits to be written
-   * @param value the value to write
+   * @param valueToWrite the value to write. Is automatically either translated to a known SMGValue
+   *     or a new SMGValue is added to the returned state.
    * @return a new SMGState with the value written.
    */
   protected SMGState writeValue(
-      SMGObject object, BigInteger writeOffsetInBits, BigInteger sizeInBits, SMGValue value) {
+      SMGObject object, BigInteger writeOffsetInBits, BigInteger sizeInBits, Value valueToWrite) {
+    SMGValueAndSMGState valueAndState = copyAndAddValue(valueToWrite);
+    SMGValue smgValue = valueAndState.getSMGValue();
+    SMGState currentState = valueAndState.getSMGState();
+    return currentState.writeValue(object, writeOffsetInBits, sizeInBits, smgValue);
+  }
+
+  /*
+   * If you are wondering why there are so many writes;
+   * this is to optimize the checks and variableName <-> SMGObject and
+   * Value <-> SMGValue mappings. I don't want to do unneeded checks multiple times.
+   */
+  private SMGState writeValue(
+      SMGObject object,
+      BigInteger writeOffsetInBits,
+      BigInteger sizeInBits,
+      SMGValue valueToWrite) {
     return copyAndReplaceMemoryModel(
-        memoryModel.writeValue(object, writeOffsetInBits, sizeInBits, value));
+        memoryModel.writeValue(object, writeOffsetInBits, sizeInBits, valueToWrite));
   }
 
   /**
    * Writes the entered {@link Value} to the {@link SMGObject} at the specified offset with the
-   * specified size both in bits. This assumes that the {@link SMGObject} exist in the SPC. The
-   * Value will either add or find its {@link SMGValue} counterpart automatically.
+   * specified size both in bits. It can be used for heap and stack, it jsut assumes that the {@link
+   * SMGObject} exist in the SPC, so make sure beforehand! The Value will either add or find its
+   * {@link SMGValue} counterpart automatically. Also this checks that the {@link SMGObject} is
+   * large enough for the write. If something fails, this throws an exception with an error info
+   * inside the state thrown with.
    *
    * @param object the {@link SMGObject} to write to.
    * @param writeOffsetInBits the offset in bits for the write of the value.
@@ -790,22 +810,18 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
    * @throws SMG2Exception if something goes wrong. I.e. the sizes of the write don't match with the
    *     size of the object.
    */
-  public SMGState writeToHeap(
+  public SMGState writeValueTo(
       SMGObject object, BigInteger writeOffsetInBits, BigInteger sizeInBits, Value valueToWrite)
       throws SMG2Exception {
-    SMGValueAndSMGState valueAndState = copyAndAddValue(valueToWrite);
-    SMGValue smgValue = valueAndState.getSMGValue();
-    SMGState currentState = valueAndState.getSMGState();
-
     // Check that the target can hold the value
     if (object.getOffset().compareTo(writeOffsetInBits) > 0
         || object.getSize().compareTo(sizeInBits) < 0) {
       // Out of range write
       throw new SMG2Exception(
-          currentState.withOutOfRangeWrite(object, writeOffsetInBits, sizeInBits, valueToWrite));
+          withOutOfRangeWrite(object, writeOffsetInBits, sizeInBits, valueToWrite));
     }
 
-    return currentState.writeValue(object, writeOffsetInBits, sizeInBits, smgValue);
+    return writeValue(object, writeOffsetInBits, sizeInBits, valueToWrite);
   }
 
   /**
@@ -872,42 +888,45 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
       BigInteger writeSizeInBits,
       Value valueToWrite)
       throws SMG2Exception {
-    SMGValueAndSMGState valueAndState = copyAndAddValue(valueToWrite);
-    SMGValue smgValue = valueAndState.getSMGValue();
-    SMGState currentState = valueAndState.getSMGState();
     Optional<SMGObject> maybeVariableMemory =
-        currentState.getMemoryModel().getObjectForVisibleVariable(variableName);
+        getMemoryModel().getObjectForVisibleVariable(variableName);
 
     if (maybeVariableMemory.isEmpty()) {
       // Write to unknown variable
-      throw new SMG2Exception(currentState.withWriteToUnknownVariable(variableName));
+      throw new SMG2Exception(withWriteToUnknownVariable(variableName));
     }
+
     SMGObject variableMemory = maybeVariableMemory.orElseThrow();
     if (variableMemory.getOffset().compareTo(writeOffsetInBits) > 0
         && variableMemory.getSize().compareTo(writeSizeInBits) < 0) {
       // Out of range write
       throw new SMG2Exception(
-          currentState.withOutOfRangeWrite(
-              variableMemory, writeOffsetInBits, writeSizeInBits, valueToWrite));
+          withOutOfRangeWrite(variableMemory, writeOffsetInBits, writeSizeInBits, valueToWrite));
     }
-    return currentState.writeValue(variableMemory, writeOffsetInBits, writeSizeInBits, smgValue);
+
+    return writeValue(variableMemory, writeOffsetInBits, writeSizeInBits, valueToWrite);
   }
 
   /**
-   * Writes the entire variable given to 0. Same as writeToStackOrGlobalVariable().
+   * Writes the entire variable given to 0. Same as writeToStackOrGlobalVariable() else.
    *
    * @param variableName name of the variable that should be known already.
    * @return a {@link SMGState} with the {@link Value} wirrten at the given position in the variable
    *     given.
+   * @throws SMG2Exception in case of errors like write to not declared variable.
    */
-  public SMGState writeToStackOrGlobalVariableToZero(String variableName) {
-    SMGValueAndSMGState valueAndState = copyAndAddValue(new NumericValue(0));
-    SMGValue smgValue = valueAndState.getSMGValue();
-    SMGState currentState = valueAndState.getSMGState();
-    SMGObject variableMemory =
-        currentState.getMemoryModel().getObjectForVisibleVariable(variableName).orElseThrow();
-    return currentState.writeValue(
-        variableMemory, BigInteger.ZERO, variableMemory.getSize(), smgValue);
+  public SMGState writeToStackOrGlobalVariableToZero(String variableName) throws SMG2Exception {
+    Optional<SMGObject> maybeVariableMemory =
+        getMemoryModel().getObjectForVisibleVariable(variableName);
+
+    if (maybeVariableMemory.isEmpty()) {
+      // Write to unknown variable
+      throw new SMG2Exception(withWriteToUnknownVariable(variableName));
+    }
+
+    SMGObject variableMemory = maybeVariableMemory.orElseThrow();
+    return writeValue(
+        variableMemory, variableMemory.getOffset(), variableMemory.getSize(), new NumericValue(0));
   }
 
   /**
