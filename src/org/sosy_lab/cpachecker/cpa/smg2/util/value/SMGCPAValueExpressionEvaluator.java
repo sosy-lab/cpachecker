@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.smg2.util.value;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
@@ -265,7 +266,8 @@ public class SMGCPAValueExpressionEvaluator {
     // SMGCPAAddressVisitor may have side effects! But they should not effect anything as they are
     // only interesing in a failure case in which the analysis stops!
     SMGCPAAddressVisitor addressVisitor = new SMGCPAAddressVisitor(this, pState, cfaEdge, logger);
-    Optional<SMGObjectAndOffset> maybeObjectAndOffset = operand.accept(addressVisitor);
+    ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
+    for (Optional<SMGObjectAndOffset> maybeObjectAndOffset : operand.accept(addressVisitor)) {
     if (maybeObjectAndOffset.isEmpty()) {
       // TODO: improve error handling and add more specific exceptions to the visitor!
       // No address could be found
@@ -281,16 +283,18 @@ public class SMGCPAValueExpressionEvaluator {
     if (maybeAddressValue.isPresent()) {
       Optional<Value> valueForSMGValue =
           pState.getMemoryModel().getValueFromSMGValue(maybeAddressValue.orElseThrow());
-      // Reuse pointer; there should never be a SMGValue without counterpart!
-      // TODO: this might actually be expensive, check once this runs!
-      return ValueAndSMGState.of(valueForSMGValue.orElseThrow(), pState);
+        // Reuse pointer; there should never be a SMGValue without counterpart!
+        // TODO: this might actually be expensive, check once this runs!
+        resultBuilder.add(ValueAndSMGState.of(valueForSMGValue.orElseThrow(), pState));
     }
 
     // If none is found, we need a new Value -> SMGValue mapping for the address + a new
     // PointsToEdge with the correct offset
     Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
     SMGState newState = pState.createAndAddPointer(addressValue, target, offset);
-    return ValueAndSMGState.of(addressValue, newState);
+      resultBuilder.add(ValueAndSMGState.of(addressValue, newState));
+    }
+    return resultBuilder.build();
   }
 
   /**
