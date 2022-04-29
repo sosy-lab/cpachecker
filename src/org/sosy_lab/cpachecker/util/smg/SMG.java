@@ -49,6 +49,7 @@ public class SMG {
   // size as keys?
   // Save the SMGHasValueEdges with a zero value and null-objects separately.
 
+  // The bool is the validity of the SMGObject, not being in the map -> not valid (false)
   private final PersistentMap<SMGObject, Boolean> smgObjects;
   private final PersistentSet<SMGValue> smgValues;
   private final PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> hasValueEdges;
@@ -280,6 +281,13 @@ public class SMG {
     return new SMG(newObjects, smgValues, newHVEdges, newPointsToEdges, sizeOfPointer);
   }
 
+  /**
+   * Invalidates the entered SMGObject (that is assumed to be in the SMG!). This also deltes all
+   * {@link SMGHasValueEdge}s associated with the object.
+   *
+   * @param pObject the {@link SMGObject} to be invalidated.
+   * @return a new SMG with the object invalidated and all its HVEdges deleted.
+   */
   public SMG copyAndInvalidateObject(SMGObject pObject) {
     PersistentMap<SMGObject, Boolean> newObjects = smgObjects.putAndCopy(pObject, false);
     PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> newHVEdges =
