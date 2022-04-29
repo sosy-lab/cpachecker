@@ -589,6 +589,25 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   }
 
   /**
+   * Copy the state with a memory leak error set.
+   *
+   * @param errorMsg custom error message specific to the error reason.
+   * @param pUnreachableObjects the object at fault.
+   * @return a copy of the current state with the error info added.
+   */
+  public SMGState withMemoryLeak(String errorMsg, Collection<Object> pUnreachableObjects) {
+    // TODO: replace Object; currently it is only used by Value (address to SMGObject)
+    SMGErrorInfo newErrorInfo =
+        errorInfo
+            .withProperty(Property.INVALID_HEAP)
+            .withErrorMessage(errorMsg)
+            .withInvalidObjects(pUnreachableObjects);
+    // Log the error in the logger
+    logMemoryError(errorMsg, true);
+    return copyWithErrorInfo(memoryModel, newErrorInfo);
+  }
+
+  /**
    * Invalid write to a not initialized, unknown or non-existing or beyond the boundries of a memory
    * region.
    *
