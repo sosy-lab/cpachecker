@@ -18,9 +18,11 @@ import java.util.logging.Level;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
@@ -79,6 +81,7 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
 
   private final MachineModel machineModel;
   private final LogManager logger;
+  // TODO: is there always just 1 error? If not this is bad, use a list!
   private SMGErrorInfo errorInfo;
   private final SMGOptions options;
 
@@ -242,6 +245,30 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
               + " to the memory model because there is no stack frame.");
     }
     SMGObject newObject = SMGObject.of(0, BigInteger.valueOf(pTypeSize), BigInteger.ZERO);
+    return of(
+        machineModel, memoryModel.copyAndAddStackObject(newObject, pVarName), logger, options);
+  }
+
+  /**
+   * Copy SMGState with a newly created object with the size given and put it into the current stack
+   * frame. If there is no stack frame this throws an exception!
+   *
+   * <p>Keeps consistency: yes
+   *
+   * @param pTypeSize Size of the type the new local variable in bits.
+   * @param pVarName Name of the local variable
+   * @return {@link SMGState} with the new variables searchable by the name given.
+   * @throws SMG2Exception thrown if the stack frame is empty.
+   */
+  public SMGState copyAndAddLocalVariable(BigInteger pTypeSize, String pVarName)
+      throws SMG2Exception {
+    if (memoryModel.getStackFrames().isEmpty()) {
+      throw new SMG2Exception(
+          "Can't add a variable named "
+              + pVarName
+              + " to the memory model because there is no stack frame.");
+    }
+    SMGObject newObject = SMGObject.of(0, pTypeSize, BigInteger.ZERO);
     return of(
         machineModel, memoryModel.copyAndAddStackObject(newObject, pVarName), logger, options);
   }
@@ -692,6 +719,25 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   }
 
   /**
+   * Copy and update this {@link SMGState} with an error resulting from trying to free a address
+   * {@link Value} invalidly. Returns an updated state with the error in it.
+   *
+   * @param errorMSG the error message.
+   * @param invalidValue the {@link Value} that was invalidly freed.
+   * @return A new SMGState with the error info.
+   */
+  public SMGState withInvalidFree(String errorMSG, Value invalidValue) {
+    SMGErrorInfo newErrorInfo =
+        errorInfo
+            .withProperty(Property.INVALID_FREE)
+            .withErrorMessage(errorMSG)
+            .withInvalidObjects(Collections.singleton(invalidValue));
+    // Log the error in the logger
+    logMemoryError(errorMSG, true);
+    return copyWithErrorInfo(memoryModel, newErrorInfo);
+  }
+
+  /**
    * Returns a copy of this {@link SMGState} with the entered SPC and {@link SMGErrorInfo} added.
    *
    * @param newMemoryModel the new {@link SymbolicProgramConfiguration} for the state. May be the
@@ -810,6 +856,97 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
         unknownValue,
         copyAndReplaceMemoryModel(
             newState.getMemoryModel().copyAndPutValue(unknownValue, readSMGValue)));
+  }
+
+  /**
+   * This performs a call to free(addressToFree) with addressToFree being a {@link Value} that should be
+   * a address to a memory region, but can be any Value. This method determines if the valueToFree
+   * is a valid, not yet freed address and frees the memory behind it, returning the {@link
+   * SMGState} with the freed memory. It might however return a state with an error info attached,
+   * for example double free. In case of a null-pointer being freed, the logger logs the event
+   * without errors.
+   *
+   * @param addressToFree any {@link Value} thought to be a pointer to a memory region, but it may be
+   *     not.
+   * @param pFunctionCall debug / logging info.
+   * @param cfaEdge debug / logging info.
+   * @return a new {@link SMGState} with the memory region behind the {@link Value} freed.
+   */
+  public SMGState free(Value addressToFree, CFunctionCallExpression pFunctionCall, CFAEdge cfaEdge) {
+    Optional<SMGObjectAndOffset> maybeRegion = memoryModel.dereferencePointer(addressToFree);
+
+    // Value == 0 can happen by user input and is valid!
+    if (addressToFree.isNumericValue()
+        && addressToFree.asNumericValue().bigInteger().compareTo(BigInteger.ZERO) == 0) {
+      logger.log(
+          Level.INFO,
+          pFunctionCall.getFileLocation(),
+          ":",
+          "The argument of a free invocation:",
+          cfaEdge.getRawStatement(),
+          "is 0");
+      return this;
+    }
+
+    // If there is no region, the Optional is empty
+    if (maybeRegion.isEmpty()) {
+      logger.log(
+          Level.INFO,
+          "Free on expression ",
+          pFunctionCall.getParameterExpressions().get(0).toASTString(),
+          " is invalid, because the target of the address could not be calculated.");
+      SMGState invalidFreeState =
+          withInvalidFree(
+              "Free on expression "
+                  + pFunctionCall.getParameterExpressions().get(0).toASTString()
+                  + " is invalid, because the target of the address could not be"
+                  + " calculated.",
+              addressToFree);
+      return invalidFreeState;
+    }
+    SMGObject regionToFree = maybeRegion.orElseThrow().getSMGObject();
+    BigInteger offsetInBits = maybeRegion.orElseThrow().getOffsetForObject();
+
+    // free(0) is a nop in C
+    if (regionToFree.isZero()) {
+      logger.log(
+          Level.INFO,
+          pFunctionCall.getFileLocation(),
+          ":",
+          "The argument of a free invocation:",
+          cfaEdge.getRawStatement(),
+          "is 0");
+      return this;
+    }
+
+    if (!memoryModel.isHeapObject(regionToFree)
+        && !memoryModel.isObjectExternallyAllocated(regionToFree)) {
+      // You may not free any objects not on the heap.
+      return withInvalidFree("Invalid free of unallocated object is found.", addressToFree);
+      }
+
+    if (!memoryModel.isObjectValid(regionToFree)) {
+      // you may not invoke free multiple times on the same object
+      return withInvalidFree("Free has been used on this memory before.", addressToFree);
+      }
+
+    if (offsetInBits.compareTo(BigInteger.ZERO) != 0
+        && !memoryModel.isObjectExternallyAllocated(regionToFree)) {
+      // you may not invoke free on any address that you
+      // didn't get through a malloc, calloc or realloc invocation.
+      // (undefined behavour, same as double free)
+
+      return withInvalidFree(
+          "Invalid free as a pointer was used that was not returned by malloc, calloc or realloc.",
+          addressToFree);
+      }
+
+    // Perform free by invalidating the object behind the address and delete all its edges.
+    SymbolicProgramConfiguration newSPC = memoryModel.invalidateSMGObject(regionToFree);
+    // TODO: is a consistency check needed? As far as i understand we never enter a inconsistent
+    // state in our implementation.
+    // performConsistencyCheck(SMGRuntimeCheck.HALF);
+    return copyAndReplaceMemoryModel(newSPC);
   }
 
   /**
