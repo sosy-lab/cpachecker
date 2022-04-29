@@ -880,6 +880,40 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   }
 
   /**
+   * Writes the entered {@link Value} to the region that the addressToMemory points to at the
+   * specified offset with the specified size both in bits. It can be used for heap and stack, it
+   * jsut assumes that the {@link SMGObject} exist in the SPC, so make sure beforehand! The Value
+   * will either add or find its {@link SMGValue} counterpart automatically. Also this checks that
+   * the {@link SMGObject} is large enough for the write. If something fails, this throws an
+   * exception with an error info inside the state thrown with.
+   *
+   * @param addressToMemory the {@link Value} representing the address of the region to write to.
+   * @param writeOffsetInBits the offset in bits for the write of the value.
+   * @param sizeInBits size of the written value in bits.
+   * @param valueToWrite {@link Value} that gets written into the SPC. Will be mapped to a {@link
+   *     SMGValue} automatically.
+   * @return new {@link SMGState} with the value written to the object.
+   * @throws SMG2Exception if something goes wrong. I.e. the sizes of the write don't match with the
+   *     size of the object.
+   */
+  public SMGState writeValueTo(
+      Value addressToMemory,
+      BigInteger writeOffsetInBits,
+      BigInteger sizeInBits,
+      Value valueToWrite)
+      throws SMG2Exception {
+    Optional<SMGObjectAndOffset> maybeRegion = memoryModel.dereferencePointer(addressToMemory);
+    if (maybeRegion.isEmpty()) {
+      // Can't write to non existing memory
+      throw new SMG2Exception(withInvalidWrite(addressToMemory));
+    }
+    SMGObjectAndOffset memoryRegionAndOffset = maybeRegion.orElseThrow();
+    SMGObject memoryRegion = memoryRegionAndOffset.getSMGObject();
+
+    return writeValueTo(memoryRegion, writeOffsetInBits, sizeInBits, valueToWrite);
+  }
+
+  /**
    * Writes the memory, that is accessed by dereferencing the pointer (address) of the {@link Value}
    * given, completely to 0.
    *
