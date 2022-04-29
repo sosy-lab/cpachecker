@@ -804,14 +804,14 @@ public class SMGCPAValueExpressionEvaluator {
       int compareOffsets = finalTargetoffset.compareTo(finalSourceOffset);
       if (compareOffsets == 0) {
         // overlap
-        return pState.withUndefinedBehaviour(
+        return pState.withUndefinedbehavior(
             "Undefined behaviour because of overlapping memory regions in a copy function. I.e. memcpy().",
             ImmutableList.of(targetPointer, sourcePointer));
       } else if (compareOffsets > 0) {
         // finalTargetoffset > finalSourceOffset -> if the finalTargetoffset < finalSourceOffset +
         // sizeToCopy we have an overlap
         if (finalTargetoffset.compareTo(finalSourceOffset.add(sizeToCopy)) < 0) {
-          return pState.withUndefinedBehaviour(
+          return pState.withUndefinedbehavior(
               "Undefined behaviour because of overlapping memory regions in a copy function. I.e. memcpy().",
               ImmutableList.of(targetPointer, sourcePointer));
         }
@@ -819,7 +819,7 @@ public class SMGCPAValueExpressionEvaluator {
         // finalTargetoffset < finalSourceOffset -> if the finalSourceOffset < finalTargetoffset +
         // sizeToCopy we have an overlap
         if (finalSourceOffset.compareTo(finalTargetoffset.add(sizeToCopy)) < 0) {
-          return pState.withUndefinedBehaviour(
+          return pState.withUndefinedbehavior(
               "Undefined behaviour because of overlapping memory regions in a copy function. I.e. memcpy().",
               ImmutableList.of(targetPointer, sourcePointer));
         }
