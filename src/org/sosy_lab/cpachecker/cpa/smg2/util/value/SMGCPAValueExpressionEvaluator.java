@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.SymbolicProgramConfiguration;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -70,6 +71,7 @@ public class SMGCPAValueExpressionEvaluator {
    */
   public Collection<SMGState> evaluateValues(
       SMGState pState, CFAEdge cfaEdge, CRightHandSide rValue) throws CPATransferException {
+    // TODO: use this instead of plainly using the value visitor?
     /*
         CType expType = TypeUtils.getRealExpressionType(rValue);
         // TODO: Is the CFAEdge always a CReturnStatementEdge?
@@ -90,6 +92,7 @@ public class SMGCPAValueExpressionEvaluator {
    */
   public Collection<ValueAndSMGState> evaluateExpressionValue(
       SMGState smgState, CFAEdge cfaEdge, CRightHandSide rValue) throws CPATransferException {
+    // TODO: use this instead of plainly using the value visitor?
     if (isAddressType(rValue.getExpressionType())) {
       /*
        * expressions with Array Types as result are transformed. a = &(a[0])
@@ -100,19 +103,13 @@ public class SMGCPAValueExpressionEvaluator {
        * address can be used e.g. to copy the struct.If the address is not in the SMG,
        * it is entered. If the address is unknown, it + its value are entered symbolicly.
        */
-      return evaluateAddress(smgState, cfaEdge, rValue);
+      // return evaluateAddress(smgState, cfaEdge, rValue);
+      return null;
     } else {
       // derive value
       // return rValue.accept(new NonPointerExpressionVisitor(smgState, this));
       return null;
     }
-  }
-
-  /** Evaluates the input address and returns the ? for it. */
-  private Collection<ValueAndSMGState> evaluateAddress(
-      SMGState pSmgState, CFAEdge pCfaEdge, CRightHandSide pRValue) {
-    // TODO Auto-generated method stub
-    return null;
   }
 
   public List<ValueAndSMGState> handleSafeExternFunction(
@@ -228,16 +225,33 @@ public class SMGCPAValueExpressionEvaluator {
     throw new AssertionError();
   }
 
-  public Collection<ValueAndSMGState> evaluateArrayAddress(
-      SMGState pInitialSmgState, CExpression pOperand) {
-    // TODO Auto-generated method stub
-    return null;
+  /**
+   * Create a new heap object with the size in bits and then create a pointer to its beginning and
+   * return the state with the pointer and object + the pointer Value (address to the objects
+   * beginning).
+   *
+   * @param pInitialSmgState initial {@link SMGState}.
+   * @param sizeInBits size in bits as {@link BigInteger}.
+   * @return the {@link Value} that is the address for the new heap memory region created with the
+   *     size and the {@link SMGState} with the region (SMGObject) pointer and address Value added.
+   */
+  public ValueAndSMGState createHeapMemoryAndPointer(
+      SMGState pInitialSmgState, BigInteger sizeInBits) {
+    SMGObjectAndSMGState newObjectAndState = pInitialSmgState.copyAndAddHeapObject(sizeInBits);
+    SMGObject newObject = newObjectAndState.getSMGObject();
+    SMGState newState = newObjectAndState.getState();
+
+    Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
+    // New regions always have offset 0
+    SMGState finalState = newState.createAndAddPointer(addressValue, newObject, BigInteger.ZERO);
+    return ValueAndSMGState.of(addressValue, finalState);
   }
 
   /**
    * This creates or finds and returns the address Value for the underyling expression. This also
-   * creates the pointers in the SMG if not yet created. Throws the exception only if nonsensical
-   * addresses are requested; i.e. &3; Used with the & operator for example.
+   * creates the pointers in the SMG if not yet created. Throws the exception only if either there
+   * is no object or if nonsensical addresses are requested; i.e. &3; Used with the & operator for
+   * example.
    *
    * @param operand the {@link CExpression} that is the operand of the & expression.
    * @param pState current {@link SMGState}
