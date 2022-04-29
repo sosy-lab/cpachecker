@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2.util.value;
 
+import com.google.common.base.Preconditions;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
@@ -299,12 +300,11 @@ public class SMGCPAValueExpressionEvaluator {
    *
    * @param variableName the variable name. The variable should exists, else an exception is thrown.
    * @param pState current {@link SMGState}
-   * @param cfaEdge debug/logging edge.
    * @return either unknown or a {@link Value} representing the address.
    * @throws CPATransferException if the & operator is used on a invalid expression.
    */
   public ValueAndSMGState createAddressForLocalOrGlobalVariable(
-      String variableName, SMGState pState, CFAEdge cfaEdge) throws CPATransferException {
+      String variableName, SMGState pState) throws CPATransferException {
     // Get the variable SMGObject
     Optional<SMGObjectAndOffset> maybeObjectAndOffset =
         getTargetObjectAndOffset(pState, variableName, BigInteger.ZERO);
@@ -337,6 +337,27 @@ public class SMGCPAValueExpressionEvaluator {
 
   public SMGState addValueToState(SMGState pState, Value value) {
     return pState.copyAndAddValue(value).getSMGState();
+  }
+
+  /**
+   * Creates a memory region on the stack with the size entered. This region is not meant to be used
+   * by the entered internal name, but by the returned pointer only. This is needed because of the
+   * alloca C function. The internal name needs to be unique. It should be chosen such that it is
+   * not accidentally used and reference the function/method that it stems from.
+   *
+   * @param internalName internal name that should be unique.
+   * @param sizeInBits size in bits for the memory region created.
+   * @return the Value leading to the created region (pointer) and the state with the pointer, value
+   *     and the region added.
+   * @throws CPATransferException may be thrown if i.e. there is no stackframe or the variable was
+   *     not found (should never be possible).
+   */
+  public ValueAndSMGState createStackAllocation(
+      String internalName, BigInteger sizeInBits, SMGState pState) throws CPATransferException {
+    Preconditions.checkArgument(
+        !pState.getMemoryModel().getStackFrames().peek().containsVariable(internalName));
+    return createAddressForLocalOrGlobalVariable(
+        internalName, pState.copyAndAddLocalVariable(sizeInBits, internalName));
   }
 
   /**
