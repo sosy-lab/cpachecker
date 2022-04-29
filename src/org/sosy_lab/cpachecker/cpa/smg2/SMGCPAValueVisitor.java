@@ -57,10 +57,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAValueExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
@@ -511,14 +511,14 @@ public class SMGCPAValueVisitor
 
     if (SMGCPAValueExpressionEvaluator.isStructOrUnionType(type) || type instanceof CArrayType) {
       // Struct/Unions/arrays on the stack/global; return the memory location in a symbolic value
-      Optional<SMGObjectAndOffset> maybeTargetAndOffset =
-          evaluator.getTargetObjectAndOffset(state, variableName);
-      if (maybeTargetAndOffset.isEmpty()) {
-        // There is no memory for this variable! Invalid read.
-        throw new SMG2Exception(state.withInvalidStackVariableRead(variableName));
-      }
-
-      return ImmutableList.of(evaluator.createAddress(e, state, cfaEdge));
+      // but make the symbolic "Value" null. This is then used as interpretation such that the Value
+      // of the memory location (on the stack) is used. This is used by assignments only as far as i
+      // know, i.e. when assigning a complete array/struct to a new variable.
+      return ImmutableList.of(
+          ValueAndSMGState.of(
+              new ConstantSymbolicExpression(
+                  null, type, MemoryLocation.forIdentifier(variableName)),
+              state));
 
     } else if (SMGCPAValueExpressionEvaluator.isAddressType(type)) {
       // Pointer/Array/Function types should return a Value that internally can be translated into a
