@@ -286,6 +286,7 @@ public class SMGCPAValueExpressionEvaluator {
         // Reuse pointer; there should never be a SMGValue without counterpart!
         // TODO: this might actually be expensive, check once this runs!
         resultBuilder.add(ValueAndSMGState.of(valueForSMGValue.orElseThrow(), pState));
+        continue;
     }
 
     // If none is found, we need a new Value -> SMGValue mapping for the address + a new
