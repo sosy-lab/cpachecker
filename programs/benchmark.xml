@@ -9,11 +9,6 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.18//EN" "https://www.sosy-lab.org/benchexec/benchmark-1.18.dtd">
-<!--
-  Example file that demonstrates the use of CPAchecker.
-  This file can and should be used as a base for building own benchmark definitions.
--->
-<!--<benchmark tool="cpachecker" >-->
     <benchmark tool="cpachecker" timelimit="600s" hardtimelimit="660s" memlimit="1000 MB" cpuCores="1">
 
     <!-- Note that all paths to ../../test/programs need to be changed if you move this file. -->
@@ -22,10 +17,24 @@
     <!--    <option name="-setprop">output.path=test/results/name.${benchmark_date}.output/input/</option>-->
     <!--  </rundefinition>-->
 
-    <rundefinition/>
+    <rundefinition name="PredicateAnalysis">
+        <option name="-predicateAnalysis"/>
+    </rundefinition>
+
+    <rundefinition name="SymbolicExecution">
+        <option name="-symbolicExecution"/>
+    </rundefinition>
+
+    <rundefinition name="SymbolicExecutionNoCegar">
+        <option name="-symbolicExecution-NoCegar-slicing-incremental"/>
+    </rundefinition>
+
+    <rundefinition name="PredicateSymEx">
+        <option name="-predicateSymEx"/>
+    </rundefinition>
 
     <!-- Global sourcefiles are used in every run definition. -->
-      <tasks name="array">
+    <tasks name="array">
         <include>../../sv-benchmarks/c/array-tiling/skippedu.yml</include>
         <include>../../sv-benchmarks/c/array-examples/sanfoundry_24-1.yml</include>
         <include>../../sv-benchmarks/c/array-examples/sanfoundry_43_ground.yml</include>
@@ -34,9 +43,9 @@
         <include>../../sv-benchmarks/c/array-fpi/ms2f.yml</include>
         <include>../../sv-benchmarks/c/array-fpi/condaf.yml</include>
         <include>../../sv-benchmarks/c/array-fpi/sina1f.yml</include>
-      </tasks>
+    </tasks>
 
-      <tasks name="bitvector">
+    <tasks name="bitvector">
         <include>../../sv-benchmarks/c/bitvector-regression/integerpromotion-2.yml</include>
         <include>../../sv-benchmarks/c/bitvector-regression/implicitunsignedconversion-2.yml</include>
         <include>../../sv-benchmarks/c/bitvector-regression/signextension-2.yml</include>
@@ -45,8 +54,7 @@
         <include>../../sv-benchmarks/c/bitvector-regression/implicitunsignedconversion-1.yml</include>
         <include>../../sv-benchmarks/c/bitvector-regression/signextension2-2.yml</include>
         <include>../../sv-benchmarks/c/bitvector-regression/implicitfloatconversion.yml</include>
-      </tasks>
-
+    </tasks>
 
     <tasks name="loop">
         <include>../../sv-benchmarks/c/loops/while_infinite_loop_1.yml</include>
@@ -59,9 +67,7 @@
         <include>../../sv-benchmarks/c/loops/for_infinite_loop_2.yml</include>
     </tasks>
 
-
-
-      <tasks name="xcsp">
+    <tasks name="xcsp">
         <include>../../sv-benchmarks/c/xcsp/AllInterval-005.yml</include>
         <include>../../sv-benchmarks/c/xcsp/AllInterval-006.yml</include>
         <include>../../sv-benchmarks/c/xcsp/Dubois-015.yml</include>
@@ -70,10 +76,9 @@
         <include>../../sv-benchmarks/c/xcsp/Dubois-018.yml</include>
         <include>../../sv-benchmarks/c/xcsp/AllInterval-007.yml</include>
         <include>../../sv-benchmarks/c/xcsp/Dubois-019.yml</include>
-      </tasks>
+    </tasks>
 
-
-      <tasks name="floats">
+    <tasks name="floats">
         <include>../../sv-benchmarks/c/float-benchs/drift_tenth.c.p+cfa-reducer.yml</include>
         <include>../../sv-benchmarks/c/float-benchs/drift_tenth.yml</include>
         <include>../../sv-benchmarks/c/float-benchs/cast_float_union.yml</include>
@@ -82,21 +87,7 @@
         <include>../../sv-benchmarks/c/floats-cbmc-regression/float1.yml</include>
         <include>../../sv-benchmarks/c/float-newlib/float_req_bl_0730a.yml</include>
         <include>../../sv-benchmarks/c/float-benchs/addsub_float_exact.yml</include>
-      </tasks>
-
-
-    <!--  <tasks name="loop">-->
-    <!--    <include>../../sv-benchmarks/c/array-tiling/skippedu.yml</include>-->
-    <!--    <include>../../sv-benchmarks/c/</include>-->
-    <!--    <include>../../sv-benchmarks/c/</include>-->
-    <!--    <include>../../sv-benchmarks/c/</include>-->
-    <!--    <include>../../sv-benchmarks/c/</include>-->
-    <!--    <include>../../sv-benchmarks/c/</include>-->
-    <!--    <include>../../sv-benchmarks/c/</include>-->
-    <!--    <include>../../sv-benchmarks/c/</include>-->
-    <!--  </tasks>-->
-
+    </tasks>
 
     <propertyfile>../../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
-    <option name="-predicateSymEx"/>
 </benchmark>
