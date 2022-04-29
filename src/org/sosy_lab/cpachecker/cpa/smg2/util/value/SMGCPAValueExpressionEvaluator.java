@@ -177,9 +177,9 @@ public class SMGCPAValueExpressionEvaluator {
   }
 
   /**
-   * Used with the & operator this creates or finds and returns the address Value for the underyling
-   * operand. This also creates the pointers in the SMG if not yet created. Throws the exception
-   * only if nonsensical addresses are requested; i.e. &3;
+   * This creates or finds and returns the address Value for the underyling expression. This also
+   * creates the pointers in the SMG if not yet created. Throws the exception only if nonsensical
+   * addresses are requested; i.e. &3; Used with the & operator for example.
    *
    * @param operand the {@link CExpression} that is the operand of the & expression.
    * @param pState current {@link SMGState}
