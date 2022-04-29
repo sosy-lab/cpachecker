@@ -28,6 +28,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGErrorInfo.Property;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSPC;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
@@ -174,27 +176,41 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
    * Copy SMGState with a newly created object and put it into the global namespace. This replaces
    * an existing old global variable!
    *
-   * @param pTypeSize Size of the type of the new global variable.
+   * @param pTypeSizeInBits Size of the type of the new global variable.
    * @param pVarName Name of the global variable.
-   * @return Newly created object.
+   * @return Newly created {@link SMGState} with the object added for the name specified.
    */
-  public SMGState copyAndAddGlobalVariable(int pTypeSize, String pVarName) {
+  public SMGState copyAndAddGlobalVariable(int pTypeSizeInBits, String pVarName) {
     // TODO: do we really need this for ints?
-    return copyAndAddGlobalVariable(BigInteger.valueOf(pTypeSize), pVarName);
+    return copyAndAddGlobalVariable(BigInteger.valueOf(pTypeSizeInBits), pVarName);
   }
 
   /**
    * Copy SMGState with a newly created object and put it into the global namespace. This replaces
    * an existing old global variable!
    *
-   * @param pTypeSize Size of the type of the new global variable.
+   * @param pTypeSizeInBits Size of the type of the new global variable.
    * @param pVarName Name of the global variable.
-   * @return Newly created object.
+   * @return Newly created {@link SMGState} with the object added for the name specified.
    */
-  public SMGState copyAndAddGlobalVariable(BigInteger pTypeSize, String pVarName) {
-    SMGObject newObject = SMGObject.of(0, pTypeSize, BigInteger.ZERO);
+  public SMGState copyAndAddGlobalVariable(BigInteger pTypeSizeInBits, String pVarName) {
+    SMGObject newObject = SMGObject.of(0, pTypeSizeInBits, BigInteger.ZERO);
     return of(
         machineModel, memoryModel.copyAndAddGlobalObject(newObject, pVarName), logger, options);
+  }
+
+  /**
+   * Copy SMGState with a newly created {@link SMGObject} and returns the new state + the new {@link
+   * SMGObject} with the size specified in bits. Make sure that you reuse the {@link SMGObject}
+   * right away to create a points-to-edge and not just use SMGObjects in the code.
+   *
+   * @param pTypeSizeInBits Size of the type of the new global variable.
+   * @return Newly created object + state with it.
+   */
+  public SMGObjectAndSMGState copyAndAddHeapObject(BigInteger pTypeSizeInBits) {
+    SMGObject newObject = SMGObject.of(0, pTypeSizeInBits, BigInteger.ZERO);
+    return SMGObjectAndSMGState.of(
+        newObject, of(machineModel, memoryModel.copyAndAddHeapObject(newObject), logger, options));
   }
 
   /**
@@ -545,6 +561,26 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   }
 
   /**
+   * Invalid write to a not initializoed or non existing memory region.
+   *
+   * @param invalidAddress the invalid address pointing to nothing.
+   * @return A new SMGState with the error info.
+   */
+  public SMGState withInvalidWrite(Value invalidAddress) {
+    // Get the SMGValue and Value that lead to this null pointer dereference
+    String errorMSG =
+        "Write to invalid or non existing memory region, pointed to by: " + invalidAddress + ".";
+    SMGErrorInfo newErrorInfo =
+        errorInfo
+            .withProperty(Property.INVALID_READ)
+            .withErrorMessage(errorMSG)
+            .withInvalidObjects(Collections.singleton(invalidAddress));
+    // Log the error in the logger
+    logMemoryError(errorMSG, true);
+    return copyWithErrorInfo(memoryModel, newErrorInfo);
+  }
+
+  /**
    * I.e. int bla = *pointer; With pointer failing to dereference because its pointing to 0.
    *
    * @param nullObject the {@link SMGObject} that is null and was tried to be dereferenced.
@@ -822,6 +858,30 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
     }
 
     return writeValue(object, writeOffsetInBits, sizeInBits, valueToWrite);
+  }
+
+  /**
+   * Writes the memory, that is accessed by dereferencing the pointer (address) of the {@link Value}
+   * given, completely to 0.
+   *
+   * @param addressToMemory {@link Value} that is a address pointing to a memory region.
+   * @return the new {@link SMGState} with the memory region pointed to by the address written 0
+   *     completely.
+   * @throws SMG2Exception if there is no memory/or pointer for the given Value.
+   */
+  public SMGState writeToZero(Value addressToMemory) throws SMG2Exception {
+    Optional<SMGObjectAndOffset> maybeRegion = memoryModel.dereferencePointer(addressToMemory);
+    if (maybeRegion.isEmpty()) {
+      // Can't write to non existing memory
+      throw new SMG2Exception(withInvalidWrite(addressToMemory));
+    }
+    SMGObjectAndOffset memoryRegionAndOffset = maybeRegion.orElseThrow();
+    SMGObject memoryRegion = memoryRegionAndOffset.getSMGObject();
+    return writeValue(
+        memoryRegion,
+        memoryRegionAndOffset.getOffsetForObject(),
+        memoryRegion.getSize(),
+        new NumericValue(0));
   }
 
   /**
