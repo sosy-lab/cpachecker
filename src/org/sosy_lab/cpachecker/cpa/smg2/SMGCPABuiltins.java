@@ -24,7 +24,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelationKind;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAValueExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
@@ -151,7 +150,6 @@ public class SMGCPABuiltins {
    * @param functionName Name of the function.
    * @param pSmgState current {@link SMGState}.
    * @param pCfaEdge for logging/debugging.
-   * @param pKind to find out i.e. if its a strengthening operation.
    * @return the result of the function call and the state for it. May be an error state!
    * @throws CPATransferException in case of a critical error the SMGCPA can't handle.
    */
@@ -159,14 +157,13 @@ public class SMGCPABuiltins {
       CFunctionCallExpression pFunctionCall,
       String functionName,
       SMGState pSmgState,
-      CFAEdge pCfaEdge,
-      SMGTransferRelationKind pKind)
+      CFAEdge pCfaEdge)
       throws CPATransferException {
     if (isABuiltIn(functionName)) {
       if (isConfigurableAllocationFunction(functionName)) {
-        return evaluateConfigurableAllocationFunction(pFunctionCall, pSmgState, pCfaEdge, pKind);
+        return evaluateConfigurableAllocationFunction(pFunctionCall, pSmgState, pCfaEdge);
       } else {
-        return handleBuiltinFunctionCall(pCfaEdge, pFunctionCall, functionName, pSmgState, pKind);
+        return handleBuiltinFunctionCall(pCfaEdge, pFunctionCall, functionName, pSmgState);
       }
     }
     return handleUnknownFunction(pCfaEdge, pFunctionCall, functionName, pSmgState);
@@ -178,7 +175,6 @@ public class SMGCPABuiltins {
    *     builtin function.
    * @param calledFunctionName The name of the function to be called.
    * @param pState current {@link SMGState}.
-   * @param kind to find out i.e. if its a strengthening operation.
    * @return the result of the function call and the state for it. May be an error state!
    * @throws CPATransferException in case of a critical error the SMGCPA can't handle.
    */
@@ -186,8 +182,7 @@ public class SMGCPABuiltins {
       CFAEdge pCfaEdge,
       CFunctionCallExpression cFCExpression,
       String calledFunctionName,
-      SMGState pState,
-      SMGTransferRelationKind kind)
+      SMGState pState)
       throws CPATransferException {
 
     if (isExternalAllocationFunction(calledFunctionName)) {
@@ -196,7 +191,7 @@ public class SMGCPABuiltins {
 
     switch (calledFunctionName) {
       case "__builtin_alloca":
-        return evaluateAlloca(cFCExpression, pState, pCfaEdge, kind);
+        return evaluateAlloca(cFCExpression, pState, pCfaEdge);
 
       case "memset":
         return evaluateMemset(cFCExpression, pState, pCfaEdge);
@@ -314,15 +309,11 @@ public class SMGCPABuiltins {
    * @param pState current {@link SMGState}.
    * @param cfaEdge for logging/debugging.
    * @param functionCall the {@link CFunctionCallExpression} that lead to this function call.
-   * @param kind to find out i.e. if its a strengthening operation.
    * @return a {@link List} of {@link ValueAndSMGState}s with either valid numeric sizes (in bits)
    * @throws CPATransferException if a critical error is encountered that the SMGCPA can't handle.
    */
   private List<ValueAndSMGState> getAllocateFunctionSize(
-      SMGState pState,
-      CFAEdge cfaEdge,
-      CFunctionCallExpression functionCall,
-      SMGTransferRelationKind kind)
+      SMGState pState, CFAEdge cfaEdge, CFunctionCallExpression functionCall)
       throws CPATransferException {
 
     String functionName = functionCall.getFunctionNameExpression().toASTString();
@@ -339,8 +330,7 @@ public class SMGCPABuiltins {
               options.getMemoryArrayAllocationFunctionsNumParameter(),
               functionCall,
               pState,
-              cfaEdge,
-              kind)) {
+              cfaEdge)) {
         Value value1 = value1AndState.getValue();
         SMGState state1 = value1AndState.getState();
         if (!value1.isNumericValue()) {
@@ -353,8 +343,7 @@ public class SMGCPABuiltins {
                 options.getMemoryArrayAllocationFunctionsElemSizeParameter(),
                 functionCall,
                 state1,
-                cfaEdge,
-                kind)) {
+                cfaEdge)) {
 
           Value value2 = value2AndState.getValue();
           SMGState state2 = value2AndState.getState();
@@ -381,7 +370,7 @@ public class SMGCPABuiltins {
             functionName + " needs 1 arguments.", cfaEdge, functionCall);
       }
       return getAllocateFunctionParameter(
-          options.getMemoryAllocationFunctionsSizeParameter(), functionCall, pState, cfaEdge, kind);
+          options.getMemoryAllocationFunctionsSizeParameter(), functionCall, pState, cfaEdge);
     }
   }
 
@@ -394,17 +383,12 @@ public class SMGCPABuiltins {
    * @param functionCall the {@link CFunctionCallExpression} that lead to this function call.
    * @param pState current {@link SMGState}.
    * @param cfaEdge for logging/debugging.
-   * @param kind to find out i.e. if its a strengthening operation.
    * @return {@link List} of {@link ValueAndSMGState}s each representing the paramteter requested.
    *     Each should be treated as a valid paramter.
    * @throws CPATransferException if a critical error is encountered that the SMGCPA can't handle.
    */
   private List<ValueAndSMGState> getAllocateFunctionParameter(
-      int pParameterNumber,
-      CFunctionCallExpression functionCall,
-      SMGState pState,
-      CFAEdge cfaEdge,
-      @SuppressWarnings("unused") SMGTransferRelationKind kind)
+      int pParameterNumber, CFunctionCallExpression functionCall, SMGState pState, CFAEdge cfaEdge)
       throws CPATransferException {
 
     ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
@@ -418,27 +402,8 @@ public class SMGCPABuiltins {
 
         if (options.isGuessSizeOfUnknownMemorySize()) {
           Value forcedValue = new NumericValue(options.getGuessSize());
-
-          if (value.isUnknown()) {
-            // TODO: REFINEMENT handling needed?
-            /*
-            if (kind == SMGTransferRelationKind.REFINEMENT) {
-              resultValueAndSMGState = ValueAndSMGState.of(currentState, SMGZeroValue.INSTANCE);
-            } else {
-              throw new UnsupportedCodeException("Not able to compute allocation size", cfaEdge);
-            }
-            */
-          }
           resultBuilder.add(ValueAndSMGState.of(forcedValue, currentState));
         } else {
-          // TODO: REFINEMENT handling needed?
-          /*
-          if (kind == SMGTransferRelationKind.REFINEMENT) {
-            resultValueAndSMGState = ValueAndSMGState.of(currentState, SMGZeroValue.INSTANCE);
-          } else {
-            throw new UnsupportedCodeException("Not able to compute allocation size", cfaEdge);
-          }
-          */
           resultBuilder.add(sizeValueAndState);
         }
       }
@@ -486,7 +451,6 @@ public class SMGCPABuiltins {
    * @param functionCall the {@link CFunctionCallExpression} that lead to this function call.
    * @param pState current {@link SMGState}.
    * @param cfaEdge for logging/debugging.
-   * @param kind to find out i.e. if its a strengthening operation.
    * @return {@link List} of {@link ValueAndSMGState}s holding valid and invalid returns (if
    *     enabled) for the called allocation functions. The {@link Value} will not be a {@link
    *     AddressExpression}, but may be numeric 0 (leading to the 0 SMGObject). Valid {@link Value}s
@@ -495,16 +459,12 @@ public class SMGCPABuiltins {
    * @throws CPATransferException if a critical error is encountered that the SMGCPA can't handle.
    */
   List<ValueAndSMGState> evaluateConfigurableAllocationFunction(
-      CFunctionCallExpression functionCall,
-      SMGState pState,
-      CFAEdge cfaEdge,
-      SMGTransferRelationKind kind)
+      CFunctionCallExpression functionCall, SMGState pState, CFAEdge cfaEdge)
       throws CPATransferException {
 
     String functionName = functionCall.getFunctionNameExpression().toASTString();
     ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
-    for (ValueAndSMGState sizeAndState :
-        getAllocateFunctionSize(pState, cfaEdge, functionCall, kind)) {
+    for (ValueAndSMGState sizeAndState : getAllocateFunctionSize(pState, cfaEdge, functionCall)) {
 
       Value sizeValue = sizeAndState.getValue();
       if (!sizeValue.isNumericValue()) {
@@ -760,7 +720,6 @@ public class SMGCPABuiltins {
    * @param functionCall the {@link CFunctionCallExpression} that lead to this function call.
    * @param pState current {@link SMGState}.
    * @param cfaEdge for logging/debugging.
-   * @param kind to find out i.e. if its a strengthening operation.
    * @return A {@link List} of {@link ValueAndSMGState}s with the results of the alloca call on the
    *     stack of the returned {@link SMGState}s or a error info set in case of errors. The Value is
    *     either a pointer to the valid stack memory allocated or unknown. The pointer is not a
@@ -768,10 +727,7 @@ public class SMGCPABuiltins {
    * @throws CPATransferException if a critical error is encountered that the SMGCPA can't handle.
    */
   private List<ValueAndSMGState> evaluateAlloca(
-      CFunctionCallExpression functionCall,
-      SMGState pState,
-      CFAEdge cfaEdge,
-      SMGTransferRelationKind kind)
+      CFunctionCallExpression functionCall, SMGState pState, CFAEdge cfaEdge)
       throws CPATransferException {
     // TODO possible property violation "stack-overflow through big allocation" is not handled
 
@@ -783,9 +739,9 @@ public class SMGCPABuiltins {
     ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
     // reuse MALLOC_PARAMETER since its just the first argument (and there is always just 1)
     for (ValueAndSMGState argumentAndState :
-        getAllocateFunctionParameter(MALLOC_PARAMETER, functionCall, pState, cfaEdge, kind)) {
+        getAllocateFunctionParameter(MALLOC_PARAMETER, functionCall, pState, cfaEdge)) {
       resultBuilder.addAll(
-          evaluateAlloca(argumentAndState.getState(), argumentAndState.getValue(), cfaEdge, kind));
+          evaluateAlloca(argumentAndState.getState(), argumentAndState.getValue(), cfaEdge));
     }
 
     return resultBuilder.build();
@@ -798,17 +754,13 @@ public class SMGCPABuiltins {
    * @param pState current {@link SMGState}.
    * @param pSizeValue the {@link Value} holding the size of the allocation of stack memory in bits.
    * @param cfaEdge for logging/debugging.
-   * @param kind to find out i.e. if its a strengthening operation.
    * @return a {@link List} of {@link ValueAndSMGState}s with the address {@link Value} (NO {@link
    *     AddressExpression}!) to the new memory on the stack. May be unknown in case of a problem
    *     and may have a error state with the error.
    * @throws CPATransferException if a critical error is encountered that the SMGCPA can't handle.
    */
   private List<ValueAndSMGState> evaluateAlloca(
-      SMGState pState,
-      Value pSizeValue,
-      @SuppressWarnings("unused") CFAEdge cfaEdge,
-      @SuppressWarnings("unused") SMGTransferRelationKind kind)
+      SMGState pState, Value pSizeValue, @SuppressWarnings("unused") CFAEdge cfaEdge)
       throws CPATransferException {
     // Since the size comes from getAllocateFunctionParameter we know that unknown values may be
     // replaces by guesses if enabled
