@@ -975,8 +975,9 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
    * If you are wondering why there are so many writes;
    * this is to optimize the checks and variableName <-> SMGObject and
    * Value <-> SMGValue mappings. I don't want to do unneeded checks multiple times.
+   * This is package private for tests.
    */
-  private SMGState writeValue(
+  SMGState writeValue(
       SMGObject object,
       BigInteger writeOffsetInBits,
       BigInteger sizeInBits,
