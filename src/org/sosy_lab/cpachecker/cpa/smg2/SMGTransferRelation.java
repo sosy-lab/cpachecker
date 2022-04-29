@@ -17,6 +17,7 @@ import java.math.BigInteger;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -31,6 +32,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
@@ -38,12 +40,15 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
@@ -70,8 +75,12 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAValueExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -244,8 +253,48 @@ public class SMGTransferRelation
   @Override
   protected Collection<SMGState> handleStatementEdge(CStatementEdge pCfaEdge, CStatement cStmt)
       throws CPATransferException {
+    // Either assignments a = b; or function calls foo(..);
+    if (cStmt instanceof CAssignment) {
+      // Assignments, evaluate the right hand side value using the value visitor and write it into
+      // the address returned by the address evaluator for the left hand side.
+      CAssignment cAssignment = (CAssignment) cStmt;
+      CExpression lValue = cAssignment.getLeftHandSide();
+      CRightHandSide rValue = cAssignment.getRightHandSide();
 
-    return null;
+      return handleAssignment(state, pCfaEdge, lValue, rValue);
+
+    } else if (cStmt instanceof CFunctionCallStatement) {
+      // Check the arguments for the function, then simply execute the function
+      CFunctionCallStatement cFCall = (CFunctionCallStatement) cStmt;
+      CFunctionCallExpression cFCExpression = cFCall.getFunctionCallExpression();
+      CExpression fileNameExpression = cFCExpression.getFunctionNameExpression();
+      String calledFunctionName = fileNameExpression.toASTString();
+
+      Set<SMGState> states = new LinkedHashSet<>();
+      states.add(state.copyOf());
+
+      // check that we can safely read all args,
+      // to avoid invalid-derefs like   int*p; printf("%d",*p);
+      for (CExpression param : cFCExpression.getParameterExpressions()) {
+        if (param instanceof CPointerExpression) {
+          for (SMGValueAndState valueAndState : readValueToBeAssiged(state, pCfaEdge, param)) {
+            // we are only interested in the errorinfo for invalid reads
+            states.add(valueAndState.getSmgState());
+          }
+        }
+      }
+
+      ImmutableList.Builder<SMGState> result = ImmutableList.builder();
+      for (SMGState newState : states) {
+        result.addAll(
+            handleFunctionCallWithoutBody(newState, pCfaEdge, cFCExpression, calledFunctionName));
+      }
+      return result.build();
+    } else {
+      // Fallthrough for unhandled cases
+      // TODO: log
+      return ImmutableList.of(state);
+    }
   }
 
   @Override
@@ -712,48 +761,73 @@ public class SMGTransferRelation
   }
 
   /*
-   * Handles any form of assignments. Takes the C/CFA arguments, transforms them into SMG arguments (reads SMG, gets SMG representatives of C values/objects or creates them if they are unknown) and then assigns them to the SMG counterparts, updating the state in the process.
+   * Handles any form of assignments a = b; a = foo();. The lValue is transformed into its memory (SMG) counterpart in which the rValue, evaluated by the value visitor, is then saved.
+   * TODO: move this method as it uses SMGObject!
    */
-  @SuppressWarnings("unused")
   private List<SMGState> handleAssignment(
       SMGState pState, CFAEdge cfaEdge, CExpression lValue, CRightHandSide rValue)
       throws CPATransferException {
-    /* old/ just reference
-    List<SMGState> result = new ArrayList<>(4);
-    LValueAssignmentVisitor visitor =
-        expressionEvaluator.getLValueAssignmentVisitor(cfaEdge, pState);
-    // Create ?visitor
-    // For all values in lValue do:
-    //  Get the SMGState, SMGValue etc.
-    //  Get the correct type (bit size) for the value
-    //  If the object to be assigned to ?
-    for (SMGAddressAndState addressOfFieldAndState : lValue.accept(visitor)) {
-      SMGAddress addressOfField = addressOfFieldAndState.getObject();
-      pState = addressOfFieldAndState.getSmgState();
 
-      CType fieldType = TypeUtils.getRealExpressionType(lValue);
+    ImmutableList.Builder<SMGState> returnStateBuilder = ImmutableList.builder();
+    SMGCPAValueExpressionEvaluator evaluator =
+        new SMGCPAValueExpressionEvaluator(machineModel, logger);
+    SMGCPAAddressVisitor leftHandSidevisitor =
+        new SMGCPAAddressVisitor(evaluator, pState, cfaEdge, logger);
+    SMGCPAValueVisitor rightHandSideVisitor =
+        new SMGCPAValueVisitor(evaluator, pState, cfaEdge, logger);
 
-      if (addressOfField.isUnknown()) {
-        // Check for dereference errors in rValue
-        List<SMGState> newStates =
-            asSMGStateList(readValueToBeAssiged(pState.copyOf(), cfaEdge, rValue));
-        newStates.forEach(smgState -> smgState.unknownWrite());
-        result.addAll(newStates);
+    Optional<SMGObjectAndOffset> maybeAddress = lValue.accept(leftHandSidevisitor);
+    if (maybeAddress.isEmpty()) {
+      // No memory for the left hand side -> can't write
+      // TODO: move the exception into the visitor! Then we can actually see more details as to what
+      // kind of variable we tried to find the memory for.
+      throw new SMG2Exception("Invalid write to variable.");
+    }
+    SMGObjectAndOffset addressAndOffsetToWriteTo = maybeAddress.orElseThrow();
+    SMGObject addressToWriteTo = addressAndOffsetToWriteTo.getSMGObject();
+    BigInteger offsetToWriteTo = addressAndOffsetToWriteTo.getOffsetForObject();
+    List<ValueAndSMGState> valuesAndStates = rValue.accept(rightHandSideVisitor);
+    // The right hand side either returns Values representing values or a AddressExpression. In the
+    // later case this means the entire structure behind it needs to be copied as C is
+    // pass-by-value.
+    SMGState currentState = valuesAndStates.get(valuesAndStates.size() - 1).getState();
+    for (ValueAndSMGState valueAndState : valuesAndStates) {
+      Value valueToWrite = valueAndState.getValue();
+      if (valueToWrite instanceof ConstantSymbolicExpression && ((ConstantSymbolicExpression) valueToWrite).getValue() == null) {
+        // A ConstantSymbolicValue without Value is used to copy entire variable structures (i.e. arrays/structs etc.)
+        String rightHandSideIdentifier = ((ConstantSymbolicExpression) valueToWrite).getRepresentedLocation().orElseThrow().getIdentifier();
+        // Get the SMGObject for the memory region on the right hand side and copy the entire region
+        // into the left hand
+        // side
+        Optional<SMGObject> maybeRightHandSideMemory =
+            currentState.getMemoryModel().getObjectForVisibleVariable(rightHandSideIdentifier);
+
+        if (maybeRightHandSideMemory.isEmpty()) {
+          // Write to unknown variable
+          throw new SMG2Exception(currentState.withWriteToUnknownVariable(rightHandSideIdentifier));
+        }
+
+        SMGObject rightHandSideMemory = maybeRightHandSideMemory.orElseThrow();
+        // copySMGObjectContentToSMGObject checks for sizes etc.
+        returnStateBuilder.add(
+            currentState.copySMGObjectContentToSMGObject(
+                rightHandSideMemory,
+                rightHandSideMemory.getOffset(),
+                addressToWriteTo,
+                offsetToWriteTo));
       } else {
-        result.addAll(
-            assignFieldToState(
-                pState.copyOf(),
-                cfaEdge,
-                addressOfField.getObject(),
-                addressOfField.getOffset().getAsLong(),
-                fieldType,
-                rValue));
+        // All other cases should return such that the value can be written directly to the left
+        // hand side!
+        BigInteger sizeInBits = evaluator.getBitSizeof(currentState, rValue);
+        currentState =
+            currentState.writeValueTo(addressToWriteTo, offsetToWriteTo, sizeInBits, valueToWrite);
+        returnStateBuilder.add(currentState);
+        // For Strings we give back the chars in sequence; add size to offset and reuse state
+        offsetToWriteTo = offsetToWriteTo.add(sizeInBits);
       }
     }
 
-    return result;
-    */
-    return null;
+    return returnStateBuilder.build();
   }
 
   @SuppressWarnings("unused")
@@ -785,7 +859,7 @@ public class SMGTransferRelation
         return currentState.withNullPointerDereferenceWhenWriting(memoryOfField);
       } else {
         // Non null memory object but out of range write
-        return currentState.withOutOfRangeWrite(memoryOfField, valueOffset, valueSize, pValue);
+        // return currentState.withOutOfRangeWrite(memoryOfField, valueOffset, valueSize, pValue);
       }
     } else if (SMGCPAValueExpressionEvaluator.isStructOrUnionType(rValueType)) {
       // Write the struct
