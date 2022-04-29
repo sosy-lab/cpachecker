@@ -28,7 +28,8 @@ public class SMGErrorInfo {
     INVALID_READ,
     INVALID_WRITE,
     INVALID_FREE,
-    INVALID_HEAP
+    INVALID_HEAP,
+    UNDEFINED_BEHAVIOUR
   }
 
   private final boolean invalidWrite;
