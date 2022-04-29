@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashBiMap;
@@ -66,8 +67,8 @@ public class SymbolicProgramConfiguration {
   /* (SMG)Objects on the heap. */
   private final PersistentSet<SMGObject> heapObjects;
 
-  /* Set of external (SMG)Objects allocated. */
-  private PersistentSet<SMGObject> externalObjectAllocation;
+  /* Map of (SMG)Objects externaly allocated. The bool denotes validity, true = valid, false = invalid i.e. after free() */
+  private PersistentMap<SMGObject, Boolean> externalObjectAllocation;
 
   /**
    * Maps the symbolic value ranges to their abstract SMG counterparts. (SMGs use only abstract, but
@@ -85,7 +86,7 @@ public class SymbolicProgramConfiguration {
       PersistentMap<String, SMGObject> pGlobalVariableMapping,
       PersistentStack<StackFrame> pStackVariableMapping,
       PersistentSet<SMGObject> pHeapObjects,
-      PersistentSet<SMGObject> pExternalObjectAllocation,
+      PersistentMap<SMGObject, Boolean> pExternalObjectAllocation,
       BiMap<Value, SMGValue> pValueMapping) {
     globalVariableMapping = pGlobalVariableMapping;
     stackVariableMapping = pStackVariableMapping;
@@ -104,8 +105,8 @@ public class SymbolicProgramConfiguration {
    * @param pStackVariableMapping the stack variable mappings as a {@link PersistentStack} of {@link
    *     StackFrame}s.
    * @param pHeapObjects the heap {@link SMGObject}s on a {@link PersistentStack}.
-   * @param pExternalObjectAllocation externally allocated {@link SMGObject}s on a {@link
-   *     PersistentStack}.
+   * @param pExternalObjectAllocation externally allocated {@link SMGObject}s on a map that saves
+   *     the validity of the object. False is invalid.
    * @param pValueMapping {@link BiMap} mapping the {@link Value}s and {@link SMGValue}s.
    * @return the newly created {@link SymbolicProgramConfiguration}.
    */
@@ -114,7 +115,7 @@ public class SymbolicProgramConfiguration {
       PersistentMap<String, SMGObject> pGlobalVariableMapping,
       PersistentStack<StackFrame> pStackVariableMapping,
       PersistentSet<SMGObject> pHeapObjects,
-      PersistentSet<SMGObject> pExternalObjectAllocation,
+      PersistentMap<SMGObject, Boolean> pExternalObjectAllocation,
       BiMap<Value, SMGValue> pValueMapping) {
     return new SymbolicProgramConfiguration(
         pSmg,
@@ -139,7 +140,7 @@ public class SymbolicProgramConfiguration {
         PathCopyingPersistentTreeMap.of(),
         PersistentStack.of(),
         PersistentSet.of(),
-        PersistentSet.of(),
+        PathCopyingPersistentTreeMap.of(),
         emptyMap);
   }
 
@@ -323,6 +324,16 @@ public class SymbolicProgramConfiguration {
   }
 
   /**
+   * Checks if the entered {@link SMGObject} is part of the heap.
+   *
+   * @param pObject {@link SMGObject} to be checked.
+   * @return true if the object is in the heap.
+   */
+  public boolean isHeapObject(SMGObject pObject) {
+    return heapObjects.contains(pObject);
+  }
+
+  /**
    * Remove a top stack frame from the SMG, along with all objects in it, and any edges leading
    * from/to it.
    *
@@ -410,6 +421,24 @@ public class SymbolicProgramConfiguration {
   }
 
   /**
+   * Copies the {@link SymbolicProgramConfiguration} and sets the externaly allocated {@link
+   * SMGObject} validity to false. If the entered {@link SMGObject} is not yet in the external
+   * allocation map this will enter it!
+   *
+   * @param pObject the {@link SMGObject} that is externally allocated to be set to invalid.
+   * @return A copy of this SPC with the validity of the external object changed.
+   */
+  public SymbolicProgramConfiguration copyAndInvalidateExternalAllocation(SMGObject pObject) {
+    return of(
+        smg,
+        globalVariableMapping,
+        stackVariableMapping,
+        heapObjects,
+        externalObjectAllocation.putAndCopy(pObject, false),
+        valueMapping);
+  }
+
+  /**
    * Returns an {@link Optional} that may be empty if no {@link SMGValue} for the entered {@link
    * Value} exists in the value mapping. If a mapping exists, it returns the {@link SMGValue} for
    * the entered {@link Value} inside the Optional.
@@ -466,7 +495,7 @@ public class SymbolicProgramConfiguration {
         globalVariableMapping,
         stackVariableMapping,
         heapObjects,
-        externalObjectAllocation.addAndCopy(pObject),
+        externalObjectAllocation.putAndCopy(pObject, true),
         valueMapping);
   }
 
@@ -513,14 +542,15 @@ public class SymbolicProgramConfiguration {
   }
 
   /**
-   * Returns <code>true</code> if the entered {@link SMGObject} is externally allocated.
+   * Returns <code>true</code> if the entered {@link SMGObject} is externally allocated. This does
+   * not check the validity of the external object.
    *
    * @param pObject The {@link SMGObject} you want to know if its externally allocated or not.
    * @return <code>true</code> if the entered pObject is externally allocated, <code>false</code> if
    *     not.
    */
   public boolean isObjectExternallyAllocated(SMGObject pObject) {
-    return externalObjectAllocation.contains(pObject);
+    return externalObjectAllocation.containsKey(pObject);
   }
 
   /**
@@ -752,4 +782,20 @@ public class SymbolicProgramConfiguration {
     SMG newSMG = smg.copyAndAddValue(pValue);
     return copyAndReplaceSMG(newSMG.writeValue(pObject, pFieldOffset, pSizeofInBits, pValue));
   }
+
+  /**
+   * This assumes that the entered {@link SMGObject} is part of the SPC!
+   *
+   * @param pObject the {@link SMGObject} to invalidate.
+   * @return a new SPC with the entered object invalidated.
+   */
+  public SymbolicProgramConfiguration invalidateSMGObject(SMGObject pObject) {
+    Preconditions.checkArgument(smg.getObjects().contains(pObject));
+    SymbolicProgramConfiguration newSPC = this;
+    if (isObjectExternallyAllocated(pObject)) {
+      newSPC = copyAndInvalidateExternalAllocation(pObject);
+    }
+    SMG newSMG = newSPC.getSmg().copyAndInvalidateObject(pObject);
+    return newSPC.copyAndReplaceSMG(newSMG);
+    }
 }
