@@ -572,6 +572,13 @@ public class SMGCPAValueExpressionEvaluator {
     return getBitSizeof(pInitialSmgState, pExpression.getExpressionType());
   }
 
+  public BigInteger getBitSizeof(SMGState pInitialSmgState, CRightHandSide pExpression) {
+    // TODO check why old implementation did not use machineModel
+    // Because in abstracted SMGs we might need the current SMG to get the correct type info.
+    // TODO: rework because of that.
+    return getBitSizeof(pInitialSmgState, pExpression.getExpressionType());
+  }
+
   public BigInteger getBitSizeof(SMGState pInitialSmgState, CType pType) {
     // TODO check why old implementation did not use machineModel
     // Because in abstracted SMGs we might need the current SMG to get the correct type info.
