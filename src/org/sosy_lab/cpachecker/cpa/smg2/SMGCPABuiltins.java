@@ -208,8 +208,7 @@ public class SMGCPABuiltins {
       case "printf":
         List<SMGState> checkedStates =
             checkAllParametersForValidity(pState, pCfaEdge, cFCExpression);
-        return checkedStates
-            .stream()
+        return checkedStates.stream()
             .map(state -> ValueAndSMGState.ofUnknownValue(state))
             .collect(ImmutableList.toImmutableList());
 
@@ -280,7 +279,8 @@ public class SMGCPABuiltins {
           // TODO: make this a error state
           throw new CPATransferException(
               String.format(
-                  "Unknown function '%s' may be unsafe. See the cpa.smg2.SMGCPABuiltins.handleUnknownFunction()",
+                  "Unknown function '%s' may be unsafe. See the"
+                      + " cpa.smg2.SMGCPABuiltins.handleUnknownFunction()",
                   calledFunctionName));
         }
         // fallthrough for safe functions
@@ -288,8 +288,7 @@ public class SMGCPABuiltins {
       case ASSUME_SAFE:
         List<SMGState> checkedStates =
             checkAllParametersForValidity(pState, pCfaEdge, cFCExpression);
-        return checkedStates
-            .stream()
+        return checkedStates.stream()
             .map(state -> ValueAndSMGState.ofUnknownValue(state))
             .collect(ImmutableList.toImmutableList());
       case ASSUME_EXTERNAL_ALLOCATED:
@@ -556,13 +555,15 @@ public class SMGCPABuiltins {
 
     if (functionCall.getParameterExpressions().size() != 3) {
       throw new UnrecognizedCodeException(
-          functionCall.getFunctionNameExpression().toASTString() + " needs 3 arguments.", cfaEdge, functionCall);
+          functionCall.getFunctionNameExpression().toASTString() + " needs 3 arguments.",
+          cfaEdge,
+          functionCall);
     }
 
     ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
     // First arg
     for (ValueAndSMGState bufferAddressAndState :
-      getFunctionParameterValue(MEMSET_BUFFER_PARAMETER, functionCall, pState, cfaEdge)) {
+        getFunctionParameterValue(MEMSET_BUFFER_PARAMETER, functionCall, pState, cfaEdge)) {
       Value bufferValue = bufferAddressAndState.getValue();
       SMGState currentState = bufferAddressAndState.getState();
       // If the Value is no AddressExpression we can't work with it
@@ -571,32 +572,29 @@ public class SMGCPABuiltins {
       if (!(bufferValue instanceof AddressExpression)
           || ((AddressExpression) bufferValue).getMemoryAddress().isUnknown()
           || !((AddressExpression) bufferValue).getOffset().isNumericValue()) {
-        currentState =
-            currentState
-                .withInvalidWrite(bufferValue);
+        currentState = currentState.withInvalidWrite(bufferValue);
         resultBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
         continue;
       }
 
       // Second arg
       for (ValueAndSMGState charValueAndSMGState :
-          getFunctionParameterValue(
-              MEMSET_CHAR_PARAMETER, functionCall, currentState, cfaEdge)) {
+          getFunctionParameterValue(MEMSET_CHAR_PARAMETER, functionCall, currentState, cfaEdge)) {
         // Third arg
         for (ValueAndSMGState countAndState :
             getFunctionParameterValue(
                 MEMSET_COUNT_PARAMETER, functionCall, charValueAndSMGState.getState(), cfaEdge)) {
 
-            resultBuilder.add(
-                evaluateMemset(
-                    countAndState.getState(),
-                    cfaEdge,
-                    (AddressExpression) bufferValue,
-                    charValueAndSMGState.getValue(),
-                    countAndState.getValue()));
-          }
+          resultBuilder.add(
+              evaluateMemset(
+                  countAndState.getState(),
+                  cfaEdge,
+                  (AddressExpression) bufferValue,
+                  charValueAndSMGState.getValue(),
+                  countAndState.getValue()));
         }
       }
+    }
 
     return resultBuilder.build();
   }
@@ -629,16 +627,17 @@ public class SMGCPABuiltins {
 
     if (countValue.isUnknown()) {
       currentState =
-          currentState
-              .withInvalidWrite("Invalid (Unknown) size (third argument) for memset() function call.", countValue);
+          currentState.withInvalidWrite(
+              "Invalid (Unknown) size (third argument) for memset() function call.", countValue);
       // TODO: we need to change the value behind bufferAddress to unknown as well!
       return ValueAndSMGState.ofUnknownValue(currentState);
     }
     // TODO: improve symbolic count handling
     if (!countValue.isNumericValue()) {
       currentState =
-          currentState
-              .withInvalidWrite("Symbolic count (second argument) for memset() function call not supported.", countValue);
+          currentState.withInvalidWrite(
+              "Symbolic count (second argument) for memset() function call not supported.",
+              countValue);
       // TODO: we need to change the value behind bufferAddress to unknown as well!
       return ValueAndSMGState.ofUnknownValue(currentState);
     }
@@ -733,7 +732,9 @@ public class SMGCPABuiltins {
 
     if (functionCall.getParameterExpressions().size() != 1) {
       throw new UnrecognizedCodeException(
-          functionCall.getFunctionNameExpression().toASTString() + " needs 1 argument.", cfaEdge, functionCall);
+          functionCall.getFunctionNameExpression().toASTString() + " needs 1 argument.",
+          cfaEdge,
+          functionCall);
     }
 
     ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
@@ -867,7 +868,9 @@ public class SMGCPABuiltins {
         resultBuilder.add(ValueAndSMGState.ofUnknownValue(destAndState.getState()));
         continue;
       } else if (!(targetAddress instanceof AddressExpression)) {
-        throw new SMG2Exception("Internal error: wrong Value returned where AddressExpression expected when evaluating memcpy.");
+        throw new SMG2Exception(
+            "Internal error: wrong Value returned where AddressExpression expected when evaluating"
+                + " memcpy.");
       }
       AddressExpression targetAddressExpr = (AddressExpression) targetAddress;
       if (!targetAddressExpr.getOffset().isNumericValue()) {
@@ -889,7 +892,9 @@ public class SMGCPABuiltins {
           resultBuilder.add(ValueAndSMGState.ofUnknownValue(sourceAndState.getState()));
           continue;
         } else if (!(sourceAddress instanceof AddressExpression)) {
-          throw new SMG2Exception("Internal error: wrong Value returned where AddressExpression expected when evaluating memcpy.");
+          throw new SMG2Exception(
+              "Internal error: wrong Value returned where AddressExpression expected when"
+                  + " evaluating memcpy.");
         }
         AddressExpression sourceAddressExpr = (AddressExpression) sourceAddress;
         if (!sourceAddressExpr.getOffset().isNumericValue()) {
@@ -1028,7 +1033,9 @@ public class SMGCPABuiltins {
         resultBuilder.add(ValueAndSMGState.ofUnknownValue(firstValueAndSMGState.getState()));
         continue;
       } else if (!(firstAddress instanceof AddressExpression)) {
-        throw new SMG2Exception("Internal error: wrong Value returned where AddressExpression expected when evaluating strcmp.");
+        throw new SMG2Exception(
+            "Internal error: wrong Value returned where AddressExpression expected when evaluating"
+                + " strcmp.");
       }
       AddressExpression firstAddressExpr = (AddressExpression) firstAddress;
       if (!firstAddressExpr.getOffset().isNumericValue()) {
@@ -1041,7 +1048,7 @@ public class SMGCPABuiltins {
           getFunctionParameterValue(
               STRCMP_SECOND_PARAMETER, pFunctionCall, firstValueAndSMGState.getState(), pCfaEdge)) {
         Value secondAddress = secondValueAndSMGState.getValue();
-     // If the Value is no AddressExpression we can't work with it
+        // If the Value is no AddressExpression we can't work with it
         // The buffer is type * and has to be a AddressExpression with a not unknown value and a
         // concrete offset to be used correctly
         if (secondAddress.isUnknown()) {
@@ -1050,7 +1057,9 @@ public class SMGCPABuiltins {
           resultBuilder.add(ValueAndSMGState.ofUnknownValue(secondValueAndSMGState.getState()));
           continue;
         } else if (!(secondAddress instanceof AddressExpression)) {
-          throw new SMG2Exception("Internal error: wrong Value returned where AddressExpression expected when evaluating strcmp.");
+          throw new SMG2Exception(
+              "Internal error: wrong Value returned where AddressExpression expected when"
+                  + " evaluating strcmp.");
         }
         AddressExpression secondAddressExpr = (AddressExpression) secondAddress;
         if (!secondAddressExpr.getOffset().isNumericValue()) {

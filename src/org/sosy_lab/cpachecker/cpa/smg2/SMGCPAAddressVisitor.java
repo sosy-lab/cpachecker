@@ -74,8 +74,8 @@ public class SMGCPAAddressVisitor
   }
 
   @Override
-  public List<Optional<SMGObjectAndOffset>> visit(CFunctionCallExpression pIastFunctionCallExpression)
-      throws CPATransferException {
+  public List<Optional<SMGObjectAndOffset>> visit(
+      CFunctionCallExpression pIastFunctionCallExpression) throws CPATransferException {
     // Evaluate the expression to a Value; this should return a Symbolic Value with the address of
     // the target and a offset if it really has a address. If this fails this returns a different
     // Value class.
@@ -117,58 +117,61 @@ public class SMGCPAAddressVisitor
 
     for (ValueAndSMGState arrayValueAndState :
         arrayExpr.accept(new SMGCPAValueVisitor(evaluator, state, cfaEdge, logger))) {
-    Value arrayValue = arrayValueAndState.getValue();
+      Value arrayValue = arrayValueAndState.getValue();
 
       // Evaluate the subscript as far as possible
       for (ValueAndSMGState subscriptValueAndState :
           subscriptExpr.accept(
               new SMGCPAValueVisitor(evaluator, arrayValueAndState.getState(), cfaEdge, logger))) {
 
-    Value subscriptValue = subscriptValueAndState.getValue();
+        Value subscriptValue = subscriptValueAndState.getValue();
         SMGState currentState = subscriptValueAndState.getState();
-    // If the subscript is a unknown value, we can't read anything and return unknown
-    if (!subscriptValue.isNumericValue()) {
+        // If the subscript is a unknown value, we can't read anything and return unknown
+        if (!subscriptValue.isNumericValue()) {
           // TODO: log this!
           resultBuilder.add(Optional.empty());
           continue;
-    }
+        }
         // Calculate the offset out of the subscript value and the type
         BigInteger typeSizeInBits = evaluator.getBitSizeof(currentState, e.getExpressionType());
-    BigInteger subscriptOffset =
-        typeSizeInBits.multiply(subscriptValue.asNumericValue().bigInteger());
+        BigInteger subscriptOffset =
+            typeSizeInBits.multiply(subscriptValue.asNumericValue().bigInteger());
 
-    // Get the value from the array and return the value + state
-    if (arrayExpr.getExpressionType() instanceof CPointerType) {
+        // Get the value from the array and return the value + state
+        if (arrayExpr.getExpressionType() instanceof CPointerType) {
           // In the pointer case, the Value needs to be a AddressExpression
           if (!(arrayValue instanceof AddressExpression)) {
             // TODO: log
             resultBuilder.add(Optional.empty());
             continue;
           }
-      AddressExpression addressValue = (AddressExpression) arrayValue;
-      // The pointer might actually point inside of the array, take the offset of that into account!
-      Value arrayPointerOffsetExpr = addressValue.getOffset();
-      if (!arrayPointerOffsetExpr.isNumericValue()) {
+          AddressExpression addressValue = (AddressExpression) arrayValue;
+          // The pointer might actually point inside of the array, take the offset of that into
+          // account!
+          Value arrayPointerOffsetExpr = addressValue.getOffset();
+          if (!arrayPointerOffsetExpr.isNumericValue()) {
             // The offset is some non numeric Value and therefore not useable!
             // TODO: log
             resultBuilder.add(Optional.empty());
-      }
-      subscriptOffset = arrayPointerOffsetExpr.asNumericValue().bigInteger().add(subscriptOffset);
+          }
+          subscriptOffset =
+              arrayPointerOffsetExpr.asNumericValue().bigInteger().add(subscriptOffset);
 
           resultBuilder.add(
               evaluator.getTargetObjectAndOffset(
                   currentState, addressValue.getMemoryAddress(), subscriptOffset));
         } else if (arrayValue instanceof SymbolicValue) {
-      // Here our arrayValue holds the name of our variable
+          // Here our arrayValue holds the name of our variable
 
-      MemoryLocation maybeVariableIdent =
-          ((SymbolicValue) arrayValue).getRepresentedLocation().orElseThrow();
+          MemoryLocation maybeVariableIdent =
+              ((SymbolicValue) arrayValue).getRepresentedLocation().orElseThrow();
 
-      // This might actually point inside the array, add the offset
-      if (maybeVariableIdent.isReference()) {
-        // TODO: is it possible for this offset to be unknown?
-        subscriptOffset = subscriptOffset.add(BigInteger.valueOf(maybeVariableIdent.getOffset()));
-      }
+          // This might actually point inside the array, add the offset
+          if (maybeVariableIdent.isReference()) {
+            // TODO: is it possible for this offset to be unknown?
+            subscriptOffset =
+                subscriptOffset.add(BigInteger.valueOf(maybeVariableIdent.getOffset()));
+          }
           resultBuilder.add(
               evaluator.getTargetObjectAndOffset(
                   currentState, maybeVariableIdent.getIdentifier(), subscriptOffset));
@@ -211,53 +214,53 @@ public class SMGCPAAddressVisitor
       Value structValue = structValuesAndState.getValue();
       SMGState currentState = structValuesAndState.getState();
 
-    // Now get the offset of the current field
-    BigInteger fieldOffset =
-        evaluator.getFieldOffsetInBits(
-            SMGCPAValueExpressionEvaluator.getCanonicalType(ownerExpression),
-            explicitReference.getFieldName());
+      // Now get the offset of the current field
+      BigInteger fieldOffset =
+          evaluator.getFieldOffsetInBits(
+              SMGCPAValueExpressionEvaluator.getCanonicalType(ownerExpression),
+              explicitReference.getFieldName());
 
-    // This is either a stack/global variable of the form struct.field or a pointer of the form
-    // (*structP).field. The later needs a pointer deref
-    if (ownerExpression instanceof CPointerExpression) {
-      // In the pointer case, the Value needs to be a AddressExpression
-      Preconditions.checkArgument(structValue instanceof AddressExpression);
-      AddressExpression addressAndOffsetValue = (AddressExpression) structValue;
-      // This AddressExpr theoretically can have a offset
-      Value structPointerOffsetExpr = addressAndOffsetValue.getOffset();
-      if (!structPointerOffsetExpr.isNumericValue()) {
+      // This is either a stack/global variable of the form struct.field or a pointer of the form
+      // (*structP).field. The later needs a pointer deref
+      if (ownerExpression instanceof CPointerExpression) {
+        // In the pointer case, the Value needs to be a AddressExpression
+        Preconditions.checkArgument(structValue instanceof AddressExpression);
+        AddressExpression addressAndOffsetValue = (AddressExpression) structValue;
+        // This AddressExpr theoretically can have a offset
+        Value structPointerOffsetExpr = addressAndOffsetValue.getOffset();
+        if (!structPointerOffsetExpr.isNumericValue()) {
           // The offset is some non numeric Value and therefore not useable!
           // TODO: log
           resultBuilder.add(Optional.empty());
-      }
-      BigInteger finalFieldOffset =
-          structPointerOffsetExpr.asNumericValue().bigInteger().add(fieldOffset);
+        }
+        BigInteger finalFieldOffset =
+            structPointerOffsetExpr.asNumericValue().bigInteger().add(fieldOffset);
 
         resultBuilder.add(
             evaluator.getTargetObjectAndOffset(
                 currentState, addressAndOffsetValue.getMemoryAddress(), finalFieldOffset));
 
-    } else if (ownerExpression instanceof CBinaryExpression
-        || ownerExpression instanceof CIdExpression) {
-      // In the non pointer case the Value is some SymbolicValue with the correct variable
-      // identifier String inside its MemoryLocation
-      Preconditions.checkArgument(structValue instanceof SymbolicValue);
-      MemoryLocation maybeVariableIdent =
-          ((SymbolicValue) structValue).getRepresentedLocation().orElseThrow();
+      } else if (ownerExpression instanceof CBinaryExpression
+          || ownerExpression instanceof CIdExpression) {
+        // In the non pointer case the Value is some SymbolicValue with the correct variable
+        // identifier String inside its MemoryLocation
+        Preconditions.checkArgument(structValue instanceof SymbolicValue);
+        MemoryLocation maybeVariableIdent =
+            ((SymbolicValue) structValue).getRepresentedLocation().orElseThrow();
 
-      BigInteger finalFieldOffset = fieldOffset;
-      if (maybeVariableIdent.isReference()) {
-        finalFieldOffset = fieldOffset.add(BigInteger.valueOf(maybeVariableIdent.getOffset()));
-      }
+        BigInteger finalFieldOffset = fieldOffset;
+        if (maybeVariableIdent.isReference()) {
+          finalFieldOffset = fieldOffset.add(BigInteger.valueOf(maybeVariableIdent.getOffset()));
+        }
 
         resultBuilder.add(
             evaluator.getTargetObjectAndOffset(
                 currentState, maybeVariableIdent.getIdentifier(), finalFieldOffset));
 
-    } else {
-      // TODO: improve error and check if its even needed
-      throw new SMG2Exception("Unknown field type in field expression.");
-    }
+      } else {
+        // TODO: improve error and check if its even needed
+        throw new SMG2Exception("Unknown field type in field expression.");
+      }
     }
     return resultBuilder.build();
   }
@@ -292,28 +295,28 @@ public class SMGCPAAddressVisitor
       SMGState currentState = evaluatedSubExpr.getState();
       // Try to disassemble the values (AddressExpression)
       Value value = evaluatedSubExpr.getValue();
-    Preconditions.checkArgument(value instanceof AddressExpression);
-    AddressExpression pointerValue = (AddressExpression) value;
+      Preconditions.checkArgument(value instanceof AddressExpression);
+      AddressExpression pointerValue = (AddressExpression) value;
 
-    // The offset part of the pointer; its either numeric or we can't get a concrete value
-    Value offset = pointerValue.getOffset();
-    if (!offset.isNumericValue()) {
+      // The offset part of the pointer; its either numeric or we can't get a concrete value
+      Value offset = pointerValue.getOffset();
+      if (!offset.isNumericValue()) {
         // If the offset is not numericly known we can't read a value, return
         resultBuilder.add(Optional.empty());
         continue;
-    }
+      }
 
-    if (type instanceof CFunctionType) {
+      if (type instanceof CFunctionType) {
         // Special cases
         // TODO:
         resultBuilder.addAll(visitDefault(e));
-    } else {
-      BigInteger offsetInBits = offset.asNumericValue().bigInteger();
+      } else {
+        BigInteger offsetInBits = offset.asNumericValue().bigInteger();
         resultBuilder.add(
             evaluator.getTargetObjectAndOffset(
                 currentState, pointerValue.getMemoryAddress(), offsetInBits));
+      }
     }
-  }
     return resultBuilder.build();
   }
 }

@@ -938,20 +938,21 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   }
 
   /**
-   * This performs a call to free(addressToFree) with addressToFree being a {@link Value} that should be
-   * a address to a memory region, but can be any Value. This method determines if the valueToFree
-   * is a valid, not yet freed address and frees the memory behind it, returning the {@link
-   * SMGState} with the freed memory. It might however return a state with an error info attached,
-   * for example double free. In case of a null-pointer being freed, the logger logs the event
-   * without errors.
+   * This performs a call to free(addressToFree) with addressToFree being a {@link Value} that
+   * should be a address to a memory region, but can be any Value. This method determines if the
+   * valueToFree is a valid, not yet freed address and frees the memory behind it, returning the
+   * {@link SMGState} with the freed memory. It might however return a state with an error info
+   * attached, for example double free. In case of a null-pointer being freed, the logger logs the
+   * event without errors.
    *
-   * @param addressToFree any {@link Value} thought to be a pointer to a memory region, but it may be
-   *     not. It might be a {@link AddressExpression} as well.
+   * @param addressToFree any {@link Value} thought to be a pointer to a memory region, but it may
+   *     be not. It might be a {@link AddressExpression} as well.
    * @param pFunctionCall debug / logging info.
    * @param cfaEdge debug / logging info.
    * @return a new {@link SMGState} with the memory region behind the {@link Value} freed.
    */
-  public SMGState free(Value addressToFree, CFunctionCallExpression pFunctionCall, CFAEdge cfaEdge) {
+  public SMGState free(
+      Value addressToFree, CFunctionCallExpression pFunctionCall, CFAEdge cfaEdge) {
     Value sanitizedAddressToFree = addressToFree;
     BigInteger baseOffset = BigInteger.ZERO;
     // if the entered value is a AddressExpression think of it as a internal wrapper of pointer +
@@ -1019,12 +1020,12 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
         && !memoryModel.isObjectExternallyAllocated(regionToFree)) {
       // You may not free any objects not on the heap.
       return withInvalidFree("Invalid free of unallocated object is found.", addressToFree);
-      }
+    }
 
     if (!memoryModel.isObjectValid(regionToFree)) {
       // you may not invoke free multiple times on the same object
       return withInvalidFree("Free has been used on this memory before.", addressToFree);
-      }
+    }
 
     if (offsetInBits.compareTo(BigInteger.ZERO) != 0
         && !memoryModel.isObjectExternallyAllocated(regionToFree)) {
@@ -1035,7 +1036,7 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
       return withInvalidFree(
           "Invalid free as a pointer was used that was not returned by malloc, calloc or realloc.",
           addressToFree);
-      }
+    }
 
     // Perform free by invalidating the object behind the address and delete all its edges.
     SymbolicProgramConfiguration newSPC = memoryModel.invalidateSMGObject(regionToFree);
@@ -1175,7 +1176,8 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
    * Copies the content (Values) of the source {@link SMGObject} starting from the sourceOffset into
    * the target {@link SMGObject} starting from the target offset. This copies until the size limit
    * is reached. If a edge starts within the size, but ends outside, its not copied. This expects
-   * that both the source and target exist in the SPC and all checks are made before calling this. These checks should include range checks, overlapping memorys etc.
+   * that both the source and target exist in the SPC and all checks are made before calling this.
+   * These checks should include range checks, overlapping memorys etc.
    *
    * @param sourceObject {@link SMGObject} from which is to be copied.
    * @param sourceStartOffset offset from which the copy is started.

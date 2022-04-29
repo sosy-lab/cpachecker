@@ -323,8 +323,7 @@ public class SMGTransferRelation
       uselessValuesAndStates =
           builtins.handleUnknownFunction(pCfaEdge, cFCExpression, calledFunctionName, pState);
     }
-    return uselessValuesAndStates
-        .stream()
+    return uselessValuesAndStates.stream()
         .map(valAndSta -> valAndSta.getState())
         .collect(ImmutableList.toImmutableList());
   }

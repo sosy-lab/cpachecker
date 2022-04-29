@@ -1225,7 +1225,6 @@ public class SMGCPAValueVisitor
 
             return ValueAndSMGState.of(new NumericValue(Float.POSITIVE_INFINITY), currentState);
 
-
           } else {
             assert BuiltinFloatFunctions.matchesInfinityDouble(calledFunctionName)
                     || BuiltinFloatFunctions.matchesInfinityLongDouble(calledFunctionName)
@@ -1319,11 +1318,15 @@ public class SMGCPAValueVisitor
               assert parameter.isNumericValue();
               Number number = parameter.asNumericValue().getNumber();
               if (number instanceof BigDecimal) {
-                return ValueAndSMGState.of(new NumericValue(((BigDecimal) number).setScale(0, RoundingMode.FLOOR)), currentState);
+                return ValueAndSMGState.of(
+                    new NumericValue(((BigDecimal) number).setScale(0, RoundingMode.FLOOR)),
+                    currentState);
               } else if (number instanceof Float) {
-                return ValueAndSMGState.of(new NumericValue(Math.floor(number.floatValue())), currentState);
+                return ValueAndSMGState.of(
+                    new NumericValue(Math.floor(number.floatValue())), currentState);
               } else if (number instanceof Double) {
-                return ValueAndSMGState.of(new NumericValue(Math.floor(number.doubleValue())), currentState);
+                return ValueAndSMGState.of(
+                    new NumericValue(Math.floor(number.doubleValue())), currentState);
               } else if (number instanceof NumericValue.NegativeNaN) {
                 return ValueAndSMGState.of(parameter, currentState);
               }
@@ -1337,11 +1340,15 @@ public class SMGCPAValueVisitor
               assert parameter.isNumericValue();
               Number number = parameter.asNumericValue().getNumber();
               if (number instanceof BigDecimal) {
-                return ValueAndSMGState.of(new NumericValue(((BigDecimal) number).setScale(0, RoundingMode.CEILING)), currentState);
+                return ValueAndSMGState.of(
+                    new NumericValue(((BigDecimal) number).setScale(0, RoundingMode.CEILING)),
+                    currentState);
               } else if (number instanceof Float) {
-                return ValueAndSMGState.of(new NumericValue(Math.ceil(number.floatValue())), currentState);
+                return ValueAndSMGState.of(
+                    new NumericValue(Math.ceil(number.floatValue())), currentState);
               } else if (number instanceof Double) {
-                return ValueAndSMGState.of(new NumericValue(Math.ceil(number.doubleValue())), currentState);
+                return ValueAndSMGState.of(
+                    new NumericValue(Math.ceil(number.doubleValue())), currentState);
               } else if (number instanceof NumericValue.NegativeNaN) {
                 return ValueAndSMGState.of(parameter, currentState);
               }
@@ -1356,7 +1363,9 @@ public class SMGCPAValueVisitor
               assert parameter.isNumericValue();
               Number number = parameter.asNumericValue().getNumber();
               if (number instanceof BigDecimal) {
-                return ValueAndSMGState.of(new NumericValue(((BigDecimal) number).setScale(0, RoundingMode.HALF_UP)), currentState);
+                return ValueAndSMGState.of(
+                    new NumericValue(((BigDecimal) number).setScale(0, RoundingMode.HALF_UP)),
+                    currentState);
               } else if (number instanceof Float) {
                 float f = number.floatValue();
                 if (0 == f || Float.isInfinite(f)) {

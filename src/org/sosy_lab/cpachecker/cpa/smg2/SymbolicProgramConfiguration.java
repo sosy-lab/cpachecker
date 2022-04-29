@@ -797,5 +797,5 @@ public class SymbolicProgramConfiguration {
     }
     SMG newSMG = newSPC.getSmg().copyAndInvalidateObject(pObject);
     return newSPC.copyAndReplaceSMG(newSMG);
-    }
+  }
 }

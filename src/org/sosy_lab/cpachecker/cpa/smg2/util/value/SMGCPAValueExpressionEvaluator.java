@@ -276,7 +276,8 @@ public class SMGCPAValueExpressionEvaluator {
    * @param operand the {@link CExpression} that is the operand of the & expression.
    * @param pState current {@link SMGState}
    * @param cfaEdge debug/logging edge.
-   * @return a list of either unknown or a {@link Value} representing the address. This is not a {@link AddressExpression}!
+   * @return a list of either unknown or a {@link Value} representing the address. This is not a
+   *     {@link AddressExpression}!
    * @throws CPATransferException if the & operator is used on a invalid expression.
    */
   public List<ValueAndSMGState> createAddress(CExpression operand, SMGState pState, CFAEdge cfaEdge)
@@ -866,14 +867,16 @@ public class SMGCPAValueExpressionEvaluator {
       if (compareOffsets == 0) {
         // overlap
         return pState.withUndefinedbehavior(
-            "Undefined behaviour because of overlapping memory regions in a copy function. I.e. memcpy().",
+            "Undefined behaviour because of overlapping memory regions in a copy function. I.e."
+                + " memcpy().",
             ImmutableList.of(targetPointer, sourcePointer));
       } else if (compareOffsets > 0) {
         // finalTargetoffset > finalSourceOffset -> if the finalTargetoffset < finalSourceOffset +
         // sizeToCopy we have an overlap
         if (finalTargetoffset.compareTo(finalSourceOffset.add(sizeToCopy)) < 0) {
           return pState.withUndefinedbehavior(
-              "Undefined behaviour because of overlapping memory regions in a copy function. I.e. memcpy().",
+              "Undefined behaviour because of overlapping memory regions in a copy function. I.e."
+                  + " memcpy().",
               ImmutableList.of(targetPointer, sourcePointer));
         }
       } else {
@@ -881,7 +884,8 @@ public class SMGCPAValueExpressionEvaluator {
         // sizeToCopy we have an overlap
         if (finalSourceOffset.compareTo(finalTargetoffset.add(sizeToCopy)) < 0) {
           return pState.withUndefinedbehavior(
-              "Undefined behaviour because of overlapping memory regions in a copy function. I.e. memcpy().",
+              "Undefined behaviour because of overlapping memory regions in a copy function. I.e."
+                  + " memcpy().",
               ImmutableList.of(targetPointer, sourcePointer));
         }
       }
@@ -986,7 +990,8 @@ public class SMGCPAValueExpressionEvaluator {
     SMGState currentState = pState;
     boolean foundNoStringTerminationChar = true;
     while (foundNoStringTerminationChar) {
-      ValueAndSMGState valueAndState1 = readValue(currentState, firstObject, firstOffsetInBits, sizeOfCharInBits);
+      ValueAndSMGState valueAndState1 =
+          readValue(currentState, firstObject, firstOffsetInBits, sizeOfCharInBits);
       Value value1 = valueAndState1.getValue();
       currentState = valueAndState1.getState();
 
@@ -994,7 +999,8 @@ public class SMGCPAValueExpressionEvaluator {
         return ValueAndSMGState.ofUnknownValue(currentState);
       }
 
-      ValueAndSMGState valueAndState2 = readValue(currentState, secondObject, secondOffsetInBits, sizeOfCharInBits);
+      ValueAndSMGState valueAndState2 =
+          readValue(currentState, secondObject, secondOffsetInBits, sizeOfCharInBits);
       Value value2 = valueAndState2.getValue();
       currentState = valueAndState2.getState();
 
@@ -1002,10 +1008,12 @@ public class SMGCPAValueExpressionEvaluator {
         return ValueAndSMGState.ofUnknownValue(currentState);
       }
 
-      // Now compare the 2 values. Non-equality of non concrete values has to be checked by the SMG method because of abstraction.
+      // Now compare the 2 values. Non-equality of non concrete values has to be checked by the SMG
+      // method because of abstraction.
       if (value1.isNumericValue() && value2.isNumericValue()) {
         // easy, just compare the numeric value and return if != 0
-        int compare = value1.asNumericValue().bigInteger().compareTo(value2.asNumericValue().bigInteger());
+        int compare =
+            value1.asNumericValue().bigInteger().compareTo(value2.asNumericValue().bigInteger());
         if (compare != 0) {
           return ValueAndSMGState.of(new NumericValue(compare), pState);
         }
@@ -1013,7 +1021,8 @@ public class SMGCPAValueExpressionEvaluator {
         // Symbolic handling as we know its not unknown and either not or only partially numeric
         // TODO:
       }
-      if ((value1.isNumericValue() && value1.asNumericValue().longValue() == 0) || (value2.isNumericValue() && value2.asNumericValue().longValue() == 0)) {
+      if ((value1.isNumericValue() && value1.asNumericValue().longValue() == 0)
+          || (value2.isNumericValue() && value2.asNumericValue().longValue() == 0)) {
         foundNoStringTerminationChar = false;
       } else {
         firstOffsetInBits = firstOffsetInBits.add(sizeOfCharInBits);
