@@ -80,6 +80,7 @@ public class SMGCPA
   private final CFA cfa;
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
   private final SMGOptions options;
+  private final SMGCPAExportOptions exportOptions;
 
   private final SMGStatistics stats = new SMGStatistics();
 
@@ -99,6 +100,9 @@ public class SMGCPA
     blockOperator = new BlockOperator();
     pConfig.inject(blockOperator);
     blockOperator.setCFA(cfa);
+
+    exportOptions =
+        new SMGCPAExportOptions(options.getExportSMGFilePattern(), options.getExportSMGLevel());
   }
 
   public static CPAFactory factory() {
@@ -133,7 +137,7 @@ public class SMGCPA
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new SMGTransferRelation(logger, options, machineModel, shutdownNotifier);
+    return new SMGTransferRelation(logger, options, exportOptions, machineModel, shutdownNotifier);
   }
 
   @Override

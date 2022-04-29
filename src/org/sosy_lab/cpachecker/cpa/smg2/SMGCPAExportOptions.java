@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.cpa.smg2;
 
 import java.nio.file.Path;
 import org.sosy_lab.common.io.PathTemplate;
-import org.sosy_lab.cpachecker.cpa.smg.SMGOptions.SMGExportLevel;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions.SMGExportLevel;
 
 public class SMGCPAExportOptions {
 
