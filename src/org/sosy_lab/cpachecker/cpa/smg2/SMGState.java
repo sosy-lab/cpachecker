@@ -567,6 +567,24 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   }
 
   /**
+   * I.e. int bla = blub; With blub not existing or having no memory.
+   *
+   * @param readVariable the variable that was tried to be read.
+   * @return A new SMGState with the error info.
+   */
+  public SMGState withInvalidStackVariableRead(String readVariable) {
+    String errorMSG = "Invalid read of variable named: " + readVariable + ".";
+    SMGErrorInfo newErrorInfo =
+        errorInfo
+            .withProperty(Property.INVALID_READ)
+            .withErrorMessage(errorMSG)
+            .withInvalidObjects(Collections.singleton(readVariable));
+    // Log the error in the logger
+    logMemoryError(errorMSG, true);
+    return copyWithErrorInfo(memoryModel, newErrorInfo);
+  }
+
+  /**
    * Copy and update this {@link SMGState} with an error resulting from trying to write outside of
    * the range of the {@link SMGObject}. Returns an updated state with the error in it.
    *
