@@ -34,6 +34,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAAddressVisitor;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGCPABuiltins;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAExportOptions;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGSizeOfVisitor;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.SymbolicProgramConfiguration;
@@ -54,13 +57,27 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 @SuppressWarnings("unused")
 public class SMGCPAValueExpressionEvaluator {
 
+  private final SMGCPAExportOptions exportSMGOptions;
+  private final SMGOptions options;
   private final LogManagerWithoutDuplicates logger;
   private final MachineModel machineModel;
 
+  private final SMGCPABuiltins builtins;
+
   public SMGCPAValueExpressionEvaluator(
-      MachineModel pMachineModel, LogManagerWithoutDuplicates pLogger) {
+      MachineModel pMachineModel,
+      LogManagerWithoutDuplicates pLogger,
+      SMGCPAExportOptions pExportSMGOptions,
+      SMGOptions pSMGOptions) {
     logger = pLogger;
     machineModel = pMachineModel;
+    exportSMGOptions = pExportSMGOptions;
+    options = pSMGOptions;
+    builtins = new SMGCPABuiltins(this, options, exportSMGOptions, machineModel, logger);
+  }
+
+  public SMGCPABuiltins getBuiltinFunctionHandler() {
+    return builtins;
   }
 
   private Value throwUnsupportedOperationException(String methodNameString) {
