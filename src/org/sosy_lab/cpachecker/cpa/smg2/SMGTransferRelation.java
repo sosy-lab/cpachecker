@@ -23,6 +23,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -323,9 +324,8 @@ public class SMGTransferRelation
       uselessValuesAndStates =
           builtins.handleUnknownFunction(pCfaEdge, cFCExpression, calledFunctionName, pState);
     }
-    return uselessValuesAndStates.stream()
-        .map(valAndSta -> valAndSta.getState())
-        .collect(ImmutableList.toImmutableList());
+    return Collections3.transformedImmutableListCopy(
+        uselessValuesAndStates, valAndState -> valAndState.getState());
   }
 
   @Override

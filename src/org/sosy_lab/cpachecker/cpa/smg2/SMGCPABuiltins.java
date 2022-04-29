@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
 import org.sosy_lab.common.UniqueIdGenerator;
+import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -208,9 +209,8 @@ public class SMGCPABuiltins {
       case "printf":
         List<SMGState> checkedStates =
             checkAllParametersForValidity(pState, pCfaEdge, cFCExpression);
-        return checkedStates.stream()
-            .map(state -> ValueAndSMGState.ofUnknownValue(state))
-            .collect(ImmutableList.toImmutableList());
+        return Collections3.transformedImmutableListCopy(
+            checkedStates, state -> ValueAndSMGState.ofUnknownValue(state));
 
       case "realloc":
         return evaluateRealloc();
@@ -288,9 +288,8 @@ public class SMGCPABuiltins {
       case ASSUME_SAFE:
         List<SMGState> checkedStates =
             checkAllParametersForValidity(pState, pCfaEdge, cFCExpression);
-        return checkedStates.stream()
-            .map(state -> ValueAndSMGState.ofUnknownValue(state))
-            .collect(ImmutableList.toImmutableList());
+        return Collections3.transformedImmutableListCopy(
+            checkedStates, state -> ValueAndSMGState.ofUnknownValue(state));
       case ASSUME_EXTERNAL_ALLOCATED:
         return evaluator.handleSafeExternFunction(cFCExpression, pState, pCfaEdge);
       default:
