@@ -561,20 +561,39 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   }
 
   /**
-   * Invalid write to a not initializoed or non existing memory region.
+   * Invalid write to a not initialized, unknown or non-existing memory region.
    *
    * @param invalidAddress the invalid address pointing to nothing.
    * @return A new SMGState with the error info.
    */
   public SMGState withInvalidWrite(Value invalidAddress) {
-    // Get the SMGValue and Value that lead to this null pointer dereference
     String errorMSG =
-        "Write to invalid or non existing memory region, pointed to by: " + invalidAddress + ".";
+        "Write to invalid, unknown or non-existing memory region, pointed to by: "
+            + invalidAddress
+            + ".";
     SMGErrorInfo newErrorInfo =
         errorInfo
             .withProperty(Property.INVALID_READ)
             .withErrorMessage(errorMSG)
             .withInvalidObjects(Collections.singleton(invalidAddress));
+    // Log the error in the logger
+    logMemoryError(errorMSG, true);
+    return copyWithErrorInfo(memoryModel, newErrorInfo);
+  }
+
+  /**
+   * Invalid write with custom error msg.
+   *
+   * @param invalidValue the invalid value. Either address or write value or something like a size
+   *     specifier etc.
+   * @return A new SMGState with the error info.
+   */
+  public SMGState withInvalidWrite(String errorMSG, Value invalidValue) {
+    SMGErrorInfo newErrorInfo =
+        errorInfo
+            .withProperty(Property.INVALID_READ)
+            .withErrorMessage(errorMSG)
+            .withInvalidObjects(Collections.singleton(invalidValue));
     // Log the error in the logger
     logMemoryError(errorMSG, true);
     return copyWithErrorInfo(memoryModel, newErrorInfo);
