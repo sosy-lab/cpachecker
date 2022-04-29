@@ -178,7 +178,7 @@ public class SMGCPABuiltins {
    * @return the result of the function call and the state for it. May be an error state!
    * @throws CPATransferException in case of a critical error the SMGCPA can't handle.
    */
-  private List<ValueAndSMGState> handleBuiltinFunctionCall(
+  public List<ValueAndSMGState> handleBuiltinFunctionCall(
       CFAEdge pCfaEdge,
       CFunctionCallExpression cFCExpression,
       String calledFunctionName,
