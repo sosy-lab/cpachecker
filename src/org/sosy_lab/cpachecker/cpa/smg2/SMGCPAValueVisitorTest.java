@@ -143,7 +143,8 @@ public class SMGCPAValueVisitorTest {
   public void init() throws InvalidConfigurationException {
     logger = new LogManagerWithoutDuplicates(LogManager.createTestLogManager());
 
-    evaluator = new SMGCPAValueExpressionEvaluator(MACHINE_MODEL, logger);
+    // null null is fine as long as builtin functions are not used!
+    evaluator = new SMGCPAValueExpressionEvaluator(MACHINE_MODEL, logger, null, null);
 
     currentState =
         SMGState.of(MACHINE_MODEL, logger, new SMGOptions(Configuration.defaultConfiguration()));
