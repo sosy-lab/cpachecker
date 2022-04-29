@@ -760,7 +760,9 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   /**
    * Not to be used in general outside of this method! Only tests! Writes into the given {@link
    * SMGObject} at the specified offset in bits with the size in bits given the value given. Make
-   * sure to add the Value to the SMGs values before adding it here!
+   * sure to add the Value to the SMGs values before using this method! Also make sure that all
+   * checks are made before using this! I.e. size checks. (The reason why they are not made here is
+   * that sometimes you need to write a lot of values but only need 1 check for the size)
    *
    * @param object the memory {@link SMGObject} to write to.
    * @param offset offset in bits to be written
@@ -770,7 +772,6 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
    */
   protected SMGState writeValue(
       SMGObject object, BigInteger writeOffsetInBits, BigInteger sizeInBits, SMGValue value) {
-    // TODO: decide if we need more checks here
     return copyAndReplaceMemoryModel(
         memoryModel.writeValue(object, writeOffsetInBits, sizeInBits, value));
   }
