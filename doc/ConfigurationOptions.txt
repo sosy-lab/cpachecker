@@ -160,6 +160,7 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -3539,14 +3540,23 @@ faultLocalization.by_distance.metric = ADM
 # available.
 faultLocalization.by_distance.stopAfter = 40
 
-# disable flow-sensitive trace formula (may increase runtime)
-faultLocalization.by_traceformula.errorInvariants.disableFSTF = false
-
 # Do not show faults that contain a certain variable. Use, e.g., 'main::x' to
 # ban variable 'x' in the main function. Use, e.g., '::x' to ban all
 # variables named 'x'. This is especially useful to filter specific faults if
-# the first run results in many candidates. To add variables
+# the first run results in many candidates. Provide a comma separated string
+# to add variables, e.g., main::x,doStuff::y,::z
 faultLocalization.by_traceformula.maxsat.ban = []
+
+# which post-condition type to use
+faultLocalization.by_traceformula.postConditionType = LAST_ASSUME_EDGES_ON_SAME_LINE
+  enum:     [LAST_ASSUME_EDGE, LAST_ASSUME_EDGES_ON_SAME_LINE,
+             LAST_ASSUME_EDGE_CLUSTER]
+
+# By default, the precondition only contains the failing variable assignment
+# of all nondet variables. Choose INITIAL_ASSIGNMENT to assignments like
+# '<datatype> <variable-name> = <value>' to the precondition.
+faultLocalization.by_traceformula.preconditionType = NONDETERMINISTIC_VARIABLES_ONLY
+  enum:     [NONDETERMINISTIC_VARIABLES_ONLY, INITIAL_ASSIGNMENT, ALWAYS_TRUE]
 
 # which algorithm to use
 faultLocalization.by_traceformula.type = UNSAT
@@ -4501,19 +4511,12 @@ testcase.xml = no default value
 # Zip file into which all test case files are bundled
 testcase.zip.file = no default value
 
-# By default, the precondition only contains the failing variable assignment
-# of all nondet variables. Enable this option if initial variable assignments
-# of the form '<datatype> <variable-name> = <value>' should also be added to
-# the precondition. See the description for the option traceformula.ignore
-# for further options.
-traceformula.altpre = false
-
 # Usually every statement that is not part of the precondition gets a
 # selector. If a certain variable is known to not cause the error, add it to
 # this option, e.g., main::x,doStuff::y
 traceformula.disable = []
 
-# The alternative precondition consists of all initial variable assignments 
+# The alternative precondition consists of all initial variable assignments
 # and a failing variable assignment for all nondet variables. By default only
 #  variables in the main function are part of the precondition. Overwrite the
 # default by adding functions to this option, e.g., "main,doStuff"
@@ -4526,12 +4529,17 @@ traceformula.filter = ["main"]
 # variable is used as prefix, separated by two ':'
 traceformula.ignore = []
 
+# Make trace formula flow-sensitive, i.e., assume edges imply the edges that
+# are only reachable through the assume edge. Flow-sensitive traces remove
+# assume edges from the trace. Hence, no assume edge will be part of a fault.
+traceformula.makeFlowSensitive = false
+
 # By default, every executed statement gets its own selector. If a loop is
 # part of the program to analyze, the number of selectors can increase which
 # also increases the run time of max-sat drastically. To use the same
 # selector for equal statements (on the same line), set this option to true.
 # Note that enabling this option  also decreases the quality of results.
-traceformula.uniqueselectors = false
+traceformula.reduceSelectors = false
 
 # Ignore functions that are defined by C11
 undefinedFunctionsCollector.allowC11Functions = true
