@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.transformer;
 
-import org.sosy_lab.cpachecker.cfa.CfaConnectedness;
 import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
@@ -18,9 +17,9 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
  * A {@code CfaEdgeTransformer} instance returns a transformed CFA edge for a specified CFA edge.
  *
  * <p>To implement a {@code CfaEdgeTransformer}, an implementation for {@link
- * CfaEdgeTransformer#transform(CFAEdge, CfaNetwork, CfaNodeSubstitution, CfaEdgeSubstitution,
- * CfaConnectedness)} must be provided. The implementation must guarantee that every time the method
- * is called, a new transformed edge instance is created.
+ * CfaEdgeTransformer#transform(CFAEdge, CfaNetwork, CfaNodeSubstitution, CfaEdgeSubstitution)} must
+ * be provided. The implementation must guarantee that every time the method is called, a new
+ * transformed edge instance is created.
  */
 @FunctionalInterface
 public interface CfaEdgeTransformer {
@@ -49,17 +48,12 @@ public interface CfaEdgeTransformer {
    *     substitution). If the construction of a transformed edge does not require other edges, it's
    *     guaranteed that the specified edge substitution is not used, so a dummy substitution can be
    *     used.
-   * @param pConnectedness the connectedness of the CFA the transformed edge is created for
    * @return a transformed CFA edge for the specified CFA edge
    * @throws NullPointerException if any parameter is {@code null}
-   * @throws IllegalArgumentException if a transformed edge with the specified connectedness cannot
-   *     be created (e.g., if the connectedness is {@link CfaConnectedness#INDEPENDENT_FUNCTIONS},
-   *     transformed super-edges cannot be created)
    */
   CFAEdge transform(
       CFAEdge pEdge,
       CfaNetwork pCfa,
       CfaNodeSubstitution pNodeSubstitution,
-      CfaEdgeSubstitution pEdgeSubstitution,
-      CfaConnectedness pConnectedness);
+      CfaEdgeSubstitution pEdgeSubstitution);
 }
