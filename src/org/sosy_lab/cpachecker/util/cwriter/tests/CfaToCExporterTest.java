@@ -85,6 +85,8 @@ public class CfaToCExporterTest extends ToCTranslationTest {
         directTranslationTest(EXPORTER_TEST_DIR_PATH + "declaration_multiple-on-one-line.c", true),
         directTranslationTest(EXPORTER_TEST_DIR_PATH + "declaration_split.c", true),
         directTranslationTest(EXPORTER_TEST_DIR_PATH + "declaration_with-side-effect.c", true),
+        directTranslationTest(
+            EXPORTER_TEST_DIR_PATH + "declaration_with-side-effect_multiple-on-one-line.c", true),
         directTranslationTest(EXPORTER_TEST_DIR_PATH + "functions_multiple.c", true),
         directTranslationTest(EXPORTER_TEST_DIR_PATH + "global-var.c", true),
         directTranslationTest(EXPORTER_TEST_DIR_PATH + "global-var_multiple.c", true),
