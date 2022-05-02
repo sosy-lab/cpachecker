@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
+/** Utility class for creating CFA instances from {@link CfaNetwork} instances. */
 public final class CfaCreator {
 
   private final Map<CFANode, CFANode> oldNodeToNewNode;
@@ -112,8 +113,23 @@ public final class CfaCreator {
     }
   }
 
+  /**
+   * Returns an independent function {@link CfaNetwork} view for the specified (supergraph) {@link
+   * CfaNetwork}.
+   *
+   * @param pCfaNetwork the {@link CfaNetwork} to create an independent function {@link CfaNetwork}
+   *     view for
+   * @param pSummaryToStatementEdgeTransformer the CFA edge transformer to use for getting statement
+   *     edges for function summary edges
+   * @return an independent function {@link CfaNetwork} view for the specified (supergraph) {@link
+   *     CfaNetwork}.
+   * @throws NullPointerException if any parameter is {@code null}
+   */
   public static CfaNetwork toIndependentFunctionCfaNetwork(
       CfaNetwork pCfaNetwork, CfaEdgeTransformer pSummaryToStatementEdgeTransformer) {
+
+    checkNotNull(pCfaNetwork);
+    checkNotNull(pSummaryToStatementEdgeTransformer);
 
     CfaNetwork cfaWithoutSuperEdges =
         CfaNetwork.filterEdges(
@@ -135,6 +151,26 @@ public final class CfaCreator {
     return independentFunctionCfa;
   }
 
+  /**
+   * Returns a new supergraph {@link CFA} instance for the specified independent function CFA
+   * represented as a {@link CfaNetwork}.
+   *
+   * @param pCfaPostProcessors the CFA post-processors to run after CFA construction
+   * @param pNodeTransformer the CFA node transformer that creates new CFA nodes for nodes contained
+   *     in the specified {@link CfaNetwork}
+   * @param pEdgeTransformer the CFA edge transformer that creates new CFA edges for edges contained
+   *     in the specified {@link CfaNetwork}
+   * @param pCfa the CFA (represented as a {@link CfaNetwork}) to create a {@link CFA} instance for
+   * @param pCfaMetadata the metadata of the specified CFA
+   * @param pConfiguration the configuration to use during CFA construction
+   * @param pLogger the logger to use during CFA construction
+   * @return a new supergraph {@link CFA} instance for the specified independent function CFA
+   *     represented as a {@link CfaNetwork}
+   * @throws NullPointerException if any parameter is {@code null}
+   * @throws IllegalArgumentException if the main function entry node is not part of the actual CFA
+   * @throws IllegalArgumentException if the specified CFA is not an independent function CFA, but a
+   *     supergraph CFA
+   */
   public static CFA createCfa(
       List<CfaPostProcessor> pCfaPostProcessors,
       CfaNodeTransformer pNodeTransformer,
