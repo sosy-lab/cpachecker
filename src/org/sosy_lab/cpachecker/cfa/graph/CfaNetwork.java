@@ -45,15 +45,15 @@ import org.sosy_lab.cpachecker.util.UnmodifiableSetView;
  * Represents a {@link CFA} as a {@link Network}.
  *
  * <p>All connections between CFA nodes and/or edges are defined by a {@code CfaNetwork} and may
- * differ from the connections represented by {@link CFAEdge#getSuccessor()}, {@link
- * CFAUtils#allEnteringEdges(CFANode)}, {@link FunctionCallEdge#getSummaryEdge()}, {@link
- * FunctionEntryNode#getExitNode()}, etc. It's important to use methods provided by a {@code
- * CfaNetwork} if more than a single CFA node and/or edge is involved. For example, one should use
+ * differ from the connections represented by its components (e.g., {@link CFAEdge#getSuccessor()},
+ * {@link CFAUtils#allEnteringEdges(CFANode)}, {@link FunctionCallEdge#getSummaryEdge()}, {@link
+ * FunctionEntryNode#getExitNode()}, etc). It's important to use methods provided by {@link
+ * CfaNetwork}, if more than a single CFA node and/or edge is involved. For example, one should use
  * {@link CfaNetwork#outEdges(CFANode)} instead of {@link CFAUtils#allLeavingEdges(CFANode)} and
  * {@link #getFunctionSummaryEdge(FunctionCallEdge)} instead of {@link
  * FunctionCallEdge#getSummaryEdge()}.
  *
- * <p>For performance reasons, not all {@code CfaNetwork} implementations check whether CFA nodes
+ * <p>For performance reasons, not all {@link CfaNetwork} implementations check whether CFA nodes
  * and edges given as method arguments actually belong to the CFA represented by a {@code
  * CfaNetwork}.
  *
@@ -65,7 +65,8 @@ import org.sosy_lab.cpachecker.util.UnmodifiableSetView;
 public interface CfaNetwork extends Network<CFANode, CFAEdge> {
 
   /**
-   * Returns a {@link CfaNetwork} that represents the specified {@link CFA} as a {@link Network}.
+   * Returns a {@link CfaNetwork} view that represents the specified {@link CFA} as a {@link
+   * Network}.
    *
    * <p>IMPORTANT: The specified CFA must not contain any parallel edges (i.e., edges that connect
    * the same nodes in the same order) and never add them in the future (if the CFA is mutable).
@@ -73,11 +74,12 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
    * never add them in the future (if the CFA is mutable). Be aware that these requirements are not
    * enforced, so violating them may lead to unexpected results.
    *
-   * @param pCfa the CFA to create a network for
-   * @return a {@link CfaNetwork} that represents the specified {@link CFA} as a {@link Network}
+   * @param pCfa the CFA to create a {@link CfaNetwork} view for
+   * @return a {@link CfaNetwork} view that represents the specified {@link CFA} as a {@link
+   *     Network}
    * @throws NullPointerException if {@code pCfa == null}
    */
-  public static CfaNetwork of(CFA pCfa) {
+  public static CfaNetwork wrap(CFA pCfa) {
     return new SimpleCfaNetwork(pCfa);
   }
 
@@ -86,7 +88,7 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
   }
 
   public static CfaNetwork of(CFA pCfa, Predicate<CFAEdge> pFilter) {
-    return filterEdges(of(pCfa), pFilter);
+    return filterEdges(wrap(pCfa), pFilter);
   }
 
   public static CfaNetwork transformEdges(

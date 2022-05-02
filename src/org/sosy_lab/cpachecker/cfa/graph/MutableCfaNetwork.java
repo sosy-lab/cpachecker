@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 public interface MutableCfaNetwork extends CfaNetwork, MutableNetwork<CFANode, CFAEdge> {
 
   public static MutableCfaNetwork wrap(MutableCFA pMutableCfa) {
-    return new SimpleMutableCfaNetwork(pMutableCfa, CfaNetwork.of(pMutableCfa));
+    return new SimpleMutableCfaNetwork(pMutableCfa, CfaNetwork.wrap(pMutableCfa));
   }
 
   public static MutableCfaNetwork createOverlay(CfaNetwork pCfaNetwork) {
@@ -26,7 +26,7 @@ public interface MutableCfaNetwork extends CfaNetwork, MutableNetwork<CFANode, C
   }
 
   public static MutableCfaNetwork createOverlay(CFA pCfa) {
-    return OverlayCfaNetwork.of(CfaNetwork.of(pCfa));
+    return OverlayCfaNetwork.of(CfaNetwork.wrap(pCfa));
   }
 
   @Override

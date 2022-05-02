@@ -16,9 +16,11 @@ import org.sosy_lab.cpachecker.util.graph.ForwardingMutableNetwork;
 
 /**
  * An {@code OverlayCfaNetwork} is a {@link CfaNetwork} that is layered on top of another {@code
- * CfaNetwork}. Connections between nodes and edges of an overlay can be independently modified
- * without any changes to the underlying network. This is also why the CFA represented by an overlay
- * and the CFA represented by actual CFA nodes and edges may differ.
+ * CfaNetwork}.
+ *
+ * <p>Connections between nodes and edges of an overlay can be independently modified without any
+ * changes to the underlying network. Note that the CFA represented by an overlay and the CFA
+ * represented by actual CFA nodes and edges may differ.
  */
 final class OverlayCfaNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge>
     implements MutableCfaNetwork {

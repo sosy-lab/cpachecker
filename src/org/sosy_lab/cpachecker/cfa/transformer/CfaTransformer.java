@@ -86,6 +86,6 @@ public interface CfaTransformer {
    * @throws NullPointerException if any parameter is {@code null}
    */
   default CFA transform(CFA pCfa, LogManager pLogger) {
-    return transform(CfaNetwork.of(pCfa), pCfa.getMetadata(), pLogger);
+    return transform(CfaNetwork.wrap(pCfa), pCfa.getMetadata(), pLogger);
   }
 }
