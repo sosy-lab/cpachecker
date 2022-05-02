@@ -219,7 +219,7 @@ final class CfaSimplifications {
             .with(new ReversePostorderPostProcessor())
             .with(new LoopStructurePostProcessor())
             .with(new VariableClassificationPostProcessor(pConfiguration))
-            .build();
+            .build(pConfiguration);
 
     return cfaTransformer.transform(graph, pCfa.getMetadata(), pLogger);
   }
@@ -470,7 +470,7 @@ final class CfaSimplifications {
             .with(new ReversePostorderPostProcessor())
             .with(new LoopStructurePostProcessor())
             .with(new VariableClassificationPostProcessor(pConfiguration))
-            .build();
+            .build(pConfiguration);
 
     return cfaTransformer.transform(graph, pCfa.getMetadata(), pLogger);
   }

@@ -14,14 +14,17 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.TreeMultimap;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.TreeMap;
+import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CFASecondPassBuilder;
 import org.sosy_lab.cpachecker.cfa.CfaConnectedness;
 import org.sosy_lab.cpachecker.cfa.CfaMetadata;
 import org.sosy_lab.cpachecker.cfa.CfaPostProcessor;
@@ -37,80 +40,162 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 public final class CfaCreator {
-
-  private final ImmutableList<CfaPostProcessor> cfaPostProcessors;
-
-  private final CfaNetwork cfaNetwork;
-
-  private final CfaNodeTransformer nodeTransformer;
-  private final CfaEdgeTransformer edgeTransformer;
 
   private final Map<CFANode, CFANode> oldNodeToNewNode;
   private final Map<CFAEdge, CFAEdge> oldEdgeToNewEdge;
 
-  private CfaConnectedness connectedness;
-
-  private CfaCreator(
-      ImmutableList<CfaPostProcessor> pCfaPostProcessors,
-      CfaNetwork pCfaNetwork,
-      CfaNodeTransformer pNodeTransformer,
-      CfaEdgeTransformer pEdgeTransformer) {
-
-    cfaPostProcessors = pCfaPostProcessors;
-
-    cfaNetwork = pCfaNetwork;
-
-    nodeTransformer = pNodeTransformer;
-    edgeTransformer = pEdgeTransformer;
+  private CfaCreator() {
 
     oldNodeToNewNode = new HashMap<>();
     oldEdgeToNewEdge = new HashMap<>();
   }
 
+  private static MutableCFA runModifyingIndependentFunctionPostProcessors(
+      ImmutableList<CfaPostProcessor> pCfaPostProcessors,
+      MutableCFA pMutableCfa,
+      LogManager pLogger) {
+
+    MutableCFA mutableCfa = pMutableCfa;
+
+    for (CfaPostProcessor cfaPostProcessor : pCfaPostProcessors) {
+      if (cfaPostProcessor instanceof ModifyingIndependentFunctionPostProcessor) {
+        mutableCfa =
+            ((ModifyingIndependentFunctionPostProcessor) cfaPostProcessor)
+                .process(mutableCfa, pLogger);
+      }
+    }
+
+    return mutableCfa;
+  }
+
+  private static void runReadOnlyIndependentFunctionPostProcessors(
+      ImmutableList<CfaPostProcessor> pCfaPostProcessors,
+      MutableCFA pMutableCfa,
+      LogManager pLogger) {
+
+    for (CfaPostProcessor cfaPostProcessor : pCfaPostProcessors) {
+      if (cfaPostProcessor instanceof ReadOnlyIndependentFunctionPostProcessor) {
+        ((ReadOnlyIndependentFunctionPostProcessor) cfaPostProcessor).process(pMutableCfa, pLogger);
+      }
+    }
+  }
+
+  private static MutableCFA runModifyingSupergraphPostProcessors(
+      ImmutableList<CfaPostProcessor> pCfaPostProcessors,
+      MutableCFA pMutableCfa,
+      LogManager pLogger) {
+
+    MutableCFA mutableCfa = pMutableCfa;
+
+    for (CfaPostProcessor cfaPostProcessor : pCfaPostProcessors) {
+      if (cfaPostProcessor instanceof ModifyingSupergraphPostProcessor) {
+        mutableCfa =
+            ((ModifyingSupergraphPostProcessor) cfaPostProcessor).process(mutableCfa, pLogger);
+      }
+    }
+
+    return mutableCfa;
+  }
+
+  private static void runReadOnlySupergraphPostProcessors(
+      ImmutableList<CfaPostProcessor> pCfaPostProcessors,
+      MutableCFA pMutableCfa,
+      LogManager pLogger) {
+
+    for (CfaPostProcessor cfaPostProcessor : pCfaPostProcessors) {
+      if (cfaPostProcessor instanceof ReadOnlySupergraphPostProcessor) {
+        ((ReadOnlySupergraphPostProcessor) cfaPostProcessor).process(pMutableCfa, pLogger);
+      }
+    }
+  }
+
+  public static CfaNetwork toIndependentFunctionCfaNetwork(
+      CfaNetwork pCfaNetwork, CfaEdgeTransformer pSummaryToStatementEdgeTransformer) {
+
+    CfaNetwork cfaWithoutSuperEdges =
+        CfaNetwork.filterEdges(
+            pCfaNetwork,
+            edge -> !(edge instanceof FunctionCallEdge) && !(edge instanceof FunctionReturnEdge));
+
+    CfaNetwork independentFunctionCfa =
+        CfaNetwork.transformEdges(
+            cfaWithoutSuperEdges,
+            edge -> {
+              if (edge instanceof FunctionSummaryEdge) {
+                return pSummaryToStatementEdgeTransformer.transform(
+                    edge, cfaWithoutSuperEdges, node -> node, CfaEdgeSubstitution.DUMMY);
+              }
+
+              return edge;
+            });
+
+    return independentFunctionCfa;
+  }
+
   public static CFA createCfa(
       List<CfaPostProcessor> pCfaPostProcessors,
-      CfaNetwork pCfaNetwork,
       CfaNodeTransformer pNodeTransformer,
       CfaEdgeTransformer pEdgeTransformer,
+      CfaNetwork pCfa,
       CfaMetadata pCfaMetadata,
+      Configuration pConfiguration,
       LogManager pLogger) {
 
     checkArgument(
-        pCfaNetwork.nodes().contains(pCfaMetadata.getMainFunctionEntry()),
-        "cannot use specified main function entry node because it is not part of the CFA: %s",
+        pCfa.nodes().contains(pCfaMetadata.getMainFunctionEntry()),
+        "Cannot use specified main function entry node because it is not part of the CFA: %s",
         pCfaMetadata.getMainFunctionEntry());
 
-    return new CfaCreator(
+    checkArgument(
+        pCfaMetadata.getConnectedness() == CfaConnectedness.INDEPENDENT_FUNCTIONS,
+        "Cannot use specified CFA because it does not consist of independent functions");
+
+    return new CfaCreator()
+        .createSupergraphCfa(
             ImmutableList.copyOf(pCfaPostProcessors),
-            checkNotNull(pCfaNetwork),
             checkNotNull(pNodeTransformer),
-            checkNotNull(pEdgeTransformer))
-        .createCfa(checkNotNull(pCfaMetadata), checkNotNull(pLogger));
+            checkNotNull(pEdgeTransformer),
+            checkNotNull(pCfa),
+            checkNotNull(pCfaMetadata),
+            checkNotNull(pConfiguration),
+            checkNotNull(pLogger));
   }
 
-  private CFANode toNew(CFANode pOldNode) {
+  private CFANode toNew(CFANode pOldNode, CfaNetwork pCfa, CfaNodeTransformer pNodeTransformer) {
 
     @Nullable CFANode newNode = oldNodeToNewNode.get(pOldNode);
     if (newNode != null) {
       return newNode;
     }
 
-    newNode = nodeTransformer.transform(pOldNode, cfaNetwork, this::toNew);
+    newNode =
+        pNodeTransformer.transform(
+            pOldNode, pCfa, oldNode -> toNew(oldNode, pCfa, pNodeTransformer));
     oldNodeToNewNode.put(pOldNode, newNode);
 
     return newNode;
   }
 
-  private CFAEdge toNew(CFAEdge pOldEdge) {
+  private CFAEdge toNew(
+      CFAEdge pOldEdge,
+      CfaNetwork pCfa,
+      CfaNodeTransformer pNodeTransformer,
+      CfaEdgeTransformer pEdgeTransformer) {
 
     @Nullable CFAEdge newEdge = oldEdgeToNewEdge.get(pOldEdge);
     if (newEdge != null) {
       return newEdge;
     }
 
-    newEdge = edgeTransformer.transform(pOldEdge, cfaNetwork, this::toNew, this::toNew);
+    newEdge =
+        pEdgeTransformer.transform(
+            pOldEdge,
+            pCfa,
+            oldNode -> toNew(oldNode, pCfa, pNodeTransformer),
+            oldEdge -> toNew(oldEdge, pCfa, pNodeTransformer, pEdgeTransformer));
     oldEdgeToNewEdge.put(pOldEdge, newEdge);
 
     if (newEdge instanceof FunctionSummaryEdge) {
@@ -125,16 +210,20 @@ public final class CfaCreator {
     return newEdge;
   }
 
-  private MutableCFA createIndependentFunctionCfa(CfaMetadata pCfaMetadata) {
+  private MutableCFA createMutableCfa(
+      CfaNetwork pCfa,
+      CfaMetadata pCfaMetadata,
+      CfaNodeTransformer pNodeTransformer,
+      CfaEdgeTransformer pEdgeTransformer) {
 
     CFANode oldMainEntryNode = pCfaMetadata.getMainFunctionEntry();
 
     NavigableMap<String, FunctionEntryNode> newFunctions = new TreeMap<>();
     TreeMultimap<String, CFANode> newNodes = TreeMultimap.create();
 
-    for (CFANode oldNode : cfaNetwork.nodes()) {
+    for (CFANode oldNode : pCfa.nodes()) {
 
-      CFANode newNode = toNew(oldNode);
+      CFANode newNode = toNew(oldNode, pCfa, pNodeTransformer);
       String functionName = newNode.getFunction().getQualifiedName();
 
       if (newNode instanceof FunctionEntryNode) {
@@ -144,114 +233,57 @@ public final class CfaCreator {
       newNodes.put(functionName, newNode);
     }
 
-    connectedness = CfaConnectedness.INDEPENDENT_FUNCTIONS;
-    for (CFAEdge oldEdge : cfaNetwork.edges()) {
-      // We create independent CFAs for each function, so we ignore call and return edges.
-      // Function summary edges are not ignored, because statement edges are created for them.
-      if (!(oldEdge instanceof FunctionCallEdge) && !(oldEdge instanceof FunctionReturnEdge)) {
-        toNew(oldEdge);
-      }
-    }
+    pCfa.edges().forEach(oldEdge -> toNew(oldEdge, pCfa, pNodeTransformer, pEdgeTransformer));
 
-    CfaMetadata cfaMetadata =
+    CfaMetadata newCfaMetadata =
         pCfaMetadata
             .withMainFunctionEntry((FunctionEntryNode) oldNodeToNewNode.get(oldMainEntryNode))
             .withConnectedness(CfaConnectedness.INDEPENDENT_FUNCTIONS);
 
-    return new MutableCFA(newFunctions, newNodes, cfaMetadata);
+    return new MutableCFA(newFunctions, newNodes, newCfaMetadata);
   }
 
-  /** Removes all placeholder edges that were inserted instead of function calls. */
-  private void removePlaceholderEdges() {
+  private CFA createSupergraphCfa(
+      ImmutableList<CfaPostProcessor> pCfaPostProcessors,
+      CfaNodeTransformer pNodeTransformer,
+      CfaEdgeTransformer pEdgeTransformer,
+      CfaNetwork pCfa,
+      CfaMetadata pCfaMetadata,
+      Configuration pConfig,
+      LogManager pLogger) {
 
-    Iterator<Map.Entry<CFAEdge, CFAEdge>> oldEdgeToNewEdgeIterator =
-        oldEdgeToNewEdge.entrySet().iterator();
-
-    while (oldEdgeToNewEdgeIterator.hasNext()) {
-
-      Map.Entry<CFAEdge, CFAEdge> entry = oldEdgeToNewEdgeIterator.next();
-      CFAEdge oldEdge = entry.getKey();
-      CFAEdge newEdge = entry.getValue();
-
-      if (oldEdge instanceof FunctionSummaryEdge) {
-        oldEdgeToNewEdgeIterator.remove();
-        newEdge.getPredecessor().removeLeavingEdge(newEdge);
-        newEdge.getSuccessor().removeEnteringEdge(newEdge);
-      }
-    }
-  }
-
-  private MutableCFA runModifyingIndependentFunctionPostProcessors(
-      MutableCFA pMutableCfa, LogManager pLogger) {
-
-    MutableCFA mutableCfa = pMutableCfa;
-
-    for (CfaPostProcessor cfaPostProcessor : cfaPostProcessors) {
-      if (cfaPostProcessor instanceof ModifyingIndependentFunctionPostProcessor) {
-        mutableCfa =
-            ((ModifyingIndependentFunctionPostProcessor) cfaPostProcessor)
-                .process(mutableCfa, pLogger);
-      }
-    }
-
-    return mutableCfa;
-  }
-
-  private void runReadOnlyIndependentFunctionPostProcessors(
-      MutableCFA pMutableCfa, LogManager pLogger) {
-
-    for (CfaPostProcessor cfaPostProcessor : cfaPostProcessors) {
-      if (cfaPostProcessor instanceof ReadOnlyIndependentFunctionPostProcessor) {
-        ((ReadOnlyIndependentFunctionPostProcessor) cfaPostProcessor).process(pMutableCfa, pLogger);
-      }
-    }
-  }
-
-  private MutableCFA runModifyingSupergraphPostProcessors(
-      MutableCFA pMutableCfa, LogManager pLogger) {
-
-    MutableCFA mutableCfa = pMutableCfa;
-
-    for (CfaPostProcessor cfaPostProcessor : cfaPostProcessors) {
-      if (cfaPostProcessor instanceof ModifyingSupergraphPostProcessor) {
-        mutableCfa =
-            ((ModifyingSupergraphPostProcessor) cfaPostProcessor).process(mutableCfa, pLogger);
-      }
-    }
-
-    return mutableCfa;
-  }
-
-  private void runReadOnlySupergraphPostProcessors(MutableCFA pMutableCfa, LogManager pLogger) {
-
-    for (CfaPostProcessor cfaPostProcessor : cfaPostProcessors) {
-      if (cfaPostProcessor instanceof ReadOnlySupergraphPostProcessor) {
-        ((ReadOnlySupergraphPostProcessor) cfaPostProcessor).process(pMutableCfa, pLogger);
-      }
-    }
-  }
-
-  private CFA createCfa(CfaMetadata pCfaMetadata, LogManager pLogger) {
+    CfaMetadata cfaMetadataWithoutOptionalAttributes =
+        pCfaMetadata
+            .withLoopStructure(null)
+            .withVariableClassification(null)
+            .withLiveVariables(null);
 
     MutableCFA newMutableCfa =
-        createIndependentFunctionCfa(
-            pCfaMetadata
-                .withLoopStructure(null)
-                .withVariableClassification(null)
-                .withLiveVariables(null));
+        createMutableCfa(
+            pCfa, cfaMetadataWithoutOptionalAttributes, pNodeTransformer, pEdgeTransformer);
 
-    newMutableCfa = runModifyingIndependentFunctionPostProcessors(newMutableCfa, pLogger);
-    runReadOnlyIndependentFunctionPostProcessors(newMutableCfa, pLogger);
+    newMutableCfa =
+        runModifyingIndependentFunctionPostProcessors(pCfaPostProcessors, newMutableCfa, pLogger);
+    runReadOnlyIndependentFunctionPostProcessors(pCfaPostProcessors, newMutableCfa, pLogger);
 
-    removePlaceholderEdges();
-    connectedness = CfaConnectedness.SUPERGRAPH;
-    cfaNetwork.edges().forEach(this::toNew);
+    try {
 
-    newMutableCfa.setMetadata(
-        newMutableCfa.getMetadata().withConnectedness(CfaConnectedness.SUPERGRAPH));
+      CFASecondPassBuilder supergraphCreator =
+          new CFASecondPassBuilder(newMutableCfa, pCfaMetadata.getLanguage(), pLogger, pConfig);
+      supergraphCreator.insertCallEdgesRecursively();
+      newMutableCfa.setMetadata(
+          newMutableCfa.getMetadata().withConnectedness(CfaConnectedness.SUPERGRAPH));
 
-    newMutableCfa = runModifyingSupergraphPostProcessors(newMutableCfa, pLogger);
-    runReadOnlySupergraphPostProcessors(newMutableCfa, pLogger);
+    } catch (InvalidConfigurationException | ParserException ex) {
+      pLogger.logException(
+          Level.WARNING,
+          ex,
+          "CFA supergraph creation failed, continuing with independent function CFA");
+    }
+
+    newMutableCfa =
+        runModifyingSupergraphPostProcessors(pCfaPostProcessors, newMutableCfa, pLogger);
+    runReadOnlySupergraphPostProcessors(pCfaPostProcessors, newMutableCfa, pLogger);
 
     return newMutableCfa.makeImmutableCFA(newMutableCfa.getVarClassification());
   }

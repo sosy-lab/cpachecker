@@ -844,7 +844,7 @@ public class ArrayAbstraction {
             .with(new ReversePostorderPostProcessor())
             .with(new LoopStructurePostProcessor())
             .with(new VariableClassificationPostProcessor(pConfiguration))
-            .build();
+            .build(pConfiguration);
 
     CFA transformedCfa = cfaTransformer.transform(graph, simplifiedCfa.getMetadata(), pLogger);
 

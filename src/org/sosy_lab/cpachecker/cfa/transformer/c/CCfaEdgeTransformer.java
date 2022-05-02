@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.transformer.c;
 
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.graph.EndpointPair;
 import java.util.List;
@@ -43,7 +42,36 @@ import org.sosy_lab.cpachecker.exceptions.NoException;
 
 public final class CCfaEdgeTransformer implements CfaEdgeTransformer {
 
-  public static final CCfaEdgeTransformer CLONER = new CCfaEdgeTransformer(ImmutableList.of());
+  public static final CfaEdgeTransformer CLONER = new CCfaEdgeTransformer(ImmutableList.of());
+
+  public static final CfaEdgeTransformer SUMMARY_TO_STATEMENT_EDGE_TRANSFORMER =
+      new CfaEdgeTransformer() {
+
+        @Override
+        public CFAEdge transform(
+            CFAEdge pEdge,
+            CfaNetwork pCfa,
+            CfaNodeSubstitution pNodeSubstitution,
+            CfaEdgeSubstitution pEdgeSubstitution) {
+
+          CFAEdge transformedEdge =
+              CLONER.transform(pEdge, pCfa, pNodeSubstitution, pEdgeSubstitution);
+
+          if (transformedEdge instanceof CFunctionSummaryEdge) {
+
+            CFunctionSummaryEdge transformedSummaryEdge = (CFunctionSummaryEdge) transformedEdge;
+
+            return new CStatementEdge(
+                transformedSummaryEdge.getRawStatement(),
+                transformedSummaryEdge.getExpression(),
+                transformedSummaryEdge.getFileLocation(),
+                transformedSummaryEdge.getPredecessor(),
+                transformedSummaryEdge.getSuccessor());
+          }
+
+          return transformedEdge;
+        }
+      };
 
   private final ImmutableList<CCfaEdgeAstSubstitution> edgeAstSubstitutions;
 
@@ -51,7 +79,7 @@ public final class CCfaEdgeTransformer implements CfaEdgeTransformer {
     edgeAstSubstitutions = pEdgeAstSubstitutions;
   }
 
-  public static CCfaEdgeTransformer forSubstitutions(
+  public static CfaEdgeTransformer forSubstitutions(
       List<CCfaEdgeAstSubstitution> pEdgeAstSubstitutions) {
     return new CCfaEdgeTransformer(ImmutableList.copyOf(pEdgeAstSubstitutions));
   }

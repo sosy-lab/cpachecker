@@ -8,9 +8,13 @@
 
 package org.sosy_lab.cpachecker.cfa.transformer.c;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.collect.ImmutableList;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CfaConnectedness;
 import org.sosy_lab.cpachecker.cfa.CfaMetadata;
 import org.sosy_lab.cpachecker.cfa.CfaPostProcessor;
 import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
@@ -27,15 +31,20 @@ public final class CCfaTransformer implements CfaTransformer {
   private final CfaNodeTransformer nodeTransformer;
   private final CfaEdgeTransformer edgeTransformer;
 
+  private final Configuration config;
+
   private CCfaTransformer(
       ImmutableList<CfaPostProcessor> pCfaPostProcessors,
       ImmutableList<CCfaNodeAstSubstitution> pNodeAstSubstitutions,
-      ImmutableList<CCfaEdgeAstSubstitution> pEdgeAstSubstitutions) {
+      ImmutableList<CCfaEdgeAstSubstitution> pEdgeAstSubstitutions,
+      Configuration pConfig) {
 
     cfaPostProcessors = pCfaPostProcessors;
 
     nodeTransformer = CCfaNodeTransformer.forSubstitutions(pNodeAstSubstitutions);
     edgeTransformer = CCfaEdgeTransformer.forSubstitutions(pEdgeAstSubstitutions);
+
+    config = pConfig;
   }
 
   /**
@@ -49,8 +58,21 @@ public final class CCfaTransformer implements CfaTransformer {
 
   @Override
   public CFA transform(CfaNetwork pCfaNetwork, CfaMetadata pCfaMetadata, LogManager pLogger) {
+
+    CfaNetwork independentFunctionCfa =
+        CfaCreator.toIndependentFunctionCfaNetwork(
+            pCfaNetwork, CCfaEdgeTransformer.SUMMARY_TO_STATEMENT_EDGE_TRANSFORMER);
+    CfaMetadata independentFunctionCfaMetadata =
+        pCfaMetadata.withConnectedness(CfaConnectedness.INDEPENDENT_FUNCTIONS);
+
     return CfaCreator.createCfa(
-        cfaPostProcessors, pCfaNetwork, nodeTransformer, edgeTransformer, pCfaMetadata, pLogger);
+        cfaPostProcessors,
+        nodeTransformer,
+        edgeTransformer,
+        independentFunctionCfa,
+        independentFunctionCfaMetadata,
+        config,
+        pLogger);
   }
 
   public static final class Builder {
@@ -121,11 +143,15 @@ public final class CCfaTransformer implements CfaTransformer {
     /**
      * Returns a new {@link CfaTransformer} instance created from the current state of this builder.
      *
+     * @param pConfig the configuration to use during CFA creation
      * @return a new {@link CfaTransformer} instance created from the current state of this builder
      */
-    public CfaTransformer build() {
+    public CfaTransformer build(Configuration pConfig) {
       return new CCfaTransformer(
-          cfaPostProcessors.build(), nodeAstSubstitutions.build(), edgeAstSubstitutions.build());
+          cfaPostProcessors.build(),
+          nodeAstSubstitutions.build(),
+          edgeAstSubstitutions.build(),
+          checkNotNull(pConfig));
     }
   }
 }
