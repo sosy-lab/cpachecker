@@ -98,8 +98,8 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.cwriter.CFAToCExporter;
 import org.sosy_lab.cpachecker.util.cwriter.CFAToCTranslator;
+import org.sosy_lab.cpachecker.util.cwriter.CfaToCExporter;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
@@ -1242,7 +1242,7 @@ public class CFACreator {
       try {
         String code;
         if (exportCfaToCPrettyPrint) {
-          code = new CFAToCExporter().exportCfa(cfa);
+          code = new CfaToCExporter().exportCfa(cfa);
         } else {
           code = new CFAToCTranslator(config).translateCfa(cfa);
         }

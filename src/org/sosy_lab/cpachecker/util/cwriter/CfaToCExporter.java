@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-public class CFAToCExporter {
+public class CfaToCExporter {
 
   // Use original, unqualified names for variables
   private static final boolean NAMES_QUALIFIED = false;
