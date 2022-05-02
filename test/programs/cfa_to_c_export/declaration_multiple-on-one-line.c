@@ -7,6 +7,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 int main() {
-  int i = 0;
-  int x = ++i++;
+  int x, y, z = 0;
+  x = y = 1;
 }

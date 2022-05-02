@@ -9,4 +9,5 @@
 int main() {
   int i = 0;
   int x = i++;
+  int y = ++i;
 }

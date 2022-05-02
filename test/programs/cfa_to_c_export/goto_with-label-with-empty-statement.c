@@ -8,14 +8,16 @@
 
 int main() {
   int a = 1;
+  int c;
+  int d;
   goto LABEL1;
   int b = 2;
 
-LABEL2:
-  int d = 4;
+LABEL2:;
+  d = 4;
   return d;
 
 LABEL1:;
-  int c = 3;
+  c = 3;
   goto LABEL2;
 }
