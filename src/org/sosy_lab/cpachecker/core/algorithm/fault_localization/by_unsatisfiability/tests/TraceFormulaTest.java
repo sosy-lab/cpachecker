@@ -16,6 +16,7 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -25,13 +26,13 @@ import java.util.Set;
 import java.util.logging.Level;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.FaultLocalizationInfoWithTraceFormula;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.error_invariants.ErrorInvariantsAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.Selector;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.trace.Trace.TraceAtom;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
-import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.cpachecker.util.test.TestResults;
@@ -40,12 +41,12 @@ public class TraceFormulaTest {
 
   private final Level logLevel = Level.FINEST;
 
-  enum FLAlgorithm {
+  private enum FLAlgorithm {
     MAXSAT,
     ERRINV
   }
 
-  enum LogKeys {
+  private enum LogKeys {
     TFRESULT,
     TFPRECONDITION,
     TFPOSTCONDITION;
@@ -109,11 +110,13 @@ public class TraceFormulaTest {
       throws Exception {
 
     TestResults test = runFaultLocalization(program, algorithm, options);
-    FaultLocalizationInfo faultInfo =
-        (FaultLocalizationInfo)
+    FaultLocalizationInfoWithTraceFormula faultInfo =
+        (FaultLocalizationInfoWithTraceFormula)
             AbstractStates.getTargetStates(test.getCheckerResult().getReached()).stream()
+                .filter(state -> ((ARGState) state).getCounterexampleInformation().isPresent())
+                .map(state -> ((ARGState) state).getCounterexampleInformation().orElseThrow())
+                .filter(cex -> cex instanceof FaultLocalizationInfoWithTraceFormula)
                 .findFirst()
-                .flatMap(state -> ((ARGState) state).getCounterexampleInformation())
                 .orElseThrow();
 
     Multimap<LogKeys, Object> found = findFLPatterns(test.getLog(), expected.keySet());
@@ -124,14 +127,14 @@ public class TraceFormulaTest {
         case ERRINV:
           if (!(fault instanceof ErrorInvariantsAlgorithm.Interval)) {
             // Faults produced by ErrorInvariantsAlgorithm always have exactly one member
-            Selector traceElement = (Selector) fault.stream().findFirst().orElseThrow();
+            TraceAtom traceElement = (TraceAtom) Iterables.getOnlyElement(fault);
             lines.add(traceElement.correspondingEdge().getFileLocation().getStartingLineInOrigin());
           }
           break;
 
         case MAXSAT:
           for (FaultContribution contribution : fault) {
-            Selector traceElement = (Selector) contribution;
+            TraceAtom traceElement = (TraceAtom) contribution;
             lines.add(traceElement.correspondingEdge().getFileLocation().getStartingLineInOrigin());
           }
           break;
@@ -189,16 +192,16 @@ public class TraceFormulaTest {
     final ImmutableList<String> preconditionValues =
         ImmutableList.of(
             "__VERIFIER_nondet_int!2@: 4",
-            "main::number@2: 4",
+            "main::number@3: 4",
             "main::copyForCheck@2: 4",
             "main::test@2: 1",
             "main::i@2: 2",
             "isPrime::n@2: 2",
             "isPrime::i@2: 2",
             "isPrime::__retval__@2: 1",
-            "main::__CPAchecker_TMP_0@2: 1",
+            "main::__CPAchecker_TMP_0@3: 1",
             "main::test@3: 2",
-            "main::number@3: 2",
+            "main::number@4: 2",
             "main::i@3: 2",
             "main::i@4: 3");
     // post-condition is on line 47
@@ -216,7 +219,7 @@ public class TraceFormulaTest {
   @Test
   public void testErrorInvariantsOnFlowSensitiveTrace() throws Exception {
     // Lines that are presumably part of a fault
-    List<Integer> faultyLines = ImmutableList.of(13, 17);
+    List<Integer> faultyLines = ImmutableList.of(17);
     checkIfExpectedValuesMatchResultValues(
         "unit_test_traces.c",
         FLAlgorithm.ERRINV,
@@ -238,7 +241,7 @@ public class TraceFormulaTest {
   @Test
   public void testMaxSatSelectorTrace() throws Exception {
     // Lines that are presumably part of a fault
-    List<Integer> faultyLines = ImmutableList.of(12, 13, 14, 17);
+    List<Integer> faultyLines = ImmutableList.of(17);
     checkIfExpectedValuesMatchResultValues(
         "unit_test_traces.c",
         FLAlgorithm.MAXSAT,

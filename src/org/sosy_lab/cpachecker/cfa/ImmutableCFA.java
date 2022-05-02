@@ -195,7 +195,7 @@ class ImmutableCFA implements CFA, Serializable {
     s.writeObject(ImmutableList.copyOf(Lists.transform(fileNames, Path::toString)));
   }
 
-  @SuppressWarnings({"unchecked", "UnusedVariable"}) // parameter is required by API
+  @SuppressWarnings("unchecked")
   private void readObject(java.io.ObjectInputStream s)
       throws java.io.IOException, ClassNotFoundException {
 

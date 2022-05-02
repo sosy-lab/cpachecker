@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.TruthJUnit.assume;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -26,7 +27,9 @@ import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.parser.llvm.LlvmUtils;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.exceptions.ClangParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
@@ -71,7 +74,19 @@ public class LlvmParserWithClangTest {
       throws ParserException, InterruptedException, InvalidConfigurationException, IOException {
     String code = Files.readString(testFile, Charset.defaultCharset());
 
-    ParseResult fileResult = fileParser.parseFiles(ImmutableList.of(testFile.toString()));
+    ParseResult fileResult;
+    try {
+      fileResult = fileParser.parseFiles(ImmutableList.of(testFile.toString()));
+    } catch (ClangParserException e) {
+      assume()
+          .that(e)
+          .hasMessageThat()
+          .doesNotContain(
+              "Clang failed: Cannot run program \"clang-"
+                  + LlvmUtils.extractVersionNumberFromLlvmJ()
+                  + "\": error=2");
+      throw e;
+    }
     ParseResult stringResult = stringParser.parseString(fileName, code);
 
     assertThat(stringResult.isEmpty()).isEqualTo(fileResult.isEmpty());

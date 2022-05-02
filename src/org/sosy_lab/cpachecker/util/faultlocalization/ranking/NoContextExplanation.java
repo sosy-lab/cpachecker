@@ -20,6 +20,14 @@ import org.sosy_lab.cpachecker.util.faultlocalization.FaultExplanation;
 
 public class NoContextExplanation implements FaultExplanation {
 
+  private static final NoContextExplanation instance = new NoContextExplanation();
+
+  public static NoContextExplanation getInstance() {
+    return instance;
+  }
+
+  private NoContextExplanation() {}
+
   /**
    * This method relies on singleton sets otherwise an error is thrown. Make a suggestion for a bug
    * fix based on the EdgeType.

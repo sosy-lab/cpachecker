@@ -28,12 +28,22 @@ public class StatisticsUtils {
     return String.format("%1.0f%%", val / full * 100);
   }
 
+  public static String toPercent(long val, long full) {
+    // cast from long to double looses precision, but is ok for statistics
+    return toPercent((double) val, (double) full);
+  }
+
   public static String valueWithPercentage(Number value, Number totalCount) {
     return value + " (" + toPercent(value.doubleValue(), totalCount.doubleValue()) + ")";
   }
 
   public static String div(double val, double full) {
     return String.format("%.2f", val / full);
+  }
+
+  public static String div(long val, long full) {
+    // cast from long to double looses precision, but is ok for statistics
+    return div((double) val, (double) full);
   }
 
   public static void write(
