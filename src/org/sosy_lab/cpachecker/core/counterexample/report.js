@@ -53,6 +53,7 @@ const {
   timeStampsPerPredicateCoverageJson,
   timeStampsPerPredicateConsideredCoverageJson,
   timeStampsPerPredicateRelevantVariablesCoverageJson,
+  timeStampsPerPredicateCoveredNodesCoverageJson,
 } = window;
 
 // CFA graph variable declarations
@@ -344,7 +345,8 @@ function renderTDCG(dataJSON, color, inPercentage) {
         isAlmostEmpty(timeStampsPerCoverageJson) &&
         isAlmostEmpty(timeStampsPerPredicateCoverageJson) &&
         isAlmostEmpty(timeStampsPerPredicateConsideredCoverageJson) &&
-        isAlmostEmpty(timeStampsPerPredicateRelevantVariablesCoverageJson)
+        isAlmostEmpty(timeStampsPerPredicateRelevantVariablesCoverageJson) &&
+        isAlmostEmpty(timeStampsPerPredicateCoveredNodesCoverageJson)
       ) {
         d3.select("#tdcg-toolbar-button").style("display", "none");
       }
@@ -1430,6 +1432,11 @@ function renderTDCG(dataJSON, color, inPercentage) {
           "Predicate-relevant-variables-nodes Coverage over Time"
         );
       }
+      if (isNotAlmostEmpty(timeStampsPerPredicateCoveredNodesCoverageJson)) {
+        $scope.tdcgSelections.push(
+          "Predicate-covered-nodes Coverage over Time"
+        );
+      }
       if (isEmpty($scope.tdcgSelections)) {
         $scope.tdcgSelections.push("No data available");
       }
@@ -1458,6 +1465,12 @@ function renderTDCG(dataJSON, color, inPercentage) {
           ) !== -1
         ) {
           $scope.renderTDCGForPredicateRelevantVariablesCoverage();
+        } else if (
+          $rootScope.displayedTDCG.indexOf(
+            "Predicate-covered-nodes Coverage over Time"
+          ) !== -1
+        ) {
+          $scope.renderTDCGForPredicateCoveredNodesCoverage();
         }
       };
 
@@ -1488,6 +1501,16 @@ function renderTDCG(dataJSON, color, inPercentage) {
           $scope.renderTDCG(
             timeStampsPerPredicateRelevantVariablesCoverageJson,
             "#d9ae19",
+            true
+          );
+        };
+
+      $scope.renderTDCGForPredicateCoveredNodesCoverage =
+        function renderTDCGForPredicateCoveredNodesCoverage() {
+          $scope.removeTDCG();
+          $scope.renderTDCG(
+            timeStampsPerPredicateCoveredNodesCoverageJson,
+            "#7c0eb4",
             true
           );
         };

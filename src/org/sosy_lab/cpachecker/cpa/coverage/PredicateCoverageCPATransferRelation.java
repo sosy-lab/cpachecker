@@ -44,6 +44,7 @@ public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperT
   private final TimeDependentCoverageData predicateTDCG;
   private final TimeDependentCoverageData predicateConsideredTDCG;
   private final TimeDependentCoverageData predicateRelevantVariablesTDCG;
+  private final TimeDependentCoverageData predicateCoveredNodesTDCG;
   private final FormulaManagerView fmgr;
   private final CFA cfa;
 
@@ -66,10 +67,14 @@ public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperT
         coverageHandler.getData(TimeDependentCoverageType.PredicateConsidered);
     predicateRelevantVariablesTDCG =
         coverageHandler.getData(TimeDependentCoverageType.PredicateRelevantVariables);
+    predicateCoveredNodesTDCG =
+        coverageHandler.getData(TimeDependentCoverageType.PredicateCoveredNodes);
     coverageData.addInitialNodes(
         cfa, predicateConsideredTDCG, TimeDependentCoverageType.PredicateConsidered);
     coverageData.addInitialNodes(
         cfa, predicateRelevantVariablesTDCG, TimeDependentCoverageType.PredicateRelevantVariables);
+    coverageData.addInitialNodes(
+        cfa, predicateCoveredNodesTDCG, TimeDependentCoverageType.PredicateCoveredNodes);
   }
 
   @Override
@@ -102,7 +107,18 @@ public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperT
       processPredicates(predicatePrecision);
       processPredicatesConsideredCoverage(predicatePrecision, cfaEdge);
       processPredicateRelevantVariablesCoverage(predicatePrecision, cfaEdge);
+      processPredicatesAbstractStateCoverage(predicatePrecision, cfaEdge);
     }
+  }
+
+  private void processPredicatesAbstractStateCoverage(PredicatePrecision precision, CFAEdge edge) {
+    Set<CFANode> allPredicateCoveredNodes = getAllPredicateCoveredNodes(precision);
+    coverageData.addPredicateCoveredNodes(allPredicateCoveredNodes, edge);
+    predicateCoveredNodesTDCG.addTimeStamp(coverageData.getTempPredicateCoveredNodesCoverage(cfa));
+  }
+
+  private Set<CFANode> getAllPredicateCoveredNodes(PredicatePrecision precision) {
+    return precision.getLocalPredicates().keys().elementSet();
   }
 
   private void processPredicateRelevantVariablesCoverage(

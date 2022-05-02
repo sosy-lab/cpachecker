@@ -14,6 +14,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
@@ -35,6 +36,7 @@ public final class CoverageData {
     timeDependentCoverageHandler.initNewData(TimeDependentCoverageType.Predicate);
     timeDependentCoverageHandler.initNewData(TimeDependentCoverageType.PredicateConsidered);
     timeDependentCoverageHandler.initNewData(TimeDependentCoverageType.PredicateRelevantVariables);
+    timeDependentCoverageHandler.initNewData(TimeDependentCoverageType.PredicateCoveredNodes);
   }
 
   public TimeDependentCoverageHandler getTDCGHandler() {
@@ -186,6 +188,14 @@ public final class CoverageData {
     collector.addPredicateRelevantVariablesNodes(pEdge.getSuccessor());
   }
 
+  public void addPredicateCoveredNodes(final Set<CFANode> nodes, final CFAEdge pEdge) {
+    if (!CoverageUtility.coversLine(pEdge)) {
+      return;
+    }
+    FileCoverageInformation collector = getCollector(pEdge);
+    collector.addPredicateCoveredNodes(nodes);
+  }
+
   public void resetPredicateRelevantVariablesNodes() {
     for (FileCoverageInformation info : getInfosPerFile().values()) {
       info.resetPredicateRelevantVariablesNodes();
@@ -225,6 +235,10 @@ public final class CoverageData {
     return getTempCoverage(cfa, TimeDependentCoverageType.PredicateConsidered);
   }
 
+  public double getTempPredicateCoveredNodesCoverage(CFA cfa) {
+    return getTempCoverage(cfa, TimeDependentCoverageType.PredicateCoveredNodes);
+  }
+
   public double getTempPredicateRelevantVariablesCoverage(CFA cfa) {
     return getTempCoverage(cfa, TimeDependentCoverageType.PredicateRelevantVariables);
   }
@@ -235,10 +249,13 @@ public final class CoverageData {
     for (FileCoverageInformation info : getInfosPerFile().values()) {
       switch (type) {
         case PredicateConsidered:
-          numRelevantNodes += info.numPredicateConsideredNodes.size();
+          numRelevantNodes += info.allPredicateConsideredNodes.size();
           break;
         case PredicateRelevantVariables:
-          numRelevantNodes += info.numPredicateRelevantVariablesNodes.size();
+          numRelevantNodes += info.allPredicateRelevantVariablesNodes.size();
+          break;
+        case PredicateCoveredNodes:
+          numRelevantNodes += info.allPredicateCoveredNodes.size();
           break;
         default:
           break;
