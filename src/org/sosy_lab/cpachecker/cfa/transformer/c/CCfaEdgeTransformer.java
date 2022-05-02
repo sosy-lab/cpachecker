@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.transformer.CfaEdgeTransformer;
 import org.sosy_lab.cpachecker.cfa.transformer.CfaNodeSubstitution;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
+/** {@link CfaEdgeTransformer} for CFA edges that are contained in CFAs of C programs. */
 public final class CCfaEdgeTransformer implements CfaEdgeTransformer {
 
   public static final CfaEdgeTransformer CLONER = new CCfaEdgeTransformer(ImmutableList.of());
@@ -79,7 +80,7 @@ public final class CCfaEdgeTransformer implements CfaEdgeTransformer {
     edgeAstSubstitutions = pEdgeAstSubstitutions;
   }
 
-  public static CfaEdgeTransformer forSubstitutions(
+  public static CfaEdgeTransformer withSubstitutions(
       List<CCfaEdgeAstSubstitution> pEdgeAstSubstitutions) {
     return new CCfaEdgeTransformer(ImmutableList.copyOf(pEdgeAstSubstitutions));
   }

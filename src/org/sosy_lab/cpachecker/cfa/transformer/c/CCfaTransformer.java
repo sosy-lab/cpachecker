@@ -23,7 +23,7 @@ import org.sosy_lab.cpachecker.cfa.transformer.CfaEdgeTransformer;
 import org.sosy_lab.cpachecker.cfa.transformer.CfaNodeTransformer;
 import org.sosy_lab.cpachecker.cfa.transformer.CfaTransformer;
 
-/** A {@link CfaTransformer} for transforming CFAs whose language is C. */
+/** A {@link CfaTransformer} for transforming CFAs of C programs. */
 public final class CCfaTransformer implements CfaTransformer {
 
   private final ImmutableList<CfaPostProcessor> cfaPostProcessors;
@@ -41,8 +41,8 @@ public final class CCfaTransformer implements CfaTransformer {
 
     cfaPostProcessors = pCfaPostProcessors;
 
-    nodeTransformer = CCfaNodeTransformer.forSubstitutions(pNodeAstSubstitutions);
-    edgeTransformer = CCfaEdgeTransformer.forSubstitutions(pEdgeAstSubstitutions);
+    nodeTransformer = CCfaNodeTransformer.withSubstitutions(pNodeAstSubstitutions);
+    edgeTransformer = CCfaEdgeTransformer.withSubstitutions(pEdgeAstSubstitutions);
 
     config = pConfig;
   }

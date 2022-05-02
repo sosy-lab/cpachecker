@@ -6,5 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/** Contains classes related to CFA transformation for the language C. */
+/** Contains classes related to CFA transformation for C programs. */
 package org.sosy_lab.cpachecker.cfa.transformer.c;

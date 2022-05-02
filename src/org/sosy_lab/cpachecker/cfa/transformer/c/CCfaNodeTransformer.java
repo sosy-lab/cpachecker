@@ -22,9 +22,10 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.transformer.CfaNodeSubstitution;
 import org.sosy_lab.cpachecker.cfa.transformer.CfaNodeTransformer;
 
+/** {@link CfaNodeTransformer} for CFA nodes that are contained in CFAs of C programs. */
 public final class CCfaNodeTransformer implements CfaNodeTransformer {
 
-  public static final CCfaNodeTransformer CLONER = new CCfaNodeTransformer(ImmutableList.of());
+  public static final CfaNodeTransformer CLONER = new CCfaNodeTransformer(ImmutableList.of());
 
   private final ImmutableList<CCfaNodeAstSubstitution> nodeAstSubstitutions;
 
@@ -32,7 +33,7 @@ public final class CCfaNodeTransformer implements CfaNodeTransformer {
     nodeAstSubstitutions = pNodeAstSubstitutions;
   }
 
-  public static CCfaNodeTransformer forSubstitutions(
+  public static CfaNodeTransformer withSubstitutions(
       List<CCfaNodeAstSubstitution> pNodeAstSubstitutions) {
     return new CCfaNodeTransformer(ImmutableList.copyOf(pNodeAstSubstitutions));
   }
