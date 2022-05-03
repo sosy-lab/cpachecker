@@ -273,25 +273,25 @@ public class OutputLoopAccelerationStrategy extends LoopStrategy {
 
     CFANode loopStartNode = filteredOutgoingEdges.get(0).getSuccessor();
 
-    Optional<Loop> loopStructureMaybe = summaryInformation.getLoop(loopStartNode);
-    if (loopStructureMaybe.isEmpty()) {
+    Optional<Loop> loopMaybe = summaryInformation.getLoop(loopStartNode);
+    if (loopMaybe.isEmpty()) {
       return Optional.empty();
     }
 
-    Loop loopStructure = loopStructureMaybe.orElseThrow();
+    Loop loop = loopMaybe.orElseThrow();
 
     // Function calls may change global variables, or have assert statements, which cannot be
     // summarized correctly
-    if (loopStructure.containsUserDefinedFunctionCalls()) {
+    if (loop.containsUserDefinedFunctionCalls()) {
       return Optional.empty();
     }
 
-    Set<AVariableDeclaration> modifiedVariables = loopStructure.getModifiedVariables();
-    Set<AVariableDeclaration> readVariables = loopStructure.getReadVariables();
+    Set<AVariableDeclaration> modifiedVariables = loop.getModifiedVariables();
+    Set<AVariableDeclaration> readVariables = loop.getReadVariables();
     Set<AVariableDeclaration> readWriteVariables = new HashSet<>(modifiedVariables);
     readWriteVariables.retainAll(readVariables);
 
-    Optional<AExpression> loopBoundExpressionMaybe = loopStructure.getBound();
+    Optional<AExpression> loopBoundExpressionMaybe = loop.getBound();
     if (loopBoundExpressionMaybe.isEmpty()) {
       return Optional.empty();
     }
@@ -299,7 +299,7 @@ public class OutputLoopAccelerationStrategy extends LoopStrategy {
 
     Optional<GhostCFA> summarizedLoopMaybe =
         summarizeLoop(
-            loopStructure, modifiedVariables, readWriteVariables, beforeWhile, loopBoundExpression);
+            loop, modifiedVariables, readWriteVariables, beforeWhile, loopBoundExpression);
 
     return summarizedLoopMaybe;
   }

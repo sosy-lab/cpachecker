@@ -159,28 +159,27 @@ public class NondetBoundConstantExtrapolationStrategy extends ConstantExtrapolat
 
     CFANode loopStartNode = filteredOutgoingEdges.get(0).getSuccessor();
 
-    Optional<Loop> loopStructureMaybe = summaryInformation.getLoop(loopStartNode);
-    if (loopStructureMaybe.isEmpty()) {
+    Optional<Loop> loopMaybe = summaryInformation.getLoop(loopStartNode);
+    if (loopMaybe.isEmpty()) {
       return Optional.empty();
     }
-    Loop loopStructure = loopStructureMaybe.orElseThrow();
+    Loop loop = loopMaybe.orElseThrow();
 
-    if (loopStructure.containsFunctionCalls()) {
-      return Optional.empty();
-    }
-
-    if (!hasOnlyConstantVariableModifications(loopStructure)
-        || loopStructure.amountOfInnerAssumeEdges() != 1) {
+    if (loop.containsFunctionCalls()) {
       return Optional.empty();
     }
 
-    Optional<AExpression> loopBoundExpressionMaybe = loopStructure.getBound();
+    if (!hasOnlyConstantVariableModifications(loop) || loop.amountOfInnerAssumeEdges() != 1) {
+      return Optional.empty();
+    }
+
+    Optional<AExpression> loopBoundExpressionMaybe = loop.getBound();
     if (loopBoundExpressionMaybe.isEmpty()) {
       return Optional.empty();
     }
     AExpression loopBoundExpression = loopBoundExpressionMaybe.orElseThrow();
 
-    return this.createSumaryCFA(beforeWhile, loopBoundExpression, loopStructure);
+    return this.createSumaryCFA(beforeWhile, loopBoundExpression, loop);
   }
 
   @Override

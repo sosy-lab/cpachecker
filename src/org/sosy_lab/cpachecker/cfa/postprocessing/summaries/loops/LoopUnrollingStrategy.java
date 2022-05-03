@@ -107,13 +107,13 @@ public class LoopUnrollingStrategy extends LoopStrategy {
 
     CFANode loopStartNode = filteredOutgoingEdges.get(0).getSuccessor();
 
-    Optional<Loop> loopStructureMaybe = summaryInformation.getLoop(loopStartNode);
-    if (loopStructureMaybe.isEmpty()) {
+    Optional<Loop> loopMaybe = summaryInformation.getLoop(loopStartNode);
+    if (loopMaybe.isEmpty()) {
       return Optional.empty();
     }
-    Loop loopStructure = loopStructureMaybe.orElseThrow();
+    Loop loop = loopMaybe.orElseThrow();
 
-    return summarizeLoop(loopStructure, beforeWhile);
+    return summarizeLoop(loop, beforeWhile);
   }
 
   @Override

@@ -277,28 +277,27 @@ public class ConstantExtrapolationStrategy extends LoopExtrapolationStrategy {
 
     CFANode loopStartNode = filteredOutgoingEdges.get(0).getSuccessor();
 
-    Optional<Loop> loopStructureMaybe = summaryInformation.getLoop(loopStartNode);
-    if (loopStructureMaybe.isEmpty()) {
+    Optional<Loop> loopMaybe = summaryInformation.getLoop(loopStartNode);
+    if (loopMaybe.isEmpty()) {
       return Optional.empty();
     }
-    Loop loopStructure = loopStructureMaybe.orElseThrow();
+    Loop loop = loopMaybe.orElseThrow();
 
-    if (!hasOnlyConstantVariableModifications(loopStructure)
-        || loopStructure.amountOfInnerAssumeEdges() != 1) {
+    if (!hasOnlyConstantVariableModifications(loop) || loop.amountOfInnerAssumeEdges() != 1) {
       return Optional.empty();
     }
 
-    Optional<AExpression> loopBoundExpressionMaybe = loopStructure.getBound();
+    Optional<AExpression> loopBoundExpressionMaybe = loop.getBound();
     if (loopBoundExpressionMaybe.isEmpty()) {
       return Optional.empty();
     }
     AExpression loopBoundExpression = loopBoundExpressionMaybe.orElseThrow();
 
-    if (loopStructure.containsFunctionCalls()) {
+    if (loop.containsFunctionCalls()) {
       return Optional.empty();
     }
 
-    Optional<AExpression> iterationsMaybe = this.loopIterations(loopBoundExpression, loopStructure);
+    Optional<AExpression> iterationsMaybe = this.loopIterations(loopBoundExpression, loop);
 
     if (iterationsMaybe.isEmpty()) {
       return Optional.empty();
@@ -307,7 +306,7 @@ public class ConstantExtrapolationStrategy extends LoopExtrapolationStrategy {
     AExpression iterations = iterationsMaybe.orElseThrow();
 
     Optional<GhostCFA> summarizedLoopMaybe =
-        summarizeLoop(iterations, loopBoundExpression, loopStructure, beforeWhile);
+        summarizeLoop(iterations, loopBoundExpression, loop, beforeWhile);
 
     this.nameCounter += 1;
 
