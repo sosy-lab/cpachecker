@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperTransferRelati
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.coverage.CoverageData;
@@ -44,7 +45,7 @@ public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperT
   private final TimeDependentCoverageData predicateTDCG;
   private final TimeDependentCoverageData predicateConsideredTDCG;
   private final TimeDependentCoverageData predicateRelevantVariablesTDCG;
-  private final TimeDependentCoverageData predicateCoveredNodesTDCG;
+  private final TimeDependentCoverageData abstractStateCoveredNodesTDCG;
   private final FormulaManagerView fmgr;
   private final CFA cfa;
 
@@ -67,14 +68,14 @@ public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperT
         coverageHandler.getData(TimeDependentCoverageType.PredicateConsidered);
     predicateRelevantVariablesTDCG =
         coverageHandler.getData(TimeDependentCoverageType.PredicateRelevantVariables);
-    predicateCoveredNodesTDCG =
-        coverageHandler.getData(TimeDependentCoverageType.PredicateCoveredNodes);
+    abstractStateCoveredNodesTDCG =
+        coverageHandler.getData(TimeDependentCoverageType.AbstractStateCoveredNodes);
     coverageData.addInitialNodes(
         cfa, predicateConsideredTDCG, TimeDependentCoverageType.PredicateConsidered);
     coverageData.addInitialNodes(
         cfa, predicateRelevantVariablesTDCG, TimeDependentCoverageType.PredicateRelevantVariables);
     coverageData.addInitialNodes(
-        cfa, predicateCoveredNodesTDCG, TimeDependentCoverageType.PredicateCoveredNodes);
+        cfa, abstractStateCoveredNodesTDCG, TimeDependentCoverageType.AbstractStateCoveredNodes);
   }
 
   @Override
@@ -97,28 +98,38 @@ public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperT
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState state, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
-    processAllCoverageMeasures(precision, cfaEdge);
+    processAllCoverageMeasures(precision, cfaEdge, state);
     return predicateTransferRelation.getAbstractSuccessorsForEdge(state, precision, cfaEdge);
   }
 
-  private void processAllCoverageMeasures(Precision precision, CFAEdge cfaEdge) {
+  private void processAllCoverageMeasures(Precision precision,
+                                          CFAEdge cfaEdge,
+                                          AbstractState state) {
     if (precision instanceof PredicatePrecision) {
       PredicatePrecision predicatePrecision = (PredicatePrecision) precision;
       processPredicates(predicatePrecision);
       processPredicatesConsideredCoverage(predicatePrecision, cfaEdge);
       processPredicateRelevantVariablesCoverage(predicatePrecision, cfaEdge);
-      processPredicatesAbstractStateCoverage(predicatePrecision, cfaEdge);
+      processPredicatesAbstractStateCoverage(cfaEdge, state);
     }
   }
 
-  private void processPredicatesAbstractStateCoverage(PredicatePrecision precision, CFAEdge edge) {
-    Set<CFANode> allPredicateCoveredNodes = getAllPredicateCoveredNodes(precision);
-    coverageData.addPredicateCoveredNodes(allPredicateCoveredNodes, edge);
-    predicateCoveredNodesTDCG.addTimeStamp(coverageData.getTempPredicateCoveredNodesCoverage(cfa));
+  private void processPredicatesAbstractStateCoverage(CFAEdge edge,
+                                                      AbstractState state) {
+    Set<CFANode> allAbstractStateCoveredNodes = getAllAbstractStatesCoveredNodes(state);
+    coverageData.addAbstractStateCoveredNodes(allAbstractStateCoveredNodes, edge);
+    abstractStateCoveredNodesTDCG.addTimeStamp(
+        coverageData.getTempAbstractStateCoveredNodesCoverage(cfa));
   }
 
-  private Set<CFANode> getAllPredicateCoveredNodes(PredicatePrecision precision) {
-    return precision.getLocalPredicates().keys().elementSet();
+  private Set<CFANode> getAllAbstractStatesCoveredNodes(AbstractState state) {
+    if (state instanceof PredicateAbstractState) {
+      PredicateAbstractState predicateAbstractState = (PredicateAbstractState) state;
+      if (predicateAbstractState.isAbstractionState()) {
+        return predicateAbstractState.getAbstractionLocationsOnPath().keySet();
+      }
+    }
+    return new HashSet<>();
   }
 
   private void processPredicateRelevantVariablesCoverage(

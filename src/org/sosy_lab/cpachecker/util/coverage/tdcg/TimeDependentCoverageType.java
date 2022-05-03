@@ -13,5 +13,5 @@ public enum TimeDependentCoverageType {
   Predicate,
   PredicateConsidered,
   PredicateRelevantVariables,
-  PredicateCoveredNodes,
+  AbstractStateCoveredNodes,
 }

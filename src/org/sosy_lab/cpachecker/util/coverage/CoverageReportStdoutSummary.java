@@ -25,7 +25,7 @@ public class CoverageReportStdoutSummary {
     long numTotalNodes = 0;
     long numConsideredNodes = 0;
     long numPredicateConsideredNodes = 0;
-    long numPredicateCoveredNodes = 0;
+    long numAbstractStateCoveredNodes = 0;
     long numPredicateRelevantVariablesNodes = 0;
 
     double predicateCoverage = pCoverage.getPredicateCoverage();
@@ -43,7 +43,7 @@ public class CoverageReportStdoutSummary {
       numTotalNodes += info.allNodes.size();
       numConsideredNodes += info.allConsideredNodes.size();
       numPredicateConsideredNodes += info.allPredicateConsideredNodes.size();
-      numPredicateCoveredNodes += info.allPredicateCoveredNodes.size();
+      numAbstractStateCoveredNodes += info.allAbstractStateCoveredNodes.size();
       numPredicateRelevantVariablesNodes +=
           Math.max(
               info.allPredicateRelevantVariablesNodes.size(),
@@ -77,14 +77,14 @@ public class CoverageReportStdoutSummary {
           numPredicateConsideredNodes / (double) numTotalNodes;
       final double predicateRelevantVariablesCoverage =
           numPredicateRelevantVariablesNodes / (double) numTotalNodes;
-      final double predicateCoveredNodesCoverage =
-          numPredicateCoveredNodes / (double) numTotalNodes;
+      final double abstractStateCoveredNodesCoverage =
+          numAbstractStateCoveredNodes / (double) numTotalNodes;
       StatisticsUtils.write(pStdOut, 1, 25, "Considered nodes", numConsideredNodes);
       StatisticsUtils.write(
           pStdOut, 1, 25, "Predicate-considered nodes", numPredicateConsideredNodes);
       StatisticsUtils.write(
           pStdOut, 1, 25, "Predicate-relevant-variables nodes", numPredicateRelevantVariablesNodes);
-      StatisticsUtils.write(pStdOut, 1, 25, "Predicate-covered nodes", numPredicateCoveredNodes);
+      StatisticsUtils.write(pStdOut, 1, 25, "Predicate-covered nodes", numAbstractStateCoveredNodes);
       StatisticsUtils.write(pStdOut, 1, 25, "Total nodes", numTotalNodes);
 
       StatisticsUtils.write(
@@ -106,7 +106,7 @@ public class CoverageReportStdoutSummary {
           1,
           25,
           "Predicate-covered-nodes coverage",
-          String.format("%.3f", predicateCoveredNodesCoverage));
+          String.format("%.3f", abstractStateCoveredNodesCoverage));
     }
 
     if (predicateCoverage > 0.0) {

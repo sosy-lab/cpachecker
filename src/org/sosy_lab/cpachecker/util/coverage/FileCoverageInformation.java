@@ -35,7 +35,7 @@ public class FileCoverageInformation {
   final Set<Integer> allConsideredNodes = new LinkedHashSet<>();
   final Set<Integer> allPredicateConsideredNodes = new LinkedHashSet<>();
   final Set<Integer> allPredicateRelevantVariablesNodes = new LinkedHashSet<>();
-  final Set<Integer> allPredicateCoveredNodes = new LinkedHashSet<>();
+  final Set<Integer> allAbstractStateCoveredNodes = new LinkedHashSet<>();
   final Multiset<Integer> visitedLines = LinkedHashMultiset.create();
   final Set<Integer> allLines = new LinkedHashSet<>();
   final Multiset<String> visitedFunctions = LinkedHashMultiset.create();
@@ -96,9 +96,9 @@ public class FileCoverageInformation {
     allPredicateRelevantVariablesNodes.add(node.getNodeNumber());
   }
 
-  void addPredicateCoveredNodes(Set<CFANode> nodes) {
+  void addAbstractStateCoveredNodes(Set<CFANode> nodes) {
     for (CFANode node : nodes) {
-      allPredicateCoveredNodes.add(node.getNodeNumber());
+      allAbstractStateCoveredNodes.add(node.getNodeNumber());
     }
   }
 

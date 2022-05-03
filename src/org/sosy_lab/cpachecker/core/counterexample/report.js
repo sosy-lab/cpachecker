@@ -53,7 +53,7 @@ const {
   timeStampsPerPredicateCoverageJson,
   timeStampsPerPredicateConsideredCoverageJson,
   timeStampsPerPredicateRelevantVariablesCoverageJson,
-  timeStampsPerPredicateCoveredNodesCoverageJson,
+  timeStampsPerAbstractStateCoveredNodesCoverageJson,
 } = window;
 
 // CFA graph variable declarations
@@ -346,7 +346,7 @@ function renderTDCG(dataJSON, color, inPercentage) {
         isAlmostEmpty(timeStampsPerPredicateCoverageJson) &&
         isAlmostEmpty(timeStampsPerPredicateConsideredCoverageJson) &&
         isAlmostEmpty(timeStampsPerPredicateRelevantVariablesCoverageJson) &&
-        isAlmostEmpty(timeStampsPerPredicateCoveredNodesCoverageJson)
+        isAlmostEmpty(timeStampsPerAbstractStateCoveredNodesCoverageJson)
       ) {
         d3.select("#tdcg-toolbar-button").style("display", "none");
       }
@@ -1432,9 +1432,11 @@ function renderTDCG(dataJSON, color, inPercentage) {
           "Predicate-relevant-variables-nodes Coverage over Time"
         );
       }
-      if (isNotAlmostEmpty(timeStampsPerPredicateCoveredNodesCoverageJson)) {
+      if (
+        isNotAlmostEmpty(timeStampsPerAbstractStateCoveredNodesCoverageJson)
+      ) {
         $scope.tdcgSelections.push(
-          "Predicate-covered-nodes Coverage over Time"
+          "Abstract-state-covered-nodes Coverage over Time"
         );
       }
       if (isEmpty($scope.tdcgSelections)) {
@@ -1467,10 +1469,10 @@ function renderTDCG(dataJSON, color, inPercentage) {
           $scope.renderTDCGForPredicateRelevantVariablesCoverage();
         } else if (
           $rootScope.displayedTDCG.indexOf(
-            "Predicate-covered-nodes Coverage over Time"
+            "Abstract-state-covered-nodes Coverage over Time"
           ) !== -1
         ) {
-          $scope.renderTDCGForPredicateCoveredNodesCoverage();
+          $scope.renderTDCGForAbstractStateCoveredNodesCoverage();
         }
       };
 
@@ -1505,11 +1507,11 @@ function renderTDCG(dataJSON, color, inPercentage) {
           );
         };
 
-      $scope.renderTDCGForPredicateCoveredNodesCoverage =
-        function renderTDCGForPredicateCoveredNodesCoverage() {
+      $scope.renderTDCGForAbstractStateCoveredNodesCoverage =
+        function renderTDCGForAbstractStateCoveredNodesCoverage() {
           $scope.removeTDCG();
           $scope.renderTDCG(
-            timeStampsPerPredicateCoveredNodesCoverageJson,
+            timeStampsPerAbstractStateCoveredNodesCoverageJson,
             "#7c0eb4",
             true
           );

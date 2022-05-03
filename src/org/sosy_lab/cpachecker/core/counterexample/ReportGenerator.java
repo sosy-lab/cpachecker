@@ -374,9 +374,9 @@ public class ReportGenerator {
         tdcgHandler
             .getData(TimeDependentCoverageType.PredicateRelevantVariables)
             .getReducedTimeStampsPerCoverage(MAX_DATA_POINTS_TDCG);
-    Map<Long, Double> timeStampsPerPredicateCoveredNodesCoverage =
+    Map<Long, Double> timeStampsPerAbstractStateCoveredNodesCoverage =
         tdcgHandler
-            .getData(TimeDependentCoverageType.PredicateCoveredNodes)
+            .getData(TimeDependentCoverageType.AbstractStateCoveredNodes)
             .getReducedTimeStampsPerCoverage(MAX_DATA_POINTS_TDCG);
 
     writer.write("var timeStampsPerCoverageJson = ");
@@ -395,12 +395,12 @@ public class ReportGenerator {
             + "window.timeStampsPerPredicateConsideredCoverageJson ="
             + " timeStampsPerPredicateConsideredCoverageJson;\n");
 
-    writer.write("var timeStampsPerPredicateCoveredNodesCoverageJson = ");
-    JSON.writeJSONString(timeStampsPerPredicateCoveredNodesCoverage, writer);
+    writer.write("var timeStampsPerAbstractStateCoveredNodesCoverageJson = ");
+    JSON.writeJSONString(timeStampsPerAbstractStateCoveredNodesCoverage, writer);
     writer.write(
         "\n"
-            + "window.timeStampsPerPredicateCoveredNodesCoverageJson ="
-            + " timeStampsPerPredicateCoveredNodesCoverageJson;\n");
+            + "window.timeStampsPerAbstractStateCoveredNodesCoverageJson ="
+            + " timeStampsPerAbstractStateCoveredNodesCoverageJson;\n");
 
     writer.write("var timeStampsPerPredicateRelevantVariablesCoverageJson = ");
     JSON.writeJSONString(timeStampsPerPredicateRelevantVariablesCoverage, writer);

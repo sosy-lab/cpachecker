@@ -36,7 +36,7 @@ public final class CoverageData {
     timeDependentCoverageHandler.initNewData(TimeDependentCoverageType.Predicate);
     timeDependentCoverageHandler.initNewData(TimeDependentCoverageType.PredicateConsidered);
     timeDependentCoverageHandler.initNewData(TimeDependentCoverageType.PredicateRelevantVariables);
-    timeDependentCoverageHandler.initNewData(TimeDependentCoverageType.PredicateCoveredNodes);
+    timeDependentCoverageHandler.initNewData(TimeDependentCoverageType.AbstractStateCoveredNodes);
   }
 
   public TimeDependentCoverageHandler getTDCGHandler() {
@@ -188,12 +188,12 @@ public final class CoverageData {
     collector.addPredicateRelevantVariablesNodes(pEdge.getSuccessor());
   }
 
-  public void addPredicateCoveredNodes(final Set<CFANode> nodes, final CFAEdge pEdge) {
+  public void addAbstractStateCoveredNodes(final Set<CFANode> nodes, final CFAEdge pEdge) {
     if (!CoverageUtility.coversLine(pEdge)) {
       return;
     }
     FileCoverageInformation collector = getCollector(pEdge);
-    collector.addPredicateCoveredNodes(nodes);
+    collector.addAbstractStateCoveredNodes(nodes);
   }
 
   public void resetPredicateRelevantVariablesNodes() {
@@ -235,8 +235,8 @@ public final class CoverageData {
     return getTempCoverage(cfa, TimeDependentCoverageType.PredicateConsidered);
   }
 
-  public double getTempPredicateCoveredNodesCoverage(CFA cfa) {
-    return getTempCoverage(cfa, TimeDependentCoverageType.PredicateCoveredNodes);
+  public double getTempAbstractStateCoveredNodesCoverage(CFA cfa) {
+    return getTempCoverage(cfa, TimeDependentCoverageType.AbstractStateCoveredNodes);
   }
 
   public double getTempPredicateRelevantVariablesCoverage(CFA cfa) {
@@ -254,8 +254,8 @@ public final class CoverageData {
         case PredicateRelevantVariables:
           numRelevantNodes += info.allPredicateRelevantVariablesNodes.size();
           break;
-        case PredicateCoveredNodes:
-          numRelevantNodes += info.allPredicateCoveredNodes.size();
+        case AbstractStateCoveredNodes:
+          numRelevantNodes += info.allAbstractStateCoveredNodes.size();
           break;
         default:
           break;
