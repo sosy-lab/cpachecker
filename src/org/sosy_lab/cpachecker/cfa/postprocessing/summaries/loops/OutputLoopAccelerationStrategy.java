@@ -111,7 +111,7 @@ public class OutputLoopAccelerationStrategy extends LoopStrategy {
 
     CExpressionAssignmentStatement counterVariableInit =
         (CExpressionAssignmentStatement)
-            new AExpressionFactory().from(0, INTTYPE).assignTo(counterVariableDeclaration);
+            new AExpressionFactory().from(0, SIGNED_LONG_INT).assignTo(counterVariableDeclaration);
 
     CFAEdge counterInitEdge =
         new CStatementEdge(
@@ -137,7 +137,7 @@ public class OutputLoopAccelerationStrategy extends LoopStrategy {
             newNode,
             (CExpression)
                 new AExpressionFactory()
-                    .from(pModifiedVariables.size(), INTTYPE)
+                    .from(pModifiedVariables.size(), SIGNED_LONG_INT)
                     .binaryOperation(
                         counterVariableDeclaration, CBinaryExpression.BinaryOperator.GREATER_THAN)
                     .build(),
@@ -227,7 +227,7 @@ public class OutputLoopAccelerationStrategy extends LoopStrategy {
     CExpressionAssignmentStatement incrementCounterExpression =
         (CExpressionAssignmentStatement)
             new AExpressionFactory()
-                .from(1, INTTYPE)
+                .from(1, SIGNED_LONG_INT)
                 .binaryOperation(counterVariableDeclaration, BinaryOperator.PLUS)
                 .assignTo(counterVariableDeclaration);
 

@@ -112,7 +112,7 @@ public class LoopExtrapolationStrategy extends LoopStrategy {
               iterationsMaybe =
                   Optional.of(
                       new AExpressionFactory()
-                          .from(Integer.valueOf(1), LoopStrategy.INTTYPE)
+                          .from(Integer.valueOf(1), LoopStrategy.SIGNED_LONG_INT)
                           .build());
             }
             break;
@@ -126,7 +126,7 @@ public class LoopExtrapolationStrategy extends LoopStrategy {
                               Integer.valueOf(
                                   operand2variableDelta.orElseThrow()
                                       - operand1variableDelta.orElseThrow()),
-                              LoopStrategy.INTTYPE,
+                              LoopStrategy.SIGNED_LONG_INT,
                               CBinaryExpression.BinaryOperator.DIVIDE)
                           .build());
             }
@@ -141,11 +141,11 @@ public class LoopExtrapolationStrategy extends LoopStrategy {
                               Integer.valueOf(
                                   operand2variableDelta.orElseThrow()
                                       - operand1variableDelta.orElseThrow()),
-                              LoopStrategy.INTTYPE,
+                              LoopStrategy.SIGNED_LONG_INT,
                               CBinaryExpression.BinaryOperator.DIVIDE)
                           .binaryOperation(
                               Integer.valueOf(1),
-                              LoopStrategy.INTTYPE,
+                              LoopStrategy.SIGNED_LONG_INT,
                               CBinaryExpression.BinaryOperator.PLUS)
                           .build());
             }
@@ -160,11 +160,11 @@ public class LoopExtrapolationStrategy extends LoopStrategy {
                               Integer.valueOf(
                                   operand1variableDelta.orElseThrow()
                                       - operand2variableDelta.orElseThrow()),
-                              LoopStrategy.INTTYPE,
+                              LoopStrategy.SIGNED_LONG_INT,
                               CBinaryExpression.BinaryOperator.DIVIDE)
                           .binaryOperation(
                               Integer.valueOf(1),
-                              LoopStrategy.INTTYPE,
+                              LoopStrategy.SIGNED_LONG_INT,
                               CBinaryExpression.BinaryOperator.PLUS)
                           .build());
             }
@@ -179,7 +179,7 @@ public class LoopExtrapolationStrategy extends LoopStrategy {
                               Integer.valueOf(
                                   operand1variableDelta.orElseThrow()
                                       - operand2variableDelta.orElseThrow()),
-                              LoopStrategy.INTTYPE,
+                              LoopStrategy.SIGNED_LONG_INT,
                               CBinaryExpression.BinaryOperator.DIVIDE)
                           .build());
             }
@@ -197,7 +197,7 @@ public class LoopExtrapolationStrategy extends LoopStrategy {
               iterationsMaybe =
                   Optional.of(
                       new AExpressionFactory()
-                          .from(Integer.valueOf(1), LoopStrategy.INTTYPE)
+                          .from(Integer.valueOf(1), LoopStrategy.SIGNED_LONG_INT)
                           .build());
             }
             break;
