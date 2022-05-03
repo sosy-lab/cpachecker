@@ -102,9 +102,8 @@ public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperT
     return predicateTransferRelation.getAbstractSuccessorsForEdge(state, precision, cfaEdge);
   }
 
-  private void processAllCoverageMeasures(Precision precision,
-                                          CFAEdge cfaEdge,
-                                          AbstractState state) {
+  private void processAllCoverageMeasures(
+      Precision precision, CFAEdge cfaEdge, AbstractState state) {
     if (precision instanceof PredicatePrecision) {
       PredicatePrecision predicatePrecision = (PredicatePrecision) precision;
       processPredicates(predicatePrecision);
@@ -114,8 +113,7 @@ public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperT
     }
   }
 
-  private void processPredicatesAbstractStateCoverage(CFAEdge edge,
-                                                      AbstractState state) {
+  private void processPredicatesAbstractStateCoverage(CFAEdge edge, AbstractState state) {
     Set<CFANode> allAbstractStateCoveredNodes = getAllAbstractStatesCoveredNodes(state);
     coverageData.addAbstractStateCoveredNodes(allAbstractStateCoveredNodes, edge);
     abstractStateCoveredNodesTDCG.addTimeStamp(

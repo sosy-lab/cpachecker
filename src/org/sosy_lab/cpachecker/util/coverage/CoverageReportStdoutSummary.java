@@ -84,7 +84,8 @@ public class CoverageReportStdoutSummary {
           pStdOut, 1, 25, "Predicate-considered nodes", numPredicateConsideredNodes);
       StatisticsUtils.write(
           pStdOut, 1, 25, "Predicate-relevant-variables nodes", numPredicateRelevantVariablesNodes);
-      StatisticsUtils.write(pStdOut, 1, 25, "Predicate-covered nodes", numAbstractStateCoveredNodes);
+      StatisticsUtils.write(
+          pStdOut, 1, 25, "Predicate-covered nodes", numAbstractStateCoveredNodes);
       StatisticsUtils.write(pStdOut, 1, 25, "Total nodes", numTotalNodes);
 
       StatisticsUtils.write(
