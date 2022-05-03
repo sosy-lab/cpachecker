@@ -458,12 +458,11 @@ public final class LoopStructure implements Serializable {
           .result();
     }
 
-    /*
-     * Return the bound as a CExpression, if it exists.
-     * This is specially the case for while loops of the form
-     * while (EXPR) {}
-     * Other cases may be applicable but have not been considered in this iteration.
-     * TODO cases of the form (EXPR1 || EXPR2) are currently not supported
+    /**
+     * Return the bound as a CExpression, if it can be determined. This is specially the case for
+     * while loops of the form while (EXPR) {BODY} Other cases may be applicable but have not been
+     * considered in this iteration. TODO cases of the form (EXPR1 || EXPR2) are currently not
+     * supported
      */
     public Optional<AExpression> getBound() {
       if (this.getLoopHeads().size() != 1) {
@@ -500,6 +499,9 @@ public final class LoopStructure implements Serializable {
               return Optional.empty();
             } else {
               if (!(boundEdge instanceof AssumeEdge) || innerEdges.hasNext()) {
+                // if there are more than one inner edges, this means there is an if inside the loop
+                // body, so we do not want to add the condition of that if to the loop condition,
+                // cf. test/programs/loopsummary/naive3_no_summary.c
                 continueBuildingBound = false;
               } else {
                 // TODO Generalize for Java Expressions
@@ -530,9 +532,7 @@ public final class LoopStructure implements Serializable {
       }
     }
 
-    /*
-     * @param varName: The qualified Name of the Variable Declaration
-     */
+    /** @param varName: The qualified Name of the Variable Declaration */
     public Optional<Integer> getDelta(String varName) {
       this.computeSets();
       if (!this.loopIncDecVariables.containsKey(varName)) {
