@@ -169,7 +169,7 @@ public class NondetBoundConstantExtrapolationStrategy extends ConstantExtrapolat
       return Optional.empty();
     }
 
-    if (!loopStructure.hasOnlyConstantVariableModifications()
+    if (!hasOnlyConstantVariableModifications(loopStructure)
         || loopStructure.amountOfInnerAssumeEdges() != 1) {
       return Optional.empty();
     }

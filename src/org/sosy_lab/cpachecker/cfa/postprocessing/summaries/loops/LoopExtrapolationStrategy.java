@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -16,7 +17,11 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
+import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -28,13 +33,17 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.factories.AExpressionFactory;
 import org.sosy_lab.cpachecker.cfa.ast.factories.TypeFactory;
+import org.sosy_lab.cpachecker.cfa.ast.visitors.LinearVariableDependencyVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.visitors.OnlyConstantVariableIncrementsVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.visitors.ReplaceVariablesVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.visitors.VariableCollectorVisitor;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependency;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.utils.LinearVariableDependency;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.utils.LoopVariableDeltaVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -44,6 +53,12 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 
 public class LoopExtrapolationStrategy extends LoopStrategy {
+
+  // maps for caching the flags for each loop; not thread-safe
+  // TODO: we compute this more than once if we use multiple (child) class instances
+  // at once, so at some point we might want to optimize this (though this should not be relevant)
+  private final Map<Loop, Boolean> onlyConstantVariableModifications = new HashMap<>();
+  private final Map<Loop, Boolean> onlyLinearVariableModifications = new HashMap<>();
 
   protected Integer nameCounter = 0;
   protected static final String LA_TMP_VAR_PREFIX = "TmpVariableReallyReallyTmp";
@@ -68,8 +83,7 @@ public class LoopExtrapolationStrategy extends LoopStrategy {
     Optional<AExpression> iterationsMaybe = Optional.empty();
     // TODO For now it only works for c programs
     if (loopBoundExpression instanceof CBinaryExpression) {
-      LoopVariableDeltaVisitor variableVisitor =
-          new LoopVariableDeltaVisitor(loopStructure, true);
+      LoopVariableDeltaVisitor variableVisitor = new LoopVariableDeltaVisitor(loopStructure, true);
 
       CExpression operand1 = ((CBinaryExpression) loopBoundExpression).getOperand1();
       CExpression operand2 = ((CBinaryExpression) loopBoundExpression).getOperand2();
@@ -331,6 +345,69 @@ public class LoopExtrapolationStrategy extends LoopStrategy {
     currentSummaryNode = nextSummaryNode;
 
     return Optional.of(Pair.of(currentSummaryNode, iterationsVariable));
+  }
+
+  protected boolean hasOnlyConstantVariableModifications(Loop loop) {
+    if (!onlyConstantVariableModifications.containsKey(loop)) {
+      onlyConstantVariableModifications.put(loop, true);
+      // Calculate the value if it is not present
+      for (CFAEdge e : loop.getInnerLoopEdges()) {
+        if (e instanceof AStatementEdge) {
+          AStatementEdge stmtEdge = (AStatementEdge) e;
+          if (stmtEdge.getStatement() instanceof AAssignment) {
+            AAssignment assignment = (AAssignment) stmtEdge.getStatement();
+            ALeftHandSide leftHandSide = assignment.getLeftHandSide();
+            ARightHandSide rightHandSide = assignment.getRightHandSide();
+            if (leftHandSide instanceof AIdExpression && rightHandSide instanceof AExpression) {
+              OnlyConstantVariableIncrementsVisitor visitor =
+                  new OnlyConstantVariableIncrementsVisitor(
+                      Optional.of(
+                          ImmutableSet.of(
+                              (AVariableDeclaration)
+                                  ((AIdExpression) leftHandSide).getDeclaration())));
+              if (!((AExpression) rightHandSide).accept_(visitor)) {
+                onlyConstantVariableModifications.put(loop, false);
+                break;
+              }
+            }
+          }
+        }
+      }
+    }
+    return onlyConstantVariableModifications.get(loop);
+  }
+
+  protected boolean hasOnlyLinearVariableModifications(Loop loop) {
+    if (!onlyLinearVariableModifications.containsKey(loop)) {
+      if (onlyConstantVariableModifications.containsKey(loop)
+          && onlyConstantVariableModifications.get(loop)) {
+        onlyLinearVariableModifications.put(loop, true);
+        return true;
+      }
+
+      // Calculate the value if it is not present
+      onlyLinearVariableModifications.put(loop, true);
+      for (CFAEdge e : loop.getInnerLoopEdges()) {
+        if (e instanceof AStatementEdge) {
+          AStatementEdge stmtEdge = (AStatementEdge) e;
+          if (stmtEdge.getStatement() instanceof AAssignment) {
+            AAssignment assignment = (AAssignment) stmtEdge.getStatement();
+            ALeftHandSide leftHandSide = assignment.getLeftHandSide();
+            ARightHandSide rightHandSide = assignment.getRightHandSide();
+            if (leftHandSide instanceof AIdExpression && rightHandSide instanceof AExpression) {
+              LinearVariableDependencyVisitor visitor = new LinearVariableDependencyVisitor();
+              Optional<LinearVariableDependency> valueOptional =
+                  ((AExpression) rightHandSide).accept_(visitor);
+              if (!valueOptional.isPresent()) {
+                onlyLinearVariableModifications.put(loop, false);
+                break;
+              }
+            }
+          }
+        }
+      }
+    }
+    return onlyLinearVariableModifications.get(loop);
   }
 
   @Override

@@ -61,7 +61,6 @@ import org.sosy_lab.cpachecker.cfa.ast.factories.AExpressionFactory;
 import org.sosy_lab.cpachecker.cfa.ast.factories.AFunctionFactory;
 import org.sosy_lab.cpachecker.cfa.ast.visitors.AggregateConstantsVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.visitors.LinearVariableDependencyVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.visitors.OnlyConstantVariableIncrementsVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.visitors.VariableCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
@@ -135,8 +134,6 @@ public final class LoopStructure implements Serializable {
     private Set<AVariableDeclaration> readVariables;
 
     private transient LinearVariableDependencyGraph linearVariableDependencies;
-    private Boolean onlyConstantVariableModifications = null;
-    private Boolean onlyLinearVariableModifications = null;
     private Set<CFAEdge> innerAssumeEdges = null;
 
     private Loop(CFANode loopHead, Set<CFANode> pNodes) {
@@ -625,86 +622,6 @@ public final class LoopStructure implements Serializable {
     public LinearVariableDependencyGraph getLinearVariableDependencies() {
       this.computeSets();
       return this.linearVariableDependencies;
-    }
-
-    public boolean hasOnlyConstantVariableModifications() {
-      if (onlyConstantVariableModifications == null) {
-        onlyConstantVariableModifications = true;
-        // Calculate the value if it is not present
-        for (CFAEdge e : this.getInnerLoopEdges()) {
-          if (e instanceof AStatementEdge) {
-            AStatementEdge stmtEdge = (AStatementEdge) e;
-            if (stmtEdge.getStatement() instanceof AAssignment) {
-              AAssignment assignment = (AAssignment) stmtEdge.getStatement();
-              ALeftHandSide leftHandSide = assignment.getLeftHandSide();
-              ARightHandSide rightHandSide = assignment.getRightHandSide();
-              if (leftHandSide instanceof AIdExpression && rightHandSide instanceof AExpression) {
-                OnlyConstantVariableIncrementsVisitor visitor =
-                    new OnlyConstantVariableIncrementsVisitor(
-                        Optional.of(
-                            ImmutableSet.of(
-                                (AVariableDeclaration)
-                                    ((AIdExpression) leftHandSide).getDeclaration())));
-                try {
-                  onlyConstantVariableModifications =
-                      onlyConstantVariableModifications
-                          && ((AExpression) rightHandSide).accept_(visitor);
-                } catch (Exception e1) {
-                  onlyConstantVariableModifications = Boolean.valueOf(false);
-                }
-                if (!onlyConstantVariableModifications.booleanValue()) {
-                  break;
-                }
-              }
-            }
-          }
-        }
-        return onlyConstantVariableModifications.booleanValue();
-      } else {
-        return onlyConstantVariableModifications.booleanValue();
-      }
-    }
-
-    public boolean hasOnlyLinearVariableModifications() {
-      if (onlyLinearVariableModifications == null) {
-        if (onlyConstantVariableModifications != null) {
-          if (onlyConstantVariableModifications.booleanValue()) {
-            onlyLinearVariableModifications = onlyConstantVariableModifications;
-            return onlyLinearVariableModifications.booleanValue();
-          }
-        }
-
-        // Calculate the value if it is not present
-        onlyLinearVariableModifications = true;
-        for (CFAEdge e : this.getInnerLoopEdges()) {
-          if (e instanceof AStatementEdge) {
-            AStatementEdge stmtEdge = (AStatementEdge) e;
-            if (stmtEdge.getStatement() instanceof AAssignment) {
-              AAssignment assignment = (AAssignment) stmtEdge.getStatement();
-              ALeftHandSide leftHandSide = assignment.getLeftHandSide();
-              ARightHandSide rightHandSide = assignment.getRightHandSide();
-              if (leftHandSide instanceof AIdExpression && rightHandSide instanceof AExpression) {
-                LinearVariableDependencyVisitor visitor = new LinearVariableDependencyVisitor();
-                Optional<LinearVariableDependency> valueOptional = Optional.empty();
-                try {
-                  valueOptional = ((AExpression) rightHandSide).accept_(visitor);
-                } catch (Exception e1) {
-                  onlyLinearVariableModifications = false;
-                }
-                onlyLinearVariableModifications =
-                    onlyLinearVariableModifications && Boolean.valueOf(valueOptional.isPresent());
-                if (!onlyLinearVariableModifications.booleanValue()) {
-                  break;
-                }
-              }
-            }
-          }
-        }
-
-        return onlyLinearVariableModifications.booleanValue();
-      } else {
-        return onlyLinearVariableModifications.booleanValue();
-      }
     }
 
     public Integer amountOfInnerAssumeEdges() {

@@ -283,7 +283,7 @@ public class ConstantExtrapolationStrategy extends LoopExtrapolationStrategy {
     }
     Loop loopStructure = loopStructureMaybe.orElseThrow();
 
-    if (!loopStructure.hasOnlyConstantVariableModifications()
+    if (!hasOnlyConstantVariableModifications(loopStructure)
         || loopStructure.amountOfInnerAssumeEdges() != 1) {
       return Optional.empty();
     }

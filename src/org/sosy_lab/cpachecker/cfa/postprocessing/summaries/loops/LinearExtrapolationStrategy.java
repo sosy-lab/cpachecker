@@ -77,9 +77,9 @@ public class LinearExtrapolationStrategy extends LoopExtrapolationStrategy {
     }
     Loop loopStructure = loopStructureMaybe.orElseThrow();
 
-    if (loopStructure.hasOnlyConstantVariableModifications()
+    if (hasOnlyConstantVariableModifications(loopStructure)
         || loopStructure.amountOfInnerAssumeEdges() != 1
-        || !loopStructure.hasOnlyLinearVariableModifications()) {
+        || !hasOnlyLinearVariableModifications(loopStructure)) {
       return Optional.empty();
     }
 
