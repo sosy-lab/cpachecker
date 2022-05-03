@@ -27,6 +27,7 @@ import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.parser.llvm.LlvmUtils;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.ClangParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -80,7 +81,10 @@ public class LlvmParserWithClangTest {
       assume()
           .that(e)
           .hasMessageThat()
-          .doesNotContain("Clang failed: Cannot run program \"clang-9\": error=2");
+          .doesNotContain(
+              "Clang failed: Cannot run program \"clang-"
+                  + LlvmUtils.extractVersionNumberFromLlvmJ()
+                  + "\": error=2");
       throw e;
     }
     ParseResult stringResult = stringParser.parseString(fileName, code);
