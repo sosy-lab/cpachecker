@@ -40,96 +40,97 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JNullLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeEqualsType;
 import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 
-public class OnlyConstantVariableIncrementsVisitor<X extends Exception>
-    extends AExpressionVisitor<Boolean, X> {
+public class OnlyConstantVariableIncrementsVisitor
+    extends AExpressionVisitor<Boolean, NoException> {
 
   Optional<Set<AVariableDeclaration>> knownVariables;
-  AggregateConstantsVisitor<X> constantExpressionsVisitor;
+  AggregateConstantsVisitor constantExpressionsVisitor;
 
   public OnlyConstantVariableIncrementsVisitor(
       Optional<Set<AVariableDeclaration>> pKnownVariables) {
     knownVariables = pKnownVariables;
-    constantExpressionsVisitor = new AggregateConstantsVisitor<>(Optional.empty(), false);
+    constantExpressionsVisitor = new AggregateConstantsVisitor(Optional.empty(), false);
   }
 
   @Override
-  public Boolean visit(CTypeIdExpression pIastTypeIdExpression) throws X {
+  public Boolean visit(CTypeIdExpression pIastTypeIdExpression) {
     return Boolean.valueOf(false);
   }
 
   @Override
-  public Boolean visit(CImaginaryLiteralExpression PIastLiteralExpression) throws X {
+  public Boolean visit(CImaginaryLiteralExpression PIastLiteralExpression) {
     return Boolean.valueOf(false);
   }
 
   @Override
-  public Boolean visit(CAddressOfLabelExpression pAddressOfLabelExpression) throws X {
+  public Boolean visit(CAddressOfLabelExpression pAddressOfLabelExpression) {
     return Boolean.valueOf(false);
   }
 
   @Override
-  public Boolean visit(CFieldReference pIastFieldReference) throws X {
+  public Boolean visit(CFieldReference pIastFieldReference) {
     return Boolean.valueOf(false);
   }
 
   @Override
-  public Boolean visit(CPointerExpression pPointerExpression) throws X {
+  public Boolean visit(CPointerExpression pPointerExpression) {
     return Boolean.valueOf(false);
   }
 
   @Override
-  public Boolean visit(CComplexCastExpression pComplexCastExpression) throws X {
+  public Boolean visit(CComplexCastExpression pComplexCastExpression) {
     return Boolean.valueOf(false);
   }
 
   @Override
-  public Boolean visit(JArrayCreationExpression pJArrayCreationExpression) throws X {
+  public Boolean visit(JArrayCreationExpression pJArrayCreationExpression) {
     return Boolean.valueOf(false);
   }
 
   @Override
-  public Boolean visit(JArrayInitializer pJArrayInitializer) throws X {
+  public Boolean visit(JArrayInitializer pJArrayInitializer) {
     return Boolean.valueOf(false);
   }
 
   @Override
-  public Boolean visit(JArrayLengthExpression pJArrayLengthExpression) throws X {
+  public Boolean visit(JArrayLengthExpression pJArrayLengthExpression) {
     return Boolean.valueOf(false);
   }
 
   @Override
-  public Boolean visit(JVariableRunTimeType pJThisRunTimeType) throws X {
+  public Boolean visit(JVariableRunTimeType pJThisRunTimeType) {
     return Boolean.valueOf(false);
   }
 
   @Override
-  public Boolean visit(JRunTimeTypeEqualsType pJRunTimeTypeEqualsType) throws X {
+  public Boolean visit(JRunTimeTypeEqualsType pJRunTimeTypeEqualsType) {
     return Boolean.valueOf(false);
   }
 
   @Override
-  public Boolean visit(JNullLiteralExpression pJNullLiteralExpression) throws X {
+  public Boolean visit(JNullLiteralExpression pJNullLiteralExpression) {
     return Boolean.valueOf(false);
   }
 
   @Override
-  public Boolean visit(JEnumConstantExpression pJEnumConstantExpression) throws X {
+  public Boolean visit(JEnumConstantExpression pJEnumConstantExpression) {
     return Boolean.valueOf(false);
   }
 
   @Override
-  public Boolean visit(JThisExpression pThisExpression) throws X {
+  public Boolean visit(JThisExpression pThisExpression) {
     return Boolean.valueOf(false);
   }
 
   @Override
-  public Boolean visit(AArraySubscriptExpression pExp) throws X {
+  public Boolean visit(AArraySubscriptExpression pExp) {
     return Boolean.valueOf(false);
   }
 
   @Override
-  public Boolean visit(AIdExpression pExp) throws X {
+  public Boolean visit(AIdExpression pExp) {
     if (this.knownVariables.isEmpty()) {
       return Boolean.valueOf(false);
     } else if (this.knownVariables.orElseThrow().contains(pExp.getDeclaration())) {
@@ -140,7 +141,7 @@ public class OnlyConstantVariableIncrementsVisitor<X extends Exception>
   }
 
   @Override
-  public Boolean visit(ABinaryExpression pExp) throws X {
+  public Boolean visit(ABinaryExpression pExp) {
     if (pExp instanceof CBinaryExpression) {
 
       switch (((CBinaryExpression) pExp).getOperator()) {
@@ -159,34 +160,34 @@ public class OnlyConstantVariableIncrementsVisitor<X extends Exception>
   }
 
   @Override
-  public Boolean visit(ACastExpression pExp) throws X {
+  public Boolean visit(ACastExpression pExp) {
     // TODO: How do we handle casts?
     return Boolean.valueOf(false);
   }
 
   @Override
-  public Boolean visit(ACharLiteralExpression pExp) throws X {
+  public Boolean visit(ACharLiteralExpression pExp) {
     return Boolean.valueOf(false);
   }
 
   @Override
-  public Boolean visit(AFloatLiteralExpression pExp) throws X {
+  public Boolean visit(AFloatLiteralExpression pExp) {
     // TODO: How do we handle floats?
     return Boolean.valueOf(false);
   }
 
   @Override
-  public Boolean visit(AIntegerLiteralExpression pExp) throws X {
+  public Boolean visit(AIntegerLiteralExpression pExp) {
     return Boolean.valueOf(true);
   }
 
   @Override
-  public Boolean visit(AStringLiteralExpression pExp) throws X {
+  public Boolean visit(AStringLiteralExpression pExp) {
     return Boolean.valueOf(false);
   }
 
   @Override
-  public Boolean visit(AUnaryExpression pExp) throws X {
+  public Boolean visit(AUnaryExpression pExp) {
     if (pExp instanceof CUnaryExpression) {
       if (pExp.getOperator() == UnaryOperator.MINUS) {
         return pExp.getOperand().accept_(this);
@@ -196,12 +197,12 @@ public class OnlyConstantVariableIncrementsVisitor<X extends Exception>
   }
 
   @Override
-  public Boolean visit(JBooleanLiteralExpression pJBooleanLiteralExpression) throws X {
+  public Boolean visit(JBooleanLiteralExpression pJBooleanLiteralExpression) {
     return Boolean.valueOf(false);
   }
 
   @Override
-  public Boolean visit(JClassLiteralExpression pJClassLiteralExpression) throws X {
+  public Boolean visit(JClassLiteralExpression pJClassLiteralExpression) {
     return Boolean.valueOf(false);
   }
 }

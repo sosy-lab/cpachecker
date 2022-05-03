@@ -41,13 +41,13 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JNullLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeEqualsType;
 import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 
-public class AggregateConstantsVisitor<X extends Exception>
-    extends AExpressionVisitor<Optional<Integer>, X> {
+public class AggregateConstantsVisitor extends AExpressionVisitor<Optional<Integer>, NoException> {
 
   Optional<Set<AVariableDeclaration>> knownVariables;
   private boolean linearTermsOnly;
-  AggregateConstantsVisitor<X> noVariablesVisitor;
+  AggregateConstantsVisitor noVariablesVisitor;
 
   /*
    * The Set of Known variables must contain the qualified names of the variables
@@ -57,89 +57,89 @@ public class AggregateConstantsVisitor<X extends Exception>
     knownVariables = pKnownVariables;
     linearTermsOnly = pLinearTermsOnly;
     if (pKnownVariables.isPresent()) {
-      noVariablesVisitor = new AggregateConstantsVisitor<>(Optional.empty(), linearTermsOnly);
+      noVariablesVisitor = new AggregateConstantsVisitor(Optional.empty(), linearTermsOnly);
     } else {
       noVariablesVisitor = this;
     }
   }
 
   @Override
-  public Optional<Integer> visit(CTypeIdExpression pIastTypeIdExpression) throws X {
+  public Optional<Integer> visit(CTypeIdExpression pIastTypeIdExpression) {
     return Optional.empty();
   }
 
   @Override
-  public Optional<Integer> visit(CImaginaryLiteralExpression PIastLiteralExpression) throws X {
+  public Optional<Integer> visit(CImaginaryLiteralExpression PIastLiteralExpression) {
     return Optional.empty();
   }
 
   @Override
-  public Optional<Integer> visit(CAddressOfLabelExpression pAddressOfLabelExpression) throws X {
+  public Optional<Integer> visit(CAddressOfLabelExpression pAddressOfLabelExpression) {
     return Optional.empty();
   }
 
   @Override
-  public Optional<Integer> visit(CFieldReference pIastFieldReference) throws X {
+  public Optional<Integer> visit(CFieldReference pIastFieldReference) {
     return Optional.empty();
   }
 
   @Override
-  public Optional<Integer> visit(CPointerExpression pPointerExpression) throws X {
+  public Optional<Integer> visit(CPointerExpression pPointerExpression) {
     return Optional.empty();
   }
 
   @Override
-  public Optional<Integer> visit(CComplexCastExpression pComplexCastExpression) throws X {
+  public Optional<Integer> visit(CComplexCastExpression pComplexCastExpression) {
     return Optional.empty();
   }
 
   @Override
-  public Optional<Integer> visit(JArrayCreationExpression pJArrayCreationExpression) throws X {
+  public Optional<Integer> visit(JArrayCreationExpression pJArrayCreationExpression) {
     return Optional.empty();
   }
 
   @Override
-  public Optional<Integer> visit(JArrayInitializer pJArrayInitializer) throws X {
+  public Optional<Integer> visit(JArrayInitializer pJArrayInitializer) {
     return Optional.empty();
   }
 
   @Override
-  public Optional<Integer> visit(JArrayLengthExpression pJArrayLengthExpression) throws X {
+  public Optional<Integer> visit(JArrayLengthExpression pJArrayLengthExpression) {
     return Optional.empty();
   }
 
   @Override
-  public Optional<Integer> visit(JVariableRunTimeType pJThisRunTimeType) throws X {
+  public Optional<Integer> visit(JVariableRunTimeType pJThisRunTimeType) {
     return Optional.empty();
   }
 
   @Override
-  public Optional<Integer> visit(JRunTimeTypeEqualsType pJRunTimeTypeEqualsType) throws X {
+  public Optional<Integer> visit(JRunTimeTypeEqualsType pJRunTimeTypeEqualsType) {
     return Optional.empty();
   }
 
   @Override
-  public Optional<Integer> visit(JNullLiteralExpression pJNullLiteralExpression) throws X {
+  public Optional<Integer> visit(JNullLiteralExpression pJNullLiteralExpression) {
     return Optional.empty();
   }
 
   @Override
-  public Optional<Integer> visit(JEnumConstantExpression pJEnumConstantExpression) throws X {
+  public Optional<Integer> visit(JEnumConstantExpression pJEnumConstantExpression) {
     return Optional.empty();
   }
 
   @Override
-  public Optional<Integer> visit(JThisExpression pThisExpression) throws X {
+  public Optional<Integer> visit(JThisExpression pThisExpression) {
     return Optional.empty();
   }
 
   @Override
-  public Optional<Integer> visit(AArraySubscriptExpression pExp) throws X {
+  public Optional<Integer> visit(AArraySubscriptExpression pExp) {
     return Optional.empty();
   }
 
   @Override
-  public Optional<Integer> visit(AIdExpression pExp) throws X {
+  public Optional<Integer> visit(AIdExpression pExp) {
     if (this.knownVariables.isEmpty()) {
       return Optional.empty();
     } else if (this.knownVariables.orElseThrow().contains(pExp.getDeclaration())) {
@@ -150,7 +150,7 @@ public class AggregateConstantsVisitor<X extends Exception>
   }
 
   @Override
-  public Optional<Integer> visit(ABinaryExpression pExp) throws X {
+  public Optional<Integer> visit(ABinaryExpression pExp) {
     if (pExp instanceof CBinaryExpression) {
       Optional<Integer> operand1Maybe = pExp.getOperand1().accept_(this);
       if (((CBinaryExpression) pExp).getOperator() == BinaryOperator.DIVIDE) {
@@ -202,33 +202,33 @@ public class AggregateConstantsVisitor<X extends Exception>
   }
 
   @Override
-  public Optional<Integer> visit(ACastExpression pExp) throws X {
+  public Optional<Integer> visit(ACastExpression pExp) {
     return Optional.empty();
   }
 
   @Override
-  public Optional<Integer> visit(ACharLiteralExpression pExp) throws X {
+  public Optional<Integer> visit(ACharLiteralExpression pExp) {
     return Optional.empty();
   }
 
   @Override
-  public Optional<Integer> visit(AFloatLiteralExpression pExp) throws X {
+  public Optional<Integer> visit(AFloatLiteralExpression pExp) {
     // TODO: How do we handle floats?
     return Optional.empty();
   }
 
   @Override
-  public Optional<Integer> visit(AIntegerLiteralExpression pExp) throws X {
+  public Optional<Integer> visit(AIntegerLiteralExpression pExp) {
     return Optional.of(pExp.getValue().intValue());
   }
 
   @Override
-  public Optional<Integer> visit(AStringLiteralExpression pExp) throws X {
+  public Optional<Integer> visit(AStringLiteralExpression pExp) {
     return Optional.empty();
   }
 
   @Override
-  public Optional<Integer> visit(AUnaryExpression pExp) throws X {
+  public Optional<Integer> visit(AUnaryExpression pExp) {
     if (pExp instanceof CUnaryExpression) {
       if (pExp.getOperator() == UnaryOperator.MINUS) {
         Optional<Integer> operandEvaluated = pExp.getOperand().accept_(this);
@@ -241,12 +241,12 @@ public class AggregateConstantsVisitor<X extends Exception>
   }
 
   @Override
-  public Optional<Integer> visit(JBooleanLiteralExpression pJBooleanLiteralExpression) throws X {
+  public Optional<Integer> visit(JBooleanLiteralExpression pJBooleanLiteralExpression) {
     return Optional.empty();
   }
 
   @Override
-  public Optional<Integer> visit(JClassLiteralExpression pJClassLiteralExpression) throws X {
+  public Optional<Integer> visit(JClassLiteralExpression pJClassLiteralExpression) {
     return Optional.empty();
   }
 }

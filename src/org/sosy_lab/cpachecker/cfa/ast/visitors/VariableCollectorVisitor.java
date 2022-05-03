@@ -37,144 +37,139 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JNullLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeEqualsType;
 import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 
-public class VariableCollectorVisitor<X extends Exception>
-    extends AExpressionVisitor<Set<AVariableDeclaration>, X> {
+public class VariableCollectorVisitor
+    extends AExpressionVisitor<Set<AVariableDeclaration>, NoException> {
 
   @Override
-  public Set<AVariableDeclaration> visit(CTypeIdExpression pIastTypeIdExpression) throws X {
+  public Set<AVariableDeclaration> visit(CTypeIdExpression pIastTypeIdExpression) {
     return new HashSet<>();
   }
 
   @Override
-  public Set<AVariableDeclaration> visit(CImaginaryLiteralExpression PIastLiteralExpression)
-      throws X {
+  public Set<AVariableDeclaration> visit(CImaginaryLiteralExpression PIastLiteralExpression) {
     return new HashSet<>();
   }
 
   @Override
-  public Set<AVariableDeclaration> visit(CAddressOfLabelExpression pAddressOfLabelExpression)
-      throws X {
+  public Set<AVariableDeclaration> visit(CAddressOfLabelExpression pAddressOfLabelExpression) {
     return new HashSet<>();
   }
 
   @Override
-  public Set<AVariableDeclaration> visit(CFieldReference pIastFieldReference) throws X {
+  public Set<AVariableDeclaration> visit(CFieldReference pIastFieldReference) {
     return pIastFieldReference.getFieldOwner().accept(this);
   }
 
   @Override
-  public Set<AVariableDeclaration> visit(CPointerExpression pPointerExpression) throws X {
+  public Set<AVariableDeclaration> visit(CPointerExpression pPointerExpression) {
     return pPointerExpression.getOperand().accept(this);
   }
 
   @Override
-  public Set<AVariableDeclaration> visit(CComplexCastExpression pComplexCastExpression) throws X {
+  public Set<AVariableDeclaration> visit(CComplexCastExpression pComplexCastExpression) {
     return new HashSet<>();
   }
 
   @Override
-  public Set<AVariableDeclaration> visit(JBooleanLiteralExpression pJBooleanLiteralExpression)
-      throws X {
+  public Set<AVariableDeclaration> visit(JBooleanLiteralExpression pJBooleanLiteralExpression) {
     return new HashSet<>();
   }
 
   @Override
-  public Set<AVariableDeclaration> visit(JArrayCreationExpression pJArrayCreationExpression)
-      throws X {
+  public Set<AVariableDeclaration> visit(JArrayCreationExpression pJArrayCreationExpression) {
     return new HashSet<>();
   }
 
   @Override
-  public Set<AVariableDeclaration> visit(JArrayInitializer pJArrayInitializer) throws X {
+  public Set<AVariableDeclaration> visit(JArrayInitializer pJArrayInitializer) {
     return new HashSet<>();
   }
 
   @Override
-  public Set<AVariableDeclaration> visit(JArrayLengthExpression pJArrayLengthExpression) throws X {
+  public Set<AVariableDeclaration> visit(JArrayLengthExpression pJArrayLengthExpression) {
     return new HashSet<>();
   }
 
   @Override
-  public Set<AVariableDeclaration> visit(JVariableRunTimeType pJThisRunTimeType) throws X {
+  public Set<AVariableDeclaration> visit(JVariableRunTimeType pJThisRunTimeType) {
     return new HashSet<>();
   }
 
   @Override
-  public Set<AVariableDeclaration> visit(JRunTimeTypeEqualsType pJRunTimeTypeEqualsType) throws X {
+  public Set<AVariableDeclaration> visit(JRunTimeTypeEqualsType pJRunTimeTypeEqualsType) {
     return new HashSet<>();
   }
 
   @Override
-  public Set<AVariableDeclaration> visit(JNullLiteralExpression pJNullLiteralExpression) throws X {
+  public Set<AVariableDeclaration> visit(JNullLiteralExpression pJNullLiteralExpression) {
     return new HashSet<>();
   }
 
   @Override
-  public Set<AVariableDeclaration> visit(JEnumConstantExpression pJEnumConstantExpression)
-      throws X {
+  public Set<AVariableDeclaration> visit(JEnumConstantExpression pJEnumConstantExpression) {
     return new HashSet<>();
   }
 
   @Override
-  public Set<AVariableDeclaration> visit(JThisExpression pThisExpression) throws X {
+  public Set<AVariableDeclaration> visit(JThisExpression pThisExpression) {
     return new HashSet<>();
   }
 
   @Override
-  public Set<AVariableDeclaration> visit(AArraySubscriptExpression pExp) throws X {
+  public Set<AVariableDeclaration> visit(AArraySubscriptExpression pExp) {
     Set<AVariableDeclaration> result = pExp.getArrayExpression().accept_(this);
     result.addAll(pExp.getSubscriptExpression().accept_(this));
     return result;
   }
 
   @Override
-  public Set<AVariableDeclaration> visit(AIdExpression pExp) throws X {
+  public Set<AVariableDeclaration> visit(AIdExpression pExp) {
     Set<AVariableDeclaration> modifiedVariables = new HashSet<>();
     modifiedVariables.add((AVariableDeclaration) pExp.getDeclaration());
     return modifiedVariables;
   }
 
   @Override
-  public Set<AVariableDeclaration> visit(ABinaryExpression pExp) throws X {
+  public Set<AVariableDeclaration> visit(ABinaryExpression pExp) {
     Set<AVariableDeclaration> modifiedVariables = pExp.getOperand1().accept_(this);
     modifiedVariables.addAll(pExp.getOperand2().accept_(this));
     return modifiedVariables;
   }
 
   @Override
-  public Set<AVariableDeclaration> visit(ACastExpression pExp) throws X {
+  public Set<AVariableDeclaration> visit(ACastExpression pExp) {
     return pExp.getOperand().accept_(this);
   }
 
   @Override
-  public Set<AVariableDeclaration> visit(ACharLiteralExpression pExp) throws X {
+  public Set<AVariableDeclaration> visit(ACharLiteralExpression pExp) {
     return new HashSet<>();
   }
 
   @Override
-  public Set<AVariableDeclaration> visit(AFloatLiteralExpression pExp) throws X {
+  public Set<AVariableDeclaration> visit(AFloatLiteralExpression pExp) {
     return new HashSet<>();
   }
 
   @Override
-  public Set<AVariableDeclaration> visit(AIntegerLiteralExpression pExp) throws X {
+  public Set<AVariableDeclaration> visit(AIntegerLiteralExpression pExp) {
     return new HashSet<>();
   }
 
   @Override
-  public Set<AVariableDeclaration> visit(AStringLiteralExpression pExp) throws X {
+  public Set<AVariableDeclaration> visit(AStringLiteralExpression pExp) {
     return new HashSet<>();
   }
 
   @Override
-  public Set<AVariableDeclaration> visit(AUnaryExpression pExp) throws X {
+  public Set<AVariableDeclaration> visit(AUnaryExpression pExp) {
     return pExp.getOperand().accept_(this);
   }
 
   @Override
-  public Set<AVariableDeclaration> visit(JClassLiteralExpression pJClassLiteralExpression)
-      throws X {
+  public Set<AVariableDeclaration> visit(JClassLiteralExpression pJClassLiteralExpression) {
     return new HashSet<>();
   }
 }

@@ -196,21 +196,14 @@ public final class LoopStructure implements Serializable {
     private Set<AVariableDeclaration> collectModifiedVariables() {
       // TODO: For code reuse consider changing the Set<AVariableDeclaration> into LiveVariables
       // class or something similar.
-      VariableCollectorVisitor<Exception> variableCollectorVisitor =
-          new VariableCollectorVisitor<>();
+      VariableCollectorVisitor variableCollectorVisitor = new VariableCollectorVisitor();
       Set<AVariableDeclaration> modifiedVariablesLocal = new HashSet<>();
       for (CFAEdge e : this.getInnerLoopEdges()) {
         if (e instanceof AStatementEdge) {
           AStatement statement = ((AStatementEdge) e).getStatement();
           if (statement instanceof AAssignment) {
-            try {
-              modifiedVariablesLocal.addAll(
-                  ((AAssignment) statement).getLeftHandSide().accept_(variableCollectorVisitor));
-            } catch (Exception e1) {
-              // TODO: Improve this, since if everything is coded correctly the error here should
-              // never happen
-              continue;
-            }
+            modifiedVariablesLocal.addAll(
+                ((AAssignment) statement).getLeftHandSide().accept_(variableCollectorVisitor));
           }
         }
       }
@@ -221,45 +214,26 @@ public final class LoopStructure implements Serializable {
     private Set<AVariableDeclaration> collectReadVariables() {
       // TODO: For code reuse consider changing the Set<AVariableDeclaration> into LiveVariables
       // class or something similar.
-      VariableCollectorVisitor<Exception> variableCollectorVisitor =
-          new VariableCollectorVisitor<>();
+      VariableCollectorVisitor variableCollectorVisitor = new VariableCollectorVisitor();
       Set<AVariableDeclaration> readVariablesLocal = new HashSet<>();
       for (CFAEdge e : this.getInnerLoopEdges()) {
         if (e instanceof AStatementEdge) {
           AStatement statement = ((AStatementEdge) e).getStatement();
           if (statement instanceof AAssignment) {
-            try {
-              ARightHandSide rightHandSide = ((AAssignment) statement).getRightHandSide();
-              if (rightHandSide instanceof AExpression) {
-                readVariablesLocal.addAll(
-                    ((AExpression) rightHandSide).accept_(variableCollectorVisitor));
-              }
-            } catch (Exception e1) {
-              // TODO: Improve this, since if everything is coded correctly the error here should
-              // never happen
-              continue;
+            ARightHandSide rightHandSide = ((AAssignment) statement).getRightHandSide();
+            if (rightHandSide instanceof AExpression) {
+              readVariablesLocal.addAll(
+                  ((AExpression) rightHandSide).accept_(variableCollectorVisitor));
             }
           } else if (statement instanceof AExpressionStatement) {
-            try {
-              readVariablesLocal.addAll(
-                  ((AExpressionStatement) statement)
-                      .getExpression()
-                      .accept_(variableCollectorVisitor));
-            } catch (Exception e1) {
-              // TODO: Improve this, since if everything is coded correctly the error here should
-              // never happen
-              continue;
-            }
+            readVariablesLocal.addAll(
+                ((AExpressionStatement) statement)
+                    .getExpression()
+                    .accept_(variableCollectorVisitor));
           }
         } else if (e instanceof AssumeEdge) {
           AExpression statement = ((AssumeEdge) e).getExpression();
-          try {
-            readVariablesLocal.addAll(statement.accept_(variableCollectorVisitor));
-          } catch (Exception e1) {
-            // TODO: Improve this, since if everything is coded correctly the error here should
-            // never happen
-            continue;
-          }
+          readVariablesLocal.addAll(statement.accept_(variableCollectorVisitor));
         }
       }
 
@@ -596,8 +570,7 @@ public final class LoopStructure implements Serializable {
         AStatementEdge stmtEdge = (AStatementEdge) e;
         if (stmtEdge.getStatement() instanceof AAssignment) {
           AAssignment assign = (AAssignment) stmtEdge.getStatement();
-          LinearVariableDependencyVisitor<Exception> visitor =
-              new LinearVariableDependencyVisitor<>();
+          LinearVariableDependencyVisitor visitor = new LinearVariableDependencyVisitor();
           ALeftHandSide leftHandSide = assign.getLeftHandSide();
           ARightHandSide rightHandSide = assign.getRightHandSide();
           if (assign instanceof AExpressionAssignmentStatement) {
@@ -612,11 +585,7 @@ public final class LoopStructure implements Serializable {
               }
               Optional<LinearVariableDependency> dependencies = Optional.empty();
               if (rightHandSide instanceof AExpression) {
-                try {
-                  dependencies = ((AExpression) rightHandSide).accept_(visitor);
-                } catch (Exception e1) {
-                  return Optional.empty();
-                }
+                dependencies = ((AExpression) rightHandSide).accept_(visitor);
                 if (dependencies.isEmpty()) {
                   return Optional.empty();
                 }
@@ -670,8 +639,8 @@ public final class LoopStructure implements Serializable {
               ALeftHandSide leftHandSide = assignment.getLeftHandSide();
               ARightHandSide rightHandSide = assignment.getRightHandSide();
               if (leftHandSide instanceof AIdExpression && rightHandSide instanceof AExpression) {
-                OnlyConstantVariableIncrementsVisitor<Exception> visitor =
-                    new OnlyConstantVariableIncrementsVisitor<>(
+                OnlyConstantVariableIncrementsVisitor visitor =
+                    new OnlyConstantVariableIncrementsVisitor(
                         Optional.of(
                             ImmutableSet.of(
                                 (AVariableDeclaration)
@@ -715,8 +684,7 @@ public final class LoopStructure implements Serializable {
               ALeftHandSide leftHandSide = assignment.getLeftHandSide();
               ARightHandSide rightHandSide = assignment.getRightHandSide();
               if (leftHandSide instanceof AIdExpression && rightHandSide instanceof AExpression) {
-                LinearVariableDependencyVisitor<Exception> visitor =
-                    new LinearVariableDependencyVisitor<>();
+                LinearVariableDependencyVisitor visitor = new LinearVariableDependencyVisitor();
                 Optional<LinearVariableDependency> valueOptional = Optional.empty();
                 try {
                   valueOptional = ((AExpression) rightHandSide).accept_(visitor);
@@ -889,19 +857,15 @@ public final class LoopStructure implements Serializable {
             Set<AVariableDeclaration> varSet = new HashSet<>();
             varSet.add(assignToVar);
 
-            AggregateConstantsVisitor<Exception> visitor =
-                new AggregateConstantsVisitor<>(Optional.of(varSet), true);
+            AggregateConstantsVisitor visitor =
+                new AggregateConstantsVisitor(Optional.of(varSet), true);
             Optional<Integer> valueOptional;
 
             if (!(assign.getRightHandSide() instanceof AExpression)) {
               return Optional.empty();
             }
 
-            try {
-              valueOptional = ((AExpression) assign.getRightHandSide()).accept_(visitor);
-            } catch (Exception e1) {
-              return Optional.empty();
-            }
+            valueOptional = ((AExpression) assign.getRightHandSide()).accept_(visitor);
             if (valueOptional.isPresent()) {
               return Optional.of(
                   Pair.of(assignToVar.getQualifiedName(), valueOptional.orElseThrow()));

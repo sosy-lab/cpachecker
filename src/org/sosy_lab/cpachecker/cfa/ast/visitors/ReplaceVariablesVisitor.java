@@ -38,9 +38,9 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JNullLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeEqualsType;
 import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 
-public class ReplaceVariablesVisitor<X extends Exception>
-    extends AExpressionVisitor<AExpression, X> {
+public class ReplaceVariablesVisitor extends AExpressionVisitor<AExpression, NoException> {
 
   private Map<AVariableDeclaration, AVariableDeclaration> originalToNewVariables;
 
@@ -50,129 +50,129 @@ public class ReplaceVariablesVisitor<X extends Exception>
   }
 
   @Override
-  public AExpression visit(CTypeIdExpression pIastTypeIdExpression) throws X {
+  public AExpression visit(CTypeIdExpression pIastTypeIdExpression) {
     return pIastTypeIdExpression;
   }
 
   @Override
-  public AExpression visit(CImaginaryLiteralExpression PIastLiteralExpression) throws X {
+  public AExpression visit(CImaginaryLiteralExpression PIastLiteralExpression) {
     return PIastLiteralExpression;
   }
 
   @Override
-  public AExpression visit(CAddressOfLabelExpression pAddressOfLabelExpression) throws X {
+  public AExpression visit(CAddressOfLabelExpression pAddressOfLabelExpression) {
     return pAddressOfLabelExpression;
   }
 
   @Override
-  public AExpression visit(CFieldReference pIastFieldReference) throws X {
+  public AExpression visit(CFieldReference pIastFieldReference) {
     // TODO: This may need to be updated if some errors occur
     return pIastFieldReference;
   }
 
   @Override
-  public AExpression visit(CPointerExpression pPointerExpression) throws X {
+  public AExpression visit(CPointerExpression pPointerExpression) {
     return pPointerExpression.copyWithExpression(pPointerExpression.accept(this));
   }
 
   @Override
-  public AExpression visit(CComplexCastExpression pComplexCastExpression) throws X {
+  public AExpression visit(CComplexCastExpression pComplexCastExpression) {
     return pComplexCastExpression.copyWithExpression(pComplexCastExpression.accept(this));
   }
 
   @Override
-  public AExpression visit(JBooleanLiteralExpression pJBooleanLiteralExpression) throws X {
+  public AExpression visit(JBooleanLiteralExpression pJBooleanLiteralExpression) {
     return pJBooleanLiteralExpression;
   }
 
   @Override
-  public AExpression visit(JArrayCreationExpression pJArrayCreationExpression) throws X {
+  public AExpression visit(JArrayCreationExpression pJArrayCreationExpression) {
     // TODO: This may need to be updated if some errors occur
     return pJArrayCreationExpression;
   }
 
   @Override
-  public AExpression visit(JArrayInitializer pJArrayInitializer) throws X {
+  public AExpression visit(JArrayInitializer pJArrayInitializer) {
     // TODO: This may need to be updated if some errors occur
     return pJArrayInitializer;
   }
 
   @Override
-  public AExpression visit(JArrayLengthExpression pJArrayLengthExpression) throws X {
+  public AExpression visit(JArrayLengthExpression pJArrayLengthExpression) {
 
     return pJArrayLengthExpression;
   }
 
   @Override
-  public AExpression visit(JVariableRunTimeType pJThisRunTimeType) throws X {
+  public AExpression visit(JVariableRunTimeType pJThisRunTimeType) {
     return pJThisRunTimeType;
   }
 
   @Override
-  public AExpression visit(JRunTimeTypeEqualsType pJRunTimeTypeEqualsType) throws X {
+  public AExpression visit(JRunTimeTypeEqualsType pJRunTimeTypeEqualsType) {
     return pJRunTimeTypeEqualsType;
   }
 
   @Override
-  public AExpression visit(JNullLiteralExpression pJNullLiteralExpression) throws X {
+  public AExpression visit(JNullLiteralExpression pJNullLiteralExpression) {
     return pJNullLiteralExpression;
   }
 
   @Override
-  public AExpression visit(JEnumConstantExpression pJEnumConstantExpression) throws X {
+  public AExpression visit(JEnumConstantExpression pJEnumConstantExpression) {
     return pJEnumConstantExpression;
   }
 
   @Override
-  public AExpression visit(JThisExpression pThisExpression) throws X {
+  public AExpression visit(JThisExpression pThisExpression) {
     return pThisExpression;
   }
 
   @Override
-  public AExpression visit(AArraySubscriptExpression pExp) throws X {
+  public AExpression visit(AArraySubscriptExpression pExp) {
     return pExp.copyWithExpressions(
         pExp.getArrayExpression().accept_(this), pExp.getSubscriptExpression().accept_(this));
   }
 
   @Override
-  public AExpression visit(AIdExpression pExp) throws X {
+  public AExpression visit(AIdExpression pExp) {
     return pExp.copyWithDeclaration(this.originalToNewVariables.get(pExp.getDeclaration()));
   }
 
   @Override
-  public AExpression visit(ABinaryExpression pExp) throws X {
+  public AExpression visit(ABinaryExpression pExp) {
     return new AExpressionFactory(pExp.getOperand1().accept_(this))
         .binaryOperation(pExp.getOperand2().accept_(this), pExp.getOperator())
         .build();
   }
 
   @Override
-  public AExpression visit(ACastExpression pExp) throws X {
+  public AExpression visit(ACastExpression pExp) {
     return pExp.copyWithExpression(pExp.getOperand().accept_(this));
   }
 
   @Override
-  public AExpression visit(ACharLiteralExpression pExp) throws X {
+  public AExpression visit(ACharLiteralExpression pExp) {
     return pExp;
   }
 
   @Override
-  public AExpression visit(AFloatLiteralExpression pExp) throws X {
+  public AExpression visit(AFloatLiteralExpression pExp) {
     return pExp;
   }
 
   @Override
-  public AExpression visit(AIntegerLiteralExpression pExp) throws X {
+  public AExpression visit(AIntegerLiteralExpression pExp) {
     return pExp;
   }
 
   @Override
-  public AExpression visit(AStringLiteralExpression pExp) throws X {
+  public AExpression visit(AStringLiteralExpression pExp) {
     return pExp;
   }
 
   @Override
-  public AExpression visit(AUnaryExpression pExp) throws X {
+  public AExpression visit(AUnaryExpression pExp) {
     return new AExpressionFactory()
         .from(pExp.getOperand().accept_(this))
         .unaryOperation(pExp.getOperator())
@@ -180,7 +180,7 @@ public class ReplaceVariablesVisitor<X extends Exception>
   }
 
   @Override
-  public AExpression visit(JClassLiteralExpression pJClassLiteralExpression) throws X {
+  public AExpression visit(JClassLiteralExpression pJClassLiteralExpression) {
     return pJClassLiteralExpression;
   }
 }

@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.utils.LinearVariableDependency;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 
 /**
  * This visitor takes an AAssignment expression and return an Optional of the Linear Depedendencies
@@ -49,112 +50,107 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.utils.LinearVariable
  * <p>The entry method of this visitor is only the AASignment expression and all other functions
  * should be ignored
  */
-public class LinearVariableDependencyVisitor<X extends Exception>
-    extends AExpressionVisitor<Optional<LinearVariableDependency>, X> {
+public class LinearVariableDependencyVisitor
+    extends AExpressionVisitor<Optional<LinearVariableDependency>, NoException> {
 
   public LinearVariableDependencyVisitor() {}
 
   @Override
-  public Optional<LinearVariableDependency> visit(CTypeIdExpression pIastTypeIdExpression)
-      throws X {
+  public Optional<LinearVariableDependency> visit(CTypeIdExpression pIastTypeIdExpression) {
     // TODO: It may also be possible to also do this
     return Optional.empty();
   }
 
   @Override
   public Optional<LinearVariableDependency> visit(
-      CImaginaryLiteralExpression PIastLiteralExpression) throws X {
+      CImaginaryLiteralExpression PIastLiteralExpression) {
     // TODO: It may also be possible to also do this
     return Optional.empty();
   }
 
   @Override
   public Optional<LinearVariableDependency> visit(
-      CAddressOfLabelExpression pAddressOfLabelExpression) throws X {
+      CAddressOfLabelExpression pAddressOfLabelExpression) {
     // TODO: It may also be possible to also do this
     return Optional.empty();
   }
 
   @Override
-  public Optional<LinearVariableDependency> visit(CFieldReference pIastFieldReference) throws X {
+  public Optional<LinearVariableDependency> visit(CFieldReference pIastFieldReference) {
     // TODO: It may also be possible to also do this
     return Optional.empty();
   }
 
   @Override
-  public Optional<LinearVariableDependency> visit(CPointerExpression pPointerExpression) throws X {
+  public Optional<LinearVariableDependency> visit(CPointerExpression pPointerExpression) {
     // TODO: It may also be possible to also do this
     return Optional.empty();
   }
 
   @Override
-  public Optional<LinearVariableDependency> visit(CComplexCastExpression pComplexCastExpression)
-      throws X {
+  public Optional<LinearVariableDependency> visit(CComplexCastExpression pComplexCastExpression) {
     // TODO: It may also be possible to also do this
     return Optional.empty();
   }
 
   @Override
   public Optional<LinearVariableDependency> visit(
-      JBooleanLiteralExpression pJBooleanLiteralExpression) throws X {
+      JBooleanLiteralExpression pJBooleanLiteralExpression) {
     return Optional.empty();
   }
 
   @Override
   public Optional<LinearVariableDependency> visit(
-      JArrayCreationExpression pJArrayCreationExpression) throws X {
+      JArrayCreationExpression pJArrayCreationExpression) {
     return Optional.empty();
   }
 
   @Override
-  public Optional<LinearVariableDependency> visit(JArrayInitializer pJArrayInitializer) throws X {
+  public Optional<LinearVariableDependency> visit(JArrayInitializer pJArrayInitializer) {
     return Optional.empty();
   }
 
   @Override
-  public Optional<LinearVariableDependency> visit(JArrayLengthExpression pJArrayLengthExpression)
-      throws X {
+  public Optional<LinearVariableDependency> visit(JArrayLengthExpression pJArrayLengthExpression) {
     // TODO: It may also be possible to also do this
     return Optional.empty();
   }
 
   @Override
-  public Optional<LinearVariableDependency> visit(JVariableRunTimeType pJThisRunTimeType) throws X {
+  public Optional<LinearVariableDependency> visit(JVariableRunTimeType pJThisRunTimeType) {
     return Optional.empty();
   }
 
   @Override
-  public Optional<LinearVariableDependency> visit(JRunTimeTypeEqualsType pJRunTimeTypeEqualsType)
-      throws X {
+  public Optional<LinearVariableDependency> visit(JRunTimeTypeEqualsType pJRunTimeTypeEqualsType) {
     return Optional.empty();
   }
 
   @Override
-  public Optional<LinearVariableDependency> visit(JNullLiteralExpression pJNullLiteralExpression)
-      throws X {
+  public Optional<LinearVariableDependency> visit(JNullLiteralExpression pJNullLiteralExpression) {
     return Optional.empty();
   }
 
   @Override
-  public Optional<LinearVariableDependency> visit(JEnumConstantExpression pJEnumConstantExpression)
-      throws X {
+  public Optional<LinearVariableDependency> visit(
+      JEnumConstantExpression pJEnumConstantExpression) {
     return Optional.empty();
   }
 
   @Override
-  public Optional<LinearVariableDependency> visit(JThisExpression pThisExpression) throws X {
+  public Optional<LinearVariableDependency> visit(JThisExpression pThisExpression) {
     // TODO: It may also be possible to also do this
     return Optional.empty();
   }
 
   @Override
-  public Optional<LinearVariableDependency> visit(AArraySubscriptExpression pExp) throws X {
+  public Optional<LinearVariableDependency> visit(AArraySubscriptExpression pExp) {
     // TODO: It may also be possible to also do this
     return Optional.empty();
   }
 
   @Override
-  public Optional<LinearVariableDependency> visit(AIdExpression pExp) throws X {
+  public Optional<LinearVariableDependency> visit(AIdExpression pExp) {
     LinearVariableDependency linVarDependency = new LinearVariableDependency();
     linVarDependency.insertOrOverwriteDependency(
         (AVariableDeclaration) pExp.getDeclaration(),
@@ -163,7 +159,7 @@ public class LinearVariableDependencyVisitor<X extends Exception>
   }
 
   @Override
-  public Optional<LinearVariableDependency> visit(ABinaryExpression pExp) throws X {
+  public Optional<LinearVariableDependency> visit(ABinaryExpression pExp) {
     Optional<LinearVariableDependency> operand1Result = pExp.getOperand1().accept_(this);
     Optional<LinearVariableDependency> operand2Result = pExp.getOperand2().accept_(this);
     if (operand1Result.isPresent() && operand2Result.isPresent()) {
@@ -178,33 +174,33 @@ public class LinearVariableDependencyVisitor<X extends Exception>
   }
 
   @Override
-  public Optional<LinearVariableDependency> visit(ACastExpression pExp) throws X {
+  public Optional<LinearVariableDependency> visit(ACastExpression pExp) {
     // TODO: It may also be possible to also do this
     return Optional.empty();
   }
 
   @Override
-  public Optional<LinearVariableDependency> visit(ACharLiteralExpression pExp) throws X {
+  public Optional<LinearVariableDependency> visit(ACharLiteralExpression pExp) {
     return Optional.empty();
   }
 
   @Override
-  public Optional<LinearVariableDependency> visit(AFloatLiteralExpression pExp) throws X {
+  public Optional<LinearVariableDependency> visit(AFloatLiteralExpression pExp) {
     return Optional.of(new LinearVariableDependency(pExp));
   }
 
   @Override
-  public Optional<LinearVariableDependency> visit(AIntegerLiteralExpression pExp) throws X {
+  public Optional<LinearVariableDependency> visit(AIntegerLiteralExpression pExp) {
     return Optional.of(new LinearVariableDependency(pExp));
   }
 
   @Override
-  public Optional<LinearVariableDependency> visit(AStringLiteralExpression pExp) throws X {
+  public Optional<LinearVariableDependency> visit(AStringLiteralExpression pExp) {
     return Optional.empty();
   }
 
   @Override
-  public Optional<LinearVariableDependency> visit(AUnaryExpression pExp) throws X {
+  public Optional<LinearVariableDependency> visit(AUnaryExpression pExp) {
     if (pExp.getOperator() == CUnaryExpression.UnaryOperator.MINUS
         || pExp.getOperator() == JUnaryExpression.UnaryOperator.MINUS) {
       Optional<LinearVariableDependency> innerVisitor = pExp.getOperand().accept_(this);
@@ -218,8 +214,8 @@ public class LinearVariableDependencyVisitor<X extends Exception>
   }
 
   @Override
-  public Optional<LinearVariableDependency> visit(JClassLiteralExpression pJClassLiteralExpression)
-      throws X {
+  public Optional<LinearVariableDependency> visit(
+      JClassLiteralExpression pJClassLiteralExpression) {
     return Optional.empty();
   }
 }

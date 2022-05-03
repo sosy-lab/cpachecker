@@ -68,8 +68,8 @@ public class LoopExtrapolationStrategy extends LoopStrategy {
     Optional<AExpression> iterationsMaybe = Optional.empty();
     // TODO For now it only works for c programs
     if (loopBoundExpression instanceof CBinaryExpression) {
-      LoopVariableDeltaVisitor<Exception> variableVisitor =
-          new LoopVariableDeltaVisitor<>(loopStructure, true);
+      LoopVariableDeltaVisitor variableVisitor =
+          new LoopVariableDeltaVisitor(loopStructure, true);
 
       CExpression operand1 = ((CBinaryExpression) loopBoundExpression).getOperand1();
       CExpression operand2 = ((CBinaryExpression) loopBoundExpression).getOperand2();
@@ -77,12 +77,8 @@ public class LoopExtrapolationStrategy extends LoopStrategy {
 
       Optional<Integer> operand1variableDelta;
       Optional<Integer> operand2variableDelta;
-      try {
-        operand1variableDelta = operand1.accept(variableVisitor);
-        operand2variableDelta = operand2.accept(variableVisitor);
-      } catch (Exception e) {
-        return Optional.empty();
-      }
+      operand1variableDelta = operand1.accept(variableVisitor);
+      operand2variableDelta = operand2.accept(variableVisitor);
 
       if (operand1variableDelta.isPresent() && operand2variableDelta.isPresent()) {
 
@@ -222,15 +218,11 @@ public class LoopExtrapolationStrategy extends LoopStrategy {
     CFANode currentSummaryNode = pStartNode;
     CFANode nextSummaryNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
 
-    VariableCollectorVisitor<Exception> variableCollectorVisitor = new VariableCollectorVisitor<>();
+    VariableCollectorVisitor variableCollectorVisitor = new VariableCollectorVisitor();
 
     Set<AVariableDeclaration> modifiedVariablesLocal;
 
-    try {
-      modifiedVariablesLocal = pIterations.accept_(variableCollectorVisitor);
-    } catch (Exception e) {
-      return Optional.empty();
-    }
+    modifiedVariablesLocal = pIterations.accept_(variableCollectorVisitor);
 
     Map<AVariableDeclaration, AVariableDeclaration> mappingFromOriginalToTmpVariables =
         new HashMap<>();
@@ -290,14 +282,10 @@ public class LoopExtrapolationStrategy extends LoopStrategy {
     }
 
     // Transform the iterations by replacing the Variables
-    ReplaceVariablesVisitor<Exception> replaceVariablesVisitor =
-        new ReplaceVariablesVisitor<>(mappingFromOriginalToTmpVariables);
+    ReplaceVariablesVisitor replaceVariablesVisitor =
+        new ReplaceVariablesVisitor(mappingFromOriginalToTmpVariables);
     AExpression transformedIterations;
-    try {
-      transformedIterations = pIterations.accept_(replaceVariablesVisitor);
-    } catch (Exception e) {
-      return Optional.empty();
-    }
+    transformedIterations = pIterations.accept_(replaceVariablesVisitor);
 
     CVariableDeclaration iterationsVariable =
         new CVariableDeclaration(
