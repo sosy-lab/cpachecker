@@ -47,12 +47,10 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
@@ -60,7 +58,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.factories.AExpressionFactory;
 import org.sosy_lab.cpachecker.cfa.ast.factories.AFunctionFactory;
 import org.sosy_lab.cpachecker.cfa.ast.visitors.AggregateConstantsVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.visitors.LinearVariableDependencyVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.visitors.VariableCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
@@ -70,6 +67,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.SummaryUtils;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.utils.LinearVariableDependency;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.utils.LinearVariableDependencyGraph;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -558,59 +556,11 @@ public final class LoopStructure implements Serializable {
       return modifiedVarsNames;
     }
 
-    /**
-     * This method obtains the linear dependencies of this Variable, if it is the case.
-     *
-     * @param e the edge from which to obtain variables
-     * @return a Linear Variable Dependency or None
-     */
-    private static Optional<LinearVariableDependency> obtainLinearVariableDependency(CFAEdge e) {
-      if (e instanceof AStatementEdge) {
-        AStatementEdge stmtEdge = (AStatementEdge) e;
-        if (stmtEdge.getStatement() instanceof AAssignment) {
-          AAssignment assign = (AAssignment) stmtEdge.getStatement();
-          LinearVariableDependencyVisitor visitor = new LinearVariableDependencyVisitor();
-          ALeftHandSide leftHandSide = assign.getLeftHandSide();
-          ARightHandSide rightHandSide = assign.getRightHandSide();
-          if (assign instanceof AExpressionAssignmentStatement) {
-            if (leftHandSide instanceof AIdExpression) {
-              LinearVariableDependency linearVariableDependency;
-              if (((AIdExpression) leftHandSide).getDeclaration() instanceof AVariableDeclaration) {
-                linearVariableDependency =
-                    new LinearVariableDependency(
-                        (AVariableDeclaration) ((AIdExpression) leftHandSide).getDeclaration());
-              } else {
-                return Optional.empty();
-              }
-              Optional<LinearVariableDependency> dependencies = Optional.empty();
-              if (rightHandSide instanceof AExpression) {
-                dependencies = ((AExpression) rightHandSide).accept_(visitor);
-                if (dependencies.isEmpty()) {
-                  return Optional.empty();
-                }
-                // TODO: Make this more general to also include Java Expressions
-                linearVariableDependency.modifyDependency(
-                    dependencies.orElseThrow(), CBinaryExpression.BinaryOperator.PLUS);
-                return Optional.of(linearVariableDependency);
-              } else {
-                return Optional.empty();
-              }
-            } else {
-              return Optional.empty();
-            }
-          } else {
-            return Optional.empty();
-          }
-        }
-      }
-      return Optional.empty();
-    }
-
     public LinearVariableDependencyGraph calculateLinearVariableDependencies() {
       LinearVariableDependencyGraph linearVariableDependencyGraph =
           new LinearVariableDependencyGraph();
       for (CFAEdge e : this.getInnerLoopEdges()) {
-        Optional<LinearVariableDependency> dependency = obtainLinearVariableDependency(e);
+        Optional<LinearVariableDependency> dependency = SummaryUtils.obtainLinearVariableDependency(e);
         if (dependency.isPresent()) {
           // TODO: Make this more general to also include Java Expressions
           linearVariableDependencyGraph.modifyDependencies(
