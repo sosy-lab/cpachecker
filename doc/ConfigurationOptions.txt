@@ -871,11 +871,12 @@ cfa.summaries.maxUnrollingsStrategy = 100
 
 # Strategies to be used in the generation of the CFA, to summarize some parts
 # of it.
-cfa.summaries.strategies = Arrays.asList(
-          StrategiesEnum.LOOPCONSTANTEXTRAPOLATION,
-          StrategiesEnum.NONDETBOUNDCONSTANTEXTRAPOLATION,
-          StrategiesEnum.NAIVELOOPACCELERATION,
-          StrategiesEnum.HAVOCSTRATEGY)
+cfa.summaries.strategies = new HashSet<>(
+          Arrays.asList(
+              StrategiesEnum.LOOPCONSTANTEXTRAPOLATION,
+              StrategiesEnum.NONDETBOUNDCONSTANTEXTRAPOLATION,
+              StrategiesEnum.NAIVELOOPACCELERATION,
+              StrategiesEnum.HAVOCSTRATEGY))
 
 # A name of thread_create function
 cfa.threads.threadCreate = "pthread_create"

@@ -23,7 +23,6 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
@@ -80,11 +79,6 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.function.ThreadCreateTransform
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.FunctionCallUnwinder;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.LabelAdder;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependency;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyEnum;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyFactory;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.SummaryInformation;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.SummaryPostProcessor;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
@@ -231,37 +225,6 @@ public class CFACreator {
 
   @Option(secure = true, name = "cfa.summaries", description = "Postprocess CFA using Strategies.")
   private boolean useSummaries = false;
-
-  @Option(
-      name = "cfa.summaries.strategies",
-      secure = true,
-      description =
-          "Strategies to be used in the generation of the CFA, to summarize some parts of it.")
-  private List<StrategiesEnum> strategies =
-      Arrays.asList(
-          StrategiesEnum.LOOPCONSTANTEXTRAPOLATION,
-          StrategiesEnum.NONDETBOUNDCONSTANTEXTRAPOLATION,
-          StrategiesEnum.NAIVELOOPACCELERATION,
-          StrategiesEnum.HAVOCSTRATEGY);
-
-  @Option(
-      secure = true,
-      name = "cfa.summaries.maxUnrollingsStrategy",
-      description = "Max amount fo Unrollings for the Unrolling Strategy")
-  private int maxUnrollingsStrategy = 100;
-
-  @Option(
-      secure = true,
-      name = "cfa.summaries.maxIterations",
-      description = "Max amount fo Iterations for adapting the CFA")
-  private int maxIterationsSummaries = 10;
-
-  @Option(
-      secure = true,
-      name = "cfa.summaries.dependencies",
-      description = "Dependencies between the Different Strategies")
-  private StrategyDependencyEnum cfaCreationStrategy =
-      StrategyDependencyEnum.BASESTRATEGYDEPENDENCY;
 
   @Option(
       secure = true,
@@ -657,20 +620,8 @@ public class CFACreator {
     // Make summaries, needs Loop Structure
     if (useSummaries) {
 
-      StrategyDependency summaryCreationStrategy =
-          new StrategyDependencyFactory().createStrategy(this.cfaCreationStrategy);
-
-      cfa.setSummaryInformations(
-          new SummaryInformation(cfa, summaryCreationStrategy, summaryCreationStrategy));
       SummaryPostProcessor summaryPostProcessor =
-          new SummaryPostProcessor(
-              logger,
-              shutdownNotifier,
-              cfa,
-              new HashSet<>(strategies),
-              maxUnrollingsStrategy,
-              maxIterationsSummaries,
-              summaryCreationStrategy);
+          new SummaryPostProcessor(config, logger, shutdownNotifier, cfa);
       summaryPostProcessor.collectStatistics(stats.statisticsCollection);
       cfa = summaryPostProcessor.process(cfa);
     }

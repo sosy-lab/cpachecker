@@ -9,50 +9,88 @@
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependency;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyEnum;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyFactory;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 
+@Options
 public class SummaryPostProcessor implements StatisticsProvider {
 
   private static CFA originalCFA;
-  private Set<StrategiesEnum> strategies;
-  private int maxUnrollingsStrategy;
-  private Set<Strategy> strategiesClasses = new HashSet<>();
-  private StrategyFactory strategyFactory;
+  private final Set<Strategy> strategiesClasses = new HashSet<>();
+  private final StrategyFactory strategyFactory;
   protected final LogManager logger;
   protected final ShutdownNotifier shutdownNotifier;
-  private int maxIterationsSummaries;
-  private StrategyDependency strategyDependencies;
-  private SummaryInformation summaryInformation;
-  private SummaryCFAStatistics stats;
+  private final StrategyDependency strategyDependencies;
+  private final SummaryInformation summaryInformation;
+  private final SummaryCFAStatistics stats;
+
+  @Option(
+      name = "cfa.summaries.strategies",
+      secure = true,
+      description =
+          "Strategies to be used in the generation of the CFA, to summarize some parts of it.")
+  private Set<StrategiesEnum> strategies =
+      new HashSet<>(
+          Arrays.asList(
+              StrategiesEnum.LOOPCONSTANTEXTRAPOLATION,
+              StrategiesEnum.NONDETBOUNDCONSTANTEXTRAPOLATION,
+              StrategiesEnum.NAIVELOOPACCELERATION,
+              StrategiesEnum.HAVOCSTRATEGY));
+
+  @Option(
+      secure = true,
+      name = "cfa.summaries.maxUnrollingsStrategy",
+      description = "Max amount fo Unrollings for the Unrolling Strategy")
+  private int maxUnrollingsStrategy = 100;
+
+  @Option(
+      secure = true,
+      name = "cfa.summaries.maxIterations",
+      description = "Max amount fo Iterations for adapting the CFA")
+  private int maxIterationsSummaries = 10;
+
+  @Option(
+      secure = true,
+      name = "cfa.summaries.dependencies",
+      description = "Dependencies between the Different Strategies")
+  private StrategyDependencyEnum cfaCreationStrategy =
+      StrategyDependencyEnum.BASESTRATEGYDEPENDENCY;
 
   public SummaryPostProcessor(
+      Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
-      CFA pCfa,
-      Set<StrategiesEnum> pStrategies,
-      int pMaxUnrollingsStrategy,
-      int pMaxIterationsSummaries,
-      StrategyDependency pStrategyDependencies) {
+      MutableCFA pCfa)
+      throws InvalidConfigurationException {
+    pConfig.inject(this);
+
+    strategyDependencies = new StrategyDependencyFactory().createStrategy(this.cfaCreationStrategy);
+
+    summaryInformation = new SummaryInformation(pCfa, strategyDependencies, strategyDependencies);
+    // TODO: the fact that we need to modify pCfa here in this constructor is a code smell:
+    pCfa.setSummaryInformations(summaryInformation);
+
     shutdownNotifier = pShutdownNotifier;
     logger = pLogger;
-    maxIterationsSummaries = pMaxIterationsSummaries;
-    strategyDependencies = pStrategyDependencies;
-    setStrategies(pStrategies);
-    maxUnrollingsStrategy = pMaxUnrollingsStrategy;
     setOriginalCFA(pCfa);
-    summaryInformation = pCfa.getSummaryInformation().orElseThrow();
     strategyFactory =
         new StrategyFactory(
             pLogger, pShutdownNotifier, maxUnrollingsStrategy, strategyDependencies, pCfa);
