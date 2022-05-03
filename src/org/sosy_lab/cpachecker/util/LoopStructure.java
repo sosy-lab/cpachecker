@@ -532,7 +532,9 @@ public final class LoopStructure implements Serializable {
       }
     }
 
-    /** @param varName: The qualified Name of the Variable Declaration */
+    /**
+     * @param varName: The qualified Name of the Variable Declaration
+     */
     public Optional<Integer> getDelta(String varName) {
       this.computeSets();
       if (!this.loopIncDecVariables.containsKey(varName)) {

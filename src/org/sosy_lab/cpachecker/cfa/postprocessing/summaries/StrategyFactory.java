@@ -12,6 +12,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependency;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops.AbstractAccelerationStrategy;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops.ConstantExtrapolationStrategy;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops.HavocStrategy;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops.LinearExtrapolationStrategy;
@@ -64,6 +65,9 @@ public class StrategyFactory {
         return new BaseStrategy();
       case HAVOCSTRATEGY:
         return new HavocStrategy(logger, shutdownNotifier, strategyDependencies, cfa);
+      case ABSTRACTACCELERATIONSTRATEGY:
+        return new AbstractAccelerationStrategy(
+            logger, shutdownNotifier, strategyDependencies, cfa);
       default:
         return null;
     }
