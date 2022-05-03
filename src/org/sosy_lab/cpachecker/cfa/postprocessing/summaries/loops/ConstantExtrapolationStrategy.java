@@ -118,9 +118,11 @@ public class ConstantExtrapolationStrategy extends LoopExtrapolationStrategy {
               false,
               CStorageClass.AUTO,
               (CType) var.getType(),
-              var.getName() + LoopExtrapolationStrategy.LA_TMP_VAR_PREFIX + nameCounter,
-              var.getOrigName() + LoopExtrapolationStrategy.LA_TMP_VAR_PREFIX + nameCounter,
-              var.getQualifiedName() + LoopExtrapolationStrategy.LA_TMP_VAR_PREFIX + nameCounter,
+              var.getName() + LoopExtrapolationStrategy.LA_OVF_TMP_VAR_PREFIX + nameCounter,
+              var.getOrigName() + LoopExtrapolationStrategy.LA_OVF_TMP_VAR_PREFIX + nameCounter,
+              var.getQualifiedName()
+                  + LoopExtrapolationStrategy.LA_OVF_TMP_VAR_PREFIX
+                  + nameCounter,
               null);
 
       CFAEdge newVarInitEdge =

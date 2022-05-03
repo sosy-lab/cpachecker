@@ -44,8 +44,14 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 
+/**
+ * This strategy reassembles output abstraction as described in section II.B of "Over-approximating
+ * loops to prove properties using bounded model checking" (https://doi.org/10.7873/DATE.2015.0245)
+ */
 public class OutputLoopAccelerationStrategy extends LoopStrategy {
 
+  // counter name for output acceleration
+  private static final String SUMMARY_COUNTER_VARIABLE = "__VERIFIER_LA_OA_counter";
   private StrategiesEnum strategyEnum;
 
   public OutputLoopAccelerationStrategy(
@@ -88,8 +94,7 @@ public class OutputLoopAccelerationStrategy extends LoopStrategy {
         ((CAssumeEdge) loopBoundCFAEdgeTrue).negate().copyWith(startNodeGhostCFA, endNodeGhostCFA);
     CFACreationUtils.addEdgeUnconditionallyToCFA(loopBoundCFAEdgeFalse);
 
-    String counterVariableName =
-        "ThisIsACounterSpecificOnlyForSummaryStrategiesDoNotUseInNormalCode";
+    String counterVariableName = SUMMARY_COUNTER_VARIABLE;
 
     // Init counter Variable
 

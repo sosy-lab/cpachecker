@@ -54,6 +54,10 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 public class LoopExtrapolationStrategy extends LoopStrategy {
 
+  private static final String LA_TMP_ITERATION_VAR_PREFIX = "__VERIFIER_LA_iterations";
+  private static final String LA_TMP_VAR_PREFIX = "__VERIFIER_LA_tmp";
+  protected static final String LA_OVF_TMP_VAR_PREFIX = "__VERIFIER_LA_ovf_tmp";
+
   // maps for caching the flags for each loop; not thread-safe
   // TODO: we compute this more than once if we use multiple (child) class instances
   // at once, so at some point we might want to optimize this (though this should not be relevant)
@@ -61,7 +65,6 @@ public class LoopExtrapolationStrategy extends LoopStrategy {
   private final Map<Loop, Boolean> onlyLinearVariableModifications = new HashMap<>();
 
   protected Integer nameCounter = 0;
-  protected static final String LA_TMP_VAR_PREFIX = "TmpVariableReallyReallyTmp";
 
   protected LoopExtrapolationStrategy(
       LogManager pLogger,
@@ -254,9 +257,9 @@ public class LoopExtrapolationStrategy extends LoopStrategy {
               false,
               ((CVariableDeclaration) var).getCStorageClass(),
               (CType) TypeFactory.getBiggestType(var.getType()),
-              var.getName() + "TmpVariableReallyTmp" + this.nameCounter,
-              var.getOrigName() + "TmpVariableReallyTmp" + this.nameCounter,
-              var.getQualifiedName() + "TmpVariableReallyTmp" + this.nameCounter,
+              var.getName() + LA_TMP_VAR_PREFIX + this.nameCounter,
+              var.getOrigName() + LA_TMP_VAR_PREFIX + this.nameCounter,
+              var.getQualifiedName() + LA_TMP_VAR_PREFIX + this.nameCounter,
               null);
 
       mappingFromOriginalToTmpVariables.put(var, newVariable);
@@ -308,11 +311,9 @@ public class LoopExtrapolationStrategy extends LoopStrategy {
             CStorageClass.AUTO,
             new CSimpleType(
                 false, false, CBasicType.INT, false, false, false, false, false, false, true),
-            "iterationsTmpVariableForLoopBoundary" + this.nameCounter,
-            "iterationsTmpVariableForLoopBoundary" + this.nameCounter,
-            pBeforeWhile.getFunctionName()
-                + "::iterationsTmpVariableForLoopBoundary"
-                + this.nameCounter,
+            LA_TMP_ITERATION_VAR_PREFIX + this.nameCounter,
+            LA_TMP_ITERATION_VAR_PREFIX + this.nameCounter,
+            pBeforeWhile.getFunctionName() + "::" + LA_TMP_ITERATION_VAR_PREFIX + this.nameCounter,
             null);
 
     CFAEdge varInitEdge =
