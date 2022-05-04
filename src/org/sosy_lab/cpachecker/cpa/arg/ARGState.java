@@ -51,7 +51,9 @@ public class ARGState extends AbstractSerializableSingleWrapperState
   private final Collection<ARGState> children = new ArrayList<>(1);
   private final Collection<ARGState> parents = new ArrayList<>(1);
 
-  private ImmutableSet<ARGState> mCoveredBy = null;
+  // The set of states covering this state.
+  // It should either be null or non-empty, i.e. mCoveredBy == null || !mCoveredBy.isEmpty().
+  private ImmutableSet<ARGState> mCoveredBy = null; // lazy initialization
   private Set<ARGState> mCoveredByThis = null; // lazy initialization because rarely needed
 
   // boolean which keeps track of which elements have already had their successors computed
@@ -221,7 +223,8 @@ public class ARGState extends AbstractSerializableSingleWrapperState
   /**
    * Set this state to be singly covered by the given state.
    *
-   * <p>Note that the current state must not be covered already.
+   * <p>Note that the current state must not be covered already and the given covering ARGState must
+   * not be null.
    *
    * @see #setCovered(Set) setCovered
    */
@@ -266,6 +269,8 @@ public class ARGState extends AbstractSerializableSingleWrapperState
   /** Return whether this state is covered by other states or not */
   public boolean isCovered() {
     assert !destroyed : "Don't use destroyed ARGState " + this;
+    assert mCoveredBy == null || !mCoveredBy.isEmpty()
+        : "The covering state set should either be null or non-empty " + this;
     return mCoveredBy != null;
   }
 
