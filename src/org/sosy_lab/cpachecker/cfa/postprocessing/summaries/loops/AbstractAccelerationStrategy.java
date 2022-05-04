@@ -24,7 +24,6 @@ import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.GhostCFA;
@@ -75,8 +74,8 @@ public class AbstractAccelerationStrategy extends LoopStrategy {
       return Optional.empty();
     }
 
-    Set<AVariableDeclaration> modifiedVariables = loop.getModifiedVariables();
-    PathConstraints constraints = calculateConstraints(loop, loopStartNode);
+    // Set<AVariableDeclaration> modifiedVariables = loop.getModifiedVariables();
+    // PathConstraints constraints = calculateConstraints(loop, loopStartNode);
 
     return Optional.empty();
   }
@@ -94,7 +93,7 @@ public class AbstractAccelerationStrategy extends LoopStrategy {
     while (!waitlist.isEmpty()) {
       sortWaitlist(waitlist, constraintMap);
       CFANode current = waitlist.remove(0);
-      assert !current.isLoopStart() | current == loopStartNode; //  we deal with nested loops later
+      assert !current.isLoopStart() || current == loopStartNode; //  we deal with nested loops later
       PathConstraints currentConstraint = constraintMap.get(current);
       Set<CFAEdge> leaving = ImmutableSet.copyOf(current.getLeavingEdges());
       Set<CFAEdge> filteredLeaving = Sets.intersection(leaving, loop.getInnerLoopEdges());

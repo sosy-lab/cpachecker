@@ -163,7 +163,8 @@ public class ConstantExtrapolationStrategy extends LoopExtrapolationStrategy {
                   .from(iterationsVariable)
                   .binaryOperation(
                       Integer.valueOf(1), SIGNED_LONG_INT, CBinaryExpression.BinaryOperator.MINUS)
-                  .binaryOperation(delta, SIGNED_LONG_INT, CBinaryExpression.BinaryOperator.MULTIPLY)
+                  .binaryOperation(
+                      delta, SIGNED_LONG_INT, CBinaryExpression.BinaryOperator.MULTIPLY)
                   .binaryOperation(
                       new CIdExpression(FileLocation.DUMMY, newVariableForOverflows),
                       CBinaryExpression.BinaryOperator.PLUS)

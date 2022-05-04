@@ -560,7 +560,8 @@ public final class LoopStructure implements Serializable {
       LinearVariableDependencyGraph linearVariableDependencyGraph =
           new LinearVariableDependencyGraph();
       for (CFAEdge e : this.getInnerLoopEdges()) {
-        Optional<LinearVariableDependency> dependency = SummaryUtils.obtainLinearVariableDependency(e);
+        Optional<LinearVariableDependency> dependency =
+            SummaryUtils.obtainLinearVariableDependency(e);
         if (dependency.isPresent()) {
           // TODO: Make this more general to also include Java Expressions
           linearVariableDependencyGraph.modifyDependencies(
