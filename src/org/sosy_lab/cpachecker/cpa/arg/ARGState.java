@@ -87,7 +87,7 @@ public class ARGState extends AbstractSerializableSingleWrapperState
    * @return A unmodifiable collection of ARGStates without duplicates.
    */
   public Collection<ARGState> getParents() {
-    return Collections.unmodifiableCollection(parents);
+    return ImmutableList.copyOf(parents);
   }
 
   public void addParent(ARGState pOtherParent) {
@@ -111,7 +111,7 @@ public class ARGState extends AbstractSerializableSingleWrapperState
    */
   public Collection<ARGState> getChildren() {
     assert !destroyed : "Don't use destroyed ARGState " + this;
-    return Collections.unmodifiableCollection(children);
+    return ImmutableList.copyOf(children);
   }
 
   /**
@@ -306,7 +306,7 @@ public class ARGState extends AbstractSerializableSingleWrapperState
     if (mCoveredByThis == null) {
       return ImmutableSet.of();
     } else {
-      return Collections.unmodifiableSet(mCoveredByThis);
+      return ImmutableSet.copyOf(mCoveredByThis);
     }
   }
 
