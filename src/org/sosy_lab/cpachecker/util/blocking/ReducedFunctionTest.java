@@ -104,7 +104,7 @@ public class ReducedFunctionTest {
     funct.addEdge(n4, n5);
 
     assertThat(funct.getEntryNode()).isEqualTo(entryNode);
-    assertThat(funct.getExitNode()).isEqualTo(exitNode);
+    assertThat(funct.getExitNode().orElse(null)).isEqualTo(exitNode);
 
     assertThat(funct.getNumLeavingEdges(n1)).isEqualTo(1);
     assertThat(funct.getNumLeavingEdges(n2)).isEqualTo(1);

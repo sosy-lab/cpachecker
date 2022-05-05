@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
@@ -139,7 +140,10 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
       FunctionBody body = p.getSecond();
       body.write(
           recreateFunction(
-              p.getFirst(), p.getFirst(), p.getFirst().getExitNode(), body.getCurrentBlock()));
+              p.getFirst(),
+              p.getFirst(),
+              p.getFirst().getExitNode().orElse(null),
+              body.getCurrentBlock()));
       finishedBodies.add(body);
     }
     return concat(app, forIterable(Joiner.on('\n'), finishedBodies));
@@ -368,9 +372,11 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
     CFAEdge branch1 = pCFAEdge.getSuccessor().getLeavingEdge(0);
     CFAEdge branch2 = pCFAEdge.getSuccessor().getLeavingEdge(1);
 
+    // calling findEndOfBranches only makes sense if the function exit has entering edges
+    FunctionExitNode functionExitNode = entryNode.getExitNode().orElseThrow();
     CFANode ifEnd =
         findEndOfBranches(
-            singletonList(entryNode.getExitNode()),
+            singletonList(functionExitNode),
             pCFAEdge.getPredecessor(),
             branch1.getSuccessor(),
             branch2.getSuccessor());

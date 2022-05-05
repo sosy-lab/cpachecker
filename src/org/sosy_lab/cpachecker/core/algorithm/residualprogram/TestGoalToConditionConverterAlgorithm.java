@@ -195,7 +195,7 @@ public class TestGoalToConditionConverterAlgorithm extends NestingAlgorithm {
         ImmutableSet.<CFANode>builder()
             .addAll(
                 CFAUtils.getProgramSinks(
-                    cfa, cfa.getLoopStructure().orElseThrow(), cfa.getMainFunction()))
+                    cfa.getLoopStructure().orElseThrow(), cfa.getMainFunction()))
             .build();
 
     for (var loc : initialLocations) {

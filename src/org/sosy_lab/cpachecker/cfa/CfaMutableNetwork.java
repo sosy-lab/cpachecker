@@ -19,8 +19,6 @@ import java.util.ArrayList;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.graph.ForwardingMutableNetwork;
 
@@ -53,11 +51,6 @@ public class CfaMutableNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge
 
     for (CFANode cfaNode : pCfa.getAllNodes()) {
       mutableNetwork.addNode(cfaNode);
-      if (cfaNode instanceof FunctionEntryNode) {
-        // unreachable FunctionExitNodes are not in the set returned by getAllNodes
-        FunctionExitNode functionExitNode = ((FunctionEntryNode) cfaNode).getExitNode();
-        mutableNetwork.addNode(functionExitNode);
-      }
     }
 
     for (CFANode predecessor : pCfa.getAllNodes()) {

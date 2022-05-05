@@ -329,12 +329,9 @@ public class CFAUtils {
   }
 
   public static Collection<CFANode> getProgramSinks(
-      final CFA pCfa, final LoopStructure pLoopStructure, final FunctionEntryNode pCfaEntryNode) {
+      final LoopStructure pLoopStructure, final FunctionEntryNode pCfaEntryNode) {
     Set<CFANode> sinks = new HashSet<>();
-    CFANode cfaExitNode = pCfaEntryNode.getExitNode();
-    if (pCfa.getAllNodes().contains(cfaExitNode)) {
-      sinks.add(cfaExitNode);
-    }
+    pCfaEntryNode.getExitNode().ifPresent(sinks::add);
 
     sinks.addAll(getEndlessLoopHeads(pLoopStructure));
     return sinks;

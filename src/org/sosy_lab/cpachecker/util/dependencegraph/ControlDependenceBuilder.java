@@ -81,18 +81,30 @@ final class ControlDependenceBuilder<N extends Node<AFunctionDeclaration, CFAEdg
     ControlDependenceBuilder<?> controlDependenceBuilder =
         new ControlDependenceBuilder<>(pBuilder, pEntryNode);
 
-    DomTree<CFANode> postDomTree = DominanceUtils.createFunctionPostDomTree(pEntryNode);
-    Set<CFANode> postDomTreeNodes = new HashSet<>();
-    Iterators.addAll(postDomTreeNodes, postDomTree.iterator());
-
-    controlDependenceBuilder.insertControlDependencies(
-        postDomTree, postDomTreeNodes, pDependOnBothAssumptions);
+    Optional<FunctionExitNode> exitNode = pEntryNode.getExitNode();
 
     NodeCollectingCFAVisitor nodeCollector = new NodeCollectingCFAVisitor();
     CFATraversal.dfs().ignoreFunctionCalls().traverse(pEntryNode, nodeCollector);
 
-    controlDependenceBuilder.insertMissingControlDependencies(
-        postDomTree, postDomTreeNodes, nodeCollector.getVisitedNodes());
+    // only if there is a function exit node, we can compute the post-DomTree
+    if (exitNode.isPresent()) {
+
+      DomTree<CFANode> postDomTree =
+          DominanceUtils.createFunctionPostDomTree(exitNode.orElseThrow());
+      Set<CFANode> postDomTreeNodes = new HashSet<>();
+      Iterators.addAll(postDomTreeNodes, postDomTree.iterator());
+
+      controlDependenceBuilder.insertControlDependencies(
+          postDomTree, postDomTreeNodes, pDependOnBothAssumptions);
+
+      controlDependenceBuilder.insertMissingControlDependencies(
+          postDomTree, postDomTreeNodes, nodeCollector.getVisitedNodes());
+
+    } else {
+
+      controlDependenceBuilder.insertMissingControlDependencies(
+          DomTree.empty(), ImmutableSet.of(), nodeCollector.getVisitedNodes());
+    }
 
     controlDependenceBuilder.insertEntryControlDependencies(nodeCollector.getVisitedNodes());
   }

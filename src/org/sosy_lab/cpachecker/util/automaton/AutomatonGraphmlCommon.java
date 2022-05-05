@@ -1076,7 +1076,14 @@ public class AutomatonGraphmlCommon {
     if (defaultReturnEdges.hasNext() || !(defaultReturnEdge instanceof BlankEdge)) {
       return false;
     }
-    return pEntryNode.getExitNode().equals(defaultReturnEdge.getSuccessor());
+
+    Optional<FunctionExitNode> functionExitNode = pEntryNode.getExitNode();
+    if (functionExitNode.isPresent()) {
+      return functionExitNode.orElseThrow().equals(defaultReturnEdge.getSuccessor());
+    } else {
+      // it's not an empty stub, because something makes the function exit node unreachable
+      return false;
+    }
   }
 
   public static boolean treatAsWhileTrue(CFAEdge pEdge) {

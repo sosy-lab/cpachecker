@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
@@ -398,7 +399,16 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
   /** the whole program will terminate after this edge */
   private boolean isEndOfMainFunction(CFAEdge edge) {
-    return Objects.equals(cfa.getMainFunction().getExitNode(), edge.getSuccessor());
+
+    Optional<FunctionExitNode> mainExitNode = cfa.getMainFunction().getExitNode();
+
+    if (mainExitNode.isPresent()) {
+      return Objects.equals(mainExitNode.orElseThrow(), edge.getSuccessor());
+    } else {
+      // If the main function does not have an exit node, the successor of the specified edge cannot
+      // be the main function exit node.
+      return false;
+    }
   }
 
   private ThreadingState exitThreads(ThreadingState tmp) {

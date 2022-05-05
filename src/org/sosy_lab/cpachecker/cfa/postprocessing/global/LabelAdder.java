@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -108,7 +109,14 @@ public class LabelAdder {
   private void addLabelsAtProgramExits(final MutableCFA pCfa, Collection<CFANode> pCandidates) {
     int labelsAdded = 0;
 
-    addLabelBefore(pCfa.getMainFunction().getExitNode(), EXIT_LABEL_NAME, labelsAdded, pCfa);
+    Optional<FunctionExitNode> mainFunctionExitNode = pCfa.getMainFunction().getExitNode();
+    // We only add labels before the function exit node if it's actually present. Otherwise, if the
+    // function exit node is not present, it wouldn't have entering edges anyways, so no labels
+    // would've been added in the first place.
+    if (mainFunctionExitNode.isPresent()) {
+      addLabelBefore(mainFunctionExitNode.orElseThrow(), EXIT_LABEL_NAME, labelsAdded, pCfa);
+    }
+
     labelsAdded++;
 
     for (CFANode n : pCandidates) {

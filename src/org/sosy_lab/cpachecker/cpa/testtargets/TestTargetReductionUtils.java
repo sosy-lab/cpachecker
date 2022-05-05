@@ -21,12 +21,14 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -48,8 +50,12 @@ public final class TestTargetReductionUtils {
 
     origCFANodeToCopyMap.put(pEntryNode, CFANode.newDummyCFANode());
     toExplore.add(pEntryNode);
-    origCFANodeToCopyMap.put(pEntryNode.getExitNode(), CFANode.newDummyCFANode(""));
-    successorNodes.add(pEntryNode.getExitNode());
+    Optional<FunctionExitNode> functionExitNode = pEntryNode.getExitNode();
+    functionExitNode.ifPresent(
+        exitNode -> {
+          origCFANodeToCopyMap.put(exitNode, CFANode.newDummyCFANode(""));
+          successorNodes.add(exitNode);
+        });
     for (CFAEdge target : pTestTargets) {
       successorNodes.add(target.getPredecessor());
       toExplore.add(target.getSuccessor());
@@ -96,13 +102,15 @@ public final class TestTargetReductionUtils {
       }
     }
 
-    if (removeUnreachableTestGoalsAndIsReachExit(
-        pTestTargets,
-        pCopiedEdgeToTestTargetsMap,
-        origCFANodeToCopyMap.get(pEntryNode),
-        origCFANodeToCopyMap.get(pEntryNode.getExitNode()))) {
+    if (functionExitNode.isPresent()
+        && removeUnreachableTestGoalsAndIsReachExit(
+            pTestTargets,
+            pCopiedEdgeToTestTargetsMap,
+            origCFANodeToCopyMap.get(pEntryNode),
+            origCFANodeToCopyMap.get(functionExitNode.orElseThrow()))) {
       return Pair.of(
-          origCFANodeToCopyMap.get(pEntryNode), origCFANodeToCopyMap.get(pEntryNode.getExitNode()));
+          origCFANodeToCopyMap.get(pEntryNode),
+          origCFANodeToCopyMap.get(functionExitNode.orElseThrow()));
     } else {
       return Pair.of(origCFANodeToCopyMap.get(pEntryNode), null);
     }

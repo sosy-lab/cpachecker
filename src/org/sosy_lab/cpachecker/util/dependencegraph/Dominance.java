@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
+import com.google.common.collect.ImmutableMap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -410,6 +411,16 @@ public final class Dominance {
       ids = pIds;
       nodes = pNodes;
       doms = pDoms;
+    }
+
+    public static <T> DomTree<T> empty() {
+
+      @SuppressWarnings("unchecked") // it's impossible to create a new generic array T[]
+      var emptyDomTree =
+          new DomTree<>(
+              new DomInput(new int[0], 0), ImmutableMap.of(), (T[]) new Object[0], new int[0]);
+
+      return emptyDomTree;
     }
 
     private DomInput getInput() {
