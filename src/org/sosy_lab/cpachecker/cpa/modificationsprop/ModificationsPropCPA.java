@@ -158,11 +158,11 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
       final Set<CFANode>
           errorLocsOrig_reachable =
               performPreprocessing
-                  ? computeElementsReachableFrom(errorLocsOrig, CFAUtils::allPredecessorsOf)
+                  ? computeElementsWithPathTo(errorLocsOrig, CFAUtils::allPredecessorsOf)
                   : ImmutableSet.of(),
           errorLocsMod_new_reachable =
               performPreprocessing
-                  ? computeElementsReachableFrom(errorLocsMod, CFAUtils::allPredecessorsOf)
+                  ? computeElementsWithPathTo(errorLocsMod, CFAUtils::allPredecessorsOf)
                   : ImmutableSet.of();
 
       helper =
@@ -304,17 +304,17 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
    *
    * @param <Element> the element type to explore on
    * @param initialElements the initial set of elements
-   * @param successors the function mapping an element to a set of successors
+   * @param predecessors the function mapping an element to a set of predecessors
    * @return the set of reached states including the initial elements
    */
-  private <Element> Set<Element> computeElementsReachableFrom(
-      final Set<Element> initialElements, final Function<Element, Iterable<Element>> successors) {
+  private <Element> Set<Element> computeElementsWithPathTo(
+      final Set<Element> initialElements, final Function<Element, Iterable<Element>> predecessors) {
     final Deque<Element> waitlist = new ArrayDeque<>(initialElements);
     final Set<Element> explored = new HashSet<>(initialElements);
     while (!waitlist.isEmpty()) {
       Element el = waitlist.poll();
-      for (Element pred : successors.apply(el)) {
-        if (!explored.add(pred)) {
+      for (Element pred : predecessors.apply(el)) {
+        if (explored.add(pred)) {
           waitlist.add(pred);
         }
       }
