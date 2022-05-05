@@ -18,6 +18,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
@@ -59,6 +60,7 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
@@ -118,11 +120,10 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
   private final Configuration config;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
-  private final CFA cfaForComparison;
+  private final CFA cfaOrig;
   private final TransferRelation transfer;
   private final DelegateAbstractDomain<ModificationsPropState> domain;
   private final Solver solver;
-  private final CtoFormulaConverter converter;
   private final ModificationsPropHelper helper;
 
   public static CPAFactory factory() {
@@ -144,41 +145,46 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
     solver = Solver.create(pConfig, pLogger, pShutdownNotifier);
-    converter =
-        initializeCToFormulaConverter(
-            solver.getFormulaManager(),
-            pLogger,
-            pConfig,
-            pShutdownNotifier,
-            pCfa.getMachineModel());
 
     // create CFA here to avoid handling of checked exceptions in #getInitialState
     CFACreator cfaCreator = new CFACreator(config, logger, shutdownNotifier);
     try {
-      cfaForComparison =
+      cfaOrig =
           cfaCreator.parseFileAndCreateCFA(ImmutableList.of(originalProgram.toString()));
-      final ImmutableSet<CFANode> elocs = propertyNodes(cfaForComparison);
-      final ImmutableSet<CFANode> elocs_new = propertyNodes(pCfa);
+      final ImmutableSet<CFANode> errorLocsOrig = findErrorLocations(cfaOrig);
+      final ImmutableSet<CFANode> errorLocsMod = findErrorLocations(pCfa);
 
       // Backward analysis adding all predecessor nodes to find all nodes that may reach an error
       // location.
       final Set<CFANode>
-          elocs_reachable =
-              performPreprocessing ? explore(elocs, this::getPredecessors) : ImmutableSet.of(),
-          elocs_new_reachable =
-              performPreprocessing ? explore(elocs_new, this::getPredecessors) : ImmutableSet.of();
+          errorLocsOrig_reachable =
+              performPreprocessing
+                  ? computeElementsReachableFrom(errorLocsOrig, CFAUtils::allPredecessorsOf)
+                  : ImmutableSet.of(),
+          errorLocsMod_new_reachable =
+              performPreprocessing
+                  ? computeElementsReachableFrom(errorLocsMod, CFAUtils::allPredecessorsOf)
+                  : ImmutableSet.of();
 
       helper =
           new ModificationsPropHelper(
-              new ImmutableSet.Builder<CFANode>().addAll(elocs_new).addAll(elocs).build(),
+              new ImmutableSet.Builder<CFANode>()
+                  .addAll(errorLocsMod)
+                  .addAll(errorLocsOrig)
+                  .build(),
               ignoreDeclarations,
               implicationCheck,
               stopOnPointers,
               performPreprocessing,
-              elocs_reachable,
-              elocs_new_reachable,
+              errorLocsOrig_reachable,
+              errorLocsMod_new_reachable,
               solver,
-              converter,
+              initializeCToFormulaConverter(
+                  solver.getFormulaManager(),
+                  pLogger,
+                  pConfig,
+                  pShutdownNotifier,
+                  pCfa.getMachineModel()),
               logger);
       transfer = new ModificationsPropTransferRelation(helper);
 
@@ -214,12 +220,9 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
+    // TODO do we really want to/need to start skipping at the beginning?
     return new ModificationsPropState(
-        node,
-        cfaForComparison.getMainFunction(),
-        ImmutableSet.of(),
-        new ArrayDeque<CFANode>(),
-        helper);
+        node, cfaOrig.getMainFunction(), ImmutableSet.of(), new ArrayDeque<CFANode>(), helper);
   }
 
   @Override
@@ -252,7 +255,7 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
         AnalysisDirection.FORWARD);
   }
 
-  private ImmutableSet<CFANode> propertyNodes(CFA cfa) {
+  private ImmutableSet<CFANode> findErrorLocations(CFA cfa) {
     if (!relevantProperties.isEmpty()) {
       try {
         Configuration reachPropConfig =
@@ -265,7 +268,7 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
                 .setOption("cpa.callstack.skipRecursion", "true")
                 .setOption("cpa.automaton.breakOnTargetState", "-1")
                 .setOption("output.disable", "true")
-                .setOption("analysis.entryFunction", "main")
+                .setOption("analysis.entryFunction", cfa.getMainFunction().getFunctionName())
                 .build();
 
         ReachedSetFactory rsFactory = new ReachedSetFactory(reachPropConfig, logger);
@@ -283,23 +286,13 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
         CPAAlgorithm.create(cpa, logger, reachPropConfig, shutdownNotifier).run(reached);
         Preconditions.checkState(!reached.hasWaitingState());
 
-        Deque<ARGState> propertyARGNodes =
-            new ArrayDeque<>(
-                FluentIterable.from(reached.asCollection())
-                    .filter(state -> ((ARGState) state).isTarget())
-                    .transform(state -> (ARGState) state)
-                    .toList());
-        ImmutableSet.Builder<CFANode> builder = new ImmutableSet.Builder<>();
-        for (ARGState argState : propertyARGNodes) {
-          if (argState.getParents().isEmpty()) {
-            // Initial node might be in property and not have a parent.
-            builder.add(cfa.getMainFunction());
-          }
-          builder.addAll(
-              transformedImmutableSetCopy(
-                  argState.getParents(), el -> el.getEdgeToChild(argState).getSuccessor()));
-        }
-        return builder.build();
+        Collection<ARGState> errorStates =
+            FluentIterable.from(reached.asCollection())
+                .filter(state -> ((ARGState) state).isTarget())
+                .transform(state -> (ARGState) state)
+                .toList();
+        return transformedImmutableSetCopy(
+            errorStates, errorState -> AbstractStates.extractLocation(errorState));
       } catch (InvalidConfigurationException | CPAException | InterruptedException e) {
         logger.logException(Level.SEVERE, e, "Failed to determine relevant edges");
       }
@@ -308,37 +301,25 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
   }
 
   /**
-   * Get all previous nodes in CFA for a given CFANode. Includes summary edge successors by using
-   * allEnteringEdges as opposed to enteringEdges.
-   *
-   * @param node the node to consider
-   * @return the predecessor nodes in the CFA
-   */
-  private FluentIterable<CFANode> getPredecessors(final CFANode node) {
-    return CFAUtils.allEnteringEdges(node).transform(edge -> edge.getPredecessor());
-  }
-
-  /**
    * Performs an exploration by a starting element and a function to a following set
    *
-   * @param <A> the element type to explore on
-   * @param startset the initial set of elements
-   * @param explorer the function mapping an element to a set of successors
+   * @param <Element> the element type to explore on
+   * @param initialElements the initial set of elements
+   * @param successors the function mapping an element to a set of successors
    * @return the set of reached states including the initial elements
    */
-  private <A> Set<A> explore(final Set<A> startset, final Function<A, Iterable<A>> explorer) {
-    final Set<A> waitlist = new HashSet<>(startset), result = new HashSet<>(startset);
+  private <Element> Set<Element> computeElementsReachableFrom(
+      final Set<Element> initialElements, final Function<Element, Iterable<Element>> successors) {
+    final Deque<Element> waitlist = new ArrayDeque<>(initialElements);
+    final Set<Element> explored = new HashSet<>(initialElements);
     while (!waitlist.isEmpty()) {
-      for (A el : new HashSet<>(waitlist)) {
-        waitlist.remove(el);
-        result.add(el);
-        for (A pred : explorer.apply(el)) {
-          if (!result.contains(pred)) {
-            waitlist.add(pred);
-          }
+      Element el = waitlist.poll();
+      for (Element pred : successors.apply(el)) {
+        if (!explored.add(pred)) {
+          waitlist.add(pred);
         }
       }
     }
-    return new ImmutableSet.Builder<A>().addAll(result).build();
+    return new ImmutableSet.Builder<Element>().addAll(explored).build();
   }
 }

@@ -55,7 +55,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 public class ModificationsPropHelper {
 
   /** Nodes that are part of the property. */
-  private final ImmutableSet<CFANode> propNodes;
+  private final ImmutableSet<CFANode> errorLocationsInOrigOrMod;
   /** Setting for ignoring of declaration statements. */
   private final boolean ignoreDeclarations;
   /** Setting for switching on/off the SMT implication check. */
@@ -77,7 +77,8 @@ public class ModificationsPropHelper {
   /**
    * Creates a helper for ModificationsPropCPA.
    *
-   * @param pPropNodes Nodes that are part of the property.
+   * @param pErrorLocations CFA nodes that are part of the property in original or modified program
+   *     (disjoint union).
    * @param pIgnoreDeclarations Setting for ignoring of declaration statements.
    * @param pImplicationCheck Setting for switching on/off the SMT implication check.
    * @param pStopOnPointers Safely stop analysis on pointer accesses and similar.
@@ -91,7 +92,7 @@ public class ModificationsPropHelper {
    * @param pLogger Logging manager to log with different levels of severity.
    */
   public ModificationsPropHelper(
-      final ImmutableSet<CFANode> pPropNodes,
+      final ImmutableSet<CFANode> pErrorLocations,
       final boolean pIgnoreDeclarations,
       final boolean pImplicationCheck,
       final boolean pStopOnPointers,
@@ -101,7 +102,7 @@ public class ModificationsPropHelper {
       final Solver pSolver,
       final CtoFormulaConverter pConverter,
       final LogManager pLogger) {
-    propNodes = pPropNodes;
+    errorLocationsInOrigOrMod = pErrorLocations;
     ignoreDeclarations = pIgnoreDeclarations;
     implicationCheck = pImplicationCheck;
     performPreprocessing = pPerformPreprocessing;
@@ -138,17 +139,16 @@ public class ModificationsPropHelper {
    */
   CFANode skipUntrackedOperations(final CFANode pNode) {
     CFANode currentNode = pNode;
-    while (currentNode.getNumLeavingEdges() == 1 && !inReachabilityProperty(currentNode)) {
+    while (currentNode.getNumLeavingEdges() == 1 && !isErrorLocation(currentNode)) {
       final CFAEdge currentEdge = currentNode.getLeavingEdge(0);
       if (isUntracked(currentEdge)
           // can omit check for summary edges here, as these are not untracked anway
-          && sameFunction(currentNode, currentEdge.getSuccessor())) {
+          && inSameFunction(currentNode, currentEdge.getSuccessor())) {
         currentNode = currentEdge.getSuccessor();
         if (currentNode == pNode) {
           logProblem("Found infinite sequence of untracked operations.");
           return pNode;
         }
-        // }
       } else {
         break;
       }
@@ -179,7 +179,7 @@ public class ModificationsPropHelper {
     if (pNode.getNumLeavingEdges() == 1
         && (pNode.getLeavingEdge(0) instanceof CStatementEdge
             || pNode.getLeavingEdge(0) instanceof CDeclarationEdge)
-        && !inReachabilityProperty(pNode)) {
+        && !isErrorLocation(pNode)) {
       CFAEdge edge = pNode.getLeavingEdge(0);
       String written = CFAEdgeUtils.getLeftHandVariable(pNode.getLeavingEdge(0));
       if (written != null) {
@@ -387,8 +387,8 @@ public class ModificationsPropHelper {
    * @param node the CFA node to be checked
    * @return whether the node is in the reachability property
    */
-  boolean inReachabilityProperty(final CFANode node) {
-    return propNodes.contains(node);
+  boolean isErrorLocation(final CFANode node) {
+    return errorLocationsInOrigOrMod.contains(node);
     /*return node instanceof CFALabelNode
     && ((CFALabelNode) node).getLabel().equalsIgnoreCase("error");*/
   }
@@ -427,7 +427,7 @@ public class ModificationsPropHelper {
    * @param pNodeInOriginal the node in the original CFA
    * @return whether class and function of the nodes are equivalent
    */
-  boolean sameFunction(final CFANode pNodeInGiven, final CFANode pNodeInOriginal) {
+  boolean inSameFunction(final CFANode pNodeInGiven, final CFANode pNodeInOriginal) {
     return pNodeInGiven.getFunctionName().equals(pNodeInOriginal.getFunctionName());
   }
 
@@ -485,6 +485,6 @@ public class ModificationsPropHelper {
       }
     }*/
 
-    return sameFunction(givenSuccessor, originalSuccessor);
+    return inSameFunction(givenSuccessor, originalSuccessor);
   }
 }

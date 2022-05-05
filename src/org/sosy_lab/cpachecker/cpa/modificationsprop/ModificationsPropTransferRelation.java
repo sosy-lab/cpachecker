@@ -82,7 +82,7 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
     if (!locations.isBad()) {
 
       // rule out case 2
-      if (!helper.inReachabilityProperty(nodeInOriginal)
+      if (!helper.isErrorLocation(nodeInOriginal)
           && helper.goalReachable(nodeInGiven, false)) {
 
         if (!helper.goalReachable(nodeInOriginal, true)) {
@@ -165,7 +165,7 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
               if (edgeInOriginal instanceof CReturnStatementEdge) {
                 final CReturnStatementEdge retOr = (CReturnStatementEdge) edgeInOriginal,
                     retMo = (CReturnStatementEdge) pCfaEdge;
-                if (helper.sameFunction(retMo.getSuccessor(), retOr.getSuccessor())) {
+                if (helper.inSameFunction(retMo.getSuccessor(), retOr.getSuccessor())) {
                   helper.logCase(
                       "Taking case 4 for function returns, potentially with modified variables or different statements.");
                   final ImmutableSet<String> returnChangedVars;
@@ -249,7 +249,7 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
                     && edgeInOriginal.getSuccessor().equals(summaryGoal)) {
                   final CFunctionReturnEdge retOr = (CFunctionReturnEdge) edgeInOriginal,
                       retMo = (CFunctionReturnEdge) pCfaEdge;
-                  if (helper.sameFunction(retMo.getSuccessor(), retOr.getSuccessor())) {
+                  if (helper.inSameFunction(retMo.getSuccessor(), retOr.getSuccessor())) {
                     helper.logCase(
                         "Taking case 4 for function return statement with modified variables or different statements.");
 
@@ -333,7 +333,7 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
                             entryNodeMo.getFunctionParameters(), param -> param.getQualifiedName());
                 // we require that all old parameters must be contained in new parameters
                 if (paramsMo.containsAll(paramsOr)
-                    && helper.sameFunction(entryNodeMo, entryNodeOr)) {
+                    && helper.inSameFunction(entryNodeMo, entryNodeOr)) {
                   helper.logCase("Taking case 4 for function calls with modified variables.");
                   Set<String> modifiedAfterFunctionCall = new HashSet<>(changedVars);
                   for (String param : paramsOr) {
@@ -487,7 +487,7 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
           }
         }
       }
-      if (helper.inReachabilityProperty(nodeInOriginal)) {
+      if (helper.isErrorLocation(nodeInOriginal)) {
         helper.logCase("Taking case 2.");
       } else {
         helper.logCase("No error location reachable. Stopping here.");

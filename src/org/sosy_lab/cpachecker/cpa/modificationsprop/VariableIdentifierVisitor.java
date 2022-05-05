@@ -31,10 +31,10 @@ public class VariableIdentifierVisitor
     implements CRightHandSideVisitor<Set<String>, PointerAccessException>,
         CLeftHandSideVisitor<Set<String>, PointerAccessException> {
 
-  private final boolean strict;
+  private final boolean disallowPointers;
 
-  public VariableIdentifierVisitor(boolean pStrict) {
-    strict = pStrict;
+  public VariableIdentifierVisitor(boolean pDisallowPointers) {
+    disallowPointers = pDisallowPointers;
   }
 
   @Override
@@ -79,7 +79,7 @@ public class VariableIdentifierVisitor
 
   @Override
   public Set<String> visit(final CFieldReference pE) throws PointerAccessException {
-    if (strict) {
+    if (disallowPointers) { // TODO to strict for structs?
       throw new PointerAccessException();
     } else {
       return pE.getFieldOwner().accept(this);
@@ -98,7 +98,7 @@ public class VariableIdentifierVisitor
 
   @Override
   public Set<String> visit(final CPointerExpression pE) throws PointerAccessException {
-    if (strict) {
+    if (disallowPointers) {
       throw new PointerAccessException();
     } else {
       return pE.getOperand().accept(this);

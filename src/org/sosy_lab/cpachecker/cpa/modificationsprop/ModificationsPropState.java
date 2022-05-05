@@ -46,7 +46,7 @@ public final class ModificationsPropState
   /** Variables that might be modified between the programs here. */
   private final ImmutableSet<String> changedVariables;
 
-  /** Queue to track function return edges to take. */
+  /** Stack to track function return edges to take in original program. */
   private final ArrayDeque<CFANode> originalStack;
 
   public ModificationsPropState(
@@ -56,16 +56,16 @@ public final class ModificationsPropState
       final ArrayDeque<CFANode> pStack,
       final ModificationsPropHelper pHelper) {
     CFANode nodeInOriginal = pHelper.skipUntrackedOperations(pLocationInOriginalCfa);
-    // CFANode nodeInGiven = pLocationInGivenCfa;
+
     ImmutableSet<String> changedVars = pChangedVars;
 
     // skip untracked parts in original
     nodeInOriginal = pHelper.skipUntrackedOperations(nodeInOriginal);
 
     // rule out case 2
-    if (!pHelper.inReachabilityProperty(nodeInOriginal)
+    if (!pHelper.isErrorLocation(nodeInOriginal)
         // case 3
-        && pHelper.inReachabilityProperty(pLocationInGivenCfa)) {
+        && pHelper.isErrorLocation(pLocationInGivenCfa)) {
       CFANode nodeInOrigNew = nodeInOriginal;
       do {
         nodeInOriginal = nodeInOrigNew;
@@ -77,7 +77,7 @@ public final class ModificationsPropState
       } while (nodeInOrigNew != nodeInOriginal);
       locationInOriginalCfa = nodeInOriginal;
       changedVariables = changedVars;
-      if (pHelper.inReachabilityProperty(nodeInOrigNew)) {
+      if (pHelper.isErrorLocation(locationInOriginalCfa)) {
         // Some path covers the bad location here.
         pHelper.logCase("Taking case 3a.");
         isBad = false;
@@ -221,7 +221,7 @@ public final class ModificationsPropState
   }
 
   @Override
-  public ModificationsPropState join(ModificationsPropState pOther)
+  public ModificationsPropState join(final ModificationsPropState pOther)
       throws CPAException, InterruptedException {
 
     // If locations differ, we should never call join. The merge operator used guarantees that.
@@ -231,14 +231,12 @@ public final class ModificationsPropState
 
     // The first (with pBad || pOther.bad) and last case would semantically be sufficient. However,
     // we want to reuse as many state objects as possible for efficiency.
-    if (isBad) {
-      // bad location should have empty variable set, introduced by transfer relation
-      assert changedVariables.isEmpty();
-      return this;
-    } else if (pOther.isBad() || pOther.getChangedVariables().containsAll(changedVariables)) {
+    if (pOther.isBad() || (!isBad && pOther.getChangedVariables().containsAll(changedVariables))) {
       assert !pOther.isBad || pOther.getChangedVariables().isEmpty();
       return pOther;
-    } else if (changedVariables.containsAll(pOther.getChangedVariables())) {
+    } else if (isBad || changedVariables.containsAll(pOther.getChangedVariables())) {
+      // bad location should have empty variable set, introduced by transfer relation
+      assert !isBad || changedVariables.isEmpty();
       return this;
     } else {
       // only create new object if really necessary
@@ -256,7 +254,7 @@ public final class ModificationsPropState
   }
 
   @Override
-  public boolean isLessOrEqual(ModificationsPropState pOther)
+  public boolean isLessOrEqual(final ModificationsPropState pOther)
       throws CPAException, InterruptedException {
     // location pair must be identical
     return Objects.equals(locationInOriginalCfa, pOther.locationInOriginalCfa)
