@@ -285,11 +285,19 @@ public class CFASecondPassBuilder {
     predecessorNode.addLeavingEdge(callEdge);
     fDefNode.addEnteringEdge(callEdge);
 
-    if (fExitNode.isEmpty()) {
+    // Entering edges may have been removed from the function exit node, so `fExitNode.isEmpty()` is
+    // not enough.
+    if (fExitNode.isEmpty()
+        || fExitNode.isPresent() && fExitNode.orElseThrow().getNumEnteringEdges() == 0) {
       // exit node of called functions is not reachable, i.e. this function never returns
       // no need to add return edges, instead we can remove the part after this function call
 
       CFACreationUtils.removeChainOfNodesFromCFA(successorNode);
+
+      // remove exit node from entry node if it has not already been removed
+      if (fExitNode.isPresent()) {
+        fDefNode.removeExitNode();
+      }
 
     } else {
 
