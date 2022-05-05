@@ -82,8 +82,7 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
     if (!locations.isBad()) {
 
       // rule out case 2
-      if (!helper.isErrorLocation(nodeInOriginal)
-          && helper.goalReachable(nodeInGiven, false)) {
+      if (!helper.isErrorLocation(nodeInOriginal) && helper.goalReachable(nodeInGiven, false)) {
 
         if (!helper.goalReachable(nodeInOriginal, true)) {
           helper.logCase(
