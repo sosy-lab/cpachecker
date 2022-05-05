@@ -288,7 +288,7 @@ public class CFASecondPassBuilder {
     // Entering edges may have been removed from the function exit node, so `fExitNode.isEmpty()` is
     // not enough.
     if (fExitNode.isEmpty()
-        || fExitNode.isPresent() && fExitNode.orElseThrow().getNumEnteringEdges() == 0) {
+        || (fExitNode.isPresent() && fExitNode.orElseThrow().getNumEnteringEdges() == 0)) {
       // exit node of called functions is not reachable, i.e. this function never returns
       // no need to add return edges, instead we can remove the part after this function call
 
