@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingStat
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
@@ -69,7 +70,7 @@ public final class ModificationsPropState
       do {
         nodeInOriginal = nodeInOrigNew;
         nodeInOrigNew = pHelper.skipUntrackedOperations(nodeInOriginal);
-        ImmutableTuple<CFANode, ImmutableSet<String>> tup =
+        Pair<CFANode, ImmutableSet<String>> tup =
             pHelper.skipAssignment(nodeInOrigNew, changedVars);
         nodeInOrigNew = tup.getFirst();
         changedVars = tup.getSecond();

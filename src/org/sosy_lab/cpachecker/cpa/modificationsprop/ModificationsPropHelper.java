@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
@@ -173,7 +174,7 @@ public class ModificationsPropHelper {
    * @param pVars the variables that may be different in the two programs before
    * @return a tuple of the node reached and an updated set of modified variables
    */
-  ImmutableTuple<CFANode, ImmutableSet<String>> skipAssignment(
+  Pair<CFANode, ImmutableSet<String>> skipAssignment(
       final CFANode pNode, final ImmutableSet<String> pVars) {
     if (pNode.getNumLeavingEdges() == 1
         && (pNode.getLeavingEdge(0) instanceof CStatementEdge
@@ -183,15 +184,15 @@ public class ModificationsPropHelper {
       String written = CFAEdgeUtils.getLeftHandVariable(pNode.getLeavingEdge(0));
       if (written != null) {
         if (pVars.contains(written)) {
-          return new ImmutableTuple<>(edge.getSuccessor(), pVars);
+          return Pair.of(edge.getSuccessor(), pVars);
         } else {
-          return new ImmutableTuple<>(
+          return Pair.of(
               edge.getSuccessor(),
               new ImmutableSet.Builder<String>().addAll(pVars).add(written).build());
         }
       }
     }
-    return new ImmutableTuple<>(pNode, pVars);
+    return Pair.of(pNode, pVars);
   }
 
   /**

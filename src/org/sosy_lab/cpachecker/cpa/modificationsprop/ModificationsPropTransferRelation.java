@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.Pair;
 
 /** Transfer relation for abstract states used in variable-dependent difference verification. */
 public class ModificationsPropTransferRelation extends SingleEdgeTransferRelation {
@@ -384,7 +385,7 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
 
           // look for assignments to same variable (cases 5/6)
           // This could be left out, but we expect to find more related statements this way.
-          ImmutableTuple<CFANode, ImmutableSet<String>>
+          Pair<CFANode, ImmutableSet<String>>
               givenTup = helper.skipAssignment(nodeInGiven, changedVars),
               originalTup = helper.skipAssignment(nodeInOriginal, changedVars);
           if (!(givenTup.getFirst().equals(nodeInGiven)
@@ -404,8 +405,7 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
           }
 
           // case 5
-          ImmutableTuple<CFANode, ImmutableSet<String>> tup =
-              helper.skipAssignment(nodeInGiven, changedVars);
+          Pair<CFANode, ImmutableSet<String>> tup = helper.skipAssignment(nodeInGiven, changedVars);
           if (!tup.getFirst().equals(nodeInGiven)) {
             helper.logCase("Taking case 5.");
             return ImmutableSet.of(
