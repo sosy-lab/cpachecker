@@ -59,9 +59,6 @@ public final class ModificationsPropState
 
     ImmutableSet<String> changedVars = pChangedVars;
 
-    // skip untracked parts in original
-    nodeInOriginal = pHelper.skipUntrackedOperations(nodeInOriginal);
-
     // rule out case 2
     if (!pHelper.isErrorLocation(nodeInOriginal)
         // case 3
