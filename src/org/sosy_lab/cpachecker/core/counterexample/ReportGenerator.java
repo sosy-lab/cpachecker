@@ -20,6 +20,7 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
 import com.google.common.io.Resources;
@@ -36,6 +37,7 @@ import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -68,6 +70,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.FaultLocalizationInfoWithTraceFormula;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.precondition.PreCondition;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
@@ -357,7 +361,10 @@ public class ReportGenerator {
         writer.write(",\n\"faults\":");
         flInfo.faultsToJSON(writer);
         writer.write(",\n\"precondition\":");
-        flInfo.writePrecondition(writer);
+        JSON.writeJSONString(
+            ImmutableMap.of(
+                "fl-precondition", extractPreconditionFromFaultLocalizationInfo(flInfo)),
+            writer);
       } else {
         writer.write(",\n\"errorPath\":");
         counterExample.toJSON(writer);
@@ -368,6 +375,29 @@ public class ReportGenerator {
     dotBuilder.writeCfaInfo(writer);
     writer.write("\n}\n");
     writer.write("window.cfaJson = cfaJson;\n");
+  }
+
+  private String extractPreconditionFromFaultLocalizationInfo(FaultLocalizationInfo fInfo) {
+    if (!(fInfo instanceof FaultLocalizationInfoWithTraceFormula)) {
+      return "";
+    }
+    List<String> preconditionParts = new ArrayList<>();
+    PreCondition preCondition =
+        ((FaultLocalizationInfoWithTraceFormula) fInfo).getTraceFormula().getPrecondition();
+    for (CFAEdge cfaEdge : preCondition.getEdgesForPrecondition()) {
+      String input = cfaEdge.getCode().replaceAll(";", "");
+      List<String> parts = Splitter.on(" ").limit(2).splitToList(input);
+      assert !parts.isEmpty() : "Splitter split " + input + " into 0 parts.";
+      if (parts.size() == 1) {
+        preconditionParts.add(parts.get(0));
+      } else {
+        preconditionParts.add(parts.get(1));
+      }
+    }
+    if (preconditionParts.isEmpty()) {
+      preconditionParts.add("true");
+    }
+    return Joiner.on(" && ").join(preconditionParts);
   }
 
   private void insertArgJson(Writer writer) throws IOException {

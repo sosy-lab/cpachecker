@@ -424,7 +424,7 @@ public class LassoBuilder {
         logger.logf(FINE, "Ignoring variable %s during construction of lasso.", variableName);
       }
     }
-    return rankVars.build();
+    return rankVars.buildOrThrow();
   }
 
   private static class InOutVariables {

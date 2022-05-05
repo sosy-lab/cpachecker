@@ -579,7 +579,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         }
       }
     }
-    return preds.build();
+    return preds.buildOrThrow();
   }
 
   @Override

@@ -153,7 +153,7 @@ class PollingResultDownloader:
                 self._shutdown.wait(self._result_poll_interval - duration)
 
     def start(self):
-        if (not self._shutdown.is_set()) and (not self._state_poll_thread.isAlive()):
+        if (not self._shutdown.is_set()) and (not self._state_poll_thread.is_alive()):
             logging.info("Starting polling of run states.")
             self._state_poll_thread.start()
 

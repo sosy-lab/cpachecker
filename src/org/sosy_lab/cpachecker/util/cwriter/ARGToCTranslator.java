@@ -1067,13 +1067,13 @@ public class ARGToCTranslator {
             builder.put(entry);
           }
         }
-        newFunDecInfo = builder.build();
+        newFunDecInfo = builder.buildOrThrow();
       } else {
         newFunDecInfo =
             ImmutableMap.<CDeclaration, String>builder()
                 .putAll(currentFuncDecInfo)
                 .put(dec, decId)
-                .build();
+                .buildOrThrow();
       }
 
       return new DeclarationInfo(newFunDecInfo, calleeFunDecInfos);
@@ -1093,7 +1093,7 @@ public class ARGToCTranslator {
       }
 
       return new DeclarationInfo(
-          builder.build(),
+          builder.buildOrThrow(),
           ImmutableList.<ImmutableMap<CDeclaration, String>>builder()
               .addAll(calleeFunDecInfos)
               .add(currentFuncDecInfo)

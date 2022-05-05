@@ -2009,7 +2009,7 @@ public class AutomatonGraphmlParser {
         String stateId = getAttributeValue(stateNode, "id", "Every state needs an ID!");
         idToNodeMapBuilder.put(stateId, (Element) stateNode);
       }
-      idToNodeMap = idToNodeMapBuilder.build();
+      idToNodeMap = idToNodeMapBuilder.buildOrThrow();
 
       transitions = asIterable(pDocument.getElementsByTagName(GraphMLTag.EDGE.toString()));
     }
