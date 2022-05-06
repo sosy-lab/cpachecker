@@ -1174,8 +1174,9 @@ function renderTDCG(dataJSON, color, inPercentage) {
   ]);
 
   app.controller("CFAToolbarController", [
+    "$rootScope",
     "$scope",
-    function cfaToolbarController($scope) {
+    function cfaToolbarController($rootScope, $scope) {
       if (functions) {
         if (functions.length > 1) {
           $scope.functions = ["all"].concat(functions);
@@ -1184,15 +1185,63 @@ function renderTDCG(dataJSON, color, inPercentage) {
         }
         $scope.selectedCFAFunction = $scope.functions[0];
         $scope.zoomEnabled = false;
-        $scope.cfaColoringEnabled = false;
+        $scope.colorId = "no";
+        $scope.coverageSelections = [
+          "None",
+          "Considered Lines Heat Map",
+          "Predicate-Considered",
+          "Predicate-Relevant-Variables",
+        ];
+        $rootScope.displayedCoverages = $scope.coverageSelections[0];
+
+        $scope.extractColor = function extractColor(msg, id) {
+          return msg
+            .split("comment: ")
+            .slice(-1)[0]
+            .split(id + ":")
+            .slice(-1)[0]
+            .split(";")[0];
+        };
+
+        $scope.colorNode = function colorNode() {
+          const node = d3.select(this.firstChild);
+          const nodeStyle = node.attr("style");
+          const nodeColor = $scope.extractColor(nodeStyle, $scope.colorId);
+          node.attr(
+            "style",
+            `fill: ${nodeColor}; stroke: ${
+              (nodeColor & 0xfefefe) >> 1 // eslint-disable-line no-bitwise
+            }; comment: ${nodeStyle}`
+          );
+        };
+
+        $scope.cfaColoringControl = function cfaColoringControl() {
+          if (
+            $rootScope.displayedCoverages.indexOf(
+              "Considered Lines Heat Map"
+            ) !== -1
+          ) {
+            $scope.colorId = "vl";
+          } else if ($rootScope.displayedCoverages.indexOf("None") !== -1) {
+            $scope.colorId = "no";
+          } else if (
+            $rootScope.displayedCoverages.indexOf("Predicate-Considered") !== -1
+          ) {
+            $scope.colorId = "pc";
+          } else if (
+            $rootScope.displayedCoverages.indexOf(
+              "Predicate-Relevant-Variables"
+            ) !== -1
+          ) {
+            $scope.colorId = "prv";
+          }
+          d3.selectAll(".cfa-node").each($scope.colorNode);
+        };
       }
 
       $scope.setCFAFunction = () => {
         if ($scope.zoomEnabled) {
           $scope.zoomControl();
-        }
-        if ($scope.cfaColoringEnabled) {
-          $scope.cfaColoringControl();
         }
         // FIXME: two-way binding does not update the selected option
         d3.selectAll("#cfa-toolbar option")
@@ -1237,52 +1286,6 @@ function renderTDCG(dataJSON, color, inPercentage) {
       };
 
       $scope.cfaFunctionIsSet = (value) => value === $scope.selectedCFAFunction;
-
-      $scope.cfaColoringControl = function cfaColoringControl() {
-        if ($scope.cfaColoringEnabled) {
-          $scope.cfaColoringEnabled = false;
-          d3.select("#cfa-considered-button").html(
-            "<i class='far fa-square'></i>"
-          );
-          d3.selectAll(".cfa-node-covered").each(function cfaNode() {
-            const node = d3.select(this.firstChild);
-            const hexGradient = node
-              .attr("style")
-              .split("comment: ")
-              .slice(-1)[0];
-            node.attr(
-              "style",
-              `fill: #fff; stroke: #999; comment: ${hexGradient};`
-            );
-          });
-          d3.selectAll(".cfa-node-considered").each(function cfaNode() {
-            const node = d3.select(this.firstChild);
-            node.attr("style", "fill: #fff; stroke: #999;");
-          });
-        } else {
-          $scope.cfaColoringEnabled = true;
-          d3.select("#cfa-considered-button").html(
-            "<i class='far fa-check-square'></i>"
-          );
-          d3.selectAll(".cfa-node-covered").each(function cfaNode() {
-            const node = d3.select(this.firstChild);
-            const hexGradient = node
-              .attr("style")
-              .split("comment: ")
-              .slice(-1)[0];
-            node.attr(
-              "style",
-              `fill: ${hexGradient}; stroke: ${
-                (hexGradient & 0xfefefe) >> 1 // eslint-disable-line no-bitwise
-              }; comment: ${hexGradient};`
-            );
-          });
-          d3.selectAll(".cfa-node-considered").each(function cfaNode() {
-            const node = d3.select(this.firstChild);
-            node.attr("style", "");
-          });
-        }
-      };
 
       $scope.zoomControl = function zoomControl() {
         if ($scope.zoomEnabled) {

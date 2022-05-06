@@ -72,17 +72,31 @@ public final class DOTBuilder2 {
   private CFAJSONBuilder jsoner;
   private DOTViewBuilder dotter;
 
-  public DOTBuilder2(CFA pCfa, UnmodifiableReachedSet pReached) {
-    init(pCfa, Optional.of(pReached));
+  public DOTBuilder2(
+      CFA pCfa,
+      UnmodifiableReachedSet pReached,
+      Set<Integer> predicateConsideredNodes,
+      Set<Integer> predicateRelevantVariablesConsideredNodes) {
+    init(
+        pCfa,
+        Optional.of(pReached),
+        predicateConsideredNodes,
+        predicateRelevantVariablesConsideredNodes);
   }
 
   public DOTBuilder2(CFA pCfa) {
-    init(pCfa, Optional.empty());
+    init(pCfa, Optional.empty(), new HashSet<>(), new HashSet<>());
   }
 
-  private void init(CFA pCfa, Optional<UnmodifiableReachedSet> pReached) {
+  private void init(
+      CFA pCfa,
+      Optional<UnmodifiableReachedSet> pReached,
+      Set<Integer> predicateConsideredNodes,
+      Set<Integer> predicateRelevantVariablesConsideredNodes) {
     cfa = checkNotNull(pCfa);
-    jsoner = new CFAJSONBuilder(pReached, cfa);
+    jsoner =
+        new CFAJSONBuilder(
+            pReached, cfa, predicateConsideredNodes, predicateRelevantVariablesConsideredNodes);
     dotter = new DOTViewBuilder(cfa);
     CFAVisitor vis = new NodeCollectingCFAVisitor(new CompositeCFAVisitor(jsoner, dotter));
     for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
@@ -362,12 +376,20 @@ public final class DOTBuilder2 {
     private final Map<String, Object> edges = new HashMap<>();
     private final Optional<UnmodifiableReachedSet> reached;
     private final Set<CFANode> consideredNodes;
+    private final Set<Integer> predicateConsideredNodes;
+    private final Set<Integer> predicateRelevantVariablesConsideredNodes;
     private final Map<CFANode, Double> nodesVisitedMap;
 
-    public CFAJSONBuilder(Optional<UnmodifiableReachedSet> pReached, CFA cfa) {
+    public CFAJSONBuilder(
+        Optional<UnmodifiableReachedSet> pReached,
+        CFA cfa,
+        Set<Integer> pPredicateConsideredNodes,
+        Set<Integer> pPredicateRelevantVariablesConsideredNodes) {
       this.reached = pReached;
       this.consideredNodes = generateConsideredNodes(pReached, cfa);
       this.nodesVisitedMap = generateNodesVisitedMap(pReached);
+      this.predicateConsideredNodes = pPredicateConsideredNodes;
+      this.predicateRelevantVariablesConsideredNodes = pPredicateRelevantVariablesConsideredNodes;
     }
 
     private Map<CFANode, Double> generateNodesVisitedMap(
@@ -406,6 +428,12 @@ public final class DOTBuilder2 {
       }
       if (consideredNodes.contains(node)) {
         jnode.put("considered", true);
+      }
+      if (predicateConsideredNodes.contains(node.getNodeNumber())) {
+        jnode.put("predicateConsidered", true);
+      }
+      if (predicateRelevantVariablesConsideredNodes.contains(node.getNodeNumber())) {
+        jnode.put("predicateRelevantVariablesConsidered", true);
       }
 
       nodes.put(node.getNodeNumber(), jnode);

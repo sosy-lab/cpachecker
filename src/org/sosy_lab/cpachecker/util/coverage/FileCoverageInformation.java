@@ -49,6 +49,14 @@ public class FileCoverageInformation {
     return visitedLines;
   }
 
+  public Set<Integer> getAllPredicateConsideredNodes() {
+    return allPredicateConsideredNodes;
+  }
+
+  public Set<Integer> getAllPredicateRelevantVariablesNodes() {
+    return allPredicateRelevantVariablesNodes;
+  }
+
   void addVisitedAssume(AssumeEdge pEdge) {
     visitedAssumes.add(pEdge);
   }

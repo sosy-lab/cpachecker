@@ -498,18 +498,12 @@ with considerably less effort -->
               <label>
                 <strong>Verification Coverage</strong>
               </label>
-              <span class="button-checkbox">
-                <button
-                  class="btn btn-outline-secondary"
-                  id="cfa-considered-button"
-                  type="button"
-                  data-color="primary"
-                  ng-click="cfaColoringControl()"
-                  title="Show coloring of considered and visited nodes"
-                >
-                  <i class="far fa-square"></i>
-                </button>
-              </span>
+              <select
+                class="btn btn-outline-secondary selectpicker"
+                ng-options="s as s for s in coverageSelections"
+                ng-model="$root.displayedCoverages"
+                ng-change="cfaColoringControl()"
+              ></select>
             </div>
           </nav>
         </div>

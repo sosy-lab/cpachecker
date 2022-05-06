@@ -101,14 +101,49 @@ onmessage = (msg) => {
     return "circle";
   }
 
-  function nodeColorDecider(n) {
+  function nodeStyleDecider(n) {
+    return (
+      `fill: #fff; stroke: #999; ` +
+      `comment: ` +
+      `no:${getDefaultColor()};` +
+      `vl:${getConsideredVisitedLinesColor(n)};` +
+      `pc:${getPredicateConsideredColor(n)};` +
+      `prv:${getPredicateRelevantVariablesConsideredColor(n)};`
+    );
+  }
+
+  function getDefaultColor() {
+    return "#fff";
+  }
+
+  function getConsideredVisitedLinesColor(n) {
     if (n.covered) {
-      return "cfa-node-covered";
+      const rgbGradient = colorGradient(
+        [26, 148, 49],
+        [152, 251, 152],
+        n.visited
+      );
+      return rgbToHex(rgbGradient);
     }
     if (n.considered) {
-      return "cfa-node-considered";
+      return "#ff6e6e";
     }
-    return "cfa-node";
+  }
+
+  function getPredicateConsideredColor(n) {
+    if (n.predicateConsidered) {
+      return "#3aec49";
+    } else {
+      return "#ffffff";
+    }
+  }
+
+  function getPredicateRelevantVariablesConsideredColor(n) {
+    if (n.predicateRelevantVariablesConsidered) {
+      return "#3aec49";
+    } else {
+      return "#ffffff";
+    }
   }
 
   function colorGradient(color1, color2, weight) {
@@ -136,20 +171,14 @@ onmessage = (msg) => {
   // Set nodes for the graph contained in the json nodes
   function setGraphNodes(graph, nodesToSet) {
     nodesToSet.forEach((n) => {
-      const rgbGradient = colorGradient(
-        [26, 148, 49],
-        [152, 251, 152],
-        n.visited
-      );
-      const hexGradient = rgbToHex(rgbGradient);
       if (!mergedNodes.includes(n.index)) {
         graph.setNode(n.index, {
           label: setNodeLabel(n),
           labelStyle: "font-family: 'Courier New', Courier, monospace",
-          class: nodeColorDecider(n),
+          class: "cfa-node",
           id: `cfa-node${n.index}`,
           shape: nodeShapeDecider(n),
-          style: `fill: #fff; stroke: #999; comment: ${hexGradient};`,
+          style: nodeStyleDecider(n),
         });
       }
     });

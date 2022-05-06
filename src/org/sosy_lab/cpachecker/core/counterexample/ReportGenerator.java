@@ -42,6 +42,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -190,6 +191,13 @@ public class ReportGenerator {
 
     // extract further coverage data captured during the analysis if CoverageCPA is present
     CoverageData coverageData = CoverageUtility.getCoverageDataFromReachedSet(pReached);
+    Set<Integer> predicateConsideredNodes = new HashSet<>();
+    Set<Integer> predicateRelevantVariablesConsideredNodes = new HashSet<>();
+    for (FileCoverageInformation collector : coverageData.getInfosPerFile().values()) {
+      predicateConsideredNodes.addAll(collector.getAllPredicateConsideredNodes());
+      predicateRelevantVariablesConsideredNodes.addAll(
+          collector.getAllPredicateRelevantVariablesNodes());
+    }
     TimeDependentCoverageHandler tdcgHandler = coverageData.getTDCGHandler();
     Map<String, FileCoverageInformation> fileCoverageInformationMap =
         coverageData.getInfosPerFile();
@@ -208,7 +216,9 @@ public class ReportGenerator {
       }
     }
 
-    DOTBuilder2 dotBuilder = new DOTBuilder2(pCfa, pReached);
+    DOTBuilder2 dotBuilder =
+        new DOTBuilder2(
+            pCfa, pReached, predicateConsideredNodes, predicateRelevantVariablesConsideredNodes);
     PrintStream console = System.out;
     if (counterExamples.isEmpty()) {
       if (reportFile != null) {
