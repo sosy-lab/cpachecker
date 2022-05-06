@@ -137,7 +137,7 @@ public class LiveVariablesTransferRelation
     for (int i = 0; i < allDeclarations.size(); i++) {
       builder.put(allDeclarations.get(i), i);
     }
-    declarationListPos = builder.build();
+    declarationListPos = builder.buildOrThrow();
     noVars = allDeclarations.size();
 
     BitSet addressedVars = new BitSet(noVars);

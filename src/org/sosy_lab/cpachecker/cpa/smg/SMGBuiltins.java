@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.smg;
 
+import static com.google.common.base.Verify.verify;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -182,6 +184,11 @@ public class SMGBuiltins {
     }
 
     int count = countValue.getAsInt();
+    // The code below relies on this, but should probably be improved to handle it.
+    verify(
+        count <= Integer.MAX_VALUE / machineModel.getSizeofCharInBits(),
+        "Type too large to be handled by SMG for memset in edge %s",
+        cfaEdge);
 
     if (ch.isUnknown()) {
       // If the symbolic value is not known create a new one.
@@ -210,7 +217,7 @@ public class SMGBuiltins {
             expressionEvaluator.writeValue(
                 currentState,
                 bufferMemory,
-                offset + (c * machineModel.getSizeofCharInBits()),
+                offset + ((long) c * machineModel.getSizeofCharInBits()),
                 CNumericTypes.SIGNED_CHAR,
                 ch,
                 cfaEdge);

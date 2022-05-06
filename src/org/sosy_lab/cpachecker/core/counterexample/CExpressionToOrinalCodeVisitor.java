@@ -60,7 +60,7 @@ public class CExpressionToOrinalCodeVisitor implements CExpressionVisitor<String
       }
     }
     builder.put(pExpression, pSubsitute);
-    return new CExpressionToOrinalCodeVisitor(builder.build());
+    return new CExpressionToOrinalCodeVisitor(builder.buildOrThrow());
   }
 
   @Override

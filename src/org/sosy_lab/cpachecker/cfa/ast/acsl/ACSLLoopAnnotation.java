@@ -37,7 +37,7 @@ public class ACSLLoopAnnotation implements ACSLAnnotation {
       builder.put(
           entry.getKey(), new ACSLLoopInvariant(entry.getValue().getPredicate().simplify()));
     }
-    additionalInvariants = builder.build();
+    additionalInvariants = builder.buildOrThrow();
   }
 
   @Override
