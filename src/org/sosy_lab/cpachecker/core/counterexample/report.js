@@ -1373,19 +1373,16 @@ function renderTDCG(dataJSON, color, inPercentage) {
     "$rootScope",
     "$scope",
     function sourceToolbarController($rootScope, $scope) {
-      $scope.sourceColoringEnabled = false;
+      $scope.sourceCoverageSelections = ["None", "Visited Lines Heat Map"];
+      $rootScope.displayedSourceCoverages = $scope.sourceCoverageSelections[0];
       $scope.sourceColoringControl = () => {
-        if ($scope.sourceColoringEnabled) {
-          $scope.sourceColoringEnabled = false;
-          d3.select("#source-color-button").html(
-            "<i class='far fa-square'></i>"
-          );
+        if ($rootScope.displayedSourceCoverages.indexOf("None") !== -1) {
           $scope.changeLineColor();
-        } else {
-          $scope.sourceColoringEnabled = true;
-          d3.select("#source-color-button").html(
-            "<i class='far fa-check-square'></i>"
-          );
+        } else if (
+          $rootScope.displayedSourceCoverages.indexOf(
+            "Visited Lines Heat Map"
+          ) !== -1
+        ) {
           $scope.changeLineColor();
         }
       };

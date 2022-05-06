@@ -580,20 +580,14 @@ with considerably less effort -->
           <nav class="navbar navbar-light bg-light">
             <div class="nav-item">
               <label>
-                <strong>Verification Coverage (visited lines)</strong>
+                <strong>Verification Coverage</strong>
               </label>
-              <span class="button-checkbox">
-                <button
-                  class="btn btn-outline-secondary"
-                  id="source-color-button"
-                  type="button"
-                  data-color="primary"
-                  ng-click="sourceColoringControl()"
-                  title="Show coloring of visited lines"
-                >
-                  <i class="far fa-square"></i>
-                </button>
-              </span>
+              <select
+                class="btn btn-outline-secondary selectpicker"
+                ng-options="s as s for s in sourceCoverageSelections"
+                ng-model="$root.displayedSourceCoverages"
+                ng-change="sourceColoringControl()"
+              ></select>
             </div>
           </nav>
         </div>
