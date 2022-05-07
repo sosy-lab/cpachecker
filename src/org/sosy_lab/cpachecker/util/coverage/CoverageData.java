@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.coverage;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -23,13 +24,15 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureHandler;
+import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureType;
 import org.sosy_lab.cpachecker.util.coverage.report.FileCoverageStatistics;
+import org.sosy_lab.cpachecker.util.coverage.report.FilePredicateCoverageStatistics;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageData;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageType;
 
 public final class CoverageData {
-  private final Map<String, FileCoverageStatistics> infosPerFile = new LinkedHashMap<>();
+  private Map<String, FileCoverageStatistics> infosPerFile = new LinkedHashMap<>();
   private final TimeDependentCoverageHandler timeDependentCoverageHandler;
   private final CoverageMeasureHandler coverageMeasureHandler;
 
@@ -46,6 +49,21 @@ public final class CoverageData {
 
   public CoverageMeasureHandler getCoverageHandler() {
     return coverageMeasureHandler;
+  }
+
+  public Map<String, FilePredicateCoverageStatistics> getPredicateStatistics() {
+    Map<String, FilePredicateCoverageStatistics> predicateInfosPerFile = new LinkedHashMap<>();
+    for (String file : infosPerFile.keySet()) {
+      predicateInfosPerFile.put(file, infosPerFile.get(file).predicateStatistics);
+    }
+    return predicateInfosPerFile;
+  }
+
+  public void setPredicateStatistics(
+      Map<String, FilePredicateCoverageStatistics> predicateInfosPerFile) {
+    for (String file : infosPerFile.keySet()) {
+      infosPerFile.get(file).predicateStatistics = predicateInfosPerFile.get(file);
+    }
   }
 
   public FileCoverageStatistics getCollector(CFAEdge pEdge) {
@@ -163,6 +181,15 @@ public final class CoverageData {
     }
   }
 
+  public void addVisitedLocation(CFAEdge pEdge) {
+    final FileLocation loc = pEdge.getFileLocation();
+    final FileCoverageStatistics collector = getFileInfoTarget(loc, infosPerFile);
+    collector.visitedLocations.add(pEdge.getSuccessor().getNodeNumber());
+    if (!collector.visitedLocations.contains(pEdge.getPredecessor().getNodeNumber())) {
+      collector.visitedLocations.add(pEdge.getPredecessor().getNodeNumber());
+    }
+  }
+
   public double getTempVisitedCoverage() {
     int numTotalLines = 0;
     int numVisitedLines = 0;
@@ -182,7 +209,7 @@ public final class CoverageData {
       return;
     }
     FileCoverageStatistics collector = getCollector(pEdge);
-    collector.addPredicateConsideredNode(pEdge.getSuccessor());
+    collector.predicateStatistics.addPredicateConsideredNode(pEdge.getSuccessor());
   }
 
   public void addPredicateRelevantVariablesNodes(final CFAEdge pEdge) {
@@ -190,7 +217,7 @@ public final class CoverageData {
       return;
     }
     FileCoverageStatistics collector = getCollector(pEdge);
-    collector.addPredicateRelevantVariablesNodes(pEdge.getSuccessor());
+    collector.predicateStatistics.addPredicateRelevantVariablesNodes(pEdge.getSuccessor());
   }
 
   public void addAbstractStateCoveredNodes(final Set<CFANode> nodes, final CFAEdge pEdge) {
@@ -203,11 +230,11 @@ public final class CoverageData {
 
   public void resetPredicateRelevantVariablesNodes() {
     for (FileCoverageStatistics info : getInfosPerFile().values()) {
-      info.resetPredicateRelevantVariablesNodes();
+      info.predicateStatistics.resetPredicateRelevantVariablesNodes();
     }
   }
 
-  public void addInitialNodes(
+  public void addInitialNodesForTDCG(
       CFA cfa, TimeDependentCoverageData tdcgData, TimeDependentCoverageType type) {
     for (var node : cfa.getAllNodes()) {
       if (node.getNodeNumber() == 1) {
@@ -219,15 +246,36 @@ public final class CoverageData {
         do {
           switch (type) {
             case PredicateConsidered:
-              collector.addPredicateConsideredNode(candidateNode);
+              collector.predicateStatistics.addPredicateConsideredNode(candidateNode);
               tdcgData.addTimeStamp(getTempPredicateConsideredCoverage(cfa));
               break;
             case PredicateRelevantVariables:
-              collector.addPredicateRelevantVariablesNodes(candidateNode);
+              collector.predicateStatistics.addPredicateRelevantVariablesNodes(candidateNode);
               tdcgData.addTimeStamp(getTempPredicateRelevantVariablesCoverage(cfa));
               break;
             default:
               break;
+          }
+          candidateNode = candidateNode.getLeavingEdge(0).getSuccessor();
+        } while (candidateNode.getNumLeavingEdges() == 1);
+        break;
+      }
+    }
+  }
+
+  public void addInitialNodesForMeasures(CFA cfa) {
+    for (var node : cfa.getAllNodes()) {
+      if (node.getNodeNumber() == 1) {
+        CFANode candidateNode = node;
+        if (getCollectorForInitNode(candidateNode).isEmpty()) {
+          return;
+        }
+        FileCoverageStatistics collector = getCollectorForInitNode(candidateNode).orElseThrow();
+        do {
+          for (var type : coverageMeasureHandler.getAllTypes()) {
+            if (type == CoverageMeasureType.VisitedLocations) {
+              collector.visitedLocations.add(candidateNode.getNodeNumber());
+            }
           }
           candidateNode = candidateNode.getLeavingEdge(0).getSuccessor();
         } while (candidateNode.getNumLeavingEdges() == 1);
@@ -254,10 +302,10 @@ public final class CoverageData {
     for (FileCoverageStatistics info : getInfosPerFile().values()) {
       switch (type) {
         case PredicateConsidered:
-          numRelevantNodes += info.allPredicateConsideredNodes.size();
+          numRelevantNodes += info.predicateStatistics.allPredicateConsideredNodes.size();
           break;
         case PredicateRelevantVariables:
-          numRelevantNodes += info.allPredicateRelevantVariablesNodes.size();
+          numRelevantNodes += info.predicateStatistics.allPredicateRelevantVariablesNodes.size();
           break;
         case AbstractStateCoveredNodes:
           numRelevantNodes += info.allAbstractStateCoveredNodes.size();
@@ -269,17 +317,19 @@ public final class CoverageData {
     return numRelevantNodes / (double) numTotalNodes;
   }
 
-  public void addConsideredNodes(
-      final Collection<CFANode> nodes, final FileCoverageStatistics collector) {
-    for (CFANode node : nodes) {
-      collector.addConsideredNode(node.getNodeNumber());
+  public void addReachedNodes(final Collection<CFANode> nodes) {
+    for (FileCoverageStatistics info : infosPerFile.values()) {
+      info.allReachedNodes.addAll(
+          nodes.stream().map(v -> v.getNodeNumber()).collect(ImmutableSet.toImmutableSet()));
     }
   }
 
-  public void addExistingNodes(
-      final Collection<CFANode> nodes, final FileCoverageStatistics collector) {
-    for (CFANode node : nodes) {
-      collector.addExistingNode(node.getNodeNumber());
+  public void addExistingNodes(final CFA pCFA) {
+    for (FileCoverageStatistics info : infosPerFile.values()) {
+      info.allNodes.addAll(
+          pCFA.getAllNodes().stream()
+              .map(v -> v.getNodeNumber())
+              .collect(ImmutableSet.toImmutableSet()));
     }
   }
 
@@ -290,5 +340,9 @@ public final class CoverageData {
 
   public Map<String, FileCoverageStatistics> getInfosPerFile() {
     return infosPerFile;
+  }
+
+  public void setInfosPerFile(Map<String, FileCoverageStatistics> pInfosPerFile) {
+    infosPerFile = pInfosPerFile;
   }
 }

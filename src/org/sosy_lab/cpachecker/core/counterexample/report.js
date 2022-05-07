@@ -1193,7 +1193,7 @@ function renderTDCG(dataJSON, color, inPercentage) {
           }
           return list;
         };
-        $scope.colorId = "no";
+        $scope.colorId = "";
         $scope.coverageSelections = $scope.getCoverageTypes(cfaJson.coverage);
         $rootScope.displayedCoverages = $scope.coverageSelections[0];
 

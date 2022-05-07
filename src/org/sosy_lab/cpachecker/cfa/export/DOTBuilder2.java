@@ -27,7 +27,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -50,8 +49,9 @@ import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.coverage.CoverageUtility;
+import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureCategory;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureHandler;
-import org.sosy_lab.cpachecker.util.coverage.measures.LineCoverageMeasure;
+import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureType;
 import org.sosy_lab.cpachecker.util.coverage.measures.LocationCoverageMeasure;
 
 /**
@@ -86,7 +86,7 @@ public final class DOTBuilder2 {
   private void init(
       CFA pCfa, Optional<UnmodifiableReachedSet> pReached, CoverageMeasureHandler covHandler) {
     cfa = checkNotNull(pCfa);
-    jsoner = new CFAJSONBuilder(pReached, cfa, covHandler);
+    jsoner = new CFAJSONBuilder(pReached, covHandler);
     dotter = new DOTViewBuilder(cfa);
     CFAVisitor vis = new NodeCollectingCFAVisitor(new CompositeCFAVisitor(jsoner, dotter));
     for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
@@ -364,15 +364,11 @@ public final class DOTBuilder2 {
   private static class CFAJSONBuilder extends DefaultCFAVisitor {
     private final Map<Integer, Object> nodes = new HashMap<>();
     private final Map<String, Object> edges = new HashMap<>();
-    private final Optional<UnmodifiableReachedSet> reached;
-    private final Set<CFANode> consideredNodes;
     private final CoverageMeasureHandler covHandler;
     private final Map<CFANode, Double> nodesVisitedMap;
 
     public CFAJSONBuilder(
-        Optional<UnmodifiableReachedSet> pReached, CFA cfa, CoverageMeasureHandler pCovHandler) {
-      reached = pReached;
-      consideredNodes = generateConsideredNodes(pReached, cfa);
+        Optional<UnmodifiableReachedSet> pReached, CoverageMeasureHandler pCovHandler) {
       nodesVisitedMap = generateNodesVisitedMap(pReached);
       covHandler = pCovHandler;
     }
@@ -386,17 +382,6 @@ public final class DOTBuilder2 {
       }
     }
 
-    private Set<CFANode> generateConsideredNodes(
-        Optional<UnmodifiableReachedSet> pReached, CFA cfa) {
-      if (pReached.isPresent()) {
-        Set<CFANode> visitedNodes = CoverageUtility.getVisitedNodes(pReached.orElseThrow(), cfa);
-        CoverageUtility.addIndirectlyCoveredNodes(visitedNodes);
-        return visitedNodes;
-      } else {
-        return new HashSet<>();
-      }
-    }
-
     @Override
     public TraversalProcess visitNode(CFANode node) {
       Map<String, Object> jnode = new HashMap<>();
@@ -407,33 +392,23 @@ public final class DOTBuilder2 {
       jnode.put("loop", node.isLoopStart());
 
       jnode.put("visited", nodesVisitedMap.getOrDefault(node, 0.0));
-      if (reached.isPresent()) {
-        jnode.put("covered", CoverageUtility.isNodeConsidered(node, reached.orElseThrow()));
-      } else {
-        jnode.put("covered", false);
-      }
-      if (consideredNodes.contains(node)) {
-        jnode.put("considered", true);
-      }
 
       StringBuilder coverageProperties = new StringBuilder();
       for (var type : covHandler.getAllTypes()) {
         coverageProperties.append(type.getId()).append(":");
-        switch (type.getCategory()) {
-          case None:
+        if (type.getCategory() == CoverageMeasureCategory.LocationBased) {
+          LocationCoverageMeasure locCov = (LocationCoverageMeasure) covHandler.getData(type);
+          if (locCov.getCoveredSet().contains(node.getNodeNumber())) {
+            if (type == CoverageMeasureType.ConsideredLocationsHeatMap) {
+              coverageProperties.append("#ff6e6e").append(";");
+            } else {
+              coverageProperties.append("#3aec49").append(";");
+            }
+          } else {
             coverageProperties.append("#fff").append(";");
-            break;
-          case LineBased:
-            LineCoverageMeasure lineCov = (LineCoverageMeasure) covHandler.getData(type);
-            if (lineCov.getCoverage() > 0) {
-              coverageProperties.append("#3aec49").append(";");
-            }
-            break;
-          case LocationBased:
-            LocationCoverageMeasure locCov = (LocationCoverageMeasure) covHandler.getData(type);
-            if (locCov.getCoveredSet().contains(node.getNodeNumber())) {
-              coverageProperties.append("#3aec49").append(";");
-            }
+          }
+        } else {
+          coverageProperties.append("#fff").append(";");
         }
       }
       jnode.put("coverage", coverageProperties.toString());

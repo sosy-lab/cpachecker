@@ -24,7 +24,7 @@ public class CoverageStatistics {
   public long numVisitedLines = 0;
 
   public long numTotalNodes = 0;
-  public long numConsideredNodes = 0;
+  public long numReachedNodes = 0;
   public long numPredicateConsideredNodes = 0;
   public long numAbstractStateCoveredNodes = 0;
   public long numPredicateRelevantVariablesNodes = 0;
@@ -33,13 +33,15 @@ public class CoverageStatistics {
   public Set<Integer> predicateConsideredNodes = new HashSet<>();
   public Set<Integer> predicateRelevantVariablesConsideredNodes = new HashSet<>();
   public Multiset<Integer> visitedLines = LinkedHashMultiset.create();
+  public Multiset<Integer> visitedLocations = LinkedHashMultiset.create();
+  public Multiset<Integer> reachedLocations = LinkedHashMultiset.create();
 
   public CoverageStatistics(CoverageData pCoverage) {
     predicateCoverage = pCoverage.getPredicateCoverage();
     for (FileCoverageStatistics info : pCoverage.getInfosPerFile().values()) {
-      predicateConsideredNodes.addAll(info.getAllPredicateConsideredNodes());
+      predicateConsideredNodes.addAll(info.predicateStatistics.getAllPredicateConsideredNodes());
       predicateRelevantVariablesConsideredNodes.addAll(
-          info.getAllPredicateRelevantVariablesNodes());
+          info.predicateStatistics.getAllPredicateRelevantVariablesNodes());
       visitedLines.addAll(info.visitedLines);
 
       numTotalFunctions += info.allFunctions.size();
@@ -52,13 +54,21 @@ public class CoverageStatistics {
       numVisitedLines += info.visitedLines.entrySet().size();
 
       numTotalNodes += info.allNodes.size();
-      numConsideredNodes += info.allConsideredNodes.size();
-      numPredicateConsideredNodes += info.allPredicateConsideredNodes.size();
+      numReachedNodes += info.allReachedNodes.size();
+      numPredicateConsideredNodes += info.predicateStatistics.allPredicateConsideredNodes.size();
       numAbstractStateCoveredNodes += info.allAbstractStateCoveredNodes.size();
       numPredicateRelevantVariablesNodes +=
           Math.max(
-              info.allPredicateRelevantVariablesNodes.size(),
-              info.previousPredicateRelevantVariablesNodesSize);
+              info.predicateStatistics.allPredicateRelevantVariablesNodes.size(),
+              info.predicateStatistics.previousPredicateRelevantVariablesNodesSize);
+      visitedLocations.addAll(info.visitedLocations);
+      reachedLocations.addAll(info.allReachedNodes);
     }
+  }
+
+  public Set<Integer> getConsideredLocations() {
+    Set<Integer> intersect = new HashSet<>(visitedLocations.elementSet());
+    intersect.removeAll(reachedLocations.elementSet());
+    return intersect;
   }
 }

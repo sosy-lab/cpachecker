@@ -37,6 +37,7 @@ public class CoverageCPA implements ConfigurableProgramAnalysis {
 
   public CoverageCPA(CFA pCFA) {
     coverageData.putCFA(pCFA);
+    coverageData.addInitialNodesForMeasures(pCFA);
     domain = new FlatLatticeDomain(CoverageAbstractState.INSTANCE);
     stop = new StopSepOperator(domain);
     transfer = new CoverageTransferRelation(coverageData);

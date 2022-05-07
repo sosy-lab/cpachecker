@@ -43,15 +43,15 @@ public class CoverageReportStdoutSummary {
     }
 
     if (covStatistics.numTotalNodes > 0) {
-      final double consideredCoverage =
-          covStatistics.numConsideredNodes / (double) covStatistics.numTotalNodes;
+      final double reachedCoverage =
+          covStatistics.numReachedNodes / (double) covStatistics.numTotalNodes;
       final double predicateConsideredCoverage =
           covStatistics.numPredicateConsideredNodes / (double) covStatistics.numTotalNodes;
       final double predicateRelevantVariablesCoverage =
           covStatistics.numPredicateRelevantVariablesNodes / (double) covStatistics.numTotalNodes;
       final double abstractStateCoveredNodesCoverage =
           covStatistics.numAbstractStateCoveredNodes / (double) covStatistics.numTotalNodes;
-      StatisticsUtils.write(pStdOut, 1, 25, "Considered nodes", covStatistics.numConsideredNodes);
+      StatisticsUtils.write(pStdOut, 1, 25, "Reached nodes", covStatistics.numReachedNodes);
       StatisticsUtils.write(
           pStdOut, 1, 25, "Predicate-considered nodes", covStatistics.numPredicateConsideredNodes);
       StatisticsUtils.write(
@@ -65,7 +65,7 @@ public class CoverageReportStdoutSummary {
       StatisticsUtils.write(pStdOut, 1, 25, "Total nodes", covStatistics.numTotalNodes);
 
       StatisticsUtils.write(
-          pStdOut, 1, 25, "Considered coverage", String.format("%.3f", consideredCoverage));
+          pStdOut, 1, 25, "Considered coverage", String.format("%.3f", reachedCoverage));
       StatisticsUtils.write(
           pStdOut,
           1,

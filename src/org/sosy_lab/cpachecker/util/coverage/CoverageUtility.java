@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cpa.coverage.CoverageCPA;
 import org.sosy_lab.cpachecker.cpa.coverage.PredicateCoverageCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.coverage.report.FilePredicateCoverageStatistics;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageData;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageType;
 
@@ -169,6 +170,13 @@ public class CoverageUtility {
                 TimeDependentCoverageType type = TimeDependentCoverageType.Visited;
                 TimeDependentCoverageData data =
                     ((CoverageCPA) wrappedCPA).getCoverageData().getTDCGHandler().getData(type);
+                Map<String, FilePredicateCoverageStatistics> predicateStatistics =
+                    coverageData.getPredicateStatistics();
+                ((CoverageCPA) wrappedCPA)
+                    .getCoverageData()
+                    .setPredicateStatistics(predicateStatistics);
+                coverageData.setInfosPerFile(
+                    ((CoverageCPA) wrappedCPA).getCoverageData().getInfosPerFile());
                 coverageData.getTDCGHandler().addData(type, data);
               } else {
                 coverageData = ((CoverageCPA) wrappedCPA).getCoverageData();

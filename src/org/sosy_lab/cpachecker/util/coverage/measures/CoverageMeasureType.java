@@ -10,6 +10,10 @@ package org.sosy_lab.cpachecker.util.coverage.measures;
 
 public enum CoverageMeasureType {
   None("None", CoverageMeasureCategory.None),
+  VisitedLocations("Visited Locations", CoverageMeasureCategory.LocationBased),
+  ReachedLocations("Reached Locations", CoverageMeasureCategory.LocationBased),
+  ConsideredLocationsHeatMap(
+      "Considered-Locations Heat Map", CoverageMeasureCategory.LocationBased),
   ConsideredLinesHeatMap("Considered-Lines Heat Map", CoverageMeasureCategory.LineBased),
   PredicateConsidered("Predicate-Considered", CoverageMeasureCategory.LocationBased),
   PredicateRelevantVariables("Predicate-Relevant-Variables", CoverageMeasureCategory.LocationBased);

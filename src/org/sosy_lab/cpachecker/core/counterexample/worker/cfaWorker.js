@@ -103,15 +103,9 @@ onmessage = (msg) => {
 
   function nodeStyleDecider(n) {
     let style = `fill: #fff; stroke: #999; ` + `comment: `;
-    style += `${getStringId(
-      data.coverage[1].type
-    )}:${getConsideredVisitedLinesColor(n)};`;
     style += n.coverage;
+    console.log(getConsideredVisitedLinesColor(n));
     return style;
-  }
-
-  function getStringId(str) {
-    return str.replace(/\s/g, "").replace(/-/g, "");
   }
 
   function getConsideredVisitedLinesColor(n) {

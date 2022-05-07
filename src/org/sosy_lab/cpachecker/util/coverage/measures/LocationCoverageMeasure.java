@@ -8,15 +8,16 @@
 
 package org.sosy_lab.cpachecker.util.coverage.measures;
 
-import java.util.HashSet;
+import com.google.common.collect.LinkedHashMultiset;
+import com.google.common.collect.Multiset;
 import java.util.Set;
 
 public class LocationCoverageMeasure implements CoverageMeasure {
 
-  private final Set<Integer> coveredLocations;
+  private final Multiset<Integer> coveredLocations;
   private final double maxCount;
 
-  public LocationCoverageMeasure(Set<Integer> pCoveredLocations, double pMaxCount) {
+  public LocationCoverageMeasure(Multiset<Integer> pCoveredLocations, double pMaxCount) {
     coveredLocations = pCoveredLocations;
     if (pMaxCount <= 0) {
       maxCount = 1.0;
@@ -25,23 +26,36 @@ public class LocationCoverageMeasure implements CoverageMeasure {
     }
   }
 
+  public LocationCoverageMeasure(Set<Integer> pCoveredLocations, double pMaxCount) {
+    coveredLocations = LinkedHashMultiset.create(pCoveredLocations);
+    if (pMaxCount <= 0) {
+      maxCount = 1.0;
+    } else {
+      maxCount = pMaxCount;
+    }
+  }
+
   public LocationCoverageMeasure() {
-    coveredLocations = new HashSet<>();
+    coveredLocations = LinkedHashMultiset.create();
     maxCount = 1;
   }
 
   public Set<Integer> getCoveredSet() {
+    return coveredLocations.elementSet();
+  }
+
+  public Multiset<Integer> getCoveredLocations() {
     return coveredLocations;
   }
 
   @Override
   public double getCoverage() {
-    return coveredLocations.size() / maxCount;
+    return coveredLocations.elementSet().size() / maxCount;
   }
 
   @Override
   public double getValue() {
-    return coveredLocations.size();
+    return coveredLocations.elementSet().size();
   }
 
   @Override

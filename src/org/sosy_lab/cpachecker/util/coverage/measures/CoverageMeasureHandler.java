@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.coverage.measures;
 import com.google.common.collect.ImmutableList;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import org.sosy_lab.cpachecker.util.coverage.CoverageData;
 import org.sosy_lab.cpachecker.util.coverage.report.CoverageStatistics;
 
@@ -39,6 +40,9 @@ public class CoverageMeasureHandler {
 
   public void initAllCoverageMeasures() {
     initNewData(CoverageMeasureType.None);
+    initNewData(CoverageMeasureType.VisitedLocations);
+    initNewData(CoverageMeasureType.ReachedLocations);
+    initNewData(CoverageMeasureType.ConsideredLocationsHeatMap);
     initNewData(CoverageMeasureType.ConsideredLinesHeatMap);
     initNewData(CoverageMeasureType.PredicateConsidered);
     initNewData(CoverageMeasureType.PredicateRelevantVariables);
@@ -62,6 +66,14 @@ public class CoverageMeasureHandler {
         .collect(ImmutableList.toImmutableList());
   }
 
+  public ImmutableList<String> getAllTypesForCategoriesAsString(
+      CoverageMeasureCategory... categories) {
+    return coverageMeasureMap.keySet().stream()
+        .filter(v -> Set.of(categories).contains(v.getCategory()))
+        .map(v -> v.getName())
+        .collect(ImmutableList.toImmutableList());
+  }
+
   public void fillCoverageData(CoverageData pCoverageData) {
     CoverageStatistics covStatistics = new CoverageStatistics(pCoverageData);
     for (var type : getAllTypes()) {
@@ -69,6 +81,24 @@ public class CoverageMeasureHandler {
       LineCoverageMeasure lineCov;
       switch (type) {
         case None:
+          break;
+        case VisitedLocations:
+          locCov =
+              new LocationCoverageMeasure(
+                  covStatistics.visitedLocations, covStatistics.numTotalNodes);
+          addData(type, locCov);
+          break;
+        case ReachedLocations:
+          locCov =
+              new LocationCoverageMeasure(
+                  covStatistics.reachedLocations, covStatistics.numTotalNodes);
+          addData(type, locCov);
+          break;
+        case ConsideredLocationsHeatMap:
+          locCov =
+              new LocationCoverageMeasure(
+                  covStatistics.getConsideredLocations(), covStatistics.numTotalNodes);
+          addData(type, locCov);
           break;
         case ConsideredLinesHeatMap:
           lineCov =

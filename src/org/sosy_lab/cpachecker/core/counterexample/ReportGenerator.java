@@ -85,6 +85,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.coverage.CoverageData;
 import org.sosy_lab.cpachecker.util.coverage.CoverageUtility;
+import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureCategory;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureHandler;
 import org.sosy_lab.cpachecker.util.coverage.report.FileCoverageStatistics;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
@@ -465,7 +466,10 @@ public class ReportGenerator {
     }
 
     writer.write(",\n\"coverage\":");
-    writeCoverageTypes(covHandler.getAllTypesAsString(), writer);
+    writeCoverageTypes(
+        covHandler.getAllTypesForCategoriesAsString(
+            CoverageMeasureCategory.None, CoverageMeasureCategory.LocationBased),
+        writer);
 
     writer.write(",\n");
     dotBuilder.writeCfaInfo(writer);

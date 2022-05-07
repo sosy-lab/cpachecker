@@ -70,11 +70,11 @@ public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperT
         coverageHandler.getData(TimeDependentCoverageType.PredicateRelevantVariables);
     abstractStateCoveredNodesTDCG =
         coverageHandler.getData(TimeDependentCoverageType.AbstractStateCoveredNodes);
-    coverageData.addInitialNodes(
+    coverageData.addInitialNodesForTDCG(
         cfa, predicateConsideredTDCG, TimeDependentCoverageType.PredicateConsidered);
-    coverageData.addInitialNodes(
+    coverageData.addInitialNodesForTDCG(
         cfa, predicateRelevantVariablesTDCG, TimeDependentCoverageType.PredicateRelevantVariables);
-    coverageData.addInitialNodes(
+    coverageData.addInitialNodesForTDCG(
         cfa, abstractStateCoveredNodesTDCG, TimeDependentCoverageType.AbstractStateCoveredNodes);
   }
 
@@ -180,7 +180,7 @@ public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperT
 
       predicateRelevantVariablesTDCG.resetTimeStamps();
       coverageData.resetPredicateRelevantVariablesNodes();
-      coverageData.addInitialNodes(
+      coverageData.addInitialNodesForTDCG(
           cfa,
           predicateRelevantVariablesTDCG,
           TimeDependentCoverageType.PredicateRelevantVariables);
