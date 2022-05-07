@@ -122,7 +122,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Triple;
 
 /**
  * Builder to traverse AST. Known Limitations:
@@ -158,8 +157,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   // Data structures for handling goto
   private final Map<String, CFALabelNode> labelMap = new HashMap<>();
-  private final Multimap<String, Triple<CFANode, FileLocation, IASTGotoStatement>> gotoLabelNeeded =
-      ArrayListMultimap.create();
+  private final Multimap<String, GotoInformation> gotoLabelNeeded = ArrayListMultimap.create();
 
   // Data structures for handling function declarations
   private FunctionEntryNode cfa = null;
@@ -779,16 +777,17 @@ class CFAFunctionBuilder extends ASTVisitor {
     }
 
     // Check if any goto's previously analyzed need connections to this label
-    for (Triple<CFANode, FileLocation, IASTGotoStatement> gotoNode :
-        gotoLabelNeeded.get(labelName)) {
-      checkNotNull(gotoNode.getThird());
+    for (GotoInformation gotoInfo : gotoLabelNeeded.get(labelName)) {
       BlankEdge gotoEdge =
           createGotoEdge(
-              gotoNode.getThird(), gotoNode.getSecond(), gotoNode.getFirst(), labelNode, labelName);
+              gotoInfo.getGotoStatement(),
+              gotoInfo.getFileLoc(),
+              gotoInfo.getPrevNode(),
+              labelNode,
+              labelName);
       addToCFA(gotoEdge);
 
-      FileLocation gotoLocation = gotoNode.getSecond();
-      checkNotNull(gotoLocation);
+      FileLocation gotoLocation = gotoInfo.getFileLoc();
       for (StatementBlock block :
           FluentIterable.from(blocks).filter(StatementBlock.class).toList()) {
         if (block.getStartOffset() <= gotoLocation.getNodeOffset()
@@ -854,7 +853,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
       addToCFA(gotoEdge);
     } else {
-      gotoLabelNeeded.put(labelName, Triple.of(prevNode, fileloc, gotoStatement));
+      gotoLabelNeeded.put(labelName, new GotoInformation(prevNode, gotoStatement, fileloc));
     }
 
     CFANode nextNode = newCFANode();
@@ -2610,6 +2609,38 @@ class CFAFunctionBuilder extends ASTVisitor {
       } else {
         throw new AssertionError();
       }
+    }
+  }
+
+  private static final class GotoInformation {
+
+    private final CFANode prevNode;
+    private final IASTGotoStatement gotoStatement;
+    private final FileLocation fileLoc;
+
+    private GotoInformation(
+        final CFANode pPrevNode,
+        final IASTGotoStatement pGotoStatement,
+        final FileLocation pFileLoc) {
+
+      checkNotNull(pGotoStatement);
+      checkNotNull(pFileLoc);
+
+      prevNode = pPrevNode;
+      gotoStatement = pGotoStatement;
+      fileLoc = pFileLoc;
+    }
+
+    public CFANode getPrevNode() {
+      return prevNode;
+    }
+
+    public IASTGotoStatement getGotoStatement() {
+      return gotoStatement;
+    }
+
+    public FileLocation getFileLoc() {
+      return fileLoc;
     }
   }
 }
