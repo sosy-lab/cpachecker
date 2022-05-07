@@ -86,6 +86,11 @@ public class CFACheck {
         // The actual checks
         isConsistent(node, machineModel);
         checkEdgeCount(node);
+
+        // check whether all unreachable function exit nodes have been removed
+        if (node instanceof FunctionEntryNode) {
+          ((FunctionEntryNode) node).getExitNode().ifPresent(CFACheck::checkEdgeCount);
+        }
       }
     }
 
