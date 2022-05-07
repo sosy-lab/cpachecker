@@ -9,15 +9,11 @@
 package org.sosy_lab.cpachecker.util.coverage;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.LinkedHashMultiset;
+import com.google.common.collect.Multiset;
 import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
@@ -41,7 +37,8 @@ import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageType;
 
 public class CoverageUtility {
 
-  public static boolean isNodeConsidered(CFANode node, Iterable<AbstractState> reached) {
+  public static Multiset<CFANode> getReachedNodes(Iterable<AbstractState> reached) {
+    Multiset<CFANode> locations = LinkedHashMultiset.create();
     for (AbstractState state : reached) {
       ARGState argState = AbstractStates.extractStateByType(state, ARGState.class);
       if (argState != null) {
@@ -49,49 +46,11 @@ public class CoverageUtility {
             AbstractStates.extractStateByType(argState.getWrappedState(), LocationState.class);
         if (locState != null) {
           CFANode locationNode = locState.getLocationNode();
-          List<CFANode> locationComboNodes = extractBlockNodes(locationNode);
-          for (var comboNode : locationComboNodes) {
-            if (node.toString().equals(comboNode.toString())) {
-              return true;
-            }
-          }
+          locations.addAll(extractBlockNodes(locationNode));
         }
       }
     }
-    return false;
-  }
-
-  public static Set<CFANode> getVisitedNodes(Iterable<AbstractState> reached, CFA cfa) {
-    Set<CFANode> consideredNodes = new LinkedHashSet<>();
-    for (CFANode node : cfa.getAllNodes()) {
-      if (CoverageUtility.isNodeConsidered(node, reached)) {
-        consideredNodes.add(node);
-      }
-    }
-    return consideredNodes;
-  }
-
-  public static Map<CFANode, Double> getNodesVisitedMap(Iterable<AbstractState> reached) {
-    Map<CFANode, Double> nodesVisitedMap = new HashMap<>();
-    for (AbstractState state : reached) {
-      ARGState argState = AbstractStates.extractStateByType(state, ARGState.class);
-      if (argState != null) {
-        LocationState locState =
-            AbstractStates.extractStateByType(argState.getWrappedState(), LocationState.class);
-        if (locState != null) {
-          CFANode locationNode = locState.getLocationNode();
-          List<CFANode> locationComboNodes = extractBlockNodes(locationNode);
-          for (CFANode node : locationComboNodes) {
-            double visitedNumber = nodesVisitedMap.getOrDefault(node, 0.0);
-            nodesVisitedMap.put(node, visitedNumber + 1.0);
-          }
-        }
-      }
-    }
-    double maxVisited =
-        nodesVisitedMap.values().stream().max(Comparator.naturalOrder()).orElse(0.0);
-    nodesVisitedMap.replaceAll((k, v) -> v /= maxVisited);
-    return nodesVisitedMap;
+    return locations;
   }
 
   private static List<CFANode> extractBlockNodes(CFANode locationNode) {
@@ -123,29 +82,6 @@ public class CoverageUtility {
       }
     } while (currentComboEdge != null);
     return nodes;
-  }
-
-  public static void addIndirectlyCoveredNodes(Set<CFANode> nodes) {
-    boolean hasChanged;
-    Set<Integer> alreadyProcessedNodes = new HashSet<>();
-    do {
-      hasChanged = false;
-      Set<CFANode> newConsideredNodes = new HashSet<>();
-      for (CFANode node : nodes) {
-        if (alreadyProcessedNodes.contains(node.getNodeNumber())) {
-          continue;
-        }
-        alreadyProcessedNodes.add(node.getNodeNumber());
-        for (int i = 0; i < node.getNumEnteringEdges(); i++) {
-          CFANode preNode = node.getEnteringEdge(i).getPredecessor();
-          if (!nodes.contains(preNode)) {
-            hasChanged = true;
-            newConsideredNodes.add(preNode);
-          }
-        }
-      }
-      nodes.addAll(newConsideredNodes);
-    } while (hasChanged);
   }
 
   public static CoverageData extractTimeDependentCoverageData(ConfigurableProgramAnalysis cpa) {

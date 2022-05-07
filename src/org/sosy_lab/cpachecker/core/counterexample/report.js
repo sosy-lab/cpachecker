@@ -1187,7 +1187,7 @@ function renderTDCG(dataJSON, color, inPercentage) {
         $scope.zoomEnabled = false;
 
         $scope.getCoverageTypes = function getCoverageTypes(coverage) {
-          let list = [];
+          const list = [];
           for (let i = 0; i < coverage.length; i += 1) {
             list.push(coverage[i].type);
           }
@@ -1201,7 +1201,7 @@ function renderTDCG(dataJSON, color, inPercentage) {
           return msg
             .split("comment: ")
             .slice(-1)[0]
-            .split(id + ":")
+            .split(`${id}:`)
             .slice(-1)[0]
             .split(";")[0];
         };

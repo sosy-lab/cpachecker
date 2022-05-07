@@ -102,46 +102,9 @@ onmessage = (msg) => {
   }
 
   function nodeStyleDecider(n) {
-    let style = `fill: #fff; stroke: #999; ` + `comment: `;
+    let style = `fill: #fff; stroke: #999; comment: `;
     style += n.coverage;
-    console.log(getConsideredVisitedLinesColor(n));
     return style;
-  }
-
-  function getConsideredVisitedLinesColor(n) {
-    if (n.covered) {
-      const rgbGradient = colorGradient(
-        [26, 148, 49],
-        [152, 251, 152],
-        n.visited
-      );
-      return rgbToHex(rgbGradient);
-    }
-    if (n.considered) {
-      return "#ff6e6e";
-    }
-  }
-
-  function colorGradient(color1, color2, weight) {
-    const w1 = weight;
-    const w2 = 1 - w1;
-    return [
-      Math.round(color1[0] * w1 + color2[0] * w2),
-      Math.round(color1[1] * w1 + color2[1] * w2),
-      Math.round(color1[2] * w1 + color2[2] * w2),
-    ];
-  }
-
-  function componentToHex(c) {
-    const hex = c.toString(16);
-    return hex.length === 1 ? `0${hex}` : hex;
-  }
-
-  function rgbToHex(rgb) {
-    const r = rgb[0];
-    const g = rgb[1];
-    const b = rgb[2];
-    return `#${componentToHex(r)}${componentToHex(g)}${componentToHex(b)}`;
   }
 
   // Set nodes for the graph contained in the json nodes

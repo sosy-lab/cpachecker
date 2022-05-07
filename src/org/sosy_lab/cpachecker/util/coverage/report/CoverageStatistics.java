@@ -65,10 +65,4 @@ public class CoverageStatistics {
       reachedLocations.addAll(info.allReachedNodes);
     }
   }
-
-  public Set<Integer> getConsideredLocations() {
-    Set<Integer> intersect = new HashSet<>(visitedLocations.elementSet());
-    intersect.removeAll(reachedLocations.elementSet());
-    return intersect;
-  }
 }

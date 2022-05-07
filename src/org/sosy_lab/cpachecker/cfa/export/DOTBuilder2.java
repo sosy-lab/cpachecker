@@ -41,18 +41,17 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.CompositeCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
-import org.sosy_lab.cpachecker.util.coverage.CoverageUtility;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureCategory;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureHandler;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureType;
 import org.sosy_lab.cpachecker.util.coverage.measures.LocationCoverageMeasure;
+import org.sosy_lab.cpachecker.util.coverage.measures.MultiLocationCoverageMeasure;
 
 /**
  * Generates one DOT file per function for the report. For large programs the traditional method
@@ -75,18 +74,17 @@ public final class DOTBuilder2 {
   private CFAJSONBuilder jsoner;
   private DOTViewBuilder dotter;
 
-  public DOTBuilder2(CFA pCfa, UnmodifiableReachedSet pReached, CoverageMeasureHandler covHandler) {
-    init(pCfa, Optional.of(pReached), covHandler);
+  public DOTBuilder2(CFA pCfa, CoverageMeasureHandler covHandler) {
+    init(pCfa, covHandler);
   }
 
   public DOTBuilder2(CFA pCfa) {
-    init(pCfa, Optional.empty(), new CoverageMeasureHandler());
+    init(pCfa, new CoverageMeasureHandler());
   }
 
-  private void init(
-      CFA pCfa, Optional<UnmodifiableReachedSet> pReached, CoverageMeasureHandler covHandler) {
+  private void init(CFA pCfa, CoverageMeasureHandler covHandler) {
     cfa = checkNotNull(pCfa);
-    jsoner = new CFAJSONBuilder(pReached, covHandler);
+    jsoner = new CFAJSONBuilder(covHandler);
     dotter = new DOTViewBuilder(cfa);
     CFAVisitor vis = new NodeCollectingCFAVisitor(new CompositeCFAVisitor(jsoner, dotter));
     for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
@@ -365,21 +363,9 @@ public final class DOTBuilder2 {
     private final Map<Integer, Object> nodes = new HashMap<>();
     private final Map<String, Object> edges = new HashMap<>();
     private final CoverageMeasureHandler covHandler;
-    private final Map<CFANode, Double> nodesVisitedMap;
 
-    public CFAJSONBuilder(
-        Optional<UnmodifiableReachedSet> pReached, CoverageMeasureHandler pCovHandler) {
-      nodesVisitedMap = generateNodesVisitedMap(pReached);
+    public CFAJSONBuilder(CoverageMeasureHandler pCovHandler) {
       covHandler = pCovHandler;
-    }
-
-    private Map<CFANode, Double> generateNodesVisitedMap(
-        Optional<UnmodifiableReachedSet> pReached) {
-      if (pReached.isPresent()) {
-        return CoverageUtility.getNodesVisitedMap(pReached.orElseThrow());
-      } else {
-        return new HashMap<>();
-      }
     }
 
     @Override
@@ -391,8 +377,6 @@ public final class DOTBuilder2 {
       jnode.put("type", determineNodeType(node));
       jnode.put("loop", node.isLoopStart());
 
-      jnode.put("visited", nodesVisitedMap.getOrDefault(node, 0.0));
-
       StringBuilder coverageProperties = new StringBuilder();
       for (var type : covHandler.getAllTypes()) {
         coverageProperties.append(type.getId()).append(":");
@@ -400,7 +384,8 @@ public final class DOTBuilder2 {
           LocationCoverageMeasure locCov = (LocationCoverageMeasure) covHandler.getData(type);
           if (locCov.getCoveredSet().contains(node.getNodeNumber())) {
             if (type == CoverageMeasureType.ConsideredLocationsHeatMap) {
-              coverageProperties.append("#ff6e6e").append(";");
+              MultiLocationCoverageMeasure multiLocCov = (MultiLocationCoverageMeasure) locCov;
+              coverageProperties.append(multiLocCov.getColor(node.getNodeNumber())).append(";");
             } else {
               coverageProperties.append("#3aec49").append(";");
             }

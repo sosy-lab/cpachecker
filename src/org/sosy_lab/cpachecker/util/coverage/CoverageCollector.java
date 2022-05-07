@@ -124,7 +124,7 @@ class ReachedSetCoverageCollector {
 
     collectVisitedEdges(reached, cov);
     cov.addExistingNodes(cfa);
-    cov.addReachedNodes(CoverageUtility.getVisitedNodes(reached, cfa));
+    cov.addReachedNodes(CoverageUtility.getReachedNodes(reached));
 
     return cov;
   }

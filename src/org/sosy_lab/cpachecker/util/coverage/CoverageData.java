@@ -8,12 +8,15 @@
 
 package org.sosy_lab.cpachecker.util.coverage;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableMultiset;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -53,16 +56,16 @@ public final class CoverageData {
 
   public Map<String, FilePredicateCoverageStatistics> getPredicateStatistics() {
     Map<String, FilePredicateCoverageStatistics> predicateInfosPerFile = new LinkedHashMap<>();
-    for (String file : infosPerFile.keySet()) {
-      predicateInfosPerFile.put(file, infosPerFile.get(file).predicateStatistics);
+    for (Entry<String, FileCoverageStatistics> fileInfo : infosPerFile.entrySet()) {
+      predicateInfosPerFile.put(fileInfo.getKey(), fileInfo.getValue().predicateStatistics);
     }
     return predicateInfosPerFile;
   }
 
   public void setPredicateStatistics(
       Map<String, FilePredicateCoverageStatistics> predicateInfosPerFile) {
-    for (String file : infosPerFile.keySet()) {
-      infosPerFile.get(file).predicateStatistics = predicateInfosPerFile.get(file);
+    for (Entry<String, FileCoverageStatistics> fileInfo : infosPerFile.entrySet()) {
+      fileInfo.getValue().predicateStatistics = predicateInfosPerFile.get(fileInfo.getKey());
     }
   }
 
@@ -320,16 +323,15 @@ public final class CoverageData {
   public void addReachedNodes(final Collection<CFANode> nodes) {
     for (FileCoverageStatistics info : infosPerFile.values()) {
       info.allReachedNodes.addAll(
-          nodes.stream().map(v -> v.getNodeNumber()).collect(ImmutableSet.toImmutableSet()));
+          nodes.stream()
+              .map(v -> v.getNodeNumber())
+              .collect(ImmutableMultiset.toImmutableMultiset()));
     }
   }
 
   public void addExistingNodes(final CFA pCFA) {
     for (FileCoverageStatistics info : infosPerFile.values()) {
-      info.allNodes.addAll(
-          pCFA.getAllNodes().stream()
-              .map(v -> v.getNodeNumber())
-              .collect(ImmutableSet.toImmutableSet()));
+      info.allNodes.addAll(transformedImmutableSetCopy(pCFA.getAllNodes(), v -> v.getNodeNumber()));
     }
   }
 

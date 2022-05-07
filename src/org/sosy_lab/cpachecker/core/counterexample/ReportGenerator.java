@@ -210,7 +210,7 @@ public class ReportGenerator {
       }
     }
 
-    DOTBuilder2 dotBuilder = new DOTBuilder2(pCfa, pReached, covHandler);
+    DOTBuilder2 dotBuilder = new DOTBuilder2(pCfa, covHandler);
     PrintStream console = System.out;
     if (counterExamples.isEmpty()) {
       if (reportFile != null) {

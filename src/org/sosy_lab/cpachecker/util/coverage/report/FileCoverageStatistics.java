@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public class FileCoverageStatistics {
   public final Set<Integer> allNodes = new LinkedHashSet<>();
-  public final Set<Integer> allReachedNodes = new LinkedHashSet<>();
+  public final Multiset<Integer> allReachedNodes = LinkedHashMultiset.create();
   public final Set<Integer> allAbstractStateCoveredNodes = new LinkedHashSet<>();
   public final Multiset<Integer> visitedLines = LinkedHashMultiset.create();
   public final Set<Integer> allLines = new LinkedHashSet<>();
