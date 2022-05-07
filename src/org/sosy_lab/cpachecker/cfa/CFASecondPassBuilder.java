@@ -432,6 +432,14 @@ public class CFASecondPassBuilder {
       CFACreationUtils.removeChainOfNodesFromCFA(edge.getSuccessor());
       cfa.addNode(terminationNode);
       CFACreationUtils.addEdgeUnconditionallyToCFA(edgeToTermination);
+
+      // remove function exit node if it has become unreachable
+      FunctionEntryNode entryNode =
+          cfa.getAllFunctions().get(edge.getSuccessor().getFunction().getQualifiedName());
+      entryNode
+          .getExitNode()
+          .filter(exitNode -> exitNode.getNumEnteringEdges() == 0)
+          .ifPresent(exitNode -> entryNode.removeExitNode());
     }
   }
 
