@@ -50,6 +50,9 @@ import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.coverage.CoverageUtility;
+import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureHandler;
+import org.sosy_lab.cpachecker.util.coverage.measures.LineCoverageMeasure;
+import org.sosy_lab.cpachecker.util.coverage.measures.LocationCoverageMeasure;
 
 /**
  * Generates one DOT file per function for the report. For large programs the traditional method
@@ -72,31 +75,18 @@ public final class DOTBuilder2 {
   private CFAJSONBuilder jsoner;
   private DOTViewBuilder dotter;
 
-  public DOTBuilder2(
-      CFA pCfa,
-      UnmodifiableReachedSet pReached,
-      Set<Integer> predicateConsideredNodes,
-      Set<Integer> predicateRelevantVariablesConsideredNodes) {
-    init(
-        pCfa,
-        Optional.of(pReached),
-        predicateConsideredNodes,
-        predicateRelevantVariablesConsideredNodes);
+  public DOTBuilder2(CFA pCfa, UnmodifiableReachedSet pReached, CoverageMeasureHandler covHandler) {
+    init(pCfa, Optional.of(pReached), covHandler);
   }
 
   public DOTBuilder2(CFA pCfa) {
-    init(pCfa, Optional.empty(), new HashSet<>(), new HashSet<>());
+    init(pCfa, Optional.empty(), new CoverageMeasureHandler());
   }
 
   private void init(
-      CFA pCfa,
-      Optional<UnmodifiableReachedSet> pReached,
-      Set<Integer> predicateConsideredNodes,
-      Set<Integer> predicateRelevantVariablesConsideredNodes) {
+      CFA pCfa, Optional<UnmodifiableReachedSet> pReached, CoverageMeasureHandler covHandler) {
     cfa = checkNotNull(pCfa);
-    jsoner =
-        new CFAJSONBuilder(
-            pReached, cfa, predicateConsideredNodes, predicateRelevantVariablesConsideredNodes);
+    jsoner = new CFAJSONBuilder(pReached, cfa, covHandler);
     dotter = new DOTViewBuilder(cfa);
     CFAVisitor vis = new NodeCollectingCFAVisitor(new CompositeCFAVisitor(jsoner, dotter));
     for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
@@ -376,20 +366,15 @@ public final class DOTBuilder2 {
     private final Map<String, Object> edges = new HashMap<>();
     private final Optional<UnmodifiableReachedSet> reached;
     private final Set<CFANode> consideredNodes;
-    private final Set<Integer> predicateConsideredNodes;
-    private final Set<Integer> predicateRelevantVariablesConsideredNodes;
+    private final CoverageMeasureHandler covHandler;
     private final Map<CFANode, Double> nodesVisitedMap;
 
     public CFAJSONBuilder(
-        Optional<UnmodifiableReachedSet> pReached,
-        CFA cfa,
-        Set<Integer> pPredicateConsideredNodes,
-        Set<Integer> pPredicateRelevantVariablesConsideredNodes) {
-      this.reached = pReached;
-      this.consideredNodes = generateConsideredNodes(pReached, cfa);
-      this.nodesVisitedMap = generateNodesVisitedMap(pReached);
-      this.predicateConsideredNodes = pPredicateConsideredNodes;
-      this.predicateRelevantVariablesConsideredNodes = pPredicateRelevantVariablesConsideredNodes;
+        Optional<UnmodifiableReachedSet> pReached, CFA cfa, CoverageMeasureHandler pCovHandler) {
+      reached = pReached;
+      consideredNodes = generateConsideredNodes(pReached, cfa);
+      nodesVisitedMap = generateNodesVisitedMap(pReached);
+      covHandler = pCovHandler;
     }
 
     private Map<CFANode, Double> generateNodesVisitedMap(
@@ -420,6 +405,7 @@ public final class DOTBuilder2 {
       jnode.put("func", node.getFunctionName());
       jnode.put("type", determineNodeType(node));
       jnode.put("loop", node.isLoopStart());
+
       jnode.put("visited", nodesVisitedMap.getOrDefault(node, 0.0));
       if (reached.isPresent()) {
         jnode.put("covered", CoverageUtility.isNodeConsidered(node, reached.orElseThrow()));
@@ -429,12 +415,28 @@ public final class DOTBuilder2 {
       if (consideredNodes.contains(node)) {
         jnode.put("considered", true);
       }
-      if (predicateConsideredNodes.contains(node.getNodeNumber())) {
-        jnode.put("predicateConsidered", true);
+
+      StringBuilder coverageProperties = new StringBuilder();
+      for (var type : covHandler.getAllTypes()) {
+        coverageProperties.append(type.getId()).append(":");
+        switch (type.getCategory()) {
+          case None:
+            coverageProperties.append("#fff").append(";");
+            break;
+          case LineBased:
+            LineCoverageMeasure lineCov = (LineCoverageMeasure) covHandler.getData(type);
+            if (lineCov.getCoverage() > 0) {
+              coverageProperties.append("#3aec49").append(";");
+            }
+            break;
+          case LocationBased:
+            LocationCoverageMeasure locCov = (LocationCoverageMeasure) covHandler.getData(type);
+            if (locCov.getCoveredSet().contains(node.getNodeNumber())) {
+              coverageProperties.append("#3aec49").append(";");
+            }
+        }
       }
-      if (predicateRelevantVariablesConsideredNodes.contains(node.getNodeNumber())) {
-        jnode.put("predicateRelevantVariablesConsidered", true);
-      }
+      jnode.put("coverage", coverageProperties.toString());
 
       nodes.put(node.getNodeNumber(), jnode);
       return TraversalProcess.CONTINUE;

@@ -2,18 +2,19 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.coverage;
+package org.sosy_lab.cpachecker.util.coverage.report;
 
 import com.google.common.collect.Multiset;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.file.Path;
 import java.util.Map;
-import org.sosy_lab.cpachecker.util.coverage.FileCoverageInformation.FunctionInfo;
+import org.sosy_lab.cpachecker.util.coverage.CoverageData;
+import org.sosy_lab.cpachecker.util.coverage.report.FileCoverageStatistics.FunctionInfo;
 
 /** Generate coverage information in Gcov format (http://gcc.gnu.org/onlinedocs/gcc/Gcov.html). */
 public class CoverageReportGcov {
@@ -27,10 +28,9 @@ public class CoverageReportGcov {
 
   public static void write(CoverageData pCoverage, Writer w) throws IOException {
 
-    for (Map.Entry<String, FileCoverageInformation> entry :
-        pCoverage.getInfosPerFile().entrySet()) {
+    for (Map.Entry<String, FileCoverageStatistics> entry : pCoverage.getInfosPerFile().entrySet()) {
       String sourcefile = entry.getKey();
-      FileCoverageInformation fileInfos = entry.getValue();
+      FileCoverageStatistics fileInfos = entry.getValue();
 
       // Convert ./test.c -> /full/path/test.c
       w.append(TEXTNAME + "\n");

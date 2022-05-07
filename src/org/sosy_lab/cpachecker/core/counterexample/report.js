@@ -1185,13 +1185,16 @@ function renderTDCG(dataJSON, color, inPercentage) {
         }
         $scope.selectedCFAFunction = $scope.functions[0];
         $scope.zoomEnabled = false;
+
+        $scope.getCoverageTypes = function getCoverageTypes(coverage) {
+          let list = [];
+          for (let i = 0; i < coverage.length; i += 1) {
+            list.push(coverage[i].type);
+          }
+          return list;
+        };
         $scope.colorId = "no";
-        $scope.coverageSelections = [
-          "None",
-          "Considered Lines Heat Map",
-          "Predicate-Considered",
-          "Predicate-Relevant-Variables",
-        ];
+        $scope.coverageSelections = $scope.getCoverageTypes(cfaJson.coverage);
         $rootScope.displayedCoverages = $scope.coverageSelections[0];
 
         $scope.extractColor = function extractColor(msg, id) {
@@ -1216,26 +1219,12 @@ function renderTDCG(dataJSON, color, inPercentage) {
         };
 
         $scope.cfaColoringControl = function cfaColoringControl() {
-          if (
-            $rootScope.displayedCoverages.indexOf(
-              "Considered Lines Heat Map"
-            ) !== -1
-          ) {
-            $scope.colorId = "vl";
-          } else if ($rootScope.displayedCoverages.indexOf("None") !== -1) {
-            $scope.colorId = "no";
-          } else if (
-            $rootScope.displayedCoverages.indexOf("Predicate-Considered") !== -1
-          ) {
-            $scope.colorId = "pc";
-          } else if (
-            $rootScope.displayedCoverages.indexOf(
-              "Predicate-Relevant-Variables"
-            ) !== -1
-          ) {
-            $scope.colorId = "prv";
-          }
+          $scope.colorId = $scope.getStringId($rootScope.displayedCoverages);
           d3.selectAll(".cfa-node").each($scope.colorNode);
+        };
+
+        $scope.getStringId = function getStringId(str) {
+          return str.replace(/\s/g, "").replace(/-/g, "");
         };
       }
 
@@ -1347,6 +1336,7 @@ function renderTDCG(dataJSON, color, inPercentage) {
           toSplit: input,
           cfaSplit,
           argTabDisabled,
+          coverage: cfaJson.coverage,
         }).then(
           (result) => cfaWorkerCallback(result),
           (error) => cfaWorkerErrorCallback(error)
@@ -1355,6 +1345,7 @@ function renderTDCG(dataJSON, color, inPercentage) {
           rendered: "ready",
           cfaSplit,
           argTabDisabled,
+          coverage: cfaJson.coverage,
         }).then(
           (result) => cfaWorkerCallback(result),
           (error) => cfaWorkerErrorCallback(error)
@@ -1786,6 +1777,7 @@ window.init = () => {
     json: JSON.stringify(cfaJson),
     cfaSplit,
     argTabDisabled,
+    coverage: cfaJson.coverage,
   }).then(
     (result) => cfaWorkerCallback(result),
     (error) => cfaWorkerErrorCallback(error)

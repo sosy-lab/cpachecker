@@ -2,11 +2,11 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.coverage;
+package org.sosy_lab.cpachecker.util.coverage.report;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -17,7 +17,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
-public class FileCoverageInformation {
+public class FileCoverageStatistics {
 
   static class FunctionInfo {
     final String name;
@@ -31,17 +31,17 @@ public class FileCoverageInformation {
     }
   }
 
-  final Set<Integer> allNodes = new LinkedHashSet<>();
-  final Set<Integer> allConsideredNodes = new LinkedHashSet<>();
-  final Set<Integer> allPredicateConsideredNodes = new LinkedHashSet<>();
-  final Set<Integer> allPredicateRelevantVariablesNodes = new LinkedHashSet<>();
-  final Set<Integer> allAbstractStateCoveredNodes = new LinkedHashSet<>();
-  final Multiset<Integer> visitedLines = LinkedHashMultiset.create();
-  final Set<Integer> allLines = new LinkedHashSet<>();
-  final Multiset<String> visitedFunctions = LinkedHashMultiset.create();
-  final Set<FunctionInfo> allFunctions = new LinkedHashSet<>();
-  final Set<AssumeEdge> allAssumes = new LinkedHashSet<>();
-  final Set<AssumeEdge> visitedAssumes = new LinkedHashSet<>();
+  public final Set<Integer> allNodes = new LinkedHashSet<>();
+  public final Set<Integer> allConsideredNodes = new LinkedHashSet<>();
+  public final Set<Integer> allPredicateConsideredNodes = new LinkedHashSet<>();
+  public final Set<Integer> allPredicateRelevantVariablesNodes = new LinkedHashSet<>();
+  public final Set<Integer> allAbstractStateCoveredNodes = new LinkedHashSet<>();
+  public final Multiset<Integer> visitedLines = LinkedHashMultiset.create();
+  public final Set<Integer> allLines = new LinkedHashSet<>();
+  public final Multiset<String> visitedFunctions = LinkedHashMultiset.create();
+  public final Set<FunctionInfo> allFunctions = new LinkedHashSet<>();
+  public final Set<AssumeEdge> allAssumes = new LinkedHashSet<>();
+  public final Set<AssumeEdge> visitedAssumes = new LinkedHashSet<>();
 
   int previousPredicateRelevantVariablesNodesSize = 0;
 
@@ -57,60 +57,60 @@ public class FileCoverageInformation {
     return allPredicateRelevantVariablesNodes;
   }
 
-  void addVisitedAssume(AssumeEdge pEdge) {
+  public void addVisitedAssume(AssumeEdge pEdge) {
     visitedAssumes.add(pEdge);
   }
 
-  void addExistingAssume(AssumeEdge pEdge) {
+  public void addExistingAssume(AssumeEdge pEdge) {
     allAssumes.add(pEdge);
   }
 
-  void addVisitedFunction(String pName) {
+  public void addVisitedFunction(String pName) {
     visitedFunctions.add(pName);
   }
 
-  void addExistingFunction(String pName, int pFirstLine, int pLastLine) {
+  public void addExistingFunction(String pName, int pFirstLine, int pLastLine) {
     allFunctions.add(new FunctionInfo(pName, pFirstLine, pLastLine));
   }
 
-  void addVisitedLine(int pLine) {
+  public void addVisitedLine(int pLine) {
     checkArgument(pLine > 0);
     visitedLines.add(pLine);
   }
 
-  void addConsideredNode(int id) {
+  public void addConsideredNode(int id) {
     allConsideredNodes.add(id);
   }
 
-  void addExistingNode(int id) {
+  public void addExistingNode(int id) {
     allNodes.add(id);
   }
 
-  int getVisitedLine(int pLine) {
+  public int getVisitedLine(int pLine) {
     checkArgument(pLine > 0);
     return visitedLines.count(pLine);
   }
 
-  void addExistingLine(int pLine) {
+  public void addExistingLine(int pLine) {
     checkArgument(pLine > 0);
     allLines.add(pLine);
   }
 
-  void addPredicateConsideredNode(CFANode node) {
+  public void addPredicateConsideredNode(CFANode node) {
     allPredicateConsideredNodes.add(node.getNodeNumber());
   }
 
-  void addPredicateRelevantVariablesNodes(CFANode node) {
+  public void addPredicateRelevantVariablesNodes(CFANode node) {
     allPredicateRelevantVariablesNodes.add(node.getNodeNumber());
   }
 
-  void addAbstractStateCoveredNodes(Set<CFANode> nodes) {
+  public void addAbstractStateCoveredNodes(Set<CFANode> nodes) {
     for (CFANode node : nodes) {
       allAbstractStateCoveredNodes.add(node.getNodeNumber());
     }
   }
 
-  void resetPredicateRelevantVariablesNodes() {
+  public void resetPredicateRelevantVariablesNodes() {
     previousPredicateRelevantVariablesNodesSize = allPredicateRelevantVariablesNodes.size();
     allPredicateRelevantVariablesNodes.clear();
   }

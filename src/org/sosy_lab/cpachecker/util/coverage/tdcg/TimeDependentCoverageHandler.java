@@ -24,6 +24,15 @@ public class TimeDependentCoverageHandler {
     timeDependentCoverageDataMap.put(type, new TimeDependentCoverageData());
   }
 
+  // Configure which TDCG should be tracked during the analysis
+  public void initAllTDCG() {
+    initNewData(TimeDependentCoverageType.Visited);
+    initNewData(TimeDependentCoverageType.Predicate);
+    initNewData(TimeDependentCoverageType.PredicateConsidered);
+    initNewData(TimeDependentCoverageType.PredicateRelevantVariables);
+    initNewData(TimeDependentCoverageType.AbstractStateCoveredNodes);
+  }
+
   public void addData(TimeDependentCoverageType type, TimeDependentCoverageData data) {
     timeDependentCoverageDataMap.put(type, data);
   }

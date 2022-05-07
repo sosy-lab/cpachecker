@@ -102,18 +102,16 @@ onmessage = (msg) => {
   }
 
   function nodeStyleDecider(n) {
-    return (
-      `fill: #fff; stroke: #999; ` +
-      `comment: ` +
-      `no:${getDefaultColor()};` +
-      `vl:${getConsideredVisitedLinesColor(n)};` +
-      `pc:${getPredicateConsideredColor(n)};` +
-      `prv:${getPredicateRelevantVariablesConsideredColor(n)};`
-    );
+    let style = `fill: #fff; stroke: #999; ` + `comment: `;
+    style += `${getStringId(
+      data.coverage[1].type
+    )}:${getConsideredVisitedLinesColor(n)};`;
+    style += n.coverage;
+    return style;
   }
 
-  function getDefaultColor() {
-    return "#fff";
+  function getStringId(str) {
+    return str.replace(/\s/g, "").replace(/-/g, "");
   }
 
   function getConsideredVisitedLinesColor(n) {
@@ -127,22 +125,6 @@ onmessage = (msg) => {
     }
     if (n.considered) {
       return "#ff6e6e";
-    }
-  }
-
-  function getPredicateConsideredColor(n) {
-    if (n.predicateConsidered) {
-      return "#3aec49";
-    } else {
-      return "#ffffff";
-    }
-  }
-
-  function getPredicateRelevantVariablesConsideredColor(n) {
-    if (n.predicateRelevantVariablesConsidered) {
-      return "#3aec49";
-    } else {
-      return "#ffffff";
     }
   }
 

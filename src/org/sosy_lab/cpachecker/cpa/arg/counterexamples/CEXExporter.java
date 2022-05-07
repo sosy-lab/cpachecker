@@ -54,7 +54,7 @@ import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessToOutputFormatsUtils
 import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.coverage.CoverageCollector;
-import org.sosy_lab.cpachecker.util.coverage.CoverageReportGcov;
+import org.sosy_lab.cpachecker.util.coverage.report.CoverageReportGcov;
 import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
 import org.sosy_lab.cpachecker.util.cwriter.PathToConcreteProgramTranslator;
 import org.sosy_lab.cpachecker.util.harness.HarnessExporter;
@@ -345,7 +345,8 @@ public class CEXExporter {
     }
   }
 
-  // Copied from org.sosy_lab.cpachecker.util.coverage.FileCoverageInformation.addVisitedLine(int)
+  // Copied from
+  // org.sosy_lab.cpachecker.util.coverage.report.FileCoverageStatistics.addVisitedLine(int)
   public void addVisitedLine(Map<Integer, Integer> visitedLines, int pLine) {
     checkArgument(pLine > 0);
     if (visitedLines.containsKey(pLine)) {

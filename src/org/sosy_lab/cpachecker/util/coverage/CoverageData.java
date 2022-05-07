@@ -22,33 +22,38 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureHandler;
+import org.sosy_lab.cpachecker.util.coverage.report.FileCoverageStatistics;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageData;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageType;
 
 public final class CoverageData {
-  private final Map<String, FileCoverageInformation> infosPerFile = new LinkedHashMap<>();
+  private final Map<String, FileCoverageStatistics> infosPerFile = new LinkedHashMap<>();
   private final TimeDependentCoverageHandler timeDependentCoverageHandler;
+  private final CoverageMeasureHandler coverageMeasureHandler;
 
   public CoverageData() {
     timeDependentCoverageHandler = new TimeDependentCoverageHandler();
-    timeDependentCoverageHandler.initNewData(TimeDependentCoverageType.Visited);
-    timeDependentCoverageHandler.initNewData(TimeDependentCoverageType.Predicate);
-    timeDependentCoverageHandler.initNewData(TimeDependentCoverageType.PredicateConsidered);
-    timeDependentCoverageHandler.initNewData(TimeDependentCoverageType.PredicateRelevantVariables);
-    timeDependentCoverageHandler.initNewData(TimeDependentCoverageType.AbstractStateCoveredNodes);
+    coverageMeasureHandler = new CoverageMeasureHandler();
+    timeDependentCoverageHandler.initAllTDCG();
+    coverageMeasureHandler.initAllCoverageMeasures();
   }
 
   public TimeDependentCoverageHandler getTDCGHandler() {
     return timeDependentCoverageHandler;
   }
 
-  public FileCoverageInformation getCollector(CFAEdge pEdge) {
+  public CoverageMeasureHandler getCoverageHandler() {
+    return coverageMeasureHandler;
+  }
+
+  public FileCoverageStatistics getCollector(CFAEdge pEdge) {
     final FileLocation loc = pEdge.getFileLocation();
     return getFileInfoTarget(loc, infosPerFile);
   }
 
-  private Optional<FileCoverageInformation> getCollectorForInitNode(CFANode pNode) {
+  private Optional<FileCoverageStatistics> getCollectorForInitNode(CFANode pNode) {
     if (pNode.getNumLeavingEdges() > 0) {
       CFANode realNode = pNode.getLeavingEdge(0).getSuccessor();
       if (realNode.getNumLeavingEdges() > 0) {
@@ -59,17 +64,17 @@ public final class CoverageData {
     return Optional.empty();
   }
 
-  private FileCoverageInformation getFileInfoTarget(
-      final FileLocation pLoc, final Map<String, FileCoverageInformation> pTargets) {
+  private FileCoverageStatistics getFileInfoTarget(
+      final FileLocation pLoc, final Map<String, FileCoverageStatistics> pTargets) {
 
     // Cannot produce coverage info for dummy file location
     assert pLoc.getStartingLineNumber() != 0;
 
     String file = pLoc.getFileName().toString();
-    FileCoverageInformation fileInfos = pTargets.get(file);
+    FileCoverageStatistics fileInfos = pTargets.get(file);
 
     if (fileInfos == null) {
-      fileInfos = new FileCoverageInformation();
+      fileInfos = new FileCoverageStatistics();
       pTargets.put(file, fileInfos);
     }
 
@@ -100,7 +105,7 @@ public final class CoverageData {
       return;
     }
 
-    final FileCoverageInformation infos = getFileInfoTarget(loc, infosPerFile);
+    final FileCoverageStatistics infos = getFileInfoTarget(loc, infosPerFile);
 
     final int startingLine = loc.getStartingLineInOrigin();
     final int endingLine = loc.getEndingLineInOrigin();
@@ -113,7 +118,7 @@ public final class CoverageData {
       return;
     }
     final FileLocation loc = pEdge.getFileLocation();
-    final FileCoverageInformation collector = getFileInfoTarget(loc, infosPerFile);
+    final FileCoverageStatistics collector = getFileInfoTarget(loc, infosPerFile);
 
     final int startingLine = loc.getStartingLineInOrigin();
     final int endingLine = loc.getEndingLineInOrigin();
@@ -144,7 +149,7 @@ public final class CoverageData {
     putExistingEdge(pEdge);
 
     final FileLocation loc = pEdge.getFileLocation();
-    final FileCoverageInformation collector = getFileInfoTarget(loc, infosPerFile);
+    final FileCoverageStatistics collector = getFileInfoTarget(loc, infosPerFile);
 
     final int startingLine = loc.getStartingLineInOrigin();
     final int endingLine = loc.getEndingLineInOrigin();
@@ -161,7 +166,7 @@ public final class CoverageData {
   public double getTempVisitedCoverage() {
     int numTotalLines = 0;
     int numVisitedLines = 0;
-    for (FileCoverageInformation info : getInfosPerFile().values()) {
+    for (FileCoverageStatistics info : getInfosPerFile().values()) {
       numTotalLines += info.allLines.size();
       numVisitedLines += info.visitedLines.entrySet().size();
     }
@@ -176,7 +181,7 @@ public final class CoverageData {
     if (!CoverageUtility.coversLine(pEdge)) {
       return;
     }
-    FileCoverageInformation collector = getCollector(pEdge);
+    FileCoverageStatistics collector = getCollector(pEdge);
     collector.addPredicateConsideredNode(pEdge.getSuccessor());
   }
 
@@ -184,7 +189,7 @@ public final class CoverageData {
     if (!CoverageUtility.coversLine(pEdge)) {
       return;
     }
-    FileCoverageInformation collector = getCollector(pEdge);
+    FileCoverageStatistics collector = getCollector(pEdge);
     collector.addPredicateRelevantVariablesNodes(pEdge.getSuccessor());
   }
 
@@ -192,12 +197,12 @@ public final class CoverageData {
     if (!CoverageUtility.coversLine(pEdge)) {
       return;
     }
-    FileCoverageInformation collector = getCollector(pEdge);
+    FileCoverageStatistics collector = getCollector(pEdge);
     collector.addAbstractStateCoveredNodes(nodes);
   }
 
   public void resetPredicateRelevantVariablesNodes() {
-    for (FileCoverageInformation info : getInfosPerFile().values()) {
+    for (FileCoverageStatistics info : getInfosPerFile().values()) {
       info.resetPredicateRelevantVariablesNodes();
     }
   }
@@ -210,7 +215,7 @@ public final class CoverageData {
         if (getCollectorForInitNode(candidateNode).isEmpty()) {
           return;
         }
-        FileCoverageInformation collector = getCollectorForInitNode(candidateNode).orElseThrow();
+        FileCoverageStatistics collector = getCollectorForInitNode(candidateNode).orElseThrow();
         do {
           switch (type) {
             case PredicateConsidered:
@@ -246,7 +251,7 @@ public final class CoverageData {
   private double getTempCoverage(CFA cfa, TimeDependentCoverageType type) {
     int numTotalNodes = cfa.getAllNodes().size();
     int numRelevantNodes = 0;
-    for (FileCoverageInformation info : getInfosPerFile().values()) {
+    for (FileCoverageStatistics info : getInfosPerFile().values()) {
       switch (type) {
         case PredicateConsidered:
           numRelevantNodes += info.allPredicateConsideredNodes.size();
@@ -265,25 +270,25 @@ public final class CoverageData {
   }
 
   public void addConsideredNodes(
-      final Collection<CFANode> nodes, final FileCoverageInformation collector) {
+      final Collection<CFANode> nodes, final FileCoverageStatistics collector) {
     for (CFANode node : nodes) {
       collector.addConsideredNode(node.getNodeNumber());
     }
   }
 
   public void addExistingNodes(
-      final Collection<CFANode> nodes, final FileCoverageInformation collector) {
+      final Collection<CFANode> nodes, final FileCoverageStatistics collector) {
     for (CFANode node : nodes) {
       collector.addExistingNode(node.getNodeNumber());
     }
   }
 
   public void addVisitedFunction(FunctionEntryNode pEntryNode) {
-    FileCoverageInformation infos = getFileInfoTarget(pEntryNode.getFileLocation(), infosPerFile);
+    FileCoverageStatistics infos = getFileInfoTarget(pEntryNode.getFileLocation(), infosPerFile);
     infos.addVisitedFunction(pEntryNode.getFunctionName());
   }
 
-  public Map<String, FileCoverageInformation> getInfosPerFile() {
+  public Map<String, FileCoverageStatistics> getInfosPerFile() {
     return infosPerFile;
   }
 }

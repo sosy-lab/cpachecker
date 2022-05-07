@@ -42,7 +42,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -86,7 +85,8 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.coverage.CoverageData;
 import org.sosy_lab.cpachecker.util.coverage.CoverageUtility;
-import org.sosy_lab.cpachecker.util.coverage.FileCoverageInformation;
+import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureHandler;
+import org.sosy_lab.cpachecker.util.coverage.report.FileCoverageStatistics;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageType;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
@@ -191,19 +191,12 @@ public class ReportGenerator {
 
     // extract further coverage data captured during the analysis if CoverageCPA is present
     CoverageData coverageData = CoverageUtility.getCoverageDataFromReachedSet(pReached);
-    Set<Integer> predicateConsideredNodes = new HashSet<>();
-    Set<Integer> predicateRelevantVariablesConsideredNodes = new HashSet<>();
-    for (FileCoverageInformation collector : coverageData.getInfosPerFile().values()) {
-      predicateConsideredNodes.addAll(collector.getAllPredicateConsideredNodes());
-      predicateRelevantVariablesConsideredNodes.addAll(
-          collector.getAllPredicateRelevantVariablesNodes());
-    }
     TimeDependentCoverageHandler tdcgHandler = coverageData.getTDCGHandler();
-    Map<String, FileCoverageInformation> fileCoverageInformationMap =
-        coverageData.getInfosPerFile();
+    CoverageMeasureHandler covHandler = coverageData.getCoverageHandler();
+    covHandler.fillCoverageData(coverageData);
+    Map<String, FileCoverageStatistics> fileCoverageStatisticsMap = coverageData.getInfosPerFile();
 
     ImmutableSet<Path> allInputFiles = getAllInputFiles(pCfa);
-
     extractWitness(pResult, pCfa, pReached);
 
     // we cannot export the graph for some special analyses, e.g., termination analysis
@@ -216,9 +209,7 @@ public class ReportGenerator {
       }
     }
 
-    DOTBuilder2 dotBuilder =
-        new DOTBuilder2(
-            pCfa, pReached, predicateConsideredNodes, predicateRelevantVariablesConsideredNodes);
+    DOTBuilder2 dotBuilder = new DOTBuilder2(pCfa, pReached, covHandler);
     PrintStream console = System.out;
     if (counterExamples.isEmpty()) {
       if (reportFile != null) {
@@ -229,8 +220,9 @@ public class ReportGenerator {
             allInputFiles,
             dotBuilder,
             pStatistics,
+            covHandler,
             tdcgHandler,
-            fileCoverageInformationMap);
+            fileCoverageStatisticsMap);
         console.println("Graphical representation included in the file \"" + reportFile + "\".");
       }
 
@@ -243,8 +235,9 @@ public class ReportGenerator {
             allInputFiles,
             dotBuilder,
             pStatistics,
+            covHandler,
             tdcgHandler,
-            fileCoverageInformationMap);
+            fileCoverageStatisticsMap);
       }
 
       StringBuilder counterExFiles = new StringBuilder();
@@ -296,8 +289,9 @@ public class ReportGenerator {
       Set<Path> allInputFiles,
       DOTBuilder2 dotBuilder,
       String statistics,
+      CoverageMeasureHandler covHandler,
       TimeDependentCoverageHandler tdcgHandler,
-      Map<String, FileCoverageInformation> fileCoverageInformationMap) {
+      Map<String, FileCoverageStatistics> fileCoverageStatisticsMap) {
 
     try (BufferedReader reader =
             Resources.asCharSource(
@@ -312,11 +306,11 @@ public class ReportGenerator {
         } else if (line.contains("REPORT_CSS")) {
           insertCss(writer);
         } else if (line.contains("REPORT_JS")) {
-          insertJs(writer, cfa, allInputFiles, dotBuilder, counterExample, tdcgHandler);
+          insertJs(writer, cfa, allInputFiles, dotBuilder, counterExample, covHandler, tdcgHandler);
         } else if (line.contains("STATISTICS")) {
           insertStatistics(writer, statistics);
         } else if (line.contains("SOURCE_CONTENT")) {
-          insertSources(writer, allInputFiles, fileCoverageInformationMap);
+          insertSources(writer, allInputFiles, fileCoverageStatisticsMap);
         } else if (line.contains("LOG")) {
           insertLog(writer);
         } else if (line.contains("REPORT_NAME")) {
@@ -354,9 +348,10 @@ public class ReportGenerator {
       Set<Path> allInputFiles,
       DOTBuilder2 dotBuilder,
       @Nullable CounterexampleInfo counterExample,
+      CoverageMeasureHandler covHandler,
       TimeDependentCoverageHandler tdcgHandler)
       throws IOException {
-    insertCfaJson(writer, cfa, dotBuilder, counterExample);
+    insertCfaJson(writer, cfa, dotBuilder, covHandler, counterExample);
     insertArgJson(writer);
     insertTimeStampsPerCoverageJson(writer, tdcgHandler);
     insertSourceFileNames(writer, allInputFiles);
@@ -421,7 +416,11 @@ public class ReportGenerator {
   }
 
   private void insertCfaJson(
-      Writer writer, CFA cfa, DOTBuilder2 dotBuilder, @Nullable CounterexampleInfo counterExample)
+      Writer writer,
+      CFA cfa,
+      DOTBuilder2 dotBuilder,
+      CoverageMeasureHandler covHandler,
+      @Nullable CounterexampleInfo counterExample)
       throws IOException {
     writer.write("var cfaJson = {\n");
 
@@ -465,10 +464,29 @@ public class ReportGenerator {
       }
     }
 
+    writer.write(",\n\"coverage\":");
+    writeCoverageTypes(covHandler.getAllTypesAsString(), writer);
+
     writer.write(",\n");
     dotBuilder.writeCfaInfo(writer);
     writer.write("\n}\n");
     writer.write("window.cfaJson = cfaJson;\n");
+  }
+
+  private void writeCoverageTypes(List<String> coverageSelections, Writer writer)
+      throws IOException {
+    writer.write("[");
+    for (int i = 0; i < coverageSelections.size(); i++) {
+      writer.write("{\"type\":");
+      JSON.writeJSONString(coverageSelections.get(i), writer);
+      writer.write(",\"color\":");
+      JSON.writeJSONString("red", writer);
+      writer.write("}");
+      if (i != coverageSelections.size() - 1) {
+        writer.write(",");
+      }
+    }
+    writer.write("]");
   }
 
   private String extractPreconditionFromFaultLocalizationInfo(FaultLocalizationInfo fInfo) {
@@ -617,18 +635,18 @@ public class ReportGenerator {
   private void insertSources(
       Writer report,
       Iterable<Path> allSources,
-      Map<String, FileCoverageInformation> fileCoverageInformationMap)
+      Map<String, FileCoverageStatistics> fileCoverageStatisticsMap)
       throws IOException {
     int index = 0;
     for (Path sourceFile : allSources) {
-      FileCoverageInformation fileCoverage = fileCoverageInformationMap.get(sourceFile.toString());
+      FileCoverageStatistics fileCoverage = fileCoverageStatisticsMap.get(sourceFile.toString());
       insertSource(sourceFile, report, index, fileCoverage);
       index++;
     }
   }
 
   private void insertSource(
-      Path sourcePath, Writer writer, int sourceFileNumber, FileCoverageInformation fileCoverage)
+      Path sourcePath, Writer writer, int sourceFileNumber, FileCoverageStatistics fileCoverage)
       throws IOException {
     Map<Integer, String> coveragePerLine = calculateSourceLineColors(fileCoverage);
     if (Files.isReadable(sourcePath) && !Files.isDirectory(sourcePath)) {
@@ -680,7 +698,7 @@ public class ReportGenerator {
     }
   }
 
-  private Map<Integer, String> calculateSourceLineColors(FileCoverageInformation fileCoverage) {
+  private Map<Integer, String> calculateSourceLineColors(FileCoverageStatistics fileCoverage) {
     Map<Integer, Integer> coverageLineMap = new HashMap<>();
     Map<Integer, String> coverageLineColorMap = new HashMap<>();
     int max = 0;
