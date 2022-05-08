@@ -65,6 +65,10 @@ if (Object.prototype.hasOwnProperty.call(cfaJson, "errorPath")) {
   errorPath = cfaJson.errorPath;
   errorPathFlag = true;
 }
+let cfaCoverage;
+if (Object.prototype.hasOwnProperty.call(cfaJson, "coverage")) {
+  cfaCoverage = cfaJson.coverage;
+}
 let relevantEdges;
 if (Object.prototype.hasOwnProperty.call(argJson, "relevantedges")) {
   relevantEdges = argJson.relevantedges;
@@ -1186,15 +1190,14 @@ function renderTDCG(dataJSON, color, inPercentage) {
         $scope.selectedCFAFunction = $scope.functions[0];
         $scope.zoomEnabled = false;
 
-        $scope.getCoverageTypes = function getCoverageTypes(coverage) {
-          const list = [];
-          for (let i = 0; i < coverage.length; i += 1) {
-            list.push(coverage[i].type);
-          }
-          return list;
-        };
         $scope.colorId = "";
-        $scope.coverageSelections = $scope.getCoverageTypes(cfaJson.coverage);
+        $scope.coverageSelections = ["None"];
+        if (cfaCoverage !== undefined && cfaCoverage.length > 0) {
+          $scope.coverageSelections = [];
+          for (let i = 0; i < cfaCoverage.length; i += 1) {
+            $scope.coverageSelections.push(cfaCoverage[i].type);
+          }
+        }
         $rootScope.displayedCoverages = $scope.coverageSelections[0];
 
         $scope.extractColor = function extractColor(msg, id) {
@@ -1336,7 +1339,6 @@ function renderTDCG(dataJSON, color, inPercentage) {
           toSplit: input,
           cfaSplit,
           argTabDisabled,
-          coverage: cfaJson.coverage,
         }).then(
           (result) => cfaWorkerCallback(result),
           (error) => cfaWorkerErrorCallback(error)
@@ -1345,7 +1347,6 @@ function renderTDCG(dataJSON, color, inPercentage) {
           rendered: "ready",
           cfaSplit,
           argTabDisabled,
-          coverage: cfaJson.coverage,
         }).then(
           (result) => cfaWorkerCallback(result),
           (error) => cfaWorkerErrorCallback(error)
@@ -1777,7 +1778,6 @@ window.init = () => {
     json: JSON.stringify(cfaJson),
     cfaSplit,
     argTabDisabled,
-    coverage: cfaJson.coverage,
   }).then(
     (result) => cfaWorkerCallback(result),
     (error) => cfaWorkerErrorCallback(error)

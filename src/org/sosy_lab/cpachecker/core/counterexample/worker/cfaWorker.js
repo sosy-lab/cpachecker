@@ -101,12 +101,6 @@ onmessage = (msg) => {
     return "circle";
   }
 
-  function nodeStyleDecider(n) {
-    let style = `fill: #fff; stroke: #999; comment: `;
-    style += n.coverage;
-    return style;
-  }
-
   // Set nodes for the graph contained in the json nodes
   function setGraphNodes(graph, nodesToSet) {
     nodesToSet.forEach((n) => {
@@ -117,7 +111,7 @@ onmessage = (msg) => {
           class: "cfa-node",
           id: `cfa-node${n.index}`,
           shape: nodeShapeDecider(n),
-          style: nodeStyleDecider(n),
+          style: `fill: #fff; stroke: #999; comment: ${n.coverage}`,
         });
       }
     });

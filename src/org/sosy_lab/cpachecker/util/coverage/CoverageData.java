@@ -8,8 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.coverage;
 
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
-
+import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultiset;
 import java.util.Collection;
@@ -331,7 +330,7 @@ public final class CoverageData {
 
   public void addExistingNodes(final CFA pCFA) {
     for (FileCoverageStatistics info : infosPerFile.values()) {
-      info.allNodes.addAll(transformedImmutableSetCopy(pCFA.getAllNodes(), v -> v.getNodeNumber()));
+      info.allNodes.addAll(Collections2.transform(pCFA.getAllNodes(), v -> v.getNodeNumber()));
     }
   }
 
