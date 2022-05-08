@@ -29,7 +29,7 @@ public class CoverageTransferRelation extends SingleEdgeTransferRelation {
 
   public CoverageTransferRelation(CoverageData pCoverageData) {
     coverageData = Preconditions.checkNotNull(pCoverageData);
-    visitedTDCG = coverageData.getTDCGHandler().getData(TimeDependentCoverageType.Visited);
+    visitedTDCG = coverageData.getTDCGHandler().getData(TimeDependentCoverageType.VisitedLines);
   }
 
   @Override

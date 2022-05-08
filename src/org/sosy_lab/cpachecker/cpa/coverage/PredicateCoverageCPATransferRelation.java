@@ -63,15 +63,15 @@ public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperT
     cfa = Preconditions.checkNotNull(pCfa);
     coverageData = Preconditions.checkNotNull(pCoverageData);
     TimeDependentCoverageHandler coverageHandler = coverageData.getTDCGHandler();
-    predicateTDCG = coverageHandler.getData(TimeDependentCoverageType.Predicate);
+    predicateTDCG = coverageHandler.getData(TimeDependentCoverageType.PredicatesGenerated);
     predicateConsideredTDCG =
-        coverageHandler.getData(TimeDependentCoverageType.PredicateConsidered);
+        coverageHandler.getData(TimeDependentCoverageType.PredicateConsideredLocations);
     predicateRelevantVariablesTDCG =
         coverageHandler.getData(TimeDependentCoverageType.PredicateRelevantVariables);
     abstractStateCoveredNodesTDCG =
         coverageHandler.getData(TimeDependentCoverageType.AbstractStateCoveredNodes);
     coverageData.addInitialNodesForTDCG(
-        cfa, predicateConsideredTDCG, TimeDependentCoverageType.PredicateConsidered);
+        cfa, predicateConsideredTDCG, TimeDependentCoverageType.PredicateConsideredLocations);
     coverageData.addInitialNodesForTDCG(
         cfa, predicateRelevantVariablesTDCG, TimeDependentCoverageType.PredicateRelevantVariables);
     coverageData.addInitialNodesForTDCG(

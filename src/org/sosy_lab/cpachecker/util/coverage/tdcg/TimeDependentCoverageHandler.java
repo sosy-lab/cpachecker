@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.coverage.tdcg;
 
+import com.google.common.collect.ImmutableList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -26,11 +27,15 @@ public class TimeDependentCoverageHandler {
 
   // Configure which TDCG should be tracked during the analysis
   public void initAllTDCG() {
-    initNewData(TimeDependentCoverageType.Visited);
-    initNewData(TimeDependentCoverageType.Predicate);
-    initNewData(TimeDependentCoverageType.PredicateConsidered);
+    initNewData(TimeDependentCoverageType.VisitedLines);
+    initNewData(TimeDependentCoverageType.PredicatesGenerated);
+    initNewData(TimeDependentCoverageType.PredicateConsideredLocations);
     initNewData(TimeDependentCoverageType.PredicateRelevantVariables);
     initNewData(TimeDependentCoverageType.AbstractStateCoveredNodes);
+  }
+
+  public ImmutableList<TimeDependentCoverageType> getAllTypes() {
+    return ImmutableList.copyOf(timeDependentCoverageDataMap.keySet());
   }
 
   public void addData(TimeDependentCoverageType type, TimeDependentCoverageData data) {

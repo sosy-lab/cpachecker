@@ -154,7 +154,7 @@ public final class CoverageData {
 
   public double getPredicateCoverage() {
     TimeDependentCoverageData timeStampsPerPredicateCoverage =
-        timeDependentCoverageHandler.getData(TimeDependentCoverageType.Predicate);
+        timeDependentCoverageHandler.getData(TimeDependentCoverageType.PredicatesGenerated);
     ImmutableList<Double> coverageList = timeStampsPerPredicateCoverage.getCoverageList();
     if (coverageList.isEmpty()) {
       return 0.0;
@@ -247,7 +247,7 @@ public final class CoverageData {
         FileCoverageStatistics collector = getCollectorForInitNode(candidateNode).orElseThrow();
         do {
           switch (type) {
-            case PredicateConsidered:
+            case PredicateConsideredLocations:
               collector.predicateStatistics.addPredicateConsideredNode(candidateNode);
               tdcgData.addTimeStamp(getTempPredicateConsideredCoverage(cfa));
               break;
@@ -287,7 +287,7 @@ public final class CoverageData {
   }
 
   public double getTempPredicateConsideredCoverage(CFA cfa) {
-    return getTempCoverage(cfa, TimeDependentCoverageType.PredicateConsidered);
+    return getTempCoverage(cfa, TimeDependentCoverageType.PredicateConsideredLocations);
   }
 
   public double getTempAbstractStateCoveredNodesCoverage(CFA cfa) {
@@ -303,7 +303,7 @@ public final class CoverageData {
     int numRelevantNodes = 0;
     for (FileCoverageStatistics info : getInfosPerFile().values()) {
       switch (type) {
-        case PredicateConsidered:
+        case PredicateConsideredLocations:
           numRelevantNodes += info.predicateStatistics.allPredicateConsideredNodes.size();
           break;
         case PredicateRelevantVariables:

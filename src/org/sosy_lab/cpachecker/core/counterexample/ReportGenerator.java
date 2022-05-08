@@ -364,56 +364,27 @@ public class ReportGenerator {
 
   private void insertTimeStampsPerCoverageJson(
       Writer writer, TimeDependentCoverageHandler tdcgHandler) throws IOException {
-    Map<Long, Double> timeStampsPerCoverage =
-        tdcgHandler
-            .getData(TimeDependentCoverageType.Visited)
-            .getReducedTimeStampsPerCoverage(MAX_DATA_POINTS_TDCG);
-    Map<Long, Double> timeStampsPerPredicateCoverage =
-        tdcgHandler
-            .getData(TimeDependentCoverageType.Predicate)
-            .getReducedTimeStampsPerCoverage(MAX_DATA_POINTS_TDCG);
-    Map<Long, Double> timeStampsPerPredicateConsideredCoverage =
-        tdcgHandler
-            .getData(TimeDependentCoverageType.PredicateConsidered)
-            .getReducedTimeStampsPerCoverage(MAX_DATA_POINTS_TDCG);
-    Map<Long, Double> timeStampsPerPredicateRelevantVariablesCoverage =
-        tdcgHandler
-            .getData(TimeDependentCoverageType.PredicateRelevantVariables)
-            .getReducedTimeStampsPerCoverage(MAX_DATA_POINTS_TDCG);
-    Map<Long, Double> timeStampsPerAbstractStateCoveredNodesCoverage =
-        tdcgHandler
-            .getData(TimeDependentCoverageType.AbstractStateCoveredNodes)
-            .getReducedTimeStampsPerCoverage(MAX_DATA_POINTS_TDCG);
-
-    writer.write("var timeStampsPerCoverageJson = ");
-    JSON.writeJSONString(timeStampsPerCoverage, writer);
-    writer.write("\nwindow.timeStampsPerCoverageJson = timeStampsPerCoverageJson;\n");
-
-    writer.write("var timeStampsPerPredicateCoverageJson = ");
-    JSON.writeJSONString(timeStampsPerPredicateCoverage, writer);
-    writer.write(
-        "\nwindow.timeStampsPerPredicateCoverageJson = timeStampsPerPredicateCoverageJson;\n");
-
-    writer.write("var timeStampsPerPredicateConsideredCoverageJson = ");
-    JSON.writeJSONString(timeStampsPerPredicateConsideredCoverage, writer);
-    writer.write(
-        "\n"
-            + "window.timeStampsPerPredicateConsideredCoverageJson ="
-            + " timeStampsPerPredicateConsideredCoverageJson;\n");
-
-    writer.write("var timeStampsPerAbstractStateCoveredNodesCoverageJson = ");
-    JSON.writeJSONString(timeStampsPerAbstractStateCoveredNodesCoverage, writer);
-    writer.write(
-        "\n"
-            + "window.timeStampsPerAbstractStateCoveredNodesCoverageJson ="
-            + " timeStampsPerAbstractStateCoveredNodesCoverageJson;\n");
-
-    writer.write("var timeStampsPerPredicateRelevantVariablesCoverageJson = ");
-    JSON.writeJSONString(timeStampsPerPredicateRelevantVariablesCoverage, writer);
-    writer.write(
-        "\n"
-            + "window.timeStampsPerPredicateRelevantVariablesCoverageJson ="
-            + " timeStampsPerPredicateRelevantVariablesCoverageJson;\n");
+    int i = 0;
+    writer.write("var tdcgJson = [");
+    for (TimeDependentCoverageType type : tdcgHandler.getAllTypes()) {
+      Map<Long, Double> timeStampsPerCoverage =
+          tdcgHandler.getData(type).getReducedTimeStampsPerCoverage(MAX_DATA_POINTS_TDCG);
+      writer.write("{\"type\":");
+      JSON.writeJSONString(type.getId(), writer);
+      writer.write(",\"color\":");
+      JSON.writeJSONString(type.getColor(), writer);
+      writer.write(",\"percentage\":");
+      JSON.writeJSONString(type.isPercentage(), writer);
+      writer.write(",\"data\":");
+      JSON.writeJSONString(timeStampsPerCoverage, writer);
+      if (tdcgHandler.getAllTypes().size() - 1 == i++) {
+        writer.write("}");
+      } else {
+        writer.write("},");
+      }
+    }
+    writer.write("]\n");
+    writer.write("window.tdcgJson = tdcgJson;\n");
   }
 
   private void insertCfaJson(

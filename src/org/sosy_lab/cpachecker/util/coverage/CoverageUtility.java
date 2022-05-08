@@ -103,7 +103,7 @@ public class CoverageUtility {
           for (var wrappedCPA : wrappedCPAs) {
             if (wrappedCPA instanceof CoverageCPA) {
               if (usedPredicateCoverageCPA) {
-                TimeDependentCoverageType type = TimeDependentCoverageType.Visited;
+                TimeDependentCoverageType type = TimeDependentCoverageType.VisitedLines;
                 TimeDependentCoverageData data =
                     ((CoverageCPA) wrappedCPA).getCoverageData().getTDCGHandler().getData(type);
                 Map<String, FilePredicateCoverageStatistics> predicateStatistics =

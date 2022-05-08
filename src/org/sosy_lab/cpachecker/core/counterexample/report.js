@@ -45,16 +45,7 @@ if (isDevEnv) {
   window.cfaJson = data.cfaJson;
 }
 
-const {
-  argJson,
-  sourceFiles,
-  cfaJson,
-  timeStampsPerCoverageJson,
-  timeStampsPerPredicateCoverageJson,
-  timeStampsPerPredicateConsideredCoverageJson,
-  timeStampsPerPredicateRelevantVariablesCoverageJson,
-  timeStampsPerAbstractStateCoveredNodesCoverageJson,
-} = window;
+const { argJson, sourceFiles, cfaJson, tdcgJson } = window;
 
 // CFA graph variable declarations
 const functions = cfaJson.functionNames;
@@ -95,10 +86,6 @@ function isAlmostEmpty(obj) {
     return Object.keys(obj).length < 2;
   }
   return true;
-}
-
-function isNotAlmostEmpty(obj) {
-  return !isAlmostEmpty(obj);
 }
 
 function renderTDCG(dataJSON, color, inPercentage) {
@@ -344,14 +331,7 @@ function renderTDCG(dataJSON, color, inPercentage) {
 
     // Initialize Time Dependent Coverage Chart
     $(document).ready(() => {
-      renderTDCG(timeStampsPerCoverageJson, "#3cc220", true);
-      if (
-        isAlmostEmpty(timeStampsPerCoverageJson) &&
-        isAlmostEmpty(timeStampsPerPredicateCoverageJson) &&
-        isAlmostEmpty(timeStampsPerPredicateConsideredCoverageJson) &&
-        isAlmostEmpty(timeStampsPerPredicateRelevantVariablesCoverageJson) &&
-        isAlmostEmpty(timeStampsPerAbstractStateCoveredNodesCoverageJson)
-      ) {
+      if (isAlmostEmpty(tdcgJson)) {
         d3.select("#tdcg-toolbar-button").style("display", "none");
       }
     });
@@ -1406,114 +1386,33 @@ function renderTDCG(dataJSON, color, inPercentage) {
     "$scope",
     function tdcgToolbarController($rootScope, $scope) {
       $scope.tdcgSelections = [];
-      if (isNotAlmostEmpty(timeStampsPerCoverageJson)) {
-        $scope.tdcgSelections.push("Visited-lines Coverage over Time");
-      }
-      if (isNotAlmostEmpty(timeStampsPerPredicateCoverageJson)) {
-        $scope.tdcgSelections.push("Predicates over Time");
-      }
-      if (isNotAlmostEmpty(timeStampsPerPredicateConsideredCoverageJson)) {
-        $scope.tdcgSelections.push(
-          "Predicate-considered-nodes Coverage over Time"
-        );
-      }
-      if (
-        isNotAlmostEmpty(timeStampsPerPredicateRelevantVariablesCoverageJson)
-      ) {
-        $scope.tdcgSelections.push(
-          "Predicate-relevant-variables-nodes Coverage over Time"
-        );
-      }
-      if (
-        isNotAlmostEmpty(timeStampsPerAbstractStateCoveredNodesCoverageJson)
-      ) {
-        $scope.tdcgSelections.push(
-          "Abstract-state-covered-nodes Coverage over Time"
-        );
-      }
-      if (isEmpty($scope.tdcgSelections)) {
-        $scope.tdcgSelections.push("No data available");
+      if (tdcgJson !== undefined && tdcgJson.length > 0) {
+        for (let i = 0; i < tdcgJson.length; i += 1) {
+          $scope.tdcgSelections.push(tdcgJson[i].type);
+        }
       }
       $rootScope.displayedTDCG = $scope.tdcgSelections[0];
 
       $scope.displayTDCG = () => {
-        if (
-          $rootScope.displayedTDCG.indexOf(
-            "Visited-lines Coverage over Time"
-          ) !== -1
-        ) {
-          $scope.renderTDCGForVisitedCoverage();
-        } else if (
-          $rootScope.displayedTDCG.indexOf("Predicates over Time") !== -1
-        ) {
-          $scope.renderTDCGForPredicates();
-        } else if (
-          $rootScope.displayedTDCG.indexOf(
-            "Predicate-considered-nodes Coverage over Time"
-          ) !== -1
-        ) {
-          $scope.renderTDCGForPredicatesConsideredCoverage();
-        } else if (
-          $rootScope.displayedTDCG.indexOf(
-            "Predicate-relevant-variables-nodes Coverage over Time"
-          ) !== -1
-        ) {
-          $scope.renderTDCGForPredicateRelevantVariablesCoverage();
-        } else if (
-          $rootScope.displayedTDCG.indexOf(
-            "Abstract-state-covered-nodes Coverage over Time"
-          ) !== -1
-        ) {
-          $scope.renderTDCGForAbstractStateCoveredNodesCoverage();
+        for (let i = 0; i < tdcgJson.length; i += 1) {
+          if (tdcgJson[i].type === $rootScope.displayedTDCG) {
+            $scope.removeTDCG();
+            $scope.renderTDCG(
+              tdcgJson[i].data,
+              tdcgJson[i].color,
+              tdcgJson[i].percentage
+            );
+            break;
+          }
         }
       };
-
-      $scope.renderTDCGForVisitedCoverage =
-        function renderTDCGForVisitedCoverage() {
-          $scope.removeTDCG();
-          $scope.renderTDCG(timeStampsPerCoverageJson, "#3cc220", true);
-        };
-
-      $scope.renderTDCGForPredicates = function renderTDCGForPredicates() {
-        $scope.removeTDCG();
-        $scope.renderTDCG(timeStampsPerPredicateCoverageJson, "#1a81d5", false);
-      };
-
-      $scope.renderTDCGForPredicatesConsideredCoverage =
-        function renderTDCGForPredicatesConsideredCoverage() {
-          $scope.removeTDCG();
-          $scope.renderTDCG(
-            timeStampsPerPredicateConsideredCoverageJson,
-            "#e33636",
-            true
-          );
-        };
-
-      $scope.renderTDCGForPredicateRelevantVariablesCoverage =
-        function renderTDCGForPredicateRelevantVariablesCoverage() {
-          $scope.removeTDCG();
-          $scope.renderTDCG(
-            timeStampsPerPredicateRelevantVariablesCoverageJson,
-            "#d9ae19",
-            true
-          );
-        };
-
-      $scope.renderTDCGForAbstractStateCoveredNodesCoverage =
-        function renderTDCGForAbstractStateCoveredNodesCoverage() {
-          $scope.removeTDCG();
-          $scope.renderTDCG(
-            timeStampsPerAbstractStateCoveredNodesCoverageJson,
-            "#7c0eb4",
-            true
-          );
-        };
 
       $scope.removeTDCG = function removeTDCG() {
         d3.select("#time_dependent_coverage_graph").selectAll("*").remove();
       };
 
       $scope.renderTDCG = renderTDCG;
+      $scope.displayTDCG();
     },
   ]);
 
