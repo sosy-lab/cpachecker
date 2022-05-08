@@ -21,9 +21,9 @@ import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
- * A data structure containing dominance frontiers for all nodes in a graph.
+ * Represents dominance frontiers for nodes in a graph.
  *
- * @param <T> the node-type of the original graph.
+ * @param <T> the graph's node type
  */
 public final class DomFrontiers<T> {
 
@@ -39,13 +39,14 @@ public final class DomFrontiers<T> {
   }
 
   /**
-   * Creates the {@link DomFrontiers}-object that contains the dominance frontier for every node in
-   * the dominance tree.
+   * Creates a new {@link DomFrontiers} instance that contains a dominance frontier for every node
+   * in the specified dominance tree.
    *
-   * @param <T> the node-type of the original graph.
-   * @param pDomTree the {@link DomTree} (dominance tree) of the original graph.
-   * @throws NullPointerException if {@code pDomTree} is {@code null}.
-   * @return the created {@link DomFrontiers}-object.
+   * @param <T> the graph's node type
+   * @param pDomTree the dominance tree of the graph
+   * @return a new {@link DomFrontiers} instance that contains a dominance frontier for every node
+   *     in the specified dominance tree
+   * @throws NullPointerException if {@code pDomTree == null}
    */
   public static <T> DomFrontiers<T> forDomTree(DomTree<T> pDomTree) {
 
@@ -115,11 +116,11 @@ public final class DomFrontiers<T> {
   /**
    * Returns the dominance frontier for the specified node.
    *
-   * @param pNode the node to get the dominance frontier for.
-   * @return the dominance frontier for the specified node.
-   * @throws NullPointerException if {@code pNode} is {@code null}.
-   * @throws IllegalArgumentException if {@code pNode} was not part of the original graph during
-   *     graph traversal in {@link DomTree#forGraph}.
+   * @param pNode the node to get the dominance frontier for
+   * @return an unmodifiable set consisting of the dominance frontier for the specified node
+   * @throws NullPointerException if {@code pNode == null}
+   * @throws IllegalArgumentException if {@code pNode} is unknown (i.e., was not visited during
+   *     graph traversal for dominance tree construction)
    */
   public Set<T> getFrontier(T pNode) {
 
@@ -135,11 +136,11 @@ public final class DomFrontiers<T> {
   /**
    * Returns the iterated dominance frontier for the specified set of nodes.
    *
-   * @param pNodes the set of nodes to get the iterated dominance frontier for.
-   * @return an unmodifiable set consisting of all nodes in the iterated dominance frontier.
-   * @throws NullPointerException if {@code pNodes} is {@code null}.
-   * @throws IllegalArgumentException if {@code pNodes} contains a node that was not part of the
-   *     original graph during graph traversal in {@link DomTree#forGraph}.
+   * @param pNodes the set of nodes to get the iterated dominance frontier for
+   * @return an unmodifiable set consisting of all nodes in the iterated dominance frontier
+   * @throws NullPointerException if {@code pNodes == null} or if any element is {@code null}
+   * @throws IllegalArgumentException if {@code pNode} is unknown (i.e., was not visited during
+   *     graph traversal for dominance tree construction)
    */
   public Set<T> getIteratedFrontier(Set<T> pNodes) {
 

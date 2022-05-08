@@ -20,8 +20,13 @@ import java.util.Map;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
- * DomInput stores the predecessors for every node as well as the number of nodes in the whole
- * graph.
+ * Represents the input for dominance tree and frontier computation.
+ *
+ * <p>An instance of {@link DomInput} is created from a graph and stores a bidirectional mapping
+ * between nodes and their reverse post-order IDs. Additionally, it contains the predecessors of
+ * every node in the specific format used for dominance tree and frontier computation.
+ *
+ * @param <T> the graph's node type
  */
 final class DomInput<T> {
 
@@ -29,6 +34,22 @@ final class DomInput<T> {
 
   private final ImmutableMap<T, Integer> ids;
   private final T[] nodes;
+
+  // The format for predecessors has the following properties:
+  //  - all data ist stored in a single int array
+  //  - reverse post-order IDs are used instead of references to the actual nodes
+  //  - predecessors of a node are grouped together and separated by a DELIMITER from predecessors
+  //    of other nodes
+  //  - the first group of predecessors is for the node with ID == 0, the second group for the node
+  //    with ID == 1, etc.
+  //  - the array must contain exactly one DELIMITER per node and its last element must be DELIMITER
+  //
+  // Example (p_X_Y: predecessor Y of node X):
+  // [p_0_a, p_0_b, DELIMITER, p_1_c, DELIMITER, DELIMITER, p_3_d, ..., DELIMITER]
+  //  - node 0 has 2 predecessors
+  //  - node 1 has 1 predecessor
+  //  - node 2 has 0 predecessors
+  //  - node 3 has (at least) 1 predecessor
   private final int[] predecessors;
 
   private DomInput(ImmutableMap<T, Integer> pIds, T[] pNodes, int[] pPredecessors) {
@@ -63,12 +84,23 @@ final class DomInput<T> {
     return ImmutableMap.copyOf(postOrderIds);
   }
 
+  /**
+   * Creates a new {@link DomInput} instance for the specified graph.
+   *
+   * <p>Only nodes reachable from the start node are considered for the {@link DomInput} creation.
+   *
+   * @param <T> the graph's node type
+   * @param pPredecessorFunction the graph's predecessor function (node -> iterable predecessors)
+   * @param pSuccessorFunction the graph's successor function (node -> iterable successors)
+   * @param pStartNode the start node graph traversal
+   * @return a new {@link DomInput} instance for the specified graph.
+   */
   static <T> DomInput<T> forGraph(
       PredecessorsFunction<T> pPredecessorFunction,
-      SuccessorsFunction<T> pSuccessorFunc,
+      SuccessorsFunction<T> pSuccessorFunction,
       T pStartNode) {
 
-    ImmutableMap<T, Integer> ids = createReversePostOrder(pSuccessorFunc, pStartNode);
+    ImmutableMap<T, Integer> ids = createReversePostOrder(pSuccessorFunction, pStartNode);
 
     @SuppressWarnings("unchecked") // it's impossible to create a new generic array T[]
     T[] nodes = (T[]) new Object[ids.size()];
