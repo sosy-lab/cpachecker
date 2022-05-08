@@ -110,7 +110,7 @@ final class ControlDependenceBuilder<N extends Node<AFunctionDeclaration, CFAEdg
       Set<CFANode> pPostDomTreeNodes,
       boolean pDependOnBothAssumptions) {
 
-    DomFrontiers<CFANode> frontiers = DomFrontiers.createDomFrontiers(pPostDomTree);
+    DomFrontiers<CFANode> frontiers = DomFrontiers.forDomTree(pPostDomTree);
     for (CFANode dependentNode : pPostDomTree) {
       int nodeId = pPostDomTree.getId(dependentNode);
       for (CFANode branchNode : frontiers.getFrontier(dependentNode)) {

@@ -29,7 +29,6 @@ final class DomInput<T> {
 
   private final ImmutableMap<T, Integer> ids;
   private final T[] nodes;
-
   private final int[] predecessors;
 
   private DomInput(ImmutableMap<T, Integer> pIds, T[] pNodes, int[] pPredecessors) {
@@ -40,8 +39,8 @@ final class DomInput<T> {
   }
 
   /**
-   * Traverses the graph and assigns every visited node its reverse-postorder-ID. All IDs are stored
-   * in the resulting map (node to ID).
+   * Traverses the graph and assigns every visited node its reverse post-order ID. All IDs are
+   * stored in the resulting map (node to ID).
    */
   private static <T> ImmutableMap<T, Integer> createReversePostOrder(
       SuccessorsFunction<T> pSuccessorsFunction, T pStartNode) {
@@ -57,65 +56,62 @@ final class DomInput<T> {
       counter++;
     }
 
-    // reverse order, e.g. [0,1,2] -> offset = 2 -> [|0-2|,|1-2|,|2-2|] -> [2,1,0]
+    // reverse order, e.g., [0,1,2] -> offset = 2 -> [|0-2|,|1-2|,|2-2|] -> [2,1,0]
     int offset = (postOrderIds.size() - 1);
     postOrderIds.replaceAll((node, value) -> Math.abs(value - offset));
 
     return ImmutableMap.copyOf(postOrderIds);
   }
 
-  private static int[] toArray(List<List<Integer>> pPredsPerNode, int pPredCount) {
-
-    int[] data = new int[pPredCount + pPredsPerNode.size()];
-
-    int index = 0;
-    for (List<Integer> preds : pPredsPerNode) {
-
-      for (int pred : preds) {
-        data[index++] = pred;
-      }
-
-      data[index++] = DELIMITER;
-    }
-
-    return data;
-  }
-
   static <T> DomInput<T> forGraph(
-      PredecessorsFunction<T> pPredFunc, SuccessorsFunction<T> pSuccFunc, T pStartNode) {
+      PredecessorsFunction<T> pPredecessorFunction,
+      SuccessorsFunction<T> pSuccessorFunc,
+      T pStartNode) {
 
-    ImmutableMap<T, Integer> ids = createReversePostOrder(pSuccFunc, pStartNode);
+    ImmutableMap<T, Integer> ids = createReversePostOrder(pSuccessorFunc, pStartNode);
 
     @SuppressWarnings("unchecked") // it's impossible to create a new generic array T[]
     T[] nodes = (T[]) new Object[ids.size()];
 
-    // predsList is accessed by a node's reverse-postorder-ID (index == ID)
-    // and contains a list of predecessors for every node (the ID of a predecessor is stored)
-    List<List<Integer>> predsList = new ArrayList<>(Collections.nCopies(ids.size(), null));
-    int predCount = 0; // counts how many node-predecessor relationships are in the whole graph
+    // predecessors of node with ID == 0, predecessors of node with ID == 1, etc.
+    List<List<Integer>> allPredecessors = new ArrayList<>(Collections.nCopies(ids.size(), null));
+    int predecessorCounter = 0; // number of node-predecessor relationships in the graph
 
-    List<Integer> preds = new ArrayList<>(); // stores the predecessors for a specific node
-    for (Map.Entry<T, Integer> entry : ids.entrySet()) {
+    List<Integer> currentNodePredecessors = new ArrayList<>();
+    for (Map.Entry<T, Integer> nodeToId : ids.entrySet()) {
 
-      int id = entry.getValue();
+      T currentNode = nodeToId.getKey();
+      int currentNodeId = nodeToId.getValue();
 
-      for (T pred : pPredFunc.predecessors(entry.getKey())) {
+      for (T predecessor : pPredecessorFunction.predecessors(currentNode)) {
 
-        // if there is no path from the start node to pred, pred does not have an ID
-        @Nullable Integer predId = ids.get(pred);
+        // if there is no path from `pStartNode` to `predecessor`, it doesn't have an ID
+        @Nullable Integer predecessorId = ids.get(predecessor);
 
-        if (predId != null) {
-          preds.add(predId);
-          predCount++;
+        if (predecessorId != null) {
+          currentNodePredecessors.add(predecessorId);
+          predecessorCounter++;
         }
       }
 
-      predsList.set(id, new ArrayList<>(preds));
-      nodes[id] = entry.getKey();
-      preds.clear();
+      allPredecessors.set(currentNodeId, new ArrayList<>(currentNodePredecessors));
+      nodes[currentNodeId] = currentNode;
+      currentNodePredecessors.clear();
     }
 
-    return new DomInput<>(ids, nodes, toArray(predsList, predCount));
+    int[] predecessors = new int[predecessorCounter + allPredecessors.size()];
+
+    int index = 0;
+    for (List<Integer> nodePredecessors : allPredecessors) {
+
+      for (int predecessorId : nodePredecessors) {
+        predecessors[index++] = predecessorId;
+      }
+
+      predecessors[index++] = DELIMITER;
+    }
+
+    return new DomInput<>(ids, nodes, predecessors);
   }
 
   @Nullable Integer getReversePostOrderId(T pNode) {

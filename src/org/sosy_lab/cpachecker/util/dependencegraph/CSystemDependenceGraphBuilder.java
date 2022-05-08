@@ -734,7 +734,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
 
       new FlowDepAnalysis(
               domTree,
-              DomFrontiers.createDomFrontiers(domTree),
+              DomFrontiers.forDomTree(domTree),
               entryNode,
               isMain ? ImmutableList.of() : globalEdges,
               defUseExtractor,

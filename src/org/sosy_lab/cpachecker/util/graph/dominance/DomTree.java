@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.graph.dominance;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.graph.ElementOrder;
@@ -19,6 +20,7 @@ import com.google.common.graph.SuccessorsFunction;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * A data structure representing a dominance tree.
@@ -41,9 +43,12 @@ public final class DomTree<T> implements Iterable<T> {
   public static final int UNDEFINED = -1;
 
   private final DomInput<T> input;
+
+  // doms[x] == immediate dominator of x
   private final int[] doms;
 
-  DomTree(DomInput<T> pInput, int[] pDoms) {
+  private DomTree(DomInput<T> pInput, int[] pDoms) {
+
     input = pInput;
     doms = pDoms;
   }
@@ -56,19 +61,21 @@ public final class DomTree<T> implements Iterable<T> {
    *
    * @param <T> the node-type of the specified graph.
    * @param pStartNode the start node for graph traversal and root for resulting dominance tree.
-   * @param pSuccFunc the successor-function (node to {@link Iterable}).
-   * @param pPredFunc the predecessor-function (node to {@link Iterable}).
+   * @param pSuccessorFunction the successor-function (node to {@link Iterable}).
+   * @param pPredecessorFunction the predecessor-function (node to {@link Iterable}).
    * @throws NullPointerException if any parameter is {@code null}.
    * @return the created {@link DomTree}-object.
    */
-  public static <T> DomTree<T> createDomTree(
-      PredecessorsFunction<T> pPredFunc, SuccessorsFunction<T> pSuccFunc, T pStartNode) {
+  public static <T> DomTree<T> forGraph(
+      PredecessorsFunction<T> pPredecessorFunction,
+      SuccessorsFunction<T> pSuccessorFunction,
+      T pStartNode) {
 
     checkNotNull(pStartNode);
-    checkNotNull(pSuccFunc);
-    checkNotNull(pPredFunc);
+    checkNotNull(pSuccessorFunction);
+    checkNotNull(pPredecessorFunction);
 
-    DomInput<T> input = DomInput.forGraph(pPredFunc, pSuccFunc, pStartNode);
+    DomInput<T> input = DomInput.forGraph(pPredecessorFunction, pSuccessorFunction, pStartNode);
 
     int[] doms = computeDoms(input);
 
@@ -81,11 +88,11 @@ public final class DomTree<T> implements Iterable<T> {
    *
    * @return doms[x] == immediate dominator of x
    */
-  private static int[] computeDoms(final DomInput<?> pInput) {
+  private static int[] computeDoms(DomInput<?> pInput) {
 
-    final int[] predecessors = pInput.getPredecessors();
+    int[] predecessors = pInput.getPredecessors();
 
-    final int startNode = pInput.getNodeCount() - 1; // the start node has the greatest ID
+    int startNode = pInput.getNodeCount() - 1; // the start node has the greatest ID
     int[] doms = new int[pInput.getNodeCount()]; // doms[x] == immediate dominator of x
     boolean changed = true;
 
@@ -96,17 +103,17 @@ public final class DomTree<T> implements Iterable<T> {
       changed = false;
 
       int index = 0; // index for input data (data format is specified in DomInput)
-      for (int id = 0; id < startNode; id++) { // all nodes in reverse-post-order (except start)
+      for (int id = 0; id < startNode; id++) { // all nodes in reverse post-order (except start)
         int idom = UNDEFINED; // immediate dominator for node
 
-        int pred;
-        while ((pred = predecessors[index]) != DomInput.DELIMITER) { // all predecessors of node
+        int predecessor;
+        while ((predecessor = predecessors[index]) != DomInput.DELIMITER) { // all node predecessors
 
-          if (doms[pred] != UNDEFINED) { // does predecessor have an immediate dominator?
+          if (doms[predecessor] != UNDEFINED) { // does predecessor have an immediate dominator?
             if (idom != UNDEFINED) { // is idom already initialized?
-              idom = intersect(doms, pred, idom); // update idom using predecessor
+              idom = intersect(doms, predecessor, idom); // update idom using predecessor
             } else {
-              idom = pred; // initialize idom with predecessor
+              idom = predecessor; // initialize idom with predecessor
             }
           }
 
@@ -128,25 +135,25 @@ public final class DomTree<T> implements Iterable<T> {
   }
 
   /**
-   * Computes the intersection of doms(pId1) and doms(pId2) (doms(x) == all nodes that dominate x).
+   * Computes the intersection of doms(pFst) and doms(pSnd) (doms(x) == all nodes that dominate x).
    * Cooper et al. describe it as "[walking] up the the dominance tree from two different nodes
    * until a common parent is reached".
    */
-  private static int intersect(final int[] pDoms, final int pId1, final int pId2) {
+  private static int intersect(final int[] pDoms, final int pFst, final int pSnd) {
 
-    int f1 = pId1;
-    int f2 = pId2;
+    int fst = pFst;
+    int snd = pSnd;
 
-    while (f1 != f2) {
-      while (f1 < f2) {
-        f1 = pDoms[f1];
+    while (fst != snd) {
+      while (fst < snd) {
+        fst = pDoms[fst];
       }
-      while (f2 < f1) {
-        f2 = pDoms[f2];
+      while (snd < fst) {
+        snd = pDoms[snd];
       }
     }
 
-    return f1;
+    return fst;
   }
 
   DomInput<T> getInput() {
@@ -158,13 +165,14 @@ public final class DomTree<T> implements Iterable<T> {
   }
 
   /**
-   * @throws IllegalArgumentException if the specified ID is not valid. Valid IDs must fulfill
-   *     {@code 0 <= ID < getNodeCount()}.
+   * Checks whether the specified ID is valid.
+   *
+   * @throws IllegalArgumentException if the specified ID is not valid. Valid IDs must be {@code 0
+   *     <= ID < getNodeCount()}.
    */
   private void checkId(int pId) {
-    if (pId < 0 || pId >= getNodeCount()) {
-      throw new IllegalArgumentException("pId must fulfill 0 <= ID < getNodeCount(): " + pId);
-    }
+    checkArgument(
+        0 <= pId && pId < getNodeCount(), "pId must be 0 <= ID < getNodeCount(), but is: %s", pId);
   }
 
   /**
@@ -186,17 +194,15 @@ public final class DomTree<T> implements Iterable<T> {
    * @return the ID for the specified node.
    * @throws NullPointerException if {@code pNode} is {@code null}.
    * @throws IllegalArgumentException if {@code pNode} was not part of the original graph during
-   *     graph traversal in {@link Dominance#createDomTree}.
+   *     graph traversal in {@link DomTree#forGraph}.
    */
   public int getId(T pNode) {
 
     checkNotNull(pNode);
 
-    Integer id = input.getReversePostOrderId(pNode);
+    @Nullable Integer id = input.getReversePostOrderId(pNode);
 
-    if (id == null) {
-      throw new IllegalArgumentException("unknown node: " + pNode);
-    }
+    checkArgument(id != null, "unknown node: %s", pNode);
 
     return id;
   }
@@ -219,20 +225,23 @@ public final class DomTree<T> implements Iterable<T> {
     return input.getNodeForReversePostOrderId(pId);
   }
 
-  public int getRoot() {
-    return getNodeCount() - 1;
+  public int getRootId() {
+
+    int rootId = getNodeCount() - 1;
+
+    return rootId >= 0 ? rootId : DomTree.UNDEFINED;
   }
 
   /**
    * Returns the ID of the specified node's parent.
    *
    * <p>If the node has a parent (immediate dominator), the ID of the parent is returned; otherwise,
-   * {@link Dominance#UNDEFINED} is returned.
+   * {@link DomTree#UNDEFINED} is returned.
    *
    * <p>Use {@link #hasParent(int)} to find out, if a node has a parent.
    *
    * @param pId the node's ID.
-   * @return if the node has a parent, the parent's ID; otherwise, {@link Dominance#UNDEFINED} is
+   * @return if the node has a parent, the parent's ID; otherwise, {@link DomTree#UNDEFINED} is
    *     returned.
    * @throws IllegalArgumentException if the specified ID is not valid. Valid IDs must fulfill
    *     {@code 0 <= ID < getNodeCount()}.
@@ -287,6 +296,10 @@ public final class DomTree<T> implements Iterable<T> {
     }
 
     return false;
+  }
+
+  public boolean isAncestorOf(T pAncestorNode, T pDescendantNode) {
+    return isAncestorOf(getId(pAncestorNode), getId(pDescendantNode));
   }
 
   /**

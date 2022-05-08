@@ -358,7 +358,7 @@ public class TestTargetMinimizerEssential {
     CFAEdge removedEdge;
 
     DomTree<CFANode> inverseDomTree =
-        DomTree.createDomTree(
+        DomTree.forGraph(
             CFAUtils::allSuccessorsOf,
             CFAUtils::allPredecessorsOf,
             pCopiedFunctionEntryExit.getSecond());
@@ -370,8 +370,7 @@ public class TestTargetMinimizerEssential {
       ruleApplicable = currentNode.getNumEnteringEdges() > 0;
       removedEdge = null;
       for (CFAEdge leavingEdge : CFAUtils.leavingEdges(currentNode)) {
-        if (!inverseDomTree.isAncestorOf(
-            inverseDomTree.getId(leavingEdge.getSuccessor()), inverseDomTree.getId(currentNode))) {
+        if (!inverseDomTree.isAncestorOf(leavingEdge.getSuccessor(), currentNode)) {
           if (removedEdge == null) {
             removedEdge = leavingEdge;
             if (entersProgramStart(removedEdge, pCopiedFunctionEntryExit.getFirst())
@@ -419,7 +418,7 @@ public class TestTargetMinimizerEssential {
 
     // create domination relationship on the reduced graph
     DomTree<CFANode> domTree =
-        DomTree.createDomTree(
+        DomTree.forGraph(
             CFAUtils::allPredecessorsOf, CFAUtils::allSuccessorsOf, copiedFunctionEntry);
     // start at entry node because why not?
     waitlist.add(copiedFunctionEntry);
@@ -429,8 +428,7 @@ public class TestTargetMinimizerEssential {
       ruleApplicable = currentNode.getNumLeavingEdges() > 0;
       removedEdge = null;
       for (CFAEdge enteringEdge : CFAUtils.enteringEdges(currentNode)) {
-        if (!domTree.isAncestorOf(
-            domTree.getId(currentNode), domTree.getId(enteringEdge.getPredecessor()))) {
+        if (!domTree.isAncestorOf(currentNode, enteringEdge.getPredecessor())) {
           if (removedEdge == null) {
             removedEdge = enteringEdge;
             if (entersProgramStart(removedEdge, copiedFunctionEntry) || isSelfLoop(removedEdge)) {

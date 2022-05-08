@@ -70,11 +70,11 @@ public class TestTargetReductionSpanningSet {
 
     DomTree<CFANode>
         domTree =
-            DomTree.createDomTree(
+            DomTree.forGraph(
                 CFAUtils::allPredecessorsOf, CFAUtils::allSuccessorsOf, entryExit.getFirst()),
         inverseDomTree =
             entryExit.getSecond() != null
-                ? DomTree.createDomTree(
+                ? DomTree.forGraph(
                     CFAUtils::allSuccessorsOf, CFAUtils::allPredecessorsOf, entryExit.getSecond())
                 : null;
 
@@ -87,12 +87,12 @@ public class TestTargetReductionSpanningSet {
         if (targetPred.getSuccessor().getNumEnteringEdges() == 1
             && targetSucc.getSuccessor().getNumEnteringEdges() == 1
             && (domTree.isAncestorOf( // pred is ancestor/dominator of succ
-                    domTree.getId(targetToCopy.get(targetPred).getSuccessor()),
-                    domTree.getId(targetToCopy.get(targetSucc).getSuccessor()))
+                    targetToCopy.get(targetPred).getSuccessor(),
+                    targetToCopy.get(targetSucc).getSuccessor())
                 || (inverseDomTree != null
                     && inverseDomTree.isAncestorOf(
-                        inverseDomTree.getId(targetToCopy.get(targetPred).getSuccessor()),
-                        inverseDomTree.getId(targetToCopy.get(targetSucc).getSuccessor()))))) {
+                        targetToCopy.get(targetPred).getSuccessor(),
+                        targetToCopy.get(targetSucc).getSuccessor())))) {
           /*
            * Implementation of Arcs subsumes?. An arc e subsumes an arc e’ if every path from the
            * entry arc to e contains e’ or else if every path from e to the exit arc contains e’

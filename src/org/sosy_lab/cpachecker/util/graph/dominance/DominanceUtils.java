@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
+// TODO: this class can be removed when `CfaNetwork` is finished
 public final class DominanceUtils {
 
   private DominanceUtils() {}
@@ -57,7 +58,7 @@ public final class DominanceUtils {
 
   public static DomTree<CFANode> createFunctionDomTree(FunctionEntryNode pEntryNode) {
 
-    return DomTree.createDomTree(
+    return DomTree.forGraph(
         node -> createPredecessorIterable(node, ImmutableSet.of()),
         node -> createSuccessorIterable(node, ImmutableSet.of()),
         pEntryNode);
@@ -65,7 +66,7 @@ public final class DominanceUtils {
 
   public static DomTree<CFANode> createFunctionPostDomTree(FunctionEntryNode pEntryNode) {
 
-    return DomTree.createDomTree(
+    return DomTree.forGraph(
         node -> createSuccessorIterable(node, ImmutableSet.of()),
         node -> createPredecessorIterable(node, ImmutableSet.of()),
         pEntryNode.getExitNode());
@@ -74,7 +75,7 @@ public final class DominanceUtils {
   public static DomTree<CFANode> createFunctionDomTree(
       CFANode pStartNode, ImmutableSet<CFANode> pIgnoreSet) {
 
-    return DomTree.createDomTree(
+    return DomTree.forGraph(
         node -> createPredecessorIterable(node, pIgnoreSet),
         node -> createSuccessorIterable(node, pIgnoreSet),
         pStartNode);
@@ -83,7 +84,7 @@ public final class DominanceUtils {
   public static DomTree<CFANode> createFunctionPostDomTree(
       CFANode pStartNode, ImmutableSet<CFANode> pIgnoreSet) {
 
-    return DomTree.createDomTree(
+    return DomTree.forGraph(
         node -> createSuccessorIterable(node, pIgnoreSet),
         node -> createPredecessorIterable(node, pIgnoreSet),
         pStartNode);
