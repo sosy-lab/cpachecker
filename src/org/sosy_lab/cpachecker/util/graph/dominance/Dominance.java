@@ -8,17 +8,9 @@
 
 package org.sosy_lab.cpachecker.util.graph.dominance;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.graph.PredecessorsFunction;
 import com.google.common.graph.SuccessorsFunction;
-import com.google.common.graph.Traverser;
-import edu.umd.cs.findbugs.annotations.Nullable;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -46,72 +38,6 @@ public final class Dominance {
   private Dominance() {}
 
   /**
-   * Traverses the graph and assigns every visited node its reverse-postorder-ID. All IDs are stored
-   * in the resulting map (node to ID).
-   */
-  private static <T> ImmutableMap<T, Integer> createReversePostOrder(
-      T pStartNode, SuccessorsFunction<T> pSuccessorsFunction) {
-
-    Map<T, Integer> postOrderIds = new HashMap<>();
-
-    Iterable<T> nodesInPostOrder =
-        Traverser.forGraph(pSuccessorsFunction).depthFirstPostOrder(pStartNode);
-    int counter = 0;
-    for (T node : nodesInPostOrder) {
-      postOrderIds.put(node, counter);
-      counter++;
-    }
-
-    // reverse order, e.g. [0,1,2] -> offset = 2 -> [|0-2|,|1-2|,|2-2|] -> [2,1,0]
-    int offset = (postOrderIds.size() - 1);
-    postOrderIds.replaceAll((node, value) -> Math.abs(value - offset));
-
-    return ImmutableMap.copyOf(postOrderIds);
-  }
-
-  /**
-   * Creates a new {@link DomInput}-object.
-   *
-   * @param <T> the node-type of the specified graph.
-   * @param pIds the ID-map (node to ID).
-   * @param pNodes an empty array for storing all nodes in ascending-ID-order. The array is filled
-   *     in this method. The length of the array must be equal to the size of the ID-map.
-   * @param pPredFunc the predecessor-function.
-   * @return the created {@link DomInput}-object.
-   */
-  private static <T> DomInput createDomInput(
-      Map<T, Integer> pIds, T[] pNodes, PredecessorsFunction<T> pPredFunc) {
-
-    // predsList is accessed by a node's reverse-postorder-ID (index == ID)
-    // and contains a list of predecessors for every node (the ID of a predecessor is stored)
-    List<List<Integer>> predsList = new ArrayList<>(Collections.nCopies(pIds.size(), null));
-    int predCount = 0; // counts how many node-predecessor relationships are in the whole graph
-
-    List<Integer> preds = new ArrayList<>(); // stores the predecessors for a specific node
-    for (Map.Entry<T, Integer> entry : pIds.entrySet()) {
-
-      int id = entry.getValue();
-
-      for (T pred : pPredFunc.predecessors(entry.getKey())) {
-
-        // if there is no path from the start node to pred, pred does not have an ID
-        @Nullable Integer predId = pIds.get(pred);
-
-        if (predId != null) {
-          preds.add(predId);
-          predCount++;
-        }
-      }
-
-      predsList.set(id, new ArrayList<>(preds));
-      pNodes[id] = entry.getKey();
-      preds.clear();
-    }
-
-    return DomInput.create(predsList, predCount);
-  }
-
-  /**
    * Creates the {@link DomTree} (dominance tree) for the specified graph.
    *
    * <p>Successors and predecessors of all graph nodes must not change during the creation of the
@@ -131,16 +57,11 @@ public final class Dominance {
     Objects.requireNonNull(pSuccFunc, "pSuccFunc must not be null");
     Objects.requireNonNull(pPredFunc, "pPredFunc must not be null");
 
-    Map<T, Integer> ids = createReversePostOrder(pStartNode, pSuccFunc);
-
-    @SuppressWarnings("unchecked") // it's impossible to create a new generic array T[]
-    T[] nodes = (T[]) new Object[ids.size()];
-
-    DomInput input = createDomInput(ids, nodes, pPredFunc);
+    DomInput<T> input = DomInput.forGraph(pPredFunc, pSuccFunc, pStartNode);
 
     int[] doms = computeDoms(input);
 
-    return new DomTree<>(input, ids, nodes, doms);
+    return new DomTree<>(input, doms);
   }
 
   /**
@@ -149,7 +70,7 @@ public final class Dominance {
    *
    * @return doms[x] == immediate dominator of x
    */
-  private static int[] computeDoms(final DomInput pInput) {
+  private static int[] computeDoms(final DomInput<?> pInput) {
 
     final int startNode = pInput.getNodeCount() - 1; // the start node has the greatest ID
     int[] doms = new int[pInput.getNodeCount()]; // doms[x] == immediate dominator of x
@@ -230,7 +151,7 @@ public final class Dominance {
 
     DomFrontiers.Frontier[] frontiers = computeFrontiers(pDomTree.getInput(), pDomTree.getDoms());
 
-    return new DomFrontiers<>(pDomTree.getIds(), pDomTree.getNodes(), frontiers);
+    return new DomFrontiers<>(pDomTree.getInput(), frontiers);
   }
 
   /**
@@ -238,7 +159,7 @@ public final class Dominance {
    * al.).
    */
   private static DomFrontiers.Frontier[] computeFrontiers(
-      final DomInput pInput, final int[] pDoms) {
+      final DomInput<?> pInput, final int[] pDoms) {
 
     DomFrontiers.Frontier[] frontiers = new DomFrontiers.Frontier[pInput.getNodeCount()];
     for (int id = 0; id < frontiers.length; id++) {

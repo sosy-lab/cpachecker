@@ -13,7 +13,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -24,13 +23,11 @@ import java.util.Set;
  */
 public final class DomFrontiers<T> {
 
-  private final Map<T, Integer> ids;
-  private final T[] nodes;
+  private final DomInput<T> input;
   private final Frontier[] frontiers;
 
-  DomFrontiers(Map<T, Integer> pIds, T[] pNodes, Frontier[] pFrontiers) {
-    ids = pIds;
-    nodes = pNodes;
+  DomFrontiers(DomInput<T> pInput, Frontier[] pFrontiers) {
+    input = pInput;
     frontiers = pFrontiers;
   }
 
@@ -40,7 +37,7 @@ public final class DomFrontiers<T> {
     Set<T> nodeSet = new HashSet<>();
 
     for (int id : frontier.getSet()) {
-      nodeSet.add(nodes[id]);
+      nodeSet.add(input.getNodeForReversePostOrderId(id));
     }
 
     return Collections.unmodifiableSet(nodeSet);
@@ -59,7 +56,7 @@ public final class DomFrontiers<T> {
 
     Objects.requireNonNull(pNode, "pNode must not be null");
 
-    Integer id = ids.get(pNode);
+    Integer id = input.getReversePostOrderId(pNode);
 
     if (id == null) {
       throw new IllegalArgumentException("unknown node: " + pNode);
@@ -87,7 +84,7 @@ public final class DomFrontiers<T> {
 
     for (T node : pNodes) {
 
-      Integer id = ids.get(node);
+      Integer id = input.getReversePostOrderId(node);
 
       if (id == null) {
         throw new IllegalArgumentException(
@@ -103,7 +100,7 @@ public final class DomFrontiers<T> {
       int removed = waitlist.remove();
 
       for (int id : frontiers[removed].getSet()) {
-        if (frontier.add(nodes[id])) {
+        if (frontier.add(input.getNodeForReversePostOrderId(id))) {
           if (seen.add(id)) { // if not previously seen -> add to waitlist
             waitlist.add(id);
           }

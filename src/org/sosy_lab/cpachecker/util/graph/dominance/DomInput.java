@@ -8,17 +8,29 @@
 
 package org.sosy_lab.cpachecker.util.graph.dominance;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.graph.PredecessorsFunction;
+import com.google.common.graph.SuccessorsFunction;
+import com.google.common.graph.Traverser;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * DomInput stores the predecessors for every node as well as the number of nodes in the whole
  * graph.
  */
-final class DomInput {
+final class DomInput<T> {
 
   static final int DELIMITER = -2;
 
-  // the data array contains the predecessors (their IDs) of every node
+  private final ImmutableMap<T, Integer> ids;
+  private final T[] nodes;
+
+  // the values array contains the predecessors (their IDs) of every node
   // the predecessors of a node are separated by a DELIMITER from other predecessors
   // the first group of predecessors are for the node with ID == 0,
   // the second group for node with ID == 1, ..., the last group for node with ID == nodeCount - 1
@@ -30,36 +42,107 @@ final class DomInput {
   // - node 1 has 1 predecessor
   // - node 2 has 0 predecessors
   // - node 3 has (at least) 1 predecessor
-  private final int[] data;
+  private final int[] input;
 
-  private final int nodeCount;
+  private DomInput(ImmutableMap<T, Integer> pIds, T[] pNodes, int[] pInput) {
 
-  private DomInput(int[] pData, int pNodeCount) {
-    data = pData;
-    nodeCount = pNodeCount;
+    ids = pIds;
+    nodes = pNodes;
+    input = pInput;
   }
 
-  static DomInput create(List<List<Integer>> pData, int pPredCount) {
+  /**
+   * Traverses the graph and assigns every visited node its reverse-postorder-ID. All IDs are stored
+   * in the resulting map (node to ID).
+   */
+  private static <T> ImmutableMap<T, Integer> createReversePostOrder(
+      T pStartNode, SuccessorsFunction<T> pSuccessorsFunction) {
 
-    int[] data = new int[pPredCount + pData.size()];
+    Map<T, Integer> postOrderIds = new HashMap<>();
+
+    Iterable<T> nodesInPostOrder =
+        Traverser.forGraph(pSuccessorsFunction).depthFirstPostOrder(pStartNode);
+
+    int counter = 0;
+    for (T node : nodesInPostOrder) {
+      postOrderIds.put(node, counter);
+      counter++;
+    }
+
+    // reverse order, e.g. [0,1,2] -> offset = 2 -> [|0-2|,|1-2|,|2-2|] -> [2,1,0]
+    int offset = (postOrderIds.size() - 1);
+    postOrderIds.replaceAll((node, value) -> Math.abs(value - offset));
+
+    return ImmutableMap.copyOf(postOrderIds);
+  }
+
+  private static int[] toArray(List<List<Integer>> pPredsPerNode, int pPredCount) {
+
+    int[] data = new int[pPredCount + pPredsPerNode.size()];
 
     int index = 0;
-    for (List<Integer> preds : pData) {
+    for (List<Integer> preds : pPredsPerNode) {
+
       for (int pred : preds) {
         data[index++] = pred;
       }
+
       data[index++] = DELIMITER;
     }
 
-    return new DomInput(data, pData.size());
+    return data;
+  }
+
+  static <T> DomInput<T> forGraph(
+      PredecessorsFunction<T> pPredFunc, SuccessorsFunction<T> pSuccFunc, T pStartNode) {
+
+    ImmutableMap<T, Integer> ids = createReversePostOrder(pStartNode, pSuccFunc);
+
+    @SuppressWarnings("unchecked") // it's impossible to create a new generic array T[]
+    T[] nodes = (T[]) new Object[ids.size()];
+
+    // predsList is accessed by a node's reverse-postorder-ID (index == ID)
+    // and contains a list of predecessors for every node (the ID of a predecessor is stored)
+    List<List<Integer>> predsList = new ArrayList<>(Collections.nCopies(ids.size(), null));
+    int predCount = 0; // counts how many node-predecessor relationships are in the whole graph
+
+    List<Integer> preds = new ArrayList<>(); // stores the predecessors for a specific node
+    for (Map.Entry<T, Integer> entry : ids.entrySet()) {
+
+      int id = entry.getValue();
+
+      for (T pred : pPredFunc.predecessors(entry.getKey())) {
+
+        // if there is no path from the start node to pred, pred does not have an ID
+        @Nullable Integer predId = ids.get(pred);
+
+        if (predId != null) {
+          preds.add(predId);
+          predCount++;
+        }
+      }
+
+      predsList.set(id, new ArrayList<>(preds));
+      nodes[id] = entry.getKey();
+      preds.clear();
+    }
+
+    return new DomInput<>(ids, nodes, toArray(predsList, predCount));
+  }
+
+  @Nullable Integer getReversePostOrderId(T pNode) {
+    return ids.get(pNode);
+  }
+
+  T getNodeForReversePostOrderId(int pId) {
+    return nodes[pId];
   }
 
   int getValue(int index) {
-    return data[index];
+    return input[index];
   }
 
-  /** Number of nodes in the whole graph. */
   int getNodeCount() {
-    return nodeCount;
+    return nodes.length;
   }
 }

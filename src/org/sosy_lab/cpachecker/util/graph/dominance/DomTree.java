@@ -13,7 +13,6 @@ import com.google.common.graph.GraphBuilder;
 import com.google.common.graph.ImmutableGraph;
 import com.google.common.graph.MutableGraph;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 
@@ -34,28 +33,16 @@ import java.util.Objects;
  */
 public final class DomTree<T> implements Iterable<T> {
 
-  private final DomInput input;
-  private final Map<T, Integer> ids;
-  private final T[] nodes;
+  private final DomInput<T> input;
   private final int[] doms;
 
-  DomTree(DomInput pInput, Map<T, Integer> pIds, T[] pNodes, int[] pDoms) {
+  DomTree(DomInput<T> pInput, int[] pDoms) {
     input = pInput;
-    ids = pIds;
-    nodes = pNodes;
     doms = pDoms;
   }
 
-  DomInput getInput() {
+  DomInput<T> getInput() {
     return input;
-  }
-
-  Map<T, Integer> getIds() {
-    return ids;
-  }
-
-  T[] getNodes() {
-    return nodes;
   }
 
   int[] getDoms() {
@@ -67,7 +54,7 @@ public final class DomTree<T> implements Iterable<T> {
    *     {@code 0 <= ID < getNodeCount()}.
    */
   private void checkId(int pId) {
-    if (pId < 0 || pId >= nodes.length) {
+    if (pId < 0 || pId >= getNodeCount()) {
       throw new IllegalArgumentException("pId must fulfill 0 <= ID < getNodeCount(): " + pId);
     }
   }
@@ -78,7 +65,7 @@ public final class DomTree<T> implements Iterable<T> {
    * @return the number of nodes in this tree.
    */
   public int getNodeCount() {
-    return nodes.length;
+    return input.getNodeCount();
   }
 
   /**
@@ -97,7 +84,7 @@ public final class DomTree<T> implements Iterable<T> {
 
     Objects.requireNonNull(pNode, "pNode must not be null");
 
-    Integer id = ids.get(pNode);
+    Integer id = input.getReversePostOrderId(pNode);
 
     if (id == null) {
       throw new IllegalArgumentException("unknown node: " + pNode);
@@ -121,7 +108,7 @@ public final class DomTree<T> implements Iterable<T> {
 
     checkId(pId);
 
-    return nodes[pId];
+    return input.getNodeForReversePostOrderId(pId);
   }
 
   public int getRoot() {
@@ -207,13 +194,13 @@ public final class DomTree<T> implements Iterable<T> {
 
       @Override
       public boolean hasNext() {
-        return index < nodes.length;
+        return index < getNodeCount();
       }
 
       @Override
       public T next() {
         if (hasNext()) {
-          return nodes[index++];
+          return input.getNodeForReversePostOrderId(index++);
         } else {
           throw new NoSuchElementException();
         }
@@ -232,8 +219,8 @@ public final class DomTree<T> implements Iterable<T> {
 
     for (int id = 0; id < getNodeCount(); id++) {
       if (hasParent(id)) {
-        T node = nodes[id];
-        T parent = nodes[getParent(id)];
+        T node = input.getNodeForReversePostOrderId(id);
+        T parent = input.getNodeForReversePostOrderId(getParent(id));
         mutableGraph.addNode(node);
         mutableGraph.addNode(parent);
         mutableGraph.putEdge(parent, node);
@@ -249,7 +236,7 @@ public final class DomTree<T> implements Iterable<T> {
     StringBuilder sb = new StringBuilder();
     sb.append("[");
 
-    for (int id = 0; id < nodes.length; id++) {
+    for (int id = 0; id < getNodeCount(); id++) {
 
       sb.append(getNode(id));
 
@@ -258,7 +245,7 @@ public final class DomTree<T> implements Iterable<T> {
         sb.append(getNode(getParent(id)));
       }
 
-      if (id != nodes.length - 1) {
+      if (id != getNodeCount() - 1) {
         sb.append(", ");
       }
     }
