@@ -100,6 +100,10 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
     return new FunctionFilteringCfaNetwork(pCfa, pFunctions);
   }
 
+  public static CfaNetwork of(FunctionEntryNode pFunctionEntryNode) {
+    return new SingleFunctionCfaNetwork(pFunctionEntryNode);
+  }
+
   // in-edges / predecessors
 
   @Override
