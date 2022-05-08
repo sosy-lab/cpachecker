@@ -309,9 +309,9 @@ public final class DomTree<T> implements Iterable<T> {
   /**
    * Returns whether the specified ancestor-node is the ancestor of a specified descendant-node.
    *
-   * <p>Returns {@code true} if and only if the the node {@code pAncestorId} is an ancestor of the
-   * node {@code pDescendantId} in this dominance tree. A node is strictly dominated by all its
-   * ancestors in the dominance tree.
+   * <p>Returns {@code true} if and only if {@code pAncestorNode} is an ancestor of {@code
+   * pDescendantNode} in this dominance tree. A node is strictly dominated by all its ancestors in
+   * the dominance tree.
    *
    * @param pAncestorNode the ancestor-node
    * @param pDescendantNode the descendant-node
