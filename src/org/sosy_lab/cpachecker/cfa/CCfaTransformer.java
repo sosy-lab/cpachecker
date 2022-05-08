@@ -174,11 +174,11 @@ public final class CCfaTransformer {
 
       // FIXME: don't rely on FunctionEntryNode#getExitNode
       // all connections between CFANodes/CFAEdges should be easily modifiable via CfaMutableNetwork
-      Optional<FunctionExitNode> oldExitNode = pOldNode.getExitNode();
-      @Nullable FunctionExitNode newExitNode = null;
-      if (oldExitNode.isPresent()) {
-        newExitNode = (FunctionExitNode) toNew(oldExitNode.orElseThrow());
-      }
+      @Nullable FunctionExitNode newExitNode =
+          pOldNode
+              .getExitNode()
+              .map(oldExitNode -> (FunctionExitNode) toNew(oldExitNode))
+              .orElse(null);
 
       Optional<CVariableDeclaration> oldReturnVariable = pOldNode.getReturnVariable();
       Optional<CVariableDeclaration> newReturnVariable;

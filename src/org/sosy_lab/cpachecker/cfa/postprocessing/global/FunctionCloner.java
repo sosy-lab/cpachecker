@@ -325,12 +325,9 @@ class FunctionCloner implements CFAVisitor {
 
     } else if (node instanceof CFunctionEntryNode) {
       final CFunctionEntryNode n = (CFunctionEntryNode) node;
-      final Optional<FunctionExitNode> exitNode = n.getExitNode();
 
-      @Nullable FunctionExitNode newExitNode = null;
-      if (exitNode.isPresent()) {
-        newExitNode = cloneNode(exitNode.orElseThrow());
-      }
+      @Nullable FunctionExitNode newExitNode =
+          n.getExitNode().map(exitNode -> cloneNode(exitNode)).orElse(null);
 
       Optional<CVariableDeclaration> returnVariable = n.getReturnVariable();
       if (returnVariable.isPresent()) {

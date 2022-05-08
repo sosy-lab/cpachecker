@@ -18,7 +18,6 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import org.junit.rules.TemporaryFolder;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -35,7 +34,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
@@ -140,12 +138,7 @@ public class TestDataTools {
       }
     }
 
-    Optional<FunctionExitNode> functionExitNode = cfa.getMainFunction().getExitNode();
-    if (functionExitNode.isPresent()) {
-      return mapping.get(functionExitNode.orElseThrow());
-    } else {
-      return null;
-    }
+    return cfa.getMainFunction().getExitNode().map(mapping::get).orElse(null);
   }
 
   /** Convert a given string to a {@link CFA}, assuming it is a body of a single function. */

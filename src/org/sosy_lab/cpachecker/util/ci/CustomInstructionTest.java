@@ -20,7 +20,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import org.junit.Before;
@@ -31,7 +30,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
@@ -74,12 +72,10 @@ public class CustomInstructionTest {
     startNode = cfa.getMainFunction();
     endNodes = new HashSet<>();
 
-    Optional<FunctionExitNode> mainExitNode = cfa.getMainFunction().getExitNode();
-    if (mainExitNode.isPresent()) {
-      for (CFAEdge edge : CFAUtils.allEnteringEdges(mainExitNode.orElseThrow())) {
-        endNodes.add(edge.getPredecessor());
-      }
-    }
+    cfa.getMainFunction()
+        .getExitNode()
+        .map(mainExitNode -> CFAUtils.allPredecessorsOf(mainExitNode).toList())
+        .ifPresent(endNodes::addAll);
 
     ImmutableList<String> input = ImmutableList.of("a");
     ImmutableList<String> output = ImmutableList.of("b");

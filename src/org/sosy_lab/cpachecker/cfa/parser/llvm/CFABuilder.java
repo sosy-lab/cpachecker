@@ -270,15 +270,13 @@ public class CFABuilder {
       addJumpsBetweenBasicBlocks(currFunc, basicBlocks, pFileName);
       purgeUnreachableBlocks(funcName, basicBlocks.values());
 
-      // During CFA construction, every function entry node must have a function exit node
-      // (unreachable function exit nodes have not been removed yet).
-      FunctionExitNode functionExitNode = en.getExitNode().orElseThrow();
-
-      // if the function exit node doesn't have entering edges, it's unreachable and we remove it
-      if (functionExitNode.getNumEnteringEdges() == 0) {
-        cfaNodes.remove(funcName, functionExitNode);
-        en.removeExitNode();
-      }
+      en.getExitNode()
+          .filter(exitNode -> exitNode.getNumEnteringEdges() == 0)
+          .ifPresent(
+              unreachableExitNode -> {
+                cfaNodes.remove(funcName, unreachableExitNode);
+                en.removeExitNode();
+              });
 
       functions.put(funcName, en);
 

@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -102,18 +103,19 @@ public final class TestTargetReductionUtils {
       }
     }
 
-    if (functionExitNode.isPresent()
-        && removeUnreachableTestGoalsAndIsReachExit(
-            pTestTargets,
-            pCopiedEdgeToTestTargetsMap,
-            origCFANodeToCopyMap.get(pEntryNode),
-            origCFANodeToCopyMap.get(functionExitNode.orElseThrow()))) {
-      return Pair.of(
-          origCFANodeToCopyMap.get(pEntryNode),
-          origCFANodeToCopyMap.get(functionExitNode.orElseThrow()));
-    } else {
-      return Pair.of(origCFANodeToCopyMap.get(pEntryNode), null);
-    }
+    @Nullable CFANode exitNodeCopy =
+        functionExitNode
+            .filter(
+                exitNode ->
+                    removeUnreachableTestGoalsAndIsReachExit(
+                        pTestTargets,
+                        pCopiedEdgeToTestTargetsMap,
+                        origCFANodeToCopyMap.get(pEntryNode),
+                        origCFANodeToCopyMap.get(exitNode)))
+            .map(exitNode -> origCFANodeToCopyMap.get(exitNode))
+            .orElse(null);
+
+    return Pair.of(origCFANodeToCopyMap.get(pEntryNode), exitNodeCopy);
   }
 
   private static boolean removeUnreachableTestGoalsAndIsReachExit(

@@ -20,7 +20,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -49,7 +48,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
@@ -400,15 +398,11 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   /** the whole program will terminate after this edge */
   private boolean isEndOfMainFunction(CFAEdge edge) {
 
-    Optional<FunctionExitNode> mainExitNode = cfa.getMainFunction().getExitNode();
-
-    if (mainExitNode.isPresent()) {
-      return Objects.equals(mainExitNode.orElseThrow(), edge.getSuccessor());
-    } else {
-      // If the main function does not have an exit node, the successor of the specified edge cannot
-      // be the main function exit node.
-      return false;
-    }
+    // returns whether the edge's successor the main function exit node
+    return cfa.getMainFunction()
+        .getExitNode()
+        .filter(mainExitNode -> mainExitNode.equals(edge.getSuccessor()))
+        .isPresent();
   }
 
   private ThreadingState exitThreads(ThreadingState tmp) {

@@ -9,12 +9,10 @@
 package org.sosy_lab.cpachecker.cfa.ast.acsl.util;
 
 import com.google.common.collect.FluentIterable;
-import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -58,14 +56,12 @@ public class FunctionBlock implements SyntacticBlock {
 
   @Override
   public Set<CFANode> getContainedNodes() {
-    CFATraversal traversal = CFATraversal.dfs();
-    traversal = traversal.ignoreFunctionCalls();
 
-    Optional<FunctionExitNode> exitNode = function.getExitNode();
-    if (exitNode.isPresent()) {
-      return traversal.collectNodesReachableFromTo(function, exitNode.orElseThrow());
-    } else {
-      return traversal.collectNodesReachableFrom(function);
-    }
+    CFATraversal traversal = CFATraversal.dfs().ignoreFunctionCalls();
+
+    return function
+        .getExitNode()
+        .map(exitNode -> traversal.collectNodesReachableFromTo(function, exitNode))
+        .orElse(traversal.collectNodesReachableFrom(function));
   }
 }

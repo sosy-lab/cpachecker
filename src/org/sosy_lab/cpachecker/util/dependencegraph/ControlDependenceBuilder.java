@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.util.dependencegraph;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -81,30 +80,21 @@ final class ControlDependenceBuilder<N extends Node<AFunctionDeclaration, CFAEdg
     ControlDependenceBuilder<?> controlDependenceBuilder =
         new ControlDependenceBuilder<>(pBuilder, pEntryNode);
 
-    Optional<FunctionExitNode> exitNode = pEntryNode.getExitNode();
+    DomTree<CFANode> postDomTree =
+        pEntryNode
+            .getExitNode()
+            .map(DominanceUtils::createFunctionPostDomTree)
+            .orElse(DomTree.empty());
+    ImmutableSet<CFANode> postDomTreeNodes = ImmutableSet.copyOf(postDomTree);
 
     NodeCollectingCFAVisitor nodeCollector = new NodeCollectingCFAVisitor();
     CFATraversal.dfs().ignoreFunctionCalls().traverse(pEntryNode, nodeCollector);
 
-    // only if there is a function exit node, we can compute the post-DomTree
-    if (exitNode.isPresent()) {
+    controlDependenceBuilder.insertControlDependencies(
+        postDomTree, postDomTreeNodes, pDependOnBothAssumptions);
 
-      DomTree<CFANode> postDomTree =
-          DominanceUtils.createFunctionPostDomTree(exitNode.orElseThrow());
-      Set<CFANode> postDomTreeNodes = new HashSet<>();
-      Iterators.addAll(postDomTreeNodes, postDomTree.iterator());
-
-      controlDependenceBuilder.insertControlDependencies(
-          postDomTree, postDomTreeNodes, pDependOnBothAssumptions);
-
-      controlDependenceBuilder.insertMissingControlDependencies(
-          postDomTree, postDomTreeNodes, nodeCollector.getVisitedNodes());
-
-    } else {
-
-      controlDependenceBuilder.insertMissingControlDependencies(
-          DomTree.empty(), ImmutableSet.of(), nodeCollector.getVisitedNodes());
-    }
+    controlDependenceBuilder.insertMissingControlDependencies(
+        postDomTree, postDomTreeNodes, nodeCollector.getVisitedNodes());
 
     controlDependenceBuilder.insertEntryControlDependencies(nodeCollector.getVisitedNodes());
   }

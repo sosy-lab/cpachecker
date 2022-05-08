@@ -14,15 +14,14 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.dependencegraph.Dominance;
@@ -109,14 +108,10 @@ public class TestTargetMinimizerEssential {
 
     // complete dummy graph has been created
 
-    Optional<FunctionExitNode> functionExitNode = pEntryNode.getExitNode();
-    if (functionExitNode.isPresent()) {
-      return Pair.of(
-          origCFANodeToCopyMap.get(pEntryNode),
-          origCFANodeToCopyMap.get(functionExitNode.orElseThrow()));
-    } else {
-      return Pair.of(origCFANodeToCopyMap.get(pEntryNode), null);
-    }
+    @Nullable CFANode exitNodeCopy =
+        pEntryNode.getExitNode().map(exitNode -> origCFANodeToCopyMap.get(exitNode)).orElse(null);
+
+    return Pair.of(origCFANodeToCopyMap.get(pEntryNode), exitNodeCopy);
   }
 
   private boolean isSelfLoop(final CFAEdge pEdge) {
