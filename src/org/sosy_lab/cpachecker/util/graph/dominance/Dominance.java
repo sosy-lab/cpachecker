@@ -8,13 +8,14 @@
 
 package org.sosy_lab.cpachecker.util.graph.dominance;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.graph.PredecessorsFunction;
 import com.google.common.graph.SuccessorsFunction;
-import java.util.ArrayDeque;
+import com.google.common.graph.Traverser;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,53 +49,24 @@ public final class Dominance {
    * Traverses the graph and assigns every visited node its reverse-postorder-ID. All IDs are stored
    * in the resulting map (node to ID).
    */
-  private static <T> Map<T, Integer> createReversePostOrder(
-      T pStartNode, SuccessorsFunction<T> pSuccFunc, PredecessorsFunction<T> pPredFunc) {
+  private static <T> ImmutableMap<T, Integer> createReversePostOrder(
+      T pStartNode, SuccessorsFunction<T> pSuccessorsFunction) {
 
-    // every node goes through the following stages (in this order):
-    // visited.get(node) == null: node was not encountered during graph traversal
-    // visited.get(node) == UNDEFINED: node was encountered during graph traversal, but has no ID
-    // visited.get(node) != null && != UNDEFINED: node has ID
-    Map<T, Integer> visited = new HashMap<>();
-    Deque<T> stack = new ArrayDeque<>();
+    Map<T, Integer> postOrderIds = new HashMap<>();
+
+    Iterable<T> nodesInPostOrder =
+        Traverser.forGraph(pSuccessorsFunction).depthFirstPostOrder(pStartNode);
     int counter = 0;
-
-    stack.push(pStartNode);
-
-    outer:
-    while (!stack.isEmpty()) {
-
-      T current = stack.pop();
-
-      Integer id = visited.get(current);
-      if (id != null && id != UNDEFINED) { // node already has ID?
-        continue;
-      }
-
-      for (T pred : pPredFunc.predecessors(current)) { // visit predecessors first
-        if (!visited.containsKey(pred)) { // predecessor never encountered before?
-          stack.push(current);
-          stack.push(pred);
-          visited.put(pred, UNDEFINED); // mark node as encountered
-          continue outer; // continue with predecessor (top stack element)
-        }
-      }
-
-      for (T succ : pSuccFunc.successors(current)) { // push successors onto the stack
-        if (!visited.containsKey(succ)) { // successor never encountered before?
-          stack.push(succ);
-        }
-      }
-
-      visited.put(current, counter); // set a node's ID
+    for (T node : nodesInPostOrder) {
+      postOrderIds.put(node, counter);
       counter++;
     }
 
     // reverse order, e.g. [0,1,2] -> offset = 2 -> [|0-2|,|1-2|,|2-2|] -> [2,1,0]
-    final int offset = (counter - 1);
-    visited.replaceAll((node, value) -> Math.abs(value - offset));
+    int offset = (postOrderIds.size() - 1);
+    postOrderIds.replaceAll((node, value) -> Math.abs(value - offset));
 
-    return visited;
+    return ImmutableMap.copyOf(postOrderIds);
   }
 
   /**
@@ -122,17 +94,13 @@ public final class Dominance {
 
       for (T pred : pPredFunc.predecessors(entry.getKey())) {
 
-        Integer predId = pIds.get(pred);
+        // if there is no path from the start node to pred, pred does not have an ID
+        @Nullable Integer predId = pIds.get(pred);
 
-        assert predId != null
-            : "Node has no reverse-postorder-ID: "
-                + pred
-                + "\n"
-                + "  Is the successor-function or predecessor-function incorrect?\n"
-                + "  Has the graph changed (concurrency issue)?";
-
-        preds.add(predId);
-        predCount++;
+        if (predId != null) {
+          preds.add(predId);
+          predCount++;
+        }
       }
 
       predsList.set(id, new ArrayList<>(preds));
@@ -163,7 +131,7 @@ public final class Dominance {
     Objects.requireNonNull(pSuccFunc, "pSuccFunc must not be null");
     Objects.requireNonNull(pPredFunc, "pPredFunc must not be null");
 
-    Map<T, Integer> ids = createReversePostOrder(pStartNode, pSuccFunc, pPredFunc);
+    Map<T, Integer> ids = createReversePostOrder(pStartNode, pSuccFunc);
 
     @SuppressWarnings("unchecked") // it's impossible to create a new generic array T[]
     T[] nodes = (T[]) new Object[ids.size()];
