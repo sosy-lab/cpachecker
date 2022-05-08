@@ -1077,12 +1077,10 @@ public class AutomatonGraphmlCommon {
       return false;
     }
 
-    // Returns whether the default return edge's successor is the function exit node, which would
-    // make the function an empty stub.
     return pEntryNode
         .getExitNode()
-        .filter(exitNode -> exitNode.equals(defaultReturnEdge.getSuccessor()))
-        .isPresent();
+        .map(exitNode -> exitNode.equals(defaultReturnEdge.getSuccessor()))
+        .orElse(false); // if there is no function exit node, the function cannot be a stub
   }
 
   public static boolean treatAsWhileTrue(CFAEdge pEdge) {
