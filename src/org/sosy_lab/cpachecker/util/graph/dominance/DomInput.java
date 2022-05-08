@@ -56,7 +56,7 @@ final class DomInput<T> {
    * in the resulting map (node to ID).
    */
   private static <T> ImmutableMap<T, Integer> createReversePostOrder(
-      T pStartNode, SuccessorsFunction<T> pSuccessorsFunction) {
+      SuccessorsFunction<T> pSuccessorsFunction, T pStartNode) {
 
     Map<T, Integer> postOrderIds = new HashMap<>();
 
@@ -96,7 +96,7 @@ final class DomInput<T> {
   static <T> DomInput<T> forGraph(
       PredecessorsFunction<T> pPredFunc, SuccessorsFunction<T> pSuccFunc, T pStartNode) {
 
-    ImmutableMap<T, Integer> ids = createReversePostOrder(pStartNode, pSuccFunc);
+    ImmutableMap<T, Integer> ids = createReversePostOrder(pSuccFunc, pStartNode);
 
     @SuppressWarnings("unchecked") // it's impossible to create a new generic array T[]
     T[] nodes = (T[]) new Object[ids.size()];

@@ -359,9 +359,9 @@ public class TestTargetMinimizerEssential {
 
     DomTree<CFANode> inverseDomTree =
         DomTree.createDomTree(
-            pCopiedFunctionEntryExit.getSecond(),
+            CFAUtils::allSuccessorsOf,
             CFAUtils::allPredecessorsOf,
-            CFAUtils::allSuccessorsOf);
+            pCopiedFunctionEntryExit.getSecond());
 
     waitlist.add(pCopiedFunctionEntryExit.getFirst());
     visitedNodes.add(pCopiedFunctionEntryExit.getFirst());
@@ -420,7 +420,7 @@ public class TestTargetMinimizerEssential {
     // create domination relationship on the reduced graph
     DomTree<CFANode> domTree =
         DomTree.createDomTree(
-            copiedFunctionEntry, CFAUtils::allSuccessorsOf, CFAUtils::allPredecessorsOf);
+            CFAUtils::allPredecessorsOf, CFAUtils::allSuccessorsOf, copiedFunctionEntry);
     // start at entry node because why not?
     waitlist.add(copiedFunctionEntry);
     visitedNodes.add(copiedFunctionEntry);

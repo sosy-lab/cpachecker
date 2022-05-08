@@ -33,7 +33,7 @@ public class MergePoint<T> {
   public MergePoint(
       T pExitNode, SuccessorsFunction<T> pSuccessors, PredecessorsFunction<T> pPredecessors) {
     // FIXME: make it more obvious that successor and predecessor functions are switched
-    tree = DomTree.createDomTree(pExitNode, pPredecessors::predecessors, pSuccessors::successors);
+    tree = DomTree.createDomTree(pSuccessors::successors, pPredecessors::predecessors, pExitNode);
     actualSuccessors = pSuccessors;
   }
 

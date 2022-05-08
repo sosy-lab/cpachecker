@@ -61,7 +61,7 @@ public final class DomTree<T> implements Iterable<T> {
    * @return the created {@link DomTree}-object.
    */
   public static <T> DomTree<T> createDomTree(
-      T pStartNode, SuccessorsFunction<T> pSuccFunc, PredecessorsFunction<T> pPredFunc) {
+      PredecessorsFunction<T> pPredFunc, SuccessorsFunction<T> pSuccFunc, T pStartNode) {
 
     Objects.requireNonNull(pStartNode, "pStartNode must not be null");
     Objects.requireNonNull(pSuccFunc, "pSuccFunc must not be null");

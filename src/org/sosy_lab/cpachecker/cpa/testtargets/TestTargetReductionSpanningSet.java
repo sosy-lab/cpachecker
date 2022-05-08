@@ -71,11 +71,11 @@ public class TestTargetReductionSpanningSet {
     DomTree<CFANode>
         domTree =
             DomTree.createDomTree(
-                entryExit.getFirst(), CFAUtils::allSuccessorsOf, CFAUtils::allPredecessorsOf),
+                CFAUtils::allPredecessorsOf, CFAUtils::allSuccessorsOf, entryExit.getFirst()),
         inverseDomTree =
             entryExit.getSecond() != null
                 ? DomTree.createDomTree(
-                    entryExit.getSecond(), CFAUtils::allPredecessorsOf, CFAUtils::allSuccessorsOf)
+                    CFAUtils::allSuccessorsOf, CFAUtils::allPredecessorsOf, entryExit.getSecond())
                 : null;
 
     for (CFAEdge targetPred : pTargets) {
