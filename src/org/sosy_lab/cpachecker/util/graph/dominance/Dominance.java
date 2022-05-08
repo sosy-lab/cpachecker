@@ -28,8 +28,8 @@ import java.util.Objects;
  * cannot directly be used for tree traversal (e.g. depth-first search), as every node only contains
  * a reference to its parent, but no references to its children.
  *
- * <p>If references to children are required, a traversable version of the dominance tree ({@link
- * DomTraversable}) can by created by {@link #createDomTraversable(DomTree)}.
+ * <p>If references to children are required, a traversable version of the dominance tree can by
+ * created by {@link DomTree#asGraph()}.
  *
  * <p>Dominance frontiers ({@link DomFrontiers}) are created by {@link
  * #createDomFrontiers(DomTree)}. A {@link DomFrontiers}-object contains the dominance frontier for
@@ -273,22 +273,5 @@ public final class Dominance {
     }
 
     return frontiers;
-  }
-
-  /**
-   * Creates the corresponding {@link DomTraversable} for a specified {@link DomTree}.
-   *
-   * <p>The resulting DomTraversable can be used to traverse the specified dominance tree.
-   *
-   * @param <T> the node-type of the original graph.
-   * @param pDomTree the {@link DomTree} (dominance tree) of the original graph.
-   * @throws NullPointerException if {@code pDomTree} is {@code null}.
-   * @return the created {@link DomTraversable}-object.
-   */
-  public static <T> DomTraversable<T> createDomTraversable(DomTree<T> pDomTree) {
-
-    Objects.requireNonNull(pDomTree, "pDomTree must not be null");
-
-    return DomTraversable.create(pDomTree);
   }
 }

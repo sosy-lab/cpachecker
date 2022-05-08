@@ -8,6 +8,10 @@
 
 package org.sosy_lab.cpachecker.util.graph.dominance;
 
+import com.google.common.graph.ElementOrder;
+import com.google.common.graph.GraphBuilder;
+import com.google.common.graph.ImmutableGraph;
+import com.google.common.graph.MutableGraph;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -120,6 +124,10 @@ public final class DomTree<T> implements Iterable<T> {
     return nodes[pId];
   }
 
+  public int getRoot() {
+    return getNodeCount() - 1;
+  }
+
   /**
    * Returns the ID of the specified node's parent.
    *
@@ -211,6 +219,28 @@ public final class DomTree<T> implements Iterable<T> {
         }
       }
     };
+  }
+
+  public ImmutableGraph<T> asGraph() {
+
+    MutableGraph<T> mutableGraph =
+        GraphBuilder.directed()
+            .allowsSelfLoops(false)
+            .nodeOrder(ElementOrder.stable())
+            .expectedNodeCount(getNodeCount())
+            .build();
+
+    for (int id = 0; id < getNodeCount(); id++) {
+      if (hasParent(id)) {
+        T node = nodes[id];
+        T parent = nodes[getParent(id)];
+        mutableGraph.addNode(node);
+        mutableGraph.addNode(parent);
+        mutableGraph.putEdge(parent, node);
+      }
+    }
+
+    return ImmutableGraph.copyOf(mutableGraph);
   }
 
   @Override

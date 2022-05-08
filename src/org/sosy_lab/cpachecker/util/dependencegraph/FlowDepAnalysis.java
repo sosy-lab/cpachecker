@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Multimap;
+import com.google.common.graph.Graph;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -40,7 +41,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.graph.dominance.DomFrontiers;
-import org.sosy_lab.cpachecker.util.graph.dominance.DomTraversable;
 import org.sosy_lab.cpachecker.util.graph.dominance.DomTree;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -264,17 +264,17 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
   }
 
   @Override
-  protected void traverseDomTree(DomTraversable<CFANode> pDomTraversable) {
+  protected void traverseDomTree(Graph<CFANode> pDomTree, CFANode pRootNode) {
 
     globalEdges.forEach(this::pushEdge);
 
     // init function parameters
-    for (CFAEdge callEdge : CFAUtils.allEnteringEdges(pDomTraversable.getNode())) {
+    for (CFAEdge callEdge : CFAUtils.allEnteringEdges(pRootNode)) {
       pushEdge(callEdge);
       popEdge(callEdge);
     }
 
-    super.traverseDomTree(pDomTraversable);
+    super.traverseDomTree(pDomTree, pRootNode);
   }
 
   private void handleDependence(
@@ -434,7 +434,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
   }
 
   private static final class SingleFunctionGraph
-      implements ReachDefAnalysis.Graph<CFANode, CFAEdge> {
+      implements ReachDefAnalysis.InputGraph<CFANode, CFAEdge> {
 
     private static final SingleFunctionGraph INSTANCE = new SingleFunctionGraph();
 
