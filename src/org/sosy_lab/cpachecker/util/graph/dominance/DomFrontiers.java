@@ -139,8 +139,8 @@ public final class DomFrontiers<T> {
    * @param pNodes the set of nodes to get the iterated dominance frontier for
    * @return an unmodifiable set consisting of all nodes in the iterated dominance frontier
    * @throws NullPointerException if {@code pNodes == null} or if any element is {@code null}
-   * @throws IllegalArgumentException if {@code pNode} is unknown (i.e., was not visited during
-   *     graph traversal for dominance tree construction)
+   * @throws IllegalArgumentException if any node in {@code pNodes} is unknown (i.e., was not
+   *     visited during graph traversal for dominance tree construction)
    */
   public Set<T> getIteratedFrontier(Set<T> pNodes) {
 
