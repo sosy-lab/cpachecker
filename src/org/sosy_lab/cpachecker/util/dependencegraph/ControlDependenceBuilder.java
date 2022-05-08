@@ -29,9 +29,9 @@ import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.Forwar
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.Node;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.NodeType;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.VisitResult;
+import org.sosy_lab.cpachecker.util.graph.dominance.DomFrontiers;
+import org.sosy_lab.cpachecker.util.graph.dominance.DomTree;
 import org.sosy_lab.cpachecker.util.graph.dominance.Dominance;
-import org.sosy_lab.cpachecker.util.graph.dominance.Dominance.DomFrontiers;
-import org.sosy_lab.cpachecker.util.graph.dominance.Dominance.DomTree;
 import org.sosy_lab.cpachecker.util.graph.dominance.DominanceUtils;
 
 /**

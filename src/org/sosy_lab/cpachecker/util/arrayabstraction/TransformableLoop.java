@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.dependencegraph.EdgeDefUseData;
-import org.sosy_lab.cpachecker.util.graph.dominance.Dominance;
+import org.sosy_lab.cpachecker.util.graph.dominance.DomTree;
 import org.sosy_lab.cpachecker.util.graph.dominance.DominanceUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
@@ -92,7 +92,7 @@ final class TransformableLoop {
     ImmutableSet.Builder<CFAEdge> builder = ImmutableSet.builder();
 
     CFANode startNode = pEdge.getSuccessor();
-    Dominance.DomTree<CFANode> domTree =
+    DomTree<CFANode> domTree =
         DominanceUtils.createFunctionDomTree(startNode, ImmutableSet.of(pLoopStart));
     int startId = domTree.getId(startNode);
     for (int id = 0; id < domTree.getNodeCount(); id++) {
@@ -113,7 +113,7 @@ final class TransformableLoop {
     ImmutableSet.Builder<CFAEdge> builder = ImmutableSet.builder();
 
     CFANode startNode = pEdge.getPredecessor();
-    Dominance.DomTree<CFANode> postDomTree =
+    DomTree<CFANode> postDomTree =
         DominanceUtils.createFunctionPostDomTree(startNode, ImmutableSet.of(pLoopStart));
     int startId = postDomTree.getId(startNode);
     for (int id = 0; id < postDomTree.getNodeCount(); id++) {

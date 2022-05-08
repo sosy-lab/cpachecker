@@ -39,7 +39,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.graph.dominance.Dominance;
+import org.sosy_lab.cpachecker.util.graph.dominance.DomFrontiers;
+import org.sosy_lab.cpachecker.util.graph.dominance.DomTraversable;
+import org.sosy_lab.cpachecker.util.graph.dominance.DomTree;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CFAEdge> {
@@ -59,8 +61,8 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
   private final Multimap<CFAEdge, MemoryLocation> maybeDefs;
 
   FlowDepAnalysis(
-      Dominance.DomTree<CFANode> pDomTree,
-      Dominance.DomFrontiers<CFANode> pDomFrontiers,
+      DomTree<CFANode> pDomTree,
+      DomFrontiers<CFANode> pDomFrontiers,
       FunctionEntryNode pEntryNode,
       List<CFAEdge> pGlobalEdges,
       EdgeDefUseData.Extractor pDefUseExtractor,
@@ -247,7 +249,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
   }
 
   @Override
-  protected void insertCombiners(Dominance.DomFrontiers<CFANode> pDomFrontiers) {
+  protected void insertCombiners(DomFrontiers<CFANode> pDomFrontiers) {
 
     for (AParameterDeclaration declaration : entryNode.getFunctionParameters()) {
       MemoryLocation variable = MemoryLocation.forDeclaration(declaration);
@@ -262,7 +264,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
   }
 
   @Override
-  protected void traverseDomTree(Dominance.DomTraversable<CFANode> pDomTraversable) {
+  protected void traverseDomTree(DomTraversable<CFANode> pDomTraversable) {
 
     globalEdges.forEach(this::pushEdge);
 

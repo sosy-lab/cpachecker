@@ -15,8 +15,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import org.sosy_lab.cpachecker.util.graph.dominance.DomTree;
 import org.sosy_lab.cpachecker.util.graph.dominance.Dominance;
-import org.sosy_lab.cpachecker.util.graph.dominance.Dominance.DomTree;
 
 public class MergePoint<T> {
 

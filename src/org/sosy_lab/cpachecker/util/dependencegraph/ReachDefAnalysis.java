@@ -23,21 +23,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import org.sosy_lab.cpachecker.util.graph.dominance.DomFrontiers;
+import org.sosy_lab.cpachecker.util.graph.dominance.DomTraversable;
+import org.sosy_lab.cpachecker.util.graph.dominance.DomTree;
 import org.sosy_lab.cpachecker.util.graph.dominance.Dominance;
 
 abstract class ReachDefAnalysis<D, N, E> {
 
   private final Graph<N, E> graph;
 
-  private final Dominance.DomTree<N> domTree;
-  private final Dominance.DomFrontiers<N> domFrontiers;
+  private final DomTree<N> domTree;
+  private final DomFrontiers<N> domFrontiers;
 
   private final Multimap<D, E> variableDefEdges;
   private final Multimap<N, Def.Combiner<D, E>> nodeDefCombiners;
   private final Map<D, Deque<Def<D, E>>> variableDefStacks;
 
   protected ReachDefAnalysis(
-      Graph<N, E> pGraph, Dominance.DomTree<N> pDomTree, Dominance.DomFrontiers<N> pDomFrontiers) {
+      Graph<N, E> pGraph, DomTree<N> pDomTree, DomFrontiers<N> pDomFrontiers) {
 
     graph = pGraph;
 
@@ -74,7 +77,7 @@ abstract class ReachDefAnalysis<D, N, E> {
     nodeDefCombiners.put(pNode, new Def.Combiner<D, E>(pVariable));
   }
 
-  protected void insertCombiners(Dominance.DomFrontiers<N> pDomFrontiers) {
+  protected void insertCombiners(DomFrontiers<N> pDomFrontiers) {
 
     for (D variable : variableDefEdges.keySet()) {
 
@@ -165,12 +168,12 @@ abstract class ReachDefAnalysis<D, N, E> {
    *              b--->[3]---d--->
    * }</pre>
    */
-  private boolean isDanglingEdge(Dominance.DomTraversable<N> pParent, E pEdge) {
+  private boolean isDanglingEdge(DomTraversable<N> pParent, E pEdge) {
 
     N successor = graph.getSuccessor(pEdge);
 
     if (hasMultipleEnteringEdges(successor)) {
-      for (Dominance.DomTraversable<N> child : pParent) {
+      for (DomTraversable<N> child : pParent) {
         if (child.getNode().equals(successor)) {
           return false; // there is an edge in the dom-tree for pEdge
         }
@@ -182,21 +185,21 @@ abstract class ReachDefAnalysis<D, N, E> {
     return true; // there is no edge in the dom-tree for pEdge -> dangling
   }
 
-  protected void traverseDomTree(Dominance.DomTraversable<N> pDomTraversable) {
+  protected void traverseDomTree(DomTraversable<N> pDomTraversable) {
 
-    Deque<Iterator<Dominance.DomTraversable<N>>> stack = new ArrayDeque<>();
-    Dominance.DomTraversable<N> current = pDomTraversable;
+    Deque<Iterator<DomTraversable<N>>> stack = new ArrayDeque<>();
+    DomTraversable<N> current = pDomTraversable;
 
     stack.push(current.iterator());
     pushNode(current.getNode());
 
     while (true) { // break when root gets popped from the stack (see end of 'visit parent')
 
-      Iterator<Dominance.DomTraversable<N>> children = stack.peek();
+      Iterator<DomTraversable<N>> children = stack.peek();
 
       if (children.hasNext()) { // visit child
 
-        Dominance.DomTraversable<N> next = children.next();
+        DomTraversable<N> next = children.next();
         Optional<E> optEdge = graph.getEdge(current.getNode(), next.getNode());
 
         if (optEdge.isPresent()) {
@@ -217,7 +220,7 @@ abstract class ReachDefAnalysis<D, N, E> {
 
       } else { // visit parent
 
-        Dominance.DomTraversable<N> prev = current;
+        DomTraversable<N> prev = current;
         current = current.getParent();
 
         popNode(prev.getNode());
