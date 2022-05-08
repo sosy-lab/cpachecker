@@ -57,6 +57,8 @@ public final class DomFrontiers<T> {
   private static DomFrontiers.Frontier[] computeFrontiers(
       final DomInput<?> pInput, final int[] pDoms) {
 
+    final int[] predecessors = pInput.getPredecessors();
+
     DomFrontiers.Frontier[] frontiers = new DomFrontiers.Frontier[pInput.getNodeCount()];
     for (int id = 0; id < frontiers.length; id++) {
       frontiers[id] = new DomFrontiers.Frontier();
@@ -65,18 +67,18 @@ public final class DomFrontiers<T> {
     int index = 0; // index for input data (data format is specified in DomInput)
     for (int id = 0; id < pInput.getNodeCount(); id++) { // all nodes
 
-      if (pInput.getValue(index) == DomInput.DELIMITER) { // has no predecessors?
+      if (predecessors[index] == DomInput.DELIMITER) { // has no predecessors?
         index++; // skip delimiter
         continue;
       }
 
-      if (pInput.getValue(index + 1) == DomInput.DELIMITER) { // has exactly one predecessor?
+      if (predecessors[index + 1] == DomInput.DELIMITER) { // has exactly one predecessor?
         index += 2; // skip only predecessor + delimiter
         continue;
       }
 
       int runner;
-      while ((runner = pInput.getValue(index)) != DomInput.DELIMITER) { // all predecessors of node
+      while ((runner = predecessors[index]) != DomInput.DELIMITER) { // all predecessors of node
 
         while (runner != DomTree.UNDEFINED && runner != pDoms[id]) {
           frontiers[runner].add(id);

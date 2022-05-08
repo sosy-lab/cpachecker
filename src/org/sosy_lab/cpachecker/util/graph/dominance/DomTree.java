@@ -83,6 +83,8 @@ public final class DomTree<T> implements Iterable<T> {
    */
   private static int[] computeDoms(final DomInput<?> pInput) {
 
+    final int[] predecessors = pInput.getPredecessors();
+
     final int startNode = pInput.getNodeCount() - 1; // the start node has the greatest ID
     int[] doms = new int[pInput.getNodeCount()]; // doms[x] == immediate dominator of x
     boolean changed = true;
@@ -98,7 +100,7 @@ public final class DomTree<T> implements Iterable<T> {
         int idom = UNDEFINED; // immediate dominator for node
 
         int pred;
-        while ((pred = pInput.getValue(index)) != DomInput.DELIMITER) { // all predecessors of node
+        while ((pred = predecessors[index]) != DomInput.DELIMITER) { // all predecessors of node
 
           if (doms[pred] != UNDEFINED) { // does predecessor have an immediate dominator?
             if (idom != UNDEFINED) { // is idom already initialized?

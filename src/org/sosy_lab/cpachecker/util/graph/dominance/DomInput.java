@@ -30,25 +30,13 @@ final class DomInput<T> {
   private final ImmutableMap<T, Integer> ids;
   private final T[] nodes;
 
-  // the values array contains the predecessors (their IDs) of every node
-  // the predecessors of a node are separated by a DELIMITER from other predecessors
-  // the first group of predecessors are for the node with ID == 0,
-  // the second group for node with ID == 1, ..., the last group for node with ID == nodeCount - 1
-  // the array must contain exactly one DELIMITER per node and its last element must be DELIMITER
-  //
-  // p_X_Y: predecessor Y of node X
-  // format example: [p_0_a, p_0_b, DELIMITER, p_1_c, DELIMITER, DELIMITER, p_3_d, ...]
-  // - node 0 has 2 predecessors
-  // - node 1 has 1 predecessor
-  // - node 2 has 0 predecessors
-  // - node 3 has (at least) 1 predecessor
-  private final int[] input;
+  private final int[] predecessors;
 
-  private DomInput(ImmutableMap<T, Integer> pIds, T[] pNodes, int[] pInput) {
+  private DomInput(ImmutableMap<T, Integer> pIds, T[] pNodes, int[] pPredecessors) {
 
     ids = pIds;
     nodes = pNodes;
-    input = pInput;
+    predecessors = pPredecessors;
   }
 
   /**
@@ -138,8 +126,8 @@ final class DomInput<T> {
     return nodes[pId];
   }
 
-  int getValue(int index) {
-    return input[index];
+  int[] getPredecessors() {
+    return predecessors;
   }
 
   int getNodeCount() {
