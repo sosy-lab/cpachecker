@@ -45,7 +45,7 @@ final class FunctionFilteringCfaNetwork implements CfaNetwork {
       @Override
       public Iterator<CFAEdge> iterator() {
         return CFAUtils.allEnteringEdges(pNode)
-            .filter(node -> functions.contains(node.getPredecessor().getFunctionName()))
+            .filter(edge -> functions.contains(edge.getPredecessor().getFunctionName()))
             .iterator();
       }
     };
@@ -58,7 +58,7 @@ final class FunctionFilteringCfaNetwork implements CfaNetwork {
       @Override
       public Iterator<CFAEdge> iterator() {
         return CFAUtils.allLeavingEdges(pNode)
-            .filter(node -> functions.contains(node.getSuccessor().getFunctionName()))
+            .filter(edge -> functions.contains(edge.getSuccessor().getFunctionName()))
             .iterator();
       }
     };
