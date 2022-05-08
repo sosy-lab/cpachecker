@@ -29,7 +29,7 @@ public abstract class FunctionEntryNode extends CFANode {
 
   // Check if call edges are added in the second pass
   // Some function entry nodes do not have a corresponding function exit node that is also part of
-  // the CFA . If a function never returns, because it always aborts the program or always executes
+  // the CFA. If a function never returns, because it always aborts the program or always executes
   // an infinite loop, the CFA doesn't contain an exit node for the function. If this is the case,
   // this field is null.
   private @Nullable FunctionExitNode exitNode;
@@ -70,8 +70,8 @@ public abstract class FunctionEntryNode extends CFANode {
   /**
    * Removes the corresponding function exit node from this entry node.
    *
-   * <p>Only call this method if the function exit node isn't part of the CFA. This method should
-   * only be called during CFA construction.
+   * <p>Only call this method if the function exit node isn't part of the CFA. Do not call this
+   * method outside CFA construction.
    */
   public void removeExitNode() {
     exitNode = null;

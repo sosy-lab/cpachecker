@@ -87,7 +87,9 @@ public class CFACheck {
         isConsistent(node, machineModel);
         checkEdgeCount(node);
 
-        // check whether all unreachable function exit nodes have been removed
+        // If the function entry node has a function exit node, the exit node must be part of the
+        // CFA, so we check it here. This check detects function exit nodes that are unreachable but
+        // have not been removed.
         if (node instanceof FunctionEntryNode) {
           ((FunctionEntryNode) node).getExitNode().ifPresent(CFACheck::checkEdgeCount);
         }
