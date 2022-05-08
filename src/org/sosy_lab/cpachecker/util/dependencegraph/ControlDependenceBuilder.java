@@ -24,13 +24,15 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomFrontiers;
-import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomTree;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.EdgeType;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.ForwardsVisitor;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.Node;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.NodeType;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.VisitResult;
+import org.sosy_lab.cpachecker.util.graph.dominance.Dominance;
+import org.sosy_lab.cpachecker.util.graph.dominance.Dominance.DomFrontiers;
+import org.sosy_lab.cpachecker.util.graph.dominance.Dominance.DomTree;
+import org.sosy_lab.cpachecker.util.graph.dominance.DominanceUtils;
 
 /**
  * Class for computing control dependencies and inserting them into a {@link SystemDependenceGraph}.

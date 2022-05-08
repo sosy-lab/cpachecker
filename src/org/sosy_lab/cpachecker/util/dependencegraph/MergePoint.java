@@ -14,7 +14,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
-import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomTree;
+import org.sosy_lab.cpachecker.util.graph.dominance.Dominance;
+import org.sosy_lab.cpachecker.util.graph.dominance.Dominance.DomTree;
 
 public class MergePoint<T> {
 

@@ -30,8 +30,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.dependencegraph.Dominance;
-import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomTree;
+import org.sosy_lab.cpachecker.util.graph.dominance.Dominance;
+import org.sosy_lab.cpachecker.util.graph.dominance.Dominance.DomTree;
 
 public class TestTargetReductionSpanningSet {
 
