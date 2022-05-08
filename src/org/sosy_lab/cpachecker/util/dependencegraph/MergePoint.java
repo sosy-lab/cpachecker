@@ -8,19 +8,20 @@
 
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
+import com.google.common.graph.PredecessorsFunction;
+import com.google.common.graph.SuccessorsFunction;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Function;
 import org.sosy_lab.cpachecker.util.graph.dominance.Dominance;
 import org.sosy_lab.cpachecker.util.graph.dominance.Dominance.DomTree;
 
 public class MergePoint<T> {
 
   private DomTree<T> tree;
-  private Function<T, Iterable<T>> actualSuccessors;
+  private SuccessorsFunction<T> actualSuccessors;
 
   /**
    * Find the first merge point of a node with two successors. E.g. find the node that represents an
@@ -31,8 +32,9 @@ public class MergePoint<T> {
    * @param pPredecessors a function that calculates all predecessors of a given node.
    */
   public MergePoint(
-      T pExitNode, Function<T, Iterable<T>> pSuccessors, Function<T, Iterable<T>> pPredecessors) {
-    tree = Dominance.createDomTree(pExitNode, pPredecessors, pSuccessors);
+      T pExitNode, SuccessorsFunction<T> pSuccessors, PredecessorsFunction<T> pPredecessors) {
+    // FIXME: make it more obvious that successor and predecessor functions are switched
+    tree = Dominance.createDomTree(pExitNode, pPredecessors::predecessors, pSuccessors::successors);
     actualSuccessors = pSuccessors;
   }
 
@@ -49,7 +51,7 @@ public class MergePoint<T> {
     List<List<Integer>> waitlist = new ArrayList<>();
     int assumeId = tree.getId(assume);
 
-    for (T succ : actualSuccessors.apply(assume)) {
+    for (T succ : actualSuccessors.successors(assume)) {
       List<Integer> waitlistElem = new ArrayList<>();
       waitlistElem.add(tree.getId(succ));
       waitlist.add(waitlistElem);
@@ -77,7 +79,8 @@ public class MergePoint<T> {
         }
       }
       currentPath.add(lastElement);
-      for (T succ : Objects.requireNonNull(actualSuccessors.apply(tree.getNode(lastElement)))) {
+      for (T succ :
+          Objects.requireNonNull(actualSuccessors.successors(tree.getNode(lastElement)))) {
         int succId = tree.getId(succ);
         List<Integer> newPath = new ArrayList<>(currentPath);
         newPath.add(succId);

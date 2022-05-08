@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.graph.dominance;
 
+import com.google.common.graph.PredecessorsFunction;
+import com.google.common.graph.SuccessorsFunction;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -21,7 +23,6 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Function;
 
 /**
  * A utility class for computing dominance trees and dominance frontiers.
@@ -52,9 +53,7 @@ public final class Dominance {
    * in the resulting map (node to ID).
    */
   private static <T> Map<T, Integer> createReversePostOrder(
-      T pStartNode,
-      Function<? super T, ? extends Iterable<? extends T>> pSuccFunc,
-      Function<? super T, ? extends Iterable<? extends T>> pPredFunc) {
+      T pStartNode, SuccessorsFunction<T> pSuccFunc, PredecessorsFunction<T> pPredFunc) {
 
     // every node goes through the following stages (in this order):
     // visited.get(node) == null: node was not encountered during graph traversal
@@ -76,7 +75,7 @@ public final class Dominance {
         continue;
       }
 
-      for (T pred : pPredFunc.apply(current)) { // visit predecessors first
+      for (T pred : pPredFunc.predecessors(current)) { // visit predecessors first
         if (!visited.containsKey(pred)) { // predecessor never encountered before?
           stack.push(current);
           stack.push(pred);
@@ -85,7 +84,7 @@ public final class Dominance {
         }
       }
 
-      for (T succ : pSuccFunc.apply(current)) { // push successors onto the stack
+      for (T succ : pSuccFunc.successors(current)) { // push successors onto the stack
         if (!visited.containsKey(succ)) { // successor never encountered before?
           stack.push(succ);
         }
@@ -113,9 +112,7 @@ public final class Dominance {
    * @return the created {@link DomInput}-object.
    */
   private static <T> DomInput createDomInput(
-      Map<T, Integer> pIds,
-      T[] pNodes,
-      Function<? super T, ? extends Iterable<? extends T>> pPredFunc) {
+      Map<T, Integer> pIds, T[] pNodes, PredecessorsFunction<T> pPredFunc) {
 
     // predsList is accessed by a node's reverse-postorder-ID (index == ID)
     // and contains a list of predecessors for every node (the ID of a predecessor is stored)
@@ -127,7 +124,7 @@ public final class Dominance {
 
       int id = entry.getValue();
 
-      for (T pred : pPredFunc.apply(entry.getKey())) {
+      for (T pred : pPredFunc.predecessors(entry.getKey())) {
 
         Integer predId = pIds.get(pred);
 
@@ -158,15 +155,13 @@ public final class Dominance {
    *
    * @param <T> the node-type of the specified graph.
    * @param pStartNode the start node for graph traversal and root for resulting dominance tree.
-   * @param pSuccFunc the successor-{@link Function} (node to {@link Iterable}).
-   * @param pPredFunc the predecessor-{@link Function} (node to {@link Iterable}).
+   * @param pSuccFunc the successor-function (node to {@link Iterable}).
+   * @param pPredFunc the predecessor-function (node to {@link Iterable}).
    * @throws NullPointerException if any parameter is {@code null}.
    * @return the created {@link DomTree}-object.
    */
   public static <T> DomTree<T> createDomTree(
-      T pStartNode,
-      Function<? super T, ? extends Iterable<? extends T>> pSuccFunc,
-      Function<? super T, ? extends Iterable<? extends T>> pPredFunc) {
+      T pStartNode, SuccessorsFunction<T> pSuccFunc, PredecessorsFunction<T> pPredFunc) {
 
     Objects.requireNonNull(pStartNode, "pStartNode must not be null");
     Objects.requireNonNull(pSuccFunc, "pSuccFunc must not be null");
