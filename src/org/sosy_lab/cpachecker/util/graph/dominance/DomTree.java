@@ -12,6 +12,9 @@ import com.google.common.graph.ElementOrder;
 import com.google.common.graph.GraphBuilder;
 import com.google.common.graph.ImmutableGraph;
 import com.google.common.graph.MutableGraph;
+import com.google.common.graph.PredecessorsFunction;
+import com.google.common.graph.SuccessorsFunction;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -33,12 +36,114 @@ import java.util.Objects;
  */
 public final class DomTree<T> implements Iterable<T> {
 
+  /** Undefined ID. */
+  public static final int UNDEFINED = -1;
+
   private final DomInput<T> input;
   private final int[] doms;
 
   DomTree(DomInput<T> pInput, int[] pDoms) {
     input = pInput;
     doms = pDoms;
+  }
+
+  /**
+   * Creates the {@link DomTree} (dominance tree) for the specified graph.
+   *
+   * <p>Successors and predecessors of all graph nodes must not change during the creation of the
+   * dominance tree.
+   *
+   * @param <T> the node-type of the specified graph.
+   * @param pStartNode the start node for graph traversal and root for resulting dominance tree.
+   * @param pSuccFunc the successor-function (node to {@link Iterable}).
+   * @param pPredFunc the predecessor-function (node to {@link Iterable}).
+   * @throws NullPointerException if any parameter is {@code null}.
+   * @return the created {@link DomTree}-object.
+   */
+  public static <T> DomTree<T> createDomTree(
+      T pStartNode, SuccessorsFunction<T> pSuccFunc, PredecessorsFunction<T> pPredFunc) {
+
+    Objects.requireNonNull(pStartNode, "pStartNode must not be null");
+    Objects.requireNonNull(pSuccFunc, "pSuccFunc must not be null");
+    Objects.requireNonNull(pPredFunc, "pPredFunc must not be null");
+
+    DomInput<T> input = DomInput.forGraph(pPredFunc, pSuccFunc, pStartNode);
+
+    int[] doms = computeDoms(input);
+
+    return new DomTree<>(input, doms);
+  }
+
+  /**
+   * Iterative Algorithm for computing the immediate dominators of all nodes. For more information
+   * on the algorithm, see "A Simple, Fast Dominance Algorithm" (Cooper et al.).
+   *
+   * @return doms[x] == immediate dominator of x
+   */
+  private static int[] computeDoms(final DomInput<?> pInput) {
+
+    final int startNode = pInput.getNodeCount() - 1; // the start node has the greatest ID
+    int[] doms = new int[pInput.getNodeCount()]; // doms[x] == immediate dominator of x
+    boolean changed = true;
+
+    Arrays.fill(doms, UNDEFINED); // no immediate dominator is known
+    doms[startNode] = startNode; // needed to 'seed' the computation, reverted afterwards
+
+    while (changed) {
+      changed = false;
+
+      int index = 0; // index for input data (data format is specified in DomInput)
+      for (int id = 0; id < startNode; id++) { // all nodes in reverse-post-order (except start)
+        int idom = UNDEFINED; // immediate dominator for node
+
+        int pred;
+        while ((pred = pInput.getValue(index)) != DomInput.DELIMITER) { // all predecessors of node
+
+          if (doms[pred] != UNDEFINED) { // does predecessor have an immediate dominator?
+            if (idom != UNDEFINED) { // is idom already initialized?
+              idom = intersect(doms, pred, idom); // update idom using predecessor
+            } else {
+              idom = pred; // initialize idom with predecessor
+            }
+          }
+
+          index++; // next predecessor
+        }
+
+        if (doms[id] != idom) { // update immediate dominator for node?
+          doms[id] = idom;
+          changed = true;
+        }
+
+        index++; // skip delimiter
+      }
+    }
+
+    doms[startNode] = UNDEFINED; // the start node cannot have an immediate dominator
+
+    return doms;
+  }
+
+  /**
+   * Computes the intersection of doms(pId1) and doms(pId2) (doms(x) == all nodes that dominate x).
+   * Cooper et al. describe it as "[walking] up the the dominance tree from two different nodes
+   * until a common parent is reached".
+   */
+  private static int intersect(final int[] pDoms, final int pId1, final int pId2) {
+
+    int f1 = pId1;
+    int f2 = pId2;
+
+    while (f1 != f2) {
+      while (f1 < f2) {
+        f1 = pDoms[f1];
+      }
+      while (f2 < f1) {
+        f2 = pDoms[f2];
+      }
+    }
+
+    return f1;
   }
 
   DomInput<T> getInput() {
@@ -148,7 +253,7 @@ public final class DomTree<T> implements Iterable<T> {
 
     checkId(pId);
 
-    return doms[pId] != Dominance.UNDEFINED;
+    return doms[pId] != UNDEFINED;
   }
 
   /**
@@ -172,7 +277,7 @@ public final class DomTree<T> implements Iterable<T> {
 
     int id = pDescendantId;
 
-    while ((id = doms[id]) != Dominance.UNDEFINED) {
+    while ((id = doms[id]) != UNDEFINED) {
       if (id == pAncestorId) {
         return true;
       }

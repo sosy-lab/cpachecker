@@ -24,7 +24,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.graph.dominance.DomTree;
-import org.sosy_lab.cpachecker.util.graph.dominance.Dominance;
 
 public class TestTargetMinimizerEssential {
 
@@ -359,7 +358,7 @@ public class TestTargetMinimizerEssential {
     CFAEdge removedEdge;
 
     DomTree<CFANode> inverseDomTree =
-        Dominance.createDomTree(
+        DomTree.createDomTree(
             pCopiedFunctionEntryExit.getSecond(),
             CFAUtils::allPredecessorsOf,
             CFAUtils::allSuccessorsOf);
@@ -420,7 +419,7 @@ public class TestTargetMinimizerEssential {
 
     // create domination relationship on the reduced graph
     DomTree<CFANode> domTree =
-        Dominance.createDomTree(
+        DomTree.createDomTree(
             copiedFunctionEntry, CFAUtils::allSuccessorsOf, CFAUtils::allPredecessorsOf);
     // start at entry node because why not?
     waitlist.add(copiedFunctionEntry);

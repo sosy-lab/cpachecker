@@ -16,7 +16,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.util.graph.dominance.DomTree;
-import org.sosy_lab.cpachecker.util.graph.dominance.Dominance;
 
 public class MergePoint<T> {
 
@@ -34,7 +33,7 @@ public class MergePoint<T> {
   public MergePoint(
       T pExitNode, SuccessorsFunction<T> pSuccessors, PredecessorsFunction<T> pPredecessors) {
     // FIXME: make it more obvious that successor and predecessor functions are switched
-    tree = Dominance.createDomTree(pExitNode, pPredecessors::predecessors, pSuccessors::successors);
+    tree = DomTree.createDomTree(pExitNode, pPredecessors::predecessors, pSuccessors::successors);
     actualSuccessors = pSuccessors;
   }
 

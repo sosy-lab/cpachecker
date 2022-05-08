@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.graph.dominance.DomTree;
-import org.sosy_lab.cpachecker.util.graph.dominance.Dominance;
 
 public class TestTargetReductionSpanningSet {
 
@@ -71,11 +70,11 @@ public class TestTargetReductionSpanningSet {
 
     DomTree<CFANode>
         domTree =
-            Dominance.createDomTree(
+            DomTree.createDomTree(
                 entryExit.getFirst(), CFAUtils::allSuccessorsOf, CFAUtils::allPredecessorsOf),
         inverseDomTree =
             entryExit.getSecond() != null
-                ? Dominance.createDomTree(
+                ? DomTree.createDomTree(
                     entryExit.getSecond(), CFAUtils::allPredecessorsOf, CFAUtils::allSuccessorsOf)
                 : null;
 
