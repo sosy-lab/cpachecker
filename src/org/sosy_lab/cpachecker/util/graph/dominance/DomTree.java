@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.graph.dominance;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.graph.ElementOrder;
 import com.google.common.graph.GraphBuilder;
 import com.google.common.graph.ImmutableGraph;
@@ -17,7 +19,6 @@ import com.google.common.graph.SuccessorsFunction;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
-import java.util.Objects;
 
 /**
  * A data structure representing a dominance tree.
@@ -63,9 +64,9 @@ public final class DomTree<T> implements Iterable<T> {
   public static <T> DomTree<T> createDomTree(
       PredecessorsFunction<T> pPredFunc, SuccessorsFunction<T> pSuccFunc, T pStartNode) {
 
-    Objects.requireNonNull(pStartNode, "pStartNode must not be null");
-    Objects.requireNonNull(pSuccFunc, "pSuccFunc must not be null");
-    Objects.requireNonNull(pPredFunc, "pPredFunc must not be null");
+    checkNotNull(pStartNode);
+    checkNotNull(pSuccFunc);
+    checkNotNull(pPredFunc);
 
     DomInput<T> input = DomInput.forGraph(pPredFunc, pSuccFunc, pStartNode);
 
@@ -187,7 +188,7 @@ public final class DomTree<T> implements Iterable<T> {
    */
   public int getId(T pNode) {
 
-    Objects.requireNonNull(pNode, "pNode must not be null");
+    checkNotNull(pNode);
 
     Integer id = input.getReversePostOrderId(pNode);
 

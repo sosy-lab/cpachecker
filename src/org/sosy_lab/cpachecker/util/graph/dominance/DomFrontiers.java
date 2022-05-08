@@ -8,12 +8,13 @@
 
 package org.sosy_lab.cpachecker.util.graph.dominance;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -42,7 +43,7 @@ public final class DomFrontiers<T> {
    */
   public static <T> DomFrontiers<T> createDomFrontiers(DomTree<T> pDomTree) {
 
-    Objects.requireNonNull(pDomTree, "pDomTree must not be null");
+    checkNotNull(pDomTree);
 
     DomFrontiers.Frontier[] frontiers = computeFrontiers(pDomTree.getInput(), pDomTree.getDoms());
 
@@ -114,7 +115,7 @@ public final class DomFrontiers<T> {
    */
   public Set<T> getFrontier(T pNode) {
 
-    Objects.requireNonNull(pNode, "pNode must not be null");
+    checkNotNull(pNode);
 
     Integer id = input.getReversePostOrderId(pNode);
 
@@ -136,7 +137,7 @@ public final class DomFrontiers<T> {
    */
   public Set<T> getIteratedFrontier(Set<T> pNodes) {
 
-    Objects.requireNonNull(pNodes, "pNodes must not be null");
+    checkNotNull(pNodes);
 
     Set<T> frontier = new HashSet<>();
     Set<Integer> seen = new HashSet<>(); // a node is in seen if it is or has been in the waitlist
