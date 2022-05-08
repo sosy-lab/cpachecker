@@ -16,9 +16,26 @@ public class LocationCoverageMeasure implements CoverageMeasure {
 
   private final Multiset<Integer> coveredLocations;
   private final double maxCount;
+  private String coverageColor;
+
+  static final String DEFAULT_COVERAGE_COLOR = "#3aec49";
+  static final String DEFAULT_LOCATION_COLOR = "#fff";
+
+  public LocationCoverageMeasure(
+      Multiset<Integer> pCoveredLocations, double pMaxCount, String pCoverageColor) {
+    this(pCoveredLocations, pMaxCount);
+    coverageColor = pCoverageColor;
+  }
+
+  public LocationCoverageMeasure(
+      Set<Integer> pCoveredLocations, double pMaxCount, String pCoverageColor) {
+    this(pCoveredLocations, pMaxCount);
+    coverageColor = pCoverageColor;
+  }
 
   public LocationCoverageMeasure(Multiset<Integer> pCoveredLocations, double pMaxCount) {
     coveredLocations = pCoveredLocations;
+    coverageColor = DEFAULT_COVERAGE_COLOR;
     if (pMaxCount <= 0) {
       maxCount = 1.0;
     } else {
@@ -27,12 +44,7 @@ public class LocationCoverageMeasure implements CoverageMeasure {
   }
 
   public LocationCoverageMeasure(Set<Integer> pCoveredLocations, double pMaxCount) {
-    coveredLocations = LinkedHashMultiset.create(pCoveredLocations);
-    if (pMaxCount <= 0) {
-      maxCount = 1.0;
-    } else {
-      maxCount = pMaxCount;
-    }
+    this(LinkedHashMultiset.create(pCoveredLocations), pMaxCount);
   }
 
   public LocationCoverageMeasure() {
@@ -46,6 +58,14 @@ public class LocationCoverageMeasure implements CoverageMeasure {
 
   public Multiset<Integer> getCoveredLocations() {
     return coveredLocations;
+  }
+
+  public String getColor(Integer location) {
+    if (getCoveredSet().contains(location)) {
+      return coverageColor;
+    } else {
+      return DEFAULT_LOCATION_COLOR;
+    }
   }
 
   @Override

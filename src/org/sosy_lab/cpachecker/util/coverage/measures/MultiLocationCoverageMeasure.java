@@ -18,6 +18,8 @@ import java.util.Set;
 public class MultiLocationCoverageMeasure extends LocationCoverageMeasure {
   private final Multiset<Integer> alternativeCoveredLocations;
 
+  static final String DEFAULT_CONSIDERED_COLOR = "#ff6e6e";
+
   public MultiLocationCoverageMeasure(
       Multiset<Integer> pCoveredLocations,
       Multiset<Integer> pAlternativeCoveredLocations,
@@ -55,13 +57,14 @@ public class MultiLocationCoverageMeasure extends LocationCoverageMeasure {
     return frequencyColorMap;
   }
 
+  @Override
   public String getColor(Integer location) {
     if (getIntersectionLocations().contains(location)) {
-      return "#ff6e6e";
+      return DEFAULT_CONSIDERED_COLOR;
     } else if (getAlternativeCoveredSet().contains(location)) {
       return getLocationFrequencyColorMap().get(location);
     } else {
-      return "#fff";
+      return DEFAULT_LOCATION_COLOR;
     }
   }
 

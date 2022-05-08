@@ -364,6 +364,8 @@ public final class DOTBuilder2 {
     private final Map<String, Object> edges = new HashMap<>();
     private final CoverageMeasureHandler covHandler;
 
+    private static final String DEFAULT_LOCATION_COLOR = "#fff";
+
     public CFAJSONBuilder(CoverageMeasureHandler pCovHandler) {
       covHandler = pCovHandler;
     }
@@ -376,27 +378,7 @@ public final class DOTBuilder2 {
       jnode.put("func", node.getFunctionName());
       jnode.put("type", determineNodeType(node));
       jnode.put("loop", node.isLoopStart());
-
-      StringBuilder coverageProperties = new StringBuilder();
-      for (var type : covHandler.getAllTypes()) {
-        coverageProperties.append(type.getId()).append(":");
-        if (type.getCategory() == CoverageMeasureCategory.LocationBased) {
-          LocationCoverageMeasure locCov = (LocationCoverageMeasure) covHandler.getData(type);
-          if (locCov.getCoveredSet().contains(node.getNodeNumber())) {
-            if (type == CoverageMeasureType.ConsideredLocationsHeatMap) {
-              MultiLocationCoverageMeasure multiLocCov = (MultiLocationCoverageMeasure) locCov;
-              coverageProperties.append(multiLocCov.getColor(node.getNodeNumber())).append(";");
-            } else {
-              coverageProperties.append("#3aec49").append(";");
-            }
-          } else {
-            coverageProperties.append("#fff").append(";");
-          }
-        } else {
-          coverageProperties.append("#fff").append(";");
-        }
-      }
-      jnode.put("coverage", coverageProperties.toString());
+      jnode.put("coverage", determineNodeCoverageStyle(node));
 
       nodes.put(node.getNodeNumber(), jnode);
       return TraversalProcess.CONTINUE;
@@ -415,8 +397,26 @@ public final class DOTBuilder2 {
       jedge.put("type", edge.getEdgeType().toString());
 
       edges.put("" + src + "->" + target, jedge);
-
       return TraversalProcess.CONTINUE;
+    }
+
+    private String determineNodeCoverageStyle(CFANode node) {
+      StringBuilder coverageProperties = new StringBuilder();
+      for (var type : covHandler.getAllTypes()) {
+        coverageProperties.append(type.getId()).append(":");
+        if (type.getCategory() == CoverageMeasureCategory.LocationBased) {
+          LocationCoverageMeasure locCov = (LocationCoverageMeasure) covHandler.getData(type);
+          if (type == CoverageMeasureType.ConsideredLocationsHeatMap) {
+            MultiLocationCoverageMeasure multiLocCov = (MultiLocationCoverageMeasure) locCov;
+            coverageProperties.append(multiLocCov.getColor(node.getNodeNumber())).append(";");
+          } else {
+            coverageProperties.append(locCov.getColor(node.getNodeNumber())).append(";");
+          }
+        } else {
+          coverageProperties.append(DEFAULT_LOCATION_COLOR).append(";");
+        }
+      }
+      return coverageProperties.toString();
     }
 
     private String determineNodeType(CFANode node) {
