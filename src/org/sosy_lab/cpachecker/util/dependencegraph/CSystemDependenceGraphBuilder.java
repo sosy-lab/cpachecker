@@ -62,8 +62,8 @@ import org.sosy_lab.cpachecker.util.dependencegraph.FlowDepAnalysis.DependenceCo
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.EdgeType;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.Node;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.NodeType;
+import org.sosy_lab.cpachecker.util.graph.dominance.DomFrontiers;
 import org.sosy_lab.cpachecker.util.graph.dominance.DomTree;
-import org.sosy_lab.cpachecker.util.graph.dominance.Dominance;
 import org.sosy_lab.cpachecker.util.graph.dominance.DominanceUtils;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
@@ -734,7 +734,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
 
       new FlowDepAnalysis(
               domTree,
-              Dominance.createDomFrontiers(domTree),
+              DomFrontiers.createDomFrontiers(domTree),
               entryNode,
               isMain ? ImmutableList.of() : globalEdges,
               defUseExtractor,

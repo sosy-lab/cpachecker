@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.NodeTy
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.VisitResult;
 import org.sosy_lab.cpachecker.util.graph.dominance.DomFrontiers;
 import org.sosy_lab.cpachecker.util.graph.dominance.DomTree;
-import org.sosy_lab.cpachecker.util.graph.dominance.Dominance;
 import org.sosy_lab.cpachecker.util.graph.dominance.DominanceUtils;
 
 /**
@@ -111,7 +110,7 @@ final class ControlDependenceBuilder<N extends Node<AFunctionDeclaration, CFAEdg
       Set<CFANode> pPostDomTreeNodes,
       boolean pDependOnBothAssumptions) {
 
-    DomFrontiers<CFANode> frontiers = Dominance.createDomFrontiers(pPostDomTree);
+    DomFrontiers<CFANode> frontiers = DomFrontiers.createDomFrontiers(pPostDomTree);
     for (CFANode dependentNode : pPostDomTree) {
       int nodeId = pPostDomTree.getId(dependentNode);
       for (CFANode branchNode : frontiers.getFrontier(dependentNode)) {

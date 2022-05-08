@@ -31,6 +31,66 @@ public final class DomFrontiers<T> {
     frontiers = pFrontiers;
   }
 
+  /**
+   * Creates the {@link DomFrontiers}-object that contains the dominance frontier for every node in
+   * the dominance tree.
+   *
+   * @param <T> the node-type of the original graph.
+   * @param pDomTree the {@link DomTree} (dominance tree) of the original graph.
+   * @throws NullPointerException if {@code pDomTree} is {@code null}.
+   * @return the created {@link DomFrontiers}-object.
+   */
+  public static <T> DomFrontiers<T> createDomFrontiers(DomTree<T> pDomTree) {
+
+    Objects.requireNonNull(pDomTree, "pDomTree must not be null");
+
+    DomFrontiers.Frontier[] frontiers = computeFrontiers(pDomTree.getInput(), pDomTree.getDoms());
+
+    return new DomFrontiers<>(pDomTree.getInput(), frontiers);
+  }
+
+  /**
+   * For more information on the algorithm, see "A Simple, Fast Dominance Algorithm" (Cooper et
+   * al.).
+   */
+  private static DomFrontiers.Frontier[] computeFrontiers(
+      final DomInput<?> pInput, final int[] pDoms) {
+
+    DomFrontiers.Frontier[] frontiers = new DomFrontiers.Frontier[pInput.getNodeCount()];
+    for (int id = 0; id < frontiers.length; id++) {
+      frontiers[id] = new DomFrontiers.Frontier();
+    }
+
+    int index = 0; // index for input data (data format is specified in DomInput)
+    for (int id = 0; id < pInput.getNodeCount(); id++) { // all nodes
+
+      if (pInput.getValue(index) == DomInput.DELIMITER) { // has no predecessors?
+        index++; // skip delimiter
+        continue;
+      }
+
+      if (pInput.getValue(index + 1) == DomInput.DELIMITER) { // has exactly one predecessor?
+        index += 2; // skip only predecessor + delimiter
+        continue;
+      }
+
+      int runner;
+      while ((runner = pInput.getValue(index)) != DomInput.DELIMITER) { // all predecessors of node
+
+        while (runner != DomTree.UNDEFINED && runner != pDoms[id]) {
+          frontiers[runner].add(id);
+          runner = pDoms[runner];
+        }
+
+        index++; // next predecessor
+      }
+
+      index++; // skip delimiter
+    }
+
+    return frontiers;
+  }
+
   private Set<T> getFrontier(int pId) {
 
     Frontier frontier = frontiers[pId];
