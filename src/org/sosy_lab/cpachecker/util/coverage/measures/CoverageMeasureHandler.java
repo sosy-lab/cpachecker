@@ -104,8 +104,8 @@ public class CoverageMeasureHandler {
     return coverageMeasureMap;
   }
 
-  public void fillCoverageData(CoverageData pCoverageData) {
-    CoverageStatistics covStatistics = new CoverageStatistics(pCoverageData);
+  public void fillCoverageData(CoverageData coverageData) {
+    CoverageStatistics covStatistics = new CoverageStatistics(coverageData);
     for (var type : getAllTypes()) {
       LocationCoverageMeasure locCov;
       LineCoverageMeasure lineCov;
@@ -134,7 +134,7 @@ public class CoverageMeasureHandler {
           break;
         case ConsideredLinesHeatMap:
           lineCov =
-              new LineCoverageMeasure(covStatistics.visitedLines, covStatistics.numTotalLines);
+              new LineCoverageMeasure(coverageData.getInfosPerFile(), covStatistics.numTotalLines);
           addData(type, lineCov);
           break;
         case PredicateConsidered:
