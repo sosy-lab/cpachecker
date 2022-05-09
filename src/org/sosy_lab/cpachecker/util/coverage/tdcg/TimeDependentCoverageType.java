@@ -33,10 +33,6 @@ public enum TimeDependentCoverageType {
     return name;
   }
 
-  public String getId() {
-    return getName().replaceAll("-|\\s+", "");
-  }
-
   public String getColor() {
     return color;
   }

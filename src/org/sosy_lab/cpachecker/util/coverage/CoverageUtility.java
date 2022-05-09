@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
-import org.sosy_lab.cpachecker.cpa.coverage.CoverageCPA;
+import org.sosy_lab.cpachecker.cpa.coverage.AnalysisIndependentCoverageCPA;
 import org.sosy_lab.cpachecker.cpa.coverage.PredicateCoverageCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -101,21 +101,17 @@ public class CoverageUtility {
             }
           }
           for (var wrappedCPA : wrappedCPAs) {
-            if (wrappedCPA instanceof CoverageCPA) {
+            if (wrappedCPA instanceof AnalysisIndependentCoverageCPA) {
+              CoverageData analysisIndependentCoverageData =
+                  ((AnalysisIndependentCoverageCPA) wrappedCPA).getCoverageData();
               if (usedPredicateCoverageCPA) {
-                TimeDependentCoverageType type = TimeDependentCoverageType.VisitedLines;
-                TimeDependentCoverageData data =
-                    ((CoverageCPA) wrappedCPA).getCoverageData().getTDCGHandler().getData(type);
-                Map<String, FilePredicateCoverageStatistics> predicateStatistics =
-                    coverageData.getPredicateStatistics();
-                ((CoverageCPA) wrappedCPA)
-                    .getCoverageData()
-                    .setPredicateStatistics(predicateStatistics);
-                coverageData.setInfosPerFile(
-                    ((CoverageCPA) wrappedCPA).getCoverageData().getInfosPerFile());
-                coverageData.getTDCGHandler().addData(type, data);
+                coverageData.getTDCGHandler().mergeData(analysisIndependentCoverageData
+                    .getTDCGHandler());
+                coverageData.getCoverageHandler().mergeData(analysisIndependentCoverageData
+                    .getCoverageHandler());
+                coverageData.mergeInfosPerFile(analysisIndependentCoverageData);
               } else {
-                coverageData = ((CoverageCPA) wrappedCPA).getCoverageData();
+                coverageData = analysisIndependentCoverageData;
               }
             }
           }

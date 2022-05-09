@@ -9,25 +9,28 @@
 package org.sosy_lab.cpachecker.util.coverage.tdcg;
 
 import com.google.common.collect.ImmutableList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureHandler;
 
 public class TimeDependentCoverageHandler {
 
-  private final Map<TimeDependentCoverageType, TimeDependentCoverageData>
+  private Map<TimeDependentCoverageType, TimeDependentCoverageData>
       timeDependentCoverageDataMap;
 
   public TimeDependentCoverageHandler() {
-    timeDependentCoverageDataMap = new HashMap<>();
+    timeDependentCoverageDataMap = new LinkedHashMap<>();
   }
 
   public void initNewData(TimeDependentCoverageType type) {
     timeDependentCoverageDataMap.put(type, new TimeDependentCoverageData());
   }
 
-  // Configure which TDCG should be tracked during the analysis
-  public void initAllTDCG() {
+  public void initAnalysisIndependentTDCG() {
     initNewData(TimeDependentCoverageType.VisitedLines);
+  }
+
+  public void initPredicateAnalysisTDCG() {
     initNewData(TimeDependentCoverageType.PredicatesGenerated);
     initNewData(TimeDependentCoverageType.PredicateConsideredLocations);
     initNewData(TimeDependentCoverageType.PredicateRelevantVariables);
@@ -44,5 +47,16 @@ public class TimeDependentCoverageHandler {
 
   public TimeDependentCoverageData getData(TimeDependentCoverageType type) {
     return timeDependentCoverageDataMap.get(type);
+  }
+
+  public Map<TimeDependentCoverageType, TimeDependentCoverageData> getTimeDependentCoverageDataMap() {
+    return timeDependentCoverageDataMap;
+  }
+
+  public void mergeData(TimeDependentCoverageHandler secondHandler) {
+    for (var type : getAllTypes()) {
+      secondHandler.addData(type, getData(type));
+    }
+    timeDependentCoverageDataMap = secondHandler.getTimeDependentCoverageDataMap();
   }
 }

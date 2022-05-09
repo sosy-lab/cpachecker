@@ -73,23 +73,8 @@ const graphSplitThreshold = 700;
 let cfaSplit = false;
 let argTabDisabled = false;
 
-// helper functions
-function isEmpty(obj) {
-  if (obj) {
-    return Object.keys(obj).length === 0;
-  }
-  return true;
-}
-
-function isAlmostEmpty(obj) {
-  if (obj) {
-    return Object.keys(obj).length < 2;
-  }
-  return true;
-}
-
 function renderTDCG(dataJSON, color, inPercentage) {
-  if (isAlmostEmpty(dataJSON)) {
+  if (dataJSON === undefined || Object.keys(dataJSON).length < 2) {
     return;
   }
   const windowWidth =
@@ -331,7 +316,7 @@ function renderTDCG(dataJSON, color, inPercentage) {
 
     // Initialize Time Dependent Coverage Chart
     $(document).ready(() => {
-      if (isAlmostEmpty(tdcgJson)) {
+      if (tdcgJson === undefined || tdcgJson.length <= 0) {
         d3.select("#tdcg-toolbar-button").style("display", "none");
       }
     });
@@ -1388,14 +1373,14 @@ function renderTDCG(dataJSON, color, inPercentage) {
       $scope.tdcgSelections = [];
       if (tdcgJson !== undefined && tdcgJson.length > 0) {
         for (let i = 0; i < tdcgJson.length; i += 1) {
-          $scope.tdcgSelections.push(tdcgJson[i].type);
+          $scope.tdcgSelections.push(tdcgJson[i].name);
         }
       }
       $rootScope.displayedTDCG = $scope.tdcgSelections[0];
 
       $scope.displayTDCG = () => {
         for (let i = 0; i < tdcgJson.length; i += 1) {
-          if (tdcgJson[i].type === $rootScope.displayedTDCG) {
+          if (tdcgJson[i].name === $rootScope.displayedTDCG) {
             $scope.removeTDCG();
             $scope.renderTDCG(
               tdcgJson[i].data,

@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.util.coverage;
 
 import com.google.common.collect.Collections2;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultiset;
 import java.util.Collection;
 import java.util.Collections;
@@ -24,6 +23,7 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cpa.coverage.AnalysisIndependentCoverageCPA;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureHandler;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureType;
@@ -41,8 +41,16 @@ public final class CoverageData {
   public CoverageData() {
     timeDependentCoverageHandler = new TimeDependentCoverageHandler();
     coverageMeasureHandler = new CoverageMeasureHandler();
-    timeDependentCoverageHandler.initAllTDCG();
-    coverageMeasureHandler.initAllCoverageMeasures();
+  }
+
+  public void initAnalysisIndependentStatisticHandlers() {
+    timeDependentCoverageHandler.initAnalysisIndependentTDCG();
+    coverageMeasureHandler.initAnalysisIndependentMeasures();
+  }
+
+  public void initPredicateAnalysisStatisticsHandlers() {
+    timeDependentCoverageHandler.initPredicateAnalysisTDCG();
+    coverageMeasureHandler.initPredicateAnalysisMeasures();
   }
 
   public TimeDependentCoverageHandler getTDCGHandler() {
@@ -155,11 +163,11 @@ public final class CoverageData {
   public double getPredicateCoverage() {
     TimeDependentCoverageData timeStampsPerPredicateCoverage =
         timeDependentCoverageHandler.getData(TimeDependentCoverageType.PredicatesGenerated);
-    ImmutableList<Double> coverageList = timeStampsPerPredicateCoverage.getCoverageList();
-    if (coverageList.isEmpty()) {
+    if (timeStampsPerPredicateCoverage == null
+        || timeStampsPerPredicateCoverage.getCoverageList().isEmpty()) {
       return 0.0;
     }
-    return Collections.max(coverageList);
+    return Collections.max(timeStampsPerPredicateCoverage.getCoverageList());
   }
 
   public void addVisitedEdge(final CFAEdge pEdge) {
@@ -345,5 +353,10 @@ public final class CoverageData {
 
   public void setInfosPerFile(Map<String, FileCoverageStatistics> pInfosPerFile) {
     infosPerFile = pInfosPerFile;
+  }
+
+  public void mergeInfosPerFile(CoverageData otherCoverageData) {
+    otherCoverageData.setPredicateStatistics(getPredicateStatistics());
+    setInfosPerFile(otherCoverageData.getInfosPerFile());
   }
 }

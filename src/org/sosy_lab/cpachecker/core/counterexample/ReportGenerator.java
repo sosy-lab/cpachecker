@@ -190,7 +190,8 @@ public class ReportGenerator {
       return;
     }
 
-    // extract further coverage data captured during the analysis if CoverageCPA is present
+    // extract further coverage data captured during the analysis if AnalysisIndependentCoverageCPA
+    // is present
     CoverageData coverageData = CoverageUtility.getCoverageDataFromReachedSet(pReached);
     TimeDependentCoverageHandler tdcgHandler = coverageData.getTDCGHandler();
     CoverageMeasureHandler covHandler = coverageData.getCoverageHandler();
@@ -369,8 +370,8 @@ public class ReportGenerator {
     for (TimeDependentCoverageType type : tdcgHandler.getAllTypes()) {
       Map<Long, Double> timeStampsPerCoverage =
           tdcgHandler.getData(type).getReducedTimeStampsPerCoverage(MAX_DATA_POINTS_TDCG);
-      writer.write("{\"type\":");
-      JSON.writeJSONString(type.getId(), writer);
+      writer.write("{\"name\":");
+      JSON.writeJSONString(type.getName(), writer);
       writer.write(",\"color\":");
       JSON.writeJSONString(type.getColor(), writer);
       writer.write(",\"percentage\":");

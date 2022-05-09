@@ -34,6 +34,7 @@ public class PredicateCoverageCPA extends AbstractSingleWrapperCPA {
   private PredicateCoverageCPA(ConfigurableProgramAnalysis pCpa, CFA pCFA)
       throws InvalidConfigurationException {
     super(pCpa);
+    coverageData.initPredicateAnalysisStatisticsHandlers();
     coverageData.putCFA(pCFA);
     cfa = pCFA;
     fmgr = getFormulaManagerView();

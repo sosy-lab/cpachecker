@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.cpa.coverage;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
-public enum CoverageAbstractState implements AbstractState {
+public enum AnalysisIndependentCoverageAbstractState implements AbstractState {
   INSTANCE;
 
   @Override

@@ -22,12 +22,12 @@ import org.sosy_lab.cpachecker.util.coverage.CoverageUtility;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageData;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageType;
 
-public class CoverageTransferRelation extends SingleEdgeTransferRelation {
+public class AnalysisIndependentCoverageTransferRelation extends SingleEdgeTransferRelation {
 
   private final CoverageData coverageData;
   private final TimeDependentCoverageData visitedTDCG;
 
-  public CoverageTransferRelation(CoverageData pCoverageData) {
+  public AnalysisIndependentCoverageTransferRelation(CoverageData pCoverageData) {
     coverageData = Preconditions.checkNotNull(pCoverageData);
     visitedTDCG = coverageData.getTDCGHandler().getData(TimeDependentCoverageType.VisitedLines);
   }

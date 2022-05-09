@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.util.coverage.CoverageData;
 import org.sosy_lab.cpachecker.util.coverage.report.CoverageStatistics;
 
 public class CoverageMeasureHandler {
-  private final Map<CoverageMeasureType, CoverageMeasure> coverageMeasureMap;
+  private Map<CoverageMeasureType, CoverageMeasure> coverageMeasureMap;
 
   public CoverageMeasureHandler() {
     coverageMeasureMap = new LinkedHashMap<>();
@@ -39,12 +39,15 @@ public class CoverageMeasureHandler {
     coverageMeasureMap.put(type, coverageMeasure);
   }
 
-  public void initAllCoverageMeasures() {
+  public void initAnalysisIndependentMeasures() {
     initNewData(CoverageMeasureType.None);
     initNewData(CoverageMeasureType.VisitedLocations);
     initNewData(CoverageMeasureType.ReachedLocations);
     initNewData(CoverageMeasureType.ConsideredLocationsHeatMap);
     initNewData(CoverageMeasureType.ConsideredLinesHeatMap);
+  }
+
+  public void initPredicateAnalysisMeasures() {
     initNewData(CoverageMeasureType.PredicateConsidered);
     initNewData(CoverageMeasureType.PredicateRelevantVariables);
   }
@@ -81,6 +84,17 @@ public class CoverageMeasureHandler {
       }
     }
     return false;
+  }
+
+  public void mergeData(CoverageMeasureHandler secondHandler) {
+    for (var type : getAllTypes()) {
+      secondHandler.addData(type, getData(type));
+    }
+    coverageMeasureMap = secondHandler.getCoverageMeasureMap();
+  }
+
+  public Map<CoverageMeasureType, CoverageMeasure> getCoverageMeasureMap() {
+    return coverageMeasureMap;
   }
 
   public void fillCoverageData(CoverageData pCoverageData) {

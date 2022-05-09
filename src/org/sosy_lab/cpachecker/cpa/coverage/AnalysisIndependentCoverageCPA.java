@@ -24,10 +24,10 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.util.coverage.CoverageData;
 
-public class CoverageCPA implements ConfigurableProgramAnalysis {
+public class AnalysisIndependentCoverageCPA implements ConfigurableProgramAnalysis {
 
   public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(CoverageCPA.class);
+    return AutomaticCPAFactory.forType(AnalysisIndependentCoverageCPA.class);
   }
 
   private final TransferRelation transfer;
@@ -35,12 +35,13 @@ public class CoverageCPA implements ConfigurableProgramAnalysis {
   private final StopOperator stop;
   private final CoverageData coverageData = new CoverageData();
 
-  public CoverageCPA(CFA pCFA) {
+  public AnalysisIndependentCoverageCPA(CFA pCFA) {
+    coverageData.initAnalysisIndependentStatisticHandlers();
     coverageData.putCFA(pCFA);
     coverageData.addInitialNodesForMeasures(pCFA);
-    domain = new FlatLatticeDomain(CoverageAbstractState.INSTANCE);
+    domain = new FlatLatticeDomain(AnalysisIndependentCoverageAbstractState.INSTANCE);
     stop = new StopSepOperator(domain);
-    transfer = new CoverageTransferRelation(coverageData);
+    transfer = new AnalysisIndependentCoverageTransferRelation(coverageData);
   }
 
   public CoverageData getCoverageData() {
@@ -69,6 +70,6 @@ public class CoverageCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition) {
-    return CoverageAbstractState.INSTANCE;
+    return AnalysisIndependentCoverageAbstractState.INSTANCE;
   }
 }
