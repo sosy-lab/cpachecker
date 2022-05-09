@@ -11,14 +11,17 @@ package org.sosy_lab.cpachecker.util.graph.dominance;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.primitives.ImmutableIntArray;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.collect.Collections3;
 
 /**
  * Represents dominance frontiers for nodes in a graph.
@@ -30,12 +33,12 @@ public final class DomFrontiers<T> {
   private final DomInput<T> input;
 
   // dominance frontier for node with ID == 0, dominance frontier for node with ID == 1, etc.
-  private final List<Set<Integer>> frontiers;
+  private final ImmutableList<ImmutableSet<Integer>> frontiers;
 
-  private DomFrontiers(DomInput<T> pInput, List<Set<Integer>> pFrontiers) {
+  private DomFrontiers(DomInput<T> pInput, List<? extends Set<Integer>> pFrontiers) {
 
     input = pInput;
-    frontiers = pFrontiers;
+    frontiers = Collections3.transformedImmutableListCopy(pFrontiers, ImmutableSet::copyOf);
   }
 
   /**
@@ -52,7 +55,8 @@ public final class DomFrontiers<T> {
 
     checkNotNull(pDomTree);
 
-    List<Set<Integer>> frontiers = computeFrontiers(pDomTree.getInput(), pDomTree.getDoms());
+    ImmutableList<ImmutableSet<Integer>> frontiers =
+        computeFrontiers(pDomTree.getInput(), pDomTree.getDoms());
 
     return new DomFrontiers<>(pDomTree.getInput(), frontiers);
   }
@@ -61,9 +65,11 @@ public final class DomFrontiers<T> {
    * For more information on the algorithm, see "A Simple, Fast Dominance Algorithm" (Cooper et
    * al.).
    */
-  private static List<Set<Integer>> computeFrontiers(DomInput<?> pInput, int[] pDoms) {
+  private static ImmutableList<ImmutableSet<Integer>> computeFrontiers(
+      DomInput<?> pInput, int[] pDoms) {
 
-    int[] predecessors = pInput.getPredecessors();
+    // data format is specified in `DomInput`
+    ImmutableIntArray predecessorsData = pInput.getPredecessors();
 
     List<Set<Integer>> frontiers = new ArrayList<>(pInput.getNodeCount());
 
@@ -71,21 +77,21 @@ public final class DomFrontiers<T> {
       frontiers.add(new HashSet<>());
     }
 
-    int index = 0; // index for input data (data format is specified in `DomInput`)
+    int index = 0; // index for predecessor data
     for (int id = 0; id < pInput.getNodeCount(); id++) { // all nodes
 
-      if (predecessors[index] == DomInput.DELIMITER) { // has no predecessors?
+      if (predecessorsData.get(index) == DomInput.DELIMITER) { // has no predecessors?
         index++; // skip delimiter
         continue;
       }
 
-      if (predecessors[index + 1] == DomInput.DELIMITER) { // has only one predecessor?
+      if (predecessorsData.get(index + 1) == DomInput.DELIMITER) { // has only one predecessor?
         index += 2; // skip single predecessor + delimiter
         continue;
       }
 
       int runner;
-      while ((runner = predecessors[index]) != DomInput.DELIMITER) { // all predecessors of node
+      while ((runner = predecessorsData.get(index)) != DomInput.DELIMITER) { // node predecessors
 
         while (runner != DomTree.UNDEFINED && runner != pDoms[id]) {
           frontiers.get(runner).add(id);
@@ -98,31 +104,25 @@ public final class DomFrontiers<T> {
       index++; // skip delimiter
     }
 
-    return frontiers;
+    return Collections3.transformedImmutableListCopy(frontiers, ImmutableSet::copyOf);
   }
 
-  private Set<T> getFrontier(int pId) {
+  private ImmutableSet<T> getFrontier(int pId) {
 
-    Set<Integer> frontier = frontiers.get(pId);
-    Set<T> nodeSet = new HashSet<>();
-
-    for (int id : frontier) {
-      nodeSet.add(input.getNodeForReversePostOrderId(id));
-    }
-
-    return Collections.unmodifiableSet(nodeSet);
+    return Collections3.transformedImmutableSetCopy(
+        frontiers.get(pId), input::getNodeForReversePostOrderId);
   }
 
   /**
    * Returns the dominance frontier for the specified node.
    *
    * @param pNode the node to get the dominance frontier for
-   * @return an unmodifiable set consisting of the dominance frontier for the specified node
+   * @return an immutable set consisting of the dominance frontier for the specified node
    * @throws NullPointerException if {@code pNode == null}
    * @throws IllegalArgumentException if {@code pNode} is unknown (i.e., was not visited during
    *     graph traversal for dominance tree construction)
    */
-  public Set<T> getFrontier(T pNode) {
+  public ImmutableSet<T> getFrontier(T pNode) {
 
     checkNotNull(pNode);
 
@@ -142,7 +142,7 @@ public final class DomFrontiers<T> {
    * @throws IllegalArgumentException if any node in {@code pNodes} is unknown (i.e., was not
    *     visited during graph traversal for dominance tree construction)
    */
-  public Set<T> getIteratedFrontier(Set<T> pNodes) {
+  public ImmutableSet<T> getIteratedFrontier(Set<T> pNodes) {
 
     checkNotNull(pNodes);
 
@@ -176,7 +176,7 @@ public final class DomFrontiers<T> {
       }
     }
 
-    return Collections.unmodifiableSet(iteratedFrontier);
+    return ImmutableSet.copyOf(iteratedFrontier);
   }
 
   @Override

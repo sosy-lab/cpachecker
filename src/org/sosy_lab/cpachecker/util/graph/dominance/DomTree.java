@@ -18,6 +18,7 @@ import com.google.common.graph.ImmutableGraph;
 import com.google.common.graph.MutableGraph;
 import com.google.common.graph.PredecessorsFunction;
 import com.google.common.graph.SuccessorsFunction;
+import com.google.common.primitives.ImmutableIntArray;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -88,7 +89,8 @@ public final class DomTree<T> implements Iterable<T> {
    */
   private static int[] computeDoms(DomInput<?> pInput) {
 
-    int[] predecessors = pInput.getPredecessors();
+    // data format is described in `DomInput`
+    ImmutableIntArray predecessorsData = pInput.getPredecessors();
 
     int startNode = pInput.getNodeCount() - 1; // the start node has the greatest ID
     int[] doms = new int[pInput.getNodeCount()]; // doms[x] == immediate dominator of x
@@ -100,12 +102,12 @@ public final class DomTree<T> implements Iterable<T> {
     while (changed) {
       changed = false;
 
-      int index = 0; // index for input data (data format is described in `DomInput`)
+      int index = 0; // index for predecessors data
       for (int id = 0; id < startNode; id++) { // all nodes in reverse post-order (except start)
         int idom = UNDEFINED; // immediate dominator for node
 
-        int predecessor;
-        while ((predecessor = predecessors[index]) != DomInput.DELIMITER) { // all node predecessors
+        int predecessor; // node predecessors
+        while ((predecessor = predecessorsData.get(index)) != DomInput.DELIMITER) {
 
           if (doms[predecessor] != UNDEFINED) { // does predecessor have an immediate dominator?
             if (idom != UNDEFINED) { // is idom already initialized?

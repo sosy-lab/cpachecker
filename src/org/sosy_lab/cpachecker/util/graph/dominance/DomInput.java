@@ -8,10 +8,12 @@
 
 package org.sosy_lab.cpachecker.util.graph.dominance;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.graph.PredecessorsFunction;
 import com.google.common.graph.SuccessorsFunction;
 import com.google.common.graph.Traverser;
+import com.google.common.primitives.ImmutableIntArray;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -33,7 +35,7 @@ final class DomInput<T> {
   static final int DELIMITER = -2;
 
   private final ImmutableMap<T, Integer> ids;
-  private final T[] nodes;
+  private final ImmutableList<T> nodes;
 
   // The format for predecessors has the following properties:
   //  - all data ist stored in a single int array
@@ -50,13 +52,13 @@ final class DomInput<T> {
   //  - node 1 has 1 predecessor
   //  - node 2 has 0 predecessors
   //  - node 3 has (at least) 1 predecessor
-  private final int[] predecessors;
+  private final ImmutableIntArray predecessors;
 
-  private DomInput(ImmutableMap<T, Integer> pIds, T[] pNodes, int[] pPredecessors) {
+  private DomInput(Map<T, Integer> pIds, T[] pNodes, int[] pPredecessors) {
 
-    ids = pIds;
-    nodes = pNodes;
-    predecessors = pPredecessors;
+    ids = ImmutableMap.copyOf(pIds);
+    nodes = ImmutableList.copyOf(pNodes);
+    predecessors = ImmutableIntArray.copyOf(pPredecessors);
   }
 
   /**
@@ -151,14 +153,14 @@ final class DomInput<T> {
   }
 
   T getNodeForReversePostOrderId(int pId) {
-    return nodes[pId];
+    return nodes.get(pId);
   }
 
-  int[] getPredecessors() {
+  ImmutableIntArray getPredecessors() {
     return predecessors;
   }
 
   int getNodeCount() {
-    return nodes.length;
+    return nodes.size();
   }
 }
