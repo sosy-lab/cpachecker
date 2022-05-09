@@ -373,11 +373,14 @@ public final class DomTree<T> implements Iterable<T> {
             .build();
 
     for (int id = 0; id < getNodeCount(); id++) {
+      T node = input.getNodeForReversePostOrderId(id);
+      mutableGraph.addNode(node);
+    }
+
+    for (int id = 0; id < getNodeCount(); id++) {
       if (hasParent(id)) {
         T node = input.getNodeForReversePostOrderId(id);
         T parent = input.getNodeForReversePostOrderId(getParent(id));
-        mutableGraph.addNode(node);
-        mutableGraph.addNode(parent);
         mutableGraph.putEdge(parent, node);
       }
     }
