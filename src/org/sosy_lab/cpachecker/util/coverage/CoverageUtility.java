@@ -13,7 +13,6 @@ import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
@@ -31,9 +30,6 @@ import org.sosy_lab.cpachecker.cpa.coverage.AnalysisIndependentCoverageCPA;
 import org.sosy_lab.cpachecker.cpa.coverage.PredicateCoverageCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.coverage.report.FilePredicateCoverageStatistics;
-import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageData;
-import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageType;
 
 public class CoverageUtility {
 
@@ -105,10 +101,12 @@ public class CoverageUtility {
               CoverageData analysisIndependentCoverageData =
                   ((AnalysisIndependentCoverageCPA) wrappedCPA).getCoverageData();
               if (usedPredicateCoverageCPA) {
-                coverageData.getTDCGHandler().mergeData(analysisIndependentCoverageData
-                    .getTDCGHandler());
-                coverageData.getCoverageHandler().mergeData(analysisIndependentCoverageData
-                    .getCoverageHandler());
+                coverageData
+                    .getTDCGHandler()
+                    .mergeData(analysisIndependentCoverageData.getTDCGHandler());
+                coverageData
+                    .getCoverageHandler()
+                    .mergeData(analysisIndependentCoverageData.getCoverageHandler());
                 coverageData.mergeInfosPerFile(analysisIndependentCoverageData);
               } else {
                 coverageData = analysisIndependentCoverageData;

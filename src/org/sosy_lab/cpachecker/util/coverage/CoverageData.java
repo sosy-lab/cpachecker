@@ -23,7 +23,6 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cpa.coverage.AnalysisIndependentCoverageCPA;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureHandler;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureType;

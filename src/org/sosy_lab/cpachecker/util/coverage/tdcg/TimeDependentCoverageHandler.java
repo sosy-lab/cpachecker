@@ -11,12 +11,10 @@ package org.sosy_lab.cpachecker.util.coverage.tdcg;
 import com.google.common.collect.ImmutableList;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureHandler;
 
 public class TimeDependentCoverageHandler {
 
-  private Map<TimeDependentCoverageType, TimeDependentCoverageData>
-      timeDependentCoverageDataMap;
+  private Map<TimeDependentCoverageType, TimeDependentCoverageData> timeDependentCoverageDataMap;
 
   public TimeDependentCoverageHandler() {
     timeDependentCoverageDataMap = new LinkedHashMap<>();
@@ -49,7 +47,8 @@ public class TimeDependentCoverageHandler {
     return timeDependentCoverageDataMap.get(type);
   }
 
-  public Map<TimeDependentCoverageType, TimeDependentCoverageData> getTimeDependentCoverageDataMap() {
+  public Map<TimeDependentCoverageType, TimeDependentCoverageData>
+      getTimeDependentCoverageDataMap() {
     return timeDependentCoverageDataMap;
   }
 
