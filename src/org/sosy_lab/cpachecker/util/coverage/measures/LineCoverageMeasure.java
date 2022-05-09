@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.coverage.measures;
 
-import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
 import java.util.LinkedHashMap;
 import java.util.Map;
