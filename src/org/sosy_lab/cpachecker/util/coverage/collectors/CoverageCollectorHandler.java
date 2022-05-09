@@ -34,6 +34,18 @@ public class CoverageCollectorHandler {
     infosPerFile = new LinkedHashMap<>();
     timeDependentCoverageHandler = new TimeDependentCoverageHandler();
     coverageMeasureHandler = new CoverageMeasureHandler();
+    analysisIndependentCoverageCollector =
+        new AnalysisIndependentCoverageCollector(
+            infosPerFile, coverageMeasureHandler, timeDependentCoverageHandler);
+    predicateAnalysisCoverageCollector =
+        new PredicateAnalysisCoverageCollector(
+            infosPerFile, coverageMeasureHandler, timeDependentCoverageHandler);
+    counterexampleCoverageCollector =
+        new CounterexampleCoverageCollector(
+            infosPerFile, coverageMeasureHandler, timeDependentCoverageHandler);
+    reachedSetCoverageCollector =
+        new ReachedSetCoverageCollector(
+            infosPerFile, coverageMeasureHandler, timeDependentCoverageHandler);
   }
 
   void initAllCollectors(CFA cfa) {

@@ -48,6 +48,13 @@ public class ReachedSetCoverageCollector extends CoverageCollector {
     super(pInfosPerFile, pCoverageMeasureHandler, pTimeDependentCoverageHandler, cfa);
   }
 
+  ReachedSetCoverageCollector(
+      Map<String, FileCoverageStatistics> pInfosPerFile,
+      CoverageMeasureHandler pCoverageMeasureHandler,
+      TimeDependentCoverageHandler pTimeDependentCoverageHandler) {
+    super(pInfosPerFile, pCoverageMeasureHandler, pTimeDependentCoverageHandler);
+  }
+
   public void collectFromReachedSet(
       UnmodifiableReachedSet reachedSet, CFA cfa, ConfigurableProgramAnalysis cpa) {
     FluentIterable<AbstractState> reached = FluentIterable.from(reachedSet);
